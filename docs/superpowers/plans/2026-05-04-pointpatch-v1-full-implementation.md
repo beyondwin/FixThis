@@ -166,7 +166,7 @@ git commit -m "build: create PointPatch multi-project build"
 - Create: `sample/src/main/java/io/github/pointpatch/sample/screens/EdgeCasesScreen.kt`
 - Test: `sample/src/androidTest/java/io/github/pointpatch/sample/SampleAppSmokeTest.kt`
 
-- [ ] **Step 1: Replace the sample module build**
+- [x] **Step 1: Replace the sample module build**
 
 Create `sample/build.gradle.kts`:
 
@@ -211,7 +211,7 @@ dependencies {
 }
 ```
 
-- [ ] **Step 2: Create Android manifest**
+- [x] **Step 2: Create Android manifest**
 
 Create `sample/src/main/AndroidManifest.xml`:
 
@@ -234,7 +234,7 @@ Create `sample/src/main/AndroidManifest.xml`:
 </manifest>
 ```
 
-- [ ] **Step 3: Create minimal theme resources**
+- [x] **Step 3: Create minimal theme resources**
 
 Create `sample/src/main/res/values/styles.xml`:
 
@@ -244,7 +244,7 @@ Create `sample/src/main/res/values/styles.xml`:
 </resources>
 ```
 
-- [ ] **Step 4: Create Compose entry activity**
+- [x] **Step 4: Create Compose entry activity**
 
 Create `sample/src/main/java/io/github/pointpatch/sample/MainActivity.kt`:
 
@@ -265,7 +265,7 @@ class MainActivity : ComponentActivity() {
 }
 ```
 
-- [ ] **Step 5: Create tabbed sample app shell**
+- [x] **Step 5: Create tabbed sample app shell**
 
 Create `sample/src/main/java/io/github/pointpatch/sample/SampleApp.kt`:
 
@@ -332,7 +332,7 @@ fun SampleApp() {
 }
 ```
 
-- [ ] **Step 6: Add Checkout screen**
+- [x] **Step 6: Add Checkout screen**
 
 Create `sample/src/main/java/io/github/pointpatch/sample/screens/CheckoutScreen.kt`:
 
@@ -391,7 +391,7 @@ fun CheckoutScreen(padding: PaddingValues) {
 }
 ```
 
-- [ ] **Step 7: Add Feed screen**
+- [x] **Step 7: Add Feed screen**
 
 Create `sample/src/main/java/io/github/pointpatch/sample/screens/FeedScreen.kt`:
 
@@ -449,7 +449,7 @@ fun FeedScreen(padding: PaddingValues) {
 }
 ```
 
-- [ ] **Step 8: Add Form screen**
+- [x] **Step 8: Add Form screen**
 
 Create `sample/src/main/java/io/github/pointpatch/sample/screens/FormScreen.kt`:
 
@@ -515,7 +515,7 @@ fun FormScreen(padding: PaddingValues) {
 }
 ```
 
-- [ ] **Step 9: Add Dialog screen**
+- [x] **Step 9: Add Dialog screen**
 
 Create `sample/src/main/java/io/github/pointpatch/sample/screens/DialogScreen.kt`:
 
@@ -570,7 +570,7 @@ fun DialogScreen(padding: PaddingValues) {
 }
 ```
 
-- [ ] **Step 10: Add Canvas screen**
+- [x] **Step 10: Add Canvas screen**
 
 Create `sample/src/main/java/io/github/pointpatch/sample/screens/CanvasScreen.kt`:
 
@@ -623,7 +623,7 @@ fun CanvasScreen(padding: PaddingValues) {
 }
 ```
 
-- [ ] **Step 11: Add Edge Cases screen**
+- [x] **Step 11: Add Edge Cases screen**
 
 Create `sample/src/main/java/io/github/pointpatch/sample/screens/EdgeCasesScreen.kt`:
 
@@ -673,7 +673,7 @@ fun EdgeCasesScreen(padding: PaddingValues) {
 }
 ```
 
-- [ ] **Step 12: Add sample smoke test**
+- [x] **Step 12: Add sample smoke test**
 
 Create `sample/src/androidTest/java/io/github/pointpatch/sample/SampleAppSmokeTest.kt`:
 
@@ -703,6 +703,8 @@ class SampleAppSmokeTest {
 
 - [ ] **Step 13: Run sample tests**
 
+Progress: `:sample:assembleDebug` passes with `ANDROID_HOME=/Users/kws/Library/Android/sdk`, but `:sample:connectedDebugAndroidTest` is environment-blocked because no device/emulator is connected.
+
 Run:
 
 ```bash
@@ -711,7 +713,7 @@ Run:
 
 Expected: debug APK builds and smoke test passes on a connected device/emulator.
 
-- [ ] **Step 14: Commit**
+- [x] **Step 14: Commit**
 
 ```bash
 git add sample
