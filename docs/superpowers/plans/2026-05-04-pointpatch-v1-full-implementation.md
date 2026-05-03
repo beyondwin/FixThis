@@ -1104,11 +1104,11 @@ git commit -m "core: add selection and source matching"
 - Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/overlay/PointPatchCommentSheet.kt`
 - Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/overlay/PointPatchHighlightLayer.kt`
 
-- [ ] **Step 1: Configure overlay module**
+- [x] **Step 1: Configure overlay module**
 
 Create Android library module with Compose enabled and dependency on `:pointpatch-compose-core`.
 
-- [ ] **Step 2: Add overlay state model**
+- [x] **Step 2: Add overlay state model**
 
 Create sealed state:
 
@@ -1123,11 +1123,11 @@ sealed interface OverlayMode {
 }
 ```
 
-- [ ] **Step 3: Add toolbar composable**
+- [x] **Step 3: Add toolbar composable**
 
 `PointPatchToolbar` shows a 56dp button and menu entries: `Select UI`, `Recent`, `Connect AI Agent`. Only `Select UI` needs to be active in the first implementation.
 
-- [ ] **Step 4: Add selection layer composable**
+- [x] **Step 4: Add selection layer composable**
 
 `PointPatchSelectionLayer` consumes taps only in selecting mode and supports long press / drag to emit visual area bounds.
 
@@ -1139,11 +1139,11 @@ onAreaSelected(left: Float, top: Float, right: Float, bottom: Float)
 onCancel()
 ```
 
-- [ ] **Step 5: Add highlight and comment sheet**
+- [x] **Step 5: Add highlight and comment sheet**
 
 Highlight selected bounds and candidate scopes. Comment sheet must show selected summary, scope chips, text field, screenshot crop when available, `No screenshot crop` when capture has not run, and actions: `Copy for AI`, `Copy JSON`, `Share`, or `Send to AI Agent` when MCP is waiting.
 
-- [ ] **Step 6: Run overlay build**
+- [x] **Step 6: Run overlay build**
 
 Run:
 
@@ -1153,7 +1153,7 @@ Run:
 
 Expected: overlay module builds.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add pointpatch-compose-overlay
