@@ -28,6 +28,7 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.compose.foundation)
     implementation(libs.compose.material3)
+    debugImplementation(project(":pointpatch-compose-sidekick"))
     debugImplementation(libs.compose.ui.tooling)
 
     androidTestImplementation(libs.androidx.junit)

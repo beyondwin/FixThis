@@ -1172,31 +1172,31 @@ git commit -m "overlay: add Smart Select UI components"
 - Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/inspect/ComposeRootFinder.kt`
 - Test: sample debug/release manual checks
 
-- [ ] **Step 1: Configure sidekick module**
+- [x] **Step 1: Configure sidekick module**
 
 Create Android library module with dependencies on core, overlay, AndroidX Startup, Compose UI, and coroutines Android.
 
-- [ ] **Step 2: Add AndroidX Startup manifest**
+- [x] **Step 2: Add AndroidX Startup manifest**
 
 Use `InitializationProvider` and metadata for `PointPatchInitializer`. Do not add `INTERNET` permission.
 
-- [ ] **Step 3: Implement debuggable guard**
+- [x] **Step 3: Implement debuggable guard**
 
 `PointPatchInitializer.create(context)` must return immediately unless `ApplicationInfo.FLAG_DEBUGGABLE` is set.
 
-- [ ] **Step 4: Implement lifecycle install**
+- [x] **Step 4: Implement lifecycle install**
 
 `PointPatch.install(application)` registers `ActivityLifecycleCallbacks` once using `AtomicBoolean`.
 
-- [ ] **Step 5: Attach idle overlay host**
+- [x] **Step 5: Attach idle overlay host**
 
 On resumed activity, add a `PointPatchOverlayHostLayout` to decorView if one is not already present. Host must be non-clickable while idle except for the toolbar child.
 
-- [ ] **Step 6: Implement ComposeRootFinder**
+- [x] **Step 6: Implement ComposeRootFinder**
 
 Traverse decorView, skip any view tagged with `io.github.pointpatch.compose.overlay.HOST`, collect views implementing `androidx.compose.ui.node.RootForTest`, and record bounds in window.
 
-- [ ] **Step 7: Add sample debug dependency**
+- [x] **Step 7: Add sample debug dependency**
 
 Temporarily add:
 
@@ -1217,7 +1217,9 @@ adb shell monkey -p io.github.pointpatch.sample 1
 
 Expected: app launches and PointPatch toolbar is visible.
 
-- [ ] **Step 9: Run release sample**
+Environment-blocked: no device/emulator was connected (`adb devices` returned no devices), so install/monkey and visual toolbar confirmation were not run. Fallback `ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :sample:assembleDebug` passed.
+
+- [x] **Step 9: Run release sample**
 
 Run:
 
@@ -1227,7 +1229,9 @@ Run:
 
 Expected: release builds. Manual launch should not show active PointPatch runtime.
 
-- [ ] **Step 10: Commit**
+`ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :sample:assembleRelease` passed. Manual launch was not run because no device/emulator was connected; `debugImplementation` keeps sidekick out of the release runtime classpath.
+
+- [x] **Step 10: Commit**
 
 ```bash
 git add pointpatch-compose-sidekick sample/build.gradle.kts
