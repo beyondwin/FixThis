@@ -1245,24 +1245,27 @@ git commit -m "sidekick: autoinit debug overlay"
 - Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/inspect/SemanticsNodeMapper.kt`
 - Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/capture/AnnotationCaptureController.kt`
 - Create: `pointpatch-compose-sidekick/src/androidTest/kotlin/io/github/pointpatch/compose/sidekick/SemanticsInspectorTest.kt`
+- Added: `sample/src/androidTest/java/io/github/pointpatch/sample/SemanticsInspectorSampleAppTest.kt`
 
-- [ ] **Step 1: Add inspector instrumentation test**
+- [x] **Step 1: Add inspector instrumentation test**
 
 Test against sample app: inspect current screen, assert at least one root and a node containing `Pay now`.
 
-- [ ] **Step 2: Implement SemanticsInspector**
+Implemented both a sidekick instrumentation test for semantics/redaction and a sample-app instrumentation test that launches `MainActivity`, inspects the checkout screen, and asserts `Pay now`.
+
+- [x] **Step 2: Implement SemanticsInspector**
 
 Use `RootForTest.semanticsOwner.getAllSemanticsNodes(mergingEnabled = true/false, skipDeactivatedNodes = true)`. Capture errors as `PointPatchError` instead of throwing.
 
-- [ ] **Step 3: Implement SemanticsNodeMapper**
+- [x] **Step 3: Implement SemanticsNodeMapper**
 
 Map text, editable text, contentDescription, role, testTag, stateDescription, selected, disabled, actions, password, bounds, and path. Apply `RedactionPolicy` before storing editable text.
 
-- [ ] **Step 4: Implement capture controller**
+- [x] **Step 4: Implement capture controller**
 
 `AnnotationCaptureController` handles Tap Select, Scope Chip reselection, Area Select fallback, user comment, source matching, and annotation construction.
 
-- [ ] **Step 5: Run instrumentation**
+- [ ] **Step 5: Run instrumentation** — Environment-blocked on 2026-05-04: `:pointpatch-compose-sidekick:connectedDebugAndroidTest` built the instrumentation APK but failed with `com.android.builder.testing.api.DeviceException: No connected devices!`. Substitutes passed: `:pointpatch-compose-sidekick:testDebugUnitTest --rerun-tasks`, `:pointpatch-compose-sidekick:compileDebugAndroidTestKotlin --rerun-tasks`, and `:sample:compileDebugAndroidTestKotlin`.
 
 Run:
 
@@ -1272,7 +1275,7 @@ Run:
 
 Expected: inspector sees sample Compose roots and redacts editable/password content.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-compose-sidekick

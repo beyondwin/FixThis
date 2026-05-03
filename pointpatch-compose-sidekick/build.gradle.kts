@@ -9,6 +9,7 @@ android {
 
     defaultConfig {
         minSdk = 24
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildFeatures {
@@ -31,4 +32,11 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation("androidx.test:core:1.6.1")
     testImplementation("org.robolectric:robolectric:4.16.1")
+
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.activity.compose)
+    androidTestImplementation(platform(libs.compose.bom))
+    androidTestImplementation(libs.compose.foundation)
+    androidTestImplementation(libs.compose.ui.test.junit4)
+    debugImplementation(libs.compose.ui.test.manifest)
 }
