@@ -11,6 +11,7 @@ import io.github.pointpatch.compose.core.model.SelectionInfo
 import io.github.pointpatch.compose.core.model.SelectionKind
 import io.github.pointpatch.compose.core.model.SelectionSource
 import io.github.pointpatch.compose.core.model.TapPoint
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -27,7 +28,7 @@ class LocalFileExporterTest {
     )
 
     @Test
-    fun exportsMarkdownUnderPointPatchDateDirectory() {
+    fun exportsMarkdownUnderPointPatchDateDirectory() = runBlocking {
         val file = exporter.exportMarkdown(annotation())
 
         assertPathEndsWith("pointpatch/2026-05-04/annotation-1.md", file)
@@ -37,7 +38,7 @@ class LocalFileExporterTest {
     }
 
     @Test
-    fun exportsJsonUnderPointPatchDateDirectory() {
+    fun exportsJsonUnderPointPatchDateDirectory() = runBlocking {
         val file = exporter.exportJson(annotation())
 
         assertPathEndsWith("pointpatch/2026-05-04/annotation-1.json", file)

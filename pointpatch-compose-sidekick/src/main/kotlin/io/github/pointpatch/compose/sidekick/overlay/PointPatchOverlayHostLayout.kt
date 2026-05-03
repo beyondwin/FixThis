@@ -7,13 +7,29 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import io.github.pointpatch.compose.overlay.OverlayMode
+import io.github.pointpatch.compose.overlay.PointPatchCommentSheet
+import io.github.pointpatch.compose.overlay.PointPatchHighlightLayer
+import io.github.pointpatch.compose.overlay.PointPatchSelectionLayer
 import io.github.pointpatch.compose.overlay.PointPatchToolbar
 import io.github.pointpatch.compose.sidekick.R
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 class PointPatchOverlayHostLayout(context: Context) : FrameLayout(context) {
+    private val overlayView = ComposeView(context)
     private val toolbarView = ComposeView(context)
+    private val coroutineScope = MainScope()
+    private val controller = (context as? Activity)?.let { activity ->
+        PointPatchOverlayController(activity)
+    }
     private var handlingToolbarGesture = false
 
     init {
@@ -23,9 +39,86 @@ class PointPatchOverlayHostLayout(context: Context) : FrameLayout(context) {
         clipChildren = false
         clipToPadding = false
 
+        overlayView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
+        overlayView.setContent {
+            val overlayController = controller ?: return@setContent
+            val mode = overlayController.mode
+            Box(modifier = Modifier.fillMaxSize()) {
+                when (mode) {
+                    OverlayMode.Idle,
+                    OverlayMode.MenuOpen,
+                    is OverlayMode.Exported -> Unit
+
+                    is OverlayMode.Selecting -> PointPatchSelectionLayer(
+                        mode = mode,
+                        modifier = Modifier.fillMaxSize(),
+                        onTap = { xInWindow, yInWindow ->
+                            coroutineScope.launch {
+                                overlayController.captureTap(xInWindow, yInWindow)
+                            }
+                        },
+                        onAreaSelected = { left, top, right, bottom ->
+                            coroutineScope.launch {
+                                overlayController.captureArea(left, top, right, bottom)
+                            }
+                        },
+                        onCancel = overlayController::cancel,
+                    )
+
+                    is OverlayMode.ReviewingSelection -> PointPatchHighlightLayer(
+                        draft = mode.draft,
+                        modifier = Modifier.fillMaxSize(),
+                        onScopeSelected = { candidate ->
+                            coroutineScope.launch {
+                                overlayController.selectScope(candidate)
+                            }
+                        },
+                    )
+
+                    is OverlayMode.Commenting -> {
+                        PointPatchHighlightLayer(
+                            draft = mode.draft,
+                            modifier = Modifier.fillMaxSize(),
+                            onScopeSelected = { candidate ->
+                                coroutineScope.launch {
+                                    overlayController.selectScope(candidate)
+                                }
+                            },
+                        )
+                        PointPatchCommentSheet(
+                            draft = mode.draft,
+                            modifier = Modifier.align(Alignment.BottomCenter),
+                            onCommentChanged = overlayController::updateComment,
+                            onScopeSelected = { candidate ->
+                                coroutineScope.launch {
+                                    overlayController.selectScope(candidate)
+                                }
+                            },
+                            onCopyForAi = { overlayController.copyMarkdown() },
+                            onCopyJson = { overlayController.copyJson() },
+                            onShare = {
+                                coroutineScope.launch {
+                                    overlayController.share()
+                                }
+                            },
+                            onSendToAiAgent = { overlayController.copyMarkdown() },
+                        )
+                    }
+                }
+            }
+        }
+
+        addView(
+            overlayView,
+            LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            ),
+        )
+
         toolbarView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
         toolbarView.setContent {
-            PointPatchToolbar(onSelectUi = {})
+            PointPatchToolbar(onSelectUi = { controller?.startSelection() })
         }
 
         addView(
@@ -42,7 +135,16 @@ class PointPatchOverlayHostLayout(context: Context) : FrameLayout(context) {
         )
     }
 
+    override fun onDetachedFromWindow() {
+        coroutineScope.cancel()
+        super.onDetachedFromWindow()
+    }
+
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (controller?.shouldHandleOverlayTouch == true) {
+            return super.dispatchTouchEvent(event)
+        }
+
         if (event.actionMasked == MotionEvent.ACTION_DOWN) {
             handlingToolbarGesture = event.isInside(toolbarView)
         }

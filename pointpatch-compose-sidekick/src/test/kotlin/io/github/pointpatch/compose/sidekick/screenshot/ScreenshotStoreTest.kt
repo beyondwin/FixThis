@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import androidx.test.core.app.ApplicationProvider
 import io.github.pointpatch.compose.core.model.PointPatchRect
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -23,7 +24,7 @@ class ScreenshotStoreTest {
     )
 
     @Test
-    fun savesFullAndCropPngUnderPointPatchDateDirectory() {
+    fun savesFullAndCropPngUnderPointPatchDateDirectory() = runBlocking {
         val bitmap = bitmap(width = 8, height = 6)
 
         val info = store.save(
@@ -46,7 +47,7 @@ class ScreenshotStoreTest {
     }
 
     @Test
-    fun coercesCropBoundsInsideFullBitmap() {
+    fun coercesCropBoundsInsideFullBitmap() = runBlocking {
         val bitmap = bitmap(width = 8, height = 6)
 
         val info = store.save(
@@ -62,7 +63,7 @@ class ScreenshotStoreTest {
     }
 
     @Test
-    fun skipsCropWhenBoundsHaveNoAreaAfterCoercion() {
+    fun skipsCropWhenBoundsHaveNoAreaAfterCoercion() = runBlocking {
         val bitmap = bitmap(width = 8, height = 6)
 
         val info = store.save(

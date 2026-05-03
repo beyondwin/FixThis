@@ -1,0 +1,259 @@
+package io.github.pointpatch.compose.sidekick.overlay
+
+import android.app.Activity
+import android.os.Build
+import android.content.pm.ApplicationInfo
+import android.view.View
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import io.github.pointpatch.compose.core.model.ActivityInfo
+import io.github.pointpatch.compose.core.model.AppInfo
+import io.github.pointpatch.compose.core.model.PointPatchAnnotation
+import io.github.pointpatch.compose.core.model.PointPatchRect
+import io.github.pointpatch.compose.core.model.ScopeCandidate
+import io.github.pointpatch.compose.core.model.ScreenshotInfo
+import io.github.pointpatch.compose.core.model.TapPoint
+import io.github.pointpatch.compose.core.source.SourceIndex
+import io.github.pointpatch.compose.overlay.OverlayMode
+import io.github.pointpatch.compose.overlay.PointPatchDraft
+import io.github.pointpatch.compose.sidekick.capture.AnnotationCaptureController
+import io.github.pointpatch.compose.sidekick.capture.AnnotationCaptureInput
+import io.github.pointpatch.compose.sidekick.export.ClipboardExportResult
+import io.github.pointpatch.compose.sidekick.export.ClipboardExporter
+import io.github.pointpatch.compose.sidekick.export.LocalFileExporter
+import io.github.pointpatch.compose.sidekick.inspect.SemanticsInspectionResult
+import io.github.pointpatch.compose.sidekick.inspect.SemanticsInspector
+import io.github.pointpatch.compose.sidekick.screenshot.ScreenshotCapturer
+import io.github.pointpatch.compose.sidekick.screenshot.ScreenshotStore
+import java.io.File
+import java.util.UUID
+import kotlin.math.max
+import kotlin.math.min
+
+internal interface SemanticsInspectorPort {
+    fun inspect(decorView: View): SemanticsInspectionResult
+}
+
+internal interface ScreenshotCapturerPort {
+    suspend fun capture(
+        activity: Activity,
+        annotationId: String,
+        selectedBounds: PointPatchRect?,
+    ): ScreenshotInfo
+}
+
+internal interface ClipboardExporterPort {
+    fun copyMarkdown(annotation: PointPatchAnnotation): ClipboardExportResult
+    fun copyJson(annotation: PointPatchAnnotation): ClipboardExportResult
+}
+
+internal interface LocalFileExporterPort {
+    suspend fun exportMarkdown(annotation: PointPatchAnnotation): File
+}
+
+internal class PointPatchOverlayController(
+    private val activity: Activity,
+    private val inspector: SemanticsInspectorPort = AndroidSemanticsInspectorPort(),
+    private val annotationController: AnnotationCaptureController = AnnotationCaptureController(),
+    private val screenshotCapturer: ScreenshotCapturerPort = AndroidScreenshotCapturerPort(
+        ScreenshotCapturer(ScreenshotStore(activity)),
+    ),
+    private val clipboardExporter: ClipboardExporterPort = AndroidClipboardExporterPort(
+        ClipboardExporter(activity),
+    ),
+    private val localFileExporter: LocalFileExporterPort = AndroidLocalFileExporterPort(
+        LocalFileExporter(activity),
+    ),
+    private val appInfoProvider: () -> AppInfo = { activity.toAppInfo() },
+    private val activityInfoProvider: () -> ActivityInfo = { ActivityInfo(activity::class.java.name) },
+) {
+    var mode: OverlayMode by mutableStateOf(OverlayMode.Idle)
+        private set
+
+    val shouldHandleOverlayTouch: Boolean
+        get() = mode is OverlayMode.Selecting ||
+            mode is OverlayMode.ReviewingSelection ||
+            mode is OverlayMode.Commenting
+
+    private var activeCapture: ActiveCapture? = null
+    private var currentAnnotation: PointPatchAnnotation? = null
+
+    fun startSelection() {
+        activeCapture = null
+        currentAnnotation = null
+        mode = OverlayMode.Selecting(requestId = UUID.randomUUID().toString())
+    }
+
+    suspend fun captureTap(xInWindow: Float, yInWindow: Float) {
+        captureSelection(
+            tap = TapPoint(xInWindow = xInWindow, yInWindow = yInWindow),
+            areaBoundsInWindow = null,
+            scopeNodeUid = null,
+            userComment = "",
+        )
+    }
+
+    suspend fun captureArea(left: Float, top: Float, right: Float, bottom: Float) {
+        val area = PointPatchRect(
+            left = min(left, right),
+            top = min(top, bottom),
+            right = max(left, right),
+            bottom = max(top, bottom),
+        )
+        captureSelection(
+            tap = TapPoint(xInWindow = (area.left + area.right) / 2f, yInWindow = (area.top + area.bottom) / 2f),
+            areaBoundsInWindow = area,
+            scopeNodeUid = null,
+            userComment = "",
+        )
+    }
+
+    suspend fun selectScope(candidate: ScopeCandidate) {
+        val capture = activeCapture ?: return
+        captureSelection(
+            tap = capture.tap,
+            areaBoundsInWindow = capture.areaBoundsInWindow,
+            scopeNodeUid = candidate.nodeUid,
+            userComment = currentAnnotation?.userComment.orEmpty(),
+        )
+    }
+
+    fun updateComment(comment: String) {
+        val updated = currentAnnotation?.copy(userComment = comment) ?: return
+        currentAnnotation = updated
+        mode = OverlayMode.Commenting(updated.toDraft())
+    }
+
+    fun copyMarkdown(): ClipboardExportResult? =
+        currentAnnotation?.let(clipboardExporter::copyMarkdown)
+
+    fun copyJson(): ClipboardExportResult? =
+        currentAnnotation?.let(clipboardExporter::copyJson)
+
+    suspend fun share(): File? {
+        val annotation = currentAnnotation ?: return null
+        val file = localFileExporter.exportMarkdown(annotation)
+        mode = OverlayMode.Exported(annotation.id)
+        return file
+    }
+
+    fun cancel() {
+        activeCapture = null
+        currentAnnotation = null
+        mode = OverlayMode.Idle
+    }
+
+    private suspend fun captureSelection(
+        tap: TapPoint,
+        areaBoundsInWindow: PointPatchRect?,
+        scopeNodeUid: String?,
+        userComment: String,
+    ) {
+        val decorView = activity.window?.decorView ?: return
+        val inspection = inspector.inspect(decorView)
+        val nodes = inspection.mergedNodes
+        val baseInput = AnnotationCaptureInput(
+            app = appInfoProvider(),
+            activity = activityInfoProvider(),
+            tap = tap,
+            nodes = nodes,
+            sourceIndex = SourceIndex(),
+            userComment = userComment,
+            scopeNodeUid = scopeNodeUid,
+            areaBoundsInWindow = areaBoundsInWindow,
+            screenshot = null,
+            errors = inspection.errors,
+        )
+        val annotationWithoutScreenshot = annotationController.capture(baseInput)
+        val selectedBounds = annotationWithoutScreenshot.selectedNode?.boundsInWindow
+            ?: annotationWithoutScreenshot.selection.areaBoundsInWindow
+        val screenshot = screenshotCapturer.capture(
+            activity = activity,
+            annotationId = annotationWithoutScreenshot.id,
+            selectedBounds = selectedBounds,
+        )
+        val annotation = annotationWithoutScreenshot.copy(screenshot = screenshot)
+        activeCapture = ActiveCapture(
+            tap = tap,
+            areaBoundsInWindow = areaBoundsInWindow,
+        )
+        currentAnnotation = annotation
+        mode = OverlayMode.Commenting(annotation.toDraft())
+    }
+
+    private data class ActiveCapture(
+        val tap: TapPoint,
+        val areaBoundsInWindow: PointPatchRect?,
+    )
+}
+
+private class AndroidSemanticsInspectorPort(
+    private val inspector: SemanticsInspector = SemanticsInspector(),
+) : SemanticsInspectorPort {
+    override fun inspect(decorView: View): SemanticsInspectionResult =
+        inspector.inspect(decorView)
+}
+
+private class AndroidScreenshotCapturerPort(
+    private val capturer: ScreenshotCapturer,
+) : ScreenshotCapturerPort {
+    override suspend fun capture(
+        activity: Activity,
+        annotationId: String,
+        selectedBounds: PointPatchRect?,
+    ): ScreenshotInfo =
+        capturer.capture(
+            activity = activity,
+            annotationId = annotationId,
+            selectedBounds = selectedBounds,
+        )
+}
+
+private class AndroidClipboardExporterPort(
+    private val exporter: ClipboardExporter,
+) : ClipboardExporterPort {
+    override fun copyMarkdown(annotation: PointPatchAnnotation): ClipboardExportResult =
+        exporter.copyMarkdown(annotation)
+
+    override fun copyJson(annotation: PointPatchAnnotation): ClipboardExportResult =
+        exporter.copyJson(annotation)
+}
+
+private class AndroidLocalFileExporterPort(
+    private val exporter: LocalFileExporter,
+) : LocalFileExporterPort {
+    override suspend fun exportMarkdown(annotation: PointPatchAnnotation): File =
+        exporter.exportMarkdown(annotation)
+}
+
+private fun PointPatchAnnotation.toDraft(): PointPatchDraft =
+    PointPatchDraft(
+        selectedNode = selectedNode,
+        selection = selection,
+        scopeCandidates = scopeCandidates,
+        selectedScopeNodeUid = selection.selectedUid,
+        screenshot = screenshot,
+        userComment = userComment,
+    )
+
+@Suppress("DEPRECATION")
+private fun Activity.toAppInfo(): AppInfo {
+    val packageInfo = runCatching {
+        packageManager.getPackageInfo(packageName, 0)
+    }.getOrNull()
+    val applicationInfo = applicationInfo
+    return AppInfo(
+        packageName = packageName,
+        versionName = packageInfo?.versionName,
+        versionCode = packageInfo?.let { info ->
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                info.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                info.versionCode.toLong()
+            }
+        },
+        debuggable = applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0,
+    )
+}

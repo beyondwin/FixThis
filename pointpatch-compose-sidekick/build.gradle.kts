@@ -27,6 +27,7 @@ dependencies {
     implementation(platform(libs.compose.bom))
     implementation(libs.androidx.startup)
     implementation(libs.compose.ui)
+    implementation(libs.compose.foundation)
     implementation(libs.kotlinx.coroutines.android)
 
     testImplementation(libs.junit)

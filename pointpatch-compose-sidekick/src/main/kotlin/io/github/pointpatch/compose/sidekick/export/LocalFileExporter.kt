@@ -4,6 +4,9 @@ import android.content.Context
 import io.github.pointpatch.compose.core.format.PointPatchJsonFormatter
 import io.github.pointpatch.compose.core.format.PointPatchMarkdownFormatter
 import io.github.pointpatch.compose.core.model.PointPatchAnnotation
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -12,20 +15,25 @@ import java.util.Locale
 class LocalFileExporter(
     private val context: Context,
     private val dateProvider: () -> String = { currentDateString() },
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
-    fun exportMarkdown(annotation: PointPatchAnnotation): File =
-        export(
-            annotation = annotation,
-            extension = "md",
-            content = PointPatchMarkdownFormatter.format(annotation),
-        )
+    suspend fun exportMarkdown(annotation: PointPatchAnnotation): File =
+        withContext(ioDispatcher) {
+            export(
+                annotation = annotation,
+                extension = "md",
+                content = PointPatchMarkdownFormatter.format(annotation),
+            )
+        }
 
-    fun exportJson(annotation: PointPatchAnnotation): File =
-        export(
-            annotation = annotation,
-            extension = "json",
-            content = PointPatchJsonFormatter.format(annotation),
-        )
+    suspend fun exportJson(annotation: PointPatchAnnotation): File =
+        withContext(ioDispatcher) {
+            export(
+                annotation = annotation,
+                extension = "json",
+                content = PointPatchJsonFormatter.format(annotation),
+            )
+        }
 
     private fun export(
         annotation: PointPatchAnnotation,

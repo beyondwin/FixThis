@@ -4,6 +4,9 @@ import android.content.Context
 import android.graphics.Bitmap
 import io.github.pointpatch.compose.core.model.PointPatchRect
 import io.github.pointpatch.compose.core.model.ScreenshotInfo
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -14,12 +17,13 @@ import kotlin.math.floor
 class ScreenshotStore(
     private val context: Context,
     private val dateProvider: () -> String = { currentDateString() },
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
-    fun save(
+    suspend fun save(
         annotationId: String,
         fullBitmap: Bitmap,
         selectedBounds: PointPatchRect?,
-    ): ScreenshotInfo {
+    ): ScreenshotInfo = withContext(ioDispatcher) {
         val fileStem = annotationId.safeFileStem()
         val directory = screenshotDirectory()
         val fullFile = File(directory, "$fileStem-full.png")
@@ -45,7 +49,7 @@ class ScreenshotStore(
                 }
             }
 
-        return ScreenshotInfo(
+        ScreenshotInfo(
             fullPath = fullFile.absolutePath,
             cropPath = cropFile?.absolutePath,
             width = fullBitmap.width,
