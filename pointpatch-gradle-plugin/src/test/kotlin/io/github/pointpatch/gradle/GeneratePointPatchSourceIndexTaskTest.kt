@@ -126,6 +126,72 @@ class GeneratePointPatchSourceIndexTaskTest {
         assertEquals("true", buildInfo.getValue("redactEditableText").jsonPrimitive.content)
     }
 
+    @Test
+    fun `scans multiline raw kotlin string literals`() {
+        val projectDir = temporaryFolder.newFolder("project")
+        val sourceFile = projectDir.resolve("src/main/java/io/github/pointpatch/sample/RawStrings.kt")
+        sourceFile.parentFile.mkdirs()
+        sourceFile.writeText(
+            """
+            package io.github.pointpatch.sample
+
+            import androidx.compose.material3.Text
+            import androidx.compose.ui.Modifier
+            import androidx.compose.ui.platform.testTag
+            import androidx.compose.ui.semantics.contentDescription
+
+            fun RawStrings() {
+                val title = ""${'"'}
+                    Account
+                    summary
+                ""${'"'}.trimIndent()
+                Text(
+                    ""${'"'}
+                    Pay
+                    later
+                    ""${'"'}.trimIndent(),
+                    modifier = Modifier.testTag(
+                        ""${'"'}
+                        pay_later_button
+                        ""${'"'}.trimIndent(),
+                    ),
+                )
+                val modifier = Modifier.semantics {
+                    contentDescription = ""${'"'}
+                        Payment options
+                    ""${'"'}.trimIndent()
+                }
+            }
+            """.trimIndent(),
+        )
+        val outputDir = projectDir.resolve("build/generated/pointpatch/debug/assets")
+
+        runTask(
+            projectDir = projectDir,
+            kotlinSources = listOf(sourceFile),
+            resourceXmlFiles = emptyList(),
+            outputDir = outputDir,
+        )
+
+        val entries = Json.parseToJsonElement(
+            outputDir.resolve("pointpatch/pointpatch-source-index.json").readText(),
+        ).jsonObject.getValue("entries").jsonArray
+        val textValues = entries.flatMap { entry ->
+            entry.jsonObject.getValue("text").jsonArray.map { it.jsonPrimitive.content }
+        }
+        val testTags = entries.flatMap { entry ->
+            entry.jsonObject.getValue("testTags").jsonArray.map { it.jsonPrimitive.content }
+        }
+        val contentDescriptions = entries.flatMap { entry ->
+            entry.jsonObject.getValue("contentDescriptions").jsonArray.map { it.jsonPrimitive.content }
+        }
+
+        assertTrue(textValues.any { it.contains("Account") && it.contains("summary") })
+        assertTrue(textValues.any { it.contains("Pay") && it.contains("later") })
+        assertTrue(testTags.any { it.contains("pay_later_button") })
+        assertTrue(contentDescriptions.any { it.contains("Payment options") })
+    }
+
     private fun runTask(
         projectDir: File,
         kotlinSources: List<File>,

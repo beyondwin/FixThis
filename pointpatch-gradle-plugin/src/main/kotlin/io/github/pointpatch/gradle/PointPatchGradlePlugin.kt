@@ -40,20 +40,30 @@ class PointPatchGradlePlugin : Plugin<Project> {
                 "generate${variant.name.capitalized()}PointPatchSourceIndex",
                 GeneratePointPatchSourceIndexTask::class.java,
             ) { task ->
+                val sourceSetNames = activeSourceSetNames(
+                    variantName = variant.name,
+                    buildType = variant.buildType,
+                    productFlavorNames = variant.productFlavors.map { it.second },
+                    flavorName = variant.flavorName,
+                )
                 task.projectDirectory.set(project.layout.projectDirectory)
                 task.kotlinSourceFiles.from(
-                    project.layout.projectDirectory.asFileTree.matching { pattern ->
-                        pattern.include("src/**/*.kt")
-                        pattern.include("src/**/*.kts")
-                        pattern.exclude("src/test/**")
-                        pattern.exclude("src/androidTest/**")
+                    sourceSetNames.map { sourceSetName ->
+                        project.layout.projectDirectory.dir("src/$sourceSetName")
+                            .asFileTree
+                            .matching { pattern ->
+                                pattern.include("**/*.kt")
+                                pattern.include("**/*.kts")
+                            }
                     },
                 )
                 task.resourceXmlFiles.from(
-                    project.layout.projectDirectory.asFileTree.matching { pattern ->
-                        pattern.include("src/**/res/**/*.xml")
-                        pattern.exclude("src/test/**")
-                        pattern.exclude("src/androidTest/**")
+                    sourceSetNames.map { sourceSetName ->
+                        project.layout.projectDirectory.dir("src/$sourceSetName/res")
+                            .asFileTree
+                            .matching { pattern ->
+                                pattern.include("**/*.xml")
+                            }
                     },
                 )
                 task.outputDirectory.set(
@@ -93,3 +103,16 @@ class PointPatchGradlePlugin : Plugin<Project> {
             if (char.isLowerCase()) char.titlecase() else char.toString()
         }
 }
+
+internal fun activeSourceSetNames(
+    variantName: String,
+    buildType: String?,
+    productFlavorNames: List<String>,
+    flavorName: String?,
+): List<String> = buildList {
+    add("main")
+    buildType?.takeIf { it.isNotBlank() }?.let(::add)
+    productFlavorNames.filterTo(this) { it.isNotBlank() }
+    flavorName?.takeIf { it.isNotBlank() }?.let(::add)
+    variantName.takeIf { it.isNotBlank() }?.let(::add)
+}.distinct()

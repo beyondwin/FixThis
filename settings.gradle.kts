@@ -1,6 +1,6 @@
 pluginManagement {
     includeBuild("pointpatch-gradle-plugin") {
-        name = "pointpatch-gradle-plugin-build"
+        name = "pointpatch-gradle-plugin"
     }
 
     repositories {
@@ -24,6 +24,5 @@ include(":sample")
 include(":pointpatch-compose-core")
 include(":pointpatch-compose-overlay")
 include(":pointpatch-compose-sidekick")
-include(":pointpatch-gradle-plugin")
 include(":pointpatch-cli")
 include(":pointpatch-mcp")

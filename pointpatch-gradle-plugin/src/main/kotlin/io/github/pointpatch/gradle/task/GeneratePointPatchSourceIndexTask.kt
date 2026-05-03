@@ -63,11 +63,11 @@ abstract class GeneratePointPatchSourceIndexTask : DefaultTask() {
         if (generateSourceIndex.get()) {
             val entries = buildList {
                 kotlinSourceFiles.files
-                    .filter { it.isFile }
+                    .flatMap { it.kotlinFiles() }
                     .sortedBy { it.relativePath() }
                     .forEach { addAll(scanKotlinFile(it)) }
                 resourceXmlFiles.files
-                    .filter { it.isFile }
+                    .flatMap { it.xmlFiles() }
                     .sortedBy { it.relativePath() }
                     .forEach { addAll(scanXmlStringResources(it)) }
             }
@@ -92,33 +92,14 @@ abstract class GeneratePointPatchSourceIndexTask : DefaultTask() {
     }
 
     private fun scanKotlinFile(file: File): List<SourceIndexEntryAsset> {
-        val lines = file.readLines()
-        val entries = mutableListOf<SourceIndexEntryAsset>()
+        val source = file.readText()
+        val lines = source.lineSequence().toList()
+        val lineStartOffsets = source.lineStartOffsets()
+        val entriesByLine = linkedMapOf<Int, SourceIndexEntryBuilder>()
         var pendingComposable = false
 
         lines.forEachIndexed { index, line ->
             val lineNumber = index + 1
-            val text = linkedSetOf<String>()
-            val stringResources = linkedSetOf<String>()
-            val testTags = linkedSetOf<String>()
-            val symbols = linkedSetOf<String>()
-            val contentDescriptions = linkedSetOf<String>()
-
-            quotedStringRegex.findAll(line).forEach { match ->
-                text += decodeKotlinString(match)
-            }
-            textCallRegex.findAll(line).forEach { match ->
-                text += decodeKotlinString(match)
-            }
-            stringResourceRegex.findAll(line).forEach { match ->
-                stringResources += match.groupValues[1]
-            }
-            testTagRegex.findAll(line).forEach { match ->
-                testTags += decodeKotlinString(match)
-            }
-            contentDescriptionRegex.findAll(line).forEach { match ->
-                contentDescriptions += decodeKotlinString(match)
-            }
 
             if (line.contains("@Composable")) {
                 pendingComposable = true
@@ -127,32 +108,35 @@ abstract class GeneratePointPatchSourceIndexTask : DefaultTask() {
             val functionMatch = functionRegex.find(line)
             if (functionMatch != null) {
                 if (pendingComposable || line.contains("@Composable")) {
-                    symbols += functionMatch.groupValues[1]
+                    entriesByLine.entryFor(file, lineNumber, line)
+                        .symbols += functionMatch.groupValues[1]
                 }
                 pendingComposable = false
             }
-
-            if (
-                text.isNotEmpty() ||
-                stringResources.isNotEmpty() ||
-                testTags.isNotEmpty() ||
-                symbols.isNotEmpty() ||
-                contentDescriptions.isNotEmpty()
-            ) {
-                entries += SourceIndexEntryAsset(
-                    file = file.relativePath(),
-                    line = lineNumber,
-                    symbols = symbols.toList(),
-                    text = text.toList(),
-                    contentDescriptions = contentDescriptions.toList(),
-                    testTags = testTags.toList(),
-                    stringResources = stringResources.toList(),
-                    excerpt = line.trim(),
-                )
-            }
         }
 
-        return entries
+        quotedStringRegex.findAll(source).forEach { match ->
+            entriesByLine.entryFor(file, match.startLine(lineStartOffsets), lines)
+                .text += decodeKotlinString(match)
+        }
+        textCallRegex.findAll(source).forEach { match ->
+            entriesByLine.entryFor(file, match.startLine(lineStartOffsets), lines)
+                .text += decodeKotlinString(match)
+        }
+        stringResourceRegex.findAll(source).forEach { match ->
+            entriesByLine.entryFor(file, match.startLine(lineStartOffsets), lines)
+                .stringResources += match.groupValues[1]
+        }
+        testTagRegex.findAll(source).forEach { match ->
+            entriesByLine.entryFor(file, match.startLine(lineStartOffsets), lines)
+                .testTags += decodeKotlinString(match)
+        }
+        contentDescriptionRegex.findAll(source).forEach { match ->
+            entriesByLine.entryFor(file, match.startLine(lineStartOffsets), lines)
+                .contentDescriptions += decodeKotlinString(match)
+        }
+
+        return entriesByLine.values.map { it.toAsset() }
     }
 
     private fun scanXmlStringResources(file: File): List<SourceIndexEntryAsset> {
@@ -185,16 +169,77 @@ abstract class GeneratePointPatchSourceIndexTask : DefaultTask() {
     }
 
     private fun decodeKotlinString(match: MatchResult): String {
-        val singleLineLiteral = match.groups[1]?.value
+        val singleLineLiteral = match.groups[2]?.value
         if (singleLineLiteral != null) {
             return runCatching { json.decodeFromString<String>("\"$singleLineLiteral\"") }
                 .getOrElse { singleLineLiteral }
         }
-        return match.groups[2]?.value.orEmpty()
+        return match.groups[1]?.value.orEmpty()
     }
 
     private fun File.relativePath(): String =
         relativeToOrSelf(projectDirectory.get().asFile).invariantSeparatorsPath
+
+    private fun File.kotlinFiles(): List<File> =
+        matchingFiles("kt", "kts")
+
+    private fun File.xmlFiles(): List<File> =
+        matchingFiles("xml")
+
+    private fun File.matchingFiles(vararg extensions: String): List<File> {
+        val extensionSet = extensions.toSet()
+        return when {
+            isFile && extension in extensionSet -> listOf(this)
+            isDirectory -> walkTopDown()
+                .filter { it.isFile && it.extension in extensionSet }
+                .toList()
+            else -> emptyList()
+        }
+    }
+
+    private fun MutableMap<Int, SourceIndexEntryBuilder>.entryFor(
+        file: File,
+        lineNumber: Int,
+        line: String,
+    ): SourceIndexEntryBuilder =
+        getOrPut(lineNumber) {
+            SourceIndexEntryBuilder(
+                file = file.relativePath(),
+                line = lineNumber,
+                excerpt = line.trim(),
+            )
+        }
+
+    private fun MutableMap<Int, SourceIndexEntryBuilder>.entryFor(
+        file: File,
+        lineNumber: Int,
+        lines: List<String>,
+    ): SourceIndexEntryBuilder =
+        entryFor(
+            file = file,
+            lineNumber = lineNumber,
+            line = lines.getOrNull(lineNumber - 1).orEmpty(),
+        )
+
+    private fun String.lineStartOffsets(): IntArray {
+        val offsets = mutableListOf(0)
+        forEachIndexed { index, char ->
+            if (char == '\n' && index + 1 < length) {
+                offsets += index + 1
+            }
+        }
+        return offsets.toIntArray()
+    }
+
+    private fun MatchResult.startLine(lineStartOffsets: IntArray): Int {
+        val offset = range.first
+        val insertionPoint = lineStartOffsets.binarySearch(offset)
+        return if (insertionPoint >= 0) {
+            insertionPoint + 1
+        } else {
+            -insertionPoint - 1
+        }
+    }
 
     private fun newDocumentBuilderFactory(): DocumentBuilderFactory =
         DocumentBuilderFactory.newInstance().apply {
@@ -209,14 +254,37 @@ abstract class GeneratePointPatchSourceIndexTask : DefaultTask() {
             encodeDefaults = true
         }
 
-        val quotedStringRegex = Regex("\"((?:\\\\.|[^\"\\\\])*)\"|\"\"\"([\\s\\S]*?)\"\"\"")
-        val textCallRegex = Regex("\\bText\\s*\\(\\s*(?:\"((?:\\\\.|[^\"\\\\])*)\"|\"\"\"([\\s\\S]*?)\"\"\")")
+        val quotedStringRegex = Regex("\"\"\"([\\s\\S]*?)\"\"\"|\"((?:\\\\.|[^\"\\\\])*)\"")
+        val textCallRegex = Regex("\\bText\\s*\\(\\s*(?:\"\"\"([\\s\\S]*?)\"\"\"|\"((?:\\\\.|[^\"\\\\])*)\")")
         val stringResourceRegex = Regex("\\bstringResource\\s*\\(\\s*R\\.string\\.([A-Za-z0-9_]+)")
-        val testTagRegex = Regex("\\btestTag\\s*\\(\\s*(?:\"((?:\\\\.|[^\"\\\\])*)\"|\"\"\"([\\s\\S]*?)\"\"\")")
+        val testTagRegex = Regex("\\btestTag\\s*\\(\\s*(?:\"\"\"([\\s\\S]*?)\"\"\"|\"((?:\\\\.|[^\"\\\\])*)\")")
         val contentDescriptionRegex =
-            Regex("\\bcontentDescription\\s*=\\s*(?:\"((?:\\\\.|[^\"\\\\])*)\"|\"\"\"([\\s\\S]*?)\"\"\")")
+            Regex("\\bcontentDescription\\s*=\\s*(?:\"\"\"([\\s\\S]*?)\"\"\"|\"((?:\\\\.|[^\"\\\\])*)\")")
         val functionRegex = Regex("\\bfun\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*\\(")
     }
+}
+
+private data class SourceIndexEntryBuilder(
+    val file: String,
+    val line: Int,
+    val symbols: LinkedHashSet<String> = linkedSetOf(),
+    val text: LinkedHashSet<String> = linkedSetOf(),
+    val contentDescriptions: LinkedHashSet<String> = linkedSetOf(),
+    val testTags: LinkedHashSet<String> = linkedSetOf(),
+    val stringResources: LinkedHashSet<String> = linkedSetOf(),
+    val excerpt: String,
+) {
+    fun toAsset(): SourceIndexEntryAsset =
+        SourceIndexEntryAsset(
+            file = file,
+            line = line,
+            symbols = symbols.toList(),
+            text = text.toList(),
+            contentDescriptions = contentDescriptions.toList(),
+            testTags = testTags.toList(),
+            stringResources = stringResources.toList(),
+            excerpt = excerpt,
+        )
 }
 
 @Serializable

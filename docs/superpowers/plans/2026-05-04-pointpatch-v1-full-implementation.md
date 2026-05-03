@@ -1329,7 +1329,7 @@ git commit -m "sidekick: capture screenshots and export annotations"
 - Create: `pointpatch-gradle-plugin/src/main/kotlin/io/github/pointpatch/gradle/task/GeneratePointPatchSourceIndexTask.kt`
 - Create: `pointpatch-gradle-plugin/src/test/kotlin/io/github/pointpatch/gradle/GeneratePointPatchSourceIndexTaskTest.kt`
 
-- [ ] **Step 1: Configure plugin module**
+- [x] **Step 1: Configure plugin module**
 
 Use `java-gradle-plugin`, Kotlin JVM, and serialization. Register plugin id:
 
@@ -1344,19 +1344,19 @@ gradlePlugin {
 }
 ```
 
-- [ ] **Step 2: Add extension**
+- [x] **Step 2: Add extension**
 
 Create properties: `enabled`, `runtimeVersion`, `addDebugRuntime`, `generateSourceIndex`, `generateProjectMetadata`, `includeScreenshots`, `redactEditableText`.
 
-- [ ] **Step 3: Implement debug runtime injection**
+- [x] **Step 3: Implement debug runtime injection**
 
 When `com.android.application` is present, add `pointpatch-compose-sidekick` only to debuggable variants. During local development, support project dependency injection when the sidekick project exists.
 
-- [ ] **Step 4: Implement source index task**
+- [x] **Step 4: Implement source index task**
 
 Scan Kotlin files and XML string resources. Extract string literals, `Text("...")`, `stringResource(R.string.x)`, `Modifier.testTag("...")`, composable function names, file path, line, and excerpt.
 
-- [ ] **Step 5: Package generated assets**
+- [x] **Step 5: Package generated assets**
 
 Add generated directory to debug variant assets:
 
@@ -1365,7 +1365,7 @@ assets/pointpatch/pointpatch-source-index.json
 assets/pointpatch/pointpatch-build-info.json
 ```
 
-- [ ] **Step 6: Apply plugin to sample**
+- [x] **Step 6: Apply plugin to sample**
 
 Replace temporary debug dependency with:
 
@@ -1377,7 +1377,7 @@ plugins {
 
 through included build or local plugin wiring in the root build.
 
-- [ ] **Step 7: Run plugin tests and sample build**
+- [x] **Step 7: Run plugin tests and sample build**
 
 Run:
 
@@ -1387,7 +1387,7 @@ Run:
 
 Expected: source index exists in debug assets and sample app still shows PointPatch runtime.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add pointpatch-gradle-plugin sample/build.gradle.kts
