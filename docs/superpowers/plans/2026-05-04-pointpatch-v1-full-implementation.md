@@ -731,7 +731,7 @@ git commit -m "testapp: replace sample with Compose coverage app"
 - Test: `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/format/PointPatchMarkdownFormatterTest.kt`
 - Test: `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/redaction/RedactionPolicyTest.kt`
 
-- [ ] **Step 1: Configure core module**
+- [x] **Step 1: Configure core module**
 
 Create `pointpatch-compose-core/build.gradle.kts`:
 
@@ -747,7 +747,7 @@ dependencies {
 }
 ```
 
-- [ ] **Step 2: Define stable schema models**
+- [x] **Step 2: Define stable schema models**
 
 Create `Models.kt` with:
 
@@ -872,7 +872,7 @@ data class ScreenshotInfo(
 data class PointPatchError(val code: String, val message: String, val details: Map<String, String> = emptyMap())
 ```
 
-- [ ] **Step 3: Add redaction policy**
+- [x] **Step 3: Add redaction policy**
 
 Create `RedactionPolicy.kt`:
 
@@ -903,7 +903,7 @@ object RedactionPolicy {
 }
 ```
 
-- [ ] **Step 4: Add JSON and Markdown formatters**
+- [x] **Step 4: Add JSON and Markdown formatters**
 
 Create `PointPatchJsonFormatter.kt`:
 
@@ -1002,7 +1002,7 @@ object PointPatchMarkdownFormatter {
 }
 ```
 
-- [ ] **Step 5: Add core tests**
+- [x] **Step 5: Add core tests**
 
 Create formatter and redaction tests asserting:
 
@@ -1012,7 +1012,7 @@ assertTrue(markdown.contains("Pay now"))
 assertEquals("<redacted-password>", RedactionPolicy.apply(true, "secret", emptyList()).editableText)
 ```
 
-- [ ] **Step 6: Run core tests**
+- [x] **Step 6: Run core tests**
 
 Run:
 
@@ -1022,7 +1022,7 @@ Run:
 
 Expected: all core tests pass.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add pointpatch-compose-core
