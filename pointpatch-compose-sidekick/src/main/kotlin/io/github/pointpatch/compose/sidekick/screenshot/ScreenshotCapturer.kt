@@ -9,12 +9,14 @@ import android.os.Handler
 import android.os.Looper
 import android.view.PixelCopy
 import android.view.View
+import android.view.ViewTreeObserver
 import io.github.pointpatch.compose.sidekick.overlay.findPointPatchOverlayHosts
 import io.github.pointpatch.compose.core.model.PointPatchRect
 import io.github.pointpatch.compose.core.model.ScreenshotInfo
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -49,10 +51,18 @@ class ScreenshotCapturer(
             return ScreenshotInfo(captureFailedReason = "DecorView has no size")
         }
 
-        val hiddenOverlayHosts = decorView.hidePointPatchOverlayHosts()
+        val hiddenOverlayHosts = withContext(mainDispatcher) {
+            decorView.hidePointPatchOverlayHosts()
+        }
         val failures = mutableListOf<String>()
         val fullBitmap = try {
-            tryPixelCopy(activity = activity, width = width, height = height)
+            tryPixelCopy(
+                activity = activity,
+                decorView = decorView,
+                width = width,
+                height = height,
+                waitForCleanFrame = hiddenOverlayHosts.isNotEmpty(),
+            )
                 .getOrElse { error ->
                     failures += "PixelCopy failed: ${error.message ?: error::class.java.simpleName}"
                     null
@@ -63,7 +73,9 @@ class ScreenshotCapturer(
                         null
                     }
         } finally {
-            hiddenOverlayHosts.restore()
+            withContext(NonCancellable + mainDispatcher) {
+                hiddenOverlayHosts.restore()
+            }
         }
 
         if (fullBitmap == null) {
@@ -91,8 +103,10 @@ class ScreenshotCapturer(
 
     private suspend fun tryPixelCopy(
         activity: Activity,
+        decorView: View,
         width: Int,
         height: Int,
+        waitForCleanFrame: Boolean,
     ): Result<Bitmap> {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return Result.failure(UnsupportedOperationException("PixelCopy requires API 26"))
@@ -100,6 +114,16 @@ class ScreenshotCapturer(
 
         return runCatchingCancellable {
             withContext(mainDispatcher) {
+                if (waitForCleanFrame) {
+                    val frameRendered = withTimeoutOrNull(pixelCopyTimeoutMillis) {
+                        decorView.awaitNextPreDrawAfterInvalidation()
+                        true
+                    } ?: false
+                    if (!frameRendered) {
+                        throw CleanFrameTimedOutException(pixelCopyTimeoutMillis)
+                    }
+                }
+
                 val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
                 try {
                     val result = withTimeoutOrNull(pixelCopyTimeoutMillis) {
@@ -173,6 +197,42 @@ private data class HiddenOverlayHost(val view: View, val visibility: Int)
 
 private class PixelCopyTimedOutException(timeoutMillis: Long) :
     RuntimeException("PixelCopy timed out after ${timeoutMillis}ms")
+
+private class CleanFrameTimedOutException(timeoutMillis: Long) :
+    RuntimeException("Clean frame timed out after ${timeoutMillis}ms")
+
+private suspend fun View.awaitNextPreDrawAfterInvalidation() {
+    suspendCancellableCoroutine { continuation ->
+        val initialObserver = viewTreeObserver
+        if (!initialObserver.isAlive || !isAttachedToWindow) {
+            continuation.resume(Unit)
+            return@suspendCancellableCoroutine
+        }
+
+        lateinit var listener: ViewTreeObserver.OnPreDrawListener
+        fun removeListener() {
+            val currentObserver = viewTreeObserver
+            val observer = if (currentObserver.isAlive) currentObserver else initialObserver
+            if (observer.isAlive) {
+                observer.removeOnPreDrawListener(listener)
+            }
+        }
+
+        listener = ViewTreeObserver.OnPreDrawListener {
+            removeListener()
+            if (continuation.isActive) {
+                continuation.resume(Unit)
+            }
+            true
+        }
+        continuation.invokeOnCancellation {
+            removeListener()
+        }
+
+        initialObserver.addOnPreDrawListener(listener)
+        postInvalidateOnAnimation()
+    }
+}
 
 private fun View.hidePointPatchOverlayHosts(): List<HiddenOverlayHost> =
     findPointPatchOverlayHosts().map { host ->

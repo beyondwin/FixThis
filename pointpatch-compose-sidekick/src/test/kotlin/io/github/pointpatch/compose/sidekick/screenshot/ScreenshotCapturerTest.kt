@@ -2,11 +2,14 @@ package io.github.pointpatch.compose.sidekick.screenshot
 
 import android.app.Activity
 import android.graphics.Bitmap
+import android.view.PixelCopy
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import io.github.pointpatch.compose.sidekick.overlay.PointPatchOverlayHostLayout
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -20,6 +23,43 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class ScreenshotCapturerTest {
+    @Test
+    fun captureWaitsForCleanPreDrawBeforePixelCopyAndRestoresOverlayHost() = runBlocking {
+        val activity = measuredActivity()
+        val decorView = activity.window.decorView as ViewGroup
+        val host = FrameLayout(activity).apply {
+            PointPatchOverlayHostLayout.markAsOverlayHost(this)
+            visibility = View.VISIBLE
+        }
+        decorView.addView(host, ViewGroup.LayoutParams(100, 100))
+        var pixelCopyRequestCount = 0
+        var hostVisibilityAtPixelCopy = View.GONE
+        val capturer = ScreenshotCapturer(
+            store = ScreenshotStore(activity),
+            mainDispatcher = Dispatchers.Unconfined,
+            pixelCopyRequester = PixelCopyRequester { _, _, onFinished, _ ->
+                pixelCopyRequestCount += 1
+                hostVisibilityAtPixelCopy = host.visibility
+                onFinished(PixelCopy.SUCCESS)
+            },
+        )
+
+        val capture = async(start = CoroutineStart.UNDISPATCHED) {
+            capturer.capture(activity = activity, annotationId = "annotation-1")
+        }
+
+        assertEquals(0, pixelCopyRequestCount)
+        assertEquals(View.INVISIBLE, host.visibility)
+
+        decorView.viewTreeObserver.dispatchOnPreDraw()
+        val info = capture.await()
+
+        assertNotNull(info.fullPath)
+        assertEquals(1, pixelCopyRequestCount)
+        assertEquals(View.INVISIBLE, hostVisibilityAtPixelCopy)
+        assertEquals(View.VISIBLE, host.visibility)
+    }
+
     @Test
     fun timeoutDoesNotRecyclePixelCopyBitmapThatCanStillReceiveCallback() = runBlocking {
         val activity = measuredActivity()
