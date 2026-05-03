@@ -1039,7 +1039,7 @@ git commit -m "core: add annotation schema and formatters"
 - Test: `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/selection/NodeSelectorTest.kt`
 - Test: `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/source/SourceMatcherTest.kt`
 
-- [ ] **Step 1: Add failing selector tests**
+- [x] **Step 1: Add failing selector tests**
 
 Tests must cover clickable button over text, root penalty, no-node fallback, and scope candidate labels.
 
@@ -1051,7 +1051,7 @@ Run:
 
 Expected: fails because `NodeSelector` does not exist.
 
-- [ ] **Step 2: Implement NodeSelector**
+- [x] **Step 2: Implement NodeSelector**
 
 Create `NodeSelector.kt` with `SelectionResult`, `SelectionOptions`, and `NodeSelector.select(nodes, tap, options)`. Scoring must add high weight for `OnClick`, text/contentDescription/role/testTag, merged meaningful nodes, and lower score for huge empty containers.
 
@@ -1069,15 +1069,15 @@ data class SelectionResult(
 )
 ```
 
-- [ ] **Step 3: Implement NearbyNodeCollector**
+- [x] **Step 3: Implement NearbyNodeCollector**
 
 Collect meaningful nodes from the same root, sorted by center distance, deduped by role/text/contentDescription/testTag.
 
-- [ ] **Step 4: Add source index models and matcher**
+- [x] **Step 4: Add source index models and matcher**
 
 Create a serializable `SourceIndex`, `SourceIndexEntry`, and `SourceMatcher.match(selectedNode, nearbyNodes, activityName)` that returns up to five candidates with `matchedTerms`, `matchReasons`, and confidence.
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 Run:
 
@@ -1087,7 +1087,7 @@ Run:
 
 Expected: selector and matcher tests pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-compose-core

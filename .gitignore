@@ -1,4 +1,5 @@
 sample/.idea
 .gradle/
 /build/
+**/build/
 .DS_Store
