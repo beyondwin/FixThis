@@ -1290,11 +1290,11 @@ git commit -m "sidekick: inspect Compose semantics and capture annotations"
 - Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/export/ClipboardExporter.kt`
 - Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/export/LocalFileExporter.kt`
 
-- [ ] **Step 1: Implement screenshot result**
+- [x] **Step 1: Implement screenshot result**
 
 Use PixelCopy on API 26+ with timeout; fallback to `decorView.draw(Canvas)`. Return `ScreenshotInfo` with `captureFailedReason` if all capture methods fail.
 
-- [ ] **Step 2: Store screenshots**
+- [x] **Step 2: Store screenshots**
 
 Save PNGs under:
 
@@ -1303,17 +1303,17 @@ context.cacheDir/pointpatch/YYYY-MM-DD/<annotation-id>-full.png
 context.cacheDir/pointpatch/YYYY-MM-DD/<annotation-id>-crop.png
 ```
 
-- [ ] **Step 3: Add clipboard export**
+- [x] **Step 3: Add clipboard export**
 
 Use `ClipboardManager` to copy Markdown or JSON from core formatters. Include warning text in the UI that screenshots may contain sensitive information.
 
-- [ ] **Step 4: Run manual capture**
+- [ ] **Step 4: Run manual capture** _(environment-blocked on 2026-05-04: `/Users/kws/Library/Android/sdk/platform-tools/adb devices` listed no connected devices)_
 
 On the sample app, select `Pay now`, enter `Change label to Pay immediately`, and copy Markdown.
 
 Expected: clipboard contains selected UI, nearby context, screenshot path, and user request.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pointpatch-compose-sidekick

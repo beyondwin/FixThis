@@ -104,6 +104,11 @@ fun PointPatchCommentSheet(
             )
 
             ScreenshotCropPreview(screenshot = draft.screenshot)
+            Text(
+                text = ScreenshotWarningText,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
 
             Row(
                 modifier = Modifier
@@ -136,6 +141,8 @@ fun PointPatchCommentSheet(
         }
     }
 }
+
+private const val ScreenshotWarningText = "Screenshots are saved locally. They may contain sensitive information."
 
 @Composable
 private fun ScreenshotCropPreview(screenshot: ScreenshotInfo?) {
