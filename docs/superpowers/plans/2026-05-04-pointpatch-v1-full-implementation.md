@@ -37,7 +37,7 @@ Keep each module focused. Do not put MCP protocol code in Android modules. Do no
 - Delete: `sample/settings.gradle.kts` after migrating sample into the root build
 - Test: Gradle project loading
 
-- [ ] **Step 1: Create root settings**
+- [x] **Step 1: Create root settings**
 
 Create `settings.gradle.kts`:
 
@@ -69,7 +69,7 @@ include(":pointpatch-cli")
 include(":pointpatch-mcp")
 ```
 
-- [ ] **Step 2: Create root build file**
+- [x] **Step 2: Create root build file**
 
 Create `build.gradle.kts`:
 
@@ -84,7 +84,7 @@ plugins {
 }
 ```
 
-- [ ] **Step 3: Create shared version catalog**
+- [x] **Step 3: Create shared version catalog**
 
 Create `gradle/libs.versions.toml`:
 
@@ -133,7 +133,7 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 gradle-plugin-publish = { id = "com.gradle.plugin-publish", version = "1.3.1" }
 ```
 
-- [ ] **Step 4: Verify project discovery**
+- [x] **Step 4: Verify project discovery**
 
 Run:
 
@@ -143,7 +143,7 @@ Run:
 
 Expected: Gradle lists `:sample`, `:pointpatch-compose-core`, `:pointpatch-compose-overlay`, `:pointpatch-compose-sidekick`, `:pointpatch-gradle-plugin`, `:pointpatch-cli`, and `:pointpatch-mcp`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add settings.gradle.kts build.gradle.kts gradle/libs.versions.toml
