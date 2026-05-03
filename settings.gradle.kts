@@ -1,4 +1,8 @@
 pluginManagement {
+    includeBuild("pointpatch-gradle-plugin") {
+        name = "pointpatch-gradle-plugin-build"
+    }
+
     repositories {
         google()
         mavenCentral()
