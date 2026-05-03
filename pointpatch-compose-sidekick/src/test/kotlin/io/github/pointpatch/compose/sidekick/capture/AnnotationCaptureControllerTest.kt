@@ -158,6 +158,53 @@ class AnnotationCaptureControllerTest {
     }
 
     @Test
+    fun areaSelectUsesStrongestContainedNodeForSourceCandidatesWithoutSelectingIt() {
+        val centeredLabel = node(
+            uid = "centered-label",
+            bounds = rect(80f, 80f, 120f, 110f),
+            text = listOf("Centered")
+        )
+        val payButton = node(
+            uid = "pay-button",
+            bounds = rect(150f, 150f, 190f, 190f),
+            text = listOf("Pay now"),
+            role = "Button",
+            testTag = "payButton",
+            actions = listOf("OnClick")
+        )
+
+        val annotation = controller.capture(
+            AnnotationCaptureInput(
+                app = appInfo(),
+                activity = activityInfo(),
+                tap = TapPoint(10f, 10f),
+                nodes = listOf(centeredLabel, payButton),
+                sourceIndex = SourceIndex(
+                    entries = listOf(
+                        SourceIndexEntry(
+                            file = "CheckoutScreen.kt",
+                            line = 42,
+                            text = listOf("Pay now"),
+                            testTags = listOf("payButton"),
+                            roles = listOf("Button"),
+                            activityNames = listOf("CheckoutActivity")
+                        )
+                    )
+                ),
+                areaBoundsInWindow = rect(0f, 0f, 200f, 200f),
+                userComment = "Visual issue"
+            )
+        )
+
+        assertNull(annotation.selectedNode)
+        assertEquals(SelectionKind.VISUAL_AREA, annotation.selection.kind)
+        assertEquals(SelectionSource.AREA_SELECT, annotation.selection.source)
+        assertEquals(listOf("centered-label", "pay-button"), annotation.nearbyNodes.map { it.uid })
+        assertEquals("CheckoutScreen.kt", annotation.sourceCandidates.single().file)
+        assertTrue(annotation.sourceCandidates.single().matchReasons.contains("selected testTag"))
+    }
+
+    @Test
     fun captureCarriesInspectionErrorsForward() {
         val annotation = controller.capture(
             AnnotationCaptureInput(

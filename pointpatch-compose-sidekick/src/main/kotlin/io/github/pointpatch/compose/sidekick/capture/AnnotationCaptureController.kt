@@ -101,9 +101,10 @@ class AnnotationCaptureController(
             )
         }
 
-        val sourceCandidates = SourceMatcher(input.sourceIndex).match(
-            selectedNode = captureSelection.selectedNode,
-            nearbyNodes = captureSelection.nearbyNodes,
+        val sourceCandidates = sourceCandidatesFor(
+            sourceIndex = input.sourceIndex,
+            captureSelection = captureSelection,
+            areaBoundsInWindow = input.areaBoundsInWindow,
             activityName = input.activity.className,
         )
 
@@ -131,12 +132,55 @@ class AnnotationCaptureController(
         )
     }
 
+    private fun sourceCandidatesFor(
+        sourceIndex: SourceIndex,
+        captureSelection: CaptureSelection,
+        areaBoundsInWindow: PointPatchRect?,
+        activityName: String,
+    ): List<SourceCandidate> {
+        val matcher = SourceMatcher(sourceIndex)
+        captureSelection.selectedNode?.let { selectedNode ->
+            return matcher.match(
+                selectedNode = selectedNode,
+                nearbyNodes = captureSelection.nearbyNodes,
+                activityName = activityName,
+            )
+        }
+
+        if (areaBoundsInWindow == null) return emptyList()
+
+        return captureSelection.nearbyNodes
+            .mapIndexed { index, node ->
+                AreaSourceMatch(
+                    sourceCandidates = matcher.match(
+                        selectedNode = node,
+                        nearbyNodes = captureSelection.nearbyNodes.filterNot { it.uid == node.uid },
+                        activityName = activityName,
+                    ),
+                    index = index,
+                )
+            }
+            .filter { it.sourceCandidates.isNotEmpty() }
+            .sortedWith(
+                compareByDescending<AreaSourceMatch> { it.sourceCandidates.first().score }
+                    .thenBy { it.index }
+            )
+            .firstOrNull()
+            ?.sourceCandidates
+            .orEmpty()
+    }
+
     private data class CaptureSelection(
         val selectedNode: PointPatchNode?,
         val selection: SelectionInfo,
         val nearbyNodes: List<PointPatchNode>,
     )
 }
+
+private data class AreaSourceMatch(
+    val sourceCandidates: List<SourceCandidate>,
+    val index: Int,
+)
 
 private fun fallbackNearby(
     nodes: List<PointPatchNode>,

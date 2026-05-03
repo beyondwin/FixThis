@@ -20,15 +20,7 @@ class SemanticsNodeMapper(
         node: SemanticsNode,
     ): PointPatchNode {
         val config = node.config
-        val text = config.safeGet(SemanticsProperties.Text).orEmpty().map { it.text }
-        val editableText = config.safeGet(SemanticsProperties.EditableText)?.text
-        val isPassword = config.has(SemanticsProperties.Password)
-        val redacted = RedactionPolicy.apply(
-            isPassword = isPassword,
-            editableText = editableText,
-            text = text,
-            redactEditableText = redactEditableText,
-        )
+        val textProperties = config.toPointPatchTextProperties(redactEditableText)
 
         return PointPatchNode(
             uid = uidFor(root.index, treeKind, node),
@@ -36,21 +28,19 @@ class SemanticsNodeMapper(
             rootIndex = root.index,
             treeKind = treeKind,
             boundsInWindow = node.boundsInWindow(root),
-            text = redacted.text,
-            editableText = redacted.editableText,
-            contentDescription = config.safeGet(SemanticsProperties.ContentDescription).orEmpty(),
+            text = textProperties.text,
+            editableText = textProperties.editableText,
+            contentDescription = textProperties.contentDescription,
             role = config.safeGet(SemanticsProperties.Role)?.toString(),
             testTag = config.safeGet(SemanticsProperties.TestTag),
-            stateDescription = config.safeGet(SemanticsProperties.StateDescription),
+            stateDescription = textProperties.stateDescription,
             selected = config.safeGet(SemanticsProperties.Selected),
             enabled = !config.has(SemanticsProperties.Disabled),
             actions = config.actionNames(),
-            isPassword = isPassword,
-            isSensitive = isPassword ||
-                redacted.redacted ||
-                config.safeGet(SemanticsProperties.IsSensitiveData) == true,
+            isPassword = textProperties.isPassword,
+            isSensitive = textProperties.isSensitive,
             path = node.path(),
-            rawProperties = config.rawProperties(redacted.redacted, isPassword),
+            rawProperties = textProperties.rawProperties,
         )
     }
 
@@ -85,24 +75,6 @@ class SemanticsNodeMapper(
 
     private fun SemanticsConfiguration.actionNames(): List<String> =
         actionKeys.mapNotNull { (name, key) -> name.takeIf { has(key) } }
-
-    private fun SemanticsConfiguration.rawProperties(redacted: Boolean, isPassword: Boolean): Map<String, String> =
-        associate { entry ->
-            val keyName = entry.key.name
-            keyName to entry.value.safeRawValue(keyName, redacted, isPassword)
-        }
-
-    private fun Any?.safeRawValue(keyName: String, redacted: Boolean, isPassword: Boolean): String =
-        when {
-            isPassword && keyName.isTextLike() -> "<redacted-password>"
-            redacted && keyName == SemanticsProperties.EditableText.name -> "<redacted-editable-text>"
-            redacted && keyName == SemanticsProperties.InputText.name -> "<redacted-editable-text>"
-            redacted && keyName.isTextLike() -> "<redacted>"
-            else -> toString()
-        }
-
-    private fun String.isTextLike(): Boolean =
-        contains("Text", ignoreCase = true) || contains("Input", ignoreCase = true)
 
     private fun <T> SemanticsConfiguration.safeGet(key: SemanticsPropertyKey<T>): T? =
         runCatching { getOrNull(key) }.getOrNull()
@@ -140,3 +112,77 @@ class SemanticsNodeMapper(
         )
     }
 }
+
+internal data class PointPatchTextProperties(
+    val text: List<String>,
+    val editableText: String?,
+    val contentDescription: List<String>,
+    val stateDescription: String?,
+    val isPassword: Boolean,
+    val isSensitive: Boolean,
+    val rawProperties: Map<String, String>,
+)
+
+internal fun SemanticsConfiguration.toPointPatchTextProperties(redactEditableText: Boolean): PointPatchTextProperties {
+    val text = safeGet(SemanticsProperties.Text).orEmpty().map { it.text }
+    val editableText = safeGet(SemanticsProperties.EditableText)?.text
+    val contentDescription = safeGet(SemanticsProperties.ContentDescription).orEmpty()
+    val stateDescription = safeGet(SemanticsProperties.StateDescription)
+    val isPassword = has(SemanticsProperties.Password)
+    val hasSensitiveData = safeGet(SemanticsProperties.IsSensitiveData) == true
+    val redacted = RedactionPolicy.apply(
+        isPassword = isPassword,
+        editableText = editableText,
+        text = text,
+        redactEditableText = redactEditableText,
+    )
+    val isSensitive = isPassword || redacted.redacted || hasSensitiveData
+    val redactSensitiveText = isSensitive && !isPassword
+
+    return PointPatchTextProperties(
+        text = if (redactSensitiveText && text.isNotEmpty()) listOf(REDACTED_TEXT) else redacted.text,
+        editableText = when {
+            isPassword -> redacted.editableText
+            redactSensitiveText && editableText != null -> REDACTED_TEXT
+            else -> redacted.editableText
+        },
+        contentDescription = if (redactSensitiveText && contentDescription.isNotEmpty()) {
+            listOf(REDACTED_TEXT)
+        } else {
+            contentDescription
+        },
+        stateDescription = if (redactSensitiveText && stateDescription != null) REDACTED_TEXT else stateDescription,
+        isPassword = isPassword,
+        isSensitive = isSensitive,
+        rawProperties = rawProperties(redacted = isSensitive, isPassword = isPassword),
+    )
+}
+
+private const val REDACTED_TEXT = "<redacted>"
+
+private fun SemanticsConfiguration.rawProperties(redacted: Boolean, isPassword: Boolean): Map<String, String> =
+    associate { entry ->
+        val keyName = entry.key.name
+        keyName to entry.value.safeRawValue(keyName, redacted, isPassword)
+    }
+
+private fun Any?.safeRawValue(keyName: String, redacted: Boolean, isPassword: Boolean): String =
+    when {
+        isPassword && keyName.isRedactableTextProperty() -> "<redacted-password>"
+        redacted && keyName == SemanticsProperties.EditableText.name -> "<redacted-editable-text>"
+        redacted && keyName == SemanticsProperties.InputText.name -> "<redacted-editable-text>"
+        redacted && keyName.isRedactableTextProperty() -> REDACTED_TEXT
+        else -> toString()
+    }
+
+private fun String.isRedactableTextProperty(): Boolean =
+    contains("Text", ignoreCase = true) ||
+        contains("Input", ignoreCase = true) ||
+        this == SemanticsProperties.ContentDescription.name ||
+        this == SemanticsProperties.StateDescription.name
+
+private fun <T> SemanticsConfiguration.safeGet(key: SemanticsPropertyKey<T>): T? =
+    runCatching { getOrNull(key) }.getOrNull()
+
+private fun SemanticsConfiguration.has(key: SemanticsPropertyKey<*>): Boolean =
+    any { it.key == key }
