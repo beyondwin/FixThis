@@ -28,6 +28,8 @@ import io.github.pointpatch.compose.sidekick.screenshot.ScreenshotCapturer
 import io.github.pointpatch.compose.sidekick.screenshot.ScreenshotStore
 import java.io.File
 import java.util.UUID
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.max
 import kotlin.math.min
 
@@ -78,6 +80,11 @@ internal class PointPatchOverlayController(
 
     private var activeCapture: ActiveCapture? = null
     private var currentAnnotation: PointPatchAnnotation? = null
+    private var lastSubmittedAnnotation: PointPatchAnnotation? = null
+    private var submissionSequence: Long = 0L
+
+    internal val lastAnnotation: PointPatchAnnotation?
+        get() = currentAnnotation ?: lastSubmittedAnnotation
 
     fun startSelection() {
         activeCapture = null
@@ -125,15 +132,24 @@ internal class PointPatchOverlayController(
         mode = OverlayMode.Commenting(updated.toDraft())
     }
 
-    fun copyMarkdown(): ClipboardExportResult? =
-        currentAnnotation?.let(clipboardExporter::copyMarkdown)
+    fun copyMarkdown(): ClipboardExportResult? {
+        val annotation = currentAnnotation ?: return null
+        return clipboardExporter.copyMarkdown(annotation).also {
+            markSubmitted(annotation)
+        }
+    }
 
-    fun copyJson(): ClipboardExportResult? =
-        currentAnnotation?.let(clipboardExporter::copyJson)
+    fun copyJson(): ClipboardExportResult? {
+        val annotation = currentAnnotation ?: return null
+        return clipboardExporter.copyJson(annotation).also {
+            markSubmitted(annotation)
+        }
+    }
 
     suspend fun share(): File? {
         val annotation = currentAnnotation ?: return null
         val file = localFileExporter.exportMarkdown(annotation)
+        markSubmitted(annotation)
         mode = OverlayMode.Exported(annotation.id)
         return file
     }
@@ -142,6 +158,24 @@ internal class PointPatchOverlayController(
         activeCapture = null
         currentAnnotation = null
         mode = OverlayMode.Idle
+    }
+
+    internal suspend fun startFeedbackCapture(
+        timeoutMillis: Long,
+        pollMillis: Long = 100L,
+    ): FeedbackCaptureWaitResult {
+        val startSequence = submissionSequence
+        startSelection()
+        val submitted = withTimeoutOrNull(timeoutMillis) {
+            while (submissionSequence == startSequence) {
+                delay(pollMillis)
+            }
+            true
+        } ?: false
+        return FeedbackCaptureWaitResult(
+            submitted = submitted,
+            annotation = if (submitted) lastSubmittedAnnotation else null,
+        )
     }
 
     private suspend fun captureSelection(
@@ -186,7 +220,17 @@ internal class PointPatchOverlayController(
         val tap: TapPoint,
         val areaBoundsInWindow: PointPatchRect?,
     )
+
+    private fun markSubmitted(annotation: PointPatchAnnotation) {
+        lastSubmittedAnnotation = annotation
+        submissionSequence++
+    }
 }
+
+internal data class FeedbackCaptureWaitResult(
+    val submitted: Boolean,
+    val annotation: PointPatchAnnotation?,
+)
 
 private class AndroidSemanticsInspectorPort(
     private val inspector: SemanticsInspector = SemanticsInspector(),

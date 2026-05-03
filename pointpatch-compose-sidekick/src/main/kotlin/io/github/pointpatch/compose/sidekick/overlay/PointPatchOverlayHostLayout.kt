@@ -27,7 +27,7 @@ class PointPatchOverlayHostLayout(context: Context) : FrameLayout(context) {
     private val overlayView = ComposeView(context)
     private val toolbarView = ComposeView(context)
     private val coroutineScope = MainScope()
-    private val controller = (context as? Activity)?.let { activity ->
+    internal val controller = (context as? Activity)?.let { activity ->
         PointPatchOverlayController(activity)
     }
     private var handlingToolbarGesture = false
@@ -181,6 +181,13 @@ class PointPatchOverlayHostLayout(context: Context) : FrameLayout(context) {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                 ),
             )
+        }
+
+        internal fun controllerFor(activity: Activity): PointPatchOverlayController? {
+            val decorView = activity.window?.decorView ?: return null
+            return decorView.findPointPatchOverlayHosts()
+                .filterIsInstance<PointPatchOverlayHostLayout>()
+                .firstNotNullOfOrNull { host -> host.controller }
         }
     }
 }

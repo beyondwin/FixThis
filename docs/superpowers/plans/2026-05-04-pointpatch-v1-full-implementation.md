@@ -1401,11 +1401,11 @@ git commit -m "gradle: add PointPatch plugin and source index"
 - Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/bridge/BridgeProtocol.kt`
 - Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/bridge/SessionTokenStore.kt`
 
-- [ ] **Step 1: Define bridge protocol**
+- [x] **Step 1: Define bridge protocol**
 
 Use length-prefixed UTF-8 JSON frames. Define methods: `status`, `inspectCurrentScreen`, `startFeedbackCapture`, `verifyUiChange`, `getLastAnnotation`, `readScreenshot`.
 
-- [ ] **Step 2: Create session token**
+- [x] **Step 2: Create session token**
 
 On debug runtime start, write:
 
@@ -1415,15 +1415,17 @@ context.filesDir/pointpatch/session.json
 
 with package name, socket name, random token, sidekick version, bridge protocol version, and process start time.
 
-- [ ] **Step 3: Start LocalServerSocket**
+- [x] **Step 3: Start LocalServerSocket**
 
 Use `localabstract:pointpatch_<packageName>` naming. Reject requests with missing or mismatched token.
 
-- [ ] **Step 4: Add bridge methods**
+- [x] **Step 4: Add bridge methods**
 
 `status` returns activity, roots count, sidekick version, protocol version, source index availability. `startFeedbackCapture` activates the same in-app Smart Select flow as clipboard mode and waits until the user submits or timeout expires.
 
 - [ ] **Step 5: Run bridge smoke test manually**
+
+Environment-blocked on 2026-05-04: `adb devices` reported no attached devices, so the `run-as` session-file smoke test was not run.
 
 Run sample, then:
 
@@ -1433,7 +1435,7 @@ adb shell run-as io.github.pointpatch.sample cat files/pointpatch/session.json
 
 Expected: JSON session file with token and socket name.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-compose-sidekick
