@@ -137,41 +137,63 @@ internal fun SemanticsConfiguration.toPointPatchTextProperties(redactEditableTex
         redactEditableText = redactEditableText,
     )
     val isSensitive = isPassword || redacted.redacted || hasSensitiveData
-    val redactSensitiveText = isSensitive && !isPassword
+    val redactTextLikeProperties = isPassword || hasSensitiveData
 
     return PointPatchTextProperties(
-        text = if (redactSensitiveText && text.isNotEmpty()) listOf(REDACTED_TEXT) else redacted.text,
+        text = when {
+            isPassword -> redacted.text
+            hasSensitiveData && text.isNotEmpty() -> listOf(REDACTED_TEXT)
+            else -> redacted.text
+        },
         editableText = when {
             isPassword -> redacted.editableText
-            redactSensitiveText && editableText != null -> REDACTED_TEXT
+            hasSensitiveData && editableText != null -> REDACTED_TEXT
             else -> redacted.editableText
         },
-        contentDescription = if (redactSensitiveText && contentDescription.isNotEmpty()) {
-            listOf(REDACTED_TEXT)
-        } else {
-            contentDescription
+        contentDescription = when {
+            isPassword && contentDescription.isNotEmpty() -> listOf(REDACTED_PASSWORD_TEXT)
+            hasSensitiveData && contentDescription.isNotEmpty() -> listOf(REDACTED_TEXT)
+            else -> contentDescription
         },
-        stateDescription = if (redactSensitiveText && stateDescription != null) REDACTED_TEXT else stateDescription,
+        stateDescription = when {
+            isPassword && stateDescription != null -> REDACTED_PASSWORD_TEXT
+            hasSensitiveData && stateDescription != null -> REDACTED_TEXT
+            else -> stateDescription
+        },
         isPassword = isPassword,
         isSensitive = isSensitive,
-        rawProperties = rawProperties(redacted = isSensitive, isPassword = isPassword),
+        rawProperties = rawProperties(
+            redactEditableText = redacted.redacted || hasSensitiveData,
+            redactTextLikeProperties = redactTextLikeProperties,
+            isPassword = isPassword,
+        ),
     )
 }
 
 private const val REDACTED_TEXT = "<redacted>"
+private const val REDACTED_PASSWORD_TEXT = "<redacted-password>"
 
-private fun SemanticsConfiguration.rawProperties(redacted: Boolean, isPassword: Boolean): Map<String, String> =
+private fun SemanticsConfiguration.rawProperties(
+    redactEditableText: Boolean,
+    redactTextLikeProperties: Boolean,
+    isPassword: Boolean,
+): Map<String, String> =
     associate { entry ->
         val keyName = entry.key.name
-        keyName to entry.value.safeRawValue(keyName, redacted, isPassword)
+        keyName to entry.value.safeRawValue(keyName, redactEditableText, redactTextLikeProperties, isPassword)
     }
 
-private fun Any?.safeRawValue(keyName: String, redacted: Boolean, isPassword: Boolean): String =
+private fun Any?.safeRawValue(
+    keyName: String,
+    redactEditableText: Boolean,
+    redactTextLikeProperties: Boolean,
+    isPassword: Boolean,
+): String =
     when {
-        isPassword && keyName.isRedactableTextProperty() -> "<redacted-password>"
-        redacted && keyName == SemanticsProperties.EditableText.name -> "<redacted-editable-text>"
-        redacted && keyName == SemanticsProperties.InputText.name -> "<redacted-editable-text>"
-        redacted && keyName.isRedactableTextProperty() -> REDACTED_TEXT
+        isPassword && keyName.isRedactableTextProperty() -> REDACTED_PASSWORD_TEXT
+        redactEditableText && keyName == SemanticsProperties.EditableText.name -> "<redacted-editable-text>"
+        redactEditableText && keyName == SemanticsProperties.InputText.name -> "<redacted-editable-text>"
+        redactTextLikeProperties && keyName.isRedactableTextProperty() -> REDACTED_TEXT
         else -> toString()
     }
 
