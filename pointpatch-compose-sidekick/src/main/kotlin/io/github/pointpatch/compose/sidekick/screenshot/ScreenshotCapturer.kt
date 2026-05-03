@@ -51,17 +51,14 @@ class ScreenshotCapturer(
             return ScreenshotInfo(captureFailedReason = "DecorView has no size")
         }
 
-        val hiddenOverlayHosts = withContext(mainDispatcher) {
-            decorView.hidePointPatchOverlayHosts()
-        }
         val failures = mutableListOf<String>()
-        val fullBitmap = try {
+        val fullBitmap = decorView.withHiddenPointPatchOverlayHosts(mainDispatcher) { hiddenOverlayHosts ->
             tryPixelCopy(
                 activity = activity,
                 decorView = decorView,
                 width = width,
                 height = height,
-                waitForCleanFrame = hiddenOverlayHosts.isNotEmpty(),
+                waitForCleanFrame = hiddenOverlayHosts,
             )
                 .getOrElse { error ->
                     failures += "PixelCopy failed: ${error.message ?: error::class.java.simpleName}"
@@ -72,10 +69,6 @@ class ScreenshotCapturer(
                         failures += "Canvas fallback failed: ${error.message ?: error::class.java.simpleName}"
                         null
                     }
-        } finally {
-            withContext(NonCancellable + mainDispatcher) {
-                hiddenOverlayHosts.restore()
-            }
         }
 
         if (fullBitmap == null) {
@@ -116,7 +109,7 @@ class ScreenshotCapturer(
             withContext(mainDispatcher) {
                 if (waitForCleanFrame) {
                     val frameRendered = withTimeoutOrNull(pixelCopyTimeoutMillis) {
-                        decorView.awaitNextPreDrawAfterInvalidation()
+                        decorView.awaitNextDrawAfterInvalidation()
                         true
                     } ?: false
                     if (!frameRendered) {
@@ -201,7 +194,21 @@ private class PixelCopyTimedOutException(timeoutMillis: Long) :
 private class CleanFrameTimedOutException(timeoutMillis: Long) :
     RuntimeException("Clean frame timed out after ${timeoutMillis}ms")
 
-private suspend fun View.awaitNextPreDrawAfterInvalidation() {
+private suspend fun <T> View.withHiddenPointPatchOverlayHosts(
+    mainDispatcher: CoroutineDispatcher,
+    block: suspend (hiddenOverlayHosts: Boolean) -> T,
+): T = withContext(mainDispatcher) {
+    val hiddenOverlayHosts = hidePointPatchOverlayHosts()
+    try {
+        block(hiddenOverlayHosts.isNotEmpty())
+    } finally {
+        withContext(NonCancellable) {
+            hiddenOverlayHosts.restore()
+        }
+    }
+}
+
+private suspend fun View.awaitNextDrawAfterInvalidation() {
     suspendCancellableCoroutine { continuation ->
         val initialObserver = viewTreeObserver
         if (!initialObserver.isAlive || !isAttachedToWindow) {
@@ -209,27 +216,45 @@ private suspend fun View.awaitNextPreDrawAfterInvalidation() {
             return@suspendCancellableCoroutine
         }
 
-        lateinit var listener: ViewTreeObserver.OnPreDrawListener
+        lateinit var listener: ViewTreeObserver.OnDrawListener
         fun removeListener() {
             val currentObserver = viewTreeObserver
             val observer = if (currentObserver.isAlive) currentObserver else initialObserver
             if (observer.isAlive) {
-                observer.removeOnPreDrawListener(listener)
+                observer.removeOnDrawListener(listener)
             }
         }
 
-        listener = ViewTreeObserver.OnPreDrawListener {
-            removeListener()
-            if (continuation.isActive) {
-                continuation.resume(Unit)
+        fun postAfterDraw(block: () -> Unit) {
+            val posted = post {
+                block()
             }
-            true
+            if (!posted) {
+                Handler(Looper.getMainLooper()).post {
+                    block()
+                }
+            }
+        }
+
+        var completionPosted = false
+        listener = ViewTreeObserver.OnDrawListener {
+            if (!completionPosted) {
+                completionPosted = true
+                postAfterDraw {
+                    removeListener()
+                    if (continuation.isActive) {
+                        continuation.resume(Unit)
+                    }
+                }
+            }
         }
         continuation.invokeOnCancellation {
-            removeListener()
+            postAfterDraw {
+                removeListener()
+            }
         }
 
-        initialObserver.addOnPreDrawListener(listener)
+        initialObserver.addOnDrawListener(listener)
         postInvalidateOnAnimation()
     }
 }
