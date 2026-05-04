@@ -1613,6 +1613,8 @@ Run:
 
 Expected: all JVM tests and Android module builds pass.
 
+Verification note: `ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew clean build` passes after adding root Gradle daemon JVM args in `gradle.properties`.
+
 - [ ] **Step 7: Run sample manual V1 flow** - Environment blocked: `adb devices` returned no connected device or emulator.
 
 Manual test:
