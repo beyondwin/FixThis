@@ -3,10 +3,14 @@ package io.github.pointpatch.cli
 import java.io.Closeable
 import java.io.EOFException
 import java.io.File
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
+import java.net.SocketTimeoutException
+import java.util.Base64
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
@@ -22,6 +26,8 @@ import kotlinx.serialization.json.put
 private const val BridgeProtocolVersion = "1.0"
 private const val SessionPath = "files/pointpatch/session.json"
 private const val MaxFrameBytes = 16 * 1024 * 1024
+private const val DefaultSocketTimeoutMillis = 30_000
+private const val FeedbackCaptureTimeoutPaddingMillis = 5_000L
 
 @OptIn(ExperimentalSerializationApi::class)
 val pointPatchJson: Json = Json {
@@ -48,7 +54,8 @@ class BridgeClient(
     private val adb: AdbFacade = Adb(),
     private val projectRoot: File = File("."),
     private val portAllocator: () -> Int = { allocateLocalPort() },
-    private val socketConnector: (Int) -> BridgeSocket = { port -> TcpBridgeSocket(port) },
+    private val socketTimeoutMillis: Int = DefaultSocketTimeoutMillis,
+    private val socketConnector: (Int) -> BridgeSocket = { port -> TcpBridgeSocket(port, socketTimeoutMillis) },
 ) {
     private val requestIds = AtomicInteger(0)
 
@@ -56,6 +63,7 @@ class BridgeClient(
         packageName: String,
         method: String,
         params: JsonObject = JsonObject(emptyMap()),
+        readTimeoutMillis: Long = socketTimeoutMillis.toLong(),
     ): JsonObject {
         ensureDeviceConnected()
         val session = readSession(packageName)
@@ -63,38 +71,49 @@ class BridgeClient(
         val localPort = portAllocator()
         adb.forward(localPort, session.socketAddress)
 
-        socketConnector(localPort).use { socket ->
-            val request = BridgeRequest(
-                id = "req_${requestIds.incrementAndGet()}",
-                token = session.token,
-                method = method,
-                params = params,
-            )
-            BridgeFrames.writeFrame(
-                socket.output,
-                pointPatchJson.encodeToString(BridgeRequest.serializer(), request),
-            )
-            val responsePayload = BridgeFrames.readFrame(socket.input)
-                ?: throw BridgeConnectionException("Bridge closed before sending a response")
-            val response = pointPatchJson.decodeFromString(BridgeResponse.serializer(), responsePayload)
-            if (!response.ok) {
-                val error = response.error
-                throw BridgeRequestException(
-                    code = error?.code ?: "BRIDGE_ERROR",
-                    bridgeMessage = error?.message ?: "Bridge request failed",
+        return try {
+            socketConnector(localPort).use { socket ->
+                socket.readTimeoutMillis = readTimeoutMillis
+                    .coerceIn(1L, Int.MAX_VALUE.toLong())
+                    .toInt()
+                val request = BridgeRequest(
+                    id = "req_${requestIds.incrementAndGet()}",
+                    token = session.token,
+                    method = method,
+                    params = params,
                 )
+                BridgeFrames.writeFrame(
+                    socket.output,
+                    pointPatchJson.encodeToString(BridgeRequest.serializer(), request),
+                )
+                val responsePayload = BridgeFrames.readFrame(socket.input)
+                    ?: throw BridgeConnectionException("Bridge closed before sending a response")
+                val response = pointPatchJson.decodeFromString(BridgeResponse.serializer(), responsePayload)
+                if (!response.ok) {
+                    val error = response.error
+                    throw BridgeRequestException(
+                        code = error?.code ?: "BRIDGE_ERROR",
+                        bridgeMessage = error?.message ?: "Bridge request failed",
+                    )
+                }
+                val result = response.result?.jsonObject
+                    ?: throw BridgeProtocolException("Bridge response did not include an object result")
+                validateProtocol(result["bridgeProtocolVersion"]?.jsonPrimitive?.contentOrNull ?: BridgeProtocolVersion)
+                result
             }
-            val result = response.result?.jsonObject
-                ?: throw BridgeProtocolException("Bridge response did not include an object result")
-            validateProtocol(result["bridgeProtocolVersion"]?.jsonPrimitive?.contentOrNull ?: BridgeProtocolVersion)
-            return result
+        } catch (error: SocketTimeoutException) {
+            throw BridgeConnectionException("Bridge request timed out while waiting for $method response")
+        } catch (error: IOException) {
+            throw BridgeConnectionException("Could not connect to PointPatch bridge on tcp:$localPort: ${error.message}")
+        } finally {
+            runCatching { adb.removeForward(localPort) }
         }
     }
 
     fun resolvePackageName(packageOverride: String?): String =
         ProjectConfig.resolvePackageName(projectRoot, packageOverride)
 
-    fun pullArtifacts(packageName: String, annotation: JsonObject): JsonObject {
+    suspend fun pullArtifacts(packageName: String, annotation: JsonObject): JsonObject {
         val annotationId = annotation["id"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
             ?: return annotation
         val screenshot = annotation["screenshot"]?.jsonObject ?: return annotation
@@ -104,13 +123,15 @@ class BridgeClient(
             "Could not create PointPatch artifact directory: ${artifactDirectory.absolutePath}"
         }
 
-        val fullDesktopPath = pullScreenshotPath(
+        val fullDesktopPath = readScreenshotArtifact(
             packageName = packageName,
+            kind = "full",
             androidPath = screenshot["fullPath"]?.jsonPrimitive?.contentOrNull,
             destination = artifactDirectory.resolve("$artifactId-full.png"),
         )
-        val cropDesktopPath = pullScreenshotPath(
+        val cropDesktopPath = readScreenshotArtifact(
             packageName = packageName,
+            kind = "crop",
             androidPath = screenshot["cropPath"]?.jsonPrimitive?.contentOrNull,
             destination = artifactDirectory.resolve("$artifactId-crop.png"),
         )
@@ -133,6 +154,7 @@ class BridgeClient(
             params = buildJsonObject {
                 put("timeoutMillis", timeoutMillis)
             },
+            readTimeoutMillis = timeoutMillis.saturatingPlus(FeedbackCaptureTimeoutPaddingMillis),
         )
         val annotation = result["annotation"]?.jsonObject ?: return result
         val rewrittenAnnotation = pullArtifacts(packageName, annotation)
@@ -168,9 +190,25 @@ class BridgeClient(
         }
     }
 
-    private fun pullScreenshotPath(packageName: String, androidPath: String?, destination: File): String? {
-        val path = androidPath?.takeIf { it.isNotBlank() } ?: return null
-        adb.pull(path, destination)
+    private suspend fun readScreenshotArtifact(
+        packageName: String,
+        kind: String,
+        androidPath: String?,
+        destination: File,
+    ): String? {
+        androidPath?.takeIf { it.isNotBlank() } ?: return null
+        val result = request(
+            packageName = packageName,
+            method = "readScreenshot",
+            params = buildJsonObject {
+                put("kind", kind)
+            },
+        )
+        val mimeType = result["mimeType"]?.jsonPrimitive?.contentOrNull
+        require(mimeType == "image/png") { "Bridge returned unsupported screenshot MIME type for $kind: $mimeType" }
+        val base64 = result["base64"]?.jsonPrimitive?.contentOrNull
+            ?: throw BridgeProtocolException("Bridge readScreenshot response omitted base64 for $kind")
+        destination.writeBytes(Base64.getDecoder().decode(base64))
         return destination.absolutePath
     }
 }
@@ -178,6 +216,7 @@ class BridgeClient(
 interface BridgeSocket : Closeable {
     val input: InputStream
     val output: OutputStream
+    var readTimeoutMillis: Int
 }
 
 object BridgeFrames {
@@ -226,10 +265,18 @@ class BridgeRequestException(
     val bridgeMessage: String,
 ) : RuntimeException("$code: $bridgeMessage")
 
-private class TcpBridgeSocket(port: Int) : BridgeSocket {
-    private val socket = Socket("127.0.0.1", port)
+private class TcpBridgeSocket(port: Int, timeoutMillis: Int) : BridgeSocket {
+    private val socket = Socket().apply {
+        connect(InetSocketAddress("127.0.0.1", port), timeoutMillis)
+        soTimeout = timeoutMillis
+    }
     override val input: InputStream = socket.getInputStream()
     override val output: OutputStream = socket.getOutputStream()
+    override var readTimeoutMillis: Int
+        get() = socket.soTimeout
+        set(value) {
+            socket.soTimeout = value
+        }
     override fun close() {
         socket.close()
     }
@@ -240,6 +287,9 @@ private fun allocateLocalPort(): Int =
 
 private fun String.sanitizedPathSegment(): String =
     replace(Regex("[^A-Za-z0-9._-]"), "_")
+
+private fun Long.saturatingPlus(value: Long): Long =
+    if (this > Long.MAX_VALUE - value) Long.MAX_VALUE else this + value
 
 @Serializable
 private data class ProjectMetadata(

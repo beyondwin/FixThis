@@ -1480,9 +1480,9 @@ pointpatch mcp
 
 `pointpatch mcp` can delegate to the MCP module in Task 12.
 
-- [x] **Step 5: Add artifact pulling**
+- [x] **Step 5: Add bridge-backed screenshot artifact export**
 
-When bridge returns Android-local screenshot paths, CLI pulls files into:
+When bridge returns Android-local screenshot paths for the latest annotation, CLI requests `readScreenshot` from the sidekick bridge for `full` and `crop`, decodes the returned PNG base64 into:
 
 ```text
 .pointpatch/artifacts/<annotation-id>/
@@ -1490,13 +1490,13 @@ When bridge returns Android-local screenshot paths, CLI pulls files into:
 
 and rewrites `desktopFullPath` / `desktopCropPath`.
 
-- [ ] **Step 6: Run CLI status** — Environment-blocked on 2026-05-04: after `:pointpatch-cli:installDist`, `pointpatch-cli status --package io.github.pointpatch.sample` reported `No connected Android device or emulator found` and exited 1. This honestly verified the no-device environment, but could not verify a connected sidekick status.
+- [ ] **Step 6: Run CLI status** — Environment-blocked on 2026-05-04: after `:pointpatch-cli:installDist`, `pointpatch status --package io.github.pointpatch.sample` reported `No connected Android device or emulator found` and exited 1. This honestly verified the no-device environment, but could not verify a connected sidekick status.
 
 Run:
 
 ```bash
 ./gradlew :pointpatch-cli:installDist
-./pointpatch-cli/build/install/pointpatch-cli/bin/pointpatch-cli status --package io.github.pointpatch.sample
+./pointpatch-cli/build/install/pointpatch/bin/pointpatch status --package io.github.pointpatch.sample
 ```
 
 Expected: reports device, package, app running, sidekick connected, current activity, roots count.

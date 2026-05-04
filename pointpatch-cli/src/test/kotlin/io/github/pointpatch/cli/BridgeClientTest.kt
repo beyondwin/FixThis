@@ -4,7 +4,10 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.Closeable
 import java.io.File
+import java.io.IOException
 import java.net.ServerSocket
+import java.net.SocketTimeoutException
+import java.util.ArrayDeque
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -82,6 +85,7 @@ class BridgeClientTest {
             listOf(34567 to "localabstract:pointpatch_io.github.pointpatch.sample"),
             adb.forwarded,
         )
+        assertEquals(listOf(34567), adb.removedForwards)
         val request = Json.parseToJsonElement(readFrame(socket.written.toByteArray())).jsonObject
         assertEquals("req_1", request.getValue("id").jsonPrimitive.content)
         assertEquals("token-1", request.getValue("token").jsonPrimitive.content)
@@ -104,45 +108,186 @@ class BridgeClientTest {
 
         assertTrue(error is BridgeProtocolException)
         assertEquals(emptyList<Pair<Int, String>>(), adb.forwarded)
+        assertEquals(emptyList<Int>(), adb.removedForwards)
     }
 
     @Test
-    fun pullsAndroidScreenshotArtifactsAndRewritesDesktopPaths() {
+    fun removesForwardWhenBridgeRequestFailsAfterForwarding() = runBlocking {
+        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.0"))
+        val client = BridgeClient(
+            adb = adb,
+            projectRoot = temporaryFolder.newFolder(),
+            portAllocator = { 34567 },
+            socketConnector = { throw IOException("socket refused") },
+        )
+
+        val error = kotlin.runCatching {
+            client.request("io.github.pointpatch.sample", "status")
+        }.exceptionOrNull()
+
+        assertTrue(error is BridgeConnectionException)
+        assertEquals(
+            listOf(34567 to "localabstract:pointpatch_io.github.pointpatch.sample"),
+            adb.forwarded,
+        )
+        assertEquals(listOf(34567), adb.removedForwards)
+    }
+
+    @Test
+    fun mapsSocketReadTimeoutToBridgeConnectionException() = runBlocking {
+        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.0"))
+        val client = BridgeClient(
+            adb = adb,
+            projectRoot = temporaryFolder.newFolder(),
+            portAllocator = { 34567 },
+            socketConnector = { TimeoutBridgeSocket() },
+        )
+
+        val error = kotlin.runCatching {
+            client.request("io.github.pointpatch.sample", "status")
+        }.exceptionOrNull()
+
+        assertTrue(error is BridgeConnectionException)
+        assertTrue(error?.message.orEmpty().contains("timed out", ignoreCase = true))
+        assertEquals(listOf(34567), adb.removedForwards)
+    }
+
+    @Test
+    fun readsScreenshotArtifactsThroughBridgeAndRewritesDesktopPaths() = runBlocking {
         val root = temporaryFolder.newFolder()
         val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.0"))
-        val client = BridgeClient(adb = adb, projectRoot = root)
-        val annotation = Json.parseToJsonElement(
-            """
+        val bridgeSockets =
+            listOf(
+                CapturingBridgeSocket(
+                    responsePayload = """
+                        {
+                          "id": "req_1",
+                          "ok": true,
+                          "result": {
+                            "submitted": true,
+                            "timedOut": false,
+                            "timeoutMillis": 120000,
+                            "bridgeProtocolVersion": "1.0",
+                            "annotation": {
+                              "id": "ann-123",
+                              "screenshot": {
+                                "fullPath": "/data/user/0/io.github.pointpatch.sample/cache/pointpatch/ann-123-full.png",
+                                "cropPath": "/data/user/0/io.github.pointpatch.sample/cache/pointpatch/ann-123-crop.png"
+                              }
+                            }
+                          }
+                        }
+                    """.trimIndent(),
+                ),
+                CapturingBridgeSocket(
+                    responsePayload = """
+                        {
+                          "id": "req_2",
+                          "ok": true,
+                          "result": {
+                            "bridgeProtocolVersion": "1.0",
+                            "path": "/data/user/0/io.github.pointpatch.sample/cache/pointpatch/ann-123-full.png",
+                            "kind": "full",
+                            "mimeType": "image/png",
+                            "base64": "ZnVsbC1wbmc="
+                          }
+                        }
+                    """.trimIndent(),
+                ),
+                CapturingBridgeSocket(
+                    responsePayload = """
+                        {
+                          "id": "req_3",
+                          "ok": true,
+                          "result": {
+                            "bridgeProtocolVersion": "1.0",
+                            "path": "/data/user/0/io.github.pointpatch.sample/cache/pointpatch/ann-123-crop.png",
+                            "kind": "crop",
+                            "mimeType": "image/png",
+                            "base64": "Y3JvcC1wbmc="
+                          }
+                        }
+                    """.trimIndent(),
+                ),
+            )
+        val sockets = ArrayDeque(bridgeSockets)
+        val client = BridgeClient(
+            adb = adb,
+            projectRoot = root,
+            portAllocator = { 34567 + adb.forwarded.size },
+            socketConnector = { sockets.removeFirst() },
+        )
+
+        val result = client.startFeedbackCapture("io.github.pointpatch.sample", timeoutMillis = 120_000L)
+        val screenshot = result.getValue("annotation").jsonObject.getValue("screenshot").jsonObject
+
+        val fullDestination = root.resolve(".pointpatch/artifacts/ann-123/ann-123-full.png")
+        val cropDestination = root.resolve(".pointpatch/artifacts/ann-123/ann-123-crop.png")
+        assertEquals(fullDestination.absolutePath, screenshot.getValue("desktopFullPath").jsonPrimitive.content)
+        assertEquals(cropDestination.absolutePath, screenshot.getValue("desktopCropPath").jsonPrimitive.content)
+        assertEquals("full-png", fullDestination.readText())
+        assertEquals("crop-png", cropDestination.readText())
+        assertEquals(emptyList<Pair<String, File>>(), adb.pulled)
+        assertEquals(listOf(34567, 34568, 34569), adb.removedForwards)
+        assertEquals(
+            listOf("startFeedbackCapture", "readScreenshot", "readScreenshot"),
+            bridgeSockets.map { socket ->
+                Json.parseToJsonElement(readFrame(socket.written.toByteArray()))
+                    .jsonObject
+                    .getValue("method")
+                    .jsonPrimitive
+                    .content
+            },
+        )
+        assertEquals(
+            listOf("full", "crop"),
+            bridgeSockets.drop(1).map { socket ->
+                Json.parseToJsonElement(readFrame(socket.written.toByteArray()))
+                    .jsonObject
+                    .getValue("params")
+                    .jsonObject
+                    .getValue("kind")
+                    .jsonPrimitive
+                    .content
+            },
+        )
+    }
+
+    @Test
+    fun skipsMissingScreenshotKindsWhenAnnotationHasNoAndroidPaths() = runBlocking {
+        val root = temporaryFolder.newFolder()
+        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.0"))
+        val socket = CapturingBridgeSocket(
+            responsePayload = """
                 {
-                  "id": "ann-123",
-                  "screenshot": {
-                    "fullPath": "/data/user/0/io.github.pointpatch.sample/cache/pointpatch/ann-123-full.png",
-                    "cropPath": "/data/user/0/io.github.pointpatch.sample/cache/pointpatch/ann-123-crop.png"
+                  "id": "req_1",
+                  "ok": true,
+                  "result": {
+                    "submitted": true,
+                    "timedOut": false,
+                    "timeoutMillis": 120000,
+                    "bridgeProtocolVersion": "1.0",
+                    "annotation": {
+                      "id": "ann-123",
+                      "screenshot": {}
+                    }
                   }
                 }
             """.trimIndent(),
-        ).jsonObject
+        )
+        val client = BridgeClient(
+            adb = adb,
+            projectRoot = root,
+            portAllocator = { 34567 },
+            socketConnector = { socket },
+        )
 
-        val rewritten = client.pullArtifacts("io.github.pointpatch.sample", annotation)
-        val screenshot = rewritten.getValue("screenshot").jsonObject
+        val result = client.startFeedbackCapture("io.github.pointpatch.sample", timeoutMillis = 120_000L)
+        val screenshot = result.getValue("annotation").jsonObject.getValue("screenshot").jsonObject
 
-        assertEquals(
-            root.resolve(".pointpatch/artifacts/ann-123/ann-123-full.png").absolutePath,
-            screenshot.getValue("desktopFullPath").jsonPrimitive.content,
-        )
-        assertEquals(
-            root.resolve(".pointpatch/artifacts/ann-123/ann-123-crop.png").absolutePath,
-            screenshot.getValue("desktopCropPath").jsonPrimitive.content,
-        )
-        assertEquals(
-            listOf(
-                "/data/user/0/io.github.pointpatch.sample/cache/pointpatch/ann-123-full.png" to
-                    root.resolve(".pointpatch/artifacts/ann-123/ann-123-full.png"),
-                "/data/user/0/io.github.pointpatch.sample/cache/pointpatch/ann-123-crop.png" to
-                    root.resolve(".pointpatch/artifacts/ann-123/ann-123-crop.png"),
-            ),
-            adb.pulled,
-        )
+        assertTrue("desktopFullPath" !in screenshot)
+        assertTrue("desktopCropPath" !in screenshot)
+        assertEquals(emptyList<Pair<String, File>>(), adb.pulled)
     }
 
     private fun sessionJson(protocol: String): String =
@@ -169,6 +314,7 @@ class BridgeClientTest {
     private class CapturingBridgeSocket(responsePayload: String) : BridgeSocket {
         override val input = ByteArrayInputStream(frame(responsePayload))
         override val output = ByteArrayOutputStream()
+        override var readTimeoutMillis: Int = 0
         val written: ByteArrayOutputStream get() = output as ByteArrayOutputStream
         override fun close() = Unit
 
@@ -184,10 +330,22 @@ class BridgeClientTest {
         }
     }
 
+    private class TimeoutBridgeSocket : BridgeSocket {
+        override val input = object : ByteArrayInputStream(ByteArray(0)) {
+            override fun read(): Int {
+                throw SocketTimeoutException("test timeout")
+            }
+        }
+        override val output = ByteArrayOutputStream()
+        override var readTimeoutMillis: Int = 0
+        override fun close() = Unit
+    }
+
     private class FakeAdbFacade(
         private val sessionJson: String,
     ) : AdbFacade {
         val forwarded = mutableListOf<Pair<Int, String>>()
+        val removedForwards = mutableListOf<Int>()
         val pulled = mutableListOf<Pair<String, File>>()
 
         override fun devices(): List<AdbDevice> = listOf(AdbDevice("emulator-5554", "device"))
@@ -200,6 +358,10 @@ class BridgeClientTest {
 
         override fun forward(localPort: Int, socketAddress: String) {
             forwarded += localPort to socketAddress
+        }
+
+        override fun removeForward(localPort: Int) {
+            removedForwards += localPort
         }
 
         override fun pull(androidPath: String, destination: File) {

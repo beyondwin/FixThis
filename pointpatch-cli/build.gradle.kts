@@ -10,6 +10,17 @@ kotlin {
 
 application {
     mainClass.set("io.github.pointpatch.cli.MainKt")
+    applicationName = "pointpatch"
+}
+
+tasks.startScripts {
+    doLast {
+        val scriptsDir = outputDir ?: error("startScripts outputDir was not configured")
+        val legacyUnixScript = scriptsDir.resolve("pointpatch-cli")
+        unixScript.copyTo(legacyUnixScript, overwrite = true)
+        legacyUnixScript.setExecutable(true, false)
+        windowsScript.copyTo(scriptsDir.resolve("pointpatch-cli.bat"), overwrite = true)
+    }
 }
 
 dependencies {

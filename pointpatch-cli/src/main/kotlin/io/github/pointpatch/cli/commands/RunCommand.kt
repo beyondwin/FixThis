@@ -50,7 +50,8 @@ class RunCommand : CoreCliktCommand(name = "run") {
         var lastError: Throwable? = null
         while (System.currentTimeMillis() <= deadline) {
             try {
-                client.request(packageName, "status")
+                val remainingMillis = (deadline - System.currentTimeMillis()).coerceAtLeast(1L)
+                client.request(packageName, "status", readTimeoutMillis = remainingMillis)
                 return
             } catch (error: Throwable) {
                 lastError = error

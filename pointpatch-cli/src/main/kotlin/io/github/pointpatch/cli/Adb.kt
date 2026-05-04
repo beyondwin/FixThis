@@ -1,6 +1,7 @@
 package io.github.pointpatch.cli
 
 import java.io.File
+import kotlin.concurrent.thread
 
 data class AdbResult(
     val exitCode: Int,
@@ -21,6 +22,7 @@ interface AdbFacade {
     fun devices(): List<AdbDevice>
     fun runAsCat(packageName: String, path: String): String
     fun forward(localPort: Int, socketAddress: String)
+    fun removeForward(localPort: Int)
     fun pull(androidPath: String, destination: File)
 }
 
@@ -51,6 +53,11 @@ class Adb(
         require(localPort in 1..65535) { "Invalid local TCP port: $localPort" }
         require(socketAddress.startsWith("localabstract:")) { "Only localabstract socket forwarding is supported" }
         checkedRun(listOf("forward", "tcp:$localPort", socketAddress))
+    }
+
+    override fun removeForward(localPort: Int) {
+        require(localPort in 1..65535) { "Invalid local TCP port: $localPort" }
+        checkedRun(listOf("forward", "--remove", "tcp:$localPort"))
     }
 
     fun install(apk: File) {
@@ -104,12 +111,35 @@ class AdbException(
     },
 )
 
-private class ProcessAdbCommandRunner : AdbCommandRunner {
+internal class ProcessAdbCommandRunner : AdbCommandRunner {
     override fun run(command: List<String>): AdbResult {
         val process = ProcessBuilder(command).start()
-        val stdout = process.inputStream.bufferedReader().readText()
-        val stderr = process.errorStream.bufferedReader().readText()
+        var stdout = ""
+        var stderr = ""
+        var stdoutFailure: Throwable? = null
+        var stderrFailure: Throwable? = null
+
+        val stdoutThread = thread(name = "pointpatch-adb-stdout") {
+            runCatching {
+                process.inputStream.bufferedReader().use { reader -> reader.readText() }
+            }.fold(
+                onSuccess = { stdout = it },
+                onFailure = { stdoutFailure = it },
+            )
+        }
+        val stderrThread = thread(name = "pointpatch-adb-stderr") {
+            runCatching {
+                process.errorStream.bufferedReader().use { reader -> reader.readText() }
+            }.fold(
+                onSuccess = { stderr = it },
+                onFailure = { stderrFailure = it },
+            )
+        }
         val exitCode = process.waitFor()
+        stdoutThread.join()
+        stderrThread.join()
+        stdoutFailure?.let { throw it }
+        stderrFailure?.let { throw it }
         return AdbResult(exitCode = exitCode, stdout = stdout, stderr = stderr)
     }
 }
