@@ -6,7 +6,16 @@ import io.github.pointpatch.mcp.tools.PointPatchTools
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.JsonPrimitive
 import kotlin.system.exitProcess
 
 class McpServer(private val protocol: McpProtocol = McpProtocol()) {
@@ -14,13 +23,48 @@ class McpServer(private val protocol: McpProtocol = McpProtocol()) {
         diagnostics.writeDiagnostic("PointPatch MCP server started")
         val reader = input.bufferedReader(Charsets.UTF_8)
         val writer = output.bufferedWriter(Charsets.UTF_8)
-        while (true) {
-            val line = reader.readLine() ?: break
-            if (line.isBlank()) continue
-            val response = protocol.handleLine(line) ?: continue
-            writer.write(response)
-            writer.newLine()
-            writer.flush()
+        val writeMutex = Mutex()
+        val inFlight = mutableMapOf<String, InFlightRequest>()
+
+        suspend fun writeResponse(response: String) {
+            writeMutex.withLock {
+                writer.write(response)
+                writer.newLine()
+                writer.flush()
+            }
+        }
+
+        coroutineScope {
+            while (true) {
+                val line = reader.readLine() ?: break
+                if (line.isBlank()) continue
+
+                when (val message = protocol.decodeLine(line)) {
+                    is McpIncoming.ImmediateResponse -> writeResponse(message.response)
+                    is McpIncoming.Notification -> handleNotification(message, inFlight)
+                    is McpRequest -> {
+                        lateinit var requestJob: Job
+                        requestJob = launch(Dispatchers.IO, start = CoroutineStart.LAZY) {
+                            try {
+                                val response = protocol.handleRequest(message) ?: return@launch
+                                writeResponse(response)
+                            } catch (error: CancellationException) {
+                                diagnostics.writeDiagnostic("Cancelled MCP request ${message.idKey}")
+                            } finally {
+                                synchronized(inFlight) {
+                                    if (inFlight[message.idKey]?.job === requestJob) {
+                                        inFlight.remove(message.idKey)
+                                    }
+                                }
+                            }
+                        }
+                        synchronized(inFlight) {
+                            inFlight[message.idKey] = InFlightRequest(message.method, requestJob)
+                        }
+                        requestJob.start()
+                    }
+                }
+            }
         }
     }
 
@@ -28,6 +72,20 @@ class McpServer(private val protocol: McpProtocol = McpProtocol()) {
         write((message + "\n").toByteArray(Charsets.UTF_8))
         flush()
     }
+
+    private fun handleNotification(
+        notification: McpIncoming.Notification,
+        inFlight: MutableMap<String, InFlightRequest>,
+    ) {
+        if (notification.method != "notifications/cancelled") return
+        val requestId = (notification.params["requestId"] as? JsonPrimitive).validRequestIdOrNull() ?: return
+        val requestKey = requestId.requestIdKey()
+        val request = synchronized(inFlight) { inFlight.remove(requestKey) } ?: return
+        if (request.method == "initialize") return
+        request.job.cancel(CancellationException("MCP request cancelled"))
+    }
+
+    private data class InFlightRequest(val method: String, val job: Job)
 }
 
 fun main(args: Array<String>) {

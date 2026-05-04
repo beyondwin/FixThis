@@ -8,6 +8,7 @@ import io.github.pointpatch.mcp.McpProtocol
 import io.github.pointpatch.mcp.resourceText
 import io.github.pointpatch.mcp.textContent
 import io.github.pointpatch.mcp.toolResult
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -15,8 +16,6 @@ import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 
@@ -26,9 +25,10 @@ class PointPatchTools(
     private val bridge: PointPatchBridge = CliPointPatchBridge(BridgeClient()),
     private val defaultPackageName: String? = null,
 ) {
-    private var latestAnnotation: JsonObject? = null
-    private var latestScreen: JsonObject? = null
-    private var latestStatus: JsonObject? = null
+    private val cacheLock = Any()
+    private val latestAnnotations = mutableMapOf<String, JsonObject>()
+    private val latestScreens = mutableMapOf<String, JsonObject>()
+    private val latestStatuses = mutableMapOf<String, JsonObject>()
 
     fun listTools(): JsonArray = buildJsonArray {
         ToolDefinitions.forEach { add(it.toJson()) }
@@ -52,7 +52,7 @@ class PointPatchTools(
             "pointpatch_status" -> bridgeToolResult {
                 val packageName = resolvePackageName(arguments)
                 val status = bridge.status(packageName)
-                latestStatus = status
+                cacheStatus(packageName, status)
                 jsonToolResult(buildJsonObject {
                     put("deviceConnected", true)
                     put("packageName", packageName)
@@ -67,10 +67,13 @@ class PointPatchTools(
             "pointpatch_get_current_screen" -> bridgeToolResult {
                 val packageName = resolvePackageName(arguments)
                 val screen = bridge.inspectCurrentScreen(packageName)
-                latestScreen = screen
+                cacheScreen(packageName, screen)
                 jsonToolResult(buildJsonObject {
                     put("screen", screen)
-                    if (arguments.booleanParam("includeScreenshot") != false) {
+                    if (
+                        arguments.booleanParam("includeScreenshot") != false &&
+                        latestAnnotation(packageName).hasScreenshotArtifact("desktopFullPath", "fullPath")
+                    ) {
                         put("screenshotResource", "pointpatch://screenshot/latest/full.png")
                     }
                 })
@@ -82,13 +85,15 @@ class PointPatchTools(
                     ?: DefaultFeedbackTimeoutMillis
                 require(timeoutMillis > 0) { "timeoutMs must be greater than 0" }
                 val capture = bridge.startFeedbackCapture(packageName, timeoutMillis)
-                val annotation = capture["annotation"]?.jsonObject
-                if (annotation != null) latestAnnotation = annotation
+                val annotation = capture["annotation"] as? JsonObject
+                if (annotation != null) cacheAnnotation(packageName, annotation)
+                val annotationPayload = annotation
+                    ?: unavailable("PointPatch feedback capture did not return an annotation.")
                 val markdown = annotation?.toMarkdown()
                     ?: "PointPatch feedback capture did not return an annotation."
                 toolResult(
                     content = listOf(
-                        textContent(pointPatchJson.encodeToString(JsonObject.serializer(), capture), "application/json"),
+                        textContent(pointPatchJson.encodeToString(JsonObject.serializer(), annotationPayload), "application/json"),
                         textContent(markdown, "text/markdown"),
                     ),
                 )
@@ -107,7 +112,7 @@ class PointPatchTools(
         when (uri) {
             "pointpatch://session/current" -> bridgeResource(uri) {
                 val packageName = bridge.resolvePackageName(defaultPackageName)
-                val status = latestStatus ?: bridge.status(packageName).also { latestStatus = it }
+                val status = latestStatus(packageName) ?: bridge.status(packageName).also { cacheStatus(packageName, it) }
                 buildJsonObject {
                     put("packageName", packageName)
                     put("status", status)
@@ -115,20 +120,21 @@ class PointPatchTools(
             }
             "pointpatch://screen/current" -> bridgeResource(uri) {
                 val packageName = bridge.resolvePackageName(defaultPackageName)
-                latestScreen ?: bridge.inspectCurrentScreen(packageName).also { latestScreen = it }
+                latestScreen(packageName) ?: bridge.inspectCurrentScreen(packageName).also { cacheScreen(packageName, it) }
             }
             "pointpatch://annotation/latest" -> resourceText(
                 uri,
                 pointPatchJson.encodeToString(
                     JsonObject.serializer(),
-                    latestAnnotation ?: unavailable("No feedback annotation has been captured in this MCP session."),
+                    latestAnnotation(bridge.resolvePackageName(defaultPackageName))
+                        ?: unavailable("No feedback annotation has been captured for the default package in this MCP session."),
                 ),
             )
             "pointpatch://screenshot/latest/full.png" -> screenshotResource(uri, "desktopFullPath", "fullPath")
             "pointpatch://screenshot/latest/crop.png" -> screenshotResource(uri, "desktopCropPath", "cropPath")
             "pointpatch://source-index" -> bridgeResource(uri) {
                 val packageName = bridge.resolvePackageName(defaultPackageName)
-                val status = latestStatus ?: bridge.status(packageName).also { latestStatus = it }
+                val status = latestStatus(packageName) ?: bridge.status(packageName).also { cacheStatus(packageName, it) }
                 buildJsonObject {
                     put("available", status["sourceIndexAvailable"] ?: JsonPrimitive(false))
                     put("source", "bridge-status")
@@ -141,6 +147,8 @@ class PointPatchTools(
         try {
             block()
         } catch (error: PointPatchToolException) {
+            throw error
+        } catch (error: CancellationException) {
             throw error
         } catch (error: IllegalArgumentException) {
             throw PointPatchToolException(error.message ?: "Invalid PointPatch tool arguments")
@@ -155,8 +163,8 @@ class PointPatchTools(
         resourceText(uri, pointPatchJson.encodeToString(JsonObject.serializer(), block()))
 
     private fun screenshotResource(uri: String, vararg pathKeys: String): JsonObject {
-        val screenshot = latestAnnotation?.get("screenshot")?.jsonObject
-        val path = pathKeys.firstNotNullOfOrNull { key -> (screenshot?.get(key) as? JsonPrimitive)?.contentOrNull }
+        val packageName = bridge.resolvePackageName(defaultPackageName)
+        val path = latestAnnotation(packageName).screenshotArtifactPath(*pathKeys)
         return resourceText(
             uri,
             pointPatchJson.encodeToString(
@@ -172,6 +180,27 @@ class PointPatchTools(
     private fun jsonToolResult(payload: JsonObject): JsonObject =
         toolResult(content = listOf(textContent(pointPatchJson.encodeToString(JsonObject.serializer(), payload), "application/json")))
 
+    private fun cacheAnnotation(packageName: String, annotation: JsonObject) {
+        synchronized(cacheLock) { latestAnnotations[packageName] = annotation }
+    }
+
+    private fun cacheScreen(packageName: String, screen: JsonObject) {
+        synchronized(cacheLock) { latestScreens[packageName] = screen }
+    }
+
+    private fun cacheStatus(packageName: String, status: JsonObject) {
+        synchronized(cacheLock) { latestStatuses[packageName] = status }
+    }
+
+    private fun latestAnnotation(packageName: String): JsonObject? =
+        synchronized(cacheLock) { latestAnnotations[packageName] }
+
+    private fun latestScreen(packageName: String): JsonObject? =
+        synchronized(cacheLock) { latestScreens[packageName] }
+
+    private fun latestStatus(packageName: String): JsonObject? =
+        synchronized(cacheLock) { latestStatuses[packageName] }
+
     private fun resolvePackageName(arguments: JsonObject): String =
         bridge.resolvePackageName(arguments.stringParam("packageName") ?: defaultPackageName)
 
@@ -183,6 +212,14 @@ class PointPatchTools(
 
     private fun JsonObject.booleanParam(name: String): Boolean? =
         (this[name] as? JsonPrimitive)?.contentOrNull?.toBooleanStrictOrNull()
+
+    private fun JsonObject?.hasScreenshotArtifact(vararg pathKeys: String): Boolean =
+        screenshotArtifactPath(*pathKeys) != null
+
+    private fun JsonObject?.screenshotArtifactPath(vararg pathKeys: String): String? {
+        val screenshot = this?.get("screenshot") as? JsonObject
+        return pathKeys.firstNotNullOfOrNull { key -> (screenshot?.get(key) as? JsonPrimitive)?.contentOrNull }
+    }
 
     private fun JsonObject.toMarkdown(): String {
         val annotation = McpProtocol.json.decodeFromJsonElement<PointPatchAnnotation>(this)
