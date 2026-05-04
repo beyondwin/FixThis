@@ -81,7 +81,9 @@ internal class PointPatchOverlayController(
     private var activeCapture: ActiveCapture? = null
     private var currentAnnotation: PointPatchAnnotation? = null
     private var lastSubmittedAnnotation: PointPatchAnnotation? = null
-    private var submissionSequence: Long = 0L
+    private var completionSequence: Long = 0L
+    private var lastCompletionSubmitted: Boolean = false
+    private var feedbackCaptureInFlight: Boolean = false
 
     internal val lastAnnotation: PointPatchAnnotation?
         get() = currentAnnotation ?: lastSubmittedAnnotation
@@ -158,24 +160,34 @@ internal class PointPatchOverlayController(
         activeCapture = null
         currentAnnotation = null
         mode = OverlayMode.Idle
+        lastCompletionSubmitted = false
+        completionSequence++
     }
 
     internal suspend fun startFeedbackCapture(
         timeoutMillis: Long,
         pollMillis: Long = 100L,
     ): FeedbackCaptureWaitResult {
-        val startSequence = submissionSequence
-        startSelection()
-        val submitted = withTimeoutOrNull(timeoutMillis) {
-            while (submissionSequence == startSequence) {
-                delay(pollMillis)
-            }
-            true
-        } ?: false
-        return FeedbackCaptureWaitResult(
-            submitted = submitted,
-            annotation = if (submitted) lastSubmittedAnnotation else null,
-        )
+        if (feedbackCaptureInFlight) {
+            return FeedbackCaptureWaitResult(submitted = false, annotation = null, rejected = true)
+        }
+        feedbackCaptureInFlight = true
+        return try {
+            val startSequence = completionSequence
+            startSelection()
+            val submitted = withTimeoutOrNull(timeoutMillis) {
+                while (completionSequence == startSequence) {
+                    delay(pollMillis)
+                }
+                lastCompletionSubmitted && lastSubmittedAnnotation != null
+            } ?: false
+            FeedbackCaptureWaitResult(
+                submitted = submitted,
+                annotation = if (submitted) lastSubmittedAnnotation else null,
+            )
+        } finally {
+            feedbackCaptureInFlight = false
+        }
     }
 
     private suspend fun captureSelection(
@@ -223,13 +235,15 @@ internal class PointPatchOverlayController(
 
     private fun markSubmitted(annotation: PointPatchAnnotation) {
         lastSubmittedAnnotation = annotation
-        submissionSequence++
+        lastCompletionSubmitted = true
+        completionSequence++
     }
 }
 
 internal data class FeedbackCaptureWaitResult(
     val submitted: Boolean,
     val annotation: PointPatchAnnotation?,
+    val rejected: Boolean = false,
 )
 
 private class AndroidSemanticsInspectorPort(

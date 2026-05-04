@@ -15,6 +15,7 @@ data class SidekickSession(
     val token: String,
     val sidekickVersion: String,
     val bridgeProtocolVersion: String,
+    val createdAtEpochMillis: Long,
     val processStartEpochMillis: Long,
 )
 
@@ -26,6 +27,7 @@ class SessionTokenStore(
 ) {
     fun create(packageName: String): SidekickSession {
         val socketName = socketNameForPackage(packageName)
+        val now = clock()
         return SidekickSession(
             packageName = packageName,
             socketName = socketName,
@@ -33,7 +35,8 @@ class SessionTokenStore(
             token = tokenGenerator(),
             sidekickVersion = sidekickVersion,
             bridgeProtocolVersion = BridgeProtocol.VERSION,
-            processStartEpochMillis = clock(),
+            createdAtEpochMillis = now,
+            processStartEpochMillis = now,
         )
     }
 

@@ -32,6 +32,8 @@ class SessionTokenStoreTest {
         assertEquals("localabstract:pointpatch_io.github.pointpatch.sample", session.socketAddress)
         assertEquals("token-256-bit-base64", session.token)
         assertEquals("1.0", session.bridgeProtocolVersion)
+        assertEquals(1777786212000L, session.createdAtEpochMillis)
+        assertTrue(file.readText().contains(""""createdAtEpochMillis": 1777786212000"""))
         assertTrue(file.readText().contains(""""processStartEpochMillis": 1777786212000"""))
         assertTrue(file.readText().contains(""""sidekickVersion": "0.1.0-test""""))
     }

@@ -142,27 +142,38 @@ class BridgeServer(
         )
     }
 
-    private fun readScreenshot(params: JsonObject): BridgeScreenshotReadResult {
-        val explicitPath = params.stringParam("path")
+    private suspend fun readScreenshot(params: JsonObject): BridgeScreenshotReadResult {
+        require(params.stringParam("path") == null) {
+            "Explicit screenshot paths are not supported; use kind=full or kind=crop for the current annotation"
+        }
         val kind = params.stringParam("kind") ?: "full"
+        require(kind == "full" || kind == "crop") { "Unsupported screenshot kind: $kind" }
         val screenshot = environment.getLastAnnotation()?.screenshot
-        val path = explicitPath ?: when (kind) {
+        val path = when (kind) {
             "crop" -> screenshot?.cropPath
             else -> screenshot?.fullPath
         }
         require(!path.isNullOrBlank()) { "No screenshot path is available" }
-        val file = File(path)
-        require(file.exists() && file.isFile) { "Screenshot does not exist: $path" }
-        return BridgeScreenshotReadResult(
-            path = file.absolutePath,
-            kind = kind,
-            mimeType = "image/png",
-            base64 = Base64.encodeToString(file.readBytes(), Base64.NO_WRAP),
-        )
+        return withContext(ioDispatcher) {
+            val file = File(path).canonicalFile
+            val cacheDirectory = environment.screenshotCacheDirectory().canonicalFile
+            require(file.isUnder(cacheDirectory)) { "Screenshot path is outside the PointPatch screenshot cache" }
+            require(file.extension.equals("png", ignoreCase = true)) { "Screenshot must be a PNG file" }
+            require(file.exists() && file.isFile) { "Screenshot does not exist: $path" }
+            require(file.length() <= MaxScreenshotReadBytes) { "Screenshot is too large to read" }
+            require(file.hasPngHeader()) { "Screenshot file is not PNG data" }
+            BridgeScreenshotReadResult(
+                path = file.absolutePath,
+                kind = kind,
+                mimeType = "image/png",
+                base64 = Base64.encodeToString(file.readBytes(), Base64.NO_WRAP),
+            )
+        }
     }
 
     private companion object {
         const val DefaultFeedbackTimeoutMillis = 120_000L
+        const val MaxScreenshotReadBytes = 16L * 1024L * 1024L
     }
 }
 
@@ -170,7 +181,8 @@ interface BridgeEnvironment {
     suspend fun status(): BridgeStatus
     suspend fun inspectCurrentScreen(): BridgeScreenInspection
     suspend fun startFeedbackCapture(timeoutMillis: Long): BridgeFeedbackCaptureResult
-    fun getLastAnnotation(): PointPatchAnnotation?
+    suspend fun getLastAnnotation(): PointPatchAnnotation?
+    fun screenshotCacheDirectory(): File
 }
 
 @Serializable
@@ -266,8 +278,8 @@ internal object PointPatchBridgeRuntime {
                 session = session,
                 environment = bridgeEnvironment,
             )
-            if (!bridgeServer.start()) return false
             store.write(session)
+            if (!bridgeServer.start()) return false
             environment = bridgeEnvironment
             server = bridgeServer
             return true
@@ -355,17 +367,24 @@ private class AndroidBridgeEnvironment(
                     message = "PointPatch overlay controller is unavailable",
                 )
             val result = controller.startFeedbackCapture(timeoutMillis = timeoutMillis)
-            if (result.submitted && result.annotation != null) {
-                BridgeFeedbackCaptureResult.Submitted(timeoutMillis, result.annotation)
-            } else {
-                BridgeFeedbackCaptureResult.Timeout(timeoutMillis)
+            when {
+                result.rejected -> BridgeFeedbackCaptureResult.Failed(
+                    timeoutMillis = timeoutMillis,
+                    code = "CAPTURE_IN_FLIGHT",
+                    message = "A PointPatch feedback capture is already in progress",
+                )
+                result.submitted && result.annotation != null -> BridgeFeedbackCaptureResult.Submitted(timeoutMillis, result.annotation)
+                else -> BridgeFeedbackCaptureResult.Timeout(timeoutMillis)
             }
         }
 
-    override fun getLastAnnotation(): PointPatchAnnotation? {
-        val activity = currentActivity?.get() ?: return null
-        return PointPatchOverlayHostLayout.controllerFor(activity)?.lastAnnotation
-    }
+    override suspend fun getLastAnnotation(): PointPatchAnnotation? =
+        withContext(mainDispatcher) {
+            val activity = currentActivity?.get() ?: return@withContext null
+            PointPatchOverlayHostLayout.controllerFor(activity)?.lastAnnotation
+        }
+
+    override fun screenshotCacheDirectory(): File = File(context.cacheDir, "pointpatch")
 }
 
 private fun Context.hasAsset(path: String): Boolean =
@@ -377,6 +396,28 @@ private fun Application.isDebuggable(): Boolean =
     runCatching {
         applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
     }.getOrDefault(false)
+
+private val BridgePngHeader: ByteArray = byteArrayOf(
+    0x89.toByte(),
+    0x50,
+    0x4E,
+    0x47,
+    0x0D,
+    0x0A,
+    0x1A,
+    0x0A,
+)
+
+private fun File.isUnder(directory: File): Boolean =
+    path == directory.path || path.startsWith(directory.path + File.separator)
+
+private fun File.hasPngHeader(): Boolean {
+    if (length() < BridgePngHeader.size) return false
+    return inputStream().use { input ->
+        val header = ByteArray(BridgePngHeader.size)
+        input.read(header) == BridgePngHeader.size && header.contentEquals(BridgePngHeader)
+    }
+}
 
 private fun JsonObject.stringParam(name: String): String? =
     get(name)?.jsonPrimitive?.content

@@ -17,7 +17,11 @@ import io.github.pointpatch.compose.sidekick.export.ClipboardExportResult
 import io.github.pointpatch.compose.sidekick.inspect.InspectedComposeRoot
 import io.github.pointpatch.compose.sidekick.inspect.SemanticsInspectionResult
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -87,6 +91,50 @@ class PointPatchOverlayControllerTest {
         assertEquals("Change label to Pay immediately", files.markdown.single().userComment)
         assertNotNull(clipboard.markdown.single().screenshot?.fullPath)
     }
+
+    @Test
+    fun startFeedbackCaptureRejectsConcurrentCapture() = runBlocking {
+        val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
+        val controller = controller(activity)
+
+        val first = async { controller.startFeedbackCapture(timeoutMillis = 5_000L, pollMillis = 10L) }
+        delay(50L)
+        val second = controller.startFeedbackCapture(timeoutMillis = 5_000L, pollMillis = 10L)
+        controller.cancel()
+
+        assertTrue(second.rejected)
+        assertFalse(requireNotNull(withTimeoutOrNull(500L) { first.await() }).submitted)
+    }
+
+    @Test
+    fun cancelWakesFeedbackCaptureWaiter() = runBlocking {
+        val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
+        val controller = controller(activity)
+
+        val capture = async { controller.startFeedbackCapture(timeoutMillis = 5_000L, pollMillis = 10L) }
+        delay(50L)
+        controller.cancel()
+
+        val result = withTimeoutOrNull(500L) { capture.await() }
+        assertNotNull(result)
+        assertFalse(requireNotNull(result).submitted)
+        assertFalse(result.rejected)
+    }
+
+    private fun controller(activity: Activity): PointPatchOverlayController =
+        PointPatchOverlayController(
+            activity = activity,
+            inspector = RecordingSemanticsInspector(SemanticsInspectionResult(roots = emptyList())),
+            annotationController = AnnotationCaptureController(
+                clock = { 1234L },
+                idGenerator = { "annotation-1" },
+            ),
+            screenshotCapturer = RecordingScreenshotCapturer(),
+            clipboardExporter = RecordingClipboardExporter(),
+            localFileExporter = RecordingLocalFileExporter(),
+            appInfoProvider = { AppInfo(packageName = "sample", versionName = "1.0", debuggable = true) },
+            activityInfoProvider = { ActivityInfo(className = "MainActivity") },
+        )
 
     private class RecordingSemanticsInspector(
         private val result: SemanticsInspectionResult,

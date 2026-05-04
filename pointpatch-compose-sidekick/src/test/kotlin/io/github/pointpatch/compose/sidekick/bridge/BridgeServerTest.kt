@@ -13,6 +13,8 @@ import io.github.pointpatch.compose.core.model.SelectionSource
 import io.github.pointpatch.compose.core.model.TapPoint
 import io.github.pointpatch.compose.core.model.TreeKind
 import java.io.File
+import java.io.RandomAccessFile
+import kotlin.io.path.createTempDirectory
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -68,12 +70,11 @@ class BridgeServerTest {
 
     @Test
     fun readScreenshotReturnsBase64ForLastAnnotationPath() = runBlocking {
-        val tempFile = File.createTempFile("pointpatch", ".png").apply {
-            writeBytes(byteArrayOf(1, 2, 3, 4))
-            deleteOnExit()
-        }
+        val cacheDirectory = tempDirectory(prefix = "pointpatch-cache")
+        val tempFile = screenshotFile(cacheDirectory, "annotation-1-full.png", PngHeader)
         val environment = RecordingBridgeEnvironment(
             lastAnnotation = annotation().copy(screenshot = ScreenshotInfo(fullPath = tempFile.absolutePath)),
+            screenshotCacheDirectory = cacheDirectory,
         )
         val server = server(environment = environment)
 
@@ -81,8 +82,90 @@ class BridgeServerTest {
             """{"id":"1","token":"token","method":"readScreenshot","params":{"kind":"full"}}""",
         )
 
-        assertTrue(response.contains(""""base64": "AQIDBA==""""))
+        assertTrue(response.contains(""""base64": "iVBORw0KGgo=""""))
         assertTrue(response.contains(""""mimeType": "image/png""""))
+    }
+
+    @Test
+    fun readScreenshotRejectsCallerSuppliedPath() = runBlocking {
+        val cacheDirectory = tempDirectory(prefix = "pointpatch-cache")
+        val allowed = screenshotFile(cacheDirectory, "annotation-1-full.png", PngHeader)
+        val secret = File.createTempFile("pointpatch-secret", ".png").apply {
+            writeBytes(PngHeader + byteArrayOf(9, 9, 9))
+            deleteOnExit()
+        }
+        val environment = RecordingBridgeEnvironment(
+            lastAnnotation = annotation().copy(screenshot = ScreenshotInfo(fullPath = allowed.absolutePath)),
+            screenshotCacheDirectory = cacheDirectory,
+        )
+        val server = server(environment = environment)
+
+        val response = server.handleRequestForTest(
+            """{"id":"1","token":"token","method":"readScreenshot","params":{"path":"${secret.absolutePath}"}}""",
+        )
+
+        assertTrue(response.contains(""""ok": false"""))
+        assertTrue(response.contains("METHOD_FAILED"))
+        assertFalse(response.contains("CQkJ"))
+    }
+
+    @Test
+    fun readScreenshotRejectsAnnotationPathOutsideScreenshotCache() = runBlocking {
+        val cacheDirectory = tempDirectory(prefix = "pointpatch-cache")
+        val outside = File.createTempFile("pointpatch-outside", ".png").apply {
+            writeBytes(PngHeader)
+            deleteOnExit()
+        }
+        val environment = RecordingBridgeEnvironment(
+            lastAnnotation = annotation().copy(screenshot = ScreenshotInfo(fullPath = outside.absolutePath)),
+            screenshotCacheDirectory = cacheDirectory,
+        )
+        val server = server(environment = environment)
+
+        val response = server.handleRequestForTest(
+            """{"id":"1","token":"token","method":"readScreenshot","params":{"kind":"full"}}""",
+        )
+
+        assertTrue(response.contains(""""ok": false"""))
+        assertTrue(response.contains("METHOD_FAILED"))
+    }
+
+    @Test
+    fun readScreenshotRejectsNonPngAnnotationPath() = runBlocking {
+        val cacheDirectory = tempDirectory(prefix = "pointpatch-cache")
+        val textFile = screenshotFile(cacheDirectory, "annotation-1-full.txt", PngHeader)
+        val environment = RecordingBridgeEnvironment(
+            lastAnnotation = annotation().copy(screenshot = ScreenshotInfo(fullPath = textFile.absolutePath)),
+            screenshotCacheDirectory = cacheDirectory,
+        )
+        val server = server(environment = environment)
+
+        val response = server.handleRequestForTest(
+            """{"id":"1","token":"token","method":"readScreenshot","params":{"kind":"full"}}""",
+        )
+
+        assertTrue(response.contains(""""ok": false"""))
+        assertTrue(response.contains("METHOD_FAILED"))
+    }
+
+    @Test
+    fun readScreenshotRejectsOversizedAnnotationPath() = runBlocking {
+        val cacheDirectory = tempDirectory(prefix = "pointpatch-cache")
+        val oversized = screenshotFile(cacheDirectory, "annotation-1-full.png", PngHeader).apply {
+            RandomAccessFile(this, "rw").use { file -> file.setLength(16L * 1024L * 1024L + 1L) }
+        }
+        val environment = RecordingBridgeEnvironment(
+            lastAnnotation = annotation().copy(screenshot = ScreenshotInfo(fullPath = oversized.absolutePath)),
+            screenshotCacheDirectory = cacheDirectory,
+        )
+        val server = server(environment = environment)
+
+        val response = server.handleRequestForTest(
+            """{"id":"1","token":"token","method":"readScreenshot","params":{"kind":"full"}}""",
+        )
+
+        assertTrue(response.contains(""""ok": false"""))
+        assertTrue(response.contains("METHOD_FAILED"))
     }
 
     @Test
@@ -106,6 +189,7 @@ class BridgeServerTest {
                 token = "token",
                 sidekickVersion = "0.1.0-test",
                 bridgeProtocolVersion = BridgeProtocol.VERSION,
+                createdAtEpochMillis = 1234L,
                 processStartEpochMillis = 1234L,
             ),
             environment = environment,
@@ -114,6 +198,7 @@ class BridgeServerTest {
     private class RecordingBridgeEnvironment(
         private val feedbackResult: BridgeFeedbackCaptureResult = BridgeFeedbackCaptureResult.Timeout(120_000L),
         private val lastAnnotation: PointPatchAnnotation? = annotation(),
+        private val screenshotCacheDirectory: File = tempDirectory(prefix = "pointpatch-cache"),
     ) : BridgeEnvironment {
         override suspend fun status(): BridgeStatus =
             BridgeStatus(
@@ -139,9 +224,35 @@ class BridgeServerTest {
 
         override suspend fun startFeedbackCapture(timeoutMillis: Long): BridgeFeedbackCaptureResult = feedbackResult
 
-        override fun getLastAnnotation(): PointPatchAnnotation? = lastAnnotation
+        override suspend fun getLastAnnotation(): PointPatchAnnotation? = lastAnnotation
+
+        override fun screenshotCacheDirectory(): File = screenshotCacheDirectory
+    }
+
+    private companion object {
+        val PngHeader: ByteArray = byteArrayOf(
+            0x89.toByte(),
+            0x50,
+            0x4E,
+            0x47,
+            0x0D,
+            0x0A,
+            0x1A,
+            0x0A,
+        )
     }
 }
+
+private fun screenshotFile(cacheDirectory: File, name: String, bytes: ByteArray): File {
+    val directory = File(cacheDirectory, "2026-05-04").also { check(it.mkdirs() || it.exists()) }
+    return File(directory, name).apply {
+        writeBytes(bytes)
+        deleteOnExit()
+    }
+}
+
+private fun tempDirectory(prefix: String): File =
+    createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
 
 private fun node(): PointPatchNode =
     PointPatchNode(
