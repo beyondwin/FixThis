@@ -20,6 +20,7 @@ import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 
 private const val DefaultFeedbackTimeoutMillis = 60_000L
+private const val MaxRecentOverridePackages = 8
 
 class PointPatchTools(
     private val bridge: PointPatchBridge = CliPointPatchBridge(BridgeClient()),
@@ -29,6 +30,8 @@ class PointPatchTools(
     private val latestAnnotations = mutableMapOf<String, JsonObject>()
     private val latestScreens = mutableMapOf<String, JsonObject>()
     private val latestStatuses = mutableMapOf<String, JsonObject>()
+    private val cachedPackageOrder = linkedSetOf<String>()
+    private var defaultCachePackage: String? = defaultPackageName?.takeIf { it.isNotBlank() }
 
     fun listTools(): JsonArray = buildJsonArray {
         ToolDefinitions.forEach { add(it.toJson()) }
@@ -111,7 +114,7 @@ class PointPatchTools(
     suspend fun readResource(uri: String): JsonObject =
         when (uri) {
             "pointpatch://session/current" -> bridgeResource(uri) {
-                val packageName = bridge.resolvePackageName(defaultPackageName)
+                val packageName = resolveDefaultPackageName()
                 val status = latestStatus(packageName) ?: bridge.status(packageName).also { cacheStatus(packageName, it) }
                 buildJsonObject {
                     put("packageName", packageName)
@@ -119,21 +122,21 @@ class PointPatchTools(
                 }
             }
             "pointpatch://screen/current" -> bridgeResource(uri) {
-                val packageName = bridge.resolvePackageName(defaultPackageName)
+                val packageName = resolveDefaultPackageName()
                 latestScreen(packageName) ?: bridge.inspectCurrentScreen(packageName).also { cacheScreen(packageName, it) }
             }
             "pointpatch://annotation/latest" -> resourceText(
                 uri,
                 pointPatchJson.encodeToString(
                     JsonObject.serializer(),
-                    latestAnnotation(bridge.resolvePackageName(defaultPackageName))
+                    latestAnnotation(resolveDefaultPackageName())
                         ?: unavailable("No feedback annotation has been captured for the default package in this MCP session."),
                 ),
             )
             "pointpatch://screenshot/latest/full.png" -> screenshotResource(uri, "desktopFullPath", "fullPath")
             "pointpatch://screenshot/latest/crop.png" -> screenshotResource(uri, "desktopCropPath", "cropPath")
             "pointpatch://source-index" -> bridgeResource(uri) {
-                val packageName = bridge.resolvePackageName(defaultPackageName)
+                val packageName = resolveDefaultPackageName()
                 val status = latestStatus(packageName) ?: bridge.status(packageName).also { cacheStatus(packageName, it) }
                 buildJsonObject {
                     put("available", status["sourceIndexAvailable"] ?: JsonPrimitive(false))
@@ -163,7 +166,7 @@ class PointPatchTools(
         resourceText(uri, pointPatchJson.encodeToString(JsonObject.serializer(), block()))
 
     private fun screenshotResource(uri: String, vararg pathKeys: String): JsonObject {
-        val packageName = bridge.resolvePackageName(defaultPackageName)
+        val packageName = resolveDefaultPackageName()
         val path = latestAnnotation(packageName).screenshotArtifactPath(*pathKeys)
         return resourceText(
             uri,
@@ -181,15 +184,24 @@ class PointPatchTools(
         toolResult(content = listOf(textContent(pointPatchJson.encodeToString(JsonObject.serializer(), payload), "application/json")))
 
     private fun cacheAnnotation(packageName: String, annotation: JsonObject) {
-        synchronized(cacheLock) { latestAnnotations[packageName] = annotation }
+        synchronized(cacheLock) {
+            latestAnnotations[packageName] = annotation
+            rememberCachedPackage(packageName)
+        }
     }
 
     private fun cacheScreen(packageName: String, screen: JsonObject) {
-        synchronized(cacheLock) { latestScreens[packageName] = screen }
+        synchronized(cacheLock) {
+            latestScreens[packageName] = screen
+            rememberCachedPackage(packageName)
+        }
     }
 
     private fun cacheStatus(packageName: String, status: JsonObject) {
-        synchronized(cacheLock) { latestStatuses[packageName] = status }
+        synchronized(cacheLock) {
+            latestStatuses[packageName] = status
+            rememberCachedPackage(packageName)
+        }
     }
 
     private fun latestAnnotation(packageName: String): JsonObject? =
@@ -201,8 +213,38 @@ class PointPatchTools(
     private fun latestStatus(packageName: String): JsonObject? =
         synchronized(cacheLock) { latestStatuses[packageName] }
 
-    private fun resolvePackageName(arguments: JsonObject): String =
-        bridge.resolvePackageName(arguments.stringParam("packageName") ?: defaultPackageName)
+    private fun resolvePackageName(arguments: JsonObject): String {
+        val packageOverride = arguments.stringParam("packageName")?.takeIf { it.isNotBlank() }
+        val packageName = bridge.resolvePackageName(packageOverride ?: defaultPackageName)
+        if (packageOverride == null) rememberDefaultPackage(packageName)
+        return packageName
+    }
+
+    private fun resolveDefaultPackageName(): String =
+        bridge.resolvePackageName(defaultPackageName).also { rememberDefaultPackage(it) }
+
+    private fun rememberDefaultPackage(packageName: String) {
+        synchronized(cacheLock) {
+            defaultCachePackage = packageName
+            rememberCachedPackage(packageName)
+        }
+    }
+
+    private fun rememberCachedPackage(packageName: String) {
+        cachedPackageOrder.remove(packageName)
+        cachedPackageOrder.add(packageName)
+        evictOldOverridePackages()
+    }
+
+    private fun evictOldOverridePackages() {
+        while (cachedPackageOrder.count { it != defaultCachePackage } > MaxRecentOverridePackages) {
+            val evictedPackage = cachedPackageOrder.firstOrNull { it != defaultCachePackage } ?: return
+            cachedPackageOrder.remove(evictedPackage)
+            latestAnnotations.remove(evictedPackage)
+            latestScreens.remove(evictedPackage)
+            latestStatuses.remove(evictedPackage)
+        }
+    }
 
     private fun JsonObject.stringParam(name: String): String? =
         (this[name] as? JsonPrimitive)?.contentOrNull
@@ -319,6 +361,7 @@ private val ToolDefinitions = listOf(
             "packageName" to stringProperty("Android application id. If omitted, .pointpatch/project.json or server --package is used."),
             "expectedText" to stringProperty("Text expected to appear on the current screen."),
             "role" to stringProperty("Optional semantic role hint, such as Button."),
+            required = listOf("expectedText"),
         ),
     ),
 )
@@ -332,7 +375,10 @@ private val ResourceDefinitions = listOf(
     ResourceDefinition("pointpatch://source-index", "PointPatch source index", "Source index availability reported by the sidekick bridge."),
 )
 
-private fun objectSchema(vararg properties: Pair<String, JsonObject>): JsonObject = buildJsonObject {
+private fun objectSchema(
+    vararg properties: Pair<String, JsonObject>,
+    required: List<String> = emptyList(),
+): JsonObject = buildJsonObject {
     put("type", "object")
     put(
         "properties",
@@ -340,6 +386,9 @@ private fun objectSchema(vararg properties: Pair<String, JsonObject>): JsonObjec
             properties.forEach { (name, schema) -> put(name, schema) }
         },
     )
+    if (required.isNotEmpty()) {
+        put("required", buildJsonArray { required.forEach { add(JsonPrimitive(it)) } })
+    }
     put("additionalProperties", false)
 }
 

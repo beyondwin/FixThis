@@ -42,6 +42,7 @@ class McpProtocolTest {
         assertEquals("2025-06-18", result.getValue("protocolVersion").jsonPrimitive.content)
         assertNotNull(result.getValue("capabilities").jsonObject["tools"])
         assertNotNull(result.getValue("capabilities").jsonObject["resources"])
+        assertFalse(result.getValue("capabilities").jsonObject.containsKey("prompts"))
         assertEquals("pointpatch-mcp", result.getValue("serverInfo").jsonObject.getValue("name").jsonPrimitive.content)
     }
 
@@ -63,6 +64,23 @@ class McpProtocolTest {
             ),
             tools,
         )
+    }
+
+    @Test
+    fun verifyUiChangeSchemaMarksExpectedTextRequired() {
+        val response = runSingleRequest("""{"jsonrpc":"2.0","id":"tools","method":"tools/list","params":{}}""")
+
+        val verifyTool = response.jsonObject
+            .getValue("result").jsonObject
+            .getValue("tools").jsonArray
+            .map { it.jsonObject }
+            .single { it.getValue("name").jsonPrimitive.content == "pointpatch_verify_ui_change" }
+        val required = verifyTool
+            .getValue("inputSchema").jsonObject
+            .getValue("required").jsonArray
+            .map { it.jsonPrimitive.content }
+
+        assertEquals(listOf("expectedText"), required)
     }
 
     @Test
@@ -202,6 +220,45 @@ class McpProtocolTest {
             "pointpatch://screenshot/latest/full.png",
             samePackageScreen.getValue("screenshotResource").jsonPrimitive.content,
         )
+    }
+
+    @Test
+    fun packageScopedCachesKeepDefaultAndEvictOlderOverridePackages() {
+        val bridge = FakeBridge(defaultPackageName = "com.default")
+        val server = server(bridge, defaultPackageName = "com.default")
+
+        runToolCall(
+            server,
+            "pointpatch_get_ui_feedback",
+            """{"timeoutMs":1500}""",
+        )
+        repeat(10) { index ->
+            runToolCall(
+                server,
+                "pointpatch_get_ui_feedback",
+                """{"packageName":"com.$index","timeoutMs":1500}""",
+            )
+        }
+
+        val defaultScreen = runToolCall(
+            server,
+            "pointpatch_get_current_screen",
+            """{}""",
+        )
+        val evictedOverrideScreen = runToolCall(
+            server,
+            "pointpatch_get_current_screen",
+            """{"packageName":"com.0"}""",
+        )
+        val recentOverrideScreen = runToolCall(
+            server,
+            "pointpatch_get_current_screen",
+            """{"packageName":"com.9"}""",
+        )
+
+        assertEquals("pointpatch://screenshot/latest/full.png", defaultScreen.getValue("screenshotResource").jsonPrimitive.content)
+        assertFalse(evictedOverrideScreen.containsKey("screenshotResource"))
+        assertEquals("pointpatch://screenshot/latest/full.png", recentOverrideScreen.getValue("screenshotResource").jsonPrimitive.content)
     }
 
     @Test

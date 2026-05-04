@@ -12,6 +12,11 @@ import java.net.Socket
 import java.net.SocketTimeoutException
 import java.util.Base64
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.concurrent.thread
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -64,15 +69,46 @@ class BridgeClient(
         method: String,
         params: JsonObject = JsonObject(emptyMap()),
         readTimeoutMillis: Long = socketTimeoutMillis.toLong(),
+    ): JsonObject = suspendCancellableCoroutine { continuation ->
+        val activeRequest = ActiveBridgeRequest(adb)
+        val worker = thread(
+            name = "pointpatch-bridge-request-${requestIds.get() + 1}",
+            isDaemon = true,
+        ) {
+            try {
+                val result = executeRequest(packageName, method, params, readTimeoutMillis, activeRequest)
+                if (continuation.isActive) continuation.resume(result)
+            } catch (error: Throwable) {
+                if (continuation.isActive) continuation.resumeWithException(error)
+            }
+        }
+        continuation.invokeOnCancellation {
+            activeRequest.cancel()
+            worker.interrupt()
+        }
+    }
+
+    private fun executeRequest(
+        packageName: String,
+        method: String,
+        params: JsonObject,
+        readTimeoutMillis: Long,
+        activeRequest: ActiveBridgeRequest,
     ): JsonObject {
         ensureDeviceConnected()
         val session = readSession(packageName)
         validateProtocol(session.bridgeProtocolVersion)
         val localPort = portAllocator()
+        activeRequest.registerForwardPort(localPort)
         adb.forward(localPort, session.socketAddress)
+        activeRequest.markForwardEstablished()
+        activeRequest.throwIfCancelled()
 
         return try {
-            socketConnector(localPort).use { socket ->
+            val socket = socketConnector(localPort)
+            activeRequest.registerSocket(socket)
+            activeRequest.throwIfCancelled()
+            socket.use {
                 socket.readTimeoutMillis = readTimeoutMillis
                     .coerceIn(1L, Int.MAX_VALUE.toLong())
                     .toInt()
@@ -101,12 +137,14 @@ class BridgeClient(
                 validateProtocol(result["bridgeProtocolVersion"]?.jsonPrimitive?.contentOrNull ?: BridgeProtocolVersion)
                 result
             }
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: SocketTimeoutException) {
             throw BridgeConnectionException("Bridge request timed out while waiting for $method response")
         } catch (error: IOException) {
             throw BridgeConnectionException("Could not connect to PointPatch bridge on tcp:$localPort: ${error.message}")
         } finally {
-            runCatching { adb.removeForward(localPort) }
+            activeRequest.cleanup()
         }
     }
 
@@ -210,6 +248,66 @@ class BridgeClient(
             ?: throw BridgeProtocolException("Bridge readScreenshot response omitted base64 for $kind")
         destination.writeBytes(Base64.getDecoder().decode(base64))
         return destination.absolutePath
+    }
+}
+
+private class ActiveBridgeRequest(private val adb: AdbFacade) {
+    private val lock = Object()
+    private var localPort: Int? = null
+    private var forwardEstablished = false
+    private var forwardRemoved = false
+    private var socket: BridgeSocket? = null
+    private var cancelled = false
+
+    fun registerForwardPort(port: Int) {
+        synchronized(lock) {
+            localPort = port
+        }
+    }
+
+    fun markForwardEstablished() {
+        val shouldRemove = synchronized(lock) {
+            forwardEstablished = true
+            cancelled
+        }
+        if (shouldRemove) removeForwardOnce()
+    }
+
+    fun registerSocket(socket: BridgeSocket) {
+        val shouldClose = synchronized(lock) {
+            this.socket = socket
+            cancelled
+        }
+        if (shouldClose) runCatching { socket.close() }
+    }
+
+    fun cancel() {
+        val socketToClose = synchronized(lock) {
+            cancelled = true
+            socket
+        }
+        runCatching { socketToClose?.close() }
+        removeForwardOnce()
+    }
+
+    fun cleanup() {
+        removeForwardOnce()
+    }
+
+    fun throwIfCancelled() {
+        if (synchronized(lock) { cancelled }) {
+            throw CancellationException("Bridge request cancelled")
+        }
+    }
+
+    private fun removeForwardOnce() {
+        val port = synchronized(lock) {
+            if (!forwardEstablished || forwardRemoved) return
+            val registeredPort = localPort ?: return
+            forwardRemoved = true
+            registeredPort
+        }
+        runCatching { adb.removeForward(port) }
     }
 }
 

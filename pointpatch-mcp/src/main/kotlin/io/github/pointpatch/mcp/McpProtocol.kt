@@ -105,7 +105,6 @@ class McpProtocol(private val tools: PointPatchTools = PointPatchTools()) {
             buildJsonObject {
                 put("tools", JsonObject(emptyMap()))
                 put("resources", JsonObject(emptyMap()))
-                put("prompts", JsonObject(emptyMap()))
             },
         )
         put(

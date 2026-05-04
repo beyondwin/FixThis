@@ -5,10 +5,17 @@ import java.io.ByteArrayOutputStream
 import java.io.Closeable
 import java.io.File
 import java.io.IOException
+import java.io.InputStream
 import java.net.ServerSocket
 import java.net.SocketTimeoutException
 import java.util.ArrayDeque
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
@@ -149,6 +156,33 @@ class BridgeClientTest {
 
         assertTrue(error is BridgeConnectionException)
         assertTrue(error?.message.orEmpty().contains("timed out", ignoreCase = true))
+        assertEquals(listOf(34567), adb.removedForwards)
+    }
+
+    @Test
+    fun cancellationClosesActiveSocketAndRemovesForward() = runBlocking {
+        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.0"))
+        val socket = BlockingBridgeSocket()
+        val client = BridgeClient(
+            adb = adb,
+            projectRoot = temporaryFolder.newFolder(),
+            portAllocator = { 34567 },
+            socketConnector = { socket },
+        )
+        val job = launch(Dispatchers.IO) {
+            client.request("io.github.pointpatch.sample", "status")
+        }
+
+        withTimeout(1_000) { socket.readStarted.await() }
+        job.cancel()
+
+        withTimeout(1_000) {
+            socket.closed.await()
+            while (adb.removedForwards != listOf(34567)) {
+                delay(10)
+            }
+        }
+        job.cancelAndJoin()
         assertEquals(listOf(34567), adb.removedForwards)
     }
 
@@ -339,6 +373,35 @@ class BridgeClientTest {
         override val output = ByteArrayOutputStream()
         override var readTimeoutMillis: Int = 0
         override fun close() = Unit
+    }
+
+    private class BlockingBridgeSocket : BridgeSocket {
+        private val lock = Object()
+        override val input = object : InputStream() {
+            override fun read(): Int {
+                readStarted.complete(Unit)
+                synchronized(lock) {
+                    while (!isClosed) {
+                        lock.wait()
+                    }
+                }
+                return -1
+            }
+        }
+        override val output = ByteArrayOutputStream()
+        override var readTimeoutMillis: Int = 0
+        val readStarted = CompletableDeferred<Unit>()
+        val closed = CompletableDeferred<Unit>()
+        @Volatile
+        private var isClosed = false
+
+        override fun close() {
+            synchronized(lock) {
+                isClosed = true
+                lock.notifyAll()
+            }
+            closed.complete(Unit)
+        }
     }
 
     private class FakeAdbFacade(
