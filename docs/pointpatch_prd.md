@@ -787,6 +787,12 @@ MCP server는 앱 안에 직접 넣지 않는다.
     "xInWindow": 512,
     "yInWindow": 1430
   },
+  "selection": {
+    "kind": "SEMANTICS_NODE",
+    "confidence": "HIGH",
+    "selectedUid": "0:MERGED:142",
+    "source": "TAP_SELECT"
+  },
   "selectedNode": {
     "uid": "0:MERGED:142",
     "treeKind": "MERGED",
@@ -809,11 +815,16 @@ MCP server는 앱 안에 직접 넣지 않는다.
   "searchHints": [],
   "screenshot": {
     "fullPath": "...",
-    "cropPath": "..."
+    "cropPath": "...",
+    "desktopFullPath": ".pointpatch/artifacts/pp_20260503_143012_8f4b/pp_20260503_143012_8f4b-full.png",
+    "desktopCropPath": ".pointpatch/artifacts/pp_20260503_143012_8f4b/pp_20260503_143012_8f4b-crop.png"
   },
-  "userComment": "문구를 바로 결제하기로 바꿔줘."
+  "userComment": "문구를 바로 결제하기로 바꿔줘.",
+  "errors": []
 }
 ```
+
+필수 필드는 `schemaVersion`, `id`, `createdAtEpochMillis`, `platform`, `app.packageName`, `activity.className`, `tap`, `selection.kind`, `selection.confidence`, `selection.source`, `userComment`, `errors`다. `selectedNode`, `candidatesAtPoint`, `scopeCandidates`, `nearbyNodes`, `sourceCandidates`, `searchHints`, `screenshot`, `selection.selectedUid`, `selection.areaBoundsInWindow`는 runtime 상황에 따라 비어 있을 수 있다.
 
 ### 10.2 Markdown format
 

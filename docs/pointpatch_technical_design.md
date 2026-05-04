@@ -1270,16 +1270,20 @@ data class PointPatchAnnotation(
     val app: AppInfo,
     val activity: ActivityInfo,
     val tap: TapPoint,
-    val selectedNode: PointPatchNode?,
-    val candidatesAtPoint: List<ScoredPointPatchNode>,
-    val nearbyNodes: List<PointPatchNode>,
-    val sourceCandidates: List<SourceCandidate>,
-    val searchHints: List<String>,
-    val screenshot: ScreenshotInfo?,
+    val selection: SelectionInfo,
+    val selectedNode: PointPatchNode? = null,
+    val candidatesAtPoint: List<ScoredPointPatchNode> = emptyList(),
+    val scopeCandidates: List<ScopeCandidate> = emptyList(),
+    val nearbyNodes: List<PointPatchNode> = emptyList(),
+    val sourceCandidates: List<SourceCandidate> = emptyList(),
+    val searchHints: List<String> = emptyList(),
+    val screenshot: ScreenshotInfo? = null,
     val userComment: String,
-    val errors: List<String> = emptyList()
+    val errors: List<PointPatchError> = emptyList()
 )
 ```
+
+`SelectionInfo.kind` is one of `SEMANTICS_NODE`, `VISUAL_AREA`, or `TAP_POINT`. `SelectionInfo.confidence` is one of `HIGH`, `MEDIUM`, `LOW`, or `NONE`. `SelectionInfo.source` is one of `TAP_SELECT`, `SCOPE_CHIP`, `AREA_SELECT`, or `FALLBACK`.
 
 ### 12.2 Node model
 
@@ -1607,12 +1611,10 @@ Error:
 ```text
 status
 inspectCurrentScreen
-captureScreenshot
-selectAtCoordinates
 startFeedbackCapture
 verifyUiChange
 getLastAnnotation
-clearHighlight
+readScreenshot
 ```
 
 ### 15.5 Desktop bridge client
@@ -1981,17 +1983,17 @@ data class PointPatchError(
 ```text
 NO_ACTIVITY
 NO_DECOR_VIEW
-NO_COMPOSE_ROOT
-NO_SEMANTICS_NODES
 NO_NODE_AT_TAP
-SCREENSHOT_FAILED
-SOURCE_INDEX_MISSING
-BRIDGE_NOT_CONNECTED
-MCP_TIMEOUT
-ADB_NOT_FOUND
-DEVICE_NOT_CONNECTED
-SIDEKICK_NOT_FOUND
-TOKEN_MISMATCH
+NO_OVERLAY_CONTROLLER
+CAPTURE_IN_FLIGHT
+SCOPE_NODE_NOT_FOUND
+ROOT_DISCOVERY_FAILED
+SEMANTICS_MERGED_INSPECTION_FAILED
+SEMANTICS_UNMERGED_INSPECTION_FAILED
+BAD_REQUEST
+UNAUTHORIZED
+UNKNOWN_METHOD
+METHOD_FAILED
 ```
 
 ### 19.3 Principle

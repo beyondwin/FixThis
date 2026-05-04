@@ -1573,11 +1573,11 @@ git commit -m "mcp: expose PointPatch macro tools"
 - Modify: `docs/pointpatch_technical_design.md`
 - Modify: `docs/pointpatch_decisions.md`
 
-- [ ] **Step 1: Update docs with approved V1 Full decisions**
+- [x] **Step 1: Update docs with approved V1 Full decisions**
 
 Add Smart Select, Compose sample replacement, required/optional schema fields, screenshot desktop artifact handling, MCP stdio logging rule, and bridge failure cases.
 
-- [ ] **Step 2: Create README**
+- [x] **Step 2: Create README**
 
 Include:
 
@@ -1591,19 +1591,19 @@ Source candidates are best-effort.
 Screenshots may contain sensitive information.
 ```
 
-- [ ] **Step 3: Create output schema doc**
+- [x] **Step 3: Create output schema doc**
 
 Document required and optional annotation fields, selection kinds, confidence values, source candidate match reasons, screenshot path behavior, and error codes.
 
-- [ ] **Step 4: Create privacy doc**
+- [x] **Step 4: Create privacy doc**
 
 Document local-first behavior, no network permission in core sidekick, redaction defaults, screenshot limitations, cache storage, MCP/ADB local bridge behavior.
 
-- [ ] **Step 5: Create troubleshooting doc**
+- [x] **Step 5: Create troubleshooting doc**
 
 Cover `ADB_NOT_FOUND`, `MULTIPLE_DEVICES`, `RUN_AS_FAILED`, `SIDEKICK_SESSION_NOT_FOUND`, `NO_COMPOSE_ROOT`, screenshot failures, MCP stdout log corruption.
 
-- [ ] **Step 6: Run full build**
+- [x] **Step 6: Run full build**
 
 Run:
 
@@ -1613,7 +1613,7 @@ Run:
 
 Expected: all JVM tests and Android module builds pass.
 
-- [ ] **Step 7: Run sample manual V1 flow**
+- [ ] **Step 7: Run sample manual V1 flow** - Environment blocked: `adb devices` returned no connected device or emulator.
 
 Manual test:
 
@@ -1629,7 +1629,7 @@ Manual test:
 9. Run MCP get_ui_feedback and verify same UI flow returns annotation.
 ```
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add README.md docs

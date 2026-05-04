@@ -1376,6 +1376,8 @@ Annotation schema는 Android-local path와 desktop-readable path를 구분한다
 }
 ```
 
+구현된 CLI/MCP 경로는 Android screenshot 파일을 직접 desktop path로 노출하지 않고, sidekick bridge의 `readScreenshot` method로 현재 annotation의 `full` 또는 `crop` PNG를 읽은 뒤 `.pointpatch/artifacts/<annotation-id>/` 아래에 저장한다. Bridge는 명시적 path 읽기를 허용하지 않고 현재 annotation screenshot만 읽는다.
+
 ---
 
 ## 35. 최종 architecture decision summary
