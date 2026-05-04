@@ -899,7 +899,7 @@ git commit -m "cli: pull screen snapshot artifacts"
 - Create: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FakePointPatchBridge.kt`
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt`
 
-- [ ] **Step 1: Extend bridge interface**
+- [x] **Step 1: Extend bridge interface**
 
 In `PointPatchTools.kt`, add to `PointPatchBridge`:
 
@@ -914,7 +914,7 @@ override suspend fun captureScreenSnapshot(packageName: String): JsonObject =
     client.captureScreenSnapshot(packageName)
 ```
 
-- [ ] **Step 2: Write service tests**
+- [x] **Step 2: Write service tests**
 
 Create `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionServiceTest.kt`:
 
@@ -1012,7 +1012,7 @@ internal class FakePointPatchBridge : PointPatchBridge {
 }
 ```
 
-- [ ] **Step 3: Run service tests to verify they fail**
+- [x] **Step 3: Run service tests to verify they fail**
 
 Run:
 
@@ -1022,7 +1022,7 @@ Run:
 
 Expected: compilation fails because `FeedbackSessionService` does not exist.
 
-- [ ] **Step 4: Implement service**
+- [x] **Step 4: Implement service**
 
 Create `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt`:
 
@@ -1110,7 +1110,7 @@ class FeedbackSessionService(
 }
 ```
 
-- [ ] **Step 5: Run service tests**
+- [x] **Step 5: Run service tests**
 
 Run:
 
@@ -1120,7 +1120,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionServiceTest.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FakePointPatchBridge.kt

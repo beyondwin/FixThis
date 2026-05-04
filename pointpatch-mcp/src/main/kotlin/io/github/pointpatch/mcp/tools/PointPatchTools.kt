@@ -318,6 +318,7 @@ interface PointPatchBridge {
     suspend fun inspectCurrentScreen(packageName: String): JsonObject
     suspend fun startFeedbackCapture(packageName: String, timeoutMillis: Long): JsonObject
     suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject
+    suspend fun captureScreenSnapshot(packageName: String): JsonObject
 }
 
 class CliPointPatchBridge(private val client: BridgeClient) : PointPatchBridge {
@@ -342,6 +343,9 @@ class CliPointPatchBridge(private val client: BridgeClient) : PointPatchBridge {
                 role?.let { put("role", it) }
             },
         )
+
+    override suspend fun captureScreenSnapshot(packageName: String): JsonObject =
+        client.captureScreenSnapshot(packageName)
 }
 
 class PointPatchToolException(message: String) : RuntimeException(message)

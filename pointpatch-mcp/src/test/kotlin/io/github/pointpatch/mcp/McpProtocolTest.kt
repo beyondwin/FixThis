@@ -567,6 +567,8 @@ class McpProtocolTest {
             }
         }
 
+        override suspend fun captureScreenSnapshot(packageName: String): JsonObject = JsonObject(emptyMap())
+
         private fun annotation(packageName: String): JsonObject = buildJsonObject {
             put("schemaVersion", "1.0")
             put("id", "annotation-1")
@@ -634,6 +636,8 @@ class McpProtocolTest {
 
         override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
             JsonObject(emptyMap())
+
+        override suspend fun captureScreenSnapshot(packageName: String): JsonObject = JsonObject(emptyMap())
     }
 
     private class BlockingResourceBridge : PointPatchBridge {
@@ -661,5 +665,7 @@ class McpProtocolTest {
 
         override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
             JsonObject(emptyMap())
+
+        override suspend fun captureScreenSnapshot(packageName: String): JsonObject = JsonObject(emptyMap())
     }
 }
