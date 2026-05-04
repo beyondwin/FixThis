@@ -471,7 +471,7 @@ debug 앱을 빌드/설치/실행한다.
 
 ```text
 - device/emulator 확인
-- app module 확인
+- repo sample Gradle task 실행
 - debug build
 - install
 - launch

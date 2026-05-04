@@ -2054,9 +2054,8 @@ Tests:
 
 Use fake project fixtures.
 
-- detect app module
 - read applicationId from `--package` or `.pointpatch/project.json`
-- generate source index
+- run sample Gradle tasks used by V1 CLI
 - doctor missing ADB
 - doctor missing sidekick
 - setup config output
