@@ -138,7 +138,7 @@ fun main(args: Array<String>) {
         return
     }
     val bridge = CliPointPatchBridge(BridgeClient(projectRoot = options.projectDir))
-    val tools = PointPatchTools(bridge = bridge, defaultPackageName = options.packageName)
+    val tools = pointPatchToolsForOptions(options, bridge)
     runBlocking {
         McpServer(McpProtocol(tools)).run(
             input = System.`in`,
@@ -147,6 +147,13 @@ fun main(args: Array<String>) {
         )
     }
 }
+
+internal fun pointPatchToolsForOptions(options: McpOptions, bridge: CliPointPatchBridge): PointPatchTools =
+    PointPatchTools(
+        bridge = bridge,
+        defaultPackageName = options.packageName,
+        projectRoot = options.projectDir,
+    )
 
 internal data class ConsoleStartupResult(val isError: Boolean, val text: String)
 
@@ -159,7 +166,7 @@ internal fun consoleStartupResult(result: JsonObject): ConsoleStartupResult {
     return ConsoleStartupResult(isError = isError, text = text)
 }
 
-private data class McpOptions(val packageName: String?, val projectDir: File, val consoleMode: Boolean) {
+internal data class McpOptions(val packageName: String?, val projectDir: File, val consoleMode: Boolean) {
     companion object {
         fun parse(args: Array<String>): McpOptions {
             var packageName: String? = null
