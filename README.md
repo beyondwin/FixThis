@@ -34,7 +34,7 @@ plugins {
 
 External projects need either a published plugin coordinate, for example with a versioned plugin id once PointPatch is published, or explicit composite-build/plugin-management wiring that points at this repository's Gradle plugin build.
 
-or:
+The sidekick dependency coordinate below is a future/published artifact placeholder. Until artifacts are published, external projects must wire this repository explicitly with composite-build/project dependencies instead of relying on the coordinate:
 
 ```kotlin
 dependencies {
@@ -51,8 +51,10 @@ The CLI can run diagnostics, launch the debug sample, and print MCP setup JSON:
 ```bash
 pointpatch doctor
 pointpatch run
-pointpatch setup
+pointpatch setup --package <applicationId>
 ```
+
+If `--package` is omitted, `.pointpatch/project.json` must already exist so the CLI can read the application id.
 
 MCP is an optional desktop integration. `pointpatch mcp` runs as a stdio JSON-RPC server and connects to the debug app through ADB and the sidekick local bridge. The in-app copy/share workflow works without MCP.
 

@@ -61,13 +61,15 @@ plugins {
 }
 ```
 
-또는:
+또는, artifact가 publish된 이후:
 
 ```kotlin
 dependencies {
     debugImplementation("io.github.pointpatch:pointpatch-compose-sidekick:0.1.0")
 }
 ```
+
+현재 repo 밖의 외부 프로젝트는 published artifact가 없다면 이 coordinate에 의존할 수 없고, composite build/project dependency wiring을 명시해야 한다.
 
 사용자는 Activity마다 install을 호출하거나, `setContent`를 `PointPatchRoot`로 감싸거나, AndroidManifest를 직접 수정하지 않아도 된다.
 
@@ -119,7 +121,7 @@ PointPatch는 개발과 디버그 용도다. production feature가 아니다.
 주요 흐름:
 
 ```text
-pointpatch setup
+pointpatch setup --package <applicationId>
 → pointpatch run
 → AI agent에서 PointPatch MCP tool 사용
 → 앱에서 UI 선택
@@ -347,6 +349,8 @@ dependencies {
 }
 ```
 
+이 coordinate는 publish된 artifact가 있을 때의 예시다. 현재 repo sample은 composite build/project dependency wiring을 사용하고, 외부 프로젝트는 artifact publish 전에는 동일하게 명시적 wiring이 필요하다.
+
 이 방식은 source index가 없을 수 있지만, runtime inspection, screenshot, clipboard export는 동작해야 한다.
 
 ### 8.2 앱 안 기본 UX
@@ -413,7 +417,7 @@ Package: com.example.app
 MCP: Not connected
 
 Run:
-pointpatch setup
+pointpatch setup --package <applicationId>
 ```
 
 버튼:
@@ -437,7 +441,7 @@ V1에서 사용자가 쓰는 CLI 명령은 구현된 surface로 제한한다.
 
 ```bash
 pointpatch status
-pointpatch setup
+pointpatch setup --package <applicationId>
 pointpatch run
 pointpatch doctor
 ```
@@ -455,7 +459,7 @@ V1은 설치/수정용 init 명령을 제공하지 않는다. 이 repo에서는 
 AI client에 붙여 넣을 MCP 설정 JSON을 출력한다.
 
 ```text
-- package/project metadata 확인
+- --package 값 또는 .pointpatch/project.json의 package/project metadata 확인
 - pointpatch mcp command와 args를 포함한 JSON config 출력
 ```
 
@@ -929,7 +933,7 @@ pointpatch-gradle-plugin
   - project metadata generation
 
 pointpatch-cli
-  - init
+  - status
   - setup
   - run
   - doctor
@@ -937,7 +941,7 @@ pointpatch-cli
 
 pointpatch-mcp
   - stdio MCP server
-  - tool/resource/prompt definitions
+  - tool/resource definitions
   - bridge to Android sidekick
 
 sample
@@ -1188,7 +1192,7 @@ MCP 설정은 사용자에게 어렵다.
 Mitigation:
 
 - `pointpatch setup`
-- client auto-detect
+- `--package` 또는 `.pointpatch/project.json` 기반 setup JSON 출력
 - macro tools only
 - `doctor` 제공
 - 앱 안 connect guide 제공
@@ -1230,7 +1234,7 @@ Mitigation:
 ### 17.3 MCP
 
 - `pointpatch status`가 sidekick 연결 상태를 표시한다.
-- `pointpatch setup`이 MCP config를 생성하거나 출력한다.
+- `pointpatch setup --package <applicationId>` 또는 기존 `.pointpatch/project.json` 기반 setup이 MCP config를 출력한다.
 - `pointpatch_get_ui_feedback`이 앱 selection overlay를 띄운다.
 - 사용자가 앱에서 UI와 comment를 입력하면 MCP result가 반환된다.
 - `pointpatch_verify_ui_change`가 expected text 존재 여부를 검사한다.

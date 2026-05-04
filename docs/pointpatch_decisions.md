@@ -402,11 +402,13 @@ plugins {
 }
 ```
 
-또는:
+또는, artifact가 publish된 이후:
 
 ```kotlin
 debugImplementation("io.github.pointpatch:pointpatch-compose-sidekick:0.1.0")
 ```
+
+현재 V1 repo sample은 composite build/project dependency wiring을 사용한다. 외부 프로젝트는 artifact publish 전에는 이 coordinate를 바로 사용할 수 없고 명시적 wiring이 필요하다.
 
 ### 결론
 
@@ -710,7 +712,7 @@ status
 
 ```bash
 pointpatch status
-pointpatch setup
+pointpatch setup --package <applicationId>
 pointpatch run
 pointpatch doctor
 pointpatch mcp
@@ -724,7 +726,7 @@ CLI가 해야 할 일:
 
 - Android project 탐색
 - app module 탐색
-- applicationId 자동 인식
+- `--package` 또는 `.pointpatch/project.json`에서 applicationId 확인
 - device/emulator 확인
 - MCP client config JSON 출력
 - debug app build/install/launch
@@ -736,7 +738,7 @@ CLI가 해야 할 일:
 사용자는 다음 정도만 기억하면 된다.
 
 ```bash
-pointpatch setup
+pointpatch setup --package <applicationId>
 pointpatch run
 ```
 
@@ -789,6 +791,8 @@ Fallback:
 ```kotlin
 debugImplementation("io.github.pointpatch:pointpatch-compose-sidekick:0.1.0")
 ```
+
+이 coordinate는 published artifact가 있을 때의 외부 설치 예시다. artifact publish 전에는 repo sample처럼 composite build/project dependency wiring을 사용한다.
 
 Advanced:
 
