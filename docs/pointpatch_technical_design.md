@@ -319,7 +319,7 @@ Kotlin/JVM CLI로 구현한다. `pointpatch-mcp` module을 포함하거나 depen
 
 ### 4.1 사용자 설치 방식
 
-권장:
+Published artifact example:
 
 ```kotlin
 plugins {
@@ -327,7 +327,7 @@ plugins {
 }
 ```
 
-Fallback:
+Fallback after artifacts are published:
 
 ```kotlin
 dependencies {
@@ -2273,13 +2273,15 @@ CanvasScreen
 
 사용자는 일반적으로 public API를 호출하지 않는다.
 
-Primary install:
+Primary install after artifacts are published:
 
 ```kotlin
 plugins {
     id("io.github.pointpatch.compose") version "0.1.0"
 }
 ```
+
+Current repo-local V1 validation uses composite build/settings wiring instead of a published plugin coordinate.
 
 ### 23.2 Manual fallback API
 
