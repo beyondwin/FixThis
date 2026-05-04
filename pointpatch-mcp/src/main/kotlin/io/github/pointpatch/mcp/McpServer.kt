@@ -16,7 +16,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.system.exitProcess
 
 class McpServer(private val protocol: McpProtocol = McpProtocol()) {
@@ -112,6 +118,25 @@ fun main(args: Array<String>) {
         System.err.println(error.message ?: error::class.java.simpleName)
         exitProcess(2)
     }
+    if (options.consoleMode) {
+        val bridge = CliPointPatchBridge(BridgeClient(projectRoot = options.projectDir))
+        val tools = PointPatchTools(
+            bridge = bridge,
+            defaultPackageName = options.packageName,
+            projectRoot = options.projectDir,
+        )
+        val result = runBlocking {
+            tools.call("pointpatch_open_feedback_console", JsonObject(emptyMap()))
+        }
+        val startup = consoleStartupResult(result)
+        if (startup.isError) {
+            System.err.println(startup.text)
+            exitProcess(1)
+        }
+        System.out.println(startup.text)
+        Thread.currentThread().join()
+        return
+    }
     val bridge = CliPointPatchBridge(BridgeClient(projectRoot = options.projectDir))
     val tools = PointPatchTools(bridge = bridge, defaultPackageName = options.packageName)
     runBlocking {
@@ -123,14 +148,30 @@ fun main(args: Array<String>) {
     }
 }
 
-private data class McpOptions(val packageName: String?, val projectDir: File) {
+internal data class ConsoleStartupResult(val isError: Boolean, val text: String)
+
+internal fun consoleStartupResult(result: JsonObject): ConsoleStartupResult {
+    val text = result["content"]?.jsonArray
+        ?.firstOrNull()?.jsonObject
+        ?.get("text")?.jsonPrimitive?.contentOrNull
+        ?: error("Console tool did not return JSON content")
+    val isError = result["isError"]?.jsonPrimitive?.booleanOrNull == true
+    return ConsoleStartupResult(isError = isError, text = text)
+}
+
+private data class McpOptions(val packageName: String?, val projectDir: File, val consoleMode: Boolean) {
     companion object {
         fun parse(args: Array<String>): McpOptions {
             var packageName: String? = null
             var projectDir = File(".").canonicalFile
+            var consoleMode = false
             var index = 0
             while (index < args.size) {
                 when (val arg = args[index]) {
+                    "--console" -> {
+                        consoleMode = true
+                        index += 1
+                    }
                     "--package" -> {
                         packageName = args.getOrNull(index + 1)
                             ?: throw IllegalArgumentException("--package requires a value")
@@ -146,7 +187,7 @@ private data class McpOptions(val packageName: String?, val projectDir: File) {
                     else -> throw IllegalArgumentException("Unknown pointpatch-mcp argument: $arg")
                 }
             }
-            return McpOptions(packageName = packageName, projectDir = projectDir)
+            return McpOptions(packageName = packageName, projectDir = projectDir, consoleMode = consoleMode)
         }
     }
 }

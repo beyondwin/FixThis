@@ -1648,7 +1648,7 @@ git commit -m "mcp: serve feedback console"
 - Modify: `pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/Main.kt`
 - Create: `pointpatch-cli/src/test/kotlin/io/github/pointpatch/cli/commands/ConsoleCommandTest.kt`
 
-- [ ] **Step 1: Add command tests**
+- [x] **Step 1: Add command tests**
 
 Create `ConsoleCommandTest.kt`:
 
@@ -1696,7 +1696,7 @@ class ConsoleCommandTest {
 }
 ```
 
-- [ ] **Step 2: Run CLI command test to verify it fails**
+- [x] **Step 2: Run CLI command test to verify it fails**
 
 Run:
 
@@ -1706,7 +1706,7 @@ Run:
 
 Expected: compilation fails because `ConsoleCommand` helpers do not exist.
 
-- [ ] **Step 3: Add MCP console mode**
+- [x] **Step 3: Add MCP console mode**
 
 In `McpServer.kt`, extend options:
 
@@ -1752,7 +1752,7 @@ if (options.consoleMode) {
 
 Import `jsonArray`, `jsonObject`, and `content`.
 
-- [ ] **Step 4: Add CLI console command**
+- [x] **Step 4: Add CLI console command**
 
 Create `ConsoleCommand.kt`:
 
@@ -1809,7 +1809,7 @@ Register it in `Main.kt`:
 ConsoleCommand(),
 ```
 
-- [ ] **Step 5: Run CLI and MCP tests**
+- [x] **Step 5: Run CLI and MCP tests**
 
 Run:
 
@@ -1819,7 +1819,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/McpServer.kt pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/commands/ConsoleCommand.kt pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/Main.kt pointpatch-cli/src/test/kotlin/io/github/pointpatch/cli/commands/ConsoleCommandTest.kt

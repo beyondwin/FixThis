@@ -4,6 +4,7 @@ import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.CoreNoOpCliktCommand
 import com.github.ajalt.clikt.core.parse
 import com.github.ajalt.clikt.core.subcommands
+import io.github.pointpatch.cli.commands.ConsoleCommand
 import io.github.pointpatch.cli.commands.DoctorCommand
 import io.github.pointpatch.cli.commands.McpCommand
 import io.github.pointpatch.cli.commands.RunCommand
@@ -19,6 +20,7 @@ fun main(args: Array<String>) {
             DoctorCommand(),
             SetupCommand(),
             McpCommand(),
+            ConsoleCommand(),
         )
     try {
         command.parse(args)
