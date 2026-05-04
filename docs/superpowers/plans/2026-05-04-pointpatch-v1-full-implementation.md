@@ -1460,7 +1460,7 @@ Use Kotlin JVM, application plugin, serialization, coroutines, and Clikt. Main c
 
 - [x] **Step 2: Implement ADB wrapper**
 
-Expose allowlisted operations only: `devices`, `shell`, `forward`, `install`, `monkey`, `runAsCat`, `pull`.
+Expose allowlisted operations only: `devices`, `shell`, `forward`, `removeForward`, `install`, `monkey`, `runAsCat`, `pull`.
 
 - [x] **Step 3: Implement bridge client**
 
