@@ -502,7 +502,7 @@ git commit -m "mcp: store feedback sessions in memory"
 - Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatter.kt`
 - Create: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatterTest.kt`
 
-- [ ] **Step 1: Write formatter tests**
+- [x] **Step 1: Write formatter tests**
 
 Create `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatterTest.kt`:
 
@@ -554,7 +554,7 @@ class FeedbackQueueFormatterTest {
 }
 ```
 
-- [ ] **Step 2: Run formatter test to verify it fails**
+- [x] **Step 2: Run formatter test to verify it fails**
 
 Run:
 
@@ -564,7 +564,7 @@ Run:
 
 Expected: compilation fails because `FeedbackQueueFormatter` does not exist.
 
-- [ ] **Step 3: Implement formatter**
+- [x] **Step 3: Implement formatter**
 
 Create `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatter.kt`:
 
@@ -624,7 +624,7 @@ object FeedbackQueueFormatter {
 }
 ```
 
-- [ ] **Step 4: Run formatter tests**
+- [x] **Step 4: Run formatter tests**
 
 Run:
 
@@ -634,7 +634,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatter.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatterTest.kt
