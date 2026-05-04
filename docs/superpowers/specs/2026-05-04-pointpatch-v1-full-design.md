@@ -240,7 +240,6 @@ Add a `selection` object:
   "kind": "SEMANTICS_NODE",
   "confidence": "HIGH",
   "selectedUid": "0:MERGED:142",
-  "areaBoundsInWindow": null,
   "source": "TAP_SELECT"
 }
 ```

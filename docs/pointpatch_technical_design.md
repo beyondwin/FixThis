@@ -1979,7 +1979,6 @@ METHOD_FAILED
 
 ```json
 {
-  "selectedNode": null,
   "tap": { "xInWindow": 512, "yInWindow": 1430 },
   "errors": [
     {

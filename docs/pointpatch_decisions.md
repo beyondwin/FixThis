@@ -856,8 +856,6 @@ screenshot result는 성공/실패 정보를 annotation에 포함한다.
 ```json
 {
   "screenshot": {
-    "fullPath": null,
-    "cropPath": null,
     "captureFailedReason": "PixelCopy timeout; Canvas fallback failed"
   }
 }
