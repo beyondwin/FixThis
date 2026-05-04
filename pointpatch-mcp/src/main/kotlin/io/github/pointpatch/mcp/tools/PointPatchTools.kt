@@ -69,6 +69,7 @@ class PointPatchTools(
                 })
             }
             "pointpatch_get_current_screen" -> bridgeToolResult {
+                val usesDefaultPackage = arguments.stringParam("packageName").isNullOrBlank()
                 val packageName = resolvePackageName(arguments)
                 val screen = bridge.inspectCurrentScreen(packageName)
                 cacheScreen(packageName, screen)
@@ -76,7 +77,7 @@ class PointPatchTools(
                     put("screen", screen)
                     if (
                         arguments.booleanParam("includeScreenshot") != false &&
-                        packageName == resolveDefaultPackageName() &&
+                        usesDefaultPackage &&
                         latestAnnotation(packageName).hasScreenshotArtifact("desktopFullPath", "fullPath")
                     ) {
                         put("screenshotResource", "pointpatch://screenshot/latest/full.png")

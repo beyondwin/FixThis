@@ -274,6 +274,25 @@ class McpProtocolTest {
     }
 
     @Test
+    fun currentScreenWithExplicitPackageDoesNotRequireDefaultPackageMetadata() {
+        val response = runSingleRequest(
+            """{"jsonrpc":"2.0","id":"tool","method":"tools/call","params":{"name":"pointpatch_get_current_screen","arguments":{"packageName":"com.explicit"}}}""",
+            bridge = FakeBridge(defaultPackageName = null),
+        )
+
+        val result = response.jsonObject.getValue("result").jsonObject
+        assertFalse(result.getValue("isError").jsonPrimitive.boolean)
+        val payload = parse(
+            result
+                .getValue("content").jsonArray[0].jsonObject
+                .getValue("text").jsonPrimitive.content,
+        ).jsonObject
+
+        assertEquals("com.explicit", payload.getValue("screen").jsonObject.getValue("packageName").jsonPrimitive.content)
+        assertFalse(payload.containsKey("screenshotResource"))
+    }
+
+    @Test
     fun packageScopedCachesKeepDefaultAndEvictOlderOverridePackages() {
         val bridge = FakeBridge(defaultPackageName = "com.default")
         val server = server(bridge, defaultPackageName = "com.default")
@@ -495,13 +514,15 @@ class McpProtocolTest {
 
     private class FakeBridge(
         private val annotationEnabled: Boolean = true,
-        private val defaultPackageName: String = "io.github.pointpatch.sample",
+        private val defaultPackageName: String? = "io.github.pointpatch.sample",
         private val verificationMatches: Boolean = true,
     ) : PointPatchBridge {
         val calls = mutableListOf<String>()
 
         override fun resolvePackageName(packageOverride: String?): String =
-            packageOverride?.takeIf { it.isNotBlank() } ?: defaultPackageName
+            packageOverride?.takeIf { it.isNotBlank() }
+                ?: defaultPackageName
+                ?: error("No default package metadata is available")
 
         override suspend fun status(packageName: String): JsonObject {
             calls += "status:$packageName"
