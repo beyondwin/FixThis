@@ -1,9 +1,13 @@
 package io.github.pointpatch.mcp
 
+import io.github.pointpatch.compose.core.model.PointPatchRect
+import io.github.pointpatch.mcp.session.FeedbackSessionService
+import io.github.pointpatch.mcp.session.FeedbackSessionStore
 import io.github.pointpatch.mcp.tools.PointPatchBridge
 import io.github.pointpatch.mcp.tools.PointPatchTools
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
 import kotlinx.coroutines.CompletableDeferred
@@ -47,7 +51,7 @@ class McpProtocolTest {
     }
 
     @Test
-    fun toolsListIncludesFourPointPatchTools() {
+    fun toolsListIncludesPointPatchTools() {
         val response = runSingleRequest("""{"jsonrpc":"2.0","id":"tools","method":"tools/list","params":{}}""")
 
         val tools = response.jsonObject
@@ -61,9 +65,145 @@ class McpProtocolTest {
                 "pointpatch_get_current_screen",
                 "pointpatch_get_ui_feedback",
                 "pointpatch_verify_ui_change",
+                "pointpatch_open_feedback_console",
+                "pointpatch_capture_screen",
+                "pointpatch_list_feedback",
+                "pointpatch_read_feedback",
+                "pointpatch_resolve_feedback",
             ),
             tools,
         )
+    }
+
+    @Test
+    fun listFeedbackReturnsCurrentSessionQueue() {
+        val bridge = FakeBridge(defaultPackageName = "io.github.pointpatch.sample")
+        val server = server(
+            bridge,
+            defaultPackageName = "io.github.pointpatch.sample",
+            projectRoot = File("/repo"),
+        )
+
+        runToolCall(
+            server,
+            "pointpatch_open_feedback_console",
+            """{}""",
+        )
+        val payload = runToolCall(
+            server,
+            "pointpatch_list_feedback",
+            """{}""",
+        )
+
+        assertTrue(payload.containsKey("sessionId"))
+        assertEquals("io.github.pointpatch.sample", payload.getValue("packageName").jsonPrimitive.content)
+    }
+
+    @Test
+    fun readAndResolveFeedbackHonorExplicitSessionId() = runBlocking {
+        val bridge = FakeBridge(defaultPackageName = "com.default")
+        val service = feedbackService(
+            bridge,
+            "session-a",
+            "screen-a",
+            "item-a",
+            "session-b",
+            "screen-b",
+            "item-b",
+        )
+        val sessionA = service.openSession("com.first")
+        val screenA = service.captureScreen(sessionA.sessionId)
+        val itemA = service.addAreaFeedback(
+            sessionA.sessionId,
+            screenA.screenId,
+            PointPatchRect(1f, 2f, 3f, 4f),
+            "First session feedback",
+        )
+        service.openSession("com.second").also { sessionB ->
+            val screenB = service.captureScreen(sessionB.sessionId)
+            service.addAreaFeedback(
+                sessionB.sessionId,
+                screenB.screenId,
+                PointPatchRect(5f, 6f, 7f, 8f),
+                "Second session feedback",
+            )
+        }
+        val server = server(bridge, feedbackService = service)
+
+        val readPayload = runToolCall(
+            server,
+            "pointpatch_read_feedback",
+            """{"sessionId":"${sessionA.sessionId}"}""",
+        )
+        val resolvedPayload = runToolCall(
+            server,
+            "pointpatch_resolve_feedback",
+            """{"sessionId":"${sessionA.sessionId}","itemId":"${itemA.itemId}","status":"resolved","summary":"Fixed"}""",
+        )
+
+        assertEquals("com.first", readPayload.getValue("packageName").jsonPrimitive.content)
+        assertEquals("resolved", resolvedPayload.getValue("status").jsonPrimitive.content)
+        assertEquals("Fixed", resolvedPayload.getValue("agentSummary").jsonPrimitive.content)
+    }
+
+    @Test
+    fun readFeedbackWithItemIdFiltersOutUnrelatedFeedback() = runBlocking {
+        val bridge = FakeBridge(defaultPackageName = "com.default")
+        val service = feedbackService(bridge, "session-1", "screen-1", "item-1", "item-2")
+        val session = service.openSession("com.first")
+        val screen = service.captureScreen(session.sessionId)
+        val firstItem = service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            PointPatchRect(1f, 2f, 3f, 4f),
+            "Keep this feedback",
+        )
+        service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            PointPatchRect(5f, 6f, 7f, 8f),
+            "Filter this feedback",
+        )
+        val server = server(bridge, feedbackService = service)
+
+        val content = runToolCallContentTexts(
+            server,
+            "pointpatch_read_feedback",
+            """{"sessionId":"${session.sessionId}","itemId":"${firstItem.itemId}"}""",
+        )
+        val payload = parse(content[0]).jsonObject
+        val items = payload.getValue("items").jsonArray
+        val screens = payload.getValue("screens").jsonArray
+
+        assertEquals(1, items.size)
+        assertEquals(firstItem.itemId, items[0].jsonObject.getValue("itemId").jsonPrimitive.content)
+        assertEquals(1, screens.size)
+        assertTrue(content[1].contains("Keep this feedback"))
+        assertFalse(content[1].contains("Filter this feedback"))
+    }
+
+    @Test
+    fun resolveFeedbackRejectsInvalidStatus() = runBlocking {
+        val bridge = FakeBridge(defaultPackageName = "com.default")
+        val service = feedbackService(bridge, "session-1", "screen-1", "item-1")
+        val session = service.openSession("com.first")
+        val screen = service.captureScreen(session.sessionId)
+        val item = service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            PointPatchRect(1f, 2f, 3f, 4f),
+            "Needs resolution",
+        )
+        val server = server(bridge, feedbackService = service)
+
+        val error = runToolCallError(
+            server,
+            "pointpatch_resolve_feedback",
+            """{"sessionId":"${session.sessionId}","itemId":"${item.itemId}","status":"open"}""",
+        )
+
+        assertEquals(-32602, error.getValue("code").jsonPrimitive.int)
+        assertTrue(error.getValue("message").jsonPrimitive.content.contains("Unsupported feedback resolution status: open"))
     }
 
     @Test
@@ -479,15 +619,26 @@ class McpProtocolTest {
     }
 
     private fun runToolCall(server: McpServer, name: String, argumentsJson: String): JsonObject {
+        return parse(runToolCallContentTexts(server, name, argumentsJson)[0]).jsonObject
+    }
+
+    private fun runToolCallContentTexts(server: McpServer, name: String, argumentsJson: String): List<String> {
         val response = runSingleRequest(
             """{"jsonrpc":"2.0","id":"tool","method":"tools/call","params":{"name":"$name","arguments":$argumentsJson}}""",
             server = server,
         )
-        val content = response.jsonObject
+        return response.jsonObject
             .getValue("result").jsonObject
-            .getValue("content").jsonArray[0].jsonObject
-            .getValue("text").jsonPrimitive.content
-        return parse(content).jsonObject
+            .getValue("content").jsonArray
+            .map { it.jsonObject.getValue("text").jsonPrimitive.content }
+    }
+
+    private fun runToolCallError(server: McpServer, name: String, argumentsJson: String): JsonObject {
+        val response = runSingleRequest(
+            """{"jsonrpc":"2.0","id":"tool","method":"tools/call","params":{"name":"$name","arguments":$argumentsJson}}""",
+            server = server,
+        )
+        return response.jsonObject.getValue("error").jsonObject
     }
 
     private fun runSingleRequest(
@@ -507,10 +658,32 @@ class McpProtocolTest {
         return parse(stdout.toString().trim().lines().single())
     }
 
-    private fun server(bridge: PointPatchBridge = FakeBridge(), defaultPackageName: String? = null): McpServer =
-        McpServer(protocol = McpProtocol(tools = PointPatchTools(bridge, defaultPackageName)))
+    private fun server(
+        bridge: PointPatchBridge = FakeBridge(),
+        defaultPackageName: String? = null,
+        projectRoot: File = File(".").canonicalFile,
+        feedbackService: FeedbackSessionService = FeedbackSessionService(
+            bridge = bridge,
+            projectRoot = projectRoot.absolutePath,
+            defaultPackageName = defaultPackageName,
+        ),
+    ): McpServer =
+        McpServer(protocol = McpProtocol(tools = PointPatchTools(bridge, defaultPackageName, projectRoot, feedbackService)))
 
     private fun parse(value: String) = McpProtocol.json.parseToJsonElement(value)
+
+    private fun feedbackService(bridge: PointPatchBridge, vararg ids: String): FeedbackSessionService =
+        FeedbackSessionService(
+            bridge = bridge,
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds(*ids).next),
+            projectRoot = "/repo",
+            defaultPackageName = "com.default",
+        )
+
+    private class FakeIds(vararg values: String) {
+        private val queue = ArrayDeque(values.toList())
+        val next: () -> String = { queue.removeFirst() }
+    }
 
     private class FakeBridge(
         private val annotationEnabled: Boolean = true,

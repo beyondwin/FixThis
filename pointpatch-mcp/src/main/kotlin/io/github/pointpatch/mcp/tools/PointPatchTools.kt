@@ -6,8 +6,15 @@ import io.github.pointpatch.compose.core.format.PointPatchMarkdownFormatter
 import io.github.pointpatch.compose.core.model.PointPatchAnnotation
 import io.github.pointpatch.mcp.McpProtocol
 import io.github.pointpatch.mcp.resourceText
+import io.github.pointpatch.mcp.session.CapturedScreen
+import io.github.pointpatch.mcp.session.FeedbackItem
+import io.github.pointpatch.mcp.session.FeedbackItemStatus
+import io.github.pointpatch.mcp.session.FeedbackQueueFormatter
+import io.github.pointpatch.mcp.session.FeedbackSession
+import io.github.pointpatch.mcp.session.FeedbackSessionService
 import io.github.pointpatch.mcp.textContent
 import io.github.pointpatch.mcp.toolResult
+import java.io.File
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -17,6 +24,8 @@ import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 
@@ -26,6 +35,12 @@ private const val MaxRecentOverridePackages = 8
 class PointPatchTools(
     private val bridge: PointPatchBridge = CliPointPatchBridge(BridgeClient()),
     private val defaultPackageName: String? = null,
+    private val projectRoot: File = File(".").canonicalFile,
+    private val feedbackService: FeedbackSessionService = FeedbackSessionService(
+        bridge = bridge,
+        projectRoot = projectRoot.absolutePath,
+        defaultPackageName = defaultPackageName,
+    ),
 ) {
     private val cacheLock = Any()
     private val latestAnnotations = mutableMapOf<String, JsonObject>()
@@ -111,6 +126,63 @@ class PointPatchTools(
                 val role = arguments.stringParam("role")?.takeIf { it.isNotBlank() }
                 val bridgeResult = bridge.verifyUiChange(packageName, expectedText, role)
                 jsonToolResult(normalizeVerifyUiChangeResult(bridgeResult, role))
+            }
+            "pointpatch_open_feedback_console" -> bridgeToolResult {
+                val session = feedbackService.openSession(arguments.stringParam("packageName"))
+                jsonToolResult(buildJsonObject {
+                    put("sessionId", session.sessionId)
+                    put("packageName", session.packageName)
+                    put("projectRoot", session.projectRoot)
+                    put("consoleUrl", "not-started")
+                    put("session", McpProtocol.json.encodeToJsonElement(FeedbackSession.serializer(), session))
+                })
+            }
+            "pointpatch_capture_screen" -> bridgeToolResult {
+                val session = requestedSession(arguments)
+                val screen = feedbackService.captureScreen(session.sessionId)
+                jsonToolResult(buildJsonObject {
+                    put("sessionId", session.sessionId)
+                    put("screen", McpProtocol.json.encodeToJsonElement(CapturedScreen.serializer(), screen))
+                })
+            }
+            "pointpatch_list_feedback" -> bridgeToolResult {
+                val session = requestedSession(arguments)
+                jsonToolResult(buildJsonObject {
+                    put("sessionId", session.sessionId)
+                    put("packageName", session.packageName)
+                    put("status", session.status.name.lowercase())
+                    put("screensCount", session.screens.size)
+                    put("itemsCount", session.items.size)
+                    put("items", buildJsonArray {
+                        session.items.forEach { item ->
+                            add(buildJsonObject {
+                                put("itemId", item.itemId)
+                                put("screenId", item.screenId)
+                                put("status", item.status.name.lowercase())
+                                put("comment", item.comment)
+                            })
+                        }
+                    })
+                })
+            }
+            "pointpatch_read_feedback" -> bridgeToolResult {
+                val session = requestedSession(arguments).focusedOn(arguments.stringParam("itemId"))
+                toolResult(
+                    content = listOf(
+                        textContent(FeedbackQueueFormatter.toJson(session), "application/json"),
+                        textContent(FeedbackQueueFormatter.toMarkdown(session), "text/markdown"),
+                    ),
+                )
+            }
+            "pointpatch_resolve_feedback" -> bridgeToolResult {
+                val session = requestedSession(arguments)
+                val itemId = arguments.stringParam("itemId")?.takeIf { it.isNotBlank() }
+                    ?: throw PointPatchToolException("pointpatch_resolve_feedback requires itemId")
+                val status = arguments.stringParam("status")?.takeIf { it.isNotBlank() }?.toFeedbackItemStatus()
+                    ?: throw PointPatchToolException("pointpatch_resolve_feedback requires status")
+                val summary = arguments.stringParam("summary")
+                val item = feedbackService.resolveFeedback(session.sessionId, itemId, status, summary)
+                jsonToolResult(McpProtocol.json.encodeToJsonElement(FeedbackItem.serializer(), item).jsonObject)
             }
             else -> throw PointPatchToolException("Unknown PointPatch tool: $name")
         }
@@ -306,6 +378,33 @@ class PointPatchTools(
         return PointPatchMarkdownFormatter.format(annotation)
     }
 
+    private fun requestedSession(arguments: JsonObject): FeedbackSession {
+        val sessionId = arguments.stringParam("sessionId")?.takeIf { it.isNotBlank() }
+        return if (sessionId == null) {
+            feedbackService.currentSession()
+        } else {
+            feedbackService.getSession(sessionId)
+        }
+    }
+
+    private fun FeedbackSession.focusedOn(itemId: String?): FeedbackSession {
+        val focusedItemId = itemId?.takeIf { it.isNotBlank() } ?: return this
+        val item = items.firstOrNull { it.itemId == focusedItemId }
+            ?: throw PointPatchToolException("Unknown feedback item: $focusedItemId")
+        return copy(
+            screens = screens.filter { it.screenId == item.screenId },
+            items = listOf(item),
+        )
+    }
+
+    private fun String.toFeedbackItemStatus(): FeedbackItemStatus =
+        when (this) {
+            "resolved" -> FeedbackItemStatus.RESOLVED
+            "needs_clarification" -> FeedbackItemStatus.NEEDS_CLARIFICATION
+            "wont_fix" -> FeedbackItemStatus.WONT_FIX
+            else -> throw PointPatchToolException("Unsupported feedback resolution status: $this")
+        }
+
     private fun unavailable(message: String): JsonObject = buildJsonObject {
         put("available", false)
         put("message", message)
@@ -404,6 +503,46 @@ private val ToolDefinitions = listOf(
             "expectedText" to stringProperty("Text expected to appear on the current screen."),
             "role" to stringProperty("Optional semantic role hint, such as Button."),
             required = listOf("expectedText"),
+        ),
+    ),
+    ToolDefinition(
+        name = "pointpatch_open_feedback_console",
+        description = "Open or return the local PointPatch feedback console for the current MCP session.",
+        inputSchema = objectSchema(
+            "packageName" to stringProperty("Android application id. If omitted, .pointpatch/project.json or server --package is used."),
+        ),
+    ),
+    ToolDefinition(
+        name = "pointpatch_capture_screen",
+        description = "Capture the current Android screen into the active PointPatch feedback session.",
+        inputSchema = objectSchema(
+            "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
+        ),
+    ),
+    ToolDefinition(
+        name = "pointpatch_list_feedback",
+        description = "List feedback queue summaries for the active PointPatch feedback session.",
+        inputSchema = objectSchema(
+            "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
+        ),
+    ),
+    ToolDefinition(
+        name = "pointpatch_read_feedback",
+        description = "Read the feedback queue as annotation JSON and Markdown.",
+        inputSchema = objectSchema(
+            "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
+            "itemId" to stringProperty("Optional feedback item id to focus the returned payload."),
+        ),
+    ),
+    ToolDefinition(
+        name = "pointpatch_resolve_feedback",
+        description = "Mark a feedback item as resolved, needing clarification, or not fixed.",
+        inputSchema = objectSchema(
+            "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
+            "itemId" to stringProperty("Feedback item id to update."),
+            "status" to stringProperty("One of resolved, needs_clarification, or wont_fix."),
+            "summary" to stringProperty("Agent summary shown in the console."),
+            required = listOf("itemId", "status"),
         ),
     ),
 )
