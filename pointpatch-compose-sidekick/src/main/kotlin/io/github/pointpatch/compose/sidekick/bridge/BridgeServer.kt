@@ -11,10 +11,14 @@ import io.github.pointpatch.compose.core.model.PointPatchAnnotation
 import io.github.pointpatch.compose.core.model.PointPatchError
 import io.github.pointpatch.compose.core.model.PointPatchNode
 import io.github.pointpatch.compose.core.model.PointPatchRect
+import io.github.pointpatch.compose.core.model.ScreenshotInfo
 import io.github.pointpatch.compose.sidekick.inspect.SemanticsInspector
 import io.github.pointpatch.compose.sidekick.overlay.PointPatchOverlayHostLayout
+import io.github.pointpatch.compose.sidekick.screenshot.ScreenshotCapturer
+import io.github.pointpatch.compose.sidekick.screenshot.ScreenshotStore
 import java.io.File
 import java.lang.ref.WeakReference
+import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -103,6 +107,7 @@ class BridgeServer(
             val result = when (request.method) {
                 "status" -> BridgeProtocol.json.encodeToJsonElement(environment.status())
                 "inspectCurrentScreen" -> BridgeProtocol.json.encodeToJsonElement(environment.inspectCurrentScreen())
+                "captureScreenSnapshot" -> BridgeProtocol.json.encodeToJsonElement(environment.captureScreenSnapshot())
                 "startFeedbackCapture" -> BridgeProtocol.json.encodeToJsonElement(
                     environment.startFeedbackCapture(request.params.longParam("timeoutMillis") ?: DefaultFeedbackTimeoutMillis),
                 )
@@ -148,7 +153,12 @@ class BridgeServer(
         }
         val kind = params.stringParam("kind") ?: "full"
         require(kind == "full" || kind == "crop") { "Unsupported screenshot kind: $kind" }
-        val screenshot = environment.getLastAnnotation()?.screenshot
+        val source = params.stringParam("source") ?: "annotation"
+        require(source == "annotation" || source == "screenSnapshot") { "Unsupported screenshot source: $source" }
+        val screenshot = when (source) {
+            "screenSnapshot" -> environment.getLastScreenSnapshot()?.screenshot
+            else -> environment.getLastAnnotation()?.screenshot
+        }
         val path = when (kind) {
             "crop" -> screenshot?.cropPath
             else -> screenshot?.fullPath
@@ -180,6 +190,8 @@ class BridgeServer(
 interface BridgeEnvironment {
     suspend fun status(): BridgeStatus
     suspend fun inspectCurrentScreen(): BridgeScreenInspection
+    suspend fun captureScreenSnapshot(): BridgeScreenSnapshot
+    suspend fun getLastScreenSnapshot(): BridgeScreenSnapshot?
     suspend fun startFeedbackCapture(timeoutMillis: Long): BridgeFeedbackCaptureResult
     suspend fun getLastAnnotation(): PointPatchAnnotation?
     fun screenshotCacheDirectory(): File
@@ -199,6 +211,14 @@ data class BridgeScreenInspection(
     val activity: String? = null,
     val roots: List<BridgeInspectedRoot> = emptyList(),
     val errors: List<PointPatchError> = emptyList(),
+)
+
+@Serializable
+data class BridgeScreenSnapshot(
+    val activity: String? = null,
+    val inspection: BridgeScreenInspection,
+    val screenshot: ScreenshotInfo? = null,
+    val sourceIndexAvailable: Boolean = false,
 )
 
 @Serializable
@@ -311,8 +331,10 @@ private class AndroidBridgeEnvironment(
     private val sidekickVersion: String,
     private val mainDispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
     private val inspector: SemanticsInspector = SemanticsInspector(),
+    private val screenshotCapturer: ScreenshotCapturer = ScreenshotCapturer(ScreenshotStore(context)),
 ) : BridgeEnvironment {
     var currentActivity: WeakReference<Activity>? = null
+    private var lastScreenSnapshot: BridgeScreenSnapshot? = null
 
     override suspend fun status(): BridgeStatus {
         val inspection = inspectCurrentScreen()
@@ -349,6 +371,43 @@ private class AndroidBridgeEnvironment(
                 },
                 errors = result.errors,
             )
+        }
+
+    override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot =
+        withContext(mainDispatcher) {
+            val sourceIndexAvailable = context.hasAsset("pointpatch/pointpatch-source-index.json")
+            val activity = currentActivity?.get()
+            if (activity == null) {
+                val inspection = BridgeScreenInspection(
+                    errors = listOf(PointPatchError("NO_ACTIVITY", "No resumed Activity is available")),
+                )
+                val snapshot = BridgeScreenSnapshot(
+                    inspection = inspection,
+                    sourceIndexAvailable = sourceIndexAvailable,
+                )
+                lastScreenSnapshot = snapshot
+                return@withContext snapshot
+            }
+
+            val inspection = inspectCurrentScreen()
+            val screenshot = screenshotCapturer.capture(
+                activity = activity,
+                annotationId = "screen-${UUID.randomUUID()}",
+                selectedBounds = null,
+            )
+            val snapshot = BridgeScreenSnapshot(
+                activity = activity::class.java.name,
+                inspection = inspection,
+                screenshot = screenshot,
+                sourceIndexAvailable = sourceIndexAvailable,
+            )
+            lastScreenSnapshot = snapshot
+            snapshot
+        }
+
+    override suspend fun getLastScreenSnapshot(): BridgeScreenSnapshot? =
+        withContext(mainDispatcher) {
+            lastScreenSnapshot
         }
 
     override suspend fun startFeedbackCapture(timeoutMillis: Long): BridgeFeedbackCaptureResult =

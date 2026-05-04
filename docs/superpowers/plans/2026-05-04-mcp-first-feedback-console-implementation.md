@@ -647,7 +647,7 @@ git commit -m "mcp: format feedback queues"
 - Modify: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/bridge/BridgeServer.kt`
 - Modify: `pointpatch-compose-sidekick/src/test/kotlin/io/github/pointpatch/compose/sidekick/bridge/BridgeServerTest.kt`
 
-- [ ] **Step 1: Add bridge protocol test**
+- [x] **Step 1: Add bridge protocol test**
 
 Add to `BridgeServerTest`:
 
@@ -689,7 +689,7 @@ and implement:
 override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot = screenSnapshot
 ```
 
-- [ ] **Step 2: Run sidekick bridge test to verify it fails**
+- [x] **Step 2: Run sidekick bridge test to verify it fails**
 
 Run:
 
@@ -699,7 +699,7 @@ Run:
 
 Expected: compilation fails because `BridgeScreenSnapshot` and `captureScreenSnapshot` do not exist.
 
-- [ ] **Step 3: Add bridge method and data model**
+- [x] **Step 3: Add bridge method and data model**
 
 In `BridgeServer.kt`, add a request branch:
 
@@ -762,7 +762,7 @@ override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot =
     }
 ```
 
-- [ ] **Step 4: Run sidekick bridge tests**
+- [x] **Step 4: Run sidekick bridge tests**
 
 Run:
 
@@ -772,7 +772,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/bridge/BridgeServer.kt pointpatch-compose-sidekick/src/test/kotlin/io/github/pointpatch/compose/sidekick/bridge/BridgeServerTest.kt

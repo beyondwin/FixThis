@@ -69,11 +69,38 @@ class BridgeServerTest {
     }
 
     @Test
+    fun captureScreenSnapshotReturnsSnapshotResult() = runBlocking {
+        val server = server(
+            environment = RecordingBridgeEnvironment(
+                screenSnapshot = BridgeScreenSnapshot(
+                    activity = "MainActivity",
+                    inspection = BridgeScreenInspection(activity = "MainActivity"),
+                    screenshot = ScreenshotInfo(fullPath = "/cache/screen.png"),
+                    sourceIndexAvailable = true,
+                ),
+            ),
+        )
+
+        val response = server.handleRequestForTest(
+            """{"id":"1","token":"token","method":"captureScreenSnapshot","params":{}}""",
+        )
+
+        assertTrue(response.contains("MainActivity"))
+        assertTrue(response.contains("/cache/screen.png"))
+        assertTrue(response.contains("sourceIndexAvailable"))
+    }
+
+    @Test
     fun readScreenshotReturnsBase64ForLastAnnotationPath() = runBlocking {
         val cacheDirectory = tempDirectory(prefix = "pointpatch-cache")
         val tempFile = screenshotFile(cacheDirectory, "annotation-1-full.png", PngHeader)
+        val screenFile = screenshotFile(cacheDirectory, "screen-1-full.png", PngHeader + byteArrayOf(1, 2, 3))
         val environment = RecordingBridgeEnvironment(
             lastAnnotation = annotation().copy(screenshot = ScreenshotInfo(fullPath = tempFile.absolutePath)),
+            screenSnapshot = BridgeScreenSnapshot(
+                inspection = BridgeScreenInspection(activity = "MainActivity"),
+                screenshot = ScreenshotInfo(fullPath = screenFile.absolutePath),
+            ),
             screenshotCacheDirectory = cacheDirectory,
         )
         val server = server(environment = environment)
@@ -84,6 +111,33 @@ class BridgeServerTest {
 
         assertTrue(response.contains(""""base64": "iVBORw0KGgo=""""))
         assertTrue(response.contains(""""mimeType": "image/png""""))
+        assertTrue(response.contains(tempFile.absolutePath))
+        assertFalse(response.contains(screenFile.absolutePath))
+    }
+
+    @Test
+    fun readScreenshotReturnsBase64ForLastScreenSnapshotPathWhenRequested() = runBlocking {
+        val cacheDirectory = tempDirectory(prefix = "pointpatch-cache")
+        val screenFile = screenshotFile(cacheDirectory, "screen-1-full.png", PngHeader)
+        val environment = RecordingBridgeEnvironment(
+            screenSnapshot = BridgeScreenSnapshot(
+                inspection = BridgeScreenInspection(activity = "MainActivity"),
+                screenshot = ScreenshotInfo(fullPath = screenFile.absolutePath),
+            ),
+            screenshotCacheDirectory = cacheDirectory,
+        )
+        val server = server(environment = environment)
+
+        server.handleRequestForTest(
+            """{"id":"1","token":"token","method":"captureScreenSnapshot","params":{}}""",
+        )
+        val response = server.handleRequestForTest(
+            """{"id":"2","token":"token","method":"readScreenshot","params":{"source":"screenSnapshot","kind":"full"}}""",
+        )
+
+        assertTrue(response.contains(""""base64": "iVBORw0KGgo=""""))
+        assertTrue(response.contains(""""mimeType": "image/png""""))
+        assertTrue(response.contains(screenFile.absolutePath))
     }
 
     @Test
@@ -199,7 +253,12 @@ class BridgeServerTest {
         private val feedbackResult: BridgeFeedbackCaptureResult = BridgeFeedbackCaptureResult.Timeout(120_000L),
         private val lastAnnotation: PointPatchAnnotation? = annotation(),
         private val screenshotCacheDirectory: File = tempDirectory(prefix = "pointpatch-cache"),
+        private val screenSnapshot: BridgeScreenSnapshot = BridgeScreenSnapshot(
+            inspection = BridgeScreenInspection(activity = "MainActivity"),
+        ),
     ) : BridgeEnvironment {
+        private var lastScreenSnapshot: BridgeScreenSnapshot? = null
+
         override suspend fun status(): BridgeStatus =
             BridgeStatus(
                 activity = "MainActivity",
@@ -223,6 +282,11 @@ class BridgeServerTest {
             )
 
         override suspend fun startFeedbackCapture(timeoutMillis: Long): BridgeFeedbackCaptureResult = feedbackResult
+
+        override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot =
+            screenSnapshot.also { lastScreenSnapshot = it }
+
+        override suspend fun getLastScreenSnapshot(): BridgeScreenSnapshot? = lastScreenSnapshot
 
         override suspend fun getLastAnnotation(): PointPatchAnnotation? = lastAnnotation
 
