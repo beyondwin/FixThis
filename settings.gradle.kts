@@ -20,7 +20,8 @@ dependencyResolutionManagement {
 
 rootProject.name = "PointPatch"
 
-include(":sample")
+include(":app")
+project(":app").projectDir = file("sample")
 include(":pointpatch-compose-core")
 include(":pointpatch-compose-overlay")
 include(":pointpatch-compose-sidekick")

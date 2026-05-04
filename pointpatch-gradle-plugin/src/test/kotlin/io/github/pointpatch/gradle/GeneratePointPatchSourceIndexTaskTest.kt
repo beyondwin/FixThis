@@ -209,7 +209,7 @@ class GeneratePointPatchSourceIndexTaskTest {
         task.kotlinSourceFiles.from(kotlinSources)
         task.resourceXmlFiles.from(resourceXmlFiles)
         task.outputDirectory.set(outputDir)
-        task.projectPath.set(":sample")
+        task.projectPath.set(":app")
         task.variantName.set("debug")
         task.runtimeVersion.set("0.1.0-test")
         task.includeScreenshots.set(true)

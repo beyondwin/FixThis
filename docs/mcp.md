@@ -2,6 +2,18 @@
 
 PointPatch MCP is optional. The in-app Copy Markdown and Copy JSON workflow works without MCP.
 
+## Repository Sample
+
+In this repository the sample Android app is exposed as Gradle project `:app`, with sources under `sample/`. The local smoke flow is:
+
+```bash
+./gradlew :app:installDebug
+./gradlew :pointpatch-cli:installDist :pointpatch-mcp:installDist
+pointpatch-cli/build/install/pointpatch/bin/pointpatch run --package io.github.pointpatch.sample
+```
+
+The `pointpatch run` default install task is `:app:installDebug`.
+
 ## Architecture
 
 `pointpatch mcp` runs as a desktop stdio JSON-RPC server. It connects to the running debug app through the CLI bridge:
@@ -67,6 +79,8 @@ Inspects the current Compose screen and returns bridge screen data. It may inclu
 `pointpatch_get_ui_feedback`
 
 Starts feedback capture in the app, waits for the user to select UI and submit a comment, pulls screenshots into `.pointpatch/artifacts/` when present, and returns annotation JSON plus Markdown.
+
+The `.pointpatch/artifacts/` directory is a local, ignored screenshot cache for desktop-readable artifacts. It is not required for the in-app clipboard workflow.
 
 `pointpatch_verify_ui_change`
 

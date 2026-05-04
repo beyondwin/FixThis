@@ -100,7 +100,7 @@ CLI and MCP flows pull screenshots through the bridge and write desktop-readable
 .pointpatch/artifacts/<annotation-id>/<annotation-id>-crop.png
 ```
 
-When available, those paths appear as `desktopFullPath` and `desktopCropPath`. If capture or storage fails, `screenshot.captureFailedReason` records the failure and the annotation remains valid.
+When available, those paths appear as `desktopFullPath` and `desktopCropPath`. `.pointpatch/artifacts/` is ignored by git because these files are local debug screenshots. If capture or storage fails, `screenshot.captureFailedReason` records the failure and the annotation remains valid.
 
 ## Error Codes
 

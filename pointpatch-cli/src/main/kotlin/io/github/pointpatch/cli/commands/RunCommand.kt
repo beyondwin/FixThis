@@ -12,7 +12,7 @@ import kotlinx.coroutines.runBlocking
 class RunCommand : CoreCliktCommand(name = "run") {
     private val packageName by option("--package", help = "Android application id to launch")
     private val projectDir by option("--project-dir", help = "Project root containing .pointpatch/project.json").default(".")
-    private val installTask by option("--install-task", help = "Gradle install task to run before launch").default(":sample:installDebug")
+    private val installTask by option("--install-task", help = "Gradle install task to run before launch").default(":app:installDebug")
     private val timeoutMillis by option("--timeout-millis", help = "Bridge status timeout after launch").long().default(30_000L)
 
     override fun run() {

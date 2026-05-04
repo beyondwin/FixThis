@@ -226,6 +226,19 @@ io.github.pointpatch.compose.core.source
 io.github.pointpatch.compose.core.redaction
 ```
 
+### 3.1.1 Current repository layout
+
+현재 repository에서는 Android Studio 관례에 맞춰 sample app을 Gradle project `:app`으로 노출한다. 실제 source directory는 계속 `sample/`이다.
+
+```text
+include(":app")
+project(":app").projectDir = file("sample")
+```
+
+따라서 local build/install 문서와 CLI 기본 install task는 `:app:installDebug`를 사용한다. `:sample`은 더 이상 현재 Gradle project path가 아니다.
+
+`gradle/gradle-daemon-jvm.properties`는 Gradle daemon JVM toolchain을 Java 21로 고정하는 repository 파일이다. 반대로 `local.properties`와 `.pointpatch/artifacts/`는 developer-local 파일이므로 git에서 무시한다.
+
 ### 3.2 `pointpatch-compose-overlay`
 
 역할:
@@ -271,6 +284,8 @@ io.github.pointpatch.compose.sidekick.screenshot
 io.github.pointpatch.compose.sidekick.export
 io.github.pointpatch.compose.sidekick.bridge
 ```
+
+`pointpatch-compose-sidekick/src/androidTest/AndroidManifest.xml` removes the AndroidX Startup metadata for `PointPatchInitializer` in sidekick instrumentation tests. That keeps tests focused on the inspected UI/runtime component under test instead of auto-starting the full overlay bridge from the test APK.
 
 ### 3.4 `pointpatch-gradle-plugin`
 

@@ -40,7 +40,7 @@ CLI/MCP flows may copy screenshot artifacts into the project:
 .pointpatch/artifacts/<annotation-id>/
 ```
 
-These files are local artifacts. Treat them like screenshots from a debug device and delete them when no longer needed.
+These files are local artifacts and are ignored by git. Treat them like screenshots from a debug device and delete them when no longer needed.
 
 ## MCP And ADB Bridge
 

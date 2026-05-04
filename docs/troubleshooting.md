@@ -8,6 +8,13 @@ pointpatch doctor --package <applicationId>
 
 If package metadata exists in `.pointpatch/project.json`, `--package` can be omitted.
 
+For this repository's sample app, use the Android Studio `app` configuration or Gradle project `:app`; the source files live under `sample/`:
+
+```bash
+./gradlew :app:installDebug
+pointpatch run --package io.github.pointpatch.sample
+```
+
 ## ADB_NOT_FOUND
 
 Symptom: `pointpatch doctor` fails at `ADB found` or the CLI reports that it cannot run `adb`.
@@ -40,6 +47,8 @@ Common causes:
 - The sidekick did not start.
 
 Fix: install and launch the debug app, then rerun `pointpatch doctor --package <applicationId>`.
+
+If the error says `run-as: unknown package`, ADB is talking to a device where that package is not installed. This often happens after switching devices or when both an emulator and a physical device are connected. Install the debug APK on the target device and make sure only one `adb devices` entry is active for V1.
 
 ## SIDEKICK_SESSION_NOT_FOUND
 

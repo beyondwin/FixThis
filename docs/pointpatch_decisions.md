@@ -740,6 +740,8 @@ pointpatch setup --package <applicationId>
 pointpatch run
 ```
 
+현재 repository에서는 sample source directory가 `sample/`이지만 Gradle project path는 `:app`이다. 이 결정에 따라 CLI `run`의 기본 install task는 `:app:installDebug`이며, Android Studio에서도 `app` configuration을 기준으로 안내한다.
+
 ---
 
 ## 19. 결정 18: Gradle plugin을 primary install path로 둔다

@@ -456,6 +456,8 @@ pointpatch mcp
 
 V1은 설치/수정용 init 명령을 제공하지 않는다. 이 repo에서는 Gradle plugin이 composite build/settings wiring으로 포함되어 있고, 외부 프로젝트는 publish된 plugin coordinate 또는 명시적인 composite build/pluginManagement 설정을 사용해야 한다.
 
+현재 repo의 sample app은 Gradle project `:app`으로 노출되고 source는 `sample/` 아래에 둔다. 따라서 local smoke flow와 `pointpatch run`의 기본 install task는 `:app:installDebug`다.
+
 #### `pointpatch setup`
 
 AI client에 붙여 넣을 MCP 설정 JSON을 출력한다.
@@ -471,7 +473,7 @@ debug 앱을 빌드/설치/실행한다.
 
 ```text
 - device/emulator 확인
-- repo sample Gradle task 실행
+- repo sample Gradle task 실행 (`:app:installDebug`)
 - debug build
 - install
 - launch

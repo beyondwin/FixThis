@@ -6,6 +6,8 @@
 
 **Architecture:** The repo becomes a root Gradle multi-project build. Android runtime code lives in sidekick/overlay modules, reusable models and selection logic live in pure Kotlin core, Gradle plugin generates debug-only assets and dependencies, and CLI/MCP communicate with the running debug app through an ADB-backed local bridge.
 
+**Current repo note:** the sample app source still lives in `sample/`, but the root Gradle build exposes it as project `:app` for Android Studio convention. Current local build/install commands should use `:app:*`; older sample project-path commands in the historical step log are superseded.
+
 **Tech Stack:** Kotlin, Android Gradle Plugin, Jetpack Compose Material3, kotlinx.serialization, kotlinx.coroutines, Clikt or picocli for CLI, Gradle plugin APIs, AndroidX Startup, LocalServerSocket, MCP stdio JSON-RPC.
 
 ---
@@ -60,7 +62,8 @@ dependencyResolutionManagement {
 
 rootProject.name = "PointPatch"
 
-include(":sample")
+include(":app")
+project(":app").projectDir = file("sample")
 include(":pointpatch-compose-core")
 include(":pointpatch-compose-overlay")
 include(":pointpatch-compose-sidekick")
@@ -141,7 +144,7 @@ Run:
 ./gradlew projects
 ```
 
-Expected: Gradle lists `:sample`, `:pointpatch-compose-core`, `:pointpatch-compose-overlay`, `:pointpatch-compose-sidekick`, `:pointpatch-gradle-plugin`, `:pointpatch-cli`, and `:pointpatch-mcp`.
+Expected: Gradle lists `:app`, `:pointpatch-compose-core`, `:pointpatch-compose-overlay`, `:pointpatch-compose-sidekick`, `:pointpatch-gradle-plugin`, `:pointpatch-cli`, and `:pointpatch-mcp`.
 
 - [x] **Step 5: Commit**
 
@@ -703,12 +706,12 @@ class SampleAppSmokeTest {
 
 - [ ] **Step 13: Run sample tests**
 
-Progress: `:sample:assembleDebug` passes with `ANDROID_HOME=/Users/kws/Library/Android/sdk`, but `:sample:connectedDebugAndroidTest` is environment-blocked because no device/emulator is connected.
+Progress: `:app:assembleDebug` passes with `ANDROID_HOME=/Users/kws/Library/Android/sdk`, but `:app:connectedDebugAndroidTest` is environment-blocked because no device/emulator is connected.
 
 Run:
 
 ```bash
-./gradlew :sample:assembleDebug :sample:connectedDebugAndroidTest
+./gradlew :app:assembleDebug :app:connectedDebugAndroidTest
 ```
 
 Expected: debug APK builds and smoke test passes on a connected device/emulator.
@@ -1211,25 +1214,25 @@ to `sample/build.gradle.kts` until the Gradle plugin task replaces it.
 Run:
 
 ```bash
-./gradlew :sample:installDebug
+./gradlew :app:installDebug
 adb shell monkey -p io.github.pointpatch.sample 1
 ```
 
 Expected: app launches and PointPatch toolbar is visible.
 
-Environment-blocked: no device/emulator was connected (`adb devices` returned no devices), so install/monkey and visual toolbar confirmation were not run. Fallback `ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :sample:assembleDebug` passed.
+Environment-blocked: no device/emulator was connected (`adb devices` returned no devices), so install/monkey and visual toolbar confirmation were not run. Fallback `ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :app:assembleDebug` passed.
 
 - [x] **Step 9: Run release sample**
 
 Run:
 
 ```bash
-./gradlew :sample:assembleRelease
+./gradlew :app:assembleRelease
 ```
 
 Expected: release builds. Manual launch should not show active PointPatch runtime.
 
-`ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :sample:assembleRelease` passed. Manual launch was not run because no device/emulator was connected; `debugImplementation` keeps sidekick out of the release runtime classpath.
+`ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :app:assembleRelease` passed. Manual launch was not run because no device/emulator was connected; `debugImplementation` keeps sidekick out of the release runtime classpath.
 
 - [x] **Step 10: Commit**
 
@@ -1265,7 +1268,7 @@ Map text, editable text, contentDescription, role, testTag, stateDescription, se
 
 `AnnotationCaptureController` handles Tap Select, Scope Chip reselection, Area Select fallback, user comment, source matching, and annotation construction.
 
-- [ ] **Step 5: Run instrumentation** — Environment-blocked on 2026-05-04: `:pointpatch-compose-sidekick:connectedDebugAndroidTest` built the instrumentation APK but failed with `com.android.builder.testing.api.DeviceException: No connected devices!`. Substitutes passed: `:pointpatch-compose-sidekick:testDebugUnitTest --rerun-tasks`, `:pointpatch-compose-sidekick:compileDebugAndroidTestKotlin --rerun-tasks`, and `:sample:compileDebugAndroidTestKotlin`.
+- [ ] **Step 5: Run instrumentation** — Environment-blocked on 2026-05-04: `:pointpatch-compose-sidekick:connectedDebugAndroidTest` built the instrumentation APK but failed with `com.android.builder.testing.api.DeviceException: No connected devices!`. Substitutes passed: `:pointpatch-compose-sidekick:testDebugUnitTest --rerun-tasks`, `:pointpatch-compose-sidekick:compileDebugAndroidTestKotlin --rerun-tasks`, and `:app:compileDebugAndroidTestKotlin`.
 
 Run:
 
@@ -1382,7 +1385,7 @@ through included build or local plugin wiring in the root build.
 Run:
 
 ```bash
-./gradlew :pointpatch-gradle-plugin:test :sample:assembleDebug
+./gradlew :pointpatch-gradle-plugin:test :app:assembleDebug
 ```
 
 Expected: source index exists in debug assets and sample app still shows PointPatch runtime.

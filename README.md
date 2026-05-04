@@ -44,6 +44,40 @@ dependencies {
 
 The sample app in this repository is a Compose-only validation app. It replaces the earlier XML/View sample so PointPatch can exercise Compose semantics, Smart Select, screenshots, source candidates, and CLI/MCP bridge flows.
 
+## Repository Layout
+
+The Android Studio sample app is exposed as Gradle project `:app`, while its files live under `sample/`:
+
+```text
+:app                         -> sample/
+:pointpatch-compose-core     -> pure Kotlin models, selection, formatters, source matching
+:pointpatch-compose-overlay  -> Compose toolbar, selection layer, highlight layer, comment sheet
+:pointpatch-compose-sidekick -> debug runtime, inspection, screenshots, bridge
+:pointpatch-gradle-plugin    -> plugin and source-index generation
+:pointpatch-cli              -> desktop CLI
+:pointpatch-mcp              -> stdio MCP server
+```
+
+`gradle/gradle-daemon-jvm.properties` pins the Gradle daemon JVM toolchain to Java 21. Local Android SDK settings still belong in `local.properties`, which is ignored.
+
+## Try The Sample App
+
+Open this repository root in Android Studio and run the `app` configuration. The Gradle project is exposed as `:app` for Android Studio convention, while its source files live under `sample/`.
+
+Equivalent Gradle commands:
+
+```bash
+./gradlew :app:assembleDebug
+./gradlew :app:installDebug
+```
+
+For the full PointPatch smoke flow, build the CLI/MCP distribution and let the CLI install, launch, and verify the sidekick bridge:
+
+```bash
+./gradlew :pointpatch-cli:installDist :pointpatch-mcp:installDist
+pointpatch-cli/build/install/pointpatch/bin/pointpatch run --package io.github.pointpatch.sample
+```
+
 ## CLI And MCP
 
 The CLI can run diagnostics, launch the debug sample, and print MCP setup JSON:
@@ -57,6 +91,10 @@ pointpatch setup --package <applicationId>
 If `--package` is omitted, `.pointpatch/project.json` must already exist so the CLI can read the application id.
 
 MCP is an optional desktop integration. `pointpatch mcp` runs as a stdio JSON-RPC server and connects to the debug app through ADB and the sidekick local bridge. The in-app copy/share workflow works without MCP.
+
+## Local Artifacts
+
+PointPatch MCP and CLI screenshot pulls write desktop-readable files under `.pointpatch/artifacts/`. These are local debug screenshots and are ignored by git. Keep `.pointpatch/project.json` trackable if you intentionally generate project metadata for package discovery.
 
 ## Privacy Notes
 

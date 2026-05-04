@@ -1,5 +1,22 @@
-sample/.idea
+# IDE
+.idea/
+sample/.idea/
+*.iml
+
+# Gradle / Kotlin
 .gradle/
 /build/
 **/build/
+.kotlin/
+
+# Android local/generated files
+local.properties
+/captures/
+.externalNativeBuild/
+.cxx/
+
+# PointPatch local capture artifacts
+.pointpatch/artifacts/
+
+# OS
 .DS_Store
