@@ -70,6 +70,40 @@ class FeedbackSessionPersistenceTest {
         assertEquals(2, summary.itemsCount)
         assertEquals(1, summary.unresolvedItemsCount)
     }
+
+    @Test
+    fun persistenceSavesSessionAndIndex() {
+        val root = createTempDir(prefix = "pointpatch-v2-persist-")
+        val persistence = FeedbackSessionPersistence(FeedbackSessionPaths(root), clock = { 200L })
+        val session = FeedbackSession(
+            sessionId = "session-1",
+            packageName = "io.github.pointpatch.sample",
+            projectRoot = root.absolutePath,
+            createdAtEpochMillis = 100L,
+            updatedAtEpochMillis = 100L,
+        )
+
+        persistence.save(session)
+
+        assertTrue(File(root, ".pointpatch/feedback-sessions/session-1/session.json").isFile)
+        assertTrue(File(root, ".pointpatch/feedback-sessions/index.json").isFile)
+        assertEquals(session, persistence.load("session-1"))
+        assertEquals(listOf("session-1"), persistence.list().sessions.map { it.sessionId })
+    }
+
+    @Test
+    fun persistenceSkipsCorruptSessionFilesDuringList() {
+        val root = createTempDir(prefix = "pointpatch-v2-corrupt-")
+        val paths = FeedbackSessionPaths(root)
+        val persistence = FeedbackSessionPersistence(paths, clock = { 200L })
+        paths.sessionDirectory("session-bad").mkdirs()
+        paths.sessionFile("session-bad").writeText("{not json")
+
+        val listed = persistence.list()
+
+        assertEquals(emptyList(), listed.sessions)
+        assertEquals(listOf(paths.sessionFile("session-bad").absolutePath), listed.skippedSessions.map { it.path })
+    }
 }
 
 private object PointPatchRectForTest {

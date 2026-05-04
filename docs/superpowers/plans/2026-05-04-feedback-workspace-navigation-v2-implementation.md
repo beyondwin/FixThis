@@ -341,7 +341,7 @@ git commit -m "mcp: add feedback workspace path models"
 - Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionPersistence.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionPersistenceTest.kt`
 
-- [ ] **Step 1: Add failing persistence tests**
+- [x] **Step 1: Add failing persistence tests**
 
 Append tests:
 
@@ -381,7 +381,7 @@ fun persistenceSkipsCorruptSessionFilesDuringList() {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -391,7 +391,7 @@ Run:
 
 Expected: compilation fails because `FeedbackSessionPersistence` does not exist.
 
-- [ ] **Step 3: Implement persistence**
+- [x] **Step 3: Implement persistence**
 
 Create `FeedbackSessionPersistence.kt`:
 
@@ -487,7 +487,7 @@ data class SkippedFeedbackSession(
 )
 ```
 
-- [ ] **Step 4: Run persistence tests**
+- [x] **Step 4: Run persistence tests**
 
 Run:
 
@@ -497,7 +497,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionPersistence.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionPersistenceTest.kt
