@@ -10,6 +10,11 @@
 
 ---
 
+## Related Documents
+
+- Design: `docs/superpowers/specs/2026-05-04-feedback-workspace-navigation-v2-design.md`
+- Implementation details: `docs/superpowers/specs/2026-05-04-feedback-workspace-navigation-v2-implementation-details.md`
+
 ## Scope
 
 This plan intentionally implements both V2A and V2B in one sequence:
