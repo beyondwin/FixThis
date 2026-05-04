@@ -89,7 +89,7 @@ Modify:
 
 - No source edits.
 
-- [ ] **Step 1: Check branch and instructions**
+- [x] **Step 1: Check branch and instructions**
 
 Run:
 
@@ -102,7 +102,7 @@ rg --files -g 'AGENTS.md' -g 'CLAUDE.md' -g '*agent*guide*' -g '*instructions*'
 Expected: branch and worktree state are understood. If instruction files are
 listed, read them before Task 2.
 
-- [ ] **Step 2: Run baseline tests**
+- [x] **Step 2: Run baseline tests**
 
 Run:
 
@@ -112,7 +112,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 3: Commit checkpoint only if local process requires it**
+- [x] **Step 3: Commit checkpoint only if local process requires it**
 
 If no files changed, do not commit. Record baseline output in the task
 checkpoint.
@@ -125,7 +125,7 @@ checkpoint.
 - Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionSummary.kt`
 - Test: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionPersistenceTest.kt`
 
-- [ ] **Step 1: Write failing path and summary tests**
+- [x] **Step 1: Write failing path and summary tests**
 
 Create `FeedbackSessionPersistenceTest.kt` with these tests:
 
@@ -213,7 +213,7 @@ private object PointPatchRectForTest {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -224,7 +224,7 @@ Run:
 Expected: compilation fails because `FeedbackSessionPaths` and
 `FeedbackSessionSummary` do not exist.
 
-- [ ] **Step 3: Add path helper**
+- [x] **Step 3: Add path helper**
 
 Create `FeedbackSessionPaths.kt`:
 
@@ -270,7 +270,7 @@ class FeedbackSessionPaths(projectRoot: File) {
 }
 ```
 
-- [ ] **Step 4: Add summary models**
+- [x] **Step 4: Add summary models**
 
 Create `FeedbackSessionSummary.kt`:
 
@@ -317,7 +317,7 @@ data class FeedbackSessionSummary(
 }
 ```
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 Run:
 
@@ -327,7 +327,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionPaths.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionSummary.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionPersistenceTest.kt
