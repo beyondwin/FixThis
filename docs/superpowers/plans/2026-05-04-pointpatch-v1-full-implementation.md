@@ -1454,19 +1454,19 @@ git commit -m "sidekick: add local bridge protocol"
 - Create: `pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/commands/DoctorCommand.kt`
 - Create: `pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/commands/SetupCommand.kt`
 
-- [ ] **Step 1: Configure CLI module**
+- [x] **Step 1: Configure CLI module**
 
 Use Kotlin JVM, application plugin, serialization, coroutines, and Clikt. Main class: `io.github.pointpatch.cli.MainKt`.
 
-- [ ] **Step 2: Implement ADB wrapper**
+- [x] **Step 2: Implement ADB wrapper**
 
 Expose allowlisted operations only: `devices`, `shell`, `forward`, `install`, `monkey`, `runAsCat`, `pull`.
 
-- [ ] **Step 3: Implement bridge client**
+- [x] **Step 3: Implement bridge client**
 
 Read `.pointpatch/project.json` or accept `--package`. Read sidekick session via `adb shell run-as <package> cat files/pointpatch/session.json`, forward tcp to localabstract socket, frame JSON requests, validate protocol version.
 
-- [ ] **Step 4: Implement commands**
+- [x] **Step 4: Implement commands**
 
 Commands:
 
@@ -1480,7 +1480,7 @@ pointpatch mcp
 
 `pointpatch mcp` can delegate to the MCP module in Task 12.
 
-- [ ] **Step 5: Add artifact pulling**
+- [x] **Step 5: Add artifact pulling**
 
 When bridge returns Android-local screenshot paths, CLI pulls files into:
 
@@ -1490,7 +1490,7 @@ When bridge returns Android-local screenshot paths, CLI pulls files into:
 
 and rewrites `desktopFullPath` / `desktopCropPath`.
 
-- [ ] **Step 6: Run CLI status**
+- [ ] **Step 6: Run CLI status** — Environment-blocked on 2026-05-04: after `:pointpatch-cli:installDist`, `pointpatch-cli status --package io.github.pointpatch.sample` reported `No connected Android device or emulator found` and exited 1. This honestly verified the no-device environment, but could not verify a connected sidekick status.
 
 Run:
 
@@ -1501,7 +1501,7 @@ Run:
 
 Expected: reports device, package, app running, sidekick connected, current activity, roots count.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add pointpatch-cli
