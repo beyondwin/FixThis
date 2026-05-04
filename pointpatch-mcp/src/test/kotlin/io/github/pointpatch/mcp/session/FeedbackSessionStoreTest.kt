@@ -45,4 +45,83 @@ class FeedbackSessionStoreTest {
         assertTrue(encoded.contains("ready_for_agent"))
         assertTrue(encoded.contains("visual_area"))
     }
+
+    @Test
+    fun storeCreatesSessionAndAddsScreenAndItem() {
+        val clock = FakeClock(100L)
+        val ids = FakeIds("session-1", "screen-1", "item-1")
+        val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
+
+        val session = store.openSession(
+            packageName = "io.github.pointpatch.sample",
+            projectRoot = "/repo",
+        )
+        val screen = store.addScreen(
+            sessionId = session.sessionId,
+            screen = CapturedScreen(
+                screenId = "ignored",
+                capturedAtEpochMillis = -1L,
+                displayName = "Checkout",
+            ),
+        )
+        val item = store.addItem(
+            sessionId = session.sessionId,
+            item = FeedbackItem(
+                itemId = "ignored",
+                screenId = screen.screenId,
+                createdAtEpochMillis = -1L,
+                updatedAtEpochMillis = -1L,
+                target = FeedbackTarget.Area(PointPatchRect(1f, 1f, 10f, 10f)),
+                comment = "Increase contrast",
+            ),
+        )
+
+        val current = store.getSession(session.sessionId)
+        assertEquals("session-1", session.sessionId)
+        assertEquals("screen-1", screen.screenId)
+        assertEquals("item-1", item.itemId)
+        assertEquals(1, current.screens.size)
+        assertEquals(1, current.items.size)
+        assertEquals(FeedbackItemStatus.OPEN, current.items.single().status)
+    }
+
+    @Test
+    fun storeResolvesFeedbackItem() {
+        val clock = FakeClock(100L)
+        val ids = FakeIds("session-1", "screen-1", "item-1")
+        val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
+        val session = store.openSession("io.github.pointpatch.sample", "/repo")
+        val screen = store.addScreen(session.sessionId, CapturedScreen("ignored", -1L, displayName = "Checkout"))
+        store.addItem(
+            session.sessionId,
+            FeedbackItem(
+                itemId = "ignored",
+                screenId = screen.screenId,
+                createdAtEpochMillis = -1L,
+                updatedAtEpochMillis = -1L,
+                target = FeedbackTarget.Area(PointPatchRect(1f, 1f, 10f, 10f)),
+                comment = "Increase contrast",
+            ),
+        )
+
+        val resolved = store.updateItemStatus(
+            sessionId = session.sessionId,
+            itemId = "item-1",
+            status = FeedbackItemStatus.RESOLVED,
+            agentSummary = "Adjusted color token.",
+        )
+
+        assertEquals(FeedbackItemStatus.RESOLVED, resolved.status)
+        assertEquals("Adjusted color token.", resolved.agentSummary)
+        assertEquals(100L, resolved.updatedAtEpochMillis)
+    }
+
+    private class FakeClock(private val value: Long) {
+        fun now(): Long = value
+    }
+
+    private class FakeIds(vararg values: String) {
+        private val queue = ArrayDeque(values.toList())
+        fun next(): String = queue.removeFirst()
+    }
 }

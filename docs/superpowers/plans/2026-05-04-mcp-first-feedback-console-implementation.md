@@ -262,7 +262,7 @@ git commit -m "mcp: add feedback session models"
 - Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStore.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStoreTest.kt`
 
-- [ ] **Step 1: Add store behavior tests**
+- [x] **Step 1: Add store behavior tests**
 
 Append to `FeedbackSessionStoreTest`:
 
@@ -347,7 +347,7 @@ Append to `FeedbackSessionStoreTest`:
     }
 ```
 
-- [ ] **Step 2: Run store tests to verify they fail**
+- [x] **Step 2: Run store tests to verify they fail**
 
 Run:
 
@@ -357,7 +357,7 @@ Run:
 
 Expected: compilation fails because `FeedbackSessionStore` does not exist.
 
-- [ ] **Step 3: Implement store**
+- [x] **Step 3: Implement store**
 
 Create `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStore.kt`:
 
@@ -479,7 +479,7 @@ class FeedbackSessionStore(
 class FeedbackSessionException(message: String) : RuntimeException(message)
 ```
 
-- [ ] **Step 4: Run store tests**
+- [x] **Step 4: Run store tests**
 
 Run:
 
@@ -489,7 +489,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStore.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStoreTest.kt
