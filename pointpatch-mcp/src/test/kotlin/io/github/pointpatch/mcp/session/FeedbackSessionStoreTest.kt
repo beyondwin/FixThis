@@ -116,6 +116,55 @@ class FeedbackSessionStoreTest {
         assertEquals(100L, resolved.updatedAtEpochMillis)
     }
 
+    @Test
+    fun storePersistsMutationsAndCanResumeLatestSession() {
+        val root = createTempDir(prefix = "pointpatch-v2-store-")
+        val persistence = FeedbackSessionPersistence(FeedbackSessionPaths(root), clock = { 100L })
+        val ids = ArrayDeque(listOf("session-1", "screen-1", "item-1"))
+        val store = FeedbackSessionStore(
+            clock = { 100L },
+            idGenerator = { ids.removeFirst() },
+            persistence = persistence,
+        )
+
+        val session = store.openSession("io.github.pointpatch.sample", root.absolutePath)
+        val screen = store.addScreen(
+            session.sessionId,
+            CapturedScreen(screenId = "pending", capturedAtEpochMillis = 0L, displayName = "Main"),
+        )
+        store.addItem(
+            session.sessionId,
+            FeedbackItem(
+                itemId = "pending",
+                screenId = screen.screenId,
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = FeedbackTarget.Area(PointPatchRect(0f, 0f, 10f, 10f)),
+                comment = "Fix it",
+            ),
+        )
+
+        val resumed = FeedbackSessionStore(clock = { 200L }, persistence = persistence)
+
+        assertEquals("session-1", resumed.currentSession()?.sessionId)
+        assertEquals(1, resumed.currentSession()?.screens?.size)
+        assertEquals(1, resumed.currentSession()?.items?.size)
+    }
+
+    @Test
+    fun storeCanOpenExactPersistedSession() {
+        val root = createTempDir(prefix = "pointpatch-v2-exact-")
+        val persistence = FeedbackSessionPersistence(FeedbackSessionPaths(root), clock = { 100L })
+        val store = FeedbackSessionStore(clock = { 100L }, idGenerator = { "session-1" }, persistence = persistence)
+        val created = store.openSession("io.github.pointpatch.sample", root.absolutePath)
+
+        val fresh = FeedbackSessionStore(clock = { 200L }, persistence = persistence)
+        val opened = fresh.openExistingSession(created.sessionId)
+
+        assertEquals(created.sessionId, opened.sessionId)
+        assertEquals(created.sessionId, fresh.currentSession()?.sessionId)
+    }
+
     private class FakeClock(private val value: Long) {
         fun now(): Long = value
     }

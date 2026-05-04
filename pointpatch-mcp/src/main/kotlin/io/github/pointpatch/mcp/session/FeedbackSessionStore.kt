@@ -5,10 +5,26 @@ import java.util.UUID
 class FeedbackSessionStore(
     private val clock: () -> Long = { System.currentTimeMillis() },
     private val idGenerator: () -> String = { UUID.randomUUID().toString() },
+    private val persistence: FeedbackSessionPersistence? = null,
 ) {
     private val lock = Any()
     private val sessions = linkedMapOf<String, FeedbackSession>()
     private var currentSessionId: String? = null
+
+    init {
+        persistence?.let { persistence ->
+            persistence.list(includeClosed = true).sessions
+                .sortedBy { it.updatedAtEpochMillis }
+                .forEach { summary ->
+                    runCatching { persistence.load(summary.sessionId) }
+                        .getOrNull()
+                        ?.let { session ->
+                            sessions[session.sessionId] = session
+                            if (session.status != FeedbackSessionStatus.CLOSED) currentSessionId = session.sessionId
+                        }
+                }
+        }
+    }
 
     fun openSession(packageName: String, projectRoot: String): FeedbackSession =
         synchronized(lock) {
@@ -22,6 +38,7 @@ class FeedbackSessionStore(
             )
             sessions[session.sessionId] = session
             currentSessionId = session.sessionId
+            save(session)
             session
         }
 
@@ -33,6 +50,41 @@ class FeedbackSessionStore(
             getSessionLocked(sessionId)
         }
 
+    fun listSessions(packageName: String? = null, includeClosed: Boolean = false): FeedbackSessionList =
+        synchronized(lock) {
+            persistence?.list(packageName, includeClosed)
+                ?: FeedbackSessionList(
+                    sessions = sessions.values
+                        .filter { packageName == null || it.packageName == packageName }
+                        .filter { includeClosed || it.status != FeedbackSessionStatus.CLOSED }
+                        .map(FeedbackSessionSummary.Companion::from)
+                        .sortedByDescending { it.updatedAtEpochMillis },
+                )
+        }
+
+    fun openExistingSession(sessionId: String): FeedbackSession =
+        synchronized(lock) {
+            val session = sessions[sessionId]
+                ?: persistence?.load(sessionId)?.also { sessions[it.sessionId] = it }
+                ?: throw FeedbackSessionException("Unknown feedback session: $sessionId")
+            currentSessionId = session.sessionId
+            session
+        }
+
+    fun closeSession(sessionId: String): FeedbackSession =
+        synchronized(lock) {
+            val session = getSessionLocked(sessionId)
+            val now = clock()
+            val closed = session.copy(
+                status = FeedbackSessionStatus.CLOSED,
+                updatedAtEpochMillis = now,
+            )
+            sessions[sessionId] = closed
+            if (currentSessionId == sessionId) currentSessionId = null
+            save(closed)
+            closed
+        }
+
     fun addScreen(sessionId: String, screen: CapturedScreen): CapturedScreen =
         synchronized(lock) {
             val session = getSessionLocked(sessionId)
@@ -41,10 +93,12 @@ class FeedbackSessionStore(
                 screenId = idGenerator(),
                 capturedAtEpochMillis = now,
             )
-            sessions[sessionId] = session.copy(
+            val updated = session.copy(
                 screens = session.screens + captured,
                 updatedAtEpochMillis = now,
             )
+            sessions[sessionId] = updated
+            save(updated)
             captured
         }
 
@@ -60,10 +114,12 @@ class FeedbackSessionStore(
                 createdAtEpochMillis = now,
                 updatedAtEpochMillis = now,
             )
-            sessions[sessionId] = session.copy(
+            val updated = session.copy(
                 items = session.items + created,
                 updatedAtEpochMillis = now,
             )
+            sessions[sessionId] = updated
+            save(updated)
             created
         }
 
@@ -76,6 +132,7 @@ class FeedbackSessionStore(
                 updatedAtEpochMillis = now,
             )
             sessions[sessionId] = updated
+            save(updated)
             updated
         }
 
@@ -104,12 +161,18 @@ class FeedbackSessionStore(
                 }
             }
             val item = updatedItem ?: throw FeedbackSessionException("Unknown feedback item: $itemId")
-            sessions[sessionId] = session.copy(items = updatedItems, updatedAtEpochMillis = now)
+            val updated = session.copy(items = updatedItems, updatedAtEpochMillis = now)
+            sessions[sessionId] = updated
+            save(updated)
             item
         }
 
     private fun getSessionLocked(sessionId: String): FeedbackSession =
         sessions[sessionId] ?: throw FeedbackSessionException("Unknown feedback session: $sessionId")
+
+    private fun save(session: FeedbackSession) {
+        persistence?.save(session)
+    }
 }
 
 class FeedbackSessionException(message: String) : RuntimeException(message)

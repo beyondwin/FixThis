@@ -511,7 +511,7 @@ git commit -m "mcp: persist feedback workspaces"
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStore.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStoreTest.kt`
 
-- [ ] **Step 1: Add failing store resume tests**
+- [x] **Step 1: Add failing store resume tests**
 
 Append to `FeedbackSessionStoreTest`:
 
@@ -563,7 +563,7 @@ fun storeCanOpenExactPersistedSession() {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -574,7 +574,7 @@ Run:
 Expected: compilation fails because `FeedbackSessionStore` has no
 `persistence` constructor parameter or `openExistingSession`.
 
-- [ ] **Step 3: Update store constructor and load persisted sessions**
+- [x] **Step 3: Update store constructor and load persisted sessions**
 
 Modify `FeedbackSessionStore` constructor:
 
@@ -602,7 +602,7 @@ class FeedbackSessionStore(
     }
 ```
 
-- [ ] **Step 4: Add exact open, list, close, and save hooks**
+- [x] **Step 4: Add exact open, list, close, and save hooks**
 
 Add methods:
 
@@ -646,7 +646,7 @@ private fun save(session: FeedbackSession) {
 Call `save(updated)` after every mutation in `openSession`, `addScreen`,
 `addItem`, `markReadyForAgent`, and `updateItemStatus`.
 
-- [ ] **Step 5: Run store tests**
+- [x] **Step 5: Run store tests**
 
 Run:
 
@@ -656,7 +656,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStore.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStoreTest.kt
