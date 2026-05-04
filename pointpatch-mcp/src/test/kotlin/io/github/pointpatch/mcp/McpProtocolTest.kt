@@ -227,7 +227,7 @@ class McpProtocolTest {
     }
 
     @Test
-    fun currentScreenOnlyIncludesScreenshotResourceForSamePackageAnnotationWithScreenshot() {
+    fun currentScreenOnlyIncludesScreenshotResourceForDefaultPackageAnnotationWithScreenshot() {
         val bridge = FakeBridge()
         val server = server(bridge)
 
@@ -255,9 +255,21 @@ class McpProtocolTest {
             "pointpatch_get_current_screen",
             """{"packageName":"com.second"}""",
         )
+        assertFalse(samePackageScreen.containsKey("screenshotResource"))
+
+        runToolCall(
+            server,
+            "pointpatch_get_ui_feedback",
+            """{"timeoutMs":1500}""",
+        )
+        val defaultPackageScreen = runToolCall(
+            server,
+            "pointpatch_get_current_screen",
+            """{}""",
+        )
         assertEquals(
             "pointpatch://screenshot/latest/full.png",
-            samePackageScreen.getValue("screenshotResource").jsonPrimitive.content,
+            defaultPackageScreen.getValue("screenshotResource").jsonPrimitive.content,
         )
     }
 
@@ -297,7 +309,7 @@ class McpProtocolTest {
 
         assertEquals("pointpatch://screenshot/latest/full.png", defaultScreen.getValue("screenshotResource").jsonPrimitive.content)
         assertFalse(evictedOverrideScreen.containsKey("screenshotResource"))
-        assertEquals("pointpatch://screenshot/latest/full.png", recentOverrideScreen.getValue("screenshotResource").jsonPrimitive.content)
+        assertFalse(recentOverrideScreen.containsKey("screenshotResource"))
     }
 
     @Test
@@ -351,6 +363,68 @@ class McpProtocolTest {
         }
 
         inputWriter.write("""{"jsonrpc":"2.0","id":"feedback","method":"tools/call","params":{"name":"pointpatch_get_ui_feedback","arguments":{"timeoutMs":60000}}}""")
+        inputWriter.newLine()
+        inputWriter.flush()
+        withTimeout(1_000) { bridge.started.await() }
+
+        inputWriter.close()
+
+        withTimeout(1_000) { bridge.cancelled.await() }
+        withTimeout(1_000) { job.join() }
+        assertEquals("", stdout.toString().trim())
+    }
+
+    @Test
+    fun stdioCancellationNotificationIsProcessedWhileResourceReadIsPending() = runBlocking {
+        val bridge = BlockingResourceBridge()
+        val stdout = ByteArrayOutputStream()
+        val stderr = ByteArrayOutputStream()
+        val input = PipedInputStream()
+        val inputWriter = PipedOutputStream(input).bufferedWriter(Charsets.UTF_8)
+        val job = launch(Dispatchers.IO) {
+            server(bridge).run(input = input, output = stdout, diagnostics = stderr)
+        }
+
+        try {
+            inputWriter.write("""{"jsonrpc":"2.0","id":"screen","method":"resources/read","params":{"uri":"pointpatch://screen/current"}}""")
+            inputWriter.newLine()
+            inputWriter.flush()
+            withTimeout(1_000) { bridge.started.await() }
+
+            inputWriter.write("""{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":"screen","reason":"test cancellation"}}""")
+            inputWriter.newLine()
+            inputWriter.write("""{"jsonrpc":"2.0","id":"ping-after-resource-cancel","method":"ping","params":{}}""")
+            inputWriter.newLine()
+            inputWriter.flush()
+
+            withTimeout(1_000) { bridge.cancelled.await() }
+            withTimeout(1_000) {
+                while (!stdout.toString().contains("ping-after-resource-cancel")) {
+                    delay(10)
+                }
+            }
+
+            val lines = stdout.toString().trim().lines().filter { it.isNotBlank() }
+            assertEquals(listOf("ping-after-resource-cancel"), lines.map { parse(it).jsonObject.getValue("id").jsonPrimitive.content })
+        } finally {
+            inputWriter.close()
+            input.close()
+            job.cancelAndJoin()
+        }
+    }
+
+    @Test
+    fun stdinEofCancelsPendingResourceReadsAndReturnsPromptly() = runBlocking {
+        val bridge = BlockingResourceBridge()
+        val stdout = ByteArrayOutputStream()
+        val stderr = ByteArrayOutputStream()
+        val input = PipedInputStream()
+        val inputWriter = PipedOutputStream(input).bufferedWriter(Charsets.UTF_8)
+        val job = launch(Dispatchers.IO) {
+            server(bridge).run(input = input, output = stdout, diagnostics = stderr)
+        }
+
+        inputWriter.write("""{"jsonrpc":"2.0","id":"screen","method":"resources/read","params":{"uri":"pointpatch://screen/current"}}""")
         inputWriter.newLine()
         inputWriter.flush()
         withTimeout(1_000) { bridge.started.await() }
@@ -536,6 +610,33 @@ class McpProtocolTest {
                 throw error
             }
         }
+
+        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
+            JsonObject(emptyMap())
+    }
+
+    private class BlockingResourceBridge : PointPatchBridge {
+        val started = CompletableDeferred<Unit>()
+        val cancelled = CompletableDeferred<Unit>()
+
+        override fun resolvePackageName(packageOverride: String?): String =
+            packageOverride?.takeIf { it.isNotBlank() } ?: "io.github.pointpatch.sample"
+
+        override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun inspectCurrentScreen(packageName: String): JsonObject {
+            started.complete(Unit)
+            return try {
+                delay(Long.MAX_VALUE)
+                JsonObject(emptyMap())
+            } catch (error: CancellationException) {
+                cancelled.complete(Unit)
+                throw error
+            }
+        }
+
+        override suspend fun startFeedbackCapture(packageName: String, timeoutMillis: Long): JsonObject =
+            JsonObject(emptyMap())
 
         override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
             JsonObject(emptyMap())

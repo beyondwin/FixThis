@@ -76,6 +76,7 @@ class PointPatchTools(
                     put("screen", screen)
                     if (
                         arguments.booleanParam("includeScreenshot") != false &&
+                        packageName == resolveDefaultPackageName() &&
                         latestAnnotation(packageName).hasScreenshotArtifact("desktopFullPath", "fullPath")
                     ) {
                         put("screenshotResource", "pointpatch://screenshot/latest/full.png")

@@ -44,7 +44,7 @@ class McpServer(private val protocol: McpProtocol = McpProtocol()) {
                     is McpIncoming.ImmediateResponse -> writeResponse(message.response)
                     is McpIncoming.Notification -> handleNotification(message, inFlight)
                     is McpRequest -> {
-                        if (message.method != "tools/call") {
+                        if (!message.method.isCancellableRequest()) {
                             protocol.handleRequest(message)?.let { response -> writeResponse(response) }
                             continue
                         }
@@ -97,11 +97,12 @@ class McpServer(private val protocol: McpProtocol = McpProtocol()) {
             inFlight.values.toList().also { inFlight.clear() }
         }
         requests.forEach { request ->
-            if (request.method == "tools/call") {
-                request.job.cancelAndJoin()
-            }
+            request.job.cancelAndJoin()
         }
     }
+
+    private fun String.isCancellableRequest(): Boolean =
+        this == "tools/call" || this == "resources/read"
 
     private data class InFlightRequest(val method: String, val job: Job)
 }
