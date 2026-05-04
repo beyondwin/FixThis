@@ -68,7 +68,9 @@ Use the `command` and `args` fields as separate values. This avoids shell quotin
 
 The MCP server reads newline-delimited JSON-RPC messages from stdin.
 
-It writes only JSON-RPC responses to stdout. All diagnostics and logs go to stderr. Any wrapper script must preserve that rule or the MCP client can fail to parse server output.
+In normal stdio mode, it writes only JSON-RPC responses to stdout. All diagnostics and logs go to stderr. Any wrapper script must preserve that rule or the MCP client can fail to parse server output.
+
+`pointpatch-mcp --console` is an explicit non-stdio mode. It prints the console startup JSON once, then keeps the local console server alive.
 
 Supported JSON-RPC methods:
 

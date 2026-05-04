@@ -80,7 +80,7 @@ pointpatch-cli/build/install/pointpatch/bin/pointpatch run --package io.github.p
 
 ## CLI And MCP
 
-The CLI can run diagnostics, launch the debug sample, and print MCP setup JSON:
+The CLI can run diagnostics, launch the debug sample, print MCP setup JSON, and open the feedback console:
 
 ```bash
 pointpatch doctor
