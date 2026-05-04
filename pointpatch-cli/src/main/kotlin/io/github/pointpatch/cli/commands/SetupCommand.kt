@@ -6,6 +6,9 @@ import com.github.ajalt.clikt.parameters.options.option
 import io.github.pointpatch.cli.BridgeClient
 import io.github.pointpatch.cli.pointPatchJson
 import java.io.File
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlin.system.exitProcess
@@ -18,17 +21,27 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         val root = File(projectDir).canonicalFile
         val client = BridgeClient(projectRoot = root)
         val resolvedPackage = failAsCliError { client.resolvePackageName(packageName) }
-        val command = File(System.getProperty("java.class.path"))
-        val config = buildJsonObject {
-            put("command", "pointpatch")
-            put("args", "mcp --package $resolvedPackage --project-dir ${root.absolutePath}")
-            put("packageName", resolvedPackage)
-            put("projectRoot", root.absolutePath)
-            put("classpathHint", command.path)
-        }
+        val config = buildMcpClientConfig(resolvedPackage, root)
         echo(pointPatchJson.encodeToString(config))
     }
 }
+
+internal fun buildMcpClientConfig(resolvedPackage: String, root: File): JsonObject =
+    buildJsonObject {
+        put("command", "pointpatch")
+        put(
+            "args",
+            buildJsonArray {
+                add(JsonPrimitive("mcp"))
+                add(JsonPrimitive("--package"))
+                add(JsonPrimitive(resolvedPackage))
+                add(JsonPrimitive("--project-dir"))
+                add(JsonPrimitive(root.absolutePath))
+            },
+        )
+        put("packageName", resolvedPackage)
+        put("projectRoot", root.absolutePath)
+    }
 
 class McpCommand : CoreCliktCommand(name = "mcp") {
     private val packageName by option("--package", help = "Android application id")

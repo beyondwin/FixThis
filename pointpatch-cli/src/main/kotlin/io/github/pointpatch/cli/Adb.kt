@@ -1,6 +1,7 @@
 package io.github.pointpatch.cli
 
 import java.io.File
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 data class AdbResult(
@@ -119,7 +120,7 @@ internal class ProcessAdbCommandRunner : AdbCommandRunner {
         var stdoutFailure: Throwable? = null
         var stderrFailure: Throwable? = null
 
-        val stdoutThread = thread(name = "pointpatch-adb-stdout") {
+        val stdoutThread = thread(name = "pointpatch-adb-stdout", isDaemon = true) {
             runCatching {
                 process.inputStream.bufferedReader().use { reader -> reader.readText() }
             }.fold(
@@ -127,7 +128,7 @@ internal class ProcessAdbCommandRunner : AdbCommandRunner {
                 onFailure = { stdoutFailure = it },
             )
         }
-        val stderrThread = thread(name = "pointpatch-adb-stderr") {
+        val stderrThread = thread(name = "pointpatch-adb-stderr", isDaemon = true) {
             runCatching {
                 process.errorStream.bufferedReader().use { reader -> reader.readText() }
             }.fold(
@@ -135,11 +136,52 @@ internal class ProcessAdbCommandRunner : AdbCommandRunner {
                 onFailure = { stderrFailure = it },
             )
         }
-        val exitCode = process.waitFor()
-        stdoutThread.join()
-        stderrThread.join()
+        val exitCode = try {
+            process.waitFor()
+        } catch (error: InterruptedException) {
+            cleanupInterruptedProcess(process, stdoutThread, stderrThread)
+            Thread.currentThread().interrupt()
+            throw error
+        }
+        try {
+            stdoutThread.join()
+            stderrThread.join()
+        } catch (error: InterruptedException) {
+            cleanupInterruptedProcess(process, stdoutThread, stderrThread)
+            Thread.currentThread().interrupt()
+            throw error
+        }
         stdoutFailure?.let { throw it }
         stderrFailure?.let { throw it }
         return AdbResult(exitCode = exitCode, stdout = stdout, stderr = stderr)
+    }
+
+    private fun cleanupInterruptedProcess(process: Process, stdoutThread: Thread, stderrThread: Thread) {
+        var interruptedAgain = false
+        runCatching { process.destroy() }
+        process.closeStreams()
+        try {
+            if (!process.waitFor(500, TimeUnit.MILLISECONDS)) {
+                process.destroyForcibly()
+                process.waitFor(500, TimeUnit.MILLISECONDS)
+            }
+        } catch (_: InterruptedException) {
+            interruptedAgain = true
+            process.destroyForcibly()
+        }
+        listOf(stdoutThread, stderrThread).forEach { thread ->
+            try {
+                thread.join(500)
+            } catch (_: InterruptedException) {
+                interruptedAgain = true
+            }
+        }
+        if (interruptedAgain) Thread.currentThread().interrupt()
+    }
+
+    private fun Process.closeStreams() {
+        runCatching { inputStream.close() }
+        runCatching { errorStream.close() }
+        runCatching { outputStream.close() }
     }
 }

@@ -12,6 +12,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
@@ -106,7 +107,8 @@ class PointPatchTools(
                 val expectedText = arguments.stringParam("expectedText")?.takeIf { it.isNotBlank() }
                     ?: throw PointPatchToolException("pointpatch_verify_ui_change requires expectedText")
                 val role = arguments.stringParam("role")?.takeIf { it.isNotBlank() }
-                jsonToolResult(bridge.verifyUiChange(packageName, expectedText, role))
+                val bridgeResult = bridge.verifyUiChange(packageName, expectedText, role)
+                jsonToolResult(normalizeVerifyUiChangeResult(bridgeResult, role))
             }
             else -> throw PointPatchToolException("Unknown PointPatch tool: $name")
         }
@@ -183,6 +185,33 @@ class PointPatchTools(
     private fun jsonToolResult(payload: JsonObject): JsonObject =
         toolResult(content = listOf(textContent(pointPatchJson.encodeToString(JsonObject.serializer(), payload), "application/json")))
 
+    private fun normalizeVerifyUiChangeResult(bridgeResult: JsonObject, role: String?): JsonObject {
+        val bridgeMatchingNodes = bridgeResult["matchingNodes"] as? JsonArray
+        val matchedText = bridgeResult.stringParam("matchedText")
+        val found = bridgeResult.booleanParam("found")
+            ?: bridgeResult.booleanParam("verified")
+            ?: bridgeMatchingNodes?.isNotEmpty()
+            ?: (matchedText != null)
+        val matchingNodes = bridgeMatchingNodes ?: buildJsonArray {
+            if (found && matchedText != null) {
+                add(
+                    buildJsonObject {
+                        put("text", matchedText)
+                        role?.let { put("role", it) }
+                    },
+                )
+            }
+        }
+
+        return buildJsonObject {
+            put("found", found)
+            put("matchingNodes", matchingNodes)
+            if (bridgeResult.requiresNestedBridgeDetails(bridgeMatchingNodes)) {
+                put("bridge", bridgeResult)
+            }
+        }
+    }
+
     private fun cacheAnnotation(packageName: String, annotation: JsonObject) {
         synchronized(cacheLock) {
             latestAnnotations[packageName] = annotation
@@ -253,7 +282,14 @@ class PointPatchTools(
         (this[name] as? JsonPrimitive)?.longOrNull
 
     private fun JsonObject.booleanParam(name: String): Boolean? =
-        (this[name] as? JsonPrimitive)?.contentOrNull?.toBooleanStrictOrNull()
+        (this[name] as? JsonPrimitive)?.booleanOrNull
+
+    private fun JsonObject.requiresNestedBridgeDetails(normalizedMatchingNodes: JsonArray?): Boolean {
+        val normalizedKeys = setOf("found", "matchingNodes")
+        return keys.any { it !in normalizedKeys } ||
+            booleanParam("found") == null ||
+            normalizedMatchingNodes == null
+    }
 
     private fun JsonObject?.hasScreenshotArtifact(vararg pathKeys: String): Boolean =
         screenshotArtifactPath(*pathKeys) != null

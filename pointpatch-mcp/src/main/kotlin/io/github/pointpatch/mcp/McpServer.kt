@@ -10,6 +10,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -43,8 +44,11 @@ class McpServer(private val protocol: McpProtocol = McpProtocol()) {
                     is McpIncoming.ImmediateResponse -> writeResponse(message.response)
                     is McpIncoming.Notification -> handleNotification(message, inFlight)
                     is McpRequest -> {
-                        lateinit var requestJob: Job
-                        requestJob = launch(Dispatchers.IO, start = CoroutineStart.LAZY) {
+                        if (message.method != "tools/call") {
+                            protocol.handleRequest(message)?.let { response -> writeResponse(response) }
+                            continue
+                        }
+                        val requestJob = launch(Dispatchers.IO, start = CoroutineStart.UNDISPATCHED) {
                             try {
                                 val response = protocol.handleRequest(message) ?: return@launch
                                 writeResponse(response)
@@ -52,19 +56,22 @@ class McpServer(private val protocol: McpProtocol = McpProtocol()) {
                                 diagnostics.writeDiagnostic("Cancelled MCP request ${message.idKey}")
                             } finally {
                                 synchronized(inFlight) {
-                                    if (inFlight[message.idKey]?.job === requestJob) {
-                                        inFlight.remove(message.idKey)
-                                    }
+                                    inFlight.remove(message.idKey)
                                 }
                             }
                         }
-                        synchronized(inFlight) {
-                            inFlight[message.idKey] = InFlightRequest(message.method, requestJob)
+                        if (requestJob.isActive) {
+                            synchronized(inFlight) {
+                                inFlight[message.idKey] = InFlightRequest(message.method, requestJob)
+                                if (!requestJob.isActive) {
+                                    inFlight.remove(message.idKey)
+                                }
+                            }
                         }
-                        requestJob.start()
                     }
                 }
             }
+            cancelInFlightRequests(inFlight)
         }
     }
 
@@ -83,6 +90,17 @@ class McpServer(private val protocol: McpProtocol = McpProtocol()) {
         val request = synchronized(inFlight) { inFlight.remove(requestKey) } ?: return
         if (request.method == "initialize") return
         request.job.cancel(CancellationException("MCP request cancelled"))
+    }
+
+    private suspend fun cancelInFlightRequests(inFlight: MutableMap<String, InFlightRequest>) {
+        val requests = synchronized(inFlight) {
+            inFlight.values.toList().also { inFlight.clear() }
+        }
+        requests.forEach { request ->
+            if (request.method == "tools/call") {
+                request.job.cancelAndJoin()
+            }
+        }
     }
 
     private data class InFlightRequest(val method: String, val job: Job)

@@ -84,6 +84,45 @@ class McpProtocolTest {
     }
 
     @Test
+    fun verifyUiChangeReturnsNormalizedFoundAndMatchingNodesPayload() {
+        val bridge = FakeBridge()
+        val payload = runToolCall(
+            server(bridge),
+            "pointpatch_verify_ui_change",
+            """{"packageName":"io.github.pointpatch.sample","expectedText":"Pay now","role":"Button"}""",
+        )
+
+        assertEquals(listOf("verifyUiChange:io.github.pointpatch.sample:Pay now:Button"), bridge.calls)
+        assertEquals(true, payload.getValue("found").jsonPrimitive.boolean)
+        val matches = payload.getValue("matchingNodes").jsonArray
+        assertEquals(1, matches.size)
+        assertEquals("Pay now", matches[0].jsonObject.getValue("text").jsonPrimitive.content)
+        assertEquals("Button", matches[0].jsonObject.getValue("role").jsonPrimitive.content)
+        assertEquals(
+            true,
+            payload.getValue("bridge").jsonObject.getValue("verified").jsonPrimitive.boolean,
+        )
+        assertFalse(payload.containsKey("verified"))
+        assertFalse(payload.containsKey("matchedText"))
+    }
+
+    @Test
+    fun verifyUiChangeNormalizesMissingMatchToEmptyArray() {
+        val payload = runToolCall(
+            server(FakeBridge(verificationMatches = false)),
+            "pointpatch_verify_ui_change",
+            """{"expectedText":"Refund now"}""",
+        )
+
+        assertEquals(false, payload.getValue("found").jsonPrimitive.boolean)
+        assertTrue(payload.getValue("matchingNodes").jsonArray.isEmpty())
+        assertEquals(
+            "Expected text was not found on the current screen",
+            payload.getValue("bridge").jsonObject.getValue("message").jsonPrimitive.content,
+        )
+    }
+
+    @Test
     fun diagnosticsAreWrittenToStderrNotStdout() {
         val stdout = ByteArrayOutputStream()
         val stderr = ByteArrayOutputStream()
@@ -301,6 +340,29 @@ class McpProtocolTest {
     }
 
     @Test
+    fun stdinEofCancelsPendingToolCallsAndReturnsPromptly() = runBlocking {
+        val bridge = BlockingFeedbackBridge()
+        val stdout = ByteArrayOutputStream()
+        val stderr = ByteArrayOutputStream()
+        val input = PipedInputStream()
+        val inputWriter = PipedOutputStream(input).bufferedWriter(Charsets.UTF_8)
+        val job = launch(Dispatchers.IO) {
+            server(bridge).run(input = input, output = stdout, diagnostics = stderr)
+        }
+
+        inputWriter.write("""{"jsonrpc":"2.0","id":"feedback","method":"tools/call","params":{"name":"pointpatch_get_ui_feedback","arguments":{"timeoutMs":60000}}}""")
+        inputWriter.newLine()
+        inputWriter.flush()
+        withTimeout(1_000) { bridge.started.await() }
+
+        inputWriter.close()
+
+        withTimeout(1_000) { bridge.cancelled.await() }
+        withTimeout(1_000) { job.join() }
+        assertEquals("", stdout.toString().trim())
+    }
+
+    @Test
     fun invalidJsonRpcEnvelopesReturnInvalidRequestErrors() {
         listOf(
             """{"id":1,"method":"ping","params":{}}""",
@@ -360,6 +422,7 @@ class McpProtocolTest {
     private class FakeBridge(
         private val annotationEnabled: Boolean = true,
         private val defaultPackageName: String = "io.github.pointpatch.sample",
+        private val verificationMatches: Boolean = true,
     ) : PointPatchBridge {
         val calls = mutableListOf<String>()
 
@@ -399,9 +462,13 @@ class McpProtocolTest {
         override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject {
             calls += "verifyUiChange:$packageName:$expectedText:${role.orEmpty()}"
             return buildJsonObject {
-                put("verified", true)
+                put("verified", verificationMatches)
                 put("expectedText", expectedText)
-                put("matchedText", expectedText)
+                if (verificationMatches) {
+                    put("matchedText", expectedText)
+                } else {
+                    put("message", "Expected text was not found on the current screen")
+                }
             }
         }
 

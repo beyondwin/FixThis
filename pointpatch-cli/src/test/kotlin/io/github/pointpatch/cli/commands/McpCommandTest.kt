@@ -1,10 +1,14 @@
 package io.github.pointpatch.cli.commands
 
+import io.github.pointpatch.cli.pointPatchJson
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 class McpCommandTest {
     @get:Rule
@@ -67,6 +71,31 @@ class McpCommandTest {
         assertEquals(
             mcpBin.canonicalFile,
             McpExecutableLocator.find(classpath, emptyMap(), temporaryFolder.root)?.canonicalFile,
+        )
+    }
+
+    @Test
+    fun setupConfigUsesArgsArraySoPathsWithSpacesAreSafe() {
+        val root = temporaryFolder.newFolder("project with spaces").canonicalFile
+
+        val config = buildMcpClientConfig(
+            resolvedPackage = "io.github.pointpatch.sample",
+            root = root,
+        )
+
+        assertEquals("pointpatch", config.getValue("command").jsonPrimitive.content)
+        assertEquals(
+            listOf("mcp", "--package", "io.github.pointpatch.sample", "--project-dir", root.absolutePath),
+            config.getValue("args").jsonArray.map { it.jsonPrimitive.content },
+        )
+        assertEquals("io.github.pointpatch.sample", config.getValue("packageName").jsonPrimitive.content)
+        assertEquals(root.absolutePath, config.getValue("projectRoot").jsonPrimitive.content)
+
+        val encoded = pointPatchJson.encodeToString(config)
+        val decoded = pointPatchJson.parseToJsonElement(encoded).jsonObject
+        assertEquals(
+            listOf("mcp", "--package", "io.github.pointpatch.sample", "--project-dir", root.absolutePath),
+            decoded.getValue("args").jsonArray.map { it.jsonPrimitive.content },
         )
     }
 }

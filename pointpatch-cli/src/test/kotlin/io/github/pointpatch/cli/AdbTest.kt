@@ -1,6 +1,8 @@
 package io.github.pointpatch.cli
 
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -112,6 +114,51 @@ class AdbTest {
         assertTrue(result.stdout.contains("stdout-after-stderr"))
         assertTrue(result.stderr.contains("stderr-line-1999"))
         assertFalse(result.stderr.contains("stdout-after-stderr"))
+    }
+
+    @Test(timeout = 3_000)
+    fun processRunnerInterruptDestroysProcessAndRestoresInterruptStatus() {
+        val marker = File.createTempFile("pointpatch-adb-runner-started", ".txt").apply {
+            delete()
+            deleteOnExit()
+        }
+        val script = File.createTempFile("pointpatch-adb-runner-sleep", ".sh").apply {
+            writeText(
+                """
+                    #!/usr/bin/env sh
+                    printf started > "${marker.absolutePath}"
+                    while true; do
+                      sleep 1
+                    done
+                """.trimIndent(),
+            )
+            setExecutable(true)
+            deleteOnExit()
+        }
+        val failure = AtomicReference<Throwable?>()
+        val interruptStatusRestored = AtomicBoolean(false)
+        val runnerThread = Thread({
+            try {
+                ProcessAdbCommandRunner().run(listOf(script.absolutePath))
+                failure.set(AssertionError("runner returned normally after interruption"))
+            } catch (error: InterruptedException) {
+                interruptStatusRestored.set(Thread.currentThread().isInterrupted)
+            } catch (error: Throwable) {
+                failure.set(error)
+            }
+        }, "pointpatch-adb-runner-interrupt-test")
+
+        runnerThread.start()
+        while (!marker.exists()) {
+            Thread.sleep(10)
+        }
+
+        runnerThread.interrupt()
+        runnerThread.join(2_000)
+
+        assertFalse("runner thread should return after interruption", runnerThread.isAlive)
+        failure.get()?.let { throw it }
+        assertTrue("runner should restore interrupt status before throwing", interruptStatusRestored.get())
     }
 
     private class RecordingAdbRunner(
