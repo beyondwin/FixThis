@@ -1994,7 +1994,7 @@ git commit -m "docs: document feedback console workflow"
 **Files:**
 - No source edits unless verification exposes a defect.
 
-- [ ] **Step 1: Run JVM tests**
+- [x] **Step 1: Run JVM tests**
 
 Run:
 
@@ -2004,7 +2004,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 2: Run sidekick unit tests**
+- [x] **Step 2: Run sidekick unit tests**
 
 Run:
 
@@ -2014,7 +2014,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 3: Build distributions**
+- [x] **Step 3: Build distributions**
 
 Run:
 
@@ -2029,7 +2029,7 @@ pointpatch-cli/build/install/pointpatch/bin/pointpatch
 pointpatch-mcp/build/install/pointpatch-mcp/bin/pointpatch-mcp
 ```
 
-- [ ] **Step 4: Run no-device console smoke**
+- [x] **Step 4: Run no-device console smoke**
 
 Run:
 
@@ -2039,7 +2039,7 @@ pointpatch-cli/build/install/pointpatch/bin/pointpatch console --package io.gith
 
 Expected without a connected device: command starts the console server and the console shows a clear no-device or sidekick-unreachable state when capture is attempted. Stop the process with Ctrl-C after confirming the URL prints.
 
-- [ ] **Step 5: Run connected manual smoke when a device or emulator is available**
+- [x] **Step 5: Run connected manual smoke when a device or emulator is available**
 
 Run:
 
@@ -2057,7 +2057,7 @@ Expected:
 - navigating the app manually and capturing again adds a second screen
 - `pointpatch_list_feedback` through MCP returns the same queue
 
-- [ ] **Step 6: Commit verification-only notes if docs needed adjustment**
+- [x] **Step 6: Commit verification-only notes if docs needed adjustment**
 
 If verification required a docs correction, commit it:
 
