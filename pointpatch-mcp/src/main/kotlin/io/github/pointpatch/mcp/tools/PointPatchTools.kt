@@ -5,6 +5,7 @@ import io.github.pointpatch.cli.pointPatchJson
 import io.github.pointpatch.compose.core.format.PointPatchMarkdownFormatter
 import io.github.pointpatch.compose.core.model.PointPatchAnnotation
 import io.github.pointpatch.mcp.McpProtocol
+import io.github.pointpatch.mcp.console.FeedbackConsoleServer
 import io.github.pointpatch.mcp.resourceText
 import io.github.pointpatch.mcp.session.CapturedScreen
 import io.github.pointpatch.mcp.session.FeedbackItem
@@ -43,11 +44,13 @@ class PointPatchTools(
     ),
 ) {
     private val cacheLock = Any()
+    private val consoleLock = Any()
     private val latestAnnotations = mutableMapOf<String, JsonObject>()
     private val latestScreens = mutableMapOf<String, JsonObject>()
     private val latestStatuses = mutableMapOf<String, JsonObject>()
     private val cachedPackageOrder = linkedSetOf<String>()
     private var defaultCachePackage: String? = defaultPackageName?.takeIf { it.isNotBlank() }
+    private var consoleServer: FeedbackConsoleServer? = null
 
     fun listTools(): JsonArray = buildJsonArray {
         ToolDefinitions.forEach { add(it.toJson()) }
@@ -128,12 +131,12 @@ class PointPatchTools(
                 jsonToolResult(normalizeVerifyUiChangeResult(bridgeResult, role))
             }
             "pointpatch_open_feedback_console" -> bridgeToolResult {
-                val session = feedbackService.openSession(arguments.stringParam("packageName"))
+                val (session, url) = openConsole(arguments.stringParam("packageName"))
                 jsonToolResult(buildJsonObject {
                     put("sessionId", session.sessionId)
                     put("packageName", session.packageName)
                     put("projectRoot", session.projectRoot)
-                    put("consoleUrl", "not-started")
+                    put("consoleUrl", url)
                     put("session", McpProtocol.json.encodeToJsonElement(FeedbackSession.serializer(), session))
                 })
             }
@@ -258,6 +261,14 @@ class PointPatchTools(
 
     private fun jsonToolResult(payload: JsonObject): JsonObject =
         toolResult(content = listOf(textContent(pointPatchJson.encodeToString(JsonObject.serializer(), payload), "application/json")))
+
+    private fun openConsole(packageName: String?): Pair<FeedbackSession, String> {
+        synchronized(consoleLock) {
+            val session = feedbackService.openSession(packageName)
+            val server = consoleServer ?: FeedbackConsoleServer(feedbackService).also { consoleServer = it }
+            return session to server.start()
+        }
+    }
 
     private fun normalizeVerifyUiChangeResult(bridgeResult: JsonObject, role: String?): JsonObject {
         val bridgeMatchingNodes = bridgeResult["matchingNodes"] as? JsonArray

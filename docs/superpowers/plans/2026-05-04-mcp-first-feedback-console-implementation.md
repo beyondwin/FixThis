@@ -1341,7 +1341,7 @@ git commit -m "mcp: expose feedback queue tools"
 - Create: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt`
 
-- [ ] **Step 1: Write server tests**
+- [x] **Step 1: Write server tests**
 
 Create `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`:
 
@@ -1395,7 +1395,7 @@ class FeedbackConsoleServerTest {
 }
 ```
 
-- [ ] **Step 2: Run server tests to verify they fail**
+- [x] **Step 2: Run server tests to verify they fail**
 
 Run:
 
@@ -1405,7 +1405,7 @@ Run:
 
 Expected: compilation fails because console server files do not exist.
 
-- [ ] **Step 3: Implement assets**
+- [x] **Step 3: Implement assets**
 
 Create `FeedbackConsoleAssets.kt`:
 
@@ -1488,7 +1488,7 @@ internal object FeedbackConsoleAssets {
 }
 ```
 
-- [ ] **Step 4: Implement server**
+- [x] **Step 4: Implement server**
 
 Create `FeedbackConsoleServer.kt`:
 
@@ -1592,7 +1592,7 @@ private data class AddItemRequest(val comment: String, val bounds: BoundsRequest
 private data class BoundsRequest(val left: Float, val top: Float, val right: Float, val bottom: Float)
 ```
 
-- [ ] **Step 5: Run console server tests**
+- [x] **Step 5: Run console server tests**
 
 Run:
 
@@ -1602,7 +1602,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Wire `pointpatch_open_feedback_console` to return URL**
+- [x] **Step 6: Wire `pointpatch_open_feedback_console` to return URL**
 
 Update `PointPatchTools` to own a lazy console server:
 
@@ -1623,7 +1623,7 @@ val url = openConsoleUrl()
 
 and return `consoleUrl = url`.
 
-- [ ] **Step 7: Run MCP and console tests**
+- [x] **Step 7: Run MCP and console tests**
 
 Run:
 
@@ -1633,7 +1633,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/McpProtocolTest.kt

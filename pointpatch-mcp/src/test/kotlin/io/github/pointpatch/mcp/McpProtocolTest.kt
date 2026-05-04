@@ -433,6 +433,24 @@ class McpProtocolTest {
     }
 
     @Test
+    fun openFeedbackConsoleWithExplicitPackageDoesNotRequireDefaultPackageMetadata() {
+        val response = runSingleRequest(
+            """{"jsonrpc":"2.0","id":"tool","method":"tools/call","params":{"name":"pointpatch_open_feedback_console","arguments":{"packageName":"com.explicit"}}}""",
+            bridge = FakeBridge(defaultPackageName = null),
+        )
+        val result = response.jsonObject.getValue("result").jsonObject
+        assertFalse(result.getValue("isError").jsonPrimitive.boolean)
+        val payload = parse(
+            result
+                .getValue("content").jsonArray[0].jsonObject
+                .getValue("text").jsonPrimitive.content,
+        ).jsonObject
+
+        assertEquals("com.explicit", payload.getValue("packageName").jsonPrimitive.content)
+        assertTrue(payload.getValue("consoleUrl").jsonPrimitive.content.startsWith("http://127.0.0.1:"))
+    }
+
+    @Test
     fun packageScopedCachesKeepDefaultAndEvictOlderOverridePackages() {
         val bridge = FakeBridge(defaultPackageName = "com.default")
         val server = server(bridge, defaultPackageName = "com.default")
