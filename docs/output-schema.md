@@ -22,7 +22,9 @@ These fields are always present in an annotation:
 
 ## Optional Fields
 
-These fields can be absent, null, or empty depending on runtime context:
+PointPatch JSON is encoded with `explicitNulls=false` and `encodeDefaults=true`. Nullable optional fields are omitted when their value is null. Collections with default empty values are emitted as empty arrays.
+
+These fields can be absent or empty depending on runtime context:
 
 - `app.versionName`, `app.versionCode`
 - `selection.selectedUid`

@@ -1601,7 +1601,7 @@ Document local-first behavior, no network permission in core sidekick, redaction
 
 - [x] **Step 5: Create troubleshooting doc**
 
-Cover `ADB_NOT_FOUND`, `MULTIPLE_DEVICES`, `RUN_AS_FAILED`, `SIDEKICK_SESSION_NOT_FOUND`, `NO_COMPOSE_ROOT`, screenshot failures, MCP stdout log corruption.
+Cover `ADB_NOT_FOUND`, `MULTIPLE_DEVICES`, `RUN_AS_FAILED`, `SIDEKICK_SESSION_NOT_FOUND`, empty Compose roots via `rootsCount=0`, root-discovery/semantics failures, screenshot failures, MCP stdout log corruption.
 
 - [x] **Step 6: Run full build**
 

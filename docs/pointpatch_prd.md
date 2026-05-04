@@ -433,10 +433,10 @@ Last request: 12 seconds ago
 
 ### 8.6 CLI UX
 
-사용자가 기억해야 할 CLI 명령은 4개로 제한한다.
+V1에서 사용자가 쓰는 CLI 명령은 구현된 surface로 제한한다.
 
 ```bash
-pointpatch init
+pointpatch status
 pointpatch setup
 pointpatch run
 pointpatch doctor
@@ -448,25 +448,15 @@ pointpatch doctor
 pointpatch mcp
 ```
 
-#### `pointpatch init`
-
-프로젝트에 PointPatch를 설치한다.
-
-```text
-- Android project 탐색
-- app module 확인
-- Gradle plugin 추가 또는 안내
-- source index 설정
-```
+V1은 설치/수정용 init 명령을 제공하지 않는다. 이 repo에서는 Gradle plugin이 composite build/settings wiring으로 포함되어 있고, 외부 프로젝트는 publish된 plugin coordinate 또는 명시적인 composite build/pluginManagement 설정을 사용해야 한다.
 
 #### `pointpatch setup`
 
-AI client의 MCP 설정을 자동화한다.
+AI client에 붙여 넣을 MCP 설정 JSON을 출력한다.
 
 ```text
-- Cursor/Claude/Codex/VS Code MCP 설정 감지
-- pointpatch mcp command 등록
-- 설정 불가능하면 JSON config 출력
+- package/project metadata 확인
+- pointpatch mcp command와 args를 포함한 JSON config 출력
 ```
 
 #### `pointpatch run`
@@ -488,13 +478,10 @@ debug 앱을 빌드/설치/실행한다.
 
 ```text
 - Android project 여부
-- Gradle plugin 여부
-- sidekick 포함 여부
-- source index 여부
+- PointPatch project metadata 여부
 - ADB 여부
 - device 연결 여부
-- debug app 실행 여부
-- MCP client 설정 여부
+- sidekick session/bridge status 여부
 ```
 
 ---
@@ -1125,7 +1112,7 @@ Compose UI 수정 요청을 위한 human-selected runtime context MCP
 
 목표:
 
-- `pointpatch init`
+- `pointpatch status`
 - `pointpatch run`
 - `pointpatch setup`
 - `pointpatch doctor`
@@ -1139,7 +1126,7 @@ Compose UI 수정 요청을 위한 human-selected runtime context MCP
 - `pointpatch_get_current_screen`
 - `pointpatch_verify_ui_change`
 - `pointpatch_status`
-- MCP client setup automation
+- MCP client setup JSON output
 
 ### Phase 5: Advanced source mapping
 

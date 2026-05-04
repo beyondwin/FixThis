@@ -52,9 +52,9 @@ Fix:
 - Confirm the process is debuggable.
 - Rerun `pointpatch status` or `pointpatch doctor`.
 
-## NO_COMPOSE_ROOT
+## No Compose Roots
 
-Symptom: inspection returns no Compose roots or only root-discovery errors.
+Symptom: `pointpatch status` reports `roots: 0`, inspection returns no Compose nodes, or inspection returns a root-discovery/semantics error such as `ROOT_DISCOVERY_FAILED` or `SEMANTICS_*`.
 
 Common causes:
 
@@ -63,7 +63,7 @@ Common causes:
 - The app is displaying a platform view, WebView, or XML/View screen.
 - The screen is between Activity transitions.
 
-Fix: navigate to a Compose screen and retry. PointPatch V1 is Android Jetpack Compose only.
+Fix: navigate to a Compose screen and retry. PointPatch V1 is Android Jetpack Compose only. Empty roots are reported as `rootsCount=0`; V1 does not emit a separate no-roots error code for that case.
 
 ## Screenshot Failures
 

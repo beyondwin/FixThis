@@ -294,7 +294,7 @@ io.github.pointpatch.gradle.source
 
 역할:
 
-- `pointpatch init`
+- `pointpatch status`
 - `pointpatch setup`
 - `pointpatch run`
 - `pointpatch doctor`
@@ -309,10 +309,9 @@ Kotlin/JVM CLI로 구현한다. `pointpatch-mcp` module을 포함하거나 depen
 - stdio MCP JSON-RPC server
 - tools/list, tools/call
 - resources/list, resources/read
-- prompts/list, prompts/get
 - Android sidekick bridge client
 
-초기 버전은 MCP SDK에 강하게 의존하지 않고 JSON-RPC를 직접 구현할 수 있다. 단, protocol compatibility test를 둔다.
+초기 버전은 MCP SDK에 강하게 의존하지 않고 JSON-RPC를 직접 구현할 수 있다. 단, protocol compatibility test를 둔다. MCP prompts endpoints와 prompts capability는 V1 surface가 아니며 future extension으로 둔다.
 
 ---
 
@@ -1600,8 +1599,8 @@ Error:
   "id": "req_1",
   "ok": false,
   "error": {
-    "code": "NO_COMPOSE_ROOT",
-    "message": "No Compose RootForTest found in current Activity"
+    "code": "ROOT_DISCOVERY_FAILED",
+    "message": "Failed to discover Compose roots"
   }
 }
 ```
@@ -1661,8 +1660,7 @@ stderr: logs only
 ```json
 {
   "tools": {},
-  "resources": {},
-  "prompts": {}
+  "resources": {}
 }
 ```
 
@@ -1776,17 +1774,7 @@ pointpatch://source-index
 
 ### 16.5 Prompts
 
-#### `fix_selected_ui`
-
-사용자가 선택한 UI context 기반 코드 수정 prompt.
-
-#### `review_current_screen`
-
-현재 screen semantics와 screenshot 기반 UX/accessibility review prompt.
-
-#### `verify_recent_change`
-
-최근 변경이 화면에 반영됐는지 확인 prompt.
+V1 MCP는 prompts capability를 expose하지 않는다. prompt templates는 future extension으로 둔다.
 
 ---
 
@@ -1805,38 +1793,28 @@ pointpatch://source-index
 
 ### 17.2 Commands
 
-#### `pointpatch init`
+V1 commands:
 
-목표:
+- `pointpatch status`
+- `pointpatch run`
+- `pointpatch doctor`
+- `pointpatch setup`
+- `pointpatch mcp`
 
-- 프로젝트에 Gradle plugin 추가 또는 안내
-
-동작:
-
-```text
-1. settings.gradle/build.gradle 탐색
-2. Android app module 후보 찾기
-3. com.android.application plugin 확인
-4. Kotlin/Compose plugin 확인
-5. PointPatch plugin이 없으면 추가 안내
-6. 자동 수정 옵션 제공
-7. .pointpatch/project.json 생성
-```
+V1은 init 명령 또는 Gradle 파일 자동 수정 흐름을 제공하지 않는다. 이 repo의 plugin은 composite build/settings wiring으로 포함되어 있고, 외부 사용자는 published coordinate 또는 explicit composite build/pluginManagement wiring을 제공해야 한다.
 
 #### `pointpatch setup`
 
 목표:
 
-- MCP client 설정
+- MCP client 설정에 붙여 넣을 JSON 출력
 
 동작:
 
 ```text
-1. 프로젝트 metadata 읽기
-2. MCP client 자동 감지
-3. config path 결정
-4. pointpatch mcp command 등록
-5. 설정 불가 시 JSON 출력
+1. package/project metadata 읽기
+2. pointpatch mcp command와 args 생성
+3. command, args, packageName, projectRoot를 포함한 JSON 출력
 ```
 
 #### `pointpatch run`
@@ -1866,15 +1844,10 @@ pointpatch://source-index
 
 ```text
 - Android project found
-- app module found
-- Gradle plugin found
-- source index generated
+- PointPatch project metadata found
 - ADB found
 - device connected
-- package installed
-- app running
 - sidekick session found
-- MCP client config found
 ```
 
 #### `pointpatch mcp`

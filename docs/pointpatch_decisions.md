@@ -709,7 +709,7 @@ status
 명령:
 
 ```bash
-pointpatch init
+pointpatch status
 pointpatch setup
 pointpatch run
 pointpatch doctor
@@ -726,7 +726,7 @@ CLI가 해야 할 일:
 - app module 탐색
 - applicationId 자동 인식
 - device/emulator 확인
-- MCP client config 자동 설정
+- MCP client config JSON 출력
 - debug app build/install/launch
 - sidekick 연결 확인
 - 문제 진단

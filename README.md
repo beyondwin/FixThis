@@ -24,11 +24,15 @@ The exported annotation includes the tap point, selection kind, selected node wh
 
 Use the Gradle plugin or add the sidekick as a debug dependency. Release builds are not a supported target.
 
+In this repository, the plugin is available through the composite Gradle build and `pluginManagement` wiring in `settings.gradle.kts`, so the sample can apply it directly:
+
 ```kotlin
 plugins {
     id("io.github.pointpatch.compose")
 }
 ```
+
+External projects need either a published plugin coordinate, for example with a versioned plugin id once PointPatch is published, or explicit composite-build/plugin-management wiring that points at this repository's Gradle plugin build.
 
 or:
 
