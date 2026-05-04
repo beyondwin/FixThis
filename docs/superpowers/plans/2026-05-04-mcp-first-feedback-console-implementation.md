@@ -785,7 +785,7 @@ git commit -m "sidekick: expose screen snapshot capture"
 - Modify: `pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/BridgeClient.kt`
 - Modify: `pointpatch-cli/src/test/kotlin/io/github/pointpatch/cli/BridgeClientTest.kt`
 
-- [ ] **Step 1: Add BridgeClient test**
+- [x] **Step 1: Add BridgeClient test**
 
 Add to `BridgeClientTest`:
 
@@ -834,7 +834,7 @@ Add to `BridgeClientTest`:
     }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -844,7 +844,7 @@ Run:
 
 Expected: compilation fails because `captureScreenSnapshot` does not exist.
 
-- [ ] **Step 3: Implement client method**
+- [x] **Step 3: Implement client method**
 
 In `BridgeClient.kt`, add:
 
@@ -874,7 +874,7 @@ suspend fun captureScreenSnapshot(packageName: String): JsonObject {
 }
 ```
 
-- [ ] **Step 4: Run BridgeClient tests**
+- [x] **Step 4: Run BridgeClient tests**
 
 Run:
 
@@ -884,7 +884,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/BridgeClient.kt pointpatch-cli/src/test/kotlin/io/github/pointpatch/cli/BridgeClientTest.kt

@@ -288,6 +288,77 @@ class BridgeClientTest {
     }
 
     @Test
+    fun captureScreenSnapshotPullsFullScreenshotArtifact() = runBlocking {
+        val root = temporaryFolder.newFolder()
+        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.0"))
+        val bridgeSockets =
+            listOf(
+                CapturingBridgeSocket(
+                    responsePayload = """
+                        {
+                          "id": "req_1",
+                          "ok": true,
+                          "result": {
+                            "bridgeProtocolVersion": "1.0",
+                            "activity": "MainActivity",
+                            "inspection": {
+                              "activity": "MainActivity",
+                              "roots": [],
+                              "errors": []
+                            },
+                            "screenshot": {
+                              "fullPath": "/data/user/0/pkg/cache/pointpatch/full.png"
+                            },
+                            "sourceIndexAvailable": true
+                          }
+                        }
+                    """.trimIndent(),
+                ),
+                CapturingBridgeSocket(
+                    responsePayload = """
+                        {
+                          "id": "req_2",
+                          "ok": true,
+                          "result": {
+                            "bridgeProtocolVersion": "1.0",
+                            "path": "/data/user/0/pkg/cache/pointpatch/full.png",
+                            "kind": "full",
+                            "mimeType": "image/png",
+                            "base64": "iVBORw0KGgo="
+                          }
+                        }
+                    """.trimIndent(),
+                ),
+            )
+        val sockets = ArrayDeque(bridgeSockets)
+        val client = BridgeClient(
+            adb = adb,
+            projectRoot = root,
+            portAllocator = { 41001 + adb.forwarded.size },
+            socketConnector = { sockets.removeFirst() },
+        )
+
+        val result = client.captureScreenSnapshot("io.github.pointpatch.sample")
+        val screenshot = result.getValue("screenshot").jsonObject
+        val readScreenshotRequest = Json.parseToJsonElement(readFrame(bridgeSockets[1].written.toByteArray())).jsonObject
+        val readScreenshotParams = readScreenshotRequest.getValue("params").jsonObject
+
+        assertTrue(screenshot.getValue("desktopFullPath").jsonPrimitive.content.endsWith("-full.png"))
+        assertEquals(
+            listOf("captureScreenSnapshot", "readScreenshot"),
+            bridgeSockets.map { socket ->
+                Json.parseToJsonElement(readFrame(socket.written.toByteArray()))
+                    .jsonObject
+                    .getValue("method")
+                    .jsonPrimitive
+                    .content
+            },
+        )
+        assertEquals("full", readScreenshotParams.getValue("kind").jsonPrimitive.content)
+        assertEquals("screenSnapshot", readScreenshotParams.getValue("source").jsonPrimitive.content)
+    }
+
+    @Test
     fun skipsMissingScreenshotKindsWhenAnnotationHasNoAndroidPaths() = runBlocking {
         val root = temporaryFolder.newFolder()
         val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.0"))

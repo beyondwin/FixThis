@@ -202,6 +202,33 @@ class BridgeClient(
         }
     }
 
+    suspend fun captureScreenSnapshot(packageName: String): JsonObject {
+        val result = request(packageName = packageName, method = "captureScreenSnapshot")
+        val screenshot = result["screenshot"]?.jsonObject ?: return result
+        val screenId = "screen-${System.currentTimeMillis()}".sanitizedPathSegment()
+        val artifactDirectory = projectRoot.resolve(".pointpatch/artifacts/$screenId")
+        check(artifactDirectory.exists() || artifactDirectory.mkdirs()) {
+            "Could not create PointPatch artifact directory: ${artifactDirectory.absolutePath}"
+        }
+
+        val fullDesktopPath = readScreenshotArtifact(
+            packageName = packageName,
+            kind = "full",
+            androidPath = screenshot["fullPath"]?.jsonPrimitive?.contentOrNull,
+            destination = artifactDirectory.resolve("$screenId-full.png"),
+            source = "screenSnapshot",
+        )
+
+        val rewrittenScreenshot = buildJsonObject {
+            screenshot.forEach { (key, value) -> put(key, value) }
+            fullDesktopPath?.let { put("desktopFullPath", it) }
+        }
+        return buildJsonObject {
+            result.forEach { (key, value) -> put(key, value) }
+            put("screenshot", rewrittenScreenshot)
+        }
+    }
+
     private fun ensureDeviceConnected() {
         if (adb.devices().isEmpty()) {
             throw NoDeviceException("No connected Android device or emulator found")
@@ -233,6 +260,7 @@ class BridgeClient(
         kind: String,
         androidPath: String?,
         destination: File,
+        source: String = "annotation",
     ): String? {
         androidPath?.takeIf { it.isNotBlank() } ?: return null
         val result = request(
@@ -240,6 +268,9 @@ class BridgeClient(
             method = "readScreenshot",
             params = buildJsonObject {
                 put("kind", kind)
+                if (source != "annotation") {
+                    put("source", source)
+                }
             },
         )
         val mimeType = result["mimeType"]?.jsonPrimitive?.contentOrNull
