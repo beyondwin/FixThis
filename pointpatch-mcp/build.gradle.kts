@@ -18,5 +18,6 @@ dependencies {
     implementation(project(":pointpatch-compose-core"))
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)
+    testImplementation(kotlin("test-junit"))
     testImplementation(libs.junit)
 }

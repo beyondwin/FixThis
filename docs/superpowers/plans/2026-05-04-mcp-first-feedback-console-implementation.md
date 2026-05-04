@@ -55,7 +55,7 @@ Testing files:
 - Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionModels.kt`
 - Test: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStoreTest.kt`
 
-- [ ] **Step 1: Write model serialization tests**
+- [x] **Step 1: Write model serialization tests**
 
 Create `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStoreTest.kt`:
 
@@ -110,7 +110,7 @@ class FeedbackSessionStoreTest {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -120,7 +120,7 @@ Run:
 
 Expected: compilation fails because `FeedbackSession` and related models do not exist.
 
-- [ ] **Step 3: Add serializable models**
+- [x] **Step 3: Add serializable models**
 
 Create `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionModels.kt`:
 
@@ -239,7 +239,7 @@ enum class FeedbackItemStatus {
 }
 ```
 
-- [ ] **Step 4: Run model test**
+- [x] **Step 4: Run model test**
 
 Run:
 
@@ -249,7 +249,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionModels.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStoreTest.kt
