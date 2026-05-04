@@ -8,6 +8,8 @@ The default workflow is in-app selection followed by local clipboard or file exp
 
 The core sidekick does not require Android network permission. MCP uses a desktop stdio process plus ADB and the app-local bridge; it does not make the Android app open an external network server.
 
+The feedback console is served from localhost by the desktop MCP process. The Android app does not host the console and does not need network permissions. Console screenshots are local debug artifacts under `.pointpatch/artifacts/`.
+
 ## Debug Scope
 
 PointPatch is for debug builds only. The sidekick checks that the app is debuggable before starting the bridge. Do not document or ship it as a production feedback feature.
@@ -25,6 +27,8 @@ Redaction applies to structured semantics data. It does not guarantee that pixel
 Screenshots are captured from the app window. They may include names, email addresses, account data, messages, payment details, or other sensitive information visible on screen.
 
 PointPatch hides its own overlay hosts during capture when possible, but it does not perform automatic PII redaction on screenshot pixels. Review artifacts before sharing them outside the local development workflow.
+
+Review screenshots before sharing exported Markdown or JSON, because those exports can reference local screenshot artifacts and include visible screen context.
 
 ## Cache Storage
 

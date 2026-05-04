@@ -8,7 +8,7 @@ PointPatch V1 is intentionally narrow:
 - Debug builds only.
 - No required testTags.
 - No AccessibilityService.
-- MCP optional.
+- MCP feedback console is the primary agent workflow.
 - Source candidates are best-effort.
 - Screenshots may contain sensitive information.
 
@@ -86,11 +86,12 @@ The CLI can run diagnostics, launch the debug sample, and print MCP setup JSON:
 pointpatch doctor
 pointpatch run
 pointpatch setup --package <applicationId>
+pointpatch console --package <applicationId>
 ```
 
 If `--package` is omitted, `.pointpatch/project.json` must already exist so the CLI can read the application id.
 
-MCP is an optional desktop integration. `pointpatch mcp` runs as a stdio JSON-RPC server and connects to the debug app through ADB and the sidekick local bridge. The in-app copy/share workflow works without MCP.
+MCP is the primary agent workflow for the feedback console. `pointpatch mcp` runs as a stdio JSON-RPC server and can open a local web console where you review Android screen snapshots, add feedback with a desktop keyboard, and let the agent read the queue. `pointpatch console` opens the same console without requiring an MCP client.
 
 ## Local Artifacts
 

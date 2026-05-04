@@ -1,6 +1,6 @@
 # PointPatch MCP
 
-PointPatch MCP is optional. The in-app Copy Markdown and Copy JSON workflow works without MCP.
+PointPatch MCP is the primary agent workflow for the feedback console. The in-app Copy Markdown and Copy JSON workflow still works without MCP.
 
 ## Repository Sample
 
@@ -27,6 +27,21 @@ MCP client
 ```
 
 The Android app does not host the MCP server. The sidekick only exposes a local bridge inside the debug app process.
+
+## Feedback Console
+
+The feedback console is an MCP-owned local web UI. The MCP server owns the session queue and exposes it to agents through queue tools. The browser UI is the human review surface.
+
+Typical flow:
+
+1. Call `pointpatch_open_feedback_console`.
+2. Capture one or more screens in the console.
+3. Add feedback items on desktop snapshots.
+4. Call `pointpatch_list_feedback`.
+5. Call `pointpatch_read_feedback`.
+6. Make code changes and call `pointpatch_resolve_feedback`.
+
+The CLI command `pointpatch console --package <applicationId>` opens the same local console for copy/export workflows.
 
 ## Setup Output
 
@@ -78,13 +93,33 @@ Inspects the current Compose screen and returns bridge screen data. It may inclu
 
 `pointpatch_get_ui_feedback`
 
-Starts feedback capture in the app, waits for the user to select UI and submit a comment, pulls screenshots into `.pointpatch/artifacts/` when present, and returns annotation JSON plus Markdown.
+Compatibility legacy single-feedback tool that starts in-app capture, waits for one submitted comment, and returns annotation JSON plus Markdown.
 
 The `.pointpatch/artifacts/` directory is a local, ignored screenshot cache for desktop-readable artifacts. It is not required for the in-app clipboard workflow.
 
 `pointpatch_verify_ui_change`
 
 Checks whether expected text is present on the current screen. `expectedText` is required; `role` is an optional semantic hint.
+
+`pointpatch_open_feedback_console`
+
+Opens or returns the local feedback console URL for the active MCP session.
+
+`pointpatch_capture_screen`
+
+Captures the current Android screen into the active feedback session.
+
+`pointpatch_list_feedback`
+
+Lists feedback queue summaries for the active feedback session.
+
+`pointpatch_read_feedback`
+
+Reads the feedback queue as annotation JSON and Markdown, optionally focused on one item.
+
+`pointpatch_resolve_feedback`
+
+Marks a feedback item as resolved, needing clarification, or not fixed and stores the agent summary.
 
 ## Resources
 
@@ -113,7 +148,7 @@ The bridge is a local debug-app bridge, not a remote service:
 - It reads the session token with `adb shell run-as`.
 - It uses length-prefixed JSON frames over the forwarded local socket.
 - It caps bridge frames and screenshot reads at 16 MiB.
-- It rejects explicit screenshot paths; screenshot reads use the current annotation and `kind=full` or `kind=crop`.
+- It rejects explicit screenshot paths; screenshot reads use the current annotation or current screen snapshot source with `kind=full` or `kind=crop`.
 - It rejects missing or mismatched session tokens.
 
 Common bridge failure cases are covered in [Troubleshooting](troubleshooting.md).

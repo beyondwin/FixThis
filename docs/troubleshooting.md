@@ -35,6 +35,10 @@ Check:
 adb devices
 ```
 
+### NO_DEVICE
+
+Connect a device or start an emulator, then run `adb devices`.
+
 ## RUN_AS_FAILED
 
 Symptom: CLI cannot read `files/pointpatch/session.json` with `adb shell run-as`.
@@ -60,6 +64,10 @@ Fix:
 - Launch the app once so AndroidX Startup can initialize the sidekick.
 - Confirm the process is debuggable.
 - Rerun `pointpatch status` or `pointpatch doctor`.
+
+### SIDEKICK_UNREACHABLE
+
+Install and launch a debuggable build with PointPatch sidekick enabled, then retry `pointpatch status`.
 
 ## No Compose Roots
 
@@ -87,6 +95,10 @@ Common causes:
 
 Retry after the screen is fully rendered. For CLI/MCP, confirm the Android screenshot path exists under `context.cacheDir/pointpatch/` and that the bridge can read the current annotation screenshot.
 
+### SCREEN_CAPTURE_FAILED
+
+The console may still show semantics without a screenshot. Retry Capture current screen after the app finishes drawing.
+
 ## MCP stdout Log Corruption
 
 Symptom: an MCP client fails to parse JSON-RPC messages, often after seeing human-readable logs mixed into stdout.
@@ -98,6 +110,10 @@ Fix:
 - Do not wrap `pointpatch mcp` in a script that prints banners or logs to stdout.
 - Send wrapper logs to stderr.
 - Use the setup JSON from `pointpatch setup`; it passes command and args separately.
+
+### MCP_SESSION_CLOSED
+
+Reopen the feedback console from the agent or run `pointpatch console --package <applicationId>`.
 
 ## Bridge Connection Failures
 

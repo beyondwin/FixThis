@@ -37,6 +37,48 @@ These fields can be absent or empty depending on runtime context:
 - `searchHints`
 - `screenshot`
 
+## Feedback Session Schema
+
+Feedback console sessions are returned by `pointpatch_open_feedback_console` and served by the local console API. Top-level fields:
+
+- `schemaVersion`: schema version string.
+- `sessionId`: active feedback session id.
+- `packageName`: Android application id.
+- `projectRoot`: desktop project root.
+- `createdAtEpochMillis`, `updatedAtEpochMillis`: session timestamps.
+- `screens`: captured screen entries.
+- `items`: feedback queue items.
+- `status`: `active`, `ready_for_agent`, or `closed`.
+
+## Captured Screen Schema
+
+Captured screens represent one Android screen snapshot in a feedback session:
+
+- `screenId`: captured screen id.
+- `capturedAtEpochMillis`: capture timestamp.
+- `activityName`: current Activity when available.
+- `displayName`: console display label.
+- `screenshot`: local screenshot artifact metadata when available.
+- `roots`: Compose root snapshots with merged and unmerged nodes.
+- `sourceIndexAvailable`: whether source matching data was available.
+- `errors`: non-fatal capture or inspection errors.
+
+## Feedback Item Schema
+
+Feedback items represent human comments on a captured screen:
+
+- `itemId`: feedback item id.
+- `screenId`: captured screen this item belongs to.
+- `createdAtEpochMillis`, `updatedAtEpochMillis`: item timestamps.
+- `target`: selected `semantics_node` or `visual_area`.
+- `selectedNode`: selected Compose node when available.
+- `nearbyNodes`: nearby context nodes.
+- `sourceCandidates`: best-effort source hints.
+- `screenshotCrop`: crop artifact metadata when available.
+- `comment`: human feedback text.
+- `status`: `open`, `ready`, `in_progress`, `resolved`, `needs_clarification`, or `wont_fix`.
+- `agentSummary`: optional agent resolution summary.
+
 ## Selection
 
 `selection.kind` values:

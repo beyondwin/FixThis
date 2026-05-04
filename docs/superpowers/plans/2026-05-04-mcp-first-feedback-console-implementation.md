@@ -1894,7 +1894,7 @@ git commit -m "mcp: keep single feedback compatibility"
 - Modify: `docs/troubleshooting.md`
 - Modify: `docs/privacy.md`
 
-- [ ] **Step 1: Update README**
+- [x] **Step 1: Update README**
 
 In `README.md`, replace the MCP summary paragraph with:
 
@@ -1911,7 +1911,7 @@ pointpatch console --package <applicationId>
 ```
 ```
 
-- [ ] **Step 2: Update MCP docs**
+- [x] **Step 2: Update MCP docs**
 
 In `docs/mcp.md`, add a "Feedback Console" section:
 
@@ -1934,7 +1934,7 @@ The CLI command `pointpatch console --package <applicationId>` opens the same lo
 
 Add the five new tools to the tools list with one-sentence descriptions.
 
-- [ ] **Step 3: Update output schema**
+- [x] **Step 3: Update output schema**
 
 In `docs/output-schema.md`, add top-level sections for:
 
@@ -1946,7 +1946,7 @@ In `docs/output-schema.md`, add top-level sections for:
 
 Use the field names from `FeedbackSessionModels.kt`: `sessionId`, `screens`, `items`, `target`, `status`, `agentSummary`.
 
-- [ ] **Step 4: Update troubleshooting**
+- [x] **Step 4: Update troubleshooting**
 
 In `docs/troubleshooting.md`, add entries for:
 
@@ -1964,7 +1964,7 @@ Reopen the feedback console from the agent or run `pointpatch console --package 
 The console may still show semantics without a screenshot. Retry Capture current screen after the app finishes drawing.
 ```
 
-- [ ] **Step 5: Update privacy docs**
+- [x] **Step 5: Update privacy docs**
 
 In `docs/privacy.md`, add:
 
@@ -1972,7 +1972,7 @@ In `docs/privacy.md`, add:
 The feedback console is served from localhost by the desktop MCP process. The Android app does not host the console and does not need network permissions. Console screenshots are local debug artifacts under `.pointpatch/artifacts/`.
 ```
 
-- [ ] **Step 6: Run docs grep check**
+- [x] **Step 6: Run docs grep check**
 
 Run:
 
@@ -1982,7 +1982,7 @@ rg -n "pointpatch_get_ui_feedback|pointpatch console|pointpatch_open_feedback_co
 
 Expected: output includes the new console flow and still mentions `pointpatch_get_ui_feedback` only as a compatibility or legacy single-feedback tool.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add README.md docs/mcp.md docs/output-schema.md docs/troubleshooting.md docs/privacy.md
