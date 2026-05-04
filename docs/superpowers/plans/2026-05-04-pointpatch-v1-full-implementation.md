@@ -1517,19 +1517,19 @@ git commit -m "cli: add adb bridge commands"
 - Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt`
 - Test: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/McpProtocolTest.kt`
 
-- [ ] **Step 1: Configure MCP module**
+- [x] **Step 1: Configure MCP module**
 
 Use Kotlin JVM, serialization, coroutines, and dependency on `:pointpatch-cli` bridge client APIs.
 
-- [ ] **Step 2: Implement stdio JSON-RPC loop**
+- [x] **Step 2: Implement stdio JSON-RPC loop**
 
 Read newline-delimited JSON-RPC messages from stdin. Write only JSON-RPC messages to stdout. Write diagnostics to stderr.
 
-- [ ] **Step 3: Implement MCP lifecycle**
+- [x] **Step 3: Implement MCP lifecycle**
 
 Support `initialize`, `notifications/initialized`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, and `ping`.
 
-- [ ] **Step 4: Implement four tools**
+- [x] **Step 4: Implement four tools**
 
 Tools:
 
@@ -1540,11 +1540,11 @@ Tools:
 
 `pointpatch_get_ui_feedback` calls bridge `startFeedbackCapture`, waits for user selection/comment, pulls screenshots through CLI artifact logic, and returns both JSON annotation and Markdown.
 
-- [ ] **Step 5: Add protocol tests**
+- [x] **Step 5: Add protocol tests**
 
 Test initialize response, tools/list includes four tools, logs are not written to stdout, invalid params return JSON-RPC error.
 
-- [ ] **Step 6: Run tests**
+- [x] **Step 6: Run tests**
 
 Run:
 
@@ -1554,7 +1554,7 @@ Run:
 
 Expected: protocol tests pass.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add pointpatch-mcp
