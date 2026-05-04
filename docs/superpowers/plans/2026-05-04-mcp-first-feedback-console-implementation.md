@@ -1832,7 +1832,7 @@ git commit -m "cli: add feedback console command"
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/McpProtocolTest.kt`
 
-- [ ] **Step 1: Add compatibility behavior test**
+- [x] **Step 1: Add compatibility behavior test**
 
 Add to `McpProtocolTest`:
 
@@ -1848,7 +1848,7 @@ Add to `McpProtocolTest`:
     }
 ```
 
-- [ ] **Step 2: Run compatibility test**
+- [x] **Step 2: Run compatibility test**
 
 Run:
 
@@ -1858,7 +1858,7 @@ Run:
 
 Expected: PASS with the existing path before refactoring.
 
-- [ ] **Step 3: Add deprecation note in tool description**
+- [x] **Step 3: Add deprecation note in tool description**
 
 Update the existing `pointpatch_get_ui_feedback` description:
 
@@ -1868,7 +1868,7 @@ description = "Compatibility wrapper for single-item PointPatch feedback capture
 
 Keep the existing `startFeedbackCapture` implementation intact. Do not rewrite it to depend on the new web console in this task. This preserves current MCP client behavior while the new queue tools ship.
 
-- [ ] **Step 4: Run MCP tests**
+- [x] **Step 4: Run MCP tests**
 
 Run:
 
@@ -1878,7 +1878,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/McpProtocolTest.kt

@@ -499,7 +499,7 @@ private val ToolDefinitions = listOf(
     ),
     ToolDefinition(
         name = "pointpatch_get_ui_feedback",
-        description = "Ask the running debug app to enter PointPatch feedback capture, wait for user selection/comment, and return annotation JSON plus Markdown.",
+        description = "Compatibility wrapper for single-item PointPatch feedback capture. Prefer pointpatch_open_feedback_console plus feedback queue tools for new workflows.",
         inputSchema = objectSchema(
             "packageName" to stringProperty("Android application id. If omitted, .pointpatch/project.json or server --package is used."),
             "instruction" to stringProperty("Instruction shown by the MCP client to the user before capture."),

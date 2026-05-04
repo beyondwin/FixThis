@@ -310,6 +310,16 @@ class McpProtocolTest {
     }
 
     @Test
+    fun oldGetUiFeedbackStillReturnsAnnotationAndMarkdown() = runBlocking {
+        val response = runSingleRequest(
+            """{"jsonrpc":"2.0","id":"feedback","method":"tools/call","params":{"name":"pointpatch_get_ui_feedback","arguments":{"timeoutMs":1500}}}""",
+        )
+
+        assertTrue(response.toString().contains("application/json"))
+        assertTrue(response.toString().contains("text/markdown"))
+    }
+
+    @Test
     fun getUiFeedbackReturnsUnavailableJsonAndMarkdownWhenCaptureHasNoAnnotation() {
         val bridge = FakeBridge(annotationEnabled = false)
         val response = runSingleRequest(
