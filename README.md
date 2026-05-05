@@ -93,6 +93,8 @@ If `--package` is omitted, `.pointpatch/project.json` must already exist so the 
 
 MCP is the primary agent workflow for the feedback console. `pointpatch mcp` runs as a stdio JSON-RPC server and can open a local web console where you review Android screen snapshots, add feedback with a desktop keyboard, and let the agent read the queue. `pointpatch console` opens the same console without requiring an MCP client.
 
+Feedback console sessions are resumable. PointPatch saves feedback workspace metadata and screenshot artifacts under `.pointpatch/feedback-sessions/`, so an MCP or console restart does not discard queued feedback.
+
 ## Local Artifacts
 
 PointPatch MCP and CLI screenshot pulls write desktop-readable files under `.pointpatch/artifacts/`. These are local debug screenshots and are ignored by git. Keep `.pointpatch/project.json` trackable if you intentionally generate project metadata for package discovery.

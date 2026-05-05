@@ -50,6 +50,19 @@ Feedback console sessions are returned by `pointpatch_open_feedback_console` and
 - `items`: feedback queue items.
 - `status`: `active`, `ready_for_agent`, or `closed`.
 
+## Feedback Session Summary
+
+Feedback session summaries are returned by `pointpatch_list_feedback_sessions` and the feedback session index. Fields:
+
+- `sessionId`: persisted feedback session id.
+- `packageName`: Android application id.
+- `projectRoot`: desktop project root.
+- `createdAtEpochMillis`, `updatedAtEpochMillis`: session timestamps.
+- `status`: `active`, `ready_for_agent`, or `closed`.
+- `screensCount`: number of captured screens in the session.
+- `itemsCount`: number of feedback items in the session.
+- `unresolvedItemsCount`: number of feedback items not resolved or marked won't fix.
+
 ## Captured Screen Schema
 
 Captured screens represent one Android screen snapshot in a feedback session:
@@ -62,6 +75,17 @@ Captured screens represent one Android screen snapshot in a feedback session:
 - `roots`: Compose root snapshots with merged and unmerged nodes.
 - `sourceIndexAvailable`: whether source matching data was available.
 - `errors`: non-fatal capture or inspection errors.
+
+## Feedback Navigation Result
+
+Navigation results are returned by `pointpatch_navigate_app`. Fields:
+
+- `performed`: whether the sidekick performed the requested action.
+- `action`: `back`, `tap`, or `swipe`.
+- `activityName`: current Activity name when available.
+- `message`: optional bridge status or failure message.
+- `screen`: captured screen when `captureAfter` is true and capture succeeds.
+- `captureError`: capture failure message when navigation performed but follow-up capture failed.
 
 ## Feedback Item Schema
 

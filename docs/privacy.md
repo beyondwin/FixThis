@@ -10,6 +10,8 @@ The core sidekick does not require Android network permission. MCP uses a deskto
 
 The feedback console is served from localhost by the desktop MCP process. The Android app does not host the console and does not need network permissions. Console screenshots are local debug artifacts under `.pointpatch/artifacts/`.
 
+Feedback workspace files are local project artifacts under `.pointpatch/feedback-sessions/`. They include feedback session metadata and session-owned screenshots used to resume the console after MCP or console restarts.
+
 ## Debug Scope
 
 PointPatch is for debug builds only. The sidekick checks that the app is debuggable before starting the bridge. Do not document or ship it as a production feedback feature.
@@ -42,6 +44,7 @@ CLI/MCP flows may copy screenshot artifacts into the project:
 
 ```text
 .pointpatch/artifacts/<annotation-id>/
+.pointpatch/feedback-sessions/<session-id>/
 ```
 
 These files are local artifacts and are ignored by git. Treat them like screenshots from a debug device and delete them when no longer needed.
@@ -51,5 +54,7 @@ These files are local artifacts and are ignored by git. Treat them like screensh
 `pointpatch mcp` runs on the desktop as a stdio JSON-RPC server. The MCP server talks to the Android sidekick through ADB port forwarding to a `localabstract:pointpatch_<packageName>` socket.
 
 The sidekick writes a session token under app-private storage. The desktop CLI reads it with `adb shell run-as <package> cat files/pointpatch/session.json`, and every bridge request includes the token. A mismatched token is rejected by the bridge.
+
+Feedback navigation actions are debug-only touch or key events dispatched inside the app process through the existing sidekick bridge. They do not make the Android app open a network service.
 
 This bridge is intended for a trusted local development machine with ADB access to a debug app. Do not use it as a remote service boundary.

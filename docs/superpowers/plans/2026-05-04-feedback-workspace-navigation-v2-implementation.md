@@ -2011,7 +2011,7 @@ git commit -m "mcp: add console navigation controls"
 - Modify: `docs/privacy.md`
 - Modify: `docs/troubleshooting.md`
 
-- [ ] **Step 1: Update README**
+- [x] **Step 1: Update README**
 
 Add a feedback workspace note near the MCP feedback console section:
 
@@ -2021,7 +2021,7 @@ metadata and screenshot artifacts under `.pointpatch/feedback-sessions/`, so an
 MCP or console restart does not discard queued feedback.
 ```
 
-- [ ] **Step 2: Update MCP docs**
+- [x] **Step 2: Update MCP docs**
 
 Add tools:
 
@@ -2039,7 +2039,7 @@ Arguments:
 - `newSession`: optional boolean. When true, create a new session instead of resuming the latest active one.
 ```
 
-- [ ] **Step 3: Update output schema**
+- [x] **Step 3: Update output schema**
 
 Add sections:
 
@@ -2056,7 +2056,7 @@ Fields: `performed`, `action`, `activityName`, `message`, `screen`,
 `captureError`.
 ```
 
-- [ ] **Step 4: Update privacy docs**
+- [x] **Step 4: Update privacy docs**
 
 Add:
 
@@ -2067,7 +2067,7 @@ events dispatched inside the app process through the existing sidekick bridge;
 the Android app does not open a network service.
 ```
 
-- [ ] **Step 5: Update troubleshooting**
+- [x] **Step 5: Update troubleshooting**
 
 Add entries:
 
@@ -2084,7 +2084,7 @@ The navigation action can succeed while follow-up capture fails. Check the
 `captureError` field or click Capture manually after the app finishes drawing.
 ```
 
-- [ ] **Step 6: Run docs grep check**
+- [x] **Step 6: Run docs grep check**
 
 Run:
 
@@ -2094,7 +2094,7 @@ rg -n "feedback-sessions|pointpatch_list_feedback_sessions|pointpatch_navigate_a
 
 Expected: output includes README and MCP/schema/troubleshooting/privacy docs.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add README.md docs/mcp.md docs/output-schema.md docs/privacy.md docs/troubleshooting.md

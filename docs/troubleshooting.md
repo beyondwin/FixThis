@@ -115,6 +115,14 @@ Fix:
 
 Reopen the feedback console from the agent or run `pointpatch console --package <applicationId>`.
 
+### I reopened the console and do not see my previous feedback
+
+Run `pointpatch_list_feedback_sessions` or reopen the console with the exact `sessionId`. Verify `.pointpatch/feedback-sessions/` exists under the same project root used by the MCP server.
+
+### Navigation worked but no new screen appeared
+
+The navigation action can succeed while follow-up capture fails. Check the `captureError` field or click Capture manually after the app finishes drawing.
+
 ## Bridge Connection Failures
 
 Bridge failures usually mean the desktop CLI could not connect through ADB to the sidekick local socket.

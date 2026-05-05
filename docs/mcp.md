@@ -32,6 +32,8 @@ The Android app does not host the MCP server. The sidekick only exposes a local 
 
 The feedback console is an MCP-owned local web UI. The MCP server owns the session queue and exposes it to agents through queue tools. The browser UI is the human review surface.
 
+Feedback console sessions are resumable. Workspace metadata and session-owned screenshot artifacts are stored under `.pointpatch/feedback-sessions/` in the project root.
+
 Typical flow:
 
 1. Call `pointpatch_open_feedback_console`.
@@ -107,9 +109,23 @@ Checks whether expected text is present on the current screen. `expectedText` is
 
 Opens or returns the local feedback console URL for the active MCP session.
 
+Arguments:
+
+- `packageName`: optional package override.
+- `sessionId`: optional persisted feedback session to reopen.
+- `newSession`: optional boolean. When true, create a new session instead of resuming the latest active one.
+
+`pointpatch_list_feedback_sessions`
+
+Lists resumable feedback workspaces for the project. Pass `packageName` to filter by Android application id or `includeClosed` to include closed sessions.
+
 `pointpatch_capture_screen`
 
 Captures the current Android screen into the active feedback session.
+
+`pointpatch_navigate_app`
+
+Performs one debug-only `back`, `tap`, or `swipe` action and optionally captures the resulting screen. Arguments are `sessionId`, `action`, `x`, `y`, `direction`, `distance`, and `captureAfter`; `captureAfter` defaults to true.
 
 `pointpatch_list_feedback`
 
