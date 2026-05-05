@@ -117,7 +117,7 @@ Reopen the feedback console from the agent or run `pointpatch console --package 
 
 ### I reopened the console and do not see my previous feedback
 
-Run `pointpatch_list_feedback_sessions` or reopen the console with the exact `sessionId`. Verify `.pointpatch/feedback-sessions/` exists under the same project root used by the MCP server.
+Run `pointpatch_list_feedback_sessions` or reopen the console with the exact `sessionId`. If the session was closed, pass `includeClosed` when listing sessions. Verify `.pointpatch/feedback-sessions/` exists under the same project root used by the MCP server.
 
 ### Navigation worked but no new screen appeared
 

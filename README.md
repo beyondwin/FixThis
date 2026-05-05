@@ -97,7 +97,7 @@ Feedback console sessions are resumable. PointPatch saves feedback workspace met
 
 ## Local Artifacts
 
-PointPatch MCP and CLI screenshot pulls write desktop-readable files under `.pointpatch/artifacts/`. These are local debug screenshots and are ignored by git. Keep `.pointpatch/project.json` trackable if you intentionally generate project metadata for package discovery.
+Legacy annotation screenshot pulls write desktop-readable files under `.pointpatch/artifacts/`. Feedback console sessions write workspace metadata and session-owned screenshots under `.pointpatch/feedback-sessions/`. These are local debug artifacts and are ignored by git. Keep `.pointpatch/project.json` trackable if you intentionally generate project metadata for package discovery.
 
 ## Privacy Notes
 

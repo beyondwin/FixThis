@@ -34,6 +34,8 @@ The feedback console is an MCP-owned local web UI. The MCP server owns the sessi
 
 Feedback console sessions are resumable. Workspace metadata and session-owned screenshot artifacts are stored under `.pointpatch/feedback-sessions/` in the project root.
 
+The console UI and local API can list, reopen, and close persisted sessions. Closing a session marks it `closed` without deleting its workspace files; closed sessions are skipped by default and included when callers pass `includeClosed`.
+
 Typical flow:
 
 1. Call `pointpatch_open_feedback_console`.

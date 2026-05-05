@@ -8,9 +8,9 @@ The default workflow is in-app selection followed by local clipboard or file exp
 
 The core sidekick does not require Android network permission. MCP uses a desktop stdio process plus ADB and the app-local bridge; it does not make the Android app open an external network server.
 
-The feedback console is served from localhost by the desktop MCP process. The Android app does not host the console and does not need network permissions. Console screenshots are local debug artifacts under `.pointpatch/artifacts/`.
+The feedback console is served from localhost by the desktop MCP process. The Android app does not host the console and does not need network permissions.
 
-Feedback workspace files are local project artifacts under `.pointpatch/feedback-sessions/`. They include feedback session metadata and session-owned screenshots used to resume the console after MCP or console restarts.
+Feedback workspace files are local project artifacts under `.pointpatch/feedback-sessions/`. They include feedback session metadata and session-owned screenshot artifacts used to resume the console after MCP or console restarts.
 
 ## Debug Scope
 
