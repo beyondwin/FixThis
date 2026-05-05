@@ -106,16 +106,16 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("device.model || 'Unknown model'"))
         assertTrue(html.contains("device.product || device.deviceName || 'device'"))
         assertTrue(html.contains("labelParts.push(device.serial)"))
-        assertTrue(html.contains("function switchSnapshotMode"))
-        assertTrue(html.contains("function clearVisibleSelection"))
+        assertTrue(html.contains("function setMode"))
+        assertTrue(html.contains("function clearSelection"))
         assertTrue(html.contains("function clearDraft"))
-        assertTrue(html.contains("function sendDraft"))
-        assertTrue(html.contains("let snapshotMode = 'select'"))
-        assertTrue(html.contains("Switch to Navigate mode to tap the device."))
+        assertTrue(html.contains("function sendDraftToAgent"))
+        assertTrue(html.contains("let currentMode = Mode.SELECT"))
+        assertTrue(html.contains("currentMode === Mode.NAVIGATE"))
         assertTrue(html.contains("Select device..."))
         assertTrue(html.contains("option.disabled = device.state !== 'device'"))
-        assertTrue(html.contains("selectionSummary.textContent = 'No selection.'"))
-        assertTrue(html.contains("addItemButton.disabled = true"))
+        assertTrue(html.contains("selectionSummary.textContent = currentSelection"))
+        assertTrue(html.contains("addItemButton.disabled = !currentSelection || !comment.value.trim()"))
         assertTrue(html.contains("formatSessionLabel"))
         assertTrue(html.contains("formatSessionSummary"))
         assertTrue(html.contains("session.screensCount"))
@@ -141,6 +141,41 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun consoleHtmlImplementsSnapshotSelectionModes() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("const Mode ="))
+        assertTrue(html.contains("let currentSelection"))
+        assertTrue(html.contains("finishAreaSelection"))
+        assertTrue(html.contains("selectNodeAtPoint"))
+        assertTrue(html.contains("nodesForHitTest"))
+        assertTrue(html.contains("function nodesForHitTest(screen, nodesSelector)"))
+        assertTrue(html.contains("function smallestContainingNode(nodes, point)"))
+        assertTrue(html.contains("const mergedNode = smallestContainingNode(nodesForHitTest(screen, root => root?.mergedNodes), point);"))
+        assertTrue(html.contains("const unmergedNode = smallestContainingNode(nodesForHitTest(screen, root => root?.unmergedNodes), point);"))
+        assertTrue(html.contains("const node = mergedNode || unmergedNode;"))
+        assertTrue(html.contains("const seenNodeIds = new Set();"))
+        assertTrue(html.contains("if (!node || !node.boundsInWindow) return;"))
+        assertTrue(html.contains("unmergedNodes"))
+        assertTrue(html.contains("renderSelectionOverlay"))
+        assertTrue(html.contains("dragPreview"))
+        assertTrue(html.contains("pointermove"))
+        assertTrue(html.contains("function clearDragState()"))
+        assertTrue(html.contains("image.draggable = false"))
+        assertTrue(html.contains("image.addEventListener('dragstart', event => event.preventDefault())"))
+        assertTrue(html.contains("image.setPointerCapture?.(event.pointerId)"))
+        assertTrue(html.contains("image.releasePointerCapture?.(event.pointerId)"))
+        assertTrue(html.contains("image.addEventListener('pointercancel', clearDragState)"))
+        assertTrue(html.contains("image.addEventListener('lostpointercapture', clearDragState)"))
+        assertTrue(html.contains("function clamp(value, min, max)"))
+        assertTrue(html.contains("naturalPointFromEvent"))
+        assertTrue(html.contains("targetType"))
+        assertTrue(html.contains("nodeUid"))
+        assertTrue(html.contains("id=\"snapshotImage\""))
+        assertTrue(html.contains("function updateComposerState"))
+    }
+
+    @Test
     fun consoleHtmlReportsNavigationCaptureErrors() {
         val html = FeedbackConsoleAssets.indexHtml
 
@@ -149,14 +184,15 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
-    fun consoleHtmlLegacyAddItemUsesLatestScreenSelectionPayload() {
+    fun consoleHtmlAddItemUsesCurrentSelectionPayload() {
         val html = FeedbackConsoleAssets.indexHtml
 
         assertTrue(html.contains("screenId: screen.screenId"))
-        assertTrue(html.contains("targetType: 'area'"))
-        assertTrue(html.contains("Capture a screen before adding feedback."))
+        assertTrue(html.contains("targetType: currentSelection.targetType"))
+        assertTrue(html.contains("nodeUid: currentSelection.nodeUid"))
+        assertTrue(html.contains("bounds: currentSelection.bounds"))
         assertTrue(html.contains("comment.value.trim()"))
-        assertTrue(html.contains("Enter a comment before adding feedback."))
+        assertTrue(html.contains("Select a component or area before adding feedback."))
     }
 
     @Test

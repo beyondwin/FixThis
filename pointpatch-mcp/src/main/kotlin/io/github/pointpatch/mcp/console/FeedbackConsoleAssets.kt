@@ -145,7 +145,6 @@ internal object FeedbackConsoleAssets {
               color: #ffffff;
             }
             .snapshot {
-              position: relative;
               display: grid;
               place-items: center;
               min-height: 360px;
@@ -156,13 +155,35 @@ internal object FeedbackConsoleAssets {
               text-align: center;
               padding: 24px;
             }
+            .snapshot-frame { position: relative; display: inline-block; max-width: 100%; }
+            .snapshot-frame img { display: block; max-width: 100%; height: auto; }
             .selection-overlay {
               position: absolute;
-              inset: 24px;
+              inset: 0;
               pointer-events: none;
-              border: 1px dashed #116a5c;
-              border-radius: 6px;
-              opacity: 0;
+            }
+            .selection-box {
+              position: absolute;
+              border: 2px solid #116a5c;
+              background: rgba(17, 106, 92, .12);
+              border-radius: 4px;
+            }
+            .selection-box.drag-preview {
+              border-style: dashed;
+              background: rgba(17, 106, 92, .08);
+            }
+            .selection-label {
+              position: absolute;
+              transform: translateY(-100%);
+              background: #116a5c;
+              color: #ffffff;
+              font-size: 12px;
+              padding: 3px 6px;
+              border-radius: 4px 4px 0 0;
+              max-width: 100%;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
             }
             .selection-summary {
               border: 1px solid #e1e6ee;
@@ -174,7 +195,7 @@ internal object FeedbackConsoleAssets {
               font-size: 13px;
             }
             img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid #d8dee8; }
-            .snapshot img { cursor: crosshair; }
+            .snapshot-frame img { cursor: crosshair; }
             .error { color: #9c2d2d; font-size: 13px; min-height: 18px; }
             @media (max-width: 900px) {
               header { align-items: flex-start; flex-direction: column; }
@@ -269,9 +290,16 @@ internal object FeedbackConsoleAssets {
             const deviceStatus = document.getElementById('deviceStatus');
             const modeSelect = document.getElementById('modeSelect');
             const modeNavigate = document.getElementById('modeNavigate');
+            const navigationControls = document.getElementById('navigationControls');
             const selectionSummary = document.getElementById('selectionSummary');
             const addItemButton = document.getElementById('addItemButton');
-            let snapshotMode = 'select';
+            const Mode = { SELECT: 'select', NAVIGATE: 'navigate' };
+            let currentMode = Mode.SELECT;
+            let currentScreenId = null;
+            let currentSelection = null;
+            let dragStart = null;
+            let dragPreview = null;
+            let suppressNextClick = false;
 
             function text(value) {
               return value == null || value === '' ? '-' : String(value);
@@ -459,24 +487,212 @@ internal object FeedbackConsoleAssets {
               renderDeviceList(await requestJson('/api/device/disconnect', { method: 'POST' }));
             }
 
-            function switchSnapshotMode(mode) {
-              snapshotMode = mode;
-              modeSelect.classList.toggle('active', mode === 'select');
-              modeNavigate.classList.toggle('active', mode === 'navigate');
+            function latestScreen() {
+              const all = state.session?.screens || [];
+              if (currentScreenId) {
+                return all.find(screen => screen.screenId === currentScreenId) || all[all.length - 1] || null;
+              }
+              return all.length ? all[all.length - 1] : null;
             }
 
-            function clearVisibleSelection() {
-              selectionSummary.textContent = 'No selection.';
-              addItemButton.disabled = true;
+            function clamp(value, min, max) {
+              return Math.min(Math.max(value, min), max);
+            }
+
+            function naturalPointFromEvent(event, image) {
+              const rect = image.getBoundingClientRect();
+              if (!image.naturalWidth || !image.naturalHeight || !rect.width || !rect.height) {
+                throw new Error('Snapshot image dimensions are not available.');
+              }
+              return {
+                x: clamp((event.clientX - rect.left) * image.naturalWidth / rect.width, 0, image.naturalWidth),
+                y: clamp((event.clientY - rect.top) * image.naturalHeight / rect.height, 0, image.naturalHeight)
+              };
+            }
+
+            function normalizeBounds(a, b) {
+              return {
+                left: Math.min(a.x, b.x),
+                top: Math.min(a.y, b.y),
+                right: Math.max(a.x, b.x),
+                bottom: Math.max(a.y, b.y)
+              };
+            }
+
+            function containsPoint(bounds, point) {
+              return Boolean(bounds) &&
+                point.x >= bounds.left &&
+                point.x <= bounds.right &&
+                point.y >= bounds.top &&
+                point.y <= bounds.bottom;
+            }
+
+            function area(bounds) {
+              if (!bounds) return Number.MAX_VALUE;
+              return Math.max(0, bounds.right - bounds.left) * Math.max(0, bounds.bottom - bounds.top);
+            }
+
+            function componentLabel(node) {
+              const textValue = (node.text || [])[0] || (node.contentDescription || [])[0] || node.uid;
+              return `Component ${'$'}{textValue}`;
+            }
+
+            function formatBounds(bounds) {
+              return `${'$'}{Math.round(bounds.left)},${'$'}{Math.round(bounds.top)} - ${'$'}{Math.round(bounds.right)},${'$'}{Math.round(bounds.bottom)}`;
+            }
+
+            function updateComposerState() {
+              addItemButton.disabled = !currentSelection || !comment.value.trim();
+              selectionSummary.textContent = currentSelection
+                ? `${'$'}{currentSelection.label} - ${'$'}{formatBounds(currentSelection.bounds)}`
+                : 'No selection.';
+            }
+
+            function renderOverlayBox(overlay, image, bounds, labelText, isDragPreview = false) {
+              if (!bounds) return;
+              const left = bounds.left * 100 / image.naturalWidth;
+              const top = bounds.top * 100 / image.naturalHeight;
+              const width = (bounds.right - bounds.left) * 100 / image.naturalWidth;
+              const height = (bounds.bottom - bounds.top) * 100 / image.naturalHeight;
+              const box = document.createElement('div');
+              box.className = isDragPreview ? 'selection-box drag-preview' : 'selection-box';
+              box.style.left = `${'$'}{left}%`;
+              box.style.top = `${'$'}{top}%`;
+              box.style.width = `${'$'}{width}%`;
+              box.style.height = `${'$'}{height}%`;
+              overlay.appendChild(box);
+
+              if (!labelText) return;
+              const label = document.createElement('div');
+              label.className = 'selection-label';
+              label.style.left = `${'$'}{left}%`;
+              label.style.top = `${'$'}{top}%`;
+              label.textContent = labelText;
+              overlay.appendChild(label);
+            }
+
+            function renderSelectionOverlay() {
+              const overlay = document.getElementById('selectionOverlay');
+              const image = document.getElementById('snapshotImage');
+              if (!overlay) {
+                updateComposerState();
+                return;
+              }
+              overlay.innerHTML = '';
+              if ((!currentSelection && !dragPreview) || !image) {
+                updateComposerState();
+                return;
+              }
+              if (!image.naturalWidth || !image.naturalHeight) {
+                image.addEventListener('load', renderSelectionOverlay, { once: true });
+                updateComposerState();
+                return;
+              }
+
+              if (currentSelection) {
+                renderOverlayBox(overlay, image, currentSelection.bounds, currentSelection.label);
+              }
+              if (dragPreview) {
+                renderOverlayBox(overlay, image, dragPreview, null, true);
+              }
+              updateComposerState();
+            }
+
+            function nodesForHitTest(screen, nodesSelector) {
+              const nodes = [];
+              const seenNodeIds = new Set();
+              const appendNodes = candidates => {
+                (candidates || []).forEach(node => {
+                  if (!node || !node.boundsInWindow) return;
+                  if (node.uid) {
+                    if (seenNodeIds.has(node.uid)) return;
+                    seenNodeIds.add(node.uid);
+                  }
+                  nodes.push(node);
+                });
+              };
+              const roots = screen?.roots || [];
+              roots.forEach(root => appendNodes(nodesSelector(root)));
+              return nodes;
+            }
+
+            function smallestContainingNode(nodes, point) {
+              return nodes
+                .map((node, order) => ({ node, order }))
+                .filter(candidate => containsPoint(candidate.node.boundsInWindow, point))
+                .sort((a, b) => area(a.node.boundsInWindow) - area(b.node.boundsInWindow) || a.order - b.order)[0]?.node;
+            }
+
+            function selectNodeAtPoint(event, image) {
+              const point = naturalPointFromEvent(event, image);
+              const screen = latestScreen();
+              const mergedNode = smallestContainingNode(nodesForHitTest(screen, root => root?.mergedNodes), point);
+              const unmergedNode = smallestContainingNode(nodesForHitTest(screen, root => root?.unmergedNodes), point);
+              const node = mergedNode || unmergedNode;
+              if (!node) {
+                showError(new Error('No component found at that point. Drag to select a custom area.'));
+                return;
+              }
+              currentScreenId = screen.screenId;
+              currentSelection = {
+                targetType: 'node',
+                nodeUid: node.uid,
+                bounds: node.boundsInWindow,
+                label: componentLabel(node)
+              };
+              error.textContent = '';
+              renderSelectionOverlay();
+              updateComposerState();
+            }
+
+            function finishAreaSelection(bounds) {
+              const screen = latestScreen();
+              if (screen) currentScreenId = screen.screenId;
+              currentSelection = {
+                targetType: 'area',
+                bounds,
+                label: `Custom area ${'$'}{Math.round(bounds.right - bounds.left)}x${'$'}{Math.round(bounds.bottom - bounds.top)}`
+              };
+              error.textContent = '';
+              renderSelectionOverlay();
+              updateComposerState();
+            }
+
+            function setMode(mode) {
+              currentMode = mode;
+              if (mode !== Mode.SELECT) clearDragState();
+              modeSelect.classList.toggle('active', mode === Mode.SELECT);
+              modeNavigate.classList.toggle('active', mode === Mode.NAVIGATE);
+              navigationControls.hidden = mode !== Mode.NAVIGATE;
+            }
+
+            function clearDragState() {
+              if (!dragStart && !dragPreview) return;
+              dragStart = null;
+              dragPreview = null;
+              renderSelectionOverlay();
+            }
+
+            function releaseSnapshotPointerCapture(image, event) {
+              try {
+                if (image.hasPointerCapture?.(event.pointerId)) {
+                  image.releasePointerCapture?.(event.pointerId);
+                }
+              } catch (_) {
+              }
+            }
+
+            function clearSelection() {
+              currentScreenId = null;
+              currentSelection = null;
+              clearDragState();
+              renderSelectionOverlay();
+              updateComposerState();
             }
 
             function clearComment() {
               comment.value = '';
-            }
-
-            function latestScreen() {
-              const all = state.session?.screens || [];
-              return all.length ? all[all.length - 1] : null;
+              updateComposerState();
             }
 
             function render() {
@@ -497,11 +713,18 @@ internal object FeedbackConsoleAssets {
               `).join('') || '<div class="row"><span>No screens captured.</span></div>';
 
               const screen = latestScreen();
+              if (currentSelection) {
+                currentScreenId = screen?.screenId || null;
+              }
               const hasScreenshot = Boolean(screen?.screenshot?.desktopFullPath);
               snapshot.innerHTML = hasScreenshot
-                ? `<div id="selectionOverlay" class="selection-overlay" aria-hidden="true"></div><img alt="Latest PointPatch snapshot" src="/api/screens/${'$'}{encodeURIComponent(screen.screenId)}/screenshot/full">`
-                : `<div id="selectionOverlay" class="selection-overlay" aria-hidden="true"></div><div>${'$'}{screen ? 'No screenshot artifact for latest screen.' : 'Capture a screen to begin.'}</div>`;
-              attachSnapshotTapHandler();
+                ? `<div class="snapshot-frame">
+                     <img id="snapshotImage" alt="Latest PointPatch snapshot" src="/api/screens/${'$'}{encodeURIComponent(screen.screenId)}/screenshot/full">
+                     <div id="selectionOverlay" class="selection-overlay" aria-hidden="true"></div>
+                   </div>`
+                : `<div>${'$'}{screen ? 'No screenshot artifact for selected screen.' : 'Capture a screen to begin.'}</div>`;
+              attachSnapshotHandlers();
+              renderSelectionOverlay();
 
               draftItems.innerHTML = queuedItems.map(item => `
                 <div class="row">
@@ -563,6 +786,8 @@ internal object FeedbackConsoleAssets {
 
             async function openSession(sessionId) {
               error.textContent = '';
+              currentScreenId = null;
+              clearSelection();
               state.session = await requestJson('/api/session/open', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -573,6 +798,8 @@ internal object FeedbackConsoleAssets {
 
             async function newSession() {
               error.textContent = '';
+              currentScreenId = null;
+              clearSelection();
               state.session = await requestJson('/api/session/open', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -584,6 +811,8 @@ internal object FeedbackConsoleAssets {
             async function closeSession() {
               error.textContent = '';
               if (!state.session) return;
+              currentScreenId = null;
+              clearSelection();
               await requestJson('/api/session/close', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -594,6 +823,8 @@ internal object FeedbackConsoleAssets {
 
             async function capture() {
               error.textContent = '';
+              currentScreenId = null;
+              clearSelection();
               await requestJson('/api/capture', { method: 'POST' });
               await refresh();
             }
@@ -602,13 +833,11 @@ internal object FeedbackConsoleAssets {
               error.textContent = '';
               const feedbackComment = comment.value.trim();
               if (!feedbackComment) {
-                error.textContent = 'Enter a comment before adding feedback.';
-                return;
+                throw new Error('Enter a comment before adding feedback.');
               }
               const screen = latestScreen();
-              if (!screen) {
-                error.textContent = 'Capture a screen before adding feedback.';
-                return;
+              if (!screen || !currentSelection) {
+                throw new Error('Select a component or area before adding feedback.');
               }
               await requestJson('/api/items', {
                 method: 'POST',
@@ -616,8 +845,9 @@ internal object FeedbackConsoleAssets {
                 body: JSON.stringify({
                   screenId: screen.screenId,
                   comment: feedbackComment,
-                  targetType: 'area',
-                  bounds: { left: 0, top: 0, right: 100, bottom: 100 }
+                  targetType: currentSelection.targetType,
+                  nodeUid: currentSelection.nodeUid,
+                  bounds: currentSelection.bounds
                 })
               });
               comment.value = '';
@@ -626,16 +856,17 @@ internal object FeedbackConsoleAssets {
 
             async function clearDraft() {
               error.textContent = '';
-              if (!window.confirm('Clear all draft feedback items?')) return;
-              state.session = await requestJson('/api/items/draft', { method: 'DELETE' });
+              if (!window.confirm('Discard all unsent draft feedback items?')) return;
+              await requestJson('/api/items/draft', { method: 'DELETE' });
+              clearSelection();
               await refresh();
             }
 
-            async function sendDraft() {
+            async function sendDraftToAgent() {
               error.textContent = '';
-              state.session = await requestJson('/api/agent-handoffs', { method: 'POST' });
-              clearComment();
-              clearVisibleSelection();
+              await requestJson('/api/agent-handoffs', { method: 'POST' });
+              comment.value = '';
+              clearSelection();
               await refresh();
             }
 
@@ -653,30 +884,79 @@ internal object FeedbackConsoleAssets {
               const captureErrorMessage = navigation.captureError
                 ? `Navigation performed, but capture failed: ${'$'}{navigation.captureError}`
                 : '';
+              currentScreenId = null;
+              clearSelection();
               await refresh();
               if (captureErrorMessage) {
                 error.textContent = captureErrorMessage;
               }
             }
 
-            function attachSnapshotTapHandler() {
-              const image = snapshot.querySelector('img');
+            function attachSnapshotHandlers() {
+              const image = document.getElementById('snapshotImage');
               if (!image) return;
+              image.draggable = false;
+              image.addEventListener('dragstart', event => event.preventDefault());
               image.addEventListener('click', event => {
-                if (snapshotMode !== 'navigate') {
-                  error.textContent = 'Switch to Navigate mode to tap the device.';
-                  return;
+                try {
+                  if (suppressNextClick) {
+                    suppressNextClick = false;
+                    return;
+                  }
+                  if (currentMode === Mode.NAVIGATE) {
+                    const point = naturalPointFromEvent(event, image);
+                    navigate('tap', { x: point.x, y: point.y }).catch(showError);
+                    return;
+                  }
+                  if (!dragStart) {
+                    selectNodeAtPoint(event, image);
+                  }
+                } catch (cause) {
+                  showError(cause);
                 }
-                const rect = image.getBoundingClientRect();
-                if (!image.naturalWidth || !image.naturalHeight || !rect.width || !rect.height) {
-                  showError(new Error('Snapshot image dimensions are not available for tap navigation.'));
-                  return;
-                }
-                navigate('tap', {
-                  x: (event.clientX - rect.left) * image.naturalWidth / rect.width,
-                  y: (event.clientY - rect.top) * image.naturalHeight / rect.height
-                }).catch(showError);
               });
+              image.addEventListener('pointerdown', event => {
+                if (currentMode !== Mode.SELECT) return;
+                try {
+                  image.setPointerCapture?.(event.pointerId);
+                  dragStart = naturalPointFromEvent(event, image);
+                  dragPreview = normalizeBounds(dragStart, dragStart);
+                  renderSelectionOverlay();
+                } catch (cause) {
+                  showError(cause);
+                }
+              });
+              image.addEventListener('pointermove', event => {
+                if (currentMode !== Mode.SELECT || !dragStart) return;
+                try {
+                  dragPreview = normalizeBounds(dragStart, naturalPointFromEvent(event, image));
+                  renderSelectionOverlay();
+                } catch (cause) {
+                  clearDragState();
+                  showError(cause);
+                }
+              });
+              image.addEventListener('pointerup', event => {
+                if (currentMode !== Mode.SELECT || !dragStart) return;
+                try {
+                  const end = naturalPointFromEvent(event, image);
+                  const bounds = normalizeBounds(dragStart, end);
+                  clearDragState();
+                  releaseSnapshotPointerCapture(image, event);
+                  if ((bounds.right - bounds.left) >= 8 && (bounds.bottom - bounds.top) >= 8) {
+                    suppressNextClick = true;
+                    finishAreaSelection(bounds);
+                  } else {
+                    renderSelectionOverlay();
+                    selectNodeAtPoint(event, image);
+                  }
+                } catch (cause) {
+                  clearDragState();
+                  showError(cause);
+                }
+              });
+              image.addEventListener('pointercancel', clearDragState);
+              image.addEventListener('lostpointercapture', clearDragState);
             }
 
             async function copyMarkdown() {
@@ -696,17 +976,19 @@ internal object FeedbackConsoleAssets {
             document.getElementById('refreshDevicesButton').addEventListener('click', () => refreshDevices().catch(showError));
             document.getElementById('disconnectDeviceButton').addEventListener('click', () => disconnectDevice().catch(showError));
             devicePicker.addEventListener('change', () => selectDevice().catch(showError));
-            modeSelect.addEventListener('click', () => switchSnapshotMode('select'));
-            modeNavigate.addEventListener('click', () => switchSnapshotMode('navigate'));
-            document.getElementById('clearSelectionButton').addEventListener('click', clearVisibleSelection);
+            modeSelect.addEventListener('click', () => setMode(Mode.SELECT));
+            modeNavigate.addEventListener('click', () => setMode(Mode.NAVIGATE));
+            document.getElementById('clearSelectionButton').addEventListener('click', clearSelection);
             document.getElementById('clearCommentButton').addEventListener('click', clearComment);
             document.getElementById('clearDraftButton').addEventListener('click', () => clearDraft().catch(showError));
-            document.getElementById('sendDraftButton').addEventListener('click', () => sendDraft().catch(showError));
+            document.getElementById('sendDraftButton').addEventListener('click', () => sendDraftToAgent().catch(showError));
             document.getElementById('backButton').addEventListener('click', () => navigate('back').catch(showError));
             document.getElementById('swipeUpButton').addEventListener('click', () => navigate('swipe', { direction: 'up' }).catch(showError));
             document.getElementById('swipeDownButton').addEventListener('click', () => navigate('swipe', { direction: 'down' }).catch(showError));
             document.getElementById('swipeLeftButton').addEventListener('click', () => navigate('swipe', { direction: 'left' }).catch(showError));
             document.getElementById('swipeRightButton').addEventListener('click', () => navigate('swipe', { direction: 'right' }).catch(showError));
+            comment.addEventListener('input', updateComposerState);
+            setMode(Mode.SELECT);
 
             function showError(cause) {
               error.textContent = cause && cause.message ? cause.message : String(cause);
