@@ -2107,7 +2107,7 @@ git commit -m "docs: document feedback workspace navigation"
 
 - No source edits unless verification exposes a defect.
 
-- [ ] **Step 1: Run JVM tests**
+- [x] **Step 1: Run JVM tests**
 
 Run:
 
@@ -2117,7 +2117,10 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 2: Run sidekick unit tests**
+Verification 2026-05-05: PASS. Command exited 0 with `BUILD SUCCESSFUL in 1s`;
+16 actionable tasks were up to date.
+
+- [x] **Step 2: Run sidekick unit tests**
 
 Run:
 
@@ -2127,7 +2130,10 @@ ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :pointpatch-compose-sideki
 
 Expected: PASS.
 
-- [ ] **Step 3: Build distributions**
+Verification 2026-05-05: PASS. Command exited 0 with
+`BUILD SUCCESSFUL in 690ms`; 51 actionable tasks were up to date.
+
+- [x] **Step 3: Build distributions**
 
 Run:
 
@@ -2142,7 +2148,10 @@ pointpatch-cli/build/install/pointpatch/bin/pointpatch
 pointpatch-mcp/build/install/pointpatch-mcp/bin/pointpatch-mcp
 ```
 
-- [ ] **Step 4: Run no-device persistence smoke**
+Verification 2026-05-05: PASS. Command exited 0 with `BUILD SUCCESSFUL in 1s`;
+installed binaries existed at both expected paths.
+
+- [x] **Step 4: Run no-device persistence smoke**
 
 Run:
 
@@ -2153,7 +2162,13 @@ pointpatch-cli/build/install/pointpatch/bin/pointpatch console --package io.gith
 Expected: console prints a localhost URL. Opening and refreshing the browser
 does not crash. Stop the process with Ctrl-C after confirming the URL prints.
 
-- [ ] **Step 5: Run connected emulator smoke when available**
+Verification 2026-05-05: PASS. Exec session `36132` printed
+`http://127.0.0.1:57693` for session
+`71dd0bbd-16e8-4c3c-a452-fb0a2a0fbb77`; CLI PID `43767` launched MCP PID
+`43785`. Stopped the session with Ctrl-C; `ps -p 43767,43785` returned no
+rows afterward.
+
+- [x] **Step 5: Run connected emulator smoke when available**
 
 Run:
 
@@ -2176,7 +2191,11 @@ Expected:
 - `pointpatch_navigate_app` through MCP can perform one action
 - `pointpatch_read_feedback` returns the updated queue
 
-- [ ] **Step 6: Commit verification notes only if docs changed**
+Verification 2026-05-05: SKIPPED, device unavailable. `adb devices` failed
+because `adb` is not on `PATH`; `/Users/kws/Library/Android/sdk/platform-tools/adb devices`
+exited 0 and listed no attached devices.
+
+- [x] **Step 6: Commit verification notes only if docs changed**
 
 If verification required a docs correction, commit:
 
