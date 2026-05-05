@@ -2,12 +2,18 @@ package io.github.pointpatch.mcp.session
 
 import io.github.pointpatch.cli.AdbDevice
 import io.github.pointpatch.compose.core.model.PointPatchError
+import io.github.pointpatch.compose.core.model.PointPatchNode
 import io.github.pointpatch.compose.core.model.PointPatchRect
+import io.github.pointpatch.compose.core.model.SelectionConfidence
+import io.github.pointpatch.compose.core.model.SourceCandidate
+import io.github.pointpatch.mcp.console.FeedbackPreviewSnapshot
 import io.github.pointpatch.mcp.McpProtocol
 import io.github.pointpatch.mcp.console.FeedbackTargetType
+import io.github.pointpatch.mcp.console.PendingDraftFeedbackItem
 import io.github.pointpatch.mcp.tools.PointPatchBridge
 import java.io.File
 import kotlinx.coroutines.CancellationException
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.decodeFromJsonElement
@@ -22,6 +28,8 @@ class FeedbackSessionService(
     private val defaultPackageName: String? = null,
 ) {
     private val sessionLock = Any()
+    private val previewSnapshots = linkedMapOf<String, PreviewRecord>()
+    private val previewSavesInFlight = mutableSetOf<String>()
 
     fun openSession(
         packageNameOverride: String?,
@@ -91,29 +99,42 @@ class FeedbackSessionService(
             screenId = screenId,
             destinationDirectory = artifactDirectory,
         )
-        val inspection = payload["inspection"]?.jsonObject
-        val activityName = payload["activity"]?.jsonPrimitive?.contentOrNull
-            ?: inspection?.get("activity")?.jsonPrimitive?.contentOrNull
-
-        val screen = CapturedScreen(
+        val screen = payload.toCapturedScreen(
             screenId = screenId,
-            capturedAtEpochMillis = 0L,
-            activityName = activityName,
-            displayName = activityName?.substringAfterLast('.') ?: "Screen ${session.screens.size + 1}",
-            screenshot = payload["screenshot"]?.jsonObject?.let {
-                McpProtocol.json.decodeFromJsonElement<FeedbackScreenshot>(it)
-            },
-            roots = (inspection?.get("roots") ?: payload["roots"])?.jsonArray?.map { element ->
-                McpProtocol.json.decodeFromJsonElement<FeedbackScreenRoot>(element)
-            }.orEmpty(),
-            sourceIndexAvailable = payload["sourceIndexAvailable"]?.jsonPrimitive?.booleanOrNull
-                ?: inspection?.get("sourceIndexAvailable")?.jsonPrimitive?.booleanOrNull
-                ?: false,
-            errors = (inspection?.get("errors") ?: payload["errors"])?.jsonArray?.map { element ->
-                McpProtocol.json.decodeFromJsonElement<PointPatchError>(element)
-            }.orEmpty(),
+            fallbackDisplayName = "Screen ${session.screens.size + 1}",
         )
         return store.addScreen(sessionId, screen)
+    }
+
+    suspend fun capturePreview(sessionId: String): FeedbackPreviewSnapshot {
+        val session = store.getSession(sessionId)
+        val previewId = store.nextId()
+        val screenId = store.nextId()
+        val artifactDirectory = File(
+            session.projectRoot,
+            ".pointpatch/preview-cache/${session.sessionId}/$previewId",
+        )
+        val payload = bridge.captureScreenSnapshot(
+            packageName = session.packageName,
+            sessionId = session.sessionId,
+            screenId = screenId,
+            destinationDirectory = artifactDirectory,
+        )
+        val preview = FeedbackPreviewSnapshot(
+            previewId = previewId,
+            screen = payload.toCapturedScreen(screenId = screenId, fallbackDisplayName = "Draft screen"),
+        )
+        synchronized(sessionLock) {
+            previewSnapshots[previewId] = PreviewRecord(
+                sessionId = session.sessionId,
+                projectRoot = session.projectRoot,
+                snapshot = preview,
+            )
+            while (previewSnapshots.size > MaxRetainedPreviews) {
+                previewSnapshots.remove(previewSnapshots.keys.first())
+            }
+        }
+        return preview
     }
 
     suspend fun navigate(sessionId: String, request: FeedbackNavigationRequest): FeedbackNavigationResult {
@@ -221,6 +242,45 @@ class FeedbackSessionService(
         )
     }
 
+    fun savePreviewFeedbackItems(
+        sessionId: String,
+        previewId: String,
+        items: List<PendingDraftFeedbackItem>,
+    ): FeedbackSession {
+        require(items.isNotEmpty()) { "At least one feedback item is required" }
+        val inFlightKey = "$sessionId:$previewId"
+        val preview = synchronized(sessionLock) {
+            val record = previewSnapshots[previewId]?.takeIf { it.sessionId == sessionId }
+                ?: throw FeedbackSessionException("PREVIEW_NOT_FOUND: Unknown preview: $previewId")
+            if (!previewSavesInFlight.add(inFlightKey)) {
+                throw FeedbackSessionException("PREVIEW_SAVE_IN_PROGRESS: Preview is already being saved: $previewId")
+            }
+            record
+        }
+
+        return try {
+            val feedbackItems = items.map { pending ->
+                buildFeedbackItemForDraft(preview.snapshot.screen, pending)
+            }
+            val persistedScreen = promotePreviewArtifacts(
+                projectRoot = preview.projectRoot,
+                sessionId = sessionId,
+                screen = preview.snapshot.screen,
+            )
+            store.addScreenWithItems(sessionId, persistedScreen, feedbackItems).also {
+                synchronized(sessionLock) {
+                    previewSnapshots.remove(previewId)
+                    previewSavesInFlight.remove(inFlightKey)
+                }
+            }
+        } catch (error: Throwable) {
+            synchronized(sessionLock) {
+                previewSavesInFlight.remove(inFlightKey)
+            }
+            throw error
+        }
+    }
+
     fun clearDraftItems(sessionId: String): FeedbackSession =
         store.clearDraftItems(sessionId)
 
@@ -250,5 +310,222 @@ class FeedbackSessionService(
         require(bounds.left >= 0f && bounds.top >= 0f && bounds.right <= width && bounds.bottom <= height) {
             "Selection bounds must be inside the screenshot"
         }
+    }
+
+    private fun JsonObject.toCapturedScreen(screenId: String, fallbackDisplayName: String): CapturedScreen {
+        val inspection = this["inspection"]?.jsonObject
+        val activityName = this["activity"]?.jsonPrimitive?.contentOrNull
+            ?: inspection?.get("activity")?.jsonPrimitive?.contentOrNull
+        return CapturedScreen(
+            screenId = screenId,
+            capturedAtEpochMillis = 0L,
+            activityName = activityName,
+            displayName = activityName?.substringAfterLast('.') ?: fallbackDisplayName,
+            screenshot = this["screenshot"]?.jsonObject?.let {
+                McpProtocol.json.decodeFromJsonElement<FeedbackScreenshot>(it)
+            },
+            roots = (inspection?.get("roots") ?: this["roots"])?.jsonArray?.map { element ->
+                McpProtocol.json.decodeFromJsonElement<FeedbackScreenRoot>(element)
+            }.orEmpty(),
+            sourceIndexAvailable = this["sourceIndexAvailable"]?.jsonPrimitive?.booleanOrNull
+                ?: inspection?.get("sourceIndexAvailable")?.jsonPrimitive?.booleanOrNull
+                ?: false,
+            errors = (inspection?.get("errors") ?: this["errors"])?.jsonArray?.map { element ->
+                McpProtocol.json.decodeFromJsonElement<PointPatchError>(element)
+            }.orEmpty(),
+        )
+    }
+
+    private fun buildFeedbackItemForDraft(screen: CapturedScreen, pending: PendingDraftFeedbackItem): FeedbackItem {
+        require(pending.comment.isNotBlank()) { "Feedback comment must not be blank" }
+        val selectedNode = when (pending.targetType) {
+            FeedbackTargetType.NODE -> {
+                val uid = pending.nodeUid?.takeIf { it.isNotBlank() }
+                    ?: throw IllegalArgumentException("Node feedback requires nodeUid")
+                screen.allNodes().firstOrNull { it.uid == uid }
+                    ?: throw IllegalArgumentException("Selected node does not exist on preview: $uid")
+            }
+            FeedbackTargetType.AREA -> null
+        }
+        val storedBounds = selectedNode?.boundsInWindow ?: pending.bounds
+        validateFinitePositiveBounds(storedBounds)
+        validateBoundsInsideScreenshot(screen, storedBounds)
+        val nearbyNodes = when (pending.targetType) {
+            FeedbackTargetType.AREA -> areaEvidenceNodes(screen, storedBounds)
+            FeedbackTargetType.NODE -> nodeEvidenceNodes(screen, selectedNode!!)
+        }
+        val target = when (pending.targetType) {
+            FeedbackTargetType.AREA -> FeedbackTarget.Area(storedBounds)
+            FeedbackTargetType.NODE -> FeedbackTarget.Node(
+                nodeUid = selectedNode!!.uid,
+                boundsInWindow = storedBounds,
+            )
+        }
+        return FeedbackItem(
+            itemId = "pending",
+            screenId = screen.screenId,
+            createdAtEpochMillis = 0L,
+            updatedAtEpochMillis = 0L,
+            target = target,
+            selectedNode = selectedNode,
+            nearbyNodes = nearbyNodes,
+            sourceCandidates = sourceCandidatesFor(screen, selectedNode, nearbyNodes),
+            comment = pending.comment,
+            status = FeedbackItemStatus.OPEN,
+        )
+    }
+
+    private fun promotePreviewArtifacts(projectRoot: String, sessionId: String, screen: CapturedScreen): CapturedScreen {
+        val screenshot = screen.screenshot ?: return screen
+        val artifactDirectory = FeedbackSessionPaths(File(projectRoot))
+            .screenArtifactDirectory(sessionId, screen.screenId)
+        if (!artifactDirectory.exists()) {
+            check(artifactDirectory.mkdirs()) {
+                "Could not create PointPatch artifact directory: ${artifactDirectory.absolutePath}"
+            }
+        }
+        val promotedFullPath = promoteScreenshotPath(
+            sourcePath = screenshot.desktopFullPath,
+            artifactDirectory = artifactDirectory,
+            fileName = "${screen.screenId}-full.png",
+        )
+        val promotedCropPath = promoteScreenshotPath(
+            sourcePath = screenshot.desktopCropPath,
+            artifactDirectory = artifactDirectory,
+            fileName = "${screen.screenId}-crop.png",
+        )
+        return screen.copy(
+            screenshot = screenshot.copy(
+                desktopFullPath = promotedFullPath ?: screenshot.desktopFullPath,
+                desktopCropPath = promotedCropPath ?: screenshot.desktopCropPath,
+            ),
+        )
+    }
+
+    private fun promoteScreenshotPath(sourcePath: String?, artifactDirectory: File, fileName: String): String? {
+        if (sourcePath.isNullOrBlank()) return null
+        val source = File(sourcePath)
+        require(source.exists() && source.isFile) { "Preview screenshot artifact is missing: $sourcePath" }
+        val destination = artifactDirectory.resolve(fileName)
+        if (source.canonicalFile != destination.canonicalFile) {
+            source.copyTo(destination, overwrite = true)
+        }
+        return destination.absolutePath
+    }
+
+    private fun areaEvidenceNodes(screen: CapturedScreen, bounds: PointPatchRect): List<PointPatchNode> =
+        screen.allNodes()
+            .asSequence()
+            .filter { it.hasMeaningfulSemantic() }
+            .map { node ->
+                AreaEvidenceNode(
+                    node = node,
+                    overlaps = node.boundsInWindow.intersects(bounds),
+                    overlapArea = node.boundsInWindow.intersectionArea(bounds),
+                    centerDistance = node.boundsInWindow.centerDistanceTo(bounds),
+                )
+            }
+            .filter { it.overlaps || it.centerDistance <= NearbyEvidenceRadiusPx }
+            .sortedWith(
+                compareByDescending<AreaEvidenceNode> { it.overlaps }
+                    .thenByDescending { it.overlapArea }
+                    .thenBy { it.centerDistance }
+                    .thenBy { it.node.boundsInWindow.area }
+                    .thenBy { it.node.uid },
+            )
+            .map { it.node }
+            .distinctBy { it.uid }
+            .take(MaxEvidenceNodes)
+            .toList()
+
+    private fun nodeEvidenceNodes(screen: CapturedScreen, selectedNode: PointPatchNode): List<PointPatchNode> =
+        screen.allNodes()
+            .asSequence()
+            .filter { it.uid != selectedNode.uid }
+            .filter { it.rootIndex == selectedNode.rootIndex }
+            .filter { it.hasMeaningfulSemantic() }
+            .sortedWith(
+                compareBy<PointPatchNode> { it.boundsInWindow.centerDistanceTo(selectedNode.boundsInWindow) }
+                    .thenBy { it.boundsInWindow.area }
+                    .thenBy { it.uid },
+            )
+            .distinctBy { it.uid }
+            .take(MaxEvidenceNodes)
+            .toList()
+
+    private fun sourceCandidatesFor(
+        screen: CapturedScreen,
+        selectedNode: PointPatchNode?,
+        nearbyNodes: List<PointPatchNode>,
+    ): List<SourceCandidate> {
+        if (!screen.sourceIndexAvailable) return emptyList()
+        return sequenceOf(selectedNode)
+            .filterNotNull()
+            .plus(nearbyNodes.asSequence())
+            .mapNotNull { node -> node.toSourceCandidate() }
+            .distinctBy { it.file to it.line }
+            .take(MaxSourceCandidates)
+            .toList()
+    }
+
+    private fun PointPatchNode.toSourceCandidate(): SourceCandidate? {
+        val file = rawProperties.firstValue("sourceFile", "source.file", "file") ?: return null
+        val line = rawProperties.firstValue("sourceLine", "source.line", "line")?.toIntOrNull()
+        val matchedTerms = semanticTerms()
+        return SourceCandidate(
+            file = file,
+            line = line,
+            score = if (matchedTerms.isEmpty()) 0.4 else 0.7,
+            matchedTerms = matchedTerms,
+            matchReasons = listOf("semantics source metadata"),
+            confidence = SelectionConfidence.LOW,
+        )
+    }
+
+    private fun PointPatchNode.semanticTerms(): List<String> =
+        (text + listOfNotNull(editableText) + contentDescription + listOfNotNull(testTag, role))
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+
+    private fun Map<String, String>.firstValue(vararg keys: String): String? =
+        keys.firstNotNullOfOrNull { key -> this[key]?.takeIf { it.isNotBlank() } }
+
+    private fun CapturedScreen.allNodes(): List<PointPatchNode> =
+        roots.flatMap { root -> root.mergedNodes + root.unmergedNodes }
+
+    private fun PointPatchRect.intersects(other: PointPatchRect): Boolean =
+        left < other.right && right > other.left && top < other.bottom && bottom > other.top
+
+    private fun PointPatchRect.intersectionArea(other: PointPatchRect): Float {
+        val width = (minOf(right, other.right) - maxOf(left, other.left)).coerceAtLeast(0f)
+        val height = (minOf(bottom, other.bottom) - maxOf(top, other.top)).coerceAtLeast(0f)
+        return width * height
+    }
+
+    private fun PointPatchRect.centerDistanceTo(other: PointPatchRect): Float {
+        val dx = ((left + right) / 2f) - ((other.left + other.right) / 2f)
+        val dy = ((top + bottom) / 2f) - ((other.top + other.bottom) / 2f)
+        return dx * dx + dy * dy
+    }
+
+    private data class PreviewRecord(
+        val sessionId: String,
+        val projectRoot: String,
+        val snapshot: FeedbackPreviewSnapshot,
+    )
+
+    private data class AreaEvidenceNode(
+        val node: PointPatchNode,
+        val overlaps: Boolean,
+        val overlapArea: Float,
+        val centerDistance: Float,
+    )
+
+    private companion object {
+        const val MaxRetainedPreviews = 3
+        const val MaxEvidenceNodes = 8
+        const val MaxSourceCandidates = 5
+        const val NearbyEvidenceRadiusPx = 250_000f
     }
 }

@@ -4,6 +4,7 @@ import io.github.pointpatch.compose.core.model.PointPatchNode
 import io.github.pointpatch.compose.core.model.PointPatchRect
 import io.github.pointpatch.compose.core.model.TreeKind
 import io.github.pointpatch.mcp.console.FeedbackTargetType
+import io.github.pointpatch.mcp.console.PendingDraftFeedbackItem
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -192,6 +193,118 @@ class FeedbackSessionServiceTest {
             bridge.lastCaptureDestination!!
                 .contains(".pointpatch/feedback-sessions/session-1/artifacts/screens/screen-1"),
         )
+    }
+
+    @Test
+    fun savingFrozenPreviewPersistsOneScreenForMultipleItems() = runBlocking {
+        val root = createTempDir(prefix = "pointpatch-v2-preview-save-")
+        val bridge = FakePointPatchBridge()
+        val store = FeedbackSessionStore(
+            clock = sequenceClock(1_000L, 2_000L),
+            idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1", "item-2"),
+        )
+        val service = FeedbackSessionService(bridge = bridge, store = store, projectRoot = root.absolutePath)
+        val session = service.openSession("io.github.pointpatch.sample", newSession = true)
+
+        val preview = service.capturePreview(session.sessionId)
+        assertEquals(1, bridge.captureCount)
+        assertTrue(store.getSession(session.sessionId).screens.isEmpty())
+
+        val updated = service.savePreviewFeedbackItems(
+            sessionId = session.sessionId,
+            previewId = preview.previewId,
+            items = listOf(
+                PendingDraftFeedbackItem(
+                    targetType = FeedbackTargetType.NODE,
+                    nodeUid = "email-label",
+                    bounds = PointPatchRect(28f, 77f, 692f, 186f),
+                    comment = "Rename this label",
+                ),
+                PendingDraftFeedbackItem(
+                    targetType = FeedbackTargetType.AREA,
+                    bounds = PointPatchRect(112f, 426f, 351f, 588f),
+                    comment = "Change this visual area",
+                ),
+            ),
+        )
+
+        assertEquals(1, updated.screens.size)
+        assertEquals(1, bridge.captureCount)
+        assertEquals(2, updated.items.size)
+        assertEquals(listOf("screen-1", "screen-1"), updated.items.map { it.screenId })
+        assertTrue(updated.items.first().selectedNode?.text.orEmpty().contains("Email address"))
+        assertEquals(listOf("promo-card"), updated.items.first().nearbyNodes.map { it.uid })
+        assertTrue(updated.items[1].nearbyNodes.isNotEmpty())
+        assertTrue(updated.items.first().sourceCandidates.isNotEmpty())
+        assertTrue(updated.items[1].sourceCandidates.isNotEmpty())
+    }
+
+    @Test
+    fun savingSamePreviewTwiceDoesNotPersistDuplicateScreensOrItems() = runBlocking {
+        val root = createTempDir(prefix = "pointpatch-v2-preview-duplicate-")
+        val store = FeedbackSessionStore(
+            clock = sequenceClock(1_000L, 2_000L),
+            idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1"),
+        )
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(),
+            store = store,
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val preview = service.capturePreview(session.sessionId)
+        val item = PendingDraftFeedbackItem(
+            targetType = FeedbackTargetType.AREA,
+            bounds = PointPatchRect(112f, 426f, 351f, 588f),
+            comment = "Change this visual area",
+        )
+
+        service.savePreviewFeedbackItems(session.sessionId, preview.previewId, listOf(item))
+        assertFailsWith<FeedbackSessionException> {
+            service.savePreviewFeedbackItems(session.sessionId, preview.previewId, listOf(item))
+        }
+
+        val stored = store.getSession(session.sessionId)
+        assertEquals(1, stored.screens.size)
+        assertEquals(1, stored.items.size)
+    }
+
+    @Test
+    fun savingPreviewPromotesArtifactsUnderSessionProjectRoot() = runBlocking {
+        val sessionRoot = createTempDir(prefix = "pointpatch-v2-session-root-")
+        val serviceRoot = createTempDir(prefix = "pointpatch-v2-service-root-")
+        val store = FeedbackSessionStore(
+            clock = sequenceClock(1_000L, 2_000L),
+            idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1"),
+        )
+        val session = store.openSession("io.github.pointpatch.sample", sessionRoot.absolutePath)
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(),
+            store = store,
+            projectRoot = serviceRoot.absolutePath,
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val preview = service.capturePreview(session.sessionId)
+
+        val updated = service.savePreviewFeedbackItems(
+            sessionId = session.sessionId,
+            previewId = preview.previewId,
+            items = listOf(
+                PendingDraftFeedbackItem(
+                    targetType = FeedbackTargetType.AREA,
+                    bounds = PointPatchRect(112f, 426f, 351f, 588f),
+                    comment = "Change this visual area",
+                ),
+            ),
+        )
+
+        val expectedPath = FeedbackSessionPaths(sessionRoot)
+            .screenArtifactDirectory(session.sessionId, "screen-1")
+            .resolve("screen-1-full.png")
+            .absolutePath
+        val savedPath = updated.screens.single().screenshot?.desktopFullPath.orEmpty()
+        assertEquals(expectedPath, savedPath)
     }
 
     @Test
@@ -419,5 +532,15 @@ class FeedbackSessionServiceTest {
     private class FakeIds(vararg values: String) {
         private val queue = ArrayDeque(values.toList())
         val next: () -> String = { queue.removeFirst() }
+    }
+
+    private fun sequenceClock(vararg values: Long): () -> Long {
+        val queue = ArrayDeque(values.toList())
+        return { queue.removeFirstOrNull() ?: values.last() }
+    }
+
+    private fun sequenceIds(vararg values: String): () -> String {
+        val queue = ArrayDeque(values.toList())
+        return { queue.removeFirstOrNull() ?: error("No more ids configured") }
     }
 }

@@ -1,16 +1,22 @@
 package io.github.pointpatch.mcp.session
 
 import io.github.pointpatch.cli.AdbDevice
+import io.github.pointpatch.compose.core.model.PointPatchNode
+import io.github.pointpatch.compose.core.model.PointPatchRect
+import io.github.pointpatch.compose.core.model.TreeKind
+import io.github.pointpatch.mcp.McpProtocol
 import io.github.pointpatch.mcp.tools.PointPatchBridge
 import java.io.File
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.put
 
 internal class FakePointPatchBridge(
     private val packageName: String = "io.github.pointpatch.sample",
     private val captureError: Throwable? = null,
+    private val captureRoots: List<FeedbackScreenRoot> = defaultCaptureRoots(),
 ) : PointPatchBridge {
     val resolvedOverrides = mutableListOf<String?>()
     val navigationRequests = mutableListOf<FeedbackNavigationRequest>()
@@ -19,6 +25,8 @@ internal class FakePointPatchBridge(
     var lastCaptureScreenId: String? = null
         private set
     var lastCaptureDestination: String? = null
+        private set
+    var captureCount: Int = 0
         private set
     var selectedDeviceSerial: String? = null
         private set
@@ -75,11 +83,20 @@ internal class FakePointPatchBridge(
         lastCaptureSessionId = sessionId
         lastCaptureScreenId = screenId
         lastCaptureDestination = destinationDirectory?.absolutePath
+        captureCount += 1
         put("activity", "MainActivity")
         put("sourceIndexAvailable", true)
         put("inspection", buildJsonObject {
             put("activity", "MainActivity")
-            put("roots", JsonArray(emptyList()))
+            put(
+                "roots",
+                JsonArray(
+                    captureRoots.map { root ->
+                        McpProtocol.json.encodeToJsonElement(FeedbackScreenRoot.serializer(), root)
+                    },
+                ),
+            )
+            put("sourceIndexAvailable", true)
             put("errors", JsonArray(emptyList()))
         })
         put("screenshot", buildJsonObject {
@@ -87,7 +104,57 @@ internal class FakePointPatchBridge(
             val capturedPath = destinationDirectory
                 ?.resolve("${screenId ?: "screen-1"}-full.png")
                 ?.absolutePath
+                ?.also { path ->
+                    runCatching {
+                        File(path).also { file ->
+                            if (file.parentFile?.exists() != true) file.parentFile?.mkdirs()
+                            if (file.parentFile?.exists() == true) {
+                                file.writeBytes(byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47))
+                            }
+                        }
+                    }
+                }
             put("desktopFullPath", capturedPath ?: fallbackPath)
+            put("width", 720)
+            put("height", 1600)
         })
+    }
+
+    companion object {
+        private fun defaultCaptureRoots(): List<FeedbackScreenRoot> {
+            val emailLabel = PointPatchNode(
+                uid = "email-label",
+                composeNodeId = 42,
+                rootIndex = 0,
+                treeKind = TreeKind.MERGED,
+                boundsInWindow = PointPatchRect(28f, 77f, 692f, 186f),
+                text = listOf("Email address"),
+                testTag = "emailField",
+                rawProperties = mapOf(
+                    "sourceFile" to "sample/src/main/java/io/github/pointpatch/sample/screens/FormScreen.kt",
+                    "sourceLine" to "37",
+                ),
+            )
+            val visualArea = PointPatchNode(
+                uid = "promo-card",
+                composeNodeId = 43,
+                rootIndex = 0,
+                treeKind = TreeKind.MERGED,
+                boundsInWindow = PointPatchRect(120f, 430f, 330f, 580f),
+                text = listOf("Promotional card"),
+                contentDescription = listOf("Promo image"),
+                rawProperties = mapOf(
+                    "sourceFile" to "sample/src/main/java/io/github/pointpatch/sample/screens/FormScreen.kt",
+                    "sourceLine" to "54",
+                ),
+            )
+            return listOf(
+                FeedbackScreenRoot(
+                    rootIndex = 0,
+                    boundsInWindow = PointPatchRect(0f, 0f, 720f, 1600f),
+                    mergedNodes = listOf(emailLabel, visualArea),
+                ),
+            )
+        }
     }
 }

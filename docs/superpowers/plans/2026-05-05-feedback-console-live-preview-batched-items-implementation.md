@@ -285,7 +285,7 @@ git commit -m "feat: persist batched feedback items with one snapshot"
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FakePointPatchBridge.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionServiceTest.kt`
 
-- [ ] **Step 1: Add preview model file**
+- [x] **Step 1: Add preview model file**
 
 Create `FeedbackConsolePreviewModels.kt`:
 
@@ -317,7 +317,7 @@ data class PendingDraftFeedbackItem(
 )
 ```
 
-- [ ] **Step 2: Write failing service test for preview promotion**
+- [x] **Step 2: Write failing service test for preview promotion**
 
 Add this test to `FeedbackSessionServiceTest`:
 
@@ -367,7 +367,7 @@ fun savingFrozenPreviewPersistsOneScreenForMultipleItems() = runBlocking {
 }
 ```
 
-- [ ] **Step 3: Run service test and verify RED**
+- [x] **Step 3: Run service test and verify RED**
 
 Run:
 
@@ -377,7 +377,7 @@ Run:
 
 Expected: FAIL because preview promotion APIs do not exist.
 
-- [ ] **Step 4: Implement transient preview state**
+- [x] **Step 4: Implement transient preview state**
 
 Add a preview map and APIs to `FeedbackSessionService`:
 
@@ -412,7 +412,7 @@ suspend fun capturePreview(sessionId: String): FeedbackPreviewSnapshot {
 
 Extract the existing `captureScreen` payload mapping into a private `JsonObject.toCapturedScreen(screenId, fallbackDisplayName)` helper and reuse it from both `captureScreen` and `capturePreview`.
 
-- [ ] **Step 5: Implement batched save by promoting a frozen preview**
+- [x] **Step 5: Implement batched save by promoting a frozen preview**
 
 Add:
 
@@ -444,7 +444,7 @@ Implement `buildFeedbackItemForDraft(screen, pending)` so:
 - `AREA` also stores meaningful overlapping nodes first, then nearby nodes.
 - both paths compute `sourceCandidates` from selected/nearby evidence when a source index is available.
 
-- [ ] **Step 6: Run service tests and verify GREEN**
+- [x] **Step 6: Run service tests and verify GREEN**
 
 Run:
 
@@ -454,7 +454,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 7: Commit Task 2**
+- [x] **Step 7: Commit Task 2**
 
 Run:
 
