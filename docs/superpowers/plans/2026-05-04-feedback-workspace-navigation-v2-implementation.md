@@ -1272,7 +1272,7 @@ git commit -m "mcp: show feedback workspace picker"
 - Create: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackNavigationModelsTest.kt`
 - Modify: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/bridge/BridgeServer.kt`
 
-- [ ] **Step 1: Write failing model tests**
+- [x] **Step 1: Write failing model tests**
 
 Create `FeedbackNavigationModelsTest.kt`:
 
@@ -1309,7 +1309,7 @@ class FeedbackNavigationModelsTest {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -1319,7 +1319,7 @@ Run:
 
 Expected: compilation fails because navigation models do not exist.
 
-- [ ] **Step 3: Add navigation models**
+- [x] **Step 3: Add navigation models**
 
 Create `FeedbackNavigationModels.kt`:
 
@@ -1391,7 +1391,7 @@ data class FeedbackNavigationResult(
 )
 ```
 
-- [ ] **Step 4: Run model tests**
+- [x] **Step 4: Run model tests**
 
 Run:
 
@@ -1401,7 +1401,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackNavigationModels.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackNavigationModelsTest.kt
