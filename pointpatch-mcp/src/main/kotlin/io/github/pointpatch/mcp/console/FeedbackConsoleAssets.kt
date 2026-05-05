@@ -30,7 +30,7 @@ internal object FeedbackConsoleAssets {
             .meta { color: #5d6675; font-size: 13px; }
             main {
               display: grid;
-              grid-template-columns: minmax(180px, 260px) minmax(280px, 1fr) minmax(260px, 360px);
+              grid-template-columns: minmax(220px, 300px) minmax(320px, 1fr) minmax(280px, 380px);
               gap: 1px;
               min-height: calc(100vh - 69px);
               background: #dde2ea;
@@ -43,6 +43,16 @@ internal object FeedbackConsoleAssets {
             }
             h2 { margin: 0 0 12px; font-size: 14px; font-weight: 700; letter-spacing: 0; }
             h2.section-heading { margin-top: 18px; }
+            select {
+              min-height: 34px;
+              border: 1px solid #b9c2cf;
+              border-radius: 6px;
+              background: #ffffff;
+              color: #171b22;
+              padding: 0 10px;
+              font: inherit;
+              font-size: 13px;
+            }
             button {
               border: 1px solid #b9c2cf;
               border-radius: 6px;
@@ -56,6 +66,21 @@ internal object FeedbackConsoleAssets {
             }
             button.primary { background: #116a5c; border-color: #116a5c; color: #ffffff; }
             button:disabled { opacity: .55; cursor: default; }
+            .device-strip {
+              display: flex;
+              align-items: center;
+              flex-wrap: wrap;
+              gap: 8px;
+            }
+            .status-pill {
+              border: 1px solid #d0d7e2;
+              border-radius: 999px;
+              background: #f7f9fc;
+              color: #4b5563;
+              min-height: 28px;
+              padding: 5px 10px;
+              font-size: 12px;
+            }
             textarea {
               width: 100%;
               min-height: 96px;
@@ -93,7 +118,34 @@ internal object FeedbackConsoleAssets {
             }
             .row strong { display: block; font-size: 13px; margin-bottom: 4px; }
             .row span { color: #667085; font-size: 12px; overflow-wrap: anywhere; }
+            .row span + span { display: block; margin-top: 3px; }
+            .snapshot-header {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 12px;
+              margin-bottom: 12px;
+            }
+            .snapshot-header h2 { margin: 0; }
+            .segmented {
+              display: inline-flex;
+              overflow: hidden;
+              border: 1px solid #b9c2cf;
+              border-radius: 6px;
+              background: #ffffff;
+            }
+            .segmented button {
+              border: 0;
+              border-radius: 0;
+              min-height: 32px;
+            }
+            .segmented button + button { border-left: 1px solid #b9c2cf; }
+            .segmented button.active {
+              background: #116a5c;
+              color: #ffffff;
+            }
             .snapshot {
+              position: relative;
               display: grid;
               place-items: center;
               min-height: 360px;
@@ -103,6 +155,23 @@ internal object FeedbackConsoleAssets {
               color: #667085;
               text-align: center;
               padding: 24px;
+            }
+            .selection-overlay {
+              position: absolute;
+              inset: 24px;
+              pointer-events: none;
+              border: 1px dashed #116a5c;
+              border-radius: 6px;
+              opacity: 0;
+            }
+            .selection-summary {
+              border: 1px solid #e1e6ee;
+              border-radius: 8px;
+              background: #fbfcfe;
+              color: #667085;
+              min-height: 44px;
+              padding: 10px;
+              font-size: 13px;
             }
             img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid #d8dee8; }
             .snapshot img { cursor: crosshair; }
@@ -120,14 +189,20 @@ internal object FeedbackConsoleAssets {
               <h1>PointPatch Feedback Console</h1>
               <div id="sessionMeta" class="meta">Loading session...</div>
             </div>
+            <div class="device-strip">
+              <select id="devicePicker"></select>
+              <button id="refreshDevicesButton">Refresh Devices</button>
+              <button id="disconnectDeviceButton">Disconnect</button>
+              <span id="deviceStatus" class="status-pill">No device selected</span>
+            </div>
             <div class="toolbar">
               <button id="refreshButton">Refresh</button>
               <button id="captureButton" class="primary">Capture</button>
-              <button id="copyMarkdownButton">Copy Markdown</button>
+              <button id="copyMarkdownButton">Copy Agent Context</button>
             </div>
           </header>
           <main>
-            <section>
+            <section class="sidebar">
               <div class="toolbar">
                 <button id="newSessionButton">New Session</button>
                 <button id="closeSessionButton">Close</button>
@@ -136,10 +211,18 @@ internal object FeedbackConsoleAssets {
               <div id="sessions" class="list"></div>
               <h2 class="section-heading">Screens</h2>
               <div id="screens" class="list"></div>
+              <h2 class="section-heading">Sent History</h2>
+              <div id="sentHistory" class="list"></div>
             </section>
-            <section>
-              <h2>Snapshot</h2>
-              <div class="toolbar">
+            <section class="snapshot-pane">
+              <div class="snapshot-header">
+                <h2>Snapshot</h2>
+                <div class="segmented" role="group" aria-label="Snapshot mode">
+                  <button id="modeSelect" class="active" type="button">Select</button>
+                  <button id="modeNavigate" type="button">Navigate</button>
+                </div>
+              </div>
+              <div id="navigationControls" class="toolbar">
                 <button id="backButton">Back</button>
                 <button id="swipeUpButton">Swipe Up</button>
                 <button id="swipeDownButton">Swipe Down</button>
@@ -147,15 +230,27 @@ internal object FeedbackConsoleAssets {
                 <button id="swipeRightButton">Swipe Right</button>
                 <label><input id="captureAfterNavigation" type="checkbox" checked> Capture after navigation</label>
               </div>
-              <div id="snapshot" class="snapshot">Capture a screen to begin.</div>
-            </section>
-            <section>
-              <h2>Queue</h2>
-              <div class="toolbar">
-                <button id="addItemButton" class="primary">Add Item</button>
+              <div id="snapshot" class="snapshot">
+                <div id="selectionOverlay" class="selection-overlay" aria-hidden="true"></div>
+                <div>Capture a screen to begin.</div>
               </div>
+            </section>
+            <section class="queue-pane">
+              <h2>Current Selection</h2>
+              <div id="selectionSummary" class="selection-summary">No selection.</div>
+              <div class="toolbar">
+                <button id="clearSelectionButton">Clear Selection</button>
+                <button id="clearCommentButton">Clear Comment</button>
+              </div>
+              <h2 class="section-heading">Comment</h2>
               <textarea id="comment" placeholder="Describe the UI change needed"></textarea>
-              <div id="items" class="list" style="margin-top: 12px;"></div>
+              <div class="toolbar">
+                <button id="addItemButton" class="primary" disabled>Add Item</button>
+                <button id="sendDraftButton">Send Draft to Agent</button>
+                <button id="clearDraftButton">Clear Draft</button>
+              </div>
+              <h2 class="section-heading">Draft</h2>
+              <div id="draftItems" class="list"></div>
               <p id="error" class="error"></p>
             </section>
           </main>
@@ -164,11 +259,19 @@ internal object FeedbackConsoleAssets {
             const sessionMeta = document.getElementById('sessionMeta');
             const sessions = document.getElementById('sessions');
             const screens = document.getElementById('screens');
+            const sentHistory = document.getElementById('sentHistory');
             const snapshot = document.getElementById('snapshot');
-            const items = document.getElementById('items');
+            const draftItems = document.getElementById('draftItems');
             const error = document.getElementById('error');
             const comment = document.getElementById('comment');
             const captureAfterNavigation = document.getElementById('captureAfterNavigation');
+            const devicePicker = document.getElementById('devicePicker');
+            const deviceStatus = document.getElementById('deviceStatus');
+            const modeSelect = document.getElementById('modeSelect');
+            const modeNavigate = document.getElementById('modeNavigate');
+            const selectionSummary = document.getElementById('selectionSummary');
+            const addItemButton = document.getElementById('addItemButton');
+            let snapshotMode = 'select';
 
             function text(value) {
               return value == null || value === '' ? '-' : String(value);
@@ -183,12 +286,192 @@ internal object FeedbackConsoleAssets {
                 .replaceAll("'", '&#39;');
             }
 
+            function shortId(value) {
+              return text(value).slice(0, 8) + (text(value).length > 8 ? '...' : '');
+            }
+
+            function formatTime(epochMillis) {
+              if (!epochMillis) return '-';
+              return new Date(epochMillis).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+
+            function formatSessionLabel(session, index) {
+              return `Session ${'$'}{index + 1} - ${'$'}{session.status}`;
+            }
+
+            function countLabel(count, singular, plural) {
+              return `${'$'}{count} ${'$'}{count === 1 ? singular : plural}`;
+            }
+
+            function formatSessionSummary(session) {
+              return [
+                session.packageName,
+                countLabel(session.screensCount, 'screen', 'screens'),
+                countLabel(session.draftItemsCount, 'draft item', 'draft items'),
+                countLabel(session.sentBatchesCount, 'sent batch', 'sent batches'),
+                `updated ${'$'}{formatTime(session.updatedAtEpochMillis)}`,
+                `id ${'$'}{shortId(session.sessionId)}`
+              ].join(' | ');
+            }
+
+            function formatScreenLabel(screen, index) {
+              return `Screen ${'$'}{index + 1} - ${'$'}{screen.displayName || screen.activityName || 'Screen'}`;
+            }
+
+            function findScreen(screenId) {
+              return (state.session?.screens || []).find(screen => screen.screenId === screenId) || null;
+            }
+
+            function screenLabelForId(screenId) {
+              const screen = findScreen(screenId);
+              if (!screen) return 'Unknown screen';
+              return formatScreenLabel(screen, (state.session?.screens || []).indexOf(screen));
+            }
+
+            function humanize(value) {
+              const normalized = text(value);
+              if (normalized === '-') return normalized;
+              return normalized
+                .split('_')
+                .filter(Boolean)
+                .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+                .join(' ');
+            }
+
+            function targetLabel(item) {
+              const target = item?.target || {};
+              if (target.type === 'semantics_node' || target.nodeUid) return 'Node target';
+              if (target.type === 'visual_area' || target.boundsInWindow) return 'Area target';
+              return 'Unknown target';
+            }
+
+            function deliveryLabel(delivery) {
+              if (!delivery || delivery === 'draft') return 'Not sent';
+              if (delivery === 'sent') return 'Sent';
+              return humanize(delivery);
+            }
+
+            function formatItemLabel(item) {
+              const number = item.sequenceNumber ? `#${'$'}{item.sequenceNumber}` : '#-';
+              const title = firstLine(item.comment || '(No comment)');
+              return `${'$'}{number} ${'$'}{title}`;
+            }
+
+            function formatBatchLabel(batch) {
+              return `Batch #${'$'}{batch.sequenceNumber || '-'}`;
+            }
+
+            function batchItems(batch) {
+              const itemsById = new Map((state.session?.items || []).map(item => [item.itemId, item]));
+              return (batch.itemIds || []).map(itemId => itemsById.get(itemId) || { itemId, missing: true });
+            }
+
+            function formatBatchItemSummary(item) {
+              if (item.missing) return `Missing item ${'$'}{shortId(item.itemId)}`;
+              return formatItemLabel(item);
+            }
+
+            function formatBatchDetails(batch, items) {
+              const count = (batch.itemIds || []).length;
+              const itemCount = `${'$'}{count} item${'$'}{count === 1 ? '' : 's'}`;
+              const screenDetails = Array.from(new Set(
+                items
+                  .filter(item => !item.missing)
+                  .map(item => `${'$'}{screenLabelForId(item.screenId)} - ${'$'}{humanize(item.status)}`)
+              ));
+              return `${'$'}{formatTime(batch.createdAtEpochMillis)} | ${'$'}{itemCount} | ${'$'}{screenDetails.join('; ') || 'No item screen details'}`;
+            }
+
+            function firstLine(value) {
+              return text(value).split(/\r?\n/)[0] || '(No comment)';
+            }
+
             async function requestJson(path, options = {}) {
               const response = await fetch(path, options);
               if (!response.ok) {
                 throw new Error(await response.text() || `HTTP ${'$'}{response.status}`);
               }
               return response.json();
+            }
+
+            function deviceLabel(device) {
+              const labelParts = [device.model || 'Unknown model'];
+              const productLabel = device.product || device.deviceName || 'device';
+              if (productLabel !== device.serial) {
+                labelParts.push(productLabel);
+              }
+              labelParts.push(device.serial);
+              return labelParts.join(' | ');
+            }
+
+            function renderDeviceList(payload) {
+              const devices = payload.devices || [];
+              devicePicker.innerHTML = '';
+              if (!devices.length) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No devices available';
+                devicePicker.appendChild(option);
+                devicePicker.disabled = true;
+                deviceStatus.textContent = 'No device selected';
+                return;
+              }
+
+              const selected = devices.find(device => device.selected || device.serial === payload.selectedSerial);
+              devicePicker.disabled = false;
+              if (!selected) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'Select device...';
+                option.disabled = true;
+                option.selected = true;
+                devicePicker.appendChild(option);
+              }
+              devices.forEach(device => {
+                const option = document.createElement('option');
+                option.value = device.serial;
+                option.textContent = `${'$'}{deviceLabel(device)} - ${'$'}{device.state}${'$'}{device.state === 'device' ? '' : ' (unavailable)'}`;
+                option.disabled = device.state !== 'device';
+                option.selected = Boolean(device.selected) || device.serial === payload.selectedSerial;
+                devicePicker.appendChild(option);
+              });
+
+              deviceStatus.textContent = selected
+                ? `Selected ${'$'}{selected.serial}`
+                : 'No device selected';
+            }
+
+            async function refreshDevices() {
+              renderDeviceList(await requestJson('/api/devices'));
+            }
+
+            async function selectDevice() {
+              const option = devicePicker.selectedOptions[0];
+              if (!option || !option.value || option.disabled) return;
+              renderDeviceList(await requestJson('/api/device/select', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ serial: option.value })
+              }));
+            }
+
+            async function disconnectDevice() {
+              renderDeviceList(await requestJson('/api/device/disconnect', { method: 'POST' }));
+            }
+
+            function switchSnapshotMode(mode) {
+              snapshotMode = mode;
+              modeSelect.classList.toggle('active', mode === 'select');
+              modeNavigate.classList.toggle('active', mode === 'navigate');
+            }
+
+            function clearVisibleSelection() {
+              selectionSummary.textContent = 'No selection.';
+              addItemButton.disabled = true;
+            }
+
+            function clearComment() {
+              comment.value = '';
             }
 
             function latestScreen() {
@@ -198,39 +481,71 @@ internal object FeedbackConsoleAssets {
 
             function render() {
               const session = state.session;
+              const allItems = session?.items || [];
+              const queuedItems = allItems.filter(item => item.delivery !== 'sent');
+              const sentItems = allItems.filter(item => item.delivery === 'sent');
+              const handoffBatches = session ? session.handoffBatches || [] : [];
               sessionMeta.textContent = session
-                ? `${'$'}{session.packageName} | ${'$'}{session.status} | ${'$'}{session.sessionId} | ${'$'}{session.items.length} item(s)`
+                ? `${'$'}{session.packageName} | ${'$'}{session.status} | ${'$'}{shortId(session.sessionId)} | ${'$'}{allItems.length} item(s)`
                 : 'No active session';
 
-              screens.innerHTML = (session?.screens || []).map(screen => `
+              screens.innerHTML = (session?.screens || []).map((screen, index) => `
                 <div class="row">
-                  <strong>${'$'}{escapeHtml(screen.displayName)}</strong>
-                  <span>${'$'}{escapeHtml(screen.screenId)}</span>
+                  <strong>${'$'}{escapeHtml(formatScreenLabel(screen, index))}</strong>
+                  <span>${'$'}{escapeHtml(formatTime(screen.capturedAtEpochMillis))} | ${'$'}{escapeHtml(shortId(screen.screenId))}</span>
                 </div>
               `).join('') || '<div class="row"><span>No screens captured.</span></div>';
 
               const screen = latestScreen();
               const hasScreenshot = Boolean(screen?.screenshot?.desktopFullPath);
               snapshot.innerHTML = hasScreenshot
-                ? `<img alt="Latest PointPatch snapshot" src="/api/screens/${'$'}{encodeURIComponent(screen.screenId)}/screenshot/full">`
-                : `<div>${'$'}{screen ? 'No screenshot artifact for latest screen.' : 'Capture a screen to begin.'}</div>`;
+                ? `<div id="selectionOverlay" class="selection-overlay" aria-hidden="true"></div><img alt="Latest PointPatch snapshot" src="/api/screens/${'$'}{encodeURIComponent(screen.screenId)}/screenshot/full">`
+                : `<div id="selectionOverlay" class="selection-overlay" aria-hidden="true"></div><div>${'$'}{screen ? 'No screenshot artifact for latest screen.' : 'Capture a screen to begin.'}</div>`;
               attachSnapshotTapHandler();
 
-              items.innerHTML = (session?.items || []).map(item => `
+              draftItems.innerHTML = queuedItems.map(item => `
                 <div class="row">
-                  <strong>${'$'}{escapeHtml(item.comment || '(No comment)')}</strong>
-                  <span>${'$'}{escapeHtml(item.status)} | ${'$'}{escapeHtml(item.itemId)}</span>
+                  <strong>${'$'}{escapeHtml(formatItemLabel(item))}</strong>
+                  <span>${'$'}{escapeHtml(screenLabelForId(item.screenId))} | ${'$'}{escapeHtml(targetLabel(item))} | ${'$'}{escapeHtml(deliveryLabel(item.delivery))}</span>
+                  <span>${'$'}{escapeHtml(humanize(item.status))} | item ${'$'}{escapeHtml(shortId(item.itemId))} | screen ${'$'}{escapeHtml(shortId(item.screenId))}</span>
                 </div>
-              `).join('') || '<div class="row"><span>No feedback items queued.</span></div>';
+              `).join('') || '<div class="row"><span>No draft feedback items.</span></div>';
+
+              const batchIds = new Set(handoffBatches.map(batch => batch.batchId));
+              const batchedItemIds = new Set(handoffBatches.flatMap(batch => batch.itemIds || []));
+              const batchRows = handoffBatches.map(batch => {
+                const items = batchItems(batch);
+                return `
+                <div class="row">
+                  <strong>${'$'}{escapeHtml(formatBatchLabel(batch))}</strong>
+                  <span>${'$'}{escapeHtml(formatBatchDetails(batch, items))}</span>
+                  <span>${'$'}{escapeHtml(items.map(formatBatchItemSummary).join('; ') || 'No feedback items recorded.')}</span>
+                  <span>batch ${'$'}{escapeHtml(shortId(batch.batchId))} | items ${'$'}{escapeHtml((batch.itemIds || []).map(shortId).join(', ') || '-')}</span>
+                </div>
+              `;
+              });
+              const unbatchedRows = sentItems
+                .filter(item => !item.handoffBatchId || !batchIds.has(item.handoffBatchId) || !batchedItemIds.has(item.itemId))
+                .map(item => {
+                  const label = item.handoffBatchId ? 'Missing batch metadata' : 'Unbatched sent item';
+                  return `
+                <div class="row">
+                  <strong>${'$'}{escapeHtml(label)}</strong>
+                  <span>${'$'}{escapeHtml(formatItemLabel(item))} | ${'$'}{escapeHtml(formatTime(item.sentAtEpochMillis))} | ${'$'}{escapeHtml(screenLabelForId(item.screenId))} - ${'$'}{escapeHtml(humanize(item.status))}</span>
+                  <span>batch ${'$'}{escapeHtml(shortId(item.handoffBatchId))} | item ${'$'}{escapeHtml(shortId(item.itemId))} | screen ${'$'}{escapeHtml(shortId(item.screenId))}</span>
+                </div>
+              `;
+                });
+              sentHistory.innerHTML = batchRows.concat(unbatchedRows).join('') || '<div class="row"><span>No sent handoff history.</span></div>';
             }
 
             async function refreshSessions() {
               const response = await requestJson('/api/sessions');
               const activeId = state.session?.sessionId;
-              sessions.innerHTML = (response.sessions || []).map(session => `
+              sessions.innerHTML = (response.sessions || []).map((session, index) => `
                 <button class="row session-row ${'$'}{session.sessionId === activeId ? 'active' : ''}" data-session-id="${'$'}{escapeHtml(session.sessionId)}">
-                  <strong>${'$'}{escapeHtml(session.packageName)}</strong>
-                  <span>${'$'}{escapeHtml(session.sessionId)} | ${'$'}{escapeHtml(session.status)} | ${'$'}{session.itemsCount} item(s)</span>
+                  <strong>${'$'}{escapeHtml(formatSessionLabel(session, index))}</strong>
+                  <span>${'$'}{escapeHtml(formatSessionSummary(session))}</span>
                 </button>
               `).join('') || '<div class="row"><span>No saved sessions.</span></div>';
               document.querySelectorAll('.session-row').forEach(row => {
@@ -243,6 +558,7 @@ internal object FeedbackConsoleAssets {
               state.session = await requestJson('/api/session');
               await refreshSessions();
               render();
+              await refreshDevices();
             }
 
             async function openSession(sessionId) {
@@ -308,6 +624,21 @@ internal object FeedbackConsoleAssets {
               await refresh();
             }
 
+            async function clearDraft() {
+              error.textContent = '';
+              if (!window.confirm('Clear all draft feedback items?')) return;
+              state.session = await requestJson('/api/items/draft', { method: 'DELETE' });
+              await refresh();
+            }
+
+            async function sendDraft() {
+              error.textContent = '';
+              state.session = await requestJson('/api/agent-handoffs', { method: 'POST' });
+              clearComment();
+              clearVisibleSelection();
+              await refresh();
+            }
+
             async function navigate(action, extras = {}) {
               error.textContent = '';
               const navigation = await requestJson('/api/navigation', {
@@ -332,6 +663,10 @@ internal object FeedbackConsoleAssets {
               const image = snapshot.querySelector('img');
               if (!image) return;
               image.addEventListener('click', event => {
+                if (snapshotMode !== 'navigate') {
+                  error.textContent = 'Switch to Navigate mode to tap the device.';
+                  return;
+                }
                 const rect = image.getBoundingClientRect();
                 if (!image.naturalWidth || !image.naturalHeight || !rect.width || !rect.height) {
                   showError(new Error('Snapshot image dimensions are not available for tap navigation.'));
@@ -354,10 +689,19 @@ internal object FeedbackConsoleAssets {
 
             document.getElementById('refreshButton').addEventListener('click', () => refresh().catch(showError));
             document.getElementById('captureButton').addEventListener('click', () => capture().catch(showError));
-            document.getElementById('addItemButton').addEventListener('click', () => addItem().catch(showError));
+            addItemButton.addEventListener('click', () => addItem().catch(showError));
             document.getElementById('copyMarkdownButton').addEventListener('click', () => copyMarkdown().catch(showError));
             document.getElementById('newSessionButton').addEventListener('click', () => newSession().catch(showError));
             document.getElementById('closeSessionButton').addEventListener('click', () => closeSession().catch(showError));
+            document.getElementById('refreshDevicesButton').addEventListener('click', () => refreshDevices().catch(showError));
+            document.getElementById('disconnectDeviceButton').addEventListener('click', () => disconnectDevice().catch(showError));
+            devicePicker.addEventListener('change', () => selectDevice().catch(showError));
+            modeSelect.addEventListener('click', () => switchSnapshotMode('select'));
+            modeNavigate.addEventListener('click', () => switchSnapshotMode('navigate'));
+            document.getElementById('clearSelectionButton').addEventListener('click', clearVisibleSelection);
+            document.getElementById('clearCommentButton').addEventListener('click', clearComment);
+            document.getElementById('clearDraftButton').addEventListener('click', () => clearDraft().catch(showError));
+            document.getElementById('sendDraftButton').addEventListener('click', () => sendDraft().catch(showError));
             document.getElementById('backButton').addEventListener('click', () => navigate('back').catch(showError));
             document.getElementById('swipeUpButton').addEventListener('click', () => navigate('swipe', { direction: 'up' }).catch(showError));
             document.getElementById('swipeDownButton').addEventListener('click', () => navigate('swipe', { direction: 'down' }).catch(showError));
