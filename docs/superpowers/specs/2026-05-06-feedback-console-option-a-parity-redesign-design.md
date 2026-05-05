@@ -116,6 +116,45 @@ the old `Back/Up/Down/Left/Right` strip.
 
 The left panel is Option A history, not a basic session picker.
 
+History UI must follow the prototype's card anatomy:
+
+```text
+panel-head
+  panel-title = History
+  panel-count = snapshots.length
+
+history-list
+  history-item
+    hi-head
+      hi-title
+      optional hi-del
+    hi-meta
+    hi-stats
+      N open
+      N resolved
+      N pts
+    hi-strip
+      hi-strip-cell per annotation
+```
+
+Required visual behavior:
+
+- The history panel uses the same dark `studio-history` surface, fixed panel
+  width, internal scrolling, and no page-level overflow.
+- `history-list` is vertically scrollable with compact gaps like the prototype.
+- `history-item` uses rounded 8px rows with transparent default border.
+- Hover changes the card background to the Option A secondary surface.
+- The active item uses `is-active` treatment: secondary background, border, and
+  the left accent inset.
+- `hi-title` is the primary label, `hi-meta` is muted timestamp/author or
+  session metadata, and internal IDs must not be visible in normal labels.
+- `hi-stats` renders compact pips for open, resolved, and total point counts.
+- `hi-strip` renders one severity-colored segment per annotation; resolved
+  segments remain visible but lower opacity.
+- If `cardStyle = minimal` is implemented, it may hide stats/strip only when the
+  product deliberately exposes a density/card-style setting. The default target
+  is the rich Option A card.
+
 Each history item should behave like the prototype card:
 
 - Click opens that snapshot/session and makes it active.
@@ -132,6 +171,65 @@ the exact label.
 ## Annotation Inspector
 
 The right panel replaces the current composer with Option A annotation UI.
+
+Annotations UI must follow the prototype's inspector anatomy:
+
+```text
+studio-inspector
+  panel-head
+    panel-title = Annotations | Annotation
+    panel-count = annotations.length
+
+  ann-list
+    empty
+      empty-mark
+      empty-title
+      empty-body
+      Start annotating
+    ann-row
+      ann-row-num
+      ann-row-body
+        ann-row-title
+        ann-row-comment
+      ann-row-status
+
+  ann-detail
+    back-btn
+    field Label
+    field Severity segmented control
+    field Comment textarea
+    field Status segmented control
+    detail-actions Delete / Done
+```
+
+Required list-state visual behavior:
+
+- `studio-inspector` uses the same dark right-panel surface, left border,
+  internal scrolling, and no nested card shell.
+- `ann-list` fills the remaining panel height and scrolls internally.
+- Empty state is vertically centered within the annotation list area, not
+  pushed below the fold.
+- `empty-mark`, `empty-title`, `empty-body`, and primary mini button match the
+  Option A empty-state hierarchy.
+- `ann-row` uses the prototype grid: number badge, text body, status pill.
+- `ann-row` hover uses the secondary surface and does not shift layout.
+- `ann-row-num` uses the annotation severity color.
+- `ann-row-comment` clamps visually like the prototype and shows muted
+  `No comment` when comment is empty.
+- `ann-row-status` uses status-specific pill styling for `open`,
+  `in-progress`, and `resolved`.
+
+Required detail-state visual behavior:
+
+- `ann-detail` replaces the list area and scrolls internally.
+- The back affordance uses the Option A muted text button style.
+- `Label` input, `Comment` textarea, and segmented controls use the Option A
+  field spacing, labels, dark inputs, and accent focus borders.
+- `Severity` and `Status` segmented controls must keep stable height and width
+  between states.
+- Active severity segment uses the severity color as its fill.
+- `Delete` uses the Option A danger treatment; `Done` uses the ghost treatment.
+- Detail actions stay below the fields with the top divider treatment.
 
 No selected annotation:
 
