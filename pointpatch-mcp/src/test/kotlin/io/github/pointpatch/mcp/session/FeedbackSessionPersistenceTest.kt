@@ -1,5 +1,6 @@
 package io.github.pointpatch.mcp.session
 
+import io.github.pointpatch.cli.pointPatchJson
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -74,7 +75,8 @@ class FeedbackSessionPersistenceTest {
     @Test
     fun persistenceSavesSessionAndIndex() {
         val root = createTempDir(prefix = "pointpatch-v2-persist-")
-        val persistence = FeedbackSessionPersistence(FeedbackSessionPaths(root), clock = { 200L })
+        val paths = FeedbackSessionPaths(root)
+        val persistence = FeedbackSessionPersistence(paths, clock = { 200L })
         val session = FeedbackSession(
             sessionId = "session-1",
             packageName = "io.github.pointpatch.sample",
@@ -89,6 +91,50 @@ class FeedbackSessionPersistenceTest {
         assertTrue(File(root, ".pointpatch/feedback-sessions/index.json").isFile)
         assertEquals(session, persistence.load("session-1"))
         assertEquals(listOf("session-1"), persistence.list().sessions.map { it.sessionId })
+        val index = pointPatchJson.decodeFromString(FeedbackSessionIndex.serializer(), paths.indexFile.readText())
+        assertEquals(listOf("session-1"), index.sessions.map { it.sessionId })
+    }
+
+    @Test
+    fun failedIndexWriteLeavesExistingSessionFileUnchanged() {
+        val root = createTempDir(prefix = "pointpatch-v2-partial-save-")
+        val paths = FeedbackSessionPaths(root)
+        val persistence = FeedbackSessionPersistence(paths, clock = { 200L })
+        val initial = FeedbackSession(
+            sessionId = "session-1",
+            packageName = "io.github.pointpatch.sample",
+            projectRoot = root.absolutePath,
+            createdAtEpochMillis = 100L,
+            updatedAtEpochMillis = 100L,
+        )
+        persistence.save(initial)
+        paths.indexFile.delete()
+        assertTrue(paths.indexFile.mkdirs())
+
+        val updated = initial.copy(
+            updatedAtEpochMillis = 300L,
+            screens = listOf(CapturedScreen(screenId = "screen-1", capturedAtEpochMillis = 250L, displayName = "Main")),
+            items = listOf(
+                FeedbackItem(
+                    itemId = "item-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 260L,
+                    updatedAtEpochMillis = 270L,
+                    target = FeedbackTarget.Area(PointPatchRectForTest.bounds),
+                    comment = "Fix spacing",
+                ),
+            ),
+        )
+
+        assertFailsWith<FeedbackSessionException> {
+            persistence.save(updated)
+        }
+
+        val loaded = persistence.load("session-1")
+        assertEquals(initial, loaded)
+        assertEquals(100L, loaded.updatedAtEpochMillis)
+        assertEquals(emptyList(), loaded.screens)
+        assertEquals(emptyList(), loaded.items)
     }
 
     @Test

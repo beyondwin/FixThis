@@ -2,6 +2,9 @@ package io.github.pointpatch.mcp.session
 
 import io.github.pointpatch.cli.pointPatchJson
 import java.io.File
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import kotlinx.serialization.Serializable
 
 class FeedbackSessionPersistence(
@@ -9,15 +12,21 @@ class FeedbackSessionPersistence(
     private val clock: () -> Long = { System.currentTimeMillis() },
 ) {
     fun save(session: FeedbackSession) {
+        var tempSessionFile: File? = null
         runCatching {
             val sessionDirectory = paths.sessionDirectory(session.sessionId)
-            check(sessionDirectory.exists() || sessionDirectory.mkdirs()) {
+            check(sessionDirectory.isDirectory || sessionDirectory.mkdirs()) {
                 "Could not create feedback session directory: ${sessionDirectory.absolutePath}"
             }
             val sessionFile = paths.sessionFile(session.sessionId)
-            sessionFile.writeText(pointPatchJson.encodeToString(FeedbackSession.serializer(), session))
-            writeIndex()
+            val tempFile = File.createTempFile("session-", ".json.tmp", sessionDirectory)
+            tempSessionFile = tempFile
+            tempFile.writeText(pointPatchJson.encodeToString(FeedbackSession.serializer(), session))
+            writeIndex(session)
+            replaceFile(tempFile, sessionFile)
+            tempSessionFile = null
         }.getOrElse { error ->
+            tempSessionFile?.delete()
             throw FeedbackSessionException(
                 "SESSION_SAVE_FAILED: Could not save feedback session ${session.sessionId}: ${error.message}",
             )
@@ -50,17 +59,35 @@ class FeedbackSessionPersistence(
 
     fun artifactPaths(): FeedbackSessionPaths = paths
 
-    private fun writeIndex() {
-        val listed = list(includeClosed = true)
-        check(paths.rootDirectory.exists() || paths.rootDirectory.mkdirs()) {
+    private fun writeIndex(candidate: FeedbackSession) {
+        val listed = loadAll()
+            .withCandidate(candidate)
+            .sessions
+            .map(FeedbackSessionSummary.Companion::from)
+            .sortedByDescending { it.updatedAtEpochMillis }
+        check(paths.rootDirectory.isDirectory || paths.rootDirectory.mkdirs()) {
             "Could not create feedback session root: ${paths.rootDirectory.absolutePath}"
         }
         paths.indexFile.writeText(
             pointPatchJson.encodeToString(
                 FeedbackSessionIndex.serializer(),
-                FeedbackSessionIndex(updatedAtEpochMillis = clock(), sessions = listed.sessions),
+                FeedbackSessionIndex(updatedAtEpochMillis = clock(), sessions = listed),
             ),
         )
+    }
+
+    private fun replaceFile(source: File, target: File) {
+        runCatching {
+            Files.move(
+                source.toPath(),
+                target.toPath(),
+                StandardCopyOption.ATOMIC_MOVE,
+                StandardCopyOption.REPLACE_EXISTING,
+            )
+        }.getOrElse { error ->
+            if (error !is AtomicMoveNotSupportedException) throw error
+            Files.move(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
     }
 
     private fun loadAll(): LoadedSessions {
@@ -90,7 +117,10 @@ class FeedbackSessionPersistence(
     private data class LoadedSessions(
         val sessions: List<FeedbackSession>,
         val skipped: List<SkippedFeedbackSession>,
-    )
+    ) {
+        fun withCandidate(candidate: FeedbackSession): LoadedSessions =
+            copy(sessions = sessions.filterNot { it.sessionId == candidate.sessionId } + candidate)
+    }
 }
 
 @Serializable
