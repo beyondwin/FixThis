@@ -297,14 +297,27 @@ Click behavior must match Option A:
 
 Pins use Option A rectangular overlays:
 
+- Every registered annotation renders immediately on the preview as an Option A
+  pin rectangle.
 - Rect bounds align to the selected Compose node or dragged region.
 - Pin number appears in a circular tag at the top-left of the rectangle.
+- Pin numbers are the 1-based order of the current annotation array, so the
+  preview shows `1`, `2`, `3`, and so on exactly like the sample prototype.
+- The number shown on the preview pin must always match the annotation row
+  number in the right panel.
 - Pin color derives from severity:
   - `high`: `#F26D6D`
   - `med`: `#E6B45A`
   - `low`: `#5AB1E6`
+- The rectangle border, translucent fill, and number tag all use the same
+  severity color via the Option A `--pin-color` treatment.
 - Selected pins get the Option A stronger border and glow treatment.
 - Resolved annotations remain visible but use reduced opacity.
+- Multiple annotations can coexist on the same preview; each remains visible as
+  its own numbered, severity-colored rectangle.
+- Creating the first, second, and third annotations should visibly produce the
+  same UI pattern as the prototype sample: three numbered overlays with colors
+  determined independently by each annotation's severity.
 
 Rows and pins use the same ordered annotation array, so deleting an annotation
 renumbers both immediately with no gaps.
@@ -456,6 +469,11 @@ comment = empty
 
 - The new annotation is appended to the ordered annotations array.
 - UI selects the new annotation.
+- The preview immediately renders the new numbered overlay:
+  - first annotation renders tag `1`
+  - second annotation renders tag `2`
+  - third annotation renders tag `3`
+  - each tag and rectangle uses that annotation's current severity color
 - Tool returns to `Select`.
 - Drag state is cleared.
 
@@ -609,6 +627,11 @@ HTML/JS contract tests should assert:
 - `Delete` and `Done` exist in selected annotation detail.
 - History card click handlers open the selected history item.
 - Annotation row click and pin click both select the same annotation.
+- Preview annotations render as Option A pin rectangles with number tags.
+- Preview pin labels use 1-based annotation order: `1`, `2`, `3`.
+- Preview pin and annotation row numbers stay in sync after create/delete.
+- Preview pin border/fill/tag colors derive from severity: high red, med
+  yellow, low blue.
 - Open/resolved counts are rendered from annotation status.
 
 Service and persistence tests should assert:
@@ -626,6 +649,8 @@ Manual browser smoke should verify:
 - left history height remains stable and scrolls internally
 - center toolbar height does not jump between Select and Annotate
 - right annotation list/detail panel scrolls internally
+- creating three annotations through `Annotate` shows `1`, `2`, and `3` on the
+  preview, with each overlay colored by severity like the opened prototype
 - clicking a history card loads its annotations
 - clicking a row selects the preview pin
 - clicking a preview pin opens the same detail
