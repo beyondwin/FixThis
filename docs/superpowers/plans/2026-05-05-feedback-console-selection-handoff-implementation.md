@@ -85,7 +85,7 @@ Modify:
 
 - No source edits.
 
-- [ ] **Step 1: Check branch, status, and instructions**
+- [x] **Step 1: Check branch, status, and instructions**
 
 Run:
 
@@ -99,7 +99,7 @@ rg --files -g 'AGENTS.md' -g 'CLAUDE.md' -g '*agent*guide*' -g '*instructions*'
 Expected: branch and unrelated changes are understood. If instruction files are
 listed, read them before Task 2.
 
-- [ ] **Step 2: Run baseline tests**
+- [x] **Step 2: Run baseline tests**
 
 Run:
 
@@ -110,7 +110,7 @@ ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :pointpatch-compose-sideki
 
 Expected: both commands PASS.
 
-- [ ] **Step 3: Commit only if local process requires it**
+- [x] **Step 3: Commit only if local process requires it**
 
 If no files changed, do not commit. Record baseline output in the task
 checkpoint.
@@ -123,7 +123,7 @@ checkpoint.
 - Modify: `pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/BridgeClient.kt`
 - Modify: `pointpatch-cli/src/test/kotlin/io/github/pointpatch/cli/BridgeClientTest.kt`
 
-- [ ] **Step 1: Add failing selected-device tests**
+- [x] **Step 1: Add failing selected-device tests**
 
 Add tests to `BridgeClientTest`:
 
@@ -254,7 +254,7 @@ private class FakeAdbFacade(
 }
 ```
 
-- [ ] **Step 2: Run device tests to verify failure**
+- [x] **Step 2: Run device tests to verify failure**
 
 Run:
 
@@ -265,7 +265,7 @@ Run:
 Expected: FAIL because `AdbDevice` lacks metadata, `AdbFacade.forDevice` is not
 defined, and `BridgeClient` has no selected-device methods.
 
-- [ ] **Step 3: Extend ADB models and serial scoping**
+- [x] **Step 3: Extend ADB models and serial scoping**
 
 Change `Adb.kt`:
 
@@ -342,7 +342,7 @@ class Adb(
 }
 ```
 
-- [ ] **Step 4: Add selected device methods to BridgeClient**
+- [x] **Step 4: Add selected device methods to BridgeClient**
 
 In `BridgeClient.kt`, add selected-device state:
 
@@ -408,7 +408,7 @@ private fun readSidekickSession(adb: AdbFacade, packageName: String): SidekickSe
     }
 ```
 
-- [ ] **Step 5: Run CLI bridge tests**
+- [x] **Step 5: Run CLI bridge tests**
 
 Run:
 
@@ -418,7 +418,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/Adb.kt pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/BridgeClient.kt pointpatch-cli/src/test/kotlin/io/github/pointpatch/cli/BridgeClientTest.kt
@@ -435,7 +435,7 @@ git commit -m "cli: route bridge requests to selected device"
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStore.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStoreTest.kt`
 
-- [ ] **Step 1: Add failing delivery and handoff store tests**
+- [x] **Step 1: Add failing delivery and handoff store tests**
 
 Add tests to `FeedbackSessionStoreTest`:
 
@@ -540,7 +540,7 @@ fun clearDraftItemsKeepsSentHistory() {
 }
 ```
 
-- [ ] **Step 2: Run store tests to verify failure**
+- [x] **Step 2: Run store tests to verify failure**
 
 Run:
 
@@ -550,7 +550,7 @@ Run:
 
 Expected: FAIL because delivery and handoff models and store methods do not exist.
 
-- [ ] **Step 3: Add delivery and handoff models**
+- [x] **Step 3: Add delivery and handoff models**
 
 Create `FeedbackHandoffModels.kt`:
 
@@ -621,7 +621,7 @@ data class FeedbackItem(
 )
 ```
 
-- [ ] **Step 4: Extend summaries with draft and batch counts**
+- [x] **Step 4: Extend summaries with draft and batch counts**
 
 Update `FeedbackSessionSummary.kt`:
 
@@ -645,7 +645,7 @@ data class FeedbackSessionSummary(
 Update the summary factory so `draftItemsCount` counts `FeedbackDelivery.DRAFT`
 items and `sentBatchesCount` is `session.handoffBatches.size`.
 
-- [ ] **Step 5: Implement store handoff mutations**
+- [x] **Step 5: Implement store handoff mutations**
 
 Add to `FeedbackSessionStore.kt`:
 
@@ -710,7 +710,7 @@ val created = item.copy(
 )
 ```
 
-- [ ] **Step 6: Run store tests**
+- [x] **Step 6: Run store tests**
 
 Run:
 
@@ -720,7 +720,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackHandoffModels.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionModels.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionSummary.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStore.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStoreTest.kt
@@ -735,7 +735,7 @@ git commit -m "mcp: model feedback handoff batches"
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionServiceTest.kt`
 
-- [ ] **Step 1: Add failing service tests for node and area feedback**
+- [x] **Step 1: Add failing service tests for node and area feedback**
 
 Add tests to `FeedbackSessionServiceTest`:
 
@@ -828,7 +828,7 @@ private fun FeedbackSessionService.addCapturedScreenForTest(sessionId: String, s
     }
 ```
 
-- [ ] **Step 2: Run service tests to verify failure**
+- [x] **Step 2: Run service tests to verify failure**
 
 Run:
 
@@ -838,7 +838,7 @@ Run:
 
 Expected: FAIL because `FeedbackTargetType` and `addFeedbackItem` do not exist.
 
-- [ ] **Step 3: Add console item request models**
+- [x] **Step 3: Add console item request models**
 
 Create `FeedbackConsoleItemModels.kt`:
 
@@ -868,7 +868,7 @@ data class AddFeedbackItemRequest(
 )
 ```
 
-- [ ] **Step 4: Implement service selection validation**
+- [x] **Step 4: Implement service selection validation**
 
 Add to `FeedbackSessionService.kt`:
 
@@ -947,7 +947,7 @@ private fun validateBoundsInsideScreenshot(screen: CapturedScreen, bounds: Point
 Keep `addAreaFeedback` for compatibility, but implement it through the store as
 it does today.
 
-- [ ] **Step 5: Run service tests**
+- [x] **Step 5: Run service tests**
 
 Run:
 
@@ -957,7 +957,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleItemModels.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionServiceTest.kt
@@ -974,7 +974,7 @@ git commit -m "mcp: add selection-aware feedback items"
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FakePointPatchBridge.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Add failing console API tests**
+- [x] **Step 1: Add failing console API tests**
 
 Add tests to `FeedbackConsoleServerTest`:
 
@@ -1068,7 +1068,7 @@ private fun FeedbackSessionService.captureFakeScreenForTest(sessionId: String): 
     runBlocking { captureScreen(sessionId) }
 ```
 
-- [ ] **Step 2: Run console tests to verify failure**
+- [x] **Step 2: Run console tests to verify failure**
 
 Run:
 
@@ -1078,7 +1078,7 @@ Run:
 
 Expected: FAIL because device, draft clear, and handoff APIs do not exist.
 
-- [ ] **Step 3: Add device console models and bridge methods**
+- [x] **Step 3: Add device console models and bridge methods**
 
 Create `FeedbackConsoleDeviceModels.kt`:
 
@@ -1173,7 +1173,7 @@ override fun disconnectDevice() {
 }
 ```
 
-- [ ] **Step 4: Add console server routes**
+- [x] **Step 4: Add console server routes**
 
 In `FeedbackConsoleServer.handle`, add:
 
@@ -1240,7 +1240,7 @@ fun disconnectDevice() = bridge.disconnectDevice()
 
 Map `NO_DRAFT_FEEDBACK` to HTTP 409 in `toConsoleHttpException`.
 
-- [ ] **Step 5: Update `/api/items` to use selection request**
+- [x] **Step 5: Update `/api/items` to use selection request**
 
 Replace the existing `/api/items` branch body:
 
@@ -1271,7 +1271,7 @@ private fun HttpExchange.decodeAddFeedbackItemBody(): AddFeedbackItemRequest {
 }
 ```
 
-- [ ] **Step 6: Run console tests**
+- [x] **Step 6: Run console tests**
 
 Run:
 
@@ -1281,7 +1281,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleDeviceModels.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleItemModels.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServer.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FakePointPatchBridge.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
@@ -1297,7 +1297,7 @@ git commit -m "mcp: add console handoff and device APIs"
 - Create: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatterTest.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/McpProtocolTest.kt`
 
-- [ ] **Step 1: Add failing formatter and MCP output tests**
+- [x] **Step 1: Add failing formatter and MCP output tests**
 
 Create `FeedbackQueueFormatterTest.kt`:
 
@@ -1386,7 +1386,7 @@ fun listFeedbackIncludesDraftAndSentCounts() = runBlocking {
 }
 ```
 
-- [ ] **Step 2: Run formatter and MCP tests to verify failure**
+- [x] **Step 2: Run formatter and MCP tests to verify failure**
 
 Run:
 
@@ -1397,7 +1397,7 @@ Run:
 Expected: FAIL because formatter output does not group sent history and list
 summaries do not include draft/sent counts.
 
-- [ ] **Step 3: Update markdown formatter**
+- [x] **Step 3: Update markdown formatter**
 
 Change `FeedbackQueueFormatter.toMarkdown` to include draft and sent history:
 
@@ -1468,7 +1468,7 @@ private fun screenLabel(session: FeedbackSession, screenId: String): String {
 }
 ```
 
-- [ ] **Step 4: Update list feedback summary**
+- [x] **Step 4: Update list feedback summary**
 
 In `PointPatchTools.kt`, update `pointpatch_list_feedback` output for each
 session summary to include:
@@ -1485,7 +1485,7 @@ Define:
 private val resolvedStatuses = setOf(FeedbackItemStatus.RESOLVED, FeedbackItemStatus.WONT_FIX)
 ```
 
-- [ ] **Step 5: Run MCP tests**
+- [x] **Step 5: Run MCP tests**
 
 Run:
 
@@ -1495,7 +1495,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatter.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatterTest.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/McpProtocolTest.kt
@@ -1509,7 +1509,7 @@ git commit -m "mcp: expose feedback handoff history"
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Add failing asset smoke test**
+- [x] **Step 1: Add failing asset smoke test**
 
 Add to `FeedbackConsoleServerTest`:
 
@@ -1534,7 +1534,7 @@ fun consoleHtmlIncludesSelectionHandoffWorkspace() {
 }
 ```
 
-- [ ] **Step 2: Run asset test to verify failure**
+- [x] **Step 2: Run asset test to verify failure**
 
 Run:
 
@@ -1544,7 +1544,7 @@ Run:
 
 Expected: FAIL because the console HTML has the old layout.
 
-- [ ] **Step 3: Replace top-level console layout**
+- [x] **Step 3: Replace top-level console layout**
 
 In `FeedbackConsoleAssets.indexHtml`, change the body structure to:
 
@@ -1618,7 +1618,7 @@ In `FeedbackConsoleAssets.indexHtml`, change the body structure to:
 </main>
 ```
 
-- [ ] **Step 4: Add readable label functions**
+- [x] **Step 4: Add readable label functions**
 
 In the console script, add:
 
@@ -1654,7 +1654,7 @@ function firstLine(value) {
 Use these functions in session, screen, draft item, and sent history rendering.
 UUIDs must appear only in a secondary `<span>` line.
 
-- [ ] **Step 5: Run asset tests**
+- [x] **Step 5: Run asset tests**
 
 Run:
 
@@ -1664,7 +1664,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
@@ -1678,7 +1678,7 @@ git commit -m "mcp: redesign feedback console workspace"
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Add failing overlay asset test**
+- [x] **Step 1: Add failing overlay asset test**
 
 Add to `FeedbackConsoleServerTest`:
 
@@ -1698,7 +1698,7 @@ fun consoleHtmlImplementsSnapshotSelectionModes() {
 }
 ```
 
-- [ ] **Step 2: Run overlay asset test to verify failure**
+- [x] **Step 2: Run overlay asset test to verify failure**
 
 Run:
 
@@ -1708,7 +1708,7 @@ Run:
 
 Expected: FAIL until overlay and mode JavaScript is added.
 
-- [ ] **Step 3: Add selection state and coordinate helpers**
+- [x] **Step 3: Add selection state and coordinate helpers**
 
 Add to the console script:
 
@@ -1748,7 +1748,7 @@ function normalizeBounds(a, b) {
 }
 ```
 
-- [ ] **Step 4: Render snapshot image with overlay layer**
+- [x] **Step 4: Render snapshot image with overlay layer**
 
 Change snapshot rendering to:
 
@@ -1786,7 +1786,7 @@ Add CSS:
 }
 ```
 
-- [ ] **Step 5: Implement select-mode click and drag**
+- [x] **Step 5: Implement select-mode click and drag**
 
 Add:
 
@@ -1871,7 +1871,7 @@ function componentLabel(node) {
 }
 ```
 
-- [ ] **Step 6: Add item submission using selected target**
+- [x] **Step 6: Add item submission using selected target**
 
 Replace `addItem` with:
 
@@ -1913,7 +1913,7 @@ function formatBounds(bounds) {
 }
 ```
 
-- [ ] **Step 7: Add mode, clear, and handoff button handlers**
+- [x] **Step 7: Add mode, clear, and handoff button handlers**
 
 Add:
 
@@ -1959,7 +1959,7 @@ comment.addEventListener('input', updateComposerState);
 setMode(Mode.SELECT);
 ```
 
-- [ ] **Step 8: Run console asset tests**
+- [x] **Step 8: Run console asset tests**
 
 Run:
 
@@ -1969,7 +1969,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
@@ -1986,7 +1986,7 @@ git commit -m "mcp: add screenshot selection overlay"
 - Modify: `docs/privacy.md`
 - Modify: `docs/troubleshooting.md`
 
-- [ ] **Step 1: Update README**
+- [x] **Step 1: Update README**
 
 Add to the CLI/MCP section:
 
@@ -1997,7 +1997,7 @@ the existing debug-only back, tap, and swipe actions. Draft feedback can be sent
 to the agent as a persisted handoff batch and reviewed later in Sent History.
 ```
 
-- [ ] **Step 2: Update MCP docs**
+- [x] **Step 2: Update MCP docs**
 
 Document the console workflow:
 
@@ -2015,7 +2015,7 @@ Console workflow:
 
 Document that `Send Draft to Agent` does not call an external AI API.
 
-- [ ] **Step 3: Update output schema**
+- [x] **Step 3: Update output schema**
 
 Add sections:
 
@@ -2034,7 +2034,7 @@ Fields: `batchId`, `sequenceNumber`, `createdAtEpochMillis`, `itemIds`,
 `markdownSnapshot`.
 ```
 
-- [ ] **Step 4: Update privacy and troubleshooting docs**
+- [x] **Step 4: Update privacy and troubleshooting docs**
 
 Add privacy note:
 
@@ -2058,7 +2058,7 @@ After Send Draft to Agent, the draft area is cleared and the batch appears in
 Sent History. Select or capture again to create a new draft batch.
 ```
 
-- [ ] **Step 5: Run docs checks**
+- [x] **Step 5: Run docs checks**
 
 Run:
 
@@ -2069,7 +2069,7 @@ git diff --check -- README.md docs/mcp.md docs/output-schema.md docs/privacy.md 
 
 Expected: grep output includes README and all changed docs; diff check exits 0.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add README.md docs/mcp.md docs/output-schema.md docs/privacy.md docs/troubleshooting.md
@@ -2082,7 +2082,7 @@ git commit -m "docs: document feedback console handoff workflow"
 
 - No source edits unless verification exposes a defect.
 
-- [ ] **Step 1: Run JVM tests**
+- [x] **Step 1: Run JVM tests**
 
 Run:
 
@@ -2092,7 +2092,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 2: Run sidekick unit tests**
+- [x] **Step 2: Run sidekick unit tests**
 
 Run:
 
@@ -2102,7 +2102,7 @@ ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :pointpatch-compose-sideki
 
 Expected: PASS.
 
-- [ ] **Step 3: Build distributions**
+- [x] **Step 3: Build distributions**
 
 Run:
 
@@ -2117,7 +2117,7 @@ pointpatch-cli/build/install/pointpatch/bin/pointpatch
 pointpatch-mcp/build/install/pointpatch-mcp/bin/pointpatch-mcp
 ```
 
-- [ ] **Step 4: Run connected SM-G986N smoke when available**
+- [x] **Step 4: Run connected SM-G986N smoke when available**
 
 Run:
 
@@ -2148,13 +2148,20 @@ Expected:
 If no connected device is available, record the exact `adb devices -l` output and
 skip only this connected-device smoke.
 
-- [ ] **Step 5: Cleanup only session-owned processes**
+Skipped in this run because `/Users/kws/Library/Android/sdk/platform-tools/adb devices -l`
+returned only:
+
+```text
+List of devices attached
+```
+
+- [x] **Step 5: Cleanup only session-owned processes**
 
 If the final console smoke started a console process, stop only that process.
 Record command, exec session id or PID, port, and cleanup result. Do not use
 `killall`, `pkill`, or broad ADB cleanup.
 
-- [ ] **Step 6: Commit verification notes only if docs changed**
+- [x] **Step 6: Commit verification notes only if docs changed**
 
 If verification requires a docs correction, commit:
 
