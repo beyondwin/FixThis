@@ -19,20 +19,45 @@ class FeedbackSessionService(
 ) {
     private val sessionLock = Any()
 
-    fun openSession(packageNameOverride: String?): FeedbackSession =
+    fun openSession(
+        packageNameOverride: String?,
+        sessionId: String? = null,
+        newSession: Boolean = false,
+    ): FeedbackSession =
         synchronized(sessionLock) {
+            sessionId?.takeIf { it.isNotBlank() }?.let { return@synchronized store.openExistingSession(it) }
             val packageName = bridge.resolvePackageName(
                 packageNameOverride?.takeIf { it.isNotBlank() } ?: defaultPackageName,
             )
-            store.currentSession()
-                ?.takeIf { it.packageName == packageName && it.projectRoot == projectRoot && it.status != FeedbackSessionStatus.CLOSED }
-                ?: store.openSession(packageName = packageName, projectRoot = projectRoot)
+            if (!newSession) {
+                store.currentSession()
+                    ?.takeIf {
+                        it.packageName == packageName &&
+                            it.projectRoot == projectRoot &&
+                            it.status != FeedbackSessionStatus.CLOSED
+                    }
+                    ?.let { return@synchronized it }
+                store.listSessions(packageName = packageName)
+                    .sessions
+                    .firstOrNull { it.projectRoot == projectRoot }
+                    ?.let { return@synchronized store.openExistingSession(it.sessionId) }
+            }
+            store.openSession(packageName = packageName, projectRoot = projectRoot)
         }
 
     fun currentSession(): FeedbackSession =
         store.currentSession() ?: openSession(null)
 
     fun getSession(sessionId: String): FeedbackSession = store.getSession(sessionId)
+
+    fun listSessions(packageNameOverride: String? = null, includeClosed: Boolean = false): FeedbackSessionList {
+        val packageName = packageNameOverride
+            ?.takeIf { it.isNotBlank() }
+            ?.let { bridge.resolvePackageName(it) }
+        return store.listSessions(packageName = packageName, includeClosed = includeClosed)
+    }
+
+    fun closeSession(sessionId: String): FeedbackSession = store.closeSession(sessionId)
 
     suspend fun captureScreen(sessionId: String): CapturedScreen {
         val session = store.getSession(sessionId)

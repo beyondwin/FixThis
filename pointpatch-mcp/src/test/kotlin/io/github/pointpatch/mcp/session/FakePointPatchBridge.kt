@@ -6,12 +6,14 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-internal class FakePointPatchBridge : PointPatchBridge {
+internal class FakePointPatchBridge(
+    private val packageName: String = "io.github.pointpatch.sample",
+) : PointPatchBridge {
     val resolvedOverrides = mutableListOf<String?>()
 
     override fun resolvePackageName(packageOverride: String?): String {
         resolvedOverrides += packageOverride
-        return packageOverride ?: "io.github.pointpatch.sample"
+        return packageOverride ?: packageName
     }
 
     override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())

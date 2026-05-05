@@ -41,6 +41,112 @@ class FeedbackSessionServiceTest {
     }
 
     @Test
+    fun serviceOpensExactPersistedSession() {
+        val root = createTempDir(prefix = "pointpatch-v2-service-")
+        val persistence = FeedbackSessionPersistence(FeedbackSessionPaths(root), clock = { 100L })
+        val store = FeedbackSessionStore(
+            clock = { 100L },
+            idGenerator = FakeIds("session-1").next,
+            persistence = persistence,
+        )
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(packageName = "io.github.pointpatch.sample"),
+            store = store,
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val created = service.openSession(packageNameOverride = null, newSession = true)
+        val freshStore = FeedbackSessionStore(clock = { 200L }, persistence = persistence)
+        val freshService = FeedbackSessionService(
+            bridge = FakePointPatchBridge(packageName = "io.github.pointpatch.other"),
+            store = freshStore,
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.github.pointpatch.other",
+        )
+
+        val reopened = freshService.openSession(packageNameOverride = null, sessionId = created.sessionId)
+
+        assertEquals(created.sessionId, reopened.sessionId)
+        assertEquals(created.sessionId, freshStore.currentSession()?.sessionId)
+    }
+
+    @Test
+    fun serviceListsSessionsForPackage() {
+        val root = createTempDir(prefix = "pointpatch-v2-list-")
+        val store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1").next)
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(packageName = "io.github.pointpatch.sample"),
+            store = store,
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        service.openSession(packageNameOverride = null, newSession = true)
+
+        val sessions = service.listSessions(packageNameOverride = "io.github.pointpatch.sample")
+
+        assertEquals(listOf("session-1"), sessions.sessions.map { it.sessionId })
+    }
+
+    @Test
+    fun serviceAutoResumesLatestNonClosedPersistedSessionForPackageAndProject() {
+        val root = createTempDir(prefix = "pointpatch-v2-auto-resume-")
+        val persistence = FeedbackSessionPersistence(FeedbackSessionPaths(root), clock = { 500L })
+        persistence.save(
+            FeedbackSession(
+                sessionId = "sample-old",
+                packageName = "io.github.pointpatch.sample",
+                projectRoot = root.absolutePath,
+                createdAtEpochMillis = 100L,
+                updatedAtEpochMillis = 100L,
+            ),
+        )
+        persistence.save(
+            FeedbackSession(
+                sessionId = "sample-closed",
+                packageName = "io.github.pointpatch.sample",
+                projectRoot = root.absolutePath,
+                createdAtEpochMillis = 200L,
+                updatedAtEpochMillis = 400L,
+                status = FeedbackSessionStatus.CLOSED,
+            ),
+        )
+        persistence.save(
+            FeedbackSession(
+                sessionId = "sample-latest",
+                packageName = "io.github.pointpatch.sample",
+                projectRoot = root.absolutePath,
+                createdAtEpochMillis = 300L,
+                updatedAtEpochMillis = 300L,
+            ),
+        )
+        persistence.save(
+            FeedbackSession(
+                sessionId = "other-current",
+                packageName = "io.github.pointpatch.other",
+                projectRoot = root.absolutePath,
+                createdAtEpochMillis = 400L,
+                updatedAtEpochMillis = 450L,
+            ),
+        )
+        val store = FeedbackSessionStore(
+            clock = { 600L },
+            idGenerator = FakeIds("new-session").next,
+            persistence = persistence,
+        )
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(packageName = "io.github.pointpatch.sample"),
+            store = store,
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+
+        val session = service.openSession(packageNameOverride = null)
+
+        assertEquals("sample-latest", session.sessionId)
+        assertEquals("sample-latest", store.currentSession()?.sessionId)
+    }
+
+    @Test
     fun captureScreenAddsScreenToCurrentSession() = runBlocking {
         val store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1").next)
         val bridge = FakePointPatchBridge()

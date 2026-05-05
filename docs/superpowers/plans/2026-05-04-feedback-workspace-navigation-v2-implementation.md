@@ -671,7 +671,7 @@ git commit -m "mcp: resume persisted feedback sessions"
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionServiceTest.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FakePointPatchBridge.kt`
 
-- [ ] **Step 1: Add failing service tests**
+- [x] **Step 1: Add failing service tests**
 
 Append to `FeedbackSessionServiceTest`:
 
@@ -715,7 +715,7 @@ fun serviceListsSessionsForPackage() {
 }
 ```
 
-- [ ] **Step 2: Run service tests to verify they fail**
+- [x] **Step 2: Run service tests to verify they fail**
 
 Run:
 
@@ -726,7 +726,7 @@ Run:
 Expected: compilation fails because service methods do not accept `sessionId`
 or `newSession`, and `listSessions` does not exist.
 
-- [ ] **Step 3: Update service open/list/close methods**
+- [x] **Step 3: Update service open/list/close methods**
 
 Change `openSession` signature and body:
 
@@ -766,7 +766,7 @@ fun listSessions(packageNameOverride: String? = null, includeClosed: Boolean = f
 fun closeSession(sessionId: String): FeedbackSession = store.closeSession(sessionId)
 ```
 
-- [ ] **Step 4: Run service tests**
+- [x] **Step 4: Run service tests**
 
 Run:
 
@@ -776,7 +776,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionServiceTest.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FakePointPatchBridge.kt
