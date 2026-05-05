@@ -16,34 +16,100 @@ object FeedbackQueueFormatter {
         appendLine("> Screenshots are local debug artifacts. Review them before sharing exported content.")
         appendLine()
 
-        session.screens.forEach { screen ->
-            appendLine("## Screen: ${screen.displayName}")
+        appendLine("## Screens")
+        appendLine()
+        if (session.screens.isEmpty()) {
+            appendLine("No captured screens.")
             appendLine()
-            appendLine("- Screen ID: `${screen.screenId}`")
-            screen.activityName?.let { appendLine("- Activity: `$it`") }
-            screen.screenshot?.desktopFullPath?.let { appendLine("- Screenshot: `$it`") }
-
-            val items = session.items.filter { it.screenId == screen.screenId }
-            if (items.isEmpty()) {
+        } else {
+            session.screens.forEachIndexed { index, screen ->
+                appendLine("### Screen ${index + 1} - ${screen.displayName}")
                 appendLine()
-                appendLine("No feedback items for this screen.")
-                appendLine()
-            } else {
-                items.forEachIndexed { index, item ->
-                    appendLine()
-                    appendLine("### ${index + 1}. ${item.comment.lineSequence().firstOrNull().orEmpty().ifBlank { "(No comment)" }}")
-                    appendLine()
-                    appendLine("- Item ID: `${item.itemId}`")
-                    appendLine("- Status: `${item.status.name.lowercase()}`")
-                    appendLine("- Target: `${item.target.describe()}`")
-                    item.sourceCandidates.firstOrNull()?.let { candidate ->
-                        appendLine("- Source candidate: `${candidate.file}${candidate.line?.let { line -> ":$line" }.orEmpty()}`")
-                    }
-                    appendLine()
-                    appendLine(item.comment.ifBlank { "(No comment)" })
-                }
+                appendLine("- Screen ID: `${screen.screenId}`")
+                screen.activityName?.let { appendLine("- Activity: `$it`") }
+                screen.screenshot?.desktopFullPath?.let { appendLine("- Screenshot: `$it`") }
                 appendLine()
             }
+        }
+
+        appendLine("## Draft")
+        appendLine()
+        val draftItems = session.items.filter { it.delivery == FeedbackDelivery.DRAFT }
+        if (draftItems.isEmpty()) {
+            appendLine("No draft feedback items.")
+            appendLine()
+        } else {
+            draftItems.forEach { item -> appendFeedbackItem(session, item) }
+        }
+
+        appendLine("## Sent History")
+        appendLine()
+        val sentItems = session.items.filter { it.delivery == FeedbackDelivery.SENT }
+        val batchesById = session.handoffBatches.associateBy { it.batchId }
+        if (sentItems.isEmpty() && session.handoffBatches.isEmpty()) {
+            appendLine("No sent handoff batches.")
+            appendLine()
+        } else {
+            session.handoffBatches.sortedBy { it.sequenceNumber }.forEach { batch ->
+                appendLine("### Batch #${batch.sequenceNumber}")
+                appendLine()
+                appendLine("- Batch ID: `${batch.batchId}`")
+                appendLine("- Sent At: `${batch.createdAtEpochMillis}`")
+                appendLine("- Item Count: `${batch.itemIds.size}`")
+                appendLine()
+                sentItems.filter { it.handoffBatchId == batch.batchId }
+                    .forEach { item -> appendFeedbackItem(session, item) }
+                batch.itemIds.filter { itemId -> session.items.none { it.itemId == itemId } }
+                    .forEach { itemId -> appendMissingFeedbackItem(itemId) }
+            }
+
+            sentItems.filter { item ->
+                item.handoffBatchId == null || !batchesById.containsKey(item.handoffBatchId)
+            }.takeIf { it.isNotEmpty() }?.let { missingBatchItems ->
+                appendLine("### Unbatched / missing batch")
+                appendLine()
+                missingBatchItems.forEach { item -> appendFeedbackItem(session, item) }
+            }
+        }
+    }
+
+    private fun StringBuilder.appendMissingFeedbackItem(itemId: String) {
+        appendLine("- Missing feedback item: `$itemId`")
+        appendLine()
+    }
+
+    private fun StringBuilder.appendFeedbackItem(session: FeedbackSession, item: FeedbackItem) {
+        val number = item.sequenceNumber?.let { "#$it " }.orEmpty()
+        appendLine("### $number${item.comment.lineSequence().firstOrNull().orEmpty().ifBlank { "(No comment)" }}")
+        appendLine()
+        appendLine("- Item ID: `${item.itemId}`")
+        appendLine("- Delivery: `${item.delivery.name.lowercase()}`")
+        item.handoffBatchId?.let { appendLine("- Handoff Batch: `$it`") }
+        appendLine("- Status: `${item.status.name.lowercase()}`")
+        appendLine("- Screen: `${screenLabel(session, item.screenId)}`")
+        appendLine("- Target: `${item.target.describe()}`")
+        item.selectedNode?.let { node ->
+            appendLine("- Selected Node: `${node.uid}`")
+            if (node.text.isNotEmpty()) appendLine("- Selected Text: `${node.text.joinToString(" | ")}`")
+            if (node.contentDescription.isNotEmpty()) {
+                appendLine("- Selected Content Description: `${node.contentDescription.joinToString(" | ")}`")
+            }
+        }
+        item.sourceCandidates.firstOrNull()?.let { candidate ->
+            appendLine("- Source candidate: `${candidate.file}${candidate.line?.let { line -> ":$line" }.orEmpty()}`")
+        }
+        appendLine()
+        appendLine(item.comment.ifBlank { "(No comment)" })
+        appendLine()
+    }
+
+    private fun screenLabel(session: FeedbackSession, screenId: String): String {
+        val index = session.screens.indexOfFirst { it.screenId == screenId }
+        val screen = session.screens.getOrNull(index)
+        return if (screen == null) {
+            screenId
+        } else {
+            "Screen ${index + 1} - ${screen.displayName}"
         }
     }
 

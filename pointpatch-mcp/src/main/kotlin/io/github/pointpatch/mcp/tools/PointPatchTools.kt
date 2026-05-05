@@ -9,6 +9,7 @@ import io.github.pointpatch.mcp.McpProtocol
 import io.github.pointpatch.mcp.console.FeedbackConsoleServer
 import io.github.pointpatch.mcp.resourceText
 import io.github.pointpatch.mcp.session.CapturedScreen
+import io.github.pointpatch.mcp.session.FeedbackDelivery
 import io.github.pointpatch.mcp.session.FeedbackNavigationAction
 import io.github.pointpatch.mcp.session.FeedbackNavigationRequest
 import io.github.pointpatch.mcp.session.FeedbackNavigationResult
@@ -42,6 +43,7 @@ import kotlinx.serialization.json.put
 
 private const val DefaultFeedbackTimeoutMillis = 60_000L
 private const val MaxRecentOverridePackages = 8
+private val resolvedStatuses = setOf(FeedbackItemStatus.RESOLVED, FeedbackItemStatus.WONT_FIX)
 
 class PointPatchTools(
     private val bridge: PointPatchBridge = CliPointPatchBridge(BridgeClient()),
@@ -197,6 +199,12 @@ class PointPatchTools(
                     put("status", session.status.name.lowercase())
                     put("screensCount", session.screens.size)
                     put("itemsCount", session.items.size)
+                    put("draftItemsCount", session.items.count { it.delivery == FeedbackDelivery.DRAFT })
+                    put("sentBatchesCount", session.handoffBatches.size)
+                    put(
+                        "unresolvedSentItemsCount",
+                        session.items.count { it.delivery == FeedbackDelivery.SENT && it.status !in resolvedStatuses },
+                    )
                     put("items", buildJsonArray {
                         session.items.forEach { item ->
                             add(buildJsonObject {
@@ -492,6 +500,13 @@ class PointPatchTools(
         return copy(
             screens = screens.filter { it.screenId == item.screenId },
             items = listOf(item),
+            handoffBatches = if (item.delivery == FeedbackDelivery.SENT) {
+                handoffBatches
+                    .filter { it.batchId == item.handoffBatchId }
+                    .map { it.copy(itemIds = listOf(item.itemId)) }
+            } else {
+                emptyList()
+            },
         )
     }
 

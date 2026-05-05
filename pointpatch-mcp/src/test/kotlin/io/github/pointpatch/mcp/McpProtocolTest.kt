@@ -2,6 +2,7 @@ package io.github.pointpatch.mcp
 
 import io.github.pointpatch.compose.core.model.PointPatchRect
 import io.github.pointpatch.mcp.session.FakePointPatchBridge
+import io.github.pointpatch.mcp.session.FeedbackItemStatus
 import io.github.pointpatch.mcp.session.FeedbackNavigationRequest
 import io.github.pointpatch.mcp.session.FeedbackSessionService
 import io.github.pointpatch.mcp.session.FeedbackSessionStore
@@ -280,6 +281,114 @@ class McpProtocolTest {
 
         assertTrue(payload.containsKey("sessionId"))
         assertEquals("io.github.pointpatch.sample", payload.getValue("packageName").jsonPrimitive.content)
+    }
+
+    @Test
+    fun listFeedbackIncludesDraftAndSentCounts() = runBlocking {
+        val bridge = FakePointPatchBridge(packageName = "io.github.pointpatch.sample")
+        val projectRoot = createTempDir(prefix = "pointpatch-handoff-list-")
+        val service = feedbackService(
+            bridge,
+            "session-1",
+            "screen-1",
+            "item-1",
+            "item-2",
+            "item-3",
+            "item-4",
+            "batch-1",
+            "item-5",
+        )
+        val session = service.openSession(null, newSession = true)
+        val screen = service.captureScreen(session.sessionId)
+        val readyItem = service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            PointPatchRect(1f, 1f, 2f, 2f),
+            "Ready sent item",
+        )
+        val needsClarificationItem = service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            PointPatchRect(2f, 2f, 3f, 3f),
+            "Needs clarification sent item",
+        )
+        val resolvedItem = service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            PointPatchRect(3f, 3f, 4f, 4f),
+            "Resolved sent item",
+        )
+        val wontFixItem = service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            PointPatchRect(4f, 4f, 5f, 5f),
+            "Won't fix sent item",
+        )
+        service.sendDraftToAgent(session.sessionId)
+        service.resolveFeedback(session.sessionId, needsClarificationItem.itemId, FeedbackItemStatus.NEEDS_CLARIFICATION, null)
+        service.resolveFeedback(session.sessionId, resolvedItem.itemId, FeedbackItemStatus.RESOLVED, null)
+        service.resolveFeedback(session.sessionId, wontFixItem.itemId, FeedbackItemStatus.WONT_FIX, null)
+        service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            PointPatchRect(5f, 5f, 6f, 6f),
+            "Draft item",
+        )
+        val tools = PointPatchTools(
+            bridge = bridge,
+            projectRoot = projectRoot,
+            defaultPackageName = "io.github.pointpatch.sample",
+            feedbackService = service,
+        )
+
+        val result = tools.call("pointpatch_list_feedback", JsonObject(emptyMap())).firstJsonContent()
+
+        assertEquals(1, result.getValue("draftItemsCount").jsonPrimitive.int)
+        assertEquals(1, result.getValue("sentBatchesCount").jsonPrimitive.int)
+        assertEquals(2, result.getValue("unresolvedSentItemsCount").jsonPrimitive.int)
+        assertEquals(readyItem.itemId, result.getValue("items").jsonArray[0].jsonObject.getValue("itemId").jsonPrimitive.content)
+    }
+
+    @Test
+    fun readFeedbackWithItemIdFiltersOutUnrelatedHandoffBatches() = runBlocking {
+        val bridge = FakePointPatchBridge(packageName = "io.github.pointpatch.sample")
+        val service = feedbackService(
+            bridge,
+            "session-1",
+            "screen-1",
+            "item-1",
+            "batch-1",
+            "item-2",
+            "batch-2",
+        )
+        val session = service.openSession(null, newSession = true)
+        val screen = service.captureScreen(session.sessionId)
+        service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            PointPatchRect(1f, 1f, 2f, 2f),
+            "First batch feedback",
+        )
+        service.sendDraftToAgent(session.sessionId)
+        val secondItem = service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            PointPatchRect(2f, 2f, 3f, 3f),
+            "Second batch feedback",
+        )
+        service.sendDraftToAgent(session.sessionId)
+        val server = server(bridge, feedbackService = service)
+
+        val content = runToolCallContentTexts(
+            server,
+            "pointpatch_read_feedback",
+            """{"sessionId":"${session.sessionId}","itemId":"${secondItem.itemId}"}""",
+        )
+
+        assertTrue(content[1].contains("Batch #2"))
+        assertTrue(content[1].contains("Second batch feedback"))
+        assertFalse(content[1].contains("Batch #1"))
+        assertFalse(content[1].contains("First batch feedback"))
     }
 
     @Test

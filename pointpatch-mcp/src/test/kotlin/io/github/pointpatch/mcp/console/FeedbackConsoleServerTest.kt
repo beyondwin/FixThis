@@ -210,8 +210,11 @@ class FeedbackConsoleServerTest {
 
             assertEquals(200, clear.responseCode)
             val body = clear.inputStream.bufferedReader().readText()
-            assertTrue(body.contains("Sent"))
-            assertFalse(body.contains("Draft"))
+            val comments = pointPatchJson.parseToJsonElement(body).jsonObject
+                .getValue("items")
+                .jsonArray
+                .map { it.jsonObject.getValue("comment").jsonPrimitive.content }
+            assertEquals(listOf("Sent"), comments)
         } finally {
             server.stop()
         }
