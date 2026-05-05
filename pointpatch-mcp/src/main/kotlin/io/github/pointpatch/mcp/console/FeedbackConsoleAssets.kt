@@ -42,6 +42,7 @@ internal object FeedbackConsoleAssets {
               overflow: auto;
             }
             h2 { margin: 0 0 12px; font-size: 14px; font-weight: 700; letter-spacing: 0; }
+            h2.section-heading { margin-top: 18px; }
             button {
               border: 1px solid #b9c2cf;
               border-radius: 6px;
@@ -72,6 +73,16 @@ internal object FeedbackConsoleAssets {
               border-radius: 8px;
               padding: 10px;
               background: #fbfcfe;
+            }
+            .session-row {
+              display: block;
+              width: 100%;
+              min-height: 0;
+              text-align: left;
+            }
+            .session-row.active {
+              border-color: #116a5c;
+              background: #eef7f5;
             }
             .row strong { display: block; font-size: 13px; margin-bottom: 4px; }
             .row span { color: #667085; font-size: 12px; overflow-wrap: anywhere; }
@@ -109,7 +120,13 @@ internal object FeedbackConsoleAssets {
           </header>
           <main>
             <section>
-              <h2>Screens</h2>
+              <div class="toolbar">
+                <button id="newSessionButton">New Session</button>
+                <button id="closeSessionButton">Close</button>
+              </div>
+              <h2>Sessions</h2>
+              <div id="sessions" class="list"></div>
+              <h2 class="section-heading">Screens</h2>
               <div id="screens" class="list"></div>
             </section>
             <section>
@@ -129,6 +146,7 @@ internal object FeedbackConsoleAssets {
           <script>
             const state = { session: null };
             const sessionMeta = document.getElementById('sessionMeta');
+            const sessions = document.getElementById('sessions');
             const screens = document.getElementById('screens');
             const snapshot = document.getElementById('snapshot');
             const items = document.getElementById('items');
@@ -164,7 +182,7 @@ internal object FeedbackConsoleAssets {
             function render() {
               const session = state.session;
               sessionMeta.textContent = session
-                ? `${'$'}{session.packageName} | ${'$'}{session.status} | ${'$'}{session.items.length} item(s)`
+                ? `${'$'}{session.packageName} | ${'$'}{session.status} | ${'$'}{session.sessionId} | ${'$'}{session.items.length} item(s)`
                 : 'No active session';
 
               screens.innerHTML = (session?.screens || []).map(screen => `
@@ -188,10 +206,56 @@ internal object FeedbackConsoleAssets {
               `).join('') || '<div class="row"><span>No feedback items queued.</span></div>';
             }
 
+            async function refreshSessions() {
+              const response = await requestJson('/api/sessions');
+              const activeId = state.session?.sessionId;
+              sessions.innerHTML = (response.sessions || []).map(session => `
+                <button class="row session-row ${'$'}{session.sessionId === activeId ? 'active' : ''}" data-session-id="${'$'}{escapeHtml(session.sessionId)}">
+                  <strong>${'$'}{escapeHtml(session.packageName)}</strong>
+                  <span>${'$'}{escapeHtml(session.sessionId)} | ${'$'}{escapeHtml(session.status)} | ${'$'}{session.itemsCount} item(s)</span>
+                </button>
+              `).join('') || '<div class="row"><span>No saved sessions.</span></div>';
+              document.querySelectorAll('.session-row').forEach(row => {
+                row.addEventListener('click', () => openSession(row.dataset.sessionId).catch(showError));
+              });
+            }
+
             async function refresh() {
               error.textContent = '';
               state.session = await requestJson('/api/session');
+              await refreshSessions();
               render();
+            }
+
+            async function openSession(sessionId) {
+              error.textContent = '';
+              state.session = await requestJson('/api/session/open', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId })
+              });
+              await refresh();
+            }
+
+            async function newSession() {
+              error.textContent = '';
+              state.session = await requestJson('/api/session/open', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ newSession: true })
+              });
+              await refresh();
+            }
+
+            async function closeSession() {
+              error.textContent = '';
+              if (!state.session) return;
+              await requestJson('/api/session/close', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId: state.session.sessionId })
+              });
+              await refresh();
             }
 
             async function capture() {
@@ -226,6 +290,8 @@ internal object FeedbackConsoleAssets {
             document.getElementById('captureButton').addEventListener('click', () => capture().catch(showError));
             document.getElementById('addItemButton').addEventListener('click', () => addItem().catch(showError));
             document.getElementById('copyMarkdownButton').addEventListener('click', () => copyMarkdown().catch(showError));
+            document.getElementById('newSessionButton').addEventListener('click', () => newSession().catch(showError));
+            document.getElementById('closeSessionButton').addEventListener('click', () => closeSession().catch(showError));
 
             function showError(cause) {
               error.textContent = cause && cause.message ? cause.message : String(cause);

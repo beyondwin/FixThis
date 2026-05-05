@@ -43,6 +43,17 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun consoleHtmlIncludesSessionPickerControls() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("id=\"sessions\""))
+        assertTrue(html.contains("id=\"newSessionButton\""))
+        assertTrue(html.contains("id=\"closeSessionButton\""))
+        assertTrue(html.contains("/api/sessions"))
+        assertTrue(html.contains("/api/session/open"))
+    }
+
+    @Test
     fun rejectsUnsupportedMethods() {
         val service = FeedbackSessionService(FakePointPatchBridge(), FeedbackSessionStore(), "/repo", "io.github.pointpatch.sample")
         val server = FeedbackConsoleServer(service = service, port = 0)

@@ -1168,7 +1168,7 @@ git commit -m "mcp: add feedback workspace console APIs"
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Add asset smoke test**
+- [x] **Step 1: Add asset smoke test**
 
 Add:
 
@@ -1183,7 +1183,7 @@ fun consoleHtmlIncludesSessionPickerControls() {
 }
 ```
 
-- [ ] **Step 2: Run asset test to verify it fails**
+- [x] **Step 2: Run asset test to verify it fails**
 
 Run:
 
@@ -1193,7 +1193,7 @@ Run:
 
 Expected: assertion fails because session picker elements are absent.
 
-- [ ] **Step 3: Update HTML structure**
+- [x] **Step 3: Update HTML structure**
 
 Add to the left pane above screens:
 
@@ -1207,7 +1207,7 @@ Add to the left pane above screens:
 <h2>Screens</h2>
 ```
 
-- [ ] **Step 4: Add session picker JavaScript**
+- [x] **Step 4: Add session picker JavaScript**
 
 Add functions:
 
@@ -1247,7 +1247,7 @@ async function newSession() {
 
 Call `await refreshSessions()` inside `refresh()` after session JSON is loaded.
 
-- [ ] **Step 5: Run console tests**
+- [x] **Step 5: Run console tests**
 
 Run:
 
@@ -1257,7 +1257,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
