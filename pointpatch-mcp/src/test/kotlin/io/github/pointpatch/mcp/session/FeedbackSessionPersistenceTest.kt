@@ -50,6 +50,8 @@ class FeedbackSessionPersistenceTest {
                     updatedAtEpochMillis = 2L,
                     target = FeedbackTarget.Area(PointPatchRectForTest.bounds),
                     comment = "Fix spacing",
+                    delivery = FeedbackDelivery.SENT,
+                    handoffBatchId = "batch-1",
                     status = FeedbackItemStatus.READY,
                 ),
                 FeedbackItem(
@@ -62,6 +64,15 @@ class FeedbackSessionPersistenceTest {
                     status = FeedbackItemStatus.RESOLVED,
                 ),
             ),
+            handoffBatches = listOf(
+                FeedbackHandoffBatch(
+                    batchId = "batch-1",
+                    sequenceNumber = 1,
+                    createdAtEpochMillis = 2L,
+                    itemIds = listOf("item-1"),
+                    markdownSnapshot = "Batch markdown",
+                ),
+            ),
         )
 
         val summary = FeedbackSessionSummary.from(session)
@@ -70,6 +81,8 @@ class FeedbackSessionPersistenceTest {
         assertEquals(1, summary.screensCount)
         assertEquals(2, summary.itemsCount)
         assertEquals(1, summary.unresolvedItemsCount)
+        assertEquals(1, summary.draftItemsCount)
+        assertEquals(1, summary.sentBatchesCount)
     }
 
     @Test

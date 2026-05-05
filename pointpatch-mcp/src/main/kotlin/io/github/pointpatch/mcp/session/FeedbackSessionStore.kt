@@ -115,6 +115,8 @@ class FeedbackSessionStore(
                 itemId = idGenerator(),
                 createdAtEpochMillis = now,
                 updatedAtEpochMillis = now,
+                sequenceNumber = item.sequenceNumber ?: nextItemSequenceNumber(session),
+                delivery = item.delivery,
             )
             val updated = session.copy(
                 items = session.items + created,
@@ -123,6 +125,53 @@ class FeedbackSessionStore(
             save(updated)
             sessions[sessionId] = updated
             created
+        }
+
+    fun clearDraftItems(sessionId: String): FeedbackSession =
+        synchronized(lock) {
+            val session = getSessionLocked(sessionId)
+            val updated = session.copy(
+                items = session.items.filter { it.delivery != FeedbackDelivery.DRAFT },
+                updatedAtEpochMillis = clock(),
+            )
+            commitSessionMutation(session, updated)
+        }
+
+    fun sendDraftToAgent(sessionId: String, markdownSnapshot: String?): FeedbackSession =
+        synchronized(lock) {
+            val session = getSessionLocked(sessionId)
+            val draftItems = session.items.filter { it.delivery == FeedbackDelivery.DRAFT }
+            if (draftItems.isEmpty()) {
+                throw FeedbackSessionException("NO_DRAFT_FEEDBACK: No draft feedback items to send")
+            }
+            val now = clock()
+            val batch = FeedbackHandoffBatch(
+                batchId = idGenerator(),
+                sequenceNumber = session.handoffBatches.size + 1,
+                createdAtEpochMillis = now,
+                itemIds = draftItems.map { it.itemId },
+                markdownSnapshot = markdownSnapshot,
+            )
+            val updatedItems = session.items.map { item ->
+                if (item.delivery == FeedbackDelivery.DRAFT) {
+                    item.copy(
+                        delivery = FeedbackDelivery.SENT,
+                        handoffBatchId = batch.batchId,
+                        sentAtEpochMillis = now,
+                        status = FeedbackItemStatus.READY,
+                        updatedAtEpochMillis = now,
+                    )
+                } else {
+                    item
+                }
+            }
+            val updated = session.copy(
+                items = updatedItems,
+                handoffBatches = session.handoffBatches + batch,
+                status = FeedbackSessionStatus.READY_FOR_AGENT,
+                updatedAtEpochMillis = now,
+            )
+            commitSessionMutation(session, updated)
         }
 
     fun markReadyForAgent(sessionId: String): FeedbackSession =
@@ -171,6 +220,16 @@ class FeedbackSessionStore(
 
     private fun getSessionLocked(sessionId: String): FeedbackSession =
         sessions[sessionId] ?: throw FeedbackSessionException("Unknown feedback session: $sessionId")
+
+    private fun nextItemSequenceNumber(session: FeedbackSession): Int =
+        session.items.mapNotNull { it.sequenceNumber }.maxOrNull()?.plus(1)
+            ?: session.items.size + 1
+
+    private fun commitSessionMutation(previous: FeedbackSession, updated: FeedbackSession): FeedbackSession {
+        save(updated)
+        sessions[previous.sessionId] = updated
+        return updated
+    }
 
     private fun save(session: FeedbackSession) {
         persistence?.save(session)

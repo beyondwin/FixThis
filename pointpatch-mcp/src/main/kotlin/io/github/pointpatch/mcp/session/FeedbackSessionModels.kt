@@ -17,6 +17,7 @@ data class FeedbackSession(
     val updatedAtEpochMillis: Long,
     val screens: List<CapturedScreen> = emptyList(),
     val items: List<FeedbackItem> = emptyList(),
+    val handoffBatches: List<FeedbackHandoffBatch> = emptyList(),
     val status: FeedbackSessionStatus = FeedbackSessionStatus.ACTIVE,
 )
 
@@ -75,6 +76,10 @@ data class FeedbackItem(
     val sourceCandidates: List<SourceCandidate> = emptyList(),
     val screenshotCrop: FeedbackScreenshot? = null,
     val comment: String,
+    val sequenceNumber: Int? = null,
+    val delivery: FeedbackDelivery = FeedbackDelivery.DRAFT,
+    val handoffBatchId: String? = null,
+    val sentAtEpochMillis: Long? = null,
     val status: FeedbackItemStatus = FeedbackItemStatus.OPEN,
     val agentSummary: String? = null,
 )
