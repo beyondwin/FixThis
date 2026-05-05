@@ -782,26 +782,30 @@ internal object FeedbackConsoleAssets {
             async function startAddItemsFlow() {
               error.textContent = '';
               stopLivePreviewPolling();
-              const addFlowContextGeneration = previewRequestContextGeneration;
-              previewRequestGeneration++;
-              let preview = state.preview;
-              if (previewRequestInFlight || !preview) {
-                preview = await requestLivePreview();
-                if (addFlowContextGeneration !== previewRequestContextGeneration) return;
-                state.preview = preview;
+              try {
+                const addFlowContextGeneration = previewRequestContextGeneration;
+                previewRequestGeneration++;
+                let preview = state.preview;
+                if (previewRequestInFlight || !preview) {
+                  preview = await requestLivePreview();
+                  if (addFlowContextGeneration !== previewRequestContextGeneration) return;
+                  state.preview = preview;
+                }
+                if (!state.preview) {
+                  return;
+                }
+                addItemsFlow = {
+                  previewId: state.preview.previewId,
+                  screen: state.preview.screen,
+                  screenshotUrl: previewScreenshotUrl(state.preview.previewId)
+                };
+                pendingFeedbackItems = [];
+                focusedPendingItemIndex = null;
+                currentSelection = null;
+                render();
+              } finally {
+                if (!addItemsFlow) startLivePreviewPolling();
               }
-              if (!state.preview) {
-                return;
-              }
-              addItemsFlow = {
-                previewId: state.preview.previewId,
-                screen: state.preview.screen,
-                screenshotUrl: previewScreenshotUrl(state.preview.previewId)
-              };
-              pendingFeedbackItems = [];
-              focusedPendingItemIndex = null;
-              currentSelection = null;
-              render();
             }
 
             function queuePendingFeedbackItem() {

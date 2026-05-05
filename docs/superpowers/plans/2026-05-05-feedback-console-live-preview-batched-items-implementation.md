@@ -1152,7 +1152,7 @@ git commit -m "docs: explain live preview feedback workflow"
 
 - No planned source edits unless verification finds a defect.
 
-- [ ] **Step 1: Run full relevant test suite**
+- [x] **Step 1: Run full relevant test suite**
 
 Run:
 
@@ -1162,7 +1162,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 2: Build install distributions**
+- [x] **Step 2: Build install distributions**
 
 Run:
 
@@ -1172,7 +1172,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 3: Check connected device state**
+- [x] **Step 3: Check connected device state**
 
 Run:
 
@@ -1182,7 +1182,7 @@ ANDROID_HOME=/Users/kws/Library/Android/sdk PATH=/Users/kws/Library/Android/sdk/
 
 Expected: if `SM_G986N` is connected in `device` state, continue to Step 4. If no usable device is connected, record the raw output and skip only the connected-device smoke.
 
-- [ ] **Step 4: Start console and smoke the workflow**
+- [x] **Step 4: Start console and smoke the workflow** (skipped; no usable connected device)
 
 Run:
 
@@ -1202,7 +1202,7 @@ Smoke expectations:
 - same visible screen used in a later `Add` flow creates a separate persisted evidence snapshot
 - exported Markdown is concise and includes likely source hints when available
 
-- [ ] **Step 5: Run static diff check**
+- [x] **Step 5: Run static diff check**
 
 Run:
 
@@ -1212,7 +1212,7 @@ git diff --check
 
 Expected: no output.
 
-- [ ] **Step 6: Final review**
+- [x] **Step 6: Final review**
 
 Dispatch a final code quality review subagent over the full diff. Fix any actionable issue, rerun the relevant verification, and close the agent before finishing.
 

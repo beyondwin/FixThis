@@ -384,10 +384,22 @@ class McpProtocolTest {
             "pointpatch_read_feedback",
             """{"sessionId":"${session.sessionId}","itemId":"${secondItem.itemId}"}""",
         )
+        val payload = parse(content[0]).jsonObject
+        val items = payload.getValue("items").jsonArray
+        val handoffBatches = payload.getValue("handoffBatches").jsonArray
+        val handoffBatch = handoffBatches.single().jsonObject
+        val handoffBatchItemIds = handoffBatch.getValue("itemIds").jsonArray
+            .map { it.jsonPrimitive.content }
 
-        assertTrue(content[1].contains("Batch #2"))
+        assertEquals(1, items.size)
+        assertEquals(secondItem.itemId, items[0].jsonObject.getValue("itemId").jsonPrimitive.content)
+        assertEquals(1, handoffBatches.size)
+        assertEquals(2, handoffBatch.getValue("sequenceNumber").jsonPrimitive.int)
+        assertEquals(listOf(secondItem.itemId), handoffBatchItemIds)
         assertTrue(content[1].contains("Second batch feedback"))
         assertFalse(content[1].contains("Batch #1"))
+        assertFalse(content[1].contains("Batch #2"))
+        assertFalse(content[1].contains("Sent History"))
         assertFalse(content[1].contains("First batch feedback"))
     }
 

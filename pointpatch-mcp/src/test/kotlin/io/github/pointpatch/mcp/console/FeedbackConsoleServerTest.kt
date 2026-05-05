@@ -256,6 +256,7 @@ class FeedbackConsoleServerTest {
 
         assertTrue(html.contains("async function startAddItemsFlow()"))
         assertTrue(html.contains("stopLivePreviewPolling();"))
+        assertTrue(html.contains("try {"))
         assertTrue(html.contains("const addFlowContextGeneration = previewRequestContextGeneration;"))
         assertTrue(html.contains("previewRequestGeneration++;"))
         assertTrue(html.contains("let preview = state.preview;"))
@@ -266,6 +267,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("if (!state.preview) {"))
         assertTrue(html.contains("previewId: state.preview.previewId"))
         assertTrue(html.contains("screenshotUrl: previewScreenshotUrl(state.preview.previewId)"))
+        assertTrue(Regex("finally \\{\\s+if \\(!addItemsFlow\\) startLivePreviewPolling\\(\\);\\s+\\}").containsMatchIn(html))
         assertTrue(html.contains("document.getElementById('addFlowButton').addEventListener('click', () => startAddItemsFlow().catch(showError));"))
     }
 

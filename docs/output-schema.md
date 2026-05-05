@@ -72,7 +72,7 @@ Feedback session summaries are returned by `pointpatch_list_feedback_sessions` a
 
 ## Captured Screen Schema
 
-Captured screens represent persisted evidence snapshots in a feedback session. They are created when the console Save action promotes a frozen preview, not for every live preview frame:
+Captured screens represent persisted evidence snapshots in a feedback session. The feedback console creates them when Save promotes a frozen preview; MCP tools can also create them through explicit capture or navigation with `captureAfter`. Live preview frames are not captured screens:
 
 - `screenId`: persisted evidence snapshot id.
 - `capturedAtEpochMillis`: capture timestamp.
