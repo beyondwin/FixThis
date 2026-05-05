@@ -99,6 +99,14 @@ Retry after the screen is fully rendered. For CLI/MCP, confirm the Android scree
 
 The console may still show semantics without a screenshot. Retry Capture current screen after the app finishes drawing.
 
+### Capture is disabled
+
+Select a device in the console device picker. If the device is unauthorized or offline, fix it in `adb devices -l` first.
+
+### I sent feedback but want to add more
+
+After Send Draft to Agent, the draft area is cleared and the batch appears in Sent History. Select or capture again to create a new draft batch.
+
 ## MCP stdout Log Corruption
 
 Symptom: an MCP client fails to parse JSON-RPC messages, often after seeing human-readable logs mixed into stdout.

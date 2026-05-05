@@ -47,6 +47,17 @@ Typical flow:
 
 The CLI command `pointpatch console --package <applicationId>` opens the same local console for copy/export workflows.
 
+Console workflow:
+
+1. Select a connected ADB device from the browser device picker. Offline, unauthorized, and otherwise unavailable devices are visible but not selectable.
+2. Capture a screen.
+3. Use Select mode to click a component or drag a custom area.
+4. Add a comment and create draft feedback.
+5. Send the draft to the agent. The console records a persisted handoff batch that `pointpatch_read_feedback` can read, moves draft items to sent delivery, clears the draft, and keeps the batch in Sent History.
+6. Use Navigate mode only when you want screenshot clicks to tap the live app, or when you want the debug-only one-step `back` and `swipe` controls.
+
+Send Draft to Agent is local persistence, not an external AI API call. PointPatch records a handoff batch in the feedback session so an MCP client can read the batch and decide what to do next.
+
 ## Setup Output
 
 Run:
@@ -133,11 +144,11 @@ Performs one debug-only `back`, `tap`, or `swipe` action and optionally captures
 
 `pointpatch_list_feedback`
 
-Lists feedback queue summaries for the active feedback session.
+Lists feedback queue summaries for the active feedback session, including draft item count, sent handoff batch count, and unresolved sent item count.
 
 `pointpatch_read_feedback`
 
-Reads the feedback queue as annotation JSON and Markdown, optionally focused on one item.
+Reads the feedback queue as annotation JSON and Markdown, optionally focused on one item. The output groups current draft feedback and Sent History handoff batches.
 
 `pointpatch_resolve_feedback`
 

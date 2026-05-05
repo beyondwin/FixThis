@@ -48,6 +48,7 @@ Feedback console sessions are returned by `pointpatch_open_feedback_console` and
 - `createdAtEpochMillis`, `updatedAtEpochMillis`: session timestamps.
 - `screens`: captured screen entries.
 - `items`: feedback queue items.
+- `handoffBatches`: persisted sent handoff batches.
 - `status`: `active`, `ready_for_agent`, or `closed`.
 
 ## Feedback Session Summary
@@ -62,6 +63,10 @@ Feedback session summaries are returned by `pointpatch_list_feedback_sessions` a
 - `screensCount`: number of captured screens in the session.
 - `itemsCount`: number of feedback items in the session.
 - `unresolvedItemsCount`: number of feedback items not resolved or marked won't fix.
+- `draftItemsCount`: number of feedback items whose delivery is `draft`.
+- `sentBatchesCount`: number of persisted handoff batches.
+
+`pointpatch_list_feedback` returns the same session context plus `unresolvedSentItemsCount`, the number of sent feedback items not resolved or marked won't fix.
 
 ## Captured Screen Schema
 
@@ -100,8 +105,31 @@ Feedback items represent human comments on a captured screen:
 - `sourceCandidates`: best-effort source hints.
 - `screenshotCrop`: crop artifact metadata when available.
 - `comment`: human feedback text.
+- `sequenceNumber`: stable human-readable item number within the session.
+- `delivery`: `draft` before handoff or `sent` after a handoff batch records the item for agent reading.
+- `handoffBatchId`: batch id that sent the item, present for sent items when available.
+- `sentAtEpochMillis`: time the item was sent to a handoff batch, present for sent items.
 - `status`: `open`, `ready`, `in_progress`, `resolved`, `needs_clarification`, or `wont_fix`.
 - `agentSummary`: optional agent resolution summary.
+
+## Feedback Delivery
+
+Feedback console Select mode creates draft feedback items from a component click or custom drag area. Sending the draft creates a persisted handoff batch, changes draft items to `delivery: "sent"`, sets `handoffBatchId` and `sentAtEpochMillis`, and records those items in Sent History. It does not create a new external AI API payload; MCP tools read the persisted session data.
+
+Delivery values:
+
+- `draft`: item is still in the current draft queue.
+- `sent`: item is part of a persisted handoff batch.
+
+## Feedback Handoff Batch
+
+Handoff batches are stored on the feedback session in `handoffBatches`:
+
+- `batchId`: persisted batch id.
+- `sequenceNumber`: stable human-readable batch number within the session.
+- `createdAtEpochMillis`: time the batch was created.
+- `itemIds`: feedback item ids included in the batch.
+- `markdownSnapshot`: Markdown snapshot captured when the draft was sent, when available.
 
 ## Selection
 

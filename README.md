@@ -93,6 +93,10 @@ If `--package` is omitted, `.pointpatch/project.json` must already exist so the 
 
 MCP is the primary agent workflow for the feedback console. `pointpatch mcp` runs as a stdio JSON-RPC server and can open a local web console where you review Android screen snapshots, add feedback with a desktop keyboard, and let the agent read the queue. `pointpatch console` opens the same console without requiring an MCP client.
 
+The feedback console has separate Select and Navigate modes. Select mode creates feedback targets from a component click or custom drag area; Navigate mode sends the existing debug-only one-step `back`, `tap`, and `swipe` actions to the app. The browser device picker selects the active ADB device for PointPatch bridge requests, and unavailable, offline, or unauthorized devices are shown as unavailable rather than selectable.
+
+Send Draft to Agent persists the current draft as a local handoff batch that MCP tools can read. It does not call an external AI API. Sent history persists with the feedback session, and the draft is cleared after send.
+
 Feedback console sessions are resumable. PointPatch saves feedback workspace metadata and screenshot artifacts under `.pointpatch/feedback-sessions/`, so an MCP or console restart does not discard queued feedback.
 
 ## Local Artifacts

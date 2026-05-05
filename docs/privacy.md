@@ -12,6 +12,8 @@ The feedback console is served from localhost by the desktop MCP process. The An
 
 Feedback workspace files are local project artifacts under `.pointpatch/feedback-sessions/`. They include feedback session metadata and session-owned screenshot artifacts used to resume the console after MCP or console restarts.
 
+Send Draft to Agent stores a local handoff batch in the feedback session so MCP tools can read it. It does not upload feedback or screenshots and does not call an external AI API.
+
 ## Debug Scope
 
 PointPatch is for debug builds only. The sidekick checks that the app is debuggable before starting the bridge. Do not document or ship it as a production feedback feature.
@@ -56,5 +58,7 @@ These files are local artifacts and are ignored by git. Treat them like screensh
 The sidekick writes a session token under app-private storage. The desktop CLI reads it with `adb shell run-as <package> cat files/pointpatch/session.json`, and every bridge request includes the token. A mismatched token is rejected by the bridge.
 
 Feedback navigation actions are debug-only touch or key events dispatched inside the app process through the existing sidekick bridge. They do not make the Android app open a network service.
+
+Device selection is local PointPatch console state. Disconnecting a device in the console does not run `adb disconnect` and does not detach USB or Wi-Fi ADB; it clears PointPatch's active device selection and owned bridge resources.
 
 This bridge is intended for a trusted local development machine with ADB access to a debug app. Do not use it as a remote service boundary.
