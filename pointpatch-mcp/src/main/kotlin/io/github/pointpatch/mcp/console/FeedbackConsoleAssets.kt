@@ -183,14 +183,24 @@ internal object FeedbackConsoleAssets {
             }
             .sent-history-drawer {
               border-top: 1px solid var(--line);
-              background: var(--bg-0);
+              padding: 8px;
+              flex: 0 0 auto;
+              min-height: 0;
+              overflow: hidden;
             }
             .sent-history-drawer summary {
               cursor: pointer;
-              padding: 12px 14px;
-              color: var(--txt-1);
-              font-size: 12px;
+              color: var(--txt-2);
+              font-size: 10px;
               font-weight: 700;
+              letter-spacing: .14em;
+              text-transform: uppercase;
+              padding: 8px 4px;
+            }
+            .sent-history-drawer .history-list {
+              max-height: 160px;
+              overflow: auto;
+              padding: 0;
             }
             .row {
               border: 1px solid var(--line);
@@ -1226,6 +1236,20 @@ internal object FeedbackConsoleAssets {
               });
             }
 
+            function renderSessionsListFromPayload(sessionSummaries) {
+              const activeId = state.session?.sessionId;
+              sessionCount.textContent = String(sessionSummaries.length);
+              sessions.innerHTML = sessionSummaries.map((session, index) =>
+                '<button class="row session-row ' + (session.sessionId === activeId ? 'active' : '') + '" data-session-id="' + escapeHtml(session.sessionId) + '">' +
+                  '<strong>' + escapeHtml(formatSessionLabel(session, index)) + '</strong>' +
+                  '<span>' + escapeHtml(formatSessionSummary(session)) + '</span>' +
+                '</button>'
+              ).join('') || '<div class="row"><span>No saved sessions.</span></div>';
+              document.querySelectorAll('.session-row').forEach(row => {
+                row.addEventListener('click', () => openSession(row.dataset.sessionId).catch(showError));
+              });
+            }
+
             function renderSessionsList() {
               const activeId = state.session?.sessionId;
               document.querySelectorAll('.session-row').forEach(row => {
@@ -1251,9 +1275,10 @@ internal object FeedbackConsoleAssets {
                 .filter(item => !item.handoffBatchId || !batchIds.has(item.handoffBatchId) || !batchedItemIds.has(item.itemId))
                 .map(item => {
                   const label = item.handoffBatchId ? 'Missing batch metadata' : 'Unbatched sent item';
+                  const detail = item.handoffBatchId ? 'No batch metadata' : 'Sent outside a batch';
                   return '<div class="row">' +
                     '<strong>' + escapeHtml(label) + '</strong>' +
-                    '<span>' + escapeHtml(firstLine(item.comment || '(No comment)')) + ' | Not sent</span>' +
+                    '<span>' + escapeHtml(firstLine(item.comment || '(No comment)')) + ' · ' + escapeHtml(detail) + '</span>' +
                   '</div>';
                 });
               sentHistory.innerHTML = batchRows.concat(unbatchedRows).join('') || '<div class="row"><span>No sent handoff history.</span></div>';
@@ -1354,16 +1379,7 @@ internal object FeedbackConsoleAssets {
 
             async function refreshSessions() {
               const response = await requestJson('/api/sessions');
-              const activeId = state.session?.sessionId;
-              sessions.innerHTML = (response.sessions || []).map((session, index) =>
-                '<button class="row session-row ' + (session.sessionId === activeId ? 'active' : '') + '" data-session-id="' + escapeHtml(session.sessionId) + '">' +
-                  '<strong>' + escapeHtml(formatSessionLabel(session, index)) + '</strong>' +
-                  '<span>' + escapeHtml(formatSessionSummary(session)) + '</span>' +
-                '</button>'
-              ).join('') || '<div class="row"><span>No saved sessions.</span></div>';
-              document.querySelectorAll('.session-row').forEach(row => {
-                row.addEventListener('click', () => openSession(row.dataset.sessionId).catch(showError));
-              });
+              renderSessionsListFromPayload(response.sessions || []);
             }
 
             async function refresh() {

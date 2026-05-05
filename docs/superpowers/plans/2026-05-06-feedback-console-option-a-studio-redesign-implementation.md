@@ -963,7 +963,7 @@ git commit -m "feat: add mode-aware studio inspector"
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Add session history test**
+- [x] **Step 1: Add session history test**
 
 Add this test:
 
@@ -983,7 +983,7 @@ fun consoleHtmlRendersStudioSessionHistoryWithoutInternalIds() {
 }
 ```
 
-- [ ] **Step 2: Split session and sent rendering**
+- [x] **Step 2: Split session and sent rendering**
 
 Move code out of `render()` into these functions:
 
@@ -1038,7 +1038,7 @@ async function refreshSessions() {
 }
 ```
 
-- [ ] **Step 3: Add drawer CSS**
+- [x] **Step 3: Add drawer CSS**
 
 ```css
 .sent-history-drawer {
@@ -1062,7 +1062,7 @@ async function refreshSessions() {
 }
 ```
 
-- [ ] **Step 4: Run the session history test**
+- [x] **Step 4: Run the session history test**
 
 Run:
 
@@ -1072,7 +1072,7 @@ Run:
 
 Expected: pass.
 
-- [ ] **Step 5: Commit session history**
+- [x] **Step 5: Commit session history**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt

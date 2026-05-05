@@ -225,7 +225,8 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("function formatBatchItemSummary"))
         assertTrue(html.contains("session.handoffBatches"))
         assertTrue(html.contains("Batch #"))
-        assertTrue(html.contains("Not sent"))
+        assertTrue(html.contains("No batch metadata"))
+        assertTrue(html.contains("Sent outside a batch"))
         assertTrue(html.contains("Unbatched sent item"))
         assertTrue(html.contains("Missing batch metadata"))
         assertFalse(html.contains("id=\"modeSelect\""))
@@ -247,6 +248,24 @@ class FeedbackConsoleServerTest {
 
         assertTrue(html.contains("function formatSessionHeader"))
         assertTrue(html.contains("function renderSavedEvidenceGroups"))
+    }
+
+    @Test
+    fun consoleHtmlRendersStudioSessionHistoryWithoutInternalIds() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("function renderSessionsList"))
+        assertTrue(html.contains("sessionCount.textContent"))
+        assertTrue(html.contains("class=\"row session-row"))
+        assertTrue(html.contains("class=\"sent-history-drawer\""))
+        assertTrue(html.contains("formatSessionSummary(session)"))
+        assertTrue(html.contains(".sent-history-drawer .history-list"))
+        assertTrue(html.contains("max-height:"))
+        assertTrue(html.contains("overflow: auto"))
+        assertFalse(html.contains("· Not sent"))
+        assertFalse(html.contains("shortId(session.sessionId)"))
+        assertFalse(html.contains("shortId(screen.screenId)"))
+        assertFalse(html.contains("shortId(batch.batchId)"))
     }
 
     @Test
