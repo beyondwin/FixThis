@@ -186,6 +186,171 @@ Pins use Option A rectangular overlays:
 Rows and pins use the same ordered annotation array, so deleting an annotation
 renumbers both immediately with no gaps.
 
+## Option A Event Contract
+
+This section is the implementation-level interaction contract extracted from
+the Option A prototype. The implementation should preserve these event outcomes
+even if PointPatch uses different internal API names.
+
+### History Events
+
+The history panel state is driven by the active snapshot/session and its
+annotation set:
+
+```text
+panel count = snapshots.length
+active card = activeSnapshotId === card.id
+card open count = annotations where status === open
+card resolved count = annotations where status === resolved
+card total points = annotations.length
+```
+
+History item click:
+
+- User clicks a history card.
+- UI sets that card as the active snapshot/session.
+- The canvas reloads the selected snapshot screenshot.
+- The annotation array is replaced with a copy of that history item's
+  annotations.
+- The title/breadcrumb context is updated from the selected history item.
+- `selectedAnnotationId` is cleared, so the inspector returns to the
+  `Annotations` list state.
+
+History delete click, if the implementation keeps the Option A card delete
+affordance:
+
+- User clicks the delete control inside a history card.
+- The event must stop propagation and must not also open that card.
+- The target card is removed from the history list.
+- If the deleted card was active, activate the next available card.
+- If no card remains, clear the active snapshot/session and show the empty
+  annotation state.
+
+History card rendering:
+
+- Active card uses the Option A `is-active` treatment.
+- Rich card stats show `N open`, `N resolved`, and total points.
+- The severity strip renders one segment per annotation, using severity color.
+- Resolved annotation segments stay visible with reduced opacity.
+
+### Annotation List And Detail Events
+
+Empty list state:
+
+- If the active snapshot/session has zero annotations and no annotation is
+  selected, the right panel renders the exact empty state copy:
+
+```text
+No annotations yet
+Switch to Annotate, then click a widget or drag a region on the preview.
+Start annotating
+```
+
+- Clicking `Start annotating` sets `tool = annotate`.
+- The canvas toolbar immediately shows the annotate hint state.
+
+Annotation row click:
+
+- User clicks a row in the `Annotations` list.
+- UI sets `selectedAnnotationId` to that annotation id.
+- The matching preview pin receives the selected visual treatment.
+- The inspector switches from list mode to detail mode with title
+  `Annotation`.
+
+Annotation detail back / Done:
+
+- The back affordance and `Done` both clear `selectedAnnotationId`.
+- The inspector returns to the `Annotations` list state.
+- The annotation remains in the list with any edited fields applied.
+
+Field edit events:
+
+- `Label` input updates the selected annotation label immediately.
+- `Severity` segmented control updates severity immediately and recolors:
+  - the detail selected value
+  - the annotation row number badge
+  - the preview pin rectangle/tag
+  - the history severity strip
+- `Comment` textarea updates the selected annotation comment immediately.
+- `Status` segmented control updates status immediately and updates:
+  - the row status pill
+  - the open/resolved counts in the canvas toolbar
+  - the open/resolved counts in the active history card
+  - resolved opacity on row/pin/strip where applicable
+
+Delete selected annotation:
+
+- User clicks `Delete` in annotation detail.
+- The selected annotation is removed.
+- `selectedAnnotationId` is cleared.
+- Rows and pins renumber from the remaining ordered annotation array.
+- Counts and history card stats update immediately.
+
+### Preview Events
+
+Preview pin click in Select mode:
+
+- User clicks an annotation rectangle or number tag.
+- The pin click stops propagation, so the canvas empty-space handler does not
+  clear selection.
+- UI sets `selectedAnnotationId` to that annotation id.
+- The inspector opens the same detail view as annotation row click.
+
+Preview empty click in Select mode:
+
+- User clicks the preview outside an annotation pin.
+- UI clears `selectedAnnotationId`.
+- The inspector returns to the `Annotations` list state.
+
+Preview pointer down in Annotate mode:
+
+- If the current tool is not `Annotate`, ignore the pointer down for annotation
+  creation.
+- In `Annotate`, record the pointer's preview-relative start position.
+- Clear the current selected annotation.
+- Initialize a zero-size drag rectangle.
+
+Preview pointer move in Annotate mode:
+
+- If no drag start exists, ignore the move.
+- Convert pointer position to preview-relative coordinates.
+- Mark the gesture as moved after the Option A threshold is crossed.
+- Render a live drag rectangle from the normalized start/end positions.
+
+Preview pointer up in Annotate mode:
+
+- If the gesture moved enough, create a region annotation from the drag
+  rectangle and label it `Region N`.
+- If the gesture did not move enough, resolve the clicked widget target and snap
+  the annotation to that widget's bounds.
+- The new annotation defaults to:
+
+```text
+severity = med
+status = open
+comment = empty
+```
+
+- The new annotation is appended to the ordered annotations array.
+- UI selects the new annotation.
+- Tool returns to `Select`.
+- Drag state is cleared.
+
+Widget click targeting:
+
+- Option A targets the closest widget metadata marker under the pointer.
+- PointPatch should adapt this to Compose semantics nodes: select the smallest
+  containing semantics node when available, and use dragged region selection
+  when no node is found or when the user drags.
+
+Save snapshot click:
+
+- The visible action remains `Save snapshot`.
+- Unlike the prototype's local-only snapshot cloning, PointPatch maps this
+  action to agent handoff: it sends the active snapshot/session's currently
+  registered annotations to the persisted local handoff path.
+- The action is disabled when there are no registered annotations.
+
 ## State Model
 
 The browser state should follow the prototype's concepts:
