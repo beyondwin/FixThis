@@ -68,6 +68,14 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun consoleHtmlReportsNavigationCaptureErrors() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("navigation.captureError"))
+        assertTrue(html.contains("Navigation performed, but capture failed:"))
+    }
+
+    @Test
     fun rejectsUnsupportedMethods() {
         val service = FeedbackSessionService(FakePointPatchBridge(), FeedbackSessionStore(), "/repo", "io.github.pointpatch.sample")
         val server = FeedbackConsoleServer(service = service, port = 0)

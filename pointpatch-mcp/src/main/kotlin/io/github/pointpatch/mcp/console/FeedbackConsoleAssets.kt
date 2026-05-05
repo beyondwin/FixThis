@@ -298,7 +298,7 @@ internal object FeedbackConsoleAssets {
 
             async function navigate(action, extras = {}) {
               error.textContent = '';
-              await requestJson('/api/navigation', {
+              const navigation = await requestJson('/api/navigation', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -307,7 +307,13 @@ internal object FeedbackConsoleAssets {
                   ...extras
                 })
               });
+              const captureErrorMessage = navigation.captureError
+                ? `Navigation performed, but capture failed: ${'$'}{navigation.captureError}`
+                : '';
               await refresh();
+              if (captureErrorMessage) {
+                error.textContent = captureErrorMessage;
+              }
             }
 
             function attachSnapshotTapHandler() {
