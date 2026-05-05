@@ -648,7 +648,7 @@ git commit -m "fix: isolate live preview rendering"
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Add canvas behavior test**
+- [x] **Step 1: Add canvas behavior test**
 
 Add this test:
 
@@ -668,7 +668,7 @@ fun consoleHtmlRendersStudioCanvasModesAndNavigation() {
 }
 ```
 
-- [ ] **Step 2: Preserve idle navigation and frozen selection**
+- [x] **Step 2: Preserve idle navigation and frozen selection**
 
 Keep this click handler logic intact after moving DOM:
 
@@ -693,7 +693,7 @@ image.addEventListener('click', event => {
 });
 ```
 
-- [ ] **Step 3: Keep area selection thresholds in natural screenshot pixels**
+- [x] **Step 3: Keep area selection thresholds in natural screenshot pixels**
 
 Keep the current `pointerup` contract, including the `8x8` minimum:
 
@@ -707,7 +707,7 @@ if ((bounds.right - bounds.left) >= 8 && (bounds.bottom - bounds.top) >= 8) {
 }
 ```
 
-- [ ] **Step 4: Update overlay styling to Studio tokens**
+- [x] **Step 4: Update overlay styling to Studio tokens**
 
 Replace green/orange overlay colors with Studio colors while retaining focused state:
 
@@ -747,7 +747,7 @@ Replace green/orange overlay colors with Studio colors while retaining focused s
 .selection-label.focused { background: var(--warning); }
 ```
 
-- [ ] **Step 5: Run the canvas behavior test**
+- [x] **Step 5: Run the canvas behavior test**
 
 Run:
 
@@ -757,7 +757,7 @@ Run:
 
 Expected: pass.
 
-- [ ] **Step 6: Commit canvas behavior**
+- [x] **Step 6: Commit canvas behavior**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt

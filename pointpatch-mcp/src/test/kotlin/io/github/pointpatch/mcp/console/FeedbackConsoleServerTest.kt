@@ -277,6 +277,20 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun consoleHtmlRendersStudioCanvasModesAndNavigation() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("previewModeBadge.dataset.mode = mode"))
+        assertTrue(html.contains("previewModeBadge.textContent = mode === 'frozen' ? 'Frozen'"))
+        assertTrue(html.contains("frame.dataset.mode = mode"))
+        assertTrue(html.contains("navigationControls.hidden = Boolean(addItemsFlow)"))
+        assertTrue(html.contains("aria-label=\"Back\""))
+        assertTrue(html.contains("aria-label=\"Swipe up\""))
+        assertTrue(html.contains("renderNumberedFeedbackOverlay"))
+        assertTrue(html.contains("'#' + (index + 1)"))
+    }
+
+    @Test
     fun consoleHtmlLivePreviewImageUsesPreviewIdScopedScreenshotRoute() {
         val html = FeedbackConsoleAssets.indexHtml
 

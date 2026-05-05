@@ -282,14 +282,14 @@ internal object FeedbackConsoleAssets {
             }
             .selection-overlay {
               position: absolute;
-              inset: 0;
+              inset: 8px;
               pointer-events: none;
             }
             .selection-box {
               position: absolute;
-              border: 2px solid var(--accent);
-              background: rgba(184, 211, 106, .14);
-              border-radius: 4px;
+              border: 1.5px solid var(--accent);
+              background: rgba(184, 211, 106, .12);
+              border-radius: 6px;
             }
             .selection-box.drag-preview {
               border-style: dashed;
@@ -302,15 +302,15 @@ internal object FeedbackConsoleAssets {
             .selection-label {
               position: absolute;
               transform: translateY(-100%);
+              min-width: 24px;
+              min-height: 24px;
+              display: grid;
+              place-items: center;
+              border-radius: 999px;
               background: var(--accent);
               color: var(--bg-0);
-              font-size: 12px;
-              padding: 3px 6px;
-              border-radius: 4px 4px 0 0;
-              max-width: 100%;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              white-space: nowrap;
+              font-size: 11px;
+              font-weight: 800;
             }
             .selection-label.focused { background: var(--warning); }
             .selection-summary {
