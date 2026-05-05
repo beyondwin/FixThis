@@ -1085,7 +1085,7 @@ git commit -m "feat: style studio session history"
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Add keyboard/accessibility test**
+- [x] **Step 1: Add keyboard/accessibility test**
 
 Add this test:
 
@@ -1106,7 +1106,7 @@ fun consoleHtmlAddsStudioKeyboardAndAccessibilityGuards() {
 }
 ```
 
-- [ ] **Step 2: Add guarded global shortcuts**
+- [x] **Step 2: Add guarded global shortcuts**
 
 Add these functions before event listener registration:
 
@@ -1150,7 +1150,7 @@ Register it:
 document.addEventListener('keydown', handleGlobalShortcut);
 ```
 
-- [ ] **Step 3: Add accessible preview and pending labels**
+- [x] **Step 3: Add accessible preview and pending labels**
 
 In `renderPendingItems()`, include ARIA labels:
 
@@ -1165,7 +1165,7 @@ In `ensurePreviewFrame()`, use:
 '<img id="snapshotImage" alt="PointPatch preview" aria-label="PointPatch preview">' +
 ```
 
-- [ ] **Step 4: Run keyboard/accessibility test**
+- [x] **Step 4: Run keyboard/accessibility test**
 
 Run:
 
@@ -1175,7 +1175,7 @@ Run:
 
 Expected: pass.
 
-- [ ] **Step 5: Commit accessibility polish**
+- [x] **Step 5: Commit accessibility polish**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt

@@ -1160,8 +1160,8 @@ internal object FeedbackConsoleAssets {
                   '<strong>#' + (index + 1) + ' ' + escapeHtml(firstLine(item.comment)) + '</strong>' +
                   '<span>' + escapeHtml(pendingTargetLabel(item)) + '</span>' +
                   '<div class="toolbar">' +
-                    '<button type="button" data-focus-pending="' + index + '">Focus</button>' +
-                    '<button type="button" data-delete-pending="' + index + '">Delete</button>' +
+                    '<button type="button" aria-label="Focus pending item ' + (index + 1) + '" data-focus-pending="' + index + '">Focus</button>' +
+                    '<button type="button" aria-label="Delete pending item ' + (index + 1) + '" data-delete-pending="' + index + '">Delete</button>' +
                   '</div>' +
                 '</div>'
               ).join('') || '<div class="row"><span>No pending feedback items.</span></div>';
@@ -1335,7 +1335,7 @@ internal object FeedbackConsoleAssets {
               if (frame) return frame;
               snapshot.innerHTML =
                 '<div id="snapshotFrame" class="snapshot-frame">' +
-                  '<img id="snapshotImage" alt="PointPatch preview">' +
+                  '<img id="snapshotImage" alt="PointPatch preview" aria-label="PointPatch preview">' +
                   '<div id="selectionOverlay" class="selection-overlay" aria-hidden="true"></div>' +
                 '</div>';
               attachSnapshotHandlers();
@@ -1553,6 +1553,40 @@ internal object FeedbackConsoleAssets {
               await navigator.clipboard.writeText(markdown);
             }
 
+            function isTextInputFocused(target = document.activeElement) {
+              const element = target?.nodeType === Node.ELEMENT_NODE ? target : target?.parentElement || document.activeElement;
+              const tag = element?.tagName;
+              return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || element?.isContentEditable;
+            }
+
+            function handleGlobalShortcut(event) {
+              if (event.repeat) return;
+              if (isTextInputFocused(event.target)) return;
+              if (event.key === 'Escape') {
+                event.preventDefault();
+                if (addItemsFlow) {
+                  cancelAddItemsFlow();
+                } else {
+                  clearSelection();
+                }
+                return;
+              }
+              if (event.key.toLowerCase() === 'a' && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
+                event.preventDefault();
+                startAddItemsFlow().catch(showError);
+                return;
+              }
+              if (event.key.toLowerCase() === 's' && (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey) {
+                event.preventDefault();
+                savePendingFeedbackItems().catch(showError);
+                return;
+              }
+              if (event.key.toLowerCase() === 'n' && (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey) {
+                event.preventDefault();
+                newSession().catch(showError);
+              }
+            }
+
             document.getElementById('refreshButton').addEventListener('click', () => refreshPreview().catch(showError));
             document.getElementById('addFlowButton').addEventListener('click', () => startAddItemsFlow().catch(showError));
             saveButton.addEventListener('click', () => savePendingFeedbackItems().catch(showError));
@@ -1573,6 +1607,7 @@ internal object FeedbackConsoleAssets {
               localStorage.setItem(PreviewIntervalStorageKey, previewIntervalSelect.value);
               startLivePreviewPolling();
             });
+            document.addEventListener('keydown', handleGlobalShortcut);
             document.addEventListener('visibilitychange', () => {
               if (!document.hidden && shouldAutoFetchPreview()) refreshPreview().catch(showError);
               startLivePreviewPolling();

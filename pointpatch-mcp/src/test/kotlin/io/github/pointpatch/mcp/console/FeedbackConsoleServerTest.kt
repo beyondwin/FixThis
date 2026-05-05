@@ -153,6 +153,28 @@ class FeedbackConsoleServerTest {
         assertFalse(refreshPreviewBody.contains("render();"))
     }
 
+    @Test
+    fun consoleHtmlAddsStudioKeyboardAndAccessibilityGuards() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val inputGuardBody = javascriptFunctionBody(html, "isTextInputFocused")
+        val shortcutBody = javascriptFunctionBody(html, "handleGlobalShortcut")
+
+        assertTrue(html.contains("function isTextInputFocused"))
+        assertTrue(html.contains("function handleGlobalShortcut"))
+        assertTrue(html.contains("function isTextInputFocused(target = document.activeElement)"))
+        assertTrue(inputGuardBody.contains("tag === 'SELECT'"))
+        assertTrue(shortcutBody.contains("if (event.repeat) return;"))
+        assertTrue(shortcutBody.contains("isTextInputFocused(event.target)"))
+        assertTrue(html.contains("event.key === 'Escape'"))
+        assertTrue(html.contains("event.key.toLowerCase() === 'a'"))
+        assertTrue(html.contains("event.key.toLowerCase() === 's'"))
+        assertTrue(html.contains("event.key.toLowerCase() === 'n'"))
+        assertTrue(html.contains("!event.shiftKey"))
+        assertTrue(html.contains("document.addEventListener('keydown', handleGlobalShortcut)"))
+        assertTrue(html.contains("role=\"status\" aria-live=\"polite\""))
+        assertTrue(html.contains("aria-label=\"PointPatch preview\""))
+    }
+
     private fun javascriptFunctionBody(html: String, functionName: String): String {
         val declarationStart = html.indexOf("function $functionName(")
         assertTrue(declarationStart >= 0, "Missing JavaScript function: $functionName")
