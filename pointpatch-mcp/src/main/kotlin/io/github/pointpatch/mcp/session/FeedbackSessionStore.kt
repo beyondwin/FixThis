@@ -104,6 +104,34 @@ class FeedbackSessionStore(
             captured
         }
 
+    fun addScreenWithItems(sessionId: String, screen: CapturedScreen, items: List<FeedbackItem>): FeedbackSession =
+        synchronized(lock) {
+            require(items.isNotEmpty()) { "At least one feedback item is required" }
+            val session = getSessionLocked(sessionId)
+            val now = clock()
+            val captured = screen.copy(
+                screenId = if (screen.screenId == "pending") idGenerator() else screen.screenId,
+                capturedAtEpochMillis = now,
+            )
+            val firstSequence = nextItemSequenceNumber(session)
+            val createdItems = items.mapIndexed { index, item ->
+                item.copy(
+                    itemId = if (item.itemId == "pending") idGenerator() else item.itemId,
+                    screenId = captured.screenId,
+                    createdAtEpochMillis = now,
+                    updatedAtEpochMillis = now,
+                    sequenceNumber = item.sequenceNumber ?: firstSequence + index,
+                    delivery = FeedbackDelivery.DRAFT,
+                )
+            }
+            val updated = session.copy(
+                screens = session.screens + captured,
+                items = session.items + createdItems,
+                updatedAtEpochMillis = now,
+            )
+            commitSessionMutation(session, updated)
+        }
+
     fun deleteScreen(sessionId: String, screenId: String): FeedbackSession =
         synchronized(lock) {
             val session = getSessionLocked(sessionId)

@@ -171,6 +171,47 @@ class FeedbackSessionStoreTest {
     }
 
     @Test
+    fun addScreenWithItemsPersistsOneScreenAndMultipleDraftItemsAtomically() {
+        val store = FeedbackSessionStore(
+            clock = sequenceClock(1_000L, 2_000L),
+            idGenerator = sequenceIds("session-1", "screen-1", "item-1", "item-2"),
+        )
+        val session = store.openSession("io.github.pointpatch.sample", "/repo")
+        val screen = CapturedScreen(
+            screenId = "pending",
+            capturedAtEpochMillis = 0L,
+            activityName = "io.github.pointpatch.sample.MainActivity",
+            displayName = "MainActivity",
+            screenshot = FeedbackScreenshot(width = 720, height = 1600),
+        )
+        val first = FeedbackItem(
+            itemId = "pending",
+            screenId = "pending",
+            createdAtEpochMillis = 0L,
+            updatedAtEpochMillis = 0L,
+            target = FeedbackTarget.Area(PointPatchRect(10f, 20f, 110f, 80f)),
+            comment = "Change headline copy",
+        )
+        val second = FeedbackItem(
+            itemId = "pending",
+            screenId = "pending",
+            createdAtEpochMillis = 0L,
+            updatedAtEpochMillis = 0L,
+            target = FeedbackTarget.Area(PointPatchRect(120f, 200f, 260f, 280f)),
+            comment = "Add more left margin",
+        )
+
+        val updated = store.addScreenWithItems(session.sessionId, screen, listOf(first, second))
+
+        assertEquals(1, updated.screens.size)
+        assertEquals("screen-1", updated.screens.single().screenId)
+        assertEquals(2, updated.items.size)
+        assertEquals(listOf("screen-1", "screen-1"), updated.items.map { it.screenId })
+        assertEquals(listOf(1, 2), updated.items.map { it.sequenceNumber })
+        assertEquals(listOf("item-1", "item-2"), updated.items.map { it.itemId })
+    }
+
+    @Test
     fun deleteScreenRemovesLinkedFeedbackItemsAndPrunesBatches() {
         val clock = FakeClock(100L)
         val ids = FakeIds("session-1", "screen-1", "screen-2", "item-1", "batch-1", "item-2")
@@ -502,6 +543,16 @@ class FeedbackSessionStoreTest {
 
         assertEquals(session.sessionId, store.currentSession()?.sessionId)
         assertEquals(FeedbackSessionStatus.ACTIVE, store.getSession(session.sessionId).status)
+    }
+
+    private fun sequenceClock(vararg values: Long): () -> Long {
+        val queue = ArrayDeque(values.toList())
+        return { queue.removeFirstOrNull() ?: values.last() }
+    }
+
+    private fun sequenceIds(vararg values: String): () -> String {
+        val queue = ArrayDeque(values.toList())
+        return { queue.removeFirstOrNull() ?: error("No more ids configured") }
     }
 
     private class FakeClock(private val value: Long) {

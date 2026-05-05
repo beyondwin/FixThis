@@ -104,7 +104,7 @@ Modify:
 
 - No source edits.
 
-- [ ] **Step 1: Check branch, status, HEAD, and repo-local instructions**
+- [x] **Step 1: Check branch, status, HEAD, and repo-local instructions**
 
 Run:
 
@@ -117,7 +117,7 @@ rg --files -g 'AGENTS.md' -g 'CLAUDE.md' -g '*agent*guide*' -g '*instructions*'
 
 Expected: branch is understood, HEAD is recorded, and only known unrelated untracked docs are left untouched. If instruction files are listed, read them before Task 1.
 
-- [ ] **Step 2: Run targeted baseline tests**
+- [x] **Step 2: Run targeted baseline tests**
 
 Run:
 
@@ -127,7 +127,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 3: Record checkpoint**
+- [x] **Step 3: Record checkpoint**
 
 Record:
 
@@ -152,7 +152,7 @@ Session-owned processes: list any console process started by this session
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStore.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStoreTest.kt`
 
-- [ ] **Step 1: Write failing store test for one screen and multiple items**
+- [x] **Step 1: Write failing store test for one screen and multiple items**
 
 Add this test to `FeedbackSessionStoreTest`:
 
@@ -213,7 +213,7 @@ private fun sequenceIds(vararg values: String): () -> String {
 }
 ```
 
-- [ ] **Step 2: Run test and verify RED**
+- [x] **Step 2: Run test and verify RED**
 
 Run:
 
@@ -223,7 +223,7 @@ Run:
 
 Expected: FAIL because `addScreenWithItems` does not exist.
 
-- [ ] **Step 3: Implement atomic store mutation**
+- [x] **Step 3: Implement atomic store mutation**
 
 Add this method to `FeedbackSessionStore`:
 
@@ -257,7 +257,7 @@ fun addScreenWithItems(sessionId: String, screen: CapturedScreen, items: List<Fe
     }
 ```
 
-- [ ] **Step 4: Run store tests and verify GREEN**
+- [x] **Step 4: Run store tests and verify GREEN**
 
 Run:
 
@@ -267,7 +267,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 5: Commit Task 1**
+- [x] **Step 5: Commit Task 1**
 
 Run:
 
