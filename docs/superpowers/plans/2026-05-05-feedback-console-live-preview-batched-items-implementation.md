@@ -596,7 +596,7 @@ git commit -m "feat: add live preview and batched save console APIs"
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Write failing HTML behavior smoke tests**
+- [x] **Step 1: Write failing HTML behavior smoke tests**
 
 Add assertions to `FeedbackConsoleServerTest`:
 
@@ -636,7 +636,7 @@ assertTrue(html.contains("queuePendingFeedbackItem"))
 assertTrue(html.contains("savePendingFeedbackItems"))
 ```
 
-- [ ] **Step 2: Run console asset tests and verify RED**
+- [x] **Step 2: Run console asset tests and verify RED**
 
 Run:
 
@@ -646,7 +646,7 @@ Run:
 
 Expected: FAIL because the old mode UI is still present.
 
-- [ ] **Step 3: Replace interaction model in HTML**
+- [x] **Step 3: Replace interaction model in HTML**
 
 Change the visible controls:
 
@@ -681,7 +681,7 @@ Use short top-bar button labels:
 
 Place `Copy` and `Send` next to each other in the top bar. Do not place `Send` inside the comment composer because sending is a session/draft action.
 
-- [ ] **Step 4: Implement live preview polling**
+- [x] **Step 4: Implement live preview polling**
 
 Add JS constants and lifecycle:
 
@@ -727,7 +727,7 @@ previewIntervalSelect.addEventListener('change', () => {
 });
 ```
 
-- [ ] **Step 5: Implement add-items flow**
+- [x] **Step 5: Implement add-items flow**
 
 Add JS functions:
 
@@ -809,7 +809,7 @@ Use button labels:
 - `Save`: promotes that frozen preview into one persisted snapshot and all pending items.
 - `Cancel`: discards the frozen preview reference and pending list without changing session history.
 
-- [ ] **Step 6: Add pending list and numbered overlay**
+- [x] **Step 6: Add pending list and numbered overlay**
 
 Render pending items while the add-items flow is active:
 
@@ -840,7 +840,7 @@ function renderNumberedFeedbackOverlay(overlay, image) {
 
 Call `renderNumberedFeedbackOverlay` from `renderSelectionOverlay` before rendering the current transient selection. This keeps saved pending targets visible while the user selects the next target.
 
-- [ ] **Step 7: Add saved evidence group detail**
+- [x] **Step 7: Add saved evidence group detail**
 
 Group saved draft items by `screenId` in the visible draft area:
 
@@ -878,7 +878,7 @@ function renderSavedEvidenceGroups() {
 
 The expanded group must show the persisted screenshot and numbered overlays using the saved item order within that screen group. It should not show screen id, item id, screenshot dimensions, or captured time in the default view.
 
-- [ ] **Step 8: Simplify visible session and item metadata**
+- [x] **Step 8: Simplify visible session and item metadata**
 
 Session rows should show only:
 
@@ -897,7 +897,7 @@ Email address | Source hint available
 
 Do not show item id, screen id, delivery, status, screenshot size, or captured time in ordinary rows. If source hint is missing, show `No source hint`.
 
-- [ ] **Step 9: Hide screen history**
+- [x] **Step 9: Hide screen history**
 
 Remove the left-pane `Screens` list from the primary UI. If evidence details are needed, show them inside an item detail panel as:
 
@@ -907,7 +907,7 @@ Target: Email address
 Source: sample/src/main/java/.../FormScreen.kt:37
 ```
 
-- [ ] **Step 10: Run console asset/API tests and verify GREEN**
+- [x] **Step 10: Run console asset/API tests and verify GREEN**
 
 Run:
 
@@ -917,7 +917,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 11: Commit Task 4**
+- [x] **Step 11: Commit Task 4**
 
 Run:
 

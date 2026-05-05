@@ -178,7 +178,11 @@ class FeedbackConsoleServer(
                     exchange.sendText(200, FeedbackQueueFormatter.toMarkdown(service.currentSession()), "text/markdown; charset=utf-8")
                 }
                 else -> {
-                    if (exchange.requestURI.path.isFullScreenshotPath()) {
+                    if (exchange.requestURI.path.isPreviewFullScreenshotPath()) {
+                        exchange.requireMethod("GET") {
+                            exchange.sendPreviewScreenshot(exchange.requestURI.path.previewIdFromScreenshotPath())
+                        }
+                    } else if (exchange.requestURI.path.isFullScreenshotPath()) {
                         exchange.requireMethod("GET") {
                             exchange.sendScreenshot(exchange.requestURI.path.screenIdFromScreenshotPath())
                         }
@@ -225,6 +229,12 @@ class FeedbackConsoleServer(
         ) {
             throw FeedbackConsoleHttpException(404, "Screenshot not found")
         }
+        sendBytes(200, screenshotFile.readBytes(), "image/png")
+    }
+
+    private fun HttpExchange.sendPreviewScreenshot(previewId: String) {
+        val session = service.currentSession()
+        val screenshotFile = service.previewScreenshotFile(session.sessionId, previewId)
         sendBytes(200, screenshotFile.readBytes(), "image/png")
     }
 
@@ -407,6 +417,12 @@ private fun String.isScreenPath(): Boolean =
 private fun String.screenIdFromScreenPath(): String =
     URLDecoder.decode(split('/')[3], Charsets.UTF_8.name())
 
+private fun String.isPreviewFullScreenshotPath(): Boolean =
+    split('/').size == 6 && startsWith("/api/preview/") && endsWith("/screenshot/full")
+
+private fun String.previewIdFromScreenshotPath(): String =
+    URLDecoder.decode(split('/')[3], Charsets.UTF_8.name())
+
 private fun String.toUrlHost(): String =
     if (contains(':') && !startsWith("[")) "[$this]" else this
 
@@ -420,6 +436,7 @@ private fun FeedbackSessionException.toConsoleHttpException(): FeedbackConsoleHt
         text.startsWith("SESSION_NOT_FOUND:") -> 404
         text.startsWith("Unknown feedback session:") -> 404
         text.startsWith("PREVIEW_NOT_FOUND:") -> 404
+        text.startsWith("PREVIEW_SCREENSHOT_NOT_FOUND:") -> 404
         text.startsWith("SCREEN_NOT_FOUND:") -> 400
         text.startsWith("NO_DRAFT_FEEDBACK:") -> 409
         text.startsWith("DEVICE_NOT_AVAILABLE:") -> 409

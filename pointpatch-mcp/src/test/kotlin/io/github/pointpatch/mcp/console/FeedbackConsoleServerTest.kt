@@ -88,19 +88,20 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("id=\"refreshDevicesButton\""))
         assertTrue(html.contains("id=\"disconnectDeviceButton\""))
         assertTrue(html.contains("id=\"deviceStatus\""))
-        assertTrue(html.contains("id=\"modeSelect\""))
-        assertTrue(html.contains("id=\"modeNavigate\""))
+        assertTrue(html.contains("id=\"previewIntervalSelect\""))
         assertTrue(html.contains("id=\"selectionOverlay\""))
         assertTrue(html.contains("id=\"selectionSummary\""))
+        assertTrue(html.contains("id=\"pendingItems\""))
         assertTrue(html.contains("id=\"draftItems\""))
         assertTrue(html.contains("id=\"sentHistory\""))
         assertTrue(html.contains("id=\"sendDraftButton\""))
         assertTrue(html.contains("id=\"clearSelectionButton\""))
-        assertTrue(html.contains("id=\"clearCommentButton\""))
         assertTrue(html.contains("id=\"clearDraftButton\""))
         assertTrue(html.contains("/api/devices"))
         assertTrue(html.contains("/api/device/select"))
         assertTrue(html.contains("/api/device/disconnect"))
+        assertTrue(html.contains("/api/preview"))
+        assertTrue(html.contains("/api/items/batch"))
         assertTrue(html.contains("/api/items/draft"))
         assertTrue(html.contains("/api/agent-handoffs"))
         assertTrue(html.contains("function refreshDevices"))
@@ -109,42 +110,32 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("device.model || 'Unknown model'"))
         assertTrue(html.contains("device.product || device.deviceName || 'device'"))
         assertTrue(html.contains("labelParts.push(device.serial)"))
-        assertTrue(html.contains("function setMode"))
         assertTrue(html.contains("function clearSelection"))
         assertTrue(html.contains("function clearDraft"))
         assertTrue(html.contains("function sendDraftToAgent"))
-        assertTrue(html.contains("let currentMode = Mode.SELECT"))
-        assertTrue(html.contains("currentMode === Mode.NAVIGATE"))
         assertTrue(html.contains("Select device..."))
         assertTrue(html.contains("option.disabled = device.state !== 'device'"))
         assertTrue(html.contains("selectionSummary.textContent = currentSelection"))
-        assertTrue(html.contains("addItemButton.disabled = !currentSelection || !comment.value.trim()"))
+        assertTrue(html.contains("addItemButton.disabled = !addItemsFlow || !currentSelection || !comment.value.trim()"))
         assertTrue(html.contains("formatSessionLabel"))
         assertTrue(html.contains("formatSessionSummary"))
-        assertTrue(html.contains("session.screensCount"))
         assertTrue(html.contains("session.draftItemsCount"))
         assertTrue(html.contains("session.sentBatchesCount"))
-        assertTrue(html.contains("draft item"))
-        assertTrue(html.contains("sent batch"))
-        assertTrue(html.contains("formatScreenLabel"))
         assertTrue(html.contains("formatItemLabel"))
         assertTrue(html.contains("function findScreen"))
-        assertTrue(html.contains("function screenLabelForId"))
         assertTrue(html.contains("function targetLabel"))
-        assertTrue(html.contains("function deliveryLabel"))
+        assertTrue(html.contains("function sourceHintLabel"))
         assertTrue(html.contains("function formatBatchLabel"))
         assertTrue(html.contains("function formatBatchDetails"))
         assertTrue(html.contains("function batchItems"))
         assertTrue(html.contains("function formatBatchItemSummary"))
-        assertTrue(html.contains("function screenFeedbackCount"))
-        assertTrue(html.contains("function deleteScreen"))
-        assertTrue(html.contains("delete-screen-button"))
-        assertTrue(html.contains("linked feedback item"))
         assertTrue(html.contains("session.handoffBatches"))
         assertTrue(html.contains("Batch #"))
         assertTrue(html.contains("Not sent"))
         assertTrue(html.contains("Unbatched sent item"))
         assertTrue(html.contains("Missing batch metadata"))
+        assertFalse(html.contains("id=\"modeSelect\""))
+        assertFalse(html.contains("id=\"modeNavigate\""))
     }
 
     @Test
@@ -160,16 +151,156 @@ class FeedbackConsoleServerTest {
         assertFalse(html.contains("items \${escapeHtml((batch.itemIds || []).map(shortId).join(', ') || '-')}"))
         assertFalse(html.contains("Missing item \${shortId(item.itemId)}"))
 
-        assertTrue(html.contains("function screenshotDimensions"))
-        assertTrue(html.contains("function formatScreenDetails"))
         assertTrue(html.contains("function formatSessionHeader"))
+        assertTrue(html.contains("function renderSavedEvidenceGroups"))
+    }
+
+    @Test
+    fun consoleUsesNavigationDefaultAddItemsFlowAndSimpleLabels() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains(">Add<"))
+        assertTrue(html.contains(">Save<"))
+        assertTrue(html.contains(">Refresh<"))
+        assertTrue(html.contains(">Copy<"))
+        assertTrue(html.contains(">Send<"))
+        assertTrue(html.contains("setInterval"))
+        assertTrue(html.contains("document.hidden"))
+        assertTrue(html.contains("previewIntervalSelect"))
+        assertTrue(html.contains("PreviewIntervalStorageKey"))
+        assertTrue(html.contains("Math.max(1000"))
+        assertTrue(html.contains("Pending Items"))
+        assertTrue(html.contains("renderNumberedFeedbackOverlay"))
+        assertTrue(html.contains("focusPendingFeedbackItem"))
+        assertTrue(html.contains("deletePendingFeedbackItem"))
+        assertTrue(html.contains("renderSavedEvidenceGroups"))
+        assertTrue(html.contains("const DefaultLivePreviewIntervalMs = 2000"))
+        assertTrue(html.contains("const MinLivePreviewIntervalMs = 1000"))
+        assertTrue(html.contains("startAddItemsFlow"))
+        assertTrue(html.contains("queuePendingFeedbackItem"))
+        assertTrue(html.contains("savePendingFeedbackItems"))
+        assertFalse(html.contains("modeSelect"))
+        assertFalse(html.contains("modeNavigate"))
+        assertFalse(html.contains("Clear Comment"))
+    }
+
+    @Test
+    fun consoleHtmlKeepsFrozenPreviewStableAndHidesPersistedScreenHistory() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("let previewRequestGeneration = 0"))
+        assertTrue(html.contains("let previewRequestInFlight = null"))
+        assertTrue(html.contains("const preview = await requestLivePreview();"))
+        assertTrue(html.contains("const requestGeneration = ++previewRequestGeneration"))
+        assertTrue(html.contains("if (addItemsFlow || requestGeneration !== previewRequestGeneration) return;"))
+        assertTrue(html.contains("screenshotUrl: previewScreenshotUrl(state.preview.previewId)"))
+        assertTrue(html.contains("function formatSavedEvidenceItemLabel(item, index)"))
+        assertTrue(html.contains("return '#' + (index + 1) + ' ' + firstLine(item.comment || '(No comment)');"))
+        assertTrue(html.contains("escapeHtml(formatSavedEvidenceItemLabel(item, index))"))
+        assertFalse(html.contains("function latestPersistedScreen"))
+        assertFalse(html.contains("state.preview?.screen || latestPersistedScreen()"))
+    }
+
+    @Test
+    fun consoleHtmlLivePreviewImageUsesPreviewIdScopedScreenshotRoute() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("function previewScreenshotUrl(previewId)"))
+        assertTrue(html.contains("return '/api/preview/' + encodeURIComponent(previewId) + '/screenshot/full';"))
+        assertTrue(html.contains("const src = addItemsFlow?.screenshotUrl || previewScreenshotUrl(state.preview.previewId);"))
+        assertFalse(html.contains("const src = addItemsFlow?.screenshotUrl || '/api/preview/screenshot/full'"))
+    }
+
+    @Test
+    fun consoleHtmlRefreshPreviewReusesInFlightPreviewRequest() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("let previewRequestInFlight = null"))
+        assertTrue(html.contains("let previewRequestContextGeneration = 0"))
+        assertTrue(html.contains("let previewRequestInFlightContextGeneration = null"))
+        assertTrue(html.contains("function requestLivePreview()"))
+        assertTrue(html.contains("previewRequestInFlightContextGeneration === previewRequestContextGeneration"))
+        assertTrue(html.contains("const requestContextGeneration = previewRequestContextGeneration;"))
+        assertTrue(html.contains("const request = requestJson('/api/preview')"))
+        assertTrue(html.contains("if (previewRequestInFlight === request) {"))
+        assertTrue(html.contains("previewRequestInFlightContextGeneration = null;"))
+        assertTrue(html.contains("return previewRequestInFlight;"))
+        assertTrue(html.contains("const preview = await requestLivePreview();"))
+        assertFalse(html.contains("const preview = await requestJson('/api/preview');"))
+    }
+
+    @Test
+    fun consoleHtmlInvalidatesPreviewContextOnDeviceAndSessionBoundaries() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("function invalidatePreviewContext()"))
+        assertTrue(html.contains("previewRequestGeneration++;"))
+        assertTrue(html.contains("previewRequestContextGeneration++;"))
+        assertTrue(html.contains("state.preview = null;"))
+        assertTrue(html.contains("previewRequestInFlight = null;"))
+        assertTrue(html.contains("previewRequestInFlightContextGeneration = null;"))
+        assertTrue(Regex("async function selectDevice\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);[\\s\\S]*/api/device/select").containsMatchIn(html))
+        assertTrue(Regex("async function disconnectDevice\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);[\\s\\S]*/api/device/disconnect").containsMatchIn(html))
+        assertTrue(Regex("async function openSession\\(sessionId\\)[\\s\\S]*invalidatePreviewContext\\(\\);[\\s\\S]*/api/session/open").containsMatchIn(html))
+        assertTrue(Regex("async function newSession\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);[\\s\\S]*/api/session/open").containsMatchIn(html))
+        assertTrue(Regex("async function closeSession\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);[\\s\\S]*/api/session/close").containsMatchIn(html))
+        assertTrue(html.contains("const previousSelectedDeviceSerial = state.selectedDeviceSerial;"))
+        assertTrue(html.contains("if (previousSelectedDeviceSerial !== selectedSerial) invalidatePreviewContext();"))
+        assertFalse(html.contains("state.preview = null;\n              state.session = await requestJson('/api/session/open'"))
+        assertFalse(html.contains("state.preview = null;\n              await refreshSessions();"))
+    }
+
+    @Test
+    fun consoleHtmlAddFlowStopsPollingAndFreezesPreviewIdScopedScreenshot() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("async function startAddItemsFlow()"))
+        assertTrue(html.contains("stopLivePreviewPolling();"))
+        assertTrue(html.contains("const addFlowContextGeneration = previewRequestContextGeneration;"))
+        assertTrue(html.contains("previewRequestGeneration++;"))
+        assertTrue(html.contains("let preview = state.preview;"))
+        assertTrue(html.contains("if (previewRequestInFlight || !preview) {"))
+        assertTrue(html.contains("preview = await requestLivePreview();"))
+        assertTrue(html.contains("if (addFlowContextGeneration !== previewRequestContextGeneration) return;"))
+        assertTrue(html.contains("state.preview = preview;"))
+        assertTrue(html.contains("if (!state.preview) {"))
+        assertTrue(html.contains("previewId: state.preview.previewId"))
+        assertTrue(html.contains("screenshotUrl: previewScreenshotUrl(state.preview.previewId)"))
+        assertTrue(html.contains("document.getElementById('addFlowButton').addEventListener('click', () => startAddItemsFlow().catch(showError));"))
+    }
+
+    @Test
+    fun consoleHtmlClearsSavedPreviewAndDoesNotAutoFetchWhenManual() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("state.preview = null;"))
+        assertTrue(html.contains("function shouldAutoFetchPreview()"))
+        assertTrue(html.contains("return configuredPreviewIntervalMs() != null && shouldPollPreview();"))
+        assertTrue(html.contains("if (!document.hidden && shouldAutoFetchPreview()) refreshPreview().catch(showError);"))
+        assertTrue(html.contains("if (shouldAutoFetchPreview()) return refreshPreview();"))
+        assertFalse(html.contains("if (!document.hidden && shouldPollPreview()) refreshPreview().catch(showError);"))
+        assertFalse(html.contains("if (shouldPollPreview()) return refreshPreview();"))
+    }
+
+    @Test
+    fun consoleHtmlFocusesPendingItemWithoutDrawingUnnumberedSelectionOverlay() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("function focusedPendingSelectionSummary()"))
+        assertTrue(html.contains("focusedPendingItemIndex != null"))
+        assertTrue(html.contains("const item = focusedPendingSelectionSummary();"))
+        assertTrue(html.contains("focusedPendingItemIndex = index;"))
+        assertTrue(html.contains("currentSelection = null;"))
+        assertFalse(html.contains("const item = pendingFeedbackItems[index];\n              currentSelection = item ?"))
+        assertFalse(html.contains("label: item.targetType === 'node' ? 'Selected component' : 'Custom area'"))
     }
 
     @Test
     fun consoleHtmlImplementsSnapshotSelectionModes() {
         val html = FeedbackConsoleAssets.indexHtml
 
-        assertTrue(html.contains("const Mode ="))
+        assertTrue(html.contains("let addItemsFlow"))
+        assertTrue(html.contains("let pendingFeedbackItems"))
         assertTrue(html.contains("let currentSelection"))
         assertTrue(html.contains("finishAreaSelection"))
         assertTrue(html.contains("selectNodeAtPoint"))
@@ -198,6 +329,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("nodeUid"))
         assertTrue(html.contains("id=\"snapshotImage\""))
         assertTrue(html.contains("function updateComposerState"))
+        assertTrue(html.contains("navigate('tap'"))
     }
 
     @Test
@@ -212,12 +344,13 @@ class FeedbackConsoleServerTest {
     fun consoleHtmlAddItemUsesCurrentSelectionPayload() {
         val html = FeedbackConsoleAssets.indexHtml
 
-        assertTrue(html.contains("screenId: screen.screenId"))
+        assertTrue(html.contains("previewId: addItemsFlow.previewId"))
+        assertTrue(html.contains("items: pendingFeedbackItems"))
         assertTrue(html.contains("targetType: currentSelection.targetType"))
         assertTrue(html.contains("nodeUid: currentSelection.nodeUid"))
         assertTrue(html.contains("bounds: currentSelection.bounds"))
         assertTrue(html.contains("comment.value.trim()"))
-        assertTrue(html.contains("Select a component or area before adding feedback."))
+        assertTrue(html.contains("Select a component or area first."))
     }
 
     @Test
@@ -422,6 +555,52 @@ class FeedbackConsoleServerTest {
                 assertEquals(200, connection.responseCode)
                 assertEquals("image/png", connection.contentType)
                 assertTrue(connection.inputStream.use { it.readBytes() }.contentEquals(pngBytes))
+            } finally {
+                server.stop()
+            }
+        } finally {
+            projectRoot.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun previewIdScreenshotRouteServesExactPreviewPngInsteadOfLatest() = runBlocking {
+        val projectRoot = Files.createTempDirectory("pointpatch-console-preview-exact").toFile()
+        try {
+            val firstPng = byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47, 0x01)
+            val secondPng = byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47, 0x02)
+            val service = FeedbackSessionService(
+                bridge = SequencedSessionScreenshotBridge(firstPng, secondPng),
+                store = FeedbackSessionStore(
+                    clock = { 100L },
+                    idGenerator = FakeIds(
+                        "session-1",
+                        "preview-1",
+                        "preview-screen-1",
+                        "preview-2",
+                        "preview-screen-2",
+                    ).next,
+                ),
+                projectRoot = projectRoot.absolutePath,
+                defaultPackageName = "io.github.pointpatch.sample",
+            )
+            val server = FeedbackConsoleServer(service = service, port = 0)
+            server.start()
+            try {
+                val firstPreview = pointPatchJson.parseToJsonElement(URL("${server.url}/api/preview").readText()).jsonObject
+                val secondPreview = pointPatchJson.parseToJsonElement(URL("${server.url}/api/preview").readText()).jsonObject
+                val firstPreviewId = firstPreview.getValue("previewId").jsonPrimitive.content
+                val secondPreviewId = secondPreview.getValue("previewId").jsonPrimitive.content
+
+                val firstConnection = URL("${server.url}/api/preview/$firstPreviewId/screenshot/full").openConnection() as HttpURLConnection
+                val secondConnection = URL("${server.url}/api/preview/$secondPreviewId/screenshot/full").openConnection() as HttpURLConnection
+
+                assertEquals(200, firstConnection.responseCode)
+                assertEquals("image/png", firstConnection.contentType)
+                assertTrue(firstConnection.inputStream.use { it.readBytes() }.contentEquals(firstPng))
+                assertEquals(200, secondConnection.responseCode)
+                assertEquals("image/png", secondConnection.contentType)
+                assertTrue(secondConnection.inputStream.use { it.readBytes() }.contentEquals(secondPng))
             } finally {
                 server.stop()
             }
@@ -1211,6 +1390,44 @@ class FeedbackConsoleServerTest {
                 .resolve("${requireNotNull(screenId)}-full.png")
             artifact.parentFile.mkdirs()
             artifact.writeBytes(pngBytes)
+            put("activity", "MainActivity")
+            put("sourceIndexAvailable", true)
+            put("inspection", buildJsonObject {
+                put("activity", "MainActivity")
+                put("roots", JsonArray(emptyList()))
+                put("errors", JsonArray(emptyList()))
+            })
+            put("screenshot", buildJsonObject {
+                put("desktopFullPath", artifact.absolutePath)
+            })
+        }
+    }
+
+    private class SequencedSessionScreenshotBridge(vararg pngBytes: ByteArray) : PointPatchBridge {
+        private val queue = ArrayDeque(pngBytes.toList())
+
+        override fun resolvePackageName(packageOverride: String?): String =
+            packageOverride ?: "io.github.pointpatch.sample"
+
+        override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun startFeedbackCapture(packageName: String, timeoutMillis: Long): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
+            JsonObject(emptyMap())
+
+        override suspend fun captureScreenSnapshot(
+            packageName: String,
+            sessionId: String?,
+            screenId: String?,
+            destinationDirectory: File?,
+        ): JsonObject = buildJsonObject {
+            val artifact = requireNotNull(destinationDirectory)
+                .resolve("${requireNotNull(screenId)}-full.png")
+            artifact.parentFile.mkdirs()
+            artifact.writeBytes(queue.removeFirst())
             put("activity", "MainActivity")
             put("sourceIndexAvailable", true)
             put("inspection", buildJsonObject {

@@ -137,6 +137,28 @@ class FeedbackSessionService(
         return preview
     }
 
+    fun previewScreenshotFile(sessionId: String, previewId: String): File {
+        val record = synchronized(sessionLock) {
+            previewSnapshots[previewId]?.takeIf { it.sessionId == sessionId }
+                ?: throw FeedbackSessionException("PREVIEW_NOT_FOUND: Unknown preview: $previewId")
+        }
+        val screenshotPath = record.snapshot.screen.screenshot?.desktopFullPath
+            ?: throw FeedbackSessionException("PREVIEW_SCREENSHOT_NOT_FOUND: Screenshot not found for preview: $previewId")
+        val screenshotFile = File(screenshotPath).canonicalFile
+        val previewDirectory = File(
+            File(record.projectRoot).canonicalFile,
+            ".pointpatch/preview-cache/$sessionId/$previewId",
+        ).canonicalFile
+        if (
+            !screenshotFile.isFile ||
+            screenshotFile.extension.lowercase() != "png" ||
+            !screenshotFile.toPath().startsWith(previewDirectory.toPath())
+        ) {
+            throw FeedbackSessionException("PREVIEW_SCREENSHOT_NOT_FOUND: Screenshot not found for preview: $previewId")
+        }
+        return screenshotFile
+    }
+
     suspend fun navigate(sessionId: String, request: FeedbackNavigationRequest): FeedbackNavigationResult {
         request.validate()
         val session = store.getSession(sessionId)

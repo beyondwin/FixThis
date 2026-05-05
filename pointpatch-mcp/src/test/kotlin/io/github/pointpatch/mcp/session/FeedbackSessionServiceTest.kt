@@ -322,6 +322,48 @@ class FeedbackSessionServiceTest {
     }
 
     @Test
+    fun previewScreenshotFileRequiresLivePreviewRecordAndDoesNotUseDeletedCache() = runBlocking {
+        val root = createTempDir(prefix = "pointpatch-v2-preview-screenshot-")
+        try {
+            val store = FeedbackSessionStore(
+                clock = sequenceClock(1_000L, 2_000L),
+                idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1"),
+            )
+            val service = FeedbackSessionService(
+                bridge = FakePointPatchBridge(),
+                store = store,
+                projectRoot = root.absolutePath,
+                defaultPackageName = "io.github.pointpatch.sample",
+            )
+            val session = service.openSession(null, newSession = true)
+            val preview = service.capturePreview(session.sessionId)
+
+            val screenshotFile = service.previewScreenshotFile(session.sessionId, preview.previewId)
+            assertTrue(screenshotFile.isFile)
+            assertTrue(screenshotFile.absolutePath.contains(".pointpatch/preview-cache/${session.sessionId}/${preview.previewId}"))
+
+            service.savePreviewFeedbackItems(
+                sessionId = session.sessionId,
+                previewId = preview.previewId,
+                items = listOf(
+                    PendingDraftFeedbackItem(
+                        targetType = FeedbackTargetType.AREA,
+                        bounds = PointPatchRect(112f, 426f, 351f, 588f),
+                        comment = "Change this visual area",
+                    ),
+                ),
+            )
+
+            val error = assertFailsWith<FeedbackSessionException> {
+                service.previewScreenshotFile(session.sessionId, preview.previewId)
+            }
+            assertTrue(error.message.orEmpty().contains("PREVIEW_NOT_FOUND"))
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
     fun savingSamePreviewTwiceDoesNotPersistDuplicateScreensOrItems() = runBlocking {
         val root = createTempDir(prefix = "pointpatch-v2-preview-duplicate-")
         val store = FeedbackSessionStore(
