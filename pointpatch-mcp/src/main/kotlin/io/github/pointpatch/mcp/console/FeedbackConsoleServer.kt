@@ -6,6 +6,8 @@ import io.github.pointpatch.cli.pointPatchJson
 import io.github.pointpatch.compose.core.model.PointPatchRect
 import io.github.pointpatch.mcp.session.CapturedScreen
 import io.github.pointpatch.mcp.session.FeedbackItem
+import io.github.pointpatch.mcp.session.FeedbackNavigationRequest
+import io.github.pointpatch.mcp.session.FeedbackNavigationResult
 import io.github.pointpatch.mcp.session.FeedbackQueueFormatter
 import io.github.pointpatch.mcp.session.FeedbackSession
 import io.github.pointpatch.mcp.session.FeedbackSessionException
@@ -85,6 +87,16 @@ class FeedbackConsoleServer(
                     val session = service.currentSession()
                     val screen = runBlocking { service.captureScreen(session.sessionId) }
                     exchange.sendJson(200, screen)
+                }
+                "/api/navigation" -> exchange.requireMethod("POST") {
+                    val request = exchange.decodeNavigationBody()
+                    val session = service.currentSession()
+                    val result = try {
+                        runBlocking { service.navigate(session.sessionId, request) }
+                    } catch (error: IllegalArgumentException) {
+                        throw FeedbackConsoleHttpException(400, error.message ?: "Invalid navigation request")
+                    }
+                    exchange.sendJson(200, result)
                 }
                 "/api/items" -> exchange.requireMethod("POST") {
                     val request = exchange.decodeBody()
@@ -188,6 +200,15 @@ class FeedbackConsoleServer(
         }
     }
 
+    private fun HttpExchange.decodeNavigationBody(): FeedbackNavigationRequest {
+        val body = requestBody.use { input -> input.readBytes().toString(Charsets.UTF_8) }
+        return runCatching {
+            pointPatchJson.decodeFromString(FeedbackNavigationRequest.serializer(), body)
+        }.getOrElse { error ->
+            throw FeedbackConsoleHttpException(400, error.message ?: "Invalid JSON request body")
+        }
+    }
+
     private fun HttpExchange.sendJson(statusCode: Int, value: FeedbackSession) {
         sendText(statusCode, pointPatchJson.encodeToString(FeedbackSession.serializer(), value), "application/json; charset=utf-8")
     }
@@ -202,6 +223,10 @@ class FeedbackConsoleServer(
 
     private fun HttpExchange.sendJson(statusCode: Int, value: FeedbackItem) {
         sendText(statusCode, pointPatchJson.encodeToString(FeedbackItem.serializer(), value), "application/json; charset=utf-8")
+    }
+
+    private fun HttpExchange.sendJson(statusCode: Int, value: FeedbackNavigationResult) {
+        sendText(statusCode, pointPatchJson.encodeToString(FeedbackNavigationResult.serializer(), value), "application/json; charset=utf-8")
     }
 
     private fun HttpExchange.sendText(statusCode: Int, text: String, contentType: String) {

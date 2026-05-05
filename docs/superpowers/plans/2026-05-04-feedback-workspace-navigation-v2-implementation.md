@@ -1876,7 +1876,7 @@ git commit -m "mcp: navigate app from feedback sessions"
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Add failing console navigation API test**
+- [x] **Step 1: Add failing console navigation API test**
 
 Add:
 
@@ -1902,7 +1902,7 @@ fun navigationApiPerformsAction() {
 }
 ```
 
-- [ ] **Step 2: Run console test to verify it fails**
+- [x] **Step 2: Run console test to verify it fails**
 
 Run:
 
@@ -1912,7 +1912,7 @@ Run:
 
 Expected: route returns 404.
 
-- [ ] **Step 3: Add server route**
+- [x] **Step 3: Add server route**
 
 In `FeedbackConsoleServer.handle`:
 
@@ -1928,7 +1928,7 @@ In `FeedbackConsoleServer.handle`:
 Add `decodeNavigationBody` using `FeedbackNavigationRequest.serializer()`. Add a
 `sendJson` overload for `FeedbackNavigationResult`.
 
-- [ ] **Step 4: Add console controls**
+- [x] **Step 4: Add console controls**
 
 Add toolbar in snapshot section:
 
@@ -1984,7 +1984,7 @@ function attachSnapshotTapHandler() {
 
 Call `attachSnapshotTapHandler()` at the end of `render()`.
 
-- [ ] **Step 5: Run console tests**
+- [x] **Step 5: Run console tests**
 
 Run:
 
@@ -1994,7 +1994,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServer.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt

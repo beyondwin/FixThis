@@ -1,6 +1,8 @@
 package io.github.pointpatch.mcp.console
 
+import io.github.pointpatch.cli.pointPatchJson
 import io.github.pointpatch.mcp.session.FakePointPatchBridge
+import io.github.pointpatch.mcp.session.FeedbackNavigationAction
 import io.github.pointpatch.mcp.session.FeedbackSessionPaths
 import io.github.pointpatch.mcp.session.FeedbackSessionPersistence
 import io.github.pointpatch.mcp.session.FeedbackSessionService
@@ -13,7 +15,10 @@ import java.nio.file.Files
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -51,6 +56,15 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("id=\"closeSessionButton\""))
         assertTrue(html.contains("/api/sessions"))
         assertTrue(html.contains("/api/session/open"))
+    }
+
+    @Test
+    fun consoleHtmlIncludesNavigationControls() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("id=\"backButton\""))
+        assertTrue(html.contains("id=\"captureAfterNavigation\""))
+        assertTrue(html.contains("/api/navigation"))
     }
 
     @Test
@@ -232,6 +246,34 @@ class FeedbackConsoleServerTest {
 
             assertEquals(404, connection.responseCode)
             assertTrue(connection.errorStream.bufferedReader().readText().contains("Unknown feedback session"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun navigationApiPerformsAction() {
+        val bridge = FakePointPatchBridge()
+        val service = FeedbackSessionService(
+            bridge,
+            FeedbackSessionStore(),
+            "/repo",
+            "io.github.pointpatch.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val connection = URL("${server.url}/api/navigation").openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.outputStream.use { it.write("""{"action":"back","captureAfter":false}""".toByteArray()) }
+
+            assertEquals(200, connection.responseCode)
+            val response = connection.inputStream.bufferedReader().readText()
+            assertEquals(true, pointPatchJson.parseToJsonElement(response).jsonObject["performed"]?.jsonPrimitive?.boolean)
+            assertEquals(FeedbackNavigationAction.BACK, bridge.navigationRequests.single().action)
+            assertFalse(bridge.navigationRequests.single().captureAfter)
         } finally {
             server.stop()
         }

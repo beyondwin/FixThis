@@ -67,6 +67,13 @@ internal object FeedbackConsoleAssets {
               font-size: 13px;
             }
             .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+            .toolbar label {
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              color: #3f4754;
+              font-size: 13px;
+            }
             .list { display: grid; gap: 8px; }
             .row {
               border: 1px solid #e1e6ee;
@@ -98,6 +105,7 @@ internal object FeedbackConsoleAssets {
               padding: 24px;
             }
             img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid #d8dee8; }
+            .snapshot img { cursor: crosshair; }
             .error { color: #9c2d2d; font-size: 13px; min-height: 18px; }
             @media (max-width: 900px) {
               header { align-items: flex-start; flex-direction: column; }
@@ -131,6 +139,14 @@ internal object FeedbackConsoleAssets {
             </section>
             <section>
               <h2>Snapshot</h2>
+              <div class="toolbar">
+                <button id="backButton">Back</button>
+                <button id="swipeUpButton">Swipe Up</button>
+                <button id="swipeDownButton">Swipe Down</button>
+                <button id="swipeLeftButton">Swipe Left</button>
+                <button id="swipeRightButton">Swipe Right</button>
+                <label><input id="captureAfterNavigation" type="checkbox" checked> Capture after navigation</label>
+              </div>
               <div id="snapshot" class="snapshot">Capture a screen to begin.</div>
             </section>
             <section>
@@ -152,6 +168,7 @@ internal object FeedbackConsoleAssets {
             const items = document.getElementById('items');
             const error = document.getElementById('error');
             const comment = document.getElementById('comment');
+            const captureAfterNavigation = document.getElementById('captureAfterNavigation');
 
             function text(value) {
               return value == null || value === '' ? '-' : String(value);
@@ -197,6 +214,7 @@ internal object FeedbackConsoleAssets {
               snapshot.innerHTML = hasScreenshot
                 ? `<img alt="Latest PointPatch snapshot" src="/api/screens/${'$'}{encodeURIComponent(screen.screenId)}/screenshot/full">`
                 : `<div>${'$'}{screen ? 'No screenshot artifact for latest screen.' : 'Capture a screen to begin.'}</div>`;
+              attachSnapshotTapHandler();
 
               items.innerHTML = (session?.items || []).map(item => `
                 <div class="row">
@@ -278,6 +296,36 @@ internal object FeedbackConsoleAssets {
               await refresh();
             }
 
+            async function navigate(action, extras = {}) {
+              error.textContent = '';
+              await requestJson('/api/navigation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action,
+                  captureAfter: captureAfterNavigation.checked,
+                  ...extras
+                })
+              });
+              await refresh();
+            }
+
+            function attachSnapshotTapHandler() {
+              const image = snapshot.querySelector('img');
+              if (!image) return;
+              image.addEventListener('click', event => {
+                const rect = image.getBoundingClientRect();
+                if (!image.naturalWidth || !image.naturalHeight || !rect.width || !rect.height) {
+                  showError(new Error('Snapshot image dimensions are not available for tap navigation.'));
+                  return;
+                }
+                navigate('tap', {
+                  x: (event.clientX - rect.left) * image.naturalWidth / rect.width,
+                  y: (event.clientY - rect.top) * image.naturalHeight / rect.height
+                }).catch(showError);
+              });
+            }
+
             async function copyMarkdown() {
               error.textContent = '';
               const response = await fetch('/api/export/markdown');
@@ -292,6 +340,11 @@ internal object FeedbackConsoleAssets {
             document.getElementById('copyMarkdownButton').addEventListener('click', () => copyMarkdown().catch(showError));
             document.getElementById('newSessionButton').addEventListener('click', () => newSession().catch(showError));
             document.getElementById('closeSessionButton').addEventListener('click', () => closeSession().catch(showError));
+            document.getElementById('backButton').addEventListener('click', () => navigate('back').catch(showError));
+            document.getElementById('swipeUpButton').addEventListener('click', () => navigate('swipe', { direction: 'up' }).catch(showError));
+            document.getElementById('swipeDownButton').addEventListener('click', () => navigate('swipe', { direction: 'down' }).catch(showError));
+            document.getElementById('swipeLeftButton').addEventListener('click', () => navigate('swipe', { direction: 'left' }).catch(showError));
+            document.getElementById('swipeRightButton').addEventListener('click', () => navigate('swipe', { direction: 'right' }).catch(showError));
 
             function showError(cause) {
               error.textContent = cause && cause.message ? cause.message : String(cause);
