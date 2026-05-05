@@ -249,7 +249,7 @@ internal object FeedbackConsoleAssets {
                 <button id="swipeDownButton">Swipe Down</button>
                 <button id="swipeLeftButton">Swipe Left</button>
                 <button id="swipeRightButton">Swipe Right</button>
-                <label><input id="captureAfterNavigation" type="checkbox" checked> Capture after navigation</label>
+                <label><input id="captureAfterNavigation" type="checkbox"> Capture after navigation</label>
               </div>
               <div id="snapshot" class="snapshot">
                 <div id="selectionOverlay" class="selection-overlay" aria-hidden="true"></div>

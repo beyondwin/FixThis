@@ -75,6 +75,7 @@ class FeedbackConsoleServerTest {
 
         assertTrue(html.contains("id=\"backButton\""))
         assertTrue(html.contains("id=\"captureAfterNavigation\""))
+        assertFalse(html.contains("id=\"captureAfterNavigation\" type=\"checkbox\" checked"))
         assertTrue(html.contains("/api/navigation"))
     }
 
