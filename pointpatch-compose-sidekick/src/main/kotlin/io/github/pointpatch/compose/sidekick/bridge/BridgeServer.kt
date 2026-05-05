@@ -30,6 +30,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -114,6 +115,14 @@ class BridgeServer(
                 "verifyUiChange" -> BridgeProtocol.json.encodeToJsonElement(verifyUiChange(request.params))
                 "getLastAnnotation" -> BridgeProtocol.json.encodeToJsonElement(environment.getLastAnnotation())
                 "readScreenshot" -> BridgeProtocol.json.encodeToJsonElement(readScreenshot(request.params))
+                "performNavigation" -> BridgeProtocol.json.encodeToJsonElement(
+                    environment.performNavigation(
+                        BridgeProtocol.json.decodeFromJsonElement(
+                            BridgeNavigationRequest.serializer(),
+                            request.params,
+                        ),
+                    ),
+                )
                 else -> return BridgeProtocol.error(request.id, "UNKNOWN_METHOD", "Unknown bridge method: ${request.method}")
             }
             BridgeProtocol.success(request.id, result)
@@ -194,6 +203,7 @@ interface BridgeEnvironment {
     suspend fun getLastScreenSnapshot(): BridgeScreenSnapshot?
     suspend fun startFeedbackCapture(timeoutMillis: Long): BridgeFeedbackCaptureResult
     suspend fun getLastAnnotation(): PointPatchAnnotation?
+    suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult
     fun screenshotCacheDirectory(): File
 }
 
@@ -335,6 +345,10 @@ private class AndroidBridgeEnvironment(
 ) : BridgeEnvironment {
     var currentActivity: WeakReference<Activity>? = null
     private var lastScreenSnapshot: BridgeScreenSnapshot? = null
+    private val navigationPerformer = AndroidNavigationPerformer(
+        activityProvider = { currentActivity?.get() },
+        mainDispatcher = mainDispatcher,
+    )
 
     override suspend fun status(): BridgeStatus {
         val inspection = inspectCurrentScreen()
@@ -442,6 +456,9 @@ private class AndroidBridgeEnvironment(
             val activity = currentActivity?.get() ?: return@withContext null
             PointPatchOverlayHostLayout.controllerFor(activity)?.lastAnnotation
         }
+
+    override suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult =
+        navigationPerformer.perform(request)
 
     override fun screenshotCacheDirectory(): File = File(context.cacheDir, "pointpatch")
 }

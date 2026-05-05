@@ -1627,7 +1627,7 @@ git commit -m "sidekick: add limited navigation performer"
 - Modify: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/bridge/BridgeServer.kt`
 - Modify: `pointpatch-compose-sidekick/src/test/kotlin/io/github/pointpatch/compose/sidekick/bridge/BridgeServerTest.kt`
 
-- [ ] **Step 1: Add bridge protocol test**
+- [x] **Step 1: Add bridge protocol test**
 
 Add to `BridgeServerTest`:
 
@@ -1657,7 +1657,7 @@ fun performNavigationRoutesToEnvironment() = runBlocking {
 }
 ```
 
-- [ ] **Step 2: Run bridge test to verify it fails**
+- [x] **Step 2: Run bridge test to verify it fails**
 
 Run:
 
@@ -1668,7 +1668,7 @@ ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :pointpatch-compose-sideki
 Expected: compilation fails because `BridgeEnvironment.performNavigation` does
 not exist.
 
-- [ ] **Step 3: Extend bridge environment and request dispatch**
+- [x] **Step 3: Extend bridge environment and request dispatch**
 
 Add to `BridgeEnvironment`:
 
@@ -1686,7 +1686,7 @@ Add to `BridgeServer.handleRequest`:
 )
 ```
 
-- [ ] **Step 4: Implement Android environment method**
+- [x] **Step 4: Implement Android environment method**
 
 In `AndroidBridgeEnvironment`, add a performer:
 
@@ -1703,7 +1703,7 @@ override suspend fun performNavigation(request: BridgeNavigationRequest): Bridge
 
 Update fake bridge environments in tests to record navigation requests.
 
-- [ ] **Step 5: Run bridge tests**
+- [x] **Step 5: Run bridge tests**
 
 Run:
 
@@ -1713,7 +1713,7 @@ ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :pointpatch-compose-sideki
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/bridge/BridgeServer.kt pointpatch-compose-sidekick/src/test/kotlin/io/github/pointpatch/compose/sidekick/bridge/BridgeServerTest.kt

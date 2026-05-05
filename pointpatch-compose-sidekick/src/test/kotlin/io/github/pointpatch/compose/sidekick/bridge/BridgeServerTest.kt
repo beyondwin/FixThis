@@ -16,6 +16,9 @@ import java.io.File
 import java.io.RandomAccessFile
 import kotlin.io.path.createTempDirectory
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -88,6 +91,28 @@ class BridgeServerTest {
         assertTrue(response.contains("MainActivity"))
         assertTrue(response.contains("/cache/screen.png"))
         assertTrue(response.contains("sourceIndexAvailable"))
+    }
+
+    @Test
+    fun performNavigationRoutesToEnvironment() = runBlocking {
+        val environment = RecordingBridgeEnvironment()
+        val server = server(environment = environment)
+        val request = BridgeRequest(
+            id = "nav-1",
+            token = "token",
+            method = "performNavigation",
+            params = BridgeProtocol.json.encodeToJsonElement(
+                BridgeNavigationRequest.serializer(),
+                BridgeNavigationRequest(action = BridgeNavigationAction.BACK),
+            ).jsonObject,
+        )
+
+        val response = server.handleRequestForTest(
+            BridgeProtocol.json.encodeToString(BridgeRequest.serializer(), request),
+        )
+
+        assertTrue(response.contains(""""performed": true"""))
+        assertEquals(BridgeNavigationAction.BACK, environment.navigationRequests.single().action)
     }
 
     @Test
@@ -258,6 +283,7 @@ class BridgeServerTest {
         ),
     ) : BridgeEnvironment {
         private var lastScreenSnapshot: BridgeScreenSnapshot? = null
+        val navigationRequests: MutableList<BridgeNavigationRequest> = mutableListOf()
 
         override suspend fun status(): BridgeStatus =
             BridgeStatus(
@@ -289,6 +315,15 @@ class BridgeServerTest {
         override suspend fun getLastScreenSnapshot(): BridgeScreenSnapshot? = lastScreenSnapshot
 
         override suspend fun getLastAnnotation(): PointPatchAnnotation? = lastAnnotation
+
+        override suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult {
+            navigationRequests += request
+            return BridgeNavigationResult(
+                performed = true,
+                action = request.action,
+                activity = "MainActivity",
+            )
+        }
 
         override fun screenshotCacheDirectory(): File = screenshotCacheDirectory
     }
