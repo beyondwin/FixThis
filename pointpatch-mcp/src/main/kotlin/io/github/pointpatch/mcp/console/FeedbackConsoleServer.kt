@@ -62,6 +62,9 @@ class FeedbackConsoleServer(
                 "/" -> exchange.requireMethod("GET") {
                     exchange.sendText(200, FeedbackConsoleAssets.indexHtml, "text/html; charset=utf-8")
                 }
+                "/favicon.ico" -> exchange.requireMethod("GET") {
+                    exchange.sendNoContent()
+                }
                 "/api/session" -> exchange.requireMethod("GET") {
                     exchange.sendJson(200, service.currentSession())
                 }
@@ -395,6 +398,11 @@ class FeedbackConsoleServer(
         responseHeaders.set("Content-Type", contentType)
         sendResponseHeaders(statusCode, bytes.size.toLong())
         responseBody.use { output -> output.write(bytes) }
+    }
+
+    private fun HttpExchange.sendNoContent() {
+        sendResponseHeaders(204, -1)
+        close()
     }
 
     @Serializable

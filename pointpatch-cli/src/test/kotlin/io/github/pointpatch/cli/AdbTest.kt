@@ -1,6 +1,7 @@
 package io.github.pointpatch.cli
 
 import java.io.File
+import java.nio.file.Files
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertFalse
@@ -107,6 +108,28 @@ class AdbTest {
             devices,
         )
         assertTrue(runner.commands.single() == listOf("adb", "devices", "-l"))
+    }
+
+    @Test
+    fun defaultExecutableUsesProjectLocalPropertiesSdkDirWhenEnvironmentIsMissing() {
+        val projectRoot = Files.createTempDirectory("pointpatch-adb-project-").toFile().apply {
+            deleteOnExit()
+        }
+        val sdkRoot = Files.createTempDirectory("pointpatch-android-sdk-").toFile().apply {
+            deleteOnExit()
+        }
+        val adb = File(sdkRoot, "platform-tools/adb").apply {
+            parentFile.mkdirs()
+            writeText("")
+            setExecutable(true)
+            deleteOnExit()
+        }
+        File(projectRoot, "local.properties").writeText("sdk.dir=${sdkRoot.absolutePath}\n")
+
+        assertEquals(
+            adb.absolutePath,
+            Adb.defaultAdbExecutable(projectRoot = projectRoot, environment = emptyMap()),
+        )
     }
 
     @Test

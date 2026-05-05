@@ -18,7 +18,7 @@ class DoctorCommand : CoreCliktCommand(name = "doctor") {
 
     override fun run() {
         val root = File(projectDir).canonicalFile
-        val adb = Adb()
+        val adb = Adb.forProject(root)
         val client = BridgeClient(adb = adb, projectRoot = root)
         var failures = 0
 

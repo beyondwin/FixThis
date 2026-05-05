@@ -59,6 +59,25 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun servesFaviconWithoutBrowserVisible404() {
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = { "session-1" }),
+            projectRoot = "/repo",
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val connection = URL("${server.url}/favicon.ico").openConnection() as HttpURLConnection
+
+            assertEquals(204, connection.responseCode)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
     fun consoleHtmlIncludesSessionPickerControls() {
         val html = FeedbackConsoleAssets.indexHtml
 

@@ -19,7 +19,7 @@ class StatusCommand : CoreCliktCommand(name = "status") {
 
     override fun run() {
         val root = File(projectDir).canonicalFile
-        val client = BridgeClient(adb = Adb(), projectRoot = root)
+        val client = BridgeClient(adb = Adb.forProject(root), projectRoot = root)
         val resolvedPackage = failAsCliError { client.resolvePackageName(packageName) }
 
         echo("package: $resolvedPackage")

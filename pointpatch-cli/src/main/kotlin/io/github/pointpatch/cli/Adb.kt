@@ -1,6 +1,7 @@
 package io.github.pointpatch.cli
 
 import java.io.File
+import java.util.Properties
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
@@ -110,14 +111,34 @@ class Adb(
     }
 
     companion object {
-        fun defaultAdbExecutable(): String {
-            val androidHome = System.getenv("ANDROID_HOME")?.takeIf { it.isNotBlank() }
-            if (androidHome != null) {
-                val adb = File(androidHome, "platform-tools/adb")
+        fun forProject(projectRoot: File): Adb =
+            Adb(adbExecutable = defaultAdbExecutable(projectRoot = projectRoot))
+
+        fun defaultAdbExecutable(
+            projectRoot: File? = null,
+            environment: Map<String, String> = System.getenv(),
+        ): String {
+            listOfNotNull(
+                environment["ANDROID_HOME"]?.takeIf { it.isNotBlank() },
+                environment["ANDROID_SDK_ROOT"]?.takeIf { it.isNotBlank() },
+                projectRoot?.localPropertiesSdkDir(),
+            ).forEach { sdkDir ->
+                val adb = File(sdkDir, "platform-tools/${adbExecutableName()}")
                 if (adb.exists()) return adb.absolutePath
             }
             return "adb"
         }
+
+        private fun File.localPropertiesSdkDir(): String? {
+            val localProperties = resolve("local.properties")
+            if (!localProperties.exists()) return null
+            val properties = Properties()
+            localProperties.inputStream().use { input -> properties.load(input) }
+            return properties.getProperty("sdk.dir")?.takeIf { it.isNotBlank() }
+        }
+
+        private fun adbExecutableName(): String =
+            if (System.getProperty("os.name").startsWith("Windows", ignoreCase = true)) "adb.exe" else "adb"
     }
 }
 

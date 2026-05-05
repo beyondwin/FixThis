@@ -17,7 +17,7 @@ class RunCommand : CoreCliktCommand(name = "run") {
 
     override fun run() {
         val root = File(projectDir).canonicalFile
-        val adb = Adb()
+        val adb = Adb.forProject(root)
         val client = BridgeClient(adb = adb, projectRoot = root)
         val resolvedPackage = failAsCliError { client.resolvePackageName(packageName) }
 

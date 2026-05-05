@@ -56,17 +56,18 @@ object ProjectConfig {
 }
 
 class BridgeClient(
-    private val adb: AdbFacade = Adb(),
+    private val adb: AdbFacade? = null,
     private val projectRoot: File = File("."),
     private val portAllocator: () -> Int = { allocateLocalPort() },
     private val socketTimeoutMillis: Int = DefaultSocketTimeoutMillis,
     private val socketConnector: (Int) -> BridgeSocket = { port -> TcpBridgeSocket(port, socketTimeoutMillis) },
 ) {
     private val requestIds = AtomicInteger(0)
+    private val resolvedAdb: AdbFacade by lazy { adb ?: Adb.forProject(projectRoot) }
     @Volatile
     private var selectedDeviceSerial: String? = null
 
-    fun devices(): List<AdbDevice> = adb.devices()
+    fun devices(): List<AdbDevice> = resolvedAdb.devices()
 
     fun selectDevice(serial: String) {
         require(serial.isNotBlank()) { "Device serial must not be blank" }
@@ -81,7 +82,7 @@ class BridgeClient(
 
     private fun requestScope(): BridgeRequestScope {
         val serial = selectedDeviceSerial
-        return BridgeRequestScope(selectedDeviceSerial = serial, adb = adb.forDevice(serial))
+        return BridgeRequestScope(selectedDeviceSerial = serial, adb = resolvedAdb.forDevice(serial))
     }
 
     suspend fun request(
