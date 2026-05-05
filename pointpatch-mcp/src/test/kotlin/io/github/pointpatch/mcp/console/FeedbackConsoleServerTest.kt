@@ -15,6 +15,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class FeedbackConsoleServerTest {
@@ -74,6 +75,28 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun sessionsApiFiltersByPackageNameQuery() {
+        val service = FeedbackSessionService(
+            FakePointPatchBridge(),
+            FeedbackSessionStore(idGenerator = FakeIds("session-1", "session-2").next),
+            "/repo",
+            "io.github.pointpatch.sample",
+        )
+        val matching = service.openSession("io.github.pointpatch.sample", newSession = true)
+        val other = service.openSession("io.github.pointpatch.other", newSession = true)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val sessions = URL("${server.url}/api/sessions?packageName=io.github.pointpatch.sample").readText()
+
+            assertTrue(sessions.contains(matching.sessionId))
+            assertFalse(sessions.contains(other.sessionId))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
     fun openSessionApiSwitchesCurrentSession() {
         val service = FeedbackSessionService(
             FakePointPatchBridge(),
@@ -94,6 +117,30 @@ class FeedbackConsoleServerTest {
 
             assertEquals(200, connection.responseCode)
             assertTrue(connection.inputStream.bufferedReader().readText().contains(first.sessionId))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun openSessionApiReturnsNotFoundForUnknownSessionId() {
+        val service = FeedbackSessionService(
+            FakePointPatchBridge(),
+            FeedbackSessionStore(),
+            "/repo",
+            "io.github.pointpatch.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val connection = URL("${server.url}/api/session/open").openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.outputStream.use { it.write("""{"sessionId":"missing-session"}""".toByteArray()) }
+
+            assertEquals(404, connection.responseCode)
+            assertTrue(connection.errorStream.bufferedReader().readText().contains("Unknown feedback session"))
         } finally {
             server.stop()
         }
@@ -121,6 +168,30 @@ class FeedbackConsoleServerTest {
             val response = connection.inputStream.bufferedReader().readText()
             assertTrue(response.contains(session.sessionId))
             assertTrue(response.contains("closed"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun closeSessionApiReturnsNotFoundForUnknownSessionId() {
+        val service = FeedbackSessionService(
+            FakePointPatchBridge(),
+            FeedbackSessionStore(),
+            "/repo",
+            "io.github.pointpatch.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val connection = URL("${server.url}/api/session/close").openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.outputStream.use { it.write("""{"sessionId":"missing-session"}""".toByteArray()) }
+
+            assertEquals(404, connection.responseCode)
+            assertTrue(connection.errorStream.bufferedReader().readText().contains("Unknown feedback session"))
         } finally {
             server.stop()
         }

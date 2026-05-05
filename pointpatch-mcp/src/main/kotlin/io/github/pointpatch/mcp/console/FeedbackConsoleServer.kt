@@ -8,6 +8,7 @@ import io.github.pointpatch.mcp.session.CapturedScreen
 import io.github.pointpatch.mcp.session.FeedbackItem
 import io.github.pointpatch.mcp.session.FeedbackQueueFormatter
 import io.github.pointpatch.mcp.session.FeedbackSession
+import io.github.pointpatch.mcp.session.FeedbackSessionException
 import io.github.pointpatch.mcp.session.FeedbackSessionList
 import io.github.pointpatch.mcp.session.FeedbackSessionPaths
 import io.github.pointpatch.mcp.session.FeedbackSessionService
@@ -63,7 +64,13 @@ class FeedbackConsoleServer(
                     exchange.sendJson(200, service.currentSession())
                 }
                 "/api/sessions" -> exchange.requireMethod("GET") {
-                    exchange.sendJson(200, service.listSessions(includeClosed = exchange.queryBoolean("includeClosed")))
+                    exchange.sendJson(
+                        200,
+                        service.listSessions(
+                            packageNameOverride = exchange.queryParameter("packageName"),
+                            includeClosed = exchange.queryBoolean("includeClosed"),
+                        ),
+                    )
                 }
                 "/api/session/open" -> exchange.requireMethod("POST") {
                     val request = exchange.decodeOpenSessionBody()
@@ -107,6 +114,9 @@ class FeedbackConsoleServer(
             }
         } catch (error: FeedbackConsoleHttpException) {
             exchange.sendText(error.statusCode, error.message ?: "Request failed", "text/plain; charset=utf-8")
+        } catch (error: FeedbackSessionException) {
+            val httpError = error.toConsoleHttpException()
+            exchange.sendText(httpError.statusCode, httpError.message, "text/plain; charset=utf-8")
         } catch (error: Throwable) {
             exchange.sendText(500, error.message ?: error::class.java.simpleName, "text/plain; charset=utf-8")
         }
@@ -142,8 +152,8 @@ class FeedbackConsoleServer(
         block()
     }
 
-    private fun HttpExchange.queryBoolean(name: String): Boolean {
-        val value = requestURI.rawQuery
+    private fun HttpExchange.queryParameter(name: String): String? =
+        requestURI.rawQuery
             ?.split("&")
             ?.firstNotNullOfOrNull { parameter ->
                 val pieces = parameter.split("=", limit = 2)
@@ -153,7 +163,9 @@ class FeedbackConsoleServer(
                         URLDecoder.decode(pieces.getOrElse(1) { "" }, Charsets.UTF_8.name())
                     }
             }
-            ?: return false
+
+    private fun HttpExchange.queryBoolean(name: String): Boolean {
+        val value = queryParameter(name) ?: return false
         return value.toBooleanStrictOrNull()
             ?: throw FeedbackConsoleHttpException(400, "Invalid boolean query parameter: $name")
     }
@@ -224,6 +236,16 @@ private fun String.screenIdFromScreenshotPath(): String =
 
 private fun String.toUrlHost(): String =
     if (contains(':') && !startsWith("[")) "[$this]" else this
+
+private fun FeedbackSessionException.toConsoleHttpException(): FeedbackConsoleHttpException {
+    val text = message ?: "Feedback session request failed"
+    val statusCode = when {
+        text.startsWith("SESSION_NOT_FOUND:") -> 404
+        text.startsWith("Unknown feedback session:") -> 404
+        else -> 400
+    }
+    return FeedbackConsoleHttpException(statusCode, text)
+}
 
 private class FeedbackConsoleHttpException(
     val statusCode: Int,
