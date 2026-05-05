@@ -39,24 +39,35 @@ The console UI and local API can list, reopen, and close persisted sessions. Clo
 Typical flow:
 
 1. Call `pointpatch_open_feedback_console`.
-2. Capture one or more screens in the console.
-3. Add feedback items on desktop snapshots.
-4. Call `pointpatch_list_feedback`.
-5. Call `pointpatch_read_feedback`.
-6. Make code changes and call `pointpatch_resolve_feedback`.
+2. Use the live preview to navigate the app.
+3. Click Add to freeze the latest preview and create one or more pending items.
+4. Click Save once to persist one evidence snapshot for those pending items.
+5. Call `pointpatch_list_feedback`.
+6. Call `pointpatch_read_feedback`.
+7. Make code changes and call `pointpatch_resolve_feedback`.
 
 The CLI command `pointpatch console --package <applicationId>` opens the same local console for copy/export workflows.
 
 Console workflow:
 
 1. Select a connected ADB device from the browser device picker. Offline, unauthorized, and otherwise unavailable devices are visible but not selectable.
-2. Capture a screen.
-3. Use Select mode to click a component or drag a custom area.
-4. Add a comment and create draft feedback.
-5. Send the draft to the agent. The console records a persisted handoff batch that `pointpatch_read_feedback` can read, moves draft items to sent delivery, clears the draft, and keeps the batch in Sent History.
-6. Use Navigate mode only when you want screenshot clicks to tap the live app, or when you want the debug-only one-step `back` and `swipe` controls.
+2. Use the app normally from the console preview.
+3. Click Add when ready to leave feedback on the current screen.
+4. Select one or more UI targets or visual areas and add comments.
+5. Review the numbered pending markers and pending comments.
+6. Click Save once to store one evidence snapshot and all pending items.
+7. Expand the saved evidence group to review the persisted screenshot and comments.
+8. Click Send when ready.
 
-Send Draft to Agent is local persistence, not an external AI API call. PointPatch records a handoff batch in the feedback session so an MCP client can read the batch and decide what to do next.
+The console defaults to navigation and has no Select/Navigate toggle. Preview clicks navigate the app until Add freezes the latest preview for feedback targeting. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions.
+
+Top bar actions are short session-level controls: Refresh, Add, Save, Copy, Send, New, and Close. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 2s. Preview polling pauses while the browser tab is hidden and while the Add/frozen-preview flow is active.
+
+Add freezes the latest preview only; it does not save. Multiple pending feedback items can be added to one frozen preview. Pending items support Focus and Delete before Save; deleting renumbers pending items so the pending list numbers and overlay numbers match.
+
+Save promotes the frozen preview once into one persisted evidence snapshot and connects all pending items to the same `screenId`. `FeedbackItem.screenId` points to the evidence snapshot saved with that item batch, so multiple saved items can share one `screenId`. Later Add on the same visible app screen creates a new evidence snapshot after Save. Live preview frames are not session history: `FeedbackSession.screens` contains persisted evidence snapshots, not every preview frame.
+
+Saved evidence groups can be expanded to review the persisted screenshot, numbered overlay, and saved comments. Send is local persistence, not an external AI API call. PointPatch records a handoff batch in the feedback session so an MCP client can read the batch and decide what to do next.
 
 ## Setup Output
 
@@ -150,7 +161,7 @@ Lists feedback queue summaries for the active feedback session, including draft 
 
 Reads the feedback queue as annotation JSON and Markdown, optionally focused on one item. The output groups current draft feedback and Sent History handoff batches.
 
-The JSON output preserves the full feedback session schema for tools that need exact IDs. The Markdown output is the human/agent handoff view: it includes package/status counts, screen labels, target bounds, selected text or content descriptions, source candidates, comments, and screenshot availability/size, but omits raw session, screen, item, batch, and screenshot artifact IDs.
+The JSON output preserves the full feedback session schema for tools that need exact IDs, paths, and tool contracts. The Markdown output is the compact agent-facing handoff view: it focuses on request, target evidence, and likely source, and intentionally omits internal IDs plus repeated storage metadata such as raw session, screen, item, batch, and screenshot artifact IDs.
 
 `pointpatch_resolve_feedback`
 

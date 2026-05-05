@@ -46,10 +46,12 @@ Feedback console sessions are returned by `pointpatch_open_feedback_console` and
 - `packageName`: Android application id.
 - `projectRoot`: desktop project root.
 - `createdAtEpochMillis`, `updatedAtEpochMillis`: session timestamps.
-- `screens`: captured screen entries.
+- `screens`: persisted evidence snapshots saved from frozen previews.
 - `items`: feedback queue items.
 - `handoffBatches`: persisted sent handoff batches.
 - `status`: `active`, `ready_for_agent`, or `closed`.
+
+`FeedbackSession.screens` contains persisted evidence snapshots, not every preview frame.
 
 ## Feedback Session Summary
 
@@ -60,7 +62,7 @@ Feedback session summaries are returned by `pointpatch_list_feedback_sessions` a
 - `projectRoot`: desktop project root.
 - `createdAtEpochMillis`, `updatedAtEpochMillis`: session timestamps.
 - `status`: `active`, `ready_for_agent`, or `closed`.
-- `screensCount`: number of captured screens in the session.
+- `screensCount`: number of persisted evidence snapshots in the session.
 - `itemsCount`: number of feedback items in the session.
 - `unresolvedItemsCount`: number of feedback items not resolved or marked won't fix.
 - `draftItemsCount`: number of feedback items whose delivery is `draft`.
@@ -70,9 +72,9 @@ Feedback session summaries are returned by `pointpatch_list_feedback_sessions` a
 
 ## Captured Screen Schema
 
-Captured screens represent one Android screen snapshot in a feedback session:
+Captured screens represent persisted evidence snapshots in a feedback session. They are created when the console Save action promotes a frozen preview, not for every live preview frame:
 
-- `screenId`: captured screen id.
+- `screenId`: persisted evidence snapshot id.
 - `capturedAtEpochMillis`: capture timestamp.
 - `activityName`: current Activity when available.
 - `displayName`: console display label.
@@ -94,10 +96,10 @@ Navigation results are returned by `pointpatch_navigate_app`. Fields:
 
 ## Feedback Item Schema
 
-Feedback items represent human comments on a captured screen:
+Feedback items represent human comments on a persisted evidence snapshot:
 
 - `itemId`: feedback item id.
-- `screenId`: captured screen this item belongs to.
+- `screenId`: evidence snapshot saved with this item batch. Multiple items can share one `screenId` when they were saved together from one frozen preview.
 - `createdAtEpochMillis`, `updatedAtEpochMillis`: item timestamps.
 - `target`: selected `semantics_node` or `visual_area`.
 - `selectedNode`: selected Compose node when available.
@@ -114,7 +116,9 @@ Feedback items represent human comments on a captured screen:
 
 ## Feedback Delivery
 
-Feedback console Select mode creates draft feedback items from a component click or custom drag area. Sending the draft creates a persisted handoff batch, changes draft items to `delivery: "sent"`, sets `handoffBatchId` and `sentAtEpochMillis`, and records those items in Sent History. It does not create a new external AI API payload; MCP tools read the persisted session data.
+The feedback console defaults to navigation. Add freezes the latest preview so the user can select one or more targets and create pending items. Save promotes that frozen preview once into one persisted evidence snapshot, stores all pending items, and connects them to the same `screenId`. Later Add on the same visible app screen creates a new evidence snapshot after Save.
+
+Send creates a persisted handoff batch, changes saved items to `delivery: "sent"`, sets `handoffBatchId` and `sentAtEpochMillis`, and records those items in Sent History. It does not create a new external AI API payload; MCP tools read the persisted session data.
 
 Delivery values:
 
@@ -129,7 +133,13 @@ Handoff batches are stored on the feedback session in `handoffBatches`:
 - `sequenceNumber`: stable human-readable batch number within the session.
 - `createdAtEpochMillis`: time the batch was created.
 - `itemIds`: feedback item ids included in the batch.
-- `markdownSnapshot`: Markdown snapshot captured when the draft was sent, when available.
+- `markdownSnapshot`: Markdown handoff snapshot captured when Send created the batch, when available.
+
+`FeedbackItem.screenId` points to the evidence snapshot saved with the item batch. Multiple items can share one `screenId` when saved together from one frozen preview.
+
+## Feedback Handoff Formats
+
+`pointpatch_read_feedback` returns both JSON and Markdown. JSON remains complete and preserves session, screen, item, batch, screenshot, and path fields for MCP tool contracts. Markdown is compact and agent-facing: it focuses on request, target evidence, and likely source, and intentionally omits internal IDs and repeated storage metadata.
 
 ## Selection
 
@@ -194,7 +204,7 @@ CLI and MCP flows pull screenshots through the bridge and write desktop-readable
 .pointpatch/artifacts/<annotation-id>/<annotation-id>-crop.png
 ```
 
-Feedback console screen snapshots are session-owned workspace artifacts and use a generated screen id:
+Feedback console evidence snapshots are session-owned workspace artifacts and use a generated screen id:
 
 ```text
 .pointpatch/feedback-sessions/<session-id>/artifacts/screens/<screen-id>/<screen-id>-full.png

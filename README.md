@@ -91,11 +91,26 @@ pointpatch console --package <applicationId>
 
 If `--package` is omitted, `.pointpatch/project.json` must already exist so the CLI can read the application id.
 
-MCP is the primary agent workflow for the feedback console. `pointpatch mcp` runs as a stdio JSON-RPC server and can open a local web console where you review Android screen snapshots, add feedback with a desktop keyboard, and let the agent read the queue. `pointpatch console` opens the same console without requiring an MCP client.
+MCP is the primary agent workflow for the feedback console. `pointpatch mcp` runs as a stdio JSON-RPC server and can open a local web console where you review a live Android screen preview, add feedback with a desktop keyboard, and let the agent read the queue. `pointpatch console` opens the same console without requiring an MCP client.
 
-The feedback console has separate Select and Navigate modes. Select mode creates feedback targets from a component click or custom drag area; Navigate mode sends the existing debug-only one-step `back`, `tap`, and `swipe` actions to the app. The browser device picker selects the active ADB device for PointPatch bridge requests, and unavailable, offline, or unauthorized devices are shown as unavailable rather than selectable.
+The feedback console defaults to navigation. There is no Select/Navigate toggle: normal preview clicks navigate the app, while Add freezes the latest preview so you can mark feedback targets. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions. The browser device picker selects the active ADB device for PointPatch bridge requests, and unavailable, offline, or unauthorized devices are shown as unavailable rather than selectable.
 
-Send Draft to Agent persists the current draft as a local handoff batch that MCP tools can read. It does not call an external AI API. Sent history persists with the feedback session, and the draft is cleared after send. Agent-facing Markdown keeps the package, status, screen labels, target bounds, selected text/content descriptions, source candidates, comments, and screenshot availability/size, while avoiding raw session, screen, item, batch, and screenshot artifact IDs.
+Top bar actions are short session-level controls: Refresh, Add, Save, Copy, Send, New, and Close. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 2s. Preview polling pauses while the browser tab is hidden and while the Add/frozen-preview flow is active.
+
+Feedback console flow:
+
+1. Select device.
+2. Use the app normally from the console preview.
+3. Click Add when ready to leave feedback on the current screen.
+4. Select one or more UI targets or visual areas and add comments.
+5. Review the numbered pending markers and pending comments.
+6. Click Save once to store one evidence snapshot and all pending items.
+7. Expand the saved evidence group to review the persisted screenshot and comments.
+8. Click Send when ready.
+
+Add freezes the latest preview only; it does not save. You can add multiple pending feedback items to one frozen preview. Pending items support Focus and Delete before Save; deleting renumbers pending items so the pending list numbers and overlay numbers match. Save promotes the frozen preview once into one persisted evidence snapshot and connects all pending items to that same `screenId`. Later Add on the same visible app screen creates a new evidence snapshot after Save.
+
+Saved evidence groups can be expanded to review the persisted screenshot, numbered overlay, and saved comments. Send creates a persisted local handoff batch that MCP tools can read. It does not call an external AI API. Agent-facing Markdown is compact and focused on the request, target evidence, and likely source; it intentionally omits internal IDs and repeated storage metadata. JSON remains complete for tools and preserves IDs, paths, and MCP contracts.
 
 Feedback console sessions are resumable. PointPatch saves feedback workspace metadata and screenshot artifacts under `.pointpatch/feedback-sessions/`, so an MCP or console restart does not discard queued feedback.
 
@@ -105,7 +120,7 @@ Legacy annotation screenshot pulls write desktop-readable files under `.pointpat
 
 ## Privacy Notes
 
-PointPatch is local-first. The core sidekick does not require network permission, and the bridge is intended for the local development machine through ADB. Editable/password text is redacted by default, but screenshots are pixel captures and may contain sensitive information. Review screenshots before sharing exported artifacts.
+PointPatch is local-first. The Android app sidekick is debug-only and intended for the local development machine through ADB. Feedback console artifacts are local `.pointpatch/feedback-sessions/` data and can include comments, source hints, screenshots, session metadata, and handoff batches. Editable/password text is redacted by default, but screenshots are pixel captures and may contain sensitive information. Review screenshots before sharing exported artifacts.
 
 More detail:
 

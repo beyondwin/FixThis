@@ -97,15 +97,23 @@ Retry after the screen is fully rendered. For CLI/MCP, confirm the Android scree
 
 ### SCREEN_CAPTURE_FAILED
 
-The console may still show semantics without a screenshot. Retry Capture current screen after the app finishes drawing.
+The console may still show semantics without a screenshot. Click Refresh after the app finishes drawing. If you are adding feedback, Save only after the frozen preview has the screenshot you want to persist as evidence.
 
-### Capture is disabled
+### Refresh or Add does not work
 
 Select a device in the console device picker. If the device is unauthorized or offline, fix it in `adb devices -l` first.
 
+### I clicked Add but do not see saved feedback
+
+Add freezes the latest preview for targeting only; it does not save. Add one or more comments, review the numbered pending markers, then click Save once to create one persisted evidence snapshot and store all pending items on it.
+
+### Pending marker numbers changed
+
+Deleting a pending item renumbers the pending list and overlay markers so they keep matching. This is expected before Save.
+
 ### I sent feedback but want to add more
 
-After Send Draft to Agent, the draft area is cleared and the batch appears in Sent History. Select or capture again to create a new draft batch.
+After Send, the saved items are recorded in a local handoff batch for MCP tools. It is not an external AI API call. Click Add again to freeze the current visible screen and create another saved evidence snapshot, even if the app has not visibly changed.
 
 ## MCP stdout Log Corruption
 
@@ -127,9 +135,13 @@ Reopen the feedback console from the agent or run `pointpatch console --package 
 
 Run `pointpatch_list_feedback_sessions` or reopen the console with the exact `sessionId`. If the session was closed, pass `includeClosed` when listing sessions. Verify `.pointpatch/feedback-sessions/` exists under the same project root used by the MCP server.
 
+### Live preview stopped updating
+
+Preview polling pauses when the browser tab is hidden and while the Add/frozen-preview flow is active. Switch back to the tab, Save or cancel the pending flow, or use Refresh. The preview interval options are Manual, 1s, 2s, and 5s, with 2s as the default.
+
 ### Navigation worked but no new screen appeared
 
-The navigation action can succeed while follow-up capture fails. Check the `captureError` field or click Capture manually after the app finishes drawing.
+The navigation action can succeed while follow-up capture fails. Check the `captureError` field or click Refresh manually after the app finishes drawing.
 
 ## Bridge Connection Failures
 

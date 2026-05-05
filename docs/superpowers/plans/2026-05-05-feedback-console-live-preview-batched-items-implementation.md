@@ -1090,7 +1090,7 @@ git commit -m "feat: export compact source-hinted feedback handoff"
 - Modify: `docs/output-schema.md`
 - Modify: `docs/troubleshooting.md`
 
-- [ ] **Step 1: Use `$kws-doc-prompt-review` before editing docs**
+- [x] **Step 1: Use `$kws-doc-prompt-review` before editing docs**
 
 Read `/Users/kws/source/persnal/Archive/ai/skills/kws-skills/package/kws-doc-prompt-review/SKILL.md` and apply it narrowly to changed behavior:
 
@@ -1102,7 +1102,7 @@ Read `/Users/kws/source/persnal/Archive/ai/skills/kws-skills/package/kws-doc-pro
 - default preview cadence is 2 seconds
 - polling pauses while adding items and when the tab is hidden
 
-- [ ] **Step 2: Update README usage**
+- [x] **Step 2: Update README usage**
 
 Document the user flow:
 
@@ -1117,7 +1117,7 @@ Document the user flow:
 8. Click Send when ready.
 ```
 
-- [ ] **Step 3: Update MCP docs and schema docs**
+- [x] **Step 3: Update MCP docs and schema docs**
 
 Clarify:
 
@@ -1127,7 +1127,7 @@ Clarify:
 - Markdown handoff intentionally omits internal IDs and repeated storage metadata.
 - JSON output preserves IDs and paths for tool contracts.
 
-- [ ] **Step 4: Run docs verification**
+- [x] **Step 4: Run docs verification**
 
 Run:
 
@@ -1137,7 +1137,7 @@ git diff --check -- README.md docs/mcp.md docs/output-schema.md docs/troubleshoo
 
 Expected: no output.
 
-- [ ] **Step 5: Commit Task 6**
+- [x] **Step 5: Commit Task 6**
 
 Run:
 
