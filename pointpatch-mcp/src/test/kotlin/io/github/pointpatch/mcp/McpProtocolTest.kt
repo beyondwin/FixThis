@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.boolean
@@ -66,6 +67,7 @@ class McpProtocolTest {
                 "pointpatch_get_ui_feedback",
                 "pointpatch_verify_ui_change",
                 "pointpatch_open_feedback_console",
+                "pointpatch_list_feedback_sessions",
                 "pointpatch_capture_screen",
                 "pointpatch_list_feedback",
                 "pointpatch_read_feedback",
@@ -73,6 +75,75 @@ class McpProtocolTest {
             ),
             tools,
         )
+    }
+
+    @Test
+    fun listFeedbackSessionsReturnsPersistedSummaries() = runBlocking {
+        val projectRoot = createTempDir(prefix = "pointpatch-v2-mcp-sessions-")
+        val tools = PointPatchTools(
+            bridge = FakeBridge(defaultPackageName = "io.github.pointpatch.sample"),
+            defaultPackageName = "io.github.pointpatch.sample",
+            projectRoot = projectRoot,
+        )
+        tools.call("pointpatch_open_feedback_console", jsonObject("newSession" to true))
+
+        val payload = tools.call("pointpatch_list_feedback_sessions", JsonObject(emptyMap())).firstJsonContent()
+        val sessions = payload.getValue("sessions").jsonArray
+
+        assertEquals(projectRoot.absolutePath, payload.getValue("projectRoot").jsonPrimitive.content)
+        assertEquals(1, sessions.size)
+        assertEquals(
+            "io.github.pointpatch.sample",
+            sessions[0].jsonObject.getValue("packageName").jsonPrimitive.content,
+        )
+    }
+
+    @Test
+    fun openFeedbackConsoleCanOpenExactSession() = runBlocking {
+        val tools = PointPatchTools(
+            bridge = FakeBridge(defaultPackageName = "io.github.pointpatch.sample"),
+            defaultPackageName = "io.github.pointpatch.sample",
+            projectRoot = createTempDir(prefix = "pointpatch-v2-mcp-open-"),
+        )
+        val opened = tools.call("pointpatch_open_feedback_console", jsonObject("newSession" to true)).firstJsonContent()
+        val sessionId = opened.getValue("sessionId").jsonPrimitive.content
+
+        val reopened = tools.call("pointpatch_open_feedback_console", jsonObject("sessionId" to sessionId)).firstJsonContent()
+
+        assertEquals(sessionId, reopened.getValue("sessionId").jsonPrimitive.content)
+        assertEquals(true, reopened.getValue("resumed").jsonPrimitive.boolean)
+    }
+
+    @Test
+    fun feedbackSessionsPersistAcrossPointPatchToolsInstances() = runBlocking {
+        val projectRoot = createTempDir(prefix = "pointpatch-v2-mcp-persisted-")
+        val firstTools = PointPatchTools(
+            bridge = FakeBridge(defaultPackageName = "io.github.pointpatch.sample"),
+            defaultPackageName = "io.github.pointpatch.sample",
+            projectRoot = projectRoot,
+        )
+        val opened = firstTools.call(
+            "pointpatch_open_feedback_console",
+            jsonObject("newSession" to true),
+        ).firstJsonContent()
+        val sessionId = opened.getValue("sessionId").jsonPrimitive.content
+
+        val secondTools = PointPatchTools(
+            bridge = FakeBridge(defaultPackageName = "io.github.pointpatch.sample"),
+            defaultPackageName = "io.github.pointpatch.sample",
+            projectRoot = projectRoot,
+        )
+        val listPayload = secondTools.call("pointpatch_list_feedback_sessions", JsonObject(emptyMap())).firstJsonContent()
+        val reopened = secondTools.call(
+            "pointpatch_open_feedback_console",
+            jsonObject("sessionId" to sessionId),
+        ).firstJsonContent()
+
+        assertEquals(listOf(sessionId), listPayload.getValue("sessions").jsonArray.map {
+            it.jsonObject.getValue("sessionId").jsonPrimitive.content
+        })
+        assertEquals(sessionId, reopened.getValue("sessionId").jsonPrimitive.content)
+        assertEquals(true, reopened.getValue("resumed").jsonPrimitive.boolean)
     }
 
     @Test
@@ -648,6 +719,26 @@ class McpProtocolTest {
 
     private fun runToolCall(server: McpServer, name: String, argumentsJson: String): JsonObject {
         return parse(runToolCallContentTexts(server, name, argumentsJson)[0]).jsonObject
+    }
+
+    private fun JsonObject.firstJsonContent(): JsonObject =
+        parse(
+            getValue("content").jsonArray[0].jsonObject
+                .getValue("text").jsonPrimitive.content,
+        ).jsonObject
+
+    private fun jsonObject(vararg pairs: Pair<String, Any?>): JsonObject = buildJsonObject {
+        pairs.forEach { (key, value) ->
+            when (value) {
+                null -> Unit
+                is Boolean -> put(key, value)
+                is String -> put(key, value)
+                is Int -> put(key, value)
+                is Long -> put(key, value)
+                is JsonElement -> put(key, value)
+                else -> error("Unsupported JSON helper value for $key: ${value::class.java.simpleName}")
+            }
+        }
     }
 
     private fun runToolCallContentTexts(server: McpServer, name: String, argumentsJson: String): List<String> {

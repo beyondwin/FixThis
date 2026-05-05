@@ -12,7 +12,11 @@ import io.github.pointpatch.mcp.session.FeedbackItem
 import io.github.pointpatch.mcp.session.FeedbackItemStatus
 import io.github.pointpatch.mcp.session.FeedbackQueueFormatter
 import io.github.pointpatch.mcp.session.FeedbackSession
+import io.github.pointpatch.mcp.session.FeedbackSessionList
+import io.github.pointpatch.mcp.session.FeedbackSessionPaths
+import io.github.pointpatch.mcp.session.FeedbackSessionPersistence
 import io.github.pointpatch.mcp.session.FeedbackSessionService
+import io.github.pointpatch.mcp.session.FeedbackSessionStore
 import io.github.pointpatch.mcp.textContent
 import io.github.pointpatch.mcp.toolResult
 import java.io.File
@@ -39,6 +43,9 @@ class PointPatchTools(
     private val projectRoot: File = File(".").canonicalFile,
     private val feedbackService: FeedbackSessionService = FeedbackSessionService(
         bridge = bridge,
+        store = FeedbackSessionStore(
+            persistence = FeedbackSessionPersistence(FeedbackSessionPaths(projectRoot)),
+        ),
         projectRoot = projectRoot.absolutePath,
         defaultPackageName = defaultPackageName,
     ),
@@ -131,13 +138,30 @@ class PointPatchTools(
                 jsonToolResult(normalizeVerifyUiChangeResult(bridgeResult, role))
             }
             "pointpatch_open_feedback_console" -> bridgeToolResult {
-                val (session, url) = openConsole(arguments.stringParam("packageName"))
+                val opened = openConsole(
+                    packageName = arguments.stringParam("packageName"),
+                    sessionId = arguments.stringParam("sessionId"),
+                    newSession = arguments.booleanParam("newSession") == true,
+                )
                 jsonToolResult(buildJsonObject {
-                    put("sessionId", session.sessionId)
-                    put("packageName", session.packageName)
-                    put("projectRoot", session.projectRoot)
-                    put("consoleUrl", url)
-                    put("session", McpProtocol.json.encodeToJsonElement(FeedbackSession.serializer(), session))
+                    put("sessionId", opened.session.sessionId)
+                    put("packageName", opened.session.packageName)
+                    put("projectRoot", opened.session.projectRoot)
+                    put("consoleUrl", opened.consoleUrl)
+                    put("resumed", opened.resumed)
+                    put("session", McpProtocol.json.encodeToJsonElement(FeedbackSession.serializer(), opened.session))
+                })
+            }
+            "pointpatch_list_feedback_sessions" -> bridgeToolResult {
+                val sessions = feedbackService.listSessions(
+                    packageNameOverride = arguments.stringParam("packageName"),
+                    includeClosed = arguments.booleanParam("includeClosed") == true,
+                )
+                val payload = McpProtocol.json.encodeToJsonElement(FeedbackSessionList.serializer(), sessions).jsonObject
+                jsonToolResult(buildJsonObject {
+                    put("projectRoot", projectRoot.absolutePath)
+                    put("sessions", payload.getValue("sessions"))
+                    put("skippedSessions", payload.getValue("skippedSessions"))
                 })
             }
             "pointpatch_capture_screen" -> bridgeToolResult {
@@ -262,11 +286,31 @@ class PointPatchTools(
     private fun jsonToolResult(payload: JsonObject): JsonObject =
         toolResult(content = listOf(textContent(pointPatchJson.encodeToString(JsonObject.serializer(), payload), "application/json")))
 
-    private fun openConsole(packageName: String?): Pair<FeedbackSession, String> {
+    private fun openConsole(packageName: String?, sessionId: String?, newSession: Boolean): OpenFeedbackConsoleResult {
         synchronized(consoleLock) {
-            val session = feedbackService.openSession(packageName)
+            val requestedSessionId = sessionId?.takeIf { it.isNotBlank() }
+            val resumableBefore = if (requestedSessionId == null && !newSession) {
+                feedbackService.listSessions(packageNameOverride = packageName, includeClosed = false)
+                    .sessions
+                    .mapTo(mutableSetOf()) { it.sessionId }
+            } else {
+                emptySet()
+            }
+            val session = feedbackService.openSession(
+                packageNameOverride = packageName,
+                sessionId = requestedSessionId,
+                newSession = newSession,
+            )
             val server = consoleServer ?: FeedbackConsoleServer(feedbackService).also { consoleServer = it }
-            return session to server.start()
+            return OpenFeedbackConsoleResult(
+                session = session,
+                consoleUrl = server.start(),
+                resumed = when {
+                    requestedSessionId != null -> true
+                    newSession -> false
+                    else -> session.sessionId in resumableBefore
+                },
+            )
         }
     }
 
@@ -494,6 +538,12 @@ private data class ResourceDefinition(
     val mimeType: String = "application/json",
 )
 
+private data class OpenFeedbackConsoleResult(
+    val session: FeedbackSession,
+    val consoleUrl: String,
+    val resumed: Boolean,
+)
+
 private val ToolDefinitions = listOf(
     ToolDefinition(
         name = "pointpatch_status",
@@ -536,6 +586,16 @@ private val ToolDefinitions = listOf(
         description = "Open or return the local PointPatch feedback console for the current MCP session.",
         inputSchema = objectSchema(
             "packageName" to stringProperty("Android application id. If omitted, .pointpatch/project.json or server --package is used."),
+            "sessionId" to stringProperty("Exact feedback session id to reopen."),
+            "newSession" to booleanProperty("Create a new session instead of resuming the current or latest persisted session."),
+        ),
+    ),
+    ToolDefinition(
+        name = "pointpatch_list_feedback_sessions",
+        description = "List persisted PointPatch feedback sessions for this project.",
+        inputSchema = objectSchema(
+            "packageName" to stringProperty("Optional Android application id filter."),
+            "includeClosed" to booleanProperty("Whether to include closed feedback sessions."),
         ),
     ),
     ToolDefinition(

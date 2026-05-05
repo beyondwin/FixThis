@@ -931,7 +931,7 @@ git commit -m "mcp: store screen artifacts in feedback workspaces"
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/McpProtocolTest.kt`
 
-- [ ] **Step 1: Add failing MCP protocol tests**
+- [x] **Step 1: Add failing MCP protocol tests**
 
 Add tests:
 
@@ -971,7 +971,7 @@ fun openFeedbackConsoleCanOpenExactSession() = runBlocking {
 Use the existing test helpers for JSON content. If the helper is not present,
 add one local helper that decodes the first `content[].text` as `JsonObject`.
 
-- [ ] **Step 2: Run MCP tests to verify they fail**
+- [x] **Step 2: Run MCP tests to verify they fail**
 
 Run:
 
@@ -981,7 +981,7 @@ Run:
 
 Expected: unknown tool or missing arguments behavior fails.
 
-- [ ] **Step 3: Wire persistent store by default**
+- [x] **Step 3: Wire persistent store by default**
 
 In `PointPatchTools` constructor default, create the service with persistence:
 
@@ -996,7 +996,7 @@ private val feedbackService: FeedbackSessionService = FeedbackSessionService(
 )
 ```
 
-- [ ] **Step 4: Extend open console arguments**
+- [x] **Step 4: Extend open console arguments**
 
 Change `openConsole` to accept `sessionId` and `newSession`:
 
@@ -1019,7 +1019,7 @@ fun currentSessionOrNull(): FeedbackSession? = store.currentSession()
 
 Return `resumed = sessionId != null || !newSession`.
 
-- [ ] **Step 5: Add tool definition and call branch**
+- [x] **Step 5: Add tool definition and call branch**
 
 Add `pointpatch_list_feedback_sessions` to tool definitions. Add call branch:
 
@@ -1037,7 +1037,7 @@ Add `pointpatch_list_feedback_sessions` to tool definitions. Add call branch:
 }
 ```
 
-- [ ] **Step 6: Run MCP tests**
+- [x] **Step 6: Run MCP tests**
 
 Run:
 
@@ -1047,7 +1047,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/McpProtocolTest.kt
