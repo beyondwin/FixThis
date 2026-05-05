@@ -68,7 +68,36 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
-    fun servesScreenshotArtifactFromCurrentSession() = runBlocking {
+    fun servesSessionOwnedScreenshotArtifactFromCurrentSession() = runBlocking {
+        val projectRoot = Files.createTempDirectory("pointpatch-console").toFile()
+        try {
+            val pngBytes = byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47)
+            val service = FeedbackSessionService(
+                bridge = SessionScreenshotBridge(pngBytes),
+                store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1").next),
+                projectRoot = projectRoot.absolutePath,
+                defaultPackageName = "io.github.pointpatch.sample",
+            )
+            val session = service.openSession(null)
+            service.captureScreen(session.sessionId)
+            val server = FeedbackConsoleServer(service = service, port = 0)
+            server.start()
+            try {
+                val connection = URL("${server.url}/api/screens/screen-1/screenshot/full").openConnection() as HttpURLConnection
+
+                assertEquals(200, connection.responseCode)
+                assertEquals("image/png", connection.contentType)
+                assertTrue(connection.inputStream.use { it.readBytes() }.contentEquals(pngBytes))
+            } finally {
+                server.stop()
+            }
+        } finally {
+            projectRoot.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun servesLegacyScreenshotArtifactFromCurrentSession() = runBlocking {
         val projectRoot = Files.createTempDirectory("pointpatch-console").toFile()
         try {
             val artifact = projectRoot.resolve(".pointpatch/artifacts/screen-1/full.png")
@@ -76,7 +105,7 @@ class FeedbackConsoleServerTest {
             val pngBytes = byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47)
             artifact.writeBytes(pngBytes)
             val service = FeedbackSessionService(
-                bridge = ScreenshotBridge(artifact),
+                bridge = LegacyScreenshotBridge(artifact),
                 store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1").next),
                 projectRoot = projectRoot.absolutePath,
                 defaultPackageName = "io.github.pointpatch.sample",
@@ -104,7 +133,43 @@ class FeedbackConsoleServerTest {
         val next: () -> String = { queue.removeFirst() }
     }
 
-    private class ScreenshotBridge(private val artifact: File) : PointPatchBridge {
+    private class SessionScreenshotBridge(private val pngBytes: ByteArray) : PointPatchBridge {
+        override fun resolvePackageName(packageOverride: String?): String =
+            packageOverride ?: "io.github.pointpatch.sample"
+
+        override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun startFeedbackCapture(packageName: String, timeoutMillis: Long): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
+            JsonObject(emptyMap())
+
+        override suspend fun captureScreenSnapshot(
+            packageName: String,
+            sessionId: String?,
+            screenId: String?,
+            destinationDirectory: File?,
+        ): JsonObject = buildJsonObject {
+            val artifact = requireNotNull(destinationDirectory)
+                .resolve("${requireNotNull(screenId)}-full.png")
+            artifact.parentFile.mkdirs()
+            artifact.writeBytes(pngBytes)
+            put("activity", "MainActivity")
+            put("sourceIndexAvailable", true)
+            put("inspection", buildJsonObject {
+                put("activity", "MainActivity")
+                put("roots", JsonArray(emptyList()))
+                put("errors", JsonArray(emptyList()))
+            })
+            put("screenshot", buildJsonObject {
+                put("desktopFullPath", artifact.absolutePath)
+            })
+        }
+    }
+
+    private class LegacyScreenshotBridge(private val artifact: File) : PointPatchBridge {
         override fun resolvePackageName(packageOverride: String?): String =
             packageOverride ?: "io.github.pointpatch.sample"
 

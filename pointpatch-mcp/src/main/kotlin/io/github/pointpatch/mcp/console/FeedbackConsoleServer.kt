@@ -8,6 +8,7 @@ import io.github.pointpatch.mcp.session.CapturedScreen
 import io.github.pointpatch.mcp.session.FeedbackItem
 import io.github.pointpatch.mcp.session.FeedbackQueueFormatter
 import io.github.pointpatch.mcp.session.FeedbackSession
+import io.github.pointpatch.mcp.session.FeedbackSessionPaths
 import io.github.pointpatch.mcp.session.FeedbackSessionService
 import java.io.File
 import java.net.InetAddress
@@ -104,11 +105,14 @@ class FeedbackConsoleServer(
         val screenshotPath = screen.screenshot?.desktopFullPath
             ?: throw FeedbackConsoleHttpException(404, "Screenshot not found")
         val screenshotFile = File(screenshotPath).canonicalFile
-        val artifactsDir = File(session.projectRoot, ".pointpatch/artifacts").canonicalFile
+        val sessionArtifactsDir = FeedbackSessionPaths(File(session.projectRoot)).rootDirectory
+        val legacyArtifactsDir = File(session.projectRoot, ".pointpatch/artifacts").canonicalFile
+        val isAllowedArtifact = screenshotFile.toPath().startsWith(sessionArtifactsDir.toPath()) ||
+            screenshotFile.toPath().startsWith(legacyArtifactsDir.toPath())
         if (
             !screenshotFile.isFile ||
             screenshotFile.extension.lowercase() != "png" ||
-            !screenshotFile.toPath().startsWith(artifactsDir.toPath())
+            !isAllowedArtifact
         ) {
             throw FeedbackConsoleHttpException(404, "Screenshot not found")
         }
