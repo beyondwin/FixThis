@@ -127,6 +127,8 @@ Captures the current Android screen into the active feedback session.
 
 Performs one debug-only `back`, `tap`, or `swipe` action and optionally captures the resulting screen. Arguments are `sessionId`, `action`, `x`, `y`, `direction`, `distance`, and `captureAfter`; `captureAfter` defaults to true.
 
+`action` is required. `tap` requires finite `x` and `y` coordinates. `swipe` requires `direction` (`up`, `down`, `left`, or `right`); `distance`, when provided, must be finite and greater than zero. Unsupported arguments are rejected.
+
 `pointpatch_list_feedback`
 
 Lists feedback queue summaries for the active feedback session.

@@ -159,15 +159,20 @@ context.cacheDir/pointpatch/<yyyy-MM-dd>/<annotation-id>-crop.png
 
 App-only clipboard exports may include Android-local `fullPath` and `cropPath`. Desktop agents cannot usually read those paths directly.
 
-CLI and MCP flows pull screenshots through the bridge and write desktop-readable artifacts. Annotation captures use the annotation id, while console screen snapshots use a generated screen id:
+CLI and MCP flows pull screenshots through the bridge and write desktop-readable artifacts. Annotation captures use the annotation id in the legacy artifact cache:
 
 ```text
 .pointpatch/artifacts/<annotation-id>/<annotation-id>-full.png
 .pointpatch/artifacts/<annotation-id>/<annotation-id>-crop.png
-.pointpatch/artifacts/<screen-id>/<screen-id>-full.png
 ```
 
-When available, those paths appear as `desktopFullPath` and `desktopCropPath`. `.pointpatch/artifacts/` is ignored by git because these files are local debug screenshots. If capture or storage fails, `screenshot.captureFailedReason` records the failure and the annotation remains valid.
+Feedback console screen snapshots are session-owned workspace artifacts and use a generated screen id:
+
+```text
+.pointpatch/feedback-sessions/<session-id>/artifacts/screens/<screen-id>/<screen-id>-full.png
+```
+
+When available, annotation paths appear as `desktopFullPath` and `desktopCropPath`. Feedback console screen paths appear on the screen entry. `.pointpatch/artifacts/` and `.pointpatch/feedback-sessions/` are ignored by git because these files are local debug screenshots and session metadata. If capture or storage fails, `screenshot.captureFailedReason` or `captureError` records the failure and the annotation or navigation result remains valid.
 
 ## Error Codes
 
