@@ -497,6 +497,7 @@ internal object FeedbackConsoleAssets {
             const sentHistory = document.getElementById('sentHistory');
             const snapshot = document.getElementById('snapshot');
             const snapshotTitle = document.getElementById('snapshotTitle');
+            const previewModeBadge = document.getElementById('previewModeBadge');
             const draftItems = document.getElementById('draftItems');
             const pendingItems = document.getElementById('pendingItems');
             const error = document.getElementById('error');
@@ -997,7 +998,7 @@ internal object FeedbackConsoleAssets {
               const preview = await requestLivePreview();
               if (addItemsFlow || requestGeneration !== previewRequestGeneration) return;
               state.preview = preview;
-              render();
+              renderPreviewOnly();
             }
 
             async function startAddItemsFlow() {
@@ -1043,21 +1044,22 @@ internal object FeedbackConsoleAssets {
               currentSelection = null;
               focusedPendingItemIndex = null;
               comment.value = '';
-              renderSelectionOverlay();
-              render();
+              renderPreviewOnly();
+              renderInspectorRegion();
             }
 
             function deletePendingFeedbackItem(index) {
               pendingFeedbackItems.splice(index, 1);
               focusedPendingItemIndex = null;
-              render();
-              renderSelectionOverlay();
+              renderPreviewOnly();
+              renderInspectorRegion();
             }
 
             function focusPendingFeedbackItem(index) {
               focusedPendingItemIndex = index;
               currentSelection = null;
-              renderSelectionOverlay();
+              renderPreviewOnly();
+              renderInspectorRegion();
             }
 
             async function savePendingFeedbackItems() {
@@ -1163,36 +1165,18 @@ internal object FeedbackConsoleAssets {
               });
             }
 
-            function renderSnapshot() {
-              const screen = latestScreen();
-              const hasScreenshot = Boolean(screen?.screenshot?.desktopFullPath);
-              snapshotTitle.textContent = addItemsFlow ? 'Frozen Feedback Snapshot' : 'Live Preview';
-              if (!hasScreenshot) {
-                snapshot.innerHTML = '<div>' + (screen ? 'No screenshot artifact for this preview.' : 'Refresh the live preview to begin.') + '</div>';
-                updateComposerState();
-                return;
-              }
-              const src = addItemsFlow?.screenshotUrl || previewScreenshotUrl(state.preview.previewId);
-              snapshot.innerHTML =
-                '<div class="snapshot-frame">' +
-                  '<img id="snapshotImage" alt="PointPatch preview" src="' + src + '">' +
-                  '<div id="selectionOverlay" class="selection-overlay" aria-hidden="true"></div>' +
-                '</div>';
-              attachSnapshotHandlers();
-              renderSelectionOverlay();
+            function renderSessionsList() {
+              const activeId = state.session?.sessionId;
+              document.querySelectorAll('.session-row').forEach(row => {
+                row.classList.toggle('active', row.dataset.sessionId === activeId);
+              });
             }
 
-            function render() {
+            function renderSentHistory() {
               const session = state.session;
               const allItems = session?.items || [];
               const sentItems = allItems.filter(item => item.delivery === 'sent');
               const handoffBatches = session ? session.handoffBatches || [] : [];
-              sessionMeta.textContent = session ? formatSessionHeader(session, allItems.length) : 'No active session';
-
-              renderSnapshot();
-              renderPendingItems();
-              renderSavedEvidenceGroups();
-
               const batchIds = new Set(handoffBatches.map(batch => batch.batchId));
               const batchedItemIds = new Set(handoffBatches.flatMap(batch => batch.itemIds || []));
               const batchRows = handoffBatches.map(batch => {
@@ -1212,6 +1196,79 @@ internal object FeedbackConsoleAssets {
                   '</div>';
                 });
               sentHistory.innerHTML = batchRows.concat(unbatchedRows).join('') || '<div class="row"><span>No sent handoff history.</span></div>';
+            }
+
+            function renderSessionRegions() {
+              const session = state.session;
+              const allItems = session?.items || [];
+              sessionMeta.textContent = session ? formatSessionHeader(session, allItems.length) : 'No active session';
+              renderSessionsList();
+              renderSentHistory();
+            }
+
+            function renderComposerInspector() {
+              renderPendingItems();
+              renderSavedEvidenceGroups();
+            }
+
+            function renderDraftInspector() {
+              renderPendingItems();
+              renderSavedEvidenceGroups();
+            }
+
+            function renderInspectorRegion() {
+              if (addItemsFlow) {
+                renderComposerInspector();
+              } else {
+                renderDraftInspector();
+              }
+              updateComposerState();
+            }
+
+            function ensurePreviewFrame() {
+              let frame = document.getElementById('snapshotFrame');
+              if (frame) return frame;
+              snapshot.innerHTML =
+                '<div id="snapshotFrame" class="snapshot-frame">' +
+                  '<img id="snapshotImage" alt="PointPatch preview">' +
+                  '<div id="selectionOverlay" class="selection-overlay" aria-hidden="true"></div>' +
+                '</div>';
+              attachSnapshotHandlers();
+              return document.getElementById('snapshotFrame');
+            }
+
+            function renderPreviewRegion() {
+              const screen = latestScreen();
+              const hasScreenshot = Boolean(screen?.screenshot?.desktopFullPath);
+              const mode = addItemsFlow ? 'frozen' : (state.preview ? 'live' : 'idle');
+              previewModeBadge.dataset.mode = mode;
+              previewModeBadge.textContent = mode === 'frozen' ? 'Frozen' : mode === 'live' ? 'Live' : 'Idle';
+              snapshotTitle.textContent = addItemsFlow ? 'Frozen Feedback Snapshot' : 'Live Preview';
+              if (!hasScreenshot) {
+                snapshot.innerHTML = '<div class="empty-stage">' + (screen ? 'No screenshot artifact for this preview.' : 'Refresh the live preview to begin.') + '</div>';
+                updateComposerState();
+                return;
+              }
+              const frame = ensurePreviewFrame();
+              frame.dataset.mode = mode;
+              const image = document.getElementById('snapshotImage');
+              const src = addItemsFlow?.screenshotUrl || previewScreenshotUrl(state.preview.previewId);
+              if (image.getAttribute('src') !== src) {
+                image.setAttribute('src', src);
+              }
+              renderSelectionOverlay();
+            }
+
+            function renderPreviewOnly() {
+              renderPreviewRegion();
+              renderSelectionOverlay();
+              updateComposerState();
+            }
+
+            function render() {
+              renderSessionRegions();
+              renderPreviewRegion();
+              renderInspectorRegion();
               updateComposerState();
             }
 

@@ -495,7 +495,7 @@ git commit -m "feat: add studio console shell"
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
 - Test: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Add stable region functions**
+- [x] **Step 1: Add stable region functions**
 
 Replace the single full `render()` responsibility with region-specific functions. Keep `render()` as the full coordinator for session-changing operations:
 
@@ -531,7 +531,7 @@ function render() {
 }
 ```
 
-- [ ] **Step 2: Update `refreshPreview()` to avoid full `render()`**
+- [x] **Step 2: Update `refreshPreview()` to avoid full `render()`**
 
 Change only the final render call in `refreshPreview()`:
 
@@ -547,7 +547,7 @@ async function refreshPreview() {
 }
 ```
 
-- [ ] **Step 3: Make the preview image node stable**
+- [x] **Step 3: Make the preview image node stable**
 
 Replace `snapshot.innerHTML = ...` in `renderPreviewRegion()` with a stable image update path:
 
@@ -587,7 +587,7 @@ function renderPreviewRegion() {
 }
 ```
 
-- [ ] **Step 4: Update action paths to render only affected regions**
+- [x] **Step 4: Update action paths to render only affected regions**
 
 Use narrower renders in these functions:
 
@@ -625,7 +625,7 @@ function focusPendingFeedbackItem(index) {
 }
 ```
 
-- [ ] **Step 5: Run the render isolation test**
+- [x] **Step 5: Run the render isolation test**
 
 Run:
 
@@ -635,7 +635,7 @@ Run:
 
 Expected: pass. The test proves preview polling no longer calls the full `render()`.
 
-- [ ] **Step 6: Commit render isolation**
+- [x] **Step 6: Commit render isolation**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
