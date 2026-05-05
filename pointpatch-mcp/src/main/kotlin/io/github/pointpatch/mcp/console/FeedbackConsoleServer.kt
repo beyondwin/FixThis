@@ -242,7 +242,7 @@ private fun FeedbackSessionException.toConsoleHttpException(): FeedbackConsoleHt
     val statusCode = when {
         text.startsWith("SESSION_NOT_FOUND:") -> 404
         text.startsWith("Unknown feedback session:") -> 404
-        else -> 400
+        else -> 500
     }
     return FeedbackConsoleHttpException(statusCode, text)
 }

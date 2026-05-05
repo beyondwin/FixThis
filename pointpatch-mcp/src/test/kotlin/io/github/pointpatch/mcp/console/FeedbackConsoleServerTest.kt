@@ -1,6 +1,8 @@
 package io.github.pointpatch.mcp.console
 
 import io.github.pointpatch.mcp.session.FakePointPatchBridge
+import io.github.pointpatch.mcp.session.FeedbackSessionPaths
+import io.github.pointpatch.mcp.session.FeedbackSessionPersistence
 import io.github.pointpatch.mcp.session.FeedbackSessionService
 import io.github.pointpatch.mcp.session.FeedbackSessionStore
 import io.github.pointpatch.mcp.tools.PointPatchBridge
@@ -143,6 +145,33 @@ class FeedbackConsoleServerTest {
             assertTrue(connection.errorStream.bufferedReader().readText().contains("Unknown feedback session"))
         } finally {
             server.stop()
+        }
+    }
+
+    @Test
+    fun sessionApiReturnsServerErrorForSessionSaveFailure() {
+        val projectRoot = Files.createTempDirectory("pointpatch-console-save-fail").toFile()
+        try {
+            projectRoot.resolve(".pointpatch").writeText("blocked")
+            val persistence = FeedbackSessionPersistence(FeedbackSessionPaths(projectRoot), clock = { 100L })
+            val service = FeedbackSessionService(
+                bridge = FakePointPatchBridge(),
+                store = FeedbackSessionStore(clock = { 100L }, idGenerator = { "session-1" }, persistence = persistence),
+                projectRoot = projectRoot.absolutePath,
+                defaultPackageName = "io.github.pointpatch.sample",
+            )
+            val server = FeedbackConsoleServer(service = service, port = 0)
+            server.start()
+            try {
+                val connection = URL("${server.url}/api/session").openConnection() as HttpURLConnection
+
+                assertEquals(500, connection.responseCode)
+                assertTrue(connection.errorStream.bufferedReader().readText().contains("SESSION_SAVE_FAILED:"))
+            } finally {
+                server.stop()
+            }
+        } finally {
+            projectRoot.deleteRecursively()
         }
     }
 
