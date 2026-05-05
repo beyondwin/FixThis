@@ -793,7 +793,7 @@ git commit -m "mcp: list and reopen feedback workspaces"
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionServiceTest.kt`
 - Modify: `pointpatch-cli/src/test/kotlin/io/github/pointpatch/cli/BridgeClientTest.kt`
 
-- [ ] **Step 1: Add failing artifact ownership tests**
+- [x] **Step 1: Add failing artifact ownership tests**
 
 In `FeedbackSessionServiceTest`, add:
 
@@ -822,7 +822,7 @@ fun captureUsesSessionOwnedArtifactPath() = runBlocking {
 Update `FakePointPatchBridge` to record those fields after the interface is
 extended.
 
-- [ ] **Step 2: Run service test to verify it fails**
+- [x] **Step 2: Run service test to verify it fails**
 
 Run:
 
@@ -833,7 +833,7 @@ Run:
 Expected: compilation fails because capture methods do not accept session-owned
 artifact arguments.
 
-- [ ] **Step 3: Extend bridge interfaces**
+- [x] **Step 3: Extend bridge interfaces**
 
 In `PointPatchBridge`, change:
 
@@ -848,7 +848,7 @@ suspend fun captureScreenSnapshot(
 
 In `CliPointPatchBridge`, forward to `BridgeClient.captureScreenSnapshot`.
 
-- [ ] **Step 4: Update BridgeClient capture destination**
+- [x] **Step 4: Update BridgeClient capture destination**
 
 Change `BridgeClient.captureScreenSnapshot` signature:
 
@@ -874,7 +874,7 @@ Write the full screenshot to:
 destination = artifactDirectory.resolve("$artifactId-full.png")
 ```
 
-- [ ] **Step 5: Reserve screen IDs before bridge capture**
+- [x] **Step 5: Reserve screen IDs before bridge capture**
 
 Add to `FeedbackSessionStore`:
 
@@ -907,7 +907,7 @@ val payload = bridge.captureScreenSnapshot(
 
 Create `CapturedScreen(screenId = screenId, ...)`.
 
-- [ ] **Step 6: Run artifact tests**
+- [x] **Step 6: Run artifact tests**
 
 Run:
 
@@ -917,7 +917,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/BridgeClient.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStore.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionServiceTest.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FakePointPatchBridge.kt pointpatch-cli/src/test/kotlin/io/github/pointpatch/cli/BridgeClientTest.kt

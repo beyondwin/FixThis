@@ -1,6 +1,7 @@
 package io.github.pointpatch.mcp.session
 
 import io.github.pointpatch.mcp.tools.PointPatchBridge
+import java.io.File
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -10,6 +11,12 @@ internal class FakePointPatchBridge(
     private val packageName: String = "io.github.pointpatch.sample",
 ) : PointPatchBridge {
     val resolvedOverrides = mutableListOf<String?>()
+    var lastCaptureSessionId: String? = null
+        private set
+    var lastCaptureScreenId: String? = null
+        private set
+    var lastCaptureDestination: String? = null
+        private set
 
     override fun resolvePackageName(packageOverride: String?): String {
         resolvedOverrides += packageOverride
@@ -25,7 +32,15 @@ internal class FakePointPatchBridge(
     override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
         JsonObject(emptyMap())
 
-    override suspend fun captureScreenSnapshot(packageName: String): JsonObject = buildJsonObject {
+    override suspend fun captureScreenSnapshot(
+        packageName: String,
+        sessionId: String?,
+        screenId: String?,
+        destinationDirectory: File?,
+    ): JsonObject = buildJsonObject {
+        lastCaptureSessionId = sessionId
+        lastCaptureScreenId = screenId
+        lastCaptureDestination = destinationDirectory?.absolutePath
         put("activity", "MainActivity")
         put("sourceIndexAvailable", true)
         put("inspection", buildJsonObject {
@@ -34,7 +49,11 @@ internal class FakePointPatchBridge(
             put("errors", JsonArray(emptyList()))
         })
         put("screenshot", buildJsonObject {
-            put("desktopFullPath", "/repo/.pointpatch/artifacts/screen-1/full.png")
+            val fallbackPath = "/repo/.pointpatch/artifacts/screen-1/full.png"
+            val capturedPath = destinationDirectory
+                ?.resolve("${screenId ?: "screen-1"}-full.png")
+                ?.absolutePath
+            put("desktopFullPath", capturedPath ?: fallbackPath)
         })
     }
 }

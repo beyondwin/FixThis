@@ -117,7 +117,12 @@ class FeedbackConsoleServerTest {
         override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
             JsonObject(emptyMap())
 
-        override suspend fun captureScreenSnapshot(packageName: String): JsonObject = buildJsonObject {
+        override suspend fun captureScreenSnapshot(
+            packageName: String,
+            sessionId: String?,
+            screenId: String?,
+            destinationDirectory: File?,
+        ): JsonObject = buildJsonObject {
             put("activity", "MainActivity")
             put("sourceIndexAvailable", true)
             put("inspection", buildJsonObject {

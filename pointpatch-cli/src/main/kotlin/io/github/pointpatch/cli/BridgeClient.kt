@@ -202,11 +202,16 @@ class BridgeClient(
         }
     }
 
-    suspend fun captureScreenSnapshot(packageName: String): JsonObject {
+    suspend fun captureScreenSnapshot(
+        packageName: String,
+        sessionId: String? = null,
+        screenId: String? = null,
+        destinationDirectory: File? = null,
+    ): JsonObject {
         val result = request(packageName = packageName, method = "captureScreenSnapshot")
         val screenshot = result["screenshot"]?.jsonObject ?: return result
-        val screenId = "screen-${System.currentTimeMillis()}".sanitizedPathSegment()
-        val artifactDirectory = projectRoot.resolve(".pointpatch/artifacts/$screenId")
+        val artifactId = (screenId ?: "screen-${System.currentTimeMillis()}").sanitizedPathSegment()
+        val artifactDirectory = destinationDirectory ?: projectRoot.resolve(".pointpatch/artifacts/$artifactId")
         check(artifactDirectory.exists() || artifactDirectory.mkdirs()) {
             "Could not create PointPatch artifact directory: ${artifactDirectory.absolutePath}"
         }
@@ -215,7 +220,7 @@ class BridgeClient(
             packageName = packageName,
             kind = "full",
             androidPath = screenshot["fullPath"]?.jsonPrimitive?.contentOrNull,
-            destination = artifactDirectory.resolve("$screenId-full.png"),
+            destination = artifactDirectory.resolve("$artifactId-full.png"),
             source = "screenSnapshot",
         )
 

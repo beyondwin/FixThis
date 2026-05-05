@@ -4,6 +4,7 @@ import io.github.pointpatch.compose.core.model.PointPatchError
 import io.github.pointpatch.compose.core.model.PointPatchRect
 import io.github.pointpatch.mcp.McpProtocol
 import io.github.pointpatch.mcp.tools.PointPatchBridge
+import java.io.File
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.decodeFromJsonElement
@@ -61,13 +62,21 @@ class FeedbackSessionService(
 
     suspend fun captureScreen(sessionId: String): CapturedScreen {
         val session = store.getSession(sessionId)
-        val payload = bridge.captureScreenSnapshot(session.packageName)
+        val screenId = store.nextId()
+        val artifactDirectory = FeedbackSessionPaths(File(session.projectRoot))
+            .screenArtifactDirectory(session.sessionId, screenId)
+        val payload = bridge.captureScreenSnapshot(
+            packageName = session.packageName,
+            sessionId = session.sessionId,
+            screenId = screenId,
+            destinationDirectory = artifactDirectory,
+        )
         val inspection = payload["inspection"]?.jsonObject
         val activityName = payload["activity"]?.jsonPrimitive?.contentOrNull
             ?: inspection?.get("activity")?.jsonPrimitive?.contentOrNull
 
         val screen = CapturedScreen(
-            screenId = "pending",
+            screenId = screenId,
             capturedAtEpochMillis = 0L,
             activityName = activityName,
             displayName = activityName?.substringAfterLast('.') ?: "Screen ${session.screens.size + 1}",

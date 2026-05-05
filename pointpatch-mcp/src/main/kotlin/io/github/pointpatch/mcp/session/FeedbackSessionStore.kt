@@ -50,6 +50,8 @@ class FeedbackSessionStore(
             getSessionLocked(sessionId)
         }
 
+    fun nextId(): String = synchronized(lock) { idGenerator() }
+
     fun listSessions(packageName: String? = null, includeClosed: Boolean = false): FeedbackSessionList =
         synchronized(lock) {
             persistence?.list(packageName, includeClosed)
@@ -90,7 +92,7 @@ class FeedbackSessionStore(
             val session = getSessionLocked(sessionId)
             val now = clock()
             val captured = screen.copy(
-                screenId = idGenerator(),
+                screenId = if (screen.screenId == "pending") idGenerator() else screen.screenId,
                 capturedAtEpochMillis = now,
             )
             val updated = session.copy(

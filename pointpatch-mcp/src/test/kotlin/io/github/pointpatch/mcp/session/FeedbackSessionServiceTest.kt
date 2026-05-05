@@ -4,6 +4,7 @@ import io.github.pointpatch.compose.core.model.PointPatchRect
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class FeedbackSessionServiceTest {
     @Test
@@ -163,6 +164,29 @@ class FeedbackSessionServiceTest {
         assertEquals("screen-1", screen.screenId)
         assertEquals("MainActivity", screen.displayName)
         assertEquals(1, store.getSession(session.sessionId).screens.size)
+    }
+
+    @Test
+    fun captureUsesSessionOwnedArtifactPath() = runBlocking {
+        val root = createTempDir(prefix = "pointpatch-v2-artifacts-")
+        val bridge = FakePointPatchBridge(packageName = "io.github.pointpatch.sample")
+        val store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1").next)
+        val service = FeedbackSessionService(
+            bridge = bridge,
+            store = store,
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+
+        service.captureScreen(session.sessionId)
+
+        assertEquals("session-1", bridge.lastCaptureSessionId)
+        assertEquals("screen-1", bridge.lastCaptureScreenId)
+        assertTrue(
+            bridge.lastCaptureDestination!!
+                .contains(".pointpatch/feedback-sessions/session-1/artifacts/screens/screen-1"),
+        )
     }
 
     @Test

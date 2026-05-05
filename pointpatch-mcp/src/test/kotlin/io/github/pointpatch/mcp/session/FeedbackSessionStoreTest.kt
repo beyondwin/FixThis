@@ -61,7 +61,7 @@ class FeedbackSessionStoreTest {
         val screen = store.addScreen(
             sessionId = session.sessionId,
             screen = CapturedScreen(
-                screenId = "ignored",
+                screenId = "pending",
                 capturedAtEpochMillis = -1L,
                 displayName = "Checkout",
             ),
@@ -88,12 +88,32 @@ class FeedbackSessionStoreTest {
     }
 
     @Test
+    fun addScreenPreservesReservedScreenId() {
+        val clock = FakeClock(100L)
+        val ids = FakeIds("session-1")
+        val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
+        val session = store.openSession("io.github.pointpatch.sample", "/repo")
+
+        val screen = store.addScreen(
+            sessionId = session.sessionId,
+            screen = CapturedScreen(
+                screenId = "screen-1",
+                capturedAtEpochMillis = -1L,
+                displayName = "Checkout",
+            ),
+        )
+
+        assertEquals("screen-1", screen.screenId)
+        assertEquals("screen-1", store.getSession(session.sessionId).screens.single().screenId)
+    }
+
+    @Test
     fun storeResolvesFeedbackItem() {
         val clock = FakeClock(100L)
         val ids = FakeIds("session-1", "screen-1", "item-1")
         val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
         val session = store.openSession("io.github.pointpatch.sample", "/repo")
-        val screen = store.addScreen(session.sessionId, CapturedScreen("ignored", -1L, displayName = "Checkout"))
+        val screen = store.addScreen(session.sessionId, CapturedScreen("pending", -1L, displayName = "Checkout"))
         store.addItem(
             session.sessionId,
             FeedbackItem(

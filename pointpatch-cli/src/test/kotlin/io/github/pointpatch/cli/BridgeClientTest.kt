@@ -359,6 +359,71 @@ class BridgeClientTest {
     }
 
     @Test
+    fun captureScreenSnapshotUsesProvidedDestinationDirectory() = runBlocking {
+        val root = temporaryFolder.newFolder()
+        val destinationDirectory = root.resolve(".pointpatch/feedback-sessions/session-1/artifacts/screens/screen-1")
+        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.0"))
+        val bridgeSockets =
+            listOf(
+                CapturingBridgeSocket(
+                    responsePayload = """
+                        {
+                          "id": "req_1",
+                          "ok": true,
+                          "result": {
+                            "bridgeProtocolVersion": "1.0",
+                            "activity": "MainActivity",
+                            "inspection": {
+                              "activity": "MainActivity",
+                              "roots": [],
+                              "errors": []
+                            },
+                            "screenshot": {
+                              "fullPath": "/data/user/0/pkg/cache/pointpatch/full.png"
+                            },
+                            "sourceIndexAvailable": true
+                          }
+                        }
+                    """.trimIndent(),
+                ),
+                CapturingBridgeSocket(
+                    responsePayload = """
+                        {
+                          "id": "req_2",
+                          "ok": true,
+                          "result": {
+                            "bridgeProtocolVersion": "1.0",
+                            "path": "/data/user/0/pkg/cache/pointpatch/full.png",
+                            "kind": "full",
+                            "mimeType": "image/png",
+                            "base64": "iVBORw0KGgo="
+                          }
+                        }
+                    """.trimIndent(),
+                ),
+            )
+        val sockets = ArrayDeque(bridgeSockets)
+        val client = BridgeClient(
+            adb = adb,
+            projectRoot = root,
+            portAllocator = { 42001 + adb.forwarded.size },
+            socketConnector = { sockets.removeFirst() },
+        )
+
+        val result = client.captureScreenSnapshot(
+            packageName = "io.github.pointpatch.sample",
+            sessionId = "session-1",
+            screenId = "screen-1",
+            destinationDirectory = destinationDirectory,
+        )
+        val screenshot = result.getValue("screenshot").jsonObject
+        val expectedFile = destinationDirectory.resolve("screen-1-full.png")
+
+        assertEquals(expectedFile.absolutePath, screenshot.getValue("desktopFullPath").jsonPrimitive.content)
+        assertTrue(expectedFile.exists())
+    }
+
+    @Test
     fun skipsMissingScreenshotKindsWhenAnnotationHasNoAndroidPaths() = runBlocking {
         val root = temporaryFolder.newFolder()
         val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.0"))
