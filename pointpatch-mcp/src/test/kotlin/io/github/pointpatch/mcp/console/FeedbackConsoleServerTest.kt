@@ -288,6 +288,39 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun navigationApiRejectsUnknownAutomationFields() {
+        val bridge = FakePointPatchBridge()
+        val service = FeedbackSessionService(
+            bridge,
+            FeedbackSessionStore(),
+            "/repo",
+            "io.github.pointpatch.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val payloads = listOf(
+                """{"action":"back","sequence":[]}""",
+                """{"action":"back","script":"adb shell input keyevent BACK"}""",
+            )
+
+            payloads.forEach { payload ->
+                val connection = URL("${server.url}/api/navigation").openConnection() as HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.doOutput = true
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.outputStream.use { it.write(payload.toByteArray()) }
+
+                assertEquals(400, connection.responseCode)
+                assertTrue(connection.errorStream.bufferedReader().readText().contains("Unsupported navigation field"))
+            }
+            assertTrue(bridge.navigationRequests.isEmpty())
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
     fun startUrlUsesConfiguredHostAndBoundPort() {
         val service = FeedbackSessionService(FakePointPatchBridge(), FeedbackSessionStore(), "/repo", "io.github.pointpatch.sample")
         val server = FeedbackConsoleServer(service = service, host = "127.0.0.1", port = 0)

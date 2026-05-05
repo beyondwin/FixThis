@@ -20,6 +20,7 @@ import java.net.InetSocketAddress
 import java.net.URLDecoder
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 class FeedbackConsoleServer(
     private val service: FeedbackSessionService,
@@ -203,6 +204,12 @@ class FeedbackConsoleServer(
     private fun HttpExchange.decodeNavigationBody(): FeedbackNavigationRequest {
         val body = requestBody.use { input -> input.readBytes().toString(Charsets.UTF_8) }
         return runCatching {
+            val jsonObject = pointPatchJson.parseToJsonElement(body) as? JsonObject
+                ?: throw IllegalArgumentException("Navigation request body must be a JSON object")
+            val unsupportedKey = jsonObject.keys.firstOrNull { it !in allowedNavigationRequestKeys }
+            if (unsupportedKey != null) {
+                throw IllegalArgumentException("Unsupported navigation field: $unsupportedKey")
+            }
             pointPatchJson.decodeFromString(FeedbackNavigationRequest.serializer(), body)
         }.getOrElse { error ->
             throw FeedbackConsoleHttpException(400, error.message ?: "Invalid JSON request body")
@@ -261,6 +268,8 @@ private fun String.screenIdFromScreenshotPath(): String =
 
 private fun String.toUrlHost(): String =
     if (contains(':') && !startsWith("[")) "[$this]" else this
+
+private val allowedNavigationRequestKeys = setOf("action", "x", "y", "direction", "distance", "captureAfter")
 
 private fun FeedbackSessionException.toConsoleHttpException(): FeedbackConsoleHttpException {
     val text = message ?: "Feedback session request failed"
