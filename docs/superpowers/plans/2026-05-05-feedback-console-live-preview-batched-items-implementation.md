@@ -935,7 +935,7 @@ git commit -m "feat: simplify console add-items workflow"
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionServiceTest.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatterTest.kt`
 
-- [ ] **Step 1: Write failing formatter test for compact source-hinted handoff**
+- [x] **Step 1: Write failing formatter test for compact source-hinted handoff**
 
 Add:
 
@@ -998,7 +998,7 @@ fun markdownFocusesOnRequestTargetEvidenceAndLikelySource() {
 }
 ```
 
-- [ ] **Step 2: Run formatter test and verify RED**
+- [x] **Step 2: Run formatter test and verify RED**
 
 Run:
 
@@ -1008,7 +1008,7 @@ Run:
 
 Expected: FAIL because the current Markdown still includes repeated metadata.
 
-- [ ] **Step 3: Format handoff around actionable fields**
+- [x] **Step 3: Format handoff around actionable fields**
 
 Change `FeedbackQueueFormatter.toMarkdown` to output:
 
@@ -1048,7 +1048,7 @@ Target:
 
 Do not include raw session, screen, item, batch, screenshot file path, delivery, status, captured time, or screenshot dimensions in Markdown.
 
-- [ ] **Step 4: Compute source candidates for node and area targets**
+- [x] **Step 4: Compute source candidates for node and area targets**
 
 In `FeedbackSessionService`, source evidence rules are:
 
@@ -1062,7 +1062,7 @@ In `FeedbackSessionService`, source evidence rules are:
   - source candidates use the best overlapping/nearest node as selected evidence and the remaining nodes as nearby evidence
   - mark area output as lower confidence in Markdown by including the area-selection note
 
-- [ ] **Step 5: Run service and formatter tests and verify GREEN**
+- [x] **Step 5: Run service and formatter tests and verify GREEN**
 
 Run:
 
@@ -1072,7 +1072,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 6: Commit Task 5**
+- [x] **Step 6: Commit Task 5**
 
 Run:
 

@@ -553,6 +553,7 @@ interface PointPatchBridge {
     suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject
     suspend fun performNavigation(packageName: String, request: FeedbackNavigationRequest): JsonObject =
         error("PointPatch bridge does not support navigation")
+    suspend fun readSourceIndex(packageName: String): JsonObject = JsonObject(emptyMap())
     suspend fun captureScreenSnapshot(
         packageName: String,
         sessionId: String? = null,
@@ -601,6 +602,9 @@ class CliPointPatchBridge(private val client: BridgeClient) : PointPatchBridge {
             packageName = packageName,
             request = McpProtocol.json.encodeToJsonElement(FeedbackNavigationRequest.serializer(), request).jsonObject,
         )
+
+    override suspend fun readSourceIndex(packageName: String): JsonObject =
+        client.readSourceIndex(packageName)
 
     override suspend fun captureScreenSnapshot(
         packageName: String,

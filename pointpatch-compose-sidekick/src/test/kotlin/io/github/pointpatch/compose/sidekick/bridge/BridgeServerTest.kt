@@ -12,6 +12,8 @@ import io.github.pointpatch.compose.core.model.SelectionKind
 import io.github.pointpatch.compose.core.model.SelectionSource
 import io.github.pointpatch.compose.core.model.TapPoint
 import io.github.pointpatch.compose.core.model.TreeKind
+import io.github.pointpatch.compose.core.source.SourceIndex
+import io.github.pointpatch.compose.core.source.SourceIndexEntry
 import java.io.File
 import java.io.RandomAccessFile
 import kotlin.io.path.createTempDirectory
@@ -91,6 +93,57 @@ class BridgeServerTest {
         assertTrue(response.contains("MainActivity"))
         assertTrue(response.contains("/cache/screen.png"))
         assertTrue(response.contains("sourceIndexAvailable"))
+        assertFalse(response.contains("sourceIndex\":"))
+        assertFalse(response.contains("FormScreen.kt"))
+    }
+
+    @Test
+    fun readSourceIndexReturnsBoundedResultSeparatelyFromSnapshot() = runBlocking {
+        val server = server(
+            environment = RecordingBridgeEnvironment(
+                sourceIndexResult = BridgeSourceIndexResult(
+                    sourceIndexAvailable = true,
+                    sourceIndex = SourceIndex(
+                        entries = listOf(
+                            SourceIndexEntry(
+                                file = "sample/src/main/java/io/github/pointpatch/sample/screens/FormScreen.kt",
+                                line = 37,
+                                text = listOf("Email address"),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val response = server.handleRequestForTest(
+            """{"id":"1","token":"token","method":"readSourceIndex","params":{}}""",
+        )
+
+        assertTrue(response.contains("sourceIndexAvailable"))
+        assertTrue(response.contains("sourceIndex"))
+        assertTrue(response.contains("FormScreen.kt"))
+        assertFalse(response.contains("sourceIndexError"))
+    }
+
+    @Test
+    fun readSourceIndexCanReportUnavailableWithError() = runBlocking {
+        val server = server(
+            environment = RecordingBridgeEnvironment(
+                sourceIndexResult = BridgeSourceIndexResult(
+                    sourceIndexAvailable = false,
+                    sourceIndexError = "Source index asset is too large",
+                ),
+            ),
+        )
+
+        val response = server.handleRequestForTest(
+            """{"id":"1","token":"token","method":"readSourceIndex","params":{}}""",
+        )
+
+        assertTrue(response.contains(""""sourceIndexAvailable": false"""))
+        assertTrue(response.contains("Source index asset is too large"))
+        assertFalse(response.contains(""""sourceIndex":"""))
     }
 
     @Test
@@ -281,6 +334,7 @@ class BridgeServerTest {
         private val screenSnapshot: BridgeScreenSnapshot = BridgeScreenSnapshot(
             inspection = BridgeScreenInspection(activity = "MainActivity"),
         ),
+        private val sourceIndexResult: BridgeSourceIndexResult = BridgeSourceIndexResult(sourceIndexAvailable = true),
     ) : BridgeEnvironment {
         private var lastScreenSnapshot: BridgeScreenSnapshot? = null
         val navigationRequests: MutableList<BridgeNavigationRequest> = mutableListOf()
@@ -311,6 +365,8 @@ class BridgeServerTest {
 
         override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot =
             screenSnapshot.also { lastScreenSnapshot = it }
+
+        override suspend fun readSourceIndex(): BridgeSourceIndexResult = sourceIndexResult
 
         override suspend fun getLastScreenSnapshot(): BridgeScreenSnapshot? = lastScreenSnapshot
 

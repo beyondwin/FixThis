@@ -4,6 +4,8 @@ import io.github.pointpatch.cli.AdbDevice
 import io.github.pointpatch.compose.core.model.PointPatchNode
 import io.github.pointpatch.compose.core.model.PointPatchRect
 import io.github.pointpatch.compose.core.model.TreeKind
+import io.github.pointpatch.compose.core.source.SourceIndex
+import io.github.pointpatch.compose.core.source.SourceIndexEntry
 import io.github.pointpatch.mcp.McpProtocol
 import io.github.pointpatch.mcp.tools.PointPatchBridge
 import java.io.File
@@ -17,6 +19,9 @@ internal class FakePointPatchBridge(
     private val packageName: String = "io.github.pointpatch.sample",
     private val captureError: Throwable? = null,
     private val captureRoots: List<FeedbackScreenRoot> = defaultCaptureRoots(),
+    private val sourceIndexAvailable: Boolean = true,
+    private val sourceIndex: SourceIndex? = defaultSourceIndex(),
+    private val sourceIndexReadError: String? = null,
 ) : PointPatchBridge {
     val resolvedOverrides = mutableListOf<String?>()
     val navigationRequests = mutableListOf<FeedbackNavigationRequest>()
@@ -27,6 +32,8 @@ internal class FakePointPatchBridge(
     var lastCaptureDestination: String? = null
         private set
     var captureCount: Int = 0
+        private set
+    var readSourceIndexCount: Int = 0
         private set
     var selectedDeviceSerial: String? = null
         private set
@@ -85,7 +92,7 @@ internal class FakePointPatchBridge(
         lastCaptureDestination = destinationDirectory?.absolutePath
         captureCount += 1
         put("activity", "MainActivity")
-        put("sourceIndexAvailable", true)
+        put("sourceIndexAvailable", sourceIndexAvailable)
         put("inspection", buildJsonObject {
             put("activity", "MainActivity")
             put(
@@ -96,7 +103,7 @@ internal class FakePointPatchBridge(
                     },
                 ),
             )
-            put("sourceIndexAvailable", true)
+            put("sourceIndexAvailable", sourceIndexAvailable)
             put("errors", JsonArray(emptyList()))
         })
         put("screenshot", buildJsonObject {
@@ -120,6 +127,15 @@ internal class FakePointPatchBridge(
         })
     }
 
+    override suspend fun readSourceIndex(packageName: String): JsonObject = buildJsonObject {
+        readSourceIndexCount += 1
+        put("sourceIndexAvailable", sourceIndexAvailable && sourceIndex != null && sourceIndexReadError == null)
+        sourceIndex?.takeIf { sourceIndexAvailable && sourceIndexReadError == null }?.let {
+            put("sourceIndex", McpProtocol.json.encodeToJsonElement(SourceIndex.serializer(), it))
+        }
+        sourceIndexReadError?.let { put("sourceIndexError", it) }
+    }
+
     companion object {
         private fun defaultCaptureRoots(): List<FeedbackScreenRoot> {
             val emailLabel = PointPatchNode(
@@ -130,10 +146,6 @@ internal class FakePointPatchBridge(
                 boundsInWindow = PointPatchRect(28f, 77f, 692f, 186f),
                 text = listOf("Email address"),
                 testTag = "emailField",
-                rawProperties = mapOf(
-                    "sourceFile" to "sample/src/main/java/io/github/pointpatch/sample/screens/FormScreen.kt",
-                    "sourceLine" to "37",
-                ),
             )
             val visualArea = PointPatchNode(
                 uid = "promo-card",
@@ -143,10 +155,6 @@ internal class FakePointPatchBridge(
                 boundsInWindow = PointPatchRect(120f, 430f, 330f, 580f),
                 text = listOf("Promotional card"),
                 contentDescription = listOf("Promo image"),
-                rawProperties = mapOf(
-                    "sourceFile" to "sample/src/main/java/io/github/pointpatch/sample/screens/FormScreen.kt",
-                    "sourceLine" to "54",
-                ),
             )
             return listOf(
                 FeedbackScreenRoot(
@@ -156,5 +164,25 @@ internal class FakePointPatchBridge(
                 ),
             )
         }
+
+        private fun defaultSourceIndex(): SourceIndex =
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "sample/src/main/java/io/github/pointpatch/sample/screens/FormScreen.kt",
+                        line = 37,
+                        text = listOf("Email address"),
+                        testTags = listOf("emailField"),
+                        activityNames = listOf("MainActivity"),
+                    ),
+                    SourceIndexEntry(
+                        file = "sample/src/main/java/io/github/pointpatch/sample/screens/FormScreen.kt",
+                        line = 54,
+                        text = listOf("Promotional card"),
+                        contentDescriptions = listOf("Promo image"),
+                        activityNames = listOf("MainActivity"),
+                    ),
+                ),
+            )
     }
 }

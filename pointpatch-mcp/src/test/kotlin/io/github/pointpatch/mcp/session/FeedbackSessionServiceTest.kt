@@ -3,6 +3,8 @@ package io.github.pointpatch.mcp.session
 import io.github.pointpatch.compose.core.model.PointPatchNode
 import io.github.pointpatch.compose.core.model.PointPatchRect
 import io.github.pointpatch.compose.core.model.TreeKind
+import io.github.pointpatch.compose.core.source.SourceIndex
+import io.github.pointpatch.compose.core.source.SourceIndexEntry
 import io.github.pointpatch.mcp.console.FeedbackTargetType
 import io.github.pointpatch.mcp.console.PendingDraftFeedbackItem
 import kotlinx.coroutines.CancellationException
@@ -238,6 +240,333 @@ class FeedbackSessionServiceTest {
         assertTrue(updated.items[1].nearbyNodes.isNotEmpty())
         assertTrue(updated.items.first().sourceCandidates.isNotEmpty())
         assertTrue(updated.items[1].sourceCandidates.isNotEmpty())
+    }
+
+    @Test
+    fun savingNodePreviewFeedbackUsesSelectedNodeAndSameRootNearbyEvidence() = runBlocking {
+        val selected = PointPatchNode(
+            uid = "email-label",
+            composeNodeId = 42,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = PointPatchRect(28f, 77f, 692f, 186f),
+            text = listOf("Email address"),
+            testTag = "emailField",
+        )
+        val sameRootNearby = PointPatchNode(
+            uid = "submit-button",
+            composeNodeId = 43,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = PointPatchRect(36f, 220f, 684f, 292f),
+            text = listOf("Submit"),
+        )
+        val otherRootNearby = PointPatchNode(
+            uid = "toolbar-title",
+            composeNodeId = 44,
+            rootIndex = 1,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = PointPatchRect(36f, 210f, 400f, 260f),
+            text = listOf("Profile"),
+        )
+        val roots = listOf(
+            FeedbackScreenRoot(
+                rootIndex = 0,
+                boundsInWindow = PointPatchRect(0f, 0f, 720f, 1600f),
+                mergedNodes = listOf(selected, sameRootNearby),
+            ),
+            FeedbackScreenRoot(
+                rootIndex = 1,
+                boundsInWindow = PointPatchRect(0f, 0f, 720f, 1600f),
+                mergedNodes = listOf(otherRootNearby),
+            ),
+        )
+        val root = createTempDir(prefix = "pointpatch-v2-node-source-")
+        val store = FeedbackSessionStore(
+            clock = sequenceClock(1_000L, 2_000L),
+            idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1"),
+        )
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(
+                captureRoots = roots,
+                sourceIndex = SourceIndex(
+                    entries = listOf(
+                        SourceIndexEntry(
+                            file = "sample/src/main/java/io/github/pointpatch/sample/screens/FormScreen.kt",
+                            line = 37,
+                            text = listOf("Email address"),
+                            testTags = listOf("emailField"),
+                            activityNames = listOf("MainActivity"),
+                        ),
+                        SourceIndexEntry(
+                            file = "sample/src/main/java/io/github/pointpatch/sample/screens/Toolbar.kt",
+                            line = 12,
+                            text = listOf("Profile"),
+                            activityNames = listOf("MainActivity"),
+                        ),
+                    ),
+                ),
+            ),
+            store = store,
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val preview = service.capturePreview(session.sessionId)
+
+        val updated = service.savePreviewFeedbackItems(
+            sessionId = session.sessionId,
+            previewId = preview.previewId,
+            items = listOf(
+                PendingDraftFeedbackItem(
+                    targetType = FeedbackTargetType.NODE,
+                    nodeUid = selected.uid,
+                    bounds = selected.boundsInWindow,
+                    comment = "Move the email field",
+                ),
+            ),
+        )
+
+        val item = updated.items.single()
+        assertEquals(selected.uid, item.selectedNode?.uid)
+        assertEquals(listOf("submit-button"), item.nearbyNodes.map { it.uid })
+        assertEquals("sample/src/main/java/io/github/pointpatch/sample/screens/FormScreen.kt", item.sourceCandidates.first().file)
+        assertEquals(37, item.sourceCandidates.first().line)
+    }
+
+    @Test
+    fun capturePreviewCachesDecodedSourceIndexForSessionProcess() = runBlocking {
+        val root = createTempDir(prefix = "pointpatch-v2-source-index-cache-")
+        val bridge = FakePointPatchBridge()
+        val store = FeedbackSessionStore(
+            clock = sequenceClock(1_000L, 2_000L),
+            idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "preview-2", "screen-2"),
+        )
+        val service = FeedbackSessionService(
+            bridge = bridge,
+            store = store,
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+
+        service.capturePreview(session.sessionId)
+        service.capturePreview(session.sessionId)
+
+        assertEquals(1, bridge.readSourceIndexCount)
+    }
+
+    @Test
+    fun savingAreaPreviewFeedbackUsesNearestMeaningfulNodesWhenNothingOverlaps() = runBlocking {
+        val nearest = PointPatchNode(
+            uid = "distant-label",
+            composeNodeId = 51,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = PointPatchRect(500f, 900f, 640f, 960f),
+            text = listOf("Distant label"),
+        )
+        val secondNearest = PointPatchNode(
+            uid = "farther-button",
+            composeNodeId = 52,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = PointPatchRect(540f, 1100f, 680f, 1160f),
+            text = listOf("Continue"),
+        )
+        val roots = listOf(
+            FeedbackScreenRoot(
+                rootIndex = 0,
+                boundsInWindow = PointPatchRect(0f, 0f, 720f, 1600f),
+                mergedNodes = listOf(secondNearest, nearest),
+            ),
+        )
+        val root = createTempDir(prefix = "pointpatch-v2-area-source-")
+        val store = FeedbackSessionStore(
+            clock = sequenceClock(1_000L, 2_000L),
+            idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1"),
+        )
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(
+                captureRoots = roots,
+                sourceIndex = SourceIndex(
+                    entries = listOf(
+                        SourceIndexEntry(
+                            file = "sample/src/main/java/io/github/pointpatch/sample/screens/NearCard.kt",
+                            line = 18,
+                            text = listOf("Distant label"),
+                            activityNames = listOf("MainActivity"),
+                        ),
+                        SourceIndexEntry(
+                            file = "sample/src/main/java/io/github/pointpatch/sample/screens/NearCard.kt",
+                            line = 32,
+                            text = listOf("Continue"),
+                            activityNames = listOf("MainActivity"),
+                        ),
+                    ),
+                ),
+            ),
+            store = store,
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val preview = service.capturePreview(session.sessionId)
+
+        val updated = service.savePreviewFeedbackItems(
+            sessionId = session.sessionId,
+            previewId = preview.previewId,
+            items = listOf(
+                PendingDraftFeedbackItem(
+                    targetType = FeedbackTargetType.AREA,
+                    bounds = PointPatchRect(10f, 10f, 40f, 40f),
+                    comment = "Fix this empty corner",
+                ),
+            ),
+        )
+
+        val item = updated.items.single()
+        assertEquals(listOf("distant-label", "farther-button"), item.nearbyNodes.map { it.uid })
+        assertEquals("sample/src/main/java/io/github/pointpatch/sample/screens/NearCard.kt", item.sourceCandidates.first().file)
+        assertEquals(18, item.sourceCandidates.first().line)
+    }
+
+    @Test
+    fun savingAreaPreviewFeedbackUsesOnlyOverlappingEvidenceWhenAnyNodeOverlaps() = runBlocking {
+        val overlapping = PointPatchNode(
+            uid = "overlapping-card",
+            composeNodeId = 61,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = PointPatchRect(120f, 120f, 220f, 220f),
+            text = listOf("Overlapping card"),
+        )
+        val nearbyNonOverlapping = PointPatchNode(
+            uid = "nearby-label",
+            composeNodeId = 62,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = PointPatchRect(230f, 120f, 360f, 180f),
+            text = listOf("Nearby label"),
+        )
+        val roots = listOf(
+            FeedbackScreenRoot(
+                rootIndex = 0,
+                boundsInWindow = PointPatchRect(0f, 0f, 720f, 1600f),
+                mergedNodes = listOf(nearbyNonOverlapping, overlapping),
+            ),
+        )
+        val root = createTempDir(prefix = "pointpatch-v2-area-overlap-source-")
+        val store = FeedbackSessionStore(
+            clock = sequenceClock(1_000L, 2_000L),
+            idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1"),
+        )
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(
+                captureRoots = roots,
+                sourceIndex = SourceIndex(
+                    entries = listOf(
+                        SourceIndexEntry(
+                            file = "sample/src/main/java/io/github/pointpatch/sample/screens/OverlapCard.kt",
+                            line = 18,
+                            text = listOf("Overlapping card"),
+                            activityNames = listOf("MainActivity"),
+                        ),
+                        SourceIndexEntry(
+                            file = "sample/src/main/java/io/github/pointpatch/sample/screens/NearbyLabel.kt",
+                            line = 42,
+                            text = listOf("Nearby label"),
+                        ),
+                    ),
+                ),
+            ),
+            store = store,
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val preview = service.capturePreview(session.sessionId)
+
+        val updated = service.savePreviewFeedbackItems(
+            sessionId = session.sessionId,
+            previewId = preview.previewId,
+            items = listOf(
+                PendingDraftFeedbackItem(
+                    targetType = FeedbackTargetType.AREA,
+                    bounds = PointPatchRect(100f, 100f, 200f, 200f),
+                    comment = "Fix this selected area",
+                ),
+            ),
+        )
+
+        val item = updated.items.single()
+        assertEquals(listOf("overlapping-card"), item.nearbyNodes.map { it.uid })
+        assertEquals(listOf("sample/src/main/java/io/github/pointpatch/sample/screens/OverlapCard.kt"), item.sourceCandidates.map { it.file })
+    }
+
+    @Test
+    fun savingPreviewDoesNotInventSourceCandidatesWhenSourceIndexIsUnavailableMissingEmptyOrUnreadable() = runBlocking {
+        val selected = PointPatchNode(
+            uid = "email-label",
+            composeNodeId = 42,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = PointPatchRect(28f, 77f, 692f, 186f),
+            text = listOf("Email address"),
+            testTag = "emailField",
+        )
+        val roots = listOf(
+            FeedbackScreenRoot(
+                rootIndex = 0,
+                boundsInWindow = PointPatchRect(0f, 0f, 720f, 1600f),
+                mergedNodes = listOf(selected),
+            ),
+        )
+
+        listOf(
+            NoSourceIndexCase("unavailable", false, null, null),
+            NoSourceIndexCase("missing", true, null, null),
+            NoSourceIndexCase("empty", true, SourceIndex(entries = emptyList()), null),
+            NoSourceIndexCase("read-error", true, null, "Source index asset is malformed"),
+        ).forEachIndexed { index, sourceIndexCase ->
+            val root = createTempDir(prefix = "pointpatch-v2-no-source-index-${sourceIndexCase.label}-")
+            val store = FeedbackSessionStore(
+                clock = sequenceClock(1_000L, 2_000L),
+                idGenerator = sequenceIds("session-${index + 1}", "preview-${index + 1}", "screen-${index + 1}", "item-${index + 1}"),
+            )
+            val service = FeedbackSessionService(
+                bridge = FakePointPatchBridge(
+                    captureRoots = roots,
+                    sourceIndexAvailable = sourceIndexCase.available,
+                    sourceIndex = sourceIndexCase.sourceIndex,
+                    sourceIndexReadError = sourceIndexCase.error,
+                ),
+                store = store,
+                projectRoot = root.absolutePath,
+                defaultPackageName = "io.github.pointpatch.sample",
+            )
+            val session = service.openSession(null, newSession = true)
+            val preview = service.capturePreview(session.sessionId)
+
+            val updated = service.savePreviewFeedbackItems(
+                sessionId = session.sessionId,
+                previewId = preview.previewId,
+                items = listOf(
+                    PendingDraftFeedbackItem(
+                        targetType = FeedbackTargetType.NODE,
+                        nodeUid = selected.uid,
+                        bounds = selected.boundsInWindow,
+                        comment = "Move the email field",
+                    ),
+                ),
+            )
+
+            val item = updated.items.single()
+            assertTrue(item.sourceCandidates.isEmpty())
+            val markdown = FeedbackQueueFormatter.toMarkdown(updated)
+            assertTrue(markdown.contains("No source candidate from current evidence"))
+            assertFalse(markdown.contains(".kt:"))
+        }
     }
 
     @Test
@@ -657,6 +986,13 @@ class FeedbackSessionServiceTest {
         private val queue = ArrayDeque(values.toList())
         val next: () -> String = { queue.removeFirst() }
     }
+
+    private data class NoSourceIndexCase(
+        val label: String,
+        val available: Boolean,
+        val sourceIndex: SourceIndex?,
+        val error: String?,
+    )
 
     private fun sequenceClock(vararg values: Long): () -> Long {
         val queue = ArrayDeque(values.toList())

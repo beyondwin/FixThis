@@ -12,10 +12,12 @@ import io.github.pointpatch.compose.core.model.PointPatchError
 import io.github.pointpatch.compose.core.model.PointPatchNode
 import io.github.pointpatch.compose.core.model.PointPatchRect
 import io.github.pointpatch.compose.core.model.ScreenshotInfo
+import io.github.pointpatch.compose.core.source.SourceIndex
 import io.github.pointpatch.compose.sidekick.inspect.SemanticsInspector
 import io.github.pointpatch.compose.sidekick.overlay.PointPatchOverlayHostLayout
 import io.github.pointpatch.compose.sidekick.screenshot.ScreenshotCapturer
 import io.github.pointpatch.compose.sidekick.screenshot.ScreenshotStore
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.lang.ref.WeakReference
 import java.util.UUID
@@ -109,6 +111,7 @@ class BridgeServer(
                 "status" -> BridgeProtocol.json.encodeToJsonElement(environment.status())
                 "inspectCurrentScreen" -> BridgeProtocol.json.encodeToJsonElement(environment.inspectCurrentScreen())
                 "captureScreenSnapshot" -> BridgeProtocol.json.encodeToJsonElement(environment.captureScreenSnapshot())
+                "readSourceIndex" -> BridgeProtocol.json.encodeToJsonElement(environment.readSourceIndex())
                 "startFeedbackCapture" -> BridgeProtocol.json.encodeToJsonElement(
                     environment.startFeedbackCapture(request.params.longParam("timeoutMillis") ?: DefaultFeedbackTimeoutMillis),
                 )
@@ -200,6 +203,7 @@ interface BridgeEnvironment {
     suspend fun status(): BridgeStatus
     suspend fun inspectCurrentScreen(): BridgeScreenInspection
     suspend fun captureScreenSnapshot(): BridgeScreenSnapshot
+    suspend fun readSourceIndex(): BridgeSourceIndexResult
     suspend fun getLastScreenSnapshot(): BridgeScreenSnapshot?
     suspend fun startFeedbackCapture(timeoutMillis: Long): BridgeFeedbackCaptureResult
     suspend fun getLastAnnotation(): PointPatchAnnotation?
@@ -229,6 +233,13 @@ data class BridgeScreenSnapshot(
     val inspection: BridgeScreenInspection,
     val screenshot: ScreenshotInfo? = null,
     val sourceIndexAvailable: Boolean = false,
+)
+
+@Serializable
+data class BridgeSourceIndexResult(
+    val sourceIndexAvailable: Boolean,
+    val sourceIndex: SourceIndex? = null,
+    val sourceIndexError: String? = null,
 )
 
 @Serializable
@@ -345,6 +356,8 @@ private class AndroidBridgeEnvironment(
 ) : BridgeEnvironment {
     var currentActivity: WeakReference<Activity>? = null
     private var lastScreenSnapshot: BridgeScreenSnapshot? = null
+    @Volatile
+    private var cachedSourceIndexResult: BridgeSourceIndexResult? = null
     private val navigationPerformer = AndroidNavigationPerformer(
         activityProvider = { currentActivity?.get() },
         mainDispatcher = mainDispatcher,
@@ -352,12 +365,13 @@ private class AndroidBridgeEnvironment(
 
     override suspend fun status(): BridgeStatus {
         val inspection = inspectCurrentScreen()
+        val sourceIndexResult = readSourceIndex()
         return BridgeStatus(
             activity = inspection.activity,
             rootsCount = inspection.roots.size,
             sidekickVersion = sidekickVersion,
             bridgeProtocolVersion = BridgeProtocol.VERSION,
-            sourceIndexAvailable = context.hasAsset("pointpatch/pointpatch-source-index.json"),
+            sourceIndexAvailable = sourceIndexResult.sourceIndexAvailable,
         )
     }
 
@@ -388,36 +402,47 @@ private class AndroidBridgeEnvironment(
         }
 
     override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot =
-        withContext(mainDispatcher) {
-            val sourceIndexAvailable = context.hasAsset("pointpatch/pointpatch-source-index.json")
-            val activity = currentActivity?.get()
-            if (activity == null) {
-                val inspection = BridgeScreenInspection(
-                    errors = listOf(PointPatchError("NO_ACTIVITY", "No resumed Activity is available")),
+        readSourceIndex().let { sourceIndexResult ->
+            withContext(mainDispatcher) {
+                val sourceIndexAvailable = sourceIndexResult.sourceIndexAvailable
+                val activity = currentActivity?.get()
+                if (activity == null) {
+                    val inspection = BridgeScreenInspection(
+                        errors = listOf(PointPatchError("NO_ACTIVITY", "No resumed Activity is available")),
+                    )
+                    val snapshot = BridgeScreenSnapshot(
+                        inspection = inspection,
+                        sourceIndexAvailable = sourceIndexAvailable,
+                    )
+                    lastScreenSnapshot = snapshot
+                    return@withContext snapshot
+                }
+
+                val inspection = inspectCurrentScreen()
+                val screenshot = screenshotCapturer.capture(
+                    activity = activity,
+                    annotationId = "screen-${UUID.randomUUID()}",
+                    selectedBounds = null,
                 )
                 val snapshot = BridgeScreenSnapshot(
+                    activity = activity::class.java.name,
                     inspection = inspection,
+                    screenshot = screenshot,
                     sourceIndexAvailable = sourceIndexAvailable,
                 )
                 lastScreenSnapshot = snapshot
-                return@withContext snapshot
+                snapshot
             }
-
-            val inspection = inspectCurrentScreen()
-            val screenshot = screenshotCapturer.capture(
-                activity = activity,
-                annotationId = "screen-${UUID.randomUUID()}",
-                selectedBounds = null,
-            )
-            val snapshot = BridgeScreenSnapshot(
-                activity = activity::class.java.name,
-                inspection = inspection,
-                screenshot = screenshot,
-                sourceIndexAvailable = sourceIndexAvailable,
-            )
-            lastScreenSnapshot = snapshot
-            snapshot
         }
+
+    override suspend fun readSourceIndex(): BridgeSourceIndexResult {
+        cachedSourceIndexResult?.let { return it }
+        val result = withContext(Dispatchers.IO) {
+            context.readSourceIndexResult("pointpatch/pointpatch-source-index.json")
+        }
+        cachedSourceIndexResult = result
+        return result
+    }
 
     override suspend fun getLastScreenSnapshot(): BridgeScreenSnapshot? =
         withContext(mainDispatcher) {
@@ -467,6 +492,50 @@ private fun Context.hasAsset(path: String): Boolean =
     runCatching {
         assets.open(path).use { true }
     }.getOrDefault(false)
+
+private fun Context.readSourceIndexResult(path: String): BridgeSourceIndexResult {
+    if (!hasAsset(path)) {
+        return BridgeSourceIndexResult(sourceIndexAvailable = false)
+    }
+    val json = runCatching {
+        assets.open(path).use { input ->
+            val output = ByteArrayOutputStream()
+            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+            var total = 0
+            while (true) {
+                val read = input.read(buffer)
+                if (read < 0) break
+                total += read
+                if (total > MaxSourceIndexAssetBytes) {
+                    return BridgeSourceIndexResult(
+                        sourceIndexAvailable = false,
+                        sourceIndexError = "Source index asset exceeds ${MaxSourceIndexAssetBytes} bytes",
+                    )
+                }
+                output.write(buffer, 0, read)
+            }
+            output.toString(Charsets.UTF_8.name())
+        }
+    }.getOrElse { error ->
+        return BridgeSourceIndexResult(
+            sourceIndexAvailable = false,
+            sourceIndexError = error.message ?: error::class.java.simpleName,
+        )
+    }
+    return runCatching {
+        BridgeSourceIndexResult(
+            sourceIndexAvailable = true,
+            sourceIndex = BridgeProtocol.json.decodeFromString(SourceIndex.serializer(), json),
+        )
+    }.getOrElse { error ->
+        BridgeSourceIndexResult(
+            sourceIndexAvailable = false,
+            sourceIndexError = error.message ?: error::class.java.simpleName,
+        )
+    }
+}
+
+private const val MaxSourceIndexAssetBytes = 4 * 1024 * 1024
 
 private fun Application.isDebuggable(): Boolean =
     runCatching {

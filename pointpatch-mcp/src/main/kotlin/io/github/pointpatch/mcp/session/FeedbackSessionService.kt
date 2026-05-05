@@ -4,8 +4,8 @@ import io.github.pointpatch.cli.AdbDevice
 import io.github.pointpatch.compose.core.model.PointPatchError
 import io.github.pointpatch.compose.core.model.PointPatchNode
 import io.github.pointpatch.compose.core.model.PointPatchRect
-import io.github.pointpatch.compose.core.model.SelectionConfidence
-import io.github.pointpatch.compose.core.model.SourceCandidate
+import io.github.pointpatch.compose.core.source.SourceIndex
+import io.github.pointpatch.compose.core.source.SourceMatcher
 import io.github.pointpatch.mcp.console.FeedbackPreviewSnapshot
 import io.github.pointpatch.mcp.McpProtocol
 import io.github.pointpatch.mcp.console.FeedbackTargetType
@@ -30,6 +30,8 @@ class FeedbackSessionService(
     private val sessionLock = Any()
     private val previewSnapshots = linkedMapOf<String, PreviewRecord>()
     private val previewSavesInFlight = mutableSetOf<String>()
+    private val sourceIndexLock = Any()
+    private val sourceIndexCache = mutableMapOf<String, SourceIndex?>()
 
     fun openSession(
         packageNameOverride: String?,
@@ -124,11 +126,13 @@ class FeedbackSessionService(
             previewId = previewId,
             screen = payload.toCapturedScreen(screenId = screenId, fallbackDisplayName = "Draft screen"),
         )
+        val sourceIndex = readPreviewSourceIndexOrNull(session.packageName, preview.screen)
         synchronized(sessionLock) {
             previewSnapshots[previewId] = PreviewRecord(
                 sessionId = session.sessionId,
                 projectRoot = session.projectRoot,
                 snapshot = preview,
+                sourceIndex = sourceIndex,
             )
             while (previewSnapshots.size > MaxRetainedPreviews) {
                 previewSnapshots.remove(previewSnapshots.keys.first())?.deletePreviewCacheDirectory()
@@ -282,7 +286,7 @@ class FeedbackSessionService(
 
         return try {
             val feedbackItems = items.map { pending ->
-                buildFeedbackItemForDraft(preview.snapshot.screen, pending)
+                buildFeedbackItemForDraft(preview.snapshot.screen, preview.sourceIndex, pending)
             }
             val persistedScreen = promotePreviewArtifacts(
                 projectRoot = preview.projectRoot,
@@ -359,7 +363,33 @@ class FeedbackSessionService(
         )
     }
 
-    private fun buildFeedbackItemForDraft(screen: CapturedScreen, pending: PendingDraftFeedbackItem): FeedbackItem {
+    private suspend fun readPreviewSourceIndexOrNull(packageName: String, screen: CapturedScreen): SourceIndex? {
+        if (!screen.sourceIndexAvailable) return null
+        synchronized(sourceIndexLock) {
+            if (sourceIndexCache.containsKey(packageName)) return sourceIndexCache[packageName]
+        }
+        val result = runCatching { bridge.readSourceIndex(packageName) }.getOrElse { return null }
+        val available = result["sourceIndexAvailable"]?.jsonPrimitive?.booleanOrNull ?: false
+        val sourceIndexElement = result["sourceIndex"]
+        val sourceIndex = if (available && sourceIndexElement != null) {
+            runCatching {
+                McpProtocol.json.decodeFromJsonElement<SourceIndex>(sourceIndexElement)
+                    .takeIf { it.entries.isNotEmpty() }
+            }.getOrNull()
+        } else {
+            null
+        }
+        synchronized(sourceIndexLock) {
+            sourceIndexCache[packageName] = sourceIndex
+        }
+        return sourceIndex
+    }
+
+    private fun buildFeedbackItemForDraft(
+        screen: CapturedScreen,
+        sourceIndex: SourceIndex?,
+        pending: PendingDraftFeedbackItem,
+    ): FeedbackItem {
         require(pending.comment.isNotBlank()) { "Feedback comment must not be blank" }
         val selectedNode = when (pending.targetType) {
             FeedbackTargetType.NODE -> {
@@ -373,9 +403,17 @@ class FeedbackSessionService(
         val storedBounds = selectedNode?.boundsInWindow ?: pending.bounds
         validateFinitePositiveBounds(storedBounds)
         validateBoundsInsideScreenshot(screen, storedBounds)
-        val nearbyNodes = when (pending.targetType) {
+        val evidenceNodes = when (pending.targetType) {
             FeedbackTargetType.AREA -> areaEvidenceNodes(screen, storedBounds)
             FeedbackTargetType.NODE -> nodeEvidenceNodes(screen, selectedNode!!)
+        }
+        val sourceSelectedNode = when (pending.targetType) {
+            FeedbackTargetType.AREA -> evidenceNodes.firstOrNull()
+            FeedbackTargetType.NODE -> selectedNode
+        }
+        val sourceNearbyNodes = when (pending.targetType) {
+            FeedbackTargetType.AREA -> evidenceNodes.drop(1)
+            FeedbackTargetType.NODE -> evidenceNodes
         }
         val target = when (pending.targetType) {
             FeedbackTargetType.AREA -> FeedbackTarget.Area(storedBounds)
@@ -391,8 +429,8 @@ class FeedbackSessionService(
             updatedAtEpochMillis = 0L,
             target = target,
             selectedNode = selectedNode,
-            nearbyNodes = nearbyNodes,
-            sourceCandidates = sourceCandidatesFor(screen, selectedNode, nearbyNodes),
+            nearbyNodes = evidenceNodes,
+            sourceCandidates = sourceCandidatesFor(sourceIndex, sourceSelectedNode, sourceNearbyNodes, screen.activityName),
             comment = pending.comment,
             status = FeedbackItemStatus.OPEN,
         )
@@ -444,8 +482,8 @@ class FeedbackSessionService(
         }
     }
 
-    private fun areaEvidenceNodes(screen: CapturedScreen, bounds: PointPatchRect): List<PointPatchNode> =
-        screen.allNodes()
+    private fun areaEvidenceNodes(screen: CapturedScreen, bounds: PointPatchRect): List<PointPatchNode> {
+        val evidenceNodes = screen.allNodes()
             .asSequence()
             .filter { it.hasMeaningfulSemantic() }
             .map { node ->
@@ -456,7 +494,17 @@ class FeedbackSessionService(
                     centerDistance = node.boundsInWindow.centerDistanceTo(bounds),
                 )
             }
-            .filter { it.overlaps || it.centerDistance <= NearbyEvidenceRadiusPx }
+            .toList()
+        val hasOverlappingEvidence = evidenceNodes.any { it.overlaps }
+        return evidenceNodes
+            .asSequence()
+            .filter { evidence ->
+                if (hasOverlappingEvidence) {
+                    evidence.overlaps
+                } else {
+                    true
+                }
+            }
             .sortedWith(
                 compareByDescending<AreaEvidenceNode> { it.overlaps }
                     .thenByDescending { it.overlapArea }
@@ -468,6 +516,7 @@ class FeedbackSessionService(
             .distinctBy { it.uid }
             .take(MaxEvidenceNodes)
             .toList()
+    }
 
     private fun nodeEvidenceNodes(screen: CapturedScreen, selectedNode: PointPatchNode): List<PointPatchNode> =
         screen.allNodes()
@@ -485,42 +534,14 @@ class FeedbackSessionService(
             .toList()
 
     private fun sourceCandidatesFor(
-        screen: CapturedScreen,
+        sourceIndex: SourceIndex?,
         selectedNode: PointPatchNode?,
         nearbyNodes: List<PointPatchNode>,
-    ): List<SourceCandidate> {
-        if (!screen.sourceIndexAvailable) return emptyList()
-        return sequenceOf(selectedNode)
-            .filterNotNull()
-            .plus(nearbyNodes.asSequence())
-            .mapNotNull { node -> node.toSourceCandidate() }
-            .distinctBy { it.file to it.line }
-            .take(MaxSourceCandidates)
-            .toList()
-    }
-
-    private fun PointPatchNode.toSourceCandidate(): SourceCandidate? {
-        val file = rawProperties.firstValue("sourceFile", "source.file", "file") ?: return null
-        val line = rawProperties.firstValue("sourceLine", "source.line", "line")?.toIntOrNull()
-        val matchedTerms = semanticTerms()
-        return SourceCandidate(
-            file = file,
-            line = line,
-            score = if (matchedTerms.isEmpty()) 0.4 else 0.7,
-            matchedTerms = matchedTerms,
-            matchReasons = listOf("semantics source metadata"),
-            confidence = SelectionConfidence.LOW,
-        )
-    }
-
-    private fun PointPatchNode.semanticTerms(): List<String> =
-        (text + listOfNotNull(editableText) + contentDescription + listOfNotNull(testTag, role))
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .distinct()
-
-    private fun Map<String, String>.firstValue(vararg keys: String): String? =
-        keys.firstNotNullOfOrNull { key -> this[key]?.takeIf { it.isNotBlank() } }
+        activityName: String?,
+    ) = sourceIndex
+        ?.takeIf { it.entries.isNotEmpty() }
+        ?.let { SourceMatcher.match(it, selectedNode, nearbyNodes, activityName) }
+        .orEmpty()
 
     private fun CapturedScreen.allNodes(): List<PointPatchNode> =
         roots.flatMap { root -> root.mergedNodes + root.unmergedNodes }
@@ -544,6 +565,7 @@ class FeedbackSessionService(
         val sessionId: String,
         val projectRoot: String,
         val snapshot: FeedbackPreviewSnapshot,
+        val sourceIndex: SourceIndex?,
     )
 
     private data class AreaEvidenceNode(
@@ -556,7 +578,5 @@ class FeedbackSessionService(
     private companion object {
         const val MaxRetainedPreviews = 3
         const val MaxEvidenceNodes = 8
-        const val MaxSourceCandidates = 5
-        const val NearbyEvidenceRadiusPx = 250_000f
     }
 }

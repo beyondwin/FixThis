@@ -1,132 +1,116 @@
 package io.github.pointpatch.mcp.session
 
 import io.github.pointpatch.cli.pointPatchJson
+import io.github.pointpatch.compose.core.model.PointPatchNode
+import io.github.pointpatch.compose.core.model.PointPatchRect
+import io.github.pointpatch.compose.core.model.SourceCandidate
 
 object FeedbackQueueFormatter {
     fun toJson(session: FeedbackSession): String =
         pointPatchJson.encodeToString(FeedbackSession.serializer(), session)
 
     fun toMarkdown(session: FeedbackSession): String = buildString {
-        appendLine("# PointPatch Feedback Queue")
+        appendLine("# PointPatch Feedback Handoff")
         appendLine()
         appendLine("- Package: `${session.packageName}`")
-        appendLine("- Status: `${session.status.name.lowercase()}`")
-        appendLine("- Screens: `${session.screens.size}`")
         appendLine("- Feedback Items: `${session.items.size}`")
-        appendLine("- Handoff Batches: `${session.handoffBatches.size}`")
-        appendLine("- Updated At: `${session.updatedAtEpochMillis}`")
-        appendLine()
-        appendLine("> Screenshots are local debug artifacts. Review them before sharing exported content.")
+        appendLine("- Screenshots: local debug artifacts available through PointPatch tooling")
         appendLine()
 
-        appendLine("## Referenced Screens")
-        appendLine()
-        val referencedScreenIds = session.items.map { it.screenId }.toSet()
-        val referencedScreens = session.screens.filter { it.screenId in referencedScreenIds }
-        if (referencedScreens.isEmpty()) {
-            appendLine("No referenced screens.")
+        val orderedItems = session.items.withIndex()
+            .sortedWith(
+                compareBy<IndexedValue<FeedbackItem>> { it.value.sequenceNumber ?: Int.MAX_VALUE }
+                    .thenBy { it.index },
+            )
+        if (orderedItems.isEmpty()) {
+            appendLine("No feedback items.")
             appendLine()
         } else {
-            referencedScreens.forEach { screen ->
-                appendLine("### ${screenLabel(session, screen.screenId)}")
-                appendLine()
-                screen.activityName?.let { appendLine("- Activity: `$it`") }
-                appendLine("- Captured At: `${screen.capturedAtEpochMillis}`")
-                if (screen.screenshot != null) appendLine("- Screenshot: local/debug artifact available through PointPatch tooling")
-                screen.screenshot?.dimensionsLabel()?.let { appendLine("- Screenshot Size: `$it`") }
-                appendLine("- Feedback Count: `${session.items.count { it.screenId == screen.screenId }}`")
-                appendLine()
-            }
-        }
-
-        appendLine("## Draft")
-        appendLine()
-        val draftItems = session.items.filter { it.delivery == FeedbackDelivery.DRAFT }
-        if (draftItems.isEmpty()) {
-            appendLine("No draft feedback items.")
-            appendLine()
-        } else {
-            draftItems.forEach { item -> appendFeedbackItem(session, item) }
-        }
-
-        appendLine("## Sent History")
-        appendLine()
-        val sentItems = session.items.filter { it.delivery == FeedbackDelivery.SENT }
-        val batchesById = session.handoffBatches.associateBy { it.batchId }
-        if (sentItems.isEmpty() && session.handoffBatches.isEmpty()) {
-            appendLine("No sent handoff batches.")
-            appendLine()
-        } else {
-            session.handoffBatches.sortedBy { it.sequenceNumber }.forEach { batch ->
-                appendLine("### Batch #${batch.sequenceNumber}")
-                appendLine()
-                appendLine("- Sent At: `${batch.createdAtEpochMillis}`")
-                appendLine("- Item Count: `${batch.itemIds.size}`")
-                appendLine()
-                sentItems.filter { it.handoffBatchId == batch.batchId }
-                    .forEach { item -> appendFeedbackItem(session, item) }
-                batch.itemIds.filter { itemId -> session.items.none { it.itemId == itemId } }
-                    .forEach { appendMissingFeedbackItem() }
-            }
-
-            sentItems.filter { item ->
-                item.handoffBatchId == null || !batchesById.containsKey(item.handoffBatchId)
-            }.takeIf { it.isNotEmpty() }?.let { missingBatchItems ->
-                appendLine("### Unbatched / missing batch")
-                appendLine()
-                missingBatchItems.forEach { item -> appendFeedbackItem(session, item) }
+            orderedItems.forEachIndexed { index, indexedItem ->
+                appendFeedbackItem(index + 1, indexedItem.value)
             }
         }
     }
 
-    private fun StringBuilder.appendMissingFeedbackItem() {
-        appendLine("- Missing feedback item metadata.")
+    private fun StringBuilder.appendFeedbackItem(number: Int, item: FeedbackItem) {
+        appendLine("## Item $number")
+        appendLine()
+        appendLine("Request:")
+        appendLine(item.comment.ifBlank { "(No request provided)" })
+        appendLine()
+        appendLine("Target:")
+        appendTarget(item)
+        appendLine()
+        appendLine("Likely Source:")
+        appendLikelySource(item.sourceCandidates, item.target)
         appendLine()
     }
 
-    private fun StringBuilder.appendFeedbackItem(session: FeedbackSession, item: FeedbackItem) {
-        val number = item.sequenceNumber?.let { "#$it " }.orEmpty()
-        appendLine("### $number${item.comment.lineSequence().firstOrNull().orEmpty().ifBlank { "(No comment)" }}")
-        appendLine()
-        appendLine("- Delivery: `${item.delivery.name.lowercase()}`")
-        appendLine("- Status: `${item.status.name.lowercase()}`")
-        val screen = session.screens.firstOrNull { it.screenId == item.screenId }
-        appendLine("- Screen: `${screenLabel(session, item.screenId)}`")
-        screen?.activityName?.let { appendLine("- Activity: `$it`") }
-        screen?.let { appendLine("- Captured At: `${it.capturedAtEpochMillis}`") }
-        if (screen?.screenshot != null) appendLine("- Screenshot: local/debug artifact available through PointPatch tooling")
-        screen?.screenshot?.dimensionsLabel()?.let { appendLine("- Screenshot Size: `$it`") }
-        appendLine("- Target: `${item.target.describe()}`")
-        item.selectedNode?.let { node ->
-            if (node.text.isNotEmpty()) appendLine("- Selected Text: `${node.text.joinToString(" | ")}`")
-            if (node.contentDescription.isNotEmpty()) {
-                appendLine("- Selected Content Description: `${node.contentDescription.joinToString(" | ")}`")
+    private fun StringBuilder.appendTarget(item: FeedbackItem) {
+        when (val target = item.target) {
+            is FeedbackTarget.Node -> {
+                appendLine("- Type: Compose semantics node")
+                appendNodeEvidence(item.selectedNode)
+                appendLine("- Bounds: `${target.boundsInWindow.formatBounds()}`")
+            }
+            is FeedbackTarget.Area -> {
+                appendLine("- Type: Visual area")
+                appendLine("- Bounds: `${target.boundsInWindow.formatBounds()}`")
+                appendLine("- Nearby UI: `${item.nearbyNodes.nearbyUiLabel()}`")
+                appendLine("- Note: area selection only; verify screenshot and source candidates.")
             }
         }
-        item.sourceCandidates.firstOrNull()?.let { candidate ->
-            appendLine("- Source Candidate: `${candidate.file}${candidate.line?.let { line -> ":$line" }.orEmpty()}`")
-        }
-        appendLine()
-        appendLine(item.comment.ifBlank { "(No comment)" })
-        appendLine()
     }
 
-    private fun screenLabel(session: FeedbackSession, screenId: String): String {
-        val index = session.screens.indexOfFirst { it.screenId == screenId }
-        val screen = session.screens.getOrNull(index)
-        return if (screen == null) {
-            "Unknown screen"
-        } else {
-            "Screen ${index + 1} - ${screen.displayName}"
+    private fun StringBuilder.appendNodeEvidence(node: PointPatchNode?) {
+        if (node == null) return
+        node.text.takeIf { it.isNotEmpty() }?.let { appendLine("- Text: `${it.joinToString(" | ").inlineSafe()}`") }
+        node.editableText?.takeIf { it.isNotBlank() }?.let { appendLine("- Editable Text: `${it.inlineSafe()}`") }
+        node.contentDescription.takeIf { it.isNotEmpty() }?.let {
+            appendLine("- Content Description: `${it.joinToString(" | ").inlineSafe()}`")
+        }
+        node.testTag?.takeIf { it.isNotBlank() }?.let { appendLine("- Test Tag: `${it.inlineSafe()}`") }
+        node.role?.takeIf { it.isNotBlank() }?.let { appendLine("- Role: `${it.inlineSafe()}`") }
+    }
+
+    private fun StringBuilder.appendLikelySource(sourceCandidates: List<SourceCandidate>, target: FeedbackTarget) {
+        if (sourceCandidates.isEmpty()) {
+            appendLine("No source candidate from current evidence; search by target labels and request.")
+            return
+        }
+        sourceCandidates.forEachIndexed { index, candidate ->
+            appendLine("${index + 1}. `${candidate.fileWithLine()}` ${candidate.markdownConfidence(target)} confidence")
+            if (candidate.matchedTerms.isNotEmpty()) {
+                appendLine("   - matched: ${candidate.matchedTerms.joinToString(", ") { "`${it.inlineSafe()}`" }}")
+            }
+            if (candidate.matchReasons.isNotEmpty()) {
+                appendLine("   - reasons: ${candidate.matchReasons.joinToString(", ")}")
+            }
         }
     }
 
-    private fun FeedbackTarget.describe(): String =
-        when (this) {
-            is FeedbackTarget.Area -> "area bounds ${boundsInWindow.left},${boundsInWindow.top},${boundsInWindow.right},${boundsInWindow.bottom}"
-            is FeedbackTarget.Node -> "node bounds ${boundsInWindow.left},${boundsInWindow.top},${boundsInWindow.right},${boundsInWindow.bottom}"
+    private fun SourceCandidate.fileWithLine(): String =
+        line?.let { "$file:$it" } ?: file
+
+    private fun SourceCandidate.markdownConfidence(target: FeedbackTarget): String =
+        when (target) {
+            is FeedbackTarget.Area -> "low"
+            is FeedbackTarget.Node -> confidence.name.lowercase()
         }
 
-    private fun FeedbackScreenshot.dimensionsLabel(): String? =
-        if (width != null && height != null) "${width}x$height" else null
+    private fun PointPatchRect.formatBounds(): String =
+        "$left,$top,$right,$bottom"
+
+    private fun List<PointPatchNode>.nearbyUiLabel(): String =
+        flatMap { node -> node.semanticLabels() }
+            .distinct()
+            .take(6)
+            .joinToString("`, `") { it.inlineSafe() }
+            .ifBlank { "none captured" }
+
+    private fun PointPatchNode.semanticLabels(): List<String> =
+        text + listOfNotNull(editableText) + contentDescription + listOfNotNull(testTag, role)
+
+    private fun String.inlineSafe(): String =
+        replace("`", "'")
 }

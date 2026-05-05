@@ -228,6 +228,42 @@ class BridgeClientTest {
     }
 
     @Test
+    fun readSourceIndexFramesDedicatedBridgeMethod() = runBlocking {
+        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.0"))
+        val socket = CapturingBridgeSocket(
+            responsePayload = """
+                {
+                  "id": "req_1",
+                  "ok": true,
+                  "result": {
+                    "bridgeProtocolVersion": "1.0",
+                    "sourceIndexAvailable": true,
+                    "sourceIndex": {
+                      "schemaVersion": "1.0",
+                      "entries": [
+                        { "file": "sample/src/main/java/FormScreen.kt", "line": 37 }
+                      ]
+                    }
+                  }
+                }
+            """.trimIndent(),
+        )
+        val client = BridgeClient(
+            adb = adb,
+            projectRoot = temporaryFolder.newFolder(),
+            portAllocator = { 34567 },
+            socketConnector = { socket },
+        )
+
+        val result = client.readSourceIndex("io.github.pointpatch.sample")
+
+        assertTrue(result.getValue("sourceIndexAvailable").jsonPrimitive.boolean)
+        assertTrue(result.getValue("sourceIndex").jsonObject.toString().contains("FormScreen.kt"))
+        val request = Json.parseToJsonElement(readFrame(socket.written.toByteArray())).jsonObject
+        assertEquals("readSourceIndex", request.getValue("method").jsonPrimitive.content)
+    }
+
+    @Test
     fun performNavigationFramesBridgeMethodAndParams() = runBlocking {
         val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.0"))
         val socket = CapturingBridgeSocket(
