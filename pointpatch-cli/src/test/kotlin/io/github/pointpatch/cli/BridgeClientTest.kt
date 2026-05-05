@@ -18,8 +18,11 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -97,6 +100,45 @@ class BridgeClientTest {
         assertEquals("req_1", request.getValue("id").jsonPrimitive.content)
         assertEquals("token-1", request.getValue("token").jsonPrimitive.content)
         assertEquals("status", request.getValue("method").jsonPrimitive.content)
+    }
+
+    @Test
+    fun performNavigationFramesBridgeMethodAndParams() = runBlocking {
+        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.0"))
+        val socket = CapturingBridgeSocket(
+            responsePayload = """
+                {
+                  "id": "req_1",
+                  "ok": true,
+                  "result": {
+                    "bridgeProtocolVersion": "1.0",
+                    "performed": true,
+                    "activity": "MainActivity"
+                  }
+                }
+            """.trimIndent(),
+        )
+        val client = BridgeClient(
+            adb = adb,
+            projectRoot = temporaryFolder.newFolder(),
+            portAllocator = { 34567 },
+            socketConnector = { socket },
+        )
+
+        val result = client.performNavigation(
+            "io.github.pointpatch.sample",
+            buildJsonObject {
+                put("action", "back")
+                put("captureAfter", false)
+            },
+        )
+        val request = Json.parseToJsonElement(readFrame(socket.written.toByteArray())).jsonObject
+        val params = request.getValue("params").jsonObject
+
+        assertEquals(true, result.getValue("performed").jsonPrimitive.boolean)
+        assertEquals("performNavigation", request.getValue("method").jsonPrimitive.content)
+        assertEquals("back", params.getValue("action").jsonPrimitive.content)
+        assertEquals(false, params.getValue("captureAfter").jsonPrimitive.boolean)
     }
 
     @Test

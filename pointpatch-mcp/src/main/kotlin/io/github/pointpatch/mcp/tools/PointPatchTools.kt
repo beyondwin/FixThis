@@ -8,6 +8,10 @@ import io.github.pointpatch.mcp.McpProtocol
 import io.github.pointpatch.mcp.console.FeedbackConsoleServer
 import io.github.pointpatch.mcp.resourceText
 import io.github.pointpatch.mcp.session.CapturedScreen
+import io.github.pointpatch.mcp.session.FeedbackNavigationAction
+import io.github.pointpatch.mcp.session.FeedbackNavigationRequest
+import io.github.pointpatch.mcp.session.FeedbackNavigationResult
+import io.github.pointpatch.mcp.session.FeedbackSwipeDirection
 import io.github.pointpatch.mcp.session.FeedbackItem
 import io.github.pointpatch.mcp.session.FeedbackItemStatus
 import io.github.pointpatch.mcp.session.FeedbackQueueFormatter
@@ -30,6 +34,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
@@ -170,6 +175,16 @@ class PointPatchTools(
                 jsonToolResult(buildJsonObject {
                     put("sessionId", session.sessionId)
                     put("screen", McpProtocol.json.encodeToJsonElement(CapturedScreen.serializer(), screen))
+                })
+            }
+            "pointpatch_navigate_app" -> bridgeToolResult {
+                val session = requestedSession(arguments)
+                val result = feedbackService.navigate(session.sessionId, arguments.navigationRequest())
+                jsonToolResult(buildJsonObject {
+                    put("sessionId", session.sessionId)
+                    McpProtocol.json.encodeToJsonElement(FeedbackNavigationResult.serializer(), result)
+                        .jsonObject
+                        .forEach { (key, value) -> put(key, value) }
                 })
             }
             "pointpatch_list_feedback" -> bridgeToolResult {
@@ -413,6 +428,32 @@ class PointPatchTools(
     private fun JsonObject.booleanParam(name: String): Boolean? =
         (this[name] as? JsonPrimitive)?.booleanOrNull
 
+    private fun JsonObject.floatParam(name: String): Float? =
+        (this[name] as? JsonPrimitive)?.floatOrNull
+
+    private fun JsonObject.navigationRequest(): FeedbackNavigationRequest {
+        requireOnlyNavigationKeys()
+        return FeedbackNavigationRequest(
+            action = stringParam("action")?.toNavigationAction()
+                ?: throw PointPatchToolException("pointpatch_navigate_app requires action"),
+            x = floatParam("x"),
+            y = floatParam("y"),
+            direction = stringParam("direction")?.toSwipeDirection(),
+            distance = floatParam("distance"),
+            captureAfter = booleanParam("captureAfter") != false,
+        ).also { it.validate() }
+    }
+
+    private fun JsonObject.requireOnlyNavigationKeys() {
+        val allowedKeys = setOf("sessionId", "action", "x", "y", "direction", "distance", "captureAfter")
+        val unsupportedKeys = keys.filterNot { it in allowedKeys }
+        if (unsupportedKeys.isNotEmpty()) {
+            throw PointPatchToolException(
+                "pointpatch_navigate_app does not support argument: ${unsupportedKeys.first()}",
+            )
+        }
+    }
+
     private fun JsonObject.requiresNestedBridgeDetails(normalizedMatchingNodes: JsonArray?): Boolean {
         val normalizedKeys = setOf("found", "matchingNodes")
         return keys.any { it !in normalizedKeys } ||
@@ -460,6 +501,23 @@ class PointPatchTools(
             else -> throw PointPatchToolException("Unsupported feedback resolution status: $this")
         }
 
+    private fun String.toNavigationAction(): FeedbackNavigationAction =
+        when (this) {
+            "back" -> FeedbackNavigationAction.BACK
+            "tap" -> FeedbackNavigationAction.TAP
+            "swipe" -> FeedbackNavigationAction.SWIPE
+            else -> throw PointPatchToolException("Unsupported navigation action: $this")
+        }
+
+    private fun String.toSwipeDirection(): FeedbackSwipeDirection =
+        when (this) {
+            "up" -> FeedbackSwipeDirection.UP
+            "down" -> FeedbackSwipeDirection.DOWN
+            "left" -> FeedbackSwipeDirection.LEFT
+            "right" -> FeedbackSwipeDirection.RIGHT
+            else -> throw PointPatchToolException("Unsupported swipe direction: $this")
+        }
+
     private fun unavailable(message: String): JsonObject = buildJsonObject {
         put("available", false)
         put("message", message)
@@ -472,6 +530,8 @@ interface PointPatchBridge {
     suspend fun inspectCurrentScreen(packageName: String): JsonObject
     suspend fun startFeedbackCapture(packageName: String, timeoutMillis: Long): JsonObject
     suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject
+    suspend fun performNavigation(packageName: String, request: FeedbackNavigationRequest): JsonObject =
+        error("PointPatch bridge does not support navigation")
     suspend fun captureScreenSnapshot(
         packageName: String,
         sessionId: String? = null,
@@ -501,6 +561,12 @@ class CliPointPatchBridge(private val client: BridgeClient) : PointPatchBridge {
                 put("expectedText", expectedText)
                 role?.let { put("role", it) }
             },
+        )
+
+    override suspend fun performNavigation(packageName: String, request: FeedbackNavigationRequest): JsonObject =
+        client.performNavigation(
+            packageName = packageName,
+            request = McpProtocol.json.encodeToJsonElement(FeedbackNavigationRequest.serializer(), request).jsonObject,
         )
 
     override suspend fun captureScreenSnapshot(
@@ -606,6 +672,20 @@ private val ToolDefinitions = listOf(
         ),
     ),
     ToolDefinition(
+        name = "pointpatch_navigate_app",
+        description = "Perform one debug-only navigation action against the app and optionally capture the resulting screen.",
+        inputSchema = objectSchema(
+            "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
+            "action" to stringProperty("One of back, tap, or swipe."),
+            "x" to numberProperty("Tap x coordinate. Required for tap."),
+            "y" to numberProperty("Tap y coordinate. Required for tap."),
+            "direction" to stringProperty("Swipe direction: up, down, left, or right. Required for swipe."),
+            "distance" to numberProperty("Optional swipe distance."),
+            "captureAfter" to booleanProperty("Whether to capture a screen after navigation. Defaults to true."),
+            required = listOf("action"),
+        ),
+    ),
+    ToolDefinition(
         name = "pointpatch_list_feedback",
         description = "List feedback queue summaries for the active PointPatch feedback session.",
         inputSchema = objectSchema(
@@ -671,5 +751,10 @@ private fun booleanProperty(description: String): JsonObject = buildJsonObject {
 
 private fun integerProperty(description: String): JsonObject = buildJsonObject {
     put("type", "integer")
+    put("description", description)
+}
+
+private fun numberProperty(description: String): JsonObject = buildJsonObject {
+    put("type", "number")
     put("description", description)
 }

@@ -202,6 +202,9 @@ class BridgeClient(
         }
     }
 
+    suspend fun performNavigation(packageName: String, request: JsonObject): JsonObject =
+        request(packageName = packageName, method = "performNavigation", params = request)
+
     suspend fun captureScreenSnapshot(
         packageName: String,
         sessionId: String? = null,

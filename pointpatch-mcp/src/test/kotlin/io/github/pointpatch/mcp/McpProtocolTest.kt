@@ -1,6 +1,8 @@
 package io.github.pointpatch.mcp
 
 import io.github.pointpatch.compose.core.model.PointPatchRect
+import io.github.pointpatch.mcp.session.FakePointPatchBridge
+import io.github.pointpatch.mcp.session.FeedbackNavigationRequest
 import io.github.pointpatch.mcp.session.FeedbackSessionService
 import io.github.pointpatch.mcp.session.FeedbackSessionStore
 import io.github.pointpatch.mcp.tools.PointPatchBridge
@@ -69,6 +71,7 @@ class McpProtocolTest {
                 "pointpatch_open_feedback_console",
                 "pointpatch_list_feedback_sessions",
                 "pointpatch_capture_screen",
+                "pointpatch_navigate_app",
                 "pointpatch_list_feedback",
                 "pointpatch_read_feedback",
                 "pointpatch_resolve_feedback",
@@ -112,6 +115,96 @@ class McpProtocolTest {
 
         assertEquals(sessionId, reopened.getValue("sessionId").jsonPrimitive.content)
         assertEquals(true, reopened.getValue("resumed").jsonPrimitive.boolean)
+    }
+
+    @Test
+    fun navigateAppPerformsBackAndCapturesResult() = runBlocking {
+        val bridge = FakePointPatchBridge(packageName = "io.github.pointpatch.sample")
+        val tools = PointPatchTools(
+            bridge = bridge,
+            defaultPackageName = "io.github.pointpatch.sample",
+            projectRoot = createTempDir(prefix = "pointpatch-v2-nav-mcp-"),
+        )
+        val opened = tools.call("pointpatch_open_feedback_console", jsonObject("newSession" to true)).firstJsonContent()
+        val sessionId = opened["sessionId"]!!.jsonPrimitive.content
+
+        val result = tools.call(
+            "pointpatch_navigate_app",
+            jsonObject("sessionId" to sessionId, "action" to "back", "captureAfter" to true),
+        ).firstJsonContent()
+
+        assertEquals(true, result["performed"]!!.jsonPrimitive.boolean)
+        assertEquals("back", result["action"]!!.jsonPrimitive.content)
+        assertEquals(1, bridge.navigationRequests.size)
+        assertTrue(result["screen"] != null)
+    }
+
+    @Test
+    fun navigateAppWithCaptureAfterFalseDoesNotCaptureScreen() = runBlocking {
+        val bridge = FakePointPatchBridge(packageName = "io.github.pointpatch.sample")
+        val tools = PointPatchTools(
+            bridge = bridge,
+            defaultPackageName = "io.github.pointpatch.sample",
+            projectRoot = createTempDir(prefix = "pointpatch-v2-nav-no-capture-"),
+        )
+        val opened = tools.call("pointpatch_open_feedback_console", jsonObject("newSession" to true)).firstJsonContent()
+        val sessionId = opened["sessionId"]!!.jsonPrimitive.content
+
+        val result = tools.call(
+            "pointpatch_navigate_app",
+            jsonObject("sessionId" to sessionId, "action" to "back", "captureAfter" to false),
+        ).firstJsonContent()
+
+        assertEquals(true, result["performed"]!!.jsonPrimitive.boolean)
+        assertEquals(1, bridge.navigationRequests.size)
+        assertFalse(result.containsKey("screen"))
+        assertEquals(null, bridge.lastCaptureSessionId)
+    }
+
+    @Test
+    fun navigateAppReturnsCaptureErrorWhenFollowUpCaptureFails() = runBlocking {
+        val bridge = FakePointPatchBridge(
+            packageName = "io.github.pointpatch.sample",
+            captureError = IllegalStateException("snapshot failed"),
+        )
+        val tools = PointPatchTools(
+            bridge = bridge,
+            defaultPackageName = "io.github.pointpatch.sample",
+            projectRoot = createTempDir(prefix = "pointpatch-v2-nav-capture-fail-"),
+        )
+        val opened = tools.call("pointpatch_open_feedback_console", jsonObject("newSession" to true)).firstJsonContent()
+        val sessionId = opened["sessionId"]!!.jsonPrimitive.content
+
+        val result = tools.call(
+            "pointpatch_navigate_app",
+            jsonObject("sessionId" to sessionId, "action" to "back", "captureAfter" to true),
+        ).firstJsonContent()
+
+        assertEquals(true, result["performed"]!!.jsonPrimitive.boolean)
+        assertEquals("snapshot failed", result["captureError"]!!.jsonPrimitive.content)
+        assertFalse(result.containsKey("screen"))
+        assertEquals(1, bridge.navigationRequests.size)
+    }
+
+    @Test
+    fun navigateAppRejectsTapWithoutCoordinates() = runBlocking {
+        val tools = PointPatchTools(
+            bridge = FakePointPatchBridge(packageName = "io.github.pointpatch.sample"),
+            defaultPackageName = "io.github.pointpatch.sample",
+            projectRoot = createTempDir(prefix = "pointpatch-v2-nav-invalid-"),
+        )
+        val opened = tools.call("pointpatch_open_feedback_console", jsonObject("newSession" to true)).firstJsonContent()
+        val sessionId = opened["sessionId"]!!.jsonPrimitive.content
+
+        val error = kotlin.runCatching {
+            tools.call(
+                "pointpatch_navigate_app",
+                jsonObject("sessionId" to sessionId, "action" to "tap", "x" to 10),
+            )
+        }.exceptionOrNull()
+
+        assertTrue(error is io.github.pointpatch.mcp.tools.PointPatchToolException)
+        assertTrue(error?.message.orEmpty().contains("Tap navigation requires x and y"))
     }
 
     @Test
@@ -859,6 +952,14 @@ class McpProtocolTest {
             }
         }
 
+        override suspend fun performNavigation(packageName: String, request: FeedbackNavigationRequest): JsonObject {
+            calls += "performNavigation:$packageName:${request.action}"
+            return buildJsonObject {
+                put("performed", true)
+                put("activity", "$packageName.MainActivity")
+            }
+        }
+
         override suspend fun captureScreenSnapshot(
             packageName: String,
             sessionId: String?,
@@ -934,6 +1035,9 @@ class McpProtocolTest {
         override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
             JsonObject(emptyMap())
 
+        override suspend fun performNavigation(packageName: String, request: FeedbackNavigationRequest): JsonObject =
+            JsonObject(emptyMap())
+
         override suspend fun captureScreenSnapshot(
             packageName: String,
             sessionId: String?,
@@ -966,6 +1070,9 @@ class McpProtocolTest {
             JsonObject(emptyMap())
 
         override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
+            JsonObject(emptyMap())
+
+        override suspend fun performNavigation(packageName: String, request: FeedbackNavigationRequest): JsonObject =
             JsonObject(emptyMap())
 
         override suspend fun captureScreenSnapshot(

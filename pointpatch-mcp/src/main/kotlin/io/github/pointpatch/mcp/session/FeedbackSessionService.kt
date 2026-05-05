@@ -96,6 +96,43 @@ class FeedbackSessionService(
         return store.addScreen(sessionId, screen)
     }
 
+    suspend fun navigate(sessionId: String, request: FeedbackNavigationRequest): FeedbackNavigationResult {
+        request.validate()
+        val session = store.getSession(sessionId)
+        val bridgeResult = bridge.performNavigation(session.packageName, request)
+        val performed = bridgeResult["performed"]?.jsonPrimitive?.booleanOrNull ?: false
+        val activity = bridgeResult["activityName"]?.jsonPrimitive?.contentOrNull
+            ?: bridgeResult["activity"]?.jsonPrimitive?.contentOrNull
+        val message = bridgeResult["message"]?.jsonPrimitive?.contentOrNull
+        if (!request.captureAfter || !performed) {
+            return FeedbackNavigationResult(
+                performed = performed,
+                action = request.action,
+                activityName = activity,
+                message = message,
+            )
+        }
+
+        return runCatching {
+            val screen = captureScreen(sessionId)
+            FeedbackNavigationResult(
+                performed = performed,
+                action = request.action,
+                activityName = activity,
+                message = message,
+                screen = screen,
+            )
+        }.getOrElse { error ->
+            FeedbackNavigationResult(
+                performed = performed,
+                action = request.action,
+                activityName = activity,
+                message = message,
+                captureError = error.message ?: error::class.java.simpleName,
+            )
+        }
+    }
+
     fun addAreaFeedback(
         sessionId: String,
         screenId: String,

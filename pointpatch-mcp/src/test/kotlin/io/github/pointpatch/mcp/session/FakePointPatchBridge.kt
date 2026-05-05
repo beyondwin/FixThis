@@ -9,8 +9,10 @@ import kotlinx.serialization.json.put
 
 internal class FakePointPatchBridge(
     private val packageName: String = "io.github.pointpatch.sample",
+    private val captureError: Throwable? = null,
 ) : PointPatchBridge {
     val resolvedOverrides = mutableListOf<String?>()
+    val navigationRequests = mutableListOf<FeedbackNavigationRequest>()
     var lastCaptureSessionId: String? = null
         private set
     var lastCaptureScreenId: String? = null
@@ -32,12 +34,20 @@ internal class FakePointPatchBridge(
     override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
         JsonObject(emptyMap())
 
+    override suspend fun performNavigation(packageName: String, request: FeedbackNavigationRequest): JsonObject =
+        buildJsonObject {
+            navigationRequests += request
+            put("performed", true)
+            put("activity", "MainActivity")
+        }
+
     override suspend fun captureScreenSnapshot(
         packageName: String,
         sessionId: String?,
         screenId: String?,
         destinationDirectory: File?,
     ): JsonObject = buildJsonObject {
+        captureError?.let { throw it }
         lastCaptureSessionId = sessionId
         lastCaptureScreenId = screenId
         lastCaptureDestination = destinationDirectory?.absolutePath

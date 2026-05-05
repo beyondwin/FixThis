@@ -1731,7 +1731,7 @@ git commit -m "sidekick: expose limited navigation bridge"
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FakePointPatchBridge.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/McpProtocolTest.kt`
 
-- [ ] **Step 1: Add failing MCP navigation test**
+- [x] **Step 1: Add failing MCP navigation test**
 
 Add:
 
@@ -1759,7 +1759,7 @@ fun navigateAppPerformsBackAndCapturesResult() = runBlocking {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -1769,7 +1769,7 @@ Run:
 
 Expected: unknown tool failure.
 
-- [ ] **Step 3: Add BridgeClient navigation method**
+- [x] **Step 3: Add BridgeClient navigation method**
 
 In `BridgeClient`:
 
@@ -1778,7 +1778,7 @@ suspend fun performNavigation(packageName: String, request: JsonObject): JsonObj
     request(packageName = packageName, method = "performNavigation", params = request)
 ```
 
-- [ ] **Step 4: Extend MCP bridge interface**
+- [x] **Step 4: Extend MCP bridge interface**
 
 In `PointPatchBridge`:
 
@@ -1796,7 +1796,7 @@ override suspend fun performNavigation(packageName: String, request: FeedbackNav
     )
 ```
 
-- [ ] **Step 5: Add service navigation method**
+- [x] **Step 5: Add service navigation method**
 
 In `FeedbackSessionService`:
 
@@ -1821,7 +1821,7 @@ suspend fun navigate(sessionId: String, request: FeedbackNavigationRequest): Fee
 }
 ```
 
-- [ ] **Step 6: Add MCP tool definition and parser**
+- [x] **Step 6: Add MCP tool definition and parser**
 
 Add `pointpatch_navigate_app` definition. Parse:
 
@@ -1841,7 +1841,7 @@ private fun JsonObject.navigationRequest(): FeedbackNavigationRequest =
 Add string converters for `back`, `tap`, `swipe`, `up`, `down`, `left`,
 `right`. Add `floatParam` using `jsonPrimitive.floatOrNull`.
 
-- [ ] **Step 7: Add call branch**
+- [x] **Step 7: Add call branch**
 
 ```kotlin
 "pointpatch_navigate_app" -> bridgeToolResult {
@@ -1851,7 +1851,7 @@ Add string converters for `back`, `tap`, `swipe`, `up`, `down`, `left`,
 }
 ```
 
-- [ ] **Step 8: Run MCP navigation tests**
+- [x] **Step 8: Run MCP navigation tests**
 
 Run:
 
@@ -1861,7 +1861,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/BridgeClient.kt pointpatch-cli/src/test/kotlin/io/github/pointpatch/cli/BridgeClientTest.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FakePointPatchBridge.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/McpProtocolTest.kt
