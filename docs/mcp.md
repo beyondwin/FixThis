@@ -40,11 +40,12 @@ Typical flow:
 
 1. Call `pointpatch_open_feedback_console`.
 2. Use the live preview to navigate the app.
-3. Click Add to freeze the latest preview and create one or more pending items.
-4. Click Save once to persist one evidence snapshot for those pending items.
-5. Call `pointpatch_list_feedback`.
-6. Call `pointpatch_read_feedback`.
-7. Make code changes and call `pointpatch_resolve_feedback`.
+3. Click Add to freeze the latest preview.
+4. Select targets or visual areas and create one or more pending items.
+5. Click Save once to persist one evidence snapshot for those pending items.
+6. Call `pointpatch_list_feedback`.
+7. Call `pointpatch_read_feedback`.
+8. Make code changes and call `pointpatch_resolve_feedback`.
 
 The CLI command `pointpatch console --package <applicationId>` opens the same local console for copy/export workflows.
 
@@ -159,7 +160,7 @@ Lists feedback queue summaries for the active feedback session, including draft 
 
 `pointpatch_read_feedback`
 
-Reads the feedback queue as annotation JSON and Markdown, optionally focused on one item. The output groups current draft feedback and Sent History handoff batches.
+Reads the feedback queue as annotation JSON and Markdown, optionally focused on one item. The JSON output preserves saved items, draft/sent delivery state, screens, and handoff batches. The Markdown output is a compact work queue for agents rather than a storage dump.
 
 The JSON output preserves the full feedback session schema for tools that need exact IDs, paths, and tool contracts. The Markdown output is the compact agent-facing handoff view: it focuses on request, target evidence, and likely source, and intentionally omits internal IDs plus repeated storage metadata such as raw session, screen, item, batch, and screenshot artifact IDs.
 

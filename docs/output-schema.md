@@ -118,7 +118,7 @@ Feedback items represent human comments on a persisted evidence snapshot:
 
 The feedback console defaults to navigation. Add freezes the latest preview so the user can select one or more targets and create pending items. Save promotes that frozen preview once into one persisted evidence snapshot, stores all pending items, and connects them to the same `screenId`. Later Add on the same visible app screen creates a new evidence snapshot after Save.
 
-Send creates a persisted handoff batch, changes saved items to `delivery: "sent"`, sets `handoffBatchId` and `sentAtEpochMillis`, and records those items in Sent History. It does not create a new external AI API payload; MCP tools read the persisted session data.
+Send creates a persisted handoff batch, changes saved items to `delivery: "sent"`, sets `handoffBatchId` and `sentAtEpochMillis`, and records those items in `handoffBatches`. It does not create a new external AI API payload; MCP tools read the persisted session data.
 
 Delivery values:
 

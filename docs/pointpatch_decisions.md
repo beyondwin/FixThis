@@ -603,7 +603,7 @@ MCP 연결 + AI tool call + runtime verification
 - human UI selection
 - annotation creation
 - feedback console session ownership
-- draft feedback queue and sent handoff history
+- saved feedback queue and sent handoff batches
 - source candidates
 - verification
 
@@ -613,7 +613,7 @@ MCP 연결 + AI tool call + runtime verification
   `back`, `tap`, `swipe` one-step action으로 제한한다.
 - 기본적으로 code write 하지 않음
 - 기본적으로 network/server를 app 안에 열지 않음
-- console의 `Send Draft to Agent`가 외부 AI API를 직접 호출하지 않음
+- console의 `Send`가 외부 AI API를 직접 호출하지 않음
 
 ---
 
@@ -716,10 +716,11 @@ tools다.
 
 ```text
 feedback console open/resume
-→ browser에서 device 선택과 screen capture
-→ Select mode에서 component/custom area 선택
-→ draft item 작성
-→ Send Draft to Agent로 persisted handoff batch 생성
+→ browser에서 device 선택 후 live preview로 앱 탐색
+→ Add로 최신 preview freeze
+→ component/custom area feedback을 pending item으로 작성
+→ Save 한 번으로 evidence snapshot 1개와 item N개 저장
+→ Send로 persisted handoff batch 생성
 → pointpatch_read_feedback이 agent-readable context 반환
 ```
 
@@ -1090,13 +1091,15 @@ pointpatch_read_feedback
 ```text
 AI opens feedback console
   ↓
-browser에서 device 선택과 screen capture
+browser에서 device 선택 후 live preview로 앱 탐색
   ↓
-Select mode에서 component 또는 custom area 선택
+Add로 최신 preview freeze
   ↓
-사용자 comment 입력 후 draft item 생성
+component 또는 custom area 선택 후 pending item 작성
   ↓
-Send Draft to Agent로 local handoff batch 기록
+Save 한 번으로 evidence snapshot과 item들을 저장
+  ↓
+Send로 local handoff batch 기록
   ↓
 MCP read_feedback result 반환
 ```

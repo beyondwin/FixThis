@@ -144,17 +144,21 @@ MCP feedback console flow:
 
 ```text
 Selected ADB device
-    + Captured screen snapshot
-    + Component or custom-area selection
-    + Draft feedback comments
+    + Live preview navigation
+    + Frozen preview after Add
+        ↓
+Pending component/custom-area comments in browser state
+        ↓
+Save promotes one frozen preview into one evidence snapshot
+and stores all pending items with the same screenId
         ↓
 FeedbackSession in MCP process
         ↓
 .pointpatch/feedback-sessions/<session-id> persistence
         ↓
-FeedbackHandoffBatch after Send Draft to Agent
+FeedbackHandoffBatch after Send
         ↓
-pointpatch_read_feedback JSON + Markdown for agent work
+pointpatch_read_feedback complete JSON + compact Markdown for agent work
 ```
 
 ---
@@ -1851,13 +1855,19 @@ Console-local API owns the browser workflow:
 GET /api/devices
 POST /api/device/select
 POST /api/device/disconnect
-POST /api/capture
+GET /api/preview
+GET /api/preview/{previewId}/screenshot/full
 POST /api/navigation
-POST /api/items
+POST /api/items/batch
 DELETE /api/items/draft
 POST /api/agent-handoffs
 GET /api/export/markdown
 ```
+
+Live preview responses are transient console state. They are not appended to
+`FeedbackSession.screens`. `POST /api/items/batch` is the Save path: it promotes
+one frozen preview to a persisted evidence snapshot and stores all pending
+feedback items against that snapshot.
 
 Device selection is MCP process-local state. Console disconnect clears the
 PointPatch selected serial; it does not run `adb disconnect`.
@@ -1891,9 +1901,11 @@ sent batch count, and unresolved sent item count.
 
 #### `pointpatch_read_feedback`
 
-Returns agent-readable JSON and Markdown for draft items and sent handoff
-history. When focused on a sent item, the returned handoff batch is scoped to
-that item.
+Returns agent-readable JSON and Markdown for saved feedback items. JSON
+preserves IDs, paths, screens, items, and handoff batches for tool
+contracts. Markdown is compact and focuses on request, target evidence, and
+likely source instead of internal IDs or screenshot storage paths. When focused
+on a sent item, the returned JSON handoff batch is scoped to that item.
 
 #### `pointpatch_resolve_feedback`
 
@@ -2354,9 +2366,9 @@ Deliverables:
 Acceptance:
 
 - AI/MCP client can call `pointpatch_open_feedback_console`
-- browser console can capture a screen and select a component or custom area
-- Send Draft to Agent creates a persisted handoff batch
-- `pointpatch_read_feedback` returns draft and sent handoff history
+- browser console can show live preview without appending preview frames to session history
+- Add freezes the latest preview, Save stores one evidence snapshot plus multiple items, and Send creates a persisted handoff batch
+- `pointpatch_read_feedback` returns complete JSON and compact source-hinted Markdown
 
 ### Phase 9: Docs and release readiness
 
@@ -2592,7 +2604,7 @@ Prioritize failure-safe behavior and local-first privacy.
 [ ] CLI doctor gives actionable diagnostics
 [ ] MCP server exposes feedback console workflow tools
 [ ] MCP open_feedback_console returns a local console URL
-[ ] MCP read_feedback returns draft and sent handoff history
+[ ] MCP read_feedback returns complete JSON and compact source-hinted Markdown
 [ ] release build has no active PointPatch runtime
 [ ] docs explain limitations clearly
 ```

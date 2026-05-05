@@ -10,9 +10,9 @@ The core sidekick does not require Android network permission. MCP uses a deskto
 
 The feedback console is served from localhost by the desktop MCP process. The Android app does not host the console and does not need network permissions.
 
-Feedback workspace files are local project artifacts under `.pointpatch/feedback-sessions/`. They include feedback session metadata and session-owned screenshot artifacts used to resume the console after MCP or console restarts.
+Feedback workspace files are local project artifacts under `.pointpatch/feedback-sessions/`. They include feedback session metadata, saved evidence screenshots, source hints, comments, and handoff batches used to resume the console after MCP or console restarts. Live preview frames are transient and are not appended to the feedback session history.
 
-Send Draft to Agent stores a local handoff batch in the feedback session so MCP tools can read it. It does not upload feedback or screenshots and does not call an external AI API.
+Send stores a local handoff batch in the feedback session so MCP tools can read it. It does not upload feedback or screenshots and does not call an external AI API.
 
 ## Debug Scope
 
