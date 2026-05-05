@@ -10,6 +10,7 @@ import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class FeedbackSessionServiceTest {
@@ -237,6 +238,87 @@ class FeedbackSessionServiceTest {
         assertTrue(updated.items[1].nearbyNodes.isNotEmpty())
         assertTrue(updated.items.first().sourceCandidates.isNotEmpty())
         assertTrue(updated.items[1].sourceCandidates.isNotEmpty())
+    }
+
+    @Test
+    fun capturePreviewDeletesEvictedPreviewCacheDirectories() = runBlocking {
+        val root = createTempDir(prefix = "pointpatch-v2-preview-cache-")
+        try {
+            val store = FeedbackSessionStore(
+                clock = { 1_000L },
+                idGenerator = sequenceIds(
+                    "session-1",
+                    "preview-1",
+                    "screen-1",
+                    "preview-2",
+                    "screen-2",
+                    "preview-3",
+                    "screen-3",
+                    "preview-4",
+                    "screen-4",
+                ),
+            )
+            val service = FeedbackSessionService(
+                bridge = FakePointPatchBridge(),
+                store = store,
+                projectRoot = root.absolutePath,
+                defaultPackageName = "io.github.pointpatch.sample",
+            )
+            val session = service.openSession(null, newSession = true)
+
+            repeat(4) {
+                service.capturePreview(session.sessionId)
+            }
+
+            val previewRoot = root.resolve(".pointpatch/preview-cache/${session.sessionId}")
+            assertFalse(previewRoot.resolve("preview-1").exists())
+            assertEquals(
+                listOf("preview-2", "preview-3", "preview-4"),
+                previewRoot.listFiles().orEmpty().filter { it.isDirectory }.map { it.name }.sorted(),
+            )
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun savingPreviewDeletesPreviewCacheDirectoryAfterPromotingScreenshot() = runBlocking {
+        val root = createTempDir(prefix = "pointpatch-v2-preview-save-cleanup-")
+        try {
+            val store = FeedbackSessionStore(
+                clock = sequenceClock(1_000L, 2_000L),
+                idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1"),
+            )
+            val service = FeedbackSessionService(
+                bridge = FakePointPatchBridge(),
+                store = store,
+                projectRoot = root.absolutePath,
+                defaultPackageName = "io.github.pointpatch.sample",
+            )
+            val session = service.openSession(null, newSession = true)
+            val preview = service.capturePreview(session.sessionId)
+            val previewDirectory = root.resolve(".pointpatch/preview-cache/${session.sessionId}/${preview.previewId}")
+            assertTrue(previewDirectory.exists())
+
+            val updated = service.savePreviewFeedbackItems(
+                sessionId = session.sessionId,
+                previewId = preview.previewId,
+                items = listOf(
+                    PendingDraftFeedbackItem(
+                        targetType = FeedbackTargetType.AREA,
+                        bounds = PointPatchRect(112f, 426f, 351f, 588f),
+                        comment = "Change this visual area",
+                    ),
+                ),
+            )
+
+            assertFalse(previewDirectory.exists())
+            val savedPath = updated.screens.single().screenshot?.desktopFullPath.orEmpty()
+            assertTrue(savedPath.contains(".pointpatch/feedback-sessions/${session.sessionId}/artifacts/screens/screen-1"))
+            assertTrue(java.io.File(savedPath).isFile)
+        } finally {
+            root.deleteRecursively()
+        }
     }
 
     @Test

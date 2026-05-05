@@ -131,7 +131,7 @@ class FeedbackSessionService(
                 snapshot = preview,
             )
             while (previewSnapshots.size > MaxRetainedPreviews) {
-                previewSnapshots.remove(previewSnapshots.keys.first())
+                previewSnapshots.remove(previewSnapshots.keys.first())?.deletePreviewCacheDirectory()
             }
         }
         return preview
@@ -267,12 +267,13 @@ class FeedbackSessionService(
                 sessionId = sessionId,
                 screen = preview.snapshot.screen,
             )
-            store.addScreenWithItems(sessionId, persistedScreen, feedbackItems).also {
-                synchronized(sessionLock) {
-                    previewSnapshots.remove(previewId)
-                    previewSavesInFlight.remove(inFlightKey)
-                }
+            val updated = store.addScreenWithItems(sessionId, persistedScreen, feedbackItems)
+            val removedPreview = synchronized(sessionLock) {
+                previewSavesInFlight.remove(inFlightKey)
+                previewSnapshots.remove(previewId)
             }
+            removedPreview?.deletePreviewCacheDirectory()
+            updated
         } catch (error: Throwable) {
             synchronized(sessionLock) {
                 previewSavesInFlight.remove(inFlightKey)
@@ -411,6 +412,14 @@ class FeedbackSessionService(
             source.copyTo(destination, overwrite = true)
         }
         return destination.absolutePath
+    }
+
+    private fun PreviewRecord.deletePreviewCacheDirectory() {
+        val previewRoot = File(projectRoot, ".pointpatch/preview-cache/$sessionId").canonicalFile
+        val previewDirectory = File(previewRoot, snapshot.previewId).canonicalFile
+        if (previewDirectory.toPath().startsWith(previewRoot.toPath())) {
+            previewDirectory.deleteRecursively()
+        }
     }
 
     private fun areaEvidenceNodes(screen: CapturedScreen, bounds: PointPatchRect): List<PointPatchNode> =

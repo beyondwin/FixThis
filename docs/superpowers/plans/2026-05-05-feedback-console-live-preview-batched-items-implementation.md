@@ -472,7 +472,7 @@ git commit -m "feat: promote frozen previews into batched feedback"
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServer.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Write failing API tests**
+- [x] **Step 1: Write failing API tests**
 
 Add tests to `FeedbackConsoleServerTest`:
 
@@ -526,7 +526,7 @@ fun savingDraftItemsAppendsOneScreenAndTwoItems() {
 }
 ```
 
-- [ ] **Step 2: Run API tests and verify RED**
+- [x] **Step 2: Run API tests and verify RED**
 
 Run:
 
@@ -536,7 +536,7 @@ Run:
 
 Expected: FAIL because preview and batched save routes do not exist.
 
-- [ ] **Step 3: Add routes**
+- [x] **Step 3: Add routes**
 
 Add server routes:
 
@@ -560,7 +560,7 @@ Add server routes:
 
 Add `decodeSavePreviewFeedbackItemsBody()` using `pointPatchJson.decodeFromString(SavePreviewFeedbackItemsRequest.serializer(), body)`.
 
-- [ ] **Step 4: Add screenshot serving for preview**
+- [x] **Step 4: Add screenshot serving for preview**
 
 Serve preview screenshots through a console-owned route:
 
@@ -570,7 +570,7 @@ GET /api/preview/screenshot/full
 
 Only serve PNG files under PointPatch-owned preview cache or persisted artifact directories.
 
-- [ ] **Step 5: Run API tests and verify GREEN**
+- [x] **Step 5: Run API tests and verify GREEN**
 
 Run:
 
@@ -580,7 +580,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 6: Commit Task 3**
+- [x] **Step 6: Commit Task 3**
 
 Run:
 

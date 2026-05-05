@@ -10,6 +10,7 @@ import io.github.pointpatch.mcp.session.FakePointPatchBridge
 import io.github.pointpatch.mcp.session.FeedbackItem
 import io.github.pointpatch.mcp.session.FeedbackNavigationAction
 import io.github.pointpatch.mcp.session.FeedbackScreenRoot
+import io.github.pointpatch.mcp.session.FeedbackSessionException
 import io.github.pointpatch.mcp.session.FeedbackSessionPaths
 import io.github.pointpatch.mcp.session.FeedbackSessionPersistence
 import io.github.pointpatch.mcp.session.FeedbackSessionService
@@ -230,6 +231,239 @@ class FeedbackConsoleServerTest {
             assertEquals(405, connection.responseCode)
         } finally {
             server.stop()
+        }
+    }
+
+    @Test
+    fun previewRouteDoesNotAppendSessionScreens() {
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1").next),
+            projectRoot = "/repo",
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val before = pointPatchJson.parseToJsonElement(URL("${server.url}/api/session").readText()).jsonObject
+
+            val preview = pointPatchJson.parseToJsonElement(URL("${server.url}/api/preview").readText()).jsonObject
+            val after = pointPatchJson.parseToJsonElement(URL("${server.url}/api/session").readText()).jsonObject
+
+            assertTrue(preview.containsKey("screen"))
+            assertTrue(before.getValue("screens").jsonArray.isEmpty())
+            assertTrue(after.getValue("screens").jsonArray.isEmpty())
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun savingDraftItemsAppendsOneScreenAndTwoItems() {
+        val projectRoot = Files.createTempDirectory("pointpatch-console-batch").toFile()
+        try {
+            val service = FeedbackSessionService(
+                bridge = FakePointPatchBridge(),
+                store = FeedbackSessionStore(
+                    clock = { 100L },
+                    idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1", "item-1", "item-2").next,
+                ),
+                projectRoot = projectRoot.absolutePath,
+                defaultPackageName = "io.github.pointpatch.sample",
+            )
+            val server = FeedbackConsoleServer(service = service, port = 0)
+            server.start()
+            try {
+                val preview = pointPatchJson.parseToJsonElement(URL("${server.url}/api/preview").readText()).jsonObject
+                val previewId = preview.getValue("previewId").jsonPrimitive.content
+
+                val connection = URL("${server.url}/api/items/batch").openConnection() as HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.doOutput = true
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.outputStream.use {
+                    it.write(
+                        """
+                        {
+                          "previewId": "$previewId",
+                          "items": [
+                            {
+                              "targetType": "area",
+                              "bounds": {"left":10.0,"top":20.0,"right":110.0,"bottom":80.0},
+                              "comment": "Change headline"
+                            },
+                            {
+                              "targetType": "area",
+                              "bounds": {"left":120.0,"top":200.0,"right":260.0,"bottom":280.0},
+                              "comment": "Add margin"
+                            }
+                          ]
+                        }
+                        """.trimIndent().toByteArray(),
+                    )
+                }
+
+                assertEquals(200, connection.responseCode)
+                val session = pointPatchJson.parseToJsonElement(connection.inputStream.bufferedReader().readText()).jsonObject
+                assertEquals(1, session.getValue("screens").jsonArray.size)
+                val items = session.getValue("items").jsonArray.map { it.jsonObject }
+                assertEquals(2, items.size)
+                assertEquals(listOf("Change headline", "Add margin"), items.map { it.getValue("comment").jsonPrimitive.content })
+                assertEquals(
+                    listOf("preview-screen-1", "preview-screen-1"),
+                    items.map { it.getValue("screenId").jsonPrimitive.content },
+                )
+            } finally {
+                server.stop()
+            }
+        } finally {
+            projectRoot.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun batchItemsApiReturnsBadRequestForEmptyItemList() {
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1").next),
+            projectRoot = "/repo",
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val connection = URL("${server.url}/api/items/batch").openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.outputStream.use { it.write("""{"previewId":"preview-1","items":[]}""".toByteArray()) }
+
+            assertEquals(400, connection.responseCode)
+            assertTrue(connection.errorStream.bufferedReader().readText().contains("At least one feedback item is required"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun batchItemsApiReturnsNotFoundForUnknownPreviewId() {
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1").next),
+            projectRoot = "/repo",
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val connection = URL("${server.url}/api/items/batch").openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.outputStream.use {
+                it.write(
+                    """
+                    {
+                      "previewId": "missing-preview",
+                      "items": [
+                        {
+                          "targetType": "area",
+                          "bounds": {"left":10.0,"top":20.0,"right":110.0,"bottom":80.0},
+                          "comment": "Change headline"
+                        }
+                      ]
+                    }
+                    """.trimIndent().toByteArray(),
+                )
+            }
+
+            assertEquals(404, connection.responseCode)
+            assertTrue(connection.errorStream.bufferedReader().readText().contains("PREVIEW_NOT_FOUND"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun previewSaveInProgressMapsToConflict() {
+        val method = Class
+            .forName("io.github.pointpatch.mcp.console.FeedbackConsoleServerKt")
+            .getDeclaredMethod("toConsoleHttpException", FeedbackSessionException::class.java)
+        method.isAccessible = true
+
+        val httpError = method.invoke(
+            null,
+            FeedbackSessionException("PREVIEW_SAVE_IN_PROGRESS: Preview is already being saved: preview-1"),
+        )
+
+        val statusCode = httpError.javaClass.getDeclaredField("statusCode")
+        statusCode.isAccessible = true
+        assertEquals(409, statusCode.get(httpError))
+    }
+
+    @Test
+    fun previewScreenshotRouteServesLatestPreviewPng() = runBlocking {
+        val projectRoot = Files.createTempDirectory("pointpatch-console-preview").toFile()
+        try {
+            val pngBytes = byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47)
+            val service = FeedbackSessionService(
+                bridge = SessionScreenshotBridge(pngBytes),
+                store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1").next),
+                projectRoot = projectRoot.absolutePath,
+                defaultPackageName = "io.github.pointpatch.sample",
+            )
+            val server = FeedbackConsoleServer(service = service, port = 0)
+            server.start()
+            try {
+                URL("${server.url}/api/preview").readText()
+
+                val connection = URL("${server.url}/api/preview/screenshot/full").openConnection() as HttpURLConnection
+
+                assertEquals(200, connection.responseCode)
+                assertEquals("image/png", connection.contentType)
+                assertTrue(connection.inputStream.use { it.readBytes() }.contentEquals(pngBytes))
+            } finally {
+                server.stop()
+            }
+        } finally {
+            projectRoot.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun previewScreenshotRouteRejectsPersistedScreenshotsOutsidePointPatchRoots() {
+        val projectRoot = Files.createTempDirectory("pointpatch-console-preview-safe").toFile()
+        val outsideArtifact = Files.createTempFile("pointpatch-outside", ".png").toFile()
+        try {
+            outsideArtifact.writeBytes(byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47))
+            val service = FeedbackSessionService(
+                bridge = FakePointPatchBridge(),
+                store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1").next),
+                projectRoot = projectRoot.absolutePath,
+                defaultPackageName = "io.github.pointpatch.sample",
+            )
+            val session = service.openSession(null)
+            service.addCapturedScreenForTest(
+                session.sessionId,
+                CapturedScreen(
+                    screenId = "screen-1",
+                    capturedAtEpochMillis = 100L,
+                    displayName = "Unsafe",
+                    screenshot = FeedbackScreenshot(desktopFullPath = outsideArtifact.absolutePath),
+                ),
+            )
+            val server = FeedbackConsoleServer(service = service, port = 0)
+            server.start()
+            try {
+                val connection = URL("${server.url}/api/preview/screenshot/full").openConnection() as HttpURLConnection
+
+                assertEquals(404, connection.responseCode)
+            } finally {
+                server.stop()
+            }
+        } finally {
+            outsideArtifact.delete()
+            projectRoot.deleteRecursively()
         }
     }
 

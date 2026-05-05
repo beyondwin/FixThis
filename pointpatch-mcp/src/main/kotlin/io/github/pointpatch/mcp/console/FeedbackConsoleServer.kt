@@ -121,6 +121,13 @@ class FeedbackConsoleServer(
                     val screen = runBlocking { service.captureScreen(session.sessionId) }
                     exchange.sendJson(200, screen)
                 }
+                "/api/preview" -> exchange.requireMethod("GET") {
+                    val session = service.currentSession()
+                    exchange.sendJson(200, runBlocking { service.capturePreview(session.sessionId) })
+                }
+                "/api/preview/screenshot/full" -> exchange.requireMethod("GET") {
+                    exchange.sendPreviewScreenshot()
+                }
                 "/api/navigation" -> exchange.requireMethod("POST") {
                     val request = exchange.decodeNavigationBody()
                     val session = service.currentSession()
@@ -147,6 +154,19 @@ class FeedbackConsoleServer(
                         throw FeedbackConsoleHttpException(400, error.message ?: "Invalid feedback item request")
                     }
                     exchange.sendJson(200, item)
+                }
+                "/api/items/batch" -> exchange.requireMethod("POST") {
+                    val request = exchange.decodeSavePreviewFeedbackItemsBody()
+                    val session = try {
+                        service.savePreviewFeedbackItems(
+                            sessionId = service.currentSession().sessionId,
+                            previewId = request.previewId,
+                            items = request.items,
+                        )
+                    } catch (error: IllegalArgumentException) {
+                        throw FeedbackConsoleHttpException(400, error.message ?: "Invalid feedback item request")
+                    }
+                    exchange.sendJson(200, session)
                 }
                 "/api/items/draft" -> exchange.requireMethod("DELETE") {
                     exchange.sendJson(200, service.clearDraftItems(service.currentSession().sessionId))
@@ -208,6 +228,43 @@ class FeedbackConsoleServer(
         sendBytes(200, screenshotFile.readBytes(), "image/png")
     }
 
+    private fun HttpExchange.sendPreviewScreenshot() {
+        val session = service.currentSession()
+        val projectRoot = File(session.projectRoot).canonicalFile
+        val previewRoot = File(projectRoot, ".pointpatch/preview-cache/${session.sessionId}").canonicalFile
+        val persistedRoot = FeedbackSessionPaths(projectRoot).rootDirectory
+        val legacyRoot = File(projectRoot, ".pointpatch/artifacts").canonicalFile
+        val roots = listOf(previewRoot, persistedRoot, legacyRoot)
+        val screenshotFile = latestPreviewScreenshot(previewRoot, roots)
+            ?: latestPersistedScreenshot(session, roots)
+            ?: throw FeedbackConsoleHttpException(404, "Screenshot not found")
+
+        sendBytes(200, screenshotFile.readBytes(), "image/png")
+    }
+
+    private fun latestPreviewScreenshot(previewRoot: File, allowedRoots: List<File>): File? {
+        if (!previewRoot.isDirectory) return null
+        return previewRoot
+            .walkTopDown()
+            .filter { file -> file.isFile && file.name.endsWith("-full.png") }
+            .map { file -> file.canonicalFile }
+            .filter { file -> file.isAllowedPngArtifact(allowedRoots) }
+            .maxWithOrNull(compareBy<File> { it.lastModified() }.thenBy { it.absolutePath })
+    }
+
+    private fun latestPersistedScreenshot(session: FeedbackSession, allowedRoots: List<File>): File? =
+        session.screens
+            .asReversed()
+            .asSequence()
+            .mapNotNull { screen -> screen.screenshot?.desktopFullPath?.let(::File) }
+            .map { file -> file.canonicalFile }
+            .firstOrNull { file -> file.isAllowedPngArtifact(allowedRoots) }
+
+    private fun File.isAllowedPngArtifact(allowedRoots: List<File>): Boolean =
+        isFile &&
+            extension.lowercase() == "png" &&
+            allowedRoots.any { root -> toPath().startsWith(root.toPath()) }
+
     private fun HttpExchange.requireMethod(method: String, block: () -> Unit) {
         if (requestMethod != method) {
             responseHeaders.add("Allow", method)
@@ -245,6 +302,15 @@ class FeedbackConsoleServer(
                 throw IllegalArgumentException("Unsupported feedback item field: $unsupportedKey")
             }
             pointPatchJson.decodeFromString(AddFeedbackItemRequest.serializer(), body)
+        }.getOrElse { error ->
+            throw FeedbackConsoleHttpException(400, error.message ?: "Invalid JSON request body")
+        }
+    }
+
+    private fun HttpExchange.decodeSavePreviewFeedbackItemsBody(): SavePreviewFeedbackItemsRequest {
+        val body = requestBody.use { input -> input.readBytes().toString(Charsets.UTF_8) }
+        return runCatching {
+            pointPatchJson.decodeFromString(SavePreviewFeedbackItemsRequest.serializer(), body)
         }.getOrElse { error ->
             throw FeedbackConsoleHttpException(400, error.message ?: "Invalid JSON request body")
         }
@@ -293,6 +359,10 @@ class FeedbackConsoleServer(
 
     private fun HttpExchange.sendJson(statusCode: Int, value: CapturedScreen) {
         sendText(statusCode, pointPatchJson.encodeToString(CapturedScreen.serializer(), value), "application/json; charset=utf-8")
+    }
+
+    private fun HttpExchange.sendJson(statusCode: Int, value: FeedbackPreviewSnapshot) {
+        sendText(statusCode, pointPatchJson.encodeToString(FeedbackPreviewSnapshot.serializer(), value), "application/json; charset=utf-8")
     }
 
     private fun HttpExchange.sendJson(statusCode: Int, value: FeedbackItem) {
@@ -349,9 +419,11 @@ private fun FeedbackSessionException.toConsoleHttpException(): FeedbackConsoleHt
     val statusCode = when {
         text.startsWith("SESSION_NOT_FOUND:") -> 404
         text.startsWith("Unknown feedback session:") -> 404
+        text.startsWith("PREVIEW_NOT_FOUND:") -> 404
         text.startsWith("SCREEN_NOT_FOUND:") -> 400
         text.startsWith("NO_DRAFT_FEEDBACK:") -> 409
         text.startsWith("DEVICE_NOT_AVAILABLE:") -> 409
+        text.startsWith("PREVIEW_SAVE_IN_PROGRESS:") -> 409
         else -> 500
     }
     return FeedbackConsoleHttpException(statusCode, text)
