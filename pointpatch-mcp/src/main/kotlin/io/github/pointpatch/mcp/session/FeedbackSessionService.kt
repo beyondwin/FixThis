@@ -3,6 +3,7 @@ package io.github.pointpatch.mcp.session
 import io.github.pointpatch.compose.core.model.PointPatchError
 import io.github.pointpatch.compose.core.model.PointPatchRect
 import io.github.pointpatch.mcp.McpProtocol
+import io.github.pointpatch.mcp.console.FeedbackTargetType
 import io.github.pointpatch.mcp.tools.PointPatchBridge
 import java.io.File
 import kotlinx.coroutines.CancellationException
@@ -155,8 +156,78 @@ class FeedbackSessionService(
             ),
         )
 
+    fun addFeedbackItem(
+        sessionId: String,
+        screenId: String,
+        targetType: FeedbackTargetType,
+        bounds: PointPatchRect,
+        nodeUid: String?,
+        comment: String,
+    ): FeedbackItem {
+        require(comment.isNotBlank()) { "Feedback comment must not be blank" }
+        val session = store.getSession(sessionId)
+        val screen = session.screens.firstOrNull { it.screenId == screenId }
+            ?: throw FeedbackSessionException("SCREEN_NOT_FOUND: Unknown screen: $screenId")
+        val selectedNode = if (targetType == FeedbackTargetType.NODE) {
+            val uid = nodeUid?.takeIf { it.isNotBlank() }
+                ?: throw IllegalArgumentException("Node feedback requires nodeUid")
+            screen.roots.asSequence()
+                .flatMap { root -> (root.mergedNodes + root.unmergedNodes).asSequence() }
+                .firstOrNull { node -> node.uid == uid }
+                ?: throw IllegalArgumentException("Selected node does not exist on screen: $uid")
+        } else {
+            null
+        }
+        val storedBounds = selectedNode?.boundsInWindow ?: bounds
+        validateFinitePositiveBounds(storedBounds)
+        validateBoundsInsideScreenshot(screen, storedBounds)
+        val target = when (targetType) {
+            FeedbackTargetType.AREA -> FeedbackTarget.Area(storedBounds)
+            FeedbackTargetType.NODE -> FeedbackTarget.Node(
+                nodeUid = selectedNode!!.uid,
+                boundsInWindow = storedBounds,
+            )
+        }
+        return store.addItem(
+            sessionId,
+            FeedbackItem(
+                itemId = "pending",
+                screenId = screenId,
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = target,
+                selectedNode = selectedNode,
+                comment = comment,
+                status = FeedbackItemStatus.OPEN,
+            ),
+        )
+    }
+
+    fun clearDraftItems(sessionId: String): FeedbackSession =
+        store.clearDraftItems(sessionId)
+
+    fun sendDraftToAgent(sessionId: String): FeedbackSession =
+        store.sendDraftToAgent(
+            sessionId,
+            markdownSnapshot = FeedbackQueueFormatter.toMarkdown(store.getSession(sessionId)),
+        )
+
     fun markReadyForAgent(sessionId: String): FeedbackSession = store.markReadyForAgent(sessionId)
 
     fun resolveFeedback(sessionId: String, itemId: String, status: FeedbackItemStatus, summary: String?): FeedbackItem =
         store.updateItemStatus(sessionId, itemId, status, summary)
+
+    private fun validateFinitePositiveBounds(bounds: PointPatchRect) {
+        val values = listOf(bounds.left, bounds.top, bounds.right, bounds.bottom)
+        require(values.all { it.isFinite() }) { "Selection bounds must be finite" }
+        require(bounds.right > bounds.left && bounds.bottom > bounds.top) { "Selection bounds must have positive size" }
+    }
+
+    private fun validateBoundsInsideScreenshot(screen: CapturedScreen, bounds: PointPatchRect) {
+        val width = screen.screenshot?.width?.toFloat() ?: return
+        val height = screen.screenshot?.height?.toFloat() ?: return
+        require(bounds.left >= 0f && bounds.top >= 0f && bounds.right <= width && bounds.bottom <= height) {
+            "Selection bounds must be inside the screenshot"
+        }
+    }
 }

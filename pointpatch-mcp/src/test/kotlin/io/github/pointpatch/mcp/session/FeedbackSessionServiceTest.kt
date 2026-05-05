@@ -1,6 +1,9 @@
 package io.github.pointpatch.mcp.session
 
+import io.github.pointpatch.compose.core.model.PointPatchNode
 import io.github.pointpatch.compose.core.model.PointPatchRect
+import io.github.pointpatch.compose.core.model.TreeKind
+import io.github.pointpatch.mcp.console.FeedbackTargetType
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -247,6 +250,171 @@ class FeedbackSessionServiceTest {
 
         assertEquals(FeedbackItemStatus.OPEN, item.status)
     }
+
+    @Test
+    fun addSelectedNodeFeedbackStoresSelectedNode() {
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1", "item-1").next),
+            projectRoot = "/repo",
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val node = PointPatchNode(
+            uid = "compose:0:merged:10",
+            composeNodeId = 10,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = PointPatchRect(10f, 20f, 110f, 70f),
+            text = listOf("Pay now"),
+        )
+        val screen = service.addCapturedScreenForTest(
+            session.sessionId,
+            CapturedScreen(
+                screenId = "screen-1",
+                capturedAtEpochMillis = 100L,
+                displayName = "Checkout",
+                roots = listOf(FeedbackScreenRoot(0, PointPatchRect(0f, 0f, 720f, 1600f), mergedNodes = listOf(node))),
+                screenshot = FeedbackScreenshot(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
+            ),
+        )
+
+        val item = service.addFeedbackItem(
+            sessionId = session.sessionId,
+            screenId = screen.screenId,
+            targetType = FeedbackTargetType.NODE,
+            bounds = node.boundsInWindow,
+            nodeUid = node.uid,
+            comment = "Button copy is unclear",
+        )
+
+        assertEquals(FeedbackTarget.Node(node.uid, node.boundsInWindow), item.target)
+        assertEquals(node, item.selectedNode)
+        assertEquals(FeedbackDelivery.DRAFT, item.delivery)
+        assertEquals(1, item.sequenceNumber)
+    }
+
+    @Test
+    fun addSelectedNodeFeedbackRejectsNodeBoundsOutsideScreenshot() {
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1").next),
+            projectRoot = "/repo",
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val node = PointPatchNode(
+            uid = "compose:0:merged:10",
+            composeNodeId = 10,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = PointPatchRect(-1f, 20f, 110f, 70f),
+            text = listOf("Pay now"),
+        )
+        service.addCapturedScreenForTest(
+            session.sessionId,
+            CapturedScreen(
+                screenId = "screen-1",
+                capturedAtEpochMillis = 100L,
+                displayName = "Checkout",
+                roots = listOf(FeedbackScreenRoot(0, PointPatchRect(0f, 0f, 720f, 1600f), mergedNodes = listOf(node))),
+                screenshot = FeedbackScreenshot(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
+            ),
+        )
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            service.addFeedbackItem(
+                sessionId = session.sessionId,
+                screenId = "screen-1",
+                targetType = FeedbackTargetType.NODE,
+                bounds = PointPatchRect(10f, 20f, 110f, 70f),
+                nodeUid = node.uid,
+                comment = "Button copy is unclear",
+            )
+        }
+
+        assertTrue(error.message.orEmpty().contains("Selection bounds must be inside the screenshot"))
+    }
+
+    @Test
+    fun addSelectedNodeFeedbackStoresNodeBoundsWhenRequestBoundsDiffer() {
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1", "item-1").next),
+            projectRoot = "/repo",
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val node = PointPatchNode(
+            uid = "compose:0:unmerged:10",
+            composeNodeId = 10,
+            rootIndex = 0,
+            treeKind = TreeKind.UNMERGED,
+            boundsInWindow = PointPatchRect(10f, 20f, 110f, 70f),
+            text = listOf("Pay now"),
+        )
+        val screen = service.addCapturedScreenForTest(
+            session.sessionId,
+            CapturedScreen(
+                screenId = "screen-1",
+                capturedAtEpochMillis = 100L,
+                displayName = "Checkout",
+                roots = listOf(FeedbackScreenRoot(0, PointPatchRect(0f, 0f, 720f, 1600f), unmergedNodes = listOf(node))),
+                screenshot = FeedbackScreenshot(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
+            ),
+        )
+
+        val item = service.addFeedbackItem(
+            sessionId = session.sessionId,
+            screenId = screen.screenId,
+            targetType = FeedbackTargetType.NODE,
+            bounds = PointPatchRect(200f, 300f, 260f, 340f),
+            nodeUid = node.uid,
+            comment = "Button copy is unclear",
+        )
+
+        assertEquals(FeedbackTarget.Node(node.uid, node.boundsInWindow), item.target)
+        assertEquals(node, item.selectedNode)
+    }
+
+    @Test
+    fun addCustomAreaFeedbackRejectsBoundsOutsideScreenshot() {
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1").next),
+            projectRoot = "/repo",
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        service.addCapturedScreenForTest(
+            session.sessionId,
+            CapturedScreen(
+                screenId = "screen-1",
+                capturedAtEpochMillis = 100L,
+                displayName = "Checkout",
+                screenshot = FeedbackScreenshot(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
+            ),
+        )
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            service.addFeedbackItem(
+                sessionId = session.sessionId,
+                screenId = "screen-1",
+                targetType = FeedbackTargetType.AREA,
+                bounds = PointPatchRect(-1f, 0f, 10f, 10f),
+                nodeUid = null,
+                comment = "Bad bounds",
+            )
+        }
+
+        assertTrue(error.message.orEmpty().contains("Selection bounds must be inside the screenshot"))
+    }
+
+    private fun FeedbackSessionService.addCapturedScreenForTest(sessionId: String, screen: CapturedScreen): CapturedScreen =
+        javaClass.getDeclaredField("store").let { field ->
+            field.isAccessible = true
+            (field.get(this) as FeedbackSessionStore).addScreen(sessionId, screen)
+        }
 
     private class FakeIds(vararg values: String) {
         private val queue = ArrayDeque(values.toList())
