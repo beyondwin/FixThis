@@ -4,7 +4,7 @@ PointPatch V1 is a local-first debug tool for Android Jetpack Compose apps.
 
 ## Local-First Behavior
 
-The default workflow is in-app selection followed by local clipboard or file export. PointPatch does not upload annotations, screenshots, UI text, source hints, or source candidates.
+The in-app annotation workflow uses local selection followed by clipboard or file export. The MCP feedback console workflow uses a localhost Studio UI and local feedback session files. PointPatch does not upload annotations, screenshots, UI text, source hints, or source candidates.
 
 The core sidekick does not require Android network permission. MCP uses a desktop stdio process plus ADB and the app-local bridge; it does not make the Android app open an external network server.
 

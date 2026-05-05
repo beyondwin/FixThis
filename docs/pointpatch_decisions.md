@@ -603,6 +603,7 @@ MCP 연결 + AI tool call + runtime verification
 - human UI selection
 - annotation creation
 - feedback console session ownership
+- Studio workspace for Sessions, preview canvas, and Inspector
 - saved feedback queue and sent handoff batches
 - source candidates
 - verification
@@ -716,11 +717,11 @@ tools다.
 
 ```text
 feedback console open/resume
-→ browser에서 device 선택 후 live preview로 앱 탐색
+→ Studio workspace에서 device 선택 후 live preview canvas로 앱 탐색
 → Add로 최신 preview freeze
-→ component/custom area feedback을 pending item으로 작성
+→ component/custom area feedback을 Add to Pending으로 pending item에 추가
 → Save 한 번으로 evidence snapshot 1개와 item N개 저장
-→ Send로 persisted handoff batch 생성
+→ Copy로 compact Markdown 복사 또는 Send로 persisted handoff batch 생성
 → pointpatch_read_feedback이 agent-readable context 반환
 ```
 
@@ -1091,15 +1092,15 @@ pointpatch_read_feedback
 ```text
 AI opens feedback console
   ↓
-browser에서 device 선택 후 live preview로 앱 탐색
+Studio workspace에서 device 선택 후 live preview canvas로 앱 탐색
   ↓
 Add로 최신 preview freeze
   ↓
-component 또는 custom area 선택 후 pending item 작성
+component 또는 custom area 선택 후 Add to Pending으로 pending item 작성
   ↓
 Save 한 번으로 evidence snapshot과 item들을 저장
   ↓
-Send로 local handoff batch 기록
+Copy로 compact Markdown 복사 또는 Send로 local handoff batch 기록
   ↓
 MCP read_feedback result 반환
 ```

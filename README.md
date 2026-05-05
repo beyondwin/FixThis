@@ -93,7 +93,7 @@ If `--package` is omitted, `.pointpatch/project.json` must already exist so the 
 
 MCP is the primary agent workflow for the feedback console. `pointpatch mcp` runs as a stdio JSON-RPC server and can open a local web console where you review a live Android screen preview, add feedback with a desktop keyboard, and let the agent read the queue. `pointpatch console` opens the same console without requiring an MCP client.
 
-The feedback console defaults to navigation. There is no Select/Navigate toggle: normal preview clicks navigate the app, while Add freezes the latest preview so you can mark feedback targets. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions. The browser device picker selects the active ADB device for PointPatch bridge requests, and unavailable, offline, or unauthorized devices are shown as unavailable rather than selectable.
+The feedback console is a dark Studio workspace: persisted sessions on the left, live or frozen Android preview in the center, and a mode-aware Inspector on the right. It defaults to navigation. There is no Select/Navigate toggle: normal preview clicks navigate the app, while Add freezes the latest preview so you can mark feedback targets. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions. The browser device picker selects the active ADB device for PointPatch bridge requests, and unavailable, offline, or unauthorized devices are shown as unavailable rather than selectable.
 
 Top bar actions are short session-level controls: Refresh, Add, Save, Copy, Send, New, and Close. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 2s. Preview polling pauses while the browser tab is hidden and while the Add/frozen-preview flow is active.
 
@@ -102,11 +102,11 @@ Feedback console flow:
 1. Select device.
 2. Use the app normally from the console preview.
 3. Click Add when ready to leave feedback on the current screen.
-4. Select one or more UI targets or visual areas and add comments.
-5. Review the numbered pending markers and pending comments.
+4. Select a UI target or drag a visual area and write a comment.
+5. Click Add to Pending; numbered overlay markers and pending rows stay in sync.
 6. Click Save once to store one evidence snapshot and all pending items.
-7. Expand the saved evidence group to review the persisted screenshot and comments.
-8. Click Send when ready.
+7. Review the saved evidence group in the Inspector Draft view, including the persisted screenshot, numbered overlay, and comments.
+8. Click Copy for compact Markdown or Send when ready to create a local handoff batch.
 
 Add freezes the latest preview only; it does not save. You can add multiple pending feedback items to one frozen preview. Pending items support Focus and Delete before Save; deleting renumbers pending items so the pending list numbers and overlay numbers match. Save promotes the frozen preview once into one persisted evidence snapshot and connects all pending items to that same `screenId`. Later Add on the same visible app screen creates a new evidence snapshot after Save.
 
@@ -131,3 +131,6 @@ More detail:
 - [Privacy](docs/privacy.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [MCP](docs/mcp.md)
+- [Feedback console UX status](docs/design-feedback-console-ux.md)
+- [Feedback console redesign brief](docs/design-claude-redesign-brief.md)
+- [Zero-setup agent configuration proposal](docs/design-zero-setup.md)

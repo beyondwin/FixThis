@@ -1849,6 +1849,12 @@ the persisted feedback queue.
 }
 ```
 
+The console browser surface is a Studio workspace: Sessions/history on the left,
+live or frozen preview canvas in the center, and a mode-aware Inspector on the
+right. Top-bar actions stay short and session-level: Refresh, Add, Save, Copy,
+Send, New, and Close. Live preview rendering is separated from session and
+Inspector rendering so polling does not repaint saved Draft evidence.
+
 Console-local API owns the browser workflow:
 
 ```text
@@ -1867,7 +1873,9 @@ GET /api/export/markdown
 Live preview responses are transient console state. They are not appended to
 `FeedbackSession.screens`. `POST /api/items/batch` is the Save path: it promotes
 one frozen preview to a persisted evidence snapshot and stores all pending
-feedback items against that snapshot.
+feedback items against that snapshot. Pending items are browser-side draft work
+until Save and support Focus/Delete in the Studio Inspector, not edit or status
+mutation.
 
 Device selection is MCP process-local state. Console disconnect clears the
 PointPatch selected serial; it does not run `adb disconnect`.
@@ -2366,7 +2374,7 @@ Deliverables:
 Acceptance:
 
 - AI/MCP client can call `pointpatch_open_feedback_console`
-- browser console can show live preview without appending preview frames to session history
+- browser console can show the Studio live preview without appending preview frames to session history
 - Add freezes the latest preview, Save stores one evidence snapshot plus multiple items, and Send creates a persisted handoff batch
 - `pointpatch_read_feedback` returns complete JSON and compact source-hinted Markdown
 

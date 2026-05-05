@@ -30,7 +30,7 @@ The Android app does not host the MCP server. The sidekick only exposes a local 
 
 ## Feedback Console
 
-The feedback console is an MCP-owned local web UI. The MCP server owns the session queue and exposes it to agents through queue tools. The browser UI is the human review surface.
+The feedback console is an MCP-owned local web UI. The MCP server owns the session queue and exposes it to agents through queue tools. The browser UI is the human review surface: a dark Studio workspace with persisted sessions on the left, live or frozen preview canvas in the center, and a mode-aware Inspector on the right.
 
 Feedback console sessions are resumable. Workspace metadata and session-owned screenshot artifacts are stored under `.pointpatch/feedback-sessions/` in the project root.
 
@@ -54,11 +54,11 @@ Console workflow:
 1. Select a connected ADB device from the browser device picker. Offline, unauthorized, and otherwise unavailable devices are visible but not selectable.
 2. Use the app normally from the console preview.
 3. Click Add when ready to leave feedback on the current screen.
-4. Select one or more UI targets or visual areas and add comments.
-5. Review the numbered pending markers and pending comments.
+4. Select a UI target or drag a visual area and write a comment.
+5. Click Add to Pending; numbered overlay markers and pending rows stay in sync.
 6. Click Save once to store one evidence snapshot and all pending items.
-7. Expand the saved evidence group to review the persisted screenshot and comments.
-8. Click Send when ready.
+7. Review the saved evidence group in the Inspector Draft view, including the persisted screenshot, numbered overlay, and comments.
+8. Click Copy for compact Markdown or Send when ready to create a local handoff batch.
 
 The console defaults to navigation and has no Select/Navigate toggle. Preview clicks navigate the app until Add freezes the latest preview for feedback targeting. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions.
 
