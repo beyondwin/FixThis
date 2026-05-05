@@ -10,94 +10,197 @@ internal object FeedbackConsoleAssets {
           <title>PointPatch Feedback Console</title>
           <style>
             :root {
-              color-scheme: light;
+              color-scheme: dark;
+              --bg-0: #0d0e10;
+              --bg-1: #131418;
+              --bg-2: #1a1c21;
+              --bg-3: #21242b;
+              --line: #2a2d35;
+              --line-soft: rgba(42, 45, 53, .72);
+              --txt-0: #e8e9eb;
+              --txt-1: #b6b8be;
+              --txt-2: #7d8089;
+              --accent: #b8d36a;
+              --danger: #f26d6d;
+              --warning: #e6b45a;
               font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-              background: #f6f7f9;
-              color: #171b22;
+              background: var(--bg-0);
+              color: var(--txt-0);
             }
             * { box-sizing: border-box; }
-            body { margin: 0; min-height: 100vh; }
-            header {
+            body { margin: 0; height: 100vh; overflow: hidden; background: var(--bg-0); }
+            .studio-shell {
               display: grid;
-              grid-template-columns: minmax(220px, 1fr) minmax(360px, 2fr) auto;
+              grid-template-rows: 56px 1fr;
+              height: 100vh;
+              overflow: hidden;
+            }
+            .studio-topbar {
+              display: grid;
+              grid-template-columns: 220px minmax(360px, 1fr) auto;
               align-items: center;
-              gap: 14px;
-              padding: 14px 18px;
-              border-bottom: 1px solid #dde2ea;
-              background: #ffffff;
+              gap: 16px;
+              padding: 0 16px;
+              background: var(--bg-1);
+              border-bottom: 1px solid var(--line);
             }
-            h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: 0; }
-            .meta { color: #5d6675; font-size: 12px; margin-top: 2px; }
-            main {
+            .studio-body {
               display: grid;
-              grid-template-columns: minmax(220px, 300px) minmax(360px, 1fr) minmax(300px, 400px);
-              gap: 1px;
-              min-height: calc(100vh - 67px);
-              background: #dde2ea;
+              grid-template-columns: 280px minmax(480px, 1fr) 340px;
+              min-height: 0;
+              overflow: hidden;
             }
-            section {
+            .studio-history,
+            .studio-canvas,
+            .studio-inspector {
               min-width: 0;
-              background: #ffffff;
-              padding: 16px;
-              overflow: auto;
+              min-height: 0;
+              overflow: hidden;
+              background: var(--bg-0);
             }
-            h2 { margin: 0 0 12px; font-size: 14px; font-weight: 700; letter-spacing: 0; }
-            h2.section-heading { margin-top: 18px; }
+            .studio-history,
+            .studio-inspector {
+              display: flex;
+              flex-direction: column;
+              border-right: 1px solid var(--line);
+            }
+            .studio-inspector { border-right: 0; border-left: 1px solid var(--line); }
+            .studio-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+            .studio-mark {
+              width: 30px;
+              height: 30px;
+              border-radius: 8px;
+              display: grid;
+              place-items: center;
+              background: var(--accent);
+              color: var(--bg-0);
+              font-weight: 800;
+              font-size: 18px;
+            }
+            h1 { margin: 0; font-size: 15px; line-height: 1.1; font-weight: 700; letter-spacing: 0; }
+            .brand-caption,
+            .panel-title {
+              color: var(--txt-2);
+              font-size: 10px;
+              font-weight: 700;
+              letter-spacing: .14em;
+              text-transform: uppercase;
+            }
+            .session-meta {
+              min-width: 120px;
+              color: var(--txt-1);
+              font-size: 12px;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+            .studio-context,
+            .studio-actions,
+            .navigation-controls,
+            .inspector-footer,
+            .toolbar {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              min-width: 0;
+            }
+            .studio-context { overflow: hidden; }
+            .studio-actions { justify-content: flex-end; flex-wrap: wrap; }
+            .toolbar { flex-wrap: wrap; margin-top: 8px; }
             select, button {
-              min-height: 34px;
-              border: 1px solid #b9c2cf;
-              border-radius: 6px;
-              background: #ffffff;
-              color: #171b22;
+              min-height: 32px;
+              border: 1px solid var(--line);
+              border-radius: 7px;
+              background: var(--bg-2);
+              color: var(--txt-1);
               padding: 0 10px;
               font: inherit;
-              font-size: 13px;
+              font-size: 12px;
             }
-            button { cursor: pointer; }
-            button.primary { background: #116a5c; border-color: #116a5c; color: #ffffff; }
-            button:disabled { opacity: .55; cursor: default; }
+            button {
+              cursor: pointer;
+              transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 120ms ease;
+            }
+            button:hover:not(:disabled) { background: var(--bg-3); color: var(--txt-0); }
+            button.primary { background: var(--accent); border-color: var(--accent); color: var(--bg-0); font-weight: 700; }
+            button.primary:hover:not(:disabled) { transform: translateY(-1px); }
+            button:disabled { opacity: .4; cursor: default; }
             textarea {
               width: 100%;
               min-height: 92px;
               resize: vertical;
-              border: 1px solid #c8d0dc;
-              border-radius: 6px;
+              border: 1px solid var(--line);
+              border-radius: 8px;
+              background: var(--bg-1);
+              color: var(--txt-0);
               padding: 10px;
               font: inherit;
               font-size: 13px;
             }
-            .toolbar, .device-strip {
+            textarea::placeholder { color: var(--txt-2); }
+            .capture-toggle {
               display: flex;
               align-items: center;
-              flex-wrap: wrap;
-              gap: 8px;
-            }
-            .toolbar label {
-              display: inline-flex;
-              align-items: center;
               gap: 6px;
-              color: #3f4754;
-              font-size: 13px;
-            }
-            .status-pill {
-              border: 1px solid #d0d7e2;
-              border-radius: 999px;
-              background: #f7f9fc;
-              color: #4b5563;
-              min-height: 28px;
-              padding: 5px 10px;
+              color: var(--txt-2);
               font-size: 12px;
             }
-            .list { display: grid; gap: 8px; }
+            .panel-head {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              min-height: 48px;
+              padding: 0 14px;
+              border-bottom: 1px solid var(--line);
+            }
+            .panel-count,
+            .status-pill {
+              border-radius: 999px;
+              background: var(--bg-3);
+              color: var(--txt-1);
+              padding: 4px 8px;
+              font-size: 11px;
+              font-variant-numeric: tabular-nums;
+            }
+            .history-list,
+            .inspector-body,
+            .list {
+              display: grid;
+              gap: 6px;
+            }
+            .history-list,
+            .inspector-body {
+              overflow: auto;
+              padding: 8px;
+            }
+            .studio-history > .history-list { flex: 1 1 auto; min-height: 0; }
+            .inspector-body { flex: 1 1 auto; align-content: start; min-height: 0; }
+            .inspector-footer {
+              flex-wrap: wrap;
+              padding: 10px;
+              border-top: 1px solid var(--line);
+              background: var(--bg-1);
+            }
+            .sent-history-drawer {
+              border-top: 1px solid var(--line);
+              background: var(--bg-0);
+            }
+            .sent-history-drawer summary {
+              cursor: pointer;
+              padding: 12px 14px;
+              color: var(--txt-1);
+              font-size: 12px;
+              font-weight: 700;
+            }
             .row {
-              border: 1px solid #e1e6ee;
+              border: 1px solid var(--line);
               border-radius: 8px;
               padding: 10px;
-              background: #fbfcfe;
+              background: var(--bg-1);
             }
             .row.active, .session-row.active {
-              border-color: #116a5c;
-              background: #eef7f5;
+              background: var(--bg-2);
+              box-shadow: inset 2px 0 0 var(--accent);
             }
             .session-row {
               display: block;
@@ -105,30 +208,78 @@ internal object FeedbackConsoleAssets {
               min-height: 0;
               text-align: left;
             }
-            .row strong { display: block; font-size: 13px; margin-bottom: 4px; }
-            .row span { color: #667085; font-size: 12px; overflow-wrap: anywhere; }
+            .row strong { display: block; color: var(--txt-0); font-size: 12px; margin-bottom: 4px; }
+            .row span { display: block; color: var(--txt-2); font-size: 11px; overflow-wrap: anywhere; }
             .row span + span { display: block; margin-top: 3px; }
-            .snapshot-header {
+            .studio-canvas {
+              display: grid;
+              grid-template-rows: 48px 1fr;
+            }
+            .canvas-toolbar {
               display: flex;
               align-items: center;
               justify-content: space-between;
-              gap: 12px;
-              margin-bottom: 12px;
+              gap: 14px;
+              padding: 0 14px;
+              border-bottom: 1px solid var(--line);
+              background: var(--bg-0);
             }
-            .snapshot-header h2 { margin: 0; }
-            .snapshot {
+            .canvas-tool-status {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              color: var(--txt-1);
+              font-size: 12px;
+              min-width: 0;
+            }
+            .mode-badge {
+              display: inline-flex;
+              align-items: center;
+              min-height: 24px;
+              border-radius: 999px;
+              padding: 0 8px;
+              background: var(--bg-3);
+              color: var(--txt-1);
+              font-size: 11px;
+              font-weight: 700;
+              text-transform: uppercase;
+            }
+            .mode-badge[data-mode="live"] { color: var(--accent); }
+            .mode-badge[data-mode="frozen"] { background: var(--accent); color: var(--bg-0); }
+            .snapshot-stage {
               display: grid;
               place-items: center;
-              min-height: 360px;
-              border: 1px solid #e1e6ee;
-              border-radius: 8px;
-              background: #f9fafb;
-              color: #667085;
-              text-align: center;
+              min-height: 0;
+              overflow: hidden;
               padding: 24px;
+              background: radial-gradient(circle at 50% 50%, var(--bg-1) 0%, var(--bg-0) 72%);
+              color: var(--txt-2);
+              text-align: center;
             }
-            .snapshot-frame { position: relative; display: inline-block; max-width: 100%; }
-            .snapshot-frame img { display: block; max-width: 100%; height: auto; cursor: pointer; }
+            .empty-stage { color: var(--txt-2); font-size: 13px; }
+            .snapshot-frame {
+              position: relative;
+              display: inline-block;
+              max-width: min(100%, 420px);
+              max-height: 100%;
+              padding: 8px;
+              border-radius: 36px;
+              background: linear-gradient(180deg, #2a2a2e 0%, #1a1a1d 100%);
+              box-shadow: 0 0 0 2px #3a3a40, 0 30px 60px -20px rgba(0, 0, 0, .6);
+            }
+            .snapshot-frame[data-mode="frozen"] {
+              box-shadow: 0 0 0 2px var(--accent), 0 0 0 6px rgba(184, 211, 106, .10), 0 30px 60px -20px rgba(0, 0, 0, .6);
+            }
+            .snapshot-frame img {
+              display: block;
+              max-width: 100%;
+              max-height: calc(100vh - 160px);
+              width: auto;
+              height: auto;
+              border: 0;
+              border-radius: 28px;
+              cursor: pointer;
+            }
             .selection-overlay {
               position: absolute;
               inset: 0;
@@ -136,23 +287,23 @@ internal object FeedbackConsoleAssets {
             }
             .selection-box {
               position: absolute;
-              border: 2px solid #116a5c;
-              background: rgba(17, 106, 92, .12);
+              border: 2px solid var(--accent);
+              background: rgba(184, 211, 106, .14);
               border-radius: 4px;
             }
             .selection-box.drag-preview {
               border-style: dashed;
-              background: rgba(17, 106, 92, .08);
+              background: rgba(184, 211, 106, .08);
             }
             .selection-box.focused {
-              border-color: #b45309;
-              background: rgba(180, 83, 9, .16);
+              border-color: var(--warning);
+              background: rgba(230, 180, 90, .16);
             }
             .selection-label {
               position: absolute;
               transform: translateY(-100%);
-              background: #116a5c;
-              color: #ffffff;
+              background: var(--accent);
+              color: var(--bg-0);
               font-size: 12px;
               padding: 3px 6px;
               border-radius: 4px 4px 0 0;
@@ -161,111 +312,181 @@ internal object FeedbackConsoleAssets {
               text-overflow: ellipsis;
               white-space: nowrap;
             }
-            .selection-label.focused { background: #b45309; }
+            .selection-label.focused { background: var(--warning); }
             .selection-summary {
-              border: 1px solid #e1e6ee;
+              border: 1px solid var(--line);
               border-radius: 8px;
-              background: #fbfcfe;
-              color: #667085;
+              background: var(--bg-1);
+              color: var(--txt-1);
               min-height: 44px;
               padding: 10px;
               font-size: 13px;
             }
-            img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid #d8dee8; }
+            img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); }
             details.evidence-group {
-              border: 1px solid #e1e6ee;
+              border: 1px solid var(--line);
               border-radius: 8px;
               padding: 10px;
-              background: #fbfcfe;
+              background: var(--bg-1);
             }
             details.evidence-group summary {
               cursor: pointer;
               font-size: 13px;
               font-weight: 700;
+              color: var(--txt-0);
             }
             .saved-evidence-preview { margin: 10px 0; }
-            .error { color: #9c2d2d; font-size: 13px; min-height: 18px; }
-            @media (max-width: 900px) {
-              header { display: flex; align-items: flex-start; flex-direction: column; }
-              main { grid-template-columns: 1fr; min-height: auto; }
-              section { min-height: 260px; }
+            .error {
+              color: var(--danger);
+              font-size: 13px;
+              min-height: 18px;
+              margin: 0;
+              padding: 0 10px 10px;
+            }
+            @media (max-width: 1099px) {
+              .studio-topbar {
+                grid-template-columns: 140px minmax(0, 1fr) auto;
+                gap: 8px;
+                padding: 0 10px;
+              }
+              .studio-brand { gap: 8px; }
+              .studio-mark {
+                width: 26px;
+                height: 26px;
+                border-radius: 7px;
+                font-size: 15px;
+              }
+              .studio-context {
+                display: grid;
+                grid-template-columns: minmax(72px, 1fr) minmax(88px, 112px) 64px auto auto;
+                gap: 6px;
+              }
+              .studio-actions {
+                flex-wrap: nowrap;
+                gap: 6px;
+              }
+              .studio-topbar button,
+              .studio-topbar select {
+                min-height: 30px;
+                padding: 0 7px;
+                font-size: 11px;
+              }
+              .session-meta { min-width: 0; }
+              #devicePicker {
+                min-width: 0;
+                width: 100%;
+              }
+              #previewIntervalSelect {
+                width: 64px;
+                padding: 0 6px;
+              }
+              .studio-context .status-pill { display: none; }
+              .studio-body { grid-template-columns: 220px minmax(380px, 1fr) 300px; }
+            }
+            @media (max-width: 899px) {
+              .studio-shell::before {
+                content: "Resize to >= 900px wide";
+                position: fixed;
+                inset: 0;
+                display: grid;
+                place-items: center;
+                z-index: 999;
+                background: var(--bg-0);
+                color: var(--txt-1);
+                font-size: 14px;
+              }
+            }
+            @media (prefers-reduced-motion: reduce) {
+              * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
             }
           </style>
         </head>
         <body>
-          <header>
-            <div>
-              <h1>PointPatch Feedback Console</h1>
-              <div id="sessionMeta" class="meta">Loading session...</div>
-            </div>
-            <div class="device-strip">
-              <select id="devicePicker"></select>
-              <select id="previewIntervalSelect" aria-label="Preview interval">
-                <option value="manual">Manual</option>
-                <option value="1000">1s</option>
-                <option value="2000" selected>2s</option>
-                <option value="5000">5s</option>
-              </select>
-              <button id="refreshDevicesButton">Refresh Devices</button>
-              <button id="disconnectDeviceButton">Disconnect</button>
-              <span id="deviceStatus" class="status-pill">No device selected</span>
-            </div>
-            <div class="toolbar">
-              <button id="refreshButton">Refresh</button>
-              <button id="addFlowButton" class="primary">Add</button>
-              <button id="saveButton" disabled>Save</button>
-              <button id="copyMarkdownButton">Copy</button>
-              <button id="sendDraftButton">Send</button>
-              <button id="newSessionButton">New</button>
-              <button id="closeSessionButton">Close</button>
-            </div>
-          </header>
-          <main>
-            <section class="sidebar">
-              <h2>Sessions</h2>
-              <div id="sessions" class="list"></div>
-              <h2 class="section-heading">Sent History</h2>
-              <div id="sentHistory" class="list"></div>
-            </section>
-            <section class="snapshot-pane">
-              <div class="snapshot-header">
-                <h2 id="snapshotTitle">Live Preview</h2>
-                <div id="navigationControls" class="toolbar">
-                  <button id="backButton">Back</button>
-                  <button id="swipeUpButton">Swipe Up</button>
-                  <button id="swipeDownButton">Swipe Down</button>
-                  <button id="swipeLeftButton">Swipe Left</button>
-                  <button id="swipeRightButton">Swipe Right</button>
-                  <label><input id="captureAfterNavigation" type="checkbox"> Capture after navigation</label>
+          <div class="studio-shell">
+            <header class="studio-topbar">
+              <div class="studio-brand">
+                <div class="studio-mark" aria-hidden="true">P</div>
+                <div>
+                  <h1>PointPatch</h1>
+                  <div class="brand-caption">Studio</div>
                 </div>
               </div>
-              <div id="snapshot" class="snapshot">
-                <div id="selectionOverlay" class="selection-overlay" aria-hidden="true"></div>
-                <div>Refresh the live preview to begin.</div>
+              <div class="studio-context">
+                <span id="sessionMeta" class="session-meta">Loading session...</span>
+                <select id="devicePicker"></select>
+                <select id="previewIntervalSelect" aria-label="Preview interval">
+                  <option value="manual">Manual</option>
+                  <option value="1000">1s</option>
+                  <option value="2000" selected>2s</option>
+                  <option value="5000">5s</option>
+                </select>
+                <button id="refreshDevicesButton">Devices</button>
+                <button id="disconnectDeviceButton">Disconnect</button>
+                <span id="deviceStatus" class="status-pill">No device selected</span>
               </div>
-            </section>
-            <section class="queue-pane">
-              <h2>Current Selection</h2>
-              <div id="selectionSummary" class="selection-summary">No selection.</div>
-              <div class="toolbar">
-                <button id="clearSelectionButton">Clear Selection</button>
-                <button id="cancelAddFlowButton" disabled>Cancel</button>
+              <div class="studio-actions">
+                <button id="refreshButton">Refresh</button>
+                <button id="addFlowButton" class="primary">Add</button>
+                <button id="saveButton" disabled>Save</button>
+                <button id="copyMarkdownButton">Copy</button>
+                <button id="sendDraftButton">Send</button>
+                <button id="newSessionButton">New</button>
+                <button id="closeSessionButton">Close</button>
               </div>
-              <h2 class="section-heading">Comment</h2>
-              <textarea id="comment" placeholder="Describe the UI change needed"></textarea>
-              <div class="toolbar">
-                <button id="addItemButton" class="primary" disabled>Add to Pending</button>
-              </div>
-              <h2 class="section-heading">Pending Items</h2>
-              <div id="pendingItems" class="list"></div>
-              <h2 class="section-heading">Draft</h2>
-              <div class="toolbar">
-                <button id="clearDraftButton">Clear Draft</button>
-              </div>
-              <div id="draftItems" class="list"></div>
-              <p id="error" class="error"></p>
-            </section>
-          </main>
+            </header>
+            <main class="studio-body">
+              <aside class="studio-history">
+                <div class="panel-head">
+                  <div class="panel-title">Sessions</div>
+                  <div id="sessionCount" class="panel-count">0</div>
+                </div>
+                <div id="sessions" class="history-list"></div>
+                <details class="sent-history-drawer">
+                  <summary>Sent History</summary>
+                  <div id="sentHistory" class="history-list"></div>
+                </details>
+              </aside>
+              <section class="studio-canvas">
+                <div id="canvasToolbar" class="canvas-toolbar">
+                  <div class="canvas-tool-status">
+                    <span id="previewModeBadge" class="mode-badge" data-mode="idle">Live</span>
+                    <span id="snapshotTitle">Live Preview</span>
+                  </div>
+                  <div id="navigationControls" class="navigation-controls">
+                    <button id="backButton" aria-label="Back">Back</button>
+                    <button id="swipeUpButton" aria-label="Swipe up">Up</button>
+                    <button id="swipeDownButton" aria-label="Swipe down">Down</button>
+                    <button id="swipeLeftButton" aria-label="Swipe left">Left</button>
+                    <button id="swipeRightButton" aria-label="Swipe right">Right</button>
+                    <label class="capture-toggle"><input id="captureAfterNavigation" type="checkbox"> Capture</label>
+                  </div>
+                </div>
+                <div id="snapshot" class="snapshot-stage">
+                  <div id="selectionOverlay" class="selection-overlay" aria-hidden="true"></div>
+                  <div class="empty-stage">Refresh the live preview to begin.</div>
+                </div>
+              </section>
+              <aside class="studio-inspector">
+                <div class="panel-head">
+                  <div id="inspectorTitle" class="panel-title">Draft</div>
+                  <div id="inspectorCount" class="panel-count">0</div>
+                </div>
+                <div id="inspectorBody" class="inspector-body">
+                  <div id="selectionSummary" class="selection-summary">No selection.</div>
+                  <textarea id="comment" placeholder="Describe the UI change needed"></textarea>
+                  <div id="pendingItems" class="list"></div>
+                  <div id="draftItems" class="list"></div>
+                </div>
+                <div id="inspectorFooter" class="inspector-footer">
+                  <button id="clearSelectionButton">Clear Selection</button>
+                  <button id="cancelAddFlowButton" disabled>Cancel</button>
+                  <button id="addItemButton" class="primary" disabled>Add to Pending</button>
+                  <button id="clearDraftButton">Clear Draft</button>
+                </div>
+                <p id="error" class="error" role="status" aria-live="polite"></p>
+              </aside>
+            </main>
+          </div>
           <script>
             const DefaultLivePreviewIntervalMs = 2000;
             const MinLivePreviewIntervalMs = 1000;

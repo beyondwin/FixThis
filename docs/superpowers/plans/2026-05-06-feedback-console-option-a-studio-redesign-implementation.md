@@ -178,7 +178,7 @@ git commit -m "test: lock studio console redesign contract"
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
 - Test: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Replace the top-level CSS tokens and grid**
+- [x] **Step 1: Replace the top-level CSS tokens and grid**
 
 In the `<style>` block, replace the current light `:root`, `header`, `main`, and `section` shell rules with this Studio shell foundation:
 
@@ -257,7 +257,7 @@ body { margin: 0; height: 100vh; overflow: hidden; background: var(--bg-0); }
 }
 ```
 
-- [ ] **Step 2: Replace the `<body>` shell markup**
+- [x] **Step 2: Replace the `<body>` shell markup**
 
 Keep all existing IDs used by JavaScript, but move them into the Studio layout:
 
@@ -351,7 +351,7 @@ Keep all existing IDs used by JavaScript, but move them into the Studio layout:
 </body>
 ```
 
-- [ ] **Step 3: Add Option A component CSS**
+- [x] **Step 3: Add Option A component CSS**
 
 Add focused styles for brand, buttons, panels, canvas, inspector, rows, and evidence cards. Keep border radii at 8px or below for cards/buttons:
 
@@ -472,7 +472,7 @@ button:disabled { opacity: .4; cursor: default; }
 }
 ```
 
-- [ ] **Step 4: Run the targeted shell tests**
+- [x] **Step 4: Run the targeted shell tests**
 
 Run:
 
@@ -482,7 +482,7 @@ Run:
 
 Expected: the two tests added in Task 1 pass.
 
-- [ ] **Step 5: Commit the shell replacement**
+- [x] **Step 5: Commit the shell replacement**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt
