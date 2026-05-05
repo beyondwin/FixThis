@@ -224,6 +224,9 @@ class FeedbackSessionService(
     fun clearDraftItems(sessionId: String): FeedbackSession =
         store.clearDraftItems(sessionId)
 
+    fun deleteScreen(sessionId: String, screenId: String): FeedbackSession =
+        store.deleteScreen(sessionId, screenId)
+
     fun sendDraftToAgent(sessionId: String): FeedbackSession =
         store.sendDraftToAgent(
             sessionId,

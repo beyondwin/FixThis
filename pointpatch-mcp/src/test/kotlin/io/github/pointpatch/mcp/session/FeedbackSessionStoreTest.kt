@@ -171,6 +171,58 @@ class FeedbackSessionStoreTest {
     }
 
     @Test
+    fun deleteScreenRemovesLinkedFeedbackItemsAndPrunesBatches() {
+        val clock = FakeClock(100L)
+        val ids = FakeIds("session-1", "screen-1", "screen-2", "item-1", "batch-1", "item-2")
+        val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
+        val session = store.openSession("io.github.pointpatch.sample", "/repo")
+        val firstScreen = store.addScreen(session.sessionId, CapturedScreen("pending", 0L, displayName = "First"))
+        val secondScreen = store.addScreen(session.sessionId, CapturedScreen("pending", 0L, displayName = "Second"))
+        store.addItem(
+            session.sessionId,
+            FeedbackItem(
+                itemId = "pending",
+                screenId = firstScreen.screenId,
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = FeedbackTarget.Area(PointPatchRect(0f, 0f, 10f, 10f)),
+                comment = "Delete with screen",
+            ),
+        )
+        store.sendDraftToAgent(session.sessionId, markdownSnapshot = "sent")
+        store.addItem(
+            session.sessionId,
+            FeedbackItem(
+                itemId = "pending",
+                screenId = secondScreen.screenId,
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = FeedbackTarget.Area(PointPatchRect(10f, 10f, 20f, 20f)),
+                comment = "Keep",
+            ),
+        )
+
+        val updated = store.deleteScreen(session.sessionId, firstScreen.screenId)
+
+        assertEquals(listOf(secondScreen.screenId), updated.screens.map { it.screenId })
+        assertEquals(listOf("item-2"), updated.items.map { it.itemId })
+        assertTrue(updated.handoffBatches.isEmpty())
+    }
+
+    @Test
+    fun deleteScreenReturnsNotFoundForUnknownScreen() {
+        val ids = FakeIds("session-1")
+        val store = FeedbackSessionStore(idGenerator = ids::next)
+        val session = store.openSession("io.github.pointpatch.sample", "/repo")
+
+        val error = assertFailsWith<FeedbackSessionException> {
+            store.deleteScreen(session.sessionId, "missing-screen")
+        }
+
+        assertTrue(error.message.orEmpty().contains("SCREEN_NOT_FOUND"))
+    }
+
+    @Test
     fun addItemAssignsNextSequenceAfterHighestExistingSequenceNumber() {
         val clock = FakeClock(100L)
         val ids = FakeIds("session-1", "screen-1", "item-1", "item-2")

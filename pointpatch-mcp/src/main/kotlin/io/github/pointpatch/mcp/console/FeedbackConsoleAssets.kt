@@ -356,6 +356,10 @@ internal object FeedbackConsoleAssets {
               return formatScreenLabel(screen, (state.session?.screens || []).indexOf(screen));
             }
 
+            function screenFeedbackCount(screenId) {
+              return (state.session?.items || []).filter(item => item.screenId === screenId).length;
+            }
+
             function humanize(value) {
               const normalized = text(value);
               if (normalized === '-') return normalized;
@@ -708,9 +712,16 @@ internal object FeedbackConsoleAssets {
               screens.innerHTML = (session?.screens || []).map((screen, index) => `
                 <div class="row">
                   <strong>${'$'}{escapeHtml(formatScreenLabel(screen, index))}</strong>
-                  <span>${'$'}{escapeHtml(formatTime(screen.capturedAtEpochMillis))} | ${'$'}{escapeHtml(shortId(screen.screenId))}</span>
+                  <span>${'$'}{escapeHtml(formatTime(screen.capturedAtEpochMillis))} | ${'$'}{escapeHtml(shortId(screen.screenId))} | ${'$'}{escapeHtml(countLabel(screenFeedbackCount(screen.screenId), 'feedback item', 'feedback items'))}</span>
+                  <button class="delete-screen-button" type="button" data-screen-id="${'$'}{escapeHtml(screen.screenId)}">Delete</button>
                 </div>
               `).join('') || '<div class="row"><span>No screens captured.</span></div>';
+              document.querySelectorAll('.delete-screen-button').forEach(button => {
+                button.addEventListener('click', event => {
+                  event.stopPropagation();
+                  deleteScreen(button.dataset.screenId).catch(showError);
+                });
+              });
 
               const screen = latestScreen();
               if (currentSelection) {
@@ -829,6 +840,20 @@ internal object FeedbackConsoleAssets {
               currentScreenId = null;
               clearSelection();
               await requestJson('/api/capture', { method: 'POST' });
+              await refresh();
+            }
+
+            async function deleteScreen(screenId) {
+              error.textContent = '';
+              if (!screenId) return;
+              const feedbackCount = screenFeedbackCount(screenId);
+              const message = feedbackCount > 0
+                ? `Delete this captured screen and ${'$'}{feedbackCount} linked feedback item${'$'}{feedbackCount === 1 ? '' : 's'}?`
+                : 'Delete this captured screen?';
+              if (!window.confirm(message)) return;
+              currentScreenId = null;
+              clearSelection();
+              state.session = await requestJson(`/api/screens/${'$'}{encodeURIComponent(screenId)}`, { method: 'DELETE' });
               await refresh();
             }
 

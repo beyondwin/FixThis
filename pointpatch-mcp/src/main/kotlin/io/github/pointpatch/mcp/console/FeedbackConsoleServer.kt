@@ -162,6 +162,16 @@ class FeedbackConsoleServer(
                         exchange.requireMethod("GET") {
                             exchange.sendScreenshot(exchange.requestURI.path.screenIdFromScreenshotPath())
                         }
+                    } else if (exchange.requestURI.path.isScreenPath()) {
+                        exchange.requireMethod("DELETE") {
+                            exchange.sendJson(
+                                200,
+                                service.deleteScreen(
+                                    service.currentSession().sessionId,
+                                    exchange.requestURI.path.screenIdFromScreenPath(),
+                                ),
+                            )
+                        }
                     } else {
                         exchange.sendText(404, "Not found", "text/plain; charset=utf-8")
                     }
@@ -320,6 +330,12 @@ private fun String.isFullScreenshotPath(): Boolean =
 
 private fun String.screenIdFromScreenshotPath(): String =
     split('/')[3]
+
+private fun String.isScreenPath(): Boolean =
+    split('/').size == 4 && startsWith("/api/screens/")
+
+private fun String.screenIdFromScreenPath(): String =
+    URLDecoder.decode(split('/')[3], Charsets.UTF_8.name())
 
 private fun String.toUrlHost(): String =
     if (contains(':') && !startsWith("[")) "[$this]" else this

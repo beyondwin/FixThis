@@ -104,6 +104,32 @@ class FeedbackSessionStore(
             captured
         }
 
+    fun deleteScreen(sessionId: String, screenId: String): FeedbackSession =
+        synchronized(lock) {
+            val session = getSessionLocked(sessionId)
+            if (session.screens.none { it.screenId == screenId }) {
+                throw FeedbackSessionException("SCREEN_NOT_FOUND: Unknown screen: $screenId")
+            }
+            val removedItemIds = session.items
+                .filter { it.screenId == screenId }
+                .map { it.itemId }
+                .toSet()
+            val updatedBatches = session.handoffBatches
+                .map { batch -> batch.copy(itemIds = batch.itemIds.filterNot { it in removedItemIds }) }
+                .filter { it.itemIds.isNotEmpty() }
+            val updated = session.copy(
+                screens = session.screens.filterNot { it.screenId == screenId },
+                items = session.items.filterNot { it.screenId == screenId },
+                handoffBatches = updatedBatches,
+                updatedAtEpochMillis = clock(),
+            )
+            commitSessionMutation(session, updated).also {
+                persistence?.artifactPaths()
+                    ?.screenArtifactDirectory(sessionId, screenId)
+                    ?.deleteRecursively()
+            }
+        }
+
     fun addItem(sessionId: String, item: FeedbackItem): FeedbackItem =
         synchronized(lock) {
             val session = getSessionLocked(sessionId)

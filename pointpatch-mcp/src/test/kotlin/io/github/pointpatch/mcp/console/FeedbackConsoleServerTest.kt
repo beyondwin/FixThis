@@ -135,6 +135,10 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("function formatBatchDetails"))
         assertTrue(html.contains("function batchItems"))
         assertTrue(html.contains("function formatBatchItemSummary"))
+        assertTrue(html.contains("function screenFeedbackCount"))
+        assertTrue(html.contains("function deleteScreen"))
+        assertTrue(html.contains("delete-screen-button"))
+        assertTrue(html.contains("linked feedback item"))
         assertTrue(html.contains("session.handoffBatches"))
         assertTrue(html.contains("Batch #"))
         assertTrue(html.contains("Not sent"))
@@ -857,6 +861,32 @@ class FeedbackConsoleServerTest {
             }
         } finally {
             projectRoot.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun deleteScreenApiDeletesScreenAndLinkedItems() {
+        val service = FeedbackSessionService(
+            FakePointPatchBridge(),
+            FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1", "item-1").next),
+            "/repo",
+            "io.github.pointpatch.sample",
+        )
+        val session = service.openSession(null)
+        service.addCapturedScreenForTest(session.sessionId, CapturedScreen("screen-1", 0L, displayName = "Main"))
+        service.addAreaFeedback(session.sessionId, "screen-1", PointPatchRect(0f, 0f, 10f, 10f), "Remove me")
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val connection = URL("${server.url}/api/screens/screen-1").openConnection() as HttpURLConnection
+            connection.requestMethod = "DELETE"
+
+            assertEquals(200, connection.responseCode)
+            val payload = pointPatchJson.parseToJsonElement(connection.inputStream.bufferedReader().readText()).jsonObject
+            assertTrue(payload.getValue("screens").jsonArray.isEmpty())
+            assertTrue(payload.getValue("items").jsonArray.isEmpty())
+        } finally {
+            server.stop()
         }
     }
 
