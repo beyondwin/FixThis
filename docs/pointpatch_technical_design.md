@@ -33,6 +33,7 @@ Desktop
        ├─ setup
        ├─ run
        ├─ doctor
+       ├─ console
        └─ mcp stdio server
 
 Gradle
@@ -139,6 +140,23 @@ PointPatchAnnotation
 MarkdownFormatter / JsonFormatter / MpcToolResultFormatter
 ```
 
+MCP feedback console flow:
+
+```text
+Selected ADB device
+    + Captured screen snapshot
+    + Component or custom-area selection
+    + Draft feedback comments
+        ↓
+FeedbackSession in MCP process
+        ↓
+.pointpatch/feedback-sessions/<session-id> persistence
+        ↓
+FeedbackHandoffBatch after Send Draft to Agent
+        ↓
+pointpatch_read_feedback JSON + Markdown for agent work
+```
+
 ---
 
 ## 2. Repository 구조
@@ -237,7 +255,7 @@ project(":app").projectDir = file("sample")
 
 따라서 local build/install 문서와 CLI 기본 install task는 `:app:installDebug`를 사용한다. `:sample`은 더 이상 현재 Gradle project path가 아니다.
 
-`gradle/gradle-daemon-jvm.properties`는 Gradle daemon JVM toolchain을 Java 21로 고정하는 repository 파일이다. 반대로 `local.properties`와 `.pointpatch/artifacts/`는 developer-local 파일이므로 git에서 무시한다.
+`gradle/gradle-daemon-jvm.properties`는 Gradle daemon JVM toolchain을 Java 21로 고정하는 repository 파일이다. 반대로 `local.properties`, `.pointpatch/artifacts/`, `.pointpatch/feedback-sessions/`는 developer-local 파일이므로 git에서 무시한다.
 
 ### 3.2 `pointpatch-compose-overlay`
 
@@ -325,6 +343,9 @@ Kotlin/JVM CLI로 구현한다. `pointpatch-mcp` module을 포함하거나 depen
 - tools/list, tools/call
 - resources/list, resources/read
 - Android sidekick bridge client
+- local feedback console server
+- feedback session store and `.pointpatch/feedback-sessions/` persistence
+- draft/sent handoff queue formatting for agents
 
 초기 버전은 MCP SDK에 강하게 의존하지 않고 JSON-RPC를 직접 구현할 수 있다. 단, protocol compatibility test를 둔다. MCP prompts endpoints와 prompts capability는 V1 surface가 아니며 future extension으로 둔다.
 
@@ -1631,6 +1652,7 @@ startFeedbackCapture
 verifyUiChange
 getLastAnnotation
 readScreenshot
+performNavigation
 ```
 
 ### 15.5 Desktop bridge client
@@ -1682,6 +1704,26 @@ stderr: logs only
 ```
 
 ### 16.3 Tools
+
+Implemented tools:
+
+```text
+pointpatch_status
+pointpatch_get_current_screen
+pointpatch_get_ui_feedback
+pointpatch_verify_ui_change
+pointpatch_open_feedback_console
+pointpatch_list_feedback_sessions
+pointpatch_capture_screen
+pointpatch_navigate_app
+pointpatch_list_feedback
+pointpatch_read_feedback
+pointpatch_resolve_feedback
+```
+
+`pointpatch_get_ui_feedback` is a compatibility wrapper for the older single
+annotation flow. New agent workflows should open the feedback console and read
+the persisted feedback queue.
 
 #### `pointpatch_status`
 
@@ -1777,6 +1819,86 @@ stderr: logs only
   "matchingNodes": []
 }
 ```
+
+#### `pointpatch_open_feedback_console`
+
+입력:
+
+```json
+{
+  "packageName": "com.example.app",
+  "sessionId": "optional-session-id",
+  "newSession": false
+}
+```
+
+출력:
+
+```json
+{
+  "sessionId": "feedback-session-id",
+  "packageName": "com.example.app",
+  "projectRoot": "/path/to/project",
+  "consoleUrl": "http://127.0.0.1:<port>/",
+  "resumed": true,
+  "session": {}
+}
+```
+
+Console-local API owns the browser workflow:
+
+```text
+GET /api/devices
+POST /api/device/select
+POST /api/device/disconnect
+POST /api/capture
+POST /api/navigation
+POST /api/items
+DELETE /api/items/draft
+POST /api/agent-handoffs
+GET /api/export/markdown
+```
+
+Device selection is MCP process-local state. Console disconnect clears the
+PointPatch selected serial; it does not run `adb disconnect`.
+
+#### `pointpatch_capture_screen`
+
+Captures the current app screen into the active feedback session. The captured
+screen can include desktop-readable screenshot artifact paths under
+`.pointpatch/feedback-sessions/<session-id>/`.
+
+#### `pointpatch_navigate_app`
+
+Performs one debug-only navigation action:
+
+```json
+{
+  "action": "tap",
+  "x": 120.0,
+  "y": 240.0,
+  "captureAfter": true
+}
+```
+
+Supported actions are `back`, `tap`, and `swipe`. Unsupported arguments are
+rejected.
+
+#### `pointpatch_list_feedback`
+
+Returns session queue counts and item summaries, including draft item count,
+sent batch count, and unresolved sent item count.
+
+#### `pointpatch_read_feedback`
+
+Returns agent-readable JSON and Markdown for draft items and sent handoff
+history. When focused on a sent item, the returned handoff batch is scoped to
+that item.
+
+#### `pointpatch_resolve_feedback`
+
+Updates item status to `resolved`, `needs_clarification`, or `wont_fix` and
+stores the agent summary.
 
 ### 16.4 Resources
 
@@ -1878,6 +2000,21 @@ V1은 init 명령 또는 Gradle 파일 자동 수정 흐름을 제공하지 않�
 - interactive log 출력 금지
 - stderr로만 diagnostic log 출력
 - stdout은 JSON-RPC 전용
+
+#### `pointpatch console`
+
+목표:
+
+- MCP client 없이 feedback console을 실행
+
+동작:
+
+```text
+1. package/project metadata 읽기
+2. FeedbackSession open 또는 resume
+3. local feedback console server 시작
+4. console startup JSON 또는 localhost URL 출력
+```
 
 ---
 
@@ -2210,13 +2347,16 @@ Deliverables:
 - sidekick bridge server
 - desktop bridge client
 - stdio MCP server
-- macro tools
+- feedback console server
+- feedback session persistence
+- agent-readable handoff queue tools
 
 Acceptance:
 
-- AI/MCP client can call `pointpatch_get_ui_feedback`
-- app overlay opens
-- user selection returns annotation result
+- AI/MCP client can call `pointpatch_open_feedback_console`
+- browser console can capture a screen and select a component or custom area
+- Send Draft to Agent creates a persisted handoff batch
+- `pointpatch_read_feedback` returns draft and sent handoff history
 
 ### Phase 9: Docs and release readiness
 
@@ -2419,7 +2559,7 @@ Core requirements:
 - screenshot capture with PixelCopy-first and Canvas fallback
 - Markdown/JSON annotation export
 - Gradle source index generation
-- optional MCP with macro tools
+- optional MCP with feedback console workflow tools
 
 Do not implement a Kotlin compiler plugin.
 Do not add network permission to the core sidekick.
@@ -2450,8 +2590,9 @@ Prioritize failure-safe behavior and local-first privacy.
 [ ] source index generated and packaged
 [ ] source candidates appear when matches exist
 [ ] CLI doctor gives actionable diagnostics
-[ ] MCP server exposes macro tools
-[ ] MCP get_ui_feedback opens app overlay and returns annotation
+[ ] MCP server exposes feedback console workflow tools
+[ ] MCP open_feedback_console returns a local console URL
+[ ] MCP read_feedback returns draft and sent handoff history
 [ ] release build has no active PointPatch runtime
 [ ] docs explain limitations clearly
 ```

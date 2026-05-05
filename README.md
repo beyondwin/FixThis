@@ -109,6 +109,9 @@ PointPatch is local-first. The core sidekick does not require network permission
 
 More detail:
 
+- [Product requirements](docs/pointpatch_prd.md)
+- [Technical design](docs/pointpatch_technical_design.md)
+- [Decisions](docs/pointpatch_decisions.md)
 - [Output schema](docs/output-schema.md)
 - [Privacy](docs/privacy.md)
 - [Troubleshooting](docs/troubleshooting.md)
