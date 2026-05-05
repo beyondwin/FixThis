@@ -4,6 +4,8 @@ import io.github.pointpatch.cli.pointPatchJson
 import io.github.pointpatch.compose.core.model.PointPatchRect
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class FeedbackSessionStoreTest {
@@ -163,6 +165,41 @@ class FeedbackSessionStoreTest {
 
         assertEquals(created.sessionId, opened.sessionId)
         assertEquals(created.sessionId, fresh.currentSession()?.sessionId)
+    }
+
+    @Test
+    fun failedSessionSaveDoesNotOpenUnsavedSession() {
+        val root = createTempDir(prefix = "pointpatch-v2-open-fail-")
+        root.resolve(".pointpatch").writeText("blocked")
+        val persistence = FeedbackSessionPersistence(FeedbackSessionPaths(root), clock = { 100L })
+        val store = FeedbackSessionStore(clock = { 100L }, idGenerator = { "session-1" }, persistence = persistence)
+
+        assertFailsWith<FeedbackSessionException> {
+            store.openSession("io.github.pointpatch.sample", root.absolutePath)
+        }
+
+        assertNull(store.currentSession())
+        assertFailsWith<FeedbackSessionException> {
+            store.getSession("session-1")
+        }
+    }
+
+    @Test
+    fun failedCloseSaveKeepsCurrentSessionOpenInMemory() {
+        val root = createTempDir(prefix = "pointpatch-v2-close-fail-")
+        val paths = FeedbackSessionPaths(root)
+        val persistence = FeedbackSessionPersistence(paths, clock = { 100L })
+        val store = FeedbackSessionStore(clock = { 100L }, idGenerator = { "session-1" }, persistence = persistence)
+        val session = store.openSession("io.github.pointpatch.sample", root.absolutePath)
+        paths.sessionDirectory(session.sessionId).deleteRecursively()
+        paths.sessionDirectory(session.sessionId).writeText("blocked")
+
+        assertFailsWith<FeedbackSessionException> {
+            store.closeSession(session.sessionId)
+        }
+
+        assertEquals(session.sessionId, store.currentSession()?.sessionId)
+        assertEquals(FeedbackSessionStatus.ACTIVE, store.getSession(session.sessionId).status)
     }
 
     private class FakeClock(private val value: Long) {

@@ -36,9 +36,9 @@ class FeedbackSessionStore(
                 createdAtEpochMillis = now,
                 updatedAtEpochMillis = now,
             )
+            save(session)
             sessions[session.sessionId] = session
             currentSessionId = session.sessionId
-            save(session)
             session
         }
 
@@ -79,9 +79,9 @@ class FeedbackSessionStore(
                 status = FeedbackSessionStatus.CLOSED,
                 updatedAtEpochMillis = now,
             )
+            save(closed)
             sessions[sessionId] = closed
             if (currentSessionId == sessionId) currentSessionId = null
-            save(closed)
             closed
         }
 
@@ -97,8 +97,8 @@ class FeedbackSessionStore(
                 screens = session.screens + captured,
                 updatedAtEpochMillis = now,
             )
-            sessions[sessionId] = updated
             save(updated)
+            sessions[sessionId] = updated
             captured
         }
 
@@ -118,8 +118,8 @@ class FeedbackSessionStore(
                 items = session.items + created,
                 updatedAtEpochMillis = now,
             )
-            sessions[sessionId] = updated
             save(updated)
+            sessions[sessionId] = updated
             created
         }
 
@@ -131,8 +131,8 @@ class FeedbackSessionStore(
                 status = FeedbackSessionStatus.READY_FOR_AGENT,
                 updatedAtEpochMillis = now,
             )
-            sessions[sessionId] = updated
             save(updated)
+            sessions[sessionId] = updated
             updated
         }
 
@@ -162,8 +162,8 @@ class FeedbackSessionStore(
             }
             val item = updatedItem ?: throw FeedbackSessionException("Unknown feedback item: $itemId")
             val updated = session.copy(items = updatedItems, updatedAtEpochMillis = now)
-            sessions[sessionId] = updated
             save(updated)
+            sessions[sessionId] = updated
             item
         }
 
