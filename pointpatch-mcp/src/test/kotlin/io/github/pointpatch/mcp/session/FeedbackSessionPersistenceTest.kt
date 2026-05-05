@@ -138,6 +138,70 @@ class FeedbackSessionPersistenceTest {
     }
 
     @Test
+    fun failedSessionReplaceLeavesExistingIndexUnchanged() {
+        val root = createTempDir(prefix = "pointpatch-v2-session-replace-fail-")
+        val paths = FeedbackSessionPaths(root)
+        val persistence = FeedbackSessionPersistence(paths, clock = { 200L })
+        val existing = FeedbackSession(
+            sessionId = "session-old",
+            packageName = "io.github.pointpatch.sample",
+            projectRoot = root.absolutePath,
+            createdAtEpochMillis = 100L,
+            updatedAtEpochMillis = 100L,
+        )
+        persistence.save(existing)
+        val oldIndex = paths.indexFile.readText()
+        paths.sessionDirectory("session-new").mkdirs()
+        assertTrue(paths.sessionFile("session-new").mkdirs())
+
+        val candidate = FeedbackSession(
+            sessionId = "session-new",
+            packageName = "io.github.pointpatch.sample",
+            projectRoot = root.absolutePath,
+            createdAtEpochMillis = 300L,
+            updatedAtEpochMillis = 300L,
+        )
+
+        assertFailsWith<FeedbackSessionException> {
+            persistence.save(candidate)
+        }
+
+        assertEquals(oldIndex, paths.indexFile.readText())
+        assertEquals(existing, persistence.load("session-old"))
+        assertFailsWith<FeedbackSessionException> {
+            persistence.load("session-new")
+        }
+        assertEquals(listOf("session-old"), persistence.list(includeClosed = true).sessions.map { it.sessionId })
+    }
+
+    @Test
+    fun failedIndexReplaceRestoresCommittedSessionFile() {
+        val root = createTempDir(prefix = "pointpatch-v2-index-replace-fail-")
+        val paths = FeedbackSessionPaths(root)
+        val persistence = FeedbackSessionPersistence(paths, clock = { 200L })
+        val initial = FeedbackSession(
+            sessionId = "session-1",
+            packageName = "io.github.pointpatch.sample",
+            projectRoot = root.absolutePath,
+            createdAtEpochMillis = 100L,
+            updatedAtEpochMillis = 100L,
+        )
+        persistence.save(initial)
+        paths.indexFile.delete()
+        assertTrue(paths.indexFile.mkdirs())
+
+        val updated = initial.copy(updatedAtEpochMillis = 300L)
+
+        assertFailsWith<FeedbackSessionException> {
+            persistence.save(updated)
+        }
+
+        assertEquals(initial, persistence.load("session-1"))
+        assertEquals(100L, persistence.list(includeClosed = true).sessions.single().updatedAtEpochMillis)
+        assertTrue(paths.indexFile.isDirectory)
+    }
+
+    @Test
     fun persistenceSkipsCorruptSessionFilesDuringList() {
         val root = createTempDir(prefix = "pointpatch-v2-corrupt-")
         val paths = FeedbackSessionPaths(root)

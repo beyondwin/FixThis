@@ -13,24 +13,51 @@ class FeedbackSessionPersistence(
 ) {
     fun save(session: FeedbackSession) {
         var tempSessionFile: File? = null
+        var tempIndexFile: File? = null
+        var sessionBackup: FileBackup? = null
+        var indexBackup: FileBackup? = null
         runCatching {
             val sessionDirectory = paths.sessionDirectory(session.sessionId)
             check(sessionDirectory.isDirectory || sessionDirectory.mkdirs()) {
                 "Could not create feedback session directory: ${sessionDirectory.absolutePath}"
             }
+            check(paths.rootDirectory.isDirectory || paths.rootDirectory.mkdirs()) {
+                "Could not create feedback session root: ${paths.rootDirectory.absolutePath}"
+            }
             val sessionFile = paths.sessionFile(session.sessionId)
-            val tempFile = File.createTempFile("session-", ".json.tmp", sessionDirectory)
-            tempSessionFile = tempFile
-            tempFile.writeText(pointPatchJson.encodeToString(FeedbackSession.serializer(), session))
-            writeIndex(session)
-            replaceFile(tempFile, sessionFile)
-            tempSessionFile = null
+            val sessionTemp = File.createTempFile("session-", ".json.tmp", sessionDirectory)
+            tempSessionFile = sessionTemp
+            sessionTemp.writeText(pointPatchJson.encodeToString(FeedbackSession.serializer(), session))
+            val indexTemp = File.createTempFile("index-", ".json.tmp", paths.rootDirectory)
+            tempIndexFile = indexTemp
+            indexTemp.writeText(indexJson(session))
+            sessionBackup = backupFile(sessionFile, "session-backup-", sessionDirectory)
+            indexBackup = backupFile(paths.indexFile, "index-backup-", paths.rootDirectory)
+            var sessionChanged = false
+            var indexChanged = false
+            runCatching {
+                replaceFile(sessionTemp, sessionFile)
+                tempSessionFile = null
+                sessionChanged = true
+                replaceFile(indexTemp, paths.indexFile)
+                tempIndexFile = null
+                indexChanged = true
+            }.getOrElse { error ->
+                if (indexChanged) runCatching { restoreFile(paths.indexFile, indexBackup) }
+                if (sessionChanged) runCatching { restoreFile(sessionFile, sessionBackup) }
+                throw error
+            }
         }.getOrElse { error ->
             tempSessionFile?.delete()
+            tempIndexFile?.delete()
+            deleteBackup(sessionBackup)
+            deleteBackup(indexBackup)
             throw FeedbackSessionException(
                 "SESSION_SAVE_FAILED: Could not save feedback session ${session.sessionId}: ${error.message}",
             )
         }
+        deleteBackup(sessionBackup)
+        deleteBackup(indexBackup)
     }
 
     fun load(sessionId: String): FeedbackSession {
@@ -59,21 +86,38 @@ class FeedbackSessionPersistence(
 
     fun artifactPaths(): FeedbackSessionPaths = paths
 
-    private fun writeIndex(candidate: FeedbackSession) {
+    private fun indexJson(candidate: FeedbackSession): String {
         val listed = loadAll()
             .withCandidate(candidate)
             .sessions
             .map(FeedbackSessionSummary.Companion::from)
             .sortedByDescending { it.updatedAtEpochMillis }
-        check(paths.rootDirectory.isDirectory || paths.rootDirectory.mkdirs()) {
-            "Could not create feedback session root: ${paths.rootDirectory.absolutePath}"
-        }
-        paths.indexFile.writeText(
-            pointPatchJson.encodeToString(
-                FeedbackSessionIndex.serializer(),
-                FeedbackSessionIndex(updatedAtEpochMillis = clock(), sessions = listed),
-            ),
+        return pointPatchJson.encodeToString(
+            FeedbackSessionIndex.serializer(),
+            FeedbackSessionIndex(updatedAtEpochMillis = clock(), sessions = listed),
         )
+    }
+
+    private fun backupFile(target: File, prefix: String, directory: File): FileBackup =
+        if (target.isFile) {
+            val tempFile = File.createTempFile(prefix, ".json.tmp", directory)
+            Files.copy(target.toPath(), tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            FileBackup.Present(tempFile)
+        } else {
+            FileBackup.Absent
+        }
+
+    private fun restoreFile(target: File, backup: FileBackup?) {
+        when (backup) {
+            is FileBackup.Present -> replaceFile(backup.tempFile, target)
+            FileBackup.Absent,
+            null,
+            -> if (target.isFile) target.delete()
+        }
+    }
+
+    private fun deleteBackup(backup: FileBackup?) {
+        if (backup is FileBackup.Present) backup.tempFile.delete()
     }
 
     private fun replaceFile(source: File, target: File) {
@@ -88,6 +132,12 @@ class FeedbackSessionPersistence(
             if (error !is AtomicMoveNotSupportedException) throw error
             Files.move(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
         }
+    }
+
+    private sealed interface FileBackup {
+        data class Present(val tempFile: File) : FileBackup
+
+        data object Absent : FileBackup
     }
 
     private fun loadAll(): LoadedSessions {
