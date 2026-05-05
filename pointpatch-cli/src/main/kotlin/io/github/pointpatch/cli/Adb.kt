@@ -13,6 +13,9 @@ data class AdbResult(
 data class AdbDevice(
     val serial: String,
     val state: String,
+    val model: String? = null,
+    val product: String? = null,
+    val deviceName: String? = null,
 )
 
 fun interface AdbCommandRunner {
@@ -21,6 +24,7 @@ fun interface AdbCommandRunner {
 
 interface AdbFacade {
     fun devices(): List<AdbDevice>
+    fun forDevice(serial: String?): AdbFacade = this
     fun runAsCat(packageName: String, path: String): String
     fun forward(localPort: Int, socketAddress: String)
     fun removeForward(localPort: Int)
@@ -30,20 +34,18 @@ interface AdbFacade {
 class Adb(
     private val adbExecutable: String = defaultAdbExecutable(),
     private val runner: AdbCommandRunner = ProcessAdbCommandRunner(),
+    private val selectedSerial: String? = null,
 ) : AdbFacade {
+    override fun forDevice(serial: String?): AdbFacade =
+        Adb(adbExecutable = adbExecutable, runner = runner, selectedSerial = serial?.takeIf { it.isNotBlank() })
+
     override fun devices(): List<AdbDevice> {
-        val result = checkedRun(listOf("devices"))
+        val result = checkedRun(listOf("devices", "-l"), includeSelectedSerial = false)
         return result.stdout.lineSequence()
             .drop(1)
             .map { line -> line.trim() }
             .filter { line -> line.isNotEmpty() }
-            .mapNotNull { line ->
-                val parts = line.split(Regex("\\s+"))
-                val serial = parts.getOrNull(0) ?: return@mapNotNull null
-                val state = parts.getOrNull(1) ?: return@mapNotNull null
-                AdbDevice(serial = serial, state = state)
-            }
-            .filter { device -> device.state == "device" }
+            .mapNotNull { line -> parseDeviceLine(line) }
             .toList()
     }
 
@@ -76,13 +78,35 @@ class Adb(
         checkedRun(listOf("pull", androidPath, destination.path))
     }
 
-    private fun checkedRun(arguments: List<String>): AdbResult {
-        val command = listOf(adbExecutable) + arguments
+    private fun checkedRun(arguments: List<String>, includeSelectedSerial: Boolean = true): AdbResult {
+        val serialArgs = if (includeSelectedSerial && !selectedSerial.isNullOrBlank()) {
+            listOf("-s", selectedSerial)
+        } else {
+            emptyList()
+        }
+        val command = listOf(adbExecutable) + serialArgs + arguments
         val result = runner.run(command)
         if (result.exitCode != 0) {
             throw AdbException(command, result)
         }
         return result
+    }
+
+    private fun parseDeviceLine(line: String): AdbDevice? {
+        val parts = line.split(Regex("\\s+"))
+        val serial = parts.getOrNull(0) ?: return null
+        val state = parts.getOrNull(1) ?: return null
+        val metadata = parts.drop(2).mapNotNull { token ->
+            val pieces = token.split(":", limit = 2)
+            if (pieces.size == 2) pieces[0] to pieces[1] else null
+        }.toMap()
+        return AdbDevice(
+            serial = serial,
+            state = state,
+            model = metadata["model"],
+            product = metadata["product"],
+            deviceName = metadata["device"],
+        )
     }
 
     companion object {

@@ -18,7 +18,7 @@ class AdbTest {
             .toSet()
 
         assertEquals(
-            setOf("devices", "shell", "forward", "removeForward", "install", "monkey", "runAsCat", "pull"),
+            setOf("devices", "forDevice", "shell", "forward", "removeForward", "install", "monkey", "runAsCat", "pull"),
             publicMethods,
         )
     }
@@ -39,7 +39,7 @@ class AdbTest {
 
         assertEquals(
             listOf(
-                listOf("/sdk/platform-tools/adb", "devices"),
+                listOf("/sdk/platform-tools/adb", "devices", "-l"),
                 listOf("/sdk/platform-tools/adb", "shell", "pidof", "io.github.pointpatch.sample"),
                 listOf(
                     "/sdk/platform-tools/adb",
@@ -70,14 +70,14 @@ class AdbTest {
     }
 
     @Test
-    fun parsesOnlyReadyDevices() {
+    fun parsesDeviceStatesAndMetadata() {
         val runner = RecordingAdbRunner(
             AdbResult(
                 exitCode = 0,
                 stdout = """
                     List of devices attached
-                    emulator-5554	device
-                    R5CT	unauthorized
+                    emulator-5554	device product:sdk_phone64 model:sdk_gphone64 device:emu64
+                    R5CT	unauthorized product:y2qksx model:SM_G986N device:y2q
                     offline-device	offline
 
                 """.trimIndent(),
@@ -86,8 +86,64 @@ class AdbTest {
         )
         val devices = Adb(adbExecutable = "adb", runner = runner).devices()
 
-        assertEquals(listOf(AdbDevice(serial = "emulator-5554", state = "device")), devices)
-        assertTrue(runner.commands.single() == listOf("adb", "devices"))
+        assertEquals(
+            listOf(
+                AdbDevice(
+                    serial = "emulator-5554",
+                    state = "device",
+                    model = "sdk_gphone64",
+                    product = "sdk_phone64",
+                    deviceName = "emu64",
+                ),
+                AdbDevice(
+                    serial = "R5CT",
+                    state = "unauthorized",
+                    model = "SM_G986N",
+                    product = "y2qksx",
+                    deviceName = "y2q",
+                ),
+                AdbDevice(serial = "offline-device", state = "offline"),
+            ),
+            devices,
+        )
+        assertTrue(runner.commands.single() == listOf("adb", "devices", "-l"))
+    }
+
+    @Test
+    fun scopesRequestCommandsToSelectedDevice() {
+        val runner = RecordingAdbRunner()
+        val adb = Adb(adbExecutable = "adb", runner = runner).forDevice("emulator-5554")
+
+        adb.devices()
+        adb.forward(localPort = 43210, socketAddress = "localabstract:pointpatch_io.github.pointpatch.sample")
+        adb.removeForward(localPort = 43210)
+        adb.runAsCat("io.github.pointpatch.sample", "files/pointpatch/session.json")
+
+        assertEquals(
+            listOf(
+                listOf("adb", "devices", "-l"),
+                listOf(
+                    "adb",
+                    "-s",
+                    "emulator-5554",
+                    "forward",
+                    "tcp:43210",
+                    "localabstract:pointpatch_io.github.pointpatch.sample",
+                ),
+                listOf("adb", "-s", "emulator-5554", "forward", "--remove", "tcp:43210"),
+                listOf(
+                    "adb",
+                    "-s",
+                    "emulator-5554",
+                    "shell",
+                    "run-as",
+                    "io.github.pointpatch.sample",
+                    "cat",
+                    "files/pointpatch/session.json",
+                ),
+            ),
+            runner.commands,
+        )
     }
 
     @Test(timeout = 2_000)

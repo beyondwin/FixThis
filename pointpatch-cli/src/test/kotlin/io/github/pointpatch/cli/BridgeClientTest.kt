@@ -59,6 +59,131 @@ class BridgeClientTest {
     }
 
     @Test
+    fun parsesDeviceMetadataFromAdbDevicesLongOutput() {
+        val adb = FakeAdbFacade(
+            sessionJson = sessionJson(protocol = "1.0"),
+            devices = listOf(
+                AdbDevice(
+                    serial = "adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp",
+                    state = "device",
+                    model = "SM_G986N",
+                    product = "y2qksx",
+                    deviceName = "y2q",
+                ),
+                AdbDevice(
+                    serial = "emulator-5554",
+                    state = "offline",
+                    model = "sdk_gphone64",
+                    product = "sdk_phone64",
+                    deviceName = "emu64",
+                ),
+            ),
+        )
+        val client = BridgeClient(adb = adb, projectRoot = temporaryFolder.newFolder())
+
+        val devices = client.devices()
+
+        assertEquals(2, devices.size)
+        assertEquals("SM_G986N", devices.first().model)
+        assertEquals("offline", devices[1].state)
+    }
+
+    @Test
+    fun selectedDeviceSerialScopesBridgeAdbCommands() = runBlocking {
+        val adb = FakeAdbFacade(
+            sessionJson = sessionJson(protocol = "1.0"),
+            devices = listOf(
+                AdbDevice("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp", "device"),
+            ),
+        )
+        val socket = CapturingBridgeSocket(
+            responsePayload = """
+                {
+                  "id": "req_1",
+                  "ok": true,
+                  "result": {
+                    "bridgeProtocolVersion": "1.0",
+                    "activity": "MainActivity"
+                  }
+                }
+            """.trimIndent(),
+        )
+        val client = BridgeClient(
+            adb = adb,
+            projectRoot = temporaryFolder.newFolder(),
+            portAllocator = { 34567 },
+            socketConnector = { socket },
+        )
+
+        client.selectDevice("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp")
+        client.request("io.github.pointpatch.sample", "status")
+
+        assertEquals("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp", client.selectedDeviceSerial())
+        assertEquals(listOf("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp"), adb.runAsSerials)
+        assertEquals(listOf("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp"), adb.forwardSerials)
+        assertEquals(listOf("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp"), adb.removeForwardSerials)
+    }
+
+    @Test
+    fun selectedDeviceSerialMustBeConnected() = runBlocking {
+        val adb = FakeAdbFacade(
+            sessionJson = sessionJson(protocol = "1.0"),
+            devices = listOf(AdbDevice("device-1", "device")),
+        )
+        val client = BridgeClient(
+            adb = adb,
+            projectRoot = temporaryFolder.newFolder(),
+            portAllocator = { 34567 },
+            socketConnector = { error("socket should not be opened") },
+        )
+
+        client.selectDevice("missing-device")
+        val error = kotlin.runCatching {
+            client.request("io.github.pointpatch.sample", "status")
+        }.exceptionOrNull()
+
+        assertTrue(error is NoDeviceException)
+        assertEquals(emptyList<String?>(), adb.runAsSerials)
+        assertEquals(emptyList<String?>(), adb.forwardSerials)
+    }
+
+    @Test
+    fun selectedDeviceSerialMustBeReady() = runBlocking {
+        val adb = FakeAdbFacade(
+            sessionJson = sessionJson(protocol = "1.0"),
+            devices = listOf(AdbDevice("device-1", "offline")),
+        )
+        val client = BridgeClient(
+            adb = adb,
+            projectRoot = temporaryFolder.newFolder(),
+            portAllocator = { 34567 },
+            socketConnector = { error("socket should not be opened") },
+        )
+
+        client.selectDevice("device-1")
+        val error = kotlin.runCatching {
+            client.request("io.github.pointpatch.sample", "status")
+        }.exceptionOrNull()
+
+        assertTrue(error is NoDeviceException)
+        assertEquals(emptyList<String?>(), adb.runAsSerials)
+        assertEquals(emptyList<String?>(), adb.forwardSerials)
+    }
+
+    @Test
+    fun disconnectDeviceClearsOnlyClientSelection() {
+        val client = BridgeClient(
+            adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.0")),
+            projectRoot = temporaryFolder.newFolder(),
+        )
+
+        client.selectDevice("device-1")
+        client.disconnectDevice()
+
+        assertEquals(null, client.selectedDeviceSerial())
+    }
+
+    @Test
     fun framesStatusRequestAndValidatesProtocolVersion() = runBlocking {
         val adb = FakeAdbFacade(
             sessionJson = sessionJson(protocol = "1.0"),
@@ -330,6 +455,89 @@ class BridgeClientTest {
     }
 
     @Test
+    fun nestedScreenshotReadsPreserveParentSelectedDevice() = runBlocking {
+        val root = temporaryFolder.newFolder()
+        lateinit var client: BridgeClient
+        val adb = FakeAdbFacade(
+            sessionJson = sessionJson(protocol = "1.0"),
+            devices = listOf(
+                AdbDevice("device-1", "device"),
+                AdbDevice("device-2", "device"),
+            ),
+        )
+        val bridgeSockets =
+            listOf(
+                CapturingBridgeSocket(
+                    responsePayload = """
+                        {
+                          "id": "req_1",
+                          "ok": true,
+                          "result": {
+                            "submitted": true,
+                            "timedOut": false,
+                            "timeoutMillis": 120000,
+                            "bridgeProtocolVersion": "1.0",
+                            "annotation": {
+                              "id": "ann-123",
+                              "screenshot": {
+                                "fullPath": "/data/user/0/io.github.pointpatch.sample/cache/pointpatch/ann-123-full.png",
+                                "cropPath": "/data/user/0/io.github.pointpatch.sample/cache/pointpatch/ann-123-crop.png"
+                              }
+                            }
+                          }
+                        }
+                    """.trimIndent(),
+                    onClose = { client.selectDevice("device-2") },
+                ),
+                CapturingBridgeSocket(
+                    responsePayload = """
+                        {
+                          "id": "req_2",
+                          "ok": true,
+                          "result": {
+                            "bridgeProtocolVersion": "1.0",
+                            "path": "/data/user/0/io.github.pointpatch.sample/cache/pointpatch/ann-123-full.png",
+                            "kind": "full",
+                            "mimeType": "image/png",
+                            "base64": "ZnVsbC1wbmc="
+                          }
+                        }
+                    """.trimIndent(),
+                ),
+                CapturingBridgeSocket(
+                    responsePayload = """
+                        {
+                          "id": "req_3",
+                          "ok": true,
+                          "result": {
+                            "bridgeProtocolVersion": "1.0",
+                            "path": "/data/user/0/io.github.pointpatch.sample/cache/pointpatch/ann-123-crop.png",
+                            "kind": "crop",
+                            "mimeType": "image/png",
+                            "base64": "Y3JvcC1wbmc="
+                          }
+                        }
+                    """.trimIndent(),
+                ),
+            )
+        val sockets = ArrayDeque(bridgeSockets)
+        client = BridgeClient(
+            adb = adb,
+            projectRoot = root,
+            portAllocator = { 34567 + adb.forwarded.size },
+            socketConnector = { sockets.removeFirst() },
+        )
+
+        client.selectDevice("device-1")
+        client.startFeedbackCapture("io.github.pointpatch.sample", timeoutMillis = 120_000L)
+
+        assertEquals(listOf("device-1", "device-1", "device-1"), adb.runAsSerials)
+        assertEquals(listOf("device-1", "device-1", "device-1"), adb.forwardSerials)
+        assertEquals(listOf("device-1", "device-1", "device-1"), adb.removeForwardSerials)
+        assertEquals("device-2", client.selectedDeviceSerial())
+    }
+
+    @Test
     fun captureScreenSnapshotPullsFullScreenshotArtifact() = runBlocking {
         val root = temporaryFolder.newFolder()
         val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.0"))
@@ -523,12 +731,17 @@ class BridgeClientTest {
         return input.readNBytes(length).toString(Charsets.UTF_8)
     }
 
-    private class CapturingBridgeSocket(responsePayload: String) : BridgeSocket {
+    private class CapturingBridgeSocket(
+        responsePayload: String,
+        private val onClose: () -> Unit = {},
+    ) : BridgeSocket {
         override val input = ByteArrayInputStream(frame(responsePayload))
         override val output = ByteArrayOutputStream()
         override var readTimeoutMillis: Int = 0
         val written: ByteArrayOutputStream get() = output as ByteArrayOutputStream
-        override fun close() = Unit
+        override fun close() {
+            onClose()
+        }
 
         private fun frame(payload: String): ByteArray {
             val output = ByteArrayOutputStream()
@@ -584,24 +797,44 @@ class BridgeClientTest {
 
     private class FakeAdbFacade(
         private val sessionJson: String,
+        private val devices: List<AdbDevice> = listOf(AdbDevice("emulator-5554", "device")),
+        private val selectedSerial: String? = null,
+        val forwarded: MutableList<Pair<Int, String>> = mutableListOf(),
+        val removedForwards: MutableList<Int> = mutableListOf(),
+        val pulled: MutableList<Pair<String, File>> = mutableListOf(),
+        val runAsSerials: MutableList<String?> = mutableListOf(),
+        val forwardSerials: MutableList<String?> = mutableListOf(),
+        val removeForwardSerials: MutableList<String?> = mutableListOf(),
     ) : AdbFacade {
-        val forwarded = mutableListOf<Pair<Int, String>>()
-        val removedForwards = mutableListOf<Int>()
-        val pulled = mutableListOf<Pair<String, File>>()
+        override fun devices(): List<AdbDevice> = devices
 
-        override fun devices(): List<AdbDevice> = listOf(AdbDevice("emulator-5554", "device"))
+        override fun forDevice(serial: String?): AdbFacade =
+            FakeAdbFacade(
+                sessionJson = sessionJson,
+                devices = devices,
+                selectedSerial = serial,
+                forwarded = forwarded,
+                removedForwards = removedForwards,
+                pulled = pulled,
+                runAsSerials = runAsSerials,
+                forwardSerials = forwardSerials,
+                removeForwardSerials = removeForwardSerials,
+            )
 
         override fun runAsCat(packageName: String, path: String): String {
+            runAsSerials += selectedSerial
             assertEquals("io.github.pointpatch.sample", packageName)
             assertEquals("files/pointpatch/session.json", path)
             return sessionJson
         }
 
         override fun forward(localPort: Int, socketAddress: String) {
+            forwardSerials += selectedSerial
             forwarded += localPort to socketAddress
         }
 
         override fun removeForward(localPort: Int) {
+            removeForwardSerials += selectedSerial
             removedForwards += localPort
         }
 

@@ -4,9 +4,13 @@ import com.github.ajalt.clikt.core.CoreCliktCommand
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import io.github.pointpatch.cli.Adb
+import io.github.pointpatch.cli.AdbDevice
 import io.github.pointpatch.cli.BridgeClient
 import java.io.File
 import kotlinx.coroutines.runBlocking
+
+internal fun hasConnectedAndroidDevice(devices: List<AdbDevice>): Boolean =
+    devices.any { it.state == "device" }
 
 class DoctorCommand : CoreCliktCommand(name = "doctor") {
     private val packageName by option("--package", help = "Android application id to diagnose")
@@ -41,7 +45,7 @@ class DoctorCommand : CoreCliktCommand(name = "doctor") {
             adb.devices()
         }
         check("device connected") {
-            require(adb.devices().isNotEmpty()) { "No connected Android device or emulator found" }
+            require(hasConnectedAndroidDevice(adb.devices())) { "No connected Android device or emulator found" }
         }
         check("sidekick session found") {
             val pkg = resolvedPackage ?: client.resolvePackageName(packageName)

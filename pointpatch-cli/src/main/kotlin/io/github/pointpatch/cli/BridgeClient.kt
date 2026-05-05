@@ -63,20 +63,56 @@ class BridgeClient(
     private val socketConnector: (Int) -> BridgeSocket = { port -> TcpBridgeSocket(port, socketTimeoutMillis) },
 ) {
     private val requestIds = AtomicInteger(0)
+    @Volatile
+    private var selectedDeviceSerial: String? = null
+
+    fun devices(): List<AdbDevice> = adb.devices()
+
+    fun selectDevice(serial: String) {
+        require(serial.isNotBlank()) { "Device serial must not be blank" }
+        selectedDeviceSerial = serial
+    }
+
+    fun disconnectDevice() {
+        selectedDeviceSerial = null
+    }
+
+    fun selectedDeviceSerial(): String? = selectedDeviceSerial
+
+    private fun requestScope(): BridgeRequestScope {
+        val serial = selectedDeviceSerial
+        return BridgeRequestScope(selectedDeviceSerial = serial, adb = adb.forDevice(serial))
+    }
 
     suspend fun request(
         packageName: String,
         method: String,
         params: JsonObject = JsonObject(emptyMap()),
         readTimeoutMillis: Long = socketTimeoutMillis.toLong(),
+    ): JsonObject =
+        requestInScope(requestScope(), packageName, method, params, readTimeoutMillis)
+
+    private suspend fun requestInScope(
+        scope: BridgeRequestScope,
+        packageName: String,
+        method: String,
+        params: JsonObject = JsonObject(emptyMap()),
+        readTimeoutMillis: Long = socketTimeoutMillis.toLong(),
     ): JsonObject = suspendCancellableCoroutine { continuation ->
-        val activeRequest = ActiveBridgeRequest(adb)
+        val activeRequest = ActiveBridgeRequest(scope.adb)
         val worker = thread(
             name = "pointpatch-bridge-request-${requestIds.get() + 1}",
             isDaemon = true,
         ) {
             try {
-                val result = executeRequest(packageName, method, params, readTimeoutMillis, activeRequest)
+                val result = executeRequest(
+                    packageName,
+                    method,
+                    params,
+                    readTimeoutMillis,
+                    scope,
+                    activeRequest,
+                )
                 if (continuation.isActive) continuation.resume(result)
             } catch (error: Throwable) {
                 if (continuation.isActive) continuation.resumeWithException(error)
@@ -93,14 +129,15 @@ class BridgeClient(
         method: String,
         params: JsonObject,
         readTimeoutMillis: Long,
+        scope: BridgeRequestScope,
         activeRequest: ActiveBridgeRequest,
     ): JsonObject {
-        ensureDeviceConnected()
-        val session = readSession(packageName)
+        ensureDeviceConnected(scope.adb, scope.selectedDeviceSerial)
+        val session = readSidekickSession(scope.adb, packageName)
         validateProtocol(session.bridgeProtocolVersion)
         val localPort = portAllocator()
         activeRequest.registerForwardPort(localPort)
-        adb.forward(localPort, session.socketAddress)
+        scope.adb.forward(localPort, session.socketAddress)
         activeRequest.markForwardEstablished()
         activeRequest.throwIfCancelled()
 
@@ -151,7 +188,10 @@ class BridgeClient(
     fun resolvePackageName(packageOverride: String?): String =
         ProjectConfig.resolvePackageName(projectRoot, packageOverride)
 
-    suspend fun pullArtifacts(packageName: String, annotation: JsonObject): JsonObject {
+    suspend fun pullArtifacts(packageName: String, annotation: JsonObject): JsonObject =
+        pullArtifacts(packageName, annotation, requestScope())
+
+    private suspend fun pullArtifacts(packageName: String, annotation: JsonObject, scope: BridgeRequestScope): JsonObject {
         val annotationId = annotation["id"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
             ?: return annotation
         val screenshot = annotation["screenshot"]?.jsonObject ?: return annotation
@@ -162,12 +202,14 @@ class BridgeClient(
         }
 
         val fullDesktopPath = readScreenshotArtifact(
+            scope = scope,
             packageName = packageName,
             kind = "full",
             androidPath = screenshot["fullPath"]?.jsonPrimitive?.contentOrNull,
             destination = artifactDirectory.resolve("$artifactId-full.png"),
         )
         val cropDesktopPath = readScreenshotArtifact(
+            scope = scope,
             packageName = packageName,
             kind = "crop",
             androidPath = screenshot["cropPath"]?.jsonPrimitive?.contentOrNull,
@@ -186,7 +228,9 @@ class BridgeClient(
     }
 
     suspend fun startFeedbackCapture(packageName: String, timeoutMillis: Long): JsonObject {
-        val result = request(
+        val scope = requestScope()
+        val result = requestInScope(
+            scope = scope,
             packageName = packageName,
             method = "startFeedbackCapture",
             params = buildJsonObject {
@@ -195,7 +239,7 @@ class BridgeClient(
             readTimeoutMillis = timeoutMillis.saturatingPlus(FeedbackCaptureTimeoutPaddingMillis),
         )
         val annotation = result["annotation"]?.jsonObject ?: return result
-        val rewrittenAnnotation = pullArtifacts(packageName, annotation)
+        val rewrittenAnnotation = pullArtifacts(packageName, annotation, scope)
         return buildJsonObject {
             result.forEach { (key, value) -> put(key, value) }
             put("annotation", rewrittenAnnotation)
@@ -211,7 +255,8 @@ class BridgeClient(
         screenId: String? = null,
         destinationDirectory: File? = null,
     ): JsonObject {
-        val result = request(packageName = packageName, method = "captureScreenSnapshot")
+        val scope = requestScope()
+        val result = requestInScope(scope = scope, packageName = packageName, method = "captureScreenSnapshot")
         val screenshot = result["screenshot"]?.jsonObject ?: return result
         val artifactId = (screenId ?: "screen-${System.currentTimeMillis()}").sanitizedPathSegment()
         val artifactDirectory = destinationDirectory ?: projectRoot.resolve(".pointpatch/artifacts/$artifactId")
@@ -220,6 +265,7 @@ class BridgeClient(
         }
 
         val fullDesktopPath = readScreenshotArtifact(
+            scope = scope,
             packageName = packageName,
             kind = "full",
             androidPath = screenshot["fullPath"]?.jsonPrimitive?.contentOrNull,
@@ -237,13 +283,22 @@ class BridgeClient(
         }
     }
 
-    private fun ensureDeviceConnected() {
-        if (adb.devices().isEmpty()) {
-            throw NoDeviceException("No connected Android device or emulator found")
+    private fun ensureDeviceConnected(adb: AdbFacade, selectedDeviceSerial: String?) {
+        val devices = adb.devices()
+        if (selectedDeviceSerial == null) {
+            if (devices.none { it.state == "device" }) {
+                throw NoDeviceException("No connected Android device or emulator found")
+            }
+            return
+        }
+        val device = devices.firstOrNull { it.serial == selectedDeviceSerial }
+            ?: throw NoDeviceException("Selected Android device is not connected: $selectedDeviceSerial")
+        if (device.state != "device") {
+            throw NoDeviceException("Selected Android device is not ready: $selectedDeviceSerial (${device.state})")
         }
     }
 
-    private fun readSession(packageName: String): SidekickSession =
+    private fun readSidekickSession(adb: AdbFacade, packageName: String): SidekickSession =
         runCatching {
             pointPatchJson.decodeFromString(
                 SidekickSession.serializer(),
@@ -264,6 +319,7 @@ class BridgeClient(
     }
 
     private suspend fun readScreenshotArtifact(
+        scope: BridgeRequestScope,
         packageName: String,
         kind: String,
         androidPath: String?,
@@ -271,7 +327,8 @@ class BridgeClient(
         source: String = "annotation",
     ): String? {
         androidPath?.takeIf { it.isNotBlank() } ?: return null
-        val result = request(
+        val result = requestInScope(
+            scope = scope,
             packageName = packageName,
             method = "readScreenshot",
             params = buildJsonObject {
@@ -289,6 +346,11 @@ class BridgeClient(
         return destination.absolutePath
     }
 }
+
+private data class BridgeRequestScope(
+    val selectedDeviceSerial: String?,
+    val adb: AdbFacade,
+)
 
 private class ActiveBridgeRequest(private val adb: AdbFacade) {
     private val lock = Object()
