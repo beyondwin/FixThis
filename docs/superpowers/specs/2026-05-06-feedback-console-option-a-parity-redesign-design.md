@@ -41,17 +41,19 @@ details should serve the Option A workspace rather than dictate the visible UI.
 
 The prototype is the behavioral source, with these explicit visual deviations:
 
-- Remove the top-right prototype action buttons `+ New session` and
-  `Save snapshot`.
+- Remove the top-right prototype action button `+ New session`.
+- Keep the Option A primary `Save snapshot` action, but change its PointPatch
+  behavior: clicking it sends the currently registered annotations to the AI
+  agent handoff path.
 - Remove the visible navigation cluster `Back`, `Up`, `Down`, `Left`, `Right`.
 - Do not replace those controls with another old-style top-bar action rail.
 - Keep the canvas toolbar focused on `Select`, `Annotate`, annotation stats,
   and zoom/status treatment.
 
-The save/session lifecycle must therefore become native to the annotation
-workspace. Creating, editing, deleting, and marking annotations should persist
-through the annotation APIs rather than requiring a visible `Save snapshot`
-button.
+Creating, editing, deleting, and marking annotations should persist through the
+annotation APIs. `Save snapshot` is not a local draft-save button; it is the
+Option A primary handoff action for sending the registered annotations to the AI
+agent.
 
 ## Target Layout
 
@@ -61,7 +63,7 @@ Use the Option A dark Studio shell:
 56px top bar
   left: PointPatch Studio brand
   middle: project/session/device context styled as an Option A breadcrumb
-  right: no New Session / Save Snapshot action group
+  right: Save snapshot primary action, with no New Session action
 
 body
   left: History panel
@@ -136,8 +138,15 @@ No selected annotation:
 - Header: `Annotations`
 - Count: total annotations for the active snapshot/session
 - Body: annotation rows with number, label, comment preview, and status pill
-- Empty state: Option A "No annotations yet" style with a primary
-  `Start annotating` action that switches to `Annotate`
+- Empty state uses the exact Option A copy and action:
+
+```text
+No annotations yet
+Switch to Annotate, then click a widget or drag a region on the preview.
+Start annotating
+```
+
+The `Start annotating` action switches the canvas tool to `Annotate`.
 
 Selected annotation:
 
@@ -242,11 +251,18 @@ Required API capabilities:
 The old batch-only `Save` flow can remain as a compatibility layer only if the
 visible UX still behaves like immediate Option A annotations.
 
-## Copy And Send Behavior
+## Save Snapshot And Agent Handoff Behavior
 
 Option A parity changes the handoff source from "pending items waiting for Save"
-to "current persisted annotations". Copy/Send output should include the same
-target evidence as before, but now include:
+to "current registered annotations".
+
+`Save snapshot` is the primary user action for handing registered annotations to
+the AI agent. In PointPatch terms, it creates the persisted local handoff that
+the agent/tooling can read. It must not call an external AI API unless a later
+design explicitly adds that integration.
+
+The handoff output should include the same target evidence as before, but now
+include:
 
 - annotation number
 - label
@@ -255,9 +271,14 @@ target evidence as before, but now include:
 - comment
 - target evidence and likely source hints
 
-Resolved annotations may remain visible in history and Copy/Send context, but
-the implementation plan should define whether Send includes all annotations or
-only non-resolved annotations. The UI must still display all statuses.
+Resolved annotations remain visible in history. `Save snapshot` should send the
+currently registered annotation set for the active snapshot/session unless the
+implementation plan explicitly narrows the send set. The UI must still display
+all statuses.
+
+If `Copy` or `Send` compatibility controls remain internally, they should route
+through the same annotation handoff source. The visible Option A primary action
+is `Save snapshot`.
 
 ## Removed UI
 
@@ -265,7 +286,6 @@ The following visible controls should not appear in the final parity UI:
 
 ```text
 New Session
-Save snapshot
 Back
 Up
 Down
@@ -288,6 +308,11 @@ HTML/JS contract tests should assert:
 
 - Option A shell classes and tokens remain present.
 - `Select` and `Annotate` tools render in the canvas toolbar.
+- the exact empty annotation copy appears: `No annotations yet`, `Switch to
+  Annotate, then click a widget or drag a region on the preview.`, and
+  `Start annotating`
+- `Save snapshot` is present as the primary agent handoff action.
+- `New Session` is absent.
 - The old navigation button labels are absent from the visible canvas toolbar.
 - The old `Composer` title is absent.
 - `Annotations` and `Annotation` inspector states exist.
@@ -304,7 +329,8 @@ Service and persistence tests should assert:
 - status updates persist and reload
 - label/comment edits persist and reload
 - delete removes only one annotation and renumbers UI order
-- Copy/Send serialization includes label, severity, status, comment, and target
+- `Save snapshot` creates the AI agent handoff from registered annotations
+- handoff serialization includes label, severity, status, comment, and target
   evidence
 
 Manual browser smoke should verify:
@@ -317,6 +343,8 @@ Manual browser smoke should verify:
 - clicking a preview pin opens the same detail
 - changing severity recolors the pin and row strip
 - changing status updates `open/resolved` counts
+- clicking `Save snapshot` produces an agent-readable handoff from the current
+  annotations
 
 ## Risks
 
@@ -341,6 +369,8 @@ The design is implemented when:
   sync
 - severity and status controls are editable and persistent
 - open/resolved counts update from annotation state
+- `Save snapshot` sends the registered annotations through the AI agent handoff
+  path
 - old visible navigation buttons and composer/draft workflow are gone
 - history item clicks, annotation row clicks, and preview pin clicks reproduce
   the prototype behavior
