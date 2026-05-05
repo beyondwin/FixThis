@@ -81,6 +81,81 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun consoleHtmlUsesOptionAStudioShell() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("class=\"studio-shell\""))
+        assertTrue(html.contains("class=\"studio-topbar\""))
+        assertTrue(html.contains("class=\"studio-history\""))
+        assertTrue(html.contains("class=\"studio-canvas\""))
+        assertTrue(html.contains("class=\"studio-inspector\""))
+        assertTrue(html.contains("id=\"previewModeBadge\""))
+        assertTrue(html.contains("id=\"canvasToolbar\""))
+        assertTrue(html.contains("id=\"inspectorTitle\""))
+        assertTrue(html.contains("id=\"inspectorBody\""))
+        assertTrue(html.contains("id=\"inspectorFooter\""))
+        assertTrue(html.contains("--bg-0: #0d0e10"))
+        assertTrue(html.contains("--accent: #b8d36a"))
+        assertFalse(html.contains("class=\"queue-pane\""))
+    }
+
+    @Test
+    fun consoleHtmlKeepsPointPatchTopLevelActionsInStudioTopbar() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("id=\"refreshButton\""))
+        assertTrue(html.contains("id=\"addFlowButton\""))
+        assertTrue(html.contains("id=\"saveButton\""))
+        assertTrue(html.contains("id=\"copyMarkdownButton\""))
+        assertTrue(html.contains("id=\"sendDraftButton\""))
+        assertTrue(html.contains("id=\"newSessionButton\""))
+        assertTrue(html.contains("id=\"closeSessionButton\""))
+        assertTrue(html.contains(">Refresh<"))
+        assertTrue(html.contains(">Add<"))
+        assertTrue(html.contains(">Save<"))
+        assertTrue(html.contains(">Copy<"))
+        assertTrue(html.contains(">Send<"))
+        assertTrue(html.contains(">New<"))
+        assertTrue(html.contains(">Close<"))
+        assertFalse(html.contains("id=\"modeSelect\""))
+        assertFalse(html.contains("id=\"modeNavigate\""))
+    }
+
+    @Test
+    fun consoleHtmlRefreshPreviewOnlyRendersPreviewRegion() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val refreshPreviewBody = javascriptFunctionBody(html, "refreshPreview")
+
+        assertTrue(html.contains("function renderPreviewRegion"))
+        assertTrue(html.contains("function renderSessionRegions"))
+        assertTrue(html.contains("function renderInspectorRegion"))
+        assertTrue(html.contains("function renderPreviewOnly"))
+        assertTrue(refreshPreviewBody.contains("renderPreviewOnly();"))
+        assertFalse(refreshPreviewBody.contains("render();"))
+    }
+
+    private fun javascriptFunctionBody(html: String, functionName: String): String {
+        val declarationStart = html.indexOf("function $functionName(")
+        assertTrue(declarationStart >= 0, "Missing JavaScript function: $functionName")
+
+        val bodyStart = html.indexOf('{', declarationStart)
+        assertTrue(bodyStart >= 0, "Missing JavaScript function body: $functionName")
+
+        var depth = 1
+        for (index in bodyStart + 1 until html.length) {
+            when (html[index]) {
+                '{' -> depth++
+                '}' -> {
+                    depth--
+                    if (depth == 0) return html.substring(bodyStart + 1, index)
+                }
+            }
+        }
+
+        throw AssertionError("Unclosed JavaScript function body: $functionName")
+    }
+
+    @Test
     fun consoleHtmlIncludesSelectionHandoffWorkspace() {
         val html = FeedbackConsoleAssets.indexHtml
 

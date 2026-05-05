@@ -82,7 +82,7 @@ Preserve from PointPatch:
 **Files:**
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Add failing HTML contract tests for the Studio shell**
+- [x] **Step 1: Add failing HTML contract tests for the Studio shell**
 
 Add this test near the existing console HTML tests:
 
@@ -107,7 +107,7 @@ fun consoleHtmlUsesOptionAStudioShell() {
 }
 ```
 
-- [ ] **Step 2: Add failing tests for preserved PointPatch actions**
+- [x] **Step 2: Add failing tests for preserved PointPatch actions**
 
 Add this test:
 
@@ -135,7 +135,7 @@ fun consoleHtmlKeepsPointPatchTopLevelActionsInStudioTopbar() {
 }
 ```
 
-- [ ] **Step 3: Add failing tests for render isolation**
+- [x] **Step 3: Add failing tests for render isolation**
 
 Add this test:
 
@@ -153,7 +153,7 @@ fun consoleHtmlRefreshPreviewOnlyRendersPreviewRegion() {
 }
 ```
 
-- [ ] **Step 4: Run the failing targeted test**
+- [x] **Step 4: Run the failing targeted test**
 
 Run:
 
@@ -163,7 +163,9 @@ Run:
 
 Expected: the three new tests fail because the current console still uses the light layout, `queue-pane`, and full `render()` on preview refresh.
 
-- [ ] **Step 5: Commit the failing tests**
+Actual RED run: 2 failures. `consoleHtmlKeepsPointPatchTopLevelActionsInStudioTopbar` already passes because the current console has the preserved top-level PointPatch button IDs and labels, while `consoleHtmlUsesOptionAStudioShell` and `consoleHtmlRefreshPreviewOnlyRendersPreviewRegion` remain red.
+
+- [x] **Step 5: Commit the failing tests**
 
 ```bash
 git add pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
