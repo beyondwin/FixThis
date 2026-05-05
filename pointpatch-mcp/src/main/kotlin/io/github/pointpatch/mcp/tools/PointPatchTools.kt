@@ -178,8 +178,9 @@ class PointPatchTools(
                 })
             }
             "pointpatch_navigate_app" -> bridgeToolResult {
+                val request = arguments.navigationRequest()
                 val session = requestedSession(arguments)
-                val result = feedbackService.navigate(session.sessionId, arguments.navigationRequest())
+                val result = feedbackService.navigate(session.sessionId, request)
                 jsonToolResult(buildJsonObject {
                     put("sessionId", session.sessionId)
                     McpProtocol.json.encodeToJsonElement(FeedbackNavigationResult.serializer(), result)

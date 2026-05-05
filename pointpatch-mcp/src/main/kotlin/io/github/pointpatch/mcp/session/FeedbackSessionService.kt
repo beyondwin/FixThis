@@ -5,6 +5,7 @@ import io.github.pointpatch.compose.core.model.PointPatchRect
 import io.github.pointpatch.mcp.McpProtocol
 import io.github.pointpatch.mcp.tools.PointPatchBridge
 import java.io.File
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.decodeFromJsonElement
@@ -113,7 +114,7 @@ class FeedbackSessionService(
             )
         }
 
-        return runCatching {
+        return try {
             val screen = captureScreen(sessionId)
             FeedbackNavigationResult(
                 performed = performed,
@@ -122,7 +123,9 @@ class FeedbackSessionService(
                 message = message,
                 screen = screen,
             )
-        }.getOrElse { error ->
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Throwable) {
             FeedbackNavigationResult(
                 performed = performed,
                 action = request.action,

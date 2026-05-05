@@ -1,9 +1,11 @@
 package io.github.pointpatch.mcp.session
 
 import io.github.pointpatch.compose.core.model.PointPatchRect
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class FeedbackSessionServiceTest {
@@ -187,6 +189,28 @@ class FeedbackSessionServiceTest {
             bridge.lastCaptureDestination!!
                 .contains(".pointpatch/feedback-sessions/session-1/artifacts/screens/screen-1"),
         )
+    }
+
+    @Test
+    fun navigatePropagatesCancellationFromFollowUpCapture() {
+        runBlocking {
+            val store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1").next)
+            val bridge = FakePointPatchBridge(captureError = CancellationException("capture cancelled"))
+            val service = FeedbackSessionService(
+                bridge = bridge,
+                store = store,
+                projectRoot = "/repo",
+                defaultPackageName = "io.github.pointpatch.sample",
+            )
+            val session = service.openSession(null)
+
+            assertFailsWith<CancellationException> {
+                service.navigate(
+                    sessionId = session.sessionId,
+                    request = FeedbackNavigationRequest(action = FeedbackNavigationAction.BACK),
+                )
+            }
+        }
     }
 
     @Test

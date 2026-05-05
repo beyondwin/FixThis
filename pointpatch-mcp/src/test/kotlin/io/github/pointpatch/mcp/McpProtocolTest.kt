@@ -187,6 +187,25 @@ class McpProtocolTest {
     }
 
     @Test
+    fun navigateAppRejectsMissingActionWithoutCreatingSession() = runBlocking {
+        val projectRoot = createTempDir(prefix = "pointpatch-v2-nav-missing-action-")
+        val tools = PointPatchTools(
+            bridge = FakePointPatchBridge(packageName = "io.github.pointpatch.sample"),
+            defaultPackageName = "io.github.pointpatch.sample",
+            projectRoot = projectRoot,
+        )
+
+        val error = kotlin.runCatching {
+            tools.call("pointpatch_navigate_app", JsonObject(emptyMap()))
+        }.exceptionOrNull()
+        val listPayload = tools.call("pointpatch_list_feedback_sessions", JsonObject(emptyMap())).firstJsonContent()
+
+        assertTrue(error is io.github.pointpatch.mcp.tools.PointPatchToolException)
+        assertTrue(error?.message.orEmpty().contains("requires action"))
+        assertEquals(0, listPayload.getValue("sessions").jsonArray.size)
+    }
+
+    @Test
     fun navigateAppRejectsTapWithoutCoordinates() = runBlocking {
         val tools = PointPatchTools(
             bridge = FakePointPatchBridge(packageName = "io.github.pointpatch.sample"),
