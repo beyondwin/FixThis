@@ -9,25 +9,32 @@ object FeedbackQueueFormatter {
     fun toMarkdown(session: FeedbackSession): String = buildString {
         appendLine("# PointPatch Feedback Queue")
         appendLine()
-        appendLine("- Session: `${session.sessionId}`")
         appendLine("- Package: `${session.packageName}`")
         appendLine("- Status: `${session.status.name.lowercase()}`")
+        appendLine("- Screens: `${session.screens.size}`")
+        appendLine("- Feedback Items: `${session.items.size}`")
+        appendLine("- Handoff Batches: `${session.handoffBatches.size}`")
+        appendLine("- Updated At: `${session.updatedAtEpochMillis}`")
         appendLine()
         appendLine("> Screenshots are local debug artifacts. Review them before sharing exported content.")
         appendLine()
 
-        appendLine("## Screens")
+        appendLine("## Referenced Screens")
         appendLine()
-        if (session.screens.isEmpty()) {
-            appendLine("No captured screens.")
+        val referencedScreenIds = session.items.map { it.screenId }.toSet()
+        val referencedScreens = session.screens.filter { it.screenId in referencedScreenIds }
+        if (referencedScreens.isEmpty()) {
+            appendLine("No referenced screens.")
             appendLine()
         } else {
-            session.screens.forEachIndexed { index, screen ->
-                appendLine("### Screen ${index + 1} - ${screen.displayName}")
+            referencedScreens.forEach { screen ->
+                appendLine("### ${screenLabel(session, screen.screenId)}")
                 appendLine()
-                appendLine("- Screen ID: `${screen.screenId}`")
                 screen.activityName?.let { appendLine("- Activity: `$it`") }
-                screen.screenshot?.desktopFullPath?.let { appendLine("- Screenshot: `$it`") }
+                appendLine("- Captured At: `${screen.capturedAtEpochMillis}`")
+                if (screen.screenshot != null) appendLine("- Screenshot: local/debug artifact available through PointPatch tooling")
+                screen.screenshot?.dimensionsLabel()?.let { appendLine("- Screenshot Size: `$it`") }
+                appendLine("- Feedback Count: `${session.items.count { it.screenId == screen.screenId }}`")
                 appendLine()
             }
         }
@@ -53,14 +60,13 @@ object FeedbackQueueFormatter {
             session.handoffBatches.sortedBy { it.sequenceNumber }.forEach { batch ->
                 appendLine("### Batch #${batch.sequenceNumber}")
                 appendLine()
-                appendLine("- Batch ID: `${batch.batchId}`")
                 appendLine("- Sent At: `${batch.createdAtEpochMillis}`")
                 appendLine("- Item Count: `${batch.itemIds.size}`")
                 appendLine()
                 sentItems.filter { it.handoffBatchId == batch.batchId }
                     .forEach { item -> appendFeedbackItem(session, item) }
                 batch.itemIds.filter { itemId -> session.items.none { it.itemId == itemId } }
-                    .forEach { itemId -> appendMissingFeedbackItem(itemId) }
+                    .forEach { appendMissingFeedbackItem() }
             }
 
             sentItems.filter { item ->
@@ -73,8 +79,8 @@ object FeedbackQueueFormatter {
         }
     }
 
-    private fun StringBuilder.appendMissingFeedbackItem(itemId: String) {
-        appendLine("- Missing feedback item: `$itemId`")
+    private fun StringBuilder.appendMissingFeedbackItem() {
+        appendLine("- Missing feedback item metadata.")
         appendLine()
     }
 
@@ -82,21 +88,23 @@ object FeedbackQueueFormatter {
         val number = item.sequenceNumber?.let { "#$it " }.orEmpty()
         appendLine("### $number${item.comment.lineSequence().firstOrNull().orEmpty().ifBlank { "(No comment)" }}")
         appendLine()
-        appendLine("- Item ID: `${item.itemId}`")
         appendLine("- Delivery: `${item.delivery.name.lowercase()}`")
-        item.handoffBatchId?.let { appendLine("- Handoff Batch: `$it`") }
         appendLine("- Status: `${item.status.name.lowercase()}`")
+        val screen = session.screens.firstOrNull { it.screenId == item.screenId }
         appendLine("- Screen: `${screenLabel(session, item.screenId)}`")
+        screen?.activityName?.let { appendLine("- Activity: `$it`") }
+        screen?.let { appendLine("- Captured At: `${it.capturedAtEpochMillis}`") }
+        if (screen?.screenshot != null) appendLine("- Screenshot: local/debug artifact available through PointPatch tooling")
+        screen?.screenshot?.dimensionsLabel()?.let { appendLine("- Screenshot Size: `$it`") }
         appendLine("- Target: `${item.target.describe()}`")
         item.selectedNode?.let { node ->
-            appendLine("- Selected Node: `${node.uid}`")
             if (node.text.isNotEmpty()) appendLine("- Selected Text: `${node.text.joinToString(" | ")}`")
             if (node.contentDescription.isNotEmpty()) {
                 appendLine("- Selected Content Description: `${node.contentDescription.joinToString(" | ")}`")
             }
         }
         item.sourceCandidates.firstOrNull()?.let { candidate ->
-            appendLine("- Source candidate: `${candidate.file}${candidate.line?.let { line -> ":$line" }.orEmpty()}`")
+            appendLine("- Source Candidate: `${candidate.file}${candidate.line?.let { line -> ":$line" }.orEmpty()}`")
         }
         appendLine()
         appendLine(item.comment.ifBlank { "(No comment)" })
@@ -107,7 +115,7 @@ object FeedbackQueueFormatter {
         val index = session.screens.indexOfFirst { it.screenId == screenId }
         val screen = session.screens.getOrNull(index)
         return if (screen == null) {
-            screenId
+            "Unknown screen"
         } else {
             "Screen ${index + 1} - ${screen.displayName}"
         }
@@ -115,7 +123,10 @@ object FeedbackQueueFormatter {
 
     private fun FeedbackTarget.describe(): String =
         when (this) {
-            is FeedbackTarget.Area -> "area ${boundsInWindow.left},${boundsInWindow.top},${boundsInWindow.right},${boundsInWindow.bottom}"
-            is FeedbackTarget.Node -> "node $nodeUid"
+            is FeedbackTarget.Area -> "area bounds ${boundsInWindow.left},${boundsInWindow.top},${boundsInWindow.right},${boundsInWindow.bottom}"
+            is FeedbackTarget.Node -> "node bounds ${boundsInWindow.left},${boundsInWindow.top},${boundsInWindow.right},${boundsInWindow.bottom}"
         }
+
+    private fun FeedbackScreenshot.dimensionsLabel(): String? =
+        if (width != null && height != null) "${width}x$height" else null
 }

@@ -150,6 +150,8 @@ Lists feedback queue summaries for the active feedback session, including draft 
 
 Reads the feedback queue as annotation JSON and Markdown, optionally focused on one item. The output groups current draft feedback and Sent History handoff batches.
 
+The JSON output preserves the full feedback session schema for tools that need exact IDs. The Markdown output is the human/agent handoff view: it includes package/status counts, screen labels, target bounds, selected text or content descriptions, source candidates, comments, and screenshot availability/size, but omits raw session, screen, item, batch, and screenshot artifact IDs.
+
 `pointpatch_resolve_feedback`
 
 Marks a feedback item as resolved, needing clarification, or not fixed and stores the agent summary.

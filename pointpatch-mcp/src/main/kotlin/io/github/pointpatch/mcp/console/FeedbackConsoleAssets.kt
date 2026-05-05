@@ -334,16 +334,40 @@ internal object FeedbackConsoleAssets {
             function formatSessionSummary(session) {
               return [
                 session.packageName,
+                humanize(session.status),
                 countLabel(session.screensCount, 'screen', 'screens'),
                 countLabel(session.draftItemsCount, 'draft item', 'draft items'),
                 countLabel(session.sentBatchesCount, 'sent batch', 'sent batches'),
-                `updated ${'$'}{formatTime(session.updatedAtEpochMillis)}`,
-                `id ${'$'}{shortId(session.sessionId)}`
+                `updated ${'$'}{formatTime(session.updatedAtEpochMillis)}`
+              ].join(' | ');
+            }
+
+            function formatSessionHeader(session, itemCount) {
+              return [
+                session.packageName,
+                humanize(session.status),
+                countLabel(session.screens?.length || 0, 'screen', 'screens'),
+                countLabel(itemCount, 'feedback item', 'feedback items'),
+                `updated ${'$'}{formatTime(session.updatedAtEpochMillis)}`
               ].join(' | ');
             }
 
             function formatScreenLabel(screen, index) {
               return `Screen ${'$'}{index + 1} - ${'$'}{screen.displayName || screen.activityName || 'Screen'}`;
+            }
+
+            function screenshotDimensions(screen) {
+              const screenshot = screen?.screenshot;
+              return screenshot?.width && screenshot?.height ? `${'$'}{screenshot.width}x${'$'}{screenshot.height}` : null;
+            }
+
+            function formatScreenDetails(screen) {
+              return [
+                formatTime(screen.capturedAtEpochMillis),
+                screen.activityName || screen.displayName,
+                screenshotDimensions(screen),
+                countLabel(screenFeedbackCount(screen.screenId), 'feedback item', 'feedback items')
+              ].filter(Boolean).join(' | ');
             }
 
             function findScreen(screenId) {
@@ -399,7 +423,7 @@ internal object FeedbackConsoleAssets {
             }
 
             function formatBatchItemSummary(item) {
-              if (item.missing) return `Missing item ${'$'}{shortId(item.itemId)}`;
+              if (item.missing) return 'Missing feedback item metadata.';
               return formatItemLabel(item);
             }
 
@@ -706,13 +730,13 @@ internal object FeedbackConsoleAssets {
               const sentItems = allItems.filter(item => item.delivery === 'sent');
               const handoffBatches = session ? session.handoffBatches || [] : [];
               sessionMeta.textContent = session
-                ? `${'$'}{session.packageName} | ${'$'}{session.status} | ${'$'}{shortId(session.sessionId)} | ${'$'}{allItems.length} item(s)`
+                ? formatSessionHeader(session, allItems.length)
                 : 'No active session';
 
               screens.innerHTML = (session?.screens || []).map((screen, index) => `
                 <div class="row">
                   <strong>${'$'}{escapeHtml(formatScreenLabel(screen, index))}</strong>
-                  <span>${'$'}{escapeHtml(formatTime(screen.capturedAtEpochMillis))} | ${'$'}{escapeHtml(shortId(screen.screenId))} | ${'$'}{escapeHtml(countLabel(screenFeedbackCount(screen.screenId), 'feedback item', 'feedback items'))}</span>
+                  <span>${'$'}{escapeHtml(formatScreenDetails(screen))}</span>
                   <button class="delete-screen-button" type="button" data-screen-id="${'$'}{escapeHtml(screen.screenId)}">Delete</button>
                 </div>
               `).join('') || '<div class="row"><span>No screens captured.</span></div>';
@@ -741,7 +765,7 @@ internal object FeedbackConsoleAssets {
                 <div class="row">
                   <strong>${'$'}{escapeHtml(formatItemLabel(item))}</strong>
                   <span>${'$'}{escapeHtml(screenLabelForId(item.screenId))} | ${'$'}{escapeHtml(targetLabel(item))} | ${'$'}{escapeHtml(deliveryLabel(item.delivery))}</span>
-                  <span>${'$'}{escapeHtml(humanize(item.status))} | item ${'$'}{escapeHtml(shortId(item.itemId))} | screen ${'$'}{escapeHtml(shortId(item.screenId))}</span>
+                  <span>${'$'}{escapeHtml(humanize(item.status))}</span>
                 </div>
               `).join('') || '<div class="row"><span>No draft feedback items.</span></div>';
 
@@ -754,7 +778,6 @@ internal object FeedbackConsoleAssets {
                   <strong>${'$'}{escapeHtml(formatBatchLabel(batch))}</strong>
                   <span>${'$'}{escapeHtml(formatBatchDetails(batch, items))}</span>
                   <span>${'$'}{escapeHtml(items.map(formatBatchItemSummary).join('; ') || 'No feedback items recorded.')}</span>
-                  <span>batch ${'$'}{escapeHtml(shortId(batch.batchId))} | items ${'$'}{escapeHtml((batch.itemIds || []).map(shortId).join(', ') || '-')}</span>
                 </div>
               `;
               });
@@ -766,7 +789,6 @@ internal object FeedbackConsoleAssets {
                 <div class="row">
                   <strong>${'$'}{escapeHtml(label)}</strong>
                   <span>${'$'}{escapeHtml(formatItemLabel(item))} | ${'$'}{escapeHtml(formatTime(item.sentAtEpochMillis))} | ${'$'}{escapeHtml(screenLabelForId(item.screenId))} - ${'$'}{escapeHtml(humanize(item.status))}</span>
-                  <span>batch ${'$'}{escapeHtml(shortId(item.handoffBatchId))} | item ${'$'}{escapeHtml(shortId(item.itemId))} | screen ${'$'}{escapeHtml(shortId(item.screenId))}</span>
                 </div>
               `;
                 });

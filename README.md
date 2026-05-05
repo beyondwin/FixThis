@@ -95,7 +95,7 @@ MCP is the primary agent workflow for the feedback console. `pointpatch mcp` run
 
 The feedback console has separate Select and Navigate modes. Select mode creates feedback targets from a component click or custom drag area; Navigate mode sends the existing debug-only one-step `back`, `tap`, and `swipe` actions to the app. The browser device picker selects the active ADB device for PointPatch bridge requests, and unavailable, offline, or unauthorized devices are shown as unavailable rather than selectable.
 
-Send Draft to Agent persists the current draft as a local handoff batch that MCP tools can read. It does not call an external AI API. Sent history persists with the feedback session, and the draft is cleared after send.
+Send Draft to Agent persists the current draft as a local handoff batch that MCP tools can read. It does not call an external AI API. Sent history persists with the feedback session, and the draft is cleared after send. Agent-facing Markdown keeps the package, status, screen labels, target bounds, selected text/content descriptions, source candidates, comments, and screenshot availability/size, while avoiding raw session, screen, item, batch, and screenshot artifact IDs.
 
 Feedback console sessions are resumable. PointPatch saves feedback workspace metadata and screenshot artifacts under `.pointpatch/feedback-sessions/`, so an MCP or console restart does not discard queued feedback.
 

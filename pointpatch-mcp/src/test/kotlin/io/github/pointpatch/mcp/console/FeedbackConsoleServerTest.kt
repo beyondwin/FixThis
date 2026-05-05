@@ -147,6 +147,24 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun consoleHtmlDoesNotRenderInternalIdsInHumanLabels() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertFalse(html.contains("id \${shortId(session.sessionId)}"))
+        assertFalse(html.contains("\${session.status} | \${shortId(session.sessionId)}"))
+        assertFalse(html.contains(" | \${escapeHtml(shortId(screen.screenId))} | "))
+        assertFalse(html.contains("item \${escapeHtml(shortId(item.itemId))}"))
+        assertFalse(html.contains("screen \${escapeHtml(shortId(item.screenId))}"))
+        assertFalse(html.contains("batch \${escapeHtml(shortId(batch.batchId))}"))
+        assertFalse(html.contains("items \${escapeHtml((batch.itemIds || []).map(shortId).join(', ') || '-')}"))
+        assertFalse(html.contains("Missing item \${shortId(item.itemId)}"))
+
+        assertTrue(html.contains("function screenshotDimensions"))
+        assertTrue(html.contains("function formatScreenDetails"))
+        assertTrue(html.contains("function formatSessionHeader"))
+    }
+
+    @Test
     fun consoleHtmlImplementsSnapshotSelectionModes() {
         val html = FeedbackConsoleAssets.indexHtml
 
