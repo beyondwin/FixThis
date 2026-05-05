@@ -1187,7 +1187,7 @@ git commit -m "feat: add studio console shortcuts"
 **Files:**
 - Modify only if tests expose a real regression.
 
-- [ ] **Step 1: Run all console server tests**
+- [x] **Step 1: Run all console server tests**
 
 Run:
 
@@ -1197,7 +1197,7 @@ Run:
 
 Expected: pass. If an older string-contract test fails because it expects the old light layout, update only that assertion to the Studio equivalent while keeping the behavioral contract.
 
-- [ ] **Step 2: Run session/service tests that protect persistence and handoff**
+- [x] **Step 2: Run session/service tests that protect persistence and handoff**
 
 Run:
 
@@ -1207,7 +1207,7 @@ Run:
 
 Expected: pass. No persisted JSON schema, preview save, or handoff behavior should change.
 
-- [ ] **Step 3: Run the required broader tests**
+- [x] **Step 3: Run the required broader tests**
 
 Run:
 
@@ -1217,7 +1217,7 @@ Run:
 
 Expected: pass.
 
-- [ ] **Step 4: Run install distributions**
+- [x] **Step 4: Run install distributions**
 
 Run:
 
@@ -1227,7 +1227,7 @@ Run:
 
 Expected: pass.
 
-- [ ] **Step 5: Run diff whitespace check**
+- [x] **Step 5: Run diff whitespace check**
 
 Run:
 
@@ -1237,7 +1237,7 @@ git diff --check
 
 Expected: no output.
 
-- [ ] **Step 6: Commit verification-only test updates if any**
+- [x] **Step 6: Commit verification-only test updates if any**
 
 If Step 1 required test assertion updates, commit them:
 
@@ -1253,7 +1253,7 @@ If no files changed, do not create a commit for this task.
 **Files:**
 - Modify only if smoke exposes a real UI bug.
 
-- [ ] **Step 1: Rebuild runnable distributions**
+- [x] **Step 1: Rebuild runnable distributions**
 
 Run:
 
@@ -1263,7 +1263,7 @@ Run:
 
 Expected: pass.
 
-- [ ] **Step 2: Check connected devices**
+- [x] **Step 2: Check connected devices**
 
 Run:
 
@@ -1273,7 +1273,14 @@ ANDROID_HOME=/Users/kws/Library/Android/sdk PATH=/Users/kws/Library/Android/sdk/
 
 Expected when available: a `device` row for `SM_G986N` or another usable Android device. If the output has no device, `offline`, or `unauthorized`, record the raw output and skip only connected-device smoke.
 
-- [ ] **Step 3: Launch the console**
+- [x] **Step 3: Launch the console**
+
+Skipped on 2026-05-06 because the required ADB check returned no usable
+`device` rows:
+
+```text
+List of devices attached
+```
 
 Run:
 
@@ -1283,7 +1290,9 @@ ANDROID_HOME=/Users/kws/Library/Android/sdk PATH=/Users/kws/Library/Android/sdk/
 
 Expected: CLI prints a local console URL and `sidekick: connected` when the device is usable.
 
-- [ ] **Step 4: Browser smoke the idle Studio UI**
+- [x] **Step 4: Browser smoke the idle Studio UI**
+
+Skipped on 2026-05-06 because no connected-device console URL was available.
 
 Open the printed URL and verify:
 
@@ -1294,7 +1303,9 @@ Open the printed URL and verify:
 - Right inspector shows Draft/evidence state, not the composer.
 - Live preview refresh does not flicker Draft/evidence cards.
 
-- [ ] **Step 5: Browser smoke the Add flow**
+- [x] **Step 5: Browser smoke the Add flow**
+
+Skipped on 2026-05-06 because no connected-device console URL was available.
 
 Verify:
 
@@ -1307,7 +1318,9 @@ Verify:
 - `Delete` removes only that pending row and renumbers remaining overlays and rows.
 - No edit/severity/status UI appears for pending items.
 
-- [ ] **Step 6: Browser smoke Save, Copy, Send**
+- [x] **Step 6: Browser smoke Save, Copy, Send**
+
+Skipped on 2026-05-06 because no connected-device console URL was available.
 
 Verify:
 
@@ -1317,7 +1330,9 @@ Verify:
 - `Copy` copies compact Markdown.
 - `Send` creates a handoff batch and moves draft items out of Draft.
 
-- [ ] **Step 7: Commit smoke bug fixes if any**
+- [x] **Step 7: Commit smoke bug fixes if any**
+
+No smoke bug fixes were made on 2026-05-06, so no commit was created.
 
 If smoke required code fixes, run the targeted test from the affected task, then commit:
 
@@ -1334,7 +1349,7 @@ If no files changed, do not create a commit for this task.
 - Modify: `docs/design-feedback-console-ux.md`
 - Modify if needed: `docs/troubleshooting.md`
 
-- [ ] **Step 1: Update the UX status document**
+- [x] **Step 1: Update the UX status document**
 
 Replace the current workflow summary in `docs/design-feedback-console-ux.md` with:
 
@@ -1368,7 +1383,7 @@ The shipped feedback console is a local-first, MCP-owned Studio UI for Android p
 - `Copy` and `Send` are session-level actions.
 ```
 
-- [ ] **Step 2: Check troubleshooting docs**
+- [x] **Step 2: Check troubleshooting docs**
 
 Run:
 
@@ -1378,7 +1393,7 @@ rg -n "Select/Navigate|modeSelect|modeNavigate|Refresh Preview|Copy Agent Contex
 
 Expected: any references to removed old UI labels are reviewed. Update only text that now conflicts with the Studio UI.
 
-- [ ] **Step 3: Run docs verification**
+- [x] **Step 3: Run docs verification**
 
 Run:
 
@@ -1389,7 +1404,7 @@ git diff --check
 
 Expected: no stale UI references unless they are historical notes clearly marked as old/superseded; `git diff --check` has no output.
 
-- [ ] **Step 4: Commit docs**
+- [x] **Step 4: Commit docs**
 
 ```bash
 git add docs/design-feedback-console-ux.md docs/troubleshooting.md
