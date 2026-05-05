@@ -770,7 +770,7 @@ git commit -m "feat: add studio canvas modes"
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Add inspector mode test**
+- [x] **Step 1: Add inspector mode test**
 
 Add this test:
 
@@ -792,7 +792,7 @@ fun consoleHtmlUsesModeAwareStudioInspector() {
 }
 ```
 
-- [ ] **Step 2: Add missing DOM references**
+- [x] **Step 2: Add missing DOM references**
 
 Add references next to the existing element lookups:
 
@@ -803,7 +803,7 @@ const inspectorBody = document.getElementById('inspectorBody');
 const inspectorFooter = document.getElementById('inspectorFooter');
 ```
 
-- [ ] **Step 3: Implement composer inspector**
+- [x] **Step 3: Implement composer inspector**
 
 Move selection summary, comment, and pending items into a focused add-flow workspace:
 
@@ -823,7 +823,7 @@ function renderComposerInspector() {
 }
 ```
 
-- [ ] **Step 4: Implement draft inspector**
+- [x] **Step 4: Implement draft inspector**
 
 Make saved evidence groups the idle hero surface:
 
@@ -844,7 +844,7 @@ function renderDraftInspector() {
 }
 ```
 
-- [ ] **Step 5: Make saved evidence groups expanded cards**
+- [x] **Step 5: Make saved evidence groups expanded cards**
 
 Replace `details` with always-visible cards:
 
@@ -894,7 +894,7 @@ function hydrateSavedEvidencePreviews() {
 }
 ```
 
-- [ ] **Step 6: Add evidence card CSS**
+- [x] **Step 6: Add evidence card CSS**
 
 ```css
 .evidence-card {
@@ -940,7 +940,7 @@ function hydrateSavedEvidencePreviews() {
 .empty-body { max-width: 240px; font-size: 12px; line-height: 1.5; }
 ```
 
-- [ ] **Step 7: Run the inspector test**
+- [x] **Step 7: Run the inspector test**
 
 Run:
 
@@ -950,7 +950,7 @@ Run:
 
 Expected: pass.
 
-- [ ] **Step 8: Commit inspector workspace**
+- [x] **Step 8: Commit inspector workspace**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt

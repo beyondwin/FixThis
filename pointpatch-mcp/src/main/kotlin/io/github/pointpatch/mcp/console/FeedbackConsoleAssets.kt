@@ -323,19 +323,63 @@ internal object FeedbackConsoleAssets {
               font-size: 13px;
             }
             img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); }
-            details.evidence-group {
+            .evidence-card {
+              display: grid;
+              gap: 8px;
               border: 1px solid var(--line);
               border-radius: 8px;
               padding: 10px;
               background: var(--bg-1);
             }
-            details.evidence-group summary {
-              cursor: pointer;
+            .evidence-card-head {
+              display: flex;
+              align-items: flex-start;
+              justify-content: space-between;
+              gap: 10px;
+            }
+            .evidence-card-head strong {
               font-size: 13px;
-              font-weight: 700;
               color: var(--txt-0);
             }
+            .evidence-card-head span {
+              font-size: 11px;
+              color: var(--txt-2);
+            }
             .saved-evidence-preview { margin: 10px 0; }
+            .saved-evidence-frame {
+              position: relative;
+              overflow: hidden;
+              border-radius: 8px;
+              border: 1px solid var(--line);
+              background: var(--bg-2);
+            }
+            .saved-evidence-frame img {
+              display: block;
+              width: 100%;
+              height: auto;
+              border: 0;
+              border-radius: 0;
+            }
+            .saved-evidence-frame .selection-overlay { inset: 0; }
+            .empty-state {
+              display: grid;
+              place-items: center;
+              align-content: center;
+              gap: 8px;
+              min-height: 220px;
+              color: var(--txt-2);
+              text-align: center;
+            }
+            .empty-title {
+              color: var(--txt-0);
+              font-size: 13px;
+              font-weight: 700;
+            }
+            .empty-body {
+              max-width: 240px;
+              font-size: 12px;
+              line-height: 1.5;
+            }
             .error {
               color: var(--danger);
               font-size: 13px;
@@ -498,6 +542,10 @@ internal object FeedbackConsoleAssets {
             const snapshot = document.getElementById('snapshot');
             const snapshotTitle = document.getElementById('snapshotTitle');
             const previewModeBadge = document.getElementById('previewModeBadge');
+            const inspectorTitle = document.getElementById('inspectorTitle');
+            const inspectorCount = document.getElementById('inspectorCount');
+            const inspectorBody = document.getElementById('inspectorBody');
+            const inspectorFooter = document.getElementById('inspectorFooter');
             const draftItems = document.getElementById('draftItems');
             const pendingItems = document.getElementById('pendingItems');
             const error = document.getElementById('error');
@@ -508,9 +556,11 @@ internal object FeedbackConsoleAssets {
             const previewIntervalSelect = document.getElementById('previewIntervalSelect');
             const navigationControls = document.getElementById('navigationControls');
             const selectionSummary = document.getElementById('selectionSummary');
+            const clearSelectionButton = document.getElementById('clearSelectionButton');
             const addItemButton = document.getElementById('addItemButton');
             const saveButton = document.getElementById('saveButton');
             const cancelAddFlowButton = document.getElementById('cancelAddFlowButton');
+            const clearDraftButton = document.getElementById('clearDraftButton');
             let livePreviewTimer = null;
             let previewRequestGeneration = 0;
             let previewRequestContextGeneration = 0;
@@ -1134,18 +1184,24 @@ internal object FeedbackConsoleAssets {
             function renderSavedEvidenceGroups() {
               draftItems.innerHTML = savedEvidenceGroups().map(group => {
                 const screen = findScreen(group.screenId);
-                return '<details class="evidence-group">' +
-                  '<summary>' + escapeHtml(screen?.displayName || 'Saved evidence') + ' | ' + group.items.length + ' item' + (group.items.length === 1 ? '' : 's') + ' | screenshot attached</summary>' +
+                return '<article class="evidence-card">' +
+                  '<div class="evidence-card-head">' +
+                    '<strong>' + escapeHtml(screen?.displayName || 'Saved evidence') + '</strong>' +
+                    '<span>' + group.items.length + ' item' + (group.items.length === 1 ? '' : 's') + ' · screenshot attached</span>' +
+                  '</div>' +
                   '<div class="saved-evidence-preview" data-screen-id="' + escapeHtml(group.screenId) + '"></div>' +
                   group.items.map((item, index) =>
-                    '<div class="row">' +
+                    '<div class="row evidence-item-row">' +
                       '<strong>' + escapeHtml(formatSavedEvidenceItemLabel(item, index)) + '</strong>' +
-                      '<span>' + escapeHtml(targetLabel(item)) + ' | ' + escapeHtml(sourceHintLabel(item)) + '</span>' +
+                      '<span>' + escapeHtml(targetLabel(item)) + ' · ' + escapeHtml(sourceHintLabel(item)) + '</span>' +
                     '</div>'
                   ).join('') +
-                '</details>';
-              }).join('') || '<div class="row"><span>No draft feedback items.</span></div>';
+                '</article>';
+              }).join('') || '<div class="empty-state"><div class="empty-title">No draft feedback items.</div><div class="empty-body">Use Add to freeze a preview, add pending items, then Save.</div></div>';
+              hydrateSavedEvidencePreviews();
+            }
 
+            function hydrateSavedEvidencePreviews() {
               draftItems.querySelectorAll('.saved-evidence-preview').forEach(container => {
                 const screenId = container.dataset.screenId;
                 const group = savedEvidenceGroups().find(candidate => candidate.screenId === screenId);
@@ -1155,13 +1211,18 @@ internal object FeedbackConsoleAssets {
                   return;
                 }
                 container.innerHTML =
-                  '<div class="snapshot-frame">' +
+                  '<div class="saved-evidence-frame">' +
                     '<img alt="Saved evidence screenshot" src="/api/screens/' + encodeURIComponent(screenId) + '/screenshot/full">' +
                     '<div class="selection-overlay" aria-hidden="true"></div>' +
                   '</div>';
                 const image = container.querySelector('img');
                 const overlay = container.querySelector('.selection-overlay');
-                image.addEventListener('load', () => renderSavedEvidenceOverlay(overlay, image, group.items), { once: true });
+                const renderOverlay = () => renderSavedEvidenceOverlay(overlay, image, group.items);
+                if (image.complete && image.naturalWidth) {
+                  renderOverlay();
+                } else {
+                  image.addEventListener('load', renderOverlay, { once: true });
+                }
               });
             }
 
@@ -1207,12 +1268,31 @@ internal object FeedbackConsoleAssets {
             }
 
             function renderComposerInspector() {
+              inspectorTitle.textContent = 'Composer';
+              inspectorCount.textContent = String(pendingFeedbackItems.length);
+              selectionSummary.hidden = false;
+              comment.hidden = false;
+              pendingItems.hidden = false;
+              draftItems.hidden = true;
+              clearSelectionButton.hidden = false;
+              cancelAddFlowButton.hidden = false;
+              addItemButton.hidden = false;
+              clearDraftButton.hidden = true;
               renderPendingItems();
-              renderSavedEvidenceGroups();
             }
 
             function renderDraftInspector() {
-              renderPendingItems();
+              const groups = savedEvidenceGroups();
+              inspectorTitle.textContent = 'Draft';
+              inspectorCount.textContent = String(groups.reduce((sum, group) => sum + group.items.length, 0));
+              selectionSummary.hidden = true;
+              comment.hidden = true;
+              pendingItems.hidden = true;
+              draftItems.hidden = false;
+              clearSelectionButton.hidden = true;
+              cancelAddFlowButton.hidden = true;
+              addItemButton.hidden = true;
+              clearDraftButton.hidden = groups.length === 0;
               renderSavedEvidenceGroups();
             }
 
@@ -1481,9 +1561,9 @@ internal object FeedbackConsoleAssets {
               if (!document.hidden && shouldAutoFetchPreview()) refreshPreview().catch(showError);
               startLivePreviewPolling();
             });
-            document.getElementById('clearSelectionButton').addEventListener('click', clearSelection);
+            clearSelectionButton.addEventListener('click', clearSelection);
             cancelAddFlowButton.addEventListener('click', cancelAddItemsFlow);
-            document.getElementById('clearDraftButton').addEventListener('click', () => clearDraft().catch(showError));
+            clearDraftButton.addEventListener('click', () => clearDraft().catch(showError));
             document.getElementById('sendDraftButton').addEventListener('click', () => sendDraftToAgent().catch(showError));
             document.getElementById('backButton').addEventListener('click', () => navigate('back').catch(showError));
             document.getElementById('swipeUpButton').addEventListener('click', () => navigate('swipe', { direction: 'up' }).catch(showError));

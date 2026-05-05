@@ -100,6 +100,25 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun consoleHtmlUsesModeAwareStudioInspector() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val pendingRenderer = javascriptFunctionBody(html, "renderPendingItems")
+
+        assertTrue(html.contains("function renderComposerInspector"))
+        assertTrue(html.contains("function renderDraftInspector"))
+        assertTrue(html.contains("inspectorTitle.textContent = 'Composer'"))
+        assertTrue(html.contains("inspectorTitle.textContent = 'Draft'"))
+        assertTrue(html.contains(".saved-evidence-frame .selection-overlay"))
+        assertTrue(html.contains("if (image.complete && image.naturalWidth)"))
+        assertTrue(html.contains("Add to Pending"))
+        assertTrue(pendingRenderer.contains("Focus</button>"))
+        assertTrue(pendingRenderer.contains("Delete</button>"))
+        assertFalse(pendingRenderer.contains("Severity"))
+        assertFalse(pendingRenderer.contains("Status"))
+        assertFalse(pendingRenderer.contains("Label field"))
+    }
+
+    @Test
     fun consoleHtmlKeepsPointPatchTopLevelActionsInStudioTopbar() {
         val html = FeedbackConsoleAssets.indexHtml
 
@@ -244,7 +263,9 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("previewIntervalSelect"))
         assertTrue(html.contains("PreviewIntervalStorageKey"))
         assertTrue(html.contains("Math.max(1000"))
-        assertTrue(html.contains("Pending Items"))
+        assertTrue(html.contains("inspectorTitle.textContent = 'Composer'"))
+        assertTrue(html.contains("pendingItems.hidden = false"))
+        assertTrue(html.contains("renderPendingItems"))
         assertTrue(html.contains("renderNumberedFeedbackOverlay"))
         assertTrue(html.contains("focusPendingFeedbackItem"))
         assertTrue(html.contains("deletePendingFeedbackItem"))
