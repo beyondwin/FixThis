@@ -1415,7 +1415,7 @@ git commit -m "mcp: add feedback navigation models"
 - Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/bridge/NavigationPerformer.kt`
 - Create: `pointpatch-compose-sidekick/src/test/kotlin/io/github/pointpatch/compose/sidekick/bridge/NavigationPerformerTest.kt`
 
-- [ ] **Step 1: Write performer validation tests**
+- [x] **Step 1: Write performer validation tests**
 
 Create `NavigationPerformerTest.kt`:
 
@@ -1448,7 +1448,7 @@ class NavigationPerformerTest {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -1458,7 +1458,7 @@ ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :pointpatch-compose-sideki
 
 Expected: compilation fails because performer models do not exist.
 
-- [ ] **Step 3: Add performer models and interface**
+- [x] **Step 3: Add performer models and interface**
 
 Create `NavigationPerformer.kt`:
 
@@ -1518,7 +1518,7 @@ interface NavigationPerformer {
 }
 ```
 
-- [ ] **Step 4: Add Android performer**
+- [x] **Step 4: Add Android performer**
 
 In the same file, add:
 
@@ -1578,7 +1578,7 @@ class AndroidNavigationPerformer(
 }
 ```
 
-- [ ] **Step 5: Add fake performer for tests**
+- [x] **Step 5: Add fake performer for tests**
 
 In `NavigationPerformerTest.kt`, add:
 
@@ -1603,7 +1603,7 @@ private class FakeNavigationPerformer(
 }
 ```
 
-- [ ] **Step 6: Run performer tests**
+- [x] **Step 6: Run performer tests**
 
 Run:
 
@@ -1613,7 +1613,7 @@ ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :pointpatch-compose-sideki
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/bridge/NavigationPerformer.kt pointpatch-compose-sidekick/src/test/kotlin/io/github/pointpatch/compose/sidekick/bridge/NavigationPerformerTest.kt
