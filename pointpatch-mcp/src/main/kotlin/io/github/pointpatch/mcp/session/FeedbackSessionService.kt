@@ -1,5 +1,6 @@
 package io.github.pointpatch.mcp.session
 
+import io.github.pointpatch.cli.AdbDevice
 import io.github.pointpatch.compose.core.model.PointPatchError
 import io.github.pointpatch.compose.core.model.PointPatchRect
 import io.github.pointpatch.mcp.McpProtocol
@@ -61,6 +62,23 @@ class FeedbackSessionService(
     }
 
     fun closeSession(sessionId: String): FeedbackSession = store.closeSession(sessionId)
+
+    fun devices(): List<AdbDevice> = bridge.devices()
+
+    fun selectedDeviceSerial(): String? = bridge.selectedDeviceSerial()
+
+    fun selectDevice(serial: String) {
+        val selectedSerial = serial.trim()
+        require(selectedSerial.isNotBlank()) { "Device serial must not be blank" }
+        val device = devices().firstOrNull { it.serial == selectedSerial }
+            ?: throw FeedbackSessionException("DEVICE_NOT_AVAILABLE: Android device is not connected: $selectedSerial")
+        if (device.state != "device") {
+            throw FeedbackSessionException("DEVICE_NOT_AVAILABLE: Android device is not ready: $selectedSerial (${device.state})")
+        }
+        bridge.selectDevice(selectedSerial)
+    }
+
+    fun disconnectDevice() = bridge.disconnectDevice()
 
     suspend fun captureScreen(sessionId: String): CapturedScreen {
         val session = store.getSession(sessionId)

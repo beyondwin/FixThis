@@ -284,11 +284,23 @@ internal object FeedbackConsoleAssets {
 
             async function addItem() {
               error.textContent = '';
+              const feedbackComment = comment.value.trim();
+              if (!feedbackComment) {
+                error.textContent = 'Enter a comment before adding feedback.';
+                return;
+              }
+              const screen = latestScreen();
+              if (!screen) {
+                error.textContent = 'Capture a screen before adding feedback.';
+                return;
+              }
               await requestJson('/api/items', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  comment: comment.value,
+                  screenId: screen.screenId,
+                  comment: feedbackComment,
+                  targetType: 'area',
                   bounds: { left: 0, top: 0, right: 100, bottom: 100 }
                 })
               });

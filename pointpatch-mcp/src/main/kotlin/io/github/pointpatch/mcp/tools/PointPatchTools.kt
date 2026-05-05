@@ -1,5 +1,6 @@
 package io.github.pointpatch.mcp.tools
 
+import io.github.pointpatch.cli.AdbDevice
 import io.github.pointpatch.cli.BridgeClient
 import io.github.pointpatch.cli.pointPatchJson
 import io.github.pointpatch.compose.core.format.PointPatchMarkdownFormatter
@@ -527,6 +528,10 @@ class PointPatchTools(
 
 interface PointPatchBridge {
     fun resolvePackageName(packageOverride: String?): String
+    fun devices(): List<AdbDevice> = emptyList()
+    fun selectedDeviceSerial(): String? = null
+    fun selectDevice(serial: String) = Unit
+    fun disconnectDevice() = Unit
     suspend fun status(packageName: String): JsonObject
     suspend fun inspectCurrentScreen(packageName: String): JsonObject
     suspend fun startFeedbackCapture(packageName: String, timeoutMillis: Long): JsonObject
@@ -544,6 +549,18 @@ interface PointPatchBridge {
 class CliPointPatchBridge(private val client: BridgeClient) : PointPatchBridge {
     override fun resolvePackageName(packageOverride: String?): String =
         client.resolvePackageName(packageOverride)
+
+    override fun devices(): List<AdbDevice> =
+        client.devices()
+
+    override fun selectedDeviceSerial(): String? =
+        client.selectedDeviceSerial()
+
+    override fun selectDevice(serial: String) =
+        client.selectDevice(serial)
+
+    override fun disconnectDevice() =
+        client.disconnectDevice()
 
     override suspend fun status(packageName: String): JsonObject =
         client.request(packageName, "status")

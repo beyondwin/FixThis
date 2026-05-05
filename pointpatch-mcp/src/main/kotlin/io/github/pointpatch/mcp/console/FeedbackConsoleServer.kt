@@ -3,7 +3,6 @@ package io.github.pointpatch.mcp.console
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import io.github.pointpatch.cli.pointPatchJson
-import io.github.pointpatch.compose.core.model.PointPatchRect
 import io.github.pointpatch.mcp.session.CapturedScreen
 import io.github.pointpatch.mcp.session.FeedbackItem
 import io.github.pointpatch.mcp.session.FeedbackNavigationRequest
@@ -84,6 +83,39 @@ class FeedbackConsoleServer(
                     val sessionId = request.sessionId ?: service.currentSession().sessionId
                     exchange.sendJson(200, service.closeSession(sessionId))
                 }
+                "/api/devices" -> exchange.requireMethod("GET") {
+                    val selectedSerial = service.selectedDeviceSerial()
+                    exchange.sendJson(
+                        200,
+                        ConsoleDeviceList(
+                            devices = service.devices().map { it.toConsoleDevice(selectedSerial) },
+                            selectedSerial = selectedSerial,
+                        ),
+                    )
+                }
+                "/api/device/select" -> exchange.requireMethod("POST") {
+                    val request = exchange.decodeSelectDeviceBody()
+                    try {
+                        service.selectDevice(request.serial)
+                    } catch (error: IllegalArgumentException) {
+                        throw FeedbackConsoleHttpException(400, error.message ?: "Invalid device selection request")
+                    }
+                    val selectedSerial = service.selectedDeviceSerial()
+                    exchange.sendJson(
+                        200,
+                        ConsoleDeviceList(
+                            devices = service.devices().map { it.toConsoleDevice(selectedSerial) },
+                            selectedSerial = selectedSerial,
+                        ),
+                    )
+                }
+                "/api/device/disconnect" -> exchange.requireMethod("POST") {
+                    service.disconnectDevice()
+                    exchange.sendJson(
+                        200,
+                        ConsoleDeviceList(devices = service.devices().map { it.toConsoleDevice(null) }),
+                    )
+                }
                 "/api/capture" -> exchange.requireMethod("POST") {
                     val session = service.currentSession()
                     val screen = runBlocking { service.captureScreen(session.sessionId) }
@@ -100,17 +132,27 @@ class FeedbackConsoleServer(
                     exchange.sendJson(200, result)
                 }
                 "/api/items" -> exchange.requireMethod("POST") {
-                    val request = exchange.decodeBody()
+                    val request = exchange.decodeAddFeedbackItemBody()
                     val session = service.currentSession()
-                    val screen = session.screens.lastOrNull()
-                        ?: throw FeedbackConsoleHttpException(409, "Capture a screen before adding feedback.")
-                    val item = service.addAreaFeedback(
-                        sessionId = session.sessionId,
-                        screenId = screen.screenId,
-                        bounds = request.bounds,
-                        comment = request.comment,
-                    )
+                    val item = try {
+                        service.addFeedbackItem(
+                            sessionId = session.sessionId,
+                            screenId = request.screenId,
+                            targetType = request.targetType,
+                            bounds = request.bounds,
+                            nodeUid = request.nodeUid,
+                            comment = request.comment,
+                        )
+                    } catch (error: IllegalArgumentException) {
+                        throw FeedbackConsoleHttpException(400, error.message ?: "Invalid feedback item request")
+                    }
                     exchange.sendJson(200, item)
+                }
+                "/api/items/draft" -> exchange.requireMethod("DELETE") {
+                    exchange.sendJson(200, service.clearDraftItems(service.currentSession().sessionId))
+                }
+                "/api/agent-handoffs" -> exchange.requireMethod("POST") {
+                    exchange.sendJson(200, service.sendDraftToAgent(service.currentSession().sessionId))
                 }
                 "/api/export/markdown" -> exchange.requireMethod("GET") {
                     exchange.sendText(200, FeedbackQueueFormatter.toMarkdown(service.currentSession()), "text/markdown; charset=utf-8")
@@ -183,10 +225,25 @@ class FeedbackConsoleServer(
             ?: throw FeedbackConsoleHttpException(400, "Invalid boolean query parameter: $name")
     }
 
-    private fun HttpExchange.decodeBody(): AddItemRequest {
+    private fun HttpExchange.decodeAddFeedbackItemBody(): AddFeedbackItemRequest {
         val body = requestBody.use { input -> input.readBytes().toString(Charsets.UTF_8) }
         return runCatching {
-            pointPatchJson.decodeFromString(AddItemRequest.serializer(), body)
+            val jsonObject = pointPatchJson.parseToJsonElement(body) as? JsonObject
+                ?: throw IllegalArgumentException("Feedback item request body must be a JSON object")
+            val unsupportedKey = jsonObject.keys.firstOrNull { it !in allowedAddFeedbackItemRequestKeys }
+            if (unsupportedKey != null) {
+                throw IllegalArgumentException("Unsupported feedback item field: $unsupportedKey")
+            }
+            pointPatchJson.decodeFromString(AddFeedbackItemRequest.serializer(), body)
+        }.getOrElse { error ->
+            throw FeedbackConsoleHttpException(400, error.message ?: "Invalid JSON request body")
+        }
+    }
+
+    private fun HttpExchange.decodeSelectDeviceBody(): SelectDeviceRequest {
+        val body = requestBody.use { input -> input.readBytes().toString(Charsets.UTF_8) }
+        return runCatching {
+            pointPatchJson.decodeFromString(SelectDeviceRequest.serializer(), body)
         }.getOrElse { error ->
             throw FeedbackConsoleHttpException(400, error.message ?: "Invalid JSON request body")
         }
@@ -236,6 +293,10 @@ class FeedbackConsoleServer(
         sendText(statusCode, pointPatchJson.encodeToString(FeedbackNavigationResult.serializer(), value), "application/json; charset=utf-8")
     }
 
+    private fun HttpExchange.sendJson(statusCode: Int, value: ConsoleDeviceList) {
+        sendText(statusCode, pointPatchJson.encodeToString(ConsoleDeviceList.serializer(), value), "application/json; charset=utf-8")
+    }
+
     private fun HttpExchange.sendText(statusCode: Int, text: String, contentType: String) {
         sendBytes(statusCode, text.toByteArray(Charsets.UTF_8), contentType)
     }
@@ -245,12 +306,6 @@ class FeedbackConsoleServer(
         sendResponseHeaders(statusCode, bytes.size.toLong())
         responseBody.use { output -> output.write(bytes) }
     }
-
-    @Serializable
-    private data class AddItemRequest(
-        val comment: String = "",
-        val bounds: PointPatchRect = PointPatchRect(left = 0f, top = 0f, right = 100f, bottom = 100f),
-    )
 
     @Serializable
     private data class OpenSessionRequest(
@@ -271,11 +326,16 @@ private fun String.toUrlHost(): String =
 
 private val allowedNavigationRequestKeys = setOf("action", "x", "y", "direction", "distance", "captureAfter")
 
+private val allowedAddFeedbackItemRequestKeys = setOf("screenId", "comment", "targetType", "bounds", "nodeUid")
+
 private fun FeedbackSessionException.toConsoleHttpException(): FeedbackConsoleHttpException {
     val text = message ?: "Feedback session request failed"
     val statusCode = when {
         text.startsWith("SESSION_NOT_FOUND:") -> 404
         text.startsWith("Unknown feedback session:") -> 404
+        text.startsWith("SCREEN_NOT_FOUND:") -> 400
+        text.startsWith("NO_DRAFT_FEEDBACK:") -> 409
+        text.startsWith("DEVICE_NOT_AVAILABLE:") -> 409
         else -> 500
     }
     return FeedbackConsoleHttpException(statusCode, text)

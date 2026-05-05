@@ -1,5 +1,6 @@
 package io.github.pointpatch.mcp.session
 
+import io.github.pointpatch.cli.AdbDevice
 import io.github.pointpatch.mcp.tools.PointPatchBridge
 import java.io.File
 import kotlinx.serialization.json.JsonArray
@@ -19,10 +20,33 @@ internal class FakePointPatchBridge(
         private set
     var lastCaptureDestination: String? = null
         private set
+    var selectedDeviceSerial: String? = null
+        private set
 
     override fun resolvePackageName(packageOverride: String?): String {
         resolvedOverrides += packageOverride
         return packageOverride ?: packageName
+    }
+
+    override fun devices(): List<AdbDevice> =
+        listOf(
+            AdbDevice(
+                serial = "adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp",
+                state = "device",
+                model = "SM_G986N",
+                product = "y2qksx",
+                deviceName = "y2q",
+            ),
+        )
+
+    override fun selectedDeviceSerial(): String? = selectedDeviceSerial
+
+    override fun selectDevice(serial: String) {
+        selectedDeviceSerial = serial
+    }
+
+    override fun disconnectDevice() {
+        selectedDeviceSerial = null
     }
 
     override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())

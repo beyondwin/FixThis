@@ -1,12 +1,21 @@
 package io.github.pointpatch.mcp.console
 
+import io.github.pointpatch.cli.AdbDevice
 import io.github.pointpatch.cli.pointPatchJson
+import io.github.pointpatch.compose.core.model.PointPatchNode
+import io.github.pointpatch.compose.core.model.PointPatchRect
+import io.github.pointpatch.compose.core.model.TreeKind
+import io.github.pointpatch.mcp.session.CapturedScreen
 import io.github.pointpatch.mcp.session.FakePointPatchBridge
+import io.github.pointpatch.mcp.session.FeedbackItem
 import io.github.pointpatch.mcp.session.FeedbackNavigationAction
+import io.github.pointpatch.mcp.session.FeedbackScreenRoot
 import io.github.pointpatch.mcp.session.FeedbackSessionPaths
 import io.github.pointpatch.mcp.session.FeedbackSessionPersistence
 import io.github.pointpatch.mcp.session.FeedbackSessionService
 import io.github.pointpatch.mcp.session.FeedbackSessionStore
+import io.github.pointpatch.mcp.session.FeedbackScreenshot
+import io.github.pointpatch.mcp.session.FeedbackTarget
 import io.github.pointpatch.mcp.tools.PointPatchBridge
 import java.io.File
 import java.net.HttpURLConnection
@@ -17,6 +26,7 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
@@ -76,6 +86,17 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun consoleHtmlLegacyAddItemUsesLatestScreenSelectionPayload() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("screenId: screen.screenId"))
+        assertTrue(html.contains("targetType: 'area'"))
+        assertTrue(html.contains("Capture a screen before adding feedback."))
+        assertTrue(html.contains("comment.value.trim()"))
+        assertTrue(html.contains("Enter a comment before adding feedback."))
+    }
+
+    @Test
     fun rejectsUnsupportedMethods() {
         val service = FeedbackSessionService(FakePointPatchBridge(), FeedbackSessionStore(), "/repo", "io.github.pointpatch.sample")
         val server = FeedbackConsoleServer(service = service, port = 0)
@@ -84,6 +105,346 @@ class FeedbackConsoleServerTest {
             val connection = URL("${server.url}/api/session").openConnection() as HttpURLConnection
             connection.requestMethod = "POST"
             assertEquals(405, connection.responseCode)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun devicesApiListsAndSelectsActiveDevice() {
+        val bridge = FakePointPatchBridge()
+        val service = FeedbackSessionService(bridge, FeedbackSessionStore(), "/repo", "io.github.pointpatch.sample")
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val devices = URL("${server.url}/api/devices").readText()
+            assertTrue(devices.contains("SM_G986N"))
+            assertTrue(devices.contains("adb-R3CN60LXW3L"))
+
+            val select = URL("${server.url}/api/device/select").openConnection() as HttpURLConnection
+            select.requestMethod = "POST"
+            select.doOutput = true
+            select.setRequestProperty("Content-Type", "application/json")
+            select.outputStream.use { it.write("""{"serial":"adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp"}""".toByteArray()) }
+
+            assertEquals(200, select.responseCode)
+            assertEquals("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp", bridge.selectedDeviceSerial)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun agentHandoffApiSendsDraftAndClearsDraftList() {
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1", "item-1", "batch-1").next),
+            projectRoot = "/repo",
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val screen = service.captureFakeScreenForTest(session.sessionId)
+        service.addAreaFeedback(session.sessionId, screen.screenId, PointPatchRect(0f, 0f, 10f, 10f), "Fix it")
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val handoff = URL("${server.url}/api/agent-handoffs").openConnection() as HttpURLConnection
+            handoff.requestMethod = "POST"
+            handoff.doOutput = true
+            handoff.setRequestProperty("Content-Type", "application/json")
+            handoff.outputStream.use { it.write("{}".toByteArray()) }
+
+            assertEquals(200, handoff.responseCode)
+            val body = handoff.inputStream.bufferedReader().readText()
+            val response = pointPatchJson.parseToJsonElement(body).jsonObject
+            assertTrue(response["handoffBatches"]?.jsonArray.orEmpty().isNotEmpty())
+            assertEquals("sent", response["items"]?.jsonArray?.single()?.jsonObject?.get("delivery")?.jsonPrimitive?.content)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun agentHandoffApiReturnsConflictWhenNoDraftItemsExist() {
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1").next),
+            projectRoot = "/repo",
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        service.openSession(null, newSession = true)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val handoff = URL("${server.url}/api/agent-handoffs").openConnection() as HttpURLConnection
+            handoff.requestMethod = "POST"
+            handoff.doOutput = true
+            handoff.setRequestProperty("Content-Type", "application/json")
+            handoff.outputStream.use { it.write("{}".toByteArray()) }
+
+            assertEquals(409, handoff.responseCode)
+            assertTrue(handoff.errorStream.bufferedReader().readText().contains("NO_DRAFT_FEEDBACK"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun clearDraftApiKeepsSentItems() {
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1", "item-1", "batch-1", "item-2").next),
+            projectRoot = "/repo",
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val screen = service.captureFakeScreenForTest(session.sessionId)
+        service.addAreaFeedback(session.sessionId, screen.screenId, PointPatchRect(0f, 0f, 10f, 10f), "Sent")
+        service.sendDraftToAgent(session.sessionId)
+        service.addAreaFeedback(session.sessionId, screen.screenId, PointPatchRect(10f, 10f, 20f, 20f), "Draft")
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val clear = URL("${server.url}/api/items/draft").openConnection() as HttpURLConnection
+            clear.requestMethod = "DELETE"
+
+            assertEquals(200, clear.responseCode)
+            val body = clear.inputStream.bufferedReader().readText()
+            assertTrue(body.contains("Sent"))
+            assertFalse(body.contains("Draft"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun deviceSelectApiReturnsBadRequestForBlankSerial() {
+        val service = FeedbackSessionService(FakePointPatchBridge(), FeedbackSessionStore(), "/repo", "io.github.pointpatch.sample")
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val select = URL("${server.url}/api/device/select").openConnection() as HttpURLConnection
+            select.requestMethod = "POST"
+            select.doOutput = true
+            select.setRequestProperty("Content-Type", "application/json")
+            select.outputStream.use { it.write("""{"serial":" "}""".toByteArray()) }
+
+            assertEquals(400, select.responseCode)
+            assertTrue(select.errorStream.bufferedReader().readText().contains("Device serial"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun deviceSelectApiReturnsConflictForMissingSerialWithoutChangingSelection() {
+        val bridge = FakePointPatchBridge()
+        val service = FeedbackSessionService(bridge, FeedbackSessionStore(), "/repo", "io.github.pointpatch.sample")
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val select = URL("${server.url}/api/device/select").openConnection() as HttpURLConnection
+            select.requestMethod = "POST"
+            select.doOutput = true
+            select.setRequestProperty("Content-Type", "application/json")
+            select.outputStream.use { it.write("""{"serial":"missing-device"}""".toByteArray()) }
+
+            assertEquals(409, select.responseCode)
+            assertTrue(select.errorStream.bufferedReader().readText().contains("DEVICE_NOT_AVAILABLE"))
+            assertEquals(null, bridge.selectedDeviceSerial)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun deviceSelectApiReturnsConflictForOfflineDeviceWithoutChangingSelection() {
+        val bridge = DeviceListBridge(
+            listOf(
+                AdbDevice(
+                    serial = "offline-device",
+                    state = "offline",
+                    model = "Pixel_8",
+                    product = "shiba",
+                    deviceName = "shiba",
+                ),
+            ),
+        )
+        val service = FeedbackSessionService(bridge, FeedbackSessionStore(), "/repo", "io.github.pointpatch.sample")
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val select = URL("${server.url}/api/device/select").openConnection() as HttpURLConnection
+            select.requestMethod = "POST"
+            select.doOutput = true
+            select.setRequestProperty("Content-Type", "application/json")
+            select.outputStream.use { it.write("""{"serial":"offline-device"}""".toByteArray()) }
+
+            assertEquals(409, select.responseCode)
+            assertTrue(select.errorStream.bufferedReader().readText().contains("DEVICE_NOT_AVAILABLE"))
+            assertEquals(null, bridge.selectedDeviceSerial)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun itemsApiUsesCapturedNodeBoundsInsteadOfRequestBounds() {
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "item-1").next),
+            projectRoot = "/repo",
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val node = PointPatchNode(
+            uid = "compose:0:merged:10",
+            composeNodeId = 10,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = PointPatchRect(10f, 20f, 110f, 70f),
+            text = listOf("Pay now"),
+        )
+        val screen = service.addCapturedScreenForTest(
+            session.sessionId,
+            CapturedScreen(
+                screenId = "screen-1",
+                capturedAtEpochMillis = 100L,
+                displayName = "Checkout",
+                roots = listOf(FeedbackScreenRoot(0, PointPatchRect(0f, 0f, 720f, 1600f), mergedNodes = listOf(node))),
+                screenshot = FeedbackScreenshot(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
+            ),
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val connection = URL("${server.url}/api/items").openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.outputStream.use {
+                it.write(
+                    """
+                    {"screenId":"${screen.screenId}","targetType":"node","nodeUid":"${node.uid}","bounds":{"left":200.0,"top":300.0,"right":260.0,"bottom":340.0},"comment":"Button copy is unclear"}
+                    """.trimIndent().toByteArray(),
+                )
+            }
+
+            assertEquals(200, connection.responseCode)
+            val item = pointPatchJson.decodeFromString(FeedbackItem.serializer(), connection.inputStream.bufferedReader().readText())
+            assertEquals(FeedbackTarget.Node(node.uid, node.boundsInWindow), item.target)
+            assertEquals(node, item.selectedNode)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun itemsApiReturnsBadRequestForUnknownScreenId() {
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1").next),
+            projectRoot = "/repo",
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        service.openSession(null, newSession = true)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val connection = URL("${server.url}/api/items").openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.outputStream.use {
+                it.write(
+                    """
+                    {"screenId":"missing-screen","targetType":"area","bounds":{"left":0.0,"top":0.0,"right":10.0,"bottom":10.0},"comment":"Bad screen"}
+                    """.trimIndent().toByteArray(),
+                )
+            }
+
+            assertEquals(400, connection.responseCode)
+            assertTrue(connection.errorStream.bufferedReader().readText().contains("SCREEN_NOT_FOUND"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun itemsApiReturnsBadRequestForUnsupportedFields() {
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1").next),
+            projectRoot = "/repo",
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val screen = service.addCapturedScreenForTest(
+            session.sessionId,
+            CapturedScreen(
+                screenId = "screen-1",
+                capturedAtEpochMillis = 100L,
+                displayName = "Checkout",
+                screenshot = FeedbackScreenshot(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
+            ),
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val connection = URL("${server.url}/api/items").openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.outputStream.use {
+                it.write(
+                    """
+                    {"screenId":"${screen.screenId}","targetType":"area","bounds":{"left":0.0,"top":0.0,"right":10.0,"bottom":10.0},"comment":"Bad field","screenID":"typo"}
+                    """.trimIndent().toByteArray(),
+                )
+            }
+
+            assertEquals(400, connection.responseCode)
+            assertTrue(connection.errorStream.bufferedReader().readText().contains("Unsupported feedback item field"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun itemsApiReturnsBadRequestForInvalidAreaBounds() {
+        val service = FeedbackSessionService(
+            bridge = FakePointPatchBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1").next),
+            projectRoot = "/repo",
+            defaultPackageName = "io.github.pointpatch.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val screen = service.addCapturedScreenForTest(
+            session.sessionId,
+            CapturedScreen(
+                screenId = "screen-1",
+                capturedAtEpochMillis = 100L,
+                displayName = "Checkout",
+                screenshot = FeedbackScreenshot(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
+            ),
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val connection = URL("${server.url}/api/items").openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.outputStream.use {
+                it.write(
+                    """
+                    {"screenId":"${screen.screenId}","targetType":"area","bounds":{"left":-1.0,"top":0.0,"right":10.0,"bottom":10.0},"comment":"Bad bounds"}
+                    """.trimIndent().toByteArray(),
+                )
+            }
+
+            assertEquals(400, connection.responseCode)
+            assertTrue(connection.errorStream.bufferedReader().readText().contains("Selection bounds"))
         } finally {
             server.stop()
         }
@@ -398,6 +759,47 @@ class FeedbackConsoleServerTest {
     private class FakeIds(vararg values: String) {
         private val queue = ArrayDeque(values.toList())
         val next: () -> String = { queue.removeFirst() }
+    }
+
+    private fun FeedbackSessionService.captureFakeScreenForTest(sessionId: String): CapturedScreen =
+        runBlocking { captureScreen(sessionId) }
+
+    private fun FeedbackSessionService.addCapturedScreenForTest(sessionId: String, screen: CapturedScreen): CapturedScreen =
+        javaClass.getDeclaredField("store").let { field ->
+            field.isAccessible = true
+            (field.get(this) as FeedbackSessionStore).addScreen(sessionId, screen)
+        }
+
+    private class DeviceListBridge(private val devices: List<AdbDevice>) : PointPatchBridge {
+        var selectedDeviceSerial: String? = null
+            private set
+
+        override fun resolvePackageName(packageOverride: String?): String =
+            packageOverride ?: "io.github.pointpatch.sample"
+
+        override fun devices(): List<AdbDevice> = devices
+
+        override fun selectedDeviceSerial(): String? = selectedDeviceSerial
+
+        override fun selectDevice(serial: String) {
+            selectedDeviceSerial = serial
+        }
+
+        override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun startFeedbackCapture(packageName: String, timeoutMillis: Long): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
+            JsonObject(emptyMap())
+
+        override suspend fun captureScreenSnapshot(
+            packageName: String,
+            sessionId: String?,
+            screenId: String?,
+            destinationDirectory: File?,
+        ): JsonObject = JsonObject(emptyMap())
     }
 
     private class SessionScreenshotBridge(private val pngBytes: ByteArray) : PointPatchBridge {
