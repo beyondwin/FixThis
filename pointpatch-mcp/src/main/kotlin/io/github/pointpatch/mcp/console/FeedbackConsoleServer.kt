@@ -8,11 +8,13 @@ import io.github.pointpatch.mcp.session.CapturedScreen
 import io.github.pointpatch.mcp.session.FeedbackItem
 import io.github.pointpatch.mcp.session.FeedbackQueueFormatter
 import io.github.pointpatch.mcp.session.FeedbackSession
+import io.github.pointpatch.mcp.session.FeedbackSessionList
 import io.github.pointpatch.mcp.session.FeedbackSessionPaths
 import io.github.pointpatch.mcp.session.FeedbackSessionService
 import java.io.File
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import java.net.URLDecoder
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 
@@ -59,6 +61,18 @@ class FeedbackConsoleServer(
                 }
                 "/api/session" -> exchange.requireMethod("GET") {
                     exchange.sendJson(200, service.currentSession())
+                }
+                "/api/sessions" -> exchange.requireMethod("GET") {
+                    exchange.sendJson(200, service.listSessions(includeClosed = exchange.queryBoolean("includeClosed")))
+                }
+                "/api/session/open" -> exchange.requireMethod("POST") {
+                    val request = exchange.decodeOpenSessionBody()
+                    exchange.sendJson(200, service.openSession(request.packageName, request.sessionId, request.newSession))
+                }
+                "/api/session/close" -> exchange.requireMethod("POST") {
+                    val request = exchange.decodeOpenSessionBody()
+                    val sessionId = request.sessionId ?: service.currentSession().sessionId
+                    exchange.sendJson(200, service.closeSession(sessionId))
                 }
                 "/api/capture" -> exchange.requireMethod("POST") {
                     val session = service.currentSession()
@@ -128,6 +142,22 @@ class FeedbackConsoleServer(
         block()
     }
 
+    private fun HttpExchange.queryBoolean(name: String): Boolean {
+        val value = requestURI.rawQuery
+            ?.split("&")
+            ?.firstNotNullOfOrNull { parameter ->
+                val pieces = parameter.split("=", limit = 2)
+                URLDecoder.decode(pieces[0], Charsets.UTF_8.name())
+                    .takeIf { it == name }
+                    ?.let {
+                        URLDecoder.decode(pieces.getOrElse(1) { "" }, Charsets.UTF_8.name())
+                    }
+            }
+            ?: return false
+        return value.toBooleanStrictOrNull()
+            ?: throw FeedbackConsoleHttpException(400, "Invalid boolean query parameter: $name")
+    }
+
     private fun HttpExchange.decodeBody(): AddItemRequest {
         val body = requestBody.use { input -> input.readBytes().toString(Charsets.UTF_8) }
         return runCatching {
@@ -137,8 +167,21 @@ class FeedbackConsoleServer(
         }
     }
 
+    private fun HttpExchange.decodeOpenSessionBody(): OpenSessionRequest {
+        val body = requestBody.use { input -> input.readBytes().toString(Charsets.UTF_8) }
+        return runCatching {
+            pointPatchJson.decodeFromString(OpenSessionRequest.serializer(), body)
+        }.getOrElse { error ->
+            throw FeedbackConsoleHttpException(400, error.message ?: "Invalid JSON request body")
+        }
+    }
+
     private fun HttpExchange.sendJson(statusCode: Int, value: FeedbackSession) {
         sendText(statusCode, pointPatchJson.encodeToString(FeedbackSession.serializer(), value), "application/json; charset=utf-8")
+    }
+
+    private fun HttpExchange.sendJson(statusCode: Int, value: FeedbackSessionList) {
+        sendText(statusCode, pointPatchJson.encodeToString(FeedbackSessionList.serializer(), value), "application/json; charset=utf-8")
     }
 
     private fun HttpExchange.sendJson(statusCode: Int, value: CapturedScreen) {
@@ -163,6 +206,13 @@ class FeedbackConsoleServer(
     private data class AddItemRequest(
         val comment: String = "",
         val bounds: PointPatchRect = PointPatchRect(left = 0f, top = 0f, right = 100f, bottom = 100f),
+    )
+
+    @Serializable
+    private data class OpenSessionRequest(
+        val packageName: String? = null,
+        val sessionId: String? = null,
+        val newSession: Boolean = false,
     )
 }
 

@@ -54,6 +54,79 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun sessionsApiListsWorkspaces() {
+        val service = FeedbackSessionService(
+            FakePointPatchBridge(),
+            FeedbackSessionStore(idGenerator = FakeIds("session-1").next),
+            "/repo",
+            "io.github.pointpatch.sample",
+        )
+        service.openSession(null, newSession = true)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val sessions = URL("${server.url}/api/sessions").readText()
+
+            assertTrue(sessions.contains("session-1"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun openSessionApiSwitchesCurrentSession() {
+        val service = FeedbackSessionService(
+            FakePointPatchBridge(),
+            FeedbackSessionStore(idGenerator = FakeIds("session-1", "session-2").next),
+            "/repo",
+            "io.github.pointpatch.sample",
+        )
+        val first = service.openSession(null, newSession = true)
+        service.openSession(null, newSession = true)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val connection = URL("${server.url}/api/session/open").openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.outputStream.use { it.write("""{"sessionId":"${first.sessionId}"}""".toByteArray()) }
+
+            assertEquals(200, connection.responseCode)
+            assertTrue(connection.inputStream.bufferedReader().readText().contains(first.sessionId))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun closeSessionApiClosesCurrentSession() {
+        val service = FeedbackSessionService(
+            FakePointPatchBridge(),
+            FeedbackSessionStore(idGenerator = FakeIds("session-1").next),
+            "/repo",
+            "io.github.pointpatch.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val connection = URL("${server.url}/api/session/close").openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.outputStream.use { it.write("{}".toByteArray()) }
+
+            assertEquals(200, connection.responseCode)
+            val response = connection.inputStream.bufferedReader().readText()
+            assertTrue(response.contains(session.sessionId))
+            assertTrue(response.contains("closed"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
     fun startUrlUsesConfiguredHostAndBoundPort() {
         val service = FeedbackSessionService(FakePointPatchBridge(), FeedbackSessionStore(), "/repo", "io.github.pointpatch.sample")
         val server = FeedbackConsoleServer(service = service, host = "127.0.0.1", port = 0)
