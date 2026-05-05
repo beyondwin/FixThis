@@ -66,6 +66,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("id=\"closeSessionButton\""))
         assertTrue(html.contains("/api/sessions"))
         assertTrue(html.contains("/api/session/open"))
+        assertTrue(html.contains("state.session = null;"))
     }
 
     @Test

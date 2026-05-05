@@ -818,7 +818,10 @@ internal object FeedbackConsoleAssets {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: state.session.sessionId })
               });
-              await refresh();
+              state.session = null;
+              await refreshSessions();
+              render();
+              await refreshDevices();
             }
 
             async function capture() {
