@@ -89,8 +89,30 @@ The center toolbar should match Option A's structure:
 [ Select ] [ Annotate ]        status/counts        zoom/status controls
 ```
 
+Tool switching UI/UX:
+
+- `Select` and `Annotate` render as the Option A segmented tool group, not as
+  the old Select/Navigate toggle.
+- The active tool gets the Option A active style: darker raised segment,
+  accent-colored text/icon, and stable dimensions.
+- Hover/focus changes color only; it must not resize the toolbar or push the
+  status/zoom controls.
+- Clicking `Select` sets `tool = select`, clears any in-progress drag rectangle,
+  and keeps the currently selected annotation selected unless the user clicks
+  empty preview space.
+- Clicking `Annotate` sets `tool = annotate`, clears the current selected
+  annotation, and shows the annotate hint in the toolbar.
+- Tool state changes are immediate and local to the canvas/inspector; they do
+  not create, save, send, or delete annotations by themselves.
+- `Start annotating` in the empty annotation state is equivalent to clicking
+  `Annotate`.
+
 `Select` mode:
 
+- The toolbar status shows annotation stats such as open/resolved counts rather
+  than the annotate instruction pill.
+- The preview cursor/interaction should feel inspectable: pins are clickable,
+  empty space clears selection, and no drag rectangle is started.
 - Clicking an existing annotation pin selects it.
 - Clicking an annotation row in the inspector selects the same pin.
 - Clicking empty preview space clears the selection.
@@ -101,6 +123,9 @@ The center toolbar should match Option A's structure:
 
 - The toolbar shows the Option A hint treatment: "Click a widget - or drag to
   draw a region".
+- The preview cursor/interaction should feel drawable: pointer down starts a
+  possible annotation target, pointer move shows the drag rectangle, and pointer
+  up creates either a widget-snapped annotation or custom region.
 - Clicking a Compose-backed widget creates an annotation snapped to that node's
   bounds.
 - Dragging creates a custom region annotation.
