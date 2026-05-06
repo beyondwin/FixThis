@@ -77,7 +77,7 @@ For the full PointPatch smoke flow, build the CLI/MCP distribution and let the C
 
 ```bash
 ./gradlew :pointpatch-cli:installDist :pointpatch-mcp:installDist
-pointpatch-cli/build/install/pointpatch/bin/pointpatch run --package io.github.pointpatch.sample
+pointpatch-cli/build/install/pointpatch/bin/pointpatch run --package io.beyondwin.fixthis.sample
 ```
 
 ## CLI And MCP

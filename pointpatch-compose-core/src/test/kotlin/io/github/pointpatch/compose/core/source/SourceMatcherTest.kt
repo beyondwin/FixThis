@@ -14,43 +14,43 @@ class SourceMatcherTest {
         val index = SourceIndex(
             entries = listOf(
                 SourceIndexEntry(
-                    file = "sample/src/main/java/io/github/pointpatch/sample/screens/CheckoutScreen.kt",
+                    file = "sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt",
                     line = 42,
-                    symbols = listOf("CheckoutPrimaryButton"),
-                    text = listOf("Pay now"),
-                    testTags = listOf("checkoutPrimaryButton"),
+                    symbols = listOf("ReviewScreen"),
+                    text = listOf("Submit request"),
+                    testTags = listOf("submitRequestButton"),
                     roles = listOf("Button"),
                     activityNames = listOf("MainActivity"),
-                    excerpt = "Button(onClick = ...) { Text(\"Pay now\") }"
+                    excerpt = "Button(onClick = ...) { Text(\"Submit request\") }"
                 ),
                 SourceIndexEntry(
-                    file = "sample/src/main/java/io/github/pointpatch/sample/screens/FeedScreen.kt",
+                    file = "sample/src/main/java/io/beyondwin/fixthis/sample/screens/QueueScreen.kt",
                     line = 12,
-                    symbols = listOf("FeedCard"),
-                    text = listOf("Pay now"),
+                    symbols = listOf("QueueCard"),
+                    text = listOf("Submit request"),
                     activityNames = listOf("MainActivity"),
-                    excerpt = "Text(\"Pay now\")"
+                    excerpt = "Text(\"Submit request\")"
                 )
             )
         )
 
         val matches = SourceMatcher(index).match(
             selectedNode = node(
-                uid = "pay-button",
-                text = listOf("Pay now"),
+                uid = "submit-request-button",
+                text = listOf("Submit request"),
                 role = "Button",
-                testTag = "checkoutPrimaryButton",
+                testTag = "submitRequestButton",
                 actions = listOf("OnClick")
             ),
             nearbyNodes = emptyList(),
-            activityName = "io.github.pointpatch.sample.MainActivity"
+            activityName = "io.beyondwin.fixthis.sample.MainActivity"
         )
 
-        assertEquals("sample/src/main/java/io/github/pointpatch/sample/screens/CheckoutScreen.kt", matches.first().file)
+        assertEquals("sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt", matches.first().file)
         assertEquals(42, matches.first().line)
         assertEquals(SelectionConfidence.HIGH, matches.first().confidence)
-        assertTrue(matches.first().matchedTerms.contains("Pay now"))
-        assertTrue(matches.first().matchedTerms.contains("checkoutPrimaryButton"))
+        assertTrue(matches.first().matchedTerms.contains("Submit request"))
+        assertTrue(matches.first().matchedTerms.contains("submitRequestButton"))
         assertTrue(matches.first().matchReasons.contains("selected text"))
         assertTrue(matches.first().matchReasons.contains("selected testTag"))
         assertTrue(matches.first().matchReasons.contains("selected role"))
@@ -62,7 +62,7 @@ class SourceMatcherTest {
         val index = SourceIndex(
             entries = listOf(
                 SourceIndexEntry(
-                    file = "sample/src/main/java/io/github/pointpatch/sample/screens/CheckoutScreen.kt",
+                    file = "sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt",
                     line = 88,
                     symbols = listOf("PaymentErrorCard"),
                     text = listOf("Retry", "Payment failed"),
@@ -70,7 +70,7 @@ class SourceMatcherTest {
                     excerpt = "PaymentErrorCard { Text(\"Payment failed\"); Button { Text(\"Retry\") } }"
                 ),
                 SourceIndexEntry(
-                    file = "sample/src/main/java/io/github/pointpatch/sample/screens/DialogScreen.kt",
+                    file = "sample/src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt",
                     line = 25,
                     symbols = listOf("RetryButton"),
                     text = listOf("Retry"),
@@ -88,7 +88,7 @@ class SourceMatcherTest {
             activityName = null
         )
 
-        assertEquals("sample/src/main/java/io/github/pointpatch/sample/screens/CheckoutScreen.kt", matches.first().file)
+        assertEquals("sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt", matches.first().file)
         assertTrue(matches.first().matchedTerms.contains("Payment failed"))
         assertTrue(matches.first().matchReasons.contains("nearby text"))
         assertTrue(matches.first().score > matches[1].score)
