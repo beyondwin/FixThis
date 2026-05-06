@@ -1393,12 +1393,17 @@ internal object FeedbackConsoleAssets {
                 .sort((a, b) => area(a.node.boundsInWindow) - area(b.node.boundsInWindow) || a.order - b.order)[0]?.node;
             }
 
+            function hitTestNodes(screen) {
+              return nodesForHitTest(screen, root => [
+                ...(root?.mergedNodes || []),
+                ...(root?.unmergedNodes || [])
+              ]);
+            }
+
             function selectNodeAtPoint(event, image) {
               const point = naturalPointFromEvent(event, image);
               const screen = latestScreen();
-              const mergedNode = smallestContainingNode(nodesForHitTest(screen, root => root?.mergedNodes), point);
-              const unmergedNode = smallestContainingNode(nodesForHitTest(screen, root => root?.unmergedNodes), point);
-              const node = mergedNode || unmergedNode;
+              const node = smallestContainingNode(hitTestNodes(screen), point);
               if (!node) {
                 showError(new Error('No component found at that point. Drag to select a custom area.'));
                 return;
