@@ -731,7 +731,7 @@ internal object FeedbackConsoleAssets {
             }
             .ann-row {
               display: grid;
-              grid-template-columns: 28px 1fr auto;
+              grid-template-columns: 28px minmax(0, 1fr) auto;
               gap: 10px;
               align-items: center;
               width: 100%;
@@ -758,8 +758,11 @@ internal object FeedbackConsoleAssets {
             }
             .ann-row-body {
               min-width: 0;
+              overflow: hidden;
             }
             .ann-row-title {
+              display: block;
+              max-width: 100%;
               color: var(--txt-0);
               font-size: 13px;
               font-weight: 700;
@@ -782,6 +785,7 @@ internal object FeedbackConsoleAssets {
               font-style: italic;
             }
             .ann-row-status {
+              justify-self: end;
               border-radius: 999px;
               padding: 2px 7px;
               font-size: 10px;
