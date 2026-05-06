@@ -645,29 +645,32 @@ internal object FeedbackConsoleAssets {
             }
             .selection-box {
               position: absolute;
-              border: 1.5px solid var(--accent);
-              background: rgba(184, 211, 106, .12);
+              border: 1.5px solid var(--selection-color, var(--accent));
+              background: var(--selection-fill, rgba(184, 211, 106, .12));
               border-radius: 6px;
             }
             .selection-box.drag-preview {
               border-style: dashed;
-              background: rgba(184, 211, 106, .08);
+              background: var(--selection-fill, rgba(184, 211, 106, .08));
             }
             .selection-box.hover-preview {
               border-style: dashed;
-              background: rgba(184, 211, 106, .10);
-              box-shadow: 0 0 0 2px rgba(184, 211, 106, .14);
+              background: var(--selection-fill, rgba(184, 211, 106, .10));
+              box-shadow: 0 0 0 2px var(--selection-halo, rgba(184, 211, 106, .14));
             }
             .selection-box.focused {
-              border-color: var(--warning);
-              background: rgba(230, 180, 90, .16);
+              border-width: 2.5px;
+              background: var(--selection-fill-strong, rgba(230, 180, 90, .18));
+              box-shadow:
+                0 0 0 3px var(--selection-halo, rgba(230, 180, 90, .20)),
+                0 10px 24px -14px var(--selection-color, var(--warning));
             }
             .selection-box.annotation-pin {
               pointer-events: auto;
               cursor: pointer;
             }
             .selection-box.annotation-pin:hover {
-              background: rgba(184, 211, 106, .20);
+              background: var(--selection-fill-strong, rgba(184, 211, 106, .20));
             }
             .selection-label {
               position: absolute;
@@ -677,12 +680,18 @@ internal object FeedbackConsoleAssets {
               display: grid;
               place-items: center;
               border-radius: 999px;
-              background: var(--accent);
+              background: var(--selection-color, var(--accent));
               color: var(--bg-0);
               font-size: 11px;
               font-weight: 800;
+              box-shadow: 0 0 0 2px rgba(13, 15, 21, .45);
             }
-            .selection-label.focused { background: var(--warning); }
+            .selection-label.focused {
+              transform: translateY(-100%) scale(1.10);
+              box-shadow:
+                0 0 0 3px rgba(13, 15, 21, .55),
+                0 0 0 6px var(--selection-halo, rgba(230, 180, 90, .22));
+            }
             .annotate-hint {
               position: absolute;
               top: 16px;
@@ -745,6 +754,9 @@ internal object FeedbackConsoleAssets {
             .ann-row:hover,
             .ann-row.active {
               background: var(--bg-2);
+            }
+            .ann-row.active {
+              box-shadow: inset 3px 0 0 var(--annotation-color, var(--warning));
             }
             .ann-row-num {
               width: 24px;
@@ -1431,6 +1443,16 @@ internal object FeedbackConsoleAssets {
               return '#e6b45a';
             }
 
+            function colorWithAlpha(color, alpha) {
+              const match = String(color || '').match(/^#([0-9a-f]{6})$/i);
+              if (!match) return color;
+              const hex = match[1];
+              const red = parseInt(hex.slice(0, 2), 16);
+              const green = parseInt(hex.slice(2, 4), 16);
+              const blue = parseInt(hex.slice(4, 6), 16);
+              return 'rgba(' + red + ', ' + green + ', ' + blue + ', ' + alpha + ')';
+            }
+
             function statusLabel(status) {
               if (status === 'in-progress') return 'In-progress';
               if (status === 'resolved') return 'Resolved';
@@ -1846,7 +1868,7 @@ internal object FeedbackConsoleAssets {
                   : (toolMode === 'annotate' ? 'Click a component or drag a region to create an annotation.' : 'No annotation selected.'));
             }
 
-            function renderOverlayBox(overlay, image, bounds, labelText, isDragPreview = false, isFocused = false, annotationIndex = null, extraClass = '') {
+            function renderOverlayBox(overlay, image, bounds, labelText, isDragPreview = false, isFocused = false, annotationIndex = null, extraClass = '', color = null) {
               if (!bounds) return;
               const left = bounds.left * 100 / image.naturalWidth;
               const top = bounds.top * 100 / image.naturalHeight;
@@ -1858,6 +1880,12 @@ internal object FeedbackConsoleAssets {
               box.style.top = top + '%';
               box.style.width = width + '%';
               box.style.height = height + '%';
+              if (color) {
+                box.style.setProperty('--selection-color', color);
+                box.style.setProperty('--selection-fill', colorWithAlpha(color, .12));
+                box.style.setProperty('--selection-fill-strong', colorWithAlpha(color, .22));
+                box.style.setProperty('--selection-halo', colorWithAlpha(color, .24));
+              }
               if (annotationIndex != null) {
                 box.setAttribute('role', 'button');
                 box.setAttribute('aria-label', 'Select annotation ' + (annotationIndex + 1));
@@ -1879,13 +1907,17 @@ internal object FeedbackConsoleAssets {
               label.className = 'selection-label' + (isFocused ? ' focused' : '');
               label.style.left = left + '%';
               label.style.top = top + '%';
+              if (color) {
+                label.style.setProperty('--selection-color', color);
+                label.style.setProperty('--selection-halo', colorWithAlpha(color, .24));
+              }
               label.textContent = labelText;
               overlay.appendChild(label);
             }
 
             function renderNumberedFeedbackOverlay(overlay, image) {
               pendingFeedbackItems.forEach((item, index) => {
-                renderOverlayBox(overlay, image, item.bounds, '#' + (index + 1), false, index === focusedPendingItemIndex, index);
+                renderOverlayBox(overlay, image, item.bounds, String(index + 1), false, index === focusedPendingItemIndex, index, '', severityColor(annotationSeverity(item)));
               });
             }
 
@@ -2215,7 +2247,8 @@ internal object FeedbackConsoleAssets {
                   const commentText = firstLine(item.comment || 'No comment');
                   const hasComment = Boolean(String(item.comment || '').trim());
                   const status = annotationStatus(item);
-                  return '<button type="button" class="ann-row pending-item-row ' + (index === focusedPendingItemIndex ? 'active' : '') + '" data-focus-pending="' + index + '">' +
+                  const color = severityColor(annotationSeverity(item));
+                  return '<button type="button" class="ann-row pending-item-row ' + (index === focusedPendingItemIndex ? 'active' : '') + '" style="--annotation-color:' + color + '" data-focus-pending="' + index + '">' +
                     '<span class="ann-row-num" style="background:' + severityColor(annotationSeverity(item)) + '">' + (index + 1) + '</span>' +
                     '<span class="ann-row-body">' +
                       '<span class="ann-row-title">' + escapeHtml(annotationTitle(item, index)) + '</span>' +
@@ -2329,7 +2362,7 @@ internal object FeedbackConsoleAssets {
 
             function renderSavedEvidenceOverlay(overlay, image, items) {
               items.forEach((item, index) => {
-                renderOverlayBox(overlay, image, boundsForTarget(item.target), '#' + (index + 1));
+                renderOverlayBox(overlay, image, boundsForTarget(item.target), String(index + 1), false, false, null, '', severityColor(annotationSeverity(item)));
               });
             }
 
