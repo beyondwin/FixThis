@@ -59,6 +59,6 @@ The sidekick writes a session token under app-private storage. The desktop CLI r
 
 Feedback navigation actions are debug-only touch or key events dispatched inside the app process through the existing sidekick bridge. They do not make the Android app open a network service.
 
-Device selection is local PointPatch console state. Disconnecting a device in the console does not run `adb disconnect` and does not detach USB or Wi-Fi ADB; it clears PointPatch's active device selection and owned bridge resources.
+Device selection is local PointPatch console state. Clicking `Clear selection` in the console does not run `adb disconnect` and does not detach USB or Wi-Fi ADB; it clears PointPatch's active device selection and owned bridge resources.
 
 This bridge is intended for a trusted local development machine with ADB access to a debug app. Do not use it as a remote service boundary.

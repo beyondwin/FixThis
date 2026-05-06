@@ -219,10 +219,31 @@ class FeedbackConsoleServerTest {
     fun consoleHtmlIncludesSelectionHandoffWorkspace() {
         val html = FeedbackConsoleAssets.indexHtml
 
+        assertTrue(html.contains("id=\"deviceControl\""))
         assertTrue(html.contains("id=\"devicePicker\""))
+        assertTrue(html.contains("id=\"deviceName\""))
+        assertTrue(html.contains("id=\"deviceConnectionState\""))
         assertTrue(html.contains("id=\"refreshDevicesButton\""))
         assertTrue(html.contains("id=\"disconnectDeviceButton\""))
-        assertTrue(html.contains("id=\"deviceStatus\""))
+        assertTrue(html.contains("aria-label=\"Android device\""))
+        assertTrue(html.contains("aria-label=\"Refresh devices\""))
+        assertTrue(html.contains("title=\"Refresh devices\""))
+        assertTrue(html.contains("Clear selection"))
+        assertTrue(html.contains("aria-label=\"Clear PointPatch device selection\""))
+        assertTrue(html.contains("title=\"Clear PointPatch device selection\""))
+        assertTrue(html.contains("/api/devices"))
+        assertTrue(html.contains("/api/device/select"))
+        assertTrue(html.contains("/api/device/disconnect"))
+        assertTrue(html.contains("function refreshDevices"))
+        assertTrue(html.contains("function selectDevice"))
+        assertTrue(html.contains("function disconnectDevice"))
+        assertTrue(html.contains("function deviceLabel"))
+        assertTrue(html.contains("function shortenDeviceSerial"))
+        assertTrue(html.contains("function setDeviceUiState"))
+        assertTrue(html.contains("function deviceOptionLabel"))
+        assertTrue(html.contains("option.textContent = deviceOptionLabel(device);"))
+        assertFalse(html.contains("deviceStatus.textContent = selected ? 'Selected ' + selected.serial"))
+        assertFalse(html.contains("Selected ' + selected.serial"))
         assertTrue(html.contains("id=\"previewIntervalSelect\""))
         assertTrue(html.contains("id=\"selectionOverlay\""))
         assertTrue(html.contains("id=\"selectionSummary\""))
@@ -232,24 +253,13 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("id=\"sendDraftButton\""))
         assertTrue(html.contains("id=\"clearSelectionButton\""))
         assertTrue(html.contains("id=\"clearDraftButton\""))
-        assertTrue(html.contains("/api/devices"))
-        assertTrue(html.contains("/api/device/select"))
-        assertTrue(html.contains("/api/device/disconnect"))
         assertTrue(html.contains("/api/preview"))
         assertTrue(html.contains("/api/items/batch"))
         assertTrue(html.contains("/api/items/draft"))
         assertTrue(html.contains("/api/agent-handoffs"))
-        assertTrue(html.contains("function refreshDevices"))
-        assertTrue(html.contains("function selectDevice"))
-        assertTrue(html.contains("function disconnectDevice"))
-        assertTrue(html.contains("device.model || 'Unknown model'"))
-        assertTrue(html.contains("device.product || device.deviceName || 'device'"))
-        assertTrue(html.contains("labelParts.push(device.serial)"))
         assertTrue(html.contains("function clearSelection"))
         assertTrue(html.contains("function clearDraft"))
         assertTrue(html.contains("function sendDraftToAgent"))
-        assertTrue(html.contains("Select device..."))
-        assertTrue(html.contains("option.disabled = device.state !== 'device'"))
         assertTrue(html.contains("selectionSummary.textContent = currentSelection"))
         assertTrue(html.contains("addItemButton.disabled = !addItemsFlow || !currentSelection || !comment.value.trim()"))
         assertTrue(html.contains("formatSessionLabel"))
@@ -272,6 +282,85 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("Missing batch metadata"))
         assertFalse(html.contains("id=\"modeSelect\""))
         assertFalse(html.contains("id=\"modeNavigate\""))
+    }
+
+    @Test
+    fun consoleHtmlShowsReadableDeviceConnectionStates() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("const DeviceUiState = {"))
+        assertTrue(html.contains("NONE: 'none'"))
+        assertTrue(html.contains("CONNECTING: 'connecting'"))
+        assertTrue(html.contains("CONNECTED: 'connected'"))
+        assertTrue(html.contains("UNAVAILABLE: 'unavailable'"))
+        assertTrue(html.contains("DeviceStateCopy = {"))
+        assertTrue(html.contains("No device"))
+        assertTrue(html.contains("Connecting"))
+        assertTrue(html.contains("Connected"))
+        assertTrue(html.contains("Unavailable"))
+        assertTrue(html.contains("data-connection-state=\"none\""))
+        assertTrue(html.contains("deviceControl.dataset.connectionState = uiState;"))
+        assertTrue(html.contains("deviceConnectionState.textContent = DeviceStateCopy[uiState];"))
+        assertTrue(html.contains("const state = { session: null, preview: null, selectedDeviceSerial: null, devices: [] };"))
+        assertTrue(html.contains("state.devices = devices;"))
+        assertTrue(html.contains("setDeviceUiState(DeviceUiState.CONNECTING, deviceBySerial(state.devices, option.value));"))
+    }
+
+    @Test
+    fun consoleHtmlDisablesPreviewPollingForUnavailableDeviceSelection() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("const selectedSerial = selected && selected.state === 'device' ? selected.serial : null;"))
+        assertTrue(html.contains("state.selectedDeviceSerial = null;"))
+        assertTrue(html.contains("stopLivePreviewPolling();"))
+        assertTrue(html.contains("setDeviceUiState(DeviceUiState.UNAVAILABLE, deviceBySerial(state.devices, option.value) || { serial: option.value });"))
+    }
+
+    @Test
+    fun consoleHtmlRerendersPreviewWhenDeviceSelectionInvalidatesPreview() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val renderDeviceList = javascriptFunctionBody(html, "renderDeviceList")
+        val noDevicesSelectionChange = Regex(
+            """
+            if \(!devices\.length\) \{[\s\S]*?if \(previousSelectedDeviceSerial !== selectedSerial\) \{\s*invalidatePreviewContext\(\);\s*renderPreviewOnly\(\);\s*\}
+            """.trimIndent(),
+        )
+        val selectedSerialChange = Regex(
+            """
+            const selectedSerial = selected && selected\.state === 'device' \? selected\.serial : null;[\s\S]*?if \(previousSelectedDeviceSerial !== selectedSerial\) \{\s*invalidatePreviewContext\(\);\s*renderPreviewOnly\(\);\s*\}
+            """.trimIndent(),
+        )
+
+        assertTrue(
+            noDevicesSelectionChange.containsMatchIn(renderDeviceList),
+            "No-devices selection invalidation must rerender the preview region",
+        )
+        assertTrue(
+            selectedSerialChange.containsMatchIn(renderDeviceList),
+            "Selected-serial invalidation must rerender the preview region",
+        )
+    }
+
+    @Test
+    fun consoleHtmlClearsDeviceUiOnlyAfterClearSelectionSucceeds() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val clearRequest = "renderDeviceList(await requestJson('/api/device/disconnect', { method: 'POST' }));"
+        val clearUi = "setDeviceUiState(DeviceUiState.NONE);"
+        val clearRequestIndex = html.indexOf(clearRequest)
+        val clearUiIndex = if (clearRequestIndex >= 0) html.indexOf(clearUi, clearRequestIndex) else -1
+
+        assertTrue(clearRequestIndex >= 0)
+        assertTrue(clearUiIndex > clearRequestIndex)
+    }
+
+    @Test
+    fun consoleHtmlShortensWifiAdbSerialsForNormalDeviceLabels() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("function shortenDeviceSerial(serial)"))
+        assertTrue(html.contains("withoutServiceSuffix = raw.split('._adb-tls-connect._tcp')[0];"))
+        assertTrue(html.contains("if (withoutServiceSuffix.startsWith('adb-')) return withoutServiceSuffix.substring(4);"))
+        assertTrue(html.contains("return device.model || device.deviceName || device.product || shortenDeviceSerial(device.serial) || 'Unknown device';"))
     }
 
     @Test
@@ -415,7 +504,7 @@ class FeedbackConsoleServerTest {
         assertTrue(Regex("async function newSession\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);[\\s\\S]*/api/session/open").containsMatchIn(html))
         assertTrue(Regex("async function closeSession\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);[\\s\\S]*/api/session/close").containsMatchIn(html))
         assertTrue(html.contains("const previousSelectedDeviceSerial = state.selectedDeviceSerial;"))
-        assertTrue(html.contains("if (previousSelectedDeviceSerial !== selectedSerial) invalidatePreviewContext();"))
+        assertTrue(html.contains("if (previousSelectedDeviceSerial !== selectedSerial) {"))
         assertFalse(html.contains("state.preview = null;\n              state.session = await requestJson('/api/session/open'"))
         assertFalse(html.contains("state.preview = null;\n              await refreshSessions();"))
     }

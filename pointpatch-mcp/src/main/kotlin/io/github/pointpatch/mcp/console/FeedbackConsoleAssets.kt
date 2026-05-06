@@ -125,6 +125,118 @@ internal object FeedbackConsoleAssets {
             button.primary { background: var(--accent); border-color: var(--accent); color: var(--bg-0); font-weight: 700; }
             button.primary:hover:not(:disabled) { transform: translateY(-1px); }
             button:disabled { opacity: .4; cursor: default; }
+            .device-control {
+              position: relative;
+              display: inline-flex;
+              align-items: center;
+              gap: 8px;
+              min-width: 210px;
+              max-width: 260px;
+              min-height: 32px;
+              padding: 0 10px;
+              border: 1px solid var(--line);
+              border-radius: 8px;
+              background: var(--bg-2);
+              color: var(--txt-0);
+              overflow: hidden;
+            }
+            .device-control:focus-within {
+              border-color: var(--accent);
+              box-shadow: 0 0 0 3px rgba(184, 211, 106, .12);
+            }
+            .device-state-dot {
+              width: 8px;
+              height: 8px;
+              border-radius: 999px;
+              flex: 0 0 auto;
+              background: var(--txt-2);
+            }
+            .device-copy {
+              display: grid;
+              gap: 1px;
+              min-width: 0;
+              line-height: 1.1;
+            }
+            .device-name {
+              min-width: 0;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+              font-size: 12px;
+              font-weight: 700;
+              color: var(--txt-0);
+            }
+            .device-connection-state {
+              min-width: 0;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+              font-size: 10px;
+              font-weight: 700;
+              text-transform: uppercase;
+              letter-spacing: 0;
+              color: var(--txt-2);
+            }
+            .device-chevron {
+              margin-left: auto;
+              color: var(--txt-2);
+              font-size: 11px;
+              flex: 0 0 auto;
+            }
+            .device-control select {
+              position: absolute;
+              inset: 0;
+              width: 100%;
+              height: 100%;
+              opacity: 0;
+              cursor: pointer;
+            }
+            .device-control[data-connection-state="connected"] {
+              border-color: rgba(111, 207, 151, .34);
+            }
+            .device-control[data-connection-state="connected"] .device-state-dot {
+              background: #6fcf97;
+              box-shadow: 0 0 0 3px rgba(111, 207, 151, .16);
+            }
+            .device-control[data-connection-state="connected"] .device-connection-state {
+              color: #6fcf97;
+            }
+            .device-control[data-connection-state="connecting"] {
+              border-color: rgba(230, 180, 90, .34);
+            }
+            .device-control[data-connection-state="connecting"] .device-state-dot {
+              background: #e6b45a;
+              box-shadow: 0 0 0 3px rgba(230, 180, 90, .16);
+            }
+            .device-control[data-connection-state="connecting"] .device-connection-state {
+              color: #e6b45a;
+            }
+            .device-control[data-connection-state="unavailable"] {
+              border-color: rgba(242, 109, 109, .34);
+            }
+            .device-control[data-connection-state="unavailable"] .device-state-dot {
+              background: #f26d6d;
+              box-shadow: 0 0 0 3px rgba(242, 109, 109, .16);
+            }
+            .device-control[data-connection-state="unavailable"] .device-connection-state {
+              color: #f26d6d;
+            }
+            .device-control[data-connection-state="none"] .device-state-dot {
+              background: var(--txt-2);
+            }
+            .device-control[data-connection-state="none"] .device-connection-state {
+              color: var(--txt-1);
+            }
+            .icon-button {
+              width: 32px;
+              padding: 0;
+              display: inline-grid;
+              place-items: center;
+              font-size: 15px;
+            }
+            .clear-device-button {
+              white-space: nowrap;
+            }
             textarea {
               width: 100%;
               min-height: 92px;
@@ -412,7 +524,7 @@ internal object FeedbackConsoleAssets {
               }
               .studio-context {
                 display: grid;
-                grid-template-columns: minmax(72px, 1fr) minmax(88px, 112px) 64px auto auto;
+                grid-template-columns: minmax(72px, 1fr) minmax(150px, 190px) 64px auto auto;
                 gap: 6px;
               }
               .studio-actions {
@@ -426,9 +538,23 @@ internal object FeedbackConsoleAssets {
                 font-size: 11px;
               }
               .session-meta { min-width: 0; }
-              #devicePicker {
-                min-width: 0;
+              .device-control {
+                min-width: 150px;
+                max-width: 190px;
                 width: 100%;
+              }
+              .device-name {
+                font-size: 11px;
+              }
+              .device-connection-state {
+                font-size: 9px;
+              }
+              .clear-device-button {
+                width: 64px;
+                min-width: 64px;
+                max-width: 64px;
+                overflow: hidden;
+                text-overflow: ellipsis;
               }
               #previewIntervalSelect {
                 width: 64px;
@@ -467,16 +593,24 @@ internal object FeedbackConsoleAssets {
               </div>
               <div class="studio-context">
                 <span id="sessionMeta" class="session-meta">Loading session...</span>
-                <select id="devicePicker"></select>
+                <div id="deviceControl" class="device-control" data-connection-state="none">
+                  <span class="device-state-dot" aria-hidden="true"></span>
+                  <span class="device-copy">
+                    <span id="deviceName" class="device-name">No device</span>
+                    <span id="deviceConnectionState" class="device-connection-state">No device</span>
+                  </span>
+                  <span class="device-chevron" aria-hidden="true">▾</span>
+                  <select id="devicePicker" aria-label="Android device"></select>
+                </div>
                 <select id="previewIntervalSelect" aria-label="Preview interval">
                   <option value="manual">Manual</option>
                   <option value="1000">1s</option>
                   <option value="2000" selected>2s</option>
                   <option value="5000">5s</option>
                 </select>
-                <button id="refreshDevicesButton">Devices</button>
-                <button id="disconnectDeviceButton">Disconnect</button>
-                <span id="deviceStatus" class="status-pill">No device selected</span>
+                <button id="refreshDevicesButton" class="icon-button" type="button" title="Refresh devices" aria-label="Refresh devices">↻</button>
+                <button id="disconnectDeviceButton" class="clear-device-button" type="button" title="Clear PointPatch device selection" aria-label="Clear PointPatch device selection">Clear selection</button>
+                <span id="deviceStatus" class="status-pill" hidden>No device</span>
               </div>
               <div class="studio-actions">
                 <button id="refreshButton">Refresh</button>
@@ -545,7 +679,7 @@ internal object FeedbackConsoleAssets {
             const DefaultLivePreviewIntervalMs = 2000;
             const MinLivePreviewIntervalMs = 1000;
             const PreviewIntervalStorageKey = 'pointpatch.previewIntervalMs';
-            const state = { session: null, preview: null, selectedDeviceSerial: null };
+            const state = { session: null, preview: null, selectedDeviceSerial: null, devices: [] };
             const sessionMeta = document.getElementById('sessionMeta');
             const sessions = document.getElementById('sessions');
             const sentHistory = document.getElementById('sentHistory');
@@ -563,6 +697,9 @@ internal object FeedbackConsoleAssets {
             const captureAfterNavigation = document.getElementById('captureAfterNavigation');
             const devicePicker = document.getElementById('devicePicker');
             const deviceStatus = document.getElementById('deviceStatus');
+            const deviceControl = document.getElementById('deviceControl');
+            const deviceName = document.getElementById('deviceName');
+            const deviceConnectionState = document.getElementById('deviceConnectionState');
             const previewIntervalSelect = document.getElementById('previewIntervalSelect');
             const navigationControls = document.getElementById('navigationControls');
             const selectionSummary = document.getElementById('selectionSummary');
@@ -583,6 +720,20 @@ internal object FeedbackConsoleAssets {
             let dragStart = null;
             let dragPreview = null;
             let suppressNextClick = false;
+
+            const DeviceUiState = {
+              NONE: 'none',
+              CONNECTING: 'connecting',
+              CONNECTED: 'connected',
+              UNAVAILABLE: 'unavailable'
+            };
+
+            const DeviceStateCopy = {
+              [DeviceUiState.NONE]: 'No device',
+              [DeviceUiState.CONNECTING]: 'Connecting',
+              [DeviceUiState.CONNECTED]: 'Connected',
+              [DeviceUiState.UNAVAILABLE]: 'Unavailable'
+            };
 
             function text(value) {
               return value == null || value === '' ? '-' : String(value);
@@ -730,35 +881,68 @@ internal object FeedbackConsoleAssets {
               return '/api/preview/' + encodeURIComponent(previewId) + '/screenshot/full';
             }
 
+            function shortenDeviceSerial(serial) {
+              const raw = String(serial || '').trim();
+              if (!raw) return '';
+              const withoutServiceSuffix = raw.split('._adb-tls-connect._tcp')[0];
+              if (withoutServiceSuffix.startsWith('adb-')) return withoutServiceSuffix.substring(4);
+              if (withoutServiceSuffix.length <= 24) return withoutServiceSuffix;
+              return withoutServiceSuffix.slice(0, 10) + '...' + withoutServiceSuffix.slice(-6);
+            }
+
             function deviceLabel(device) {
-              const labelParts = [device.model || 'Unknown model'];
-              const productLabel = device.product || device.deviceName || 'device';
-              if (productLabel !== device.serial) {
-                labelParts.push(productLabel);
-              }
-              labelParts.push(device.serial);
-              return labelParts.join(' | ');
+              if (!device) return 'No device';
+              return device.model || device.deviceName || device.product || shortenDeviceSerial(device.serial) || 'Unknown device';
+            }
+
+            function deviceDetail(device) {
+              if (!device) return 'No device';
+              if (device.state === 'device') return 'connected';
+              return (device.state || 'unknown') + ' · unavailable';
+            }
+
+            function deviceOptionLabel(device) {
+              return deviceLabel(device) + ' - ' + deviceDetail(device);
+            }
+
+            function setDeviceUiState(uiState, device = null) {
+              deviceControl.dataset.connectionState = uiState;
+              deviceName.textContent = device ? deviceLabel(device) : 'No device';
+              deviceConnectionState.textContent = DeviceStateCopy[uiState];
+              deviceStatus.textContent = deviceName.textContent + ' - ' + deviceConnectionState.textContent;
+            }
+
+            function deviceBySerial(devices, serial) {
+              if (!serial) return null;
+              return (devices || []).find(device => device.serial === serial) || null;
             }
 
             function renderDeviceList(payload) {
               const devices = payload.devices || [];
+              state.devices = devices;
               const previousSelectedDeviceSerial = state.selectedDeviceSerial;
               devicePicker.innerHTML = '';
+
               if (!devices.length) {
                 const selectedSerial = null;
-                if (previousSelectedDeviceSerial !== selectedSerial) invalidatePreviewContext();
+                if (previousSelectedDeviceSerial !== selectedSerial) {
+                  invalidatePreviewContext();
+                  renderPreviewOnly();
+                }
                 state.selectedDeviceSerial = selectedSerial;
                 const option = document.createElement('option');
                 option.value = '';
                 option.textContent = 'No devices available';
                 devicePicker.appendChild(option);
                 devicePicker.disabled = true;
-                deviceStatus.textContent = 'No device selected';
+                setDeviceUiState(DeviceUiState.NONE);
                 return;
               }
 
-              const selected = devices.find(device => device.selected || device.serial === payload.selectedSerial);
+              const selectedSerialFromPayload = payload.selectedSerial || null;
+              const selected = devices.find(device => device.selected || device.serial === selectedSerialFromPayload) || null;
               devicePicker.disabled = false;
+
               if (!selected) {
                 const option = document.createElement('option');
                 option.value = '';
@@ -767,41 +951,64 @@ internal object FeedbackConsoleAssets {
                 option.selected = true;
                 devicePicker.appendChild(option);
               }
+
               devices.forEach(device => {
                 const option = document.createElement('option');
                 option.value = device.serial;
-                option.textContent = deviceLabel(device) + ' - ' + device.state + (device.state === 'device' ? '' : ' (unavailable)');
+                option.textContent = deviceOptionLabel(device);
                 option.disabled = device.state !== 'device';
-                option.selected = Boolean(device.selected) || device.serial === payload.selectedSerial;
+                option.selected = Boolean(device.selected) || device.serial === selectedSerialFromPayload;
                 devicePicker.appendChild(option);
               });
 
-              const selectedSerial = selected ? selected.serial : null;
-              if (previousSelectedDeviceSerial !== selectedSerial) invalidatePreviewContext();
+              const selectedSerial = selected && selected.state === 'device' ? selected.serial : null;
+              if (previousSelectedDeviceSerial !== selectedSerial) {
+                invalidatePreviewContext();
+                renderPreviewOnly();
+              }
               state.selectedDeviceSerial = selectedSerial;
-              deviceStatus.textContent = selected ? 'Selected ' + selected.serial : 'No device selected';
+
+              if (!selected) {
+                setDeviceUiState(DeviceUiState.NONE);
+              } else if (selected.state === 'device') {
+                setDeviceUiState(DeviceUiState.CONNECTED, selected);
+              } else {
+                setDeviceUiState(DeviceUiState.UNAVAILABLE, selected);
+              }
             }
 
             async function refreshDevices() {
+              if (state.selectedDeviceSerial) {
+                setDeviceUiState(DeviceUiState.CONNECTING, deviceBySerial(state.devices, state.selectedDeviceSerial));
+              }
               renderDeviceList(await requestJson('/api/devices'));
             }
 
             async function selectDevice() {
               const option = devicePicker.selectedOptions[0];
               if (!option || !option.value || option.disabled) return;
+              setDeviceUiState(DeviceUiState.CONNECTING, deviceBySerial(state.devices, option.value));
               invalidatePreviewContext();
-              renderDeviceList(await requestJson('/api/device/select', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ serial: option.value })
-              }));
-              await refreshPreview();
-              startLivePreviewPolling();
+              try {
+                renderDeviceList(await requestJson('/api/device/select', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ serial: option.value })
+                }));
+                await refreshPreview();
+                startLivePreviewPolling();
+              } catch (cause) {
+                state.selectedDeviceSerial = null;
+                stopLivePreviewPolling();
+                setDeviceUiState(DeviceUiState.UNAVAILABLE, deviceBySerial(state.devices, option.value) || { serial: option.value });
+                throw cause;
+              }
             }
 
             async function disconnectDevice() {
               invalidatePreviewContext();
               renderDeviceList(await requestJson('/api/device/disconnect', { method: 'POST' }));
+              setDeviceUiState(DeviceUiState.NONE);
               render();
               startLivePreviewPolling();
             }

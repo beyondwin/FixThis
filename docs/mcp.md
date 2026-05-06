@@ -30,7 +30,7 @@ The Android app does not host the MCP server. The sidekick only exposes a local 
 
 ## Feedback Console
 
-The feedback console is an MCP-owned local web UI. The MCP server owns the session queue and exposes it to agents through queue tools. The browser UI is the human review surface: a dark Studio workspace with persisted sessions on the left, live or frozen preview canvas in the center, and a mode-aware Inspector on the right.
+The feedback console is an MCP-owned local web UI. The MCP server owns the session queue and exposes it to agents through queue tools. The browser UI is the human review surface: a dark Studio workspace with persisted sessions on the left, live or frozen preview canvas in the center, and a mode-aware Inspector on the right. Its compact device control shows the active short device label plus `No device`, `Connecting`, `Connected`, or `Unavailable`.
 
 Feedback console sessions are resumable. Workspace metadata and session-owned screenshot artifacts are stored under `.pointpatch/feedback-sessions/` in the project root.
 
@@ -51,7 +51,7 @@ The CLI command `pointpatch console --package <applicationId>` opens the same lo
 
 Console workflow:
 
-1. Select a connected ADB device from the browser device picker. Offline, unauthorized, and otherwise unavailable devices are visible but not selectable.
+1. Select a connected ADB device from the compact device control. Offline, unauthorized, and otherwise unavailable devices are visible but not selectable.
 2. Use the app normally from the console preview.
 3. Click Add when ready to leave feedback on the current screen.
 4. Select a UI target or drag a visual area and write a comment.

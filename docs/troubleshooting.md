@@ -101,7 +101,7 @@ The console may still show semantics without a screenshot. Click Refresh after t
 
 ### Refresh or Add does not work
 
-Select a device in the console device picker. If the device is unauthorized or offline, fix it in `adb devices -l` first.
+Select a device in the compact console device control. If the control shows `No device`, refresh devices with `↻`. If it shows `Unavailable`, fix unauthorized or offline state in `adb devices -l` first.
 
 ### I clicked Add but do not see saved feedback
 
