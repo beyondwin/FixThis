@@ -145,8 +145,8 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("inspectorTitle.textContent = item ? 'Annotation' : 'Annotations'"))
         assertTrue(html.contains("inspectorTitle.textContent = 'Annotations'"))
         assertFalse(html.contains("inspectorTitle.textContent = 'Draft'"))
-        assertTrue(html.contains(".saved-evidence-frame .selection-overlay"))
-        assertTrue(html.contains("if (image.complete && image.naturalWidth)"))
+        assertFalse(html.contains(".saved-evidence-frame .selection-overlay"))
+        assertFalse(html.contains("function hydrateSavedEvidencePreviews()"))
         assertTrue(html.contains("background: var(--selection-fill, rgba(184, 211, 106, .12));"))
         assertTrue(html.contains("background: var(--selection-color, var(--accent));"))
         assertTrue(html.contains("box-shadow: inset 3px 0 0 var(--annotation-color, var(--warning));"))
@@ -156,7 +156,7 @@ class FeedbackConsoleServerTest {
         assertTrue(pendingRenderer.contains("ann-row"))
         assertTrue(pendingRenderer.contains("ann-row-num"))
         assertTrue(pendingRenderer.contains("ann-row-status"))
-        assertTrue(pendingRenderer.contains("Start annotating"))
+        assertTrue(pendingRenderer.contains("startAnnotatingButtonHtml()"))
         assertTrue(pendingRenderer.contains("data-focus-pending"))
         assertFalse(pendingRenderer.contains("data-delete-pending"))
         assertTrue(html.contains("grid-template-columns: 28px minmax(0, 1fr) auto;"))
@@ -232,18 +232,32 @@ class FeedbackConsoleServerTest {
         val updateComposerStateBody = javascriptFunctionBody(html, "updateComposerState")
         val copyPromptBody = javascriptFunctionBody(html, "copyPrompt")
         val sendAgentPromptBody = javascriptFunctionBody(html, "sendAgentPrompt")
+        val currentPromptAnnotationsBody = javascriptFunctionBody(html, "currentPromptAnnotations")
+        val promptGuardBody = javascriptFunctionBody(html, "ensurePromptAnnotationsAvailable")
         val renderSessionsListBody = javascriptFunctionBody(html, "renderSessionsListFromPayload")
         val clearSentHistoryBody = javascriptFunctionBody(html, "clearSentHistory")
 
         assertTrue(html.contains("function currentAnnotationsPrompt"))
         assertTrue(html.contains("function currentPromptAnnotations"))
-        assertTrue(copyPromptBody.contains("navigator.clipboard.writeText(currentAnnotationsPrompt())"))
+        assertTrue(html.contains("function hasWrittenAnnotationComment(item)"))
+        assertTrue(currentPromptAnnotationsBody.contains(".filter(hasWrittenAnnotationComment)"))
+        assertTrue(html.contains("function ensurePromptAnnotationsAvailable()"))
+        assertTrue(promptGuardBody.contains("window.alert(message)"))
+        assertTrue(html.contains("async function copyTextToClipboard(text)"))
+        assertTrue(html.contains("navigator.clipboard.writeText(text)"))
+        assertTrue(html.contains("document.execCommand('copy')"))
+        assertTrue(html.contains("fallback.remove()"))
+        assertTrue(copyPromptBody.contains("ensurePromptAnnotationsAvailable();"))
+        assertTrue(copyPromptBody.contains("await copyTextToClipboard(currentAnnotationsPrompt(annotations))"))
+        assertTrue(sendAgentPromptBody.contains("ensurePromptAnnotationsAvailable();"))
         assertTrue(sendAgentPromptBody.contains("const prompt = currentAnnotationsPrompt();"))
-        assertTrue(sendAgentPromptBody.contains("persistPendingFeedbackItems({ allowFallbackComments: true })"))
+        assertTrue(sendAgentPromptBody.contains("persistPendingFeedbackItems({ onlyWrittenComments: true })"))
         assertTrue(sendAgentPromptBody.contains("body: JSON.stringify({ prompt: prompt })"))
         assertTrue(updateComposerStateBody.contains("const hasPromptAnnotations = currentPromptAnnotations().length > 0;"))
-        assertTrue(updateComposerStateBody.contains("copyPromptButton.disabled = !hasPromptAnnotations;"))
-        assertTrue(updateComposerStateBody.contains("sendAgentButton.disabled = !hasPromptAnnotations;"))
+        assertTrue(updateComposerStateBody.contains("copyPromptButton.dataset.unavailable = String(!hasPromptAnnotations);"))
+        assertTrue(updateComposerStateBody.contains("sendAgentButton.dataset.unavailable = String(!hasPromptAnnotations);"))
+        assertTrue(updateComposerStateBody.contains("copyPromptButton.classList.toggle('is-disabled', !hasPromptAnnotations);"))
+        assertTrue(updateComposerStateBody.contains("sendAgentButton.classList.toggle('is-disabled', !hasPromptAnnotations);"))
         assertTrue(renderSessionsListBody.contains("session.status !== 'ready_for_agent'"))
         assertTrue(html.contains("id=\"clearSentHistoryButton\""))
         assertTrue(clearSentHistoryBody.contains("window.confirm"))
@@ -354,7 +368,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("function clearDraft"))
         assertTrue(html.contains("function sendAgentPrompt"))
         assertTrue(html.contains("selectionSummary.textContent = currentSelection"))
-        assertTrue(html.contains("sendAgentButton.disabled = !hasPromptAnnotations;"))
+        assertTrue(html.contains("sendAgentButton.classList.toggle('is-disabled', !hasPromptAnnotations);"))
         assertTrue(html.contains("formatSessionLabel"))
         assertTrue(html.contains("formatSessionSummary"))
         assertTrue(html.contains("historyOpenCount"))
@@ -518,10 +532,51 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains(".sent-history-drawer .history-list"))
         assertTrue(html.contains("max-height:"))
         assertTrue(html.contains("overflow: auto"))
+        assertTrue(html.contains("function historyStartAnnotatingItemHtml()"))
+        assertTrue(html.contains("class=\"history-item history-add-row\""))
+        assertTrue(html.contains("data-start-new-history-annotating"))
+        assertTrue(html.contains("function emptySessionsHtml()"))
+        assertTrue(Regex("sessions\\.innerHTML = renderedSessions\\s+\\? renderedSessions \\+ historyStartAnnotatingItemHtml\\(\\)\\s+: historyStartAnnotatingItemHtml\\(\\) \\+ emptySessionsHtml\\(\\);").containsMatchIn(html))
+        assertTrue(html.contains("button.addEventListener('click', () => enterNewHistoryAnnotateMode().catch(showError));"))
+        assertTrue(html.contains("async function enterNewHistoryAnnotateMode()"))
+        assertTrue(html.contains("let newHistoryAnnotateModeStarting = false;"))
+        assertTrue(html.contains("if (newHistoryAnnotateModeStarting) return;"))
+        assertTrue(html.contains("newHistoryAnnotateModeStarting = true;"))
+        assertTrue(html.contains("newHistoryAnnotateModeStarting = false;"))
+        assertTrue(html.contains("await newSession();"))
+        assertTrue(html.contains("scrollActiveHistoryItemIntoView();"))
+        assertTrue(html.contains("await enterAnnotateMode();"))
+        assertTrue(html.contains("function scrollActiveHistoryItemIntoView()"))
+        assertTrue(html.contains("sessions.querySelector('.session-row.is-active')"))
+        assertTrue(html.contains("renderCurrentSessionList();"))
+        assertTrue(html.contains("if (newHistoryAnnotateModeStarting) return '';"))
+        assertFalse(html.contains("if (toolMode === 'annotate' || newHistoryAnnotateModeStarting) return '';"))
+        assertFalse(html.contains("id=\"historyStartAnnotatingButton\""))
+        assertFalse(html.contains(".panel-head-actions"))
+        assertTrue(html.contains(".history-add-row"))
         assertFalse(html.contains("· Not sent"))
         assertFalse(html.contains("shortId(session.sessionId)"))
         assertFalse(html.contains("shortId(screen.screenId)"))
         assertFalse(html.contains("shortId(batch.batchId)"))
+    }
+
+    @Test
+    fun consoleHtmlFlushesPendingAnnotationsBeforeSessionSwitch() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val openSession = javascriptFunctionBody(html, "openSession")
+        val newSession = javascriptFunctionBody(html, "newSession")
+        val flushPending = javascriptFunctionBody(html, "flushPendingAnnotationsBeforeSessionChange")
+        val persistPending = javascriptFunctionBody(html, "persistPendingFeedbackItems")
+        val pendingPayload = javascriptFunctionBody(html, "pendingPayloadItems")
+
+        assertTrue(html.contains("async function flushPendingAnnotationsBeforeSessionChange()"))
+        assertTrue(flushPending.contains("if (!addItemsFlow || !pendingFeedbackItems.length) return;"))
+        assertTrue(flushPending.contains("await persistPendingFeedbackItems({ allowBlankComments: true });"))
+        assertTrue(openSession.contains("await flushPendingAnnotationsBeforeSessionChange();"))
+        assertTrue(newSession.contains("await flushPendingAnnotationsBeforeSessionChange();"))
+        assertTrue(html.contains("const allowBlankComments = Boolean(options.allowBlankComments);"))
+        assertTrue(html.contains("!allowBlankComments"))
+        assertTrue(html.contains("allowBlankComments: allowBlankComments"))
     }
 
     @Test
@@ -544,7 +599,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("let toolMode = 'select'"))
         assertTrue(html.contains("function enterAnnotateMode"))
         assertTrue(html.contains("function enterSelectMode"))
-        assertTrue(Regex("async function enterAnnotateMode\\(\\) \\{\\s+await ensureSessionForAnnotating\\(\\);\\s+toolMode = 'annotate';\\s+renderPreviewOnly\\(\\);\\s+renderInspectorRegion\\(\\);").containsMatchIn(html))
+        assertTrue(Regex("async function enterAnnotateMode\\(\\) \\{\\s+await ensureSessionForAnnotating\\(\\);\\s+toolMode = 'annotate';\\s+renderCurrentSessionList\\(\\);\\s+if \\(!addItemsFlow\\) \\{\\s+await startAddItemsFlow\\(\\);").containsMatchIn(html))
         assertTrue(html.contains("inspectorTitle.textContent = item ? 'Annotation' : 'Annotations'"))
         assertTrue(html.contains("pendingItems.hidden = false"))
         assertTrue(html.contains("renderPendingItems"))
@@ -582,23 +637,63 @@ class FeedbackConsoleServerTest {
         val html = FeedbackConsoleAssets.indexHtml
         val renderSavedEvidenceGroups = javascriptFunctionBody(html, "renderSavedEvidenceGroups")
 
-        assertTrue(renderSavedEvidenceGroups.contains("data-start-annotating"))
-        assertTrue(renderSavedEvidenceGroups.contains("Start annotating"))
+        assertTrue(renderSavedEvidenceGroups.contains("startAnnotatingButtonHtml()"))
+        assertTrue(html.contains("data-start-annotating"))
+        assertTrue(html.contains("Start annotating"))
         assertTrue(html.contains("function bindStartAnnotatingButtons(container)"))
         assertTrue(renderSavedEvidenceGroups.contains("bindStartAnnotatingButtons(draftItems);"))
+        assertTrue(html.contains("function startAnnotatingButtonHtml()"))
+        assertTrue(html.contains("if (toolMode === 'annotate') return '';"))
+        assertTrue(html.contains("function historyStartAnnotatingItemHtml()"))
+    }
+
+    @Test
+    fun consoleHtmlGivesBackToAnnotationsButtonButtonPadding() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(Regex("\\.annotation-back \\{[\\s\\S]*min-height: 32px;[\\s\\S]*padding: 0 14px;").containsMatchIn(html))
+        assertTrue(Regex("\\.annotation-danger,[\\s\\S]*\\.annotation-done \\{[\\s\\S]*padding: 0 14px;").containsMatchIn(html))
+    }
+
+    @Test
+    fun consoleHtmlPlacesAnnotateHintOutsideDeviceFrame() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val renderPreviewRegion = javascriptFunctionBody(html, "renderPreviewRegion")
+
+        assertTrue(html.contains(".snapshot-stage"))
+        assertTrue(html.contains("flex-direction: column;"))
+        assertTrue(html.contains(".annotate-hint-slot"))
+        assertTrue(html.contains("min-height: 6px;"))
+        assertTrue(Regex("\\.snapshot-stage \\{[\\s\\S]*gap: 10px;").containsMatchIn(html))
+        assertTrue(html.contains(".annotate-hint"))
+        assertTrue(html.contains("position: static;"))
+        assertTrue(html.contains("id=\"annotateHintSlot\""))
+        assertTrue(renderPreviewRegion.contains("const hintSlot = document.getElementById('annotateHintSlot');"))
+        assertTrue(renderPreviewRegion.contains("hintSlot.appendChild(hint);"))
+        assertFalse(renderPreviewRegion.contains("snapshot.insertBefore(hint, frame);"))
+        assertFalse(renderPreviewRegion.contains("frame.appendChild(hint);"))
     }
 
     @Test
     fun consoleHtmlCreatesHistorySessionBeforeAnnotatingFromEmptyState() {
         val html = FeedbackConsoleAssets.indexHtml
+        val hasActiveHistorySessionForAnnotating = javascriptFunctionBody(html, "hasActiveHistorySessionForAnnotating")
         val ensureSessionForAnnotating = javascriptFunctionBody(html, "ensureSessionForAnnotating")
         val enterAnnotateMode = javascriptFunctionBody(html, "enterAnnotateMode")
 
-        assertTrue(ensureSessionForAnnotating.contains("if (state.session) return;"))
+        assertTrue(html.contains("function hasActiveHistorySessionForAnnotating()"))
+        assertTrue(ensureSessionForAnnotating.contains("if (hasActiveHistorySessionForAnnotating()) return;"))
+        assertTrue(hasActiveHistorySessionForAnnotating.contains("state.session.status !== 'ready_for_agent'"))
+        assertTrue(hasActiveHistorySessionForAnnotating.contains("state.session.status !== 'closed'"))
+        assertTrue(hasActiveHistorySessionForAnnotating.contains("(state.sessionSummaries || []).some"))
         assertTrue(ensureSessionForAnnotating.contains("/api/session/open"))
         assertTrue(ensureSessionForAnnotating.contains("body: JSON.stringify({ newSession: true })"))
         assertTrue(ensureSessionForAnnotating.contains("await refreshSessions();"))
         assertTrue(enterAnnotateMode.contains("await ensureSessionForAnnotating();"))
+        assertTrue(enterAnnotateMode.contains("toolMode = 'annotate';"))
+        assertTrue(enterAnnotateMode.contains("renderCurrentSessionList();"))
+        assertTrue(enterAnnotateMode.contains("if (!addItemsFlow) {"))
+        assertTrue(enterAnnotateMode.contains("await startAddItemsFlow();"))
     }
 
     @Test
@@ -615,14 +710,46 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("const persistedScreenIds = new Set("))
         assertTrue(html.contains(".filter(screen => persistedScreenIds.has(screen.screenId))"))
         assertTrue(html.contains("function screenImageUrl(screen)"))
-        assertTrue(html.contains("return addItemsFlow?.screen || state.preview?.screen || latestPersistedScreen();"))
+        assertTrue(html.contains("return addItemsFlow?.screen || latestPersistedScreen() || state.preview?.screen;"))
         assertTrue(html.contains("'/api/screens/' + encodeURIComponent(screen.screenId) + '/screenshot/full'"))
         assertTrue(html.contains("const persistedItems = persistedItemsForScreen(screen?.screenId);"))
         assertTrue(html.contains("renderSavedEvidenceOverlay(overlay, image, persistedItems);"))
-        assertTrue(Regex("async function openSession\\(sessionId\\)[\\s\\S]*stopLivePreviewPolling\\(\\);[\\s\\S]*await refresh\\(\\);\\s+}").containsMatchIn(html))
-        assertTrue(html.contains("function formatSavedEvidenceItemLabel(item, index)"))
-        assertTrue(html.contains("return '#' + (index + 1) + ' ' + firstLine(item.comment || '(No comment)');"))
-        assertTrue(html.contains("escapeHtml(formatSavedEvidenceItemLabel(item, index))"))
+        assertFalse(html.contains("if (!addItemsFlow && !state.preview && persistedItems.length)"))
+        assertTrue(Regex("async function openSession\\(sessionId\\)[\\s\\S]*stopLivePreviewPolling\\(\\);[\\s\\S]*await refresh\\(\\);").containsMatchIn(html))
+        assertTrue(html.contains("function savedEvidenceItems()"))
+        assertTrue(html.contains("return savedEvidenceItems().filter(item => item.screenId === screenId);"))
+        assertFalse(html.contains("escapeHtml(formatSavedEvidenceItemLabel(item, index))"))
+    }
+
+    @Test
+    fun consoleHtmlKeepsSavedAnnotationPreviewsInCenterDeviceOnly() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val renderSavedEvidenceGroups = javascriptFunctionBody(html, "renderSavedEvidenceGroups")
+
+        assertTrue(html.contains("function renderSavedEvidenceOverlay(overlay, image, items)"))
+        assertTrue(html.contains("persistedItemsForScreen(screen?.screenId)"))
+        assertFalse(renderSavedEvidenceGroups.contains("saved-evidence-preview"))
+        assertFalse(renderSavedEvidenceGroups.contains("hydrateSavedEvidencePreviews"))
+        assertFalse(html.contains("function hydrateSavedEvidencePreviews()"))
+    }
+
+    @Test
+    fun consoleHtmlRendersSavedAnnotationsWithSameListUiAfterSessionSwitch() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val renderSavedEvidenceGroups = javascriptFunctionBody(html, "renderSavedEvidenceGroups")
+
+        assertTrue(renderSavedEvidenceGroups.contains("const items = savedEvidenceItems();"))
+        assertTrue(renderSavedEvidenceGroups.contains("'<div class=\"ann-list\">'"))
+        assertTrue(renderSavedEvidenceGroups.contains("class=\"ann-row saved-item-row"))
+        assertTrue(renderSavedEvidenceGroups.contains("class=\"ann-row-num\""))
+        assertTrue(renderSavedEvidenceGroups.contains("class=\"ann-row-title\""))
+        assertTrue(renderSavedEvidenceGroups.contains("class=\"ann-row-comment"))
+        assertTrue(renderSavedEvidenceGroups.contains("class=\"ann-row-status"))
+        assertTrue(renderSavedEvidenceGroups.contains("targetLabel(item)"))
+        assertTrue(renderSavedEvidenceGroups.contains("firstLine(item.comment || 'No comment')"))
+        assertFalse(renderSavedEvidenceGroups.contains("evidence-card"))
+        assertFalse(renderSavedEvidenceGroups.contains("screenshot attached"))
+        assertFalse(renderSavedEvidenceGroups.contains("sourceHintLabel(item)"))
     }
 
     @Test
@@ -725,6 +852,8 @@ class FeedbackConsoleServerTest {
         assertTrue(Regex("async function selectDevice\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);[\\s\\S]*/api/device/select").containsMatchIn(html))
         assertTrue(Regex("async function disconnectDevice\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);[\\s\\S]*/api/device/disconnect").containsMatchIn(html))
         assertTrue(Regex("async function openSession\\(sessionId\\)[\\s\\S]*invalidatePreviewContext\\(\\);[\\s\\S]*/api/session/open").containsMatchIn(html))
+        assertTrue(Regex("async function openSession\\(sessionId\\)[\\s\\S]*await refresh\\(\\);[\\s\\S]*if \\(!latestPersistedScreen\\(\\) && shouldAutoFetchPreview\\(\\)\\) \\{[\\s\\S]*await refreshPreview\\(\\);[\\s\\S]*\\}[\\s\\S]*startLivePreviewPolling\\(\\);").containsMatchIn(html))
+        assertTrue(Regex("function latestScreen\\(\\) \\{\\s+return addItemsFlow\\?\\.screen \\|\\| latestPersistedScreen\\(\\) \\|\\| state\\.preview\\?\\.screen;\\s+\\}").containsMatchIn(html))
         assertTrue(Regex("async function newSession\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);[\\s\\S]*/api/session/open").containsMatchIn(html))
         assertTrue(Regex("async function closeSession\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);[\\s\\S]*/api/session/close").containsMatchIn(html))
         assertTrue(html.contains("const previousSelectedDeviceSerial = state.selectedDeviceSerial;"))
@@ -738,6 +867,10 @@ class FeedbackConsoleServerTest {
         val html = FeedbackConsoleAssets.indexHtml
 
         assertTrue(html.contains("async function startAddItemsFlow()"))
+        assertTrue(html.contains("let addItemsFlowStarting = false;"))
+        assertTrue(html.contains("if (addItemsFlowStarting) return;"))
+        assertTrue(html.contains("addItemsFlowStarting = true;"))
+        assertTrue(html.contains("addItemsFlowStarting = false;"))
         assertTrue(html.contains("stopLivePreviewPolling();"))
         assertTrue(html.contains("try {"))
         assertTrue(html.contains("const addFlowContextGeneration = previewRequestContextGeneration;"))
@@ -750,7 +883,9 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("if (!state.preview) {"))
         assertTrue(html.contains("previewId: state.preview.previewId"))
         assertTrue(html.contains("screenshotUrl: previewScreenshotUrl(state.preview.previewId)"))
-        assertTrue(Regex("finally \\{\\s+if \\(!addItemsFlow\\) startLivePreviewPolling\\(\\);\\s+\\}").containsMatchIn(html))
+        assertTrue(Regex("finally \\{\\s+addItemsFlowStarting = false;\\s+updateComposerState\\(\\);\\s+if \\(!addItemsFlow\\) startLivePreviewPolling\\(\\);\\s+\\}").containsMatchIn(html))
+        assertTrue(html.contains("if (addItemsFlowStarting) {"))
+        assertTrue(html.contains("event.preventDefault();"))
         assertTrue(html.contains("annotateToolButton.addEventListener('click', () => enterAnnotateMode().catch(showError));"))
     }
 
@@ -846,7 +981,7 @@ class FeedbackConsoleServerTest {
         val html = FeedbackConsoleAssets.indexHtml
 
         assertTrue(html.contains("previewId: addItemsFlow.previewId"))
-        assertTrue(html.contains("items: pendingPayloadItems({ allowFallbackComments: allowFallbackComments })"))
+        assertTrue(html.contains("items: pendingPayloadItems({ allowFallbackComments: allowFallbackComments, onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments })"))
         assertTrue(html.contains("targetType: selection.targetType"))
         assertTrue(html.contains("nodeUid: selection.nodeUid"))
         assertTrue(html.contains("bounds: selection.bounds"))
@@ -953,6 +1088,59 @@ class FeedbackConsoleServerTest {
                     listOf("preview-screen-1", "preview-screen-1"),
                     items.map { it.getValue("screenId").jsonPrimitive.content },
                 )
+            } finally {
+                server.stop()
+            }
+        } finally {
+            projectRoot.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun savingDraftItemsAllowsBlankCommentsForUnwrittenAnnotations() {
+        val projectRoot = Files.createTempDirectory("pointpatch-console-blank-batch").toFile()
+        try {
+            val service = FeedbackSessionService(
+                bridge = FakePointPatchBridge(),
+                store = FeedbackSessionStore(
+                    clock = { 100L },
+                    idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1", "item-1").next,
+                ),
+                projectRoot = projectRoot.absolutePath,
+                defaultPackageName = "io.github.pointpatch.sample",
+            )
+            val server = FeedbackConsoleServer(service = service, port = 0)
+            server.start()
+            try {
+                val preview = pointPatchJson.parseToJsonElement(URL("${server.url}/api/preview").readText()).jsonObject
+                val previewId = preview.getValue("previewId").jsonPrimitive.content
+
+                val connection = URL("${server.url}/api/items/batch").openConnection() as HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.doOutput = true
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.outputStream.use {
+                    it.write(
+                        """
+                        {
+                          "previewId": "$previewId",
+                          "items": [
+                            {
+                              "targetType": "area",
+                              "bounds": {"left":10.0,"top":20.0,"right":110.0,"bottom":80.0},
+                              "comment": ""
+                            }
+                          ]
+                        }
+                        """.trimIndent().toByteArray(),
+                    )
+                }
+
+                assertEquals(200, connection.responseCode)
+                val session = pointPatchJson.parseToJsonElement(connection.inputStream.bufferedReader().readText()).jsonObject
+                val item = session.getValue("items").jsonArray.single().jsonObject
+                assertEquals("", item.getValue("comment").jsonPrimitive.content)
+                assertEquals("open", item.getValue("status").jsonPrimitive.content)
             } finally {
                 server.stop()
             }

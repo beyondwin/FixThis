@@ -390,7 +390,6 @@ class FeedbackSessionService(
         sourceIndex: SourceIndex?,
         pending: PendingDraftFeedbackItem,
     ): FeedbackItem {
-        require(pending.comment.isNotBlank()) { "Feedback comment must not be blank" }
         val selectedNode = when (pending.targetType) {
             FeedbackTargetType.NODE -> {
                 val uid = pending.nodeUid?.takeIf { it.isNotBlank() }
@@ -432,7 +431,7 @@ class FeedbackSessionService(
             nearbyNodes = evidenceNodes,
             sourceCandidates = sourceCandidatesFor(sourceIndex, sourceSelectedNode, sourceNearbyNodes, screen.activityName),
             comment = pending.comment,
-            status = FeedbackItemStatus.OPEN,
+            status = if (pending.comment.isBlank()) FeedbackItemStatus.OPEN else FeedbackItemStatus.READY,
         )
     }
 

@@ -126,6 +126,15 @@ internal object FeedbackConsoleAssets {
             button.primary { background: var(--accent); border-color: var(--accent); color: var(--bg-0); font-weight: 700; }
             button.primary:hover:not(:disabled) { transform: translateY(-1px); }
             button:disabled { opacity: .4; cursor: default; }
+            button.is-disabled {
+              opacity: .4;
+              cursor: default;
+            }
+            button.is-disabled:hover {
+              background: var(--bg-2);
+              color: var(--txt-1);
+              transform: none;
+            }
             .with-icon {
               display: inline-flex;
               align-items: center;
@@ -376,6 +385,18 @@ internal object FeedbackConsoleAssets {
             .history-item.is-active {
               background: var(--bg-2);
             }
+            .history-add-row {
+              min-height: 64px;
+              place-items: center;
+              border-color: var(--line);
+              color: var(--accent);
+              font-size: 18px;
+            }
+            .history-add-row svg {
+              width: 18px;
+              height: 18px;
+              stroke: currentColor;
+            }
             .history-item.is-active {
               border-color: var(--line);
               box-shadow: inset 2px 0 0 var(--accent);
@@ -595,8 +616,11 @@ internal object FeedbackConsoleAssets {
               cursor: default;
             }
             .snapshot-stage {
-              display: grid;
-              place-items: center;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              gap: 10px;
               min-height: 0;
               overflow: auto;
               padding: 24px;
@@ -607,6 +631,13 @@ internal object FeedbackConsoleAssets {
               text-align: center;
             }
             .empty-stage { color: var(--txt-2); font-size: 13px; }
+            .annotate-hint-slot {
+              min-height: 6px;
+              display: flex;
+              align-items: flex-end;
+              justify-content: center;
+              pointer-events: none;
+            }
             .snapshot-frame {
               position: relative;
               display: inline-block;
@@ -710,21 +741,18 @@ internal object FeedbackConsoleAssets {
                 0 0 0 6px var(--selection-halo, rgba(230, 180, 90, .22));
             }
             .annotate-hint {
-              position: absolute;
-              top: 16px;
-              left: 50%;
-              transform: translateX(-50%);
-              z-index: 3;
+              position: static;
               display: flex;
               align-items: center;
               gap: 10px;
               border-radius: 999px;
-              padding: 8px 14px;
+              padding: 6px 12px;
               background: var(--accent);
               color: var(--bg-0);
               font-size: 12px;
               font-weight: 800;
               box-shadow: 0 12px 28px -12px rgba(0, 0, 0, .70);
+              white-space: nowrap;
             }
             .annotate-hint::before {
               content: '';
@@ -836,11 +864,14 @@ internal object FeedbackConsoleAssets {
             }
             .annotation-back {
               width: fit-content;
-              border: 0;
+              min-height: 32px;
+              border: 1px solid transparent;
+              border-radius: 8px;
               background: transparent;
-              padding: 4px 0;
+              padding: 0 14px;
               color: var(--txt-2);
               font-size: 11px;
+              margin-left: -14px;
             }
             .annotation-back:hover { color: var(--txt-0); background: transparent; }
             .annotation-field {
@@ -960,22 +991,6 @@ internal object FeedbackConsoleAssets {
               font-size: 11px;
               color: var(--txt-2);
             }
-            .saved-evidence-preview { margin: 10px 0; }
-            .saved-evidence-frame {
-              position: relative;
-              overflow: hidden;
-              border-radius: 8px;
-              border: 1px solid var(--line);
-              background: var(--bg-2);
-            }
-            .saved-evidence-frame img {
-              display: block;
-              width: 100%;
-              height: auto;
-              border: 0;
-              border-radius: 0;
-            }
-            .saved-evidence-frame .selection-overlay { inset: 0; }
             .empty-state {
               display: grid;
               place-items: center;
@@ -1144,11 +1159,10 @@ internal object FeedbackConsoleAssets {
                 inset: 6px;
               }
               .annotate-hint {
-                top: 10px;
-                width: calc(100% - 24px);
+                max-width: calc(100% - 24px);
                 justify-content: center;
                 white-space: normal;
-                padding: 7px 10px;
+                padding: 5px 10px;
               }
               .studio-inspector {
                 min-height: 280px;
@@ -1310,6 +1324,8 @@ internal object FeedbackConsoleAssets {
             let previewRequestInFlight = null;
             let previewRequestInFlightContextGeneration = null;
             let addItemsFlow = null;
+            let addItemsFlowStarting = false;
+            let newHistoryAnnotateModeStarting = false;
             let pendingFeedbackItems = [];
             let focusedPendingItemIndex = null;
             let currentSelection = null;
@@ -1513,9 +1529,30 @@ internal object FeedbackConsoleAssets {
               return (state.session?.items || []).filter(item => item.delivery !== 'sent');
             }
 
+            function hasWrittenAnnotationComment(item) {
+              return Boolean(String(item?.comment || '').trim());
+            }
+
             function currentPromptAnnotations() {
               if (!state.session) return [];
-              return toolbarAnnotations();
+              return toolbarAnnotations().filter(hasWrittenAnnotationComment);
+            }
+
+            function promptUnavailableMessage() {
+              if (!state.session) return 'Select a history item before copying or sending annotations.';
+              const annotations = toolbarAnnotations();
+              if (!annotations.length) return 'The selected history item has no annotations to send.';
+              if (!annotations.some(hasWrittenAnnotationComment)) return 'Add a comment to at least one annotation before copying or sending it.';
+              return 'No completed annotations are ready to send.';
+            }
+
+            function ensurePromptAnnotationsAvailable() {
+              const annotations = currentPromptAnnotations();
+              if (annotations.length) return annotations;
+              const message = promptUnavailableMessage();
+              error.textContent = message;
+              window.alert(message);
+              throw new Error(message);
             }
 
             function promptItemTitle(item, index) {
@@ -1526,8 +1563,7 @@ internal object FeedbackConsoleAssets {
               return item.bounds || boundsForTarget(item.target);
             }
 
-            function currentAnnotationsPrompt() {
-              const annotations = currentPromptAnnotations();
+            function currentAnnotationsPrompt(annotations = currentPromptAnnotations()) {
               if (!state.session || annotations.length === 0) {
                 throw new Error('Select a history item with annotations before sending it to an agent.');
               }
@@ -1859,7 +1895,7 @@ internal object FeedbackConsoleAssets {
             }
 
             function latestScreen() {
-              return addItemsFlow?.screen || state.preview?.screen || latestPersistedScreen();
+              return addItemsFlow?.screen || latestPersistedScreen() || state.preview?.screen;
             }
 
             function clamp(value, min, max) {
@@ -1947,11 +1983,16 @@ internal object FeedbackConsoleAssets {
 
             function updateComposerState() {
               const hasPromptAnnotations = currentPromptAnnotations().length > 0;
-              copyPromptButton.disabled = !hasPromptAnnotations;
-              sendAgentButton.disabled = !hasPromptAnnotations;
+              copyPromptButton.disabled = false;
+              sendAgentButton.disabled = false;
+              copyPromptButton.dataset.unavailable = String(!hasPromptAnnotations);
+              sendAgentButton.dataset.unavailable = String(!hasPromptAnnotations);
+              copyPromptButton.classList.toggle('is-disabled', !hasPromptAnnotations);
+              sendAgentButton.classList.toggle('is-disabled', !hasPromptAnnotations);
               cancelAddFlowButton.disabled = !addItemsFlow;
               addItemButton.hidden = true;
               addItemButton.disabled = true;
+              annotateToolButton.disabled = addItemsFlowStarting;
               selectToolButton.setAttribute('aria-pressed', String(toolMode === 'select'));
               annotateToolButton.setAttribute('aria-pressed', String(toolMode === 'annotate'));
               toolStatus.innerHTML = toolMode === 'annotate'
@@ -2042,7 +2083,7 @@ internal object FeedbackConsoleAssets {
               renderNumberedFeedbackOverlay(overlay, image);
               const screen = latestScreen();
               const persistedItems = persistedItemsForScreen(screen?.screenId);
-              if (!addItemsFlow && !state.preview && persistedItems.length) {
+              if (!addItemsFlow && persistedItems.length) {
                 renderSavedEvidenceOverlay(overlay, image, persistedItems);
               }
               if (currentSelection) {
@@ -2205,7 +2246,10 @@ internal object FeedbackConsoleAssets {
             }
 
             async function startAddItemsFlow() {
+              if (addItemsFlowStarting) return;
               error.textContent = '';
+              addItemsFlowStarting = true;
+              updateComposerState();
               stopLivePreviewPolling();
               try {
                 const addFlowContextGeneration = previewRequestContextGeneration;
@@ -2229,6 +2273,8 @@ internal object FeedbackConsoleAssets {
                 currentSelection = null;
                 render();
               } finally {
+                addItemsFlowStarting = false;
+                updateComposerState();
                 if (!addItemsFlow) startLivePreviewPolling();
               }
             }
@@ -2287,11 +2333,16 @@ internal object FeedbackConsoleAssets {
 
             function pendingPayloadItems(options = {}) {
               const allowFallbackComments = Boolean(options.allowFallbackComments);
-              return pendingFeedbackItems.map(item => ({
+              const onlyWrittenComments = Boolean(options.onlyWrittenComments);
+              const allowBlankComments = Boolean(options.allowBlankComments);
+              const items = onlyWrittenComments ? pendingFeedbackItems.filter(hasWrittenAnnotationComment) : pendingFeedbackItems;
+              return items.map(item => ({
                 targetType: item.targetType,
                 bounds: item.bounds,
                 nodeUid: item.nodeUid,
-                comment: allowFallbackComments ? (String(item.comment || '').trim() || item.label || pendingTargetLabel(item)) : item.comment
+                comment: allowFallbackComments
+                  ? (String(item.comment || '').trim() || item.label || pendingTargetLabel(item))
+                  : (allowBlankComments ? String(item.comment || '') : item.comment)
               }));
             }
 
@@ -2299,18 +2350,26 @@ internal object FeedbackConsoleAssets {
               if (!addItemsFlow) return;
               if (!pendingFeedbackItems.length) throw new Error('Add at least one pending feedback item.');
               const allowFallbackComments = Boolean(options.allowFallbackComments);
-              if (!allowFallbackComments && pendingFeedbackItems.some(item => !String(item.comment || '').trim())) throw new Error('Add a comment to every annotation before saving.');
+              const onlyWrittenComments = Boolean(options.onlyWrittenComments);
+              const allowBlankComments = Boolean(options.allowBlankComments);
+              if (!allowFallbackComments && !onlyWrittenComments && !allowBlankComments && pendingFeedbackItems.some(item => !String(item.comment || '').trim())) throw new Error('Add a comment to every annotation before saving.');
+              if (onlyWrittenComments && !pendingFeedbackItems.some(hasWrittenAnnotationComment)) throw new Error('Add a comment to at least one annotation before sending.');
               state.session = await requestJson('/api/items/batch', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   previewId: addItemsFlow.previewId,
-                  items: pendingPayloadItems({ allowFallbackComments: allowFallbackComments })
+                  items: pendingPayloadItems({ allowFallbackComments: allowFallbackComments, onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments })
                 })
               });
               resetAnnotationComposerState();
               state.preview = null;
               return state.session;
+            }
+
+            async function flushPendingAnnotationsBeforeSessionChange() {
+              if (!addItemsFlow || !pendingFeedbackItems.length) return;
+              await persistPendingFeedbackItems({ allowBlankComments: true });
             }
 
             async function savePendingFeedbackItems() {
@@ -2330,12 +2389,26 @@ internal object FeedbackConsoleAssets {
               currentSelection = null;
               clearHoverPreview();
               clearDragState();
+              renderCurrentSessionList();
               renderPreviewOnly();
               renderInspectorRegion();
             }
 
+            function hasActiveHistorySessionForAnnotating() {
+              return Boolean(
+                state.session &&
+                state.session.status !== 'ready_for_agent' &&
+                state.session.status !== 'closed' &&
+                (state.sessionSummaries || []).some(session =>
+                  session.sessionId === state.session.sessionId &&
+                  session.status !== 'ready_for_agent' &&
+                  session.status !== 'closed'
+                )
+              );
+            }
+
             async function ensureSessionForAnnotating() {
-              if (state.session) return;
+              if (hasActiveHistorySessionForAnnotating()) return;
               resetAnnotationComposerState();
               invalidatePreviewContext();
               state.session = await requestJson('/api/session/open', {
@@ -2349,14 +2422,50 @@ internal object FeedbackConsoleAssets {
             async function enterAnnotateMode() {
               await ensureSessionForAnnotating();
               toolMode = 'annotate';
-              renderPreviewOnly();
-              renderInspectorRegion();
+              renderCurrentSessionList();
               if (!addItemsFlow) {
                 await startAddItemsFlow();
               } else {
                 renderPreviewOnly();
                 renderInspectorRegion();
               }
+            }
+
+            async function enterNewHistoryAnnotateMode() {
+              if (newHistoryAnnotateModeStarting) return;
+              newHistoryAnnotateModeStarting = true;
+              toolMode = 'annotate';
+              renderCurrentSessionList();
+              try {
+                await newSession();
+                scrollActiveHistoryItemIntoView();
+                await enterAnnotateMode();
+                scrollActiveHistoryItemIntoView();
+              } finally {
+                newHistoryAnnotateModeStarting = false;
+                renderCurrentSessionList();
+              }
+            }
+
+            function scrollActiveHistoryItemIntoView() {
+              const activeRow = sessions.querySelector('.session-row.is-active');
+              activeRow?.scrollIntoView({ block: 'nearest' });
+            }
+
+            function historyStartAnnotatingItemHtml() {
+              if (newHistoryAnnotateModeStarting) return '';
+              return '<button type="button" class="history-item history-add-row" data-start-new-history-annotating aria-label="Start annotating">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>' +
+              '</button>';
+            }
+
+            function emptySessionsHtml() {
+              return '<div class="empty-state"><div class="empty-title">No saved sessions.</div></div>';
+            }
+
+            function startAnnotatingButtonHtml() {
+              if (toolMode === 'annotate') return '';
+              return '<button type="button" class="primary" data-start-annotating>Start annotating</button>';
             }
 
             function renderPendingItems() {
@@ -2379,7 +2488,7 @@ internal object FeedbackConsoleAssets {
                     '<span class="ann-row-status ' + statusClass(status) + '">' + escapeHtml(statusLabel(status)) + '</span>' +
                   '</button>';
                 }).join('') + '</div>'
-                : '<div class="empty-state"><div class="empty-title">No annotations yet.</div><div class="empty-body">Switch to <b>Annotate</b>, then click or drag on the preview.</div><button type="button" class="primary" data-start-annotating>Start annotating</button></div>';
+                : '<div class="empty-state"><div class="empty-title">No annotations yet.</div><div class="empty-body">Switch to <b>Annotate</b>, then click or drag on the preview.</div>' + startAnnotatingButtonHtml() + '</div>';
               pendingItems.querySelectorAll('[data-focus-pending]').forEach(button => {
                 button.addEventListener('click', () => focusPendingFeedbackItem(Number(button.dataset.focusPending)));
               });
@@ -2471,20 +2580,21 @@ internal object FeedbackConsoleAssets {
 
             function savedEvidenceGroups() {
               const groups = new Map();
-              (state.session?.items || [])
-                .filter(item => item.delivery !== 'sent')
-                .forEach(item => {
-                  const key = item.screenId;
-                  if (!groups.has(key)) groups.set(key, []);
-                  groups.get(key).push(item);
-                });
+              savedEvidenceItems().forEach(item => {
+                const key = item.screenId;
+                if (!groups.has(key)) groups.set(key, []);
+                groups.get(key).push(item);
+              });
               return Array.from(groups.entries()).map(entry => ({ screenId: entry[0], items: entry[1] }));
+            }
+
+            function savedEvidenceItems() {
+              return (state.session?.items || []).filter(item => item.delivery !== 'sent');
             }
 
             function persistedItemsForScreen(screenId) {
               if (!screenId) return [];
-              return (state.session?.items || [])
-                .filter(item => item.delivery !== 'sent' && item.screenId === screenId);
+              return savedEvidenceItems().filter(item => item.screenId === screenId);
             }
 
             function renderSavedEvidenceOverlay(overlay, image, items) {
@@ -2494,49 +2604,24 @@ internal object FeedbackConsoleAssets {
             }
 
             function renderSavedEvidenceGroups() {
-              draftItems.innerHTML = savedEvidenceGroups().map(group => {
-                const screen = findScreen(group.screenId);
-                return '<article class="evidence-card">' +
-                  '<div class="evidence-card-head">' +
-                    '<strong>' + escapeHtml(screen?.displayName || 'Saved evidence') + '</strong>' +
-                    '<span>' + group.items.length + ' item' + (group.items.length === 1 ? '' : 's') + ' · screenshot attached</span>' +
-                  '</div>' +
-                  '<div class="saved-evidence-preview" data-screen-id="' + escapeHtml(group.screenId) + '"></div>' +
-                  group.items.map((item, index) =>
-                    '<div class="row evidence-item-row">' +
-                      '<strong>' + escapeHtml(formatSavedEvidenceItemLabel(item, index)) + '</strong>' +
-                      '<span>' + escapeHtml(targetLabel(item)) + ' · ' + escapeHtml(sourceHintLabel(item)) + '</span>' +
-                    '</div>'
-                  ).join('') +
-                '</article>';
-              }).join('') || '<div class="empty-state"><div class="empty-title">No saved annotations yet.</div><div class="empty-body">Use <b>Annotate</b> to freeze the preview and add comments.</div><button type="button" class="primary" data-start-annotating>Start annotating</button></div>';
-              bindStartAnnotatingButtons(draftItems);
-              hydrateSavedEvidencePreviews();
-            }
-
-            function hydrateSavedEvidencePreviews() {
-              draftItems.querySelectorAll('.saved-evidence-preview').forEach(container => {
-                const screenId = container.dataset.screenId;
-                const group = savedEvidenceGroups().find(candidate => candidate.screenId === screenId);
-                const screen = findScreen(screenId);
-                if (!screen?.screenshot?.desktopFullPath || !group) {
-                  container.textContent = 'Evidence: screenshot attached';
-                  return;
-                }
-                container.innerHTML =
-                  '<div class="saved-evidence-frame">' +
-                    '<img alt="Saved evidence screenshot" src="/api/screens/' + encodeURIComponent(screenId) + '/screenshot/full">' +
-                    '<div class="selection-overlay" aria-hidden="true"></div>' +
+              const items = savedEvidenceItems();
+              draftItems.innerHTML = items.length
+                ? '<div class="ann-list">' + items.map((item, index) => {
+                  const commentText = firstLine(item.comment || 'No comment');
+                  const hasComment = Boolean(String(item.comment || '').trim());
+                  const status = annotationStatus(item);
+                  const color = severityColor(annotationSeverity(item));
+                  return '<div class="ann-row saved-item-row" style="--annotation-color:' + color + '">' +
+                    '<span class="ann-row-num" style="background:' + color + '">' + (index + 1) + '</span>' +
+                    '<span class="ann-row-body">' +
+                      '<span class="ann-row-title">' + escapeHtml(targetLabel(item)) + '</span>' +
+                      '<span class="ann-row-comment ' + (hasComment ? '' : 'empty-comment') + '">' + escapeHtml(commentText) + '</span>' +
+                    '</span>' +
+                    '<span class="ann-row-status ' + statusClass(status) + '">' + escapeHtml(statusLabel(status)) + '</span>' +
                   '</div>';
-                const image = container.querySelector('img');
-                const overlay = container.querySelector('.selection-overlay');
-                const renderOverlay = () => renderSavedEvidenceOverlay(overlay, image, group.items);
-                if (image.complete && image.naturalWidth) {
-                  renderOverlay();
-                } else {
-                  image.addEventListener('load', renderOverlay, { once: true });
-                }
-              });
+                }).join('') + '</div>'
+                : '<div class="empty-state"><div class="empty-title">No saved annotations yet.</div><div class="empty-body">Use <b>Annotate</b> to freeze the preview and add comments.</div>' + startAnnotatingButtonHtml() + '</div>';
+              bindStartAnnotatingButtons(draftItems);
             }
 
             function renderSessionsListFromPayload(sessionSummaries) {
@@ -2544,7 +2629,7 @@ internal object FeedbackConsoleAssets {
               const activeId = state.session?.sessionId;
               const activeSummaries = sessionSummaries.filter(session => session.status !== 'ready_for_agent' && session.status !== 'closed');
               sessionCount.textContent = String(activeSummaries.length);
-              sessions.innerHTML = activeSummaries.map((session, index) => {
+              const renderedSessions = activeSummaries.map((session, index) => {
                 const open = historyOpenCount(session);
                 const done = historyDoneCount(session);
                 const points = historyPointsCount(session);
@@ -2562,7 +2647,10 @@ internal object FeedbackConsoleAssets {
                   '</span>' +
                   '<span class="hi-strip">' + renderHistoryStrip(session) + '</span>' +
                 '</div>';
-              }).join('') || '<div class="empty-state"><div class="empty-title">No saved sessions.</div></div>';
+              }).join('');
+              sessions.innerHTML = renderedSessions
+                ? renderedSessions + historyStartAnnotatingItemHtml()
+                : historyStartAnnotatingItemHtml() + emptySessionsHtml();
               document.querySelectorAll('.session-row').forEach(row => {
                 row.addEventListener('click', event => {
                   if (event.target.closest('[data-delete-session-id]')) return;
@@ -2581,6 +2669,9 @@ internal object FeedbackConsoleAssets {
                   event.stopPropagation();
                   deleteHistorySession(button.dataset.deleteSessionId).catch(showError);
                 });
+              });
+              document.querySelectorAll('[data-start-new-history-annotating]').forEach(button => {
+                button.addEventListener('click', () => enterNewHistoryAnnotateMode().catch(showError));
               });
             }
 
@@ -2661,9 +2752,9 @@ internal object FeedbackConsoleAssets {
             }
 
             function renderSavedAnnotationsInspector() {
-              const groups = savedEvidenceGroups();
+              const items = savedEvidenceItems();
               inspectorTitle.textContent = 'Annotations';
-              inspectorCount.textContent = String(groups.reduce((sum, group) => sum + group.items.length, 0));
+              inspectorCount.textContent = String(items.length);
               selectionSummary.hidden = true;
               comment.hidden = true;
               pendingItems.hidden = true;
@@ -2672,7 +2763,7 @@ internal object FeedbackConsoleAssets {
               clearSelectionButton.hidden = true;
               cancelAddFlowButton.hidden = true;
               addItemButton.hidden = true;
-              clearDraftButton.hidden = groups.length === 0;
+              clearDraftButton.hidden = items.length === 0;
               renderSavedEvidenceGroups();
             }
 
@@ -2689,6 +2780,7 @@ internal object FeedbackConsoleAssets {
               let frame = document.getElementById('snapshotFrame');
               if (frame) return frame;
               snapshot.innerHTML =
+	                '<div id="annotateHintSlot" class="annotate-hint-slot" aria-live="polite"></div>' +
 	                '<div id="snapshotFrame" class="snapshot-frame">' +
 	                  '<img id="snapshotImage" alt="PointPatch preview" aria-label="PointPatch preview">' +
 	                  '<div id="selectionOverlay" class="selection-overlay"></div>' +
@@ -2714,13 +2806,14 @@ internal object FeedbackConsoleAssets {
               if (image.getAttribute('src') !== src) {
                 image.setAttribute('src', src);
               }
+              const hintSlot = document.getElementById('annotateHintSlot');
               let hint = document.getElementById('annotateHint');
               if (toolMode === 'annotate') {
                 if (!hint) {
                   hint = document.createElement('div');
                   hint.id = 'annotateHint';
                   hint.className = 'annotate-hint';
-                  frame.appendChild(hint);
+                  hintSlot.appendChild(hint);
                 }
                 hint.textContent = 'Annotate mode';
               } else if (hint) {
@@ -2759,6 +2852,7 @@ internal object FeedbackConsoleAssets {
             async function openSession(sessionId) {
               error.textContent = '';
               stopLivePreviewPolling();
+              await flushPendingAnnotationsBeforeSessionChange();
               resetAnnotationComposerState();
               invalidatePreviewContext();
               state.session = await requestJson('/api/session/open', {
@@ -2767,10 +2861,15 @@ internal object FeedbackConsoleAssets {
                 body: JSON.stringify({ sessionId: sessionId })
               });
               await refresh();
+              if (!latestPersistedScreen() && shouldAutoFetchPreview()) {
+                await refreshPreview();
+              }
+              startLivePreviewPolling();
             }
 
             async function newSession() {
               error.textContent = '';
+              await flushPendingAnnotationsBeforeSessionChange();
               resetAnnotationComposerState();
               invalidatePreviewContext();
               state.session = await requestJson('/api/session/open', {
@@ -2856,8 +2955,9 @@ internal object FeedbackConsoleAssets {
 
             async function sendAgentPrompt() {
               error.textContent = '';
+              ensurePromptAnnotationsAvailable();
               if (addItemsFlow) {
-                await persistPendingFeedbackItems({ allowFallbackComments: true });
+                await persistPendingFeedbackItems({ onlyWrittenComments: true });
               }
               const prompt = currentAnnotationsPrompt();
               state.session = await requestJson('/api/agent-handoffs', {
@@ -2899,6 +2999,10 @@ internal object FeedbackConsoleAssets {
               image.addEventListener('dragstart', event => event.preventDefault());
               image.addEventListener('click', event => {
                 try {
+                  if (addItemsFlowStarting) {
+                    event.preventDefault();
+                    return;
+                  }
                   if (suppressNextClick) {
                     suppressNextClick = false;
                     return;
@@ -2920,6 +3024,10 @@ internal object FeedbackConsoleAssets {
                 }
               });
               image.addEventListener('pointerdown', event => {
+                if (addItemsFlowStarting) {
+                  event.preventDefault();
+                  return;
+                }
                 if (!addItemsFlow || toolMode !== 'annotate') return;
                 try {
                   image.setPointerCapture?.(event.pointerId);
@@ -2971,9 +3079,33 @@ internal object FeedbackConsoleAssets {
               image.addEventListener('pointerleave', clearHoverPreview);
             }
 
+            async function copyTextToClipboard(text) {
+              try {
+                if (navigator.clipboard?.writeText) {
+                  await navigator.clipboard.writeText(text);
+                  return;
+                }
+              } catch (cause) {
+                // Fall back below for browser surfaces that deny Clipboard API writes.
+              }
+              const fallback = document.createElement('textarea');
+              fallback.value = text;
+              fallback.setAttribute('readonly', '');
+              fallback.style.position = 'fixed';
+              fallback.style.top = '-9999px';
+              fallback.style.left = '-9999px';
+              document.body.appendChild(fallback);
+              fallback.focus();
+              fallback.select();
+              const copied = document.execCommand('copy');
+              fallback.remove();
+              if (!copied) throw new Error('Copy failed. Select the prompt and copy it manually.');
+            }
+
             async function copyPrompt() {
               error.textContent = '';
-              await navigator.clipboard.writeText(currentAnnotationsPrompt());
+              const annotations = ensurePromptAnnotationsAvailable();
+              await copyTextToClipboard(currentAnnotationsPrompt(annotations));
             }
 
             function isTextInputFocused(target = document.activeElement) {
