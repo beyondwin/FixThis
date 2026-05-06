@@ -186,7 +186,8 @@ class FeedbackConsoleServerTest {
         assertTrue(Regex("async function openSession\\(sessionId\\)[\\s\\S]*resetAnnotationComposerState\\(\\);[\\s\\S]*/api/session/open").containsMatchIn(html))
         assertTrue(Regex("async function newSession\\(\\)[\\s\\S]*resetAnnotationComposerState\\(\\);[\\s\\S]*/api/session/open").containsMatchIn(html))
         assertTrue(Regex("async function closeSession\\(\\)[\\s\\S]*resetAnnotationComposerState\\(\\);[\\s\\S]*/api/session/close").containsMatchIn(html))
-        assertTrue(Regex("async function deleteHistorySession\\(sessionId\\)[\\s\\S]*if \\(isActive\\) \\{\\s+resetAnnotationComposerState\\(\\);").containsMatchIn(html))
+        assertTrue(Regex("async function deleteHistorySession\\(sessionId\\)[\\s\\S]*const isDisplayedSession = \\(\\) => state\\.session\\?\\.sessionId === sessionId;[\\s\\S]*if \\(isDisplayedSession\\(\\)\\) \\{\\s+resetAnnotationComposerState\\(\\);").containsMatchIn(html))
+        assertTrue(Regex("async function deleteHistorySession\\(sessionId\\)[\\s\\S]*if \\(isDisplayedSession\\(\\)\\) \\{[\\s\\S]*state\\.session = null;[\\s\\S]*await refreshSessions\\(\\);\\s+render\\(\\);\\s+await refreshDevices\\(\\);").containsMatchIn(html))
         assertTrue(Regex("function cancelAddItemsFlow\\(\\)[\\s\\S]*resetAnnotationComposerState\\(\\);[\\s\\S]*render\\(\\);").containsMatchIn(html))
         assertTrue(Regex("function deletePendingFeedbackItem\\(index\\)[\\s\\S]*focusedPendingItemIndex = null;[\\s\\S]*currentSelection = null;[\\s\\S]*comment.value = '';").containsMatchIn(html))
     }

@@ -2596,6 +2596,7 @@ internal object FeedbackConsoleAssets {
             async function refreshSessions() {
               const response = await requestJson('/api/sessions');
               renderSessionsListFromPayload(response.sessions || []);
+              return response.sessions || [];
             }
 
             async function refresh() {
@@ -2651,8 +2652,8 @@ internal object FeedbackConsoleAssets {
             async function deleteHistorySession(sessionId) {
               error.textContent = '';
               if (!sessionId) return;
-              const isActive = state.session?.sessionId === sessionId;
-              if (isActive) {
+              const isDisplayedSession = () => state.session?.sessionId === sessionId;
+              if (isDisplayedSession()) {
                 resetAnnotationComposerState();
                 invalidatePreviewContext();
               }
@@ -2661,16 +2662,14 @@ internal object FeedbackConsoleAssets {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: sessionId })
               });
-              if (isActive) {
+              if (isDisplayedSession()) {
+                resetAnnotationComposerState();
+                invalidatePreviewContext();
                 state.session = null;
               }
               await refreshSessions();
-              if (isActive) {
-                render();
-                await refreshDevices();
-              } else {
-                renderSessionsList();
-              }
+              render();
+              await refreshDevices();
             }
 
             async function clearDraft() {
