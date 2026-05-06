@@ -509,7 +509,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("let toolMode = 'select'"))
         assertTrue(html.contains("function enterAnnotateMode"))
         assertTrue(html.contains("function enterSelectMode"))
-        assertTrue(Regex("async function enterAnnotateMode\\(\\) \\{\\s+toolMode = 'annotate';\\s+renderPreviewOnly\\(\\);\\s+renderInspectorRegion\\(\\);").containsMatchIn(html))
+        assertTrue(Regex("async function enterAnnotateMode\\(\\) \\{\\s+await ensureSessionForAnnotating\\(\\);\\s+toolMode = 'annotate';\\s+renderPreviewOnly\\(\\);\\s+renderInspectorRegion\\(\\);").containsMatchIn(html))
         assertTrue(html.contains("inspectorTitle.textContent = item ? 'Annotation' : 'Annotations'"))
         assertTrue(html.contains("pendingItems.hidden = false"))
         assertTrue(html.contains("renderPendingItems"))
@@ -551,6 +551,19 @@ class FeedbackConsoleServerTest {
         assertTrue(renderSavedEvidenceGroups.contains("Start annotating"))
         assertTrue(html.contains("function bindStartAnnotatingButtons(container)"))
         assertTrue(renderSavedEvidenceGroups.contains("bindStartAnnotatingButtons(draftItems);"))
+    }
+
+    @Test
+    fun consoleHtmlCreatesHistorySessionBeforeAnnotatingFromEmptyState() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val ensureSessionForAnnotating = javascriptFunctionBody(html, "ensureSessionForAnnotating")
+        val enterAnnotateMode = javascriptFunctionBody(html, "enterAnnotateMode")
+
+        assertTrue(ensureSessionForAnnotating.contains("if (state.session) return;"))
+        assertTrue(ensureSessionForAnnotating.contains("/api/session/open"))
+        assertTrue(ensureSessionForAnnotating.contains("body: JSON.stringify({ newSession: true })"))
+        assertTrue(ensureSessionForAnnotating.contains("await refreshSessions();"))
+        assertTrue(enterAnnotateMode.contains("await ensureSessionForAnnotating();"))
     }
 
     @Test

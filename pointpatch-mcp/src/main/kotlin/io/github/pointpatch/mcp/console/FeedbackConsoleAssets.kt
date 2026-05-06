@@ -2237,7 +2237,20 @@ internal object FeedbackConsoleAssets {
               renderInspectorRegion();
             }
 
+            async function ensureSessionForAnnotating() {
+              if (state.session) return;
+              resetAnnotationComposerState();
+              invalidatePreviewContext();
+              state.session = await requestJson('/api/session/open', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ newSession: true })
+              });
+              await refreshSessions();
+            }
+
             async function enterAnnotateMode() {
+              await ensureSessionForAnnotating();
               toolMode = 'annotate';
               renderPreviewOnly();
               renderInspectorRegion();
