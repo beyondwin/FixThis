@@ -823,7 +823,7 @@ git commit -m "feat: redesign FixThis home and queue"
 - Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/ProjectScreen.kt`
 - Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt`
 
-- [ ] **Step 1: Replace `ProjectScreen.kt` structure**
+- [x] **Step 1: Replace `ProjectScreen.kt` structure**
 
 Keep these state variables:
 
@@ -873,7 +873,7 @@ AlertDialog(
 
 Add metadata cards or rows for `Source confidence` using `item.sourceConfidence` and `Owner` using `item.assignee`.
 
-- [ ] **Step 2: Replace `ReviewScreen.kt` structure**
+- [x] **Step 2: Replace `ReviewScreen.kt` structure**
 
 Keep `rememberSaveable` state for title, target, token, screenshot, sendToAgent, severity, and severityOpen. The visible product anchors must include:
 
@@ -927,7 +927,7 @@ OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { title = "" }) { T
 
 Preserve the checkbox content description `Include screenshot context` and switch content description `Send to agent queue`.
 
-- [ ] **Step 3: Compile**
+- [x] **Step 3: Compile**
 
 Run:
 
@@ -937,7 +937,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add sample/src/main/java/io/beyondwin/fixthis/sample/screens/ProjectScreen.kt sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt

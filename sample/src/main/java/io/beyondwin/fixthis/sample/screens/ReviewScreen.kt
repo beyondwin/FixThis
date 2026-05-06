@@ -30,7 +30,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import io.beyondwin.fixthis.sample.components.PreviewPanel
 import io.beyondwin.fixthis.sample.components.SectionHeader
+import io.beyondwin.fixthis.sample.components.StudioHeader
 
 @Composable
 fun ReviewScreen(padding: PaddingValues) {
@@ -50,7 +52,16 @@ fun ReviewScreen(padding: PaddingValues) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        SectionHeader("Review request")
+        StudioHeader(
+            title = "Review request",
+            subtitle = "Compose fix request",
+            status = if (sendToAgent) "Agent queue" else "Draft",
+        )
+        PreviewPanel(
+            title = "Request context",
+            subtitle = "$target - $severity severity",
+        )
+        SectionHeader("Request details")
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
             value = title,
@@ -93,6 +104,7 @@ fun ReviewScreen(padding: PaddingValues) {
                 }
             }
         }
+        SectionHeader("Handoff options")
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
