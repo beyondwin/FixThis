@@ -1046,7 +1046,7 @@ git commit -m "feat: map session dto models to domain models"
 - Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/usecase/snapshot/SaveSnapshotUseCase.kt`
 - Create: `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/usecase/annotation/CreateAnnotationUseCaseTest.kt`
 
-- [ ] **Step 1: Write the first use case test**
+- [x] **Step 1: Write the first use case test**
 
 ```kotlin
 package io.github.pointpatch.compose.core.usecase.annotation
@@ -1119,7 +1119,7 @@ private class FakeAnnotationRepository : AnnotationRepository {
 }
 ```
 
-- [ ] **Step 2: Run and confirm red**
+- [x] **Step 2: Run and confirm red**
 
 Run:
 
@@ -1129,7 +1129,7 @@ Run:
 
 Expected: compile failure because repositories and use case do not exist.
 
-- [ ] **Step 3: Add repository interfaces**
+- [x] **Step 3: Add repository interfaces**
 
 ```kotlin
 package io.github.pointpatch.compose.core.domain.session
@@ -1161,7 +1161,7 @@ interface SnapshotRepository {
 }
 ```
 
-- [ ] **Step 4: Add `CreateAnnotationUseCase`**
+- [x] **Step 4: Add `CreateAnnotationUseCase`**
 
 ```kotlin
 package io.github.pointpatch.compose.core.usecase.annotation
@@ -1206,7 +1206,7 @@ class CreateAnnotationUseCase(
 }
 ```
 
-- [ ] **Step 5: Run core tests**
+- [x] **Step 5: Run core tests**
 
 Run:
 
@@ -1216,7 +1216,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/usecase pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/usecase
