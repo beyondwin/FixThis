@@ -1911,6 +1911,16 @@ internal object FeedbackConsoleAssets {
               renderSelectionOverlay();
             }
 
+            function resetAnnotationComposerState(clearFlow = true) {
+              if (clearFlow) addItemsFlow = null;
+              pendingFeedbackItems = [];
+              focusedPendingItemIndex = null;
+              currentSelection = null;
+              toolMode = 'select';
+              comment.value = '';
+              clearDragState();
+            }
+
             function releaseSnapshotPointerCapture(image, event) {
               try {
                 if (image.hasPointerCapture?.(event.pointerId)) {
@@ -1994,6 +2004,8 @@ internal object FeedbackConsoleAssets {
             function deletePendingFeedbackItem(index) {
               pendingFeedbackItems.splice(index, 1);
               focusedPendingItemIndex = null;
+              currentSelection = null;
+              comment.value = '';
               renderPreviewOnly();
               renderInspectorRegion();
             }
@@ -2036,25 +2048,14 @@ internal object FeedbackConsoleAssets {
                   items: pendingPayloadItems()
                 })
               });
-              addItemsFlow = null;
-              pendingFeedbackItems = [];
-              focusedPendingItemIndex = null;
-              currentSelection = null;
-              toolMode = 'select';
+              resetAnnotationComposerState();
               state.preview = null;
-              comment.value = '';
               await refresh();
               startLivePreviewPolling();
             }
 
             function cancelAddItemsFlow() {
-              addItemsFlow = null;
-              pendingFeedbackItems = [];
-              focusedPendingItemIndex = null;
-              currentSelection = null;
-              toolMode = 'select';
-              comment.value = '';
-              clearDragState();
+              resetAnnotationComposerState();
               render();
               startLivePreviewPolling();
             }
@@ -2347,9 +2348,9 @@ internal object FeedbackConsoleAssets {
               renderPendingItems();
             }
 
-            function renderDraftInspector() {
+            function renderSavedAnnotationsInspector() {
               const groups = savedEvidenceGroups();
-              inspectorTitle.textContent = 'Draft';
+              inspectorTitle.textContent = 'Annotations';
               inspectorCount.textContent = String(groups.reduce((sum, group) => sum + group.items.length, 0));
               selectionSummary.hidden = true;
               comment.hidden = true;
@@ -2367,7 +2368,7 @@ internal object FeedbackConsoleAssets {
               if (addItemsFlow) {
                 renderComposerInspector();
               } else {
-                renderDraftInspector();
+                renderSavedAnnotationsInspector();
               }
               updateComposerState();
             }
@@ -2444,9 +2445,7 @@ internal object FeedbackConsoleAssets {
 
             async function openSession(sessionId) {
               error.textContent = '';
-              clearSelection();
-              addItemsFlow = null;
-              pendingFeedbackItems = [];
+              resetAnnotationComposerState();
               invalidatePreviewContext();
               state.session = await requestJson('/api/session/open', {
                 method: 'POST',
@@ -2459,9 +2458,7 @@ internal object FeedbackConsoleAssets {
 
             async function newSession() {
               error.textContent = '';
-              clearSelection();
-              addItemsFlow = null;
-              pendingFeedbackItems = [];
+              resetAnnotationComposerState();
               invalidatePreviewContext();
               state.session = await requestJson('/api/session/open', {
                 method: 'POST',
@@ -2475,9 +2472,7 @@ internal object FeedbackConsoleAssets {
             async function closeSession() {
               error.textContent = '';
               if (!state.session) return;
-              clearSelection();
-              addItemsFlow = null;
-              pendingFeedbackItems = [];
+              resetAnnotationComposerState();
               invalidatePreviewContext();
               await requestJson('/api/session/close', {
                 method: 'POST',
@@ -2495,9 +2490,7 @@ internal object FeedbackConsoleAssets {
               if (!sessionId) return;
               const isActive = state.session?.sessionId === sessionId;
               if (isActive) {
-                clearSelection();
-                addItemsFlow = null;
-                pendingFeedbackItems = [];
+                resetAnnotationComposerState();
                 invalidatePreviewContext();
               }
               await requestJson('/api/session/close', {

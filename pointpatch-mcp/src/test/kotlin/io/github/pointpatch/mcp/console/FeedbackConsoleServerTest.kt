@@ -139,10 +139,11 @@ class FeedbackConsoleServerTest {
         val pendingRenderer = javascriptFunctionBody(html, "renderPendingItems")
 
         assertTrue(html.contains("function renderComposerInspector"))
-        assertTrue(html.contains("function renderDraftInspector"))
+        assertTrue(html.contains("function renderSavedAnnotationsInspector"))
         assertTrue(html.contains("function renderAnnotationDetail"))
         assertTrue(html.contains("inspectorTitle.textContent = item ? 'Annotation' : 'Annotations'"))
-        assertTrue(html.contains("inspectorTitle.textContent = 'Draft'"))
+        assertTrue(html.contains("inspectorTitle.textContent = 'Annotations'"))
+        assertFalse(html.contains("inspectorTitle.textContent = 'Draft'"))
         assertTrue(html.contains(".saved-evidence-frame .selection-overlay"))
         assertTrue(html.contains("if (image.complete && image.naturalWidth)"))
         assertTrue(html.contains("No annotations yet."))
@@ -160,6 +161,19 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("data-set-severity"))
         assertTrue(html.contains("data-set-status"))
         assertTrue(html.contains("data-delete-current"))
+    }
+
+    @Test
+    fun consoleHtmlResetsAnnotationComposerStateAcrossSessionActions() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("function resetAnnotationComposerState(clearFlow = true)"))
+        assertTrue(Regex("async function openSession\\(sessionId\\)[\\s\\S]*resetAnnotationComposerState\\(\\);[\\s\\S]*/api/session/open").containsMatchIn(html))
+        assertTrue(Regex("async function newSession\\(\\)[\\s\\S]*resetAnnotationComposerState\\(\\);[\\s\\S]*/api/session/open").containsMatchIn(html))
+        assertTrue(Regex("async function closeSession\\(\\)[\\s\\S]*resetAnnotationComposerState\\(\\);[\\s\\S]*/api/session/close").containsMatchIn(html))
+        assertTrue(Regex("async function deleteHistorySession\\(sessionId\\)[\\s\\S]*if \\(isActive\\) \\{\\s+resetAnnotationComposerState\\(\\);").containsMatchIn(html))
+        assertTrue(Regex("function cancelAddItemsFlow\\(\\)[\\s\\S]*resetAnnotationComposerState\\(\\);[\\s\\S]*render\\(\\);").containsMatchIn(html))
+        assertTrue(Regex("function deletePendingFeedbackItem\\(index\\)[\\s\\S]*focusedPendingItemIndex = null;[\\s\\S]*currentSelection = null;[\\s\\S]*comment.value = '';").containsMatchIn(html))
     }
 
     @Test
