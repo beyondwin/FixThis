@@ -83,7 +83,7 @@ The source proposal is directionally right, but the implementation order needs t
 **Files:**
 - Create: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/ArchitectureCompatibilityTest.kt`
 
-- [ ] **Step 1: Write JSON and status compatibility tests**
+- [x] **Step 1: Write JSON and status compatibility tests**
 
 ```kotlin
 package io.github.pointpatch.mcp.session
@@ -165,7 +165,7 @@ class ArchitectureCompatibilityTest {
 }
 ```
 
-- [ ] **Step 2: Run the compatibility tests**
+- [x] **Step 2: Run the compatibility tests**
 
 Run:
 
@@ -175,7 +175,7 @@ Run:
 
 Expected: PASS before any refactor.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/ArchitectureCompatibilityTest.kt
