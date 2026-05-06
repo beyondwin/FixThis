@@ -2273,7 +2273,11 @@ internal object FeedbackConsoleAssets {
               pendingItems.querySelectorAll('[data-focus-pending]').forEach(button => {
                 button.addEventListener('click', () => focusPendingFeedbackItem(Number(button.dataset.focusPending)));
               });
-              pendingItems.querySelectorAll('[data-start-annotating]').forEach(button => {
+              bindStartAnnotatingButtons(pendingItems);
+            }
+
+            function bindStartAnnotatingButtons(container) {
+              container.querySelectorAll('[data-start-annotating]').forEach(button => {
                 button.addEventListener('click', () => enterAnnotateMode().catch(showError));
               });
             }
@@ -2394,7 +2398,8 @@ internal object FeedbackConsoleAssets {
                     '</div>'
                   ).join('') +
                 '</article>';
-              }).join('') || '<div class="empty-state"><div class="empty-title">No saved annotations yet.</div><div class="empty-body">Use <b>Annotate</b> to freeze the preview, add comments, then Save snapshot.</div></div>';
+              }).join('') || '<div class="empty-state"><div class="empty-title">No saved annotations yet.</div><div class="empty-body">Use <b>Annotate</b> to freeze the preview, add comments, then Save snapshot.</div><button type="button" class="primary" data-start-annotating>Start annotating</button></div>';
+              bindStartAnnotatingButtons(draftItems);
               hydrateSavedEvidencePreviews();
             }
 

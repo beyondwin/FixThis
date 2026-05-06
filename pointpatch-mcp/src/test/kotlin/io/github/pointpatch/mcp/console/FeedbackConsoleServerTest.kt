@@ -543,6 +543,17 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun consoleHtmlShowsStartAnnotatingWhenSavedAnnotationsAreEmpty() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val renderSavedEvidenceGroups = javascriptFunctionBody(html, "renderSavedEvidenceGroups")
+
+        assertTrue(renderSavedEvidenceGroups.contains("data-start-annotating"))
+        assertTrue(renderSavedEvidenceGroups.contains("Start annotating"))
+        assertTrue(html.contains("function bindStartAnnotatingButtons(container)"))
+        assertTrue(renderSavedEvidenceGroups.contains("bindStartAnnotatingButtons(draftItems);"))
+    }
+
+    @Test
     fun consoleHtmlKeepsFrozenPreviewStableAndShowsPersistedScreenHistory() {
         val html = FeedbackConsoleAssets.indexHtml
 
