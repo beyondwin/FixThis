@@ -53,7 +53,7 @@
 - Modify: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
 - Inspect: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt`
 
-- [ ] **Step 1: Replace the smoke test with redesigned anchors**
+- [x] **Step 1: Replace the smoke test with redesigned anchors**
 
 ```kotlin
 package io.beyondwin.fixthis.sample
@@ -92,7 +92,7 @@ class SampleAppSmokeTest {
 }
 ```
 
-- [ ] **Step 2: Confirm the semantics inspector test keeps the `Submit request` anchor**
+- [x] **Step 2: Confirm the semantics inspector test keeps the `Submit request` anchor**
 
 Run:
 
@@ -102,7 +102,7 @@ sed -n '1,220p' sample/src/androidTest/java/io/beyondwin/fixthis/sample/Semantic
 
 Expected: output includes `rule.onNodeWithText("Review").performClick()` and `Submit request`.
 
-- [ ] **Step 3: Compile Android tests**
+- [x] **Step 3: Compile Android tests**
 
 Run:
 
@@ -112,7 +112,7 @@ Run:
 
 Expected: Android test APK compiles. Connected execution can fail before implementation because new visible text is not present yet.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt
