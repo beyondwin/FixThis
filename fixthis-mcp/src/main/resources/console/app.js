@@ -1,6 +1,6 @@
             const DefaultLivePreviewIntervalMs = 1000;
             const MinLivePreviewIntervalMs = 1000;
-            const PreviewIntervalStorageKey = 'pointpatch.previewIntervalMs.v2';
+            const PreviewIntervalStorageKey = 'fixthis.previewIntervalMs.v2';
             const state = { session: null, preview: null, sessionSummaries: [], selectedDeviceSerial: null, devices: [] };
             const sessions = document.getElementById('sessions');
             const sentHistory = document.getElementById('sentHistory');
@@ -294,7 +294,7 @@
               const summary = selectedHistorySummary();
               const sessionLabel = summary ? formatSessionLabel(summary, 0) : 'Selected history';
               const lines = [
-                'PointPatch feedback handoff',
+                'FixThis feedback handoff',
                 '',
                 'History: ' + sessionLabel,
                 'Package: ' + (state.session.packageName || 'unknown'),
@@ -1507,7 +1507,7 @@
               snapshot.innerHTML =
 	                '<div id="annotateHintSlot" class="annotate-hint-slot" aria-live="polite"></div>' +
 	                '<div id="snapshotFrame" class="snapshot-frame">' +
-	                  '<img id="snapshotImage" alt="PointPatch preview" aria-label="PointPatch preview">' +
+	                  '<img id="snapshotImage" alt="FixThis preview" aria-label="FixThis preview">' +
 	                  '<div id="selectionOverlay" class="selection-overlay"></div>' +
 	                '</div>';
               attachSnapshotHandlers();

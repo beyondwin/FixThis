@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "io.github.pointpatch.compose.sidekick"
+    namespace = "io.beyondwin.fixthis.compose.sidekick"
     compileSdk = 36
 
     defaultConfig {

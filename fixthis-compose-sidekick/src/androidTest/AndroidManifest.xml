@@ -7,7 +7,7 @@
             android:authorities="${applicationId}.androidx-startup"
             tools:node="merge">
             <meta-data
-                android:name="io.github.pointpatch.compose.sidekick.init.PointPatchInitializer"
+                android:name="io.beyondwin.fixthis.compose.sidekick.init.FixThisInitializer"
                 tools:node="remove" />
         </provider>
     </application>

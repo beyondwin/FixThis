@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "io.github.pointpatch.compose.overlay"
+    namespace = "io.beyondwin.fixthis.compose.overlay"
     compileSdk = 36
 
     defaultConfig {

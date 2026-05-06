@@ -12,7 +12,7 @@ gradlePlugin {
     plugins {
         create("fixThisCompose") {
             id = "io.beyondwin.fixthis.compose"
-            implementationClass = "io.github.pointpatch.gradle.PointPatchGradlePlugin"
+            implementationClass = "io.beyondwin.fixthis.gradle.FixThisGradlePlugin"
         }
     }
 }
