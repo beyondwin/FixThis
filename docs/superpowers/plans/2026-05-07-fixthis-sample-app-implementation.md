@@ -303,7 +303,7 @@ git commit -m "feat: rename sample app to FixThis"
 
 - Create: `sample/src/main/java/io/beyondwin/fixthis/sample/model/FixThisDemoData.kt`
 
-- [ ] **Step 1: Create deterministic sample data**
+- [x] **Step 1: Create deterministic sample data**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/model/FixThisDemoData.kt`:
 
@@ -420,7 +420,7 @@ object FixThisDemoData {
 }
 ```
 
-- [ ] **Step 2: Build after adding model**
+- [x] **Step 2: Build after adding model**
 
 Run:
 
@@ -430,7 +430,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 3: Commit demo data**
+- [x] **Step 3: Commit demo data**
 
 Run:
 
