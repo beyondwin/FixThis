@@ -113,6 +113,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("id=\"inspectorTitle\""))
         assertTrue(html.contains("id=\"inspectorBody\""))
         assertTrue(html.contains("id=\"inspectorFooter\""))
+        assertTrue(html.contains("<div class=\"panel-title\">History</div>"))
         assertTrue(html.contains("--bg-0: #0d0e10"))
         assertTrue(html.contains("--accent: #b8d36a"))
         assertFalse(html.contains("class=\"queue-pane\""))
@@ -125,13 +126,16 @@ class FeedbackConsoleServerTest {
 
         assertTrue(html.contains("function renderComposerInspector"))
         assertTrue(html.contains("function renderDraftInspector"))
-        assertTrue(html.contains("inspectorTitle.textContent = 'Composer'"))
+        assertTrue(html.contains("inspectorTitle.textContent = item ? 'Annotation' : 'Annotations'"))
         assertTrue(html.contains("inspectorTitle.textContent = 'Draft'"))
         assertTrue(html.contains(".saved-evidence-frame .selection-overlay"))
         assertTrue(html.contains("if (image.complete && image.naturalWidth)"))
-        assertTrue(html.contains("Add to Pending"))
-        assertTrue(pendingRenderer.contains("Focus</button>"))
-        assertTrue(pendingRenderer.contains("Delete</button>"))
+        assertTrue(html.contains("No annotations yet."))
+        assertTrue(html.contains("No saved annotations yet."))
+        assertTrue(html.contains("Use <b>Annotate</b>"))
+        assertTrue(pendingRenderer.contains("annotation-row"))
+        assertTrue(pendingRenderer.contains("data-focus-pending"))
+        assertTrue(pendingRenderer.contains("data-delete-pending"))
         assertFalse(pendingRenderer.contains("Severity"))
         assertFalse(pendingRenderer.contains("Status"))
         assertFalse(pendingRenderer.contains("Label field"))
@@ -142,15 +146,17 @@ class FeedbackConsoleServerTest {
         val html = FeedbackConsoleAssets.indexHtml
 
         assertTrue(html.contains("id=\"refreshButton\""))
-        assertTrue(html.contains("id=\"addFlowButton\""))
+        assertTrue(html.contains("id=\"selectToolButton\""))
+        assertTrue(html.contains("id=\"annotateToolButton\""))
         assertTrue(html.contains("id=\"saveButton\""))
         assertTrue(html.contains("id=\"copyMarkdownButton\""))
         assertTrue(html.contains("id=\"sendDraftButton\""))
         assertTrue(html.contains("id=\"newSessionButton\""))
         assertTrue(html.contains("id=\"closeSessionButton\""))
         assertTrue(html.contains(">Refresh<"))
-        assertTrue(html.contains(">Add<"))
-        assertTrue(html.contains(">Save<"))
+        assertTrue(html.contains(">Select<"))
+        assertTrue(html.contains(">Annotate<"))
+        assertTrue(html.contains(">Save snapshot<"))
         assertTrue(html.contains(">Copy<"))
         assertTrue(html.contains(">Send<"))
         assertTrue(html.contains(">New<"))
@@ -261,7 +267,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("function clearDraft"))
         assertTrue(html.contains("function sendDraftToAgent"))
         assertTrue(html.contains("selectionSummary.textContent = currentSelection"))
-        assertTrue(html.contains("addItemButton.disabled = !addItemsFlow || !currentSelection || !comment.value.trim()"))
+        assertTrue(html.contains("saveButton.disabled = !addItemsFlow || pendingFeedbackItems.length === 0 || pendingFeedbackItems.some"))
         assertTrue(html.contains("formatSessionLabel"))
         assertTrue(html.contains("formatSessionSummary"))
         assertTrue(html.contains("session.draftItemsCount"))
@@ -399,11 +405,12 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
-    fun consoleUsesNavigationDefaultAddItemsFlowAndSimpleLabels() {
+    fun consoleUsesOptionASelectAnnotateToolsAndSimpleLabels() {
         val html = FeedbackConsoleAssets.indexHtml
 
-        assertTrue(html.contains(">Add<"))
-        assertTrue(html.contains(">Save<"))
+        assertTrue(html.contains(">Select<"))
+        assertTrue(html.contains(">Annotate<"))
+        assertTrue(html.contains(">Save snapshot<"))
         assertTrue(html.contains(">Refresh<"))
         assertTrue(html.contains(">Copy<"))
         assertTrue(html.contains(">Send<"))
@@ -412,7 +419,11 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("previewIntervalSelect"))
         assertTrue(html.contains("PreviewIntervalStorageKey"))
         assertTrue(html.contains("Math.max(1000"))
-        assertTrue(html.contains("inspectorTitle.textContent = 'Composer'"))
+        assertTrue(html.contains("let toolMode = 'select'"))
+        assertTrue(html.contains("function enterAnnotateMode"))
+        assertTrue(html.contains("function enterSelectMode"))
+        assertTrue(Regex("async function enterAnnotateMode\\(\\) \\{\\s+toolMode = 'annotate';\\s+renderPreviewOnly\\(\\);\\s+renderInspectorRegion\\(\\);").containsMatchIn(html))
+        assertTrue(html.contains("inspectorTitle.textContent = item ? 'Annotation' : 'Annotations'"))
         assertTrue(html.contains("pendingItems.hidden = false"))
         assertTrue(html.contains("renderPendingItems"))
         assertTrue(html.contains("renderNumberedFeedbackOverlay"))
@@ -422,10 +433,12 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("const DefaultLivePreviewIntervalMs = 2000"))
         assertTrue(html.contains("const MinLivePreviewIntervalMs = 1000"))
         assertTrue(html.contains("startAddItemsFlow"))
-        assertTrue(html.contains("queuePendingFeedbackItem"))
+        assertTrue(html.contains("createAnnotationFromSelection"))
         assertTrue(html.contains("savePendingFeedbackItems"))
         assertFalse(html.contains("modeSelect"))
         assertFalse(html.contains("modeNavigate"))
+        assertFalse(html.contains("id=\"addFlowButton\""))
+        assertFalse(html.contains("Add to Pending"))
         assertFalse(html.contains("Clear Comment"))
     }
 
@@ -453,9 +466,11 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("previewModeBadge.dataset.mode = mode"))
         assertTrue(html.contains("previewModeBadge.textContent = mode === 'frozen' ? 'Frozen'"))
         assertTrue(html.contains("frame.dataset.mode = mode"))
-        assertTrue(html.contains("navigationControls.hidden = Boolean(addItemsFlow)"))
+        assertTrue(html.contains("navigationControls.hidden = Boolean(addItemsFlow) || toolMode !== 'select'"))
         assertTrue(html.contains("aria-label=\"Back\""))
         assertTrue(html.contains("aria-label=\"Swipe up\""))
+        assertTrue(html.contains("class=\"tool-group\""))
+        assertTrue(html.contains("id=\"toolStatus\""))
         assertTrue(html.contains("renderNumberedFeedbackOverlay"))
         assertTrue(html.contains("'#' + (index + 1)"))
     }
@@ -527,7 +542,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("previewId: state.preview.previewId"))
         assertTrue(html.contains("screenshotUrl: previewScreenshotUrl(state.preview.previewId)"))
         assertTrue(Regex("finally \\{\\s+if \\(!addItemsFlow\\) startLivePreviewPolling\\(\\);\\s+\\}").containsMatchIn(html))
-        assertTrue(html.contains("document.getElementById('addFlowButton').addEventListener('click', () => startAddItemsFlow().catch(showError));"))
+        assertTrue(html.contains("annotateToolButton.addEventListener('click', () => enterAnnotateMode().catch(showError));"))
     }
 
     @Test
@@ -602,15 +617,21 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
-    fun consoleHtmlAddItemUsesCurrentSelectionPayload() {
+    fun consoleHtmlAnnotationSaveUsesCurrentSelectionPayload() {
         val html = FeedbackConsoleAssets.indexHtml
 
         assertTrue(html.contains("previewId: addItemsFlow.previewId"))
-        assertTrue(html.contains("items: pendingFeedbackItems"))
-        assertTrue(html.contains("targetType: currentSelection.targetType"))
-        assertTrue(html.contains("nodeUid: currentSelection.nodeUid"))
-        assertTrue(html.contains("bounds: currentSelection.bounds"))
-        assertTrue(html.contains("comment.value.trim()"))
+        assertTrue(html.contains("items: pendingPayloadItems()"))
+        assertTrue(html.contains("targetType: selection.targetType"))
+        assertTrue(html.contains("nodeUid: selection.nodeUid"))
+        assertTrue(html.contains("bounds: selection.bounds"))
+        assertTrue(html.contains("function pendingPayloadItems"))
+        assertTrue(html.contains("items: pendingPayloadItems()"))
+        assertTrue(html.contains("toolMode = 'select';"))
+        assertTrue(html.contains("suppressNextClick = true;"))
+        assertTrue(html.contains("function updateSelectedAnnotationComment"))
+        assertTrue(html.contains("item.comment = comment.value;"))
+        assertTrue(html.contains("Add a comment to every annotation before saving."))
         assertTrue(html.contains("Select a component or area first."))
     }
 

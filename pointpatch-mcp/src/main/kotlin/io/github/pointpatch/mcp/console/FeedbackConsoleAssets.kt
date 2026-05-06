@@ -354,6 +354,54 @@ internal object FeedbackConsoleAssets {
               font-size: 12px;
               min-width: 0;
             }
+            .tool-group,
+            .zoom-control {
+              display: inline-flex;
+              align-items: center;
+              gap: 2px;
+              padding: 2px;
+              border: 1px solid var(--line);
+              border-radius: 8px;
+              background: var(--bg-1);
+            }
+            .tool-button,
+            .zoom-button {
+              min-width: 0;
+              min-height: 24px;
+              padding: 0 10px;
+              border: 0;
+              border-radius: 6px;
+              background: transparent;
+              color: var(--txt-1);
+              font-size: 11px;
+              font-weight: 700;
+            }
+            .tool-button[aria-pressed="true"] {
+              background: var(--bg-3);
+              color: var(--accent);
+            }
+            .tool-status {
+              flex: 1;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              min-width: 160px;
+              color: var(--txt-2);
+              font-size: 11px;
+              font-weight: 700;
+              text-transform: uppercase;
+              letter-spacing: .08em;
+            }
+            .zoom-control {
+              color: var(--txt-2);
+              font-size: 11px;
+              font-weight: 700;
+            }
+            .zoom-button {
+              width: 24px;
+              height: 24px;
+              padding: 0;
+            }
             .mode-badge {
               display: inline-flex;
               align-items: center;
@@ -421,6 +469,13 @@ internal object FeedbackConsoleAssets {
               border-color: var(--warning);
               background: rgba(230, 180, 90, .16);
             }
+            .selection-box.annotation-pin {
+              pointer-events: auto;
+              cursor: pointer;
+            }
+            .selection-box.annotation-pin:hover {
+              background: rgba(184, 211, 106, .20);
+            }
             .selection-label {
               position: absolute;
               transform: translateY(-100%);
@@ -435,6 +490,35 @@ internal object FeedbackConsoleAssets {
               font-weight: 800;
             }
             .selection-label.focused { background: var(--warning); }
+            .annotate-hint {
+              position: absolute;
+              top: 16px;
+              left: 50%;
+              transform: translateX(-50%);
+              z-index: 3;
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              border-radius: 999px;
+              padding: 8px 14px;
+              background: var(--accent);
+              color: var(--bg-0);
+              font-size: 12px;
+              font-weight: 800;
+              box-shadow: 0 12px 28px -12px rgba(0, 0, 0, .70);
+            }
+            .annotate-hint::before {
+              content: '';
+              width: 8px;
+              height: 8px;
+              border-radius: 999px;
+              background: var(--bg-0);
+              animation: pulse-a 1.4s infinite;
+            }
+            @keyframes pulse-a {
+              0%, 100% { opacity: 1; transform: scale(1); }
+              50% { opacity: .5; transform: scale(1.3); }
+            }
             .selection-summary {
               border: 1px solid var(--line);
               border-radius: 8px;
@@ -443,6 +527,72 @@ internal object FeedbackConsoleAssets {
               min-height: 44px;
               padding: 10px;
               font-size: 13px;
+            }
+            .annotation-row {
+              display: grid;
+              grid-template-columns: 28px 1fr auto;
+              gap: 10px;
+              align-items: start;
+              width: 100%;
+              border: 0;
+              text-align: left;
+            }
+            .annotation-main {
+              display: contents;
+              border: 0;
+              padding: 0;
+              background: transparent;
+              color: inherit;
+              text-align: left;
+            }
+            .annotation-number {
+              width: 26px;
+              height: 26px;
+              display: grid;
+              place-items: center;
+              border-radius: 999px;
+              background: var(--accent);
+              color: var(--bg-0);
+              font-size: 11px;
+              font-weight: 800;
+            }
+            .annotation-copy {
+              min-width: 0;
+            }
+            .annotation-title {
+              color: var(--txt-0);
+              font-size: 13px;
+              font-weight: 700;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+            .annotation-comment {
+              margin-top: 3px;
+              color: var(--txt-2);
+              font-size: 11px;
+              line-height: 1.4;
+              overflow-wrap: anywhere;
+            }
+            .annotation-delete {
+              width: 26px;
+              min-width: 26px;
+              height: 26px;
+              padding: 0;
+              border-radius: 6px;
+            }
+            .annotation-detail {
+              display: grid;
+              gap: 12px;
+            }
+            .annotation-detail label {
+              display: grid;
+              gap: 6px;
+              color: var(--txt-2);
+              font-size: 10px;
+              font-weight: 800;
+              letter-spacing: .12em;
+              text-transform: uppercase;
             }
             img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); }
             .evidence-card {
@@ -614,8 +764,7 @@ internal object FeedbackConsoleAssets {
               </div>
               <div class="studio-actions">
                 <button id="refreshButton">Refresh</button>
-                <button id="addFlowButton" class="primary">Add</button>
-                <button id="saveButton" disabled>Save</button>
+                <button id="saveButton" class="primary" disabled>Save snapshot</button>
                 <button id="copyMarkdownButton">Copy</button>
                 <button id="sendDraftButton">Send</button>
                 <button id="newSessionButton">New</button>
@@ -625,7 +774,7 @@ internal object FeedbackConsoleAssets {
             <main class="studio-body">
               <aside class="studio-history">
                 <div class="panel-head">
-                  <div class="panel-title">Sessions</div>
+                  <div class="panel-title">History</div>
                   <div id="sessionCount" class="panel-count">0</div>
                 </div>
                 <div id="sessions" class="history-list"></div>
@@ -636,9 +785,19 @@ internal object FeedbackConsoleAssets {
               </aside>
               <section class="studio-canvas">
                 <div id="canvasToolbar" class="canvas-toolbar">
+                  <div class="tool-group" role="group" aria-label="Canvas tool">
+                    <button id="selectToolButton" class="tool-button" type="button" aria-pressed="true">Select</button>
+                    <button id="annotateToolButton" class="tool-button" type="button" aria-pressed="false">Annotate</button>
+                  </div>
+                  <div id="toolStatus" class="tool-status">Select mode</div>
                   <div class="canvas-tool-status">
                     <span id="previewModeBadge" class="mode-badge" data-mode="idle">Live</span>
                     <span id="snapshotTitle">Live Preview</span>
+                  </div>
+                  <div class="zoom-control" aria-label="Zoom controls">
+                    <button class="zoom-button" type="button" aria-label="Zoom out">−</button>
+                    <span>100%</span>
+                    <button class="zoom-button" type="button" aria-label="Zoom in">+</button>
                   </div>
                   <div id="navigationControls" class="navigation-controls">
                     <button id="backButton" aria-label="Back">Back</button>
@@ -650,13 +809,13 @@ internal object FeedbackConsoleAssets {
                   </div>
                 </div>
                 <div id="snapshot" class="snapshot-stage">
-                  <div id="selectionOverlay" class="selection-overlay" aria-hidden="true"></div>
+                  <div id="selectionOverlay" class="selection-overlay"></div>
                   <div class="empty-stage">Refresh the live preview to begin.</div>
                 </div>
               </section>
               <aside class="studio-inspector">
                 <div class="panel-head">
-                  <div id="inspectorTitle" class="panel-title">Draft</div>
+                  <div id="inspectorTitle" class="panel-title">Annotations</div>
                   <div id="inspectorCount" class="panel-count">0</div>
                 </div>
                 <div id="inspectorBody" class="inspector-body">
@@ -667,8 +826,8 @@ internal object FeedbackConsoleAssets {
                 </div>
                 <div id="inspectorFooter" class="inspector-footer">
                   <button id="clearSelectionButton">Clear Selection</button>
-                  <button id="cancelAddFlowButton" disabled>Cancel</button>
-                  <button id="addItemButton" class="primary" disabled>Add to Pending</button>
+                  <button id="cancelAddFlowButton" disabled>Exit Annotate</button>
+                  <button id="addItemButton" class="primary" disabled hidden>Add annotation</button>
                   <button id="clearDraftButton">Clear Draft</button>
                 </div>
                 <p id="error" class="error" role="status" aria-live="polite"></p>
@@ -708,6 +867,9 @@ internal object FeedbackConsoleAssets {
             const saveButton = document.getElementById('saveButton');
             const cancelAddFlowButton = document.getElementById('cancelAddFlowButton');
             const clearDraftButton = document.getElementById('clearDraftButton');
+            const selectToolButton = document.getElementById('selectToolButton');
+            const annotateToolButton = document.getElementById('annotateToolButton');
+            const toolStatus = document.getElementById('toolStatus');
             let livePreviewTimer = null;
             let previewRequestGeneration = 0;
             let previewRequestContextGeneration = 0;
@@ -717,6 +879,8 @@ internal object FeedbackConsoleAssets {
             let pendingFeedbackItems = [];
             let focusedPendingItemIndex = null;
             let currentSelection = null;
+            let toolMode = 'select';
+            let annotationSequence = 1;
             let dragStart = null;
             let dragPreview = null;
             let suppressNextClick = false;
@@ -820,6 +984,15 @@ internal object FeedbackConsoleAssets {
 
             function pendingTargetLabel(item) {
               return item.targetType === 'node' ? 'Component target' : 'Custom area';
+            }
+
+            function annotationTitle(item, index) {
+              return item.label || pendingTargetLabel(item) + ' #' + (index + 1);
+            }
+
+            function selectedAnnotation() {
+              if (focusedPendingItemIndex == null) return null;
+              return pendingFeedbackItems[focusedPendingItemIndex] || null;
             }
 
             function sourceHintLabel(item) {
@@ -1106,30 +1279,50 @@ internal object FeedbackConsoleAssets {
             }
 
             function updateComposerState() {
-              addItemButton.disabled = !addItemsFlow || !currentSelection || !comment.value.trim();
-              saveButton.disabled = !addItemsFlow || pendingFeedbackItems.length === 0;
+              saveButton.disabled = !addItemsFlow || pendingFeedbackItems.length === 0 || pendingFeedbackItems.some(item => !String(item.comment || '').trim());
               cancelAddFlowButton.disabled = !addItemsFlow;
-              navigationControls.hidden = Boolean(addItemsFlow);
+              addItemButton.hidden = true;
+              addItemButton.disabled = true;
+              navigationControls.hidden = Boolean(addItemsFlow) || toolMode !== 'select';
+              selectToolButton.setAttribute('aria-pressed', String(toolMode === 'select'));
+              annotateToolButton.setAttribute('aria-pressed', String(toolMode === 'annotate'));
+              toolStatus.textContent = toolMode === 'annotate'
+                ? 'Annotate: click or drag the frozen preview'
+                : 'Select: choose an existing annotation';
               const item = focusedPendingSelectionSummary();
               selectionSummary.textContent = currentSelection
                 ? currentSelection.label + ' - ' + formatBounds(currentSelection.bounds)
                 : (item
                   ? 'Focused #' + (focusedPendingItemIndex + 1) + ' - ' + formatBounds(item.bounds)
-                  : (addItemsFlow ? 'Select a component or drag a custom area.' : 'No selection.'));
+                  : (toolMode === 'annotate' ? 'Click a component or drag a region to create an annotation.' : 'No annotation selected.'));
             }
 
-            function renderOverlayBox(overlay, image, bounds, labelText, isDragPreview = false, isFocused = false) {
+            function renderOverlayBox(overlay, image, bounds, labelText, isDragPreview = false, isFocused = false, annotationIndex = null) {
               if (!bounds) return;
               const left = bounds.left * 100 / image.naturalWidth;
               const top = bounds.top * 100 / image.naturalHeight;
               const width = (bounds.right - bounds.left) * 100 / image.naturalWidth;
               const height = (bounds.bottom - bounds.top) * 100 / image.naturalHeight;
               const box = document.createElement('div');
-              box.className = 'selection-box' + (isDragPreview ? ' drag-preview' : '') + (isFocused ? ' focused' : '');
+              box.className = 'selection-box' + (isDragPreview ? ' drag-preview' : '') + (isFocused ? ' focused' : '') + (annotationIndex == null ? '' : ' annotation-pin');
               box.style.left = left + '%';
               box.style.top = top + '%';
               box.style.width = width + '%';
               box.style.height = height + '%';
+              if (annotationIndex != null) {
+                box.setAttribute('role', 'button');
+                box.setAttribute('aria-label', 'Select annotation ' + (annotationIndex + 1));
+                box.tabIndex = 0;
+                box.addEventListener('click', event => {
+                  event.stopPropagation();
+                  focusPendingFeedbackItem(annotationIndex);
+                });
+                box.addEventListener('keydown', event => {
+                  if (event.key !== 'Enter' && event.key !== ' ') return;
+                  event.preventDefault();
+                  focusPendingFeedbackItem(annotationIndex);
+                });
+              }
               overlay.appendChild(box);
 
               if (!labelText) return;
@@ -1143,7 +1336,7 @@ internal object FeedbackConsoleAssets {
 
             function renderNumberedFeedbackOverlay(overlay, image) {
               pendingFeedbackItems.forEach((item, index) => {
-                renderOverlayBox(overlay, image, item.bounds, '#' + (index + 1), false, index === focusedPendingItemIndex);
+                renderOverlayBox(overlay, image, item.bounds, '#' + (index + 1), false, index === focusedPendingItemIndex, index);
               });
             }
 
@@ -1210,28 +1403,26 @@ internal object FeedbackConsoleAssets {
                 showError(new Error('No component found at that point. Drag to select a custom area.'));
                 return;
               }
-              currentSelection = {
+              const selection = {
                 targetType: 'node',
                 nodeUid: node.uid,
                 bounds: node.boundsInWindow,
                 label: componentLabel(node)
               };
-              focusedPendingItemIndex = null;
+              currentSelection = selection;
+              createAnnotationFromSelection(selection);
               error.textContent = '';
-              renderSelectionOverlay();
-              updateComposerState();
             }
 
             function finishAreaSelection(bounds) {
-              currentSelection = {
+              const selection = {
                 targetType: 'area',
                 bounds: bounds,
                 label: 'Custom area ' + Math.round(bounds.right - bounds.left) + 'x' + Math.round(bounds.bottom - bounds.top)
               };
-              focusedPendingItemIndex = null;
+              currentSelection = selection;
+              createAnnotationFromSelection(selection);
               error.textContent = '';
-              renderSelectionOverlay();
-              updateComposerState();
             }
 
             function clearDragState() {
@@ -1253,8 +1444,10 @@ internal object FeedbackConsoleAssets {
             function clearSelection() {
               currentSelection = null;
               focusedPendingItemIndex = null;
+              comment.value = '';
               clearDragState();
               renderSelectionOverlay();
+              renderInspectorRegion();
               updateComposerState();
             }
 
@@ -1288,7 +1481,7 @@ internal object FeedbackConsoleAssets {
                   screen: state.preview.screen,
                   screenshotUrl: previewScreenshotUrl(state.preview.previewId)
                 };
-                pendingFeedbackItems = [];
+                toolMode = 'annotate';
                 focusedPendingItemIndex = null;
                 currentSelection = null;
                 render();
@@ -1297,19 +1490,21 @@ internal object FeedbackConsoleAssets {
               }
             }
 
-            function queuePendingFeedbackItem() {
-              const feedbackComment = comment.value.trim();
-              if (!addItemsFlow) throw new Error('Click Add before selecting feedback.');
-              if (!currentSelection) throw new Error('Select a component or area first.');
-              if (!feedbackComment) throw new Error('Enter a comment before adding it to the pending list.');
-              pendingFeedbackItems.push({
-                targetType: currentSelection.targetType,
-                nodeUid: currentSelection.nodeUid,
-                bounds: currentSelection.bounds,
-                comment: feedbackComment
-              });
+            function createAnnotationFromSelection(selection) {
+              if (!addItemsFlow) throw new Error('Switch to Annotate before selecting feedback.');
+              if (!selection) throw new Error('Select a component or area first.');
+              const annotation = {
+                annotationId: 'local-' + annotationSequence++,
+                targetType: selection.targetType,
+                nodeUid: selection.nodeUid,
+                bounds: selection.bounds,
+                label: selection.label,
+                comment: ''
+              };
+              pendingFeedbackItems.push(annotation);
               currentSelection = null;
-              focusedPendingItemIndex = null;
+              focusedPendingItemIndex = pendingFeedbackItems.length - 1;
+              toolMode = 'select';
               comment.value = '';
               renderPreviewOnly();
               renderInspectorRegion();
@@ -1325,25 +1520,46 @@ internal object FeedbackConsoleAssets {
             function focusPendingFeedbackItem(index) {
               focusedPendingItemIndex = index;
               currentSelection = null;
+              toolMode = 'select';
+              comment.value = pendingFeedbackItems[index]?.comment || '';
               renderPreviewOnly();
               renderInspectorRegion();
+            }
+
+            function updateSelectedAnnotationComment() {
+              const item = selectedAnnotation();
+              if (!item) return;
+              item.comment = comment.value;
+              renderPendingItems();
+              updateComposerState();
+            }
+
+            function pendingPayloadItems() {
+              return pendingFeedbackItems.map(item => ({
+                targetType: item.targetType,
+                bounds: item.bounds,
+                nodeUid: item.nodeUid,
+                comment: item.comment
+              }));
             }
 
             async function savePendingFeedbackItems() {
               if (!addItemsFlow) return;
               if (!pendingFeedbackItems.length) throw new Error('Add at least one pending feedback item.');
+              if (pendingFeedbackItems.some(item => !String(item.comment || '').trim())) throw new Error('Add a comment to every annotation before saving.');
               state.session = await requestJson('/api/items/batch', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   previewId: addItemsFlow.previewId,
-                  items: pendingFeedbackItems
+                  items: pendingPayloadItems()
                 })
               });
               addItemsFlow = null;
               pendingFeedbackItems = [];
               focusedPendingItemIndex = null;
               currentSelection = null;
+              toolMode = 'select';
               state.preview = null;
               comment.value = '';
               await refresh();
@@ -1355,28 +1571,54 @@ internal object FeedbackConsoleAssets {
               pendingFeedbackItems = [];
               focusedPendingItemIndex = null;
               currentSelection = null;
+              toolMode = 'select';
               comment.value = '';
               clearDragState();
               render();
               startLivePreviewPolling();
             }
 
+            function enterSelectMode() {
+              toolMode = 'select';
+              currentSelection = null;
+              clearDragState();
+              renderPreviewOnly();
+              renderInspectorRegion();
+            }
+
+            async function enterAnnotateMode() {
+              toolMode = 'annotate';
+              renderPreviewOnly();
+              renderInspectorRegion();
+              if (!addItemsFlow) {
+                await startAddItemsFlow();
+              } else {
+                renderPreviewOnly();
+                renderInspectorRegion();
+              }
+            }
+
             function renderPendingItems() {
               pendingItems.innerHTML = pendingFeedbackItems.map((item, index) =>
-                '<div class="row pending-item-row ' + (index === focusedPendingItemIndex ? 'active' : '') + '">' +
-                  '<strong>#' + (index + 1) + ' ' + escapeHtml(firstLine(item.comment)) + '</strong>' +
-                  '<span>' + escapeHtml(pendingTargetLabel(item)) + '</span>' +
-                  '<div class="toolbar">' +
-                    '<button type="button" aria-label="Focus pending item ' + (index + 1) + '" data-focus-pending="' + index + '">Focus</button>' +
-                    '<button type="button" aria-label="Delete pending item ' + (index + 1) + '" data-delete-pending="' + index + '">Delete</button>' +
-                  '</div>' +
+                '<div class="row pending-item-row annotation-row ' + (index === focusedPendingItemIndex ? 'active' : '') + '">' +
+                  '<button type="button" class="annotation-main" data-focus-pending="' + index + '">' +
+                    '<span class="annotation-number">' + (index + 1) + '</span>' +
+                    '<span class="annotation-copy">' +
+                      '<span class="annotation-title">' + escapeHtml(annotationTitle(item, index)) + '</span>' +
+                      '<span class="annotation-comment">' + escapeHtml(firstLine(item.comment || 'No comment yet.')) + '</span>' +
+                    '</span>' +
+                  '</button>' +
+                  '<button type="button" class="annotation-delete" aria-label="Delete annotation ' + (index + 1) + '" data-delete-pending="' + index + '">×</button>' +
                 '</div>'
-              ).join('') || '<div class="row"><span>No pending feedback items.</span></div>';
+              ).join('') || '<div class="empty-state"><div class="empty-title">No annotations yet.</div><div class="empty-body">Switch to <b>Annotate</b>, then click or drag on the preview.</div></div>';
               pendingItems.querySelectorAll('[data-focus-pending]').forEach(button => {
                 button.addEventListener('click', () => focusPendingFeedbackItem(Number(button.dataset.focusPending)));
               });
               pendingItems.querySelectorAll('[data-delete-pending]').forEach(button => {
-                button.addEventListener('click', () => deletePendingFeedbackItem(Number(button.dataset.deletePending)));
+                button.addEventListener('click', event => {
+                  event.stopPropagation();
+                  deletePendingFeedbackItem(Number(button.dataset.deletePending));
+                });
               });
             }
 
@@ -1414,7 +1656,7 @@ internal object FeedbackConsoleAssets {
                     '</div>'
                   ).join('') +
                 '</article>';
-              }).join('') || '<div class="empty-state"><div class="empty-title">No draft feedback items.</div><div class="empty-body">Use Add to freeze a preview, add pending items, then Save.</div></div>';
+              }).join('') || '<div class="empty-state"><div class="empty-title">No saved annotations yet.</div><div class="empty-body">Use <b>Annotate</b> to freeze the preview, add comments, then Save snapshot.</div></div>';
               hydrateSavedEvidencePreviews();
             }
 
@@ -1500,14 +1742,18 @@ internal object FeedbackConsoleAssets {
             }
 
             function renderComposerInspector() {
-              inspectorTitle.textContent = 'Composer';
+              const item = selectedAnnotation();
+              inspectorTitle.textContent = item ? 'Annotation' : 'Annotations';
               inspectorCount.textContent = String(pendingFeedbackItems.length);
-              selectionSummary.hidden = false;
-              comment.hidden = false;
+              selectionSummary.hidden = Boolean(item);
+              comment.hidden = !item;
+              if (item) {
+                comment.value = item.comment || '';
+              }
               pendingItems.hidden = false;
               draftItems.hidden = true;
-              clearSelectionButton.hidden = false;
-              cancelAddFlowButton.hidden = false;
+              clearSelectionButton.hidden = !item;
+              cancelAddFlowButton.hidden = toolMode !== 'annotate';
               addItemButton.hidden = false;
               clearDraftButton.hidden = true;
               renderPendingItems();
@@ -1541,10 +1787,10 @@ internal object FeedbackConsoleAssets {
               let frame = document.getElementById('snapshotFrame');
               if (frame) return frame;
               snapshot.innerHTML =
-                '<div id="snapshotFrame" class="snapshot-frame">' +
-                  '<img id="snapshotImage" alt="PointPatch preview" aria-label="PointPatch preview">' +
-                  '<div id="selectionOverlay" class="selection-overlay" aria-hidden="true"></div>' +
-                '</div>';
+	                '<div id="snapshotFrame" class="snapshot-frame">' +
+	                  '<img id="snapshotImage" alt="PointPatch preview" aria-label="PointPatch preview">' +
+	                  '<div id="selectionOverlay" class="selection-overlay"></div>' +
+	                '</div>';
               attachSnapshotHandlers();
               return document.getElementById('snapshotFrame');
             }
@@ -1567,6 +1813,18 @@ internal object FeedbackConsoleAssets {
               const src = addItemsFlow?.screenshotUrl || previewScreenshotUrl(state.preview.previewId);
               if (image.getAttribute('src') !== src) {
                 image.setAttribute('src', src);
+              }
+              let hint = document.getElementById('annotateHint');
+              if (toolMode === 'annotate') {
+                if (!hint) {
+                  hint = document.createElement('div');
+                  hint.id = 'annotateHint';
+                  hint.className = 'annotate-hint';
+                  frame.appendChild(hint);
+                }
+                hint.textContent = 'Annotate mode';
+              } else if (hint) {
+                hint.remove();
               }
               renderSelectionOverlay();
             }
@@ -1696,12 +1954,16 @@ internal object FeedbackConsoleAssets {
                     suppressNextClick = false;
                     return;
                   }
+                  if (toolMode === 'select' && addItemsFlow) {
+                    clearSelection();
+                    return;
+                  }
                   if (!addItemsFlow) {
                     const point = naturalPointFromEvent(event, image);
                     navigate('tap', { x: point.x, y: point.y }).catch(showError);
                     return;
                   }
-                  if (!dragStart) {
+                  if (toolMode === 'annotate' && !dragStart) {
                     selectNodeAtPoint(event, image);
                   }
                 } catch (cause) {
@@ -1709,7 +1971,7 @@ internal object FeedbackConsoleAssets {
                 }
               });
               image.addEventListener('pointerdown', event => {
-                if (!addItemsFlow) return;
+                if (!addItemsFlow || toolMode !== 'annotate') return;
                 try {
                   image.setPointerCapture?.(event.pointerId);
                   dragStart = naturalPointFromEvent(event, image);
@@ -1720,7 +1982,7 @@ internal object FeedbackConsoleAssets {
                 }
               });
               image.addEventListener('pointermove', event => {
-                if (!addItemsFlow || !dragStart) return;
+                if (!addItemsFlow || toolMode !== 'annotate' || !dragStart) return;
                 try {
                   dragPreview = normalizeBounds(dragStart, naturalPointFromEvent(event, image));
                   renderSelectionOverlay();
@@ -1730,7 +1992,7 @@ internal object FeedbackConsoleAssets {
                 }
               });
               image.addEventListener('pointerup', event => {
-                if (!addItemsFlow || !dragStart) return;
+                if (!addItemsFlow || toolMode !== 'annotate' || !dragStart) return;
                 try {
                   const end = naturalPointFromEvent(event, image);
                   const bounds = normalizeBounds(dragStart, end);
@@ -1739,10 +2001,11 @@ internal object FeedbackConsoleAssets {
                   if ((bounds.right - bounds.left) >= 8 && (bounds.bottom - bounds.top) >= 8) {
                     suppressNextClick = true;
                     finishAreaSelection(bounds);
-                  } else {
-                    renderSelectionOverlay();
-                    selectNodeAtPoint(event, image);
-                  }
+	                  } else {
+	                    suppressNextClick = true;
+	                    renderSelectionOverlay();
+	                    selectNodeAtPoint(event, image);
+	                  }
                 } catch (cause) {
                   clearDragState();
                   showError(cause);
@@ -1780,7 +2043,7 @@ internal object FeedbackConsoleAssets {
               }
               if (event.key.toLowerCase() === 'a' && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
                 event.preventDefault();
-                startAddItemsFlow().catch(showError);
+                enterAnnotateMode().catch(showError);
                 return;
               }
               if (event.key.toLowerCase() === 's' && (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey) {
@@ -1795,11 +2058,12 @@ internal object FeedbackConsoleAssets {
             }
 
             document.getElementById('refreshButton').addEventListener('click', () => refreshPreview().catch(showError));
-            document.getElementById('addFlowButton').addEventListener('click', () => startAddItemsFlow().catch(showError));
+            selectToolButton.addEventListener('click', enterSelectMode);
+            annotateToolButton.addEventListener('click', () => enterAnnotateMode().catch(showError));
             saveButton.addEventListener('click', () => savePendingFeedbackItems().catch(showError));
             addItemButton.addEventListener('click', () => {
               try {
-                queuePendingFeedbackItem();
+                createAnnotationFromSelection(currentSelection);
               } catch (cause) {
                 showError(cause);
               }
@@ -1828,7 +2092,7 @@ internal object FeedbackConsoleAssets {
             document.getElementById('swipeDownButton').addEventListener('click', () => navigate('swipe', { direction: 'down' }).catch(showError));
             document.getElementById('swipeLeftButton').addEventListener('click', () => navigate('swipe', { direction: 'left' }).catch(showError));
             document.getElementById('swipeRightButton').addEventListener('click', () => navigate('swipe', { direction: 'right' }).catch(showError));
-            comment.addEventListener('input', updateComposerState);
+            comment.addEventListener('input', updateSelectedAnnotationComment);
 
             function showError(cause) {
               error.textContent = cause && cause.message ? cause.message : String(cause);
