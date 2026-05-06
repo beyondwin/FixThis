@@ -4,11 +4,21 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.IntSize
 import io.github.pointpatch.compose.console.studio.model.RectPercent
+import io.github.pointpatch.compose.console.studio.model.StudioTool
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CanvasHelpersTest {
+    @Test
+    fun previewGestureEnabledOnlyInAnnotateModeWithAvailableAnnotation() {
+        assertTrue(isPreviewGestureEnabled(StudioTool.ANNOTATE, CanvasInteractionMode.WidgetSnapAndRegion))
+        assertFalse(isPreviewGestureEnabled(StudioTool.SELECT, CanvasInteractionMode.WidgetSnapAndRegion))
+        assertFalse(isPreviewGestureEnabled(StudioTool.ANNOTATE, CanvasInteractionMode.AnnotationUnavailable))
+    }
+
     @Test
     fun offsetToPercentClampsCoordinatesToPreviewBounds() {
         assertPercent(

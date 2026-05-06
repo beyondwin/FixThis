@@ -1815,7 +1815,7 @@ git commit -m "refactor: add overlay state machine"
 - Modify: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas/PreviewSurface.kt`
 - Test: `pointpatch-compose-overlay/src/test/kotlin/io/github/pointpatch/compose/console/studio/canvas/CanvasHelpersTest.kt`
 
-- [ ] **Step 1: Add helper tests for gesture enablement**
+- [x] **Step 1: Add helper tests for gesture enablement**
 
 Add a pure helper test:
 
@@ -1828,7 +1828,7 @@ fun previewGestureEnabledOnlyInAnnotateModeWithAvailableAnnotation() {
 }
 ```
 
-- [ ] **Step 2: Add helper implementation**
+- [x] **Step 2: Add helper implementation**
 
 ```kotlin
 internal fun isPreviewGestureEnabled(
@@ -1840,11 +1840,11 @@ internal fun isPreviewGestureEnabled(
 
 Use this helper inside `Modifier.annotateDragGestures`.
 
-- [ ] **Step 3: Move screenshot rendering into its own file**
+- [x] **Step 3: Move screenshot rendering into its own file**
 
 Move `PreviewScreenshotContent`, `PreviewMessage`, `DevicePreviewContent`, and bitmap decoding helpers from `PreviewSurface.kt` into `PreviewScreenshotContent.kt`. Keep function names and visibility unchanged first, so call sites do not change.
 
-- [ ] **Step 4: Move overlay loop into `AnnotationOverlay`**
+- [x] **Step 4: Move overlay loop into `AnnotationOverlay`**
 
 ```kotlin
 @Composable
@@ -1866,11 +1866,11 @@ internal fun AnnotationOverlay(
 }
 ```
 
-- [ ] **Step 5: Keep `PreviewSurface` as orchestration**
+- [x] **Step 5: Keep `PreviewSurface` as orchestration**
 
 After extraction, `PreviewSurface.kt` should contain the public `PreviewSurface`, `LocalPreviewSizePx`, `annotateDragGestures`, and direct orchestration only. The line count target for this task is under 260 lines.
 
-- [ ] **Step 6: Run overlay tests**
+- [x] **Step 6: Run overlay tests**
 
 Run:
 
@@ -1880,7 +1880,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas pointpatch-compose-overlay/src/test/kotlin/io/github/pointpatch/compose/console/studio/canvas
