@@ -86,7 +86,7 @@ docs/pointpatch_decisions.md        -> docs/fixthis_decisions.md
 - Read: `README.md`
 - No source edits in this task.
 
-- [ ] **Step 1: Confirm the implementation starts clean**
+- [x] **Step 1: Confirm the implementation starts clean**
 
 Run:
 
@@ -96,7 +96,7 @@ git status --short
 
 Expected: no output. If there is output, stop and inspect it before continuing.
 
-- [ ] **Step 2: Create the implementation branch when the current branch is `main`**
+- [x] **Step 2: Create the implementation branch when the current branch is `main`**
 
 Run:
 
@@ -111,7 +111,7 @@ fi
 
 Expected if starting from `main`: `Switched to a new branch 'codex/fixthis-full-rename'`.
 
-- [ ] **Step 3: Record current PointPatch hit count**
+- [x] **Step 3: Record current PointPatch hit count**
 
 Run:
 
@@ -121,7 +121,7 @@ rg -n -i "pointpatch" -g '!**/build/**' -g '!**/.gradle/**' | wc -l
 
 Expected: a non-zero count. This is the baseline that later tasks reduce to migration notes and historical docs only.
 
-- [ ] **Step 4: Run baseline tests that will protect the rename**
+- [x] **Step 4: Run baseline tests that will protect the rename**
 
 Run:
 
@@ -131,7 +131,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 5: Commit the baseline checkpoint only if a branch was created**
+- [x] **Step 5: Commit the baseline checkpoint only if a branch was created**
 
 Run:
 
@@ -154,7 +154,7 @@ Expected: no output. Do not create an empty commit.
 - Modify: `fixthis-gradle-plugin/settings.gradle.kts`
 - Modify: `fixthis-gradle-plugin/build.gradle.kts`
 
-- [ ] **Step 1: Rename module directories**
+- [x] **Step 1: Rename module directories**
 
 Run:
 
@@ -169,7 +169,7 @@ git mv pointpatch-mcp fixthis-mcp
 
 Expected: no command output and `git status --short` shows six rename entries.
 
-- [ ] **Step 2: Update `settings.gradle.kts`**
+- [x] **Step 2: Update `settings.gradle.kts`**
 
 Replace the full file with:
 
@@ -205,7 +205,7 @@ include(":fixthis-cli")
 include(":fixthis-mcp")
 ```
 
-- [ ] **Step 3: Update project dependency paths**
+- [x] **Step 3: Update project dependency paths**
 
 Run:
 
@@ -224,7 +224,7 @@ rg --files -0 -g '*.gradle.kts' -g 'settings.gradle.kts' |
 
 Expected: no command output.
 
-- [ ] **Step 4: Remove the old secondary CLI launcher block**
+- [x] **Step 4: Remove the old secondary CLI launcher block**
 
 Edit `fixthis-cli/build.gradle.kts` so the full file is:
 
@@ -253,7 +253,7 @@ dependencies {
 }
 ```
 
-- [ ] **Step 5: Update MCP distribution build file**
+- [x] **Step 5: Update MCP distribution build file**
 
 Edit `fixthis-mcp/build.gradle.kts` so the `application` and dependencies blocks read:
 
@@ -273,7 +273,7 @@ dependencies {
 }
 ```
 
-- [ ] **Step 6: Update plugin build identity**
+- [x] **Step 6: Update plugin build identity**
 
 Edit `fixthis-gradle-plugin/settings.gradle.kts` so it contains:
 
@@ -310,7 +310,7 @@ gradlePlugin {
 }
 ```
 
-- [ ] **Step 7: Update sample plugin id**
+- [x] **Step 7: Update sample plugin id**
 
 Edit the plugin block in `sample/build.gradle.kts`:
 
@@ -322,7 +322,7 @@ plugins {
 }
 ```
 
-- [ ] **Step 8: Verify Gradle sees the new projects**
+- [x] **Step 8: Verify Gradle sees the new projects**
 
 Run:
 
@@ -332,7 +332,7 @@ Run:
 
 Expected: output lists `:fixthis-cli`, `:fixthis-compose-core`, `:fixthis-compose-overlay`, `:fixthis-compose-sidekick`, `:fixthis-mcp`, and no `:pointpatch-*` project names.
 
-- [ ] **Step 9: Commit Gradle graph rename**
+- [x] **Step 9: Commit Gradle graph rename**
 
 Run:
 
@@ -350,7 +350,7 @@ Expected: commit succeeds.
 - Rename brand-bearing files listed in the File Structure Map.
 - Modify all Kotlin package declarations and imports in `fixthis-*`.
 
-- [ ] **Step 1: Move Kotlin package roots**
+- [x] **Step 1: Move Kotlin package roots**
 
 Run:
 
@@ -370,7 +370,7 @@ done
 
 Expected: package roots move under `io/beyondwin/fixthis`.
 
-- [ ] **Step 2: Apply mechanical package and identifier replacements in active code**
+- [x] **Step 2: Apply mechanical package and identifier replacements in active code**
 
 Run:
 
@@ -386,7 +386,7 @@ rg --files -0 fixthis-* sample -g '*.kt' -g '*.kts' -g '*.xml' -g '*.json' -g '*
 
 Expected: no command output.
 
-- [ ] **Step 3: Rename brand-bearing Kotlin files**
+- [x] **Step 3: Rename brand-bearing Kotlin files**
 
 Run:
 
@@ -418,7 +418,7 @@ git mv fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FakePointPat
 
 Expected: no command output.
 
-- [ ] **Step 4: Fix any remaining filename misses**
+- [x] **Step 4: Fix any remaining filename misses**
 
 Run:
 
@@ -428,7 +428,7 @@ find fixthis-* sample \( -name '*PointPatch*' -o -name '*pointpatch*' \) -print
 
 Expected: no output. If output appears, rename each active source/test file with `git mv` and rerun this command.
 
-- [ ] **Step 5: Run compile-focused tests**
+- [x] **Step 5: Run compile-focused tests**
 
 Run:
 
@@ -438,7 +438,7 @@ Run:
 
 Expected: compilation may fail only for stale generated class names. Fix stale names by replacing old imports/usages with the names created by Step 3, then rerun until `BUILD SUCCESSFUL`.
 
-- [ ] **Step 6: Commit package and identifier rename**
+- [x] **Step 6: Commit package and identifier rename**
 
 Run:
 
@@ -461,7 +461,7 @@ Expected: commit succeeds.
 - Test: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/screenshot/ScreenshotStoreTest.kt`
 - Test: `fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt`
 
-- [ ] **Step 1: Verify the mechanical replacements changed runtime names**
+- [x] **Step 1: Verify the mechanical replacements changed runtime names**
 
 Run:
 
@@ -484,7 +484,7 @@ fixThis
 fixthis
 ```
 
-- [ ] **Step 2: Ensure `SessionTokenStore` final contract is FixThis**
+- [x] **Step 2: Ensure `SessionTokenStore` final contract is FixThis**
 
 Confirm `SessionTokenStore.kt` contains these exact contract snippets:
 
@@ -502,7 +502,7 @@ const val FixThisSidekickVersion: String = "0.1.0"
 
 Expected: the old `PointPatchSidekickVersion` symbol is gone and callers use `FixThisSidekickVersion`.
 
-- [ ] **Step 3: Ensure screenshot cache contract is FixThis**
+- [x] **Step 3: Ensure screenshot cache contract is FixThis**
 
 Confirm `ScreenshotStore.kt` contains:
 
@@ -516,7 +516,7 @@ Confirm `BridgeServer.kt` contains:
 override fun screenshotCacheDirectory(): File = File(context.cacheDir, "fixthis")
 ```
 
-- [ ] **Step 4: Ensure generated asset contract is FixThis**
+- [x] **Step 4: Ensure generated asset contract is FixThis**
 
 Confirm `FixThisGradlePlugin.kt` registers:
 
@@ -543,7 +543,7 @@ val sourceIndexAsset: String = "fixthis/fixthis-source-index.json",
 val buildInfoAsset: String = "fixthis/fixthis-build-info.json",
 ```
 
-- [ ] **Step 5: Run runtime and Gradle plugin tests**
+- [x] **Step 5: Run runtime and Gradle plugin tests**
 
 Run:
 
@@ -554,7 +554,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 6: Commit runtime contract rename**
+- [x] **Step 6: Commit runtime contract rename**
 
 Run:
 
@@ -582,7 +582,7 @@ Expected: commit succeeds.
 - Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpServerTest.kt`
 - Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/*`
 
-- [ ] **Step 1: Confirm CLI main name is FixThis**
+- [x] **Step 1: Confirm CLI main name is FixThis**
 
 Confirm `Main.kt` contains:
 
@@ -590,7 +590,7 @@ Confirm `Main.kt` contains:
 val command = CoreNoOpCliktCommand(name = "fixthis")
 ```
 
-- [ ] **Step 2: Confirm setup config emits the new command**
+- [x] **Step 2: Confirm setup config emits the new command**
 
 Confirm `SetupCommand.kt` contains:
 
@@ -610,7 +610,7 @@ buildJsonArray {
 }
 ```
 
-- [ ] **Step 3: Confirm MCP executable lookup uses `fixthis-mcp`**
+- [x] **Step 3: Confirm MCP executable lookup uses `fixthis-mcp`**
 
 Confirm `McpExecutableLocator.executableName()` returns:
 
@@ -624,7 +624,7 @@ if (System.getProperty("os.name").contains("Windows", ignoreCase = true)) {
 
 Confirm sibling and project install candidates resolve `fixthis-mcp`.
 
-- [ ] **Step 4: Confirm bridge and local artifact contracts use FixThis**
+- [x] **Step 4: Confirm bridge and local artifact contracts use FixThis**
 
 Confirm `BridgeClient.kt` contains:
 
@@ -640,7 +640,7 @@ val artifactDirectory = projectRoot.resolve(".fixthis/artifacts/$artifactId")
 
 Confirm user-facing errors say `FixThis bridge`.
 
-- [ ] **Step 5: Confirm MCP server name and tools use FixThis**
+- [x] **Step 5: Confirm MCP server name and tools use FixThis**
 
 Confirm `McpProtocolTest` expected server name is:
 
@@ -675,7 +675,7 @@ fixthis://screenshot/latest/crop.png
 fixthis://source-index
 ```
 
-- [ ] **Step 6: Run CLI and MCP tests**
+- [x] **Step 6: Run CLI and MCP tests**
 
 Run:
 
@@ -685,7 +685,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 7: Build distributions and verify commands**
+- [x] **Step 7: Build distributions and verify commands**
 
 Run:
 
@@ -703,7 +703,7 @@ Usage: fixthis
 
 and setup JSON with `"command": "fixthis"` and package `io.beyondwin.fixthis.sample`.
 
-- [ ] **Step 8: Commit CLI and MCP rename**
+- [x] **Step 8: Commit CLI and MCP rename**
 
 Run:
 
@@ -729,7 +729,7 @@ Expected: commit succeeds.
 - Modify: `docs/output-schema.md`
 - Modify: `docs/adr/*.md`
 
-- [ ] **Step 1: Rename current product docs**
+- [x] **Step 1: Rename current product docs**
 
 Run:
 
@@ -741,7 +741,7 @@ git mv docs/pointpatch_decisions.md docs/fixthis_decisions.md
 
 Expected: no command output.
 
-- [ ] **Step 2: Apply mechanical documentation rename to current docs only**
+- [x] **Step 2: Apply mechanical documentation rename to current docs only**
 
 Run:
 
@@ -759,7 +759,7 @@ rg --files -0 README.md docs .gitignore \
 
 Expected: no command output.
 
-- [ ] **Step 3: Ensure `.gitignore` ignores FixThis local artifacts**
+- [x] **Step 3: Ensure `.gitignore` ignores FixThis local artifacts**
 
 Confirm `.gitignore` contains:
 
@@ -777,7 +777,7 @@ Confirm `.gitignore` contains:
 
 Expected: no `.pointpatch` ignore entries remain in `.gitignore`.
 
-- [ ] **Step 4: Add migration note to README**
+- [x] **Step 4: Add migration note to README**
 
 Add this short note near the top of `README.md`, after the opening paragraph:
 
@@ -788,7 +788,7 @@ Add this short note near the top of `README.md`, after the opening paragraph:
 > not preserved in this breaking rename.
 ```
 
-- [ ] **Step 5: Ensure README commands use FixThis names**
+- [x] **Step 5: Ensure README commands use FixThis names**
 
 Confirm README examples include:
 
@@ -806,7 +806,7 @@ fixthis setup --package <applicationId>
 fixthis console --package <applicationId>
 ```
 
-- [ ] **Step 6: Ensure README links target renamed docs**
+- [x] **Step 6: Ensure README links target renamed docs**
 
 Confirm README links include:
 
@@ -816,7 +816,7 @@ Confirm README links include:
 - [Decisions](docs/fixthis_decisions.md)
 ```
 
-- [ ] **Step 7: Commit docs rename**
+- [x] **Step 7: Commit docs rename**
 
 Run:
 
@@ -833,7 +833,7 @@ Expected: commit succeeds.
 - Modify only files with unclassified old-name hits from the audit.
 - Historical docs under `docs/superpowers/specs/` and `docs/superpowers/plans/` may retain PointPatch wording if they describe past work.
 
-- [ ] **Step 1: Run full JVM/unit verification**
+- [x] **Step 1: Run full JVM/unit verification**
 
 Run:
 
@@ -843,7 +843,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 2: Build the sample app**
+- [x] **Step 2: Build the sample app**
 
 Run:
 
@@ -853,7 +853,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 3: Build distributions**
+- [x] **Step 3: Build distributions**
 
 Run:
 
@@ -863,7 +863,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 4: Verify CLI executable**
+- [x] **Step 4: Verify CLI executable**
 
 Run:
 
@@ -874,7 +874,7 @@ fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.beyondwin.fixth
 
 Expected: help says `Usage: fixthis`; setup JSON says `"command": "fixthis"`.
 
-- [ ] **Step 5: Run connected Android tests if a device is available**
+- [x] **Step 5: Run connected Android tests if a device is available**
 
 Run:
 
@@ -890,7 +890,13 @@ If at least one line has state `device`, run:
 
 Expected when a device is available: `BUILD SUCCESSFUL`. If no device is available, record `connectedDebugAndroidTest not run: no connected Android device/emulator`.
 
-- [ ] **Step 6: Audit remaining PointPatch names**
+Result recorded for this pass: `adb` was not on `PATH`; the SDK `adb` found a
+connected Samsung device, but `./gradlew :app:connectedDebugAndroidTest` did not
+pass because the device was locked/keyguarded and the sample app moved from
+`RESUMED` to `PAUSED`/`STOPPED` with `lockNow pending`. Treat this as an
+environment residual risk, not evidence of a FixThis rename regression.
+
+- [x] **Step 6: Audit remaining PointPatch names**
 
 Run:
 
@@ -909,7 +915,7 @@ docs/superpowers/plans/2026-05-07-fixthis-full-rename-implementation.md
 
 If any active source, build file, README, current doc, test, fixture, `.gitignore`, or resource file appears, update it to FixThis and rerun the relevant test from the earlier task.
 
-- [ ] **Step 7: Commit final audit fixes**
+- [x] **Step 7: Commit final audit fixes**
 
 Run:
 
