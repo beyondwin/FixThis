@@ -1,7 +1,8 @@
-package io.github.pointpatch.sample
+package io.beyondwin.fixthis.sample
 
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import io.beyondwin.fixthis.sample.MainActivity
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import io.github.pointpatch.compose.sidekick.inspect.SemanticsInspector
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -12,7 +13,8 @@ class SemanticsInspectorSampleAppTest {
     val rule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun inspectorFindsPayNowOnSampleCheckoutScreen() {
+    fun inspectorFindsSubmitRequestOnReviewScreen() {
+        rule.onNodeWithText("Review").performClick()
         rule.waitForIdle()
 
         val result = SemanticsInspector().inspect(rule.activity.window.decorView)
@@ -20,6 +22,6 @@ class SemanticsInspectorSampleAppTest {
 
         assertTrue(result.errors.joinToString { it.message }, result.errors.isEmpty())
         assertTrue(result.roots.isNotEmpty())
-        assertTrue(nodes.any { node -> node.text.any { it.contains("Pay now") } })
+        assertTrue(nodes.any { node -> node.text.any { it.contains("Submit request") } })
     }
 }
