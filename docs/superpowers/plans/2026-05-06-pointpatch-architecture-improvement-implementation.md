@@ -537,7 +537,7 @@ git commit -m "feat: add studio theme tokens"
 - Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain/snapshot/Snapshot.kt`
 - Create: `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/domain/annotation/AnnotationStatusTest.kt`
 
-- [ ] **Step 1: Write a domain status test**
+- [x] **Step 1: Write a domain status test**
 
 ```kotlin
 package io.github.pointpatch.compose.core.domain.annotation
@@ -557,7 +557,7 @@ class AnnotationStatusTest {
 }
 ```
 
-- [ ] **Step 2: Run the test and confirm it is red**
+- [x] **Step 2: Run the test and confirm it is red**
 
 Run:
 
@@ -567,7 +567,7 @@ Run:
 
 Expected: compile failure because the domain package does not exist.
 
-- [ ] **Step 3: Add stable value IDs**
+- [x] **Step 3: Add stable value IDs**
 
 ```kotlin
 package io.github.pointpatch.compose.core.domain.common
@@ -594,7 +594,7 @@ value class SnapshotId(val value: String) {
 }
 ```
 
-- [ ] **Step 4: Add annotation domain model**
+- [x] **Step 4: Add annotation domain model**
 
 ```kotlin
 package io.github.pointpatch.compose.core.domain.annotation
@@ -661,7 +661,7 @@ data class SnapshotScreenshot(
 )
 ```
 
-- [ ] **Step 5: Add session and snapshot domain models**
+- [x] **Step 5: Add session and snapshot domain models**
 
 ```kotlin
 package io.github.pointpatch.compose.core.domain.session
@@ -725,7 +725,7 @@ data class SnapshotRoot(
 )
 ```
 
-- [ ] **Step 6: Run core tests**
+- [x] **Step 6: Run core tests**
 
 Run:
 
@@ -735,7 +735,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/domain
