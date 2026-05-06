@@ -3,6 +3,7 @@ package io.github.pointpatch.sample
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import io.beyondwin.fixthis.sample.MainActivity
 import org.junit.Rule
 import org.junit.Test
 

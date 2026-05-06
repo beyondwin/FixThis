@@ -1,6 +1,7 @@
 package io.github.pointpatch.sample
 
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import io.beyondwin.fixthis.sample.MainActivity
 import io.github.pointpatch.compose.sidekick.inspect.SemanticsInspector
 import org.junit.Assert.assertTrue
 import org.junit.Rule
