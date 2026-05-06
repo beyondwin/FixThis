@@ -70,7 +70,7 @@ sample/src/androidTest/java/io/github/pointpatch/sample/
 - Delete in Step 6: `sample/src/main/java/io/github/pointpatch/sample/MainActivity.kt`
 - Delete in Step 6: `sample/src/main/java/io/github/pointpatch/sample/SampleApp.kt`
 
-- [ ] **Step 1: Update Gradle package identity**
+- [x] **Step 1: Update Gradle package identity**
 
 Change `sample/build.gradle.kts`:
 
@@ -94,7 +94,7 @@ android {
 }
 ```
 
-- [ ] **Step 2: Update launcher label**
+- [x] **Step 2: Update launcher label**
 
 Change `sample/src/main/AndroidManifest.xml`:
 
@@ -117,7 +117,7 @@ Change `sample/src/main/AndroidManifest.xml`:
 </manifest>
 ```
 
-- [ ] **Step 3: Create the new MainActivity**
+- [x] **Step 3: Create the new MainActivity**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/MainActivity.kt`:
 
@@ -138,7 +138,7 @@ class MainActivity : ComponentActivity() {
 }
 ```
 
-- [ ] **Step 4: Create the sample theme**
+- [x] **Step 4: Create the sample theme**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisTheme.kt`:
 
@@ -195,7 +195,7 @@ fun FixThisTheme(content: @Composable () -> Unit) {
 }
 ```
 
-- [ ] **Step 5: Create a temporary five-tab app shell**
+- [x] **Step 5: Create a temporary five-tab app shell**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisStudioApp.kt`:
 
@@ -267,7 +267,7 @@ private fun TemporaryTabContent(tab: FixThisTab, padding: PaddingValues) {
 }
 ```
 
-- [ ] **Step 6: Delete old main app files after the new shell exists**
+- [x] **Step 6: Delete old main app files after the new shell exists**
 
 Run:
 
@@ -278,7 +278,7 @@ rm sample/src/main/java/io/github/pointpatch/sample/SampleApp.kt
 
 Expected: old files are removed; old screen files remain until replacement screens are added.
 
-- [ ] **Step 7: Build the minimal renamed app**
+- [x] **Step 7: Build the minimal renamed app**
 
 Run:
 
@@ -288,7 +288,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 8: Commit package identity shell**
+- [x] **Step 8: Commit package identity shell**
 
 Run:
 
