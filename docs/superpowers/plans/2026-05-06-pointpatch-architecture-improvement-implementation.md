@@ -2046,7 +2046,7 @@ git commit -m "docs: add architecture guardrails"
 **Files:**
 - No new files
 
-- [ ] **Step 1: Run all tests**
+- [x] **Step 1: Run all tests**
 
 Run:
 
@@ -2056,7 +2056,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 2: Run Android library unit tests**
+- [x] **Step 2: Run Android library unit tests**
 
 Run:
 
@@ -2066,7 +2066,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 3: Check architecture import boundaries**
+- [x] **Step 3: Check architecture import boundaries**
 
 Run:
 
@@ -2080,7 +2080,15 @@ Expected:
 - First command prints no matches.
 - Second command prints no legacy terminology after Task 7, except historical documentation or intentionally retained test names during the same PR.
 
-- [ ] **Step 4: Commit final cleanup**
+Actual:
+
+- `./gradlew test`: PASS, exit code 0.
+- `./gradlew :pointpatch-gradle-plugin:test`: PASS, exit code 0.
+- `./gradlew :pointpatch-compose-overlay:testDebugUnitTest :pointpatch-compose-sidekick:testDebugUnitTest`: PASS, exit code 0.
+- `rg -n "io\\.github\\.pointpatch\\.mcp" pointpatch-compose-core/src/main/kotlin`: no matches, exit code 1 as expected.
+- `rg -n "FeedbackItem|CapturedScreen|FeedbackSession" pointpatch-compose-core/src/main/kotlin pointpatch-compose-overlay/src/main/kotlin pointpatch-mcp/src/main/kotlin`: matches only retained MCP service/API, persistence, console/tool compatibility names, and human-facing feedback item/session strings; no `compose-core` or `compose-overlay` matches, and no unrenamed MCP wire DTO class blockers.
+
+- [x] **Step 4: Commit final cleanup**
 
 ```bash
 git status --short
