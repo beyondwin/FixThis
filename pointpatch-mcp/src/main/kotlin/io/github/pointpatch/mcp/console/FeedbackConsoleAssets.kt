@@ -1223,7 +1223,7 @@ internal object FeedbackConsoleAssets {
             const DefaultLivePreviewIntervalMs = 1000;
             const MinLivePreviewIntervalMs = 1000;
             const PreviewIntervalStorageKey = 'pointpatch.previewIntervalMs.v2';
-            const state = { session: null, preview: null, selectedDeviceSerial: null, devices: [] };
+            const state = { session: null, preview: null, sessionSummaries: [], selectedDeviceSerial: null, devices: [] };
             const sessions = document.getElementById('sessions');
             const sentHistory = document.getElementById('sentHistory');
             const snapshot = document.getElementById('snapshot');
@@ -1435,12 +1435,40 @@ internal object FeedbackConsoleAssets {
               return state.session?.items || [];
             }
 
-            function toolbarResolvedCount() {
-              return toolbarAnnotations().filter(item => annotationStatus(item) === 'resolved').length;
+            function selectedHistorySummary() {
+              const sessionId = state.session?.sessionId;
+              if (!sessionId) return null;
+              return (state.sessionSummaries || []).find(session => session.sessionId === sessionId) || null;
+            }
+
+            function toolbarAnnotationCounts() {
+              if (addItemsFlow) {
+                const pending = pendingFeedbackItems;
+                return {
+                  open: pending.filter(item => annotationStatus(item) !== 'resolved').length,
+                  resolved: pending.filter(item => annotationStatus(item) === 'resolved').length
+                };
+              }
+              const summary = selectedHistorySummary();
+              if (summary) {
+                return {
+                  open: historyOpenCount(summary),
+                  resolved: historyDoneCount(summary)
+                };
+              }
+              const annotations = toolbarAnnotations();
+              return {
+                open: annotations.filter(item => annotationStatus(item) !== 'resolved').length,
+                resolved: annotations.filter(item => annotationStatus(item) === 'resolved').length
+              };
             }
 
             function toolbarOpenCount() {
-              return toolbarAnnotations().filter(item => annotationStatus(item) !== 'resolved').length;
+              return toolbarAnnotationCounts().open;
+            }
+
+            function toolbarResolvedCount() {
+              return toolbarAnnotationCounts().resolved;
             }
 
             function selectedAnnotation() {
@@ -2323,6 +2351,7 @@ internal object FeedbackConsoleAssets {
             }
 
             function renderSessionsListFromPayload(sessionSummaries) {
+              state.sessionSummaries = sessionSummaries;
               const activeId = state.session?.sessionId;
               sessionCount.textContent = String(sessionSummaries.length);
               sessions.innerHTML = sessionSummaries.map((session, index) => {
