@@ -352,6 +352,7 @@ internal object FeedbackConsoleAssets {
               padding: 12px;
               background: transparent;
               text-align: left;
+              cursor: pointer;
               transition: background 120ms ease, border-color 120ms ease;
             }
             .history-item:hover,
@@ -384,6 +385,7 @@ internal object FeedbackConsoleAssets {
               padding: 0;
               background: transparent;
               color: var(--txt-2);
+              cursor: pointer;
               font-size: 16px;
               line-height: 1;
               opacity: 0;
@@ -571,11 +573,15 @@ internal object FeedbackConsoleAssets {
               border-radius: 4px;
               font-size: 14px;
             }
+            .zoom-button:disabled {
+              opacity: .45;
+              cursor: default;
+            }
             .snapshot-stage {
               display: grid;
               place-items: center;
               min-height: 0;
-              overflow: hidden;
+              overflow: auto;
               padding: 24px;
               background:
                 radial-gradient(circle at 50% 50%, var(--bg-1) 0%, var(--bg-0) 70%),
@@ -597,6 +603,9 @@ internal object FeedbackConsoleAssets {
                 0 30px 60px -20px rgba(0, 0, 0, .6),
                 0 12px 24px -8px rgba(0, 0, 0, .4),
                 inset 0 1px 0 rgba(255, 255, 255, .06);
+              transform: scale(var(--preview-zoom, 1));
+              transform-origin: center center;
+              transition: transform 120ms ease;
             }
             .snapshot-frame[data-mode="frozen"] {
               box-shadow:
@@ -1175,9 +1184,9 @@ internal object FeedbackConsoleAssets {
                   </div>
                   <div id="toolStatus" class="tool-status">Select mode</div>
                   <div class="zoom-control" aria-label="Zoom controls">
-                    <button class="zoom-button" type="button" aria-label="Zoom out">−</button>
-                    <span>100%</span>
-                    <button class="zoom-button" type="button" aria-label="Zoom in">+</button>
+                    <button id="zoomOutButton" class="zoom-button" type="button" aria-label="Zoom out">−</button>
+                    <span id="zoomPercent">100%</span>
+                    <button id="zoomInButton" class="zoom-button" type="button" aria-label="Zoom in">+</button>
                   </div>
                 </div>
                 <div id="snapshot" class="snapshot-stage">
@@ -1238,6 +1247,9 @@ internal object FeedbackConsoleAssets {
             const selectToolButton = document.getElementById('selectToolButton');
             const annotateToolButton = document.getElementById('annotateToolButton');
             const toolStatus = document.getElementById('toolStatus');
+            const zoomOutButton = document.getElementById('zoomOutButton');
+            const zoomInButton = document.getElementById('zoomInButton');
+            const zoomPercent = document.getElementById('zoomPercent');
             let livePreviewTimer = null;
             let previewRequestGeneration = 0;
             let previewRequestContextGeneration = 0;
@@ -1252,6 +1264,11 @@ internal object FeedbackConsoleAssets {
             let dragStart = null;
             let dragPreview = null;
             let suppressNextClick = false;
+            let previewZoom = 1;
+
+            const PreviewZoomMin = 0.5;
+            const PreviewZoomMax = 2;
+            const PreviewZoomStep = 0.1;
 
             const DeviceUiState = {
               NONE: 'none',
@@ -1667,6 +1684,21 @@ internal object FeedbackConsoleAssets {
 
             function clamp(value, min, max) {
               return Math.min(Math.max(value, min), max);
+            }
+
+            function applyPreviewZoom() {
+              const frame = document.getElementById('snapshotFrame');
+              zoomPercent.textContent = Math.round(previewZoom * 100) + '%';
+              zoomOutButton.disabled = previewZoom <= PreviewZoomMin;
+              zoomInButton.disabled = previewZoom >= PreviewZoomMax;
+              if (frame) {
+                frame.style.setProperty('--preview-zoom', String(previewZoom));
+              }
+            }
+
+            function setPreviewZoom(nextZoom) {
+              previewZoom = Math.round(clamp(nextZoom, PreviewZoomMin, PreviewZoomMax) * 10) / 10;
+              applyPreviewZoom();
             }
 
             function naturalPointFromEvent(event, image) {
@@ -2221,10 +2253,11 @@ internal object FeedbackConsoleAssets {
                 const open = historyOpenCount(session);
                 const done = historyDoneCount(session);
                 const points = historyPointsCount(session);
-                return '<button class="history-item session-row ' + (session.sessionId === activeId ? 'is-active' : '') + '" data-session-id="' + escapeHtml(session.sessionId) + '">' +
+                const label = formatSessionLabel(session, index);
+                return '<div class="history-item session-row ' + (session.sessionId === activeId ? 'is-active' : '') + '" role="button" tabindex="0" data-session-id="' + escapeHtml(session.sessionId) + '">' +
                   '<span class="hi-head">' +
-                    '<span class="hi-title">' + escapeHtml(formatSessionLabel(session, index)) + '</span>' +
-                    '<span class="hi-del" aria-hidden="true">×</span>' +
+                    '<span class="hi-title">' + escapeHtml(label) + '</span>' +
+                    '<button type="button" class="hi-del" data-delete-session-id="' + escapeHtml(session.sessionId) + '" aria-label="Delete history item ' + escapeHtml(label) + '">×</button>' +
                   '</span>' +
                   '<span class="hi-meta">' + escapeHtml(formatSessionSummary(session)) + '</span>' +
                   '<span class="hi-stats">' +
@@ -2233,10 +2266,26 @@ internal object FeedbackConsoleAssets {
                     '<span class="hi-pip points">' + escapeHtml(countLabel(points, 'pt', 'pts')) + '</span>' +
                   '</span>' +
                   '<span class="hi-strip">' + renderHistoryStrip(session) + '</span>' +
-                '</button>';
+                '</div>';
               }).join('') || '<div class="empty-state"><div class="empty-title">No saved sessions.</div></div>';
               document.querySelectorAll('.session-row').forEach(row => {
-                row.addEventListener('click', () => openSession(row.dataset.sessionId).catch(showError));
+                row.addEventListener('click', event => {
+                  if (event.target.closest('[data-delete-session-id]')) return;
+                  openSession(row.dataset.sessionId).catch(showError);
+                });
+                row.addEventListener('keydown', event => {
+                  if (event.target.closest('[data-delete-session-id]')) return;
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openSession(row.dataset.sessionId).catch(showError);
+                  }
+                });
+              });
+              document.querySelectorAll('[data-delete-session-id]').forEach(button => {
+                button.addEventListener('click', event => {
+                  event.stopPropagation();
+                  deleteHistorySession(button.dataset.deleteSessionId).catch(showError);
+                });
               });
             }
 
@@ -2332,6 +2381,7 @@ internal object FeedbackConsoleAssets {
 	                  '<div id="selectionOverlay" class="selection-overlay"></div>' +
 	                '</div>';
               attachSnapshotHandlers();
+              applyPreviewZoom();
               return document.getElementById('snapshotFrame');
             }
 
@@ -2438,6 +2488,33 @@ internal object FeedbackConsoleAssets {
               await refreshSessions();
               render();
               await refreshDevices();
+            }
+
+            async function deleteHistorySession(sessionId) {
+              error.textContent = '';
+              if (!sessionId) return;
+              const isActive = state.session?.sessionId === sessionId;
+              if (isActive) {
+                clearSelection();
+                addItemsFlow = null;
+                pendingFeedbackItems = [];
+                invalidatePreviewContext();
+              }
+              await requestJson('/api/session/close', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId: sessionId })
+              });
+              if (isActive) {
+                state.session = null;
+              }
+              await refreshSessions();
+              if (isActive) {
+                render();
+                await refreshDevices();
+              } else {
+                renderSessionsList();
+              }
             }
 
             async function clearDraft() {
@@ -2592,6 +2669,8 @@ internal object FeedbackConsoleAssets {
             document.getElementById('refreshButton').addEventListener('click', () => refreshPreview().catch(showError));
             selectToolButton.addEventListener('click', enterSelectMode);
             annotateToolButton.addEventListener('click', () => enterAnnotateMode().catch(showError));
+            zoomOutButton.addEventListener('click', () => setPreviewZoom(previewZoom - PreviewZoomStep));
+            zoomInButton.addEventListener('click', () => setPreviewZoom(previewZoom + PreviewZoomStep));
             saveButton.addEventListener('click', () => savePendingFeedbackItems().catch(showError));
             addItemButton.addEventListener('click', () => {
               try {
@@ -2626,6 +2705,7 @@ internal object FeedbackConsoleAssets {
             }
 
             initializePreviewIntervalSelect();
+            applyPreviewZoom();
             refresh()
               .then(() => {
                 if (shouldAutoFetchPreview()) return refreshPreview();
