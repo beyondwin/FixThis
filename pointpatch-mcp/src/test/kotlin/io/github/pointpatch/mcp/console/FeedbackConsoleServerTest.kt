@@ -629,6 +629,27 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun consoleHtmlCountsActivePendingAnnotationsInHistory() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val historyOpenCount = javascriptFunctionBody(html, "historyOpenCount")
+        val historyDoneCount = javascriptFunctionBody(html, "historyDoneCount")
+        val historyPointsCount = javascriptFunctionBody(html, "historyPointsCount")
+        val createAnnotationFromSelection = javascriptFunctionBody(html, "createAnnotationFromSelection")
+        val deletePendingFeedbackItem = javascriptFunctionBody(html, "deletePendingFeedbackItem")
+        val renderAnnotationDetail = javascriptFunctionBody(html, "renderAnnotationDetail")
+
+        assertTrue(html.contains("function pendingHistoryItemsForSession(session)"))
+        assertTrue(historyOpenCount.contains("pendingHistoryItemsForSession(session)"))
+        assertTrue(historyOpenCount.contains("(session.unresolvedItemsCount || 0) + pending.filter(item => annotationStatus(item) !== 'resolved').length"))
+        assertTrue(historyDoneCount.contains("pending.filter(item => annotationStatus(item) === 'resolved').length"))
+        assertTrue(historyPointsCount.contains("(session.itemsCount || 0) + pendingHistoryItemsForSession(session).length"))
+        assertTrue(html.contains("function renderCurrentSessionList()"))
+        assertTrue(createAnnotationFromSelection.contains("renderCurrentSessionList();"))
+        assertTrue(deletePendingFeedbackItem.contains("renderCurrentSessionList();"))
+        assertTrue(Regex("item\\.status = button\\.dataset\\.setStatus;[\\s\\S]*renderCurrentSessionList\\(\\);").containsMatchIn(renderAnnotationDetail))
+    }
+
+    @Test
     fun consoleHtmlLivePreviewImageUsesPreviewIdScopedScreenshotRoute() {
         val html = FeedbackConsoleAssets.indexHtml
 

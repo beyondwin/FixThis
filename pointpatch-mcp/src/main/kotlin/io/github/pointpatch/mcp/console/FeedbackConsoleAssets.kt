@@ -1369,16 +1369,24 @@ internal object FeedbackConsoleAssets {
               return 'You · ' + formatHistoryDate(session.updatedAtEpochMillis);
             }
 
+            function pendingHistoryItemsForSession(session) {
+              if (!addItemsFlow || state.session?.sessionId !== session?.sessionId) return [];
+              return pendingFeedbackItems;
+            }
+
             function historyOpenCount(session) {
-              return session.unresolvedItemsCount || 0;
+              const pending = pendingHistoryItemsForSession(session);
+              return (session.unresolvedItemsCount || 0) + pending.filter(item => annotationStatus(item) !== 'resolved').length;
             }
 
             function historyDoneCount(session) {
-              return Math.max(0, (session.itemsCount || 0) - historyOpenCount(session));
+              const pending = pendingHistoryItemsForSession(session);
+              const persistedDone = Math.max(0, (session.itemsCount || 0) - (session.unresolvedItemsCount || 0));
+              return persistedDone + pending.filter(item => annotationStatus(item) === 'resolved').length;
             }
 
             function historyPointsCount(session) {
-              return session.itemsCount || 0;
+              return (session.itemsCount || 0) + pendingHistoryItemsForSession(session).length;
             }
 
             function renderHistoryStrip(session) {
@@ -2166,6 +2174,7 @@ internal object FeedbackConsoleAssets {
               comment.value = '';
               renderPreviewOnly();
               renderInspectorRegion();
+              renderCurrentSessionList();
             }
 
             function deletePendingFeedbackItem(index) {
@@ -2176,6 +2185,7 @@ internal object FeedbackConsoleAssets {
               comment.value = '';
               renderPreviewOnly();
               renderInspectorRegion();
+              renderCurrentSessionList();
             }
 
             function focusPendingFeedbackItem(index) {
@@ -2357,6 +2367,7 @@ internal object FeedbackConsoleAssets {
                   item.status = button.dataset.setStatus;
                   renderPreviewOnly();
                   renderInspectorRegion();
+                  renderCurrentSessionList();
                 });
               });
               pendingItems.querySelectorAll('[data-back-annotations]').forEach(button => {
@@ -2490,6 +2501,10 @@ internal object FeedbackConsoleAssets {
               document.querySelectorAll('.session-row').forEach(row => {
                 row.classList.toggle('is-active', row.dataset.sessionId === activeId);
               });
+            }
+
+            function renderCurrentSessionList() {
+              renderSessionsListFromPayload(state.sessionSummaries || []);
             }
 
             function renderSentHistory() {
