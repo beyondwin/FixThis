@@ -1128,7 +1128,6 @@ internal object FeedbackConsoleAssets {
                 </div>
               </div>
               <div class="studio-context">
-                <span id="sessionMeta" class="session-meta">Loading session...</span>
                 <div id="deviceControl" class="device-control" data-connection-state="none">
                   <span class="device-state-dot" aria-hidden="true"></span>
                   <span class="device-copy">
@@ -1140,8 +1139,8 @@ internal object FeedbackConsoleAssets {
                 </div>
                 <select id="previewIntervalSelect" aria-label="Preview interval">
                   <option value="manual">Manual</option>
-                  <option value="1000">1s</option>
-                  <option value="2000" selected>2s</option>
+                  <option value="1000" selected>1s</option>
+                  <option value="2000">2s</option>
                   <option value="5000">5s</option>
                 </select>
                 <button id="refreshDevicesButton" class="icon-button" type="button" title="Refresh devices" aria-label="Refresh devices">↻</button>
@@ -1221,11 +1220,10 @@ internal object FeedbackConsoleAssets {
             </main>
           </div>
           <script>
-            const DefaultLivePreviewIntervalMs = 2000;
+            const DefaultLivePreviewIntervalMs = 1000;
             const MinLivePreviewIntervalMs = 1000;
-            const PreviewIntervalStorageKey = 'pointpatch.previewIntervalMs';
+            const PreviewIntervalStorageKey = 'pointpatch.previewIntervalMs.v2';
             const state = { session: null, preview: null, selectedDeviceSerial: null, devices: [] };
-            const sessionMeta = document.getElementById('sessionMeta');
             const sessions = document.getElementById('sessions');
             const sentHistory = document.getElementById('sentHistory');
             const snapshot = document.getElementById('snapshot');
@@ -1366,14 +1364,6 @@ internal object FeedbackConsoleAssets {
                 ...Array.from({ length: open }, () => '<span class="hi-strip-cell"></span>'),
                 ...Array.from({ length: done }, () => '<span class="hi-strip-cell done"></span>')
               ].join('');
-            }
-
-            function formatSessionHeader(session, itemCount) {
-              return [
-                session.packageName,
-                countLabel(itemCount, 'feedback item', 'feedback items'),
-                'updated ' + formatTime(session.updatedAtEpochMillis)
-              ].join(' | ');
             }
 
             function firstLine(value) {
@@ -2411,8 +2401,6 @@ internal object FeedbackConsoleAssets {
 
             function renderSessionRegions() {
               const session = state.session;
-              const allItems = session?.items || [];
-              sessionMeta.textContent = session ? formatSessionHeader(session, allItems.length) : 'No active session';
               renderSessionsList();
               renderSentHistory();
             }

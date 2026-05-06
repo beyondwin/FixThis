@@ -422,7 +422,8 @@ class FeedbackConsoleServerTest {
         assertFalse(html.contains("items \${escapeHtml((batch.itemIds || []).map(shortId).join(', ') || '-')}"))
         assertFalse(html.contains("Missing item \${shortId(item.itemId)}"))
 
-        assertTrue(html.contains("function formatSessionHeader"))
+        assertFalse(html.contains("function formatSessionHeader"))
+        assertFalse(html.contains("feedback item', 'feedback items'"))
         assertTrue(html.contains("function renderSavedEvidenceGroups"))
     }
 
@@ -485,8 +486,12 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("focusPendingFeedbackItem"))
         assertTrue(html.contains("deletePendingFeedbackItem"))
         assertTrue(html.contains("renderSavedEvidenceGroups"))
-        assertTrue(html.contains("const DefaultLivePreviewIntervalMs = 2000"))
+        assertTrue(html.contains("const DefaultLivePreviewIntervalMs = 1000"))
         assertTrue(html.contains("const MinLivePreviewIntervalMs = 1000"))
+        assertTrue(html.contains("<option value=\"1000\" selected>1s</option>"))
+        assertTrue(html.contains("const PreviewIntervalStorageKey = 'pointpatch.previewIntervalMs.v2'"))
+        assertFalse(html.contains("id=\"sessionMeta\""))
+        assertFalse(html.contains("function formatSessionHeader"))
         assertTrue(html.contains("startAddItemsFlow"))
         assertTrue(html.contains("createAnnotationFromSelection"))
         assertTrue(html.contains("savePendingFeedbackItems"))
