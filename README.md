@@ -51,12 +51,14 @@ The Android Studio sample app is exposed as Gradle project `:app`, while its fil
 ```text
 :app                         -> sample/
 :pointpatch-compose-core     -> pure Kotlin models, selection, formatters, source matching
-:pointpatch-compose-overlay  -> Compose toolbar, selection layer, highlight layer, comment sheet
+:pointpatch-compose-overlay  -> Compose overlay UI and public feedback console Studio shell
 :pointpatch-compose-sidekick -> debug runtime, inspection, screenshots, bridge
 :pointpatch-gradle-plugin    -> plugin and source-index generation
 :pointpatch-cli              -> desktop CLI
 :pointpatch-mcp              -> stdio MCP server
 ```
+
+The public Compose feedback console entrypoint is `io.github.pointpatch.compose.console.studio.FeedbackConsoleScreen` in `:pointpatch-compose-overlay`. The existing CLI/MCP browser console still uses its HTML asset surface.
 
 `gradle/gradle-daemon-jvm.properties` pins the Gradle daemon JVM toolchain to Java 21. Local Android SDK settings still belong in `local.properties`, which is ignored.
 

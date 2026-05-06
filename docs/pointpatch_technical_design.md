@@ -271,6 +271,7 @@ project(":app").projectDir = file("sample")
 - comment sheet
 - copy/share buttons
 - settings/connect UI
+- Compose feedback console Studio shell
 
 Compose UI module이다.
 
@@ -280,7 +281,12 @@ Compose UI module이다.
 io.github.pointpatch.compose.overlay.ui
 io.github.pointpatch.compose.overlay.state
 io.github.pointpatch.compose.overlay.theme
+io.github.pointpatch.compose.console.studio
 ```
+
+`io.github.pointpatch.compose.console.studio.FeedbackConsoleScreen` is the public Compose entrypoint for the Option A Studio shell. It provides a dark Studio workspace with history, canvas, Inspector, and ViewModel-owned state. The entrypoint accepts optional `ScreenshotInfo` full-preview input through `previewScreenshot`; when it is null, the shell uses mock preview data so the surface remains usable in test and mock-hosted compositions. When a full preview screenshot is decoded, annotation moves to region-only mode instead of widget snapping.
+
+This Compose Studio shell coexists with the existing MCP browser HTML console. It does not replace `FeedbackConsoleAssets.kt` or the browser-console flow served by the MCP/CLI process.
 
 ### 3.3 `pointpatch-compose-sidekick`
 
@@ -2193,6 +2199,21 @@ METHOD_FAILED
   - testTag match
   - no index
 
+`pointpatch-compose-overlay`
+
+- `StudioShellApiTest`
+  - public `FeedbackConsoleScreen` entrypoint
+  - optional `ScreenshotInfo` preview input
+  - no public `StudioViewModel` parameter
+- `StudioViewModelTest`
+  - draft/session state
+  - annotation creation and selection
+  - snapshot history
+- `PreviewScreenshotStateTest`
+  - full-preview path selection
+  - mock fallback for null preview input
+  - decoded screenshot region-only mode
+
 ### 20.2 Android instrumentation tests
 
 Sample app scenarios:
@@ -2221,6 +2242,8 @@ Tests:
 6. LazyColumn nearby context works
 7. Dialog root discoverable
 ```
+
+Option A Compose Studio verification also includes androidTest source compilation for `StudioShellComposeTest`; that test is intended to exercise the shell with `FeedbackConsoleScreen(previewScreenshot = null)` when run on a device or emulator. `connectedAndroidTest` was not run for this implementation because no connected device or emulator was available.
 
 ### 20.3 CLI tests
 
