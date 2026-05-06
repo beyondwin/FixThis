@@ -448,7 +448,7 @@ git commit -m "feat: add FixThis demo data"
 - Create: `sample/src/main/java/io/beyondwin/fixthis/sample/components/MetricCard.kt`
 - Create: `sample/src/main/java/io/beyondwin/fixthis/sample/components/FeedbackCard.kt`
 
-- [ ] **Step 1: Create status chip**
+- [x] **Step 1: Create status chip**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/components/StatusChip.kt`:
 
@@ -513,7 +513,7 @@ fun StateChip(state: FeedbackState, modifier: Modifier = Modifier) {
 }
 ```
 
-- [ ] **Step 2: Create section header**
+- [x] **Step 2: Create section header**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/components/SectionHeader.kt`:
 
@@ -552,7 +552,7 @@ fun SectionHeader(
 }
 ```
 
-- [ ] **Step 3: Create metric card**
+- [x] **Step 3: Create metric card**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/components/MetricCard.kt`:
 
@@ -595,7 +595,7 @@ fun MetricCard(metric: ProjectMetric, modifier: Modifier = Modifier) {
 }
 ```
 
-- [ ] **Step 4: Create feedback card**
+- [x] **Step 4: Create feedback card**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/components/FeedbackCard.kt`:
 
@@ -698,7 +698,7 @@ fun FeedbackCard(
 }
 ```
 
-- [ ] **Step 5: Build shared components**
+- [x] **Step 5: Build shared components**
 
 Run:
 
@@ -708,7 +708,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 6: Commit shared components**
+- [x] **Step 6: Commit shared components**
 
 Run:
 
