@@ -36,6 +36,42 @@ class ArchitectureCompatibilityTest {
     }
 
     @Test
+    fun legacyReadyStatusMapsToOpenDomainStatus() {
+        val dto = FeedbackItem(
+            itemId = "item-1",
+            screenId = "screen-1",
+            createdAtEpochMillis = 12L,
+            updatedAtEpochMillis = 13L,
+            target = FeedbackTarget.Area(PointPatchRect(1f, 2f, 3f, 4f)),
+            comment = "Ready from old session",
+            status = FeedbackItemStatus.READY,
+        )
+
+        val domain = dto.toDomainAnnotation(sessionId = "session-1")
+
+        assertEquals(io.github.pointpatch.compose.core.domain.annotation.AnnotationStatus.OPEN, domain.status)
+    }
+
+    @Test
+    fun openDomainStatusMapsBackToOpenFeedbackItemStatus() {
+        val domain = FeedbackItem(
+            itemId = "item-1",
+            screenId = "screen-1",
+            createdAtEpochMillis = 12L,
+            updatedAtEpochMillis = 13L,
+            target = FeedbackTarget.Area(PointPatchRect(1f, 2f, 3f, 4f)),
+            comment = "Open domain item",
+            status = FeedbackItemStatus.RESOLVED,
+        ).toDomainAnnotation(sessionId = "session-1").copy(
+            status = io.github.pointpatch.compose.core.domain.annotation.AnnotationStatus.OPEN,
+        )
+
+        val dto = domain.toFeedbackItemDto()
+
+        assertEquals(FeedbackItemStatus.OPEN, dto.status)
+    }
+
+    @Test
     fun sessionWireFormatKeepsExistingFieldNames() {
         val session = FeedbackSession(
             sessionId = "session-1",
@@ -73,5 +109,23 @@ class ArchitectureCompatibilityTest {
         assertTrue(encoded.contains("\"itemId\""))
         assertTrue(encoded.contains("\"ready\""))
         assertTrue(encoded.contains("\"ready_for_agent\""))
+    }
+
+    @Test
+    fun domainSessionMapsBackToExistingWireFieldNames() {
+        val dto = FeedbackSession(
+            sessionId = "session-1",
+            packageName = "io.github.pointpatch.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 10L,
+            updatedAtEpochMillis = 20L,
+            screens = listOf(CapturedScreen("screen-1", 11L, displayName = "MainActivity")),
+        )
+
+        val roundTrip = dto.toDomainSession().toFeedbackSessionDto()
+
+        assertEquals(dto.sessionId, roundTrip.sessionId)
+        assertEquals(dto.screens.single().screenId, roundTrip.screens.single().screenId)
+        assertEquals(dto.items, roundTrip.items)
     }
 }

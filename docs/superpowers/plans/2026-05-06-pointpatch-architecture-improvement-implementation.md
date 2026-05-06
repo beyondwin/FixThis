@@ -748,7 +748,7 @@ git commit -m "feat: add feedback domain models"
 - Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/SessionDomainMappers.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/ArchitectureCompatibilityTest.kt`
 
-- [ ] **Step 1: Add mapper compatibility tests**
+- [x] **Step 1: Add mapper compatibility tests**
 
 Add these tests:
 
@@ -789,7 +789,7 @@ fun domainSessionMapsBackToExistingWireFieldNames() {
 }
 ```
 
-- [ ] **Step 2: Run the test and confirm it is red**
+- [x] **Step 2: Run the test and confirm it is red**
 
 Run:
 
@@ -799,7 +799,7 @@ Run:
 
 Expected: compile failure because the mapper functions do not exist.
 
-- [ ] **Step 3: Add the mapper file**
+- [x] **Step 3: Add the mapper file**
 
 ```kotlin
 package io.github.pointpatch.mcp.session
@@ -1019,7 +1019,7 @@ private fun SnapshotScreenshot.toFeedbackScreenshotDto(): FeedbackScreenshot =
     )
 ```
 
-- [ ] **Step 4: Run MCP tests**
+- [x] **Step 4: Run MCP tests**
 
 Run:
 
@@ -1029,7 +1029,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/SessionDomainMappers.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/ArchitectureCompatibilityTest.kt
