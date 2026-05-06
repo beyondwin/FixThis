@@ -719,7 +719,7 @@ git commit -m "feat: add FixThis sample component system"
 - Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt`
 - Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/QueueScreen.kt`
 
-- [ ] **Step 1: Replace the app shell**
+- [x] **Step 1: Replace the app shell**
 
 Keep the five tabs and use text-based icon labels because the project has no Material icon dependency:
 
@@ -766,7 +766,7 @@ Scaffold(
 }
 ```
 
-- [ ] **Step 2: Replace `HomeScreen.kt`**
+- [x] **Step 2: Replace `HomeScreen.kt`**
 
 The screen must include these visible strings:
 
@@ -783,7 +783,7 @@ SectionHeader("Recent activity")
 
 Use `LazyColumn` with `items(FixThisDemoData.metrics)`, `items(FixThisDemoData.feedbackItems.take(2))`, and `items(FixThisDemoData.activity)`. Render activities through `InfoRow(activity.title, activity.detail, "${activity.category} - ${activity.timeLabel}")`.
 
-- [ ] **Step 3: Replace `QueueScreen.kt`**
+- [x] **Step 3: Replace `QueueScreen.kt`**
 
 The screen must include these visible strings:
 
@@ -800,7 +800,7 @@ OutlinedTextField(
 
 Render `FixThisDemoData.queueFilters` as `FilterChip` labels. Render `FixThisDemoData.feedbackItems` through `FeedbackCard`, passing `showDisabledAction = index == FixThisDemoData.feedbackItems.lastIndex`.
 
-- [ ] **Step 4: Compile and run the smoke test compile target**
+- [x] **Step 4: Compile and run the smoke test compile target**
 
 Run:
 
@@ -810,7 +810,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sample/src/main/java/io/beyondwin/fixthis/sample/FixThisStudioApp.kt sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt sample/src/main/java/io/beyondwin/fixthis/sample/screens/QueueScreen.kt

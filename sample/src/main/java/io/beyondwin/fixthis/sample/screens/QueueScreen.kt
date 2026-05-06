@@ -50,21 +50,13 @@ fun QueueScreen(padding: PaddingValues) {
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                FilterChip(
-                    selected = true,
-                    onClick = {},
-                    label = { Text("High priority") },
-                )
-                FilterChip(
-                    selected = false,
-                    onClick = {},
-                    label = { Text("Assigned to me") },
-                )
-                FilterChip(
-                    selected = false,
-                    onClick = {},
-                    label = { Text("Needs screenshot") },
-                )
+                FixThisDemoData.queueFilters.forEachIndexed { index, filter ->
+                    FilterChip(
+                        selected = index == 0,
+                        onClick = {},
+                        label = { Text(filter) },
+                    )
+                }
             }
         }
         itemsIndexed(FixThisDemoData.feedbackItems) { index, item ->

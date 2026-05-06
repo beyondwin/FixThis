@@ -17,12 +17,12 @@ import io.beyondwin.fixthis.sample.screens.ProjectScreen
 import io.beyondwin.fixthis.sample.screens.QueueScreen
 import io.beyondwin.fixthis.sample.screens.ReviewScreen
 
-enum class FixThisTab(val label: String) {
-    Home("Home"),
-    Queue("Queue"),
-    Project("Project"),
-    Review("Review"),
-    Diagnostics("Diagnostics"),
+enum class FixThisTab(val label: String, val iconLabel: String) {
+    Home("Home", "H"),
+    Queue("Queue", "Q"),
+    Project("Project", "P"),
+    Review("Review", "R"),
+    Diagnostics("Diagnostics", "D"),
 }
 
 @Composable
@@ -32,13 +32,14 @@ fun FixThisStudioApp() {
         val selected = FixThisTab.entries.firstOrNull { it.name == selectedTabName } ?: FixThisTab.Home
 
         Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
-                NavigationBar {
+                NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     FixThisTab.entries.forEach { tab ->
                         NavigationBarItem(
                             selected = selected == tab,
                             onClick = { selectedTabName = tab.name },
-                            icon = { Text(tab.label.take(1), style = MaterialTheme.typography.labelMedium) },
+                            icon = { Text(tab.iconLabel, style = MaterialTheme.typography.labelMedium) },
                             label = { Text(tab.label, maxLines = 1) },
                         )
                     }
