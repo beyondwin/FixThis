@@ -1633,7 +1633,7 @@ git commit -m "refactor: extract screenshot artifact promotion"
 - Modify: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/overlay/PointPatchOverlayController.kt`
 - Modify: related overlay tests
 
-- [ ] **Step 1: Write state transition tests**
+- [x] **Step 1: Write state transition tests**
 
 ```kotlin
 package io.github.pointpatch.compose.overlay
@@ -1678,7 +1678,7 @@ class OverlayStateMachineTest {
 }
 ```
 
-- [ ] **Step 2: Run and confirm red**
+- [x] **Step 2: Run and confirm red**
 
 Run:
 
@@ -1688,7 +1688,7 @@ Run:
 
 Expected: compile failure because `OverlayStateMachine`, `Select`, `Loading`, and `Error` do not exist.
 
-- [ ] **Step 3: Update `OverlayMode`**
+- [x] **Step 3: Update `OverlayMode`**
 
 ```kotlin
 sealed interface OverlayMode {
@@ -1716,7 +1716,7 @@ sealed interface OverlayMode {
 }
 ```
 
-- [ ] **Step 4: Add state machine**
+- [x] **Step 4: Add state machine**
 
 ```kotlin
 package io.github.pointpatch.compose.overlay
@@ -1763,7 +1763,7 @@ fun OverlayMode.canTransitionTo(next: OverlayMode): Boolean =
     }
 ```
 
-- [ ] **Step 5: Replace `OverlayMode.Selecting` usages**
+- [x] **Step 5: Replace `OverlayMode.Selecting` usages**
 
 Replace:
 
@@ -1789,7 +1789,7 @@ with:
 mode is OverlayMode.Select
 ```
 
-- [ ] **Step 6: Run overlay and sidekick tests**
+- [x] **Step 6: Run overlay and sidekick tests**
 
 Run:
 
@@ -1799,7 +1799,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/overlay pointpatch-compose-overlay/src/test/kotlin/io/github/pointpatch/compose/overlay pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/overlay pointpatch-compose-sidekick/src/test/kotlin

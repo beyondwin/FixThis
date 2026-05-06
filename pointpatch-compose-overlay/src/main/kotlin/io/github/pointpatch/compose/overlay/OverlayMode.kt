@@ -9,10 +9,25 @@ import io.github.pointpatch.compose.core.model.SelectionInfo
 sealed interface OverlayMode {
     data object Idle : OverlayMode
     data object MenuOpen : OverlayMode
-    data class Selecting(val requestId: String?) : OverlayMode
+    data class Select(val requestId: String?) : OverlayMode
+    data class Loading(val reason: LoadingReason) : OverlayMode
     data class ReviewingSelection(val draft: PointPatchDraft) : OverlayMode
     data class Commenting(val draft: PointPatchDraft) : OverlayMode
     data class Exported(val annotationId: String) : OverlayMode
+    data class Error(val cause: OverlayError, val recoverable: Boolean) : OverlayMode
+
+    enum class LoadingReason {
+        SCREENSHOT_CAPTURING,
+        INSPECTOR_QUERYING,
+        BRIDGE_CONNECTING,
+    }
+
+    sealed interface OverlayError {
+        data object PermissionDenied : OverlayError
+        data class ScreenshotFailed(val reason: String) : OverlayError
+        data class BridgeUnreachable(val reason: String) : OverlayError
+        data class Timeout(val operation: String, val timeoutMillis: Long) : OverlayError
+    }
 }
 
 data class PointPatchDraft(

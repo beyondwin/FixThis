@@ -24,6 +24,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -104,6 +105,51 @@ class PointPatchOverlayControllerTest {
 
         assertTrue(second.rejected)
         assertFalse(requireNotNull(withTimeoutOrNull(500L) { first.await() }).submitted)
+    }
+
+    @Test
+    fun repeatedStartSelectionRefreshesSelectMode() {
+        val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
+        val controller = controller(activity)
+
+        controller.startSelection()
+        val firstRequestId = (controller.mode as OverlayMode.Select).requestId
+        controller.startSelection()
+        val secondRequestId = (controller.mode as OverlayMode.Select).requestId
+
+        assertNotNull(firstRequestId)
+        assertNotNull(secondRequestId)
+        assertTrue(firstRequestId != secondRequestId)
+    }
+
+    @Test
+    fun updateCommentAfterCaptureRefreshesCommentingMode() = runBlocking {
+        val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
+        activity.setContentView(FrameLayout(activity))
+        val controller = controller(activity)
+
+        controller.startSelection()
+        controller.captureTap(xInWindow = 24f, yInWindow = 24f)
+        controller.updateComment("First edit")
+        controller.updateComment("Second edit")
+
+        val mode = controller.mode
+        assertTrue(mode is OverlayMode.Commenting)
+        assertEquals("Second edit", (mode as OverlayMode.Commenting).draft.userComment)
+    }
+
+    @Test
+    fun captureTapWithoutSelectionIsRejectedByOverlayTransition() = runBlocking {
+        val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
+        activity.setContentView(FrameLayout(activity))
+        val controller = controller(activity)
+
+        try {
+            controller.captureTap(xInWindow = 24f, yInWindow = 24f)
+            fail("Expected capture without Select mode to throw IllegalStateException")
+        } catch (error: IllegalStateException) {
+            assertTrue(error.message.orEmpty().contains("invalid overlay transition"))
+        }
     }
 
     @Test
