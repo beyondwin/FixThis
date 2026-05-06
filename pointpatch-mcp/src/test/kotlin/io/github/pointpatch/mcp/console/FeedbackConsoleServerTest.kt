@@ -498,7 +498,7 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
-    fun consoleHtmlKeepsFrozenPreviewStableAndHidesPersistedScreenHistory() {
+    fun consoleHtmlKeepsFrozenPreviewStableAndShowsPersistedScreenHistory() {
         val html = FeedbackConsoleAssets.indexHtml
 
         assertTrue(html.contains("let previewRequestGeneration = 0"))
@@ -507,11 +507,18 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("const requestGeneration = ++previewRequestGeneration"))
         assertTrue(html.contains("if (addItemsFlow || requestGeneration !== previewRequestGeneration) return;"))
         assertTrue(html.contains("screenshotUrl: previewScreenshotUrl(state.preview.previewId)"))
+        assertTrue(html.contains("function latestPersistedScreen()"))
+        assertTrue(html.contains("const persistedScreenIds = new Set("))
+        assertTrue(html.contains(".filter(screen => persistedScreenIds.has(screen.screenId))"))
+        assertTrue(html.contains("function screenImageUrl(screen)"))
+        assertTrue(html.contains("return addItemsFlow?.screen || state.preview?.screen || latestPersistedScreen();"))
+        assertTrue(html.contains("'/api/screens/' + encodeURIComponent(screen.screenId) + '/screenshot/full'"))
+        assertTrue(html.contains("const persistedItems = persistedItemsForScreen(screen?.screenId);"))
+        assertTrue(html.contains("renderSavedEvidenceOverlay(overlay, image, persistedItems);"))
+        assertTrue(Regex("async function openSession\\(sessionId\\)[\\s\\S]*stopLivePreviewPolling\\(\\);[\\s\\S]*await refresh\\(\\);\\s+}").containsMatchIn(html))
         assertTrue(html.contains("function formatSavedEvidenceItemLabel(item, index)"))
         assertTrue(html.contains("return '#' + (index + 1) + ' ' + firstLine(item.comment || '(No comment)');"))
         assertTrue(html.contains("escapeHtml(formatSavedEvidenceItemLabel(item, index))"))
-        assertFalse(html.contains("function latestPersistedScreen"))
-        assertFalse(html.contains("state.preview?.screen || latestPersistedScreen()"))
     }
 
     @Test
@@ -551,7 +558,7 @@ class FeedbackConsoleServerTest {
 
         assertTrue(html.contains("function previewScreenshotUrl(previewId)"))
         assertTrue(html.contains("return '/api/preview/' + encodeURIComponent(previewId) + '/screenshot/full';"))
-        assertTrue(html.contains("const src = addItemsFlow?.screenshotUrl || previewScreenshotUrl(state.preview.previewId);"))
+        assertTrue(html.contains("const src = screenImageUrl(screen);"))
         assertFalse(html.contains("const src = addItemsFlow?.screenshotUrl || '/api/preview/screenshot/full'"))
     }
 

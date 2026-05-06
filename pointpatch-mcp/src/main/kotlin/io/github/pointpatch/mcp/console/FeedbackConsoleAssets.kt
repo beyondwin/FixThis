@@ -1517,6 +1517,13 @@ internal object FeedbackConsoleAssets {
               return '/api/preview/' + encodeURIComponent(previewId) + '/screenshot/full';
             }
 
+            function screenImageUrl(screen) {
+              if (addItemsFlow) return addItemsFlow.screenshotUrl;
+              if (state.preview?.screen === screen && state.preview?.previewId) return previewScreenshotUrl(state.preview.previewId);
+              if (screen?.screenId) return '/api/screens/' + encodeURIComponent(screen.screenId) + '/screenshot/full';
+              return '';
+            }
+
             function shortenDeviceSerial(serial) {
               const raw = String(serial || '').trim();
               if (!raw) return '';
@@ -1684,8 +1691,24 @@ internal object FeedbackConsoleAssets {
               if (!previewIntervalSelect.value) previewIntervalSelect.value = String(DefaultLivePreviewIntervalMs);
             }
 
+            function latestPersistedScreen() {
+              const screens = state.session?.screens || [];
+              const persistedScreenIds = new Set(
+                (state.session?.items || [])
+                  .filter(item => item.delivery !== 'sent')
+                  .map(item => item.screenId)
+              );
+              const screenshotScreens = screens
+                .filter(screen => screen?.screenshot?.desktopFullPath);
+              return screenshotScreens
+                .filter(screen => persistedScreenIds.has(screen.screenId))
+                .sort((left, right) => (right.capturedAtEpochMillis || 0) - (left.capturedAtEpochMillis || 0))[0] ||
+                screenshotScreens
+                .sort((left, right) => (right.capturedAtEpochMillis || 0) - (left.capturedAtEpochMillis || 0))[0] || null;
+            }
+
             function latestScreen() {
-              return addItemsFlow?.screen || state.preview?.screen || null;
+              return addItemsFlow?.screen || state.preview?.screen || latestPersistedScreen();
             }
 
             function clamp(value, min, max) {
@@ -1839,6 +1862,11 @@ internal object FeedbackConsoleAssets {
               }
 
               renderNumberedFeedbackOverlay(overlay, image);
+              const screen = latestScreen();
+              const persistedItems = persistedItemsForScreen(screen?.screenId);
+              if (!addItemsFlow && !state.preview && persistedItems.length) {
+                renderSavedEvidenceOverlay(overlay, image, persistedItems);
+              }
               if (currentSelection) {
                 renderOverlayBox(overlay, image, currentSelection.bounds, currentSelection.label);
               }
@@ -2247,6 +2275,12 @@ internal object FeedbackConsoleAssets {
               return Array.from(groups.entries()).map(entry => ({ screenId: entry[0], items: entry[1] }));
             }
 
+            function persistedItemsForScreen(screenId) {
+              if (!screenId) return [];
+              return (state.session?.items || [])
+                .filter(item => item.delivery !== 'sent' && item.screenId === screenId);
+            }
+
             function renderSavedEvidenceOverlay(overlay, image, items) {
               items.forEach((item, index) => {
                 renderOverlayBox(overlay, image, boundsForTarget(item.target), '#' + (index + 1));
@@ -2440,7 +2474,7 @@ internal object FeedbackConsoleAssets {
             function renderPreviewRegion() {
               const screen = latestScreen();
               const hasScreenshot = Boolean(screen?.screenshot?.desktopFullPath);
-              const mode = addItemsFlow ? 'frozen' : (state.preview ? 'live' : 'idle');
+              const mode = addItemsFlow ? 'frozen' : (state.preview ? 'live' : (screen ? 'frozen' : 'idle'));
               if (!hasScreenshot) {
                 snapshot.innerHTML = '<div class="empty-stage">' + (screen ? 'No screenshot artifact for this preview.' : 'Refresh the live preview to begin.') + '</div>';
                 updateComposerState();
@@ -2449,7 +2483,7 @@ internal object FeedbackConsoleAssets {
               const frame = ensurePreviewFrame();
               frame.dataset.mode = mode;
               const image = document.getElementById('snapshotImage');
-              const src = addItemsFlow?.screenshotUrl || previewScreenshotUrl(state.preview.previewId);
+              const src = screenImageUrl(screen);
               if (image.getAttribute('src') !== src) {
                 image.setAttribute('src', src);
               }
@@ -2496,6 +2530,7 @@ internal object FeedbackConsoleAssets {
 
             async function openSession(sessionId) {
               error.textContent = '';
+              stopLivePreviewPolling();
               resetAnnotationComposerState();
               invalidatePreviewContext();
               state.session = await requestJson('/api/session/open', {
@@ -2504,7 +2539,6 @@ internal object FeedbackConsoleAssets {
                 body: JSON.stringify({ sessionId: sessionId })
               });
               await refresh();
-              startLivePreviewPolling();
             }
 
             async function newSession() {
