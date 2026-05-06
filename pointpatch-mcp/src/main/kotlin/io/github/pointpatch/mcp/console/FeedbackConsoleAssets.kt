@@ -528,38 +528,45 @@ internal object FeedbackConsoleAssets {
               padding: 10px;
               font-size: 13px;
             }
-            .annotation-row {
+            .ann-list {
+              flex: 1 1 auto;
+              overflow-y: auto;
+              padding: 8px;
+              display: grid;
+              gap: 4px;
+              align-content: start;
+            }
+            .ann-row {
               display: grid;
               grid-template-columns: 28px 1fr auto;
               gap: 10px;
-              align-items: start;
+              align-items: center;
               width: 100%;
               border: 0;
-              text-align: left;
-            }
-            .annotation-main {
-              display: contents;
-              border: 0;
-              padding: 0;
+              border-radius: 8px;
+              padding: 10px;
               background: transparent;
-              color: inherit;
               text-align: left;
+              transition: background 120ms ease;
             }
-            .annotation-number {
-              width: 26px;
-              height: 26px;
-              display: grid;
+            .ann-row:hover,
+            .ann-row.active {
+              background: var(--bg-2);
+            }
+            .ann-row-num {
+              width: 24px;
+              height: 24px;
+              display: inline-grid;
               place-items: center;
-              border-radius: 999px;
-              background: var(--accent);
+              border-radius: 6px;
               color: var(--bg-0);
               font-size: 11px;
-              font-weight: 800;
+              font-weight: 700;
             }
-            .annotation-copy {
+            .ann-row-body {
               min-width: 0;
             }
-            .annotation-title {
+            .ann-row-title {
               color: var(--txt-0);
               font-size: 13px;
               font-weight: 700;
@@ -567,32 +574,127 @@ internal object FeedbackConsoleAssets {
               text-overflow: ellipsis;
               white-space: nowrap;
             }
-            .annotation-comment {
+            .ann-row-comment {
               margin-top: 3px;
-              color: var(--txt-2);
+              color: var(--txt-1);
               font-size: 11px;
               line-height: 1.4;
-              overflow-wrap: anywhere;
+              display: -webkit-box;
+              -webkit-line-clamp: 2;
+              -webkit-box-orient: vertical;
+              overflow: hidden;
             }
-            .annotation-delete {
-              width: 26px;
-              min-width: 26px;
-              height: 26px;
-              padding: 0;
-              border-radius: 6px;
+            .ann-row-comment.empty-comment {
+              color: #999;
+              font-style: italic;
             }
+            .ann-row-status {
+              border-radius: 999px;
+              padding: 2px 7px;
+              font-size: 10px;
+              font-weight: 800;
+              letter-spacing: .08em;
+              text-transform: uppercase;
+              white-space: nowrap;
+            }
+            .ann-row-status.st-open { background: rgba(230, 180, 90, .16); color: #e6b45a; }
+            .ann-row-status.st-in-progress { background: rgba(91, 157, 255, .16); color: #5b9dff; }
+            .ann-row-status.st-resolved { background: rgba(111, 207, 151, .16); color: #6fcf97; }
             .annotation-detail {
-              display: grid;
+              flex: 1 1 auto;
+              overflow-y: auto;
+              padding: 16px;
+              display: flex;
+              flex-direction: column;
               gap: 12px;
             }
-            .annotation-detail label {
-              display: grid;
+            .annotation-back {
+              width: fit-content;
+              border: 0;
+              background: transparent;
+              padding: 4px 0;
+              color: var(--txt-2);
+              font-size: 11px;
+            }
+            .annotation-back:hover { color: var(--txt-0); background: transparent; }
+            .annotation-field {
+              display: flex;
+              flex-direction: column;
               gap: 6px;
+            }
+            .annotation-field label {
               color: var(--txt-2);
               font-size: 10px;
               font-weight: 800;
               letter-spacing: .12em;
               text-transform: uppercase;
+            }
+            .annotation-input,
+            .annotation-textarea {
+              width: 100%;
+              border: 1px solid var(--line);
+              border-radius: 6px;
+              background: var(--bg-2);
+              color: var(--txt-0);
+              padding: 8px 10px;
+              font: inherit;
+              font-size: 13px;
+              outline: none;
+              transition: border-color 120ms ease;
+            }
+            .annotation-input:focus,
+            .annotation-textarea:focus {
+              border-color: var(--accent);
+            }
+            .annotation-textarea {
+              min-height: 96px;
+              line-height: 1.5;
+              resize: vertical;
+            }
+            .annotation-segmented {
+              display: flex;
+              gap: 2px;
+              padding: 2px;
+              border-radius: 7px;
+              background: var(--bg-2);
+            }
+            .annotation-segmented button {
+              flex: 1;
+              border: 0;
+              border-radius: 5px;
+              background: transparent;
+              padding: 6px 10px;
+              color: var(--txt-1);
+              font-size: 11px;
+              font-weight: 700;
+              letter-spacing: .06em;
+              text-transform: uppercase;
+            }
+            .annotation-segmented button.active {
+              background: var(--bg-3);
+              color: var(--txt-0);
+            }
+            .annotation-actions {
+              display: flex;
+              justify-content: space-between;
+              gap: 10px;
+              border-top: 1px solid var(--line-soft);
+              padding-top: 12px;
+              margin-top: 4px;
+            }
+            .annotation-danger,
+            .annotation-done {
+              border: 0;
+              background: transparent;
+              padding: 6px 0;
+              font-size: 13px;
+            }
+            .annotation-danger { color: var(--danger); }
+            .annotation-done { color: var(--txt-1); }
+            .annotation-danger:hover,
+            .annotation-done:hover {
+              background: transparent;
+              color: var(--txt-0);
             }
             img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); }
             .evidence-card {
@@ -714,16 +816,113 @@ internal object FeedbackConsoleAssets {
               .studio-body { grid-template-columns: 220px minmax(380px, 1fr) 300px; }
             }
             @media (max-width: 899px) {
-              .studio-shell::before {
-                content: "Resize to >= 900px wide";
-                position: fixed;
-                inset: 0;
-                display: grid;
-                place-items: center;
-                z-index: 999;
-                background: var(--bg-0);
-                color: var(--txt-1);
-                font-size: 14px;
+              body {
+                height: auto;
+                min-height: 100vh;
+                overflow: auto;
+              }
+              .studio-shell {
+                min-height: 100vh;
+                height: auto;
+                overflow: visible;
+                grid-template-rows: auto 1fr;
+              }
+              .studio-topbar {
+                position: sticky;
+                top: 0;
+                z-index: 10;
+                grid-template-columns: 1fr;
+                align-items: stretch;
+                gap: 10px;
+                padding: 10px;
+              }
+              .studio-brand {
+                justify-content: flex-start;
+              }
+              .studio-context {
+                grid-template-columns: minmax(0, 1fr) auto auto;
+                gap: 6px;
+              }
+              .session-meta {
+                grid-column: 1 / -1;
+              }
+              .device-control {
+                min-width: 0;
+                max-width: none;
+              }
+              .clear-device-button {
+                width: auto;
+                min-width: 0;
+                max-width: none;
+              }
+              .studio-actions {
+                justify-content: flex-start;
+                flex-wrap: wrap;
+              }
+              .studio-body {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto minmax(420px, 72vh) auto;
+                overflow: visible;
+              }
+              .studio-history {
+                max-height: 180px;
+                border-right: 0;
+                border-bottom: 1px solid var(--line);
+                overflow: auto;
+              }
+              .studio-canvas {
+                grid-template-rows: auto minmax(360px, 1fr);
+                min-height: 420px;
+              }
+              .canvas-toolbar {
+                flex-wrap: wrap;
+                justify-content: flex-start;
+                gap: 8px;
+                padding: 8px;
+              }
+              .tool-status {
+                flex: 1 1 140px;
+                min-width: 0;
+                justify-content: flex-start;
+              }
+              .canvas-tool-status {
+                flex: 1 1 120px;
+              }
+              .navigation-controls {
+                flex-wrap: wrap;
+              }
+              .snapshot-stage {
+                min-height: 360px;
+                overflow: auto;
+                padding: 14px;
+              }
+              .snapshot-frame {
+                max-width: min(100%, 360px);
+                padding: 6px;
+                border-radius: 28px;
+              }
+              .snapshot-frame img {
+                max-height: calc(100vh - 240px);
+                border-radius: 22px;
+              }
+              .selection-overlay {
+                inset: 6px;
+              }
+              .annotate-hint {
+                top: 10px;
+                width: calc(100% - 24px);
+                justify-content: center;
+                white-space: normal;
+                padding: 7px 10px;
+              }
+              .studio-inspector {
+                min-height: 280px;
+                border-left: 0;
+                border-top: 1px solid var(--line);
+                overflow: visible;
+              }
+              .inspector-body {
+                max-height: none;
               }
             }
             @media (prefers-reduced-motion: reduce) {
@@ -988,6 +1187,32 @@ internal object FeedbackConsoleAssets {
 
             function annotationTitle(item, index) {
               return item.label || pendingTargetLabel(item) + ' #' + (index + 1);
+            }
+
+            function annotationSeverity(item) {
+              return item.severity || 'med';
+            }
+
+            function annotationStatus(item) {
+              return item.status || 'open';
+            }
+
+            function severityColor(severity) {
+              if (severity === 'high') return '#f26d6d';
+              if (severity === 'low') return '#5bb4e8';
+              return '#e6b45a';
+            }
+
+            function statusLabel(status) {
+              if (status === 'in-progress') return 'In-progress';
+              if (status === 'resolved') return 'Resolved';
+              return 'Open';
+            }
+
+            function statusClass(status) {
+              if (status === 'in-progress') return 'st-in-progress';
+              if (status === 'resolved') return 'st-resolved';
+              return 'st-open';
             }
 
             function selectedAnnotation() {
@@ -1504,6 +1729,8 @@ internal object FeedbackConsoleAssets {
                 nodeUid: selection.nodeUid,
                 bounds: selection.bounds,
                 label: selection.label,
+                severity: 'med',
+                status: 'open',
                 comment: ''
               };
               pendingFeedbackItems.push(annotation);
@@ -1604,26 +1831,106 @@ internal object FeedbackConsoleAssets {
             }
 
             function renderPendingItems() {
-              pendingItems.innerHTML = pendingFeedbackItems.map((item, index) =>
-                '<div class="row pending-item-row annotation-row ' + (index === focusedPendingItemIndex ? 'active' : '') + '">' +
-                  '<button type="button" class="annotation-main" data-focus-pending="' + index + '">' +
-                    '<span class="annotation-number">' + (index + 1) + '</span>' +
-                    '<span class="annotation-copy">' +
-                      '<span class="annotation-title">' + escapeHtml(annotationTitle(item, index)) + '</span>' +
-                      '<span class="annotation-comment">' + escapeHtml(firstLine(item.comment || 'No comment yet.')) + '</span>' +
+              if (focusedPendingItemIndex != null && selectedAnnotation()) {
+                renderAnnotationDetail(selectedAnnotation(), focusedPendingItemIndex);
+                return;
+              }
+              pendingItems.innerHTML = pendingFeedbackItems.length
+                ? '<div class="ann-list">' + pendingFeedbackItems.map((item, index) => {
+                  const commentText = firstLine(item.comment || 'No comment');
+                  const hasComment = Boolean(String(item.comment || '').trim());
+                  const status = annotationStatus(item);
+                  return '<button type="button" class="ann-row pending-item-row ' + (index === focusedPendingItemIndex ? 'active' : '') + '" data-focus-pending="' + index + '">' +
+                    '<span class="ann-row-num" style="background:' + severityColor(annotationSeverity(item)) + '">' + (index + 1) + '</span>' +
+                    '<span class="ann-row-body">' +
+                      '<span class="ann-row-title">' + escapeHtml(annotationTitle(item, index)) + '</span>' +
+                      '<span class="ann-row-comment ' + (hasComment ? '' : 'empty-comment') + '">' + escapeHtml(commentText) + '</span>' +
                     '</span>' +
-                  '</button>' +
-                  '<button type="button" class="annotation-delete" aria-label="Delete annotation ' + (index + 1) + '" data-delete-pending="' + index + '">×</button>' +
-                '</div>'
-              ).join('') || '<div class="empty-state"><div class="empty-title">No annotations yet.</div><div class="empty-body">Switch to <b>Annotate</b>, then click or drag on the preview.</div></div>';
+                    '<span class="ann-row-status ' + statusClass(status) + '">' + escapeHtml(statusLabel(status)) + '</span>' +
+                  '</button>';
+                }).join('') + '</div>'
+                : '<div class="empty-state"><div class="empty-title">No annotations yet.</div><div class="empty-body">Switch to <b>Annotate</b>, then click or drag on the preview.</div><button type="button" class="primary" data-start-annotating>Start annotating</button></div>';
               pendingItems.querySelectorAll('[data-focus-pending]').forEach(button => {
                 button.addEventListener('click', () => focusPendingFeedbackItem(Number(button.dataset.focusPending)));
               });
-              pendingItems.querySelectorAll('[data-delete-pending]').forEach(button => {
-                button.addEventListener('click', event => {
-                  event.stopPropagation();
-                  deletePendingFeedbackItem(Number(button.dataset.deletePending));
+              pendingItems.querySelectorAll('[data-start-annotating]').forEach(button => {
+                button.addEventListener('click', () => enterAnnotateMode().catch(showError));
+              });
+            }
+
+            function renderAnnotationDetail(item, index) {
+              const severity = annotationSeverity(item);
+              const status = annotationStatus(item);
+              pendingItems.innerHTML =
+                '<div class="annotation-detail">' +
+                  '<button type="button" class="annotation-back" data-back-annotations>← All annotations</button>' +
+                  '<div class="annotation-field">' +
+                    '<label for="annotationLabelInput">Label</label>' +
+                    '<input id="annotationLabelInput" class="annotation-input" value="' + escapeHtml(annotationTitle(item, index)) + '">' +
+                  '</div>' +
+                  '<div class="annotation-field">' +
+                    '<label>Severity</label>' +
+                    '<div class="annotation-segmented" role="group" aria-label="Severity">' +
+                      ['high', 'med', 'low'].map(value =>
+                        '<button type="button" class="' + (severity === value ? 'active' : '') + '" data-set-severity="' + value + '"' +
+                          (severity === value ? ' style="background:' + severityColor(value) + '; color: var(--bg-0);"' : '') + '>' +
+                          escapeHtml(value === 'med' ? 'Med' : value) +
+                        '</button>'
+                      ).join('') +
+                    '</div>' +
+                  '</div>' +
+                  '<div class="annotation-field">' +
+                    '<label for="annotationCommentInput">Comment</label>' +
+                    '<textarea id="annotationCommentInput" class="annotation-textarea">' + escapeHtml(item.comment || '') + '</textarea>' +
+                  '</div>' +
+                  '<div class="annotation-field">' +
+                    '<label>Status</label>' +
+                    '<div class="annotation-segmented" role="group" aria-label="Status">' +
+                      ['open', 'in-progress', 'resolved'].map(value =>
+                        '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '">' +
+                          escapeHtml(statusLabel(value)) +
+                        '</button>'
+                      ).join('') +
+                    '</div>' +
+                  '</div>' +
+                  '<div class="annotation-actions">' +
+                    '<button type="button" class="annotation-danger" data-delete-current>Delete</button>' +
+                    '<button type="button" class="annotation-done" data-back-annotations>Done</button>' +
+                  '</div>' +
+                '</div>';
+              const labelInput = document.getElementById('annotationLabelInput');
+              const commentInput = document.getElementById('annotationCommentInput');
+              labelInput.addEventListener('input', event => {
+                item.label = event.target.value;
+                updateComposerState();
+                renderPreviewOnly();
+              });
+              commentInput.addEventListener('input', event => {
+                item.comment = event.target.value;
+                updateComposerState();
+              });
+              pendingItems.querySelectorAll('[data-set-severity]').forEach(button => {
+                button.addEventListener('click', () => {
+                  item.severity = button.dataset.setSeverity;
+                  renderInspectorRegion();
                 });
+              });
+              pendingItems.querySelectorAll('[data-set-status]').forEach(button => {
+                button.addEventListener('click', () => {
+                  item.status = button.dataset.setStatus;
+                  renderPreviewOnly();
+                  renderInspectorRegion();
+                });
+              });
+              pendingItems.querySelectorAll('[data-back-annotations]').forEach(button => {
+                button.addEventListener('click', () => {
+                  focusedPendingItemIndex = null;
+                  renderPreviewOnly();
+                  renderInspectorRegion();
+                });
+              });
+              pendingItems.querySelector('[data-delete-current]').addEventListener('click', () => {
+                deletePendingFeedbackItem(index);
               });
             }
 
@@ -1750,16 +2057,14 @@ internal object FeedbackConsoleAssets {
               const item = selectedAnnotation();
               inspectorTitle.textContent = item ? 'Annotation' : 'Annotations';
               inspectorCount.textContent = String(pendingFeedbackItems.length);
-              selectionSummary.hidden = Boolean(item);
-              comment.hidden = !item;
-              if (item) {
-                comment.value = item.comment || '';
-              }
+              selectionSummary.hidden = true;
+              comment.hidden = true;
               pendingItems.hidden = false;
               draftItems.hidden = true;
-              clearSelectionButton.hidden = !item;
-              cancelAddFlowButton.hidden = toolMode !== 'annotate';
-              addItemButton.hidden = false;
+              inspectorFooter.hidden = true;
+              clearSelectionButton.hidden = true;
+              cancelAddFlowButton.hidden = true;
+              addItemButton.hidden = true;
               clearDraftButton.hidden = true;
               renderPendingItems();
             }
@@ -1772,6 +2077,7 @@ internal object FeedbackConsoleAssets {
               comment.hidden = true;
               pendingItems.hidden = true;
               draftItems.hidden = false;
+              inspectorFooter.hidden = false;
               clearSelectionButton.hidden = true;
               cancelAddFlowButton.hidden = true;
               addItemButton.hidden = true;

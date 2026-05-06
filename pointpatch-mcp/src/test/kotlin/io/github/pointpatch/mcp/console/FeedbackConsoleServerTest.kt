@@ -120,12 +120,26 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun consoleHtmlKeepsStudioUsableInNarrowBrowser() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("@media (max-width: 899px)"))
+        assertTrue(Regex("\\.studio-body \\{\\s+grid-template-columns: 1fr;").containsMatchIn(html))
+        assertTrue(Regex("\\.studio-history \\{\\s+max-height: 180px;").containsMatchIn(html))
+        assertTrue(Regex("\\.studio-inspector \\{\\s+min-height: 280px;").containsMatchIn(html))
+        assertTrue(Regex("\\.snapshot-stage \\{\\s+min-height: 360px;").containsMatchIn(html))
+        assertFalse(html.contains("Resize to >= 900px wide"))
+        assertFalse(html.contains(".studio-shell::before"))
+    }
+
+    @Test
     fun consoleHtmlUsesModeAwareStudioInspector() {
         val html = FeedbackConsoleAssets.indexHtml
         val pendingRenderer = javascriptFunctionBody(html, "renderPendingItems")
 
         assertTrue(html.contains("function renderComposerInspector"))
         assertTrue(html.contains("function renderDraftInspector"))
+        assertTrue(html.contains("function renderAnnotationDetail"))
         assertTrue(html.contains("inspectorTitle.textContent = item ? 'Annotation' : 'Annotations'"))
         assertTrue(html.contains("inspectorTitle.textContent = 'Draft'"))
         assertTrue(html.contains(".saved-evidence-frame .selection-overlay"))
@@ -133,12 +147,18 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("No annotations yet."))
         assertTrue(html.contains("No saved annotations yet."))
         assertTrue(html.contains("Use <b>Annotate</b>"))
-        assertTrue(pendingRenderer.contains("annotation-row"))
+        assertTrue(pendingRenderer.contains("ann-row"))
+        assertTrue(pendingRenderer.contains("ann-row-num"))
+        assertTrue(pendingRenderer.contains("ann-row-status"))
+        assertTrue(pendingRenderer.contains("Start annotating"))
         assertTrue(pendingRenderer.contains("data-focus-pending"))
-        assertTrue(pendingRenderer.contains("data-delete-pending"))
-        assertFalse(pendingRenderer.contains("Severity"))
-        assertFalse(pendingRenderer.contains("Status"))
-        assertFalse(pendingRenderer.contains("Label field"))
+        assertFalse(pendingRenderer.contains("data-delete-pending"))
+        assertTrue(html.contains("<label for=\"annotationLabelInput\">Label</label>"))
+        assertTrue(html.contains("<label>Severity</label>"))
+        assertTrue(html.contains("<label>Status</label>"))
+        assertTrue(html.contains("data-set-severity"))
+        assertTrue(html.contains("data-set-status"))
+        assertTrue(html.contains("data-delete-current"))
     }
 
     @Test
