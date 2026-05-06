@@ -1,9 +1,6 @@
 package io.beyondwin.fixthis.sample
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -14,7 +11,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
+import io.beyondwin.fixthis.sample.screens.DiagnosticsScreen
+import io.beyondwin.fixthis.sample.screens.HomeScreen
+import io.beyondwin.fixthis.sample.screens.ProjectScreen
+import io.beyondwin.fixthis.sample.screens.QueueScreen
+import io.beyondwin.fixthis.sample.screens.ReviewScreen
 
 enum class FixThisTab(val label: String) {
     Home("Home"),
@@ -44,22 +45,18 @@ fun FixThisStudioApp() {
                 }
             },
         ) { padding ->
-            TemporaryTabContent(selected, padding)
+            FixThisTabContent(selected, padding)
         }
     }
 }
 
 @Composable
-private fun TemporaryTabContent(tab: FixThisTab, padding: PaddingValues) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(padding),
-    ) {
-        Text(
-            text = "FixThis Studio",
-            style = MaterialTheme.typography.headlineSmall,
-        )
-        Text(text = tab.label)
+private fun FixThisTabContent(tab: FixThisTab, padding: PaddingValues) {
+    when (tab) {
+        FixThisTab.Home -> HomeScreen(padding)
+        FixThisTab.Queue -> QueueScreen(padding)
+        FixThisTab.Project -> ProjectScreen(padding)
+        FixThisTab.Review -> ReviewScreen(padding)
+        FixThisTab.Diagnostics -> DiagnosticsScreen(padding)
     }
 }
