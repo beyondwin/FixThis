@@ -508,6 +508,7 @@ class FeedbackConsoleServerTest {
     @Test
     fun consoleHtmlRendersStudioSessionHistoryWithoutInternalIds() {
         val html = FeedbackConsoleAssets.indexHtml
+        val formatSessionLabel = javascriptFunctionBody(html, "formatSessionLabel")
 
         assertTrue(html.contains("function renderSessionsList"))
         assertTrue(html.contains("sessionCount.textContent"))
@@ -529,6 +530,18 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains(".history-list { align-content: start; }"))
         assertTrue(html.contains("class=\"sent-history-drawer\""))
         assertTrue(html.contains("formatSessionSummary(session)"))
+        assertTrue(html.contains("function sessionOrdinalLookup(sessions)"))
+        assertTrue(html.contains("createdAtEpochMillis || 0"))
+        assertTrue(html.contains("ordinalBySessionId.set(session.sessionId, index + 1);"))
+        assertTrue(formatSessionLabel.contains("const safeOrdinal = Math.max(1, Number(ordinal || 1));"))
+        assertTrue(formatSessionLabel.contains("return 'Session ' + safeOrdinal;"))
+        assertFalse(formatSessionLabel.contains("state.session"))
+        assertFalse(formatSessionLabel.contains("latestScreen"))
+        assertFalse(formatSessionLabel.contains("displayName"))
+        assertFalse(formatSessionLabel.contains("packageTail"))
+        assertFalse(formatSessionLabel.contains("Feedback snapshot"))
+        assertTrue(html.contains("const ordinalBySessionId = sessionOrdinalLookup(activeSummaries);"))
+        assertTrue(html.contains("const label = formatSessionLabel(session, ordinalBySessionId.get(session.sessionId) || index + 1);"))
         assertTrue(html.contains(".sent-history-drawer .history-list"))
         assertTrue(html.contains("max-height:"))
         assertTrue(html.contains("overflow: auto"))

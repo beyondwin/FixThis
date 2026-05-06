@@ -1406,13 +1406,22 @@ internal object FeedbackConsoleAssets {
               return String(count) + ' ' + (count === 1 ? singular : plural);
             }
 
-            function formatSessionLabel(session, index) {
-              if (state.session?.sessionId === session.sessionId) {
-                const latestScreen = [...(state.session.screens || [])].sort((left, right) => (right.capturedAtEpochMillis || 0) - (left.capturedAtEpochMillis || 0))[0];
-                if (latestScreen?.displayName) return latestScreen.displayName;
-              }
-              const packageTail = text(session.packageName || '').split('.').filter(Boolean).pop();
-              return (packageTail ? humanize(packageTail) : 'Feedback snapshot') + ' v' + (index + 1);
+            function sessionOrdinalLookup(sessions) {
+              const ordinalBySessionId = new Map();
+              [...(sessions || [])]
+                .sort((left, right) =>
+                  (left.createdAtEpochMillis || 0) - (right.createdAtEpochMillis || 0) ||
+                  String(left.sessionId || '').localeCompare(String(right.sessionId || ''))
+                )
+                .forEach((session, index) => {
+                  ordinalBySessionId.set(session.sessionId, index + 1);
+                });
+              return ordinalBySessionId;
+            }
+
+            function formatSessionLabel(session, ordinal) {
+              const safeOrdinal = Math.max(1, Number(ordinal || 1));
+              return 'Session ' + safeOrdinal;
             }
 
             function formatSessionSummary(session) {
@@ -2628,12 +2637,13 @@ internal object FeedbackConsoleAssets {
               state.sessionSummaries = sessionSummaries;
               const activeId = state.session?.sessionId;
               const activeSummaries = sessionSummaries.filter(session => session.status !== 'ready_for_agent' && session.status !== 'closed');
+              const ordinalBySessionId = sessionOrdinalLookup(activeSummaries);
               sessionCount.textContent = String(activeSummaries.length);
               const renderedSessions = activeSummaries.map((session, index) => {
                 const open = historyOpenCount(session);
                 const done = historyDoneCount(session);
                 const points = historyPointsCount(session);
-                const label = formatSessionLabel(session, index);
+                const label = formatSessionLabel(session, ordinalBySessionId.get(session.sessionId) || index + 1);
                 return '<div class="history-item session-row ' + (session.sessionId === activeId ? 'is-active' : '') + '" role="button" tabindex="0" data-session-id="' + escapeHtml(session.sessionId) + '">' +
                   '<span class="hi-head">' +
                     '<span class="hi-title">' + escapeHtml(label) + '</span>' +
