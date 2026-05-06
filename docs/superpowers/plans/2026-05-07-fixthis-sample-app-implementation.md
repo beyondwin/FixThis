@@ -1302,7 +1302,7 @@ git commit -m "feat: build FixThis Studio sample UI"
 - Modify: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
 - Modify: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt`
 
-- [ ] **Step 1: Move test package directory**
+- [x] **Step 1: Move test package directory**
 
 Run:
 
@@ -1313,7 +1313,7 @@ git mv sample/src/androidTest/java/io/github/pointpatch/sample/SemanticsInspecto
 rmdir sample/src/androidTest/java/io/github/pointpatch/sample || true
 ```
 
-- [ ] **Step 2: Update smoke test**
+- [x] **Step 2: Update smoke test**
 
 Replace `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt` with:
 
@@ -1343,7 +1343,7 @@ class SampleAppSmokeTest {
 }
 ```
 
-- [ ] **Step 3: Update semantics inspector test**
+- [x] **Step 3: Update semantics inspector test**
 
 Replace `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt` with:
 
@@ -1377,7 +1377,7 @@ class SemanticsInspectorSampleAppTest {
 }
 ```
 
-- [ ] **Step 4: Build android tests**
+- [x] **Step 4: Build android tests**
 
 Run:
 
@@ -1387,7 +1387,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 5: Run connected tests when a device is available**
+- [x] **Step 5: Run connected tests when a device is available**
 
 Check devices:
 
@@ -1405,7 +1405,7 @@ Expected: `BUILD SUCCESSFUL`.
 
 If no device is available, record in the implementation final answer: `connectedDebugAndroidTest not run; no emulator/device available`.
 
-- [ ] **Step 6: Commit sample tests**
+- [x] **Step 6: Commit sample tests**
 
 Run:
 
