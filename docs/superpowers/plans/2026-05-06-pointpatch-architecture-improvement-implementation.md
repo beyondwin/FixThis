@@ -1956,7 +1956,7 @@ git commit -m "refactor: split canvas toolbar controls"
 - Create: `docs/adr/0005-overlay-mode-state-machine.md`
 - Create: `.github/pull_request_template.md`
 
-- [ ] **Step 1: Add ADR README**
+- [x] **Step 1: Add ADR README**
 
 ```markdown
 # Architecture Decision Records
@@ -1973,7 +1973,7 @@ Each ADR uses a monotonic numeric prefix, a short kebab-case title, and one stat
 Every ADR must include Context, Decision, Consequences, and Alternatives Considered.
 ```
 
-- [ ] **Step 2: Add ADR template content to each ADR**
+- [x] **Step 2: Add ADR template content to each ADR**
 
 Use this exact structure for each ADR and fill the title and decision sentence from the implemented task:
 
@@ -2003,7 +2003,7 @@ PointPatch now has UI, MCP, CLI, capture, persistence, and Gradle plugin respons
 - Move everything into a new shared module. Rejected because `compose-core` is already pure Kotlin and already depended on by the relevant modules.
 ```
 
-- [ ] **Step 3: Add PR template**
+- [x] **Step 3: Add PR template**
 
 ```markdown
 ## Summary
@@ -2034,7 +2034,7 @@ PointPatch now has UI, MCP, CLI, capture, persistence, and Gradle plugin respons
 ## Verification
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/adr .github/pull_request_template.md
