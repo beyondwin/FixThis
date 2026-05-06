@@ -34,8 +34,8 @@ import io.beyondwin.fixthis.sample.components.SectionHeader
 
 @Composable
 fun ReviewScreen(padding: PaddingValues) {
-    var title by rememberSaveable { mutableStateOf("Increase checkout CTA contrast") }
-    var target by rememberSaveable { mutableStateOf("Checkout / Bottom bar") }
+    var title by rememberSaveable { mutableStateOf("Increase purchase CTA contrast") }
+    var target by rememberSaveable { mutableStateOf("Payment summary / Bottom bar") }
     var token by rememberSaveable { mutableStateOf("agent-context-token") }
     var screenshot by rememberSaveable { mutableStateOf(true) }
     var sendToAgent by rememberSaveable { mutableStateOf(true) }

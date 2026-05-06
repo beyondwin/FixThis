@@ -26,7 +26,7 @@ import io.beyondwin.fixthis.sample.model.FixThisDemoData
 
 @Composable
 fun QueueScreen(padding: PaddingValues) {
-    var searchQuery by rememberSaveable { mutableStateOf("checkout contrast") }
+    var searchQuery by rememberSaveable { mutableStateOf("payment contrast") }
 
     LazyColumn(
         modifier = Modifier

@@ -45,7 +45,7 @@ fun DiagnosticsScreen(padding: PaddingValues) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         SectionHeader("Diagnostics", "Live")
-        Text("Canvas-only sparkline", style = MaterialTheme.typography.titleSmall)
+        Text("Visual-only sparkline", style = MaterialTheme.typography.titleSmall)
         SparklineCanvas()
         Text("Semantic signal timeline", style = MaterialTheme.typography.titleSmall)
         SparklineCanvas(

@@ -89,11 +89,11 @@ fun ProjectScreen(padding: PaddingValues) {
                 ) {
                     Text("Reproduction note", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        text = "Open checkout from a saved cart, increase system font scale, then compare the primary action against the summary panel. The target remains tappable, but the visual weight makes it easy to miss during review and handoff.",
+                        text = "Open payment summary from a saved cart, increase system font scale, then compare the primary action against the summary panel. The target remains tappable, but the visual weight makes it easy to miss during review and handoff.",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Text(
-                        text = "Agent handoff: adjust checkout CTA contrast and verify source candidates.",
+                        text = "Agent handoff: adjust purchase CTA contrast and verify source candidates.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium,
                     )

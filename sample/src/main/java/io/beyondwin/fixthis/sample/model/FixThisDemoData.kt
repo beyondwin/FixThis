@@ -56,8 +56,8 @@ object FixThisDemoData {
     val feedbackItems = listOf(
         FeedbackItem(
             id = "FX-1042",
-            title = "Primary checkout action blends into the summary panel",
-            screenName = "Checkout",
+            title = "Primary purchase action blends into the summary panel",
+            screenName = "Payment summary",
             severity = FeedbackSeverity.Critical,
             state = FeedbackState.New,
             assignee = "Mina",
@@ -76,7 +76,7 @@ object FixThisDemoData {
         ),
         FeedbackItem(
             id = "FX-1029",
-            title = "Dialog copy is too terse for destructive close action",
+            title = "Close confirmation copy is too terse for destructive action",
             screenName = "Project detail",
             severity = FeedbackSeverity.Medium,
             state = FeedbackState.InReview,
@@ -86,7 +86,7 @@ object FixThisDemoData {
         ),
         FeedbackItem(
             id = "FX-1017",
-            title = "Canvas health chart has no meaningful target for visual feedback",
+            title = "Health chart has no meaningful target for visual feedback",
             screenName = "Diagnostics",
             severity = FeedbackSeverity.Low,
             state = FeedbackState.Blocked,
@@ -97,9 +97,9 @@ object FixThisDemoData {
     )
 
     val activity = listOf(
-        ActivityEvent("Mina assigned FX-1042", "Checkout contrast feedback moved to priority queue.", "Now"),
+        ActivityEvent("Mina assigned FX-1042", "Payment contrast feedback moved to priority queue.", "Now"),
         ActivityEvent("Agent draft prepared", "Review request includes screenshot context and source hints.", "18 min"),
-        ActivityEvent("Sam reopened FX-1029", "Dialog confirmation copy needs one more pass.", "1 hr"),
+        ActivityEvent("Sam reopened FX-1029", "Close confirmation copy needs one more pass.", "1 hr"),
     )
 
     val diagnostics = listOf(
