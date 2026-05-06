@@ -181,9 +181,9 @@ pointpatch-compose/
   README.md
   LICENSE
   docs/
-    prd.md
-    decisions.md
-    technical-design.md
+    pointpatch_prd.md
+    pointpatch_decisions.md
+    pointpatch_technical_design.md
     output-schema.md
     privacy.md
     troubleshooting.md
@@ -191,16 +191,16 @@ pointpatch-compose/
 
   pointpatch-compose-core/
     build.gradle.kts
-    src/main/java/io/github/pointpatch/compose/core/...
+    src/main/kotlin/io/github/pointpatch/compose/core/...
 
   pointpatch-compose-overlay/
     build.gradle.kts
-    src/main/java/io/github/pointpatch/compose/overlay/...
+    src/main/kotlin/io/github/pointpatch/compose/overlay/...
 
   pointpatch-compose-sidekick/
     build.gradle.kts
     src/main/AndroidManifest.xml
-    src/main/java/io/github/pointpatch/compose/sidekick/...
+    src/main/kotlin/io/github/pointpatch/compose/sidekick/...
 
   pointpatch-gradle-plugin/
     build.gradle.kts
@@ -228,25 +228,33 @@ pointpatch-compose/
 역할:
 
 - 공통 데이터 모델
-- semantics node mapping
+- pure domain models and repository contracts
+- annotation/snapshot/session use cases
 - node selection algorithm
 - nearby node collection
-- annotation model
+- legacy annotation export model
 - Markdown/JSON formatter
 - source candidate matching
 - redaction policy
 
-Android dependency는 최소화한다. 가능한 pure Kotlin으로 유지한다.
+Pure Kotlin module로 유지한다. MCP, CLI, Android UI, `.pointpatch` persistence layout을 알지 않는다.
 
 주요 package:
 
 ```text
+io.github.pointpatch.compose.core.domain.annotation
+io.github.pointpatch.compose.core.domain.snapshot
+io.github.pointpatch.compose.core.domain.session
+io.github.pointpatch.compose.core.usecase.annotation
+io.github.pointpatch.compose.core.usecase.snapshot
 io.github.pointpatch.compose.core.model
 io.github.pointpatch.compose.core.selection
 io.github.pointpatch.compose.core.format
 io.github.pointpatch.compose.core.source
 io.github.pointpatch.compose.core.redaction
 ```
+
+MCP/session DTOs translate into these domain models through explicit mapper code in `pointpatch-mcp`; persisted JSON field names are not owned by this module.
 
 ### 3.1.1 Current repository layout
 
@@ -272,21 +280,26 @@ project(":app").projectDir = file("sample")
 - copy/share buttons
 - settings/connect UI
 - Compose feedback console Studio shell
+- Studio theme tokens, split canvas components, and toolbar controls
 
 Compose UI module이다.
 
 주요 package:
 
 ```text
-io.github.pointpatch.compose.overlay.ui
-io.github.pointpatch.compose.overlay.state
-io.github.pointpatch.compose.overlay.theme
+io.github.pointpatch.compose.overlay
 io.github.pointpatch.compose.console.studio
+io.github.pointpatch.compose.console.studio.canvas
+io.github.pointpatch.compose.console.studio.canvas.toolbar
+io.github.pointpatch.compose.console.studio.common
+io.github.pointpatch.compose.console.studio.theme
 ```
 
 `io.github.pointpatch.compose.console.studio.FeedbackConsoleScreen` is the public Compose entrypoint for the Option A Studio shell. It provides a dark Studio workspace with history, canvas, Inspector, and ViewModel-owned state. The entrypoint accepts optional `ScreenshotInfo` full-preview input through `previewScreenshot`; when it is null, the shell uses mock preview data so the surface remains usable in test and mock-hosted compositions. When a full preview screenshot is decoded, annotation moves to region-only mode instead of widget snapping.
 
 This Compose Studio shell coexists with the existing MCP browser HTML console. It does not replace `FeedbackConsoleAssets.kt` or the browser-console flow served by the MCP/CLI process.
+
+The in-app overlay mode transitions go through `OverlayStateMachine`, which keeps idle/menu/select/loading/review/comment/export/error transitions explicit and unit-testable.
 
 ### 3.3 `pointpatch-compose-sidekick`
 
@@ -343,7 +356,7 @@ io.github.pointpatch.gradle.source
 - `pointpatch doctor`
 - `pointpatch mcp`
 
-Kotlin/JVM CLI로 구현한다. `pointpatch-mcp` module을 포함하거나 dependency로 둔다.
+Kotlin/JVM CLI로 구현한다. `pointpatch mcp`와 `pointpatch console`은 sibling distribution 또는 `PATH`에서 `pointpatch-mcp` executable을 찾아 실행한다.
 
 ### 3.6 `pointpatch-mcp`
 
@@ -356,8 +369,11 @@ Kotlin/JVM CLI로 구현한다. `pointpatch-mcp` module을 포함하거나 depen
 - local feedback console server
 - feedback session store and `.pointpatch/feedback-sessions/` persistence
 - draft/sent handoff queue formatting for agents
+- session DTO/domain mappers that preserve existing JSON field names while mapping to `compose-core` domain models
+- transient preview cache, source-index registry, and screenshot artifact promotion helpers
+- browser console assets loaded from `src/main/resources/console`
 
-초기 버전은 MCP SDK에 강하게 의존하지 않고 JSON-RPC를 직접 구현할 수 있다. 단, protocol compatibility test를 둔다. MCP prompts endpoints와 prompts capability는 V1 surface가 아니며 future extension으로 둔다.
+초기 버전은 MCP SDK에 강하게 의존하지 않고 JSON-RPC를 직접 구현할 수 있다. 단, protocol compatibility test를 둔다. MCP prompts endpoints와 prompts capability는 V1 surface가 아니며 future extension으로 둔다. Existing MCP JSON field names are compatibility contracts; domain naming changes must stay behind mapper boundaries.
 
 ---
 
@@ -2578,7 +2594,7 @@ MCP server가 arbitrary shell command를 실행하지 않도록 한다.
 다음 프롬프트를 Codex에 줄 수 있다.
 
 ```text
-Implement PointPatch for Android Compose according to docs/technical-design.md.
+Implement PointPatch for Android Compose according to docs/pointpatch_technical_design.md.
 
 Build modules:
 - pointpatch-compose-core

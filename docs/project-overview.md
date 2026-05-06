@@ -20,7 +20,7 @@ PointPatch는 Jetpack Compose debug 앱에 sidekick 런타임을 붙여 현재 U
 
 ```text
 :app                         sample/ validation app
-:pointpatch-compose-core     pure Kotlin data model, selection, formatter, source matching
+:pointpatch-compose-core     pure Kotlin domain contracts, use cases, models, selection, formatter, source matching
 :pointpatch-compose-overlay  Compose overlay UI and public Studio shell
 :pointpatch-compose-sidekick debug runtime installed into target app
 :pointpatch-gradle-plugin    debug dependency injection and source-index asset generation
@@ -32,12 +32,16 @@ PointPatch는 Jetpack Compose debug 앱에 sidekick 런타임을 붙여 현재 U
 
 Pure Kotlin 모듈이다. Android 런타임에 직접 묶이지 않는 공통 계약을 둔다.
 
+- `domain/annotation`, `domain/snapshot`, `domain/session`: `Annotation`, `Snapshot`, `Session`, typed IDs, repository contracts, delivery/status/target concepts.
+- `usecase/annotation/CreateAnnotationUseCase.kt`, `usecase/snapshot/SaveSnapshotUseCase.kt`: pure application use cases over the domain repository contracts.
 - `model/Models.kt`: `PointPatchAnnotation`, `PointPatchNode`, `SelectionInfo`, `SourceCandidate`, `ScreenshotInfo` 등 export schema의 중심 모델.
 - `selection/NodeSelector.kt`: tap 좌표에 들어온 semantics node를 점수화한다. click action, 의미 있는 text/contentDescription/role/testTag, merged tree 여부, center proximity, root-like penalty를 반영한다.
 - `selection/NearbyNodeCollector.kt`: 선택 node 주변의 의미 있는 node를 중복 제거해 context로 모은다.
 - `source/SourceIndex.kt`, `source/SourceMatcher.kt`: Gradle plugin이 만든 source index와 semantics 증거를 매칭한다.
 - `format/PointPatchMarkdownFormatter.kt`, `format/PointPatchJsonFormatter.kt`: annotation을 agent-facing Markdown 또는 JSON으로 변환한다.
 - `redaction/RedactionPolicy.kt`: editable/password semantics text redaction 기본 정책.
+
+Boundary invariant: `:pointpatch-compose-core` does not know about MCP, CLI, Android UI surfaces, or `.pointpatch` file layout. Outer modules translate their DTOs, persistence, bridge, and presentation state into core domain contracts explicitly.
 
 ### `:pointpatch-compose-overlay`
 
@@ -46,6 +50,8 @@ Compose UI 모듈이다. 두 갈래 UI가 들어 있다.
 - `compose/overlay/*`: in-app toolbar, selection highlight, comment sheet 등 legacy single-capture overlay.
 - `compose/console/studio/*`: public `FeedbackConsoleScreen`과 Studio-style 3-column console shell. 현재 MCP browser console은 별도 HTML asset을 사용하지만, public Compose entrypoint도 이 모듈에 있다.
 - `StudioViewModel`: Studio shell의 local snapshot/annotation state와 annotation drag/select/save 동작을 관리한다.
+- `compose/overlay/OverlayStateMachine.kt`: in-app overlay mode 전이를 검증한다.
+- `compose/console/studio/theme/*`, `common/*`, `canvas/*`, `canvas/toolbar/*`: Studio theme tokens, common controls, preview canvas, toolbar subcomponents를 분리해 둔다.
 
 ### `:pointpatch-compose-sidekick`
 
@@ -112,10 +118,13 @@ MCP stdio server와 local feedback console 서버다.
 
 - `McpProtocol`: JSON-RPC initialize/tools/resources/ping/cancellation 처리.
 - `tools/PointPatchTools.kt`: MCP tool/resource registry와 CLI bridge adapter.
-- `session/FeedbackSessionService.kt`: session open/resume, preview capture, persisted screen capture, navigation, feedback item 저장, handoff, resolve 처리.
+- `session/FeedbackSessionService.kt`: session workflow orchestration. Session open/resume, preview capture, persisted evidence capture, navigation, annotation 저장, handoff, resolve를 조율한다.
+- `session/SessionDtoModels.kt`, `console/AnnotationRequestModels.kt`: MCP/local-console DTO와 persisted JSON field names. Existing field names such as `items`, `screens`, `itemId`, and `screenId` are compatibility contracts.
+- `session/SessionDomainMappers.kt`: DTO와 `compose-core` domain model 사이의 명시적 mapper. Legacy `"ready"` item status는 domain에서 `AnnotationStatus.OPEN`으로 normalize된다.
+- `session/PreviewSnapshotCache.kt`, `SourceIndexRegistry.kt`, `ScreenshotArtifactPromoter.kt`: transient preview cache, source-index caching, frozen preview screenshot promotion을 service에서 분리한다.
 - `session/FeedbackSessionStore.kt`, `FeedbackSessionPersistence.kt`: `.pointpatch/feedback-sessions/<session-id>/session.json` persistence.
 - `console/FeedbackConsoleServer.kt`: `127.0.0.1` HTTP console과 `/api/*` endpoints.
-- `console/FeedbackConsoleAssets.kt`: browser console HTML asset.
+- `console/FeedbackConsoleAssets.kt`: `src/main/resources/console/index.html`, `styles.css`, `app.js` classpath resources를 검증하고 조립하는 loader.
 
 MCP tools:
 
@@ -233,6 +242,8 @@ Run local unit tests:
 
 ```bash
 ./gradlew test
+./gradlew :pointpatch-gradle-plugin:test
+./gradlew :pointpatch-compose-overlay:testDebugUnitTest :pointpatch-compose-sidekick:testDebugUnitTest
 ```
 
 Android instrumentation tests require a connected emulator/device:
@@ -251,7 +262,10 @@ Android instrumentation tests require a connected emulator/device:
 4. [Output schema](output-schema.md): annotation/session JSON field.
 5. [Privacy](privacy.md): local-first, redaction, screenshot 주의사항.
 6. [Troubleshooting](troubleshooting.md): ADB/sidekick/MCP 실패 진단.
-7. [Technical design](pointpatch_technical_design.md): 더 긴 설계 배경과 결정 근거.
+7. [Technical design](pointpatch_technical_design.md): 더 긴 설계 배경과 module-by-module 설계.
+8. [Architecture Decision Records](adr/README.md): 현재 코드에서 지켜야 하는 durable architecture decisions.
+
+`docs/superpowers/plans/`와 `docs/superpowers/specs/`는 implementation history와 작업 지시 기록이다. 현재 architecture source of truth는 위 current-facing 문서와 ADR을 우선한다.
 
 ## 자주 헷갈리는 지점
 
@@ -262,3 +276,4 @@ Android instrumentation tests require a connected emulator/device:
 - source candidates는 정확한 compiler mapping이 아니라 source index text/symbol 기반 ranking이다.
 - semantics redaction은 screenshot pixel redaction이 아니다.
 - feedback console의 `Add`는 freeze만 하고 저장하지 않는다. `Save`가 persisted evidence snapshot을 만든다.
+- persisted MCP JSON field names는 compatibility contract다. Domain model naming과 다를 수 있으므로 mapper boundary에서 확인한다.

@@ -1,6 +1,6 @@
 # PointPatch Feedback Console — Claude Design System 리디자인 브리프
 
-> **대상 코드**: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt` (단일 파일에 HTML/CSS/JS 임베드, 약 1,233 lines)
+> **대상 코드**: `pointpatch-mcp/src/main/resources/console/{index.html,styles.css,app.js}`와 `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
 > **문서 버전**: 2026-05-05
 > **작성 기준**: Claude Design System (dark/light, amber #D4A843 primary, 4/8/12/16/24/32 spacing)
 
@@ -9,7 +9,10 @@
 > `README.md`, `docs/mcp.md`다. 2026-05-06 Studio 구현은 dark 3-column
 > workspace, mode-aware Inspector, live-preview 렌더 분리, evidence card 표시를
 > 반영했지만, `Refresh | Add | Save | Copy | Send | New | Close`는 제품 계약에
-> 따라 top bar의 짧은 session-level action으로 유지한다.
+> 따라 top bar의 짧은 session-level action으로 유지한다. 아래 분석에서 "단일
+> Kotlin raw string" 또는 `FeedbackConsoleAssets.kt` 내 embedded HTML/CSS/JS를
+> 언급하는 대목은 2026-05-06 resource split 전 상태를 설명하는 historical
+> observation이다.
 
 ---
 

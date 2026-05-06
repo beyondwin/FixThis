@@ -971,8 +971,9 @@ includeRawProperties = false
 
 ```text
 pointpatch-compose-core
-  - data models
-  - semantics inspector
+  - pure domain models and repository contracts
+  - annotation/snapshot/session use cases
+  - legacy annotation export models
   - node selector
   - formatter
   - source matcher
@@ -989,6 +990,8 @@ pointpatch-compose-overlay
   - selection layer
   - highlight
   - comment sheet
+  - public Compose Studio shell
+  - Studio theme/canvas/toolbar components
 
 pointpatch-gradle-plugin
   - debug dependency injection
@@ -1006,6 +1009,8 @@ pointpatch-mcp
   - stdio MCP server
   - tool/resource definitions
   - bridge to Android sidekick
+  - local feedback console server
+  - feedback session DTOs, persistence, mapper boundaries
 
 sample
   - sample Android Compose app
