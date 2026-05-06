@@ -1422,7 +1422,7 @@ git commit -m "test: update FixThis sample tests"
 - Inspect and selectively modify: `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/source/SourceMatcherTest.kt`
 - Inspect and selectively modify: `pointpatch-gradle-plugin/src/test/kotlin/io/github/pointpatch/gradle/GeneratePointPatchSourceIndexTaskTest.kt`
 
-- [ ] **Step 1: Update README sample package command**
+- [x] **Step 1: Update README sample package command**
 
 Change the smoke command in `README.md` from:
 
@@ -1438,7 +1438,7 @@ pointpatch-cli/build/install/pointpatch/bin/pointpatch run --package io.beyondwi
 
 Keep the repo/module wording as `PointPatch` and `:app`.
 
-- [ ] **Step 2: Audit package references**
+- [x] **Step 2: Audit package references**
 
 Run:
 
@@ -1451,7 +1451,7 @@ Expected: results fall into two groups:
 - update sample app references and source matcher fixtures tied to actual sample paths
 - leave generic unit fixtures that intentionally use arbitrary package names
 
-- [ ] **Step 3: Update source matcher fixture paths tied to sample source**
+- [x] **Step 3: Update source matcher fixture paths tied to sample source**
 
 In `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/source/SourceMatcherTest.kt`, update package/path examples that are meant to represent current sample source:
 
@@ -1468,7 +1468,7 @@ activityName = "io.beyondwin.fixthis.sample.MainActivity"
 
 Do not bulk-rewrite every `io.github.pointpatch.sample` fixture across MCP/sidekick tests unless the test explicitly claims to model the real sample app path.
 
-- [ ] **Step 4: Update Gradle plugin source index test only if it asserts old sample app text**
+- [x] **Step 4: Update Gradle plugin source index test only if it asserts old sample app text**
 
 In `pointpatch-gradle-plugin/src/test/kotlin/io/github/pointpatch/gradle/GeneratePointPatchSourceIndexTaskTest.kt`, keep synthetic package names if the test creates its own fake files. Update only assertions that expect the app resource text `PointPatch Sample`; use:
 
@@ -1484,7 +1484,7 @@ assertTrue(textValues.contains("FixThis"))
 
 If the test remains synthetic and not tied to the real sample package, do not rename its package declarations just for branding.
 
-- [ ] **Step 5: Run unit tests affected by fixture updates**
+- [x] **Step 5: Run unit tests affected by fixture updates**
 
 Run:
 
@@ -1494,7 +1494,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 6: Commit docs and fixture updates**
+- [x] **Step 6: Commit docs and fixture updates**
 
 Run:
 
