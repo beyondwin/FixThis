@@ -9,15 +9,14 @@ kotlin {
 }
 
 application {
-    mainClass.set("io.github.pointpatch.mcp.McpServerKt")
-    applicationName = "pointpatch-mcp"
+    mainClass.set("io.beyondwin.fixthis.cli.MainKt")
+    applicationName = "fixthis"
 }
 
 dependencies {
-    implementation(project(":pointpatch-cli"))
-    implementation(project(":pointpatch-compose-core"))
+    implementation(project(":fixthis-compose-core"))
+    implementation(libs.clikt)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)
-    testImplementation(kotlin("test-junit"))
     testImplementation(libs.junit)
 }

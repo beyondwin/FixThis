@@ -23,8 +23,8 @@ android {
 }
 
 dependencies {
-    implementation(project(":pointpatch-compose-core"))
-    implementation(project(":pointpatch-compose-overlay"))
+    implementation(project(":fixthis-compose-core"))
+    implementation(project(":fixthis-compose-overlay"))
     implementation(platform(libs.compose.bom))
     implementation(libs.androidx.startup)
     implementation(libs.compose.ui)

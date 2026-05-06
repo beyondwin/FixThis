@@ -19,4 +19,4 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "pointpatch-gradle-plugin-build"
+rootProject.name = "fixthis-gradle-plugin-build"

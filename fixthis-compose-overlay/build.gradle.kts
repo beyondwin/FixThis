@@ -18,7 +18,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":pointpatch-compose-core"))
+    implementation(project(":fixthis-compose-core"))
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.foundation)

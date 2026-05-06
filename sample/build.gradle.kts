@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    id("io.github.pointpatch.compose")
+    id("io.beyondwin.fixthis.compose")
 }
 
 android {
@@ -33,7 +33,7 @@ dependencies {
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.espresso.core)
-    androidTestImplementation(project(":pointpatch-compose-core"))
+    androidTestImplementation(project(":fixthis-compose-core"))
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test.junit4)
     debugImplementation(libs.compose.ui.test.manifest)

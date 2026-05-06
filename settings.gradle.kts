@@ -1,6 +1,6 @@
 pluginManagement {
-    includeBuild("pointpatch-gradle-plugin") {
-        name = "pointpatch-gradle-plugin"
+    includeBuild("fixthis-gradle-plugin") {
+        name = "fixthis-gradle-plugin"
     }
 
     repositories {
@@ -18,12 +18,12 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "PointPatch"
+rootProject.name = "FixThis"
 
 include(":app")
 project(":app").projectDir = file("sample")
-include(":pointpatch-compose-core")
-include(":pointpatch-compose-overlay")
-include(":pointpatch-compose-sidekick")
-include(":pointpatch-cli")
-include(":pointpatch-mcp")
+include(":fixthis-compose-core")
+include(":fixthis-compose-overlay")
+include(":fixthis-compose-sidekick")
+include(":fixthis-cli")
+include(":fixthis-mcp")

@@ -10,8 +10,8 @@ kotlin {
 
 gradlePlugin {
     plugins {
-        create("pointPatchCompose") {
-            id = "io.github.pointpatch.compose"
+        create("fixThisCompose") {
+            id = "io.beyondwin.fixthis.compose"
             implementationClass = "io.github.pointpatch.gradle.PointPatchGradlePlugin"
         }
     }
