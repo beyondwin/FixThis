@@ -308,6 +308,7 @@ internal object FeedbackConsoleAssets {
               display: grid;
               gap: 6px;
             }
+            .history-list { align-content: start; }
             .history-list,
             .inspector-body {
               overflow: auto;
@@ -341,6 +342,108 @@ internal object FeedbackConsoleAssets {
               max-height: 160px;
               overflow: auto;
               padding: 0;
+            }
+            .history-item {
+              display: grid;
+              gap: 0;
+              width: 100%;
+              border: 1px solid transparent;
+              border-radius: 8px;
+              padding: 12px;
+              background: transparent;
+              text-align: left;
+              transition: background 120ms ease, border-color 120ms ease;
+            }
+            .history-item:hover,
+            .history-item.is-active {
+              background: var(--bg-2);
+            }
+            .history-item.is-active {
+              border-color: var(--line);
+              box-shadow: inset 2px 0 0 var(--accent);
+            }
+            .hi-head {
+              display: flex;
+              align-items: flex-start;
+              justify-content: space-between;
+              gap: 10px;
+            }
+            .hi-title {
+              color: var(--txt-0);
+              font-size: 13px;
+              font-weight: 700;
+              line-height: 1.25;
+            }
+            .hi-del {
+              width: 20px;
+              min-width: 20px;
+              height: 20px;
+              min-height: 20px;
+              border: 0;
+              border-radius: 4px;
+              padding: 0;
+              background: transparent;
+              color: var(--txt-2);
+              font-size: 16px;
+              line-height: 1;
+              opacity: 0;
+              transition: background 120ms ease, color 120ms ease, opacity 120ms ease;
+            }
+            .history-item:hover .hi-del { opacity: 1; }
+            .hi-del:hover { background: var(--bg-3); color: var(--danger); }
+            .hi-meta {
+              margin-top: 2px;
+              color: var(--txt-2);
+              font-size: 11px;
+            }
+            .hi-stats {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 10px;
+              margin-top: 8px;
+            }
+            .hi-pip {
+              display: inline-flex;
+              align-items: center;
+              gap: 5px;
+              color: var(--txt-1);
+              font-size: 11px;
+              font-variant-numeric: tabular-nums;
+            }
+            .hi-pip::before {
+              content: '';
+              width: 9px;
+              height: 9px;
+              border-radius: 999px;
+              background: var(--warning);
+              box-shadow: 0 0 0 3px rgba(230, 180, 90, .18);
+            }
+            .hi-pip.done::before {
+              background: #6fcf97;
+              box-shadow: 0 0 0 3px rgba(111, 207, 151, .18);
+            }
+            .hi-pip.points::before {
+              background: #5bb4e8;
+              box-shadow: 0 0 0 3px rgba(91, 180, 232, .14);
+            }
+            .hi-strip {
+              display: flex;
+              gap: 2px;
+              margin-top: 8px;
+            }
+            .hi-strip-cell {
+              flex: 1;
+              height: 4px;
+              border-radius: 2px;
+              background: var(--warning);
+            }
+            .hi-strip-cell.done {
+              background: #6fcf97;
+              opacity: .35;
+            }
+            .hi-strip-cell.empty {
+              background: var(--line);
+              opacity: .8;
             }
             .row {
               border: 1px solid var(--line);
@@ -1156,11 +1259,21 @@ internal object FeedbackConsoleAssets {
               return new Date(epochMillis).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             }
 
+            function formatHistoryDate(epochMillis) {
+              if (!epochMillis) return '-';
+              const date = new Date(epochMillis);
+              const day = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+              const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+              return day + ' · ' + time;
+            }
+
             function humanize(value) {
               const normalized = text(value);
               if (normalized === '-') return normalized;
               return normalized
                 .split('_')
+                .join(' ')
+                .split('.')
                 .filter(Boolean)
                 .map(part => part.charAt(0).toUpperCase() + part.slice(1))
                 .join(' ');
@@ -1171,16 +1284,39 @@ internal object FeedbackConsoleAssets {
             }
 
             function formatSessionLabel(session, index) {
-              return humanize(session.status || 'active');
+              if (state.session?.sessionId === session.sessionId) {
+                const latestScreen = [...(state.session.screens || [])].sort((left, right) => (right.capturedAtEpochMillis || 0) - (left.capturedAtEpochMillis || 0))[0];
+                if (latestScreen?.displayName) return latestScreen.displayName;
+              }
+              const packageTail = text(session.packageName || '').split('.').filter(Boolean).pop();
+              return (packageTail ? humanize(packageTail) : 'Feedback snapshot') + ' v' + (index + 1);
             }
 
             function formatSessionSummary(session) {
+              return 'You · ' + formatHistoryDate(session.updatedAtEpochMillis);
+            }
+
+            function historyOpenCount(session) {
+              return session.unresolvedItemsCount || 0;
+            }
+
+            function historyDoneCount(session) {
+              return Math.max(0, (session.itemsCount || 0) - historyOpenCount(session));
+            }
+
+            function historyPointsCount(session) {
+              return session.itemsCount || 0;
+            }
+
+            function renderHistoryStrip(session) {
+              const open = historyOpenCount(session);
+              const done = historyDoneCount(session);
+              const total = historyPointsCount(session);
+              if (!total) return '<span class="hi-strip-cell empty"></span>';
               return [
-                humanize(session.status || 'active'),
-                countLabel(session.draftItemsCount || 0, 'draft', 'draft'),
-                countLabel(session.sentBatchesCount || 0, 'sent', 'sent'),
-                'updated ' + formatTime(session.updatedAtEpochMillis)
-              ].join(' | ');
+                ...Array.from({ length: open }, () => '<span class="hi-strip-cell"></span>'),
+                ...Array.from({ length: done }, () => '<span class="hi-strip-cell done"></span>')
+              ].join('');
             }
 
             function formatSessionHeader(session, itemCount) {
@@ -2040,12 +2176,24 @@ internal object FeedbackConsoleAssets {
             function renderSessionsListFromPayload(sessionSummaries) {
               const activeId = state.session?.sessionId;
               sessionCount.textContent = String(sessionSummaries.length);
-              sessions.innerHTML = sessionSummaries.map((session, index) =>
-                '<button class="row session-row ' + (session.sessionId === activeId ? 'active' : '') + '" data-session-id="' + escapeHtml(session.sessionId) + '">' +
-                  '<strong>' + escapeHtml(formatSessionLabel(session, index)) + '</strong>' +
-                  '<span>' + escapeHtml(formatSessionSummary(session)) + '</span>' +
-                '</button>'
-              ).join('') || '<div class="row"><span>No saved sessions.</span></div>';
+              sessions.innerHTML = sessionSummaries.map((session, index) => {
+                const open = historyOpenCount(session);
+                const done = historyDoneCount(session);
+                const points = historyPointsCount(session);
+                return '<button class="history-item session-row ' + (session.sessionId === activeId ? 'is-active' : '') + '" data-session-id="' + escapeHtml(session.sessionId) + '">' +
+                  '<span class="hi-head">' +
+                    '<span class="hi-title">' + escapeHtml(formatSessionLabel(session, index)) + '</span>' +
+                    '<span class="hi-del" aria-hidden="true">×</span>' +
+                  '</span>' +
+                  '<span class="hi-meta">' + escapeHtml(formatSessionSummary(session)) + '</span>' +
+                  '<span class="hi-stats">' +
+                    '<span class="hi-pip open">' + escapeHtml(countLabel(open, 'open', 'open')) + '</span>' +
+                    '<span class="hi-pip done">' + escapeHtml(countLabel(done, 'done', 'done')) + '</span>' +
+                    '<span class="hi-pip points">' + escapeHtml(countLabel(points, 'pt', 'pts')) + '</span>' +
+                  '</span>' +
+                  '<span class="hi-strip">' + renderHistoryStrip(session) + '</span>' +
+                '</button>';
+              }).join('') || '<div class="empty-state"><div class="empty-title">No saved sessions.</div></div>';
               document.querySelectorAll('.session-row').forEach(row => {
                 row.addEventListener('click', () => openSession(row.dataset.sessionId).catch(showError));
               });
@@ -2054,7 +2202,7 @@ internal object FeedbackConsoleAssets {
             function renderSessionsList() {
               const activeId = state.session?.sessionId;
               document.querySelectorAll('.session-row').forEach(row => {
-                row.classList.toggle('active', row.dataset.sessionId === activeId);
+                row.classList.toggle('is-active', row.dataset.sessionId === activeId);
               });
             }
 
