@@ -118,7 +118,7 @@ Feedback console sessions are resumable. PointPatch saves feedback workspace met
 
 ## Local Artifacts
 
-Legacy annotation screenshot pulls write desktop-readable files under `.pointpatch/artifacts/`. Feedback console sessions write workspace metadata and session-owned screenshots under `.pointpatch/feedback-sessions/`. These are local debug artifacts and are ignored by git. Keep `.pointpatch/project.json` trackable if you intentionally generate project metadata for package discovery.
+Legacy annotation screenshot pulls write desktop-readable files under `.pointpatch/artifacts/`. Feedback console sessions write workspace metadata and session-owned screenshots under `.pointpatch/feedback-sessions/`. These are local debug artifacts and are ignored by git. The current `.gitignore` ignores `.pointpatch` as a whole; if your team wants to share `.pointpatch/project.json` for package discovery, add an explicit unignore rule for that file.
 
 ## Privacy Notes
 
@@ -126,6 +126,7 @@ PointPatch is local-first. The Android app sidekick is debug-only and intended f
 
 More detail:
 
+- [Project overview](docs/project-overview.md)
 - [Product requirements](docs/pointpatch_prd.md)
 - [Technical design](docs/pointpatch_technical_design.md)
 - [Decisions](docs/pointpatch_decisions.md)
