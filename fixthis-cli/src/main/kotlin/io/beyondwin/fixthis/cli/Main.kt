@@ -25,7 +25,15 @@ fun main(args: Array<String>) {
     try {
         command.parse(args)
     } catch (error: CliktError) {
-        error.message?.takeIf { it.isNotBlank() }?.let { System.err.println(it) }
+        command.getFormattedHelp(error)
+            ?.takeIf { it.isNotBlank() }
+            ?.let { message ->
+                if (error.printError) {
+                    System.err.println(message)
+                } else {
+                    System.out.println(message)
+                }
+            }
         exitProcess(error.statusCode)
     }
 }

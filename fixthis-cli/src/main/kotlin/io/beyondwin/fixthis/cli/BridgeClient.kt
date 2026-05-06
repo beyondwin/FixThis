@@ -310,14 +310,14 @@ class BridgeClient(
             )
         }.getOrElse { error ->
             throw BridgeConnectionException(
-                "Could not read sidekick session via adb shell run-as $packageName cat $SessionPath: ${error.message}",
+                "Could not read FixThis bridge session via adb shell run-as $packageName cat $SessionPath: ${error.message}",
             )
         }
 
     private fun validateProtocol(protocolVersion: String) {
         if (protocolVersion != BridgeProtocolVersion) {
             throw BridgeProtocolException(
-                "Sidekick protocol $protocolVersion is incompatible with CLI protocol $BridgeProtocolVersion",
+                "FixThis bridge protocol $protocolVersion is incompatible with CLI protocol $BridgeProtocolVersion",
             )
         }
     }

@@ -317,6 +317,33 @@ class BridgeClientTest {
         }.exceptionOrNull()
 
         assertTrue(error is BridgeProtocolException)
+        assertEquals("FixThis bridge protocol 2.0 is incompatible with CLI protocol 1.0", error?.message)
+        assertEquals(emptyList<Pair<Int, String>>(), adb.forwarded)
+        assertEquals(emptyList<Int>(), adb.removedForwards)
+    }
+
+    @Test
+    fun reportsFixThisBridgeSessionReadFailure() = runBlocking {
+        val adb = FakeAdbFacade(sessionJson = "not-json")
+        val client = BridgeClient(
+            adb = adb,
+            projectRoot = temporaryFolder.newFolder(),
+            portAllocator = { 34567 },
+            socketConnector = { error("socket should not be opened") },
+        )
+
+        val error = kotlin.runCatching {
+            client.request("io.beyondwin.fixthis.sample", "status")
+        }.exceptionOrNull()
+
+        assertTrue(error is BridgeConnectionException)
+        assertTrue(
+            error?.message.orEmpty(),
+            error?.message.orEmpty().startsWith(
+                "Could not read FixThis bridge session via adb shell run-as " +
+                    "io.beyondwin.fixthis.sample cat files/fixthis/session.json:",
+            ),
+        )
         assertEquals(emptyList<Pair<Int, String>>(), adb.forwarded)
         assertEquals(emptyList<Int>(), adb.removedForwards)
     }
