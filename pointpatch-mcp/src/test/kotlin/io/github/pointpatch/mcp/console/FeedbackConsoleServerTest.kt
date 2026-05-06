@@ -82,8 +82,6 @@ class FeedbackConsoleServerTest {
         val html = FeedbackConsoleAssets.indexHtml
 
         assertTrue(html.contains("id=\"sessions\""))
-        assertTrue(html.contains("id=\"newSessionButton\""))
-        assertTrue(html.contains("id=\"closeSessionButton\""))
         assertTrue(html.contains("/api/sessions"))
         assertTrue(html.contains("/api/session/open"))
         assertTrue(html.contains("state.session = null;"))
@@ -176,6 +174,12 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("data-set-severity"))
         assertTrue(html.contains("data-set-status"))
         assertTrue(html.contains("data-delete-current"))
+        val annotationActionCss = html.substringAfter(".annotation-actions {").substringBefore("img {")
+        assertTrue(annotationActionCss.contains(".annotation-danger:focus-visible"))
+        assertTrue(annotationActionCss.contains(".annotation-done:focus-visible"))
+        assertTrue(annotationActionCss.contains("border: 1px solid transparent;"))
+        assertTrue(annotationActionCss.contains("background: rgba(255, 111, 111, .08);"))
+        assertTrue(annotationActionCss.contains("border-color: var(--line);"))
     }
 
     @Test
@@ -196,27 +200,55 @@ class FeedbackConsoleServerTest {
     fun consoleHtmlKeepsPointPatchTopLevelActionsInStudioTopbar() {
         val html = FeedbackConsoleAssets.indexHtml
 
-        assertTrue(html.contains("id=\"refreshButton\""))
+        assertTrue(html.contains("id=\"copyPromptButton\""))
+        assertTrue(html.contains("id=\"sendAgentButton\""))
         assertTrue(html.contains("id=\"selectToolButton\""))
         assertTrue(html.contains("id=\"annotateToolButton\""))
-        assertTrue(html.contains("id=\"saveButton\""))
-        assertTrue(html.contains("id=\"copyMarkdownButton\""))
-        assertTrue(html.contains("id=\"sendDraftButton\""))
-        assertTrue(html.contains("id=\"newSessionButton\""))
-        assertTrue(html.contains("id=\"closeSessionButton\""))
-        assertTrue(html.contains("<span>Refresh</span>"))
+        assertFalse(html.contains("id=\"refreshButton\""))
+        assertFalse(html.contains("id=\"saveButton\""))
+        assertFalse(html.contains("id=\"copyMarkdownButton\""))
+        assertFalse(html.contains("id=\"sendDraftButton\""))
+        assertFalse(html.contains("id=\"newSessionButton\""))
+        assertFalse(html.contains("id=\"closeSessionButton\""))
+        assertTrue(html.contains("<span>Copy Prompt</span>"))
+        assertTrue(html.contains("<span>Send Agent</span>"))
         assertTrue(html.contains("<span>Select</span>"))
         assertTrue(html.contains("<span>Annotate</span>"))
-        assertTrue(html.contains("<span>Save snapshot</span>"))
         assertTrue(html.contains("class=\"button-icon\" aria-hidden=\"true\""))
-        assertTrue(html.contains("class=\"btn-icon\" aria-hidden=\"true\">⌘</span>"))
         assertTrue(html.contains("stroke-dasharray=\"3 3\""))
-        assertTrue(html.contains(">Copy<"))
-        assertTrue(html.contains(">Send<"))
-        assertTrue(html.contains(">New<"))
-        assertTrue(html.contains(">Close<"))
+        assertFalse(html.contains("<span>Refresh</span>"))
+        assertFalse(html.contains("<span>Save snapshot</span>"))
+        assertFalse(html.contains(">Copy<"))
+        assertFalse(html.contains(">Send<"))
+        assertFalse(html.contains(">New<"))
+        assertFalse(html.contains(">Close<"))
         assertFalse(html.contains("id=\"modeSelect\""))
         assertFalse(html.contains("id=\"modeNavigate\""))
+    }
+
+    @Test
+    fun consoleHtmlBuildsCopiesAndSendsSelectedHistoryPrompt() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val updateComposerStateBody = javascriptFunctionBody(html, "updateComposerState")
+        val copyPromptBody = javascriptFunctionBody(html, "copyPrompt")
+        val sendAgentPromptBody = javascriptFunctionBody(html, "sendAgentPrompt")
+        val renderSessionsListBody = javascriptFunctionBody(html, "renderSessionsListFromPayload")
+        val clearSentHistoryBody = javascriptFunctionBody(html, "clearSentHistory")
+
+        assertTrue(html.contains("function currentAnnotationsPrompt"))
+        assertTrue(html.contains("function currentPromptAnnotations"))
+        assertTrue(copyPromptBody.contains("navigator.clipboard.writeText(currentAnnotationsPrompt())"))
+        assertTrue(sendAgentPromptBody.contains("const prompt = currentAnnotationsPrompt();"))
+        assertTrue(sendAgentPromptBody.contains("persistPendingFeedbackItems({ allowFallbackComments: true })"))
+        assertTrue(sendAgentPromptBody.contains("body: JSON.stringify({ prompt: prompt })"))
+        assertTrue(updateComposerStateBody.contains("const hasPromptAnnotations = currentPromptAnnotations().length > 0;"))
+        assertTrue(updateComposerStateBody.contains("copyPromptButton.disabled = !hasPromptAnnotations;"))
+        assertTrue(updateComposerStateBody.contains("sendAgentButton.disabled = !hasPromptAnnotations;"))
+        assertTrue(renderSessionsListBody.contains("session.status !== 'ready_for_agent'"))
+        assertTrue(html.contains("id=\"clearSentHistoryButton\""))
+        assertTrue(clearSentHistoryBody.contains("window.confirm"))
+        assertTrue(clearSentHistoryBody.contains("/api/session/close"))
+        assertTrue(html.contains("clearSentHistoryButton.addEventListener('click'"))
     }
 
     @Test
@@ -246,8 +278,8 @@ class FeedbackConsoleServerTest {
         assertTrue(shortcutBody.contains("isTextInputFocused(event.target)"))
         assertTrue(html.contains("event.key === 'Escape'"))
         assertTrue(html.contains("event.key.toLowerCase() === 'a'"))
-        assertTrue(html.contains("event.key.toLowerCase() === 's'"))
-        assertTrue(html.contains("event.key.toLowerCase() === 'n'"))
+        assertFalse(html.contains("event.key.toLowerCase() === 's'"))
+        assertFalse(html.contains("event.key.toLowerCase() === 'n'"))
         assertTrue(html.contains("!event.shiftKey"))
         assertTrue(html.contains("document.addEventListener('keydown', handleGlobalShortcut)"))
         assertTrue(html.contains("role=\"status\" aria-live=\"polite\""))
@@ -310,7 +342,8 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("id=\"pendingItems\""))
         assertTrue(html.contains("id=\"draftItems\""))
         assertTrue(html.contains("id=\"sentHistory\""))
-        assertTrue(html.contains("id=\"sendDraftButton\""))
+        assertTrue(html.contains("id=\"sendAgentButton\""))
+        assertTrue(html.contains("id=\"copyPromptButton\""))
         assertTrue(html.contains("id=\"clearSelectionButton\""))
         assertTrue(html.contains("id=\"clearDraftButton\""))
         assertTrue(html.contains("/api/preview"))
@@ -319,9 +352,9 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("/api/agent-handoffs"))
         assertTrue(html.contains("function clearSelection"))
         assertTrue(html.contains("function clearDraft"))
-        assertTrue(html.contains("function sendDraftToAgent"))
+        assertTrue(html.contains("function sendAgentPrompt"))
         assertTrue(html.contains("selectionSummary.textContent = currentSelection"))
-        assertTrue(html.contains("saveButton.disabled = !addItemsFlow || pendingFeedbackItems.length === 0 || pendingFeedbackItems.some"))
+        assertTrue(html.contains("sendAgentButton.disabled = !hasPromptAnnotations;"))
         assertTrue(html.contains("formatSessionLabel"))
         assertTrue(html.contains("formatSessionSummary"))
         assertTrue(html.contains("historyOpenCount"))
@@ -497,10 +530,12 @@ class FeedbackConsoleServerTest {
 
         assertTrue(html.contains("<span>Select</span>"))
         assertTrue(html.contains("<span>Annotate</span>"))
-        assertTrue(html.contains("<span>Save snapshot</span>"))
-        assertTrue(html.contains("<span>Refresh</span>"))
-        assertTrue(html.contains(">Copy<"))
-        assertTrue(html.contains(">Send<"))
+        assertTrue(html.contains("<span>Copy Prompt</span>"))
+        assertTrue(html.contains("<span>Send Agent</span>"))
+        assertFalse(html.contains("<span>Save snapshot</span>"))
+        assertFalse(html.contains("<span>Refresh</span>"))
+        assertFalse(html.contains(">Copy<"))
+        assertFalse(html.contains(">Send<"))
         assertTrue(html.contains("setInterval"))
         assertTrue(html.contains("document.hidden"))
         assertTrue(html.contains("previewIntervalSelect"))
@@ -811,12 +846,12 @@ class FeedbackConsoleServerTest {
         val html = FeedbackConsoleAssets.indexHtml
 
         assertTrue(html.contains("previewId: addItemsFlow.previewId"))
-        assertTrue(html.contains("items: pendingPayloadItems()"))
+        assertTrue(html.contains("items: pendingPayloadItems({ allowFallbackComments: allowFallbackComments })"))
         assertTrue(html.contains("targetType: selection.targetType"))
         assertTrue(html.contains("nodeUid: selection.nodeUid"))
         assertTrue(html.contains("bounds: selection.bounds"))
         assertTrue(html.contains("function pendingPayloadItems"))
-        assertTrue(html.contains("items: pendingPayloadItems()"))
+        assertTrue(html.contains("function persistPendingFeedbackItems"))
         assertTrue(html.contains("toolMode = 'select';"))
         assertTrue(html.contains("suppressNextClick = true;"))
         assertTrue(html.contains("function updateSelectedAnnotationComment"))
@@ -1160,13 +1195,14 @@ class FeedbackConsoleServerTest {
             handoff.requestMethod = "POST"
             handoff.doOutput = true
             handoff.setRequestProperty("Content-Type", "application/json")
-            handoff.outputStream.use { it.write("{}".toByteArray()) }
+            handoff.outputStream.use { it.write("""{"prompt":"custom agent prompt"}""".toByteArray()) }
 
             assertEquals(200, handoff.responseCode)
             val body = handoff.inputStream.bufferedReader().readText()
             val response = pointPatchJson.parseToJsonElement(body).jsonObject
             assertTrue(response["handoffBatches"]?.jsonArray.orEmpty().isNotEmpty())
             assertEquals("sent", response["items"]?.jsonArray?.single()?.jsonObject?.get("delivery")?.jsonPrimitive?.content)
+            assertEquals("custom agent prompt", response["handoffBatches"]?.jsonArray?.single()?.jsonObject?.get("markdownSnapshot")?.jsonPrimitive?.content)
         } finally {
             server.stop()
         }

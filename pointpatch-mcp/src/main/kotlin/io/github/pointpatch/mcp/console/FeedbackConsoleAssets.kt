@@ -331,6 +331,10 @@ internal object FeedbackConsoleAssets {
               overflow: hidden;
             }
             .sent-history-drawer summary {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 8px;
               cursor: pointer;
               color: var(--txt-2);
               font-size: 10px;
@@ -338,6 +342,18 @@ internal object FeedbackConsoleAssets {
               letter-spacing: .14em;
               text-transform: uppercase;
               padding: 8px 4px;
+            }
+            .sent-clear-button {
+              min-height: 26px;
+              width: 26px;
+              padding: 0;
+              border-radius: 7px;
+              color: var(--txt-2);
+            }
+            .sent-clear-button svg {
+              width: 14px;
+              height: 14px;
+              stroke: currentColor;
             }
             .sent-history-drawer .history-list {
               max-height: 160px;
@@ -894,17 +910,32 @@ internal object FeedbackConsoleAssets {
             }
             .annotation-danger,
             .annotation-done {
-              border: 0;
+              min-height: 32px;
+              border: 1px solid transparent;
+              border-radius: 8px;
               background: transparent;
-              padding: 6px 0;
+              padding: 0 14px;
               font-size: 13px;
+              font-weight: 700;
             }
-            .annotation-danger { color: var(--danger); }
+            .annotation-danger {
+              color: var(--danger);
+              margin-left: -14px;
+            }
             .annotation-done { color: var(--txt-1); }
             .annotation-danger:hover,
-            .annotation-done:hover {
-              background: transparent;
+            .annotation-danger:focus-visible {
+              background: rgba(255, 111, 111, .08);
+              border-color: rgba(255, 111, 111, .24);
+              color: var(--danger);
+              outline: none;
+            }
+            .annotation-done:hover,
+            .annotation-done:focus-visible {
+              background: var(--bg-2);
+              border-color: var(--line);
               color: var(--txt-0);
+              outline: none;
             }
             img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); }
             .evidence-card {
@@ -1165,18 +1196,14 @@ internal object FeedbackConsoleAssets {
                 <span id="deviceStatus" class="status-pill" hidden>No device</span>
               </div>
               <div class="studio-actions">
-                <button id="refreshButton" class="with-icon" type="button">
-                  <span class="button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2"/><path d="M3 12A9 9 0 0 1 18.5 5.8"/><path d="M18 2v4h4"/><path d="M6 22v-4H2"/></svg></span>
-                  <span>Refresh</span>
+                <button id="copyPromptButton" class="with-icon" type="button" disabled>
+                  <span class="button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></span>
+                  <span>Copy Prompt</span>
                 </button>
-                <button id="saveButton" class="primary with-icon" type="button" disabled>
-                  <span class="btn-icon" aria-hidden="true">⌘</span>
-                  <span>Save snapshot</span>
+                <button id="sendAgentButton" class="primary with-icon" type="button" disabled>
+                  <span class="button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg></span>
+                  <span>Send Agent</span>
                 </button>
-                <button id="copyMarkdownButton">Copy</button>
-                <button id="sendDraftButton">Send</button>
-                <button id="newSessionButton">New</button>
-                <button id="closeSessionButton">Close</button>
               </div>
             </header>
             <main class="studio-body">
@@ -1187,7 +1214,12 @@ internal object FeedbackConsoleAssets {
                 </div>
                 <div id="sessions" class="history-list"></div>
                 <details class="sent-history-drawer">
-                  <summary>Sent History</summary>
+                  <summary>
+                    <span>Sent History</span>
+                    <button id="clearSentHistoryButton" class="sent-clear-button with-icon" type="button" title="Clear sent history" aria-label="Clear sent history">
+                      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                    </button>
+                  </summary>
                   <div id="sentHistory" class="history-list"></div>
                 </details>
               </aside>
@@ -1261,7 +1293,9 @@ internal object FeedbackConsoleAssets {
             const selectionSummary = document.getElementById('selectionSummary');
             const clearSelectionButton = document.getElementById('clearSelectionButton');
             const addItemButton = document.getElementById('addItemButton');
-            const saveButton = document.getElementById('saveButton');
+            const copyPromptButton = document.getElementById('copyPromptButton');
+            const sendAgentButton = document.getElementById('sendAgentButton');
+            const clearSentHistoryButton = document.getElementById('clearSentHistoryButton');
             const cancelAddFlowButton = document.getElementById('cancelAddFlowButton');
             const clearDraftButton = document.getElementById('clearDraftButton');
             const selectToolButton = document.getElementById('selectToolButton');
@@ -1476,7 +1510,51 @@ internal object FeedbackConsoleAssets {
 
             function toolbarAnnotations() {
               if (addItemsFlow) return pendingFeedbackItems;
-              return state.session?.items || [];
+              return (state.session?.items || []).filter(item => item.delivery !== 'sent');
+            }
+
+            function currentPromptAnnotations() {
+              if (!state.session) return [];
+              return toolbarAnnotations();
+            }
+
+            function promptItemTitle(item, index) {
+              return item.label || (item.comment ? firstLine(item.comment) : targetLabel(item)) || ('Annotation ' + (index + 1));
+            }
+
+            function promptItemBounds(item) {
+              return item.bounds || boundsForTarget(item.target);
+            }
+
+            function currentAnnotationsPrompt() {
+              const annotations = currentPromptAnnotations();
+              if (!state.session || annotations.length === 0) {
+                throw new Error('Select a history item with annotations before sending it to an agent.');
+              }
+              const summary = selectedHistorySummary();
+              const sessionLabel = summary ? formatSessionLabel(summary, 0) : 'Selected history';
+              const lines = [
+                'PointPatch feedback handoff',
+                '',
+                'History: ' + sessionLabel,
+                'Package: ' + (state.session.packageName || 'unknown'),
+                'Annotations: ' + annotations.length,
+                '',
+                'Please inspect the UI feedback below and apply the requested fixes.'
+              ];
+              annotations.forEach((item, index) => {
+                const bounds = promptItemBounds(item);
+                lines.push(
+                  '',
+                  String(index + 1) + '. ' + promptItemTitle(item, index),
+                  '   Severity: ' + annotationSeverity(item),
+                  '   Status: ' + statusLabel(annotationStatus(item)),
+                  '   Target: ' + (item.targetType ? pendingTargetLabel(item) : targetLabel(item)),
+                  '   Bounds: ' + (bounds ? formatBounds(bounds) : 'unknown'),
+                  '   Comment: ' + (String(item.comment || '').trim() || 'No comment')
+                );
+              });
+              return lines.join('\n');
             }
 
             function selectedHistorySummary() {
@@ -1868,7 +1946,9 @@ internal object FeedbackConsoleAssets {
             }
 
             function updateComposerState() {
-              saveButton.disabled = !addItemsFlow || pendingFeedbackItems.length === 0 || pendingFeedbackItems.some(item => !String(item.comment || '').trim());
+              const hasPromptAnnotations = currentPromptAnnotations().length > 0;
+              copyPromptButton.disabled = !hasPromptAnnotations;
+              sendAgentButton.disabled = !hasPromptAnnotations;
               cancelAddFlowButton.disabled = !addItemsFlow;
               addItemButton.hidden = true;
               addItemButton.disabled = true;
@@ -2205,29 +2285,36 @@ internal object FeedbackConsoleAssets {
               updateComposerState();
             }
 
-            function pendingPayloadItems() {
+            function pendingPayloadItems(options = {}) {
+              const allowFallbackComments = Boolean(options.allowFallbackComments);
               return pendingFeedbackItems.map(item => ({
                 targetType: item.targetType,
                 bounds: item.bounds,
                 nodeUid: item.nodeUid,
-                comment: item.comment
+                comment: allowFallbackComments ? (String(item.comment || '').trim() || item.label || pendingTargetLabel(item)) : item.comment
               }));
             }
 
-            async function savePendingFeedbackItems() {
+            async function persistPendingFeedbackItems(options = {}) {
               if (!addItemsFlow) return;
               if (!pendingFeedbackItems.length) throw new Error('Add at least one pending feedback item.');
-              if (pendingFeedbackItems.some(item => !String(item.comment || '').trim())) throw new Error('Add a comment to every annotation before saving.');
+              const allowFallbackComments = Boolean(options.allowFallbackComments);
+              if (!allowFallbackComments && pendingFeedbackItems.some(item => !String(item.comment || '').trim())) throw new Error('Add a comment to every annotation before saving.');
               state.session = await requestJson('/api/items/batch', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   previewId: addItemsFlow.previewId,
-                  items: pendingPayloadItems()
+                  items: pendingPayloadItems({ allowFallbackComments: allowFallbackComments })
                 })
               });
               resetAnnotationComposerState();
               state.preview = null;
+              return state.session;
+            }
+
+            async function savePendingFeedbackItems() {
+              await persistPendingFeedbackItems();
               await refresh();
               startLivePreviewPolling();
             }
@@ -2422,7 +2509,7 @@ internal object FeedbackConsoleAssets {
                     '</div>'
                   ).join('') +
                 '</article>';
-              }).join('') || '<div class="empty-state"><div class="empty-title">No saved annotations yet.</div><div class="empty-body">Use <b>Annotate</b> to freeze the preview, add comments, then Save snapshot.</div><button type="button" class="primary" data-start-annotating>Start annotating</button></div>';
+              }).join('') || '<div class="empty-state"><div class="empty-title">No saved annotations yet.</div><div class="empty-body">Use <b>Annotate</b> to freeze the preview and add comments.</div><button type="button" class="primary" data-start-annotating>Start annotating</button></div>';
               bindStartAnnotatingButtons(draftItems);
               hydrateSavedEvidencePreviews();
             }
@@ -2455,8 +2542,9 @@ internal object FeedbackConsoleAssets {
             function renderSessionsListFromPayload(sessionSummaries) {
               state.sessionSummaries = sessionSummaries;
               const activeId = state.session?.sessionId;
-              sessionCount.textContent = String(sessionSummaries.length);
-              sessions.innerHTML = sessionSummaries.map((session, index) => {
+              const activeSummaries = sessionSummaries.filter(session => session.status !== 'ready_for_agent' && session.status !== 'closed');
+              sessionCount.textContent = String(activeSummaries.length);
+              sessions.innerHTML = activeSummaries.map((session, index) => {
                 const open = historyOpenCount(session);
                 const done = historyDoneCount(session);
                 const points = historyPointsCount(session);
@@ -2507,6 +2595,10 @@ internal object FeedbackConsoleAssets {
               renderSessionsListFromPayload(state.sessionSummaries || []);
             }
 
+            function sentHistorySummaries() {
+              return (state.sessionSummaries || []).filter(session => session.status === 'ready_for_agent' || (session.sentBatchesCount || 0) > 0);
+            }
+
             function renderSentHistory() {
               const session = state.session;
               const allItems = session?.items || [];
@@ -2531,7 +2623,19 @@ internal object FeedbackConsoleAssets {
                     '<span>' + escapeHtml(firstLine(item.comment || '(No comment)')) + ' · ' + escapeHtml(detail) + '</span>' +
                   '</div>';
                 });
-              sentHistory.innerHTML = batchRows.concat(unbatchedRows).join('') || '<div class="row"><span>No sent handoff history.</span></div>';
+              const renderedSessionIds = new Set(session && (handoffBatches.length || sentItems.length) ? [session.sessionId] : []);
+              const summaryRows = sentHistorySummaries()
+                .filter(summary => !renderedSessionIds.has(summary.sessionId))
+                .map((summary, index) => {
+                  const sentCount = summary.itemsCount || summary.sentItemsCount || summary.sentBatchesCount || 0;
+                  return '<div class="row">' +
+                    '<strong>' + escapeHtml(formatSessionLabel(summary, index)) + '</strong>' +
+                    '<span>' + escapeHtml(countLabel(sentCount, 'annotation', 'annotations')) + ' sent · ' + escapeHtml(formatSessionSummary(summary)) + '</span>' +
+                  '</div>';
+                });
+              const rows = batchRows.concat(unbatchedRows, summaryRows);
+              clearSentHistoryButton.hidden = rows.length === 0;
+              sentHistory.innerHTML = rows.join('') || '<div class="row"><span>No sent handoff history.</span></div>';
             }
 
             function renderSessionRegions() {
@@ -2725,12 +2829,48 @@ internal object FeedbackConsoleAssets {
               await refresh();
             }
 
-            async function sendDraftToAgent() {
+            async function clearSentHistory() {
               error.textContent = '';
-              await requestJson('/api/agent-handoffs', { method: 'POST' });
+              const ids = new Set(sentHistorySummaries().map(session => session.sessionId));
+              if (state.session && ((state.session.handoffBatches || []).length || (state.session.items || []).some(item => item.delivery === 'sent'))) {
+                ids.add(state.session.sessionId);
+              }
+              if (ids.size === 0) return;
+              if (!window.confirm('Clear all sent history? Sent handoff records will be removed from this console.')) return;
+              for (const sessionId of ids) {
+                await requestJson('/api/session/close', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ sessionId: sessionId })
+                });
+              }
+              if (state.session && ids.has(state.session.sessionId)) {
+                resetAnnotationComposerState();
+                invalidatePreviewContext();
+                state.session = null;
+              }
+              await refreshSessions();
+              render();
+              await refreshDevices();
+            }
+
+            async function sendAgentPrompt() {
+              error.textContent = '';
+              if (addItemsFlow) {
+                await persistPendingFeedbackItems({ allowFallbackComments: true });
+              }
+              const prompt = currentAnnotationsPrompt();
+              state.session = await requestJson('/api/agent-handoffs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: prompt })
+              });
               comment.value = '';
-              clearSelection();
-              await refresh();
+              resetAnnotationComposerState();
+              invalidatePreviewContext();
+              await refreshSessions();
+              render();
+              startLivePreviewPolling();
             }
 
             async function navigate(action, extras = {}) {
@@ -2831,12 +2971,9 @@ internal object FeedbackConsoleAssets {
               image.addEventListener('pointerleave', clearHoverPreview);
             }
 
-            async function copyMarkdown() {
+            async function copyPrompt() {
               error.textContent = '';
-              const response = await fetch('/api/export/markdown');
-              if (!response.ok) throw new Error(await response.text() || 'HTTP ' + response.status);
-              const markdown = await response.text();
-              await navigator.clipboard.writeText(markdown);
+              await navigator.clipboard.writeText(currentAnnotationsPrompt());
             }
 
             function isTextInputFocused(target = document.activeElement) {
@@ -2862,23 +2999,12 @@ internal object FeedbackConsoleAssets {
                 enterAnnotateMode().catch(showError);
                 return;
               }
-              if (event.key.toLowerCase() === 's' && (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey) {
-                event.preventDefault();
-                savePendingFeedbackItems().catch(showError);
-                return;
-              }
-              if (event.key.toLowerCase() === 'n' && (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey) {
-                event.preventDefault();
-                newSession().catch(showError);
-              }
             }
 
-            document.getElementById('refreshButton').addEventListener('click', () => refreshPreview().catch(showError));
             selectToolButton.addEventListener('click', enterSelectMode);
             annotateToolButton.addEventListener('click', () => enterAnnotateMode().catch(showError));
             zoomOutButton.addEventListener('click', () => setPreviewZoom(previewZoom - PreviewZoomStep));
             zoomInButton.addEventListener('click', () => setPreviewZoom(previewZoom + PreviewZoomStep));
-            saveButton.addEventListener('click', () => savePendingFeedbackItems().catch(showError));
             addItemButton.addEventListener('click', () => {
               try {
                 createAnnotationFromSelection(currentSelection);
@@ -2886,9 +3012,13 @@ internal object FeedbackConsoleAssets {
                 showError(cause);
               }
             });
-            document.getElementById('copyMarkdownButton').addEventListener('click', () => copyMarkdown().catch(showError));
-            document.getElementById('newSessionButton').addEventListener('click', () => newSession().catch(showError));
-            document.getElementById('closeSessionButton').addEventListener('click', () => closeSession().catch(showError));
+            copyPromptButton.addEventListener('click', () => copyPrompt().catch(showError));
+            sendAgentButton.addEventListener('click', () => sendAgentPrompt().catch(showError));
+            clearSentHistoryButton.addEventListener('click', event => {
+              event.preventDefault();
+              event.stopPropagation();
+              clearSentHistory().catch(showError);
+            });
             document.getElementById('refreshDevicesButton').addEventListener('click', () => refreshDevices().catch(showError));
             document.getElementById('disconnectDeviceButton').addEventListener('click', () => disconnectDevice().catch(showError));
             devicePicker.addEventListener('change', () => selectDevice().catch(showError));
@@ -2904,7 +3034,6 @@ internal object FeedbackConsoleAssets {
             clearSelectionButton.addEventListener('click', clearSelection);
             cancelAddFlowButton.addEventListener('click', cancelAddItemsFlow);
             clearDraftButton.addEventListener('click', () => clearDraft().catch(showError));
-            document.getElementById('sendDraftButton').addEventListener('click', () => sendDraftToAgent().catch(showError));
             comment.addEventListener('input', updateSelectedAnnotationComment);
 
             function showError(cause) {

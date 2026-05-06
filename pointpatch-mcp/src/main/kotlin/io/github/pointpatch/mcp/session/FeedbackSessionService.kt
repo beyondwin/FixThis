@@ -314,10 +314,10 @@ class FeedbackSessionService(
     fun deleteScreen(sessionId: String, screenId: String): FeedbackSession =
         store.deleteScreen(sessionId, screenId)
 
-    fun sendDraftToAgent(sessionId: String): FeedbackSession =
+    fun sendDraftToAgent(sessionId: String, prompt: String? = null): FeedbackSession =
         store.sendDraftToAgent(
             sessionId,
-            markdownSnapshot = FeedbackQueueFormatter.toMarkdown(store.getSession(sessionId)),
+            markdownSnapshot = prompt?.takeIf { it.isNotBlank() } ?: FeedbackQueueFormatter.toMarkdown(store.getSession(sessionId)),
         )
 
     fun markReadyForAgent(sessionId: String): FeedbackSession = store.markReadyForAgent(sessionId)

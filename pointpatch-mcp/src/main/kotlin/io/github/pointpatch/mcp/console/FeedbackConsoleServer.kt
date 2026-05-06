@@ -175,7 +175,8 @@ class FeedbackConsoleServer(
                     exchange.sendJson(200, service.clearDraftItems(service.currentSession().sessionId))
                 }
                 "/api/agent-handoffs" -> exchange.requireMethod("POST") {
-                    exchange.sendJson(200, service.sendDraftToAgent(service.currentSession().sessionId))
+                    val request = exchange.decodeAgentHandoffBody()
+                    exchange.sendJson(200, service.sendDraftToAgent(service.currentSession().sessionId, request.prompt))
                 }
                 "/api/export/markdown" -> exchange.requireMethod("GET") {
                     exchange.sendText(200, FeedbackQueueFormatter.toMarkdown(service.currentSession()), "text/markdown; charset=utf-8")
@@ -324,6 +325,16 @@ class FeedbackConsoleServer(
         val body = requestBody.use { input -> input.readBytes().toString(Charsets.UTF_8) }
         return runCatching {
             pointPatchJson.decodeFromString(SavePreviewFeedbackItemsRequest.serializer(), body)
+        }.getOrElse { error ->
+            throw FeedbackConsoleHttpException(400, error.message ?: "Invalid JSON request body")
+        }
+    }
+
+    private fun HttpExchange.decodeAgentHandoffBody(): AgentHandoffRequest {
+        val body = requestBody.use { input -> input.readBytes().toString(Charsets.UTF_8) }
+        if (body.isBlank()) return AgentHandoffRequest()
+        return runCatching {
+            pointPatchJson.decodeFromString(AgentHandoffRequest.serializer(), body)
         }.getOrElse { error ->
             throw FeedbackConsoleHttpException(400, error.message ?: "Invalid JSON request body")
         }

@@ -17,6 +17,11 @@ data class SavePreviewFeedbackItemsRequest(
 )
 
 @Serializable
+data class AgentHandoffRequest(
+    val prompt: String? = null,
+)
+
+@Serializable
 data class PendingDraftFeedbackItem(
     val targetType: FeedbackTargetType,
     val bounds: PointPatchRect,
