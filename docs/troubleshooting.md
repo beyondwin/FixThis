@@ -1,23 +1,23 @@
-# PointPatch Troubleshooting
+# FixThis Troubleshooting
 
 Start with:
 
 ```bash
-pointpatch doctor --package <applicationId>
+fixthis doctor --package <applicationId>
 ```
 
-If package metadata exists in `.pointpatch/project.json`, `--package` can be omitted.
+If package metadata exists in `.fixthis/project.json`, `--package` can be omitted.
 
 For this repository's sample app, use the Android Studio `app` configuration or Gradle project `:app`; the source files live under `sample/`:
 
 ```bash
 ./gradlew :app:installDebug
-pointpatch run --package io.github.pointpatch.sample
+fixthis run --package io.beyondwin.fixthis.sample
 ```
 
 ## ADB_NOT_FOUND
 
-Symptom: `pointpatch doctor` fails at `ADB found` or the CLI reports that it cannot run `adb`.
+Symptom: `fixthis doctor` fails at `ADB found` or the CLI reports that it cannot run `adb`.
 
 Fix:
 
@@ -41,16 +41,16 @@ Connect a device or start an emulator, then run `adb devices`.
 
 ## RUN_AS_FAILED
 
-Symptom: CLI cannot read `files/pointpatch/session.json` with `adb shell run-as`.
+Symptom: CLI cannot read `files/fixthis/session.json` with `adb shell run-as`.
 
 Common causes:
 
 - The app is not a debug build.
 - The package name is wrong.
-- The app has not been launched since PointPatch was added.
+- The app has not been launched since FixThis was added.
 - The sidekick did not start.
 
-Fix: install and launch the debug app, then rerun `pointpatch doctor --package <applicationId>`.
+Fix: install and launch the debug app, then rerun `fixthis doctor --package <applicationId>`.
 
 If the error says `run-as: unknown package`, ADB is talking to a device where that package is not installed. This often happens after switching devices or when both an emulator and a physical device are connected. Install the debug APK on the target device and make sure only one `adb devices` entry is active for V1.
 
@@ -60,18 +60,18 @@ Symptom: the CLI cannot find the sidekick session file.
 
 Fix:
 
-- Confirm the app includes the PointPatch debug dependency or Gradle plugin output.
+- Confirm the app includes the FixThis debug dependency or Gradle plugin output.
 - Launch the app once so AndroidX Startup can initialize the sidekick.
 - Confirm the process is debuggable.
-- Rerun `pointpatch status` or `pointpatch doctor`.
+- Rerun `fixthis status` or `fixthis doctor`.
 
 ### SIDEKICK_UNREACHABLE
 
-Install and launch a debuggable build with PointPatch sidekick enabled, then retry `pointpatch status`.
+Install and launch a debuggable build with FixThis sidekick enabled, then retry `fixthis status`.
 
 ## No Compose Roots
 
-Symptom: `pointpatch status` reports `roots: 0`, inspection returns no Compose nodes, or inspection returns a root-discovery/semantics error such as `ROOT_DISCOVERY_FAILED` or `SEMANTICS_*`.
+Symptom: `fixthis status` reports `roots: 0`, inspection returns no Compose nodes, or inspection returns a root-discovery/semantics error such as `ROOT_DISCOVERY_FAILED` or `SEMANTICS_*`.
 
 Common causes:
 
@@ -80,11 +80,11 @@ Common causes:
 - The app is displaying a platform view, WebView, or XML/View screen.
 - The screen is between Activity transitions.
 
-Fix: navigate to a Compose screen and retry. PointPatch V1 is Android Jetpack Compose only. Empty roots are reported as `rootsCount=0`; V1 does not emit a separate no-roots error code for that case.
+Fix: navigate to a Compose screen and retry. FixThis V1 is Android Jetpack Compose only. Empty roots are reported as `rootsCount=0`; V1 does not emit a separate no-roots error code for that case.
 
 ## Screenshot Failures
 
-PointPatch records screenshot failures in `screenshot.captureFailedReason` and still exports the annotation.
+FixThis records screenshot failures in `screenshot.captureFailedReason` and still exports the annotation.
 
 Common causes:
 
@@ -93,7 +93,7 @@ Common causes:
 - Canvas fallback failed.
 - Cache directory creation or PNG encoding failed.
 
-Retry after the screen is fully rendered. For CLI/MCP, confirm the Android screenshot path exists under `context.cacheDir/pointpatch/` and that the bridge can read the current annotation screenshot.
+Retry after the screen is fully rendered. For CLI/MCP, confirm the Android screenshot path exists under `context.cacheDir/fixthis/` and that the bridge can read the current annotation screenshot.
 
 ### SCREEN_CAPTURE_FAILED
 
@@ -119,21 +119,21 @@ After Send, the saved items are recorded in a local handoff batch for MCP tools.
 
 Symptom: an MCP client fails to parse JSON-RPC messages, often after seeing human-readable logs mixed into stdout.
 
-Rule: `pointpatch mcp` writes JSON-RPC protocol messages to stdout only. Diagnostics and logs must go to stderr.
+Rule: `fixthis mcp` writes JSON-RPC protocol messages to stdout only. Diagnostics and logs must go to stderr.
 
 Fix:
 
-- Do not wrap `pointpatch mcp` in a script that prints banners or logs to stdout.
+- Do not wrap `fixthis mcp` in a script that prints banners or logs to stdout.
 - Send wrapper logs to stderr.
-- Use the setup JSON from `pointpatch setup`; it passes command and args separately.
+- Use the setup JSON from `fixthis setup`; it passes command and args separately.
 
 ### MCP_SESSION_CLOSED
 
-Reopen the feedback console from the agent or run `pointpatch console --package <applicationId>`.
+Reopen the feedback console from the agent or run `fixthis console --package <applicationId>`.
 
 ### I reopened the console and do not see my previous feedback
 
-Run `pointpatch_list_feedback_sessions` or reopen the console with the exact `sessionId`. If the session was closed, pass `includeClosed` when listing sessions. Verify `.pointpatch/feedback-sessions/` exists under the same project root used by the MCP server.
+Run `fixthis_list_feedback_sessions` or reopen the console with the exact `sessionId`. If the session was closed, pass `includeClosed` when listing sessions. Verify `.fixthis/feedback-sessions/` exists under the same project root used by the MCP server.
 
 ### Live preview stopped updating
 
@@ -155,4 +155,4 @@ Check:
 - The sidekick session exists.
 - The bridge protocol version matches the CLI/MCP version.
 
-Retry with `pointpatch doctor --package <applicationId>` to see the failing stage.
+Retry with `fixthis doctor --package <applicationId>` to see the failing stage.

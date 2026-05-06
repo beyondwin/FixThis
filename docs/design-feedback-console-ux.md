@@ -2,7 +2,7 @@
 
 **Status:** Current Studio UI, based on the Option A redesign.
 **Current version:** V1.2
-**Related module:** `pointpatch-mcp`
+**Related module:** `fixthis-mcp`
 
 The shipped feedback console is a local-first, MCP-owned Studio UI for Android preview feedback. The browser UI uses a dark three-panel workspace: Sessions on the left, live/frozen preview canvas in the center, and a mode-aware Inspector on the right. The top bar includes a compact device control with a short device label, connection state, `Refresh devices`, and `Clear selection`.
 
@@ -22,7 +22,7 @@ The shipped feedback console is a local-first, MCP-owned Studio UI for Android p
 
 - There is no Select/Navigate toggle. Idle preview clicks navigate; `Add` enters frozen feedback mode.
 - Device state is summarized as `No device`, `Connecting`, `Connected`, or `Unavailable`; unavailable devices remain visible but are not selectable.
-- `Clear selection` clears PointPatch's active device selection and does not run `adb disconnect`.
+- `Clear selection` clears FixThis's active device selection and does not run `adb disconnect`.
 - Pending items support `Focus` and `Delete` only.
 - Live preview frames are transient and are not added to `FeedbackSession.screens`.
 - `Save` promotes exactly one frozen preview into one evidence snapshot for all pending items in that frozen work set.

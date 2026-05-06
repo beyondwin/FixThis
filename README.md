@@ -1,8 +1,13 @@
-# PointPatch for Android Compose
+# FixThis for Android Compose
 
-PointPatch lets you point at Jetpack Compose UI in a debug Android app, describe what should change, and export runtime context that an AI coding agent can use.
+FixThis lets you point at Jetpack Compose UI in a debug Android app, describe what should change, and export runtime context that an AI coding agent can use.
 
-PointPatch V1 is intentionally narrow:
+> Migration note: FixThis was previously named PointPatch. This repository uses
+> the new `fixthis` CLI, `io.beyondwin.fixthis.*` packages, `fixthis_*` MCP
+> tools, and `.fixthis/` local storage paths. Old PointPatch public contracts are
+> not preserved in this breaking rename.
+
+FixThis V1 is intentionally narrow:
 
 - Android Jetpack Compose only.
 - Debug builds only.
@@ -14,7 +19,7 @@ PointPatch V1 is intentionally narrow:
 
 ## What It Does
 
-PointPatch adds a debug-only sidekick to your Compose app. In the sample flow, you open the app, tap the PointPatch button, select UI with Smart Select, enter a short request, and copy Markdown or JSON for an AI coding agent.
+FixThis adds a debug-only sidekick to your Compose app. In the sample flow, you open the app, tap the FixThis button, select UI with Smart Select, enter a short request, and copy Markdown or JSON for an AI coding agent.
 
 Smart Select starts with tap selection, offers scope chips for nearby semantic targets, and falls back to area selection for visual regions such as spacing, Canvas-only UI, or places where no Compose semantics node exists.
 
@@ -28,21 +33,21 @@ In this repository, the plugin is available through the composite Gradle build a
 
 ```kotlin
 plugins {
-    id("io.github.pointpatch.compose")
+    id("io.beyondwin.fixthis.compose")
 }
 ```
 
-External projects need either a published plugin coordinate, for example with a versioned plugin id once PointPatch is published, or explicit composite-build/plugin-management wiring that points at this repository's Gradle plugin build.
+External projects need either a published plugin coordinate, for example with a versioned plugin id once FixThis is published, or explicit composite-build/plugin-management wiring that points at this repository's Gradle plugin build.
 
 The sidekick dependency coordinate below is a future/published artifact placeholder. Until artifacts are published, external projects must wire this repository explicitly with composite-build/project dependencies instead of relying on the coordinate:
 
 ```kotlin
 dependencies {
-    debugImplementation("io.github.pointpatch:pointpatch-compose-sidekick:0.1.0")
+    debugImplementation("io.beyondwin.fixthis:fixthis-compose-sidekick:0.1.0")
 }
 ```
 
-The sample app in this repository is the branded FixThis Studio Compose app, exposed as application id `io.beyondwin.fixthis.sample` with launcher label `FixThis`. Its five bottom navigation tabs, Home, Queue, Project, Review, and Diagnostics, give PointPatch deterministic Compose UI for Smart Select, screenshots, source candidates, and CLI/MCP bridge smoke flows.
+The sample app in this repository is the branded FixThis Studio Compose app, exposed as application id `io.beyondwin.fixthis.sample` with launcher label `FixThis`. Its five bottom navigation tabs, Home, Queue, Project, Review, and Diagnostics, give FixThis deterministic Compose UI for Smart Select, screenshots, source candidates, and CLI/MCP bridge smoke flows.
 
 ## Repository Layout
 
@@ -50,15 +55,15 @@ The Android Studio sample app is exposed as Gradle project `:app`, while its fil
 
 ```text
 :app                         -> sample/
-:pointpatch-compose-core     -> pure Kotlin domain contracts, use cases, models, selection, formatters, source matching
-:pointpatch-compose-overlay  -> Compose overlay UI and public feedback console Studio shell
-:pointpatch-compose-sidekick -> debug runtime, inspection, screenshots, bridge
-:pointpatch-gradle-plugin    -> plugin and source-index generation
-:pointpatch-cli              -> desktop CLI
-:pointpatch-mcp              -> stdio MCP server and local feedback console
+:fixthis-compose-core     -> pure Kotlin domain contracts, use cases, models, selection, formatters, source matching
+:fixthis-compose-overlay  -> Compose overlay UI and public feedback console Studio shell
+:fixthis-compose-sidekick -> debug runtime, inspection, screenshots, bridge
+:fixthis-gradle-plugin    -> plugin and source-index generation
+:fixthis-cli              -> desktop CLI
+:fixthis-mcp              -> stdio MCP server and local feedback console
 ```
 
-The public Compose feedback console entrypoint is `io.github.pointpatch.compose.console.studio.FeedbackConsoleScreen` in `:pointpatch-compose-overlay`. The existing CLI/MCP browser console still uses its HTML asset surface, loaded from packaged resources under `pointpatch-mcp/src/main/resources/console`.
+The public Compose feedback console entrypoint is `io.beyondwin.fixthis.compose.console.studio.FeedbackConsoleScreen` in `:fixthis-compose-overlay`. The existing CLI/MCP browser console still uses its HTML asset surface, loaded from packaged resources under `fixthis-mcp/src/main/resources/console`.
 
 `gradle/gradle-daemon-jvm.properties` pins the Gradle daemon JVM toolchain to Java 21. Local Android SDK settings still belong in `local.properties`, which is ignored.
 
@@ -73,11 +78,11 @@ Equivalent Gradle commands:
 ./gradlew :app:installDebug
 ```
 
-For the full PointPatch smoke flow, build the CLI/MCP distribution and let the CLI install, launch, and verify the sidekick bridge:
+For the full FixThis smoke flow, build the CLI/MCP distribution and let the CLI install, launch, and verify the sidekick bridge:
 
 ```bash
-./gradlew :pointpatch-cli:installDist :pointpatch-mcp:installDist
-pointpatch-cli/build/install/pointpatch/bin/pointpatch run --package io.beyondwin.fixthis.sample
+./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
+fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
 ```
 
 ## CLI And MCP
@@ -85,19 +90,19 @@ pointpatch-cli/build/install/pointpatch/bin/pointpatch run --package io.beyondwi
 The CLI can run diagnostics, launch the debug sample, print MCP setup JSON, and open the feedback console:
 
 ```bash
-pointpatch doctor
-pointpatch run
-pointpatch setup --package <applicationId>
-pointpatch console --package <applicationId>
+fixthis doctor
+fixthis run
+fixthis setup --package <applicationId>
+fixthis console --package <applicationId>
 ```
 
-If `--package` is omitted, `.pointpatch/project.json` must already exist so the CLI can read the application id.
+If `--package` is omitted, `.fixthis/project.json` must already exist so the CLI can read the application id.
 
-MCP is the primary agent workflow for the feedback console. `pointpatch mcp` runs as a stdio JSON-RPC server and can open a local web console where you review a live Android screen preview, add feedback with a desktop keyboard, and let the agent read the queue. `pointpatch console` opens the same console without requiring an MCP client.
+MCP is the primary agent workflow for the feedback console. `fixthis mcp` runs as a stdio JSON-RPC server and can open a local web console where you review a live Android screen preview, add feedback with a desktop keyboard, and let the agent read the queue. `fixthis console` opens the same console without requiring an MCP client.
 
-The feedback console is a dark Studio workspace: persisted sessions on the left, live or frozen Android preview in the center, and a mode-aware Inspector on the right. It defaults to navigation. There is no Select/Navigate toggle: normal preview clicks navigate the app, while Add freezes the latest preview so you can mark feedback targets. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions. The compact device control selects the active ADB device for PointPatch bridge requests, shows `No device`, `Connecting`, `Connected`, or `Unavailable`, and keeps unavailable, offline, or unauthorized devices visible but not selectable.
+The feedback console is a dark Studio workspace: persisted sessions on the left, live or frozen Android preview in the center, and a mode-aware Inspector on the right. It defaults to navigation. There is no Select/Navigate toggle: normal preview clicks navigate the app, while Add freezes the latest preview so you can mark feedback targets. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions. The compact device control selects the active ADB device for FixThis bridge requests, shows `No device`, `Connecting`, `Connected`, or `Unavailable`, and keeps unavailable, offline, or unauthorized devices visible but not selectable.
 
-Top bar actions are short session-level controls: Refresh, Add, Save, Copy, Send, New, and Close. The device refresh control is the `Refresh devices` icon button, and `Clear selection` clears only PointPatch's active device selection. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 2s. Preview polling pauses while the browser tab is hidden, while the Add/frozen-preview flow is active, and when the selected device becomes unavailable.
+Top bar actions are short session-level controls: Refresh, Add, Save, Copy, Send, New, and Close. The device refresh control is the `Refresh devices` icon button, and `Clear selection` clears only FixThis's active device selection. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 2s. Preview polling pauses while the browser tab is hidden, while the Add/frozen-preview flow is active, and when the selected device becomes unavailable.
 
 Feedback console flow:
 
@@ -114,22 +119,22 @@ Add freezes the latest preview only; it does not save. You can add multiple pend
 
 Saved evidence groups can be expanded to review the persisted screenshot, numbered overlay, and saved comments. Send creates a persisted local handoff batch that MCP tools can read. It does not call an external AI API. Agent-facing Markdown is compact and focused on the request, target evidence, and likely source; it intentionally omits internal IDs and repeated storage metadata. JSON remains complete for tools and preserves IDs, paths, and MCP contracts.
 
-Feedback console sessions are resumable. PointPatch saves feedback workspace metadata and screenshot artifacts under `.pointpatch/feedback-sessions/`, so an MCP or console restart does not discard queued feedback.
+Feedback console sessions are resumable. FixThis saves feedback workspace metadata and screenshot artifacts under `.fixthis/feedback-sessions/`, so an MCP or console restart does not discard queued feedback.
 
 ## Local Artifacts
 
-Legacy annotation screenshot pulls write desktop-readable files under `.pointpatch/artifacts/`. Feedback console sessions write workspace metadata and session-owned screenshots under `.pointpatch/feedback-sessions/`. These are local debug artifacts and are ignored by git. The current `.gitignore` ignores `.pointpatch` as a whole; if your team wants to share `.pointpatch/project.json` for package discovery, add an explicit unignore rule for that file.
+Legacy annotation screenshot pulls write desktop-readable files under `.fixthis/artifacts/`. Feedback console sessions write workspace metadata and session-owned screenshots under `.fixthis/feedback-sessions/`. These are local debug artifacts and are ignored by git. The current `.gitignore` ignores `.fixthis` as a whole; if your team wants to share `.fixthis/project.json` for package discovery, add an explicit unignore rule for that file.
 
 ## Privacy Notes
 
-PointPatch is local-first. The Android app sidekick is debug-only and intended for the local development machine through ADB. Feedback console artifacts are local `.pointpatch/feedback-sessions/` data and can include comments, source hints, screenshots, session metadata, and handoff batches. Editable/password text is redacted by default, but screenshots are pixel captures and may contain sensitive information. Review screenshots before sharing exported artifacts.
+FixThis is local-first. The Android app sidekick is debug-only and intended for the local development machine through ADB. Feedback console artifacts are local `.fixthis/feedback-sessions/` data and can include comments, source hints, screenshots, session metadata, and handoff batches. Editable/password text is redacted by default, but screenshots are pixel captures and may contain sensitive information. Review screenshots before sharing exported artifacts.
 
 More detail:
 
 - [Project overview](docs/project-overview.md)
-- [Product requirements](docs/pointpatch_prd.md)
-- [Technical design](docs/pointpatch_technical_design.md)
-- [Decisions](docs/pointpatch_decisions.md)
+- [Product requirements](docs/fixthis_prd.md)
+- [Technical design](docs/fixthis_technical_design.md)
+- [Decisions](docs/fixthis_decisions.md)
 - [Architecture decisions](docs/adr/README.md)
 - [Output schema](docs/output-schema.md)
 - [Privacy](docs/privacy.md)

@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-This directory records durable architecture decisions for PointPatch.
+This directory records durable architecture decisions for FixThis.
 
 Each ADR uses a monotonic numeric prefix, a short kebab-case title, and one status:
 
