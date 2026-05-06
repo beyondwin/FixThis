@@ -29,6 +29,7 @@ class FeedbackSessionService(
     private val previewCache: PreviewSnapshotCache = PreviewSnapshotCache(MaxRetainedPreviews),
     private val sourceIndexRegistry: SourceIndexRegistry = SourceIndexRegistry(),
 ) {
+    private val screenshotArtifactPromoter = ScreenshotArtifactPromoter()
     private val sessionLock = Any()
     private val previewSavesInFlight = mutableSetOf<String>()
 
@@ -282,7 +283,7 @@ class FeedbackSessionService(
             val feedbackItems = items.map { pending ->
                 buildFeedbackItemForDraft(preview.snapshot.screen, preview.sourceIndex, pending)
             }
-            val persistedScreen = promotePreviewArtifacts(
+            val persistedScreen = screenshotArtifactPromoter.promote(
                 projectRoot = preview.projectRoot,
                 sessionId = sessionId,
                 screen = preview.snapshot.screen,
@@ -423,44 +424,6 @@ class FeedbackSessionService(
             comment = pending.comment,
             status = if (pending.comment.isBlank()) AnnotationStatusDto.OPEN else AnnotationStatusDto.READY,
         )
-    }
-
-    private fun promotePreviewArtifacts(projectRoot: String, sessionId: String, screen: SnapshotDto): SnapshotDto {
-        val screenshot = screen.screenshot ?: return screen
-        val artifactDirectory = FeedbackSessionPaths(File(projectRoot))
-            .screenArtifactDirectory(sessionId, screen.screenId)
-        if (!artifactDirectory.exists()) {
-            check(artifactDirectory.mkdirs()) {
-                "Could not create PointPatch artifact directory: ${artifactDirectory.absolutePath}"
-            }
-        }
-        val promotedFullPath = promoteScreenshotPath(
-            sourcePath = screenshot.desktopFullPath,
-            artifactDirectory = artifactDirectory,
-            fileName = "${screen.screenId}-full.png",
-        )
-        val promotedCropPath = promoteScreenshotPath(
-            sourcePath = screenshot.desktopCropPath,
-            artifactDirectory = artifactDirectory,
-            fileName = "${screen.screenId}-crop.png",
-        )
-        return screen.copy(
-            screenshot = screenshot.copy(
-                desktopFullPath = promotedFullPath ?: screenshot.desktopFullPath,
-                desktopCropPath = promotedCropPath ?: screenshot.desktopCropPath,
-            ),
-        )
-    }
-
-    private fun promoteScreenshotPath(sourcePath: String?, artifactDirectory: File, fileName: String): String? {
-        if (sourcePath.isNullOrBlank()) return null
-        val source = File(sourcePath)
-        require(source.exists() && source.isFile) { "Preview screenshot artifact is missing: $sourcePath" }
-        val destination = artifactDirectory.resolve(fileName)
-        if (source.canonicalFile != destination.canonicalFile) {
-            source.copyTo(destination, overwrite = true)
-        }
-        return destination.absolutePath
     }
 
     private fun PreviewRecord.deletePreviewCacheDirectory() {

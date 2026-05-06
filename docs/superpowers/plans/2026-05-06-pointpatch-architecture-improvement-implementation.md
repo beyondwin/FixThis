@@ -1490,7 +1490,7 @@ git commit -m "refactor: split preview cache from session service"
 - Create: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/ScreenshotArtifactPromoterTest.kt`
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt`
 
-- [ ] **Step 1: Write artifact promotion test**
+- [x] **Step 1: Write artifact promotion test**
 
 ```kotlin
 package io.github.pointpatch.mcp.session
@@ -1529,7 +1529,7 @@ class ScreenshotArtifactPromoterTest {
 }
 ```
 
-- [ ] **Step 2: Run and confirm red**
+- [x] **Step 2: Run and confirm red**
 
 Run:
 
@@ -1539,7 +1539,7 @@ Run:
 
 Expected: compile failure because `ScreenshotArtifactPromoter` does not exist.
 
-- [ ] **Step 3: Add promoter**
+- [x] **Step 3: Add promoter**
 
 ```kotlin
 package io.github.pointpatch.mcp.session
@@ -1587,7 +1587,7 @@ class ScreenshotArtifactPromoter {
 }
 ```
 
-- [ ] **Step 4: Replace private promotion functions in service**
+- [x] **Step 4: Replace private promotion functions in service**
 
 Inject:
 
@@ -1607,7 +1607,7 @@ val persistedScreen = screenshotArtifactPromoter.promote(
 
 Remove the old private `promotePreviewArtifacts` and `promoteScreenshotPath` functions from `FeedbackSessionService`.
 
-- [ ] **Step 5: Run MCP tests**
+- [x] **Step 5: Run MCP tests**
 
 Run:
 
@@ -1617,7 +1617,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/ScreenshotArtifactPromoterTest.kt
