@@ -1512,7 +1512,7 @@ If either test file did not need changes, omit it from `git add`.
 - Inspect: all changed files
 - No new files expected unless fixes are required
 
-- [ ] **Step 1: Verify no old sample main package remains**
+- [x] **Step 1: Verify no old sample main package remains**
 
 Run:
 
@@ -1522,7 +1522,7 @@ rg -n "package io\\.github\\.pointpatch\\.sample|io\\.github\\.pointpatch\\.samp
 
 Expected: no output.
 
-- [ ] **Step 2: Verify new package appears in app config**
+- [x] **Step 2: Verify new package appears in app config**
 
 Run:
 
@@ -1537,7 +1537,7 @@ Expected:
 - new Kotlin and androidTest package declarations are present
 - README run command names `io.beyondwin.fixthis.sample`
 
-- [ ] **Step 3: Run broad build verification**
+- [x] **Step 3: Run broad build verification**
 
 Run:
 
@@ -1547,7 +1547,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 4: Run full test suite**
+- [x] **Step 4: Run full test suite**
 
 Run:
 
@@ -1559,7 +1559,7 @@ Expected: `BUILD SUCCESSFUL`.
 
 If this fails in unrelated modules, capture the failure and run the targeted command from Step 3 again before finalizing.
 
-- [ ] **Step 5: Review final diff**
+- [x] **Step 5: Review final diff**
 
 Run:
 
@@ -1575,7 +1575,7 @@ Expected:
 - five screens are present
 - old developer-only screen labels are removed from the visible sample UI
 
-- [ ] **Step 6: Commit final cleanup after verification fixes**
+- [x] **Step 6: Commit final cleanup after verification fixes**
 
 Run:
 
