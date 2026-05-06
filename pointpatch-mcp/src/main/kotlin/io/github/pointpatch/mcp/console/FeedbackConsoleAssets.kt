@@ -125,6 +125,34 @@ internal object FeedbackConsoleAssets {
             button.primary { background: var(--accent); border-color: var(--accent); color: var(--bg-0); font-weight: 700; }
             button.primary:hover:not(:disabled) { transform: translateY(-1px); }
             button:disabled { opacity: .4; cursor: default; }
+            .with-icon {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              gap: 6px;
+            }
+            .button-icon {
+              width: 16px;
+              height: 16px;
+              flex: 0 0 auto;
+            }
+            .button-icon svg {
+              display: block;
+              width: 16px;
+              height: 16px;
+              stroke: currentColor;
+            }
+            .btn-icon {
+              width: 16px;
+              height: 16px;
+              display: inline-grid;
+              place-items: center;
+              flex: 0 0 auto;
+              font-size: 13px;
+              font-weight: 800;
+              line-height: 1;
+              opacity: .72;
+            }
             .device-control {
               position: relative;
               display: inline-flex;
@@ -962,8 +990,14 @@ internal object FeedbackConsoleAssets {
                 <span id="deviceStatus" class="status-pill" hidden>No device</span>
               </div>
               <div class="studio-actions">
-                <button id="refreshButton">Refresh</button>
-                <button id="saveButton" class="primary" disabled>Save snapshot</button>
+                <button id="refreshButton" class="with-icon" type="button">
+                  <span class="button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2"/><path d="M3 12A9 9 0 0 1 18.5 5.8"/><path d="M18 2v4h4"/><path d="M6 22v-4H2"/></svg></span>
+                  <span>Refresh</span>
+                </button>
+                <button id="saveButton" class="primary with-icon" type="button" disabled>
+                  <span class="btn-icon" aria-hidden="true">⌘</span>
+                  <span>Save snapshot</span>
+                </button>
                 <button id="copyMarkdownButton">Copy</button>
                 <button id="sendDraftButton">Send</button>
                 <button id="newSessionButton">New</button>
@@ -985,8 +1019,14 @@ internal object FeedbackConsoleAssets {
               <section class="studio-canvas">
                 <div id="canvasToolbar" class="canvas-toolbar">
                   <div class="tool-group" role="group" aria-label="Canvas tool">
-                    <button id="selectToolButton" class="tool-button" type="button" aria-pressed="true">Select</button>
-                    <button id="annotateToolButton" class="tool-button" type="button" aria-pressed="false">Annotate</button>
+                    <button id="selectToolButton" class="tool-button with-icon" type="button" aria-pressed="true">
+                      <span class="button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3l7.5 18 2.3-7.2L21 11.5 4 3z"/></svg></span>
+                      <span>Select</span>
+                    </button>
+                    <button id="annotateToolButton" class="tool-button with-icon" type="button" aria-pressed="false">
+                      <span class="button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2" stroke-dasharray="3 3"/></svg></span>
+                      <span>Annotate</span>
+                    </button>
                   </div>
                   <div id="toolStatus" class="tool-status">Select mode</div>
                   <div class="canvas-tool-status">
