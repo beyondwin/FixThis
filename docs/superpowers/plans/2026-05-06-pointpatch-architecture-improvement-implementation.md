@@ -1895,7 +1895,7 @@ git commit -m "refactor: split preview surface rendering"
 - Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas/toolbar/ZoomControl.kt`
 - Move: toolbar-specific logic from `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas/CanvasToolbar.kt`
 
-- [ ] **Step 1: Move state-free tool switcher first**
+- [x] **Step 1: Move state-free tool switcher first**
 
 Create `ToolSwitcher.kt` with:
 
@@ -1920,15 +1920,15 @@ internal fun ToolSwitcher(
 
 Use the existing local button primitives from `CanvasToolbar.kt`. If the current primitives are private, move the primitive with `ToolSwitcher` so the extracted file compiles.
 
-- [ ] **Step 2: Move status and zoom controls**
+- [x] **Step 2: Move status and zoom controls**
 
 Create `ToolStatusBar.kt` for hint text and `ZoomControl.kt` for zoom buttons. Keep the same strings and callback behavior as the current toolbar.
 
-- [ ] **Step 3: Update `CanvasToolbar.kt` to layout-only**
+- [x] **Step 3: Update `CanvasToolbar.kt` to layout-only**
 
 `CanvasToolbar.kt` should construct a row and delegate to `ToolSwitcher`, `ToolStatusBar`, and `ZoomControl`. The line count target for this task is under 120 lines.
 
-- [ ] **Step 4: Run overlay tests**
+- [x] **Step 4: Run overlay tests**
 
 Run:
 
@@ -1938,7 +1938,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas pointpatch-compose-overlay/src/test/kotlin/io/github/pointpatch/compose/console/studio/canvas
