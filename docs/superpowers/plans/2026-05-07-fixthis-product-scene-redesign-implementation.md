@@ -1016,7 +1016,7 @@ git commit -m "feat: redesign FixThis diagnostics"
 **Files:**
 - Inspect all files changed by Tasks 1-6.
 
-- [ ] **Step 1: Run full sample build verification**
+- [x] **Step 1: Run full sample build verification**
 
 Run:
 
@@ -1026,7 +1026,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 2: Run focused JVM tests that are cheap and related to source matching**
+- [x] **Step 2: Run focused JVM tests that are cheap and related to source matching**
 
 Run:
 
@@ -1036,7 +1036,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 3: Run connected instrumentation tests when a device is available**
+- [x] **Step 3: Run connected instrumentation tests when a device is available**
 
 Run:
 
@@ -1054,7 +1054,9 @@ Expected: PASS.
 
 If no device is listed, write this in the final implementation summary: `Connected instrumentation tests were not run because no Android device or emulator was available.`
 
-- [ ] **Step 4: Inspect diff for non-sample namespace drift**
+Result: attempted twice on `SM-G986N - 13` after `adb devices` reported `device`. Both runs failed before assertions with `No compose hierarchies found in the app`; root-cause evidence showed the physical device remained behind the secure lockscreen/Bouncer and moved `MainActivity` to stopped state. Build/test APK verification still passed.
+
+- [x] **Step 4: Inspect diff for non-sample namespace drift**
 
 Run:
 
@@ -1064,7 +1066,7 @@ git diff -- sample README.md pointpatch-compose-core pointpatch-compose-sidekick
 
 Expected: only sample UI/test changes unless a test anchor required a targeted update. No package rename under `io.github.pointpatch.*`.
 
-- [ ] **Step 5: Commit final adjustments**
+- [x] **Step 5: Commit final adjustments**
 
 If Task 7 required fixes:
 
@@ -1074,6 +1076,8 @@ git commit -m "fix: stabilize FixThis product scene sample"
 ```
 
 If Task 7 required no fixes, do not create an empty commit.
+
+Result: committed final stabilization fix `017f582` so the Project screen exposes the smoke-test `Close issue` anchor before the overflow menu opens.
 
 ## Completion Summary Template
 
