@@ -653,6 +653,11 @@ internal object FeedbackConsoleAssets {
               border-style: dashed;
               background: rgba(184, 211, 106, .08);
             }
+            .selection-box.hover-preview {
+              border-style: dashed;
+              background: rgba(184, 211, 106, .10);
+              box-shadow: 0 0 0 2px rgba(184, 211, 106, .14);
+            }
             .selection-box.focused {
               border-color: var(--warning);
               background: rgba(230, 180, 90, .16);
@@ -1261,6 +1266,7 @@ internal object FeedbackConsoleAssets {
             let currentSelection = null;
             let toolMode = 'select';
             let annotationSequence = 1;
+            let hoveredAnnotationTarget = null;
             let dragStart = null;
             let dragPreview = null;
             let suppressNextClick = false;
@@ -1771,14 +1777,14 @@ internal object FeedbackConsoleAssets {
                   : (toolMode === 'annotate' ? 'Click a component or drag a region to create an annotation.' : 'No annotation selected.'));
             }
 
-            function renderOverlayBox(overlay, image, bounds, labelText, isDragPreview = false, isFocused = false, annotationIndex = null) {
+            function renderOverlayBox(overlay, image, bounds, labelText, isDragPreview = false, isFocused = false, annotationIndex = null, extraClass = '') {
               if (!bounds) return;
               const left = bounds.left * 100 / image.naturalWidth;
               const top = bounds.top * 100 / image.naturalHeight;
               const width = (bounds.right - bounds.left) * 100 / image.naturalWidth;
               const height = (bounds.bottom - bounds.top) * 100 / image.naturalHeight;
               const box = document.createElement('div');
-              box.className = 'selection-box' + (isDragPreview ? ' drag-preview' : '') + (isFocused ? ' focused' : '') + (annotationIndex == null ? '' : ' annotation-pin');
+              box.className = 'selection-box' + (isDragPreview ? ' drag-preview' : '') + (isFocused ? ' focused' : '') + (annotationIndex == null ? '' : ' annotation-pin') + (extraClass ? ' ' + extraClass : '');
               box.style.left = left + '%';
               box.style.top = top + '%';
               box.style.width = width + '%';
@@ -1836,6 +1842,9 @@ internal object FeedbackConsoleAssets {
               if (currentSelection) {
                 renderOverlayBox(overlay, image, currentSelection.bounds, currentSelection.label);
               }
+              if (addItemsFlow && toolMode === 'annotate' && hoveredAnnotationTarget && !dragPreview) {
+                renderOverlayBox(overlay, image, hoveredAnnotationTarget.bounds, null, false, false, null, 'hover-preview');
+              }
               if (dragPreview) {
                 renderOverlayBox(overlay, image, dragPreview, null, true);
               }
@@ -1874,23 +1883,54 @@ internal object FeedbackConsoleAssets {
               ]);
             }
 
-            function selectNodeAtPoint(event, image) {
-              const point = naturalPointFromEvent(event, image);
-              const screen = latestScreen();
-              const node = smallestContainingNode(hitTestNodes(screen), point);
-              if (!node) {
-                showError(new Error('No component found at that point. Drag to select a custom area.'));
-                return;
-              }
-              const selection = {
+            function selectionForNode(node) {
+              return {
                 targetType: 'node',
                 nodeUid: node.uid,
                 bounds: node.boundsInWindow,
                 label: componentLabel(node)
               };
+            }
+
+            function nodeSelectionAtPoint(event, image) {
+              const point = naturalPointFromEvent(event, image);
+              const screen = latestScreen();
+              const node = smallestContainingNode(hitTestNodes(screen), point);
+              return node ? selectionForNode(node) : null;
+            }
+
+            function selectNodeAtPoint(event, image) {
+              const selection = nodeSelectionAtPoint(event, image);
+              if (!selection) {
+                showError(new Error('No component found at that point. Drag to select a custom area.'));
+                return;
+              }
               currentSelection = selection;
               createAnnotationFromSelection(selection);
               error.textContent = '';
+            }
+
+            function previewNodeAtPoint(event, image) {
+              const selection = nodeSelectionAtPoint(event, image);
+              const nextId = selection?.nodeUid || null;
+              const currentId = hoveredAnnotationTarget?.nodeUid || null;
+              if (nextId === currentId) return;
+              hoveredAnnotationTarget = selection;
+              renderSelectionOverlay();
+            }
+
+            function confirmHoveredAnnotationTarget(event, image) {
+              if (hoveredAnnotationTarget) {
+                const point = naturalPointFromEvent(event, image);
+                if (containsPoint(hoveredAnnotationTarget.bounds, point)) {
+                  const selection = hoveredAnnotationTarget;
+                  hoveredAnnotationTarget = null;
+                  createAnnotationFromSelection(selection);
+                  error.textContent = '';
+                  return;
+                }
+              }
+              selectNodeAtPoint(event, image);
             }
 
             function finishAreaSelection(bounds) {
@@ -1911,11 +1951,18 @@ internal object FeedbackConsoleAssets {
               renderSelectionOverlay();
             }
 
+            function clearHoverPreview() {
+              if (!hoveredAnnotationTarget) return;
+              hoveredAnnotationTarget = null;
+              renderSelectionOverlay();
+            }
+
             function resetAnnotationComposerState(clearFlow = true) {
               if (clearFlow) addItemsFlow = null;
               pendingFeedbackItems = [];
               focusedPendingItemIndex = null;
               currentSelection = null;
+              hoveredAnnotationTarget = null;
               toolMode = 'select';
               comment.value = '';
               clearDragState();
@@ -1933,6 +1980,7 @@ internal object FeedbackConsoleAssets {
             function clearSelection() {
               currentSelection = null;
               focusedPendingItemIndex = null;
+              hoveredAnnotationTarget = null;
               comment.value = '';
               clearDragState();
               renderSelectionOverlay();
@@ -1994,6 +2042,7 @@ internal object FeedbackConsoleAssets {
               };
               pendingFeedbackItems.push(annotation);
               currentSelection = null;
+              hoveredAnnotationTarget = null;
               focusedPendingItemIndex = pendingFeedbackItems.length - 1;
               toolMode = 'select';
               comment.value = '';
@@ -2005,6 +2054,7 @@ internal object FeedbackConsoleAssets {
               pendingFeedbackItems.splice(index, 1);
               focusedPendingItemIndex = null;
               currentSelection = null;
+              hoveredAnnotationTarget = null;
               comment.value = '';
               renderPreviewOnly();
               renderInspectorRegion();
@@ -2063,6 +2113,7 @@ internal object FeedbackConsoleAssets {
             function enterSelectMode() {
               toolMode = 'select';
               currentSelection = null;
+              clearHoverPreview();
               clearDragState();
               renderPreviewOnly();
               renderInspectorRegion();
@@ -2584,8 +2635,12 @@ internal object FeedbackConsoleAssets {
                 }
               });
               image.addEventListener('pointermove', event => {
-                if (!addItemsFlow || toolMode !== 'annotate' || !dragStart) return;
+                if (!addItemsFlow || toolMode !== 'annotate') return;
                 try {
+                  if (!dragStart) {
+                    previewNodeAtPoint(event, image);
+                    return;
+                  }
                   dragPreview = normalizeBounds(dragStart, naturalPointFromEvent(event, image));
                   renderSelectionOverlay();
                 } catch (cause) {
@@ -2606,7 +2661,7 @@ internal object FeedbackConsoleAssets {
 	                  } else {
 	                    suppressNextClick = true;
 	                    renderSelectionOverlay();
-	                    selectNodeAtPoint(event, image);
+	                    confirmHoveredAnnotationTarget(event, image);
 	                  }
                 } catch (cause) {
                   clearDragState();
@@ -2614,7 +2669,10 @@ internal object FeedbackConsoleAssets {
                 }
               });
               image.addEventListener('pointercancel', clearDragState);
+              image.addEventListener('pointercancel', clearHoverPreview);
               image.addEventListener('lostpointercapture', clearDragState);
+              image.addEventListener('lostpointercapture', clearHoverPreview);
+              image.addEventListener('pointerleave', clearHoverPreview);
             }
 
             async function copyMarkdown() {
