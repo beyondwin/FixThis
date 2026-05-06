@@ -9,7 +9,7 @@ import io.github.pointpatch.compose.core.source.SourceMatcher
 import io.github.pointpatch.mcp.console.FeedbackPreviewSnapshot
 import io.github.pointpatch.mcp.McpProtocol
 import io.github.pointpatch.mcp.console.FeedbackTargetType
-import io.github.pointpatch.mcp.console.PendingDraftFeedbackItem
+import io.github.pointpatch.mcp.console.AnnotationDraftDto
 import io.github.pointpatch.mcp.tools.PointPatchBridge
 import java.io.File
 import kotlinx.coroutines.CancellationException
@@ -37,7 +37,7 @@ class FeedbackSessionService(
         packageNameOverride: String?,
         sessionId: String? = null,
         newSession: Boolean = false,
-    ): FeedbackSession =
+    ): SessionDto =
         synchronized(sessionLock) {
             sessionId?.takeIf { it.isNotBlank() }?.let { return@synchronized store.openExistingSession(it) }
             val packageName = bridge.resolvePackageName(
@@ -48,7 +48,7 @@ class FeedbackSessionService(
                     ?.takeIf {
                         it.packageName == packageName &&
                             it.projectRoot == projectRoot &&
-                            it.status != FeedbackSessionStatus.CLOSED
+                            it.status != SessionStatusDto.CLOSED
                     }
                     ?.let { return@synchronized it }
                 store.listSessions(packageName = packageName)
@@ -59,10 +59,10 @@ class FeedbackSessionService(
             store.openSession(packageName = packageName, projectRoot = projectRoot)
         }
 
-    fun currentSession(): FeedbackSession =
+    fun currentSession(): SessionDto =
         store.currentSession() ?: openSession(null)
 
-    fun getSession(sessionId: String): FeedbackSession = store.getSession(sessionId)
+    fun getSession(sessionId: String): SessionDto = store.getSession(sessionId)
 
     fun listSessions(packageNameOverride: String? = null, includeClosed: Boolean = false): FeedbackSessionList {
         val packageName = packageNameOverride
@@ -71,7 +71,7 @@ class FeedbackSessionService(
         return store.listSessions(packageName = packageName, includeClosed = includeClosed)
     }
 
-    fun closeSession(sessionId: String): FeedbackSession = store.closeSession(sessionId)
+    fun closeSession(sessionId: String): SessionDto = store.closeSession(sessionId)
 
     fun devices(): List<AdbDevice> = bridge.devices()
 
@@ -90,7 +90,7 @@ class FeedbackSessionService(
 
     fun disconnectDevice() = bridge.disconnectDevice()
 
-    suspend fun captureScreen(sessionId: String): CapturedScreen {
+    suspend fun captureScreen(sessionId: String): SnapshotDto {
         val session = store.getSession(sessionId)
         val screenId = store.nextId()
         val artifactDirectory = FeedbackSessionPaths(File(session.projectRoot))
@@ -207,17 +207,17 @@ class FeedbackSessionService(
         screenId: String,
         bounds: PointPatchRect,
         comment: String,
-    ): FeedbackItem =
+    ): AnnotationDto =
         store.addItem(
             sessionId,
-            FeedbackItem(
+            AnnotationDto(
                 itemId = "pending",
                 screenId = screenId,
                 createdAtEpochMillis = 0L,
                 updatedAtEpochMillis = 0L,
-                target = FeedbackTarget.Area(bounds),
+                target = AnnotationTargetDto.Area(bounds),
                 comment = comment,
-                status = if (comment.isBlank()) FeedbackItemStatus.OPEN else FeedbackItemStatus.READY,
+                status = if (comment.isBlank()) AnnotationStatusDto.OPEN else AnnotationStatusDto.READY,
             ),
         )
 
@@ -228,7 +228,7 @@ class FeedbackSessionService(
         bounds: PointPatchRect,
         nodeUid: String?,
         comment: String,
-    ): FeedbackItem {
+    ): AnnotationDto {
         require(comment.isNotBlank()) { "Feedback comment must not be blank" }
         val session = store.getSession(sessionId)
         val screen = session.screens.firstOrNull { it.screenId == screenId }
@@ -247,15 +247,15 @@ class FeedbackSessionService(
         validateFinitePositiveBounds(storedBounds)
         validateBoundsInsideScreenshot(screen, storedBounds)
         val target = when (targetType) {
-            FeedbackTargetType.AREA -> FeedbackTarget.Area(storedBounds)
-            FeedbackTargetType.NODE -> FeedbackTarget.Node(
+            FeedbackTargetType.AREA -> AnnotationTargetDto.Area(storedBounds)
+            FeedbackTargetType.NODE -> AnnotationTargetDto.Node(
                 nodeUid = selectedNode!!.uid,
                 boundsInWindow = storedBounds,
             )
         }
         return store.addItem(
             sessionId,
-            FeedbackItem(
+            AnnotationDto(
                 itemId = "pending",
                 screenId = screenId,
                 createdAtEpochMillis = 0L,
@@ -263,7 +263,7 @@ class FeedbackSessionService(
                 target = target,
                 selectedNode = selectedNode,
                 comment = comment,
-                status = FeedbackItemStatus.OPEN,
+                status = AnnotationStatusDto.OPEN,
             ),
         )
     }
@@ -271,8 +271,8 @@ class FeedbackSessionService(
     fun savePreviewFeedbackItems(
         sessionId: String,
         previewId: String,
-        items: List<PendingDraftFeedbackItem>,
-    ): FeedbackSession {
+        items: List<AnnotationDraftDto>,
+    ): SessionDto {
         require(items.isNotEmpty()) { "At least one feedback item is required" }
         val inFlightKey = "$sessionId:$previewId"
         val preview = synchronized(sessionLock) {
@@ -308,21 +308,21 @@ class FeedbackSessionService(
         }
     }
 
-    fun clearDraftItems(sessionId: String): FeedbackSession =
+    fun clearDraftItems(sessionId: String): SessionDto =
         store.clearDraftItems(sessionId)
 
-    fun deleteScreen(sessionId: String, screenId: String): FeedbackSession =
+    fun deleteScreen(sessionId: String, screenId: String): SessionDto =
         store.deleteScreen(sessionId, screenId)
 
-    fun sendDraftToAgent(sessionId: String, prompt: String? = null): FeedbackSession =
+    fun sendDraftToAgent(sessionId: String, prompt: String? = null): SessionDto =
         store.sendDraftToAgent(
             sessionId,
             markdownSnapshot = prompt?.takeIf { it.isNotBlank() } ?: FeedbackQueueFormatter.toMarkdown(store.getSession(sessionId)),
         )
 
-    fun markReadyForAgent(sessionId: String): FeedbackSession = store.markReadyForAgent(sessionId)
+    fun markReadyForAgent(sessionId: String): SessionDto = store.markReadyForAgent(sessionId)
 
-    fun resolveFeedback(sessionId: String, itemId: String, status: FeedbackItemStatus, summary: String?): FeedbackItem =
+    fun resolveFeedback(sessionId: String, itemId: String, status: AnnotationStatusDto, summary: String?): AnnotationDto =
         store.updateItemStatus(sessionId, itemId, status, summary)
 
     private fun validateFinitePositiveBounds(bounds: PointPatchRect) {
@@ -331,7 +331,7 @@ class FeedbackSessionService(
         require(bounds.right > bounds.left && bounds.bottom > bounds.top) { "Selection bounds must have positive size" }
     }
 
-    private fun validateBoundsInsideScreenshot(screen: CapturedScreen, bounds: PointPatchRect) {
+    private fun validateBoundsInsideScreenshot(screen: SnapshotDto, bounds: PointPatchRect) {
         val width = screen.screenshot?.width?.toFloat() ?: return
         val height = screen.screenshot?.height?.toFloat() ?: return
         require(bounds.left >= 0f && bounds.top >= 0f && bounds.right <= width && bounds.bottom <= height) {
@@ -339,20 +339,20 @@ class FeedbackSessionService(
         }
     }
 
-    private fun JsonObject.toCapturedScreen(screenId: String, fallbackDisplayName: String): CapturedScreen {
+    private fun JsonObject.toCapturedScreen(screenId: String, fallbackDisplayName: String): SnapshotDto {
         val inspection = this["inspection"]?.jsonObject
         val activityName = this["activity"]?.jsonPrimitive?.contentOrNull
             ?: inspection?.get("activity")?.jsonPrimitive?.contentOrNull
-        return CapturedScreen(
+        return SnapshotDto(
             screenId = screenId,
             capturedAtEpochMillis = 0L,
             activityName = activityName,
             displayName = activityName?.substringAfterLast('.') ?: fallbackDisplayName,
             screenshot = this["screenshot"]?.jsonObject?.let {
-                McpProtocol.json.decodeFromJsonElement<FeedbackScreenshot>(it)
+                McpProtocol.json.decodeFromJsonElement<SnapshotScreenshotDto>(it)
             },
             roots = (inspection?.get("roots") ?: this["roots"])?.jsonArray?.map { element ->
-                McpProtocol.json.decodeFromJsonElement<FeedbackScreenRoot>(element)
+                McpProtocol.json.decodeFromJsonElement<SnapshotRootDto>(element)
             }.orEmpty(),
             sourceIndexAvailable = this["sourceIndexAvailable"]?.jsonPrimitive?.booleanOrNull
                 ?: inspection?.get("sourceIndexAvailable")?.jsonPrimitive?.booleanOrNull
@@ -363,7 +363,7 @@ class FeedbackSessionService(
         )
     }
 
-    private suspend fun readPreviewSourceIndexOrNull(packageName: String, screen: CapturedScreen): SourceIndex? {
+    private suspend fun readPreviewSourceIndexOrNull(packageName: String, screen: SnapshotDto): SourceIndex? {
         if (!screen.sourceIndexAvailable) return null
         synchronized(sourceIndexLock) {
             if (sourceIndexCache.containsKey(packageName)) return sourceIndexCache[packageName]
@@ -386,10 +386,10 @@ class FeedbackSessionService(
     }
 
     private fun buildFeedbackItemForDraft(
-        screen: CapturedScreen,
+        screen: SnapshotDto,
         sourceIndex: SourceIndex?,
-        pending: PendingDraftFeedbackItem,
-    ): FeedbackItem {
+        pending: AnnotationDraftDto,
+    ): AnnotationDto {
         val selectedNode = when (pending.targetType) {
             FeedbackTargetType.NODE -> {
                 val uid = pending.nodeUid?.takeIf { it.isNotBlank() }
@@ -415,13 +415,13 @@ class FeedbackSessionService(
             FeedbackTargetType.NODE -> evidenceNodes
         }
         val target = when (pending.targetType) {
-            FeedbackTargetType.AREA -> FeedbackTarget.Area(storedBounds)
-            FeedbackTargetType.NODE -> FeedbackTarget.Node(
+            FeedbackTargetType.AREA -> AnnotationTargetDto.Area(storedBounds)
+            FeedbackTargetType.NODE -> AnnotationTargetDto.Node(
                 nodeUid = selectedNode!!.uid,
                 boundsInWindow = storedBounds,
             )
         }
-        return FeedbackItem(
+        return AnnotationDto(
             itemId = "pending",
             screenId = screen.screenId,
             createdAtEpochMillis = 0L,
@@ -431,11 +431,11 @@ class FeedbackSessionService(
             nearbyNodes = evidenceNodes,
             sourceCandidates = sourceCandidatesFor(sourceIndex, sourceSelectedNode, sourceNearbyNodes, screen.activityName),
             comment = pending.comment,
-            status = if (pending.comment.isBlank()) FeedbackItemStatus.OPEN else FeedbackItemStatus.READY,
+            status = if (pending.comment.isBlank()) AnnotationStatusDto.OPEN else AnnotationStatusDto.READY,
         )
     }
 
-    private fun promotePreviewArtifacts(projectRoot: String, sessionId: String, screen: CapturedScreen): CapturedScreen {
+    private fun promotePreviewArtifacts(projectRoot: String, sessionId: String, screen: SnapshotDto): SnapshotDto {
         val screenshot = screen.screenshot ?: return screen
         val artifactDirectory = FeedbackSessionPaths(File(projectRoot))
             .screenArtifactDirectory(sessionId, screen.screenId)
@@ -481,7 +481,7 @@ class FeedbackSessionService(
         }
     }
 
-    private fun areaEvidenceNodes(screen: CapturedScreen, bounds: PointPatchRect): List<PointPatchNode> {
+    private fun areaEvidenceNodes(screen: SnapshotDto, bounds: PointPatchRect): List<PointPatchNode> {
         val evidenceNodes = screen.allNodes()
             .asSequence()
             .filter { it.hasMeaningfulSemantic() }
@@ -517,7 +517,7 @@ class FeedbackSessionService(
             .toList()
     }
 
-    private fun nodeEvidenceNodes(screen: CapturedScreen, selectedNode: PointPatchNode): List<PointPatchNode> =
+    private fun nodeEvidenceNodes(screen: SnapshotDto, selectedNode: PointPatchNode): List<PointPatchNode> =
         screen.allNodes()
             .asSequence()
             .filter { it.uid != selectedNode.uid }
@@ -542,7 +542,7 @@ class FeedbackSessionService(
         ?.let { SourceMatcher.match(it, selectedNode, nearbyNodes, activityName) }
         .orEmpty()
 
-    private fun CapturedScreen.allNodes(): List<PointPatchNode> =
+    private fun SnapshotDto.allNodes(): List<PointPatchNode> =
         roots.flatMap { root -> root.mergedNodes + root.unmergedNodes }
 
     private fun PointPatchRect.intersects(other: PointPatchRect): Boolean =

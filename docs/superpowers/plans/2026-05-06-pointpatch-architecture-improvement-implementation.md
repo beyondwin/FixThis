@@ -1230,7 +1230,7 @@ git commit -m "feat: add feedback repositories and create annotation use case"
 - Move: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleItemModels.kt` to `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/AnnotationRequestModels.kt`
 - Modify: all imports and references under `pointpatch-mcp/src/main/kotlin`, `pointpatch-mcp/src/test/kotlin`, `pointpatch-cli/src/main/kotlin`, and `pointpatch-cli/src/test/kotlin`
 
-- [ ] **Step 1: Run compatibility tests before the rename**
+- [x] **Step 1: Run compatibility tests before the rename**
 
 Run:
 
@@ -1240,7 +1240,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 2: Mechanically rename classes with wire names preserved**
+- [x] **Step 2: Mechanically rename classes with wire names preserved**
 
 Apply this mapping:
 
@@ -1260,7 +1260,7 @@ Apply this mapping:
 
 Do not change serialized field names in this task. Keep JSON property names such as `screens`, `items`, `screenId`, and `itemId` until a separate wire-format migration is designed.
 
-- [ ] **Step 3: Keep the old status wire value during decode**
+- [x] **Step 3: Keep the old status wire value during decode**
 
 The renamed enum should still accept `"ready"`:
 
@@ -1289,11 +1289,11 @@ enum class AnnotationStatusDto {
 
 Domain mapping from `READY` remains normalized to `AnnotationStatus.OPEN`.
 
-- [ ] **Step 4: Update tests by meaning, not by deleting coverage**
+- [x] **Step 4: Update tests by meaning, not by deleting coverage**
 
 Update `ArchitectureCompatibilityTest` to use the renamed DTO classes while keeping the same assertions about JSON field names and `"ready"` decode.
 
-- [ ] **Step 5: Run all JVM tests**
+- [x] **Step 5: Run all JVM tests**
 
 Run:
 
@@ -1303,7 +1303,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-mcp pointpatch-cli

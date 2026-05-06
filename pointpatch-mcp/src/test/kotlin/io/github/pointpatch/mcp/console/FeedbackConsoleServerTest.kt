@@ -5,18 +5,18 @@ import io.github.pointpatch.cli.pointPatchJson
 import io.github.pointpatch.compose.core.model.PointPatchNode
 import io.github.pointpatch.compose.core.model.PointPatchRect
 import io.github.pointpatch.compose.core.model.TreeKind
-import io.github.pointpatch.mcp.session.CapturedScreen
+import io.github.pointpatch.mcp.session.SnapshotDto
 import io.github.pointpatch.mcp.session.FakePointPatchBridge
-import io.github.pointpatch.mcp.session.FeedbackItem
+import io.github.pointpatch.mcp.session.AnnotationDto
 import io.github.pointpatch.mcp.session.FeedbackNavigationAction
-import io.github.pointpatch.mcp.session.FeedbackScreenRoot
+import io.github.pointpatch.mcp.session.SnapshotRootDto
 import io.github.pointpatch.mcp.session.FeedbackSessionException
 import io.github.pointpatch.mcp.session.FeedbackSessionPaths
 import io.github.pointpatch.mcp.session.FeedbackSessionPersistence
 import io.github.pointpatch.mcp.session.FeedbackSessionService
 import io.github.pointpatch.mcp.session.FeedbackSessionStore
-import io.github.pointpatch.mcp.session.FeedbackScreenshot
-import io.github.pointpatch.mcp.session.FeedbackTarget
+import io.github.pointpatch.mcp.session.SnapshotScreenshotDto
+import io.github.pointpatch.mcp.session.AnnotationTargetDto
 import io.github.pointpatch.mcp.tools.PointPatchBridge
 import java.io.File
 import java.net.HttpURLConnection
@@ -1363,11 +1363,11 @@ class FeedbackConsoleServerTest {
             val session = service.openSession(null)
             service.addCapturedScreenForTest(
                 session.sessionId,
-                CapturedScreen(
+                SnapshotDto(
                     screenId = "screen-1",
                     capturedAtEpochMillis = 100L,
                     displayName = "Unsafe",
-                    screenshot = FeedbackScreenshot(desktopFullPath = outsideArtifact.absolutePath),
+                    screenshot = SnapshotScreenshotDto(desktopFullPath = outsideArtifact.absolutePath),
                 ),
             )
             val server = FeedbackConsoleServer(service = service, port = 0)
@@ -1586,12 +1586,12 @@ class FeedbackConsoleServerTest {
         )
         val screen = service.addCapturedScreenForTest(
             session.sessionId,
-            CapturedScreen(
+            SnapshotDto(
                 screenId = "screen-1",
                 capturedAtEpochMillis = 100L,
                 displayName = "Checkout",
-                roots = listOf(FeedbackScreenRoot(0, PointPatchRect(0f, 0f, 720f, 1600f), mergedNodes = listOf(node))),
-                screenshot = FeedbackScreenshot(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
+                roots = listOf(SnapshotRootDto(0, PointPatchRect(0f, 0f, 720f, 1600f), mergedNodes = listOf(node))),
+                screenshot = SnapshotScreenshotDto(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
             ),
         )
         val server = FeedbackConsoleServer(service = service, port = 0)
@@ -1610,8 +1610,8 @@ class FeedbackConsoleServerTest {
             }
 
             assertEquals(200, connection.responseCode)
-            val item = pointPatchJson.decodeFromString(FeedbackItem.serializer(), connection.inputStream.bufferedReader().readText())
-            assertEquals(FeedbackTarget.Node(node.uid, node.boundsInWindow), item.target)
+            val item = pointPatchJson.decodeFromString(AnnotationDto.serializer(), connection.inputStream.bufferedReader().readText())
+            assertEquals(AnnotationTargetDto.Node(node.uid, node.boundsInWindow), item.target)
             assertEquals(node, item.selectedNode)
         } finally {
             server.stop()
@@ -1660,11 +1660,11 @@ class FeedbackConsoleServerTest {
         val session = service.openSession(null, newSession = true)
         val screen = service.addCapturedScreenForTest(
             session.sessionId,
-            CapturedScreen(
+            SnapshotDto(
                 screenId = "screen-1",
                 capturedAtEpochMillis = 100L,
                 displayName = "Checkout",
-                screenshot = FeedbackScreenshot(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
+                screenshot = SnapshotScreenshotDto(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
             ),
         )
         val server = FeedbackConsoleServer(service = service, port = 0)
@@ -1700,11 +1700,11 @@ class FeedbackConsoleServerTest {
         val session = service.openSession(null, newSession = true)
         val screen = service.addCapturedScreenForTest(
             session.sessionId,
-            CapturedScreen(
+            SnapshotDto(
                 screenId = "screen-1",
                 capturedAtEpochMillis = 100L,
                 displayName = "Checkout",
-                screenshot = FeedbackScreenshot(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
+                screenshot = SnapshotScreenshotDto(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
             ),
         )
         val server = FeedbackConsoleServer(service = service, port = 0)
@@ -2044,7 +2044,7 @@ class FeedbackConsoleServerTest {
             "io.github.pointpatch.sample",
         )
         val session = service.openSession(null)
-        service.addCapturedScreenForTest(session.sessionId, CapturedScreen("screen-1", 0L, displayName = "Main"))
+        service.addCapturedScreenForTest(session.sessionId, SnapshotDto("screen-1", 0L, displayName = "Main"))
         service.addAreaFeedback(session.sessionId, "screen-1", PointPatchRect(0f, 0f, 10f, 10f), "Remove me")
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
@@ -2066,10 +2066,10 @@ class FeedbackConsoleServerTest {
         val next: () -> String = { queue.removeFirst() }
     }
 
-    private fun FeedbackSessionService.captureFakeScreenForTest(sessionId: String): CapturedScreen =
+    private fun FeedbackSessionService.captureFakeScreenForTest(sessionId: String): SnapshotDto =
         runBlocking { captureScreen(sessionId) }
 
-    private fun FeedbackSessionService.addCapturedScreenForTest(sessionId: String, screen: CapturedScreen): CapturedScreen =
+    private fun FeedbackSessionService.addCapturedScreenForTest(sessionId: String, screen: SnapshotDto): SnapshotDto =
         javaClass.getDeclaredField("store").let { field ->
             field.isAccessible = true
             (field.get(this) as FeedbackSessionStore).addScreen(sessionId, screen)

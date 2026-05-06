@@ -11,37 +11,37 @@ import kotlin.test.assertTrue
 class FeedbackSessionStoreTest {
     @Test
     fun feedbackSessionRoundTripsThroughJson() {
-        val session = FeedbackSession(
+        val session = SessionDto(
             sessionId = "session-1",
             packageName = "io.github.pointpatch.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 10L,
             updatedAtEpochMillis = 20L,
             screens = listOf(
-                CapturedScreen(
+                SnapshotDto(
                     screenId = "screen-1",
                     capturedAtEpochMillis = 11L,
                     activityName = "MainActivity",
                     displayName = "MainActivity",
-                    screenshot = FeedbackScreenshot(desktopFullPath = "/repo/.pointpatch/artifacts/screen-1/full.png"),
+                    screenshot = SnapshotScreenshotDto(desktopFullPath = "/repo/.pointpatch/artifacts/screen-1/full.png"),
                 ),
             ),
             items = listOf(
-                FeedbackItem(
+                AnnotationDto(
                     itemId = "item-1",
                     screenId = "screen-1",
                     createdAtEpochMillis = 12L,
                     updatedAtEpochMillis = 13L,
-                    target = FeedbackTarget.Area(PointPatchRect(1f, 2f, 3f, 4f)),
+                    target = AnnotationTargetDto.Area(PointPatchRect(1f, 2f, 3f, 4f)),
                     comment = "Make this button clearer",
-                    status = FeedbackItemStatus.READY,
+                    status = AnnotationStatusDto.READY,
                 ),
             ),
-            status = FeedbackSessionStatus.READY_FOR_AGENT,
+            status = SessionStatusDto.READY_FOR_AGENT,
         )
 
-        val encoded = pointPatchJson.encodeToString(FeedbackSession.serializer(), session)
-        val decoded = pointPatchJson.decodeFromString(FeedbackSession.serializer(), encoded)
+        val encoded = pointPatchJson.encodeToString(SessionDto.serializer(), session)
+        val decoded = pointPatchJson.decodeFromString(SessionDto.serializer(), encoded)
 
         assertEquals(session, decoded)
         assertTrue(encoded.contains("ready_for_agent"))
@@ -50,19 +50,19 @@ class FeedbackSessionStoreTest {
 
     @Test
     fun feedbackSessionRoundTripsDeliveryAndHandoffHistory() {
-        val session = FeedbackSession(
+        val session = SessionDto(
             sessionId = "session-1",
             packageName = "io.github.pointpatch.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 10L,
             updatedAtEpochMillis = 20L,
             items = listOf(
-                FeedbackItem(
+                AnnotationDto(
                     itemId = "item-1",
                     screenId = "screen-1",
                     createdAtEpochMillis = 11L,
                     updatedAtEpochMillis = 12L,
-                    target = FeedbackTarget.Area(PointPatchRect(1f, 2f, 3f, 4f)),
+                    target = AnnotationTargetDto.Area(PointPatchRect(1f, 2f, 3f, 4f)),
                     comment = "Fix spacing",
                     sequenceNumber = 1,
                     delivery = FeedbackDelivery.SENT,
@@ -81,8 +81,8 @@ class FeedbackSessionStoreTest {
             ),
         )
 
-        val encoded = pointPatchJson.encodeToString(FeedbackSession.serializer(), session)
-        val decoded = pointPatchJson.decodeFromString(FeedbackSession.serializer(), encoded)
+        val encoded = pointPatchJson.encodeToString(SessionDto.serializer(), session)
+        val decoded = pointPatchJson.decodeFromString(SessionDto.serializer(), encoded)
 
         assertEquals(session, decoded)
         assertTrue(encoded.contains("\"delivery\": \"sent\""))
@@ -92,7 +92,7 @@ class FeedbackSessionStoreTest {
     @Test
     fun oldFeedbackSessionJsonDefaultsDeliveryAndHandoffHistory() {
         val decoded = pointPatchJson.decodeFromString(
-            FeedbackSession.serializer(),
+            SessionDto.serializer(),
             """
             {
               "schemaVersion": "1.0",
@@ -136,33 +136,33 @@ class FeedbackSessionStoreTest {
         val ids = FakeIds("session-1", "screen-1", "item-1", "item-2", "batch-1")
         val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
         val session = store.openSession("io.github.pointpatch.sample", "/repo")
-        val screen = store.addScreen(session.sessionId, CapturedScreen("pending", 0L, displayName = "Checkout"))
+        val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
         store.addItem(
             session.sessionId,
-            FeedbackItem(
+            AnnotationDto(
                 itemId = "pending",
                 screenId = screen.screenId,
                 createdAtEpochMillis = 0L,
                 updatedAtEpochMillis = 0L,
-                target = FeedbackTarget.Area(PointPatchRect(0f, 0f, 10f, 10f)),
+                target = AnnotationTargetDto.Area(PointPatchRect(0f, 0f, 10f, 10f)),
                 comment = "First",
             ),
         )
         store.addItem(
             session.sessionId,
-            FeedbackItem(
+            AnnotationDto(
                 itemId = "pending",
                 screenId = screen.screenId,
                 createdAtEpochMillis = 0L,
                 updatedAtEpochMillis = 0L,
-                target = FeedbackTarget.Area(PointPatchRect(10f, 10f, 20f, 20f)),
+                target = AnnotationTargetDto.Area(PointPatchRect(10f, 10f, 20f, 20f)),
                 comment = "Second",
             ),
         )
 
         val sent = store.sendDraftToAgent(session.sessionId, markdownSnapshot = "markdown")
 
-        assertEquals(FeedbackSessionStatus.READY_FOR_AGENT, sent.status)
+        assertEquals(SessionStatusDto.READY_FOR_AGENT, sent.status)
         assertEquals(listOf(1, 2), sent.items.map { it.sequenceNumber })
         assertEquals(listOf(FeedbackDelivery.SENT, FeedbackDelivery.SENT), sent.items.map { it.delivery })
         assertEquals(listOf("batch-1", "batch-1"), sent.items.map { it.handoffBatchId })
@@ -177,27 +177,27 @@ class FeedbackSessionStoreTest {
             idGenerator = sequenceIds("session-1", "screen-1", "item-1", "item-2"),
         )
         val session = store.openSession("io.github.pointpatch.sample", "/repo")
-        val screen = CapturedScreen(
+        val screen = SnapshotDto(
             screenId = "pending",
             capturedAtEpochMillis = 0L,
             activityName = "io.github.pointpatch.sample.MainActivity",
             displayName = "MainActivity",
-            screenshot = FeedbackScreenshot(width = 720, height = 1600),
+            screenshot = SnapshotScreenshotDto(width = 720, height = 1600),
         )
-        val first = FeedbackItem(
+        val first = AnnotationDto(
             itemId = "pending",
             screenId = "pending",
             createdAtEpochMillis = 0L,
             updatedAtEpochMillis = 0L,
-            target = FeedbackTarget.Area(PointPatchRect(10f, 20f, 110f, 80f)),
+            target = AnnotationTargetDto.Area(PointPatchRect(10f, 20f, 110f, 80f)),
             comment = "Change headline copy",
         )
-        val second = FeedbackItem(
+        val second = AnnotationDto(
             itemId = "pending",
             screenId = "pending",
             createdAtEpochMillis = 0L,
             updatedAtEpochMillis = 0L,
-            target = FeedbackTarget.Area(PointPatchRect(120f, 200f, 260f, 280f)),
+            target = AnnotationTargetDto.Area(PointPatchRect(120f, 200f, 260f, 280f)),
             comment = "Add more left margin",
         )
 
@@ -217,28 +217,28 @@ class FeedbackSessionStoreTest {
         val ids = FakeIds("session-1", "screen-1", "screen-2", "item-1", "batch-1", "item-2")
         val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
         val session = store.openSession("io.github.pointpatch.sample", "/repo")
-        val firstScreen = store.addScreen(session.sessionId, CapturedScreen("pending", 0L, displayName = "First"))
-        val secondScreen = store.addScreen(session.sessionId, CapturedScreen("pending", 0L, displayName = "Second"))
+        val firstScreen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "First"))
+        val secondScreen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Second"))
         store.addItem(
             session.sessionId,
-            FeedbackItem(
+            AnnotationDto(
                 itemId = "pending",
                 screenId = firstScreen.screenId,
                 createdAtEpochMillis = 0L,
                 updatedAtEpochMillis = 0L,
-                target = FeedbackTarget.Area(PointPatchRect(0f, 0f, 10f, 10f)),
+                target = AnnotationTargetDto.Area(PointPatchRect(0f, 0f, 10f, 10f)),
                 comment = "Delete with screen",
             ),
         )
         store.sendDraftToAgent(session.sessionId, markdownSnapshot = "sent")
         store.addItem(
             session.sessionId,
-            FeedbackItem(
+            AnnotationDto(
                 itemId = "pending",
                 screenId = secondScreen.screenId,
                 createdAtEpochMillis = 0L,
                 updatedAtEpochMillis = 0L,
-                target = FeedbackTarget.Area(PointPatchRect(10f, 10f, 20f, 20f)),
+                target = AnnotationTargetDto.Area(PointPatchRect(10f, 10f, 20f, 20f)),
                 comment = "Keep",
             ),
         )
@@ -269,15 +269,15 @@ class FeedbackSessionStoreTest {
         val ids = FakeIds("session-1", "screen-1", "item-1", "item-2")
         val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
         val session = store.openSession("io.github.pointpatch.sample", "/repo")
-        val screen = store.addScreen(session.sessionId, CapturedScreen("pending", 0L, displayName = "Checkout"))
+        val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
         store.addItem(
             session.sessionId,
-            FeedbackItem(
+            AnnotationDto(
                 itemId = "imported-item",
                 screenId = screen.screenId,
                 createdAtEpochMillis = 0L,
                 updatedAtEpochMillis = 0L,
-                target = FeedbackTarget.Area(PointPatchRect(0f, 0f, 10f, 10f)),
+                target = AnnotationTargetDto.Area(PointPatchRect(0f, 0f, 10f, 10f)),
                 comment = "Imported",
                 sequenceNumber = 10,
             ),
@@ -285,12 +285,12 @@ class FeedbackSessionStoreTest {
 
         val added = store.addItem(
             session.sessionId,
-            FeedbackItem(
+            AnnotationDto(
                 itemId = "pending",
                 screenId = screen.screenId,
                 createdAtEpochMillis = 0L,
                 updatedAtEpochMillis = 0L,
-                target = FeedbackTarget.Area(PointPatchRect(10f, 10f, 20f, 20f)),
+                target = AnnotationTargetDto.Area(PointPatchRect(10f, 10f, 20f, 20f)),
                 comment = "Next",
             ),
         )
@@ -305,27 +305,27 @@ class FeedbackSessionStoreTest {
         val ids = FakeIds("session-1", "screen-1", "item-1", "batch-1", "item-2")
         val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
         val session = store.openSession("io.github.pointpatch.sample", "/repo")
-        val screen = store.addScreen(session.sessionId, CapturedScreen("pending", 0L, displayName = "Checkout"))
+        val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
         store.addItem(
             session.sessionId,
-            FeedbackItem(
+            AnnotationDto(
                 "pending",
                 screen.screenId,
                 0L,
                 0L,
-                FeedbackTarget.Area(PointPatchRect(0f, 0f, 10f, 10f)),
+                AnnotationTargetDto.Area(PointPatchRect(0f, 0f, 10f, 10f)),
                 comment = "Sent",
             ),
         )
         store.sendDraftToAgent(session.sessionId, markdownSnapshot = "sent")
         store.addItem(
             session.sessionId,
-            FeedbackItem(
+            AnnotationDto(
                 "pending",
                 screen.screenId,
                 0L,
                 0L,
-                FeedbackTarget.Area(PointPatchRect(10f, 10f, 20f, 20f)),
+                AnnotationTargetDto.Area(PointPatchRect(10f, 10f, 20f, 20f)),
                 comment = "Draft",
             ),
         )
@@ -345,15 +345,15 @@ class FeedbackSessionStoreTest {
         val ids = FakeIds("session-1", "screen-1", "item-1", "batch-1")
         val store = FeedbackSessionStore(clock = { 100L }, idGenerator = ids::next, persistence = persistence)
         val session = store.openSession("io.github.pointpatch.sample", root.absolutePath)
-        val screen = store.addScreen(session.sessionId, CapturedScreen("pending", 0L, displayName = "Checkout"))
+        val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
         store.addItem(
             session.sessionId,
-            FeedbackItem(
+            AnnotationDto(
                 "pending",
                 screen.screenId,
                 0L,
                 0L,
-                FeedbackTarget.Area(PointPatchRect(0f, 0f, 10f, 10f)),
+                AnnotationTargetDto.Area(PointPatchRect(0f, 0f, 10f, 10f)),
                 comment = "Draft",
             ),
         )
@@ -365,9 +365,9 @@ class FeedbackSessionStoreTest {
         }
 
         val current = store.getSession(session.sessionId)
-        assertEquals(FeedbackSessionStatus.ACTIVE, current.status)
+        assertEquals(SessionStatusDto.ACTIVE, current.status)
         assertEquals(FeedbackDelivery.DRAFT, current.items.single().delivery)
-        assertEquals(FeedbackItemStatus.OPEN, current.items.single().status)
+        assertEquals(AnnotationStatusDto.OPEN, current.items.single().status)
         assertEquals(emptyList(), current.handoffBatches)
     }
 
@@ -383,7 +383,7 @@ class FeedbackSessionStoreTest {
         )
         val screen = store.addScreen(
             sessionId = session.sessionId,
-            screen = CapturedScreen(
+            screen = SnapshotDto(
                 screenId = "pending",
                 capturedAtEpochMillis = -1L,
                 displayName = "Checkout",
@@ -391,12 +391,12 @@ class FeedbackSessionStoreTest {
         )
         val item = store.addItem(
             sessionId = session.sessionId,
-            item = FeedbackItem(
+            item = AnnotationDto(
                 itemId = "ignored",
                 screenId = screen.screenId,
                 createdAtEpochMillis = -1L,
                 updatedAtEpochMillis = -1L,
-                target = FeedbackTarget.Area(PointPatchRect(1f, 1f, 10f, 10f)),
+                target = AnnotationTargetDto.Area(PointPatchRect(1f, 1f, 10f, 10f)),
                 comment = "Increase contrast",
             ),
         )
@@ -407,7 +407,7 @@ class FeedbackSessionStoreTest {
         assertEquals("item-1", item.itemId)
         assertEquals(1, current.screens.size)
         assertEquals(1, current.items.size)
-        assertEquals(FeedbackItemStatus.OPEN, current.items.single().status)
+        assertEquals(AnnotationStatusDto.OPEN, current.items.single().status)
     }
 
     @Test
@@ -419,7 +419,7 @@ class FeedbackSessionStoreTest {
 
         val screen = store.addScreen(
             sessionId = session.sessionId,
-            screen = CapturedScreen(
+            screen = SnapshotDto(
                 screenId = "screen-1",
                 capturedAtEpochMillis = -1L,
                 displayName = "Checkout",
@@ -436,15 +436,15 @@ class FeedbackSessionStoreTest {
         val ids = FakeIds("session-1", "screen-1", "item-1")
         val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
         val session = store.openSession("io.github.pointpatch.sample", "/repo")
-        val screen = store.addScreen(session.sessionId, CapturedScreen("pending", -1L, displayName = "Checkout"))
+        val screen = store.addScreen(session.sessionId, SnapshotDto("pending", -1L, displayName = "Checkout"))
         store.addItem(
             session.sessionId,
-            FeedbackItem(
+            AnnotationDto(
                 itemId = "pending",
                 screenId = screen.screenId,
                 createdAtEpochMillis = -1L,
                 updatedAtEpochMillis = -1L,
-                target = FeedbackTarget.Area(PointPatchRect(1f, 1f, 10f, 10f)),
+                target = AnnotationTargetDto.Area(PointPatchRect(1f, 1f, 10f, 10f)),
                 comment = "Increase contrast",
             ),
         )
@@ -452,11 +452,11 @@ class FeedbackSessionStoreTest {
         val resolved = store.updateItemStatus(
             sessionId = session.sessionId,
             itemId = "item-1",
-            status = FeedbackItemStatus.RESOLVED,
+            status = AnnotationStatusDto.RESOLVED,
             agentSummary = "Adjusted color token.",
         )
 
-        assertEquals(FeedbackItemStatus.RESOLVED, resolved.status)
+        assertEquals(AnnotationStatusDto.RESOLVED, resolved.status)
         assertEquals("Adjusted color token.", resolved.agentSummary)
         assertEquals(100L, resolved.updatedAtEpochMillis)
     }
@@ -475,16 +475,16 @@ class FeedbackSessionStoreTest {
         val session = store.openSession("io.github.pointpatch.sample", root.absolutePath)
         val screen = store.addScreen(
             session.sessionId,
-            CapturedScreen(screenId = "pending", capturedAtEpochMillis = 0L, displayName = "Main"),
+            SnapshotDto(screenId = "pending", capturedAtEpochMillis = 0L, displayName = "Main"),
         )
         store.addItem(
             session.sessionId,
-            FeedbackItem(
+            AnnotationDto(
                 itemId = "pending",
                 screenId = screen.screenId,
                 createdAtEpochMillis = 0L,
                 updatedAtEpochMillis = 0L,
-                target = FeedbackTarget.Area(PointPatchRect(0f, 0f, 10f, 10f)),
+                target = AnnotationTargetDto.Area(PointPatchRect(0f, 0f, 10f, 10f)),
                 comment = "Fix it",
             ),
         )
@@ -542,7 +542,7 @@ class FeedbackSessionStoreTest {
         }
 
         assertEquals(session.sessionId, store.currentSession()?.sessionId)
-        assertEquals(FeedbackSessionStatus.ACTIVE, store.getSession(session.sessionId).status)
+        assertEquals(SessionStatusDto.ACTIVE, store.getSession(session.sessionId).status)
     }
 
     private fun sequenceClock(vararg values: Long): () -> Long {

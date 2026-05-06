@@ -11,7 +11,7 @@ class FeedbackSessionPersistence(
     private val paths: FeedbackSessionPaths,
     private val clock: () -> Long = { System.currentTimeMillis() },
 ) {
-    fun save(session: FeedbackSession) {
+    fun save(session: SessionDto) {
         var tempSessionFile: File? = null
         var tempIndexFile: File? = null
         var sessionBackup: FileBackup? = null
@@ -27,7 +27,7 @@ class FeedbackSessionPersistence(
             val sessionFile = paths.sessionFile(session.sessionId)
             val sessionTemp = File.createTempFile("session-", ".json.tmp", sessionDirectory)
             tempSessionFile = sessionTemp
-            sessionTemp.writeText(pointPatchJson.encodeToString(FeedbackSession.serializer(), session))
+            sessionTemp.writeText(pointPatchJson.encodeToString(SessionDto.serializer(), session))
             val indexTemp = File.createTempFile("index-", ".json.tmp", paths.rootDirectory)
             tempIndexFile = indexTemp
             indexTemp.writeText(indexJson(session))
@@ -60,13 +60,13 @@ class FeedbackSessionPersistence(
         deleteBackup(indexBackup)
     }
 
-    fun load(sessionId: String): FeedbackSession {
+    fun load(sessionId: String): SessionDto {
         val sessionFile = paths.sessionFile(sessionId)
         if (!sessionFile.isFile) {
             throw FeedbackSessionException("SESSION_NOT_FOUND: Feedback session does not exist: $sessionId")
         }
         return runCatching {
-            pointPatchJson.decodeFromString(FeedbackSession.serializer(), sessionFile.readText())
+            pointPatchJson.decodeFromString(SessionDto.serializer(), sessionFile.readText())
         }.getOrElse { error ->
             throw FeedbackSessionException(
                 "SESSION_LOAD_FAILED: Could not load feedback session $sessionId from ${sessionFile.absolutePath}: ${error.message}",
@@ -78,7 +78,7 @@ class FeedbackSessionPersistence(
         val loaded = loadAll()
         val sessions = loaded.sessions
             .filter { packageName == null || it.packageName == packageName }
-            .filter { includeClosed || it.status != FeedbackSessionStatus.CLOSED }
+            .filter { includeClosed || it.status != SessionStatusDto.CLOSED }
             .map(FeedbackSessionSummary.Companion::from)
             .sortedByDescending { it.updatedAtEpochMillis }
         return FeedbackSessionList(sessions = sessions, skippedSessions = loaded.skipped)
@@ -86,7 +86,7 @@ class FeedbackSessionPersistence(
 
     fun artifactPaths(): FeedbackSessionPaths = paths
 
-    private fun indexJson(candidate: FeedbackSession): String {
+    private fun indexJson(candidate: SessionDto): String {
         val listed = loadAll()
             .withCandidate(candidate)
             .sessions
@@ -142,7 +142,7 @@ class FeedbackSessionPersistence(
 
     private fun loadAll(): LoadedSessions {
         if (!paths.rootDirectory.isDirectory) return LoadedSessions(emptyList(), emptyList())
-        val sessions = mutableListOf<FeedbackSession>()
+        val sessions = mutableListOf<SessionDto>()
         val skipped = mutableListOf<SkippedFeedbackSession>()
         paths.rootDirectory.listFiles().orEmpty()
             .filter { it.isDirectory }
@@ -150,7 +150,7 @@ class FeedbackSessionPersistence(
                 val file = File(directory, "session.json")
                 if (file.isFile) {
                     runCatching {
-                        pointPatchJson.decodeFromString(FeedbackSession.serializer(), file.readText())
+                        pointPatchJson.decodeFromString(SessionDto.serializer(), file.readText())
                     }.onSuccess { session ->
                         sessions += session
                     }.onFailure { error ->
@@ -165,10 +165,10 @@ class FeedbackSessionPersistence(
     }
 
     private data class LoadedSessions(
-        val sessions: List<FeedbackSession>,
+        val sessions: List<SessionDto>,
         val skipped: List<SkippedFeedbackSession>,
     ) {
-        fun withCandidate(candidate: FeedbackSession): LoadedSessions =
+        fun withCandidate(candidate: SessionDto): LoadedSessions =
             copy(sessions = sessions.filterNot { it.sessionId == candidate.sessionId } + candidate)
     }
 }

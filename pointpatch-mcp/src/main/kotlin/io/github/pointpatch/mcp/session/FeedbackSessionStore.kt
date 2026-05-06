@@ -8,7 +8,7 @@ class FeedbackSessionStore(
     private val persistence: FeedbackSessionPersistence? = null,
 ) {
     private val lock = Any()
-    private val sessions = linkedMapOf<String, FeedbackSession>()
+    private val sessions = linkedMapOf<String, SessionDto>()
     private var currentSessionId: String? = null
 
     init {
@@ -20,16 +20,16 @@ class FeedbackSessionStore(
                         .getOrNull()
                         ?.let { session ->
                             sessions[session.sessionId] = session
-                            if (session.status != FeedbackSessionStatus.CLOSED) currentSessionId = session.sessionId
+                            if (session.status != SessionStatusDto.CLOSED) currentSessionId = session.sessionId
                         }
                 }
         }
     }
 
-    fun openSession(packageName: String, projectRoot: String): FeedbackSession =
+    fun openSession(packageName: String, projectRoot: String): SessionDto =
         synchronized(lock) {
             val now = clock()
-            val session = FeedbackSession(
+            val session = SessionDto(
                 sessionId = idGenerator(),
                 packageName = packageName,
                 projectRoot = projectRoot,
@@ -42,10 +42,10 @@ class FeedbackSessionStore(
             session
         }
 
-    fun currentSession(): FeedbackSession? =
+    fun currentSession(): SessionDto? =
         synchronized(lock) { currentSessionId?.let { sessions[it] } }
 
-    fun getSession(sessionId: String): FeedbackSession =
+    fun getSession(sessionId: String): SessionDto =
         synchronized(lock) {
             getSessionLocked(sessionId)
         }
@@ -58,13 +58,13 @@ class FeedbackSessionStore(
                 ?: FeedbackSessionList(
                     sessions = sessions.values
                         .filter { packageName == null || it.packageName == packageName }
-                        .filter { includeClosed || it.status != FeedbackSessionStatus.CLOSED }
+                        .filter { includeClosed || it.status != SessionStatusDto.CLOSED }
                         .map(FeedbackSessionSummary.Companion::from)
                         .sortedByDescending { it.updatedAtEpochMillis },
                 )
         }
 
-    fun openExistingSession(sessionId: String): FeedbackSession =
+    fun openExistingSession(sessionId: String): SessionDto =
         synchronized(lock) {
             val session = sessions[sessionId]
                 ?: persistence?.load(sessionId)?.also { sessions[it.sessionId] = it }
@@ -73,12 +73,12 @@ class FeedbackSessionStore(
             session
         }
 
-    fun closeSession(sessionId: String): FeedbackSession =
+    fun closeSession(sessionId: String): SessionDto =
         synchronized(lock) {
             val session = getSessionLocked(sessionId)
             val now = clock()
             val closed = session.copy(
-                status = FeedbackSessionStatus.CLOSED,
+                status = SessionStatusDto.CLOSED,
                 updatedAtEpochMillis = now,
             )
             save(closed)
@@ -87,7 +87,7 @@ class FeedbackSessionStore(
             closed
         }
 
-    fun addScreen(sessionId: String, screen: CapturedScreen): CapturedScreen =
+    fun addScreen(sessionId: String, screen: SnapshotDto): SnapshotDto =
         synchronized(lock) {
             val session = getSessionLocked(sessionId)
             val now = clock()
@@ -104,7 +104,7 @@ class FeedbackSessionStore(
             captured
         }
 
-    fun addScreenWithItems(sessionId: String, screen: CapturedScreen, items: List<FeedbackItem>): FeedbackSession =
+    fun addScreenWithItems(sessionId: String, screen: SnapshotDto, items: List<AnnotationDto>): SessionDto =
         synchronized(lock) {
             require(items.isNotEmpty()) { "At least one feedback item is required" }
             val session = getSessionLocked(sessionId)
@@ -132,7 +132,7 @@ class FeedbackSessionStore(
             commitSessionMutation(session, updated)
         }
 
-    fun deleteScreen(sessionId: String, screenId: String): FeedbackSession =
+    fun deleteScreen(sessionId: String, screenId: String): SessionDto =
         synchronized(lock) {
             val session = getSessionLocked(sessionId)
             if (session.screens.none { it.screenId == screenId }) {
@@ -158,7 +158,7 @@ class FeedbackSessionStore(
             }
         }
 
-    fun addItem(sessionId: String, item: FeedbackItem): FeedbackItem =
+    fun addItem(sessionId: String, item: AnnotationDto): AnnotationDto =
         synchronized(lock) {
             val session = getSessionLocked(sessionId)
             require(session.screens.any { it.screenId == item.screenId }) {
@@ -181,7 +181,7 @@ class FeedbackSessionStore(
             created
         }
 
-    fun clearDraftItems(sessionId: String): FeedbackSession =
+    fun clearDraftItems(sessionId: String): SessionDto =
         synchronized(lock) {
             val session = getSessionLocked(sessionId)
             val updated = session.copy(
@@ -191,7 +191,7 @@ class FeedbackSessionStore(
             commitSessionMutation(session, updated)
         }
 
-    fun sendDraftToAgent(sessionId: String, markdownSnapshot: String?): FeedbackSession =
+    fun sendDraftToAgent(sessionId: String, markdownSnapshot: String?): SessionDto =
         synchronized(lock) {
             val session = getSessionLocked(sessionId)
             val draftItems = session.items.filter { it.delivery == FeedbackDelivery.DRAFT }
@@ -212,7 +212,7 @@ class FeedbackSessionStore(
                         delivery = FeedbackDelivery.SENT,
                         handoffBatchId = batch.batchId,
                         sentAtEpochMillis = now,
-                        status = FeedbackItemStatus.READY,
+                        status = AnnotationStatusDto.READY,
                         updatedAtEpochMillis = now,
                     )
                 } else {
@@ -222,18 +222,18 @@ class FeedbackSessionStore(
             val updated = session.copy(
                 items = updatedItems,
                 handoffBatches = session.handoffBatches + batch,
-                status = FeedbackSessionStatus.READY_FOR_AGENT,
+                status = SessionStatusDto.READY_FOR_AGENT,
                 updatedAtEpochMillis = now,
             )
             commitSessionMutation(session, updated)
         }
 
-    fun markReadyForAgent(sessionId: String): FeedbackSession =
+    fun markReadyForAgent(sessionId: String): SessionDto =
         synchronized(lock) {
             val session = getSessionLocked(sessionId)
             val now = clock()
             val updated = session.copy(
-                status = FeedbackSessionStatus.READY_FOR_AGENT,
+                status = SessionStatusDto.READY_FOR_AGENT,
                 updatedAtEpochMillis = now,
             )
             save(updated)
@@ -244,16 +244,16 @@ class FeedbackSessionStore(
     fun updateItemStatus(
         sessionId: String,
         itemId: String,
-        status: FeedbackItemStatus,
+        status: AnnotationStatusDto,
         agentSummary: String?,
-    ): FeedbackItem =
+    ): AnnotationDto =
         synchronized(lock) {
-            require(status in setOf(FeedbackItemStatus.RESOLVED, FeedbackItemStatus.NEEDS_CLARIFICATION, FeedbackItemStatus.WONT_FIX)) {
+            require(status in setOf(AnnotationStatusDto.RESOLVED, AnnotationStatusDto.NEEDS_CLARIFICATION, AnnotationStatusDto.WONT_FIX)) {
                 "Agent resolution status is not allowed: $status"
             }
             val session = getSessionLocked(sessionId)
             val now = clock()
-            var updatedItem: FeedbackItem? = null
+            var updatedItem: AnnotationDto? = null
             val updatedItems = session.items.map { item ->
                 if (item.itemId == itemId) {
                     item.copy(
@@ -272,20 +272,20 @@ class FeedbackSessionStore(
             item
         }
 
-    private fun getSessionLocked(sessionId: String): FeedbackSession =
+    private fun getSessionLocked(sessionId: String): SessionDto =
         sessions[sessionId] ?: throw FeedbackSessionException("Unknown feedback session: $sessionId")
 
-    private fun nextItemSequenceNumber(session: FeedbackSession): Int =
+    private fun nextItemSequenceNumber(session: SessionDto): Int =
         session.items.mapNotNull { it.sequenceNumber }.maxOrNull()?.plus(1)
             ?: session.items.size + 1
 
-    private fun commitSessionMutation(previous: FeedbackSession, updated: FeedbackSession): FeedbackSession {
+    private fun commitSessionMutation(previous: SessionDto, updated: SessionDto): SessionDto {
         save(updated)
         sessions[previous.sessionId] = updated
         return updated
     }
 
-    private fun save(session: FeedbackSession) {
+    private fun save(session: SessionDto) {
         persistence?.save(session)
     }
 }

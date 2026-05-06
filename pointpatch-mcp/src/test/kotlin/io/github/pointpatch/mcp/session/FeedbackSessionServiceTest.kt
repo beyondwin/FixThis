@@ -6,7 +6,7 @@ import io.github.pointpatch.compose.core.model.TreeKind
 import io.github.pointpatch.compose.core.source.SourceIndex
 import io.github.pointpatch.compose.core.source.SourceIndexEntry
 import io.github.pointpatch.mcp.console.FeedbackTargetType
-import io.github.pointpatch.mcp.console.PendingDraftFeedbackItem
+import io.github.pointpatch.mcp.console.AnnotationDraftDto
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -102,7 +102,7 @@ class FeedbackSessionServiceTest {
         val root = createTempDir(prefix = "pointpatch-v2-auto-resume-")
         val persistence = FeedbackSessionPersistence(FeedbackSessionPaths(root), clock = { 500L })
         persistence.save(
-            FeedbackSession(
+            SessionDto(
                 sessionId = "sample-old",
                 packageName = "io.github.pointpatch.sample",
                 projectRoot = root.absolutePath,
@@ -111,17 +111,17 @@ class FeedbackSessionServiceTest {
             ),
         )
         persistence.save(
-            FeedbackSession(
+            SessionDto(
                 sessionId = "sample-closed",
                 packageName = "io.github.pointpatch.sample",
                 projectRoot = root.absolutePath,
                 createdAtEpochMillis = 200L,
                 updatedAtEpochMillis = 400L,
-                status = FeedbackSessionStatus.CLOSED,
+                status = SessionStatusDto.CLOSED,
             ),
         )
         persistence.save(
-            FeedbackSession(
+            SessionDto(
                 sessionId = "sample-latest",
                 packageName = "io.github.pointpatch.sample",
                 projectRoot = root.absolutePath,
@@ -130,7 +130,7 @@ class FeedbackSessionServiceTest {
             ),
         )
         persistence.save(
-            FeedbackSession(
+            SessionDto(
                 sessionId = "other-current",
                 packageName = "io.github.pointpatch.other",
                 projectRoot = root.absolutePath,
@@ -217,13 +217,13 @@ class FeedbackSessionServiceTest {
             sessionId = session.sessionId,
             previewId = preview.previewId,
             items = listOf(
-                PendingDraftFeedbackItem(
+                AnnotationDraftDto(
                     targetType = FeedbackTargetType.NODE,
                     nodeUid = "email-label",
                     bounds = PointPatchRect(28f, 77f, 692f, 186f),
                     comment = "Rename this label",
                 ),
-                PendingDraftFeedbackItem(
+                AnnotationDraftDto(
                     targetType = FeedbackTargetType.AREA,
                     bounds = PointPatchRect(112f, 426f, 351f, 588f),
                     comment = "Change this visual area",
@@ -270,12 +270,12 @@ class FeedbackSessionServiceTest {
             text = listOf("Profile"),
         )
         val roots = listOf(
-            FeedbackScreenRoot(
+            SnapshotRootDto(
                 rootIndex = 0,
                 boundsInWindow = PointPatchRect(0f, 0f, 720f, 1600f),
                 mergedNodes = listOf(selected, sameRootNearby),
             ),
-            FeedbackScreenRoot(
+            SnapshotRootDto(
                 rootIndex = 1,
                 boundsInWindow = PointPatchRect(0f, 0f, 720f, 1600f),
                 mergedNodes = listOf(otherRootNearby),
@@ -318,7 +318,7 @@ class FeedbackSessionServiceTest {
             sessionId = session.sessionId,
             previewId = preview.previewId,
             items = listOf(
-                PendingDraftFeedbackItem(
+                AnnotationDraftDto(
                     targetType = FeedbackTargetType.NODE,
                     nodeUid = selected.uid,
                     bounds = selected.boundsInWindow,
@@ -375,7 +375,7 @@ class FeedbackSessionServiceTest {
             text = listOf("Continue"),
         )
         val roots = listOf(
-            FeedbackScreenRoot(
+            SnapshotRootDto(
                 rootIndex = 0,
                 boundsInWindow = PointPatchRect(0f, 0f, 720f, 1600f),
                 mergedNodes = listOf(secondNearest, nearest),
@@ -417,7 +417,7 @@ class FeedbackSessionServiceTest {
             sessionId = session.sessionId,
             previewId = preview.previewId,
             items = listOf(
-                PendingDraftFeedbackItem(
+                AnnotationDraftDto(
                     targetType = FeedbackTargetType.AREA,
                     bounds = PointPatchRect(10f, 10f, 40f, 40f),
                     comment = "Fix this empty corner",
@@ -450,7 +450,7 @@ class FeedbackSessionServiceTest {
             text = listOf("Nearby label"),
         )
         val roots = listOf(
-            FeedbackScreenRoot(
+            SnapshotRootDto(
                 rootIndex = 0,
                 boundsInWindow = PointPatchRect(0f, 0f, 720f, 1600f),
                 mergedNodes = listOf(nearbyNonOverlapping, overlapping),
@@ -491,7 +491,7 @@ class FeedbackSessionServiceTest {
             sessionId = session.sessionId,
             previewId = preview.previewId,
             items = listOf(
-                PendingDraftFeedbackItem(
+                AnnotationDraftDto(
                     targetType = FeedbackTargetType.AREA,
                     bounds = PointPatchRect(100f, 100f, 200f, 200f),
                     comment = "Fix this selected area",
@@ -516,7 +516,7 @@ class FeedbackSessionServiceTest {
             testTag = "emailField",
         )
         val roots = listOf(
-            FeedbackScreenRoot(
+            SnapshotRootDto(
                 rootIndex = 0,
                 boundsInWindow = PointPatchRect(0f, 0f, 720f, 1600f),
                 mergedNodes = listOf(selected),
@@ -552,7 +552,7 @@ class FeedbackSessionServiceTest {
                 sessionId = session.sessionId,
                 previewId = preview.previewId,
                 items = listOf(
-                    PendingDraftFeedbackItem(
+                    AnnotationDraftDto(
                         targetType = FeedbackTargetType.NODE,
                         nodeUid = selected.uid,
                         bounds = selected.boundsInWindow,
@@ -633,7 +633,7 @@ class FeedbackSessionServiceTest {
                 sessionId = session.sessionId,
                 previewId = preview.previewId,
                 items = listOf(
-                    PendingDraftFeedbackItem(
+                    AnnotationDraftDto(
                         targetType = FeedbackTargetType.AREA,
                         bounds = PointPatchRect(112f, 426f, 351f, 588f),
                         comment = "Change this visual area",
@@ -675,7 +675,7 @@ class FeedbackSessionServiceTest {
                 sessionId = session.sessionId,
                 previewId = preview.previewId,
                 items = listOf(
-                    PendingDraftFeedbackItem(
+                    AnnotationDraftDto(
                         targetType = FeedbackTargetType.AREA,
                         bounds = PointPatchRect(112f, 426f, 351f, 588f),
                         comment = "Change this visual area",
@@ -707,7 +707,7 @@ class FeedbackSessionServiceTest {
         )
         val session = service.openSession(null, newSession = true)
         val preview = service.capturePreview(session.sessionId)
-        val item = PendingDraftFeedbackItem(
+        val item = AnnotationDraftDto(
             targetType = FeedbackTargetType.AREA,
             bounds = PointPatchRect(112f, 426f, 351f, 588f),
             comment = "Change this visual area",
@@ -744,7 +744,7 @@ class FeedbackSessionServiceTest {
             sessionId = session.sessionId,
             previewId = preview.previewId,
             items = listOf(
-                PendingDraftFeedbackItem(
+                AnnotationDraftDto(
                     targetType = FeedbackTargetType.AREA,
                     bounds = PointPatchRect(112f, 426f, 351f, 588f),
                     comment = "Change this visual area",
@@ -814,7 +814,7 @@ class FeedbackSessionServiceTest {
             comment = " ",
         )
 
-        assertEquals(FeedbackItemStatus.OPEN, item.status)
+        assertEquals(AnnotationStatusDto.OPEN, item.status)
     }
 
     @Test
@@ -836,12 +836,12 @@ class FeedbackSessionServiceTest {
         )
         val screen = service.addCapturedScreenForTest(
             session.sessionId,
-            CapturedScreen(
+            SnapshotDto(
                 screenId = "screen-1",
                 capturedAtEpochMillis = 100L,
                 displayName = "Checkout",
-                roots = listOf(FeedbackScreenRoot(0, PointPatchRect(0f, 0f, 720f, 1600f), mergedNodes = listOf(node))),
-                screenshot = FeedbackScreenshot(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
+                roots = listOf(SnapshotRootDto(0, PointPatchRect(0f, 0f, 720f, 1600f), mergedNodes = listOf(node))),
+                screenshot = SnapshotScreenshotDto(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
             ),
         )
 
@@ -854,7 +854,7 @@ class FeedbackSessionServiceTest {
             comment = "Button copy is unclear",
         )
 
-        assertEquals(FeedbackTarget.Node(node.uid, node.boundsInWindow), item.target)
+        assertEquals(AnnotationTargetDto.Node(node.uid, node.boundsInWindow), item.target)
         assertEquals(node, item.selectedNode)
         assertEquals(FeedbackDelivery.DRAFT, item.delivery)
         assertEquals(1, item.sequenceNumber)
@@ -879,12 +879,12 @@ class FeedbackSessionServiceTest {
         )
         service.addCapturedScreenForTest(
             session.sessionId,
-            CapturedScreen(
+            SnapshotDto(
                 screenId = "screen-1",
                 capturedAtEpochMillis = 100L,
                 displayName = "Checkout",
-                roots = listOf(FeedbackScreenRoot(0, PointPatchRect(0f, 0f, 720f, 1600f), mergedNodes = listOf(node))),
-                screenshot = FeedbackScreenshot(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
+                roots = listOf(SnapshotRootDto(0, PointPatchRect(0f, 0f, 720f, 1600f), mergedNodes = listOf(node))),
+                screenshot = SnapshotScreenshotDto(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
             ),
         )
 
@@ -921,12 +921,12 @@ class FeedbackSessionServiceTest {
         )
         val screen = service.addCapturedScreenForTest(
             session.sessionId,
-            CapturedScreen(
+            SnapshotDto(
                 screenId = "screen-1",
                 capturedAtEpochMillis = 100L,
                 displayName = "Checkout",
-                roots = listOf(FeedbackScreenRoot(0, PointPatchRect(0f, 0f, 720f, 1600f), unmergedNodes = listOf(node))),
-                screenshot = FeedbackScreenshot(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
+                roots = listOf(SnapshotRootDto(0, PointPatchRect(0f, 0f, 720f, 1600f), unmergedNodes = listOf(node))),
+                screenshot = SnapshotScreenshotDto(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
             ),
         )
 
@@ -939,7 +939,7 @@ class FeedbackSessionServiceTest {
             comment = "Button copy is unclear",
         )
 
-        assertEquals(FeedbackTarget.Node(node.uid, node.boundsInWindow), item.target)
+        assertEquals(AnnotationTargetDto.Node(node.uid, node.boundsInWindow), item.target)
         assertEquals(node, item.selectedNode)
     }
 
@@ -954,11 +954,11 @@ class FeedbackSessionServiceTest {
         val session = service.openSession(null, newSession = true)
         service.addCapturedScreenForTest(
             session.sessionId,
-            CapturedScreen(
+            SnapshotDto(
                 screenId = "screen-1",
                 capturedAtEpochMillis = 100L,
                 displayName = "Checkout",
-                screenshot = FeedbackScreenshot(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
+                screenshot = SnapshotScreenshotDto(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
             ),
         )
 
@@ -976,7 +976,7 @@ class FeedbackSessionServiceTest {
         assertTrue(error.message.orEmpty().contains("Selection bounds must be inside the screenshot"))
     }
 
-    private fun FeedbackSessionService.addCapturedScreenForTest(sessionId: String, screen: CapturedScreen): CapturedScreen =
+    private fun FeedbackSessionService.addCapturedScreenForTest(sessionId: String, screen: SnapshotDto): SnapshotDto =
         javaClass.getDeclaredField("store").let { field ->
             field.isAccessible = true
             (field.get(this) as FeedbackSessionStore).addScreen(sessionId, screen)

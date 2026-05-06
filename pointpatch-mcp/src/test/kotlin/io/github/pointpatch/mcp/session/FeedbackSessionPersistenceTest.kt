@@ -35,33 +35,33 @@ class FeedbackSessionPersistenceTest {
 
     @Test
     fun sessionSummaryCountsUnresolvedItems() {
-        val session = FeedbackSession(
+        val session = SessionDto(
             sessionId = "session-1",
             packageName = "io.github.pointpatch.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 1L,
             updatedAtEpochMillis = 2L,
-            screens = listOf(CapturedScreen(screenId = "screen-1", capturedAtEpochMillis = 2L, displayName = "Main")),
+            screens = listOf(SnapshotDto(screenId = "screen-1", capturedAtEpochMillis = 2L, displayName = "Main")),
             items = listOf(
-                FeedbackItem(
+                AnnotationDto(
                     itemId = "item-1",
                     screenId = "screen-1",
                     createdAtEpochMillis = 2L,
                     updatedAtEpochMillis = 2L,
-                    target = FeedbackTarget.Area(PointPatchRectForTest.bounds),
+                    target = AnnotationTargetDto.Area(PointPatchRectForTest.bounds),
                     comment = "Fix spacing",
                     delivery = FeedbackDelivery.SENT,
                     handoffBatchId = "batch-1",
-                    status = FeedbackItemStatus.READY,
+                    status = AnnotationStatusDto.READY,
                 ),
-                FeedbackItem(
+                AnnotationDto(
                     itemId = "item-2",
                     screenId = "screen-1",
                     createdAtEpochMillis = 2L,
                     updatedAtEpochMillis = 2L,
-                    target = FeedbackTarget.Area(PointPatchRectForTest.bounds),
+                    target = AnnotationTargetDto.Area(PointPatchRectForTest.bounds),
                     comment = "Done",
-                    status = FeedbackItemStatus.RESOLVED,
+                    status = AnnotationStatusDto.RESOLVED,
                 ),
             ),
             handoffBatches = listOf(
@@ -90,7 +90,7 @@ class FeedbackSessionPersistenceTest {
         val root = createTempDir(prefix = "pointpatch-v2-persist-")
         val paths = FeedbackSessionPaths(root)
         val persistence = FeedbackSessionPersistence(paths, clock = { 200L })
-        val session = FeedbackSession(
+        val session = SessionDto(
             sessionId = "session-1",
             packageName = "io.github.pointpatch.sample",
             projectRoot = root.absolutePath,
@@ -113,7 +113,7 @@ class FeedbackSessionPersistenceTest {
         val root = createTempDir(prefix = "pointpatch-v2-partial-save-")
         val paths = FeedbackSessionPaths(root)
         val persistence = FeedbackSessionPersistence(paths, clock = { 200L })
-        val initial = FeedbackSession(
+        val initial = SessionDto(
             sessionId = "session-1",
             packageName = "io.github.pointpatch.sample",
             projectRoot = root.absolutePath,
@@ -126,14 +126,14 @@ class FeedbackSessionPersistenceTest {
 
         val updated = initial.copy(
             updatedAtEpochMillis = 300L,
-            screens = listOf(CapturedScreen(screenId = "screen-1", capturedAtEpochMillis = 250L, displayName = "Main")),
+            screens = listOf(SnapshotDto(screenId = "screen-1", capturedAtEpochMillis = 250L, displayName = "Main")),
             items = listOf(
-                FeedbackItem(
+                AnnotationDto(
                     itemId = "item-1",
                     screenId = "screen-1",
                     createdAtEpochMillis = 260L,
                     updatedAtEpochMillis = 270L,
-                    target = FeedbackTarget.Area(PointPatchRectForTest.bounds),
+                    target = AnnotationTargetDto.Area(PointPatchRectForTest.bounds),
                     comment = "Fix spacing",
                 ),
             ),
@@ -155,7 +155,7 @@ class FeedbackSessionPersistenceTest {
         val root = createTempDir(prefix = "pointpatch-v2-session-replace-fail-")
         val paths = FeedbackSessionPaths(root)
         val persistence = FeedbackSessionPersistence(paths, clock = { 200L })
-        val existing = FeedbackSession(
+        val existing = SessionDto(
             sessionId = "session-old",
             packageName = "io.github.pointpatch.sample",
             projectRoot = root.absolutePath,
@@ -167,7 +167,7 @@ class FeedbackSessionPersistenceTest {
         paths.sessionDirectory("session-new").mkdirs()
         assertTrue(paths.sessionFile("session-new").mkdirs())
 
-        val candidate = FeedbackSession(
+        val candidate = SessionDto(
             sessionId = "session-new",
             packageName = "io.github.pointpatch.sample",
             projectRoot = root.absolutePath,
@@ -192,7 +192,7 @@ class FeedbackSessionPersistenceTest {
         val root = createTempDir(prefix = "pointpatch-v2-index-replace-fail-")
         val paths = FeedbackSessionPaths(root)
         val persistence = FeedbackSessionPersistence(paths, clock = { 200L })
-        val initial = FeedbackSession(
+        val initial = SessionDto(
             sessionId = "session-1",
             packageName = "io.github.pointpatch.sample",
             projectRoot = root.absolutePath,

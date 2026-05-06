@@ -21,14 +21,14 @@ class FeedbackQueueFormatterTest {
             text = listOf("Email address"),
             testTag = "emailField",
         )
-        val session = FeedbackSession(
+        val session = SessionDto(
             sessionId = "session-1",
             packageName = "io.github.pointpatch.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 1L,
             updatedAtEpochMillis = 2L,
             screens = listOf(
-                CapturedScreen(
+                SnapshotDto(
                     "screen-1",
                     2L,
                     activityName = "io.github.pointpatch.sample.MainActivity",
@@ -36,12 +36,12 @@ class FeedbackQueueFormatterTest {
                 ),
             ),
             items = listOf(
-                FeedbackItem(
+                AnnotationDto(
                     itemId = "item-1",
                     screenId = "screen-1",
                     createdAtEpochMillis = 2L,
                     updatedAtEpochMillis = 2L,
-                    target = FeedbackTarget.Node("email-label", selectedNode.boundsInWindow),
+                    target = AnnotationTargetDto.Node("email-label", selectedNode.boundsInWindow),
                     selectedNode = selectedNode,
                     sourceCandidates = listOf(
                         SourceCandidate(
@@ -76,18 +76,18 @@ class FeedbackQueueFormatterTest {
 
     @Test
     fun markdownIncludesAreaEvidenceNoteAndNearbyUiLabels() {
-        val session = FeedbackSession(
+        val session = SessionDto(
             sessionId = "session-1",
             packageName = "io.github.pointpatch.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 1L,
             updatedAtEpochMillis = 3L,
             screens = listOf(
-                CapturedScreen(
+                SnapshotDto(
                     screenId = "screen-1",
                     capturedAtEpochMillis = 1L,
                     displayName = "Checkout",
-                    screenshot = FeedbackScreenshot(
+                    screenshot = SnapshotScreenshotDto(
                         desktopFullPath = "/repo/.pointpatch/artifacts/screen-1/full.png",
                         width = 720,
                         height = 1600,
@@ -95,12 +95,12 @@ class FeedbackQueueFormatterTest {
                 ),
             ),
             items = listOf(
-                FeedbackItem(
+                AnnotationDto(
                     itemId = "item-1",
                     screenId = "screen-1",
                     createdAtEpochMillis = 3L,
                     updatedAtEpochMillis = 3L,
-                    target = FeedbackTarget.Area(PointPatchRect(112f, 426f, 351f, 588f)),
+                    target = AnnotationTargetDto.Area(PointPatchRect(112f, 426f, 351f, 588f)),
                     nearbyNodes = listOf(
                         PointPatchNode(
                             uid = "email-label",
@@ -148,19 +148,19 @@ class FeedbackQueueFormatterTest {
 
     @Test
     fun markdownCapsAreaSourceConfidenceBelowHigh() {
-        val session = FeedbackSession(
+        val session = SessionDto(
             sessionId = "session-1",
             packageName = "io.github.pointpatch.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 1L,
             updatedAtEpochMillis = 3L,
             items = listOf(
-                FeedbackItem(
+                AnnotationDto(
                     itemId = "item-1",
                     screenId = "screen-1",
                     createdAtEpochMillis = 3L,
                     updatedAtEpochMillis = 3L,
-                    target = FeedbackTarget.Area(PointPatchRect(112f, 426f, 351f, 588f)),
+                    target = AnnotationTargetDto.Area(PointPatchRect(112f, 426f, 351f, 588f)),
                     sourceCandidates = listOf(
                         SourceCandidate(
                             file = "sample/src/main/java/io/github/pointpatch/sample/screens/FormScreen.kt",
@@ -186,18 +186,18 @@ class FeedbackQueueFormatterTest {
 
     @Test
     fun markdownShowsEmptyFeedbackHandoffWithoutScreenHistory() {
-        val session = FeedbackSession(
+        val session = SessionDto(
             sessionId = "session-1",
             packageName = "io.github.pointpatch.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 1L,
             updatedAtEpochMillis = 2L,
             screens = listOf(
-                CapturedScreen(
+                SnapshotDto(
                     screenId = "screen-1",
                     capturedAtEpochMillis = 1L,
                     displayName = "Captured But Unused",
-                    screenshot = FeedbackScreenshot(width = 720, height = 1600),
+                    screenshot = SnapshotScreenshotDto(width = 720, height = 1600),
                 ),
             ),
         )
@@ -213,36 +213,36 @@ class FeedbackQueueFormatterTest {
 
     @Test
     fun markdownExportsAllItemsWithoutDeliveryOrBatchMetadata() {
-        val session = FeedbackSession(
+        val session = SessionDto(
             sessionId = "session-1",
             packageName = "io.github.pointpatch.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 1L,
             updatedAtEpochMillis = 5L,
-            screens = listOf(CapturedScreen("screen-1", 2L, displayName = "Checkout")),
+            screens = listOf(SnapshotDto("screen-1", 2L, displayName = "Checkout")),
             items = listOf(
-                FeedbackItem(
+                AnnotationDto(
                     itemId = "item-1",
                     screenId = "screen-1",
                     createdAtEpochMillis = 3L,
                     updatedAtEpochMillis = 4L,
-                    target = FeedbackTarget.Area(PointPatchRect(0f, 0f, 10f, 10f)),
+                    target = AnnotationTargetDto.Area(PointPatchRect(0f, 0f, 10f, 10f)),
                     comment = "Draft spacing",
                     sequenceNumber = 1,
                     delivery = FeedbackDelivery.DRAFT,
                 ),
-                FeedbackItem(
+                AnnotationDto(
                     itemId = "item-2",
                     screenId = "screen-1",
                     createdAtEpochMillis = 3L,
                     updatedAtEpochMillis = 4L,
-                    target = FeedbackTarget.Area(PointPatchRect(10f, 10f, 20f, 20f)),
+                    target = AnnotationTargetDto.Area(PointPatchRect(10f, 10f, 20f, 20f)),
                     comment = "Sent copy",
                     sequenceNumber = 2,
                     delivery = FeedbackDelivery.SENT,
                     handoffBatchId = "batch-1",
                     sentAtEpochMillis = 5L,
-                    status = FeedbackItemStatus.READY,
+                    status = AnnotationStatusDto.READY,
                 ),
             ),
             handoffBatches = listOf(
@@ -281,19 +281,19 @@ class FeedbackQueueFormatterTest {
             contentDescription = listOf("Checkout CTA"),
             role = "Button",
         )
-        val session = FeedbackSession(
+        val session = SessionDto(
             sessionId = "session-abcdef123456",
             packageName = "io.github.pointpatch.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 1L,
             updatedAtEpochMillis = 5L,
             screens = listOf(
-                CapturedScreen(
+                SnapshotDto(
                     screenId = "screen-abcdef123456",
                     capturedAtEpochMillis = 2L,
                     activityName = "io.github.pointpatch.CheckoutActivity",
                     displayName = "Checkout",
-                    screenshot = FeedbackScreenshot(
+                    screenshot = SnapshotScreenshotDto(
                         desktopFullPath = "/repo/.pointpatch/feedback-sessions/session-abcdef123456/artifacts/screens/screen-abcdef123456/screen-abcdef123456-full.png",
                         width = 720,
                         height = 1600,
@@ -301,12 +301,12 @@ class FeedbackQueueFormatterTest {
                 ),
             ),
             items = listOf(
-                FeedbackItem(
+                AnnotationDto(
                     itemId = "item-abcdef123456",
                     screenId = "screen-abcdef123456",
                     createdAtEpochMillis = 3L,
                     updatedAtEpochMillis = 4L,
-                    target = FeedbackTarget.Node(selectedNode.uid, selectedNode.boundsInWindow),
+                    target = AnnotationTargetDto.Node(selectedNode.uid, selectedNode.boundsInWindow),
                     selectedNode = selectedNode,
                     sourceCandidates = listOf(
                         SourceCandidate(
@@ -321,7 +321,7 @@ class FeedbackQueueFormatterTest {
                     delivery = FeedbackDelivery.SENT,
                     handoffBatchId = "batch-abcdef123456",
                     sentAtEpochMillis = 5L,
-                    status = FeedbackItemStatus.READY,
+                    status = AnnotationStatusDto.READY,
                 ),
             ),
             handoffBatches = listOf(

@@ -60,6 +60,6 @@ data class FeedbackNavigationResult(
     val action: FeedbackNavigationAction,
     val activityName: String? = null,
     val message: String? = null,
-    val screen: CapturedScreen? = null,
+    val screen: SnapshotDto? = null,
     val captureError: String? = null,
 )
