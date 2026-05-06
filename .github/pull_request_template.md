@@ -24,3 +24,9 @@
 - [ ] Related ADR is linked or updated
 
 ## Verification
+- [ ] Commands run are listed below with PASS or FAIL results
+- [ ] Relevant checks that were not run are listed as SKIPPED with a reason and residual risk
+
+| Command / check | Result | Notes |
+| --- | --- | --- |
+|  | PASS / FAIL / SKIPPED |  |
