@@ -21,7 +21,7 @@ fun MetricCard(metric: ProjectMetric, modifier: Modifier = Modifier) {
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(metric.label, style = MaterialTheme.typography.labelMedium)
             Text(metric.value, style = MaterialTheme.typography.headlineSmall)

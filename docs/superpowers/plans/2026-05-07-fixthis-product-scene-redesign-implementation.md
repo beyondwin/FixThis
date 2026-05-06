@@ -363,7 +363,7 @@ git commit -m "feat: refresh FixThis sample data and theme"
 - Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/components/MetricCard.kt`
 - Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/components/FeedbackCard.kt`
 
-- [ ] **Step 1: Add `StudioHeader.kt`**
+- [x] **Step 1: Add `StudioHeader.kt`**
 
 ```kotlin
 package io.beyondwin.fixthis.sample.components
@@ -417,7 +417,7 @@ fun StudioHeader(
 }
 ```
 
-- [ ] **Step 2: Add `PreviewPanel.kt`**
+- [x] **Step 2: Add `PreviewPanel.kt`**
 
 ```kotlin
 package io.beyondwin.fixthis.sample.components
@@ -509,7 +509,7 @@ fun SparklineSurface(
 }
 ```
 
-- [ ] **Step 3: Add `InfoRow.kt`**
+- [x] **Step 3: Add `InfoRow.kt`**
 
 ```kotlin
 package io.beyondwin.fixthis.sample.components
@@ -566,7 +566,7 @@ fun InfoRow(
 }
 ```
 
-- [ ] **Step 4: Replace shared existing components**
+- [x] **Step 4: Replace shared existing components**
 
 Use these function bodies inside the existing component files.
 
@@ -695,7 +695,7 @@ Card(
 }
 ```
 
-- [ ] **Step 5: Compile Kotlin**
+- [x] **Step 5: Compile Kotlin**
 
 Run:
 
@@ -705,7 +705,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sample/src/main/java/io/beyondwin/fixthis/sample/components

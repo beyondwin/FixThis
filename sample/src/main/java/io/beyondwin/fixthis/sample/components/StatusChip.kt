@@ -23,36 +23,32 @@ fun StatusChip(
 ) {
     Box(
         modifier = modifier
-            .background(background, RoundedCornerShape(8.dp))
+            .background(background, RoundedCornerShape(999.dp))
             .padding(horizontal = 10.dp, vertical = 5.dp),
     ) {
-        Text(
-            text = label,
-            color = contentColor,
-            style = MaterialTheme.typography.labelMedium,
-        )
+        Text(text = label, color = contentColor, style = MaterialTheme.typography.labelMedium)
     }
 }
 
 @Composable
 fun SeverityChip(severity: FeedbackSeverity, modifier: Modifier = Modifier) {
-    val colors = when (severity) {
+    val severityColors = when (severity) {
         FeedbackSeverity.Critical -> FixThisColors.CriticalSoft to FixThisColors.Critical
         FeedbackSeverity.High -> FixThisColors.WarningSoft to FixThisColors.Warning
         FeedbackSeverity.Medium -> FixThisColors.AccentSoft to FixThisColors.Accent
         FeedbackSeverity.Low -> FixThisColors.NeutralSoft to FixThisColors.Neutral
     }
-    StatusChip(severity.label, colors.first, colors.second, modifier)
+    StatusChip(severity.label, severityColors.first, severityColors.second, modifier)
 }
 
 @Composable
 fun StateChip(state: FeedbackState, modifier: Modifier = Modifier) {
-    val colors = when (state) {
+    val stateColors = when (state) {
         FeedbackState.New -> FixThisColors.AccentSoft to FixThisColors.Accent
         FeedbackState.Triaged -> FixThisColors.WarningSoft to FixThisColors.Warning
         FeedbackState.InReview -> FixThisColors.AccentSoft to FixThisColors.Accent
         FeedbackState.Blocked -> FixThisColors.NeutralSoft to FixThisColors.Neutral
         FeedbackState.Resolved -> FixThisColors.SuccessSoft to FixThisColors.Success
     }
-    StatusChip(state.label, colors.first, colors.second, modifier)
+    StatusChip(state.label, stateColors.first, stateColors.second, modifier)
 }

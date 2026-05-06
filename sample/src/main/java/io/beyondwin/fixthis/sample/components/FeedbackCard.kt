@@ -3,10 +3,8 @@ package io.beyondwin.fixthis.sample.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -51,7 +49,6 @@ fun FeedbackCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                Spacer(Modifier.width(8.dp))
                 SeverityChip(item.severity)
             }
             Text(item.summary, style = MaterialTheme.typography.bodyMedium)
@@ -64,12 +61,9 @@ fun FeedbackCard(
                 )
             }
             Text(
-                modifier = Modifier.fillMaxWidth(),
-                text = "${item.assignee} - ${item.ageLabel}",
+                text = "${item.assignee} - ${item.ageLabel} - ${item.sourceConfidence}",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -83,7 +77,7 @@ fun FeedbackCard(
                     },
                     onClick = {},
                 ) {
-                    Text("Save", style = MaterialTheme.typography.labelSmall)
+                    Text("S", style = MaterialTheme.typography.labelMedium)
                 }
                 Button(
                     enabled = !showDisabledAction,
