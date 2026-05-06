@@ -122,6 +122,8 @@ class GenerateFixThisSourceIndexTaskTest {
         assertTrue(textValues.contains("Total due"))
         assertEquals("debug", buildInfo.getValue("variantName").jsonPrimitive.content)
         assertEquals("0.1.0-test", buildInfo.getValue("runtimeVersion").jsonPrimitive.content)
+        assertEquals("fixthis/fixthis-source-index.json", buildInfo.getValue("sourceIndexAsset").jsonPrimitive.content)
+        assertEquals("fixthis/fixthis-build-info.json", buildInfo.getValue("buildInfoAsset").jsonPrimitive.content)
         assertEquals("true", buildInfo.getValue("includeScreenshots").jsonPrimitive.content)
         assertEquals("true", buildInfo.getValue("redactEditableText").jsonPrimitive.content)
     }

@@ -39,6 +39,25 @@ class SessionTokenStoreTest {
     }
 
     @Test
+    fun usesFixThisDefaultVersionAndSocketContract() {
+        val application = ApplicationProvider.getApplicationContext<Application>()
+        val store = SessionTokenStore(
+            context = application,
+            tokenGenerator = { "token-256-bit-base64" },
+            clock = { 1777786212000L },
+        )
+
+        val session = store.create(packageName = "io.beyondwin.fixthis.sample")
+
+        assertEquals(FixThisSidekickVersion, session.sidekickVersion)
+        assertEquals("0.1.0", session.sidekickVersion)
+        assertEquals(
+            "fixthis_io.beyondwin.fixthis.sample",
+            SessionTokenStore.socketNameForPackage("io.beyondwin.fixthis.sample"),
+        )
+    }
+
+    @Test
     fun generatesDifferentBase64Tokens() {
         val first = SessionTokenStore.generateToken()
         val second = SessionTokenStore.generateToken()

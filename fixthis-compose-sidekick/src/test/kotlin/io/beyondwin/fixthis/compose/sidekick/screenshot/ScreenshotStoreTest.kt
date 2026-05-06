@@ -40,6 +40,10 @@ class ScreenshotStoreTest {
         assertPathEndsWith("fixthis/2026-05-04/annotation-1-crop.png", info.cropPath)
         assertTrue(File(requireNotNull(info.fullPath)).isFile)
         assertTrue(File(requireNotNull(info.cropPath)).isFile)
+        assertEquals(
+            File(context.cacheDir, "fixthis/2026-05-04").absolutePath,
+            store.screenshotDirectory().absolutePath,
+        )
 
         val crop = android.graphics.BitmapFactory.decodeFile(info.cropPath)
         assertEquals(4, crop.width)
