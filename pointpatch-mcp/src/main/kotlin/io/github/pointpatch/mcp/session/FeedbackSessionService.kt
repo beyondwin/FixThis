@@ -26,12 +26,11 @@ class FeedbackSessionService(
     private val store: FeedbackSessionStore = FeedbackSessionStore(),
     private val projectRoot: String,
     private val defaultPackageName: String? = null,
+    private val previewCache: PreviewSnapshotCache = PreviewSnapshotCache(MaxRetainedPreviews),
+    private val sourceIndexRegistry: SourceIndexRegistry = SourceIndexRegistry(),
 ) {
     private val sessionLock = Any()
-    private val previewSnapshots = linkedMapOf<String, PreviewRecord>()
     private val previewSavesInFlight = mutableSetOf<String>()
-    private val sourceIndexLock = Any()
-    private val sourceIndexCache = mutableMapOf<String, SourceIndex?>()
 
     fun openSession(
         packageNameOverride: String?,
@@ -127,25 +126,20 @@ class FeedbackSessionService(
             screen = payload.toCapturedScreen(screenId = screenId, fallbackDisplayName = "Draft screen"),
         )
         val sourceIndex = readPreviewSourceIndexOrNull(session.packageName, preview.screen)
-        synchronized(sessionLock) {
-            previewSnapshots[previewId] = PreviewRecord(
+        previewCache.put(
+            PreviewRecord(
                 sessionId = session.sessionId,
                 projectRoot = session.projectRoot,
                 snapshot = preview,
                 sourceIndex = sourceIndex,
-            )
-            while (previewSnapshots.size > MaxRetainedPreviews) {
-                previewSnapshots.remove(previewSnapshots.keys.first())?.deletePreviewCacheDirectory()
-            }
-        }
+            ),
+        ).forEach { it.deletePreviewCacheDirectory() }
         return preview
     }
 
     fun previewScreenshotFile(sessionId: String, previewId: String): File {
-        val record = synchronized(sessionLock) {
-            previewSnapshots[previewId]?.takeIf { it.sessionId == sessionId }
-                ?: throw FeedbackSessionException("PREVIEW_NOT_FOUND: Unknown preview: $previewId")
-        }
+        val record = previewCache.get(sessionId, previewId)
+            ?: throw FeedbackSessionException("PREVIEW_NOT_FOUND: Unknown preview: $previewId")
         val screenshotPath = record.snapshot.screen.screenshot?.desktopFullPath
             ?: throw FeedbackSessionException("PREVIEW_SCREENSHOT_NOT_FOUND: Screenshot not found for preview: $previewId")
         val screenshotFile = File(screenshotPath).canonicalFile
@@ -276,7 +270,7 @@ class FeedbackSessionService(
         require(items.isNotEmpty()) { "At least one feedback item is required" }
         val inFlightKey = "$sessionId:$previewId"
         val preview = synchronized(sessionLock) {
-            val record = previewSnapshots[previewId]?.takeIf { it.sessionId == sessionId }
+            val record = previewCache.get(sessionId, previewId)
                 ?: throw FeedbackSessionException("PREVIEW_NOT_FOUND: Unknown preview: $previewId")
             if (!previewSavesInFlight.add(inFlightKey)) {
                 throw FeedbackSessionException("PREVIEW_SAVE_IN_PROGRESS: Preview is already being saved: $previewId")
@@ -296,7 +290,7 @@ class FeedbackSessionService(
             val updated = store.addScreenWithItems(sessionId, persistedScreen, feedbackItems)
             val removedPreview = synchronized(sessionLock) {
                 previewSavesInFlight.remove(inFlightKey)
-                previewSnapshots.remove(previewId)
+                previewCache.remove(sessionId, previewId)
             }
             removedPreview?.deletePreviewCacheDirectory()
             updated
@@ -365,9 +359,7 @@ class FeedbackSessionService(
 
     private suspend fun readPreviewSourceIndexOrNull(packageName: String, screen: SnapshotDto): SourceIndex? {
         if (!screen.sourceIndexAvailable) return null
-        synchronized(sourceIndexLock) {
-            if (sourceIndexCache.containsKey(packageName)) return sourceIndexCache[packageName]
-        }
+        if (sourceIndexRegistry.contains(packageName)) return sourceIndexRegistry.cached(packageName)
         val result = runCatching { bridge.readSourceIndex(packageName) }.getOrElse { return null }
         val available = result["sourceIndexAvailable"]?.jsonPrimitive?.booleanOrNull ?: false
         val sourceIndexElement = result["sourceIndex"]
@@ -379,9 +371,7 @@ class FeedbackSessionService(
         } else {
             null
         }
-        synchronized(sourceIndexLock) {
-            sourceIndexCache[packageName] = sourceIndex
-        }
+        sourceIndexRegistry.put(packageName, sourceIndex)
         return sourceIndex
     }
 
@@ -559,13 +549,6 @@ class FeedbackSessionService(
         val dy = ((top + bottom) / 2f) - ((other.top + other.bottom) / 2f)
         return dx * dx + dy * dy
     }
-
-    private data class PreviewRecord(
-        val sessionId: String,
-        val projectRoot: String,
-        val snapshot: FeedbackPreviewSnapshot,
-        val sourceIndex: SourceIndex?,
-    )
 
     private data class AreaEvidenceNode(
         val node: PointPatchNode,

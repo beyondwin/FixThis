@@ -1318,7 +1318,7 @@ git commit -m "refactor: rename feedback wire models to annotation dto names"
 - Create: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/PreviewSnapshotCacheTest.kt`
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt`
 
-- [ ] **Step 1: Write cache tests**
+- [x] **Step 1: Write cache tests**
 
 ```kotlin
 package io.github.pointpatch.mcp.session
@@ -1370,7 +1370,7 @@ private fun previewRecord(previewId: String): PreviewRecord =
     )
 ```
 
-- [ ] **Step 2: Run and confirm red**
+- [x] **Step 2: Run and confirm red**
 
 Run:
 
@@ -1380,7 +1380,7 @@ Run:
 
 Expected: compile failure because the cache and top-level `PreviewRecord` do not exist.
 
-- [ ] **Step 3: Add cache and top-level record**
+- [x] **Step 3: Add cache and top-level record**
 
 ```kotlin
 package io.github.pointpatch.mcp.session
@@ -1424,7 +1424,7 @@ class PreviewSnapshotCache(
 }
 ```
 
-- [ ] **Step 4: Add source index registry**
+- [x] **Step 4: Add source index registry**
 
 ```kotlin
 package io.github.pointpatch.mcp.session
@@ -1455,7 +1455,7 @@ class SourceIndexRegistry {
 }
 ```
 
-- [ ] **Step 5: Wire cache and registry into `FeedbackSessionService`**
+- [x] **Step 5: Wire cache and registry into `FeedbackSessionService`**
 
 Change the constructor defaults:
 
@@ -1466,7 +1466,7 @@ private val sourceIndexRegistry: SourceIndexRegistry = SourceIndexRegistry(),
 
 Replace `previewSnapshots` and `previewSavesInFlight` access in small increments. Keep the public `FeedbackSessionService` method signatures unchanged in this task.
 
-- [ ] **Step 6: Run MCP session and console tests**
+- [x] **Step 6: Run MCP session and console tests**
 
 Run:
 
@@ -1476,7 +1476,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/PreviewSnapshotCacheTest.kt
