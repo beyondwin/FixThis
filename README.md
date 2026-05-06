@@ -102,7 +102,7 @@ MCP is the primary agent workflow for the feedback console. `fixthis mcp` runs a
 
 The feedback console is a dark Studio workspace: persisted sessions on the left, live or frozen Android preview in the center, and a mode-aware Inspector on the right. It defaults to navigation. There is no Select/Navigate toggle: normal preview clicks navigate the app, while Add freezes the latest preview so you can mark feedback targets. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions. The compact device control selects the active ADB device for FixThis bridge requests, shows `No device`, `Connecting`, `Connected`, or `Unavailable`, and keeps unavailable, offline, or unauthorized devices visible but not selectable.
 
-Top bar actions are short session-level controls: Refresh, Add, Save, Copy, Send, New, and Close. The device refresh control is the `Refresh devices` icon button, and `Clear selection` clears only FixThis's active device selection. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 2s. Preview polling pauses while the browser tab is hidden, while the Add/frozen-preview flow is active, and when the selected device becomes unavailable.
+Top bar actions are short session-level controls: Refresh, Add, Save, Copy, Send, New, and Close. The device refresh control is the `Refresh devices` icon button, and `Clear selection` clears only FixThis's active device selection. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 1s. Preview polling pauses while the browser tab is hidden, while the Add/frozen-preview flow is active, and when the selected device becomes unavailable.
 
 Feedback console flow:
 

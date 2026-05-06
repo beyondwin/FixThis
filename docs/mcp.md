@@ -62,7 +62,7 @@ Console workflow:
 
 The console defaults to navigation and has no Select/Navigate toggle. Preview clicks navigate the app until Add freezes the latest preview for feedback targeting. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions.
 
-Top bar actions are short session-level controls: Refresh, Add, Save, Copy, Send, New, and Close. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 2s. Preview polling pauses while the browser tab is hidden and while the Add/frozen-preview flow is active.
+Top bar actions are short session-level controls: Refresh, Add, Save, Copy, Send, New, and Close. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 1s. Preview polling pauses while the browser tab is hidden and while the Add/frozen-preview flow is active.
 
 Add freezes the latest preview only; it does not save. Multiple pending feedback items can be added to one frozen preview. Pending items support Focus and Delete before Save; deleting renumbers pending items so the pending list numbers and overlay numbers match.
 

@@ -137,7 +137,7 @@ Run `fixthis_list_feedback_sessions` or reopen the console with the exact `sessi
 
 ### Live preview stopped updating
 
-Preview polling pauses when the browser tab is hidden and while the Add/frozen-preview flow is active. Switch back to the tab, Save or cancel the pending flow, or use Refresh. The preview interval options are Manual, 1s, 2s, and 5s, with 2s as the default.
+Preview polling pauses when the browser tab is hidden and while the Add/frozen-preview flow is active. Switch back to the tab, Save or cancel the pending flow, or use Refresh. The preview interval options are Manual, 1s, 2s, and 5s, with 1s as the default.
 
 ### Navigation worked but no new screen appeared
 
