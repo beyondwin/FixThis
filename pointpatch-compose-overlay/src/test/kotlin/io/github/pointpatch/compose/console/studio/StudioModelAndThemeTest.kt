@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import io.github.pointpatch.compose.console.studio.common.StudioFontFamily
@@ -12,6 +13,8 @@ import io.github.pointpatch.compose.console.studio.model.AnnotationStatus
 import io.github.pointpatch.compose.console.studio.model.Severity
 import io.github.pointpatch.compose.console.studio.model.wireValue
 import io.github.pointpatch.compose.console.studio.theme.StudioColors
+import io.github.pointpatch.compose.console.studio.theme.StudioSpacing
+import io.github.pointpatch.compose.console.studio.theme.darkStudioSemanticColors
 import io.github.pointpatch.compose.console.studio.theme.severityColor
 import io.github.pointpatch.compose.console.studio.theme.statusDotColor
 import io.github.pointpatch.compose.console.studio.theme.statusPillBg
@@ -49,6 +52,31 @@ class StudioModelAndThemeTest {
         assertColor("#E6B45A", StudioColors.Warn)
         assertColor("#F26D6D", StudioColors.Danger)
         assertColor("#999999", StudioColors.MutedPlaceholder)
+    }
+
+    @Test
+    fun studioSpacingTokensExposeStableDpValues() {
+        val spacing = StudioSpacing()
+
+        assertEquals(4.dp, spacing.xs)
+        assertEquals(8.dp, spacing.sm)
+        assertEquals(12.dp, spacing.md)
+        assertEquals(16.dp, spacing.lg)
+        assertEquals(24.dp, spacing.xl)
+        assertEquals(32.dp, spacing.xxl)
+    }
+
+    @Test
+    fun studioSemanticColorsMapExistingPalette() {
+        val colors = darkStudioSemanticColors()
+
+        assertColor("#0D0E10", colors.surface)
+        assertColor("#131418", colors.surfaceRaised)
+        assertColor("#E8E9EB", colors.onSurface)
+        assertColor("#B6B8BE", colors.onSurfaceMuted)
+        assertColor("#2A2D35", colors.border)
+        assertColor("#B8D36A", colors.accent)
+        assertColor("#F26D6D", colors.danger)
     }
 
     @Test

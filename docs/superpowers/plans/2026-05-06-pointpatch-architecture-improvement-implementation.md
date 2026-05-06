@@ -306,7 +306,7 @@ git commit -m "refactor: load feedback console assets from resources"
 - Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/theme/StudioTheme.kt`
 - Modify: `pointpatch-compose-overlay/src/test/kotlin/io/github/pointpatch/compose/console/studio/StudioModelAndThemeTest.kt`
 
-- [ ] **Step 1: Write token tests**
+- [x] **Step 1: Write token tests**
 
 Add tests to `StudioModelAndThemeTest`:
 
@@ -345,7 +345,7 @@ import io.github.pointpatch.compose.console.studio.theme.StudioSpacing
 import io.github.pointpatch.compose.console.studio.theme.darkStudioSemanticColors
 ```
 
-- [ ] **Step 2: Run the tests and confirm they are red**
+- [x] **Step 2: Run the tests and confirm they are red**
 
 Run:
 
@@ -355,7 +355,7 @@ Run:
 
 Expected: compile failure because `StudioSpacing` and `darkStudioSemanticColors` do not exist.
 
-- [ ] **Step 3: Add spacing, shapes, and elevation**
+- [x] **Step 3: Add spacing, shapes, and elevation**
 
 ```kotlin
 package io.github.pointpatch.compose.console.studio.theme
@@ -410,7 +410,7 @@ internal data class StudioElevation(
 )
 ```
 
-- [ ] **Step 4: Add semantic colors and theme object**
+- [x] **Step 4: Add semantic colors and theme object**
 
 ```kotlin
 package io.github.pointpatch.compose.console.studio.theme
@@ -511,7 +511,7 @@ internal object StudioThemeTokens {
 }
 ```
 
-- [ ] **Step 5: Run the focused overlay tests**
+- [x] **Step 5: Run the focused overlay tests**
 
 Run:
 
@@ -521,7 +521,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/theme pointpatch-compose-overlay/src/test/kotlin/io/github/pointpatch/compose/console/studio/StudioModelAndThemeTest.kt
