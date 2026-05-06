@@ -63,32 +63,33 @@ fun FeedbackCard(
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                text = "${item.assignee} - ${item.ageLabel}",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = "${item.assignee} - ${item.ageLabel}",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                Row {
-                    OutlinedButton(onClick = {}) { Text("Assign") }
-                    IconButton(
-                        modifier = Modifier.semantics {
-                            contentDescription = "Save ${item.id}"
-                        },
-                        onClick = {},
-                    ) {
-                        Text("Save", style = MaterialTheme.typography.labelSmall)
-                    }
-                    Button(
-                        enabled = !showDisabledAction,
-                        onClick = {},
-                    ) {
-                        Text("Reviewed")
-                    }
+                OutlinedButton(onClick = {}) { Text("Assign") }
+                IconButton(
+                    modifier = Modifier.semantics {
+                        contentDescription = "Save ${item.id}"
+                    },
+                    onClick = {},
+                ) {
+                    Text("Save", style = MaterialTheme.typography.labelSmall)
+                }
+                Button(
+                    enabled = !showDisabledAction,
+                    onClick = {},
+                ) {
+                    Text("Reviewed")
                 }
             }
         }
