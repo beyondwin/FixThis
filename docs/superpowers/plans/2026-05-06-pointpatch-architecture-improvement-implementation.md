@@ -2009,8 +2009,8 @@ PointPatch now has UI, MCP, CLI, capture, persistence, and Gradle plugin respons
 ## Summary
 
 ## Impacted Layers
-- [ ] Domain (`pointpatch-compose-core/domain`)
-- [ ] Use cases (`pointpatch-compose-core/usecase`)
+- [ ] Domain (`pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain`)
+- [ ] Use cases (`pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/usecase`)
 - [ ] MCP DTO / persistence
 - [ ] CLI / bridge
 - [ ] Compose overlay UI
@@ -2032,6 +2032,12 @@ PointPatch now has UI, MCP, CLI, capture, persistence, and Gradle plugin respons
 - [ ] Related ADR is linked or updated
 
 ## Verification
+- [ ] Commands run are listed below with PASS or FAIL results
+- [ ] Relevant checks that were not run are listed as SKIPPED with a reason and residual risk
+
+| Command / check | Result | Notes |
+| --- | --- | --- |
+|  | PASS / FAIL / SKIPPED |  |
 ```
 
 - [x] **Step 4: Commit**
