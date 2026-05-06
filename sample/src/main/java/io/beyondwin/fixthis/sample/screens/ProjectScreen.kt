@@ -93,25 +93,30 @@ fun ProjectScreen(padding: PaddingValues) {
             )
         }
         item {
-            Box {
-                OutlinedButton(onClick = { menuOpen = true }) {
-                    Text("More actions")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { closeDialogOpen = true }) {
+                    Text("Close issue")
                 }
-                DropdownMenu(
-                    expanded = menuOpen,
-                    onDismissRequest = { menuOpen = false },
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Assign reviewer") },
-                        onClick = { menuOpen = false },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Close issue") },
-                        onClick = {
-                            menuOpen = false
-                            closeDialogOpen = true
-                        },
-                    )
+                Box {
+                    OutlinedButton(onClick = { menuOpen = true }) {
+                        Text("More actions")
+                    }
+                    DropdownMenu(
+                        expanded = menuOpen,
+                        onDismissRequest = { menuOpen = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Assign reviewer") },
+                            onClick = { menuOpen = false },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Close issue") },
+                            onClick = {
+                                menuOpen = false
+                                closeDialogOpen = true
+                            },
+                        )
+                    }
                 }
             }
         }
