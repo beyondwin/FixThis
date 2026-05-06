@@ -729,7 +729,7 @@ git commit -m "feat: add FixThis sample components"
 - Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisStudioApp.kt`
 - Delete after replacement: `sample/src/main/java/io/github/pointpatch/sample/screens/*.kt`
 
-- [ ] **Step 1: Create Home screen**
+- [x] **Step 1: Create Home screen**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt`:
 
@@ -803,7 +803,7 @@ fun HomeScreen(padding: PaddingValues) {
 }
 ```
 
-- [ ] **Step 2: Create Queue screen**
+- [x] **Step 2: Create Queue screen**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/screens/QueueScreen.kt`:
 
@@ -862,7 +862,7 @@ fun QueueScreen(padding: PaddingValues) {
 }
 ```
 
-- [ ] **Step 3: Create Project screen**
+- [x] **Step 3: Create Project screen**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/screens/ProjectScreen.kt`:
 
@@ -985,7 +985,7 @@ fun ProjectScreen(padding: PaddingValues) {
 }
 ```
 
-- [ ] **Step 4: Create Review screen**
+- [x] **Step 4: Create Review screen**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt`:
 
@@ -1084,7 +1084,7 @@ fun ReviewScreen(padding: PaddingValues) {
 }
 ```
 
-- [ ] **Step 5: Create Diagnostics screen**
+- [x] **Step 5: Create Diagnostics screen**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt`:
 
@@ -1200,7 +1200,7 @@ fun DiagnosticsScreen(padding: PaddingValues) {
 }
 ```
 
-- [ ] **Step 6: Wire screens into app shell**
+- [x] **Step 6: Wire screens into app shell**
 
 Replace `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisStudioApp.kt` with:
 
@@ -1263,7 +1263,7 @@ fun FixThisStudioApp() {
 }
 ```
 
-- [ ] **Step 7: Delete old screen package**
+- [x] **Step 7: Delete old screen package**
 
 Run:
 
@@ -1274,7 +1274,7 @@ rmdir sample/src/main/java/io/github/pointpatch/sample || true
 
 Expected: old `io.github.pointpatch.sample` source package is gone from main sample source.
 
-- [ ] **Step 8: Build product screens**
+- [x] **Step 8: Build product screens**
 
 Run:
 
@@ -1284,7 +1284,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 9: Commit product screens**
+- [x] **Step 9: Commit product screens**
 
 Run:
 
