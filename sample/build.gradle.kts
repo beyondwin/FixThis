@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "io.github.pointpatch.sample"
+    namespace = "io.beyondwin.fixthis.sample"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "io.github.pointpatch.sample"
+        applicationId = "io.beyondwin.fixthis.sample"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

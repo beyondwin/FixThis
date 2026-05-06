@@ -70,7 +70,7 @@ sample/src/androidTest/java/io/github/pointpatch/sample/
 - Delete in Step 6: `sample/src/main/java/io/github/pointpatch/sample/MainActivity.kt`
 - Delete in Step 6: `sample/src/main/java/io/github/pointpatch/sample/SampleApp.kt`
 
-- [ ] **Step 1: Update Gradle package identity**
+- [x] **Step 1: Update Gradle package identity**
 
 Change `sample/build.gradle.kts`:
 
@@ -94,7 +94,7 @@ android {
 }
 ```
 
-- [ ] **Step 2: Update launcher label**
+- [x] **Step 2: Update launcher label**
 
 Change `sample/src/main/AndroidManifest.xml`:
 
@@ -117,7 +117,7 @@ Change `sample/src/main/AndroidManifest.xml`:
 </manifest>
 ```
 
-- [ ] **Step 3: Create the new MainActivity**
+- [x] **Step 3: Create the new MainActivity**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/MainActivity.kt`:
 
@@ -138,7 +138,7 @@ class MainActivity : ComponentActivity() {
 }
 ```
 
-- [ ] **Step 4: Create the sample theme**
+- [x] **Step 4: Create the sample theme**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisTheme.kt`:
 
@@ -195,7 +195,7 @@ fun FixThisTheme(content: @Composable () -> Unit) {
 }
 ```
 
-- [ ] **Step 5: Create a temporary five-tab app shell**
+- [x] **Step 5: Create a temporary five-tab app shell**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisStudioApp.kt`:
 
@@ -267,7 +267,7 @@ private fun TemporaryTabContent(tab: FixThisTab, padding: PaddingValues) {
 }
 ```
 
-- [ ] **Step 6: Delete old main app files after the new shell exists**
+- [x] **Step 6: Delete old main app files after the new shell exists**
 
 Run:
 
@@ -278,7 +278,7 @@ rm sample/src/main/java/io/github/pointpatch/sample/SampleApp.kt
 
 Expected: old files are removed; old screen files remain until replacement screens are added.
 
-- [ ] **Step 7: Build the minimal renamed app**
+- [x] **Step 7: Build the minimal renamed app**
 
 Run:
 
@@ -288,7 +288,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 8: Commit package identity shell**
+- [x] **Step 8: Commit package identity shell**
 
 Run:
 
@@ -303,7 +303,7 @@ git commit -m "feat: rename sample app to FixThis"
 
 - Create: `sample/src/main/java/io/beyondwin/fixthis/sample/model/FixThisDemoData.kt`
 
-- [ ] **Step 1: Create deterministic sample data**
+- [x] **Step 1: Create deterministic sample data**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/model/FixThisDemoData.kt`:
 
@@ -420,7 +420,7 @@ object FixThisDemoData {
 }
 ```
 
-- [ ] **Step 2: Build after adding model**
+- [x] **Step 2: Build after adding model**
 
 Run:
 
@@ -430,7 +430,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 3: Commit demo data**
+- [x] **Step 3: Commit demo data**
 
 Run:
 
@@ -448,7 +448,7 @@ git commit -m "feat: add FixThis demo data"
 - Create: `sample/src/main/java/io/beyondwin/fixthis/sample/components/MetricCard.kt`
 - Create: `sample/src/main/java/io/beyondwin/fixthis/sample/components/FeedbackCard.kt`
 
-- [ ] **Step 1: Create status chip**
+- [x] **Step 1: Create status chip**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/components/StatusChip.kt`:
 
@@ -513,7 +513,7 @@ fun StateChip(state: FeedbackState, modifier: Modifier = Modifier) {
 }
 ```
 
-- [ ] **Step 2: Create section header**
+- [x] **Step 2: Create section header**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/components/SectionHeader.kt`:
 
@@ -552,7 +552,7 @@ fun SectionHeader(
 }
 ```
 
-- [ ] **Step 3: Create metric card**
+- [x] **Step 3: Create metric card**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/components/MetricCard.kt`:
 
@@ -595,7 +595,7 @@ fun MetricCard(metric: ProjectMetric, modifier: Modifier = Modifier) {
 }
 ```
 
-- [ ] **Step 4: Create feedback card**
+- [x] **Step 4: Create feedback card**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/components/FeedbackCard.kt`:
 
@@ -698,7 +698,7 @@ fun FeedbackCard(
 }
 ```
 
-- [ ] **Step 5: Build shared components**
+- [x] **Step 5: Build shared components**
 
 Run:
 
@@ -708,7 +708,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 6: Commit shared components**
+- [x] **Step 6: Commit shared components**
 
 Run:
 
@@ -729,7 +729,7 @@ git commit -m "feat: add FixThis sample components"
 - Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisStudioApp.kt`
 - Delete after replacement: `sample/src/main/java/io/github/pointpatch/sample/screens/*.kt`
 
-- [ ] **Step 1: Create Home screen**
+- [x] **Step 1: Create Home screen**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt`:
 
@@ -803,7 +803,7 @@ fun HomeScreen(padding: PaddingValues) {
 }
 ```
 
-- [ ] **Step 2: Create Queue screen**
+- [x] **Step 2: Create Queue screen**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/screens/QueueScreen.kt`:
 
@@ -862,7 +862,7 @@ fun QueueScreen(padding: PaddingValues) {
 }
 ```
 
-- [ ] **Step 3: Create Project screen**
+- [x] **Step 3: Create Project screen**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/screens/ProjectScreen.kt`:
 
@@ -985,7 +985,7 @@ fun ProjectScreen(padding: PaddingValues) {
 }
 ```
 
-- [ ] **Step 4: Create Review screen**
+- [x] **Step 4: Create Review screen**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt`:
 
@@ -1084,7 +1084,7 @@ fun ReviewScreen(padding: PaddingValues) {
 }
 ```
 
-- [ ] **Step 5: Create Diagnostics screen**
+- [x] **Step 5: Create Diagnostics screen**
 
 Create `sample/src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt`:
 
@@ -1200,7 +1200,7 @@ fun DiagnosticsScreen(padding: PaddingValues) {
 }
 ```
 
-- [ ] **Step 6: Wire screens into app shell**
+- [x] **Step 6: Wire screens into app shell**
 
 Replace `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisStudioApp.kt` with:
 
@@ -1263,7 +1263,7 @@ fun FixThisStudioApp() {
 }
 ```
 
-- [ ] **Step 7: Delete old screen package**
+- [x] **Step 7: Delete old screen package**
 
 Run:
 
@@ -1274,7 +1274,7 @@ rmdir sample/src/main/java/io/github/pointpatch/sample || true
 
 Expected: old `io.github.pointpatch.sample` source package is gone from main sample source.
 
-- [ ] **Step 8: Build product screens**
+- [x] **Step 8: Build product screens**
 
 Run:
 
@@ -1284,7 +1284,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 9: Commit product screens**
+- [x] **Step 9: Commit product screens**
 
 Run:
 
@@ -1302,7 +1302,7 @@ git commit -m "feat: build FixThis Studio sample UI"
 - Modify: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
 - Modify: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt`
 
-- [ ] **Step 1: Move test package directory**
+- [x] **Step 1: Move test package directory**
 
 Run:
 
@@ -1313,7 +1313,7 @@ git mv sample/src/androidTest/java/io/github/pointpatch/sample/SemanticsInspecto
 rmdir sample/src/androidTest/java/io/github/pointpatch/sample || true
 ```
 
-- [ ] **Step 2: Update smoke test**
+- [x] **Step 2: Update smoke test**
 
 Replace `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt` with:
 
@@ -1343,7 +1343,7 @@ class SampleAppSmokeTest {
 }
 ```
 
-- [ ] **Step 3: Update semantics inspector test**
+- [x] **Step 3: Update semantics inspector test**
 
 Replace `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt` with:
 
@@ -1377,7 +1377,7 @@ class SemanticsInspectorSampleAppTest {
 }
 ```
 
-- [ ] **Step 4: Build android tests**
+- [x] **Step 4: Build android tests**
 
 Run:
 
@@ -1387,7 +1387,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 5: Run connected tests when a device is available**
+- [x] **Step 5: Run connected tests when a device is available**
 
 Check devices:
 
@@ -1405,7 +1405,7 @@ Expected: `BUILD SUCCESSFUL`.
 
 If no device is available, record in the implementation final answer: `connectedDebugAndroidTest not run; no emulator/device available`.
 
-- [ ] **Step 6: Commit sample tests**
+- [x] **Step 6: Commit sample tests**
 
 Run:
 
@@ -1422,7 +1422,7 @@ git commit -m "test: update FixThis sample tests"
 - Inspect and selectively modify: `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/source/SourceMatcherTest.kt`
 - Inspect and selectively modify: `pointpatch-gradle-plugin/src/test/kotlin/io/github/pointpatch/gradle/GeneratePointPatchSourceIndexTaskTest.kt`
 
-- [ ] **Step 1: Update README sample package command**
+- [x] **Step 1: Update README sample package command**
 
 Change the smoke command in `README.md` from:
 
@@ -1438,7 +1438,7 @@ pointpatch-cli/build/install/pointpatch/bin/pointpatch run --package io.beyondwi
 
 Keep the repo/module wording as `PointPatch` and `:app`.
 
-- [ ] **Step 2: Audit package references**
+- [x] **Step 2: Audit package references**
 
 Run:
 
@@ -1451,7 +1451,7 @@ Expected: results fall into two groups:
 - update sample app references and source matcher fixtures tied to actual sample paths
 - leave generic unit fixtures that intentionally use arbitrary package names
 
-- [ ] **Step 3: Update source matcher fixture paths tied to sample source**
+- [x] **Step 3: Update source matcher fixture paths tied to sample source**
 
 In `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/source/SourceMatcherTest.kt`, update package/path examples that are meant to represent current sample source:
 
@@ -1468,7 +1468,7 @@ activityName = "io.beyondwin.fixthis.sample.MainActivity"
 
 Do not bulk-rewrite every `io.github.pointpatch.sample` fixture across MCP/sidekick tests unless the test explicitly claims to model the real sample app path.
 
-- [ ] **Step 4: Update Gradle plugin source index test only if it asserts old sample app text**
+- [x] **Step 4: Update Gradle plugin source index test only if it asserts old sample app text**
 
 In `pointpatch-gradle-plugin/src/test/kotlin/io/github/pointpatch/gradle/GeneratePointPatchSourceIndexTaskTest.kt`, keep synthetic package names if the test creates its own fake files. Update only assertions that expect the app resource text `PointPatch Sample`; use:
 
@@ -1484,7 +1484,7 @@ assertTrue(textValues.contains("FixThis"))
 
 If the test remains synthetic and not tied to the real sample package, do not rename its package declarations just for branding.
 
-- [ ] **Step 5: Run unit tests affected by fixture updates**
+- [x] **Step 5: Run unit tests affected by fixture updates**
 
 Run:
 
@@ -1494,7 +1494,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 6: Commit docs and fixture updates**
+- [x] **Step 6: Commit docs and fixture updates**
 
 Run:
 
@@ -1512,7 +1512,7 @@ If either test file did not need changes, omit it from `git add`.
 - Inspect: all changed files
 - No new files expected unless fixes are required
 
-- [ ] **Step 1: Verify no old sample main package remains**
+- [x] **Step 1: Verify no old sample main package remains**
 
 Run:
 
@@ -1522,7 +1522,7 @@ rg -n "package io\\.github\\.pointpatch\\.sample|io\\.github\\.pointpatch\\.samp
 
 Expected: no output.
 
-- [ ] **Step 2: Verify new package appears in app config**
+- [x] **Step 2: Verify new package appears in app config**
 
 Run:
 
@@ -1537,7 +1537,7 @@ Expected:
 - new Kotlin and androidTest package declarations are present
 - README run command names `io.beyondwin.fixthis.sample`
 
-- [ ] **Step 3: Run broad build verification**
+- [x] **Step 3: Run broad build verification**
 
 Run:
 
@@ -1547,7 +1547,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 4: Run full test suite**
+- [x] **Step 4: Run full test suite**
 
 Run:
 
@@ -1559,7 +1559,7 @@ Expected: `BUILD SUCCESSFUL`.
 
 If this fails in unrelated modules, capture the failure and run the targeted command from Step 3 again before finalizing.
 
-- [ ] **Step 5: Review final diff**
+- [x] **Step 5: Review final diff**
 
 Run:
 
@@ -1575,7 +1575,7 @@ Expected:
 - five screens are present
 - old developer-only screen labels are removed from the visible sample UI
 
-- [ ] **Step 6: Commit final cleanup after verification fixes**
+- [x] **Step 6: Commit final cleanup after verification fixes**
 
 Run:
 
@@ -1586,6 +1586,19 @@ git commit -m "fix: stabilize FixThis sample app"
 ```
 
 Expected: create this commit only when `git status --short` shows verification fixes that were not already committed by previous tasks. When the working tree is clean, skip the `git add` and `git commit` commands.
+
+## Completion Note
+
+Implementation finished with the sample namespace/application id set to `io.beyondwin.fixthis.sample`, launcher label `FixThis`, and product UI branded as FixThis Studio with five bottom tabs: Home, Queue, Project, Review, and Diagnostics.
+
+Final local verification passed:
+
+```bash
+./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :pointpatch-compose-core:test :pointpatch-gradle-plugin:test
+./gradlew test
+```
+
+Connected instrumentation tests were not run because `adb` was not on `PATH` and the SDK adb device list showed no connected devices or emulators in `device` state.
 
 ## Self-Review Checklist
 

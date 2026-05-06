@@ -42,7 +42,7 @@ dependencies {
 }
 ```
 
-The sample app in this repository is a Compose-only validation app. It replaces the earlier XML/View sample so PointPatch can exercise Compose semantics, Smart Select, screenshots, source candidates, and CLI/MCP bridge flows.
+The sample app in this repository is the branded FixThis Studio Compose app, exposed as application id `io.beyondwin.fixthis.sample` with launcher label `FixThis`. Its five bottom navigation tabs, Home, Queue, Project, Review, and Diagnostics, give PointPatch deterministic Compose UI for Smart Select, screenshots, source candidates, and CLI/MCP bridge smoke flows.
 
 ## Repository Layout
 
@@ -77,7 +77,7 @@ For the full PointPatch smoke flow, build the CLI/MCP distribution and let the C
 
 ```bash
 ./gradlew :pointpatch-cli:installDist :pointpatch-mcp:installDist
-pointpatch-cli/build/install/pointpatch/bin/pointpatch run --package io.github.pointpatch.sample
+pointpatch-cli/build/install/pointpatch/bin/pointpatch run --package io.beyondwin.fixthis.sample
 ```
 
 ## CLI And MCP

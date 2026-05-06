@@ -88,7 +88,7 @@ class GeneratePointPatchSourceIndexTaskTest {
         stringsFile.writeText(
             """
             <resources>
-                <string name="app_name">PointPatch Sample</string>
+                <string name="app_name">FixThis</string>
                 <string name="checkout_total">Total due</string>
             </resources>
             """.trimIndent(),
@@ -118,7 +118,7 @@ class GeneratePointPatchSourceIndexTaskTest {
 
         assertTrue(resources.contains("app_name"))
         assertTrue(resources.contains("checkout_total"))
-        assertTrue(textValues.contains("PointPatch Sample"))
+        assertTrue(textValues.contains("FixThis"))
         assertTrue(textValues.contains("Total due"))
         assertEquals("debug", buildInfo.getValue("variantName").jsonPrimitive.content)
         assertEquals("0.1.0-test", buildInfo.getValue("runtimeVersion").jsonPrimitive.content)
