@@ -12,7 +12,7 @@ For this repository's sample app, use the Android Studio `app` configuration or 
 
 ```bash
 ./gradlew :app:installDebug
-pointpatch run --package io.github.pointpatch.sample
+pointpatch run --package io.beyondwin.fixthis.sample
 ```
 
 ## ADB_NOT_FOUND
@@ -81,6 +81,12 @@ Common causes:
 - The screen is between Activity transitions.
 
 Fix: navigate to a Compose screen and retry. PointPatch V1 is Android Jetpack Compose only. Empty roots are reported as `rootsCount=0`; V1 does not emit a separate no-roots error code for that case.
+
+### Connected test says no Compose hierarchies found
+
+Jetpack Compose test APIs need the app window to be foregrounded and inspectable. If `adb devices` shows a physical device in `device` state but the device is still on a secure lockscreen, system Bouncer, or notification shade, instrumentation can launch the app and still fail with `No compose hierarchies found in the app`.
+
+Fix: unlock the device manually or use an unlocked emulator, then rerun the connected test. ADB wake or dismiss-keyguard commands are not enough for secure lockscreen credentials.
 
 ## Screenshot Failures
 

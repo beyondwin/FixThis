@@ -216,7 +216,7 @@ pointpatch-compose/
 
   sample/
     build.gradle.kts
-    src/main/java/io/github/pointpatch/sample/...
+    src/main/java/io/beyondwin/fixthis/sample/...
 ```
 
 ---
@@ -265,7 +265,7 @@ include(":app")
 project(":app").projectDir = file("sample")
 ```
 
-따라서 local build/install 문서와 CLI 기본 install task는 `:app:installDebug`를 사용한다. `:sample`은 더 이상 현재 Gradle project path가 아니다.
+따라서 local build/install 문서와 CLI 기본 install task는 `:app:installDebug`를 사용한다. `:sample`은 더 이상 현재 Gradle project path가 아니다. 현재 repository sample application id는 `io.beyondwin.fixthis.sample`이고 launcher label은 `FixThis`다.
 
 `gradle/gradle-daemon-jvm.properties`는 Gradle daemon JVM toolchain을 Java 21로 고정하는 repository 파일이다. 반대로 `local.properties`, `.pointpatch/artifacts/`, `.pointpatch/feedback-sessions/`는 developer-local 파일이므로 git에서 무시한다.
 
@@ -2232,20 +2232,21 @@ METHOD_FAILED
 
 ### 20.2 Android instrumentation tests
 
-Sample app scenarios:
+FixThis Studio sample app scenarios:
 
-- Material3 Button
-- Text
-- TextField
-- Password TextField
-- Checkbox
-- Switch
-- LazyColumn item
+- tabbed product navigation across Home, Queue, Project, Review, and Diagnostics
+- Material3 Button and text anchors
+- TextField and password-like redaction surfaces
+- Checkbox and Switch
+- repeated card/list items
 - Dialog
 - Popup/Dropdown
-- Canvas-only
-- Canvas with semantics
-- multiple Compose roots
+- Canvas-only preview area
+- Canvas with explicit semantics
+- disabled controls
+- long text and nested target rows
+- weak-semantics fallback regions
+- multiple Compose roots when dialogs or menus are open
 
 Tests:
 
@@ -2259,7 +2260,7 @@ Tests:
 7. Dialog root discoverable
 ```
 
-Option A Compose Studio verification also includes androidTest source compilation for `StudioShellComposeTest`; that test is intended to exercise the shell with `FeedbackConsoleScreen(previewScreenshot = null)` when run on a device or emulator. `connectedAndroidTest` was not run for this implementation because no connected device or emulator was available.
+Option A Compose Studio verification also includes androidTest source compilation for `StudioShellComposeTest`; that test is intended to exercise the shell with `FeedbackConsoleScreen(previewScreenshot = null)` when run on a device or emulator. Connected Compose tests require the target app to be foregrounded on an unlocked interactive emulator or device; a secure physical-device lockscreen can make Compose report no hierarchies even when `adb devices` reports `device`.
 
 ### 20.3 CLI tests
 
@@ -2443,32 +2444,34 @@ Acceptance:
 Screens:
 
 ```text
-CheckoutScreen
-  - amount text
-  - coupon row
-  - pay button
-  - bottom payment bar
+HomeScreen
+  - product health summary
+  - priority metrics
+  - repeated feedback cards
 
-FeedScreen
-  - LazyColumn
-  - repeated cards
-  - icon button
-  - image placeholder
+QueueScreen
+  - triage list
+  - filter controls
+  - repeated card rows
 
-FormScreen
-  - TextField
-  - Password field
-  - Checkbox
-  - Switch
-
-DialogScreen
+ProjectScreen
+  - selected feedback detail
   - AlertDialog
   - DropdownMenu
-  - Popup
+  - visible close-action anchor
 
-CanvasScreen
-  - Canvas-only component
-  - Canvas with semantics
+ReviewScreen
+  - TextField and password-like redaction surface
+  - Checkbox
+  - Switch
+  - agent handoff composer
+
+DiagnosticsScreen
+  - Canvas-only preview area
+  - Canvas with explicit semantics
+  - weak-semantics block
+  - disabled control
+  - long text and nested target rows
 ```
 
 목적:

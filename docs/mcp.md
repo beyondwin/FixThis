@@ -4,12 +4,12 @@ PointPatch MCP is the primary agent workflow for the feedback console. The in-ap
 
 ## Repository Sample
 
-In this repository the sample Android app is exposed as Gradle project `:app`, with sources under `sample/`. The local smoke flow is:
+In this repository the FixThis Studio sample Android app is exposed as Gradle project `:app`, with sources under `sample/` and application id `io.beyondwin.fixthis.sample`. The local smoke flow is:
 
 ```bash
 ./gradlew :app:installDebug
 ./gradlew :pointpatch-cli:installDist :pointpatch-mcp:installDist
-pointpatch-cli/build/install/pointpatch/bin/pointpatch run --package io.github.pointpatch.sample
+pointpatch-cli/build/install/pointpatch/bin/pointpatch run --package io.beyondwin.fixthis.sample
 ```
 
 The `pointpatch run` default install task is `:app:installDebug`.
@@ -83,8 +83,8 @@ The command prints MCP client config JSON:
 ```json
 {
   "command": "pointpatch",
-  "args": ["mcp", "--package", "io.github.pointpatch.sample", "--project-dir", "/path/to/project"],
-  "packageName": "io.github.pointpatch.sample",
+  "args": ["mcp", "--package", "io.beyondwin.fixthis.sample", "--project-dir", "/path/to/project"],
+  "packageName": "io.beyondwin.fixthis.sample",
   "projectRoot": "/path/to/project"
 }
 ```

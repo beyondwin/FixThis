@@ -42,7 +42,7 @@ dependencies {
 }
 ```
 
-The sample app in this repository is the branded FixThis Studio Compose app, exposed as application id `io.beyondwin.fixthis.sample` with launcher label `FixThis`. Its five bottom navigation tabs, Home, Queue, Project, Review, and Diagnostics, give PointPatch deterministic Compose UI for Smart Select, screenshots, source candidates, and CLI/MCP bridge smoke flows.
+The sample app in this repository is the branded FixThis Studio Compose app, exposed as application id `io.beyondwin.fixthis.sample` with launcher label `FixThis`. Its five bottom navigation tabs, Home, Queue, Project, Review, and Diagnostics, use a compact Calm Product Studio UI while preserving deterministic PointPatch coverage for Smart Select, screenshots, source candidates, form controls, dropdown/menu, dialog, Canvas, disabled controls, repeated cards, long text, and weak-semantics fallbacks.
 
 ## Repository Layout
 
@@ -72,6 +72,8 @@ Equivalent Gradle commands:
 ./gradlew :app:assembleDebug
 ./gradlew :app:installDebug
 ```
+
+Connected instrumentation tests require an unlocked interactive emulator or device. A physical device that reports `device` in `adb devices` can still fail Compose hierarchy discovery if it remains behind a secure lockscreen.
 
 For the full PointPatch smoke flow, build the CLI/MCP distribution and let the CLI install, launch, and verify the sidekick bridge:
 

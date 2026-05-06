@@ -887,32 +887,32 @@ navigation은 debug-only `back`, `tap`, `swipe` one-step action만 수행한다.
 
 ## User request
 
-문구를 "바로 결제하기"로 바꿔줘.
+문구를 "Send to agent"로 바꿔줘.
 
 ## Selected UI
 
 - Platform: Android Compose
-- Activity: com.example.MainActivity
+- Activity: io.beyondwin.fixthis.sample.MainActivity
 - Role: Button
-- Text: 결제하기
+- Text: Submit request
 - Bounds: left=48, top=1360, right=1032, bottom=1496
 - Actions: OnClick
 - Tree: MERGED
 
 ## Nearby context
 
-- 총 결제금액 32,000원
-- 쿠폰 적용
+- Agent handoff
+- Include screenshot context
 
 ## Source candidates
 
-1. `app/src/main/java/com/example/checkout/CheckoutScreen.kt:42`
-   - matched: 결제하기, 총 결제금액
+1. `sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt:143`
+   - matched: Submit request, Agent handoff
 
 ## Search hints
 
-- "결제하기"
-- "총 결제금액"
+- "Submit request"
+- "Agent handoff"
 - "Button"
 - "MainActivity"
 

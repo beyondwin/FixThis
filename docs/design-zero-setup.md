@@ -28,7 +28,7 @@
 command = "/bin/zsh"
 args = [
   "-lc",
-  "ANDROID_HOME=/Users/kws/Library/Android/sdk ANDROID_SERIAL='adb-R3CN60LXW3L-...' PATH=.../platform-tools:$PATH /절대경로/pointpatch mcp --package io.github.pointpatch.sample --project-dir /절대경로"
+  "ANDROID_HOME=/Users/kws/Library/Android/sdk ANDROID_SERIAL='adb-R3CN60LXW3L-...' PATH=.../platform-tools:$PATH /절대경로/pointpatch mcp --package io.beyondwin.fixthis.sample --project-dir /절대경로"
 ]
 ```
 

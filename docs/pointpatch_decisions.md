@@ -1276,20 +1276,19 @@ Area select for visual fallback.
 
 현재 `sample/`의 XML/ViewBinding/AppCompat starter app은 PointPatch 검증에 적합하지 않다. v1 구현에서는 `sample/`을 Jetpack Compose 전용 테스트 앱으로 교체한다.
 
-필수 screen:
+현재 필수 screen:
 
-- CheckoutScreen
-- FeedScreen
-- FormScreen
-- DialogScreen
-- CanvasScreen
-- EdgeCasesScreen
+- HomeScreen
+- QueueScreen
+- ProjectScreen
+- ReviewScreen
+- DiagnosticsScreen
 
 ### 이유
 
 PointPatch의 핵심은 Compose semantics, RootForTest, screenshot crop, source candidates, Smart Select를 검증하는 것이다. XML/View sample은 이 목적을 검증하지 못한다.
 
-sample app은 demo가 아니라 test fixture여야 한다.
+sample app은 demo가 아니라 test fixture여야 한다. 현재 sample은 `io.beyondwin.fixthis.sample` application id와 `FixThis` launcher label을 쓰는 FixThis Studio product scene이다.
 
 검증해야 할 것:
 

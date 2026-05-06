@@ -1,7 +1,14 @@
 # FixThis Product Scene Redesign Design
 
 Date: 2026-05-07
-Status: approved design, awaiting written spec review
+Status: implemented and verification-recorded on 2026-05-07
+
+Verification record: `./gradlew :app:assembleDebug :app:assembleDebugAndroidTest`
+and `./gradlew :pointpatch-compose-core:test :pointpatch-gradle-plugin:test`
+passed after implementation. `./gradlew :app:connectedDebugAndroidTest` was
+attempted twice on `SM-G986N - 13` after ADB reported `device`, but failed
+before assertions because the physical device remained behind the secure
+lockscreen/Bouncer and Compose test APIs found no inspectable hierarchy.
 
 ## Purpose
 

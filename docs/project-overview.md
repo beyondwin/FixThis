@@ -151,7 +151,7 @@ Resources:
 
 ### `:app` (`sample/`)
 
-저장소 검증용 Compose sample app이다. Android Studio 관례에 맞춰 Gradle project path는 `:app`이고 실제 source directory는 `sample/`이다. `Checkout`, `Feed`, `Form`, `Dialog`, `Canvas`, `Edge Cases` 화면으로 semantics, screenshot, navigation, source matching, edge case를 검증한다.
+저장소 검증용 FixThis Studio Compose sample app이다. Android Studio 관례에 맞춰 Gradle project path는 `:app`이고 실제 source directory는 `sample/`이다. Application id는 `io.beyondwin.fixthis.sample`, launcher label은 `FixThis`다. `Home`, `Queue`, `Project`, `Review`, `Diagnostics` 탭이 하나의 compact product scene을 이루며 semantics, screenshot, navigation, source matching, form controls, dropdown/menu, dialog, Canvas, disabled controls, repeated cards, long text, weak-semantics edge case를 검증한다.
 
 ## Runtime Flow
 
@@ -229,13 +229,13 @@ Build CLI and MCP distributions:
 Run sample smoke flow:
 
 ```bash
-pointpatch-cli/build/install/pointpatch/bin/pointpatch run --package io.github.pointpatch.sample
+pointpatch-cli/build/install/pointpatch/bin/pointpatch run --package io.beyondwin.fixthis.sample
 ```
 
 Open console:
 
 ```bash
-pointpatch-cli/build/install/pointpatch/bin/pointpatch console --package io.github.pointpatch.sample
+pointpatch-cli/build/install/pointpatch/bin/pointpatch console --package io.beyondwin.fixthis.sample
 ```
 
 Run local unit tests:
@@ -246,7 +246,7 @@ Run local unit tests:
 ./gradlew :pointpatch-compose-overlay:testDebugUnitTest :pointpatch-compose-sidekick:testDebugUnitTest
 ```
 
-Android instrumentation tests require a connected emulator/device:
+Android instrumentation tests require an unlocked interactive emulator or device. A physical device can still report `device` in ADB while a secure lockscreen prevents Compose hierarchy inspection; see [Troubleshooting](troubleshooting.md#connected-test-says-no-compose-hierarchies-found).
 
 ```bash
 ./gradlew connectedAndroidTest
