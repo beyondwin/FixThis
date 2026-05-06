@@ -949,7 +949,7 @@ git commit -m "feat: redesign FixThis project and review"
 **Files:**
 - Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt`
 
-- [ ] **Step 1: Replace diagnostics layout**
+- [x] **Step 1: Replace diagnostics layout**
 
 The screen must include these visible anchors and semantic regions:
 
@@ -994,7 +994,7 @@ InfoRow(
 }
 ```
 
-- [ ] **Step 2: Compile**
+- [x] **Step 2: Compile**
 
 Run:
 
@@ -1004,7 +1004,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add sample/src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt
