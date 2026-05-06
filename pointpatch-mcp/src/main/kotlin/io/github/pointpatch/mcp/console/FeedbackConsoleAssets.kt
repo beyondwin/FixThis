@@ -1677,7 +1677,18 @@ internal object FeedbackConsoleAssets {
               if (state.selectedDeviceSerial) {
                 setDeviceUiState(DeviceUiState.CONNECTING, deviceBySerial(state.devices, state.selectedDeviceSerial));
               }
-              renderDeviceList(await requestJson('/api/devices'));
+              let payload = await requestJson('/api/devices');
+              const devices = payload.devices || [];
+              const connectedDevices = (payload.devices || []).filter(device => device.state === 'device');
+              if (!payload.selectedSerial && devices.length === 1 && connectedDevices.length === 1) {
+                setDeviceUiState(DeviceUiState.CONNECTING, connectedDevices[0]);
+                payload = await requestJson('/api/device/select', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ serial: connectedDevices[0].serial })
+                });
+              }
+              renderDeviceList(payload);
             }
 
             async function selectDevice() {

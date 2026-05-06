@@ -381,6 +381,19 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun consoleHtmlAutoSelectsSingleConnectedDeviceOnRefresh() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val refreshDevices = javascriptFunctionBody(html, "refreshDevices")
+
+        assertTrue(refreshDevices.contains("let payload = await requestJson('/api/devices');"))
+        assertTrue(refreshDevices.contains("const devices = payload.devices || [];"))
+        assertTrue(refreshDevices.contains("const connectedDevices = (payload.devices || []).filter(device => device.state === 'device');"))
+        assertTrue(refreshDevices.contains("if (!payload.selectedSerial && devices.length === 1 && connectedDevices.length === 1) {"))
+        assertTrue(refreshDevices.contains("body: JSON.stringify({ serial: connectedDevices[0].serial })"))
+        assertTrue(refreshDevices.contains("renderDeviceList(payload);"))
+    }
+
+    @Test
     fun consoleHtmlRerendersPreviewWhenDeviceSelectionInvalidatesPreview() {
         val html = FeedbackConsoleAssets.indexHtml
         val renderDeviceList = javascriptFunctionBody(html, "renderDeviceList")
