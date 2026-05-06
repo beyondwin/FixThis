@@ -28,6 +28,7 @@ internal object FeedbackConsoleAssets {
               color: var(--txt-0);
             }
             * { box-sizing: border-box; }
+            [hidden] { display: none !important; }
             body { margin: 0; height: 100vh; overflow: hidden; background: var(--bg-0); }
             .studio-shell {
               display: grid;

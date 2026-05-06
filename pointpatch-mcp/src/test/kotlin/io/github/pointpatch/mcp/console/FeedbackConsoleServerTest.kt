@@ -534,6 +534,15 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun consoleHtmlKeepsHiddenInspectorListsOutOfLayout() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("[hidden] { display: none !important; }"))
+        assertTrue(html.contains("pendingItems.hidden = true"))
+        assertTrue(html.contains("draftItems.hidden = true"))
+    }
+
+    @Test
     fun consoleHtmlKeepsFrozenPreviewStableAndShowsPersistedScreenHistory() {
         val html = FeedbackConsoleAssets.indexHtml
 
