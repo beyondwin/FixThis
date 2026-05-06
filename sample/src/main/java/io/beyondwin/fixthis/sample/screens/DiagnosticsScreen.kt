@@ -96,9 +96,7 @@ fun DiagnosticsScreen(padding: PaddingValues) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable(onClick = {}),
+                    modifier = Modifier.weight(1f),
                     text = "Very long diagnostic row label that should wrap without breaking Smart Select behavior",
                     style = MaterialTheme.typography.bodyMedium,
                 )

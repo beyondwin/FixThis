@@ -14,6 +14,10 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.beyondwin.fixthis.sample.components.FeedbackCard
@@ -22,6 +26,8 @@ import io.beyondwin.fixthis.sample.model.FixThisDemoData
 
 @Composable
 fun QueueScreen(padding: PaddingValues) {
+    var searchQuery by rememberSaveable { mutableStateOf("checkout contrast") }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -33,8 +39,8 @@ fun QueueScreen(padding: PaddingValues) {
         item {
             OutlinedTextField(
                 modifier = Modifier.fillMaxWidth(),
-                value = "checkout contrast",
-                onValueChange = {},
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
                 label = { Text("Search feedback") },
                 singleLine = true,
             )
