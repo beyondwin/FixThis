@@ -1301,6 +1301,15 @@ internal object FeedbackConsoleAssets {
                 .replaceAll("'", '&#39;');
             }
 
+            function escapeHtmlValue(value) {
+              return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+            }
+
             function formatTime(epochMillis) {
               if (!epochMillis) return '-';
               return new Date(epochMillis).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -1782,8 +1791,23 @@ internal object FeedbackConsoleAssets {
             }
 
             function componentLabel(node) {
-              const textValue = (node.text || [])[0] || (node.contentDescription || [])[0] || node.uid;
-              return 'Component ' + textValue;
+              const clean = value => {
+                const raw = String(value || '').trim();
+                if (!raw || raw.startsWith('compose:')) return '';
+                return raw;
+              };
+              const firstMeaningful = values => (values || []).map(clean).find(Boolean) || '';
+              const role = clean(node.role);
+              const label = firstMeaningful([...(node.text || []), node.editableText, ...(node.contentDescription || [])]);
+              const testTag = clean(node.testTag);
+              if (role && label) return humanize(role) + ' "' + label + '"';
+              if (label) return label;
+              if (role && testTag) return humanize(role) + ' #' + testTag;
+              if (testTag) return '#' + testTag;
+              if (role) return humanize(role);
+              const bounds = node.boundsInWindow;
+              if (bounds) return 'Component ' + Math.round(bounds.right - bounds.left) + 'x' + Math.round(bounds.bottom - bounds.top);
+              return 'Component';
             }
 
             function formatBounds(bounds) {
@@ -2228,7 +2252,7 @@ internal object FeedbackConsoleAssets {
                   '</div>' +
                   '<div class="annotation-field">' +
                     '<label for="annotationCommentInput">Comment</label>' +
-                    '<textarea id="annotationCommentInput" class="annotation-textarea">' + escapeHtml(item.comment || '') + '</textarea>' +
+                    '<textarea id="annotationCommentInput" class="annotation-textarea">' + escapeHtmlValue(item.comment) + '</textarea>' +
                   '</div>' +
                   '<div class="annotation-field">' +
                     '<label>Status</label>' +
