@@ -90,13 +90,14 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
-    fun consoleHtmlIncludesNavigationControls() {
+    fun consoleHtmlOmitsToolbarNavigationControls() {
         val html = FeedbackConsoleAssets.indexHtml
 
-        assertTrue(html.contains("id=\"backButton\""))
-        assertTrue(html.contains("id=\"captureAfterNavigation\""))
-        assertFalse(html.contains("id=\"captureAfterNavigation\" type=\"checkbox\" checked"))
+        assertFalse(html.contains("id=\"backButton\""))
+        assertFalse(html.contains("id=\"captureAfterNavigation\""))
+        assertFalse(html.contains("aria-label=\"Swipe up\""))
         assertTrue(html.contains("/api/navigation"))
+        assertTrue(html.contains("captureAfter: false"))
     }
 
     @Test
@@ -108,7 +109,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("class=\"studio-history\""))
         assertTrue(html.contains("class=\"studio-canvas\""))
         assertTrue(html.contains("class=\"studio-inspector\""))
-        assertTrue(html.contains("id=\"previewModeBadge\""))
+        assertFalse(html.contains("id=\"previewModeBadge\""))
         assertTrue(html.contains("id=\"canvasToolbar\""))
         assertTrue(html.contains("id=\"inspectorTitle\""))
         assertTrue(html.contains("id=\"inspectorBody\""))
@@ -496,17 +497,23 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
-    fun consoleHtmlRendersStudioCanvasModesAndNavigation() {
+    fun consoleHtmlRendersOptionACanvasToolbar() {
         val html = FeedbackConsoleAssets.indexHtml
 
-        assertTrue(html.contains("previewModeBadge.dataset.mode = mode"))
-        assertTrue(html.contains("previewModeBadge.textContent = mode === 'frozen' ? 'Frozen'"))
         assertTrue(html.contains("frame.dataset.mode = mode"))
-        assertTrue(html.contains("navigationControls.hidden = Boolean(addItemsFlow) || toolMode !== 'select'"))
-        assertTrue(html.contains("aria-label=\"Back\""))
-        assertTrue(html.contains("aria-label=\"Swipe up\""))
+        assertFalse(html.contains("navigationControls.hidden"))
+        assertFalse(html.contains("aria-label=\"Back\""))
+        assertFalse(html.contains("aria-label=\"Swipe up\""))
         assertTrue(html.contains("class=\"tool-group\""))
         assertTrue(html.contains("id=\"toolStatus\""))
+        assertTrue(html.contains("class=\"ts-meta\""))
+        assertTrue(html.contains("class=\"ts-hint\""))
+        assertTrue(html.contains("toolbarOpenCount()"))
+        assertTrue(html.contains("toolbarResolvedCount()"))
+        assertTrue(html.contains("Click a widget — or drag to draw a region"))
+        assertTrue(html.contains("class=\"zoom-control\""))
+        assertTrue(html.contains(".snapshot-frame::before"))
+        assertTrue(html.contains("0 12px 24px -8px rgba(0, 0, 0, .4)"))
         assertTrue(html.contains("renderNumberedFeedbackOverlay"))
         assertTrue(html.contains("'#' + (index + 1)"))
     }

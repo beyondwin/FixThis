@@ -466,50 +466,43 @@ internal object FeedbackConsoleAssets {
             .row span + span { display: block; margin-top: 3px; }
             .studio-canvas {
               display: grid;
-              grid-template-rows: 48px 1fr;
+              grid-template-rows: auto 1fr;
             }
             .canvas-toolbar {
               display: flex;
               align-items: center;
               justify-content: space-between;
-              gap: 14px;
-              padding: 0 14px;
+              gap: 16px;
+              padding: 10px 16px;
               border-bottom: 1px solid var(--line);
-              background: var(--bg-0);
-            }
-            .canvas-tool-status {
-              display: flex;
-              align-items: center;
-              gap: 10px;
-              color: var(--txt-1);
-              font-size: 12px;
-              min-width: 0;
+              background: var(--bg-1);
             }
             .tool-group,
             .zoom-control {
               display: inline-flex;
               align-items: center;
-              gap: 2px;
-              padding: 2px;
-              border: 1px solid var(--line);
+              gap: 4px;
+              padding: 3px;
+              border: 0;
               border-radius: 8px;
-              background: var(--bg-1);
+              background: var(--bg-2);
             }
             .tool-button,
             .zoom-button {
               min-width: 0;
-              min-height: 24px;
-              padding: 0 10px;
+              min-height: 30px;
+              padding: 0 12px;
               border: 0;
               border-radius: 6px;
               background: transparent;
               color: var(--txt-1);
-              font-size: 11px;
-              font-weight: 700;
+              font-size: 12px;
+              font-weight: 500;
             }
             .tool-button[aria-pressed="true"] {
               background: var(--bg-3);
               color: var(--accent);
+              box-shadow: 0 1px 2px rgba(0, 0, 0, .30);
             }
             .tool-status {
               flex: 1;
@@ -517,43 +510,76 @@ internal object FeedbackConsoleAssets {
               align-items: center;
               justify-content: center;
               min-width: 160px;
-              color: var(--txt-2);
+              color: var(--txt-1);
               font-size: 11px;
-              font-weight: 700;
-              text-transform: uppercase;
-              letter-spacing: .08em;
+              font-weight: 500;
+              font-variant-numeric: tabular-nums;
+              letter-spacing: 0;
+            }
+            .ts-meta {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 16px;
+            }
+            .ts-dot-label {
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              white-space: nowrap;
+            }
+            .ts-dot {
+              width: 10px;
+              height: 10px;
+              border-radius: 999px;
+              background: #f2c94c;
+              box-shadow: 0 0 0 3px rgba(242, 201, 76, .18);
+            }
+            .ts-dot.resolved {
+              background: #6fcf97;
+              box-shadow: 0 0 0 3px rgba(111, 207, 151, .18);
+            }
+            .ts-hint {
+              display: inline-flex;
+              align-items: center;
+              gap: 8px;
+              border: 1px solid rgba(184, 211, 106, .25);
+              border-radius: 999px;
+              padding: 5px 12px;
+              background: rgba(184, 211, 106, .08);
+              color: var(--accent);
+            }
+            .ts-hint .ts-dot {
+              width: 6px;
+              height: 6px;
+              background: var(--accent);
+              box-shadow: none;
+              animation: pulse-a 1.4s infinite;
             }
             .zoom-control {
               color: var(--txt-2);
               font-size: 11px;
               font-weight: 700;
+              border-radius: 6px;
+              gap: 6px;
+              font-variant-numeric: tabular-nums;
             }
             .zoom-button {
               width: 24px;
               height: 24px;
               padding: 0;
+              border-radius: 4px;
+              font-size: 14px;
             }
-            .mode-badge {
-              display: inline-flex;
-              align-items: center;
-              min-height: 24px;
-              border-radius: 999px;
-              padding: 0 8px;
-              background: var(--bg-3);
-              color: var(--txt-1);
-              font-size: 11px;
-              font-weight: 700;
-              text-transform: uppercase;
-            }
-            .mode-badge[data-mode="live"] { color: var(--accent); }
-            .mode-badge[data-mode="frozen"] { background: var(--accent); color: var(--bg-0); }
             .snapshot-stage {
               display: grid;
               place-items: center;
               min-height: 0;
               overflow: hidden;
               padding: 24px;
-              background: radial-gradient(circle at 50% 50%, var(--bg-1) 0%, var(--bg-0) 72%);
+              background:
+                radial-gradient(circle at 50% 50%, var(--bg-1) 0%, var(--bg-0) 70%),
+                var(--bg-0);
               color: var(--txt-2);
               text-align: center;
             }
@@ -561,15 +587,37 @@ internal object FeedbackConsoleAssets {
             .snapshot-frame {
               position: relative;
               display: inline-block;
-              max-width: min(100%, 420px);
+              max-width: min(100%, 320px);
               max-height: 100%;
               padding: 8px;
-              border-radius: 36px;
+              border-radius: 44px;
               background: linear-gradient(180deg, #2a2a2e 0%, #1a1a1d 100%);
-              box-shadow: 0 0 0 2px #3a3a40, 0 30px 60px -20px rgba(0, 0, 0, .6);
+              box-shadow:
+                0 0 0 2px #3a3a40,
+                0 30px 60px -20px rgba(0, 0, 0, .6),
+                0 12px 24px -8px rgba(0, 0, 0, .4),
+                inset 0 1px 0 rgba(255, 255, 255, .06);
             }
             .snapshot-frame[data-mode="frozen"] {
-              box-shadow: 0 0 0 2px var(--accent), 0 0 0 6px rgba(184, 211, 106, .10), 0 30px 60px -20px rgba(0, 0, 0, .6);
+              box-shadow:
+                0 0 0 2px var(--accent),
+                0 0 0 6px rgba(184, 211, 106, .10),
+                0 30px 60px -20px rgba(0, 0, 0, .6),
+                0 12px 24px -8px rgba(0, 0, 0, .4),
+                inset 0 1px 0 rgba(255, 255, 255, .06);
+            }
+            .snapshot-frame::before {
+              content: '';
+              position: absolute;
+              top: 18px;
+              left: 50%;
+              width: 86px;
+              height: 22px;
+              transform: translateX(-50%);
+              border-radius: 999px;
+              background: #000;
+              z-index: 2;
+              pointer-events: none;
             }
             .snapshot-frame img {
               display: block;
@@ -578,7 +626,7 @@ internal object FeedbackConsoleAssets {
               width: auto;
               height: auto;
               border: 0;
-              border-radius: 28px;
+              border-radius: 36px;
               cursor: pointer;
             }
             .selection-overlay {
@@ -1016,25 +1064,19 @@ internal object FeedbackConsoleAssets {
                 min-width: 0;
                 justify-content: flex-start;
               }
-              .canvas-tool-status {
-                flex: 1 1 120px;
-              }
-              .navigation-controls {
-                flex-wrap: wrap;
-              }
               .snapshot-stage {
                 min-height: 360px;
                 overflow: auto;
                 padding: 14px;
               }
               .snapshot-frame {
-                max-width: min(100%, 360px);
+                max-width: min(100%, 320px);
                 padding: 6px;
-                border-radius: 28px;
+                border-radius: 38px;
               }
               .snapshot-frame img {
                 max-height: calc(100vh - 240px);
-                border-radius: 22px;
+                border-radius: 30px;
               }
               .selection-overlay {
                 inset: 6px;
@@ -1132,22 +1174,10 @@ internal object FeedbackConsoleAssets {
                     </button>
                   </div>
                   <div id="toolStatus" class="tool-status">Select mode</div>
-                  <div class="canvas-tool-status">
-                    <span id="previewModeBadge" class="mode-badge" data-mode="idle">Live</span>
-                    <span id="snapshotTitle">Live Preview</span>
-                  </div>
                   <div class="zoom-control" aria-label="Zoom controls">
                     <button class="zoom-button" type="button" aria-label="Zoom out">−</button>
                     <span>100%</span>
                     <button class="zoom-button" type="button" aria-label="Zoom in">+</button>
-                  </div>
-                  <div id="navigationControls" class="navigation-controls">
-                    <button id="backButton" aria-label="Back">Back</button>
-                    <button id="swipeUpButton" aria-label="Swipe up">Up</button>
-                    <button id="swipeDownButton" aria-label="Swipe down">Down</button>
-                    <button id="swipeLeftButton" aria-label="Swipe left">Left</button>
-                    <button id="swipeRightButton" aria-label="Swipe right">Right</button>
-                    <label class="capture-toggle"><input id="captureAfterNavigation" type="checkbox"> Capture</label>
                   </div>
                 </div>
                 <div id="snapshot" class="snapshot-stage">
@@ -1185,8 +1215,6 @@ internal object FeedbackConsoleAssets {
             const sessions = document.getElementById('sessions');
             const sentHistory = document.getElementById('sentHistory');
             const snapshot = document.getElementById('snapshot');
-            const snapshotTitle = document.getElementById('snapshotTitle');
-            const previewModeBadge = document.getElementById('previewModeBadge');
             const inspectorTitle = document.getElementById('inspectorTitle');
             const inspectorCount = document.getElementById('inspectorCount');
             const inspectorBody = document.getElementById('inspectorBody');
@@ -1195,14 +1223,12 @@ internal object FeedbackConsoleAssets {
             const pendingItems = document.getElementById('pendingItems');
             const error = document.getElementById('error');
             const comment = document.getElementById('comment');
-            const captureAfterNavigation = document.getElementById('captureAfterNavigation');
             const devicePicker = document.getElementById('devicePicker');
             const deviceStatus = document.getElementById('deviceStatus');
             const deviceControl = document.getElementById('deviceControl');
             const deviceName = document.getElementById('deviceName');
             const deviceConnectionState = document.getElementById('deviceConnectionState');
             const previewIntervalSelect = document.getElementById('previewIntervalSelect');
-            const navigationControls = document.getElementById('navigationControls');
             const selectionSummary = document.getElementById('selectionSummary');
             const clearSelectionButton = document.getElementById('clearSelectionButton');
             const addItemButton = document.getElementById('addItemButton');
@@ -1370,7 +1396,7 @@ internal object FeedbackConsoleAssets {
             }
 
             function annotationStatus(item) {
-              return item.status || 'open';
+              return String(item.status || 'open').replace('_', '-');
             }
 
             function severityColor(severity) {
@@ -1389,6 +1415,19 @@ internal object FeedbackConsoleAssets {
               if (status === 'in-progress') return 'st-in-progress';
               if (status === 'resolved') return 'st-resolved';
               return 'st-open';
+            }
+
+            function toolbarAnnotations() {
+              if (addItemsFlow) return pendingFeedbackItems;
+              return state.session?.items || [];
+            }
+
+            function toolbarResolvedCount() {
+              return toolbarAnnotations().filter(item => annotationStatus(item) === 'resolved').length;
+            }
+
+            function toolbarOpenCount() {
+              return toolbarAnnotations().filter(item => annotationStatus(item) !== 'resolved').length;
             }
 
             function selectedAnnotation() {
@@ -1684,12 +1723,14 @@ internal object FeedbackConsoleAssets {
               cancelAddFlowButton.disabled = !addItemsFlow;
               addItemButton.hidden = true;
               addItemButton.disabled = true;
-              navigationControls.hidden = Boolean(addItemsFlow) || toolMode !== 'select';
               selectToolButton.setAttribute('aria-pressed', String(toolMode === 'select'));
               annotateToolButton.setAttribute('aria-pressed', String(toolMode === 'annotate'));
-              toolStatus.textContent = toolMode === 'annotate'
-                ? 'Annotate: click or drag the frozen preview'
-                : 'Select: choose an existing annotation';
+              toolStatus.innerHTML = toolMode === 'annotate'
+                ? '<span class="ts-hint"><span class="ts-dot"></span><span>Click a widget — or drag to draw a region</span></span>'
+                : '<span class="ts-meta">' +
+                    '<span class="ts-dot-label"><span class="ts-dot"></span>' + toolbarOpenCount() + ' open</span>' +
+                    '<span class="ts-dot-label"><span class="ts-dot resolved"></span>' + toolbarResolvedCount() + ' resolved</span>' +
+                  '</span>';
               const item = focusedPendingSelectionSummary();
               selectionSummary.textContent = currentSelection
                 ? currentSelection.label + ' - ' + formatBounds(currentSelection.bounds)
@@ -2298,9 +2339,6 @@ internal object FeedbackConsoleAssets {
               const screen = latestScreen();
               const hasScreenshot = Boolean(screen?.screenshot?.desktopFullPath);
               const mode = addItemsFlow ? 'frozen' : (state.preview ? 'live' : 'idle');
-              previewModeBadge.dataset.mode = mode;
-              previewModeBadge.textContent = mode === 'frozen' ? 'Frozen' : mode === 'live' ? 'Live' : 'Idle';
-              snapshotTitle.textContent = addItemsFlow ? 'Frozen Feedback Snapshot' : 'Live Preview';
               if (!hasScreenshot) {
                 snapshot.innerHTML = '<div class="empty-stage">' + (screen ? 'No screenshot artifact for this preview.' : 'Refresh the live preview to begin.') + '</div>';
                 updateComposerState();
@@ -2425,20 +2463,15 @@ internal object FeedbackConsoleAssets {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   action: action,
-                  captureAfter: captureAfterNavigation.checked,
+                  captureAfter: false,
                   ...extras
                 })
               });
-              const captureErrorMessage = navigation.captureError
-                ? 'Navigation performed, but capture failed: ' + navigation.captureError
-                : '';
               clearSelection();
               await refresh();
-              if (!captureAfterNavigation.checked) {
-                await refreshPreview();
-              }
-              if (captureErrorMessage) {
-                error.textContent = captureErrorMessage;
+              await refreshPreview();
+              if (navigation.captureError) {
+                error.textContent = 'Navigation performed, but capture failed: ' + navigation.captureError;
               }
             }
 
@@ -2586,11 +2619,6 @@ internal object FeedbackConsoleAssets {
             cancelAddFlowButton.addEventListener('click', cancelAddItemsFlow);
             clearDraftButton.addEventListener('click', () => clearDraft().catch(showError));
             document.getElementById('sendDraftButton').addEventListener('click', () => sendDraftToAgent().catch(showError));
-            document.getElementById('backButton').addEventListener('click', () => navigate('back').catch(showError));
-            document.getElementById('swipeUpButton').addEventListener('click', () => navigate('swipe', { direction: 'up' }).catch(showError));
-            document.getElementById('swipeDownButton').addEventListener('click', () => navigate('swipe', { direction: 'down' }).catch(showError));
-            document.getElementById('swipeLeftButton').addEventListener('click', () => navigate('swipe', { direction: 'left' }).catch(showError));
-            document.getElementById('swipeRightButton').addEventListener('click', () => navigate('swipe', { direction: 'right' }).catch(showError));
             comment.addEventListener('input', updateSelectedAnnotationComment);
 
             function showError(cause) {
