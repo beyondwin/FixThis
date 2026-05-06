@@ -2,7 +2,7 @@ package io.github.pointpatch.mcp
 
 import io.github.pointpatch.compose.core.model.PointPatchRect
 import io.github.pointpatch.mcp.session.FakePointPatchBridge
-import io.github.pointpatch.mcp.session.FeedbackItemStatus
+import io.github.pointpatch.mcp.session.AnnotationStatusDto
 import io.github.pointpatch.mcp.session.FeedbackNavigationRequest
 import io.github.pointpatch.mcp.session.FeedbackSessionService
 import io.github.pointpatch.mcp.session.FeedbackSessionStore
@@ -325,9 +325,9 @@ class McpProtocolTest {
             "Won't fix sent item",
         )
         service.sendDraftToAgent(session.sessionId)
-        service.resolveFeedback(session.sessionId, needsClarificationItem.itemId, FeedbackItemStatus.NEEDS_CLARIFICATION, null)
-        service.resolveFeedback(session.sessionId, resolvedItem.itemId, FeedbackItemStatus.RESOLVED, null)
-        service.resolveFeedback(session.sessionId, wontFixItem.itemId, FeedbackItemStatus.WONT_FIX, null)
+        service.resolveFeedback(session.sessionId, needsClarificationItem.itemId, AnnotationStatusDto.NEEDS_CLARIFICATION, null)
+        service.resolveFeedback(session.sessionId, resolvedItem.itemId, AnnotationStatusDto.RESOLVED, null)
+        service.resolveFeedback(session.sessionId, wontFixItem.itemId, AnnotationStatusDto.WONT_FIX, null)
         service.addAreaFeedback(
             session.sessionId,
             screen.screenId,

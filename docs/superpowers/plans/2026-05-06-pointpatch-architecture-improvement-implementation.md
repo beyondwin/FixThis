@@ -83,7 +83,7 @@ The source proposal is directionally right, but the implementation order needs t
 **Files:**
 - Create: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/ArchitectureCompatibilityTest.kt`
 
-- [ ] **Step 1: Write JSON and status compatibility tests**
+- [x] **Step 1: Write JSON and status compatibility tests**
 
 ```kotlin
 package io.github.pointpatch.mcp.session
@@ -165,7 +165,7 @@ class ArchitectureCompatibilityTest {
 }
 ```
 
-- [ ] **Step 2: Run the compatibility tests**
+- [x] **Step 2: Run the compatibility tests**
 
 Run:
 
@@ -175,7 +175,7 @@ Run:
 
 Expected: PASS before any refactor.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/ArchitectureCompatibilityTest.kt
@@ -191,7 +191,7 @@ git commit -m "test: lock architecture compatibility contracts"
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
 - Test: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Add failing resource-loader contract tests**
+- [x] **Step 1: Add failing resource-loader contract tests**
 
 Add these tests near the existing HTML contract tests:
 
@@ -224,7 +224,7 @@ If `assertFailsWith` is not imported in the file, add:
 import kotlin.test.assertFailsWith
 ```
 
-- [ ] **Step 2: Run the tests and confirm the new contract is red**
+- [x] **Step 2: Run the tests and confirm the new contract is red**
 
 Run:
 
@@ -234,7 +234,7 @@ Run:
 
 Expected: the traversal test fails because `FeedbackConsoleAssets.resource` does not exist yet.
 
-- [ ] **Step 3: Extract the raw string without changing rendered HTML**
+- [x] **Step 3: Extract the raw string without changing rendered HTML**
 
 Move the current HTML document from `FeedbackConsoleAssets.indexHtml` into three resources:
 
@@ -245,7 +245,7 @@ Move the current HTML document from `FeedbackConsoleAssets.indexHtml` into three
 
 The resulting `index.html` must still contain the same DOM nodes and IDs after `FeedbackConsoleAssets.indexHtml` injects styles and script.
 
-- [ ] **Step 4: Replace the Kotlin asset object with a loader**
+- [x] **Step 4: Replace the Kotlin asset object with a loader**
 
 ```kotlin
 package io.github.pointpatch.mcp.console
@@ -279,7 +279,7 @@ internal object FeedbackConsoleAssets {
 }
 ```
 
-- [ ] **Step 5: Run the focused test**
+- [x] **Step 5: Run the focused test**
 
 Run:
 
@@ -289,7 +289,7 @@ Run:
 
 Expected: PASS. Existing HTML contract tests still see `FeedbackConsoleAssets.indexHtml` with inline CSS and JavaScript.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/main/resources/console pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
@@ -306,7 +306,7 @@ git commit -m "refactor: load feedback console assets from resources"
 - Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/theme/StudioTheme.kt`
 - Modify: `pointpatch-compose-overlay/src/test/kotlin/io/github/pointpatch/compose/console/studio/StudioModelAndThemeTest.kt`
 
-- [ ] **Step 1: Write token tests**
+- [x] **Step 1: Write token tests**
 
 Add tests to `StudioModelAndThemeTest`:
 
@@ -345,7 +345,7 @@ import io.github.pointpatch.compose.console.studio.theme.StudioSpacing
 import io.github.pointpatch.compose.console.studio.theme.darkStudioSemanticColors
 ```
 
-- [ ] **Step 2: Run the tests and confirm they are red**
+- [x] **Step 2: Run the tests and confirm they are red**
 
 Run:
 
@@ -355,7 +355,7 @@ Run:
 
 Expected: compile failure because `StudioSpacing` and `darkStudioSemanticColors` do not exist.
 
-- [ ] **Step 3: Add spacing, shapes, and elevation**
+- [x] **Step 3: Add spacing, shapes, and elevation**
 
 ```kotlin
 package io.github.pointpatch.compose.console.studio.theme
@@ -410,7 +410,7 @@ internal data class StudioElevation(
 )
 ```
 
-- [ ] **Step 4: Add semantic colors and theme object**
+- [x] **Step 4: Add semantic colors and theme object**
 
 ```kotlin
 package io.github.pointpatch.compose.console.studio.theme
@@ -511,7 +511,7 @@ internal object StudioThemeTokens {
 }
 ```
 
-- [ ] **Step 5: Run the focused overlay tests**
+- [x] **Step 5: Run the focused overlay tests**
 
 Run:
 
@@ -521,7 +521,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/theme pointpatch-compose-overlay/src/test/kotlin/io/github/pointpatch/compose/console/studio/StudioModelAndThemeTest.kt
@@ -537,7 +537,7 @@ git commit -m "feat: add studio theme tokens"
 - Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain/snapshot/Snapshot.kt`
 - Create: `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/domain/annotation/AnnotationStatusTest.kt`
 
-- [ ] **Step 1: Write a domain status test**
+- [x] **Step 1: Write a domain status test**
 
 ```kotlin
 package io.github.pointpatch.compose.core.domain.annotation
@@ -557,7 +557,7 @@ class AnnotationStatusTest {
 }
 ```
 
-- [ ] **Step 2: Run the test and confirm it is red**
+- [x] **Step 2: Run the test and confirm it is red**
 
 Run:
 
@@ -567,7 +567,7 @@ Run:
 
 Expected: compile failure because the domain package does not exist.
 
-- [ ] **Step 3: Add stable value IDs**
+- [x] **Step 3: Add stable value IDs**
 
 ```kotlin
 package io.github.pointpatch.compose.core.domain.common
@@ -594,7 +594,7 @@ value class SnapshotId(val value: String) {
 }
 ```
 
-- [ ] **Step 4: Add annotation domain model**
+- [x] **Step 4: Add annotation domain model**
 
 ```kotlin
 package io.github.pointpatch.compose.core.domain.annotation
@@ -661,7 +661,7 @@ data class SnapshotScreenshot(
 )
 ```
 
-- [ ] **Step 5: Add session and snapshot domain models**
+- [x] **Step 5: Add session and snapshot domain models**
 
 ```kotlin
 package io.github.pointpatch.compose.core.domain.session
@@ -725,7 +725,7 @@ data class SnapshotRoot(
 )
 ```
 
-- [ ] **Step 6: Run core tests**
+- [x] **Step 6: Run core tests**
 
 Run:
 
@@ -735,7 +735,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/domain
@@ -748,7 +748,7 @@ git commit -m "feat: add feedback domain models"
 - Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/SessionDomainMappers.kt`
 - Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/ArchitectureCompatibilityTest.kt`
 
-- [ ] **Step 1: Add mapper compatibility tests**
+- [x] **Step 1: Add mapper compatibility tests**
 
 Add these tests:
 
@@ -789,7 +789,7 @@ fun domainSessionMapsBackToExistingWireFieldNames() {
 }
 ```
 
-- [ ] **Step 2: Run the test and confirm it is red**
+- [x] **Step 2: Run the test and confirm it is red**
 
 Run:
 
@@ -799,7 +799,7 @@ Run:
 
 Expected: compile failure because the mapper functions do not exist.
 
-- [ ] **Step 3: Add the mapper file**
+- [x] **Step 3: Add the mapper file**
 
 ```kotlin
 package io.github.pointpatch.mcp.session
@@ -1019,7 +1019,7 @@ private fun SnapshotScreenshot.toFeedbackScreenshotDto(): FeedbackScreenshot =
     )
 ```
 
-- [ ] **Step 4: Run MCP tests**
+- [x] **Step 4: Run MCP tests**
 
 Run:
 
@@ -1029,7 +1029,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/SessionDomainMappers.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/ArchitectureCompatibilityTest.kt
@@ -1046,7 +1046,7 @@ git commit -m "feat: map session dto models to domain models"
 - Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/usecase/snapshot/SaveSnapshotUseCase.kt`
 - Create: `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/usecase/annotation/CreateAnnotationUseCaseTest.kt`
 
-- [ ] **Step 1: Write the first use case test**
+- [x] **Step 1: Write the first use case test**
 
 ```kotlin
 package io.github.pointpatch.compose.core.usecase.annotation
@@ -1119,7 +1119,7 @@ private class FakeAnnotationRepository : AnnotationRepository {
 }
 ```
 
-- [ ] **Step 2: Run and confirm red**
+- [x] **Step 2: Run and confirm red**
 
 Run:
 
@@ -1129,7 +1129,7 @@ Run:
 
 Expected: compile failure because repositories and use case do not exist.
 
-- [ ] **Step 3: Add repository interfaces**
+- [x] **Step 3: Add repository interfaces**
 
 ```kotlin
 package io.github.pointpatch.compose.core.domain.session
@@ -1161,7 +1161,7 @@ interface SnapshotRepository {
 }
 ```
 
-- [ ] **Step 4: Add `CreateAnnotationUseCase`**
+- [x] **Step 4: Add `CreateAnnotationUseCase`**
 
 ```kotlin
 package io.github.pointpatch.compose.core.usecase.annotation
@@ -1206,7 +1206,7 @@ class CreateAnnotationUseCase(
 }
 ```
 
-- [ ] **Step 5: Run core tests**
+- [x] **Step 5: Run core tests**
 
 Run:
 
@@ -1216,7 +1216,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/usecase pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/usecase
@@ -1230,7 +1230,7 @@ git commit -m "feat: add feedback repositories and create annotation use case"
 - Move: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleItemModels.kt` to `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/AnnotationRequestModels.kt`
 - Modify: all imports and references under `pointpatch-mcp/src/main/kotlin`, `pointpatch-mcp/src/test/kotlin`, `pointpatch-cli/src/main/kotlin`, and `pointpatch-cli/src/test/kotlin`
 
-- [ ] **Step 1: Run compatibility tests before the rename**
+- [x] **Step 1: Run compatibility tests before the rename**
 
 Run:
 
@@ -1240,7 +1240,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 2: Mechanically rename classes with wire names preserved**
+- [x] **Step 2: Mechanically rename classes with wire names preserved**
 
 Apply this mapping:
 
@@ -1260,7 +1260,7 @@ Apply this mapping:
 
 Do not change serialized field names in this task. Keep JSON property names such as `screens`, `items`, `screenId`, and `itemId` until a separate wire-format migration is designed.
 
-- [ ] **Step 3: Keep the old status wire value during decode**
+- [x] **Step 3: Keep the old status wire value during decode**
 
 The renamed enum should still accept `"ready"`:
 
@@ -1289,11 +1289,11 @@ enum class AnnotationStatusDto {
 
 Domain mapping from `READY` remains normalized to `AnnotationStatus.OPEN`.
 
-- [ ] **Step 4: Update tests by meaning, not by deleting coverage**
+- [x] **Step 4: Update tests by meaning, not by deleting coverage**
 
 Update `ArchitectureCompatibilityTest` to use the renamed DTO classes while keeping the same assertions about JSON field names and `"ready"` decode.
 
-- [ ] **Step 5: Run all JVM tests**
+- [x] **Step 5: Run all JVM tests**
 
 Run:
 
@@ -1303,7 +1303,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-mcp pointpatch-cli
@@ -1318,7 +1318,7 @@ git commit -m "refactor: rename feedback wire models to annotation dto names"
 - Create: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/PreviewSnapshotCacheTest.kt`
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt`
 
-- [ ] **Step 1: Write cache tests**
+- [x] **Step 1: Write cache tests**
 
 ```kotlin
 package io.github.pointpatch.mcp.session
@@ -1370,7 +1370,7 @@ private fun previewRecord(previewId: String): PreviewRecord =
     )
 ```
 
-- [ ] **Step 2: Run and confirm red**
+- [x] **Step 2: Run and confirm red**
 
 Run:
 
@@ -1380,7 +1380,7 @@ Run:
 
 Expected: compile failure because the cache and top-level `PreviewRecord` do not exist.
 
-- [ ] **Step 3: Add cache and top-level record**
+- [x] **Step 3: Add cache and top-level record**
 
 ```kotlin
 package io.github.pointpatch.mcp.session
@@ -1424,7 +1424,7 @@ class PreviewSnapshotCache(
 }
 ```
 
-- [ ] **Step 4: Add source index registry**
+- [x] **Step 4: Add source index registry**
 
 ```kotlin
 package io.github.pointpatch.mcp.session
@@ -1455,7 +1455,7 @@ class SourceIndexRegistry {
 }
 ```
 
-- [ ] **Step 5: Wire cache and registry into `FeedbackSessionService`**
+- [x] **Step 5: Wire cache and registry into `FeedbackSessionService`**
 
 Change the constructor defaults:
 
@@ -1466,7 +1466,7 @@ private val sourceIndexRegistry: SourceIndexRegistry = SourceIndexRegistry(),
 
 Replace `previewSnapshots` and `previewSavesInFlight` access in small increments. Keep the public `FeedbackSessionService` method signatures unchanged in this task.
 
-- [ ] **Step 6: Run MCP session and console tests**
+- [x] **Step 6: Run MCP session and console tests**
 
 Run:
 
@@ -1476,7 +1476,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/PreviewSnapshotCacheTest.kt
@@ -1490,7 +1490,7 @@ git commit -m "refactor: split preview cache from session service"
 - Create: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/ScreenshotArtifactPromoterTest.kt`
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt`
 
-- [ ] **Step 1: Write artifact promotion test**
+- [x] **Step 1: Write artifact promotion test**
 
 ```kotlin
 package io.github.pointpatch.mcp.session
@@ -1529,7 +1529,7 @@ class ScreenshotArtifactPromoterTest {
 }
 ```
 
-- [ ] **Step 2: Run and confirm red**
+- [x] **Step 2: Run and confirm red**
 
 Run:
 
@@ -1539,7 +1539,7 @@ Run:
 
 Expected: compile failure because `ScreenshotArtifactPromoter` does not exist.
 
-- [ ] **Step 3: Add promoter**
+- [x] **Step 3: Add promoter**
 
 ```kotlin
 package io.github.pointpatch.mcp.session
@@ -1587,7 +1587,7 @@ class ScreenshotArtifactPromoter {
 }
 ```
 
-- [ ] **Step 4: Replace private promotion functions in service**
+- [x] **Step 4: Replace private promotion functions in service**
 
 Inject:
 
@@ -1607,7 +1607,7 @@ val persistedScreen = screenshotArtifactPromoter.promote(
 
 Remove the old private `promotePreviewArtifacts` and `promoteScreenshotPath` functions from `FeedbackSessionService`.
 
-- [ ] **Step 5: Run MCP tests**
+- [x] **Step 5: Run MCP tests**
 
 Run:
 
@@ -1617,7 +1617,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/ScreenshotArtifactPromoterTest.kt
@@ -1633,7 +1633,7 @@ git commit -m "refactor: extract screenshot artifact promotion"
 - Modify: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/overlay/PointPatchOverlayController.kt`
 - Modify: related overlay tests
 
-- [ ] **Step 1: Write state transition tests**
+- [x] **Step 1: Write state transition tests**
 
 ```kotlin
 package io.github.pointpatch.compose.overlay
@@ -1678,7 +1678,7 @@ class OverlayStateMachineTest {
 }
 ```
 
-- [ ] **Step 2: Run and confirm red**
+- [x] **Step 2: Run and confirm red**
 
 Run:
 
@@ -1688,7 +1688,7 @@ Run:
 
 Expected: compile failure because `OverlayStateMachine`, `Select`, `Loading`, and `Error` do not exist.
 
-- [ ] **Step 3: Update `OverlayMode`**
+- [x] **Step 3: Update `OverlayMode`**
 
 ```kotlin
 sealed interface OverlayMode {
@@ -1716,7 +1716,7 @@ sealed interface OverlayMode {
 }
 ```
 
-- [ ] **Step 4: Add state machine**
+- [x] **Step 4: Add state machine**
 
 ```kotlin
 package io.github.pointpatch.compose.overlay
@@ -1763,7 +1763,7 @@ fun OverlayMode.canTransitionTo(next: OverlayMode): Boolean =
     }
 ```
 
-- [ ] **Step 5: Replace `OverlayMode.Selecting` usages**
+- [x] **Step 5: Replace `OverlayMode.Selecting` usages**
 
 Replace:
 
@@ -1789,7 +1789,7 @@ with:
 mode is OverlayMode.Select
 ```
 
-- [ ] **Step 6: Run overlay and sidekick tests**
+- [x] **Step 6: Run overlay and sidekick tests**
 
 Run:
 
@@ -1799,7 +1799,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/overlay pointpatch-compose-overlay/src/test/kotlin/io/github/pointpatch/compose/overlay pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/overlay pointpatch-compose-sidekick/src/test/kotlin
@@ -1815,7 +1815,7 @@ git commit -m "refactor: add overlay state machine"
 - Modify: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas/PreviewSurface.kt`
 - Test: `pointpatch-compose-overlay/src/test/kotlin/io/github/pointpatch/compose/console/studio/canvas/CanvasHelpersTest.kt`
 
-- [ ] **Step 1: Add helper tests for gesture enablement**
+- [x] **Step 1: Add helper tests for gesture enablement**
 
 Add a pure helper test:
 
@@ -1828,7 +1828,7 @@ fun previewGestureEnabledOnlyInAnnotateModeWithAvailableAnnotation() {
 }
 ```
 
-- [ ] **Step 2: Add helper implementation**
+- [x] **Step 2: Add helper implementation**
 
 ```kotlin
 internal fun isPreviewGestureEnabled(
@@ -1840,11 +1840,11 @@ internal fun isPreviewGestureEnabled(
 
 Use this helper inside `Modifier.annotateDragGestures`.
 
-- [ ] **Step 3: Move screenshot rendering into its own file**
+- [x] **Step 3: Move screenshot rendering into its own file**
 
 Move `PreviewScreenshotContent`, `PreviewMessage`, `DevicePreviewContent`, and bitmap decoding helpers from `PreviewSurface.kt` into `PreviewScreenshotContent.kt`. Keep function names and visibility unchanged first, so call sites do not change.
 
-- [ ] **Step 4: Move overlay loop into `AnnotationOverlay`**
+- [x] **Step 4: Move overlay loop into `AnnotationOverlay`**
 
 ```kotlin
 @Composable
@@ -1866,11 +1866,11 @@ internal fun AnnotationOverlay(
 }
 ```
 
-- [ ] **Step 5: Keep `PreviewSurface` as orchestration**
+- [x] **Step 5: Keep `PreviewSurface` as orchestration**
 
 After extraction, `PreviewSurface.kt` should contain the public `PreviewSurface`, `LocalPreviewSizePx`, `annotateDragGestures`, and direct orchestration only. The line count target for this task is under 260 lines.
 
-- [ ] **Step 6: Run overlay tests**
+- [x] **Step 6: Run overlay tests**
 
 Run:
 
@@ -1880,7 +1880,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas pointpatch-compose-overlay/src/test/kotlin/io/github/pointpatch/compose/console/studio/canvas
@@ -1895,7 +1895,7 @@ git commit -m "refactor: split preview surface rendering"
 - Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas/toolbar/ZoomControl.kt`
 - Move: toolbar-specific logic from `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas/CanvasToolbar.kt`
 
-- [ ] **Step 1: Move state-free tool switcher first**
+- [x] **Step 1: Move state-free tool switcher first**
 
 Create `ToolSwitcher.kt` with:
 
@@ -1920,15 +1920,15 @@ internal fun ToolSwitcher(
 
 Use the existing local button primitives from `CanvasToolbar.kt`. If the current primitives are private, move the primitive with `ToolSwitcher` so the extracted file compiles.
 
-- [ ] **Step 2: Move status and zoom controls**
+- [x] **Step 2: Move status and zoom controls**
 
 Create `ToolStatusBar.kt` for hint text and `ZoomControl.kt` for zoom buttons. Keep the same strings and callback behavior as the current toolbar.
 
-- [ ] **Step 3: Update `CanvasToolbar.kt` to layout-only**
+- [x] **Step 3: Update `CanvasToolbar.kt` to layout-only**
 
 `CanvasToolbar.kt` should construct a row and delegate to `ToolSwitcher`, `ToolStatusBar`, and `ZoomControl`. The line count target for this task is under 120 lines.
 
-- [ ] **Step 4: Run overlay tests**
+- [x] **Step 4: Run overlay tests**
 
 Run:
 
@@ -1938,7 +1938,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas pointpatch-compose-overlay/src/test/kotlin/io/github/pointpatch/compose/console/studio/canvas
@@ -1956,7 +1956,7 @@ git commit -m "refactor: split canvas toolbar controls"
 - Create: `docs/adr/0005-overlay-mode-state-machine.md`
 - Create: `.github/pull_request_template.md`
 
-- [ ] **Step 1: Add ADR README**
+- [x] **Step 1: Add ADR README**
 
 ```markdown
 # Architecture Decision Records
@@ -1973,7 +1973,7 @@ Each ADR uses a monotonic numeric prefix, a short kebab-case title, and one stat
 Every ADR must include Context, Decision, Consequences, and Alternatives Considered.
 ```
 
-- [ ] **Step 2: Add ADR template content to each ADR**
+- [x] **Step 2: Add ADR template content to each ADR**
 
 Use this exact structure for each ADR and fill the title and decision sentence from the implemented task:
 
@@ -2003,14 +2003,14 @@ PointPatch now has UI, MCP, CLI, capture, persistence, and Gradle plugin respons
 - Move everything into a new shared module. Rejected because `compose-core` is already pure Kotlin and already depended on by the relevant modules.
 ```
 
-- [ ] **Step 3: Add PR template**
+- [x] **Step 3: Add PR template**
 
 ```markdown
 ## Summary
 
 ## Impacted Layers
-- [ ] Domain (`pointpatch-compose-core/domain`)
-- [ ] Use cases (`pointpatch-compose-core/usecase`)
+- [ ] Domain (`pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain`)
+- [ ] Use cases (`pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/usecase`)
 - [ ] MCP DTO / persistence
 - [ ] CLI / bridge
 - [ ] Compose overlay UI
@@ -2032,9 +2032,15 @@ PointPatch now has UI, MCP, CLI, capture, persistence, and Gradle plugin respons
 - [ ] Related ADR is linked or updated
 
 ## Verification
+- [ ] Commands run are listed below with PASS or FAIL results
+- [ ] Relevant checks that were not run are listed as SKIPPED with a reason and residual risk
+
+| Command / check | Result | Notes |
+| --- | --- | --- |
+|  | PASS / FAIL / SKIPPED |  |
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/adr .github/pull_request_template.md
@@ -2046,7 +2052,7 @@ git commit -m "docs: add architecture guardrails"
 **Files:**
 - No new files
 
-- [ ] **Step 1: Run all tests**
+- [x] **Step 1: Run all tests**
 
 Run:
 
@@ -2056,7 +2062,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 2: Run Android library unit tests**
+- [x] **Step 2: Run Android library unit tests**
 
 Run:
 
@@ -2066,7 +2072,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 3: Check architecture import boundaries**
+- [x] **Step 3: Check architecture import boundaries**
 
 Run:
 
@@ -2080,7 +2086,15 @@ Expected:
 - First command prints no matches.
 - Second command prints no legacy terminology after Task 7, except historical documentation or intentionally retained test names during the same PR.
 
-- [ ] **Step 4: Commit final cleanup**
+Actual:
+
+- `./gradlew test`: PASS, exit code 0.
+- `./gradlew :pointpatch-gradle-plugin:test`: PASS, exit code 0.
+- `./gradlew :pointpatch-compose-overlay:testDebugUnitTest :pointpatch-compose-sidekick:testDebugUnitTest`: PASS, exit code 0.
+- `rg -n "io\\.github\\.pointpatch\\.mcp" pointpatch-compose-core/src/main/kotlin`: no matches, exit code 1 as expected.
+- `rg -n "FeedbackItem|CapturedScreen|FeedbackSession" pointpatch-compose-core/src/main/kotlin pointpatch-compose-overlay/src/main/kotlin pointpatch-mcp/src/main/kotlin`: matches only retained MCP service/API, persistence, console/tool compatibility names, and human-facing feedback item/session strings; no `compose-core` or `compose-overlay` matches, and no unrenamed MCP wire DTO class blockers.
+
+- [x] **Step 4: Commit final cleanup**
 
 ```bash
 git status --short

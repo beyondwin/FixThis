@@ -114,6 +114,8 @@ Feedback items represent human comments on a persisted evidence snapshot:
 - `status`: `open`, `ready`, `in_progress`, `resolved`, `needs_clarification`, or `wont_fix`.
 - `agentSummary`: optional agent resolution summary.
 
+`ready` is retained for persisted/session JSON compatibility. Domain mappers normalize legacy `ready` values to `AnnotationStatus.OPEN`; this is not a JSON field migration.
+
 ## Feedback Delivery
 
 The feedback console defaults to navigation. Add freezes the latest preview so the user can select a target or drag a visual area, write a comment, and create one or more pending UI-only items. Pending items are numbered in the Studio UI and support Focus and Delete until Save. Save promotes that frozen preview once into one persisted evidence snapshot, stores all pending items, and connects them to the same `screenId`. Later Add on the same visible app screen creates a new evidence snapshot after Save.
@@ -135,7 +137,7 @@ Handoff batches are stored on the feedback session in `handoffBatches`:
 - `itemIds`: feedback item ids included in the batch.
 - `markdownSnapshot`: Markdown handoff snapshot captured when Send created the batch, when available.
 
-`FeedbackItem.screenId` points to the evidence snapshot saved with the item batch. Multiple items can share one `screenId` when saved together from one frozen preview.
+The item's `screenId` field points to the evidence snapshot saved with the item batch. Multiple items can share one `screenId` when saved together from one frozen preview.
 
 ## Feedback Handoff Formats
 

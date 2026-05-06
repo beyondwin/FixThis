@@ -8,16 +8,16 @@ import io.github.pointpatch.compose.core.model.PointPatchAnnotation
 import io.github.pointpatch.mcp.McpProtocol
 import io.github.pointpatch.mcp.console.FeedbackConsoleServer
 import io.github.pointpatch.mcp.resourceText
-import io.github.pointpatch.mcp.session.CapturedScreen
+import io.github.pointpatch.mcp.session.SnapshotDto
 import io.github.pointpatch.mcp.session.FeedbackDelivery
 import io.github.pointpatch.mcp.session.FeedbackNavigationAction
 import io.github.pointpatch.mcp.session.FeedbackNavigationRequest
 import io.github.pointpatch.mcp.session.FeedbackNavigationResult
 import io.github.pointpatch.mcp.session.FeedbackSwipeDirection
-import io.github.pointpatch.mcp.session.FeedbackItem
-import io.github.pointpatch.mcp.session.FeedbackItemStatus
+import io.github.pointpatch.mcp.session.AnnotationDto
+import io.github.pointpatch.mcp.session.AnnotationStatusDto
 import io.github.pointpatch.mcp.session.FeedbackQueueFormatter
-import io.github.pointpatch.mcp.session.FeedbackSession
+import io.github.pointpatch.mcp.session.SessionDto
 import io.github.pointpatch.mcp.session.FeedbackSessionList
 import io.github.pointpatch.mcp.session.FeedbackSessionPaths
 import io.github.pointpatch.mcp.session.FeedbackSessionPersistence
@@ -43,7 +43,7 @@ import kotlinx.serialization.json.put
 
 private const val DefaultFeedbackTimeoutMillis = 60_000L
 private const val MaxRecentOverridePackages = 8
-private val resolvedStatuses = setOf(FeedbackItemStatus.RESOLVED, FeedbackItemStatus.WONT_FIX)
+private val resolvedStatuses = setOf(AnnotationStatusDto.RESOLVED, AnnotationStatusDto.WONT_FIX)
 
 class PointPatchTools(
     private val bridge: PointPatchBridge = CliPointPatchBridge(BridgeClient()),
@@ -157,7 +157,7 @@ class PointPatchTools(
                     put("projectRoot", opened.session.projectRoot)
                     put("consoleUrl", opened.consoleUrl)
                     put("resumed", opened.resumed)
-                    put("session", McpProtocol.json.encodeToJsonElement(FeedbackSession.serializer(), opened.session))
+                    put("session", McpProtocol.json.encodeToJsonElement(SessionDto.serializer(), opened.session))
                 })
             }
             "pointpatch_list_feedback_sessions" -> bridgeToolResult {
@@ -177,7 +177,7 @@ class PointPatchTools(
                 val screen = feedbackService.captureScreen(session.sessionId)
                 jsonToolResult(buildJsonObject {
                     put("sessionId", session.sessionId)
-                    put("screen", McpProtocol.json.encodeToJsonElement(CapturedScreen.serializer(), screen))
+                    put("screen", McpProtocol.json.encodeToJsonElement(SnapshotDto.serializer(), screen))
                 })
             }
             "pointpatch_navigate_app" -> bridgeToolResult {
@@ -234,7 +234,7 @@ class PointPatchTools(
                     ?: throw PointPatchToolException("pointpatch_resolve_feedback requires status")
                 val summary = arguments.stringParam("summary")
                 val item = feedbackService.resolveFeedback(session.sessionId, itemId, status, summary)
-                jsonToolResult(McpProtocol.json.encodeToJsonElement(FeedbackItem.serializer(), item).jsonObject)
+                jsonToolResult(McpProtocol.json.encodeToJsonElement(AnnotationDto.serializer(), item).jsonObject)
             }
             else -> throw PointPatchToolException("Unknown PointPatch tool: $name")
         }
@@ -484,7 +484,7 @@ class PointPatchTools(
         return PointPatchMarkdownFormatter.format(annotation)
     }
 
-    private fun requestedSession(arguments: JsonObject): FeedbackSession {
+    private fun requestedSession(arguments: JsonObject): SessionDto {
         val sessionId = arguments.stringParam("sessionId")?.takeIf { it.isNotBlank() }
         return if (sessionId == null) {
             feedbackService.currentSession()
@@ -493,7 +493,7 @@ class PointPatchTools(
         }
     }
 
-    private fun FeedbackSession.focusedOn(itemId: String?): FeedbackSession {
+    private fun SessionDto.focusedOn(itemId: String?): SessionDto {
         val focusedItemId = itemId?.takeIf { it.isNotBlank() } ?: return this
         val item = items.firstOrNull { it.itemId == focusedItemId }
             ?: throw PointPatchToolException("Unknown feedback item: $focusedItemId")
@@ -510,11 +510,11 @@ class PointPatchTools(
         )
     }
 
-    private fun String.toFeedbackItemStatus(): FeedbackItemStatus =
+    private fun String.toFeedbackItemStatus(): AnnotationStatusDto =
         when (this) {
-            "resolved" -> FeedbackItemStatus.RESOLVED
-            "needs_clarification" -> FeedbackItemStatus.NEEDS_CLARIFICATION
-            "wont_fix" -> FeedbackItemStatus.WONT_FIX
+            "resolved" -> AnnotationStatusDto.RESOLVED
+            "needs_clarification" -> AnnotationStatusDto.NEEDS_CLARIFICATION
+            "wont_fix" -> AnnotationStatusDto.WONT_FIX
             else -> throw PointPatchToolException("Unsupported feedback resolution status: $this")
         }
 
@@ -642,7 +642,7 @@ private data class ResourceDefinition(
 )
 
 private data class OpenFeedbackConsoleResult(
-    val session: FeedbackSession,
+    val session: SessionDto,
     val consoleUrl: String,
     val resumed: Boolean,
 )

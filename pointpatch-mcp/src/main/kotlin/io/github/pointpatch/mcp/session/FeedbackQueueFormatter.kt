@@ -6,10 +6,10 @@ import io.github.pointpatch.compose.core.model.PointPatchRect
 import io.github.pointpatch.compose.core.model.SourceCandidate
 
 object FeedbackQueueFormatter {
-    fun toJson(session: FeedbackSession): String =
-        pointPatchJson.encodeToString(FeedbackSession.serializer(), session)
+    fun toJson(session: SessionDto): String =
+        pointPatchJson.encodeToString(SessionDto.serializer(), session)
 
-    fun toMarkdown(session: FeedbackSession): String = buildString {
+    fun toMarkdown(session: SessionDto): String = buildString {
         appendLine("# PointPatch Feedback Handoff")
         appendLine()
         appendLine("- Package: `${session.packageName}`")
@@ -19,7 +19,7 @@ object FeedbackQueueFormatter {
 
         val orderedItems = session.items.withIndex()
             .sortedWith(
-                compareBy<IndexedValue<FeedbackItem>> { it.value.sequenceNumber ?: Int.MAX_VALUE }
+                compareBy<IndexedValue<AnnotationDto>> { it.value.sequenceNumber ?: Int.MAX_VALUE }
                     .thenBy { it.index },
             )
         if (orderedItems.isEmpty()) {
@@ -32,7 +32,7 @@ object FeedbackQueueFormatter {
         }
     }
 
-    private fun StringBuilder.appendFeedbackItem(number: Int, item: FeedbackItem) {
+    private fun StringBuilder.appendFeedbackItem(number: Int, item: AnnotationDto) {
         appendLine("## Item $number")
         appendLine()
         appendLine("Request:")
@@ -46,14 +46,14 @@ object FeedbackQueueFormatter {
         appendLine()
     }
 
-    private fun StringBuilder.appendTarget(item: FeedbackItem) {
+    private fun StringBuilder.appendTarget(item: AnnotationDto) {
         when (val target = item.target) {
-            is FeedbackTarget.Node -> {
+            is AnnotationTargetDto.Node -> {
                 appendLine("- Type: Compose semantics node")
                 appendNodeEvidence(item.selectedNode)
                 appendLine("- Bounds: `${target.boundsInWindow.formatBounds()}`")
             }
-            is FeedbackTarget.Area -> {
+            is AnnotationTargetDto.Area -> {
                 appendLine("- Type: Visual area")
                 appendLine("- Bounds: `${target.boundsInWindow.formatBounds()}`")
                 appendLine("- Nearby UI: `${item.nearbyNodes.nearbyUiLabel()}`")
@@ -73,7 +73,7 @@ object FeedbackQueueFormatter {
         node.role?.takeIf { it.isNotBlank() }?.let { appendLine("- Role: `${it.inlineSafe()}`") }
     }
 
-    private fun StringBuilder.appendLikelySource(sourceCandidates: List<SourceCandidate>, target: FeedbackTarget) {
+    private fun StringBuilder.appendLikelySource(sourceCandidates: List<SourceCandidate>, target: AnnotationTargetDto) {
         if (sourceCandidates.isEmpty()) {
             appendLine("No source candidate from current evidence; search by target labels and request.")
             return
@@ -92,10 +92,10 @@ object FeedbackQueueFormatter {
     private fun SourceCandidate.fileWithLine(): String =
         line?.let { "$file:$it" } ?: file
 
-    private fun SourceCandidate.markdownConfidence(target: FeedbackTarget): String =
+    private fun SourceCandidate.markdownConfidence(target: AnnotationTargetDto): String =
         when (target) {
-            is FeedbackTarget.Area -> "low"
-            is FeedbackTarget.Node -> confidence.name.lowercase()
+            is AnnotationTargetDto.Area -> "low"
+            is AnnotationTargetDto.Node -> confidence.name.lowercase()
         }
 
     private fun PointPatchRect.formatBounds(): String =

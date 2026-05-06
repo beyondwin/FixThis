@@ -39,7 +39,7 @@ fun PointPatchSelectionLayer(
     onAreaSelected: (left: Float, top: Float, right: Float, bottom: Float) -> Unit,
     onCancel: () -> Unit,
 ) {
-    if (mode !is OverlayMode.Selecting) {
+    if (mode !is OverlayMode.Select) {
         Box(modifier = modifier)
         return
     }
@@ -146,7 +146,7 @@ private fun normalizedRect(start: Offset?, current: Offset?): Rect? {
 private fun PointPatchSelectionLayerPreview() {
     MaterialTheme {
         PointPatchSelectionLayer(
-            mode = OverlayMode.Selecting(requestId = "preview"),
+            mode = OverlayMode.Select(requestId = "preview"),
             onTap = { _, _ -> },
             onAreaSelected = { _, _, _, _ -> },
             onCancel = {},

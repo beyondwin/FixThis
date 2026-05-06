@@ -16,6 +16,7 @@ import io.github.pointpatch.compose.core.model.ScreenshotInfo
 import io.github.pointpatch.compose.core.model.TapPoint
 import io.github.pointpatch.compose.core.source.SourceIndex
 import io.github.pointpatch.compose.overlay.OverlayMode
+import io.github.pointpatch.compose.overlay.OverlayStateMachine
 import io.github.pointpatch.compose.overlay.PointPatchDraft
 import io.github.pointpatch.compose.sidekick.capture.AnnotationCaptureController
 import io.github.pointpatch.compose.sidekick.capture.AnnotationCaptureInput
@@ -70,11 +71,13 @@ internal class PointPatchOverlayController(
     private val appInfoProvider: () -> AppInfo = { activity.toAppInfo() },
     private val activityInfoProvider: () -> ActivityInfo = { ActivityInfo(activity::class.java.name) },
 ) {
-    var mode: OverlayMode by mutableStateOf(OverlayMode.Idle)
+    private val stateMachine = OverlayStateMachine()
+
+    var mode: OverlayMode by mutableStateOf(stateMachine.state.value)
         private set
 
     val shouldHandleOverlayTouch: Boolean
-        get() = mode is OverlayMode.Selecting ||
+        get() = mode is OverlayMode.Select ||
             mode is OverlayMode.ReviewingSelection ||
             mode is OverlayMode.Commenting
 
@@ -89,9 +92,9 @@ internal class PointPatchOverlayController(
         get() = currentAnnotation ?: lastSubmittedAnnotation
 
     fun startSelection() {
+        transitionMode(OverlayMode.Select(requestId = UUID.randomUUID().toString()))
         activeCapture = null
         currentAnnotation = null
-        mode = OverlayMode.Selecting(requestId = UUID.randomUUID().toString())
     }
 
     suspend fun captureTap(xInWindow: Float, yInWindow: Float) {
@@ -130,8 +133,8 @@ internal class PointPatchOverlayController(
 
     fun updateComment(comment: String) {
         val updated = currentAnnotation?.copy(userComment = comment) ?: return
+        transitionMode(OverlayMode.Commenting(updated.toDraft()))
         currentAnnotation = updated
-        mode = OverlayMode.Commenting(updated.toDraft())
     }
 
     fun copyMarkdown(): ClipboardExportResult? {
@@ -151,15 +154,17 @@ internal class PointPatchOverlayController(
     suspend fun share(): File? {
         val annotation = currentAnnotation ?: return null
         val file = localFileExporter.exportMarkdown(annotation)
+        transitionMode(OverlayMode.Exported(annotation.id))
         markSubmitted(annotation)
-        mode = OverlayMode.Exported(annotation.id)
         return file
     }
 
     fun cancel() {
+        if (stateMachine.state.value !is OverlayMode.Idle) {
+            transitionMode(OverlayMode.Idle)
+        }
         activeCapture = null
         currentAnnotation = null
-        mode = OverlayMode.Idle
         lastCompletionSubmitted = false
         completionSequence++
     }
@@ -220,12 +225,12 @@ internal class PointPatchOverlayController(
             selectedBounds = selectedBounds,
         )
         val annotation = annotationWithoutScreenshot.copy(screenshot = screenshot)
+        transitionMode(OverlayMode.Commenting(annotation.toDraft()))
         activeCapture = ActiveCapture(
             tap = tap,
             areaBoundsInWindow = areaBoundsInWindow,
         )
         currentAnnotation = annotation
-        mode = OverlayMode.Commenting(annotation.toDraft())
     }
 
     private data class ActiveCapture(
@@ -237,6 +242,11 @@ internal class PointPatchOverlayController(
         lastSubmittedAnnotation = annotation
         lastCompletionSubmitted = true
         completionSequence++
+    }
+
+    private fun transitionMode(next: OverlayMode) {
+        stateMachine.transition(next)
+        mode = stateMachine.state.value
     }
 }
 

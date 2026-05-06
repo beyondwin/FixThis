@@ -66,7 +66,7 @@ Top bar actions are short session-level controls: Refresh, Add, Save, Copy, Send
 
 Add freezes the latest preview only; it does not save. Multiple pending feedback items can be added to one frozen preview. Pending items support Focus and Delete before Save; deleting renumbers pending items so the pending list numbers and overlay numbers match.
 
-Save promotes the frozen preview once into one persisted evidence snapshot and connects all pending items to the same `screenId`. `FeedbackItem.screenId` points to the evidence snapshot saved with that item batch, so multiple saved items can share one `screenId`. Later Add on the same visible app screen creates a new evidence snapshot after Save. Live preview frames are not session history: `FeedbackSession.screens` contains persisted evidence snapshots, not every preview frame.
+Save promotes the frozen preview once into one persisted evidence snapshot and connects all pending items to the same `screenId`. The item's `screenId` field points to the evidence snapshot saved with that item batch, so multiple saved items can share one `screenId`. Later Add on the same visible app screen creates a new evidence snapshot after Save. Live preview frames are not session history: `FeedbackSession.screens` contains persisted evidence snapshots, not every preview frame.
 
 Saved evidence groups can be expanded to review the persisted screenshot, numbered overlay, and saved comments. Send is local persistence, not an external AI API call. PointPatch records a handoff batch in the feedback session so an MCP client can read the batch and decide what to do next.
 

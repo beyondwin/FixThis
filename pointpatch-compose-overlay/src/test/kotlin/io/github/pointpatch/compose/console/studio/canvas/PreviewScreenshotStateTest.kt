@@ -1,6 +1,7 @@
 package io.github.pointpatch.compose.console.studio.canvas
 
 import io.github.pointpatch.compose.core.model.ScreenshotInfo
+import io.github.pointpatch.compose.console.studio.canvas.toolbar.annotateHintText
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Test

@@ -50,15 +50,15 @@ The Android Studio sample app is exposed as Gradle project `:app`, while its fil
 
 ```text
 :app                         -> sample/
-:pointpatch-compose-core     -> pure Kotlin models, selection, formatters, source matching
+:pointpatch-compose-core     -> pure Kotlin domain contracts, use cases, models, selection, formatters, source matching
 :pointpatch-compose-overlay  -> Compose overlay UI and public feedback console Studio shell
 :pointpatch-compose-sidekick -> debug runtime, inspection, screenshots, bridge
 :pointpatch-gradle-plugin    -> plugin and source-index generation
 :pointpatch-cli              -> desktop CLI
-:pointpatch-mcp              -> stdio MCP server
+:pointpatch-mcp              -> stdio MCP server and local feedback console
 ```
 
-The public Compose feedback console entrypoint is `io.github.pointpatch.compose.console.studio.FeedbackConsoleScreen` in `:pointpatch-compose-overlay`. The existing CLI/MCP browser console still uses its HTML asset surface.
+The public Compose feedback console entrypoint is `io.github.pointpatch.compose.console.studio.FeedbackConsoleScreen` in `:pointpatch-compose-overlay`. The existing CLI/MCP browser console still uses its HTML asset surface, loaded from packaged resources under `pointpatch-mcp/src/main/resources/console`.
 
 `gradle/gradle-daemon-jvm.properties` pins the Gradle daemon JVM toolchain to Java 21. Local Android SDK settings still belong in `local.properties`, which is ignored.
 
@@ -130,6 +130,7 @@ More detail:
 - [Product requirements](docs/pointpatch_prd.md)
 - [Technical design](docs/pointpatch_technical_design.md)
 - [Decisions](docs/pointpatch_decisions.md)
+- [Architecture decisions](docs/adr/README.md)
 - [Output schema](docs/output-schema.md)
 - [Privacy](docs/privacy.md)
 - [Troubleshooting](docs/troubleshooting.md)

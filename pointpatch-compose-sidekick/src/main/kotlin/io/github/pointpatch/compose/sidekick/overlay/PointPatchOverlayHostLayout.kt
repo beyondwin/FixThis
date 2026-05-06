@@ -47,9 +47,11 @@ class PointPatchOverlayHostLayout(context: Context) : FrameLayout(context) {
                 when (mode) {
                     OverlayMode.Idle,
                     OverlayMode.MenuOpen,
+                    is OverlayMode.Loading,
+                    is OverlayMode.Error,
                     is OverlayMode.Exported -> Unit
 
-                    is OverlayMode.Selecting -> PointPatchSelectionLayer(
+                    is OverlayMode.Select -> PointPatchSelectionLayer(
                         mode = mode,
                         modifier = Modifier.fillMaxSize(),
                         onTap = { xInWindow, yInWindow ->

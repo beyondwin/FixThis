@@ -16,7 +16,7 @@ data class FeedbackSessionSummary(
     val projectRoot: String,
     val createdAtEpochMillis: Long,
     val updatedAtEpochMillis: Long,
-    val status: FeedbackSessionStatus,
+    val status: SessionStatusDto,
     val screensCount: Int,
     val itemsCount: Int,
     val unresolvedItemsCount: Int,
@@ -24,7 +24,7 @@ data class FeedbackSessionSummary(
     val sentBatchesCount: Int = 0,
 ) {
     companion object {
-        fun from(session: FeedbackSession): FeedbackSessionSummary =
+        fun from(session: SessionDto): FeedbackSessionSummary =
             FeedbackSessionSummary(
                 sessionId = session.sessionId,
                 packageName = session.packageName,
@@ -35,7 +35,7 @@ data class FeedbackSessionSummary(
                 screensCount = session.screens.size,
                 itemsCount = session.items.size,
                 unresolvedItemsCount = session.items.count { item ->
-                    item.status !in setOf(FeedbackItemStatus.RESOLVED, FeedbackItemStatus.WONT_FIX)
+                    item.status !in setOf(AnnotationStatusDto.RESOLVED, AnnotationStatusDto.WONT_FIX)
                 },
                 draftItemsCount = session.items.count { item -> item.delivery == FeedbackDelivery.DRAFT },
                 sentBatchesCount = session.handoffBatches.size,

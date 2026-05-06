@@ -8,21 +8,21 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class FeedbackSession(
+data class SessionDto(
     val schemaVersion: String = "1.0",
     val sessionId: String,
     val packageName: String,
     val projectRoot: String,
     val createdAtEpochMillis: Long,
     val updatedAtEpochMillis: Long,
-    val screens: List<CapturedScreen> = emptyList(),
-    val items: List<FeedbackItem> = emptyList(),
+    val screens: List<SnapshotDto> = emptyList(),
+    val items: List<AnnotationDto> = emptyList(),
     val handoffBatches: List<FeedbackHandoffBatch> = emptyList(),
-    val status: FeedbackSessionStatus = FeedbackSessionStatus.ACTIVE,
+    val status: SessionStatusDto = SessionStatusDto.ACTIVE,
 )
 
 @Serializable
-enum class FeedbackSessionStatus {
+enum class SessionStatusDto {
     @SerialName("active")
     ACTIVE,
 
@@ -34,19 +34,19 @@ enum class FeedbackSessionStatus {
 }
 
 @Serializable
-data class CapturedScreen(
+data class SnapshotDto(
     val screenId: String,
     val capturedAtEpochMillis: Long,
     val activityName: String? = null,
     val displayName: String,
-    val screenshot: FeedbackScreenshot? = null,
-    val roots: List<FeedbackScreenRoot> = emptyList(),
+    val screenshot: SnapshotScreenshotDto? = null,
+    val roots: List<SnapshotRootDto> = emptyList(),
     val sourceIndexAvailable: Boolean = false,
     val errors: List<PointPatchError> = emptyList(),
 )
 
 @Serializable
-data class FeedbackScreenRoot(
+data class SnapshotRootDto(
     val rootIndex: Int,
     val boundsInWindow: PointPatchRect,
     val mergedNodes: List<PointPatchNode> = emptyList(),
@@ -54,7 +54,7 @@ data class FeedbackScreenRoot(
 )
 
 @Serializable
-data class FeedbackScreenshot(
+data class SnapshotScreenshotDto(
     val fullPath: String? = null,
     val cropPath: String? = null,
     val desktopFullPath: String? = null,
@@ -65,38 +65,38 @@ data class FeedbackScreenshot(
 )
 
 @Serializable
-data class FeedbackItem(
+data class AnnotationDto(
     val itemId: String,
     val screenId: String,
     val createdAtEpochMillis: Long,
     val updatedAtEpochMillis: Long,
-    val target: FeedbackTarget,
+    val target: AnnotationTargetDto,
     val selectedNode: PointPatchNode? = null,
     val nearbyNodes: List<PointPatchNode> = emptyList(),
     val sourceCandidates: List<SourceCandidate> = emptyList(),
-    val screenshotCrop: FeedbackScreenshot? = null,
+    val screenshotCrop: SnapshotScreenshotDto? = null,
     val comment: String,
     val sequenceNumber: Int? = null,
     val delivery: FeedbackDelivery = FeedbackDelivery.DRAFT,
     val handoffBatchId: String? = null,
     val sentAtEpochMillis: Long? = null,
-    val status: FeedbackItemStatus = FeedbackItemStatus.OPEN,
+    val status: AnnotationStatusDto = AnnotationStatusDto.OPEN,
     val agentSummary: String? = null,
 )
 
 @Serializable
-sealed interface FeedbackTarget {
+sealed interface AnnotationTargetDto {
     @Serializable
     @SerialName("semantics_node")
-    data class Node(val nodeUid: String, val boundsInWindow: PointPatchRect) : FeedbackTarget
+    data class Node(val nodeUid: String, val boundsInWindow: PointPatchRect) : AnnotationTargetDto
 
     @Serializable
     @SerialName("visual_area")
-    data class Area(val boundsInWindow: PointPatchRect) : FeedbackTarget
+    data class Area(val boundsInWindow: PointPatchRect) : AnnotationTargetDto
 }
 
 @Serializable
-enum class FeedbackItemStatus {
+enum class AnnotationStatusDto {
     @SerialName("open")
     OPEN,
 

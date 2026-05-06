@@ -18,7 +18,7 @@ import kotlinx.serialization.json.put
 internal class FakePointPatchBridge(
     private val packageName: String = "io.github.pointpatch.sample",
     private val captureError: Throwable? = null,
-    private val captureRoots: List<FeedbackScreenRoot> = defaultCaptureRoots(),
+    private val captureRoots: List<SnapshotRootDto> = defaultCaptureRoots(),
     private val sourceIndexAvailable: Boolean = true,
     private val sourceIndex: SourceIndex? = defaultSourceIndex(),
     private val sourceIndexReadError: String? = null,
@@ -99,7 +99,7 @@ internal class FakePointPatchBridge(
                 "roots",
                 JsonArray(
                     captureRoots.map { root ->
-                        McpProtocol.json.encodeToJsonElement(FeedbackScreenRoot.serializer(), root)
+                        McpProtocol.json.encodeToJsonElement(SnapshotRootDto.serializer(), root)
                     },
                 ),
             )
@@ -137,7 +137,7 @@ internal class FakePointPatchBridge(
     }
 
     companion object {
-        private fun defaultCaptureRoots(): List<FeedbackScreenRoot> {
+        private fun defaultCaptureRoots(): List<SnapshotRootDto> {
             val emailLabel = PointPatchNode(
                 uid = "email-label",
                 composeNodeId = 42,
@@ -157,7 +157,7 @@ internal class FakePointPatchBridge(
                 contentDescription = listOf("Promo image"),
             )
             return listOf(
-                FeedbackScreenRoot(
+                SnapshotRootDto(
                     rootIndex = 0,
                     boundsInWindow = PointPatchRect(0f, 0f, 720f, 1600f),
                     mergedNodes = listOf(emailLabel, visualArea),

@@ -3,12 +3,12 @@ package io.github.pointpatch.mcp.console
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import io.github.pointpatch.cli.pointPatchJson
-import io.github.pointpatch.mcp.session.CapturedScreen
-import io.github.pointpatch.mcp.session.FeedbackItem
+import io.github.pointpatch.mcp.session.SnapshotDto
+import io.github.pointpatch.mcp.session.AnnotationDto
 import io.github.pointpatch.mcp.session.FeedbackNavigationRequest
 import io.github.pointpatch.mcp.session.FeedbackNavigationResult
 import io.github.pointpatch.mcp.session.FeedbackQueueFormatter
-import io.github.pointpatch.mcp.session.FeedbackSession
+import io.github.pointpatch.mcp.session.SessionDto
 import io.github.pointpatch.mcp.session.FeedbackSessionException
 import io.github.pointpatch.mcp.session.FeedbackSessionList
 import io.github.pointpatch.mcp.session.FeedbackSessionPaths
@@ -266,7 +266,7 @@ class FeedbackConsoleServer(
             .maxWithOrNull(compareBy<File> { it.lastModified() }.thenBy { it.absolutePath })
     }
 
-    private fun latestPersistedScreenshot(session: FeedbackSession, allowedRoots: List<File>): File? =
+    private fun latestPersistedScreenshot(session: SessionDto, allowedRoots: List<File>): File? =
         session.screens
             .asReversed()
             .asSequence()
@@ -306,7 +306,7 @@ class FeedbackConsoleServer(
             ?: throw FeedbackConsoleHttpException(400, "Invalid boolean query parameter: $name")
     }
 
-    private fun HttpExchange.decodeAddFeedbackItemBody(): AddFeedbackItemRequest {
+    private fun HttpExchange.decodeAddFeedbackItemBody(): AddAnnotationRequest {
         val body = requestBody.use { input -> input.readBytes().toString(Charsets.UTF_8) }
         return runCatching {
             val jsonObject = pointPatchJson.parseToJsonElement(body) as? JsonObject
@@ -315,16 +315,16 @@ class FeedbackConsoleServer(
             if (unsupportedKey != null) {
                 throw IllegalArgumentException("Unsupported feedback item field: $unsupportedKey")
             }
-            pointPatchJson.decodeFromString(AddFeedbackItemRequest.serializer(), body)
+            pointPatchJson.decodeFromString(AddAnnotationRequest.serializer(), body)
         }.getOrElse { error ->
             throw FeedbackConsoleHttpException(400, error.message ?: "Invalid JSON request body")
         }
     }
 
-    private fun HttpExchange.decodeSavePreviewFeedbackItemsBody(): SavePreviewFeedbackItemsRequest {
+    private fun HttpExchange.decodeSavePreviewFeedbackItemsBody(): SaveSnapshotRequest {
         val body = requestBody.use { input -> input.readBytes().toString(Charsets.UTF_8) }
         return runCatching {
-            pointPatchJson.decodeFromString(SavePreviewFeedbackItemsRequest.serializer(), body)
+            pointPatchJson.decodeFromString(SaveSnapshotRequest.serializer(), body)
         }.getOrElse { error ->
             throw FeedbackConsoleHttpException(400, error.message ?: "Invalid JSON request body")
         }
@@ -373,24 +373,24 @@ class FeedbackConsoleServer(
         }
     }
 
-    private fun HttpExchange.sendJson(statusCode: Int, value: FeedbackSession) {
-        sendText(statusCode, pointPatchJson.encodeToString(FeedbackSession.serializer(), value), "application/json; charset=utf-8")
+    private fun HttpExchange.sendJson(statusCode: Int, value: SessionDto) {
+        sendText(statusCode, pointPatchJson.encodeToString(SessionDto.serializer(), value), "application/json; charset=utf-8")
     }
 
     private fun HttpExchange.sendJson(statusCode: Int, value: FeedbackSessionList) {
         sendText(statusCode, pointPatchJson.encodeToString(FeedbackSessionList.serializer(), value), "application/json; charset=utf-8")
     }
 
-    private fun HttpExchange.sendJson(statusCode: Int, value: CapturedScreen) {
-        sendText(statusCode, pointPatchJson.encodeToString(CapturedScreen.serializer(), value), "application/json; charset=utf-8")
+    private fun HttpExchange.sendJson(statusCode: Int, value: SnapshotDto) {
+        sendText(statusCode, pointPatchJson.encodeToString(SnapshotDto.serializer(), value), "application/json; charset=utf-8")
     }
 
     private fun HttpExchange.sendJson(statusCode: Int, value: FeedbackPreviewSnapshot) {
         sendText(statusCode, pointPatchJson.encodeToString(FeedbackPreviewSnapshot.serializer(), value), "application/json; charset=utf-8")
     }
 
-    private fun HttpExchange.sendJson(statusCode: Int, value: FeedbackItem) {
-        sendText(statusCode, pointPatchJson.encodeToString(FeedbackItem.serializer(), value), "application/json; charset=utf-8")
+    private fun HttpExchange.sendJson(statusCode: Int, value: AnnotationDto) {
+        sendText(statusCode, pointPatchJson.encodeToString(AnnotationDto.serializer(), value), "application/json; charset=utf-8")
     }
 
     private fun HttpExchange.sendJson(statusCode: Int, value: FeedbackNavigationResult) {
