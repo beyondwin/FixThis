@@ -34,6 +34,7 @@ import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class FeedbackConsoleServerTest {
@@ -75,6 +76,36 @@ class FeedbackConsoleServerTest {
         } finally {
             server.stop()
         }
+    }
+
+    @Test
+    fun consoleAssetsAreLoadedFromClasspathResources() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(html.contains("<style>"))
+        assertTrue(html.contains("</style>"))
+        assertTrue(html.contains("<script>"))
+        assertTrue(html.contains("</script>"))
+        assertTrue(html.contains("class=\"studio-shell\""))
+        assertTrue(html.contains("function renderPreviewRegion"))
+    }
+
+    @Test
+    fun consoleAssetsRejectTraversalPaths() {
+        val error = assertFailsWith<IllegalArgumentException> {
+            FeedbackConsoleAssets.resource("../FeedbackConsoleAssets.kt")
+        }
+
+        assertTrue(error.message!!.contains("path traversal"))
+    }
+
+    @Test
+    fun consoleAssetsRejectAbsolutePaths() {
+        val error = assertFailsWith<IllegalArgumentException> {
+            FeedbackConsoleAssets.resource("/index.html")
+        }
+
+        assertTrue(error.message!!.contains("absolute asset paths"))
     }
 
     @Test

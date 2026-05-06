@@ -191,7 +191,7 @@ git commit -m "test: lock architecture compatibility contracts"
 - Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
 - Test: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Add failing resource-loader contract tests**
+- [x] **Step 1: Add failing resource-loader contract tests**
 
 Add these tests near the existing HTML contract tests:
 
@@ -224,7 +224,7 @@ If `assertFailsWith` is not imported in the file, add:
 import kotlin.test.assertFailsWith
 ```
 
-- [ ] **Step 2: Run the tests and confirm the new contract is red**
+- [x] **Step 2: Run the tests and confirm the new contract is red**
 
 Run:
 
@@ -234,7 +234,7 @@ Run:
 
 Expected: the traversal test fails because `FeedbackConsoleAssets.resource` does not exist yet.
 
-- [ ] **Step 3: Extract the raw string without changing rendered HTML**
+- [x] **Step 3: Extract the raw string without changing rendered HTML**
 
 Move the current HTML document from `FeedbackConsoleAssets.indexHtml` into three resources:
 
@@ -245,7 +245,7 @@ Move the current HTML document from `FeedbackConsoleAssets.indexHtml` into three
 
 The resulting `index.html` must still contain the same DOM nodes and IDs after `FeedbackConsoleAssets.indexHtml` injects styles and script.
 
-- [ ] **Step 4: Replace the Kotlin asset object with a loader**
+- [x] **Step 4: Replace the Kotlin asset object with a loader**
 
 ```kotlin
 package io.github.pointpatch.mcp.console
@@ -279,7 +279,7 @@ internal object FeedbackConsoleAssets {
 }
 ```
 
-- [ ] **Step 5: Run the focused test**
+- [x] **Step 5: Run the focused test**
 
 Run:
 
@@ -289,7 +289,7 @@ Run:
 
 Expected: PASS. Existing HTML contract tests still see `FeedbackConsoleAssets.indexHtml` with inline CSS and JavaScript.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/main/resources/console pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt

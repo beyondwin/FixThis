@@ -1,0 +1,114 @@
+        <!doctype html>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>PointPatch Feedback Console</title>
+          <!-- POINTPATCH_STYLES -->
+        </head>
+        <body>
+          <div class="studio-shell">
+            <header class="studio-topbar">
+              <div class="studio-brand">
+                <div class="studio-mark" aria-hidden="true">P</div>
+                <div>
+                  <h1>PointPatch</h1>
+                  <div class="brand-caption">Studio</div>
+                </div>
+              </div>
+              <div class="studio-context">
+                <div id="deviceControl" class="device-control" data-connection-state="none">
+                  <span class="device-state-dot" aria-hidden="true"></span>
+                  <span class="device-copy">
+                    <span id="deviceName" class="device-name">No device</span>
+                    <span id="deviceConnectionState" class="device-connection-state">No device</span>
+                  </span>
+                  <span class="device-chevron" aria-hidden="true">▾</span>
+                  <select id="devicePicker" aria-label="Android device"></select>
+                </div>
+                <select id="previewIntervalSelect" aria-label="Preview interval">
+                  <option value="manual">Manual</option>
+                  <option value="1000" selected>1s</option>
+                  <option value="2000">2s</option>
+                  <option value="5000">5s</option>
+                </select>
+                <button id="refreshDevicesButton" class="icon-button" type="button" title="Refresh devices" aria-label="Refresh devices">↻</button>
+                <button id="disconnectDeviceButton" class="clear-device-button" type="button" title="Clear PointPatch device selection" aria-label="Clear PointPatch device selection">Clear selection</button>
+                <span id="deviceStatus" class="status-pill" hidden>No device</span>
+              </div>
+              <div class="studio-actions">
+                <button id="copyPromptButton" class="with-icon" type="button" disabled>
+                  <span class="button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></span>
+                  <span>Copy Prompt</span>
+                </button>
+                <button id="sendAgentButton" class="primary with-icon" type="button" disabled>
+                  <span class="button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg></span>
+                  <span>Send Agent</span>
+                </button>
+              </div>
+            </header>
+            <main class="studio-body">
+              <aside class="studio-history">
+                <div class="panel-head">
+                  <div class="panel-title">History</div>
+                  <div id="sessionCount" class="panel-count">0</div>
+                </div>
+                <div id="sessions" class="history-list"></div>
+                <details class="sent-history-drawer">
+                  <summary>
+                    <span>Sent History</span>
+                    <button id="clearSentHistoryButton" class="sent-clear-button with-icon" type="button" title="Clear sent history" aria-label="Clear sent history">
+                      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                    </button>
+                  </summary>
+                  <div id="sentHistory" class="history-list"></div>
+                </details>
+              </aside>
+              <section class="studio-canvas">
+                <div id="canvasToolbar" class="canvas-toolbar">
+                  <div class="tool-group" role="group" aria-label="Canvas tool">
+                    <button id="selectToolButton" class="tool-button with-icon" type="button" aria-pressed="true">
+                      <span class="button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3l7.5 18 2.3-7.2L21 11.5 4 3z"/></svg></span>
+                      <span>Select</span>
+                    </button>
+                    <button id="annotateToolButton" class="tool-button with-icon" type="button" aria-pressed="false">
+                      <span class="button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2" stroke-dasharray="3 3"/></svg></span>
+                      <span>Annotate</span>
+                    </button>
+                  </div>
+                  <div id="toolStatus" class="tool-status">Select mode</div>
+                  <div class="zoom-control" aria-label="Zoom controls">
+                    <button id="zoomOutButton" class="zoom-button" type="button" aria-label="Zoom out">−</button>
+                    <span id="zoomPercent">100%</span>
+                    <button id="zoomInButton" class="zoom-button" type="button" aria-label="Zoom in">+</button>
+                  </div>
+                </div>
+                <div id="snapshot" class="snapshot-stage">
+                  <div id="selectionOverlay" class="selection-overlay"></div>
+                  <div class="empty-stage">Refresh the live preview to begin.</div>
+                </div>
+              </section>
+              <aside class="studio-inspector">
+                <div class="panel-head">
+                  <div id="inspectorTitle" class="panel-title">Annotations</div>
+                  <div id="inspectorCount" class="panel-count">0</div>
+                </div>
+                <div id="inspectorBody" class="inspector-body">
+                  <div id="selectionSummary" class="selection-summary">No selection.</div>
+                  <textarea id="comment" placeholder="Describe the UI change needed"></textarea>
+                  <div id="pendingItems" class="list"></div>
+                  <div id="draftItems" class="list"></div>
+                </div>
+                <div id="inspectorFooter" class="inspector-footer">
+                  <button id="clearSelectionButton">Clear Selection</button>
+                  <button id="cancelAddFlowButton" disabled>Exit Annotate</button>
+                  <button id="addItemButton" class="primary" disabled hidden>Add annotation</button>
+                  <button id="clearDraftButton">Clear Draft</button>
+                </div>
+                <p id="error" class="error" role="status" aria-live="polite"></p>
+              </aside>
+            </main>
+          </div>
+          <!-- POINTPATCH_SCRIPT -->
+        </body>
+        </html>
