@@ -1587,6 +1587,19 @@ git commit -m "fix: stabilize FixThis sample app"
 
 Expected: create this commit only when `git status --short` shows verification fixes that were not already committed by previous tasks. When the working tree is clean, skip the `git add` and `git commit` commands.
 
+## Completion Note
+
+Implementation finished with the sample namespace/application id set to `io.beyondwin.fixthis.sample`, launcher label `FixThis`, and product UI branded as FixThis Studio with five bottom tabs: Home, Queue, Project, Review, and Diagnostics.
+
+Final local verification passed:
+
+```bash
+./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :pointpatch-compose-core:test :pointpatch-gradle-plugin:test
+./gradlew test
+```
+
+Connected instrumentation tests were not run because `adb` was not on `PATH` and the SDK adb device list showed no connected devices or emulators in `device` state.
+
 ## Self-Review Checklist
 
 - Spec coverage:
