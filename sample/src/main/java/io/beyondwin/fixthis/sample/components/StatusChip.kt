@@ -40,7 +40,7 @@ fun SeverityChip(severity: FeedbackSeverity, modifier: Modifier = Modifier) {
         FeedbackSeverity.Critical -> FixThisColors.CriticalSoft to FixThisColors.Critical
         FeedbackSeverity.High -> FixThisColors.WarningSoft to FixThisColors.Warning
         FeedbackSeverity.Medium -> FixThisColors.AccentSoft to FixThisColors.Accent
-        FeedbackSeverity.Low -> FixThisColors.BlockedSoft to FixThisColors.Blocked
+        FeedbackSeverity.Low -> FixThisColors.NeutralSoft to FixThisColors.Neutral
     }
     StatusChip(severity.label, colors.first, colors.second, modifier)
 }
@@ -51,7 +51,7 @@ fun StateChip(state: FeedbackState, modifier: Modifier = Modifier) {
         FeedbackState.New -> FixThisColors.AccentSoft to FixThisColors.Accent
         FeedbackState.Triaged -> FixThisColors.WarningSoft to FixThisColors.Warning
         FeedbackState.InReview -> FixThisColors.AccentSoft to FixThisColors.Accent
-        FeedbackState.Blocked -> FixThisColors.BlockedSoft to FixThisColors.Blocked
+        FeedbackState.Blocked -> FixThisColors.NeutralSoft to FixThisColors.Neutral
         FeedbackState.Resolved -> FixThisColors.SuccessSoft to FixThisColors.Success
     }
     StatusChip(state.label, colors.first, colors.second, modifier)

@@ -125,7 +125,7 @@ git commit -m "test: lock FixThis redesign anchors"
 - Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/model/FixThisDemoData.kt`
 - Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisTheme.kt`
 
-- [ ] **Step 1: Replace demo data with richer local product data**
+- [x] **Step 1: Replace demo data with richer local product data**
 
 Use this exact shape so later screen tasks can rely on stable property names:
 
@@ -259,7 +259,7 @@ object FixThisDemoData {
 }
 ```
 
-- [ ] **Step 2: Replace the sample theme**
+- [x] **Step 2: Replace the sample theme**
 
 ```kotlin
 package io.beyondwin.fixthis.sample
@@ -335,7 +335,7 @@ fun FixThisTheme(content: @Composable () -> Unit) {
 }
 ```
 
-- [ ] **Step 3: Compile Kotlin**
+- [x] **Step 3: Compile Kotlin**
 
 Run:
 
@@ -345,7 +345,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add sample/src/main/java/io/beyondwin/fixthis/sample/model/FixThisDemoData.kt sample/src/main/java/io/beyondwin/fixthis/sample/FixThisTheme.kt

@@ -24,6 +24,8 @@ data class FeedbackItem(
     val assignee: String,
     val ageLabel: String,
     val summary: String,
+    val captureLabel: String,
+    val sourceConfidence: String,
 )
 
 data class ProjectMetric(
@@ -37,15 +39,20 @@ data class ActivityEvent(
     val title: String,
     val detail: String,
     val timeLabel: String,
+    val category: String,
 )
 
 data class DiagnosticSignal(
     val label: String,
     val value: String,
     val state: FeedbackState,
+    val trendLabel: String,
 )
 
 object FixThisDemoData {
+    const val productName = "FixThis Studio"
+    const val projectSummary = "Mobile checkout polish"
+
     val metrics = listOf(
         ProjectMetric("Open feedback", "28", "+6 today", FeedbackState.New),
         ProjectMetric("High priority", "7", "3 need owner", FeedbackState.Blocked),
@@ -63,6 +70,8 @@ object FixThisDemoData {
             assignee = "Mina",
             ageLabel = "12 min",
             summary = "Increase contrast and make the pay action easier to target from the bottom bar.",
+            captureLabel = "Bottom bar capture",
+            sourceConfidence = "92%",
         ),
         FeedbackItem(
             id = "FX-1038",
@@ -73,6 +82,8 @@ object FixThisDemoData {
             assignee = "Jules",
             ageLabel = "43 min",
             summary = "Keep selected filters visible while preserving tap targets at large font scale.",
+            captureLabel = "Filter rail capture",
+            sourceConfidence = "87%",
         ),
         FeedbackItem(
             id = "FX-1029",
@@ -83,6 +94,8 @@ object FixThisDemoData {
             assignee = "Sam",
             ageLabel = "2 hr",
             summary = "Clarify what closes, what remains in history, and how reviewers can reopen it.",
+            captureLabel = "Dialog copy capture",
+            sourceConfidence = "81%",
         ),
         FeedbackItem(
             id = "FX-1017",
@@ -93,18 +106,22 @@ object FixThisDemoData {
             assignee = "No owner",
             ageLabel = "1 day",
             summary = "Keep the visual chart selectable with area selection while labeling the timeline.",
+            captureLabel = "Canvas region capture",
+            sourceConfidence = "64%",
         ),
     )
 
     val activity = listOf(
-        ActivityEvent("Mina assigned FX-1042", "Payment contrast feedback moved to priority queue.", "Now"),
-        ActivityEvent("Agent draft prepared", "Review request includes screenshot context and source hints.", "18 min"),
-        ActivityEvent("Sam reopened FX-1029", "Close confirmation copy needs one more pass.", "1 hr"),
+        ActivityEvent("Mina assigned FX-1042", "Payment contrast feedback moved to priority queue.", "Now", "Triage"),
+        ActivityEvent("Agent draft prepared", "Review request includes screenshot context and source hints.", "18 min", "Handoff"),
+        ActivityEvent("Sam reopened FX-1029", "Close confirmation copy needs one more pass.", "1 hr", "Review"),
     )
 
     val diagnostics = listOf(
-        DiagnosticSignal("Selection confidence", "92%", FeedbackState.Resolved),
-        DiagnosticSignal("Weak semantic regions", "3", FeedbackState.InReview),
-        DiagnosticSignal("Waiting for device preview", "2s", FeedbackState.Blocked),
+        DiagnosticSignal("Selection confidence", "92%", FeedbackState.Resolved, "+4 points"),
+        DiagnosticSignal("Weak semantic regions", "3", FeedbackState.InReview, "2 expected"),
+        DiagnosticSignal("Waiting for device preview", "2s", FeedbackState.Blocked, "ADB pending"),
     )
+
+    val queueFilters = listOf("Critical", "Assigned to me", "Needs screenshot", "Waiting")
 }
