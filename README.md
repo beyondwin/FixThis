@@ -60,6 +60,15 @@ The Android Studio sample app is exposed as Gradle project `:app`, while its fil
 
 The CLI/MCP browser console uses its HTML asset surface, loaded from packaged resources under `fixthis-mcp/src/main/resources/console`.
 
+When developing this repository's console UI, pass `--console-assets-dir` to read `index.html`, `styles.css`, and `app.js` directly from the source tree instead of the installed distribution JAR:
+
+```bash
+fixthis console --package io.beyondwin.fixthis.sample \
+  --console-assets-dir "$PWD/fixthis-mcp/src/main/resources/console"
+```
+
+This option is only for FixThis contributors iterating on the local console assets. Normal users should use the packaged resources.
+
 `gradle/gradle-daemon-jvm.properties` pins the Gradle daemon JVM toolchain to Java 21. Local Android SDK settings still belong in `local.properties`, which is ignored.
 
 ## Try The Sample App

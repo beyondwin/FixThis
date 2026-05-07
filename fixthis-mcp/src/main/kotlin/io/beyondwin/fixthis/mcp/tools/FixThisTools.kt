@@ -57,6 +57,7 @@ class FixThisTools(
         projectRoot = projectRoot.absolutePath,
         defaultPackageName = defaultPackageName,
     ),
+    private val consoleAssetsDir: File? = null,
 ) {
     private val cacheLock = Any()
     private val consoleLock = Any()
@@ -326,7 +327,10 @@ class FixThisTools(
                 sessionId = requestedSessionId,
                 newSession = newSession,
             )
-            val server = consoleServer ?: FeedbackConsoleServer(feedbackService).also { consoleServer = it }
+            val server = consoleServer ?: FeedbackConsoleServer(
+                service = feedbackService,
+                consoleAssetsDir = consoleAssetsDir,
+            ).also { consoleServer = it }
             return OpenFeedbackConsoleResult(
                 session = session,
                 consoleUrl = server.start(),

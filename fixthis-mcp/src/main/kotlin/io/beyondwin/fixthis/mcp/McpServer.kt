@@ -124,6 +124,7 @@ fun main(args: Array<String>) {
             bridge = bridge,
             defaultPackageName = options.packageName,
             projectRoot = options.projectDir,
+            consoleAssetsDir = options.consoleAssetsDir,
         )
         val result = runBlocking {
             tools.call("fixthis_open_feedback_console", JsonObject(emptyMap()))
@@ -153,6 +154,7 @@ internal fun fixThisToolsForOptions(options: McpOptions, bridge: CliFixThisBridg
         bridge = bridge,
         defaultPackageName = options.packageName,
         projectRoot = options.projectDir,
+        consoleAssetsDir = options.consoleAssetsDir,
     )
 
 internal data class ConsoleStartupResult(val isError: Boolean, val text: String)
@@ -166,11 +168,17 @@ internal fun consoleStartupResult(result: JsonObject): ConsoleStartupResult {
     return ConsoleStartupResult(isError = isError, text = text)
 }
 
-internal data class McpOptions(val packageName: String?, val projectDir: File, val consoleMode: Boolean) {
+internal data class McpOptions(
+    val packageName: String?,
+    val projectDir: File,
+    val consoleMode: Boolean,
+    val consoleAssetsDir: File?,
+) {
     companion object {
         fun parse(args: Array<String>): McpOptions {
             var packageName: String? = null
             var projectDir = File(".").canonicalFile
+            var consoleAssetsDir: File? = null
             var consoleMode = false
             var index = 0
             while (index < args.size) {
@@ -191,10 +199,22 @@ internal data class McpOptions(val packageName: String?, val projectDir: File, v
                         ).canonicalFile
                         index += 2
                     }
+                    "--console-assets-dir" -> {
+                        consoleAssetsDir = File(
+                            args.getOrNull(index + 1)
+                                ?: throw IllegalArgumentException("--console-assets-dir requires a value"),
+                        ).canonicalFile
+                        index += 2
+                    }
                     else -> throw IllegalArgumentException("Unknown fixthis-mcp argument: $arg")
                 }
             }
-            return McpOptions(packageName = packageName, projectDir = projectDir, consoleMode = consoleMode)
+            return McpOptions(
+                packageName = packageName,
+                projectDir = projectDir,
+                consoleMode = consoleMode,
+                consoleAssetsDir = consoleAssetsDir,
+            )
         }
     }
 }

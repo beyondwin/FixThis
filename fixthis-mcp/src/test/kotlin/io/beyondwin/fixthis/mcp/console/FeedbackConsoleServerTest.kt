@@ -91,6 +91,32 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun servesConsoleAssetsFromConfiguredDirectoryWithoutCaching() {
+        val assetsDir = Files.createTempDirectory("fixthis-console-assets").toFile()
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = { "session-1" }),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        writeConsoleAssets(assetsDir, marker = "first-marker")
+        val server = FeedbackConsoleServer(service = service, port = 0, consoleAssetsDir = assetsDir)
+        server.start()
+        try {
+            assertTrue(URL(server.url).readText().contains("first-marker"))
+
+            writeConsoleAssets(assetsDir, marker = "second-marker")
+
+            val refreshedHtml = URL(server.url).readText()
+            assertFalse(refreshedHtml.contains("first-marker"))
+            assertTrue(refreshedHtml.contains("second-marker"))
+        } finally {
+            server.stop()
+            assetsDir.deleteRecursively()
+        }
+    }
+
+    @Test
     fun consoleAssetsRejectTraversalPaths() {
         val error = assertFailsWith<IllegalArgumentException> {
             FeedbackConsoleAssets.resource("../FeedbackConsoleAssets.kt")
@@ -350,6 +376,19 @@ class FeedbackConsoleServerTest {
         }
 
         throw AssertionError("Unclosed JavaScript function body: $functionName")
+    }
+
+    private fun writeConsoleAssets(directory: File, marker: String) {
+        File(directory, "index.html").writeText(
+            """
+            <html>
+              <head><!-- FIXTHIS_STYLES --></head>
+              <body>$marker<!-- FIXTHIS_SCRIPT --></body>
+            </html>
+            """.trimIndent(),
+        )
+        File(directory, "styles.css").writeText("body { --marker: '$marker'; }")
+        File(directory, "app.js").writeText("window.fixThisMarker = '$marker';")
     }
 
     @Test
@@ -706,12 +745,14 @@ class FeedbackConsoleServerTest {
 
         assertTrue(html.contains(".snapshot-stage"))
         assertTrue(html.contains("flex-direction: column;"))
+        assertTrue(Regex("\\.snapshot-stage\\[data-tool-mode=\"annotate\"\\] \\{[\\s\\S]*justify-content: flex-start;[\\s\\S]*padding-top: 12px;").containsMatchIn(html))
         assertTrue(html.contains(".annotate-hint-slot"))
         assertTrue(html.contains("min-height: 6px;"))
         assertTrue(Regex("\\.snapshot-stage \\{[\\s\\S]*gap: 10px;").containsMatchIn(html))
         assertTrue(html.contains(".annotate-hint"))
         assertTrue(html.contains("position: static;"))
         assertTrue(html.contains("id=\"annotateHintSlot\""))
+        assertTrue(renderPreviewRegion.contains("snapshot.dataset.toolMode = toolMode;"))
         assertTrue(renderPreviewRegion.contains("const hintSlot = document.getElementById('annotateHintSlot');"))
         assertTrue(renderPreviewRegion.contains("hintSlot.appendChild(hint);"))
         assertFalse(renderPreviewRegion.contains("snapshot.insertBefore(hint, frame);"))
@@ -828,7 +869,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("frame.style.setProperty('--preview-zoom'"))
         assertTrue(html.contains("zoomOutButton.addEventListener('click'"))
         assertTrue(html.contains("zoomInButton.addEventListener('click'"))
-        assertTrue(html.contains(".snapshot-frame::before"))
+        assertFalse(html.contains(".snapshot-frame::before"))
         assertTrue(html.contains("0 12px 24px -8px rgba(0, 0, 0, .4)"))
         assertTrue(html.contains("renderNumberedFeedbackOverlay"))
         assertTrue(html.contains("'#' + (index + 1)"))

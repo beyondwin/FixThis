@@ -11,6 +11,7 @@ class ConsoleCommandTest {
             executable = executable,
             packageName = "io.beyondwin.fixthis.sample",
             projectDir = "/repo",
+            consoleAssetsDir = "/repo/fixthis-mcp/src/main/resources/console",
         )
 
         assertEquals(
@@ -21,6 +22,8 @@ class ConsoleCommandTest {
                 "io.beyondwin.fixthis.sample",
                 "--project-dir",
                 "/repo",
+                "--console-assets-dir",
+                "/repo/fixthis-mcp/src/main/resources/console",
             ),
             command,
         )
@@ -32,6 +35,7 @@ class ConsoleCommandTest {
             executable = java.io.File("/tmp/fixthis-mcp"),
             packageName = null,
             projectDir = "/repo",
+            consoleAssetsDir = null,
         )
 
         assertEquals(
