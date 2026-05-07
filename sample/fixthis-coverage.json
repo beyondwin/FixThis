@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0",
+  "applicationId": "io.beyondwin.fixthis.sample",
+  "scenes": [
+    {
+      "name": "strict_comp_tags",
+      "expectedTags": [
+        "comp:StudioHeader:root",
+        "comp:HomePrimaryAction:primary",
+        "comp:MetricCard:summary"
+      ]
+    },
+    {
+      "name": "form_inputs",
+      "expectedText": [
+        "Queue",
+        "Search feedback"
+      ]
+    },
+    {
+      "name": "dropdown_menu",
+      "expectedText": [
+        "Project",
+        "More actions",
+        "Assign reviewer"
+      ]
+    },
+    {
+      "name": "dialog",
+      "expectedText": [
+        "Close issue",
+        "Close FX-1042 and keep this feedback in the project history?"
+      ]
+    },
+    {
+      "name": "canvas_visual_area",
+      "expectedContentDescriptions": [
+        "Semantic signal timeline"
+      ]
+    },
+    {
+      "name": "disabled_controls",
+      "expectedText": [
+        "Nested row target remains selectable while the disabled action communicates blocked state.",
+        "Disabled action"
+      ]
+    },
+    {
+      "name": "long_text",
+      "expectedText": [
+        "Weak semantic preview",
+        "Very long diagnostic row label that should wrap without breaking Smart Select behavior"
+      ]
+    }
+  ]
+}

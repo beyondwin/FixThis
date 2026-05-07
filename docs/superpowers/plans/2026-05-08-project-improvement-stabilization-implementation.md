@@ -1495,8 +1495,9 @@ git commit -m "feat: add typed source index signals"
 - Create: `sample/fixthis-coverage.json`
 - Modify: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
 - Modify: `README.md`
+- Modify: `docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md`
 
-- [ ] **Step 1: Add coverage fixture**
+- [x] **Step 1: Add coverage fixture**
 
 Create `sample/fixthis-coverage.json`:
 
@@ -1505,24 +1506,67 @@ Create `sample/fixthis-coverage.json`:
   "schemaVersion": "1.0",
   "applicationId": "io.beyondwin.fixthis.sample",
   "scenes": [
-    { "name": "strict_comp_tags", "expectedTags": ["comp:StudioHeader:root", "comp:HomePrimaryAction:primary", "comp:MetricCard:summary"] },
-    { "name": "form_inputs", "expectedText": ["Queue", "Describe the issue"] },
-    { "name": "dropdown_menu", "expectedText": ["Project", "Priority"] },
-    { "name": "dialog", "expectedText": ["Close project"] },
-    { "name": "canvas_visual_area", "expectedContentDescriptions": ["Semantic signal timeline"] },
-    { "name": "disabled_controls", "expectedText": ["blocked state"] },
-    { "name": "long_text", "expectedText": ["weak-semantics"] }
+    {
+      "name": "strict_comp_tags",
+      "expectedTags": [
+        "comp:StudioHeader:root",
+        "comp:HomePrimaryAction:primary",
+        "comp:MetricCard:summary"
+      ]
+    },
+    {
+      "name": "form_inputs",
+      "expectedText": [
+        "Queue",
+        "Search feedback"
+      ]
+    },
+    {
+      "name": "dropdown_menu",
+      "expectedText": [
+        "Project",
+        "More actions",
+        "Assign reviewer"
+      ]
+    },
+    {
+      "name": "dialog",
+      "expectedText": [
+        "Close issue",
+        "Close FX-1042 and keep this feedback in the project history?"
+      ]
+    },
+    {
+      "name": "canvas_visual_area",
+      "expectedContentDescriptions": [
+        "Semantic signal timeline"
+      ]
+    },
+    {
+      "name": "disabled_controls",
+      "expectedText": [
+        "Nested row target remains selectable while the disabled action communicates blocked state.",
+        "Disabled action"
+      ]
+    },
+    {
+      "name": "long_text",
+      "expectedText": [
+        "Weak semantic preview",
+        "Very long diagnostic row label that should wrap without breaking Smart Select behavior"
+      ]
+    }
   ]
 }
 ```
 
-Adjust text values only to match exact strings already present in the sample app. Do not remove a coverage category.
+This fixture records the final expected sample evidence scenes mirrored by the smoke assertions. Do not remove a coverage category.
 
-- [ ] **Step 2: Add Android smoke assertions**
+- [x] **Step 2: Add Android smoke assertions**
 
 Extend `SampleAppSmokeTest.kt` to assert the core tags and visible scene labels listed in the fixture. Use existing Compose test APIs such as `onNodeWithText`, `onNodeWithTag`, and `onAllNodesWithTag`.
 
-- [ ] **Step 3: Run validation**
+- [x] **Step 3: Run validation**
 
 ```bash
 ./gradlew :app:assembleDebug :fixthis-gradle-plugin:test
@@ -1536,10 +1580,17 @@ If a connected device is available, run:
 
 Expected: assemble and Gradle plugin tests pass. Connected test may be SKIPPED with a device category.
 
-- [ ] **Step 4: Commit**
+Validation notes:
+- `sample/fixthis-coverage.json`: PASS, created with schemaVersion `1.0`, application id `io.beyondwin.fixthis.sample`, and all seven coverage categories. Planned placeholder text was adjusted to exact current sample strings: `Search feedback`, `More actions` / `Assign reviewer`, `Close issue`, `Close FX-1042 and keep this feedback in the project history?`, `Nested row target remains selectable while the disabled action communicates blocked state.`, `Disabled action`, `Weak semantic preview`, and the long diagnostics row label.
+- `./gradlew :app:compileDebugAndroidTestKotlin`: PASS, Android test source compiles. Existing Compose rule deprecation warnings remain.
+- `./gradlew :app:assembleDebug :fixthis-gradle-plugin:test`: PASS.
+- `/Users/kws/Library/Android/sdk/platform-tools/adb devices`: PASS, found one authorized device, `adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp device`.
+- `./gradlew :app:connectedDebugAndroidTest`: SKIPPED_LOCKED_DEVICE for Task 11 validation. Attempted run failed all three existing Compose tests before UI assertions with `No compose hierarchies found in the app`; device state check showed `mDreamingLockscreen=true`, `isKeyguardShowing=true`, and current focus on `NotificationShade`.
+
+- [x] **Step 4: Commit**
 
 ```bash
-git add sample/fixthis-coverage.json sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt README.md
+git add sample/fixthis-coverage.json sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt README.md docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md
 git commit -m "test: add sample evidence coverage fixture"
 ```
 

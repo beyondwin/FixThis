@@ -3,6 +3,7 @@ package io.beyondwin.fixthis.sample
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -20,11 +21,17 @@ class SampleAppSmokeTest {
 
         rule.onNodeWithText("Queue").performClick()
         rule.onNodeWithText("Feedback queue").assertExists()
+        rule.onNodeWithText("Search feedback").assertExists()
         rule.onNodeWithText("Needs screenshot").assertExists()
 
         rule.onNodeWithText("Project").performClick()
         rule.onNodeWithText("Affected preview").assertExists()
-        rule.onNodeWithText("Close issue").assertExists()
+        rule.onNodeWithText("Close issue").performClick()
+        rule.onNodeWithText("Close FX-1042 and keep this feedback in the project history?").assertExists()
+        rule.onNodeWithText("Cancel").performClick()
+        rule.onNodeWithText("More actions").performClick()
+        rule.onNodeWithText("Assign reviewer").assertExists()
+        rule.onNodeWithText("Assign reviewer").performClick()
 
         rule.onNodeWithText("Review").performClick()
         rule.onNodeWithText("Compose fix request").assertExists()
@@ -33,6 +40,15 @@ class SampleAppSmokeTest {
         rule.onNodeWithText("Diagnostics").performClick()
         rule.onNodeWithText("Visual-only sparkline").assertExists()
         rule.onNodeWithText("Semantic signal timeline").assertExists()
+        rule.onNodeWithContentDescription("Semantic signal timeline").assertExists()
+        rule.onNodeWithText(
+            "Nested row target remains selectable while the disabled action communicates blocked state.",
+        ).assertExists()
+        rule.onNodeWithText("Disabled action").assertExists()
+        rule.onNodeWithText("Weak semantic preview").assertExists()
+        rule.onNodeWithText(
+            "Very long diagnostic row label that should wrap without breaking Smart Select behavior",
+        ).assertExists()
     }
 
     @Test

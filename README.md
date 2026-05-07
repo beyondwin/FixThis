@@ -42,7 +42,7 @@ dependencies {
 }
 ```
 
-The sample app in this repository is the branded FixThis Studio Compose app, exposed as application id `io.beyondwin.fixthis.sample` with launcher label `FixThis`. Its five bottom navigation tabs, Home, Queue, Project, Review, and Diagnostics, use a compact Calm Product Studio UI while preserving deterministic FixThis coverage for Smart Select, screenshots, source candidates, form controls, dropdown/menu, dialog, Canvas, disabled controls, repeated cards, long text, weak-semantics fallbacks, and CLI/MCP bridge smoke flows.
+The sample app in this repository is the branded FixThis Studio Compose app, exposed as application id `io.beyondwin.fixthis.sample` with launcher label `FixThis`. Its five bottom navigation tabs, Home, Queue, Project, Review, and Diagnostics, use a compact Calm Product Studio UI while preserving deterministic FixThis coverage for Smart Select, screenshots, source candidates, form controls, dropdown/menu, dialog, Canvas, disabled controls, repeated cards, long text, weak-semantics fallbacks, and CLI/MCP bridge smoke flows. The tracked fixture at [`sample/fixthis-coverage.json`](sample/fixthis-coverage.json) records the expected sample evidence scenes mirrored by the smoke assertions.
 
 ## Repository Layout
 
