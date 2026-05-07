@@ -194,6 +194,12 @@ class BridgeClient(
     suspend fun readSourceIndex(packageName: String): JsonObject =
         request(packageName = packageName, method = "readSourceIndex")
 
+    fun launchApp(packageName: String) {
+        val scope = requestScope()
+        ensureDeviceConnected(scope.adb, scope.selectedDeviceSerial)
+        scope.adb.launchApp(packageName)
+    }
+
     suspend fun captureScreenSnapshot(
         packageName: String,
         sessionId: String? = null,

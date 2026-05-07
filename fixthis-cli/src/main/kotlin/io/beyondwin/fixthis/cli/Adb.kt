@@ -30,6 +30,7 @@ interface AdbFacade {
     fun forward(localPort: Int, socketAddress: String)
     fun removeForward(localPort: Int)
     fun pull(androidPath: String, destination: File)
+    fun launchApp(packageName: String)
 }
 
 class Adb(
@@ -70,6 +71,10 @@ class Adb(
 
     fun monkey(packageName: String) {
         checkedRun(listOf("shell", "monkey", "-p", packageName, "1"))
+    }
+
+    override fun launchApp(packageName: String) {
+        monkey(packageName)
     }
 
     override fun runAsCat(packageName: String, path: String): String =

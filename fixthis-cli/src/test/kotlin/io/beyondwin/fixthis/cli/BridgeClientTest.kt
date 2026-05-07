@@ -125,6 +125,37 @@ class BridgeClientTest {
     }
 
     @Test
+    fun launchAppScopesAdbCommandToSelectedDevice() {
+        val adb = FakeAdbFacade(
+            sessionJson = sessionJson(protocol = "1.0"),
+            devices = listOf(AdbDevice("device-1", "device")),
+        )
+        val client = BridgeClient(adb = adb, projectRoot = temporaryFolder.newFolder())
+
+        client.selectDevice("device-1")
+        client.launchApp("io.beyondwin.fixthis.sample")
+
+        assertEquals(listOf("device-1" to "io.beyondwin.fixthis.sample"), adb.launchedApps)
+    }
+
+    @Test
+    fun launchAppRejectsUnavailableSelectedDevice() {
+        val adb = FakeAdbFacade(
+            sessionJson = sessionJson(protocol = "1.0"),
+            devices = listOf(AdbDevice("device-1", "offline")),
+        )
+        val client = BridgeClient(adb = adb, projectRoot = temporaryFolder.newFolder())
+
+        client.selectDevice("device-1")
+        val error = kotlin.runCatching {
+            client.launchApp("io.beyondwin.fixthis.sample")
+        }.exceptionOrNull()
+
+        assertTrue(error is NoDeviceException)
+        assertEquals(emptyList<Pair<String?, String>>(), adb.launchedApps)
+    }
+
+    @Test
     fun selectedDeviceSerialMustBeConnected() = runBlocking {
         val adb = FakeAdbFacade(
             sessionJson = sessionJson(protocol = "1.0"),
@@ -647,6 +678,7 @@ class BridgeClientTest {
         val runAsSerials: MutableList<String?> = mutableListOf(),
         val forwardSerials: MutableList<String?> = mutableListOf(),
         val removeForwardSerials: MutableList<String?> = mutableListOf(),
+        val launchedApps: MutableList<Pair<String?, String>> = mutableListOf(),
     ) : AdbFacade {
         override fun devices(): List<AdbDevice> = devices
 
@@ -661,6 +693,7 @@ class BridgeClientTest {
                 runAsSerials = runAsSerials,
                 forwardSerials = forwardSerials,
                 removeForwardSerials = removeForwardSerials,
+                launchedApps = launchedApps,
             )
 
         override fun runAsCat(packageName: String, path: String): String {
@@ -682,6 +715,10 @@ class BridgeClientTest {
 
         override fun pull(androidPath: String, destination: File) {
             pulled += androidPath to destination
+        }
+
+        override fun launchApp(packageName: String) {
+            launchedApps += selectedSerial to packageName
         }
     }
 }

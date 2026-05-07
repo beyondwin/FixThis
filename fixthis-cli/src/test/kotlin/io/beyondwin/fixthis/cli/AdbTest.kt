@@ -19,7 +19,18 @@ class AdbTest {
             .toSet()
 
         assertEquals(
-            setOf("devices", "forDevice", "shell", "forward", "removeForward", "install", "monkey", "runAsCat", "pull"),
+            setOf(
+                "devices",
+                "forDevice",
+                "shell",
+                "forward",
+                "removeForward",
+                "install",
+                "monkey",
+                "launchApp",
+                "runAsCat",
+                "pull",
+            ),
             publicMethods,
         )
     }
@@ -35,6 +46,7 @@ class AdbTest {
         adb.removeForward(localPort = 43210)
         adb.install(File("sample-debug.apk"))
         adb.monkey("io.beyondwin.fixthis.sample")
+        adb.launchApp("io.beyondwin.fixthis.sample")
         adb.runAsCat("io.beyondwin.fixthis.sample", "files/fixthis/session.json")
         adb.pull("/data/user/0/io.beyondwin.fixthis.sample/cache/fixthis/full.png", File("full.png"))
 
@@ -50,6 +62,7 @@ class AdbTest {
                 ),
                 listOf("/sdk/platform-tools/adb", "forward", "--remove", "tcp:43210"),
                 listOf("/sdk/platform-tools/adb", "install", "-r", "sample-debug.apk"),
+                listOf("/sdk/platform-tools/adb", "shell", "monkey", "-p", "io.beyondwin.fixthis.sample", "1"),
                 listOf("/sdk/platform-tools/adb", "shell", "monkey", "-p", "io.beyondwin.fixthis.sample", "1"),
                 listOf(
                     "/sdk/platform-tools/adb",
