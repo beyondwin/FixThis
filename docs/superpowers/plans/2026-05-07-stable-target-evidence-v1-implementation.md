@@ -1325,7 +1325,7 @@ git commit -m "feat: persist target evidence in feedback sessions"
 - Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt`
 - Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt`
 
-- [ ] **Step 1: Add formatter tests for detail modes**
+- [x] **Step 1: Add formatter tests for detail modes**
 
 Append to `FixThisMarkdownFormatterTest.kt`:
 
@@ -1422,7 +1422,7 @@ import io.beyondwin.fixthis.compose.core.model.OccurrenceSignatureType
 import io.beyondwin.fixthis.compose.core.model.TargetEvidence
 ```
 
-- [ ] **Step 2: Run formatter tests to verify failures**
+- [x] **Step 2: Run formatter tests to verify failures**
 
 Run:
 
@@ -1432,7 +1432,7 @@ Run:
 
 Expected: FAIL because `DetailMode` and detail-mode formatting do not exist.
 
-- [ ] **Step 3: Create DetailMode enum**
+- [x] **Step 3: Create DetailMode enum**
 
 Create `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/DetailMode.kt`:
 
@@ -1459,7 +1459,7 @@ enum class DetailMode {
 }
 ```
 
-- [ ] **Step 4: Add overload and route modes in FixThisMarkdownFormatter**
+- [x] **Step 4: Add overload and route modes in FixThisMarkdownFormatter**
 
 Modify `FixThisMarkdownFormatter`:
 
@@ -1594,7 +1594,9 @@ private fun StringBuilder.appendCompactTarget(annotation: FixThisAnnotation) {
 
 Reuse or add `appendSourceCandidates`, `appendScreenshot`, `appendErrors`, and `appendNodeEvidence` helpers by extracting code from the existing formatter. Keep `format(annotation)` as the compatibility entrypoint.
 
-- [ ] **Step 5: Run formatter tests**
+Task 7 note: `format(annotation)` intentionally routes to `DetailMode.FULL` to preserve the existing public formatter output; `DetailMode.fromWire(null)` remains `PRECISE` for wire defaults.
+
+- [x] **Step 5: Run formatter tests**
 
 Run:
 
@@ -1604,7 +1606,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/DetailMode.kt \
