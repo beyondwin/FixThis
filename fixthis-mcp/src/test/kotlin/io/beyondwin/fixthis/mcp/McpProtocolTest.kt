@@ -40,6 +40,169 @@ import org.junit.Test
 
 class McpProtocolTest {
     @Test
+    fun mcpCompatibilityFixtureInitialize() {
+        val responses = runCompatibilityTranscript(
+            """{"jsonrpc":"2.0","id":"init","method":"initialize","params":{"protocolVersion":"2025-06-18","clientInfo":{"name":"fixture","version":"1"}}}""",
+        )
+
+        val response = responses.single().jsonObject
+        val result = response.getValue("result").jsonObject
+        assertEquals("init", response.getValue("id").jsonPrimitive.content)
+        assertEquals("2025-06-18", result.getValue("protocolVersion").jsonPrimitive.content)
+        assertTrue(result.getValue("capabilities").jsonObject.containsKey("tools"))
+        assertTrue(result.getValue("capabilities").jsonObject.containsKey("resources"))
+    }
+
+    @Test
+    fun mcpCompatibilityFixtureNotificationsProduceNoResponseAndDoNotCorruptNextResponse() {
+        val responses = runCompatibilityTranscript(
+            """{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}""",
+            """{"jsonrpc":"2.0","id":"after-notification","method":"ping","params":{}}""",
+        )
+
+        assertEquals(listOf("after-notification"), responses.map { it.jsonObject.getValue("id").jsonPrimitive.content })
+        assertTrue(responses.single().jsonObject.containsKey("result"))
+    }
+
+    @Test
+    fun mcpCompatibilityFixtureToolsList() {
+        val response = runCompatibilityTranscript(
+            """{"jsonrpc":"2.0","id":"tools","method":"tools/list","params":{}}""",
+        ).single().jsonObject
+
+        val tools = response
+            .getValue("result").jsonObject
+            .getValue("tools").jsonArray
+            .map { it.jsonObject.getValue("name").jsonPrimitive.content }
+
+        assertTrue("fixthis_status" in tools)
+        assertTrue("fixthis_get_current_screen" in tools)
+        assertTrue("fixthis_open_feedback_console" in tools)
+        assertTrue("fixthis_resolve_feedback" in tools)
+    }
+
+    @Test
+    fun mcpCompatibilityFixtureToolsCall() {
+        val bridge = FakeBridge()
+        val response = runCompatibilityTranscript(
+            """{"jsonrpc":"2.0","id":"status","method":"tools/call","params":{"name":"fixthis_status","arguments":{"packageName":"io.beyondwin.fixthis.sample"}}}""",
+            server = server(bridge),
+        ).single().jsonObject
+
+        val result = response.getValue("result").jsonObject
+        val payload = parse(result.getValue("content").jsonArray[0].jsonObject.getValue("text").jsonPrimitive.content).jsonObject
+        assertEquals("status", response.getValue("id").jsonPrimitive.content)
+        assertEquals(false, result.getValue("isError").jsonPrimitive.boolean)
+        assertEquals("io.beyondwin.fixthis.sample.MainActivity", payload.getValue("currentActivity").jsonPrimitive.content)
+        assertEquals("io.beyondwin.fixthis.sample", payload.getValue("packageName").jsonPrimitive.content)
+        assertEquals(listOf("status:io.beyondwin.fixthis.sample"), bridge.calls)
+    }
+
+    @Test
+    fun mcpCompatibilityFixtureResourcesList() {
+        val response = runCompatibilityTranscript(
+            """{"jsonrpc":"2.0","id":"resources","method":"resources/list","params":{}}""",
+        ).single().jsonObject
+
+        val resources = response
+            .getValue("result").jsonObject
+            .getValue("resources").jsonArray
+            .map { it.jsonObject.getValue("uri").jsonPrimitive.content }
+
+        assertEquals(
+            listOf(
+                "fixthis://session/current",
+                "fixthis://screen/current",
+                "fixthis://screenshot/latest/full.png",
+                "fixthis://screenshot/latest/crop.png",
+                "fixthis://source-index",
+            ),
+            resources,
+        )
+    }
+
+    @Test
+    fun mcpCompatibilityFixtureInvalidMessageRecovery() {
+        val responses = runCompatibilityTranscript(
+            """{"jsonrpc":"2.0","id":"bad","method":"ping"""",
+            """{"jsonrpc":"2.0","id":"after-bad-line","method":"ping","params":{}}""",
+        )
+
+        assertEquals(2, responses.size)
+        assertEquals(-32700, responses[0].jsonObject.getValue("error").jsonObject.getValue("code").jsonPrimitive.int)
+        assertEquals("after-bad-line", responses[1].jsonObject.getValue("id").jsonPrimitive.content)
+        assertTrue(responses[1].jsonObject.containsKey("result"))
+    }
+
+    @Test
+    fun mcpCompatibilityFixtureCancellationNotificationKeepsServerResponsive() = runBlocking {
+        val bridge = BlockingScreenToolBridge()
+        val stdout = ByteArrayOutputStream()
+        val stderr = ByteArrayOutputStream()
+        val input = PipedInputStream()
+        val inputWriter = PipedOutputStream(input).bufferedWriter(Charsets.UTF_8)
+        val job = launch(Dispatchers.IO) {
+            server(bridge).run(input = input, output = stdout, diagnostics = stderr)
+        }
+
+        try {
+            inputWriter.write("""{"jsonrpc":"2.0","id":"screen","method":"tools/call","params":{"name":"fixthis_get_current_screen","arguments":{}}}""")
+            inputWriter.newLine()
+            inputWriter.flush()
+            withTimeout(1_000) { bridge.started.await() }
+
+            inputWriter.write("""{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":"screen","reason":"fixture cancellation"}}""")
+            inputWriter.newLine()
+            inputWriter.write("""{"jsonrpc":"2.0","id":"after-cancel","method":"ping","params":{}}""")
+            inputWriter.newLine()
+            inputWriter.flush()
+
+            withTimeout(1_000) { bridge.cancelled.await() }
+            withTimeout(1_000) {
+                while (!stdout.toString().contains("after-cancel")) {
+                    delay(10)
+                }
+            }
+
+            val responses = stdout.toString().trim().lines().filter { it.isNotBlank() }.map(::parse)
+            assertEquals(listOf("after-cancel"), responses.map { it.jsonObject.getValue("id").jsonPrimitive.content })
+        } finally {
+            inputWriter.close()
+            input.close()
+            job.cancelAndJoin()
+        }
+    }
+
+    @Test
+    fun mcpCompatibilityFixtureEofCancelsPendingRequestAndReturnsPromptly() = runBlocking {
+        val bridge = BlockingScreenToolBridge()
+        val stdout = ByteArrayOutputStream()
+        val stderr = ByteArrayOutputStream()
+        val input = PipedInputStream()
+        val inputWriter = PipedOutputStream(input).bufferedWriter(Charsets.UTF_8)
+        val job = launch(Dispatchers.IO) {
+            server(bridge).run(input = input, output = stdout, diagnostics = stderr)
+        }
+
+        try {
+            inputWriter.write("""{"jsonrpc":"2.0","id":"screen","method":"tools/call","params":{"name":"fixthis_get_current_screen","arguments":{}}}""")
+            inputWriter.newLine()
+            inputWriter.flush()
+            withTimeout(1_000) { bridge.started.await() }
+
+            inputWriter.close()
+
+            withTimeout(1_000) { bridge.cancelled.await() }
+            withTimeout(1_000) { job.join() }
+            assertEquals("", stdout.toString().trim())
+        } finally {
+            inputWriter.close()
+            input.close()
+            job.cancelAndJoin()
+        }
+    }
+
+    @Test
     fun initializeResponseIncludesCapabilities() {
         val response = runSingleRequest(
             """{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","clientInfo":{"name":"test","version":"1"}}}""",
@@ -865,6 +1028,26 @@ class McpProtocolTest {
             server = server,
         )
         return response.jsonObject.getValue("error").jsonObject
+    }
+
+    private fun runCompatibilityTranscript(
+        vararg requests: String,
+        server: McpServer = server(),
+    ): List<kotlinx.serialization.json.JsonElement> {
+        val stdout = ByteArrayOutputStream()
+        val stderr = ByteArrayOutputStream()
+        val input = requests.joinToString(separator = "\n", postfix = "\n")
+        runBlocking {
+            server.run(
+                input = ByteArrayInputStream(input.toByteArray()),
+                output = stdout,
+                diagnostics = stderr,
+            )
+        }
+        return stdout.toString()
+            .lines()
+            .filter { it.isNotBlank() }
+            .map(::parse)
     }
 
     private fun runSingleRequest(

@@ -1700,8 +1700,9 @@ git commit -m "feat: harden console mutations and clean artifacts"
 - Create or modify: `CHANGELOG.md`
 - Modify: `README.md`
 - Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt`
+- Modify: `docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md`
 
-- [ ] **Step 1: Add release readiness doc**
+- [x] **Step 1: Add release readiness doc**
 
 Create `docs/release-readiness.md`:
 
@@ -1733,7 +1734,7 @@ FixThis is ready for local debug use in this repository. External release requir
 | External AI API calls | Not made by FixThis |
 ```
 
-- [ ] **Step 2: Add SECURITY.md**
+- [x] **Step 2: Add SECURITY.md**
 
 Create `SECURITY.md`:
 
@@ -1761,7 +1762,7 @@ FixThis is a local-first debug tool for Android Jetpack Compose apps.
 Report security issues privately to the project owner before publishing details.
 ```
 
-- [ ] **Step 3: Add CHANGELOG.md and README links**
+- [x] **Step 3: Add CHANGELOG.md and README links**
 
 Create `CHANGELOG.md` if it does not already exist:
 
@@ -1775,7 +1776,7 @@ Create `CHANGELOG.md` if it does not already exist:
 
 Link `docs/release-readiness.md` and `SECURITY.md` from README `More detail`.
 
-- [ ] **Step 4: Add MCP compatibility tests**
+- [x] **Step 4: Add MCP compatibility tests**
 
 Extend `McpProtocolTest.kt` with fixture-style tests for:
 
@@ -1790,19 +1791,25 @@ Extend `McpProtocolTest.kt` with fixture-style tests for:
 
 Keep existing protocol behavior unchanged.
 
-- [ ] **Step 5: Run validation**
+- [x] **Step 5: Run validation**
 
 ```bash
 ./gradlew :fixthis-mcp:test :fixthis-cli:test :fixthis-gradle-plugin:test
-git diff --check
+git diff --check faf77cf..HEAD
 ```
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+Task 13 notes:
+- RED fixture helper: `./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.McpProtocolTest.mcpCompatibilityFixtureInitialize` failed in `:fixthis-mcp:compileTestKotlin` because `runCompatibilityTranscript` was unresolved.
+- GREEN focused fixtures: `./gradlew :fixthis-mcp:test --tests 'io.beyondwin.fixthis.mcp.McpProtocolTest.mcpCompatibilityFixture*'` passed after adding the transcript helper and aligning the `tools/call` fixture with the existing `fixthis_status` payload.
+- Full Gradle validation: `./gradlew :fixthis-mcp:test :fixthis-cli:test :fixthis-gradle-plugin:test` passed.
+- Whitespace validation: `git diff --check faf77cf..HEAD` passed.
+
+- [x] **Step 6: Commit**
 
 ```bash
-git add docs/release-readiness.md SECURITY.md CHANGELOG.md README.md fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt
+git add docs/release-readiness.md SECURITY.md CHANGELOG.md README.md fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md
 git commit -m "docs: add release readiness and mcp fixtures"
 ```
 
