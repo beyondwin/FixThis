@@ -1328,7 +1328,7 @@ git commit -m "docs: document resilient console connection UX"
 **Files:**
 - No code changes unless verification finds defects.
 
-- [ ] **Step 1: Run JVM and Android unit tests**
+- [x] **Step 1: Run JVM and Android unit tests**
 
 Run:
 
@@ -1338,7 +1338,7 @@ Run:
 
 Expected: BUILD SUCCESSFUL.
 
-- [ ] **Step 2: Install the sample app**
+- [x] **Step 2: Install the sample app**
 
 Run:
 
@@ -1348,7 +1348,7 @@ Run:
 
 Expected: APK installs on the connected `device` state Android target. If no usable device exists, record `adb devices -l` output and skip only connected-device smoke.
 
-- [ ] **Step 3: Build CLI/MCP distributions**
+- [x] **Step 3: Build CLI/MCP distributions**
 
 Run:
 
@@ -1358,7 +1358,7 @@ Run:
 
 Expected: BUILD SUCCESSFUL.
 
-- [ ] **Step 4: Start console with source assets**
+- [x] **Step 4: Start console with source assets**
 
 Run:
 
@@ -1390,7 +1390,7 @@ Ready
 
 The Android app-side pill should transition from `MCP waiting` to `MCP connected` once the console polls connection.
 
-- [ ] **Step 6: Smoke app background/reconnect**
+- [x] **Step 6: Smoke app background/reconnect**
 
 On the phone, press Home or otherwise move the app away.
 
@@ -1412,7 +1412,7 @@ Expected:
 - `Details` contains raw device/bridge information.
 - Reconnecting the device and clicking `Try again` returns to `Ready` or `Open the app`.
 
-- [ ] **Step 8: Run diff checks**
+- [x] **Step 8: Run diff checks**
 
 Run:
 
@@ -1434,6 +1434,8 @@ If Task 7 required fixes:
 git add <fixed files>
 git commit -m "fix: stabilize resilient console connection flow"
 ```
+
+Verification note: automated JVM/Android tests, sample app install, CLI/MCP distribution builds, console startup, browser/API initial connection, app interruption/reconnect, CHECK_PHONE device interruption UI, stale-preview preservation, Details diagnostics, and diff checks passed on 2026-05-07. Step 5 remains partial because the phone was pattern-locked, so the app-side `MCP connected` pill could not be visually inspected. Step 7 remains partial because after `adb disconnect`, the wireless debugging target stopped advertising `_adb-tls-connect._tcp`; `adb connect`, `adb devices -l`, `adb mdns services`, and `dns-sd -B _adb-tls-connect._tcp local` could not rediscover the device. No code defect was identified, and no Task 7 fix commit was needed.
 
 If no fixes were needed, do not create an empty commit.
 
