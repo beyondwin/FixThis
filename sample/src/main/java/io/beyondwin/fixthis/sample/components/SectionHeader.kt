@@ -14,6 +14,7 @@ fun SectionHeader(
     title: String,
     action: String? = null,
     modifier: Modifier = Modifier,
+    actionModifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -23,6 +24,7 @@ fun SectionHeader(
         Text(text = title, style = MaterialTheme.typography.titleMedium)
         if (action != null) {
             Text(
+                modifier = actionModifier,
                 text = action,
                 color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.labelLarge,

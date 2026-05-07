@@ -1971,7 +1971,7 @@ git commit -m "feat: report target evidence bridge capabilities"
 - Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt`
 - Test: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
 
-- [ ] **Step 1: Add sample test-tag assertions**
+- [x] **Step 1: Add sample test-tag assertions**
 
 Append to `SampleAppSmokeTest.kt`:
 
@@ -1992,7 +1992,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 ```
 
-- [ ] **Step 2: Run sample smoke test to verify it fails**
+- [x] **Step 2: Run sample smoke test to verify it fails**
 
 Run:
 
@@ -2002,7 +2002,7 @@ Run:
 
 Expected: FAIL until tags are added. If no Android device or emulator is connected, record the environment limitation and run compile checks in Step 5.
 
-- [ ] **Step 3: Add stable literal tags**
+- [x] **Step 3: Add stable literal tags**
 
 In `StudioHeader.kt`, add:
 
@@ -2034,7 +2034,7 @@ Apply to the three summary metric cards:
 Modifier.testTag("comp:MetricCard:summary")
 ```
 
-- [ ] **Step 4: Run sample compile tests**
+- [x] **Step 4: Run sample compile tests**
 
 Run:
 
@@ -2044,7 +2044,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Run instrumented test when a device is available**
+- [x] **Step 5: Run instrumented test when a device is available**
 
 Run:
 
@@ -2054,7 +2054,7 @@ Run:
 
 Expected: PASS when an Android device or emulator is connected. If unavailable, record "No connected Android device or emulator" in the final verification notes.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sample/src/main/java/io/beyondwin/fixthis/sample/components/StudioHeader.kt \

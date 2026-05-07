@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import io.beyondwin.fixthis.sample.components.FeedbackCard
 import io.beyondwin.fixthis.sample.components.InfoRow
@@ -32,9 +34,22 @@ fun HomeScreen(padding: PaddingValues) {
                 status = "Live",
             )
         }
-        item { SectionHeader("Project health", "Refresh") }
-        items(FixThisDemoData.metrics) { metric ->
-            MetricCard(metric)
+        item {
+            SectionHeader(
+                title = "Project health",
+                action = "Refresh",
+                actionModifier = Modifier.testTag("comp:HomePrimaryAction:primary"),
+            )
+        }
+        itemsIndexed(FixThisDemoData.metrics) { index, metric ->
+            MetricCard(
+                metric,
+                modifier = if (index < SummaryMetricCardCount) {
+                    Modifier.testTag("comp:MetricCard:summary")
+                } else {
+                    Modifier
+                },
+            )
         }
         item { SectionHeader("Priority feedback", "Open queue") }
         items(FixThisDemoData.feedbackItems.take(2)) { item ->
@@ -50,3 +65,5 @@ fun HomeScreen(padding: PaddingValues) {
         }
     }
 }
+
+private const val SummaryMetricCardCount = 3
