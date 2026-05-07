@@ -1,11 +1,20 @@
 package io.beyondwin.fixthis.mcp.session
 
+import io.beyondwin.fixthis.compose.core.format.DetailMode
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.compose.core.model.IdentityHint
+import io.beyondwin.fixthis.compose.core.model.IdentityHintConfidence
+import io.beyondwin.fixthis.compose.core.model.IdentityHintSource
+import io.beyondwin.fixthis.compose.core.model.Occurrence
+import io.beyondwin.fixthis.compose.core.model.OccurrenceSignature
+import io.beyondwin.fixthis.compose.core.model.OccurrenceSignatureType
 import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.beyondwin.fixthis.compose.core.model.TargetEvidence
 import io.beyondwin.fixthis.compose.core.model.TreeKind
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -363,5 +372,215 @@ class FeedbackQueueFormatterTest {
         assertFalse(markdown.contains("-full.png"))
         assertFalse(markdown.contains("Captured At:"))
         assertFalse(markdown.contains("Screenshot Size:"))
+    }
+
+    @Test
+    fun compactModeKeepsQueueMarkdownShort() {
+        val markdown = FeedbackQueueFormatter.toMarkdown(sessionWithTargetEvidenceAndSources(), DetailMode.COMPACT)
+
+        assertTrue(markdown.contains("# FixThis Feedback Handoff"))
+        assertTrue(markdown.contains("## Item 1"))
+        assertTrue(markdown.contains("Target:"))
+        assertTrue(markdown.contains("- Identity: `AppPrimaryButton:primary`"))
+        assertTrue(markdown.contains("- Occurrence: `1/2`"))
+        assertTrue(markdown.contains("AppPrimaryButton.kt:42"))
+        assertFalse(markdown.contains("CheckoutScreen.kt:88"))
+        assertFalse(markdown.contains("PaymentSummary.kt:12"))
+        assertFalse(markdown.contains("Nearby context"))
+    }
+
+    @Test
+    fun defaultMarkdownUsesPreciseDetailMode() {
+        val session = sessionWithTargetEvidenceAndSources()
+
+        assertEquals(
+            FeedbackQueueFormatter.toMarkdown(session, DetailMode.PRECISE),
+            FeedbackQueueFormatter.toMarkdown(session),
+        )
+    }
+
+    @Test
+    fun preciseAndFullModesLimitSourceCandidateCounts() {
+        val session = sessionWithTargetEvidenceAndSources()
+        val precise = FeedbackQueueFormatter.toMarkdown(session, DetailMode.PRECISE)
+        val full = FeedbackQueueFormatter.toMarkdown(session, DetailMode.FULL)
+
+        assertTrue(precise.contains("AppPrimaryButton.kt:42"))
+        assertTrue(precise.contains("CheckoutScreen.kt:88"))
+        assertTrue(precise.contains("PaymentSummary.kt:12"))
+        assertFalse(precise.contains("PaymentFooter.kt:24"))
+
+        assertTrue(full.contains("AppPrimaryButton.kt:42"))
+        assertTrue(full.contains("CheckoutScreen.kt:88"))
+        assertTrue(full.contains("PaymentSummary.kt:12"))
+        assertTrue(full.contains("PaymentFooter.kt:24"))
+    }
+
+    @Test
+    fun markdownEscapesTargetIdentityHintsBeforeWritingInlineMarkdown() {
+        val selectedNode = FixThisNode(
+            uid = "compose:0:merged:42",
+            composeNodeId = 42,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = FixThisRect(10f, 20f, 110f, 70f),
+            text = listOf("Pay now"),
+        )
+        val session = SessionDto(
+            sessionId = "session-1",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 2L,
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 2L,
+                    updatedAtEpochMillis = 2L,
+                    target = AnnotationTargetDto.Node(selectedNode.uid, selectedNode.boundsInWindow),
+                    selectedNode = selectedNode,
+                    targetEvidence = TargetEvidence(
+                        identityHint = IdentityHint(
+                            composableNameHint = "AppPrimaryButton\n# Injected Heading `compose`",
+                            variantHint = "primary\n- Injected list `variant`",
+                            source = IdentityHintSource.TEST_TAG_CONVENTION,
+                            confidence = IdentityHintConfidence.HIGH,
+                        ),
+                    ),
+                    comment = "Increase button contrast",
+                    sequenceNumber = 1,
+                ),
+            ),
+        )
+
+        val markdown = FeedbackQueueFormatter.toMarkdown(session)
+        val outsideCodeFences = markdownOutsideCodeFences(markdown)
+
+        assertTrue(outsideCodeFences.contains("- Identity: `"))
+        assertFalse(Regex("(?m)^# Injected Heading").containsMatchIn(outsideCodeFences))
+        assertFalse(Regex("(?m)^- Injected list").containsMatchIn(outsideCodeFences))
+    }
+
+    @Test
+    fun jsonDoesNotChangeWithDetailMode() {
+        val session = SessionDto(
+            sessionId = "session-1",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 2L,
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 2L,
+                    updatedAtEpochMillis = 2L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+                    comment = "Increase button contrast",
+                    sequenceNumber = 1,
+                ),
+            ),
+        )
+
+        val before = FeedbackQueueFormatter.toJson(session)
+        FeedbackQueueFormatter.toMarkdown(session, DetailMode.COMPACT)
+        FeedbackQueueFormatter.toMarkdown(session, DetailMode.FULL)
+
+        assertEquals(before, FeedbackQueueFormatter.toJson(session))
+    }
+
+    private fun markdownOutsideCodeFences(markdown: String): String = buildString {
+        var inFence = false
+        markdown.lineSequence().forEach { line ->
+            if (line.startsWith("```")) {
+                inFence = !inFence
+            } else if (!inFence) {
+                appendLine(line)
+            }
+        }
+    }
+
+    private fun sessionWithTargetEvidenceAndSources(): SessionDto {
+        val selectedNode = FixThisNode(
+            uid = "compose:0:merged:42",
+            composeNodeId = 42,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = FixThisRect(10f, 20f, 110f, 70f),
+            text = listOf("Pay now"),
+            role = "Button",
+            testTag = "comp:AppPrimaryButton:primary",
+        )
+        return SessionDto(
+            sessionId = "session-1",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 2L,
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 2L,
+                    updatedAtEpochMillis = 2L,
+                    target = AnnotationTargetDto.Node(selectedNode.uid, selectedNode.boundsInWindow),
+                    selectedNode = selectedNode,
+                    targetEvidence = TargetEvidence(
+                        identityHint = IdentityHint(
+                            composableNameHint = "AppPrimaryButton",
+                            variantHint = "primary",
+                            stableLabel = "Button Pay now",
+                            source = IdentityHintSource.TEST_TAG_CONVENTION,
+                            confidence = IdentityHintConfidence.HIGH,
+                        ),
+                        occurrence = Occurrence(
+                            signature = OccurrenceSignature(
+                                type = OccurrenceSignatureType.IDENTITY_HINT,
+                                value = "AppPrimaryButton:primary",
+                            ),
+                            count = 2,
+                            selectedOrdinal = 1,
+                        ),
+                    ),
+                    sourceCandidates = listOf(
+                        SourceCandidate(
+                            file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
+                            line = 42,
+                            score = 0.95,
+                            matchedTerms = listOf("AppPrimaryButton"),
+                            matchReasons = listOf("selected testTag convention composable"),
+                            confidence = SelectionConfidence.HIGH,
+                        ),
+                        SourceCandidate(
+                            file = "sample/src/main/java/io/beyondwin/fixthis/sample/screens/CheckoutScreen.kt",
+                            line = 88,
+                            score = 0.75,
+                            matchedTerms = listOf("Pay now"),
+                            matchReasons = listOf("selected text"),
+                            confidence = SelectionConfidence.MEDIUM,
+                        ),
+                        SourceCandidate(
+                            file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/PaymentSummary.kt",
+                            line = 12,
+                            score = 0.6,
+                            matchedTerms = listOf("Button"),
+                            matchReasons = listOf("selected role"),
+                            confidence = SelectionConfidence.LOW,
+                        ),
+                        SourceCandidate(
+                            file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/PaymentFooter.kt",
+                            line = 24,
+                            score = 0.4,
+                            matchedTerms = listOf("primary"),
+                            matchReasons = listOf("nearby source"),
+                            confidence = SelectionConfidence.LOW,
+                        ),
+                    ),
+                    comment = "Increase button contrast",
+                    sequenceNumber = 1,
+                ),
+            ),
+        )
     }
 }

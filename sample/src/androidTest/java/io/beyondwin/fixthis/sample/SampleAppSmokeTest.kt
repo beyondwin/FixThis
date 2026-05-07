@@ -1,7 +1,10 @@
 package io.beyondwin.fixthis.sample
 
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import org.junit.Rule
 import org.junit.Test
@@ -30,5 +33,12 @@ class SampleAppSmokeTest {
         rule.onNodeWithText("Diagnostics").performClick()
         rule.onNodeWithText("Visual-only sparkline").assertExists()
         rule.onNodeWithText("Semantic signal timeline").assertExists()
+    }
+
+    @Test
+    fun homeScreenExposesStableTargetEvidenceTags() {
+        rule.onNodeWithTag("comp:StudioHeader:root").assertExists()
+        rule.onNodeWithTag("comp:HomePrimaryAction:primary").assertExists()
+        rule.onAllNodesWithTag("comp:MetricCard:summary").assertCountEquals(3)
     }
 }

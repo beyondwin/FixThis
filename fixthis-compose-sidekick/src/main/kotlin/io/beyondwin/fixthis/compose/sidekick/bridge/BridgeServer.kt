@@ -210,6 +210,29 @@ data class BridgeStatus(
     val sidekickVersion: String,
     val bridgeProtocolVersion: String,
     val sourceIndexAvailable: Boolean,
+    val capabilities: BridgeCapabilities = BridgeCapabilities(),
+) {
+    constructor(
+        activity: String?,
+        rootsCount: Int,
+        sidekickVersion: String,
+        bridgeProtocolVersion: String,
+        sourceIndexAvailable: Boolean,
+    ) : this(
+        activity = activity,
+        rootsCount = rootsCount,
+        sidekickVersion = sidekickVersion,
+        bridgeProtocolVersion = bridgeProtocolVersion,
+        sourceIndexAvailable = sourceIndexAvailable,
+        capabilities = BridgeCapabilities(),
+    )
+}
+
+@Serializable
+data class BridgeCapabilities(
+    val targetEvidence: Boolean = true,
+    val detailModes: List<String> = listOf("compact", "precise", "full"),
+    val composableIdentity: Boolean = false,
 )
 
 @Serializable
@@ -498,6 +521,3 @@ private fun File.hasPngHeader(): Boolean {
 
 private fun JsonObject.stringParam(name: String): String? =
     get(name)?.jsonPrimitive?.content
-
-private fun JsonObject.longParam(name: String): Long? =
-    stringParam(name)?.toLongOrNull()

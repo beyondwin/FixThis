@@ -1,7 +1,11 @@
 package io.beyondwin.fixthis.mcp.session
 
+import io.beyondwin.fixthis.compose.core.model.EvidenceQuality
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.compose.core.model.IdentityHintConfidence
+import io.beyondwin.fixthis.compose.core.model.IdentityHintSource
+import io.beyondwin.fixthis.compose.core.model.OccurrenceSignatureType
 import io.beyondwin.fixthis.compose.core.model.TreeKind
 import io.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
@@ -332,6 +336,91 @@ class FeedbackSessionServiceTest {
         assertEquals(listOf("submit-button"), item.nearbyNodes.map { it.uid })
         assertEquals("sample/src/main/java/io/github/fixthis/sample/screens/FormScreen.kt", item.sourceCandidates.first().file)
         assertEquals(37, item.sourceCandidates.first().line)
+    }
+
+    @Test
+    fun savingNodePreviewFeedbackBuildsStableTargetEvidenceFromCapturedMergedNodes() = runBlocking {
+        val selected = FixThisNode(
+            uid = "pay-button-2",
+            composeNodeId = 42,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = FixThisRect(36f, 220f, 684f, 292f),
+            text = listOf("Pay now"),
+            role = "Button",
+            testTag = "comp:AppPrimaryButton:primary",
+        )
+        val earlierOccurrence = FixThisNode(
+            uid = "pay-button-1",
+            composeNodeId = 41,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = FixThisRect(36f, 120f, 684f, 192f),
+            text = listOf("Pay now"),
+            role = "Button",
+            testTag = "comp:AppPrimaryButton:primary",
+        )
+        val sourceFile = "sample/src/main/java/io/github/fixthis/sample/components/AppPrimaryButton.kt"
+        val roots = listOf(
+            SnapshotRootDto(
+                rootIndex = 0,
+                boundsInWindow = FixThisRect(0f, 0f, 720f, 1600f),
+                mergedNodes = listOf(selected, earlierOccurrence),
+            ),
+        )
+        val root = createTempDir(prefix = "fixthis-v2-target-evidence-")
+        val store = FeedbackSessionStore(
+            clock = sequenceClock(1_000L, 2_000L),
+            idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1"),
+        )
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(
+                captureRoots = roots,
+                sourceIndex = SourceIndex(
+                    entries = listOf(
+                        SourceIndexEntry(
+                            file = sourceFile,
+                            line = 42,
+                            text = listOf("Pay now"),
+                            testTags = listOf("comp:AppPrimaryButton:primary"),
+                            roles = listOf("Button"),
+                            activityNames = listOf("MainActivity"),
+                        ),
+                    ),
+                ),
+            ),
+            store = store,
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val preview = service.capturePreview(session.sessionId)
+
+        val updated = service.savePreviewFeedbackItems(
+            sessionId = session.sessionId,
+            previewId = preview.previewId,
+            items = listOf(
+                AnnotationDraftDto(
+                    targetType = FeedbackTargetType.NODE,
+                    nodeUid = selected.uid,
+                    bounds = selected.boundsInWindow,
+                    comment = "Make the primary button clearer",
+                ),
+            ),
+        )
+
+        val evidence = updated.items.single().targetEvidence
+        assertEquals("AppPrimaryButton", evidence?.identityHint?.composableNameHint)
+        assertEquals("primary", evidence?.identityHint?.variantHint)
+        assertEquals(IdentityHintSource.TEST_TAG_CONVENTION, evidence?.identityHint?.source)
+        assertEquals(IdentityHintConfidence.HIGH, evidence?.identityHint?.confidence)
+        assertEquals(OccurrenceSignatureType.IDENTITY_HINT, evidence?.occurrence?.signature?.type)
+        assertEquals("AppPrimaryButton:primary", evidence?.occurrence?.signature?.value)
+        assertEquals(2, evidence?.occurrence?.count)
+        assertEquals(2, evidence?.occurrence?.selectedOrdinal)
+        assertEquals(sourceFile, evidence?.sourceInterpretation?.topCandidate?.file)
+        assertEquals(EvidenceQuality.STRUCTURED, evidence?.evidenceQuality)
+        assertEquals(listOf("full"), evidence?.screenshotKinds)
     }
 
     @Test
@@ -818,9 +907,23 @@ class FeedbackSessionServiceTest {
     }
 
     @Test
-    fun addSelectedNodeFeedbackStoresSelectedNode() {
+    fun addSelectedNodeFeedbackStoresSelectedNode() = runBlocking {
+        val sourceFile = "sample/src/main/java/io/github/fixthis/sample/components/AppPrimaryButton.kt"
         val service = FeedbackSessionService(
-            bridge = FakeFixThisBridge(),
+            bridge = FakeFixThisBridge(
+                sourceIndex = SourceIndex(
+                    entries = listOf(
+                        SourceIndexEntry(
+                            file = sourceFile,
+                            line = 42,
+                            text = listOf("Pay now"),
+                            testTags = listOf("comp:AppPrimaryButton:primary"),
+                            roles = listOf("Button"),
+                            activityNames = listOf("Checkout"),
+                        ),
+                    ),
+                ),
+            ),
             store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1", "item-1").next),
             projectRoot = "/repo",
             defaultPackageName = "io.beyondwin.fixthis.sample",
@@ -833,14 +936,18 @@ class FeedbackSessionServiceTest {
             treeKind = TreeKind.MERGED,
             boundsInWindow = FixThisRect(10f, 20f, 110f, 70f),
             text = listOf("Pay now"),
+            role = "Button",
+            testTag = "comp:AppPrimaryButton:primary",
         )
         val screen = service.addCapturedScreenForTest(
             session.sessionId,
             SnapshotDto(
                 screenId = "screen-1",
                 capturedAtEpochMillis = 100L,
+                activityName = "Checkout",
                 displayName = "Checkout",
                 roots = listOf(SnapshotRootDto(0, FixThisRect(0f, 0f, 720f, 1600f), mergedNodes = listOf(node))),
+                sourceIndexAvailable = true,
                 screenshot = SnapshotScreenshotDto(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
             ),
         )
@@ -858,10 +965,13 @@ class FeedbackSessionServiceTest {
         assertEquals(node, item.selectedNode)
         assertEquals(FeedbackDelivery.DRAFT, item.delivery)
         assertEquals(1, item.sequenceNumber)
+        assertEquals(sourceFile, item.sourceCandidates.first().file)
+        assertEquals("AppPrimaryButton", item.targetEvidence?.identityHint?.composableNameHint)
+        assertEquals(sourceFile, item.targetEvidence?.sourceInterpretation?.topCandidate?.file)
     }
 
     @Test
-    fun addSelectedNodeFeedbackRejectsNodeBoundsOutsideScreenshot() {
+    fun addSelectedNodeFeedbackRejectsNodeBoundsOutsideScreenshot() = runBlocking {
         val service = FeedbackSessionService(
             bridge = FakeFixThisBridge(),
             store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1").next),
@@ -903,7 +1013,7 @@ class FeedbackSessionServiceTest {
     }
 
     @Test
-    fun addSelectedNodeFeedbackStoresNodeBoundsWhenRequestBoundsDiffer() {
+    fun addSelectedNodeFeedbackStoresNodeBoundsWhenRequestBoundsDiffer() = runBlocking {
         val service = FeedbackSessionService(
             bridge = FakeFixThisBridge(),
             store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1", "item-1").next),
@@ -944,7 +1054,7 @@ class FeedbackSessionServiceTest {
     }
 
     @Test
-    fun addCustomAreaFeedbackRejectsBoundsOutsideScreenshot() {
+    fun addCustomAreaFeedbackRejectsBoundsOutsideScreenshot() = runBlocking {
         val service = FeedbackSessionService(
             bridge = FakeFixThisBridge(),
             store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1").next),

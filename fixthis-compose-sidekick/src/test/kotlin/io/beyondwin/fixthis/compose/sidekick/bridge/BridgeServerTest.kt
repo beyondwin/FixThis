@@ -10,8 +10,11 @@ import java.io.File
 import java.io.RandomAccessFile
 import kotlin.io.path.createTempDirectory
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -71,6 +74,55 @@ class BridgeServerTest {
         now += 501L
 
         assertFalse(connectionState.isConnected())
+    }
+
+    @Test
+    fun statusReportsTargetEvidenceCapabilities() = runBlocking {
+        val server = server()
+
+        val response = server.handleRequestForTest(
+            """{"id":"1","token":"token","method":"status"}""",
+        )
+        val result = BridgeProtocol.json.parseToJsonElement(response).jsonObject.getValue("result").jsonObject
+        val capabilities = result.getValue("capabilities").jsonObject
+
+        assertTrue(capabilities.getValue("targetEvidence").jsonPrimitive.boolean)
+        assertEquals(
+            listOf("compact", "precise", "full"),
+            capabilities.getValue("detailModes").jsonArray.map { it.jsonPrimitive.content },
+        )
+        assertFalse(capabilities.getValue("composableIdentity").jsonPrimitive.boolean)
+        assertEquals(BridgeProtocol.VERSION, result.getValue("bridgeProtocolVersion").jsonPrimitive.content)
+    }
+
+    @Test
+    fun bridgeStatusKeepsJvmConstructorCompatibility() {
+        val constructorParameterTypes = BridgeStatus::class.java.declaredConstructors
+            .map { constructor -> constructor.parameterTypes.toList() }
+
+        assertTrue(
+            constructorParameterTypes.contains(
+                listOf(
+                    String::class.java,
+                    Int::class.javaPrimitiveType,
+                    String::class.java,
+                    String::class.java,
+                    Boolean::class.javaPrimitiveType,
+                ),
+            ),
+        )
+        assertTrue(
+            constructorParameterTypes.contains(
+                listOf(
+                    String::class.java,
+                    Int::class.javaPrimitiveType,
+                    String::class.java,
+                    String::class.java,
+                    Boolean::class.javaPrimitiveType,
+                    BridgeCapabilities::class.java,
+                ),
+            ),
+        )
     }
 
     @Test

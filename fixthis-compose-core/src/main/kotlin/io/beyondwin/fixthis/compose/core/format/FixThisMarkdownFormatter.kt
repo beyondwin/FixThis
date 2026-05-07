@@ -3,11 +3,60 @@ package io.beyondwin.fixthis.compose.core.format
 import io.beyondwin.fixthis.compose.core.model.FixThisAnnotation
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.beyondwin.fixthis.compose.core.model.SourceCandidateSummary
 
 object FixThisMarkdownFormatter {
-    fun format(annotation: FixThisAnnotation): String = buildString {
+    fun format(annotation: FixThisAnnotation): String =
+        format(annotation, DetailMode.FULL)
+
+    fun format(annotation: FixThisAnnotation, detailMode: DetailMode): String =
+        when (detailMode) {
+            DetailMode.COMPACT -> formatCompact(annotation)
+            DetailMode.PRECISE -> formatPrecise(annotation)
+            DetailMode.FULL -> formatFull(annotation)
+        }
+
+    private fun formatCompact(annotation: FixThisAnnotation): String = buildString {
+        appendLine("# FixThis Feedback")
+        appendLine()
+        appendLine("Request:")
+        appendFreeFormBlock(annotation.userComment)
+        appendLine()
+        appendLine("Target:")
+        appendCompactTarget(annotation)
+        appendLine()
+        appendLine("Top Source:")
+        appendSourceCandidates(annotation.sourceCandidates, maxCandidates = 1)
+    }
+
+    private fun formatPrecise(annotation: FixThisAnnotation): String = buildString {
+        appendLine("# FixThis Feedback")
+        appendLine()
+        appendLine("## Request")
+        appendFreeFormBlock(annotation.userComment)
+        appendLine()
+        appendLine("## Target Evidence")
+        appendTargetEvidence(annotation, includeEmpty = true)
+        appendLine()
+        appendLine("## Selected UI")
+        appendNode(annotation.selectedNode)
+        appendLine()
+        appendLine("## Source Candidates")
+        appendSourceCandidates(annotation.sourceCandidates, maxCandidates = 3)
+        appendLine()
+        appendScreenshot(annotation)
+        appendErrors(annotation)
+    }
+
+    private fun formatFull(annotation: FixThisAnnotation): String = buildString {
         appendLine("# FixThis Compose Feedback")
         appendLine()
+        if (annotation.targetEvidence != null) {
+            appendLine("## Target Evidence")
+            appendTargetEvidence(annotation, includeEmpty = false)
+            appendLine()
+        }
         appendLine("## User request")
         appendFreeFormBlock(annotation.userComment)
         appendLine()
@@ -32,17 +81,7 @@ object FixThisMarkdownFormatter {
         }
         appendLine()
         appendLine("## Source candidates")
-        if (annotation.sourceCandidates.isEmpty()) {
-            appendLine("- none")
-        } else {
-            annotation.sourceCandidates.forEachIndexed { index, candidate ->
-                appendLine("${index + 1}. ${(candidate.file + (candidate.line?.let { ":$it" } ?: "")).markdownCodeSpan()}")
-                appendLine("   - score: ${candidate.score}")
-                appendLine("   - confidence: ${candidate.confidence}")
-                appendLine("   - matched terms: ${candidate.matchedTerms.markdownListValue()}")
-                appendLine("   - reasons: ${candidate.matchReasons.markdownListValue()}")
-            }
-        }
+        appendSourceCandidates(annotation.sourceCandidates, maxCandidates = Int.MAX_VALUE)
         appendLine()
         appendLine("## Search hints")
         if (annotation.searchHints.isEmpty()) {
@@ -51,6 +90,90 @@ object FixThisMarkdownFormatter {
             annotation.searchHints.forEach { appendLine("- \"${it.markdownInline()}\"") }
         }
         appendLine()
+        appendScreenshot(annotation)
+        appendErrors(annotation)
+    }
+
+    private fun StringBuilder.appendTargetEvidence(annotation: FixThisAnnotation, includeEmpty: Boolean) {
+        val evidence = annotation.targetEvidence
+        if (evidence == null) {
+            if (includeEmpty) appendLine("- Evidence: basic semantics only")
+            return
+        }
+        evidence.identityHint?.let { hint ->
+            val identity = listOfNotNull(hint.composableNameHint, hint.variantHint)
+                .joinToString(":")
+                .ifBlank { "none" }
+            appendLine("- Identity: ${identity.markdownInline()} (${hint.source}, ${hint.confidence})")
+            hint.stableLabel?.let { appendLine("- Label: ${it.markdownInline()}") }
+        } ?: appendLine("- Identity: none")
+        evidence.occurrence?.let { occurrence ->
+            appendLine(
+                "- Occurrence: ${occurrence.selectedOrdinal}/${occurrence.count} " +
+                    "(${occurrence.signature.type}, ${occurrence.basis.markdownInline()})"
+            )
+        } ?: appendLine("- Occurrence: not available")
+        evidence.sourceInterpretation?.topCandidate?.let { candidate ->
+            appendLine("- Source: ${candidate.location().markdownCodeSpan()} (${candidate.confidence})")
+        }
+        evidence.sourceInterpretation?.reasonSummary?.takeIf { it.isNotEmpty() }?.let { reasons ->
+            appendLine("- Source reasons: ${reasons.markdownListValue()}")
+        }
+        evidence.sourceInterpretation?.caution?.let { appendLine("- Caution: ${it.markdownInline()}") }
+        if (evidence.warnings.isNotEmpty()) {
+            appendLine("- Warnings: ${evidence.warnings.markdownListValue()}")
+        }
+        if (evidence.screenshotKinds.isNotEmpty()) {
+            appendLine("- Screenshot evidence: ${evidence.screenshotKinds.markdownListValue()}")
+        }
+        appendLine("- Quality: ${evidence.evidenceQuality}")
+    }
+
+    private fun StringBuilder.appendCompactTarget(annotation: FixThisAnnotation) {
+        val evidence = annotation.targetEvidence
+        val hint = evidence?.identityHint
+        val identity = listOfNotNull(hint?.composableNameHint, hint?.variantHint)
+            .joinToString(":")
+            .takeUnless { it.isBlank() }
+        if (identity != null) appendLine("- Identity: ${identity.markdownInline()}")
+        hint?.stableLabel?.let { appendLine("- Label: ${it.markdownInline()}") }
+        evidence?.occurrence?.let { appendLine("- Occurrence: ${it.selectedOrdinal}/${it.count}") }
+        evidence?.sourceInterpretation?.caution?.let { appendLine("- Caution: ${it.markdownInline()}") }
+        if (evidence?.warnings?.isNotEmpty() == true) {
+            appendLine("- Warnings: ${evidence.warnings.markdownListValue()}")
+        }
+        appendNodeEvidence(annotation.selectedNode)
+    }
+
+    private fun StringBuilder.appendNodeEvidence(node: FixThisNode?) {
+        if (node == null) {
+            appendLine("- Node: none")
+            return
+        }
+        appendLine("- UID: ${node.uid.markdownInline()}")
+        appendLine("- Role: ${node.role?.markdownInline() ?: "none"}")
+        appendLine("- Text: ${node.text.markdownListValue()}")
+        appendLine("- Content description: ${node.contentDescription.markdownListValue()}")
+        appendLine("- Test tag: ${node.testTag?.markdownInline() ?: "none"}")
+        appendLine("- Bounds: ${node.boundsInWindow.format()}")
+    }
+
+    private fun StringBuilder.appendSourceCandidates(candidates: List<SourceCandidate>, maxCandidates: Int) {
+        val visibleCandidates = candidates.take(maxCandidates)
+        if (visibleCandidates.isEmpty()) {
+            appendLine("- none")
+            return
+        }
+        visibleCandidates.forEachIndexed { index, candidate ->
+            appendLine("${index + 1}. ${candidate.location().markdownCodeSpan()}")
+            appendLine("   - score: ${candidate.score}")
+            appendLine("   - confidence: ${candidate.confidence}")
+            appendLine("   - matched terms: ${candidate.matchedTerms.markdownListValue()}")
+            appendLine("   - reasons: ${candidate.matchReasons.markdownListValue()}")
+        }
+    }
+
+    private fun StringBuilder.appendScreenshot(annotation: FixThisAnnotation) {
         appendLine("## Screenshot")
         val screenshot = annotation.screenshot
         if (screenshot == null) {
@@ -63,14 +186,16 @@ object FixThisMarkdownFormatter {
             }
             screenshot.captureFailedReason?.let { appendLine("- capture failed: ${it.markdownInline()}") }
         }
-        if (annotation.errors.isNotEmpty()) {
-            appendLine()
-            appendLine("## Capture notes")
-            annotation.errors.forEach { error ->
-                appendLine("- ${error.code.markdownInline()}: ${error.message.markdownInline()}")
-                if (error.details.isNotEmpty()) {
-                    appendLine("  - details: ${error.details.entries.joinToString { "${it.key.markdownInline()}=${it.value.markdownInline()}" }}")
-                }
+    }
+
+    private fun StringBuilder.appendErrors(annotation: FixThisAnnotation) {
+        if (annotation.errors.isEmpty()) return
+        appendLine()
+        appendLine("## Capture notes")
+        annotation.errors.forEach { error ->
+            appendLine("- ${error.code.markdownInline()}: ${error.message.markdownInline()}")
+            if (error.details.isNotEmpty()) {
+                appendLine("  - details: ${error.details.entries.joinToString { "${it.key.markdownInline()}=${it.value.markdownInline()}" }}")
             }
         }
     }
@@ -109,6 +234,12 @@ object FixThisMarkdownFormatter {
         val label = text.firstOrNull() ?: contentDescription.firstOrNull() ?: role ?: testTag ?: uid
         return "${role?.markdownInline() ?: "Node"} \"${label.markdownInline()}\""
     }
+
+    private fun SourceCandidate.location(): String =
+        file + (line?.let { ":$it" } ?: "")
+
+    private fun SourceCandidateSummary.location(): String =
+        file + (line?.let { ":$it" } ?: "")
 
     private fun FixThisRect.format(): String = "$left,$top,$right,$bottom"
 

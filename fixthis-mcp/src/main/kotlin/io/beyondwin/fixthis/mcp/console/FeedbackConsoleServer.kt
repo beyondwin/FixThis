@@ -150,14 +150,16 @@ class FeedbackConsoleServer(
                     val request = exchange.decodeAddFeedbackItemBody()
                     val session = service.currentSession()
                     val item = try {
-                        service.addFeedbackItem(
-                            sessionId = session.sessionId,
-                            screenId = request.screenId,
-                            targetType = request.targetType,
-                            bounds = request.bounds,
-                            nodeUid = request.nodeUid,
-                            comment = request.comment,
-                        )
+                        runBlocking {
+                            service.addFeedbackItem(
+                                sessionId = session.sessionId,
+                                screenId = request.screenId,
+                                targetType = request.targetType,
+                                bounds = request.bounds,
+                                nodeUid = request.nodeUid,
+                                comment = request.comment,
+                            )
+                        }
                     } catch (error: IllegalArgumentException) {
                         throw FeedbackConsoleHttpException(400, error.message ?: "Invalid feedback item request")
                     }

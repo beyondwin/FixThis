@@ -81,6 +81,27 @@ class McpProtocolTest {
     }
 
     @Test
+    fun readFeedbackSchemaAdvertisesDetailMode() {
+        val response = runSingleRequest("""{"jsonrpc":"2.0","id":"tools","method":"tools/list","params":{}}""")
+
+        val readFeedbackTool = response.jsonObject
+            .getValue("result").jsonObject
+            .getValue("tools").jsonArray
+            .map { it.jsonObject }
+            .single { it.getValue("name").jsonPrimitive.content == "fixthis_read_feedback" }
+        val detailMode = readFeedbackTool
+            .getValue("inputSchema").jsonObject
+            .getValue("properties").jsonObject
+            .getValue("detailMode").jsonObject
+        val enumValues = detailMode
+            .getValue("enum").jsonArray
+            .map { it.jsonPrimitive.content }
+
+        assertEquals(listOf("compact", "precise", "full"), enumValues)
+        assertTrue(detailMode.getValue("description").jsonPrimitive.content.contains("JSON remains complete"))
+    }
+
+    @Test
     fun listFeedbackSessionsReturnsPersistedSummaries() = runBlocking {
         val projectRoot = createTempDir(prefix = "fixthis-v2-mcp-sessions-")
         val tools = FixThisTools(
@@ -137,6 +158,33 @@ class McpProtocolTest {
         assertEquals("back", result["action"]!!.jsonPrimitive.content)
         assertEquals(1, bridge.navigationRequests.size)
         assertTrue(result["screen"] != null)
+    }
+
+    @Test
+    fun captureScreenUpdatesLatestScreenshotResource() = runBlocking {
+        val bridge = FakeFixThisBridge(packageName = "io.beyondwin.fixthis.sample")
+        val tools = FixThisTools(
+            bridge = bridge,
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+            projectRoot = createTempDir(prefix = "fixthis-v2-capture-resource-"),
+        )
+        val opened = tools.call("fixthis_open_feedback_console", jsonObject("newSession" to true)).firstJsonContent()
+        val sessionId = opened["sessionId"]!!.jsonPrimitive.content
+
+        val captured = tools.call("fixthis_capture_screen", jsonObject("sessionId" to sessionId)).firstJsonContent()
+        val capturedPath = captured
+            .getValue("screen").jsonObject
+            .getValue("screenshot").jsonObject
+            .getValue("desktopFullPath").jsonPrimitive.content
+        val resource = tools.readResource("fixthis://screenshot/latest/full.png")
+        val payload = parse(
+            resource
+                .getValue("contents").jsonArray[0].jsonObject
+                .getValue("text").jsonPrimitive.content,
+        ).jsonObject
+
+        assertFalse(payload.containsKey("available"))
+        assertEquals(capturedPath, payload.getValue("path").jsonPrimitive.content)
     }
 
     @Test

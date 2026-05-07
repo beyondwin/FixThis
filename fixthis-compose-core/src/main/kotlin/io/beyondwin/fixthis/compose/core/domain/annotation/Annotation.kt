@@ -6,6 +6,7 @@ import io.beyondwin.fixthis.compose.core.domain.common.SnapshotId
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.beyondwin.fixthis.compose.core.model.TargetEvidence
 
 data class Annotation(
     val id: AnnotationId,
@@ -25,6 +26,7 @@ data class Annotation(
     val sentAtEpochMillis: Long? = null,
     val status: AnnotationStatus = AnnotationStatus.OPEN,
     val agentSummary: String? = null,
+    val targetEvidence: TargetEvidence? = null,
 )
 
 sealed interface AnnotationTarget {

@@ -1,5 +1,6 @@
 package io.beyondwin.fixthis.compose.core.source
 
+import io.beyondwin.fixthis.compose.core.identity.TestTagConvention
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
@@ -56,7 +57,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             rawScore += addIfMatches(entry.matchesContentDescription(term), term, "selected contentDescription", 40.0, matchedTerms, matchReasons, scoredEvidence)
         }
         selectedNode.testTag?.let { term ->
-            rawScore += addIfMatches(entry.matchesTestTag(term), term, "selected testTag", 55.0, matchedTerms, matchReasons, scoredEvidence)
+            rawScore += addSelectedTestTagScore(entry, term, matchedTerms, matchReasons, scoredEvidence)
         }
         selectedNode.role?.let { term ->
             rawScore += addIfMatches(entry.matchesRole(term), term, "selected role", 25.0, matchedTerms, matchReasons, scoredEvidence)
@@ -90,6 +91,39 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             matchedTerms = matchedTerms.toList(),
             matchReasons = matchReasons.toList()
         )
+    }
+
+    private fun addSelectedTestTagScore(
+        entry: SourceIndexEntry,
+        testTag: String,
+        matchedTerms: MutableSet<String>,
+        matchReasons: MutableSet<String>,
+        scoredEvidence: MutableSet<String>
+    ): Double {
+        var score = addIfMatches(
+            matches = entry.matchesTestTag(testTag),
+            term = testTag,
+            reason = "selected testTag",
+            score = 55.0,
+            matchedTerms = matchedTerms,
+            matchReasons = matchReasons,
+            scoredEvidence = scoredEvidence
+        )
+
+        TestTagConvention.parse(testTag)?.let { parsed ->
+            val conventionScore = addIfMatches(
+                matches = entry.matchesConventionComposable(parsed.composableName),
+                term = parsed.composableName,
+                reason = "selected testTag convention composable",
+                score = 65.0,
+                matchedTerms = matchedTerms,
+                matchReasons = matchReasons,
+                scoredEvidence = scoredEvidence
+            )
+            score = maxOf(score, conventionScore)
+        }
+
+        return score
     }
 
     private fun addIfMatches(
@@ -132,6 +166,9 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
 
     private fun SourceIndexEntry.matchesTestTag(term: String): Boolean =
         matchesAny(term, testTags + symbols + listOfNotNull(excerpt))
+
+    private fun SourceIndexEntry.matchesConventionComposable(composableName: String): Boolean =
+        matchesAny(composableName, symbols + listOf(file) + listOfNotNull(excerpt))
 
     private fun SourceIndexEntry.matchesRole(term: String): Boolean =
         matchesAny(term, roles + symbols + listOfNotNull(excerpt))

@@ -6,16 +6,26 @@ import io.beyondwin.fixthis.compose.core.model.FixThisAnnotation
 import io.beyondwin.fixthis.compose.core.model.FixThisError
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.compose.core.model.IdentityHint
+import io.beyondwin.fixthis.compose.core.model.IdentityHintConfidence
+import io.beyondwin.fixthis.compose.core.model.IdentityHintSource
+import io.beyondwin.fixthis.compose.core.model.Occurrence
+import io.beyondwin.fixthis.compose.core.model.OccurrenceSignature
+import io.beyondwin.fixthis.compose.core.model.OccurrenceSignatureType
 import io.beyondwin.fixthis.compose.core.model.ScreenshotInfo
 import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.beyondwin.fixthis.compose.core.model.SelectionInfo
 import io.beyondwin.fixthis.compose.core.model.SelectionKind
 import io.beyondwin.fixthis.compose.core.model.SelectionSource
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.beyondwin.fixthis.compose.core.model.SourceCandidateSummary
+import io.beyondwin.fixthis.compose.core.model.SourceInterpretation
 import io.beyondwin.fixthis.compose.core.model.TapPoint
+import io.beyondwin.fixthis.compose.core.model.TargetEvidence
 import io.beyondwin.fixthis.compose.core.model.TreeKind
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -157,6 +167,267 @@ class FixThisMarkdownFormatterTest {
         assertFalse(bounds.containsKey("height"))
         assertFalse(bounds.containsKey("area"))
     }
+
+    @Test
+    fun compactModeIncludesRequestTargetTopSourceAndOmitsNearbyDetails() {
+        val markdown = FixThisMarkdownFormatter.format(annotationWithTargetEvidence(), DetailMode.COMPACT)
+
+        assertTrue(markdown.contains("# FixThis Feedback"))
+        assertTrue(markdown.contains("Request:"))
+        assertTrue(markdown.contains("Target:"))
+        assertTrue(markdown.contains("AppPrimaryButton"))
+        assertTrue(markdown.contains("Occurrence: 1/2"))
+        assertTrue(markdown.contains("Top Source:"))
+        assertTrue(markdown.contains("AppPrimaryButton.kt:42"))
+        assertFalse(markdown.contains("Nearby context"))
+        assertFalse(markdown.contains("SecondaryButton.kt"))
+    }
+
+    @Test
+    fun preciseModeIncludesTopThreeSourcesAndEvidenceWarnings() {
+        val markdown = FixThisMarkdownFormatter.format(annotationWithTargetEvidence(), DetailMode.PRECISE)
+
+        assertTrue(markdown.contains("## Target Evidence"))
+        assertTrue(markdown.contains("Identity:"))
+        assertTrue(markdown.contains("Occurrence: 1/2"))
+        assertTrue(markdown.contains("Caution:"))
+        assertTrue(markdown.contains("Warnings:"))
+        assertTrue(markdown.contains("## Source Candidates"))
+        assertTrue(markdown.contains("AppPrimaryButton.kt:42"))
+        assertTrue(markdown.contains("SecondaryButton.kt:7"))
+        assertTrue(markdown.contains("LoginScreen.kt:88"))
+        assertFalse(markdown.contains("UnusedButton.kt:12"))
+    }
+
+    @Test
+    fun fullModeKeepsExistingVerboseSections() {
+        val markdown = FixThisMarkdownFormatter.format(annotationWithTargetEvidence(), DetailMode.FULL)
+
+        assertTrue(markdown.contains("## Selection"))
+        assertTrue(markdown.contains("## Selected UI"))
+        assertTrue(markdown.contains("## Nearby context"))
+        assertTrue(markdown.contains("## Source candidates"))
+    }
+
+    @Test
+    fun formatWithoutDetailModeMatchesFullModeForLegacyCallers() {
+        val annotation = annotationWithTargetEvidence()
+
+        assertEquals(
+            FixThisMarkdownFormatter.format(annotation, DetailMode.FULL),
+            FixThisMarkdownFormatter.format(annotation)
+        )
+    }
+
+    @Test
+    fun fullModeIncludesAllSourceCandidates() {
+        val markdown = FixThisMarkdownFormatter.format(annotationWithTargetEvidence(), DetailMode.FULL)
+
+        assertTrue(markdown.contains("AppPrimaryButton.kt:42"))
+        assertTrue(markdown.contains("SecondaryButton.kt:7"))
+        assertTrue(markdown.contains("LoginScreen.kt:88"))
+        assertTrue(markdown.contains("UnusedButton.kt:12"))
+    }
+
+    @Test
+    fun compactModeFallsBackToNodeEvidenceWhenTargetEvidenceIsNull() {
+        val markdown = FixThisMarkdownFormatter.format(
+            annotation(
+                selectedNode = node(
+                    uid = "pay-button",
+                    text = listOf("Pay now"),
+                    role = "Button",
+                    testTag = "checkout:pay"
+                )
+            ),
+            DetailMode.COMPACT
+        )
+
+        assertTrue(markdown.contains("Target:"))
+        assertTrue(markdown.contains("- UID: pay-button"))
+        assertTrue(markdown.contains("- Role: Button"))
+        assertTrue(markdown.contains("- Text: Pay now"))
+        assertTrue(markdown.contains("- Test tag: checkout:pay"))
+        assertFalse(markdown.contains("- Identity:"))
+        assertFalse(markdown.contains("- Occurrence:"))
+    }
+
+    @Test
+    fun preciseModeStatesBasicSemanticsWhenTargetEvidenceIsNull() {
+        val markdown = FixThisMarkdownFormatter.format(annotation(selectedNode = node(uid = "pay-button")), DetailMode.PRECISE)
+
+        assertTrue(markdown.contains("## Target Evidence"))
+        assertTrue(markdown.contains("- Evidence: basic semantics only"))
+        assertTrue(markdown.contains("## Selected UI"))
+    }
+
+    @Test
+    fun compactModeEscapesRenderedTargetEvidenceFields() {
+        val markdown = FixThisMarkdownFormatter.format(annotationWithEscapedTargetEvidence(), DetailMode.COMPACT)
+        val outsideFences = linesOutsideCodeFences(markdown)
+
+        assertTrue(markdown.contains("- Label: \\# Stable label\\n\\- injected"))
+        assertTrue(markdown.contains("- Caution: \\\\> caution\\n1\\. ordered"))
+        assertTrue(markdown.contains("- Warnings: \\\\+ warning, \\# second warning"))
+        assertFalse(outsideFences.contains("- injected"))
+        assertFalse(outsideFences.contains("> caution"))
+    }
+
+    @Test
+    fun preciseModeEscapesRenderedTargetEvidenceFields() {
+        val markdown = FixThisMarkdownFormatter.format(annotationWithEscapedTargetEvidence(), DetailMode.PRECISE)
+        val outsideFences = linesOutsideCodeFences(markdown)
+
+        assertTrue(markdown.contains("- Label: \\# Stable label\\n\\- injected"))
+        assertTrue(markdown.contains("``sample/src/main/`Danger.kt\\n- injected:27``"))
+        assertTrue(markdown.contains("- Source reasons: \\# reason, \\- second reason"))
+        assertTrue(markdown.contains("- Caution: \\\\> caution\\n1\\. ordered"))
+        assertTrue(markdown.contains("- Warnings: \\\\+ warning, \\# second warning"))
+        assertTrue(markdown.contains("- Screenshot evidence: full\\`shot, \\\\> crop"))
+        assertFalse(outsideFences.contains("- injected"))
+        assertFalse(outsideFences.contains("# reason"))
+        assertFalse(outsideFences.contains("> crop"))
+    }
+
+    @Test
+    fun fullModeEscapesRenderedTargetEvidenceFields() {
+        val markdown = FixThisMarkdownFormatter.format(annotationWithEscapedTargetEvidence(), DetailMode.FULL)
+        val outsideFences = linesOutsideCodeFences(markdown)
+
+        assertTrue(markdown.contains("- Label: \\# Stable label\\n\\- injected"))
+        assertTrue(markdown.contains("``sample/src/main/`Danger.kt\\n- injected:27``"))
+        assertTrue(markdown.contains("- Source reasons: \\# reason, \\- second reason"))
+        assertTrue(markdown.contains("- Caution: \\\\> caution\\n1\\. ordered"))
+        assertTrue(markdown.contains("- Warnings: \\\\+ warning, \\# second warning"))
+        assertTrue(markdown.contains("- Screenshot evidence: full\\`shot, \\\\> crop"))
+        assertFalse(outsideFences.contains("- injected"))
+        assertFalse(outsideFences.contains("# reason"))
+        assertFalse(outsideFences.contains("> crop"))
+    }
+
+    private fun annotationWithTargetEvidence(): FixThisAnnotation {
+        val selectedNode = node(
+            uid = "pay-button",
+            text = listOf("Sign In"),
+            role = "Button",
+            testTag = "comp:AppPrimaryButton:primary",
+            actions = listOf("OnClick")
+        )
+        return annotation(
+            userComment = "Button color is too muted",
+            selectedNode = selectedNode,
+            sourceCandidates = listOf(
+                SourceCandidate(
+                    file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
+                    line = 42,
+                    score = 1.0,
+                    matchedTerms = listOf("AppPrimaryButton"),
+                    matchReasons = listOf("selected testTag convention composable"),
+                    confidence = SelectionConfidence.HIGH
+                ),
+                SourceCandidate(
+                    file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/SecondaryButton.kt",
+                    line = 7,
+                    score = 0.72,
+                    matchedTerms = listOf("Button"),
+                    matchReasons = listOf("role match"),
+                    confidence = SelectionConfidence.MEDIUM
+                ),
+                SourceCandidate(
+                    file = "sample/src/main/java/io/beyondwin/fixthis/sample/LoginScreen.kt",
+                    line = 88,
+                    score = 0.61,
+                    matchedTerms = listOf("Sign In"),
+                    matchReasons = listOf("text match"),
+                    confidence = SelectionConfidence.MEDIUM
+                ),
+                SourceCandidate(
+                    file = "sample/src/main/java/io/beyondwin/fixthis/sample/UnusedButton.kt",
+                    line = 12,
+                    score = 0.1,
+                    matchedTerms = listOf("Button"),
+                    matchReasons = listOf("low confidence fallback"),
+                    confidence = SelectionConfidence.LOW
+                )
+            )
+        ).copy(
+            targetEvidence = TargetEvidence(
+                identityHint = IdentityHint(
+                    composableNameHint = "AppPrimaryButton",
+                    variantHint = "primary",
+                    stableLabel = "Button Sign In",
+                    source = IdentityHintSource.TEST_TAG_CONVENTION,
+                    confidence = IdentityHintConfidence.HIGH
+                ),
+                occurrence = Occurrence(
+                    signature = OccurrenceSignature(
+                        type = OccurrenceSignatureType.IDENTITY_HINT,
+                        value = "AppPrimaryButton:primary"
+                    ),
+                    count = 2,
+                    selectedOrdinal = 1
+                ),
+                sourceInterpretation = SourceInterpretation(
+                    topCandidate = SourceCandidateSummary(
+                        file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
+                        line = 42,
+                        confidence = SelectionConfidence.HIGH
+                    ),
+                    reasonSummary = listOf("selected testTag convention composable"),
+                    caution = "Multiple matching primary buttons were captured"
+                ),
+                warnings = listOf("verify repeated target ordinal before editing")
+            )
+        )
+    }
+
+    private fun annotationWithEscapedTargetEvidence(): FixThisAnnotation =
+        annotation(
+            userComment = "Escape target evidence",
+            selectedNode = node(
+                uid = "target-node",
+                text = listOf("Submit"),
+                role = "Button"
+            ),
+            sourceCandidates = listOf(
+                SourceCandidate(
+                    file = "sample/src/main/`Danger.kt\n- injected",
+                    line = 27,
+                    score = 0.82,
+                    matchedTerms = listOf("Submit"),
+                    matchReasons = listOf("target evidence source"),
+                    confidence = SelectionConfidence.MEDIUM
+                )
+            )
+        ).copy(
+            targetEvidence = TargetEvidence(
+                identityHint = IdentityHint(
+                    composableNameHint = "DangerButton",
+                    stableLabel = "# Stable label\n- injected",
+                    source = IdentityHintSource.SEMANTICS,
+                    confidence = IdentityHintConfidence.MEDIUM
+                ),
+                occurrence = Occurrence(
+                    signature = OccurrenceSignature(
+                        type = OccurrenceSignatureType.ROLE_PLUS_TEXT,
+                        value = "Button:Submit"
+                    ),
+                    count = 1,
+                    selectedOrdinal = 1
+                ),
+                sourceInterpretation = SourceInterpretation(
+                    topCandidate = SourceCandidateSummary(
+                        file = "sample/src/main/`Danger.kt\n- injected",
+                        line = 27,
+                        confidence = SelectionConfidence.MEDIUM
+                    ),
+                    reasonSummary = listOf("# reason", "- second reason"),
+                    caution = "> caution\n1. ordered"
+                ),
+                screenshotKinds = listOf("full`shot", "> crop"),
+                warnings = listOf("+ warning", "# second warning")
+            )
+        )
 
     private fun annotation(
         userComment: String = "Please inspect this",

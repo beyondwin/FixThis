@@ -3,6 +3,7 @@ package io.beyondwin.fixthis.mcp.tools
 import io.beyondwin.fixthis.cli.AdbDevice
 import io.beyondwin.fixthis.cli.BridgeClient
 import io.beyondwin.fixthis.cli.fixThisJson
+import io.beyondwin.fixthis.compose.core.format.DetailMode
 import io.beyondwin.fixthis.mcp.McpProtocol
 import io.beyondwin.fixthis.mcp.console.FeedbackConsoleServer
 import io.beyondwin.fixthis.mcp.resourceText
@@ -143,6 +144,7 @@ class FixThisTools(
             "fixthis_capture_screen" -> bridgeToolResult {
                 val session = requestedSession(arguments)
                 val screen = feedbackService.captureScreen(session.sessionId)
+                cacheSnapshot(session.packageName, screen)
                 jsonToolResult(buildJsonObject {
                     put("sessionId", session.sessionId)
                     put("screen", McpProtocol.json.encodeToJsonElement(SnapshotDto.serializer(), screen))
@@ -152,6 +154,7 @@ class FixThisTools(
                 val request = arguments.navigationRequest()
                 val session = requestedSession(arguments)
                 val result = feedbackService.navigate(session.sessionId, request)
+                result.screen?.let { screen -> cacheSnapshot(session.packageName, screen) }
                 jsonToolResult(buildJsonObject {
                     put("sessionId", session.sessionId)
                     McpProtocol.json.encodeToJsonElement(FeedbackNavigationResult.serializer(), result)
@@ -186,11 +189,12 @@ class FixThisTools(
                 })
             }
             "fixthis_read_feedback" -> bridgeToolResult {
+                val detailMode = DetailMode.fromWire(arguments.stringParam("detailMode"))
                 val session = requestedSession(arguments).focusedOn(arguments.stringParam("itemId"))
                 toolResult(
                     content = listOf(
                         textContent(FeedbackQueueFormatter.toJson(session), "application/json"),
-                        textContent(FeedbackQueueFormatter.toMarkdown(session), "text/markdown"),
+                        textContent(FeedbackQueueFormatter.toMarkdown(session, detailMode), "text/markdown"),
                     ),
                 )
             }
@@ -334,6 +338,10 @@ class FixThisTools(
             latestScreens[packageName] = screen
             rememberCachedPackage(packageName)
         }
+    }
+
+    private fun cacheSnapshot(packageName: String, screen: SnapshotDto) {
+        cacheScreen(packageName, McpProtocol.json.encodeToJsonElement(SnapshotDto.serializer(), screen).jsonObject)
     }
 
     private fun cacheStatus(packageName: String, status: JsonObject) {
@@ -670,6 +678,10 @@ private val ToolDefinitions = listOf(
         inputSchema = objectSchema(
             "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
             "itemId" to stringProperty("Optional feedback item id to focus the returned payload."),
+            "detailMode" to enumStringProperty(
+                description = "Markdown detail level. JSON remains complete regardless of this value.",
+                values = listOf("compact", "precise", "full"),
+            ),
         ),
     ),
     ToolDefinition(
@@ -713,6 +725,12 @@ private fun objectSchema(
 private fun stringProperty(description: String): JsonObject = buildJsonObject {
     put("type", "string")
     put("description", description)
+}
+
+private fun enumStringProperty(description: String, values: List<String>): JsonObject = buildJsonObject {
+    put("type", "string")
+    put("description", description)
+    put("enum", buildJsonArray { values.forEach { add(JsonPrimitive(it)) } })
 }
 
 private fun booleanProperty(description: String): JsonObject = buildJsonObject {

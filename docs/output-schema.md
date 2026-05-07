@@ -34,8 +34,20 @@ These fields can be absent or empty depending on runtime context:
 - `scopeCandidates`
 - `nearbyNodes`
 - `sourceCandidates`
+- `targetEvidence`
 - `searchHints`
 - `screenshot`
+
+### `targetEvidence`
+
+`targetEvidence` is optional additive evidence for agent handoff. In the current MCP console flow, it is generated when Save promotes a frozen preview into persisted feedback items. It may be absent when the captured screen, selected target, or source index does not provide enough structured evidence.
+
+- `identityHint`: optional target identity derived from strict `comp:<ComposableName>:<variant>` test tags or stable semantics labels.
+- `occurrence`: optional ordinal/count for the selected target, based on captured merged semantics nodes.
+- `sourceInterpretation`: optional summary of the top source candidate, source-match reasons, and confidence caution.
+- `evidenceQuality`: `BASIC` or `STRUCTURED`.
+- `screenshotKinds`: screenshot artifact kinds available for the annotation, such as `full` and `crop`.
+- `warnings`: human-readable caveats. Agents must treat these as confidence constraints.
 
 ## Feedback Session Schema
 
@@ -96,7 +108,7 @@ Navigation results are returned by `fixthis_navigate_app`. Fields:
 
 ## Feedback Item Schema
 
-Feedback items represent human comments on a persisted evidence snapshot:
+Feedback items represent human comments on a persisted evidence snapshot. When a saved item targets a semantics node, `targetEvidence` is derived from that snapshot's captured merged semantics nodes and source-index candidates. Visual-area items keep occurrence unavailable and report that caveat in `targetEvidence.warnings`.
 
 - `itemId`: feedback item id.
 - `screenId`: evidence snapshot saved with this item batch. Multiple items can share one `screenId` when they were saved together from one frozen preview.
@@ -113,6 +125,7 @@ Feedback items represent human comments on a persisted evidence snapshot:
 - `sentAtEpochMillis`: time the item was sent to a handoff batch, present for sent items.
 - `status`: `open`, `ready`, `in_progress`, `resolved`, `needs_clarification`, or `wont_fix`.
 - `agentSummary`: optional agent resolution summary.
+- `targetEvidence`: optional additive evidence for stable agent handoff. When present, it follows the annotation `targetEvidence` shape above.
 
 `ready` is retained for persisted/session JSON compatibility. Domain mappers normalize legacy `ready` values to `AnnotationStatus.OPEN`; this is not a JSON field migration.
 
