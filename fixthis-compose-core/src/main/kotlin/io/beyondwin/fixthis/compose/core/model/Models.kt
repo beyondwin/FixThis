@@ -20,7 +20,8 @@ data class FixThisAnnotation(
     val searchHints: List<String> = emptyList(),
     val screenshot: ScreenshotInfo? = null,
     val userComment: String,
-    val errors: List<FixThisError> = emptyList()
+    val errors: List<FixThisError> = emptyList(),
+    val targetEvidence: TargetEvidence? = null
 )
 
 @Serializable

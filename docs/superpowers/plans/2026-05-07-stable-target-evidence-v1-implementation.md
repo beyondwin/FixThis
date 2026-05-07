@@ -77,7 +77,7 @@ docs/mcp.md
 - Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt`
 - Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/TargetEvidenceModelTest.kt`
 
-- [ ] **Step 1: Write serialization compatibility tests**
+- [x] **Step 1: Write serialization compatibility tests**
 
 Create `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/TargetEvidenceModelTest.kt`:
 
@@ -224,7 +224,7 @@ class TargetEvidenceModelTest {
 }
 ```
 
-- [ ] **Step 2: Run the new test to verify it fails**
+- [x] **Step 2: Run the new test to verify it fails**
 
 Run:
 
@@ -234,7 +234,7 @@ Run:
 
 Expected: FAIL because `targetEvidence`, `TargetEvidence`, `IdentityHint`, `Occurrence`, and related types do not exist.
 
-- [ ] **Step 3: Add target evidence models**
+- [x] **Step 3: Add target evidence models**
 
 Create `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/TargetEvidenceModels.kt`:
 
@@ -319,7 +319,7 @@ data class SourceCandidateSummary(
 )
 ```
 
-- [ ] **Step 4: Add nullable targetEvidence to FixThisAnnotation**
+- [x] **Step 4: Add nullable targetEvidence to FixThisAnnotation**
 
 Modify `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt`:
 
@@ -347,7 +347,7 @@ data class FixThisAnnotation(
 )
 ```
 
-- [ ] **Step 5: Run the model tests**
+- [x] **Step 5: Run the model tests**
 
 Run:
 
@@ -357,7 +357,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt \
