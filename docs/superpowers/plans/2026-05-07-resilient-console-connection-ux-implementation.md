@@ -1232,7 +1232,7 @@ git commit -m "fix: preserve console work during disconnects"
 - Modify: `docs/fixthis_prd.md`
 - Modify: `docs/troubleshooting.md`
 
-- [ ] **Step 1: Update README console workflow**
+- [x] **Step 1: Update README console workflow**
 
 In `README.md`, replace the current “Feedback console flow” start with:
 
@@ -1246,7 +1246,7 @@ Feedback console flow:
 5. Click Add when ready to leave feedback on the current screen.
 ```
 
-- [ ] **Step 2: Update design feedback console UX status**
+- [x] **Step 2: Update design feedback console UX status**
 
 Append:
 
@@ -1260,7 +1260,7 @@ Technical causes are hidden under Details. The app-side UI remains a minimal MCP
 When connection drops, the console keeps pending feedback items and the last preview visible, marks the preview as stale, disables live bridge actions, and resumes preview polling after reconnect.
 ```
 
-- [ ] **Step 3: Update PRD MCP connection UX**
+- [x] **Step 3: Update PRD MCP connection UX**
 
 In `docs/fixthis_prd.md` section `8.5 MCP connection UX`, replace the old four-state-only text with:
 
@@ -1290,7 +1290,7 @@ The app-side status pill remains limited to `MCP waiting` and `MCP connected`.
 ```
 ```
 
-- [ ] **Step 4: Update troubleshooting**
+- [x] **Step 4: Update troubleshooting**
 
 Add:
 
@@ -1304,7 +1304,7 @@ Click `Reconnect`. The console will try to open the app and refresh the bridge s
 Open `Details` for raw diagnostics such as `Bridge closed before sending a response`.
 ```
 
-- [ ] **Step 5: Run markdown search sanity checks**
+- [x] **Step 5: Run markdown search sanity checks**
 
 Run:
 
@@ -1314,7 +1314,7 @@ rg -n "Connect to your app|Reconnect|Open the app|This build cannot connect|MCP 
 
 Expected: new user-facing states appear in README/PRD/troubleshooting/design docs; app-side pill remains documented as only waiting/connected.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add README.md docs/design-feedback-console-ux.md docs/fixthis_prd.md docs/troubleshooting.md
