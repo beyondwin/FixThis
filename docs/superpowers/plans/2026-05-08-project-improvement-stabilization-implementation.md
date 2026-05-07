@@ -1010,7 +1010,13 @@ Task 5 validation notes:
 - Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
 - Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/ConsoleConnectionServiceTest.kt`
 
-- [ ] **Step 1: Add focused connection service tests**
+- [x] **Step 1: Add focused connection service tests**
+
+RED recorded: `./gradlew :fixthis-mcp:test --tests '*ConsoleConnectionServiceTest'`
+failed in `:fixthis-mcp:compileTestKotlin` because `ConsoleConnectionService`
+and its extracted methods did not exist yet. An earlier attempt landed the test
+file in the original checkout and produced a no-tests-found result; that file
+was removed and the exact RED was rerun in this worktree.
 
 Create `ConsoleConnectionServiceTest.kt` with tests covering:
 
@@ -1053,7 +1059,7 @@ fun launchAppSelectsOnlyReadyDeviceForWelcomeState() = runTest {
 
 Use local helper methods in the test file for `session()` and `connectionService(devices = listOf(AdbDevice("device-1", "device")))`.
 
-- [ ] **Step 2: Extract connection logic**
+- [x] **Step 2: Extract connection logic**
 
 Move these responsibilities from `FeedbackSessionService` into `ConsoleConnectionService`:
 
@@ -1082,7 +1088,7 @@ suspend fun launchAppForCurrentSession(): ConsoleConnectionStatus =
     connectionService.launchAppForSession(currentSession())
 ```
 
-- [ ] **Step 3: Run validation**
+- [x] **Step 3: Run validation**
 
 ```bash
 ./gradlew :fixthis-mcp:test --tests '*ConsoleConnectionServiceTest' --tests '*FeedbackSessionServiceTest'
@@ -1090,7 +1096,13 @@ suspend fun launchAppForCurrentSession(): ConsoleConnectionStatus =
 
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+Actual: PASS on 2026-05-08 with:
+
+```bash
+./gradlew :fixthis-mcp:test --tests '*ConsoleConnectionServiceTest' --tests '*FeedbackSessionServiceTest'
+```
+
+- [x] **Step 4: Commit**
 
 ```bash
 git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/ConsoleConnectionService.kt fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/ConsoleConnectionServiceTest.kt
