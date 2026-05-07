@@ -796,7 +796,7 @@ git commit -m "feat: add stable occurrence evidence"
 - Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceInterpretationFactoryTest.kt`
 - Modify test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`
 
-- [ ] **Step 1: Write source interpretation tests**
+- [x] **Step 1: Write source interpretation tests**
 
 Create `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceInterpretationFactoryTest.kt`:
 
@@ -842,7 +842,7 @@ class SourceInterpretationFactoryTest {
 }
 ```
 
-- [ ] **Step 2: Add SourceMatcher convention test**
+- [x] **Step 2: Add SourceMatcher convention test**
 
 Append this test to `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`:
 
@@ -877,7 +877,7 @@ fun conventionTestTagCanMatchComposableSymbol() {
 }
 ```
 
-- [ ] **Step 3: Run source tests to verify failures**
+- [x] **Step 3: Run source tests to verify failures**
 
 Run:
 
@@ -887,7 +887,7 @@ Run:
 
 Expected: FAIL because `SourceInterpretationFactory` is missing and `SourceMatcher` does not add convention reasons.
 
-- [ ] **Step 4: Implement SourceInterpretationFactory**
+- [x] **Step 4: Implement SourceInterpretationFactory**
 
 Create `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt`:
 
@@ -919,7 +919,7 @@ object SourceInterpretationFactory {
 }
 ```
 
-- [ ] **Step 5: Add convention-aware scoring to SourceMatcher**
+- [x] **Step 5: Add convention-aware scoring to SourceMatcher**
 
 Modify `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`:
 
@@ -952,7 +952,7 @@ private fun SourceIndexEntry.matchesConventionComposable(composableName: String)
     matchesAny(composableName, symbols + listOf(file) + listOfNotNull(excerpt))
 ```
 
-- [ ] **Step 6: Run source tests**
+- [x] **Step 6: Run source tests**
 
 Run:
 
@@ -962,7 +962,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt \

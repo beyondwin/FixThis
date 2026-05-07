@@ -152,6 +152,67 @@ class SourceMatcherTest {
         assertEquals(unique.matchReasons, duplicated.matchReasons)
     }
 
+    @Test
+    fun conventionTestTagCanMatchComposableSymbol() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
+                        line = 12,
+                        symbols = listOf("AppPrimaryButton"),
+                        excerpt = "@Composable fun AppPrimaryButton(...)"
+                    )
+                )
+            )
+        )
+
+        val matches = matcher.match(
+            selectedNode = node(
+                uid = "button",
+                text = listOf("Sign In"),
+                testTag = "comp:AppPrimaryButton:primary"
+            ),
+            nearbyNodes = emptyList(),
+            activityName = "io.beyondwin.fixthis.sample.MainActivity"
+        )
+
+        assertEquals("sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt", matches.first().file)
+        assertTrue(matches.first().matchReasons.contains("selected testTag convention composable"))
+    }
+
+    @Test
+    fun conventionTestTagLiteralAndComposableMatchesDoNotStackScore() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
+                        line = 12,
+                        symbols = listOf("AppPrimaryButton"),
+                        testTags = listOf("comp:AppPrimaryButton:primary")
+                    )
+                )
+            )
+        )
+
+        val match = matcher.match(
+            selectedNode = node(
+                uid = "button",
+                testTag = "comp:AppPrimaryButton:primary"
+            ),
+            nearbyNodes = emptyList(),
+            activityName = null
+        ).single()
+
+        assertEquals(SelectionConfidence.MEDIUM, match.confidence)
+        assertEquals(0.65, match.score, 0.0)
+        assertTrue(match.matchedTerms.contains("comp:AppPrimaryButton:primary"))
+        assertTrue(match.matchedTerms.contains("AppPrimaryButton"))
+        assertTrue(match.matchReasons.contains("selected testTag"))
+        assertTrue(match.matchReasons.contains("selected testTag convention composable"))
+    }
+
     private fun node(
         uid: String,
         text: List<String> = emptyList(),
