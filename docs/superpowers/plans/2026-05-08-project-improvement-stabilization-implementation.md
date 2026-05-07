@@ -1197,7 +1197,7 @@ Final review-fix GREEN: fallback preview saves now prevalidate pending items wit
 - Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
 - Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Add ConsoleHttp helpers**
+- [x] **Step 1: Add ConsoleHttp helpers**
 
 Create `ConsoleHttp.kt` with shared method, JSON, text, bytes, query, and body decode helpers. Move existing behavior without changing response status codes.
 
@@ -1212,7 +1212,7 @@ internal fun HttpExchange.sendBytes(statusCode: Int, bytes: ByteArray, contentTy
 internal fun HttpExchange.sendNoContent()
 ```
 
-- [ ] **Step 2: Add route interface and route table**
+- [x] **Step 2: Add route interface and route table**
 
 Create `ConsoleRoutes.kt`:
 
@@ -1235,7 +1235,7 @@ internal class ConsoleRouteTable(private val routes: List<ConsoleRoute>) {
 }
 ```
 
-- [ ] **Step 3: Move endpoint groups one at a time**
+- [x] **Step 3: Move endpoint groups one at a time**
 
 Move these groups in separate edits, running tests after each group:
 
@@ -1248,7 +1248,7 @@ Move these groups in separate edits, running tests after each group:
 
 Route paths and methods must stay identical to the current server.
 
-- [ ] **Step 4: Run route validation**
+- [x] **Step 4: Run route validation**
 
 ```bash
 ./gradlew :fixthis-mcp:test --tests '*FeedbackConsoleServerTest'
@@ -1257,7 +1257,14 @@ Route paths and methods must stay identical to the current server.
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+Task 8 notes:
+- RED: added `routeTableDispatchesFirstMatchingRoute` before `ConsoleRoute`/`ConsoleRouteTable` existed; `./gradlew :fixthis-mcp:test --tests '*FeedbackConsoleServerTest.routeTableDispatchesFirstMatchingRoute'` failed at `:fixthis-mcp:compileTestKotlin` with unresolved `ConsoleRouteTable`/`ConsoleRoute`.
+- GREEN: after adding `ConsoleHttp.kt`, `ConsoleRoutes.kt`, and the route family files, `./gradlew :fixthis-mcp:test --tests '*FeedbackConsoleServerTest.routeTableDispatchesFirstMatchingRoute'` passed.
+- Validation PASS: `./gradlew :fixthis-mcp:test --tests '*FeedbackConsoleServerTest'`.
+- Validation PASS: `./gradlew :fixthis-mcp:test`.
+- Validation PASS: `git diff --check`.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt

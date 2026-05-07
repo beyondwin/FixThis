@@ -1,5 +1,9 @@
 package io.beyondwin.fixthis.mcp.console
 
+import com.sun.net.httpserver.Headers
+import com.sun.net.httpserver.HttpContext
+import com.sun.net.httpserver.HttpExchange
+import com.sun.net.httpserver.HttpPrincipal
 import io.beyondwin.fixthis.cli.AdbDevice
 import io.beyondwin.fixthis.cli.fixThisJson
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
@@ -19,6 +23,10 @@ import io.beyondwin.fixthis.mcp.session.SnapshotScreenshotDto
 import io.beyondwin.fixthis.mcp.session.AnnotationTargetDto
 import io.beyondwin.fixthis.mcp.tools.FixThisBridge
 import java.io.File
+import java.io.InputStream
+import java.io.OutputStream
+import java.net.InetSocketAddress
+import java.net.URI
 import java.nio.file.Files
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -39,6 +47,31 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class FeedbackConsoleServerTest {
+    @Test
+    fun routeTableDispatchesFirstMatchingRoute() {
+        val calls = mutableListOf<String>()
+        val table = ConsoleRouteTable(
+            listOf(
+                object : ConsoleRoute {
+                    override fun matches(path: String): Boolean = path.startsWith("/api/preview/")
+                    override fun handle(exchange: HttpExchange) {
+                        calls += "broad"
+                    }
+                },
+                object : ConsoleRoute {
+                    override fun matches(path: String): Boolean = path == "/api/preview/exact/screenshot/full"
+                    override fun handle(exchange: HttpExchange) {
+                        calls += "specific"
+                    }
+                },
+            ),
+        )
+
+        assertTrue(table.handle(FakeExchange("/api/preview/exact/screenshot/full")))
+
+        assertEquals(listOf("broad"), calls)
+    }
+
     @Test
     fun servesIndexAndSessionJson() {
         val service = FeedbackSessionService(
@@ -2648,5 +2681,27 @@ class FeedbackConsoleServerTest {
             }
             return connection
         }
+    }
+
+    private class FakeExchange(path: String) : HttpExchange() {
+        private val uri = URI.create(path)
+
+        override fun getRequestURI(): URI = uri
+        override fun getRequestMethod(): String = "GET"
+        override fun getRequestHeaders(): Headers = Headers()
+        override fun getResponseHeaders(): Headers = Headers()
+        override fun getRequestBody(): InputStream = InputStream.nullInputStream()
+        override fun getResponseBody(): OutputStream = OutputStream.nullOutputStream()
+        override fun sendResponseHeaders(responseCode: Int, responseLength: Long) = Unit
+        override fun close() = Unit
+        override fun getHttpContext(): HttpContext? = null
+        override fun getRemoteAddress(): InetSocketAddress = InetSocketAddress(0)
+        override fun getLocalAddress(): InetSocketAddress = InetSocketAddress(0)
+        override fun getProtocol(): String = "HTTP/1.1"
+        override fun getAttribute(name: String): Any? = null
+        override fun setAttribute(name: String, value: Any?) = Unit
+        override fun setStreams(inputStream: InputStream?, outputStream: OutputStream?) = Unit
+        override fun getPrincipal(): HttpPrincipal? = null
+        override fun getResponseCode(): Int = -1
     }
 }
