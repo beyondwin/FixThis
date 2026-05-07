@@ -1,6 +1,7 @@
 package io.beyondwin.fixthis.mcp.session
 
 import io.beyondwin.fixthis.cli.fixThisJson
+import io.beyondwin.fixthis.compose.core.format.DetailMode
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
@@ -9,7 +10,10 @@ object FeedbackQueueFormatter {
     fun toJson(session: SessionDto): String =
         fixThisJson.encodeToString(SessionDto.serializer(), session)
 
-    fun toMarkdown(session: SessionDto): String = buildString {
+    fun toMarkdown(session: SessionDto): String =
+        toMarkdown(session, DetailMode.PRECISE)
+
+    fun toMarkdown(session: SessionDto, detailMode: DetailMode): String = buildString {
         appendLine("# FixThis Feedback Handoff")
         appendLine()
         appendLine("- Package: `${session.packageName}`")
@@ -27,12 +31,12 @@ object FeedbackQueueFormatter {
             appendLine()
         } else {
             orderedItems.forEachIndexed { index, indexedItem ->
-                appendFeedbackItem(index + 1, indexedItem.value)
+                appendFeedbackItem(index + 1, indexedItem.value, detailMode)
             }
         }
     }
 
-    private fun StringBuilder.appendFeedbackItem(number: Int, item: AnnotationDto) {
+    private fun StringBuilder.appendFeedbackItem(number: Int, item: AnnotationDto, detailMode: DetailMode) {
         appendLine("## Item $number")
         appendLine()
         appendLine("Request:")
@@ -42,7 +46,7 @@ object FeedbackQueueFormatter {
         appendTarget(item)
         appendLine()
         appendLine("Likely Source:")
-        appendLikelySource(item.sourceCandidates, item.target)
+        appendLikelySource(item.sourceCandidates, item.target, detailMode.sourceCandidateLimit())
         appendLine()
     }
 
@@ -51,12 +55,14 @@ object FeedbackQueueFormatter {
             is AnnotationTargetDto.Node -> {
                 appendLine("- Type: Compose semantics node")
                 appendNodeEvidence(item.selectedNode)
+                appendTargetEvidence(item)
                 appendLine("- Bounds: `${target.boundsInWindow.formatBounds()}`")
             }
             is AnnotationTargetDto.Area -> {
                 appendLine("- Type: Visual area")
                 appendLine("- Bounds: `${target.boundsInWindow.formatBounds()}`")
                 appendLine("- Nearby UI: `${item.nearbyNodes.nearbyUiLabel()}`")
+                appendTargetEvidence(item)
                 appendLine("- Note: area selection only; verify screenshot and source candidates.")
             }
         }
@@ -73,12 +79,26 @@ object FeedbackQueueFormatter {
         node.role?.takeIf { it.isNotBlank() }?.let { appendLine("- Role: `${it.inlineSafe()}`") }
     }
 
-    private fun StringBuilder.appendLikelySource(sourceCandidates: List<SourceCandidate>, target: AnnotationTargetDto) {
+    private fun StringBuilder.appendTargetEvidence(item: AnnotationDto) {
+        item.targetEvidence?.occurrence?.let { occurrence ->
+            appendLine("- Occurrence: `${occurrence.selectedOrdinal}/${occurrence.count}`")
+        }
+        item.targetEvidence?.identityHint?.let { hint ->
+            val identity = listOfNotNull(hint.composableNameHint, hint.variantHint).joinToString(":")
+            if (identity.isNotBlank()) appendLine("- Identity: `${identity.inlineSafe()}`")
+        }
+    }
+
+    private fun StringBuilder.appendLikelySource(
+        sourceCandidates: List<SourceCandidate>,
+        target: AnnotationTargetDto,
+        maxCandidates: Int,
+    ) {
         if (sourceCandidates.isEmpty()) {
             appendLine("No source candidate from current evidence; search by target labels and request.")
             return
         }
-        sourceCandidates.forEachIndexed { index, candidate ->
+        sourceCandidates.take(maxCandidates).forEachIndexed { index, candidate ->
             appendLine("${index + 1}. `${candidate.fileWithLine()}` ${candidate.markdownConfidence(target)} confidence")
             if (candidate.matchedTerms.isNotEmpty()) {
                 appendLine("   - matched: ${candidate.matchedTerms.joinToString(", ") { "`${it.inlineSafe()}`" }}")
@@ -88,6 +108,13 @@ object FeedbackQueueFormatter {
             }
         }
     }
+
+    private fun DetailMode.sourceCandidateLimit(): Int =
+        when (this) {
+            DetailMode.COMPACT -> 1
+            DetailMode.PRECISE -> 3
+            DetailMode.FULL -> Int.MAX_VALUE
+        }
 
     private fun SourceCandidate.fileWithLine(): String =
         line?.let { "$file:$it" } ?: file

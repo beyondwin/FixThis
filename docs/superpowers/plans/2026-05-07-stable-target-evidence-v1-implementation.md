@@ -1624,7 +1624,7 @@ git commit -m "feat: add feedback markdown detail modes"
 - Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`
 - Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt`
 
-- [ ] **Step 1: Add FeedbackQueueFormatter detail mode tests**
+- [x] **Step 1: Add FeedbackQueueFormatter detail mode tests**
 
 Append to `FeedbackQueueFormatterTest.kt`:
 
@@ -1739,7 +1739,7 @@ import io.beyondwin.fixthis.compose.core.model.TargetEvidence
 import kotlin.test.assertEquals
 ```
 
-- [ ] **Step 2: Add MCP tool schema test**
+- [x] **Step 2: Add MCP tool schema test**
 
 In `McpProtocolTest.kt`, extend the existing tool listing assertion for `fixthis_read_feedback` to check that the input schema includes `detailMode`. Add an assertion near existing `fixthis_read_feedback` schema checks:
 
@@ -1750,7 +1750,7 @@ assertTrue(output.contains("precise"))
 assertTrue(output.contains("full"))
 ```
 
-- [ ] **Step 3: Run MCP tests to verify failures**
+- [x] **Step 3: Run MCP tests to verify failures**
 
 Run:
 
@@ -1760,7 +1760,7 @@ Run:
 
 Expected: FAIL because `FeedbackQueueFormatter.toMarkdown(session, detailMode)` and schema support do not exist.
 
-- [ ] **Step 4: Add overload to FeedbackQueueFormatter**
+- [x] **Step 4: Add overload to FeedbackQueueFormatter**
 
 Modify `FeedbackQueueFormatter.kt`:
 
@@ -1825,7 +1825,7 @@ item.targetEvidence?.identityHint?.let { hint ->
 }
 ```
 
-- [ ] **Step 5: Parse detailMode in FixThisTools**
+- [x] **Step 5: Parse detailMode in FixThisTools**
 
 Modify `FixThisTools.kt` imports:
 
@@ -1865,7 +1865,7 @@ private fun enumStringProperty(description: String, values: List<String>): JsonO
 }
 ```
 
-- [ ] **Step 6: Run MCP tests**
+- [x] **Step 6: Run MCP tests**
 
 Run:
 
@@ -1875,7 +1875,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt \

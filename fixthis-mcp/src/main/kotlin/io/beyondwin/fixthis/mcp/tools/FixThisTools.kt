@@ -3,6 +3,7 @@ package io.beyondwin.fixthis.mcp.tools
 import io.beyondwin.fixthis.cli.AdbDevice
 import io.beyondwin.fixthis.cli.BridgeClient
 import io.beyondwin.fixthis.cli.fixThisJson
+import io.beyondwin.fixthis.compose.core.format.DetailMode
 import io.beyondwin.fixthis.compose.core.format.FixThisMarkdownFormatter
 import io.beyondwin.fixthis.compose.core.model.FixThisAnnotation
 import io.beyondwin.fixthis.mcp.McpProtocol
@@ -218,11 +219,12 @@ class FixThisTools(
                 })
             }
             "fixthis_read_feedback" -> bridgeToolResult {
+                val detailMode = DetailMode.fromWire(arguments.stringParam("detailMode"))
                 val session = requestedSession(arguments).focusedOn(arguments.stringParam("itemId"))
                 toolResult(
                     content = listOf(
                         textContent(FeedbackQueueFormatter.toJson(session), "application/json"),
-                        textContent(FeedbackQueueFormatter.toMarkdown(session), "text/markdown"),
+                        textContent(FeedbackQueueFormatter.toMarkdown(session, detailMode), "text/markdown"),
                     ),
                 )
             }
@@ -735,6 +737,10 @@ private val ToolDefinitions = listOf(
         inputSchema = objectSchema(
             "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
             "itemId" to stringProperty("Optional feedback item id to focus the returned payload."),
+            "detailMode" to enumStringProperty(
+                description = "Markdown detail level. JSON remains complete regardless of this value.",
+                values = listOf("compact", "precise", "full"),
+            ),
         ),
     ),
     ToolDefinition(
@@ -779,6 +785,12 @@ private fun objectSchema(
 private fun stringProperty(description: String): JsonObject = buildJsonObject {
     put("type", "string")
     put("description", description)
+}
+
+private fun enumStringProperty(description: String, values: List<String>): JsonObject = buildJsonObject {
+    put("type", "string")
+    put("description", description)
+    put("enum", buildJsonArray { values.forEach { add(JsonPrimitive(it)) } })
 }
 
 private fun booleanProperty(description: String): JsonObject = buildJsonObject {

@@ -82,6 +82,27 @@ class McpProtocolTest {
     }
 
     @Test
+    fun readFeedbackSchemaAdvertisesDetailMode() {
+        val response = runSingleRequest("""{"jsonrpc":"2.0","id":"tools","method":"tools/list","params":{}}""")
+
+        val readFeedbackTool = response.jsonObject
+            .getValue("result").jsonObject
+            .getValue("tools").jsonArray
+            .map { it.jsonObject }
+            .single { it.getValue("name").jsonPrimitive.content == "fixthis_read_feedback" }
+        val detailMode = readFeedbackTool
+            .getValue("inputSchema").jsonObject
+            .getValue("properties").jsonObject
+            .getValue("detailMode").jsonObject
+        val enumValues = detailMode
+            .getValue("enum").jsonArray
+            .map { it.jsonPrimitive.content }
+
+        assertEquals(listOf("compact", "precise", "full"), enumValues)
+        assertTrue(detailMode.getValue("description").jsonPrimitive.content.contains("JSON remains complete"))
+    }
+
+    @Test
     fun listFeedbackSessionsReturnsPersistedSummaries() = runBlocking {
         val projectRoot = createTempDir(prefix = "fixthis-v2-mcp-sessions-")
         val tools = FixThisTools(
