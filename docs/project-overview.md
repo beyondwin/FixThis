@@ -172,20 +172,21 @@ flowchart TD
     B --> C["Connection card polls /api/connection"]
     C --> D["Start / Open app / Reconnect / Try again reaches Ready"]
     D --> E["Console polls preview via captureScreenSnapshot"]
-    E --> F["User clicks Add to freeze latest preview"]
+    E --> F["User clicks Annotate to freeze latest preview"]
     F --> G["User selects semantics node or visual area and writes comments"]
-    G --> H["Save persists one screen evidence snapshot"]
-    H --> I["Feedback items share that screenId"]
-    I --> J["Send creates local handoff batch"]
-    J --> K["Agent reads queue with fixthis_read_feedback"]
-    K --> L["Agent resolves items with fixthis_resolve_feedback"]
+    G --> H["Add annotation creates pending rows"]
+    H --> I["Copy Prompt or Send Agent persists one screen evidence snapshot when needed"]
+    I --> J["Feedback items share that screenId"]
+    J --> K["Send Agent creates local handoff batch"]
+    K --> L["Agent reads queue with fixthis_read_feedback"]
+    L --> M["Agent resolves items with fixthis_resolve_feedback"]
 ```
 
 Important distinction:
 
 - Preview frames are temporary and stored under `.fixthis/preview-cache/`.
 - Saved evidence lives under `.fixthis/feedback-sessions/<session-id>/`.
-- `Send` is local persistence for MCP handoff. It does not call an external AI API.
+- `Send Agent` is local persistence for MCP handoff. It does not call an external AI API.
 - Connection recovery is console-local UI state. `GET /api/connection` diagnoses ADB device and sidekick bridge state, while `POST /api/app/launch` launches the selected or only ready app when that is a valid recovery action. These calls do not persist feedback data.
 - When a device or bridge drops, pending browser draft work and the last preview remain visible. The preview is marked stale until the card returns to `Ready`.
 
@@ -274,5 +275,5 @@ Android instrumentation tests require an unlocked interactive emulator or device
 - 앱 내부에서는 선택/댓글/제출을 하지 않는다. 선택과 제출은 MCP browser console에서만 한다.
 - source candidates는 정확한 compiler mapping이 아니라 source index text/symbol 기반 ranking이다.
 - semantics redaction은 screenshot pixel redaction이 아니다.
-- feedback console의 `Add`는 freeze만 하고 저장하지 않는다. `Save`가 persisted evidence snapshot을 만든다.
+- feedback console의 `Annotate`는 freeze만 하고 저장하지 않는다. `Add annotation`은 browser-side pending item을 만들고, `Copy Prompt` 또는 `Send Agent`가 필요 시 persisted evidence snapshot을 만든다.
 - persisted MCP JSON field names는 compatibility contract다. Domain model naming과 다를 수 있으므로 mapper boundary에서 확인한다.

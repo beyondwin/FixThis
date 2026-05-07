@@ -4,6 +4,11 @@
 **대상 버전**: V1.1  
 **관련 모듈**: `fixthis-cli`
 
+> Current status: `fixthis setup` keeps JSON stdout as the default and writes
+> Codex/Claude config only with `--write`. `--write --dry-run` prints the target
+> path and rendered config without editing files. External artifact coordinates
+> remain future placeholders until release blockers are cleared.
+
 ---
 
 ## 1. 문제 정의

@@ -42,6 +42,8 @@ dependencies {
 }
 ```
 
+External release remains blocked until a root `LICENSE` is selected and plugin/library artifacts are published. See [Release readiness](docs/release-readiness.md) for the current blocker list.
+
 The sample app in this repository is the branded FixThis Studio Compose app, exposed as application id `io.beyondwin.fixthis.sample` with launcher label `FixThis`. Its five bottom navigation tabs, Home, Queue, Project, Review, and Diagnostics, use a compact Calm Product Studio UI while preserving deterministic FixThis coverage for Smart Select, screenshots, source candidates, form controls, dropdown/menu, dialog, Canvas, disabled controls, repeated cards, long text, weak-semantics fallbacks, and CLI/MCP bridge smoke flows. The tracked fixture at [`sample/fixthis-coverage.json`](sample/fixthis-coverage.json) records the expected sample evidence scenes mirrored by the smoke assertions.
 
 ## Repository Layout
@@ -110,7 +112,7 @@ MCP is the primary agent workflow for the feedback console. `fixthis mcp` runs a
 
 The feedback console is a dark Studio workspace: persisted sessions on the left, live or frozen Android preview in the center, and a mode-aware Inspector on the right. It defaults to `Select` mode, where normal preview clicks navigate the app. `Annotate` freezes the latest preview so you can mark feedback targets. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions. The compact device control selects the active ADB device for FixThis bridge requests, shows `No device`, `Connecting`, `Connected`, or `Unavailable`, and keeps unavailable, offline, or unauthorized devices visible but not selectable.
 
-Top bar actions are short session-level controls, including `Copy Prompt`, `Send Agent`, New, and Close. Canvas controls include `Select`, `Annotate`, `Add annotation`, and `Exit Annotate`. The device refresh control is the `Refresh devices` icon button, and `Clear selection` clears only FixThis's active device selection. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 1s. Preview polling pauses while the browser tab is hidden, while the `Annotate` frozen-preview flow is active, and when the selected device becomes unavailable.
+Top bar actions are short session-level controls: device selection, connection state, `Refresh devices`, `Clear selection`, `Copy Prompt`, and `Send Agent`. Canvas controls include `Select`, `Annotate`, `Add annotation`, and `Exit Annotate`. `Clear selection` clears only FixThis's active device selection. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 1s. Preview polling pauses while the browser tab is hidden, while the `Annotate` frozen-preview flow is active, and when the selected device becomes unavailable.
 
 Feedback console flow:
 
@@ -133,6 +135,8 @@ Feedback console sessions are resumable. FixThis saves feedback workspace metada
 ## Local Artifacts
 
 Feedback console sessions write workspace metadata and session-owned screenshots under `.fixthis/feedback-sessions/`. These are local debug artifacts and are ignored by git. The current `.gitignore` ignores `.fixthis` as a whole; if your team wants to share `.fixthis/project.json` for package discovery, add an explicit unignore rule for that file.
+
+Use `fixthis clean --project-dir <projectRoot>` to remove only known local artifact directories: `.fixthis/feedback-sessions/`, `.fixthis/preview-cache/`, `.fixthis/artifacts/`, and `.fixthis/smoke-reports/`. The command is symlink-safe, supports `--dry-run` and `--older-than-days <n>`, and preserves `.fixthis/project.json` plus unknown `.fixthis` files or directories.
 
 ## Privacy Notes
 

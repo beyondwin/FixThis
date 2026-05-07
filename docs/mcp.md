@@ -40,6 +40,8 @@ Feedback console sessions are resumable. Workspace metadata and session-owned sc
 
 The console UI and local API can list, reopen, and close persisted sessions. Closing a session marks it `closed` without deleting its workspace files; closed sessions are skipped by default and included when callers pass `includeClosed`.
 
+The local console serves a per-server browser token and requires `X-FixThis-Console-Token` on mutating `/api/*` requests. Mutating requests with a non-localhost `Origin` are rejected. This protects local mutation endpoints such as app launch, navigation, capture, draft writes, and handoff creation from ordinary cross-origin web pages while keeping the console localhost-only.
+
 The current console contract is documented in [`docs/feedback-console-contract.md`](feedback-console-contract.md); the shipped workflow uses `Annotate`, `Add annotation`, `Copy Prompt`, and `Send Agent`.
 
 Typical flow:
@@ -70,7 +72,7 @@ Console workflow:
 
 The console defaults to `Select` mode. Preview clicks navigate the app until `Annotate` freezes the latest preview for feedback targeting. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions.
 
-Top bar actions are short session-level controls, including `Copy Prompt`, `Send Agent`, New, and Close. Canvas controls include `Select`, `Annotate`, `Add annotation`, and `Exit Annotate`. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 1s. Preview polling pauses while the browser tab is hidden and while the `Annotate` frozen-preview flow is active.
+Top bar actions are short session-level controls: device selection, connection state, `Refresh devices`, `Clear selection`, `Copy Prompt`, and `Send Agent`. Canvas controls include `Select`, `Annotate`, `Add annotation`, and `Exit Annotate`. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 1s. Preview polling pauses while the browser tab is hidden and while the `Annotate` frozen-preview flow is active.
 
 `Annotate` freezes the latest preview only; it does not write a session item by itself. Multiple pending annotations can be added to one frozen preview with `Add annotation`. Pending items support Focus and Delete before they are persisted; deleting renumbers pending items so the pending list numbers and overlay numbers match.
 

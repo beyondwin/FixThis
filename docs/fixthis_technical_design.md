@@ -79,7 +79,7 @@ Connection card guides Start / Open app / Reconnect / Try again
         ↓
 Console reaches Ready and captures preview
         ↓
-User clicks Add to freeze the latest preview
+User clicks Annotate to freeze the latest preview
         ↓
 User selects a Compose target or visual area in the browser
         ↓
@@ -106,7 +106,7 @@ Match sourceCandidates
 Derive optional targetEvidence from merged nodes, strict comp tags,
 occurrence, source candidates, and screenshot availability
         ↓
-Save feedback item and expose complete JSON plus detailMode Markdown
+Copy Prompt or Send Agent persists feedback items when needed and exposes complete JSON plus detailMode Markdown
 ```
 
 ### 1.2 MCP architecture
@@ -157,18 +157,18 @@ MCP feedback console flow:
 Selected ADB device
     + Console connection status
     + Live preview navigation
-    + Frozen preview after Add
+    + Frozen preview after Annotate
         ↓
 Pending component/custom-area comments in browser state
         ↓
-Save promotes one frozen preview into one evidence snapshot
-and stores all pending items with the same screenId
+Copy Prompt or Send Agent promotes one frozen preview into one evidence snapshot
+when needed and stores all pending items with the same screenId
         ↓
 FeedbackSession in MCP process
         ↓
 .fixthis/feedback-sessions/<session-id> persistence
         ↓
-FeedbackHandoffBatch after Send
+FeedbackHandoffBatch after Send Agent
         ↓
 fixthis_read_feedback complete JSON + compact Markdown for agent work
 ```
@@ -1699,9 +1699,12 @@ Selection and comments happen in the MCP browser console, not in the Android app
 
 The console browser surface is a Studio workspace: Sessions/history on the left,
 live or frozen preview canvas in the center, and a mode-aware Inspector on the
-right. Top-bar actions stay short and session-level: Refresh, Add, Save, Copy,
-Send, New, and Close. Live preview rendering is separated from session and
-Inspector rendering so polling does not repaint saved Draft evidence.
+right. Top-bar actions stay short and session-level: device selection,
+connection state, `Refresh devices`, `Clear selection`, `Copy Prompt`, and
+`Send Agent`. Canvas/Inspector actions include `Select`, `Annotate`,
+`Add annotation`, `Exit Annotate`, `Clear Selection`, and `Clear Draft`. Live
+preview rendering is separated from session and Inspector rendering so polling
+does not repaint saved Draft evidence.
 
 Console-local API owns the browser workflow:
 
@@ -1733,11 +1736,12 @@ the browser does not hide `CHECK_PHONE`, `CHOOSE_DEVICE`, or unsupported-build
 problems behind a launch attempt.
 
 Live preview responses are transient console state. They are not appended to
-`FeedbackSession.screens`. `POST /api/items/batch` is the Save path: it promotes
-one frozen preview to a persisted evidence snapshot and stores all pending
-feedback items against that snapshot. Pending items are browser-side draft work
-until Save and support Focus/Delete in the Studio Inspector, not edit or status
-mutation.
+`FeedbackSession.screens`. `POST /api/items/batch` is the persistence path used
+when `Copy Prompt` or `Send Agent` needs to persist written pending annotations:
+it promotes one frozen preview to a persisted evidence snapshot and stores all
+pending feedback items against that snapshot. Pending items are browser-side
+draft work until persistence and support Focus/Delete in the Studio Inspector,
+not edit or status mutation.
 
 Device selection is MCP process-local state. Console disconnect clears the
 FixThis selected serial; it does not run `adb disconnect`.
@@ -2243,7 +2247,7 @@ Acceptance:
 
 - AI/MCP client can call `fixthis_open_feedback_console`
 - browser console can show the Studio live preview without appending preview frames to session history
-- Add freezes the latest preview, Save stores one evidence snapshot plus multiple items, and Send creates a persisted handoff batch
+- `Annotate` freezes the latest preview, `Add annotation` creates pending items, `Copy Prompt` or `Send Agent` stores one evidence snapshot plus multiple items when needed, and `Send Agent` creates a persisted handoff batch
 - `fixthis_read_feedback` returns complete JSON and compact source-hinted Markdown
 
 ### Phase 9: Docs and release readiness

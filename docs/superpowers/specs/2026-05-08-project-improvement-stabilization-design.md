@@ -1,7 +1,7 @@
 # Project Improvement Stabilization Detailed Design
 
 **Date:** 2026-05-08
-**Status:** Proposed
+**Status:** Implemented in `codex/project-improvement-stabilization`; Task 14 final verification recorded in the implementation plan
 **Source proposal:** `docs/project-improvement-proposals-2026-05-07.md`
 **Implementation plan:** `docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md`
 **Primary modules:** `fixthis-mcp`, `fixthis-cli`, `fixthis-gradle-plugin`, `sample`, project docs and CI
@@ -14,6 +14,12 @@ rewrite it. FixThis already has a working MCP-first feedback console, persisted
 local sessions, Stable Target Evidence, debug-only sidekick bridge, and passing
 local unit/build checks. The next work should make that system easier to trust,
 ship, and extend.
+
+Implementation result: the stabilization branch landed the planned contract,
+verification, onboarding, smoke, MCP modularization, Source Index v2, sample
+fixture, local mutation guard, artifact cleanup, release-readiness, and MCP
+compatibility slices. External release is still blocked until a root `LICENSE`
+is selected and external artifacts are published.
 
 The design has four ordered outcomes:
 

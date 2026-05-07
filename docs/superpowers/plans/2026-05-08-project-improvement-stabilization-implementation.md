@@ -1829,11 +1829,11 @@ If the project owner has not chosen a license, do not add a root `LICENSE` in th
   - `docs/superpowers/specs/2026-05-08-project-improvement-stabilization-design.md`
   - this implementation plan
 
-- [ ] **Step 1: Sync documentation with actual behavior**
+- [x] **Step 1: Sync documentation with actual behavior**
 
 Update docs to match exactly what landed. Do not document unimplemented work as complete. Mark unimplemented release items as blockers or future work.
 
-- [ ] **Step 2: Run docs checks**
+- [x] **Step 2: Run docs checks**
 
 Run:
 
@@ -1844,7 +1844,18 @@ rg -n "Add to Pending|Save snapshot|legacy pending label" README.md docs fixthis
 
 Expected: no stale current-contract wording in current docs. Historical docs may retain old terms only when clearly framed as historical.
 
-- [ ] **Step 3: Run full verification**
+Task 14 docs sync notes:
+- Current-facing docs now describe the shipped console workflow as `Annotate`, `Add annotation`, `Copy Prompt`, and `Send Agent`; no current Add/Save workflow remains in README, MCP, UX status, privacy, troubleshooting, output schema, or project overview docs.
+- README documents the sample coverage fixture, `fixthis clean`, and external release blockers. `docs/mcp.md` and `docs/privacy.md` document the local console mutation token/origin guard. `docs/output-schema.md` documents Source Index v2 as additive through source candidates/target evidence without changing persisted JSON compatibility.
+- `docs/project-improvement-proposals-2026-05-07.md` and the detailed design now state their implementation status and keep older Add/Save wording only as historical analysis or as the explicit stale-vocabulary decision.
+
+Task 14 docs check results:
+- `git diff --check`: PASS.
+- `rg -n "Add to Pending|Save snapshot|legacy pending label" README.md docs fixthis-mcp/src/main/resources/console/index.html`: PASS for current contract docs. Remaining hits are historical/prototype/prior-plan context only: older 2026-05-05/06 design and implementation records, `docs/design-claude-redesign-brief.md`, `docs/fixthis_decisions.md`, the 2026-05-07 proposal's historical analysis baseline, the stabilization design line that explicitly marks old wording stale, and implementation-plan test/command snippets asserting old labels are absent. No stale-term hits remain in README, `docs/mcp.md`, `docs/design-feedback-console-ux.md`, `docs/privacy.md`, `docs/troubleshooting.md`, `docs/output-schema.md`, `docs/project-overview.md`, or `fixthis-mcp/src/main/resources/console/index.html`.
+- Fresh Task 14 docs quality review found additional current-facing stale labels outside that required regex: top-bar `New`/`Close` in README, `docs/mcp.md`, and `docs/fixthis_technical_design.md`, plus `click Refresh manually` in `docs/troubleshooting.md`. All were corrected to the shipped labels.
+- `rg -n "New, and Close|top bar includes.*New|Top bar.*New.*Close|Top-bar.*New.*Close|click Refresh manually" README.md docs/mcp.md docs/design-feedback-console-ux.md docs/design-zero-setup.md docs/privacy.md docs/troubleshooting.md docs/output-schema.md docs/project-overview.md docs/fixthis_technical_design.md docs/project-improvement-proposals-2026-05-07.md`: PASS, no matches.
+
+- [x] **Step 3: Run full verification**
 
 Run:
 
@@ -1865,11 +1876,29 @@ scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample
 
 Expected: full local checks pass. Connected smoke may report an explicit SKIPPED category.
 
-- [ ] **Step 4: Record verification results in this plan**
+- [x] **Step 4: Record verification results in this plan**
 
 Add a short final verification note under this task with commands and PASS, FAIL, or SKIPPED results.
 
-- [ ] **Step 5: Commit final docs sync**
+Task 14 final verification results:
+- `./gradlew :fixthis-compose-core:test :fixthis-cli:test :fixthis-mcp:test :fixthis-compose-sidekick:testDebugUnitTest :fixthis-gradle-plugin:test`: PASS.
+- `./gradlew :app:assembleDebug :fixthis-cli:installDist :fixthis-mcp:installDist`: PASS.
+- `node scripts/build-console-assets.mjs --check`: PASS.
+- `node --check fixthis-mcp/src/main/resources/console/app.js`: PASS.
+- `scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample --host-only`: PASS for host checks; smoke result `SKIPPED_HOST_ONLY`, report `.fixthis/smoke-reports/20260507T221743Z-pid25984-94698613.json`.
+- Connected smoke: SKIPPED_LOCKED_DEVICE. One authorized device was present (`adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp device`), but `dumpsys window` showed `isKeyguardShowing=true`, `mDreamingLockscreen=true`, and focus on `NotificationShade`.
+- `git diff --check`: PASS after final docs and plan updates.
+- Residual risk: connected install/launch/doctor/feedback smoke remains unproven on an unlocked interactive device. External release remains blocked by missing root `LICENSE` and unpublished plugin/library artifacts.
+
+HANDOFF CHECKPOINT:
+- Task 14 synced current docs with shipped behavior and applied the docs quality review fixes.
+- Changed current-facing docs only; historical 2026-05-05/06 records keep old labels as history.
+- Full local Gradle/build/console/host-smoke verification passed before final review fixes; targeted docs checks passed after fixes.
+- Connected smoke remains `SKIPPED_LOCKED_DEVICE`; external release still blocked by missing root `LICENSE` and unpublished artifacts.
+- Worktree `/Users/kws/.config/superpowers/worktrees/FixThis/project-improvement-stabilization`, branch `codex/project-improvement-stabilization`.
+- No session-owned dev server, browser, or Playwright process is running.
+
+- [x] **Step 5: Commit final docs sync**
 
 ```bash
 git add README.md docs .github scripts fixthis-cli fixthis-compose-core fixthis-gradle-plugin fixthis-mcp sample CONTRIBUTING.md SECURITY.md CHANGELOG.md

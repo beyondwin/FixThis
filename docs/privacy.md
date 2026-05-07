@@ -14,7 +14,7 @@ The localhost console adds a per-server browser token to served HTML and require
 
 Feedback workspace files are local project artifacts under `.fixthis/feedback-sessions/`. They include feedback session metadata, saved evidence screenshots, source hints, optional target evidence, comments, and handoff batches used to resume the console after MCP or console restarts. Live preview frames are transient and are not appended to the feedback session history.
 
-Send stores a local handoff batch in the feedback session so MCP tools can read it. It does not upload feedback or screenshots and does not call an external AI API.
+`Send Agent` stores a local handoff batch in the feedback session so MCP tools can read it. It does not upload feedback or screenshots and does not call an external AI API.
 
 ## Debug Scope
 

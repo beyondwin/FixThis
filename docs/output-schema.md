@@ -44,7 +44,7 @@ These fields can be absent or empty depending on runtime context:
 
 ### `targetEvidence`
 
-`targetEvidence` is optional additive evidence for agent handoff. In the current MCP console flow, it is generated when Save promotes a frozen preview into persisted feedback items. It may be absent when the captured screen, selected target, or source index does not provide enough structured evidence.
+`targetEvidence` is optional additive evidence for agent handoff. In the current MCP console flow, it is generated when `Copy Prompt` or `Send Agent` persists written pending annotations and promotes a frozen preview into persisted feedback items. It may be absent when the captured screen, selected target, or source index does not provide enough structured evidence.
 
 - `identityHint`: optional target identity derived from strict `comp:<ComposableName>:<variant>` test tags or stable semantics labels.
 - `occurrence`: optional ordinal/count for the selected target, based on captured merged semantics nodes.
@@ -115,7 +115,7 @@ Device summaries include:
 
 ## Captured Screen Schema
 
-Captured screens represent persisted evidence snapshots in a feedback session. The feedback console creates them when Save promotes a frozen preview; MCP tools can also create them through explicit capture or navigation with `captureAfter`. Live preview frames are not captured screens:
+Captured screens represent persisted evidence snapshots in a feedback session. The feedback console creates them when `Copy Prompt` or `Send Agent` persists pending annotations and promotes a frozen preview; MCP tools can also create them through explicit capture or navigation with `captureAfter`. Live preview frames are not captured screens:
 
 - `screenId`: persisted evidence snapshot id.
 - `capturedAtEpochMillis`: capture timestamp.
@@ -162,9 +162,9 @@ Feedback items represent human comments on a persisted evidence snapshot. When a
 
 ## Feedback Delivery
 
-The feedback console defaults to navigation. Add freezes the latest preview so the user can select a target or drag a visual area, write a comment, and create one or more pending UI-only items. Pending items are numbered in the Studio UI and support Focus and Delete until Save. Save promotes that frozen preview once into one persisted evidence snapshot, stores all pending items, and connects them to the same `screenId`. Later Add on the same visible app screen creates a new evidence snapshot after Save.
+The feedback console defaults to navigation. `Annotate` freezes the latest preview so the user can select a target or drag a visual area, write a comment, and create one or more pending UI-only items with `Add annotation`. Pending items are numbered in the Studio UI and support Focus and Delete until `Copy Prompt` or `Send Agent` persists written pending annotations when needed. That persistence promotes the frozen preview once into one persisted evidence snapshot, stores all pending items, and connects them to the same `screenId`. Later `Annotate` work on the same visible app screen creates a new evidence snapshot when pending annotations are persisted.
 
-Send creates a persisted handoff batch, changes saved items to `delivery: "sent"`, sets `handoffBatchId` and `sentAtEpochMillis`, and records those items in `handoffBatches`. It does not create a new external AI API payload; MCP tools read the persisted session data.
+`Send Agent` creates a persisted handoff batch, changes saved items to `delivery: "sent"`, sets `handoffBatchId` and `sentAtEpochMillis`, and records those items in `handoffBatches`. It does not create a new external AI API payload; MCP tools read the persisted session data.
 
 Connection loss does not change feedback delivery fields. Browser-only pending items and the last preview stay visible as cached work, the preview is marked stale, and new bridge actions resume only after the connection status returns to `READY`.
 
@@ -181,7 +181,7 @@ Handoff batches are stored on the feedback session in `handoffBatches`:
 - `sequenceNumber`: stable human-readable batch number within the session.
 - `createdAtEpochMillis`: time the batch was created.
 - `itemIds`: feedback item ids included in the batch.
-- `markdownSnapshot`: Markdown handoff snapshot captured when Send created the batch, when available.
+- `markdownSnapshot`: Markdown handoff snapshot captured when `Send Agent` created the batch, when available.
 
 The item's `screenId` field points to the evidence snapshot saved with the item batch. Multiple items can share one `screenId` when saved together from one frozen preview.
 
@@ -221,6 +221,8 @@ The item's `screenId` field points to the evidence snapshot saved with the item 
 - `matchedTerms`: selected or nearby terms found in the source index.
 - `matchReasons`: why the entry matched.
 - `confidence`: `HIGH`, `MEDIUM`, `LOW`, or `NONE`.
+
+Generated source-index entries now include additive v2 typed `signals` while preserving the v1 fields (`symbols`, `text`, `contentDescriptions`, `testTags`, `stringResources`, `roles`, and `activityNames`). Current signal kinds are `COMPOSABLE_SYMBOL`, `UI_TEXT`, `STRING_RESOURCE`, `TEST_TAG`, `STRICT_COMP_TEST_TAG`, `CONTENT_DESCRIPTION`, `ROLE`, `ACTIVITY_NAME`, and `ARBITRARY_STRING_LITERAL`; each signal has a `value` and optional `confidenceWeight` defaulting to `1.0`. Readers that do not understand `signals` can continue using v1 fields, and FixThis matching falls back to those v1 fields when no typed signal matches.
 
 Implemented match reasons include:
 
