@@ -15,12 +15,12 @@ local.properties
 .externalNativeBuild/
 .cxx/
 
-# PointPatch local capture artifacts
-.pointpatch/artifacts/
-.pointpatch/feedback-sessions/
+# FixThis local capture artifacts
+.fixthis/artifacts/
+.fixthis/feedback-sessions/
 
 # OS
 .DS_Store
 .superpowers/brainstorm
-.pointpatch
+.fixthis
 .playwright-cli

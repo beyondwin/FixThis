@@ -5,7 +5,7 @@
 
 ## Context
 
-The feedback console previously stored the HTML document, CSS, and JavaScript in one large Kotlin raw string. The implemented resource split places `index.html`, `styles.css`, and `app.js` under `pointpatch-mcp/src/main/resources/console` and keeps a Kotlin loader responsible for assembly.
+The feedback console previously stored the HTML document, CSS, and JavaScript in one large Kotlin raw string. The implemented resource split places `index.html`, `styles.css`, and `app.js` under `fixthis-mcp/src/main/resources/console` and keeps a Kotlin loader responsible for assembly.
 
 ## Decision
 

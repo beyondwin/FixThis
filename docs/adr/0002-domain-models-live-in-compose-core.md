@@ -9,7 +9,7 @@ Annotation, snapshot, and session concepts are shared across capture, MCP, CLI, 
 
 ## Decision
 
-Feedback domain models live in `pointpatch-compose-core`, while MCP DTOs, JSON field names, persistence paths, and UI-only state stay in outer modules.
+Feedback domain models live in `fixthis-compose-core`, while MCP DTOs, JSON field names, persistence paths, and UI-only state stay in outer modules.
 
 ## Consequences
 

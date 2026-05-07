@@ -1,6 +1,6 @@
-# PointPatch Output Schema
+# FixThis Output Schema
 
-PointPatch exports one annotation model for clipboard JSON, Markdown, CLI, and MCP. The current schema version is `1.0`.
+FixThis exports one annotation model for clipboard JSON, Markdown, CLI, and MCP. The current schema version is `1.0`.
 
 ## Required Fields
 
@@ -22,7 +22,7 @@ These fields are always present in an annotation:
 
 ## Optional Fields
 
-PointPatch JSON is encoded with `explicitNulls=false` and `encodeDefaults=true`. Nullable optional fields are omitted when their value is null. Collections with default empty values are emitted as empty arrays.
+FixThis JSON is encoded with `explicitNulls=false` and `encodeDefaults=true`. Nullable optional fields are omitted when their value is null. Collections with default empty values are emitted as empty arrays.
 
 These fields can be absent or empty depending on runtime context:
 
@@ -39,7 +39,7 @@ These fields can be absent or empty depending on runtime context:
 
 ## Feedback Session Schema
 
-Feedback console sessions are returned by `pointpatch_open_feedback_console` and served by the local console API. Top-level fields:
+Feedback console sessions are returned by `fixthis_open_feedback_console` and served by the local console API. Top-level fields:
 
 - `schemaVersion`: schema version string.
 - `sessionId`: active feedback session id.
@@ -55,7 +55,7 @@ Feedback console sessions are returned by `pointpatch_open_feedback_console` and
 
 ## Feedback Session Summary
 
-Feedback session summaries are returned by `pointpatch_list_feedback_sessions` and the feedback session index. Fields:
+Feedback session summaries are returned by `fixthis_list_feedback_sessions` and the feedback session index. Fields:
 
 - `sessionId`: persisted feedback session id.
 - `packageName`: Android application id.
@@ -68,7 +68,7 @@ Feedback session summaries are returned by `pointpatch_list_feedback_sessions` a
 - `draftItemsCount`: number of feedback items whose delivery is `draft`.
 - `sentBatchesCount`: number of persisted handoff batches.
 
-`pointpatch_list_feedback` returns the same session context plus `unresolvedSentItemsCount`, the number of sent feedback items not resolved or marked won't fix.
+`fixthis_list_feedback` returns the same session context plus `unresolvedSentItemsCount`, the number of sent feedback items not resolved or marked won't fix.
 
 ## Captured Screen Schema
 
@@ -85,7 +85,7 @@ Captured screens represent persisted evidence snapshots in a feedback session. T
 
 ## Feedback Navigation Result
 
-Navigation results are returned by `pointpatch_navigate_app`. Fields:
+Navigation results are returned by `fixthis_navigate_app`. Fields:
 
 - `performed`: whether the sidekick performed the requested action.
 - `action`: `back`, `tap`, or `swipe`.
@@ -141,14 +141,14 @@ The item's `screenId` field points to the evidence snapshot saved with the item 
 
 ## Feedback Handoff Formats
 
-`pointpatch_read_feedback` returns both JSON and Markdown. JSON remains complete and preserves session, screen, item, batch, screenshot, and path fields for MCP tool contracts. Markdown is compact and agent-facing: it focuses on request, target evidence, and likely source, and intentionally omits internal IDs and repeated storage metadata.
+`fixthis_read_feedback` returns both JSON and Markdown. JSON remains complete and preserves session, screen, item, batch, screenshot, and path fields for MCP tool contracts. Markdown is compact and agent-facing: it focuses on request, target evidence, and likely source, and intentionally omits internal IDs and repeated storage metadata.
 
 ## Selection
 
 `selection.kind` values:
 
 - `SEMANTICS_NODE`: a Compose semantics node was selected.
-- `VISUAL_AREA`: the user selected a rectangle or PointPatch used an area fallback.
+- `VISUAL_AREA`: the user selected a rectangle or FixThis used an area fallback.
 - `TAP_POINT`: no node or area was selected; the tap coordinate is the primary signal.
 
 `selection.confidence` values:
@@ -193,8 +193,8 @@ Implemented match reasons include:
 The Android sidekick stores screenshots under the app cache directory:
 
 ```text
-context.cacheDir/pointpatch/<yyyy-MM-dd>/<annotation-id>-full.png
-context.cacheDir/pointpatch/<yyyy-MM-dd>/<annotation-id>-crop.png
+context.cacheDir/fixthis/<yyyy-MM-dd>/<annotation-id>-full.png
+context.cacheDir/fixthis/<yyyy-MM-dd>/<annotation-id>-crop.png
 ```
 
 App-only clipboard exports may include Android-local `fullPath` and `cropPath`. Desktop agents cannot usually read those paths directly.
@@ -202,17 +202,17 @@ App-only clipboard exports may include Android-local `fullPath` and `cropPath`. 
 CLI and MCP flows pull screenshots through the bridge and write desktop-readable artifacts. Annotation captures use the annotation id in the legacy artifact cache:
 
 ```text
-.pointpatch/artifacts/<annotation-id>/<annotation-id>-full.png
-.pointpatch/artifacts/<annotation-id>/<annotation-id>-crop.png
+.fixthis/artifacts/<annotation-id>/<annotation-id>-full.png
+.fixthis/artifacts/<annotation-id>/<annotation-id>-crop.png
 ```
 
 Feedback console evidence snapshots are session-owned workspace artifacts and use a generated screen id:
 
 ```text
-.pointpatch/feedback-sessions/<session-id>/artifacts/screens/<screen-id>/<screen-id>-full.png
+.fixthis/feedback-sessions/<session-id>/artifacts/screens/<screen-id>/<screen-id>-full.png
 ```
 
-When available, annotation paths appear as `desktopFullPath` and `desktopCropPath`. Feedback console screen paths appear on the screen entry. `.pointpatch/artifacts/` and `.pointpatch/feedback-sessions/` are ignored by git because these files are local debug screenshots and session metadata. If capture or storage fails, `screenshot.captureFailedReason` or `captureError` records the failure and the annotation or navigation result remains valid.
+When available, annotation paths appear as `desktopFullPath` and `desktopCropPath`. Feedback console screen paths appear on the screen entry. `.fixthis/artifacts/` and `.fixthis/feedback-sessions/` are ignored by git because these files are local debug screenshots and session metadata. If capture or storage fails, `screenshot.captureFailedReason` or `captureError` records the failure and the annotation or navigation result remains valid.
 
 ## Error Codes
 

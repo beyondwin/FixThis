@@ -1,8 +1,8 @@
 ## Summary
 
 ## Impacted Layers
-- [ ] Domain (`pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain`)
-- [ ] Use cases (`pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/usecase`)
+- [ ] Domain (`fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain`)
+- [ ] Use cases (`fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/usecase`)
 - [ ] MCP DTO / persistence
 - [ ] CLI / bridge
 - [ ] Compose overlay UI

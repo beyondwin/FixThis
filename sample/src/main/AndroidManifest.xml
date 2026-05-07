@@ -3,7 +3,7 @@
         android:allowBackup="false"
         android:label="FixThis"
         android:supportsRtl="true"
-        android:theme="@style/Theme.PointPatchSample">
+        android:theme="@style/Theme.FixThisSample">
         <activity
             android:name=".MainActivity"
             android:exported="true">

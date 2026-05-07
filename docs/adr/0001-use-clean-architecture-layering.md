@@ -5,7 +5,7 @@
 
 ## Context
 
-PointPatch now has UI, MCP, CLI, capture, persistence, and Gradle plugin responsibilities. Domain concepts must not depend on MCP JSON, Android UI, or file-system layout.
+FixThis now has UI, MCP, CLI, capture, persistence, and Gradle plugin responsibilities. Domain concepts must not depend on MCP JSON, Android UI, or file-system layout.
 
 ## Decision
 

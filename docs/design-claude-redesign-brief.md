@@ -1,6 +1,6 @@
-# PointPatch Feedback Console — Claude Design System 리디자인 브리프
+# FixThis Feedback Console — Claude Design System 리디자인 브리프
 
-> **대상 코드**: `pointpatch-mcp/src/main/resources/console/{index.html,styles.css,app.js}`와 `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
+> **대상 코드**: `fixthis-mcp/src/main/resources/console/{index.html,styles.css,app.js}`와 `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt`
 > **문서 버전**: 2026-05-05
 > **작성 기준**: Claude Design System (dark/light, amber #D4A843 primary, 4/8/12/16/24/32 spacing)
 
@@ -86,7 +86,7 @@
 
 ```
 ┌───────────────────────────────────────────────────────────────────────────────┐
-│ [PointPatch Feedback Console]   sessionMeta · package · 3 items · updated 14:22 │
+│ [FixThis Feedback Console]   sessionMeta · package · 3 items · updated 14:22 │
 │  ─── divider ───                                                              │
 │ [Device ▾] [Interval: 2s ▾] [↻ Devices] [Disconnect]   ●Selected emul-5554    │
 │                                                            [New] [Close]       │
@@ -300,7 +300,7 @@ function render() {
 
 | 토큰         | 크기/lh    | weight | 사용처                                          |
 | ------------ | ---------- | ------ | ----------------------------------------------- |
-| `display`    | 20 / 28    | 700    | h1 (PointPatch Feedback Console)                |
+| `display`    | 20 / 28    | 700    | h1 (FixThis Feedback Console)                |
 | `heading-md` | 14 / 20    | 600    | h2 (현재 700에서 한 단계 낮춤)                  |
 | `heading-sm` | 12 / 16    | 600    | section sub-heading, badge label                |
 | `body-md`    | 14 / 20    | 400    | textarea, row text                              |
@@ -338,7 +338,7 @@ function render() {
 
 ```
 ┌───────────────────────────────────────────────────────────────────────────────────────────┐
-│ PointPatch Feedback Console                       sample.app · 0 items · updated 14:22    │
+│ FixThis Feedback Console                       sample.app · 0 items · updated 14:22    │
 │ ─────────────────────────────────────────────────────────────────────────────────────────│
 │ [Pixel 7 ▾]  [2s ▾]  [↻]  [Disconnect]   ● Selected emul-5554              [+ New] [✕]  │
 └───────────────────────────────────────────────────────────────────────────────────────────┘
@@ -369,7 +369,7 @@ function render() {
 
 ```
 ┌───────────────────────────────────────────────────────────────────────────────────────────┐
-│ PointPatch Feedback Console                       sample.app · 3 items · updated 14:22    │
+│ FixThis Feedback Console                       sample.app · 3 items · updated 14:22    │
 │ ─── (device row dimmed: device controls inactive while frozen) ──                          │
 │ [Pixel 7 ▾]  [2s ▾]  [↻]  [Disconnect]   ● Frozen at preview_8c2f                         │
 └───────────────────────────────────────────────────────────────────────────────────────────┘
@@ -409,7 +409,7 @@ function render() {
 
 ```
 ┌───────────────────────────────────────────────────────────────────────────────────────────┐
-│ PointPatch Feedback Console                       sample.app · 4 items · updated 14:25    │
+│ FixThis Feedback Console                       sample.app · 4 items · updated 14:25    │
 │ [Pixel 7 ▾]  [2s ▾]  [↻]  [Disconnect]   ● LIVE                            [+ New] [✕]   │
 └───────────────────────────────────────────────────────────────────────────────────────────┘
 ┌───────────────┬─────────────────────────────────────────────┬───────────────────────────┐
