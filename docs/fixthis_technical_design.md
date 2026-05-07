@@ -288,16 +288,9 @@ Compose UI module이다.
 
 ```text
 io.beyondwin.fixthis.compose.overlay
-io.beyondwin.fixthis.compose.console.studio
-io.beyondwin.fixthis.compose.console.studio.canvas
-io.beyondwin.fixthis.compose.console.studio.canvas.toolbar
-io.beyondwin.fixthis.compose.console.studio.common
-io.beyondwin.fixthis.compose.console.studio.theme
 ```
 
-`io.beyondwin.fixthis.compose.console.studio.FeedbackConsoleScreen` is the public Compose entrypoint for the Option A Studio shell. It provides a dark Studio workspace with history, canvas, Inspector, and ViewModel-owned state. The entrypoint accepts optional `ScreenshotInfo` full-preview input through `previewScreenshot`; when it is null, the shell uses mock preview data so the surface remains usable in test and mock-hosted compositions. When a full preview screenshot is decoded, annotation moves to region-only mode instead of widget snapping.
-
-This Compose Studio shell coexists with the existing MCP browser HTML console. It does not replace `FeedbackConsoleAssets.kt` or the browser-console flow served by the MCP/CLI process.
+The MCP/CLI browser console is the supported desktop feedback console surface. It is served from packaged HTML/CSS/JS resources through `FeedbackConsoleAssets.kt` and `FeedbackConsoleServer`.
 
 The in-app overlay mode transitions go through `OverlayStateMachine`, which keeps idle/menu/select/loading/review/comment/export/error transitions explicit and unit-testable.
 
@@ -2217,18 +2210,12 @@ METHOD_FAILED
 
 `fixthis-compose-overlay`
 
-- `StudioShellApiTest`
-  - public `FeedbackConsoleScreen` entrypoint
-  - optional `ScreenshotInfo` preview input
-  - no public `StudioViewModel` parameter
-- `StudioViewModelTest`
-  - draft/session state
-  - annotation creation and selection
-  - snapshot history
-- `PreviewScreenshotStateTest`
-  - full-preview path selection
-  - mock fallback for null preview input
-  - decoded screenshot region-only mode
+- `OverlayStateMachineTest`
+  - in-app overlay mode transitions
+- `FixThisDraftTest`
+  - draft feedback model formatting/state
+- `ScreenshotCropPreviewStateTest`
+  - screenshot crop preview state
 
 ### 20.2 Android instrumentation tests
 
@@ -2260,7 +2247,7 @@ Tests:
 7. Dialog root discoverable
 ```
 
-Option A Compose Studio verification also includes androidTest source compilation for `StudioShellComposeTest`; that test is intended to exercise the shell with `FeedbackConsoleScreen(previewScreenshot = null)` when run on a device or emulator. Connected Compose tests require the target app to be foregrounded on an unlocked interactive emulator or device; a secure physical-device lockscreen can make Compose report no hierarchies even when `adb devices` reports `device`.
+Connected Compose tests require the target app to be foregrounded on an unlocked interactive emulator or device; a secure physical-device lockscreen can make Compose report no hierarchies even when `adb devices` reports `device`.
 
 ### 20.3 CLI tests
 

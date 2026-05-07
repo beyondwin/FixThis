@@ -130,7 +130,7 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
-    fun consoleHtmlUsesOptionAStudioShell() {
+    fun consoleHtmlUsesBrowserStudioLayout() {
         val html = FeedbackConsoleAssets.indexHtml
 
         assertTrue(html.contains("class=\"studio-shell\""))

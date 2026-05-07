@@ -45,13 +45,10 @@ Boundary invariant: `:fixthis-compose-core` does not know about MCP, CLI, Androi
 
 ### `:fixthis-compose-overlay`
 
-Compose UI 모듈이다. 두 갈래 UI가 들어 있다.
+Compose UI 모듈이다. Android 앱 내부에 붙는 feedback overlay 컴포넌트를 담고 있다.
 
 - `compose/overlay/*`: in-app toolbar, selection highlight, comment sheet 등 legacy single-capture overlay.
-- `compose/console/studio/*`: public `FeedbackConsoleScreen`과 Studio-style 3-column console shell. 현재 MCP browser console은 별도 HTML asset을 사용하지만, public Compose entrypoint도 이 모듈에 있다.
-- `StudioViewModel`: Studio shell의 local snapshot/annotation state와 annotation drag/select/save 동작을 관리한다.
 - `compose/overlay/OverlayStateMachine.kt`: in-app overlay mode 전이를 검증한다.
-- `compose/console/studio/theme/*`, `common/*`, `canvas/*`, `canvas/toolbar/*`: Studio theme tokens, common controls, preview canvas, toolbar subcomponents를 분리해 둔다.
 
 ### `:fixthis-compose-sidekick`
 

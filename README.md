@@ -51,14 +51,14 @@ The Android Studio sample app is exposed as Gradle project `:app`, while its fil
 ```text
 :app                         -> sample/
 :fixthis-compose-core     -> pure Kotlin domain contracts, use cases, models, selection, formatters, source matching
-:fixthis-compose-overlay  -> Compose overlay UI and public feedback console Studio shell
+:fixthis-compose-overlay  -> Compose in-app overlay UI components
 :fixthis-compose-sidekick -> debug runtime, inspection, screenshots, bridge
 :fixthis-gradle-plugin    -> plugin and source-index generation
 :fixthis-cli              -> desktop CLI
 :fixthis-mcp              -> stdio MCP server and local feedback console
 ```
 
-The public Compose feedback console entrypoint is `io.beyondwin.fixthis.compose.console.studio.FeedbackConsoleScreen` in `:fixthis-compose-overlay`. The existing CLI/MCP browser console still uses its HTML asset surface, loaded from packaged resources under `fixthis-mcp/src/main/resources/console`.
+The CLI/MCP browser console uses its HTML asset surface, loaded from packaged resources under `fixthis-mcp/src/main/resources/console`.
 
 `gradle/gradle-daemon-jvm.properties` pins the Gradle daemon JVM toolchain to Java 21. Local Android SDK settings still belong in `local.properties`, which is ignored.
 
