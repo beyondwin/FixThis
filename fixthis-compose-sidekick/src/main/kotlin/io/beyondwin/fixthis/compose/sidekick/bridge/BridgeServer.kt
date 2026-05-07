@@ -218,6 +218,14 @@ data class BridgeStatus(
     val sidekickVersion: String,
     val bridgeProtocolVersion: String,
     val sourceIndexAvailable: Boolean,
+    val capabilities: BridgeCapabilities = BridgeCapabilities(),
+)
+
+@Serializable
+data class BridgeCapabilities(
+    val targetEvidence: Boolean = true,
+    val detailModes: List<String> = listOf("compact", "precise", "full"),
+    val composableIdentity: Boolean = false,
 )
 
 @Serializable

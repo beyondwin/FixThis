@@ -1892,7 +1892,7 @@ git commit -m "feat: add feedback handoff detail mode"
 - Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
 - Test: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt`
 
-- [ ] **Step 1: Add bridge status capability test**
+- [x] **Step 1: Add bridge status capability test**
 
 Append to `BridgeServerTest.kt`:
 
@@ -1912,7 +1912,7 @@ fun statusReportsTargetEvidenceCapabilities() = runBlocking {
 }
 ```
 
-- [ ] **Step 2: Run bridge test to verify it fails**
+- [x] **Step 2: Run bridge test to verify it fails**
 
 Run:
 
@@ -1922,7 +1922,7 @@ Run:
 
 Expected: FAIL because capabilities are not reported.
 
-- [ ] **Step 3: Add bridge capability models**
+- [x] **Step 3: Add bridge capability models**
 
 Modify `BridgeServer.kt`.
 
@@ -1945,7 +1945,7 @@ data class BridgeCapabilities(
 
 Do not change `BridgeProtocol.VERSION`.
 
-- [ ] **Step 4: Run bridge tests**
+- [x] **Step 4: Run bridge tests**
 
 Run:
 
@@ -1955,7 +1955,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt \
