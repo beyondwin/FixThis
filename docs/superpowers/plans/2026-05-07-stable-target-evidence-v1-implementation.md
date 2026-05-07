@@ -585,7 +585,7 @@ git commit -m "feat: add stable target identity hints"
 - Create: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/identity/OccurrenceCalculator.kt`
 - Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/identity/OccurrenceCalculatorTest.kt`
 
-- [ ] **Step 1: Write occurrence tests**
+- [x] **Step 1: Write occurrence tests**
 
 Create `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/identity/OccurrenceCalculatorTest.kt`:
 
@@ -684,7 +684,7 @@ class OccurrenceCalculatorTest {
 }
 ```
 
-- [ ] **Step 2: Run occurrence test to verify it fails**
+- [x] **Step 2: Run occurrence test to verify it fails**
 
 Run:
 
@@ -694,7 +694,7 @@ Run:
 
 Expected: FAIL because `OccurrenceCalculator` does not exist.
 
-- [ ] **Step 3: Implement OccurrenceCalculator**
+- [x] **Step 3: Implement OccurrenceCalculator**
 
 Create `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/identity/OccurrenceCalculator.kt`:
 
@@ -769,7 +769,7 @@ object OccurrenceCalculator {
 }
 ```
 
-- [ ] **Step 4: Run occurrence tests**
+- [x] **Step 4: Run occurrence tests**
 
 Run:
 
@@ -779,7 +779,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/identity/OccurrenceCalculator.kt \
