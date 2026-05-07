@@ -149,5 +149,6 @@ More detail:
 - [MCP](docs/mcp.md)
 - [Feedback console UX status](docs/design-feedback-console-ux.md)
 - [Project improvement proposals](docs/project-improvement-proposals-2026-05-07.md)
+- [Project improvement stabilization design](docs/superpowers/specs/2026-05-08-project-improvement-stabilization-design.md)
 - [Feedback console redesign brief](docs/design-claude-redesign-brief.md)
 - [Zero-setup agent configuration proposal](docs/design-zero-setup.md)

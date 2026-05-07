@@ -17,6 +17,8 @@ Recommended improvement sequence:
 5. Add browser-level and connected-device smoke automation.
 6. Improve source-index precision and external-adoption readiness.
 
+Detailed design: `docs/superpowers/specs/2026-05-08-project-improvement-stabilization-design.md`
+
 ## Analysis Baseline
 
 Observed repository shape:
