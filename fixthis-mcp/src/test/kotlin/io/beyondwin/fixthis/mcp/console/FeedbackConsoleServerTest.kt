@@ -745,9 +745,7 @@ class FeedbackConsoleServerTest {
 
         assertTrue(html.contains(".snapshot-stage"))
         assertTrue(html.contains("flex-direction: column;"))
-        assertTrue(Regex("\\.snapshot-stage\\[data-tool-mode=\"annotate\"\\] \\{[\\s\\S]*justify-content: flex-start;[\\s\\S]*padding-top: 12px;").containsMatchIn(html))
         assertTrue(html.contains(".annotate-hint-slot"))
-        assertTrue(html.contains("min-height: 6px;"))
         assertTrue(Regex("\\.snapshot-stage \\{[\\s\\S]*gap: 10px;").containsMatchIn(html))
         assertTrue(html.contains(".annotate-hint"))
         assertTrue(html.contains("position: static;"))
@@ -757,6 +755,15 @@ class FeedbackConsoleServerTest {
         assertTrue(renderPreviewRegion.contains("hintSlot.appendChild(hint);"))
         assertFalse(renderPreviewRegion.contains("snapshot.insertBefore(hint, frame);"))
         assertFalse(renderPreviewRegion.contains("frame.appendChild(hint);"))
+    }
+
+    @Test
+    fun consoleHtmlKeepsPreviewFramePositionStableAcrossSelectAndAnnotateModes() {
+        val html = FeedbackConsoleAssets.indexHtml
+
+        assertTrue(Regex("\\.snapshot-stage \\{[\\s\\S]*justify-content: flex-start;[\\s\\S]*padding: 12px 24px 24px;").containsMatchIn(html))
+        assertTrue(Regex("\\.annotate-hint-slot \\{[\\s\\S]*min-height: 32px;").containsMatchIn(html))
+        assertFalse(Regex("\\.snapshot-stage\\[data-tool-mode=\"annotate\"\\] \\{[\\s\\S]*(justify-content|padding-top)").containsMatchIn(html))
     }
 
     @Test

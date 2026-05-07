@@ -608,24 +608,20 @@
               display: flex;
               flex-direction: column;
               align-items: center;
-              justify-content: center;
+              justify-content: flex-start;
               gap: 10px;
               min-height: 0;
               overflow: auto;
-              padding: 24px;
+              padding: 12px 24px 24px;
               background:
                 radial-gradient(circle at 50% 50%, var(--bg-1) 0%, var(--bg-0) 70%),
                 var(--bg-0);
               color: var(--txt-2);
               text-align: center;
             }
-            .snapshot-stage[data-tool-mode="annotate"] {
-              justify-content: flex-start;
-              padding-top: 12px;
-            }
             .empty-stage { color: var(--txt-2); font-size: 13px; }
             .annotate-hint-slot {
-              min-height: 6px;
+              min-height: 32px;
               display: flex;
               align-items: flex-end;
               justify-content: center;
