@@ -617,7 +617,7 @@ git commit -m "feat: diagnose console connection state"
 - Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
 - Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Add failing console API tests**
+- [x] **Step 1: Add failing console API tests**
 
 Add tests to `FeedbackConsoleServerTest.kt`:
 
@@ -665,7 +665,7 @@ import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.getValue
 ```
 
-- [ ] **Step 2: Run console server tests and verify RED**
+- [x] **Step 2: Run console server tests and verify RED**
 
 Run:
 
@@ -675,7 +675,7 @@ Run:
 
 Expected: fails because routes and `sendJson(ConsoleConnectionStatus)` do not exist.
 
-- [ ] **Step 3: Implement routes**
+- [x] **Step 3: Implement routes**
 
 In `FeedbackConsoleServer.kt`, add import:
 
@@ -702,7 +702,7 @@ private fun HttpExchange.sendJson(statusCode: Int, value: ConsoleConnectionStatu
 }
 ```
 
-- [ ] **Step 4: Run console API tests and verify GREEN**
+- [x] **Step 4: Run console API tests and verify GREEN**
 
 Run:
 
@@ -712,7 +712,7 @@ Run:
 
 Expected: PASS. If the existing uncommitted prompt evidence assertions are present, they must still pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
