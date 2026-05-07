@@ -17,6 +17,6 @@ class BridgeConnectionState(
     }
 
     private companion object {
-        const val DefaultConnectedWindowMillis = 5_000L
+        const val DefaultConnectedWindowMillis = 60_000L
     }
 }

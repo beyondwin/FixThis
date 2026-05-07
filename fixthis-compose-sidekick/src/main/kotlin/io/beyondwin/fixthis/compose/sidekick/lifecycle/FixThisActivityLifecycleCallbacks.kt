@@ -16,13 +16,16 @@ class FixThisActivityLifecycleCallbacks : Application.ActivityLifecycleCallbacks
         FixThisBridgeRuntime.onActivityResumed(activity)
     }
 
-    override fun onActivityPaused(activity: Activity) = Unit
+    override fun onActivityPaused(activity: Activity) {
+        FixThisConnectionStatusHostLayout.detachFrom(activity)
+    }
 
     override fun onActivityStopped(activity: Activity) = Unit
 
     override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
 
     override fun onActivityDestroyed(activity: Activity) {
+        FixThisConnectionStatusHostLayout.detachFrom(activity)
         FixThisBridgeRuntime.onActivityDestroyed(activity)
     }
 }

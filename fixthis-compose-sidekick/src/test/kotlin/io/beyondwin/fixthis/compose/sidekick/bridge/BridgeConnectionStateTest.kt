@@ -20,4 +20,15 @@ class BridgeConnectionStateTest {
 
         assertFalse(state.isConnected())
     }
+
+    @Test
+    fun defaultWindowStaysConnectedAcrossShortConsolePollingGaps() {
+        var now = 1_000L
+        val state = BridgeConnectionState(clock = { now })
+
+        state.markAuthorizedRequest()
+        now += 10_000L
+
+        assertTrue(state.isConnected())
+    }
 }
