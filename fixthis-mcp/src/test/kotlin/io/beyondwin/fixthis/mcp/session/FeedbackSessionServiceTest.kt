@@ -13,6 +13,7 @@ import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
 import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import io.beyondwin.fixthis.mcp.console.AnnotationDraftDto
 import io.beyondwin.fixthis.mcp.console.ConsoleConnectionState
+import java.io.File
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -240,7 +241,7 @@ class FeedbackSessionServiceTest {
 
     @Test
     fun serviceOpensExactPersistedSession() {
-        val root = createTempDir(prefix = "fixthis-v2-service-")
+        val root = tempDir(prefix = "fixthis-v2-service-")
         val persistence = FeedbackSessionPersistence(FeedbackSessionPaths(root), clock = { 100L })
         val store = FeedbackSessionStore(
             clock = { 100L },
@@ -270,7 +271,7 @@ class FeedbackSessionServiceTest {
 
     @Test
     fun serviceListsSessionsForPackage() {
-        val root = createTempDir(prefix = "fixthis-v2-list-")
+        val root = tempDir(prefix = "fixthis-v2-list-")
         val store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1").next)
         val service = FeedbackSessionService(
             bridge = FakeFixThisBridge(packageName = "io.beyondwin.fixthis.sample"),
@@ -287,7 +288,7 @@ class FeedbackSessionServiceTest {
 
     @Test
     fun serviceAutoResumesLatestNonClosedPersistedSessionForPackageAndProject() {
-        val root = createTempDir(prefix = "fixthis-v2-auto-resume-")
+        val root = tempDir(prefix = "fixthis-v2-auto-resume-")
         val persistence = FeedbackSessionPersistence(FeedbackSessionPaths(root), clock = { 500L })
         persistence.save(
             SessionDto(
@@ -365,7 +366,7 @@ class FeedbackSessionServiceTest {
 
     @Test
     fun captureUsesSessionOwnedArtifactPath() = runBlocking {
-        val root = createTempDir(prefix = "fixthis-v2-artifacts-")
+        val root = tempDir(prefix = "fixthis-v2-artifacts-")
         val bridge = FakeFixThisBridge(packageName = "io.beyondwin.fixthis.sample")
         val store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1").next)
         val service = FeedbackSessionService(
@@ -388,7 +389,7 @@ class FeedbackSessionServiceTest {
 
     @Test
     fun savingFrozenPreviewPersistsOneScreenForMultipleItems() = runBlocking {
-        val root = createTempDir(prefix = "fixthis-v2-preview-save-")
+        val root = tempDir(prefix = "fixthis-v2-preview-save-")
         val bridge = FakeFixThisBridge()
         val store = FeedbackSessionStore(
             clock = sequenceClock(1_000L, 2_000L),
@@ -469,7 +470,7 @@ class FeedbackSessionServiceTest {
                 mergedNodes = listOf(otherRootNearby),
             ),
         )
-        val root = createTempDir(prefix = "fixthis-v2-node-source-")
+        val root = tempDir(prefix = "fixthis-v2-node-source-")
         val store = FeedbackSessionStore(
             clock = sequenceClock(1_000L, 2_000L),
             idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1"),
@@ -552,7 +553,7 @@ class FeedbackSessionServiceTest {
                 mergedNodes = listOf(selected, earlierOccurrence),
             ),
         )
-        val root = createTempDir(prefix = "fixthis-v2-target-evidence-")
+        val root = tempDir(prefix = "fixthis-v2-target-evidence-")
         val store = FeedbackSessionStore(
             clock = sequenceClock(1_000L, 2_000L),
             idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1"),
@@ -609,7 +610,7 @@ class FeedbackSessionServiceTest {
 
     @Test
     fun capturePreviewCachesDecodedSourceIndexForSessionProcess() = runBlocking {
-        val root = createTempDir(prefix = "fixthis-v2-source-index-cache-")
+        val root = tempDir(prefix = "fixthis-v2-source-index-cache-")
         val bridge = FakeFixThisBridge()
         val store = FeedbackSessionStore(
             clock = sequenceClock(1_000L, 2_000L),
@@ -654,7 +655,7 @@ class FeedbackSessionServiceTest {
                 mergedNodes = listOf(secondNearest, nearest),
             ),
         )
-        val root = createTempDir(prefix = "fixthis-v2-area-source-")
+        val root = tempDir(prefix = "fixthis-v2-area-source-")
         val store = FeedbackSessionStore(
             clock = sequenceClock(1_000L, 2_000L),
             idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1"),
@@ -729,7 +730,7 @@ class FeedbackSessionServiceTest {
                 mergedNodes = listOf(nearbyNonOverlapping, overlapping),
             ),
         )
-        val root = createTempDir(prefix = "fixthis-v2-area-overlap-source-")
+        val root = tempDir(prefix = "fixthis-v2-area-overlap-source-")
         val store = FeedbackSessionStore(
             clock = sequenceClock(1_000L, 2_000L),
             idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1"),
@@ -802,7 +803,7 @@ class FeedbackSessionServiceTest {
             NoSourceIndexCase("empty", true, SourceIndex(entries = emptyList()), null),
             NoSourceIndexCase("read-error", true, null, "Source index asset is malformed"),
         ).forEachIndexed { index, sourceIndexCase ->
-            val root = createTempDir(prefix = "fixthis-v2-no-source-index-${sourceIndexCase.label}-")
+            val root = tempDir(prefix = "fixthis-v2-no-source-index-${sourceIndexCase.label}-")
             val store = FeedbackSessionStore(
                 clock = sequenceClock(1_000L, 2_000L),
                 idGenerator = sequenceIds("session-${index + 1}", "preview-${index + 1}", "screen-${index + 1}", "item-${index + 1}"),
@@ -844,7 +845,7 @@ class FeedbackSessionServiceTest {
 
     @Test
     fun capturePreviewRetainsEvictedPreviewCacheDirectoriesForLateScreenshotRequests() = runBlocking {
-        val root = createTempDir(prefix = "fixthis-v2-preview-cache-")
+        val root = tempDir(prefix = "fixthis-v2-preview-cache-")
         try {
             val store = FeedbackSessionStore(
                 clock = { 1_000L },
@@ -885,7 +886,7 @@ class FeedbackSessionServiceTest {
 
     @Test
     fun savingPreviewDeletesPreviewCacheDirectoryAfterPromotingScreenshot() = runBlocking {
-        val root = createTempDir(prefix = "fixthis-v2-preview-save-cleanup-")
+        val root = tempDir(prefix = "fixthis-v2-preview-save-cleanup-")
         try {
             val store = FeedbackSessionStore(
                 clock = sequenceClock(1_000L, 2_000L),
@@ -925,7 +926,7 @@ class FeedbackSessionServiceTest {
 
     @Test
     fun previewScreenshotFileRequiresLivePreviewRecordAndDoesNotUseDeletedCache() = runBlocking {
-        val root = createTempDir(prefix = "fixthis-v2-preview-screenshot-")
+        val root = tempDir(prefix = "fixthis-v2-preview-screenshot-")
         try {
             val store = FeedbackSessionStore(
                 clock = sequenceClock(1_000L, 2_000L),
@@ -967,7 +968,7 @@ class FeedbackSessionServiceTest {
 
     @Test
     fun savingSamePreviewTwiceDoesNotPersistDuplicateScreensOrItems() = runBlocking {
-        val root = createTempDir(prefix = "fixthis-v2-preview-duplicate-")
+        val root = tempDir(prefix = "fixthis-v2-preview-duplicate-")
         val store = FeedbackSessionStore(
             clock = sequenceClock(1_000L, 2_000L),
             idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1"),
@@ -998,7 +999,7 @@ class FeedbackSessionServiceTest {
 
     @Test
     fun savingPreviewCanRecoverFromMissingMemoryCacheUsingFrozenScreenSnapshot() = runBlocking {
-        val root = createTempDir(prefix = "fixthis-v2-preview-recover-")
+        val root = tempDir(prefix = "fixthis-v2-preview-recover-")
         val store = FeedbackSessionStore(
             clock = sequenceClock(1_000L, 2_000L),
             idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1"),
@@ -1040,8 +1041,8 @@ class FeedbackSessionServiceTest {
 
     @Test
     fun savingPreviewPromotesArtifactsUnderSessionProjectRoot() = runBlocking {
-        val sessionRoot = createTempDir(prefix = "fixthis-v2-session-root-")
-        val serviceRoot = createTempDir(prefix = "fixthis-v2-service-root-")
+        val sessionRoot = tempDir(prefix = "fixthis-v2-session-root-")
+        val serviceRoot = tempDir(prefix = "fixthis-v2-service-root-")
         val store = FeedbackSessionStore(
             clock = sequenceClock(1_000L, 2_000L),
             idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1"),
@@ -1322,9 +1323,12 @@ class FeedbackSessionServiceTest {
         FeedbackSessionService(
             bridge = bridge,
             store = FeedbackSessionStore(),
-            projectRoot = createTempDir(prefix = "fixthis-connection-service-").absolutePath,
+            projectRoot = tempDir(prefix = "fixthis-connection-service-").absolutePath,
             defaultPackageName = "io.beyondwin.fixthis.sample",
         )
+
+    private fun tempDir(prefix: String): File =
+        kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
 
     private class FakeIds(vararg values: String) {
         private val queue = ArrayDeque(values.toList())

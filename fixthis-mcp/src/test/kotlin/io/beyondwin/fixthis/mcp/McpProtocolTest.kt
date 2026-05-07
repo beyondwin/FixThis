@@ -103,7 +103,7 @@ class McpProtocolTest {
 
     @Test
     fun listFeedbackSessionsReturnsPersistedSummaries() = runBlocking {
-        val projectRoot = createTempDir(prefix = "fixthis-v2-mcp-sessions-")
+        val projectRoot = tempDir(prefix = "fixthis-v2-mcp-sessions-")
         val tools = FixThisTools(
             bridge = FakeBridge(defaultPackageName = "io.beyondwin.fixthis.sample"),
             defaultPackageName = "io.beyondwin.fixthis.sample",
@@ -127,7 +127,7 @@ class McpProtocolTest {
         val tools = FixThisTools(
             bridge = FakeBridge(defaultPackageName = "io.beyondwin.fixthis.sample"),
             defaultPackageName = "io.beyondwin.fixthis.sample",
-            projectRoot = createTempDir(prefix = "fixthis-v2-mcp-open-"),
+            projectRoot = tempDir(prefix = "fixthis-v2-mcp-open-"),
         )
         val opened = tools.call("fixthis_open_feedback_console", jsonObject("newSession" to true)).firstJsonContent()
         val sessionId = opened.getValue("sessionId").jsonPrimitive.content
@@ -144,7 +144,7 @@ class McpProtocolTest {
         val tools = FixThisTools(
             bridge = bridge,
             defaultPackageName = "io.beyondwin.fixthis.sample",
-            projectRoot = createTempDir(prefix = "fixthis-v2-nav-mcp-"),
+            projectRoot = tempDir(prefix = "fixthis-v2-nav-mcp-"),
         )
         val opened = tools.call("fixthis_open_feedback_console", jsonObject("newSession" to true)).firstJsonContent()
         val sessionId = opened["sessionId"]!!.jsonPrimitive.content
@@ -166,7 +166,7 @@ class McpProtocolTest {
         val tools = FixThisTools(
             bridge = bridge,
             defaultPackageName = "io.beyondwin.fixthis.sample",
-            projectRoot = createTempDir(prefix = "fixthis-v2-capture-resource-"),
+            projectRoot = tempDir(prefix = "fixthis-v2-capture-resource-"),
         )
         val opened = tools.call("fixthis_open_feedback_console", jsonObject("newSession" to true)).firstJsonContent()
         val sessionId = opened["sessionId"]!!.jsonPrimitive.content
@@ -193,7 +193,7 @@ class McpProtocolTest {
         val tools = FixThisTools(
             bridge = bridge,
             defaultPackageName = "io.beyondwin.fixthis.sample",
-            projectRoot = createTempDir(prefix = "fixthis-v2-nav-no-capture-"),
+            projectRoot = tempDir(prefix = "fixthis-v2-nav-no-capture-"),
         )
         val opened = tools.call("fixthis_open_feedback_console", jsonObject("newSession" to true)).firstJsonContent()
         val sessionId = opened["sessionId"]!!.jsonPrimitive.content
@@ -218,7 +218,7 @@ class McpProtocolTest {
         val tools = FixThisTools(
             bridge = bridge,
             defaultPackageName = "io.beyondwin.fixthis.sample",
-            projectRoot = createTempDir(prefix = "fixthis-v2-nav-capture-fail-"),
+            projectRoot = tempDir(prefix = "fixthis-v2-nav-capture-fail-"),
         )
         val opened = tools.call("fixthis_open_feedback_console", jsonObject("newSession" to true)).firstJsonContent()
         val sessionId = opened["sessionId"]!!.jsonPrimitive.content
@@ -236,7 +236,7 @@ class McpProtocolTest {
 
     @Test
     fun navigateAppRejectsMissingActionWithoutCreatingSession() = runBlocking {
-        val projectRoot = createTempDir(prefix = "fixthis-v2-nav-missing-action-")
+        val projectRoot = tempDir(prefix = "fixthis-v2-nav-missing-action-")
         val tools = FixThisTools(
             bridge = FakeFixThisBridge(packageName = "io.beyondwin.fixthis.sample"),
             defaultPackageName = "io.beyondwin.fixthis.sample",
@@ -258,7 +258,7 @@ class McpProtocolTest {
         val tools = FixThisTools(
             bridge = FakeFixThisBridge(packageName = "io.beyondwin.fixthis.sample"),
             defaultPackageName = "io.beyondwin.fixthis.sample",
-            projectRoot = createTempDir(prefix = "fixthis-v2-nav-invalid-"),
+            projectRoot = tempDir(prefix = "fixthis-v2-nav-invalid-"),
         )
         val opened = tools.call("fixthis_open_feedback_console", jsonObject("newSession" to true)).firstJsonContent()
         val sessionId = opened["sessionId"]!!.jsonPrimitive.content
@@ -276,7 +276,7 @@ class McpProtocolTest {
 
     @Test
     fun feedbackSessionsPersistAcrossFixThisToolsInstances() = runBlocking {
-        val projectRoot = createTempDir(prefix = "fixthis-v2-mcp-persisted-")
+        val projectRoot = tempDir(prefix = "fixthis-v2-mcp-persisted-")
         val firstTools = FixThisTools(
             bridge = FakeBridge(defaultPackageName = "io.beyondwin.fixthis.sample"),
             defaultPackageName = "io.beyondwin.fixthis.sample",
@@ -333,7 +333,7 @@ class McpProtocolTest {
     @Test
     fun listFeedbackIncludesDraftAndSentCounts() = runBlocking {
         val bridge = FakeFixThisBridge(packageName = "io.beyondwin.fixthis.sample")
-        val projectRoot = createTempDir(prefix = "fixthis-handoff-list-")
+        val projectRoot = tempDir(prefix = "fixthis-handoff-list-")
         val service = feedbackService(
             bridge,
             "session-1",
@@ -1039,4 +1039,7 @@ class McpProtocolTest {
             destinationDirectory: File?,
         ): JsonObject = JsonObject(emptyMap())
     }
+
+    private fun tempDir(prefix: String): File =
+        kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
 }

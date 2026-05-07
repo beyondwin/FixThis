@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
 class FeedbackSessionPersistenceTest {
     @Test
     fun pathsStayUnderProjectFeedbackSessionsDirectory() {
-        val root = createTempDir(prefix = "fixthis-v2-paths-")
+        val root = tempDir(prefix = "fixthis-v2-paths-")
         val paths = FeedbackSessionPaths(root)
 
         val sessionDir = paths.sessionDirectory("session-1")
@@ -23,7 +23,7 @@ class FeedbackSessionPersistenceTest {
 
     @Test
     fun pathHelpersRejectUnsafeIds() {
-        val paths = FeedbackSessionPaths(createTempDir(prefix = "fixthis-v2-unsafe-"))
+        val paths = FeedbackSessionPaths(tempDir(prefix = "fixthis-v2-unsafe-"))
 
         assertFailsWith<IllegalArgumentException> {
             paths.sessionDirectory("../escape")
@@ -87,7 +87,7 @@ class FeedbackSessionPersistenceTest {
 
     @Test
     fun persistenceSavesSessionAndIndex() {
-        val root = createTempDir(prefix = "fixthis-v2-persist-")
+        val root = tempDir(prefix = "fixthis-v2-persist-")
         val paths = FeedbackSessionPaths(root)
         val persistence = FeedbackSessionPersistence(paths, clock = { 200L })
         val session = SessionDto(
@@ -110,7 +110,7 @@ class FeedbackSessionPersistenceTest {
 
     @Test
     fun loadSessionWithoutTargetEvidenceStillWorks() {
-        val root = createTempDir(prefix = "fixthis-v2-legacy-target-evidence-")
+        val root = tempDir(prefix = "fixthis-v2-legacy-target-evidence-")
         val paths = FeedbackSessionPaths(root)
         paths.sessionDirectory("session-1").mkdirs()
         paths.sessionFile("session-1").writeText(
@@ -138,7 +138,7 @@ class FeedbackSessionPersistenceTest {
 
     @Test
     fun failedIndexWriteLeavesExistingSessionFileUnchanged() {
-        val root = createTempDir(prefix = "fixthis-v2-partial-save-")
+        val root = tempDir(prefix = "fixthis-v2-partial-save-")
         val paths = FeedbackSessionPaths(root)
         val persistence = FeedbackSessionPersistence(paths, clock = { 200L })
         val initial = SessionDto(
@@ -180,7 +180,7 @@ class FeedbackSessionPersistenceTest {
 
     @Test
     fun failedSessionReplaceLeavesExistingIndexUnchanged() {
-        val root = createTempDir(prefix = "fixthis-v2-session-replace-fail-")
+        val root = tempDir(prefix = "fixthis-v2-session-replace-fail-")
         val paths = FeedbackSessionPaths(root)
         val persistence = FeedbackSessionPersistence(paths, clock = { 200L })
         val existing = SessionDto(
@@ -217,7 +217,7 @@ class FeedbackSessionPersistenceTest {
 
     @Test
     fun failedIndexReplaceRestoresCommittedSessionFile() {
-        val root = createTempDir(prefix = "fixthis-v2-index-replace-fail-")
+        val root = tempDir(prefix = "fixthis-v2-index-replace-fail-")
         val paths = FeedbackSessionPaths(root)
         val persistence = FeedbackSessionPersistence(paths, clock = { 200L })
         val initial = SessionDto(
@@ -244,7 +244,7 @@ class FeedbackSessionPersistenceTest {
 
     @Test
     fun persistenceSkipsCorruptSessionFilesDuringList() {
-        val root = createTempDir(prefix = "fixthis-v2-corrupt-")
+        val root = tempDir(prefix = "fixthis-v2-corrupt-")
         val paths = FeedbackSessionPaths(root)
         val persistence = FeedbackSessionPersistence(paths, clock = { 200L })
         paths.sessionDirectory("session-bad").mkdirs()
@@ -256,6 +256,9 @@ class FeedbackSessionPersistenceTest {
         assertEquals(listOf(paths.sessionFile("session-bad").absolutePath), listed.skippedSessions.map { it.path })
     }
 }
+
+private fun tempDir(prefix: String): File =
+    kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
 
 private object FixThisRectForTest {
     val bounds = io.beyondwin.fixthis.compose.core.model.FixThisRect(1f, 2f, 3f, 4f)

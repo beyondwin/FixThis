@@ -478,7 +478,7 @@ HANDOFF CHECKPOINT:
 - Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt`
 - Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Add temp directory helpers in affected test files**
+- [x] **Step 1: Add temp directory helpers in affected test files**
 
 Replace local `createTempDir(prefix = "fixthis-v2-service-")` calls with a helper using `kotlin.io.path.createTempDirectory`.
 
@@ -495,7 +495,7 @@ Example replacement:
 val root = tempDir("fixthis-v2-service-")
 ```
 
-- [ ] **Step 2: Add an HTTP helper for console tests**
+- [x] **Step 2: Add an HTTP helper for console tests**
 
 In `FeedbackConsoleServerTest.kt`, add a helper near the bottom of the file:
 
@@ -519,7 +519,7 @@ private class ConsoleHttpTestClient(private val baseUrl: String) {
 
 Use the helper to replace `URL(server.url)` and `URL("${server.url}/path")` construction.
 
-- [ ] **Step 3: Run targeted tests and inspect warnings**
+- [x] **Step 3: Run targeted tests and inspect warnings**
 
 Run:
 
@@ -529,12 +529,27 @@ Run:
 
 Expected: PASS and no project-owned warnings for `createTempDir` or `URL(String)`.
 
-- [ ] **Step 4: Commit**
+Validation notes:
+- `./gradlew :fixthis-mcp:test --warning-mode all`: PASS.
+- Warning log scan: PASS, no project-owned `createTempDir` or `URL(String)` warnings found.
+- `git diff --check`: PASS.
+
+- [x] **Step 4: Commit**
 
 ```bash
-git add fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp
+git add fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md
 git commit -m "test: remove mcp deprecation warnings"
 ```
+
+HANDOFF CHECKPOINT:
+- Task 3 test cleanup completed in the integration worktree only.
+- Replaced affected project-owned `createTempDir` test calls with local `tempDir` helpers.
+- Replaced console-test `URL(...)` construction with `ConsoleHttpTestClient`.
+- No production code changed.
+- Targeted MCP tests passed with `--warning-mode all`.
+- Warning output was inspected for `createTempDir` and `URL(String)`.
+- `git diff --check` passed.
+- Next task remains Task 4; not started.
 
 ## Task 4: Implement Zero-Setup MCP Config Writers
 

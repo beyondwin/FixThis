@@ -13,6 +13,7 @@ import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.beyondwin.fixthis.compose.core.model.SourceCandidateSummary
 import io.beyondwin.fixthis.compose.core.model.SourceInterpretation
 import io.beyondwin.fixthis.compose.core.model.TargetEvidence
+import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -406,7 +407,7 @@ class FeedbackSessionStoreTest {
 
     @Test
     fun failedSendDraftSaveKeepsDraftSessionInMemory() {
-        val root = createTempDir(prefix = "fixthis-v2-send-fail-")
+        val root = tempDir(prefix = "fixthis-v2-send-fail-")
         val paths = FeedbackSessionPaths(root)
         val persistence = FeedbackSessionPersistence(paths, clock = { 100L })
         val ids = FakeIds("session-1", "screen-1", "item-1", "batch-1")
@@ -530,7 +531,7 @@ class FeedbackSessionStoreTest {
 
     @Test
     fun storePersistsMutationsAndCanResumeLatestSession() {
-        val root = createTempDir(prefix = "fixthis-v2-store-")
+        val root = tempDir(prefix = "fixthis-v2-store-")
         val persistence = FeedbackSessionPersistence(FeedbackSessionPaths(root), clock = { 100L })
         val ids = ArrayDeque(listOf("session-1", "screen-1", "item-1"))
         val store = FeedbackSessionStore(
@@ -565,7 +566,7 @@ class FeedbackSessionStoreTest {
 
     @Test
     fun storeCanOpenExactPersistedSession() {
-        val root = createTempDir(prefix = "fixthis-v2-exact-")
+        val root = tempDir(prefix = "fixthis-v2-exact-")
         val persistence = FeedbackSessionPersistence(FeedbackSessionPaths(root), clock = { 100L })
         val store = FeedbackSessionStore(clock = { 100L }, idGenerator = { "session-1" }, persistence = persistence)
         val created = store.openSession("io.beyondwin.fixthis.sample", root.absolutePath)
@@ -579,7 +580,7 @@ class FeedbackSessionStoreTest {
 
     @Test
     fun failedSessionSaveDoesNotOpenUnsavedSession() {
-        val root = createTempDir(prefix = "fixthis-v2-open-fail-")
+        val root = tempDir(prefix = "fixthis-v2-open-fail-")
         root.resolve(".fixthis").writeText("blocked")
         val persistence = FeedbackSessionPersistence(FeedbackSessionPaths(root), clock = { 100L })
         val store = FeedbackSessionStore(clock = { 100L }, idGenerator = { "session-1" }, persistence = persistence)
@@ -596,7 +597,7 @@ class FeedbackSessionStoreTest {
 
     @Test
     fun failedCloseSaveKeepsCurrentSessionOpenInMemory() {
-        val root = createTempDir(prefix = "fixthis-v2-close-fail-")
+        val root = tempDir(prefix = "fixthis-v2-close-fail-")
         val paths = FeedbackSessionPaths(root)
         val persistence = FeedbackSessionPersistence(paths, clock = { 100L })
         val store = FeedbackSessionStore(clock = { 100L }, idGenerator = { "session-1" }, persistence = persistence)
@@ -630,6 +631,9 @@ class FeedbackSessionStoreTest {
         private val queue = ArrayDeque(values.toList())
         fun next(): String = queue.removeFirst()
     }
+
+    private fun tempDir(prefix: String): File =
+        kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
 
     private fun targetEvidenceForTest(): TargetEvidence =
         TargetEvidence(

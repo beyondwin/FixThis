@@ -19,9 +19,6 @@ import io.beyondwin.fixthis.mcp.session.SnapshotScreenshotDto
 import io.beyondwin.fixthis.mcp.session.AnnotationTargetDto
 import io.beyondwin.fixthis.mcp.tools.FixThisBridge
 import java.io.File
-import java.net.HttpURLConnection
-import java.net.URI
-import java.net.URL
 import java.nio.file.Files
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -53,10 +50,10 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val index = URL(server.url).readText()
+            val index = ConsoleHttpTestClient(server.url).get()
             assertTrue(index.contains("FixThis Feedback Console"))
 
-            val session = URL("${server.url}/api/session").readText()
+            val session = ConsoleHttpTestClient(server.url).get("/api/session")
             assertTrue(session.contains("io.beyondwin.fixthis.sample"))
         } finally {
             server.stop()
@@ -74,7 +71,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val index = URI(server.url).toURL().readText()
+            val index = ConsoleHttpTestClient(server.url).get()
 
             assertButtonContainsContractLabel(index, "copyPromptButton", "Copy Prompt")
             assertButtonContainsContractLabel(index, "sendAgentButton", "Send Agent")
@@ -116,7 +113,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val connection = URL("${server.url}/favicon.ico").openConnection() as HttpURLConnection
+            val connection = ConsoleHttpTestClient(server.url).connection("/favicon.ico")
 
             assertEquals(204, connection.responseCode)
         } finally {
@@ -138,12 +135,12 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         val previewThread = thread(isDaemon = true, name = "blocking-preview-test-request") {
-            runCatching { URL("${server.url}/api/preview").readText() }
+            runCatching { ConsoleHttpTestClient(server.url).get("/api/preview") }
         }
         try {
             assertTrue(previewStarted.await(2, TimeUnit.SECONDS))
 
-            val connection = URL("${server.url}/api/session").openConnection() as HttpURLConnection
+            val connection = ConsoleHttpTestClient(server.url).connection("/api/session")
             connection.connectTimeout = 500
             connection.readTimeout = 500
 
@@ -181,11 +178,11 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0, consoleAssetsDir = assetsDir)
         server.start()
         try {
-            assertTrue(URL(server.url).readText().contains("first-marker"))
+            assertTrue(ConsoleHttpTestClient(server.url).get().contains("first-marker"))
 
             writeConsoleAssets(assetsDir, marker = "second-marker")
 
-            val refreshedHtml = URL(server.url).readText()
+            val refreshedHtml = ConsoleHttpTestClient(server.url).get()
             assertFalse(refreshedHtml.contains("first-marker"))
             assertTrue(refreshedHtml.contains("second-marker"))
         } finally {
@@ -737,7 +734,7 @@ class FeedbackConsoleServerTest {
         val service = FeedbackSessionService(bridge, FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")
         val server = FeedbackConsoleServer(service).also { it.start() }
         try {
-            val connection = URL("${server.url}/api/heartbeat").openConnection() as HttpURLConnection
+            val connection = ConsoleHttpTestClient(server.url).connection("/api/heartbeat")
 
             assertEquals(200, connection.responseCode)
             assertEquals(1, bridge.statusCount)
@@ -754,7 +751,7 @@ class FeedbackConsoleServerTest {
         val service = FeedbackSessionService(bridge, FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")
         val server = FeedbackConsoleServer(service).also { it.start() }
         try {
-            val body = URL("${server.url}/api/connection").readText()
+            val body = ConsoleHttpTestClient(server.url).get("/api/connection")
             val json = fixThisJson.parseToJsonElement(body).jsonObject
 
             assertEquals("READY", json.getValue("state").jsonPrimitive.content)
@@ -772,7 +769,7 @@ class FeedbackConsoleServerTest {
         val service = FeedbackSessionService(bridge, FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")
         val server = FeedbackConsoleServer(service).also { it.start() }
         try {
-            val connection = URL("${server.url}/api/app/launch").openConnection() as HttpURLConnection
+            val connection = ConsoleHttpTestClient(server.url).connection("/api/app/launch")
             connection.requestMethod = "POST"
             connection.doOutput = true
             connection.outputStream.use { it.write(ByteArray(0)) }
@@ -1392,7 +1389,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val connection = URL("${server.url}/api/session").openConnection() as HttpURLConnection
+            val connection = ConsoleHttpTestClient(server.url).connection("/api/session")
             connection.requestMethod = "POST"
             assertEquals(405, connection.responseCode)
         } finally {
@@ -1411,10 +1408,10 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val before = fixThisJson.parseToJsonElement(URL("${server.url}/api/session").readText()).jsonObject
+            val before = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/session")).jsonObject
 
-            val preview = fixThisJson.parseToJsonElement(URL("${server.url}/api/preview").readText()).jsonObject
-            val after = fixThisJson.parseToJsonElement(URL("${server.url}/api/session").readText()).jsonObject
+            val preview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject
+            val after = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/session")).jsonObject
 
             assertTrue(preview.containsKey("screen"))
             assertTrue(before.getValue("screens").jsonArray.isEmpty())
@@ -1440,10 +1437,10 @@ class FeedbackConsoleServerTest {
             val server = FeedbackConsoleServer(service = service, port = 0)
             server.start()
             try {
-                val preview = fixThisJson.parseToJsonElement(URL("${server.url}/api/preview").readText()).jsonObject
+                val preview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject
                 val previewId = preview.getValue("previewId").jsonPrimitive.content
 
-                val connection = URL("${server.url}/api/items/batch").openConnection() as HttpURLConnection
+                val connection = ConsoleHttpTestClient(server.url).connection("/api/items/batch")
                 connection.requestMethod = "POST"
                 connection.doOutput = true
                 connection.setRequestProperty("Content-Type", "application/json")
@@ -1503,10 +1500,10 @@ class FeedbackConsoleServerTest {
             val server = FeedbackConsoleServer(service = service, port = 0)
             server.start()
             try {
-                val preview = fixThisJson.parseToJsonElement(URL("${server.url}/api/preview").readText()).jsonObject
+                val preview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject
                 val previewId = preview.getValue("previewId").jsonPrimitive.content
 
-                val connection = URL("${server.url}/api/items/batch").openConnection() as HttpURLConnection
+                val connection = ConsoleHttpTestClient(server.url).connection("/api/items/batch")
                 connection.requestMethod = "POST"
                 connection.doOutput = true
                 connection.setRequestProperty("Content-Type", "application/json")
@@ -1551,7 +1548,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val connection = URL("${server.url}/api/items/batch").openConnection() as HttpURLConnection
+            val connection = ConsoleHttpTestClient(server.url).connection("/api/items/batch")
             connection.requestMethod = "POST"
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/json")
@@ -1575,7 +1572,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val connection = URL("${server.url}/api/items/batch").openConnection() as HttpURLConnection
+            val connection = ConsoleHttpTestClient(server.url).connection("/api/items/batch")
             connection.requestMethod = "POST"
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/json")
@@ -1634,9 +1631,9 @@ class FeedbackConsoleServerTest {
             val server = FeedbackConsoleServer(service = service, port = 0)
             server.start()
             try {
-                URL("${server.url}/api/preview").readText()
+                ConsoleHttpTestClient(server.url).get("/api/preview")
 
-                val connection = URL("${server.url}/api/preview/screenshot/full").openConnection() as HttpURLConnection
+                val connection = ConsoleHttpTestClient(server.url).connection("/api/preview/screenshot/full")
 
                 assertEquals(200, connection.responseCode)
                 assertEquals("image/png", connection.contentType)
@@ -1673,13 +1670,13 @@ class FeedbackConsoleServerTest {
             val server = FeedbackConsoleServer(service = service, port = 0)
             server.start()
             try {
-                val firstPreview = fixThisJson.parseToJsonElement(URL("${server.url}/api/preview").readText()).jsonObject
-                val secondPreview = fixThisJson.parseToJsonElement(URL("${server.url}/api/preview").readText()).jsonObject
+                val firstPreview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject
+                val secondPreview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject
                 val firstPreviewId = firstPreview.getValue("previewId").jsonPrimitive.content
                 val secondPreviewId = secondPreview.getValue("previewId").jsonPrimitive.content
 
-                val firstConnection = URL("${server.url}/api/preview/$firstPreviewId/screenshot/full").openConnection() as HttpURLConnection
-                val secondConnection = URL("${server.url}/api/preview/$secondPreviewId/screenshot/full").openConnection() as HttpURLConnection
+                val firstConnection = ConsoleHttpTestClient(server.url).connection("/api/preview/$firstPreviewId/screenshot/full")
+                val secondConnection = ConsoleHttpTestClient(server.url).connection("/api/preview/$secondPreviewId/screenshot/full")
 
                 assertEquals(200, firstConnection.responseCode)
                 assertEquals("image/png", firstConnection.contentType)
@@ -1727,11 +1724,11 @@ class FeedbackConsoleServerTest {
             val server = FeedbackConsoleServer(service = service, port = 0)
             server.start()
             try {
-                val firstPreview = fixThisJson.parseToJsonElement(URL("${server.url}/api/preview").readText()).jsonObject
-                repeat(3) { URL("${server.url}/api/preview").readText() }
+                val firstPreview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject
+                repeat(3) { ConsoleHttpTestClient(server.url).get("/api/preview") }
                 val firstPreviewId = firstPreview.getValue("previewId").jsonPrimitive.content
 
-                val connection = URL("${server.url}/api/preview/$firstPreviewId/screenshot/full").openConnection() as HttpURLConnection
+                val connection = ConsoleHttpTestClient(server.url).connection("/api/preview/$firstPreviewId/screenshot/full")
 
                 assertEquals(200, connection.responseCode)
                 assertEquals("image/png", connection.contentType)
@@ -1769,7 +1766,7 @@ class FeedbackConsoleServerTest {
             val server = FeedbackConsoleServer(service = service, port = 0)
             server.start()
             try {
-                val connection = URL("${server.url}/api/preview/screenshot/full").openConnection() as HttpURLConnection
+                val connection = ConsoleHttpTestClient(server.url).connection("/api/preview/screenshot/full")
 
                 assertEquals(404, connection.responseCode)
             } finally {
@@ -1788,11 +1785,11 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val devices = URL("${server.url}/api/devices").readText()
+            val devices = ConsoleHttpTestClient(server.url).get("/api/devices")
             assertTrue(devices.contains("SM_G986N"))
             assertTrue(devices.contains("adb-R3CN60LXW3L"))
 
-            val select = URL("${server.url}/api/device/select").openConnection() as HttpURLConnection
+            val select = ConsoleHttpTestClient(server.url).connection("/api/device/select")
             select.requestMethod = "POST"
             select.doOutput = true
             select.setRequestProperty("Content-Type", "application/json")
@@ -1819,7 +1816,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val handoff = URL("${server.url}/api/agent-handoffs").openConnection() as HttpURLConnection
+            val handoff = ConsoleHttpTestClient(server.url).connection("/api/agent-handoffs")
             handoff.requestMethod = "POST"
             handoff.doOutput = true
             handoff.setRequestProperty("Content-Type", "application/json")
@@ -1848,7 +1845,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val handoff = URL("${server.url}/api/agent-handoffs").openConnection() as HttpURLConnection
+            val handoff = ConsoleHttpTestClient(server.url).connection("/api/agent-handoffs")
             handoff.requestMethod = "POST"
             handoff.doOutput = true
             handoff.setRequestProperty("Content-Type", "application/json")
@@ -1877,7 +1874,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val clear = URL("${server.url}/api/items/draft").openConnection() as HttpURLConnection
+            val clear = ConsoleHttpTestClient(server.url).connection("/api/items/draft")
             clear.requestMethod = "DELETE"
 
             assertEquals(200, clear.responseCode)
@@ -1898,7 +1895,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val select = URL("${server.url}/api/device/select").openConnection() as HttpURLConnection
+            val select = ConsoleHttpTestClient(server.url).connection("/api/device/select")
             select.requestMethod = "POST"
             select.doOutput = true
             select.setRequestProperty("Content-Type", "application/json")
@@ -1918,7 +1915,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val select = URL("${server.url}/api/device/select").openConnection() as HttpURLConnection
+            val select = ConsoleHttpTestClient(server.url).connection("/api/device/select")
             select.requestMethod = "POST"
             select.doOutput = true
             select.setRequestProperty("Content-Type", "application/json")
@@ -1949,7 +1946,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val select = URL("${server.url}/api/device/select").openConnection() as HttpURLConnection
+            val select = ConsoleHttpTestClient(server.url).connection("/api/device/select")
             select.requestMethod = "POST"
             select.doOutput = true
             select.setRequestProperty("Content-Type", "application/json")
@@ -1993,7 +1990,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val connection = URL("${server.url}/api/items").openConnection() as HttpURLConnection
+            val connection = ConsoleHttpTestClient(server.url).connection("/api/items")
             connection.requestMethod = "POST"
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/json")
@@ -2026,7 +2023,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val connection = URL("${server.url}/api/items").openConnection() as HttpURLConnection
+            val connection = ConsoleHttpTestClient(server.url).connection("/api/items")
             connection.requestMethod = "POST"
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/json")
@@ -2066,7 +2063,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val connection = URL("${server.url}/api/items").openConnection() as HttpURLConnection
+            val connection = ConsoleHttpTestClient(server.url).connection("/api/items")
             connection.requestMethod = "POST"
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/json")
@@ -2106,7 +2103,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val connection = URL("${server.url}/api/items").openConnection() as HttpURLConnection
+            val connection = ConsoleHttpTestClient(server.url).connection("/api/items")
             connection.requestMethod = "POST"
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/json")
@@ -2137,7 +2134,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val sessions = URL("${server.url}/api/sessions").readText()
+            val sessions = ConsoleHttpTestClient(server.url).get("/api/sessions")
 
             assertTrue(sessions.contains("session-1"))
         } finally {
@@ -2158,7 +2155,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val sessions = URL("${server.url}/api/sessions?packageName=io.beyondwin.fixthis.sample").readText()
+            val sessions = ConsoleHttpTestClient(server.url).get("/api/sessions?packageName=io.beyondwin.fixthis.sample")
 
             assertTrue(sessions.contains(matching.sessionId))
             assertFalse(sessions.contains(other.sessionId))
@@ -2180,7 +2177,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val connection = URL("${server.url}/api/session/open").openConnection() as HttpURLConnection
+            val connection = ConsoleHttpTestClient(server.url).connection("/api/session/open")
             connection.requestMethod = "POST"
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/json")
@@ -2204,7 +2201,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val connection = URL("${server.url}/api/session/open").openConnection() as HttpURLConnection
+            val connection = ConsoleHttpTestClient(server.url).connection("/api/session/open")
             connection.requestMethod = "POST"
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/json")
@@ -2232,7 +2229,7 @@ class FeedbackConsoleServerTest {
             val server = FeedbackConsoleServer(service = service, port = 0)
             server.start()
             try {
-                val connection = URL("${server.url}/api/session").openConnection() as HttpURLConnection
+                val connection = ConsoleHttpTestClient(server.url).connection("/api/session")
 
                 assertEquals(500, connection.responseCode)
                 assertTrue(connection.errorStream.bufferedReader().readText().contains("SESSION_SAVE_FAILED:"))
@@ -2256,7 +2253,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val connection = URL("${server.url}/api/session/close").openConnection() as HttpURLConnection
+            val connection = ConsoleHttpTestClient(server.url).connection("/api/session/close")
             connection.requestMethod = "POST"
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/json")
@@ -2282,7 +2279,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val connection = URL("${server.url}/api/session/close").openConnection() as HttpURLConnection
+            val connection = ConsoleHttpTestClient(server.url).connection("/api/session/close")
             connection.requestMethod = "POST"
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/json")
@@ -2307,7 +2304,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val connection = URL("${server.url}/api/navigation").openConnection() as HttpURLConnection
+            val connection = ConsoleHttpTestClient(server.url).connection("/api/navigation")
             connection.requestMethod = "POST"
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/json")
@@ -2341,7 +2338,7 @@ class FeedbackConsoleServerTest {
             )
 
             payloads.forEach { payload ->
-                val connection = URL("${server.url}/api/navigation").openConnection() as HttpURLConnection
+                val connection = ConsoleHttpTestClient(server.url).connection("/api/navigation")
                 connection.requestMethod = "POST"
                 connection.doOutput = true
                 connection.setRequestProperty("Content-Type", "application/json")
@@ -2364,7 +2361,7 @@ class FeedbackConsoleServerTest {
         try {
             assertTrue(url.startsWith("http://127.0.0.1:"))
             assertEquals(url, server.url)
-            assertTrue(URL(url).readText().contains("FixThis Feedback Console"))
+            assertTrue(ConsoleHttpTestClient(url).get().contains("FixThis Feedback Console"))
         } finally {
             server.stop()
         }
@@ -2386,7 +2383,7 @@ class FeedbackConsoleServerTest {
             val server = FeedbackConsoleServer(service = service, port = 0)
             server.start()
             try {
-                val connection = URL("${server.url}/api/screens/screen-1/screenshot/full").openConnection() as HttpURLConnection
+                val connection = ConsoleHttpTestClient(server.url).connection("/api/screens/screen-1/screenshot/full")
 
                 assertEquals(200, connection.responseCode)
                 assertEquals("image/png", connection.contentType)
@@ -2418,7 +2415,7 @@ class FeedbackConsoleServerTest {
             val server = FeedbackConsoleServer(service = service, port = 0)
             server.start()
             try {
-                val connection = URL("${server.url}/api/screens/screen-1/screenshot/full").openConnection() as HttpURLConnection
+                val connection = ConsoleHttpTestClient(server.url).connection("/api/screens/screen-1/screenshot/full")
 
                 assertEquals(200, connection.responseCode)
                 assertEquals("image/png", connection.contentType)
@@ -2445,7 +2442,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val connection = URL("${server.url}/api/screens/screen-1").openConnection() as HttpURLConnection
+            val connection = ConsoleHttpTestClient(server.url).connection("/api/screens/screen-1")
             connection.requestMethod = "DELETE"
 
             assertEquals(200, connection.responseCode)
@@ -2634,6 +2631,22 @@ class FeedbackConsoleServerTest {
             put("screenshot", buildJsonObject {
                 put("desktopFullPath", artifact.absolutePath)
             })
+        }
+    }
+
+    private class ConsoleHttpTestClient(private val baseUrl: String) {
+        fun get(path: String = "/"): String =
+            java.net.URI(baseUrl + path).toURL().readText()
+
+        fun connection(path: String, method: String = "GET", body: String? = null): java.net.HttpURLConnection {
+            val connection = java.net.URI(baseUrl + path).toURL().openConnection() as java.net.HttpURLConnection
+            connection.requestMethod = method
+            if (body != null) {
+                connection.doOutput = true
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.outputStream.use { output -> output.write(body.toByteArray(Charsets.UTF_8)) }
+            }
+            return connection
         }
     }
 }
