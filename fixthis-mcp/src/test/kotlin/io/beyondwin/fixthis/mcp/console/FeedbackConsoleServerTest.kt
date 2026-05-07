@@ -436,6 +436,25 @@ class FeedbackConsoleServerTest {
         throw AssertionError("Unclosed JavaScript function body: $functionName")
     }
 
+    private fun assertDoesNotClearDraftOrPreview(functionName: String, body: String) {
+        assertFalse(
+            body.contains("pendingFeedbackItems = [];"),
+            "$functionName should not clear pending feedback items",
+        )
+        assertFalse(
+            body.contains("addItemsFlow = null"),
+            "$functionName should not clear an active add-items flow",
+        )
+        assertFalse(
+            body.contains("state.preview = null"),
+            "$functionName should not clear the current preview",
+        )
+        assertFalse(
+            body.contains("invalidatePreviewContext()"),
+            "$functionName should not invalidate preview context",
+        )
+    }
+
     private fun writeConsoleAssets(directory: File, marker: String) {
         File(directory, "index.html").writeText(
             """
@@ -601,6 +620,53 @@ class FeedbackConsoleServerTest {
         assertTrue(applyConnectionBody.contains("stopLivePreviewPolling"))
         assertTrue(applyConnectionBody.contains("startLivePreviewPolling"))
         assertTrue(applyConnectionBody.contains("state.connection.hasEverConnected = true"))
+        assertDoesNotClearDraftOrPreview("applyConnectionStatus", applyConnectionBody)
+    }
+
+    @Test
+    fun previewFailureMarksConnectionPausedWithoutClearingDrafts() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val refreshPreviewBody = javascriptFunctionBody(html, "refreshPreview")
+        val refreshConnectionBody = javascriptFunctionBody(html, "refreshConnection")
+        val friendlyErrorMessageBody = javascriptFunctionBody(html, "friendlyErrorMessage")
+        val showErrorBody = javascriptFunctionBody(html, "showError")
+        val sendBridgeHeartbeatBody = javascriptFunctionBody(html, "sendBridgeHeartbeat")
+        val applyConnectionBody = javascriptFunctionBody(html, "applyConnectionStatus")
+
+        assertTrue(refreshPreviewBody.contains("markPreviewStale(true)"))
+        assertTrue(refreshPreviewBody.contains("refreshConnection({ preservePreviewStale: true }).catch"))
+        assertTrue(refreshConnectionBody.contains("applyConnectionStatus(status, options);"))
+        assertTrue(applyConnectionBody.contains("const connectionOptions = options || {};"))
+        assertTrue(applyConnectionBody.contains("if (!connectionOptions.preservePreviewStale) markPreviewStale(false);"))
+        assertTrue(friendlyErrorMessageBody.contains("Connection paused. Your work is saved."))
+        val friendlyReturnIndex = friendlyErrorMessageBody.indexOf("return 'Connection paused. Your work is saved.';")
+        assertTrue(friendlyReturnIndex >= 0)
+        assertTrue(
+            friendlyErrorMessageBody.indexOf("Bridge closed before sending a response") in 0 until friendlyReturnIndex,
+            "Bridge closed failures should map to the saved-work message",
+        )
+        assertTrue(
+            friendlyErrorMessageBody.indexOf("Could not connect to FixThis bridge") in 0 until friendlyReturnIndex,
+            "Bridge connection failures should map to the saved-work message",
+        )
+        assertTrue(
+            friendlyErrorMessageBody.indexOf("lower.includes('bridge')") in 0 until friendlyReturnIndex &&
+                friendlyErrorMessageBody.indexOf("lower.includes('timed out')") in 0 until friendlyReturnIndex,
+            "Only bridge-specific timeout failures should map to the saved-work message",
+        )
+        assertFalse(
+            friendlyErrorMessageBody.contains("raw.includes('timed out')"),
+            "Unrelated timeout failures should keep their original error text",
+        )
+        assertTrue(friendlyErrorMessageBody.contains("DEVICE_NOT_AVAILABLE"))
+        assertTrue(friendlyErrorMessageBody.contains("Check your phone, then try again."))
+        assertTrue(showErrorBody.contains("friendlyErrorMessage"))
+        assertTrue(html.contains("pendingFeedbackItems = [];"))
+        assertDoesNotClearDraftOrPreview("refreshPreview", refreshPreviewBody)
+        assertDoesNotClearDraftOrPreview("friendlyErrorMessage", friendlyErrorMessageBody)
+        assertDoesNotClearDraftOrPreview("showError", showErrorBody)
+        assertDoesNotClearDraftOrPreview("sendBridgeHeartbeat", sendBridgeHeartbeatBody)
+        assertDoesNotClearDraftOrPreview("applyConnectionStatus", applyConnectionBody)
     }
 
     @Test

@@ -625,14 +625,15 @@
               );
             }
 
-            function applyConnectionStatus(status) {
+            function applyConnectionStatus(status, options) {
+              const connectionOptions = options || {};
               state.connection.current = status;
               syncSelectedDeviceFromConnection(status);
               const viewState = userConnectionState(status);
               if (viewState === 'ready') {
                 state.connection.hasEverConnected = true;
                 state.connection.lastReadyAt = Date.now();
-                markPreviewStale(false);
+                if (!connectionOptions.preservePreviewStale) markPreviewStale(false);
                 startLivePreviewPolling();
               } else {
                 stopLivePreviewPolling();
@@ -660,9 +661,9 @@
               connectionDetails.hidden = viewState === 'ready' && !state.connection.hasEverConnected;
             }
 
-            async function refreshConnection() {
+            async function refreshConnection(options) {
               const status = await requestJson('/api/connection');
-              applyConnectionStatus(status);
+              applyConnectionStatus(status, options);
               return status;
             }
 
@@ -1246,11 +1247,17 @@
               error.textContent = '';
               if (addItemsFlow) return;
               const requestGeneration = ++previewRequestGeneration;
-              const preview = await requestLivePreview();
-              if (addItemsFlow || requestGeneration !== previewRequestGeneration) return;
-              state.preview = preview;
-              if (userConnectionState(state.connection.current) === 'ready') markPreviewStale(false);
-              renderPreviewOnly();
+              try {
+                const preview = await requestLivePreview();
+                if (addItemsFlow || requestGeneration !== previewRequestGeneration) return;
+                state.preview = preview;
+                if (userConnectionState(state.connection.current) === 'ready') markPreviewStale(false);
+                renderPreviewOnly();
+              } catch (cause) {
+                markPreviewStale(true);
+                refreshConnection({ preservePreviewStale: true }).catch(() => {});
+                throw cause;
+              }
             }
 
             async function startAddItemsFlow() {
@@ -2206,8 +2213,22 @@
             clearDraftButton.addEventListener('click', () => clearDraft().catch(showError));
             comment.addEventListener('input', updateSelectedAnnotationComment);
 
+            function friendlyErrorMessage(message) {
+              const raw = String(message || '');
+              const lower = raw.toLowerCase();
+              if (
+                raw.includes('Bridge closed before sending a response') ||
+                (lower.includes('bridge') && lower.includes('timed out')) ||
+                raw.includes('Could not connect to FixThis bridge')
+              ) {
+                return 'Connection paused. Your work is saved.';
+              }
+              if (raw.includes('DEVICE_NOT_AVAILABLE')) return 'Check your phone, then try again.';
+              return raw;
+            }
+
             function showError(cause) {
-              error.textContent = cause && cause.message ? cause.message : String(cause);
+              error.textContent = friendlyErrorMessage(cause && cause.message ? cause.message : cause);
             }
 
             initializePreviewIntervalSelect();
