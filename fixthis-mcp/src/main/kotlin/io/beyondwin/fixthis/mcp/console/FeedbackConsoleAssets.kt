@@ -12,6 +12,9 @@ internal object FeedbackConsoleAssets {
     fun html(consoleAssetsDir: File?): String =
         if (consoleAssetsDir == null) indexHtml else buildIndexHtml(consoleAssetsDir)
 
+    fun html(consoleAssetsDir: File?, consoleToken: String): String =
+        buildIndexHtml(consoleAssetsDir, consoleToken)
+
     fun resource(path: String): ByteArray {
         return resource(path, consoleAssetsDir = null)
     }
@@ -33,10 +36,20 @@ internal object FeedbackConsoleAssets {
         }.use { input -> input.readAllBytes() }
     }
 
-    private fun buildIndexHtml(consoleAssetsDir: File?): String =
+    private fun buildIndexHtml(consoleAssetsDir: File?, consoleToken: String = ""): String =
         readText("index.html", consoleAssetsDir)
             .replace(StylesPlaceholder, "<style>\n${readText("styles.css", consoleAssetsDir)}\n</style>")
-            .replace(ScriptPlaceholder, "<script>\n${readText("app.js", consoleAssetsDir)}\n</script>")
+            .replace(
+                ScriptPlaceholder,
+                """
+                <script>
+                window.FixThisConsoleConfig = { consoleToken: "${consoleToken.escapeJavaScriptString()}" };
+                </script>
+                <script>
+                ${readText("app.js", consoleAssetsDir)}
+                </script>
+                """.trimIndent(),
+            )
 
     private fun readText(path: String, consoleAssetsDir: File?): String =
         resource(path, consoleAssetsDir).toString(Charsets.UTF_8)
@@ -47,3 +60,16 @@ internal object FeedbackConsoleAssets {
         require(!path.startsWith("/")) { "absolute asset paths are not allowed: $path" }
     }
 }
+
+private fun String.escapeJavaScriptString(): String =
+    buildString {
+        this@escapeJavaScriptString.forEach { character ->
+            when (character) {
+                '\\' -> append("\\\\")
+                '"' -> append("\\\"")
+                '\n' -> append("\\n")
+                '\r' -> append("\\r")
+                else -> append(character)
+            }
+        }
+    }

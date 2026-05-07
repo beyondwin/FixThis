@@ -7,9 +7,12 @@ import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import java.io.File
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import java.util.UUID
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
+
+internal const val ConsoleTokenHeader = "X-FixThis-Console-Token"
 
 class FeedbackConsoleServer(
     private val service: FeedbackSessionService,
@@ -17,10 +20,11 @@ class FeedbackConsoleServer(
     private val port: Int = 0,
     private val consoleAssetsDir: File? = null,
 ) {
+    private val consoleToken: String = UUID.randomUUID().toString()
     private val lock = Any()
     private val routeTable = ConsoleRouteTable(
         listOf(
-            SessionRoutes(service, consoleAssetsDir),
+            SessionRoutes(service, consoleAssetsDir, consoleToken),
             DeviceRoutes(service),
             ConnectionRoutes(service),
             PreviewRoutes(service),
@@ -65,6 +69,9 @@ class FeedbackConsoleServer(
 
     private fun handle(exchange: HttpExchange) {
         try {
+            if (exchange.requiresConsoleMutationGuard()) {
+                exchange.requireConsoleMutationAllowed(consoleToken)
+            }
             if (!routeTable.handle(exchange)) {
                 exchange.sendText(404, "Not found", "text/plain; charset=utf-8")
             }
@@ -78,6 +85,27 @@ class FeedbackConsoleServer(
         }
     }
 }
+
+private val ConsoleMutatingMethods = setOf("POST", "PUT", "PATCH", "DELETE")
+
+private fun HttpExchange.requiresConsoleMutationGuard(): Boolean =
+    requestURI.path.startsWith("/api/") && requestMethod.uppercase() in ConsoleMutatingMethods
+
+private fun HttpExchange.requireConsoleMutationAllowed(token: String) {
+    val origin = requestHeaders.getFirst("Origin")
+    if (origin != null && !origin.isLocalConsoleOrigin()) {
+        throw FeedbackConsoleHttpException(403, "Forbidden origin")
+    }
+    val supplied = requestHeaders.getFirst(ConsoleTokenHeader)
+    if (supplied != token) {
+        throw FeedbackConsoleHttpException(403, "Missing console token")
+    }
+}
+
+private fun String.isLocalConsoleOrigin(): Boolean =
+    startsWith("http://127.0.0.1:") ||
+        startsWith("http://localhost:") ||
+        startsWith("http://[::1]:")
 
 private fun String.toUrlHost(): String =
     if (contains(':') && !startsWith("[")) "[$this]" else this

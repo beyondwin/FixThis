@@ -29,6 +29,15 @@ scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample --host-only
 
 Reports are written under ignored `.fixthis/smoke-reports/` as Markdown and JSON. Connected smoke can finish with an explicit skip category: `SKIPPED_HOST_ONLY`, `SKIPPED_ADB_NOT_FOUND`, `SKIPPED_NO_DEVICE`, `SKIPPED_UNAUTHORIZED_DEVICE`, `SKIPPED_OFFLINE_DEVICE`, `SKIPPED_LOCKED_DEVICE`, `SKIPPED_WIRELESS_ADB_LOST`, or `SKIPPED_MULTIPLE_DEVICES`.
 
+To inspect or remove local FixThis artifacts without touching project metadata, run:
+
+```bash
+fixthis clean --project-dir <projectRoot> --dry-run
+fixthis clean --project-dir <projectRoot>
+```
+
+`fixthis clean` only targets `.fixthis/feedback-sessions/`, `.fixthis/preview-cache/`, `.fixthis/artifacts/`, and `.fixthis/smoke-reports/`. It preserves `.fixthis/project.json` and unknown `.fixthis` files or directories. Use `--older-than-days <n>` to clean only artifact directories older than the cutoff.
+
 ## ADB_NOT_FOUND
 
 Symptom: `fixthis doctor` fails at `ADB found` or the CLI reports that it cannot run `adb`.
@@ -161,6 +170,10 @@ Fix:
 ### MCP_SESSION_CLOSED
 
 Reopen the feedback console from the agent or run `fixthis console --package <applicationId>`.
+
+### Console API returns 403
+
+The browser console uses a per-server token for mutating localhost `/api/*` requests and rejects mutating requests with a non-localhost `Origin`. Reload the console page if the MCP process restarted, because the token changes per server instance. Direct scripts that call mutating console APIs must read the current token from the served console page and send it as `X-FixThis-Console-Token`.
 
 ### MCP status stays waiting
 

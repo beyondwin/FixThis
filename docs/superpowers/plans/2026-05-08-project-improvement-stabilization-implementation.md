@@ -1607,7 +1607,7 @@ git commit -m "test: add sample evidence coverage fixture"
 - Modify: `docs/privacy.md`
 - Modify: `docs/troubleshooting.md`
 
-- [ ] **Step 1: Add console token tests**
+- [x] **Step 1: Add console token tests**
 
 Add tests to `FeedbackConsoleServerTest.kt`:
 
@@ -1629,7 +1629,7 @@ fun mutatingApiRequiresConsoleToken() {
 
 Add a companion test proving the browser-served token allows mutation through the shared JS request helper or a test-only exposed token accessor.
 
-- [ ] **Step 2: Implement token and origin guard**
+- [x] **Step 2: Implement token and origin guard**
 
 Generate a token in `FeedbackConsoleServer` at construction:
 
@@ -1654,7 +1654,7 @@ private fun HttpExchange.requireConsoleMutationAllowed(token: String) {
 
 Inject the token into HTML through the existing asset render path and update the JS `requestJson` helper to send `X-FixThis-Console-Token` on mutating requests.
 
-- [ ] **Step 3: Add clean command tests**
+- [x] **Step 3: Add clean command tests**
 
 Create `CleanCommandTest.kt` to verify dry-run output for:
 
@@ -1663,11 +1663,11 @@ Create `CleanCommandTest.kt` to verify dry-run output for:
 - `.fixthis/artifacts`
 - `.fixthis/smoke-reports`
 
-- [ ] **Step 4: Implement CleanCommand**
+- [x] **Step 4: Implement CleanCommand**
 
 Add `fixthis clean --project-dir <path> [--dry-run] [--older-than-days <n>]`. First implementation deletes only known `.fixthis` local artifact directories and never deletes `.fixthis/project.json`.
 
-- [ ] **Step 5: Run validation**
+- [x] **Step 5: Run validation**
 
 ```bash
 ./gradlew :fixthis-cli:test :fixthis-mcp:test
@@ -1677,7 +1677,15 @@ git diff --check
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+Task 12 notes:
+- RED console: `./gradlew :fixthis-mcp:test --tests '*FeedbackConsoleServerTest'` failed with expected token/origin/JS helper failures before production changes.
+- RED clean: `./gradlew :fixthis-cli:test --tests '*CleanCommandTest'` failed because `fixthis clean` was not registered/implemented.
+- GREEN focused: `./gradlew :fixthis-cli:test --tests '*CleanCommandTest'` and `./gradlew :fixthis-mcp:test --tests '*FeedbackConsoleServerTest'` passed after implementation.
+- Validation: `node scripts/build-console-assets.mjs --check`, `node --check fixthis-mcp/src/main/resources/console/app.js`, `node --check fixthis-mcp/src/main/console/api.js`, `./gradlew :fixthis-cli:test :fixthis-mcp:test`, and `git diff --check` passed.
+- Quality-review RED clean symlink safety: `./gradlew :fixthis-cli:test --tests '*CleanCommandTest'` failed at `CleanCommandTest.kt:108` because symlinked `.fixthis/artifacts` was not reported as skipped.
+- Quality-review GREEN clean symlink safety: `./gradlew :fixthis-cli:test --tests '*CleanCommandTest'` passed after `fixthis clean` skipped known artifact symlinks, used no-follow filesystem checks, and required the canonical delete target to stay under the project root.
+
+- [x] **Step 6: Commit**
 
 ```bash
 git add fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console fixthis-mcp/src/main/resources/console fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console docs/privacy.md docs/troubleshooting.md

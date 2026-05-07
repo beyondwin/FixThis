@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
 internal class SessionRoutes(
     private val service: FeedbackSessionService,
     private val consoleAssetsDir: File?,
+    private val consoleToken: String,
 ) : ConsoleRoute {
     override fun matches(path: String): Boolean =
         path == "/" ||
@@ -22,7 +23,7 @@ internal class SessionRoutes(
     override fun handle(exchange: HttpExchange) {
         when (exchange.requestURI.path) {
             "/" -> exchange.requireMethod("GET") {
-                exchange.sendText(200, FeedbackConsoleAssets.html(consoleAssetsDir), "text/html; charset=utf-8")
+                exchange.sendText(200, FeedbackConsoleAssets.html(consoleAssetsDir, consoleToken), "text/html; charset=utf-8")
             }
             "/favicon.ico" -> exchange.requireMethod("GET") {
                 exchange.sendNoContent()

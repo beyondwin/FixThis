@@ -10,6 +10,8 @@ The core sidekick does not require Android network permission. MCP uses a deskto
 
 The feedback console is served from localhost by the desktop MCP process. The Android app does not host the console and does not need network permissions.
 
+The localhost console adds a per-server browser token to served HTML and requires `X-FixThis-Console-Token` on mutating `/api/*` requests. Mutating console requests with a non-localhost `Origin` are rejected. Read-only console pages and `GET` APIs remain available from localhost without that token.
+
 Feedback workspace files are local project artifacts under `.fixthis/feedback-sessions/`. They include feedback session metadata, saved evidence screenshots, source hints, optional target evidence, comments, and handoff batches used to resume the console after MCP or console restarts. Live preview frames are transient and are not appended to the feedback session history.
 
 Send stores a local handoff batch in the feedback session so MCP tools can read it. It does not upload feedback or screenshots and does not call an external AI API.
@@ -51,6 +53,8 @@ CLI/MCP flows may copy screenshot artifacts into the project:
 ```
 
 These files are local artifacts and are ignored by git. Treat them like screenshots from a debug device and delete them when no longer needed.
+
+Use `fixthis clean --project-dir <path>` to remove only the known local artifact directories listed above plus `.fixthis/smoke-reports/`. The command does not remove `.fixthis/project.json` or unknown `.fixthis` files and directories. Add `--dry-run` to inspect what would be removed, or `--older-than-days <n>` to remove only artifact directories older than the cutoff by last-modified time.
 
 ## MCP And ADB Bridge
 

@@ -94,6 +94,112 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun mutatingApiRequiresConsoleToken() {
+        val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val connection = ConsoleHttpTestClient(server.url, includeConsoleToken = false).connection("/api/items/draft")
+            connection.requestMethod = "DELETE"
+
+            assertEquals(403, connection.responseCode)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun browserServedConsoleTokenAllowsMutation() {
+        val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val token = consoleTokenFrom(ConsoleHttpTestClient(server.url).get())
+            val connection = ConsoleHttpTestClient(server.url).connection("/api/items/draft")
+            connection.requestMethod = "DELETE"
+            connection.setRequestProperty("X-FixThis-Console-Token", token)
+
+            assertEquals(200, connection.responseCode)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun mutatingApiRejectsForbiddenOriginEvenWithConsoleToken() {
+        val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val token = consoleTokenFrom(ConsoleHttpTestClient(server.url).get())
+
+            assertEquals(
+                403,
+                rawHttpResponseCode(
+                    server.url,
+                    method = "DELETE",
+                    path = "/api/items/draft",
+                    headers = mapOf(
+                        ConsoleTokenHeader to token,
+                        "Origin" to "https://example.invalid",
+                    ),
+                ),
+            )
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun getApiDoesNotRequireConsoleToken() {
+        val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val connection = ConsoleHttpTestClient(server.url, includeConsoleToken = false).connection("/api/session")
+
+            assertEquals(200, connection.responseCode)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun configuredConsoleAssetsReceiveConsoleToken() {
+        val assetsDir = Files.createTempDirectory("fixthis-console-assets-token").toFile()
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = { "session-1" }),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        writeConsoleAssets(assetsDir, marker = "token-marker")
+        val server = FeedbackConsoleServer(service = service, port = 0, consoleAssetsDir = assetsDir)
+        server.start()
+        try {
+            val index = ConsoleHttpTestClient(server.url).get()
+
+            assertTrue(index.contains("token-marker"))
+            assertTrue(consoleTokenFrom(index).isNotBlank())
+        } finally {
+            server.stop()
+            assetsDir.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun consoleRequestJsonSendsTokenForMutatingRequestsAndPreservesHeaders() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val requestJsonBody = javascriptFunctionBody(html, "requestJson")
+
+        assertTrue(html.contains("window.FixThisConsoleConfig"))
+        assertTrue(requestJsonBody.contains("X-FixThis-Console-Token"))
+        assertTrue(requestJsonBody.contains("new Headers(options.headers || {})"))
+        assertTrue(requestJsonBody.contains("headers.set('X-FixThis-Console-Token'"))
+        assertTrue(requestJsonBody.contains("fetch(path, { ...options, headers })"))
+    }
+
+    @Test
     fun browserConsoleUsesCurrentFeedbackContractLabels() {
         val service = FeedbackSessionService(
             bridge = FakeFixThisBridge(),
@@ -133,6 +239,34 @@ class FeedbackConsoleServerTest {
             button!!.contains(label),
             "Expected button id=\"$id\" to contain contract label \"$label\"",
         )
+    }
+
+    private fun consoleTokenFrom(html: String): String =
+        Regex("consoleToken:\\s*\"([^\"]+)\"")
+            .find(html)
+            ?.groupValues
+            ?.get(1)
+            ?: throw AssertionError("Expected served console HTML to include consoleToken config")
+
+    private fun rawHttpResponseCode(
+        baseUrl: String,
+        method: String,
+        path: String,
+        headers: Map<String, String>,
+    ): Int {
+        val uri = URI.create(baseUrl)
+        java.net.Socket(uri.host, uri.port).use { socket ->
+            val writer = socket.getOutputStream().bufferedWriter(Charsets.UTF_8)
+            writer.write("$method $path HTTP/1.1\r\n")
+            writer.write("Host: ${uri.host}:${uri.port}\r\n")
+            writer.write("Connection: close\r\n")
+            writer.write("Content-Length: 0\r\n")
+            headers.forEach { (name, value) -> writer.write("$name: $value\r\n") }
+            writer.write("\r\n")
+            writer.flush()
+            val statusLine = socket.getInputStream().bufferedReader(Charsets.UTF_8).readLine()
+            return statusLine.split(" ")[1].toInt()
+        }
     }
 
     @Test
@@ -520,7 +654,10 @@ class FeedbackConsoleServerTest {
         val declarationStart = html.indexOf("function $functionName(")
         assertTrue(declarationStart >= 0, "Missing JavaScript function: $functionName")
 
-        val bodyStart = html.indexOf('{', declarationStart)
+        val parametersEnd = html.indexOf(')', declarationStart)
+        assertTrue(parametersEnd >= 0, "Missing JavaScript function parameter list: $functionName")
+
+        val bodyStart = html.indexOf('{', parametersEnd)
         assertTrue(bodyStart >= 0, "Missing JavaScript function body: $functionName")
 
         var depth = 1
@@ -2705,13 +2842,27 @@ class FeedbackConsoleServerTest {
         }
     }
 
-    private class ConsoleHttpTestClient(private val baseUrl: String) {
+    private class ConsoleHttpTestClient(
+        private val baseUrl: String,
+        private val includeConsoleToken: Boolean = true,
+    ) {
+        private val consoleToken: String? by lazy {
+            if (!includeConsoleToken) return@lazy null
+            Regex("consoleToken:\\s*\"([^\"]+)\"")
+                .find(java.net.URI(baseUrl).toURL().readText())
+                ?.groupValues
+                ?.get(1)
+        }
+
         fun get(path: String = "/"): String =
             java.net.URI(baseUrl + path).toURL().readText()
 
         fun connection(path: String, method: String = "GET", body: String? = null): java.net.HttpURLConnection {
             val connection = java.net.URI(baseUrl + path).toURL().openConnection() as java.net.HttpURLConnection
             connection.requestMethod = method
+            if (path.startsWith("/api/")) {
+                consoleToken?.let { connection.setRequestProperty(ConsoleTokenHeader, it) }
+            }
             if (body != null) {
                 connection.doOutput = true
                 connection.setRequestProperty("Content-Type", "application/json")

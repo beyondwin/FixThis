@@ -146,7 +146,13 @@
 
 // api.js
             async function requestJson(path, options = {}) {
-              const response = await fetch(path, options);
+              const method = (options.method || 'GET').toUpperCase();
+              const headers = new Headers(options.headers || {});
+              if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+                const token = window.FixThisConsoleConfig?.consoleToken;
+                if (token) headers.set('X-FixThis-Console-Token', token);
+              }
+              const response = await fetch(path, { ...options, headers });
               if (!response.ok) {
                 throw new Error(await response.text() || 'HTTP ' + response.status);
               }
