@@ -124,7 +124,7 @@ Raw error: Bridge closed before sending a response
 - Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt`
 - Modify: `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/BridgeClientTest.kt`
 
-- [ ] **Step 1: Write failing BridgeClient launch tests**
+- [x] **Step 1: Write failing BridgeClient launch tests**
 
 Add tests near existing selected-device tests in `BridgeClientTest.kt`:
 
@@ -173,7 +173,7 @@ override fun launchApp(packageName: String) {
 
 Make sure `forDevice(serial)` passes the shared `launchedApps` list to child fakes.
 
-- [ ] **Step 2: Run the targeted CLI test and verify RED**
+- [x] **Step 2: Run the targeted CLI test and verify RED**
 
 Run:
 
@@ -183,7 +183,7 @@ Run:
 
 Expected: fails because `AdbFacade.launchApp` and `BridgeClient.launchApp` do not exist.
 
-- [ ] **Step 3: Implement ADB launch surface**
+- [x] **Step 3: Implement ADB launch surface**
 
 In `Adb.kt`, change `AdbFacade`:
 
@@ -217,7 +217,7 @@ fun launchApp(packageName: String) {
 }
 ```
 
-- [ ] **Step 4: Run CLI tests and verify GREEN**
+- [x] **Step 4: Run CLI tests and verify GREEN**
 
 Run:
 
@@ -227,7 +227,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/Adb.kt fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/BridgeClientTest.kt
