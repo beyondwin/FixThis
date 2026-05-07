@@ -729,7 +729,7 @@ git commit -m "feat: expose console connection recovery APIs"
 - Modify: `fixthis-mcp/src/main/resources/console/app.js`
 - Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Add failing asset tests**
+- [x] **Step 1: Add failing asset tests**
 
 Add test assertions to an existing console HTML behavior test or a new one:
 
@@ -768,7 +768,7 @@ fun connectionDropPreservesDraftWorkAndMarksPreviewStale() {
 }
 ```
 
-- [ ] **Step 2: Run asset tests and verify RED**
+- [x] **Step 2: Run asset tests and verify RED**
 
 Run:
 
@@ -778,7 +778,7 @@ Run:
 
 Expected: fails because the new DOM and JS functions do not exist.
 
-- [ ] **Step 3: Add recovery card HTML**
+- [x] **Step 3: Add recovery card HTML**
 
 In `index.html`, add this near the top of `<main>` or directly below the topbar so it is visible but not a second app shell:
 
@@ -807,7 +807,7 @@ Add a stale badge inside the preview area, close to `snapshot`:
 <span id="previewStaleBadge" class="preview-stale-badge" hidden>Connection paused - showing last preview</span>
 ```
 
-- [ ] **Step 4: Add recovery card CSS**
+- [x] **Step 4: Add recovery card CSS**
 
 Add styles to `styles.css`:
 
@@ -919,7 +919,7 @@ Add styles to `styles.css`:
 
 If the preview container is not positioned, add `position: relative` to its existing class.
 
-- [ ] **Step 5: Add JS state and actions**
+- [x] **Step 5: Add JS state and actions**
 
 In `app.js`, extend initial state:
 
@@ -1067,7 +1067,7 @@ async function sendBridgeHeartbeat() {
 
 Keep `/api/heartbeat` on the server for compatibility, but new browser UI should update from `/api/connection`.
 
-- [ ] **Step 6: Wire events and initial load**
+- [x] **Step 6: Wire events and initial load**
 
 Add:
 
@@ -1101,7 +1101,7 @@ applyConnectionStatus({
 });
 ```
 
-- [ ] **Step 7: Run asset tests and verify GREEN**
+- [x] **Step 7: Run asset tests and verify GREEN**
 
 Run:
 
@@ -1111,7 +1111,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add fixthis-mcp/src/main/resources/console/index.html fixthis-mcp/src/main/resources/console/styles.css fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
