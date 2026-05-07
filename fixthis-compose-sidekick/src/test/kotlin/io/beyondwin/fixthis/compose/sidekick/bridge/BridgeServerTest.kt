@@ -53,6 +53,27 @@ class BridgeServerTest {
     }
 
     @Test
+    fun onlyHeartbeatMarksMcpConnectionAsConnected() = runBlocking {
+        var now = 1_000L
+        val connectionState = BridgeConnectionState(clock = { now }, connectedWindowMillis = 500L)
+        val server = server(connectionState = connectionState)
+
+        server.handleRequestForTest("""{"id":"1","token":"token","method":"status"}""")
+        server.handleRequestForTest("""{"id":"2","token":"token","method":"captureScreenSnapshot","params":{}}""")
+
+        assertFalse(connectionState.isConnected())
+
+        val heartbeat = server.handleRequestForTest("""{"id":"3","token":"token","method":"heartbeat"}""")
+
+        assertTrue(heartbeat.contains(""""connected": true"""))
+        assertTrue(connectionState.isConnected())
+
+        now += 501L
+
+        assertFalse(connectionState.isConnected())
+    }
+
+    @Test
     fun captureScreenSnapshotReturnsSnapshotResult() = runBlocking {
         val server = server(
             environment = RecordingBridgeEnvironment(
@@ -300,7 +321,10 @@ class BridgeServerTest {
         assertFalse(response.contains(""""verified": true"""))
     }
 
-    private fun server(environment: BridgeEnvironment = RecordingBridgeEnvironment()): BridgeServer =
+    private fun server(
+        environment: BridgeEnvironment = RecordingBridgeEnvironment(),
+        connectionState: BridgeConnectionState = BridgeConnectionState(),
+    ): BridgeServer =
         BridgeServer(
             session = SidekickSession(
                 packageName = "io.beyondwin.fixthis.sample",
@@ -313,6 +337,7 @@ class BridgeServerTest {
                 processStartEpochMillis = 1234L,
             ),
             environment = environment,
+            connectionState = connectionState,
         )
 
     private class RecordingBridgeEnvironment(

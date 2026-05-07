@@ -27,8 +27,12 @@ class BridgeConnectionStateTest {
         val state = BridgeConnectionState(clock = { now })
 
         state.markAuthorizedRequest()
-        now += 10_000L
+        now += 5_000L
 
         assertTrue(state.isConnected())
+
+        now += 1_001L
+
+        assertFalse(state.isConnected())
     }
 }

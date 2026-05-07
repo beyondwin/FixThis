@@ -120,6 +120,10 @@ class FeedbackConsoleServer(
                         ConsoleDeviceList(devices = service.devices().map { it.toConsoleDevice(null) }),
                     )
                 }
+                "/api/heartbeat" -> exchange.requireMethod("GET") {
+                    val session = service.currentSession()
+                    exchange.sendJson(200, runBlocking { service.heartbeat(session.sessionId) })
+                }
                 "/api/capture" -> exchange.requireMethod("POST") {
                     val session = service.currentSession()
                     val screen = runBlocking { service.captureScreen(session.sessionId) }
@@ -396,6 +400,10 @@ class FeedbackConsoleServer(
 
     private fun HttpExchange.sendJson(statusCode: Int, value: FeedbackNavigationResult) {
         sendText(statusCode, fixThisJson.encodeToString(FeedbackNavigationResult.serializer(), value), "application/json; charset=utf-8")
+    }
+
+    private fun HttpExchange.sendJson(statusCode: Int, value: JsonObject) {
+        sendText(statusCode, fixThisJson.encodeToString(JsonObject.serializer(), value), "application/json; charset=utf-8")
     }
 
     private fun HttpExchange.sendJson(statusCode: Int, value: ConsoleDeviceList) {

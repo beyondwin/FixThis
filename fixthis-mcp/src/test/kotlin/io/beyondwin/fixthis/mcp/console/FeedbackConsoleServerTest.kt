@@ -488,6 +488,41 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun consoleHtmlSendsBridgeHeartbeatWhileDeviceIsSelected() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val startHeartbeatPolling = javascriptFunctionBody(html, "startHeartbeatPolling")
+        val stopHeartbeatPolling = javascriptFunctionBody(html, "stopHeartbeatPolling")
+        val sendBridgeHeartbeat = javascriptFunctionBody(html, "sendBridgeHeartbeat")
+
+        assertTrue(html.contains("const HeartbeatIntervalMs = 2000;"))
+        assertTrue(html.contains("let heartbeatTimer = null;"))
+        assertTrue(sendBridgeHeartbeat.contains("requestJson('/api/heartbeat'"))
+        assertTrue(sendBridgeHeartbeat.contains("if (!state.selectedDeviceSerial) return;"))
+        assertTrue(startHeartbeatPolling.contains("sendBridgeHeartbeat().catch"))
+        assertTrue(startHeartbeatPolling.contains("setInterval"))
+        assertTrue(startHeartbeatPolling.contains("HeartbeatIntervalMs"))
+        assertTrue(stopHeartbeatPolling.contains("clearInterval(heartbeatTimer)"))
+        assertTrue(html.contains("startHeartbeatPolling();"))
+        assertTrue(html.contains("stopHeartbeatPolling();"))
+    }
+
+    @Test
+    fun heartbeatApiPingsBridgeStatusWithoutCapturingPreview() {
+        val bridge = FakeFixThisBridge()
+        val service = FeedbackSessionService(bridge, FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")
+        val server = FeedbackConsoleServer(service).also { it.start() }
+        try {
+            val connection = URL("${server.url}/api/heartbeat").openConnection() as HttpURLConnection
+
+            assertEquals(200, connection.responseCode)
+            assertEquals(1, bridge.statusCount)
+            assertEquals(0, bridge.captureCount)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
     fun consoleHtmlDisablesPreviewPollingForUnavailableDeviceSelection() {
         val html = FeedbackConsoleAssets.indexHtml
 

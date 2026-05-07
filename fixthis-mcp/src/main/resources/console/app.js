@@ -1,5 +1,6 @@
             const DefaultLivePreviewIntervalMs = 1000;
             const MinLivePreviewIntervalMs = 1000;
+            const HeartbeatIntervalMs = 2000;
             const PreviewIntervalStorageKey = 'fixthis.previewIntervalMs.v2';
             const state = { session: null, preview: null, sessionSummaries: [], selectedDeviceSerial: null, devices: [] };
             const sessions = document.getElementById('sessions');
@@ -34,6 +35,7 @@
             const zoomInButton = document.getElementById('zoomInButton');
             const zoomPercent = document.getElementById('zoomPercent');
             let livePreviewTimer = null;
+            let heartbeatTimer = null;
             let previewRequestGeneration = 0;
             let previewRequestContextGeneration = 0;
             let previewRequestInFlight = null;
@@ -549,10 +551,12 @@
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ serial: option.value })
                 }));
+                startHeartbeatPolling();
                 await refreshPreview();
                 startLivePreviewPolling();
               } catch (cause) {
                 state.selectedDeviceSerial = null;
+                stopHeartbeatPolling();
                 stopLivePreviewPolling();
                 setDeviceUiState(DeviceUiState.UNAVAILABLE, deviceBySerial(state.devices, option.value) || { serial: option.value });
                 throw cause;
@@ -564,7 +568,26 @@
               renderDeviceList(await requestJson('/api/device/disconnect', { method: 'POST' }));
               setDeviceUiState(DeviceUiState.NONE);
               render();
+              stopHeartbeatPolling();
               startLivePreviewPolling();
+            }
+
+            async function sendBridgeHeartbeat() {
+              if (!state.selectedDeviceSerial) return;
+              await requestJson('/api/heartbeat');
+            }
+
+            function startHeartbeatPolling() {
+              stopHeartbeatPolling();
+              sendBridgeHeartbeat().catch(showError);
+              heartbeatTimer = setInterval(() => {
+                if (state.selectedDeviceSerial) sendBridgeHeartbeat().catch(showError);
+              }, HeartbeatIntervalMs);
+            }
+
+            function stopHeartbeatPolling() {
+              if (heartbeatTimer) clearInterval(heartbeatTimer);
+              heartbeatTimer = null;
             }
 
             function configuredPreviewIntervalMs() {
@@ -1887,6 +1910,7 @@
             document.addEventListener('keydown', handleGlobalShortcut);
             document.addEventListener('visibilitychange', () => {
               if (!document.hidden && shouldAutoFetchPreview()) refreshPreview().catch(showError);
+              if (!document.hidden && state.selectedDeviceSerial) sendBridgeHeartbeat().catch(showError);
               startLivePreviewPolling();
             });
             clearSelectionButton.addEventListener('click', clearSelection);
@@ -1905,5 +1929,8 @@
                 if (shouldAutoFetchPreview()) return refreshPreview();
                 return null;
               })
-              .then(startLivePreviewPolling)
+              .then(() => {
+                startHeartbeatPolling();
+                startLivePreviewPolling();
+              })
               .catch(showError);

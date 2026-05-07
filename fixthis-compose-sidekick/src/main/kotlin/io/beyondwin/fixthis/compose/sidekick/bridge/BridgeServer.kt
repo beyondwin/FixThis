@@ -104,10 +104,12 @@ class BridgeServer(
         if (request.token != session.token) {
             return BridgeProtocol.error(request.id, "UNAUTHORIZED", "Missing or mismatched FixThis bridge token")
         }
-        connectionState.markAuthorizedRequest()
-
         return try {
             val result = when (request.method) {
+                "heartbeat" -> {
+                    connectionState.markAuthorizedRequest()
+                    BridgeProtocol.json.encodeToJsonElement(BridgeHeartbeatResult())
+                }
                 "status" -> BridgeProtocol.json.encodeToJsonElement(environment.status())
                 "inspectCurrentScreen" -> BridgeProtocol.json.encodeToJsonElement(environment.inspectCurrentScreen())
                 "captureScreenSnapshot" -> BridgeProtocol.json.encodeToJsonElement(environment.captureScreenSnapshot())
@@ -254,6 +256,11 @@ data class BridgeScreenshotReadResult(
     val kind: String,
     val mimeType: String,
     val base64: String,
+)
+
+@Serializable
+data class BridgeHeartbeatResult(
+    val connected: Boolean = true,
 )
 
 internal object FixThisBridgeRuntime {

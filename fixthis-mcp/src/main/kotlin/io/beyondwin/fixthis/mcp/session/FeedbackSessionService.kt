@@ -90,6 +90,11 @@ class FeedbackSessionService(
 
     fun disconnectDevice() = bridge.disconnectDevice()
 
+    suspend fun heartbeat(sessionId: String): JsonObject {
+        val session = store.getSession(sessionId)
+        return bridge.heartbeat(session.packageName)
+    }
+
     suspend fun captureScreen(sessionId: String): SnapshotDto {
         val session = store.getSession(sessionId)
         val screenId = store.nextId()

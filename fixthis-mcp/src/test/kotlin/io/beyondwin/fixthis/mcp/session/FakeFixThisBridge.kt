@@ -35,6 +35,8 @@ internal class FakeFixThisBridge(
         private set
     var readSourceIndexCount: Int = 0
         private set
+    var statusCount: Int = 0
+        private set
     var selectedDeviceSerial: String? = null
         private set
 
@@ -64,7 +66,10 @@ internal class FakeFixThisBridge(
         selectedDeviceSerial = null
     }
 
-    override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
+    override suspend fun status(packageName: String): JsonObject = buildJsonObject {
+        statusCount += 1
+        put("activity", "MainActivity")
+    }
 
     override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
 
