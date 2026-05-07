@@ -111,14 +111,16 @@ Top bar actions are short session-level controls: Refresh, Add, Save, Copy, Send
 
 Feedback console flow:
 
-1. Select device.
-2. Use the app normally from the console preview.
-3. Click Add when ready to leave feedback on the current screen.
-4. Select a UI target or drag a visual area and write a comment.
-5. Click Add to Pending; numbered overlay markers and pending rows stay in sync.
-6. Click Save once to store one evidence snapshot and all pending items.
-7. Review the saved evidence group in the Inspector Draft view, including the persisted screenshot, numbered overlay, and comments.
-8. Click Copy for compact Markdown or Send when ready to create a local handoff batch.
+1. Open the console from `fixthis console --package <applicationId>` or `fixthis_open_feedback_console`.
+2. Click `Start`. The console finds the selected/only ready Android device, opens the debug app when possible, and connects to the FixThis sidekick bridge.
+3. Use the recovery card as needed: `Choose device` when multiple ready devices are connected, `Open app`, `Reconnect`, or `Try again` when the app or bridge needs recovery. Draft annotations and the last preview remain visible while reconnecting.
+4. When the card shows `Ready`, click `Capture screen` to refresh the preview, then use the app normally from the console preview.
+5. Click Add when ready to leave feedback on the current screen.
+6. Select a UI target or drag a visual area and write a comment.
+7. Click Add to Pending; numbered overlay markers and pending rows stay in sync.
+8. Click Save once to store one evidence snapshot and all pending items.
+9. Review the saved evidence group in the Inspector Draft view, including the persisted screenshot, numbered overlay, and comments.
+10. Click Copy for compact Markdown or Send when ready to create a local handoff batch.
 
 Add freezes the latest preview only; it does not save. You can add multiple pending feedback items to one frozen preview. Pending items support Focus and Delete before Save; deleting renumbers pending items so the pending list numbers and overlay numbers match. Save promotes the frozen preview once into one persisted evidence snapshot and connects all pending items to that same `screenId`. Later Add on the same visible app screen creates a new evidence snapshot after Save.
 

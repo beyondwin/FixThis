@@ -141,6 +141,14 @@ Reopen the feedback console from the agent or run `fixthis console --package <ap
 
 The in-app status pill changes to `MCP connected` only after an authorized MCP browser heartbeat, not after every bridge status or screen-capture request. Open the feedback console and keep the browser tab active long enough for heartbeat polling to run.
 
+## Browser Console Says Reconnect
+
+`Reconnect` means the console previously reached the FixThis sidekick bridge, but a later heartbeat, preview, or navigation request failed. Common causes are app restart, app reinstall, process death, device sleep, wireless debugging interruption, or the app being backgrounded.
+
+Click `Reconnect`. The console will try to open the app and refresh the bridge session. Draft annotations and the last preview are kept while reconnecting.
+
+Open `Details` for raw diagnostics such as `Bridge closed before sending a response`.
+
 ### I reopened the console and do not see my previous feedback
 
 Run `fixthis_list_feedback_sessions` or reopen the console with the exact `sessionId`. If the session was closed, pass `includeClosed` when listing sessions. Verify `.fixthis/feedback-sessions/` exists under the same project root used by the MCP server.

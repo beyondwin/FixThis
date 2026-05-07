@@ -439,8 +439,19 @@ group은 persisted screenshot, numbered overlay, comments, optional
 
 ### 8.5 MCP connection UX
 
-앱 안에는 별도 연결 메뉴를 두지 않는다. 연결 상태는 status pill로만 표시하고,
-제어는 desktop console의 compact device control에서 한다.
+Desktop console control uses a non-developer recovery model. Normal UI exposes:
+
+```text
+Connect to your app
+Ready
+Open the app
+Reconnect
+Choose a device
+Check your phone
+This build cannot connect
+```
+
+The compact device state remains available in the top bar and Details:
 
 ```text
 No device
@@ -448,6 +459,8 @@ Connecting
 Connected
 Unavailable
 ```
+
+The app-side status pill remains limited to `MCP waiting` and `MCP connected`.
 
 ### 8.6 CLI UX
 
