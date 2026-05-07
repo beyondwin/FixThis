@@ -95,6 +95,11 @@ abstract class GenerateFixThisSourceIndexTask : DefaultTask() {
         val source = file.readText()
         val lines = source.lineSequence().toList()
         val lineStartOffsets = source.lineStartOffsets()
+        val packageName = packageRegex.find(source)?.groupValues?.get(1)
+        val classDeclarations = classRegex.findAll(source)
+            .map { match -> match.range.first to match.groupValues[2] }
+            .toList()
+        val recognizedStringRanges = recognizedUiStringRanges(source)
         val entriesByLine = linkedMapOf<Int, SourceIndexEntryBuilder>()
         var pendingComposable = false
 
@@ -108,32 +113,96 @@ abstract class GenerateFixThisSourceIndexTask : DefaultTask() {
             val functionMatch = functionRegex.find(line)
             if (functionMatch != null) {
                 if (pendingComposable || line.contains("@Composable")) {
-                    entriesByLine.entryFor(file, lineNumber, line)
-                        .symbols += functionMatch.groupValues[1]
+                    val symbol = functionMatch.groupValues[1]
+                    entriesByLine.entryFor(
+                        file = file,
+                        lineNumber = lineNumber,
+                        line = line,
+                        packageName = packageName,
+                        className = classNameAt(lineStartOffsets.getOrElse(index) { 0 }, classDeclarations),
+                    ).apply {
+                        symbols += symbol
+                        addSignal(SourceSignalKindAsset.COMPOSABLE_SYMBOL, symbol)
+                    }
                 }
                 pendingComposable = false
             }
         }
 
         quotedStringRegex.findAll(source).forEach { match ->
-            entriesByLine.entryFor(file, match.startLine(lineStartOffsets), lines)
-                .text += decodeKotlinString(match)
+            val value = decodeKotlinString(match)
+            entriesByLine.entryFor(
+                file = file,
+                lineNumber = match.startLine(lineStartOffsets),
+                lines = lines,
+                packageName = packageName,
+                className = classNameAt(match.range.first, classDeclarations),
+            )
+                .apply {
+                    text += value
+                    if (recognizedStringRanges.none { it.contains(match.range) }) {
+                        addSignal(SourceSignalKindAsset.ARBITRARY_STRING_LITERAL, value)
+                    }
+                }
         }
         textCallRegex.findAll(source).forEach { match ->
-            entriesByLine.entryFor(file, match.startLine(lineStartOffsets), lines)
-                .text += decodeKotlinString(match)
+            val value = decodeKotlinString(match)
+            entriesByLine.entryFor(
+                file = file,
+                lineNumber = match.startLine(lineStartOffsets),
+                lines = lines,
+                packageName = packageName,
+                className = classNameAt(match.range.first, classDeclarations),
+            )
+                .apply {
+                    text += value
+                    addSignal(SourceSignalKindAsset.UI_TEXT, value)
+                }
         }
         stringResourceRegex.findAll(source).forEach { match ->
-            entriesByLine.entryFor(file, match.startLine(lineStartOffsets), lines)
-                .stringResources += match.groupValues[1]
+            val resourceName = match.groupValues[1]
+            entriesByLine.entryFor(
+                file = file,
+                lineNumber = match.startLine(lineStartOffsets),
+                lines = lines,
+                packageName = packageName,
+                className = classNameAt(match.range.first, classDeclarations),
+            )
+                .apply {
+                    stringResources += resourceName
+                    addSignal(SourceSignalKindAsset.STRING_RESOURCE, resourceName)
+                }
         }
         testTagRegex.findAll(source).forEach { match ->
-            entriesByLine.entryFor(file, match.startLine(lineStartOffsets), lines)
-                .testTags += decodeKotlinString(match)
+            val value = decodeKotlinString(match)
+            entriesByLine.entryFor(
+                file = file,
+                lineNumber = match.startLine(lineStartOffsets),
+                lines = lines,
+                packageName = packageName,
+                className = classNameAt(match.range.first, classDeclarations),
+            )
+                .apply {
+                    testTags += value
+                    if (value.isStrictCompTestTag()) {
+                        addSignal(SourceSignalKindAsset.STRICT_COMP_TEST_TAG, value)
+                    }
+                    addSignal(SourceSignalKindAsset.TEST_TAG, value)
+                }
         }
         contentDescriptionRegex.findAll(source).forEach { match ->
-            entriesByLine.entryFor(file, match.startLine(lineStartOffsets), lines)
-                .contentDescriptions += decodeKotlinString(match)
+            val value = decodeKotlinString(match)
+            entriesByLine.entryFor(
+                file = file,
+                lineNumber = match.startLine(lineStartOffsets),
+                lines = lines,
+                packageName = packageName,
+                className = classNameAt(match.range.first, classDeclarations),
+            )
+                .apply {
+                    contentDescriptions += value
+                    addSignal(SourceSignalKindAsset.CONTENT_DESCRIPTION, value)
+                }
         }
 
         return entriesByLine.values.map { it.toAsset() }
@@ -161,6 +230,10 @@ abstract class GenerateFixThisSourceIndexTask : DefaultTask() {
                         line = lineIndex?.plus(1),
                         text = listOf(value),
                         stringResources = listOf(name),
+                        signals = listOf(
+                            SourceSignalAsset(SourceSignalKindAsset.UI_TEXT, value),
+                            SourceSignalAsset(SourceSignalKindAsset.STRING_RESOURCE, name),
+                        ),
                         excerpt = lineIndex?.let { lines[it].trim() } ?: "<string name=\"$name\">",
                     ),
                 )
@@ -201,12 +274,16 @@ abstract class GenerateFixThisSourceIndexTask : DefaultTask() {
         file: File,
         lineNumber: Int,
         line: String,
+        packageName: String? = null,
+        className: String? = null,
     ): SourceIndexEntryBuilder =
         getOrPut(lineNumber) {
             SourceIndexEntryBuilder(
                 file = file.relativePath(),
                 line = lineNumber,
                 excerpt = line.trim(),
+                packageName = packageName,
+                className = className,
             )
         }
 
@@ -214,12 +291,30 @@ abstract class GenerateFixThisSourceIndexTask : DefaultTask() {
         file: File,
         lineNumber: Int,
         lines: List<String>,
+        packageName: String? = null,
+        className: String? = null,
     ): SourceIndexEntryBuilder =
         entryFor(
             file = file,
             lineNumber = lineNumber,
             line = lines.getOrNull(lineNumber - 1).orEmpty(),
+            packageName = packageName,
+            className = className,
         )
+
+    private fun classNameAt(offset: Int, classDeclarations: List<Pair<Int, String>>): String? =
+        classDeclarations.lastOrNull { (classOffset, _) -> classOffset <= offset }?.second
+
+    private fun recognizedUiStringRanges(source: String): List<IntRange> =
+        (textCallRegex.findAll(source) + testTagRegex.findAll(source) + contentDescriptionRegex.findAll(source))
+            .map { it.range }
+            .toList()
+
+    private fun IntRange.contains(other: IntRange): Boolean =
+        first <= other.first && last >= other.last
+
+    private fun String.isStrictCompTestTag(): Boolean =
+        strictCompTestTagRegex.matches(this)
 
     private fun String.lineStartOffsets(): IntArray {
         val offsets = mutableListOf(0)
@@ -261,6 +356,9 @@ abstract class GenerateFixThisSourceIndexTask : DefaultTask() {
         val contentDescriptionRegex =
             Regex("\\bcontentDescription\\s*=\\s*(?:\"\"\"([\\s\\S]*?)\"\"\"|\"((?:\\\\.|[^\"\\\\])*)\")")
         val functionRegex = Regex("\\bfun\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*\\(")
+        val packageRegex = Regex("\\bpackage\\s+([A-Za-z_][A-Za-z0-9_.]*)")
+        val classRegex = Regex("\\b(class|object|interface)\\s+([A-Za-z_][A-Za-z0-9_]*)")
+        val strictCompTestTagRegex = Regex("""comp:[A-Za-z_][A-Za-z0-9_]*:.+""")
     }
 }
 
@@ -272,8 +370,17 @@ private data class SourceIndexEntryBuilder(
     val contentDescriptions: LinkedHashSet<String> = linkedSetOf(),
     val testTags: LinkedHashSet<String> = linkedSetOf(),
     val stringResources: LinkedHashSet<String> = linkedSetOf(),
+    val signals: LinkedHashSet<SourceSignalAsset> = linkedSetOf(),
     val excerpt: String,
+    val packageName: String? = null,
+    val className: String? = null,
 ) {
+    fun addSignal(kind: SourceSignalKindAsset, value: String) {
+        if (value.isNotBlank()) {
+            signals += SourceSignalAsset(kind = kind, value = value)
+        }
+    }
+
     fun toAsset(): SourceIndexEntryAsset =
         SourceIndexEntryAsset(
             file = file,
@@ -283,7 +390,10 @@ private data class SourceIndexEntryBuilder(
             contentDescriptions = contentDescriptions.toList(),
             testTags = testTags.toList(),
             stringResources = stringResources.toList(),
+            signals = signals.toList(),
             excerpt = excerpt,
+            packageName = packageName,
+            className = className,
         )
 }
 
@@ -305,7 +415,30 @@ private data class SourceIndexEntryAsset(
     val roles: List<String> = emptyList(),
     val activityNames: List<String> = emptyList(),
     val excerpt: String? = null,
+    val signals: List<SourceSignalAsset> = emptyList(),
+    val packageName: String? = null,
+    val className: String? = null,
 )
+
+@Serializable
+private data class SourceSignalAsset(
+    val kind: SourceSignalKindAsset,
+    val value: String,
+    val confidenceWeight: Double = 1.0,
+)
+
+@Serializable
+private enum class SourceSignalKindAsset {
+    COMPOSABLE_SYMBOL,
+    UI_TEXT,
+    STRING_RESOURCE,
+    TEST_TAG,
+    STRICT_COMP_TEST_TAG,
+    CONTENT_DESCRIPTION,
+    ROLE,
+    ACTIVITY_NAME,
+    ARBITRARY_STRING_LITERAL,
+}
 
 @Serializable
 private data class FixThisBuildInfoAsset(

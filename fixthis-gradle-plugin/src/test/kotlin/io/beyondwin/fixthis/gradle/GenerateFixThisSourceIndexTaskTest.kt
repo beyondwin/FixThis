@@ -3,6 +3,7 @@ package io.beyondwin.fixthis.gradle
 import io.beyondwin.fixthis.gradle.task.GenerateFixThisSourceIndexTask
 import java.io.File
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -126,6 +127,113 @@ class GenerateFixThisSourceIndexTaskTest {
         assertEquals("fixthis/fixthis-build-info.json", buildInfo.getValue("buildInfoAsset").jsonPrimitive.content)
         assertEquals("true", buildInfo.getValue("includeScreenshots").jsonPrimitive.content)
         assertEquals("true", buildInfo.getValue("redactEditableText").jsonPrimitive.content)
+    }
+
+    @Test
+    fun `emits typed source index signals while preserving v1 fields`() {
+        val projectDir = temporaryFolder.newFolder("project")
+        val sourceFile = projectDir.resolve("src/main/java/io/github/fixthis/sample/CheckoutFeature.kt")
+        sourceFile.parentFile.mkdirs()
+        sourceFile.writeText(
+            """
+            package io.beyondwin.fixthis.sample
+
+            import androidx.compose.foundation.layout.Box
+            import androidx.compose.material3.Text
+            import androidx.compose.runtime.Composable
+            import androidx.compose.ui.Modifier
+            import androidx.compose.ui.platform.testTag
+            import androidx.compose.ui.res.stringResource
+            import androidx.compose.ui.semantics.contentDescription
+            import androidx.compose.ui.semantics.semantics
+
+            class CheckoutFeature {
+                @Composable
+                fun CheckoutScreen() {
+                    val analyticsName = "checkout_debug"
+                    Text("Pay now", modifier = Modifier.testTag("comp:CheckoutScreen:primary"))
+                    Box(Modifier.testTag("plain_tag").semantics { contentDescription = "Payment options" })
+                    Text(stringResource(R.string.checkout_total))
+                }
+            }
+            """.trimIndent(),
+        )
+        val stringsFile = projectDir.resolve("src/main/res/values/strings.xml")
+        stringsFile.parentFile.mkdirs()
+        stringsFile.writeText(
+            """
+            <resources>
+                <string name="checkout_total">Total due</string>
+            </resources>
+            """.trimIndent(),
+        )
+        val outputDir = projectDir.resolve("build/generated/fixthis/debug/assets")
+
+        runTask(
+            projectDir = projectDir,
+            kotlinSources = listOf(sourceFile),
+            resourceXmlFiles = listOf(stringsFile),
+            outputDir = outputDir,
+        )
+
+        val entries = Json.parseToJsonElement(
+            outputDir.resolve("fixthis/fixthis-source-index.json").readText(),
+        ).jsonObject.getValue("entries").jsonArray
+        val textValues = entries.flatMap { entry ->
+            entry.jsonObject.getValue("text").jsonArray.map { it.jsonPrimitive.content }
+        }
+        val stringResources = entries.flatMap { entry ->
+            entry.jsonObject.getValue("stringResources").jsonArray.map { it.jsonPrimitive.content }
+        }
+        val testTags = entries.flatMap { entry ->
+            entry.jsonObject.getValue("testTags").jsonArray.map { it.jsonPrimitive.content }
+        }
+        val contentDescriptions = entries.flatMap { entry ->
+            entry.jsonObject.getValue("contentDescriptions").jsonArray.map { it.jsonPrimitive.content }
+        }
+        val symbols = entries.flatMap { entry ->
+            entry.jsonObject.getValue("symbols").jsonArray.map { it.jsonPrimitive.content }
+        }
+        val signals = entries.flatMap { entry ->
+            entry.jsonObject.getValue("signals").jsonArray.map { signal ->
+                signal.jsonObject.getValue("kind").jsonPrimitive.content to
+                    signal.jsonObject.getValue("value").jsonPrimitive.content
+            }
+        }
+
+        assertTrue(textValues.contains("checkout_debug"))
+        assertTrue(textValues.contains("Pay now"))
+        assertTrue(textValues.contains("Total due"))
+        assertTrue(stringResources.contains("checkout_total"))
+        assertTrue(testTags.contains("comp:CheckoutScreen:primary"))
+        assertTrue(testTags.contains("plain_tag"))
+        assertTrue(contentDescriptions.contains("Payment options"))
+        assertTrue(symbols.contains("CheckoutScreen"))
+        assertTrue(signals.contains("COMPOSABLE_SYMBOL" to "CheckoutScreen"))
+        assertTrue(signals.contains("UI_TEXT" to "Pay now"))
+        assertTrue(signals.contains("UI_TEXT" to "Total due"))
+        assertTrue(signals.contains("STRING_RESOURCE" to "checkout_total"))
+        assertTrue(signals.contains("STRICT_COMP_TEST_TAG" to "comp:CheckoutScreen:primary"))
+        assertTrue(signals.contains("TEST_TAG" to "comp:CheckoutScreen:primary"))
+        assertTrue(signals.contains("TEST_TAG" to "plain_tag"))
+        assertTrue(signals.contains("CONTENT_DESCRIPTION" to "Payment options"))
+        assertTrue(signals.contains("ARBITRARY_STRING_LITERAL" to "checkout_debug"))
+        assertTrue(entries.any { entry ->
+            val json = entry.jsonObject
+            json.getValue("signals").jsonArray.any { signal ->
+                signal.jsonObject.getValue("value").jsonPrimitive.content == "Pay now"
+            } &&
+                json.getValue("packageName").jsonPrimitive.content == "io.beyondwin.fixthis.sample" &&
+                json.getValue("className").jsonPrimitive.content == "CheckoutFeature"
+        })
+        assertTrue(entries.any { entry ->
+            val json = entry.jsonObject
+            json.getValue("signals").jsonArray.any { signal ->
+                signal.jsonObject.getValue("value").jsonPrimitive.content == "Total due"
+            } &&
+                json.getValue("packageName").jsonPrimitive.contentOrNull == null &&
+                json.getValue("className").jsonPrimitive.contentOrNull == null
+        })
     }
 
     @Test

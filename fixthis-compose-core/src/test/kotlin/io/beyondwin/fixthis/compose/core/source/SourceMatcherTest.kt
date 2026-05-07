@@ -213,6 +213,107 @@ class SourceMatcherTest {
         assertTrue(match.matchReasons.contains("selected testTag convention composable"))
     }
 
+    @Test
+    fun typedUiTextSignalOutranksArbitraryStringLiteralForSameSelectedText() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "LiteralOnly.kt",
+                        line = 7,
+                        signals = listOf(
+                            SourceSignal(
+                                kind = SourceSignalKind.ARBITRARY_STRING_LITERAL,
+                                value = "Pay now",
+                                confidenceWeight = 0.35
+                            )
+                        )
+                    ),
+                    SourceIndexEntry(
+                        file = "CheckoutScreen.kt",
+                        line = 12,
+                        signals = listOf(
+                            SourceSignal(
+                                kind = SourceSignalKind.UI_TEXT,
+                                value = "Pay now",
+                                confidenceWeight = 1.0
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        val matches = matcher.match(
+            selectedNode = node(uid = "pay", text = listOf("Pay now")),
+            nearbyNodes = emptyList(),
+            activityName = null
+        )
+
+        assertEquals("CheckoutScreen.kt", matches.first().file)
+        assertEquals("LiteralOnly.kt", matches[1].file)
+        assertTrue(matches.first().score > matches[1].score)
+        assertTrue(matches.first().matchReasons.contains("selected text"))
+    }
+
+    @Test
+    fun v1TextOnlyEntryStillMatchesSelectedText() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "LegacyCheckoutScreen.kt",
+                        line = 21,
+                        text = listOf("Pay now")
+                    )
+                )
+            )
+        )
+
+        val matches = matcher.match(
+            selectedNode = node(uid = "pay", text = listOf("Pay now")),
+            nearbyNodes = emptyList(),
+            activityName = null
+        )
+
+        assertEquals("LegacyCheckoutScreen.kt", matches.single().file)
+        assertTrue(matches.single().matchReasons.contains("selected text"))
+    }
+
+    @Test
+    fun mixedV2EntryFallsBackToLegacyRoleAndActivityMatches() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "CheckoutScreen.kt",
+                        line = 30,
+                        roles = listOf("Button"),
+                        activityNames = listOf("MainActivity"),
+                        signals = listOf(
+                            SourceSignal(
+                                kind = SourceSignalKind.UI_TEXT,
+                                value = "Pay now",
+                                confidenceWeight = 1.0
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        val match = matcher.match(
+            selectedNode = node(uid = "pay", text = listOf("Pay now"), role = "Button"),
+            nearbyNodes = emptyList(),
+            activityName = "io.beyondwin.fixthis.sample.MainActivity"
+        ).single()
+
+        assertEquals("CheckoutScreen.kt", match.file)
+        assertTrue(match.matchReasons.contains("selected text"))
+        assertTrue(match.matchReasons.contains("selected role"))
+        assertTrue(match.matchReasons.contains("activity"))
+    }
+
     private fun node(
         uid: String,
         text: List<String> = emptyList(),

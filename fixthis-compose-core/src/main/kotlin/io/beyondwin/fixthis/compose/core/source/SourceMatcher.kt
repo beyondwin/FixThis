@@ -48,41 +48,65 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         var rawScore = 0.0
 
         selectedNode.text.forEach { term ->
-            rawScore += addIfMatches(entry.matchesTextLike(term), term, "selected text", 45.0, matchedTerms, matchReasons, scoredEvidence)
+            rawScore += addIfMatches(entry.textLikeWeight(term), term, "selected text", 45.0, matchedTerms, matchReasons, scoredEvidence)
         }
         selectedNode.editableText?.let { term ->
-            rawScore += addIfMatches(entry.matchesTextLike(term), term, "selected text", 45.0, matchedTerms, matchReasons, scoredEvidence)
+            rawScore += addIfMatches(entry.textLikeWeight(term), term, "selected text", 45.0, matchedTerms, matchReasons, scoredEvidence)
         }
         selectedNode.contentDescription.forEach { term ->
-            rawScore += addIfMatches(entry.matchesContentDescription(term), term, "selected contentDescription", 40.0, matchedTerms, matchReasons, scoredEvidence)
+            rawScore += addIfMatches(
+                entry.contentDescriptionWeight(term),
+                term,
+                "selected contentDescription",
+                40.0,
+                matchedTerms,
+                matchReasons,
+                scoredEvidence
+            )
         }
         selectedNode.testTag?.let { term ->
             rawScore += addSelectedTestTagScore(entry, term, matchedTerms, matchReasons, scoredEvidence)
         }
         selectedNode.role?.let { term ->
-            rawScore += addIfMatches(entry.matchesRole(term), term, "selected role", 25.0, matchedTerms, matchReasons, scoredEvidence)
+            rawScore += addIfMatches(entry.roleWeight(term), term, "selected role", 25.0, matchedTerms, matchReasons, scoredEvidence)
         }
 
         nearbyNodes.forEach { node ->
             node.text.forEach { term ->
-                rawScore += addIfMatches(entry.matchesTextLike(term), term, "nearby text", 24.0, matchedTerms, matchReasons, scoredEvidence)
+                rawScore += addIfMatches(entry.textLikeWeight(term), term, "nearby text", 24.0, matchedTerms, matchReasons, scoredEvidence)
             }
             node.editableText?.let { term ->
-                rawScore += addIfMatches(entry.matchesTextLike(term), term, "nearby text", 24.0, matchedTerms, matchReasons, scoredEvidence)
+                rawScore += addIfMatches(entry.textLikeWeight(term), term, "nearby text", 24.0, matchedTerms, matchReasons, scoredEvidence)
             }
             node.contentDescription.forEach { term ->
-                rawScore += addIfMatches(entry.matchesContentDescription(term), term, "nearby contentDescription", 22.0, matchedTerms, matchReasons, scoredEvidence)
+                rawScore += addIfMatches(
+                    entry.contentDescriptionWeight(term),
+                    term,
+                    "nearby contentDescription",
+                    22.0,
+                    matchedTerms,
+                    matchReasons,
+                    scoredEvidence
+                )
             }
             node.testTag?.let { term ->
-                rawScore += addIfMatches(entry.matchesTestTag(term), term, "nearby testTag", 18.0, matchedTerms, matchReasons, scoredEvidence)
+                rawScore += addIfMatches(entry.testTagWeight(term), term, "nearby testTag", 18.0, matchedTerms, matchReasons, scoredEvidence)
             }
             node.role?.let { term ->
-                rawScore += addIfMatches(entry.matchesRole(term), term, "nearby role", 8.0, matchedTerms, matchReasons, scoredEvidence)
+                rawScore += addIfMatches(entry.roleWeight(term), term, "nearby role", 8.0, matchedTerms, matchReasons, scoredEvidence)
             }
         }
 
         activityName?.takeUnless { it.isBlank() }?.let { name ->
-            rawScore += addIfMatches(entry.matchesActivity(name), name.substringAfterLast('.'), "activity", 15.0, matchedTerms, matchReasons, scoredEvidence)
+            rawScore += addIfMatches(
+                entry.activityWeight(name),
+                name.substringAfterLast('.'),
+                "activity",
+                15.0,
+                matchedTerms,
+                matchReasons,
+                scoredEvidence
+            )
         }
 
         return MatchScore(
@@ -101,7 +125,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         scoredEvidence: MutableSet<String>
     ): Double {
         var score = addIfMatches(
-            matches = entry.matchesTestTag(testTag),
+            matchWeight = entry.testTagWeight(testTag),
             term = testTag,
             reason = "selected testTag",
             score = 55.0,
@@ -112,7 +136,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
 
         TestTagConvention.parse(testTag)?.let { parsed ->
             val conventionScore = addIfMatches(
-                matches = entry.matchesConventionComposable(parsed.composableName),
+                matchWeight = entry.conventionComposableWeight(parsed.composableName),
                 term = parsed.composableName,
                 reason = "selected testTag convention composable",
                 score = 65.0,
@@ -127,7 +151,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
     }
 
     private fun addIfMatches(
-        matches: Boolean,
+        matchWeight: Double,
         term: String,
         reason: String,
         score: Double,
@@ -136,11 +160,11 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         scoredEvidence: MutableSet<String>
     ): Double {
         val cleaned = term.trim()
-        if (!matches || cleaned.isEmpty()) return 0.0
+        if (matchWeight <= 0.0 || cleaned.isEmpty()) return 0.0
         matchedTerms.add(cleaned)
         matchReasons.add(reason)
         if (!scoredEvidence.add("$reason\u001f${cleaned.normalizedForMatch()}")) return 0.0
-        return score
+        return score * matchWeight
     }
 
     private fun MatchScore.toCandidate(): SourceCandidate =
@@ -158,26 +182,96 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             }
         )
 
-    private fun SourceIndexEntry.matchesTextLike(term: String): Boolean =
-        matchesAny(term, text + stringResources + symbols + listOfNotNull(excerpt))
+    private fun SourceIndexEntry.textLikeWeight(term: String): Double =
+        signalOrLegacyWeight(
+            term = term,
+            kinds = setOf(
+                SourceSignalKind.UI_TEXT,
+                SourceSignalKind.STRING_RESOURCE,
+                SourceSignalKind.ARBITRARY_STRING_LITERAL
+            ),
+            legacyCandidates = text + stringResources + symbols + listOfNotNull(excerpt)
+        )
 
-    private fun SourceIndexEntry.matchesContentDescription(term: String): Boolean =
-        matchesAny(term, contentDescriptions + stringResources + symbols + listOfNotNull(excerpt))
+    private fun SourceIndexEntry.contentDescriptionWeight(term: String): Double =
+        signalOrLegacyWeight(
+            term = term,
+            kinds = setOf(
+                SourceSignalKind.CONTENT_DESCRIPTION,
+                SourceSignalKind.STRING_RESOURCE,
+                SourceSignalKind.ARBITRARY_STRING_LITERAL
+            ),
+            legacyCandidates = contentDescriptions + stringResources + symbols + listOfNotNull(excerpt)
+        )
 
-    private fun SourceIndexEntry.matchesTestTag(term: String): Boolean =
-        matchesAny(term, testTags + symbols + listOfNotNull(excerpt))
+    private fun SourceIndexEntry.testTagWeight(term: String): Double =
+        signalOrLegacyWeight(
+            term = term,
+            kinds = setOf(SourceSignalKind.TEST_TAG, SourceSignalKind.STRICT_COMP_TEST_TAG),
+            legacyCandidates = testTags + symbols + listOfNotNull(excerpt)
+        )
 
-    private fun SourceIndexEntry.matchesConventionComposable(composableName: String): Boolean =
-        matchesAny(composableName, symbols + listOf(file) + listOfNotNull(excerpt))
+    private fun SourceIndexEntry.conventionComposableWeight(composableName: String): Double =
+        signalOrLegacyWeight(
+            term = composableName,
+            kinds = setOf(SourceSignalKind.COMPOSABLE_SYMBOL, SourceSignalKind.STRICT_COMP_TEST_TAG),
+            legacyCandidates = symbols + listOf(file) + listOfNotNull(excerpt)
+        )
 
-    private fun SourceIndexEntry.matchesRole(term: String): Boolean =
-        matchesAny(term, roles + symbols + listOfNotNull(excerpt))
+    private fun SourceIndexEntry.roleWeight(term: String): Double =
+        signalOrLegacyWeight(
+            term = term,
+            kinds = setOf(SourceSignalKind.ROLE),
+            legacyCandidates = roles + symbols + listOfNotNull(excerpt)
+        )
 
-    private fun SourceIndexEntry.matchesActivity(activityName: String): Boolean {
-        val activityTerms = activityNames + listOf(file)
+    private fun SourceIndexEntry.activityWeight(activityName: String): Double {
         val simpleName = activityName.substringAfterLast('.')
-        return matchesAny(activityName, activityTerms) || matchesAny(simpleName, activityTerms)
+        val signalMatchWeight = maxOf(
+            signalWeight(activityName, setOf(SourceSignalKind.ACTIVITY_NAME)),
+            signalWeight(simpleName, setOf(SourceSignalKind.ACTIVITY_NAME))
+        )
+        if (signalMatchWeight > 0.0) return signalMatchWeight
+
+        val activityTerms = activityNames + listOf(file)
+        return legacyWeight(matchesAny(activityName, activityTerms) || matchesAny(simpleName, activityTerms))
     }
+
+    private fun SourceIndexEntry.signalOrLegacyWeight(
+        term: String,
+        kinds: Set<SourceSignalKind>,
+        legacyCandidates: List<String>
+    ): Double {
+        val signalMatchWeight = signalWeight(term, kinds)
+        return if (signalMatchWeight > 0.0) {
+            signalMatchWeight
+        } else {
+            legacyWeight(matchesAny(term, legacyCandidates))
+        }
+    }
+
+    private fun SourceIndexEntry.signalWeight(term: String, kinds: Set<SourceSignalKind>): Double =
+        signals.asSequence()
+            .filter { it.kind in kinds }
+            .filter { matchesAny(term, listOf(it.value)) }
+            .map { signal -> signal.kind.baseMatchWeight * signal.confidenceWeight.coerceAtLeast(0.0) }
+            .maxOrNull()
+            ?: 0.0
+
+    private fun legacyWeight(matches: Boolean): Double = if (matches) 1.0 else 0.0
+
+    private val SourceSignalKind.baseMatchWeight: Double
+        get() = when (this) {
+            SourceSignalKind.STRICT_COMP_TEST_TAG -> 1.15
+            SourceSignalKind.UI_TEXT,
+            SourceSignalKind.TEST_TAG,
+            SourceSignalKind.CONTENT_DESCRIPTION,
+            SourceSignalKind.COMPOSABLE_SYMBOL -> 1.0
+            SourceSignalKind.STRING_RESOURCE,
+            SourceSignalKind.ROLE,
+            SourceSignalKind.ACTIVITY_NAME -> 0.85
+            SourceSignalKind.ARBITRARY_STRING_LITERAL -> 0.35
+        }
 
     private fun matchesAny(term: String, candidates: List<String>): Boolean {
         val normalizedTerm = term.normalizedForMatch()

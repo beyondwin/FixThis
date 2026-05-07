@@ -19,5 +19,28 @@ data class SourceIndexEntry(
     val stringResources: List<String> = emptyList(),
     val roles: List<String> = emptyList(),
     val activityNames: List<String> = emptyList(),
-    val excerpt: String? = null
+    val excerpt: String? = null,
+    val signals: List<SourceSignal> = emptyList(),
+    val packageName: String? = null,
+    val className: String? = null
 )
+
+@Serializable
+data class SourceSignal(
+    val kind: SourceSignalKind,
+    val value: String,
+    val confidenceWeight: Double = 1.0
+)
+
+@Serializable
+enum class SourceSignalKind {
+    COMPOSABLE_SYMBOL,
+    UI_TEXT,
+    STRING_RESOURCE,
+    TEST_TAG,
+    STRICT_COMP_TEST_TAG,
+    CONTENT_DESCRIPTION,
+    ROLE,
+    ACTIVITY_NAME,
+    ARBITRARY_STRING_LITERAL
+}

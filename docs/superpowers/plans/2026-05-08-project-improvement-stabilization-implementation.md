@@ -1409,11 +1409,11 @@ git commit -m "refactor: modularize console javascript assets"
 - Modify: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`
 - Modify: `fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt`
 
-- [ ] **Step 1: Add model tests for additive decode**
+- [x] **Step 1: Add model tests for additive decode**
 
 Add a test in `GenerateFixThisSourceIndexTaskTest.kt` or a core source-index test that decodes v1 JSON without `signals` and v2 JSON with `signals`.
 
-- [ ] **Step 2: Add source signal models**
+- [x] **Step 2: Add source signal models**
 
 Extend `SourceIndex.kt`:
 
@@ -1447,7 +1447,7 @@ val packageName: String? = null,
 val className: String? = null,
 ```
 
-- [ ] **Step 3: Emit typed signals in the Gradle task**
+- [x] **Step 3: Emit typed signals in the Gradle task**
 
 In `GenerateFixThisSourceIndexTask.kt`, update `SourceIndexEntryBuilder` so each existing v1 list still writes, and each match also adds a `SourceSignal`.
 
@@ -1460,11 +1460,11 @@ Rules:
 - `contentDescription` -> `CONTENT_DESCRIPTION`
 - quoted literals not in a recognized UI call -> `ARBITRARY_STRING_LITERAL`
 
-- [ ] **Step 4: Adjust source matching confidence**
+- [x] **Step 4: Adjust source matching confidence**
 
 In `SourceMatcher.kt`, prefer `signals` when present. Lower the weight of `ARBITRARY_STRING_LITERAL` relative to `UI_TEXT`, `TEST_TAG`, and `CONTENT_DESCRIPTION`. Preserve current matching behavior when `signals` is empty.
 
-- [ ] **Step 5: Run validation**
+- [x] **Step 5: Run validation**
 
 ```bash
 ./gradlew :fixthis-gradle-plugin:test :fixthis-compose-core:test :fixthis-mcp:test
@@ -1472,7 +1472,17 @@ In `SourceMatcher.kt`, prefer `signals` when present. Lower the weight of `ARBIT
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+Task 10 notes:
+- RED core: `./gradlew :fixthis-compose-core:test --tests 'io.beyondwin.fixthis.compose.core.source.SourceIndexTest' --tests 'io.beyondwin.fixthis.compose.core.source.SourceMatcherTest'` failed at `:fixthis-compose-core:compileTestKotlin` because `signals`, `packageName`, `className`, `SourceSignal`, and `SourceSignalKind` were not defined.
+- RED Gradle task: `./gradlew :fixthis-gradle-plugin:test --tests 'io.beyondwin.fixthis.gradle.GenerateFixThisSourceIndexTaskTest'` failed in `emits typed source index signals while preserving v1 fields` with `NoSuchElementException` when reading missing generated `signals`.
+- Focused GREEN: `./gradlew :fixthis-compose-core:test --tests 'io.beyondwin.fixthis.compose.core.source.SourceIndexTest' --tests 'io.beyondwin.fixthis.compose.core.source.SourceMatcherTest' :fixthis-gradle-plugin:test --tests 'io.beyondwin.fixthis.gradle.GenerateFixThisSourceIndexTaskTest'` passed.
+- Validation GREEN: `./gradlew :fixthis-gradle-plugin:test :fixthis-compose-core:test :fixthis-mcp:test` passed.
+- Whitespace validation: `git diff --check 4811396..HEAD` passed.
+- Quality-review RED: after adding focused coverage for v2 signals without `confidenceWeight` and mixed v2 entries with preserved legacy role/activity fields, `./gradlew :fixthis-compose-core:test --tests 'io.beyondwin.fixthis.compose.core.source.SourceIndexTest' --tests 'io.beyondwin.fixthis.compose.core.source.SourceMatcherTest'` failed as expected with `MissingFieldException` in `decodesV2SignalWithoutConfidenceWeightWithDefaultWeight` and an assertion failure in `mixedV2EntryFallsBackToLegacyRoleAndActivityMatches`.
+- Quality-review GREEN: `SourceSignal.confidenceWeight` now defaults to `1.0`; `SourceMatcher` uses positive signal matches first and falls back to the preserved v1 field candidates when signal weight is `0.0`. The same focused command passed.
+- Quality-review validation: `./gradlew :fixthis-compose-core:test --tests 'io.beyondwin.fixthis.compose.core.source.SourceIndexTest' --tests 'io.beyondwin.fixthis.compose.core.source.SourceMatcherTest'` passed; `./gradlew :fixthis-gradle-plugin:test :fixthis-compose-core:test :fixthis-mcp:test` passed; `git diff --check 4811396..HEAD` passed.
+
+- [x] **Step 6: Commit**
 
 ```bash
 git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt
