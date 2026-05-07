@@ -2071,7 +2071,7 @@ git commit -m "test: add stable target evidence sample tags"
 - Modify: `docs/mcp.md`
 - Modify: `docs/design-target-evidence-handoff-review.md`
 
-- [ ] **Step 1: Update output schema**
+- [x] **Step 1: Update output schema**
 
 In `docs/output-schema.md`, add a `targetEvidence` section under annotation output:
 
@@ -2088,7 +2088,7 @@ In `docs/output-schema.md`, add a `targetEvidence` section under annotation outp
 - `warnings`: human-readable caveats. Agents must treat these as confidence constraints.
 ```
 
-- [ ] **Step 2: Update MCP docs**
+- [x] **Step 2: Update MCP docs**
 
 In `docs/mcp.md`, update `fixthis_read_feedback`:
 
@@ -2098,7 +2098,7 @@ In `docs/mcp.md`, update `fixthis_read_feedback`:
 `detailMode` affects only the Markdown content. The JSON content remains complete and includes all persisted session evidence, including optional `targetEvidence`.
 ```
 
-- [ ] **Step 3: Correct the handoff review doc**
+- [x] **Step 3: Correct the handoff review doc**
 
 In `docs/design-target-evidence-handoff-review.md`, apply these corrections:
 
@@ -2109,7 +2109,7 @@ In `docs/design-target-evidence-handoff-review.md`, apply these corrections:
 - `BridgeProtocol.VERSION` should not be bumped for nullable additive evidence. If a future protocol break is needed, update both sidekick `BridgeProtocol.VERSION` and CLI `BridgeProtocolVersion`.
 ```
 
-- [ ] **Step 4: Run doc whitespace check**
+- [x] **Step 4: Run doc whitespace check**
 
 Run:
 
@@ -2119,7 +2119,7 @@ git diff --check -- docs/output-schema.md docs/mcp.md docs/design-target-evidenc
 
 Expected: no output.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs/output-schema.md docs/mcp.md docs/design-target-evidence-handoff-review.md

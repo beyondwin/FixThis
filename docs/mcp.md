@@ -114,7 +114,7 @@ Supported JSON-RPC methods:
 
 `fixthis_status`
 
-Checks whether the debug app sidekick bridge is reachable. Returns package, activity, root count, source-index availability, and bridge status.
+Checks whether the debug app sidekick bridge is reachable. Returns package, activity, root count, source-index availability, and bridge status. Bridge status includes sidekick and bridge protocol versions plus `capabilities`, currently `targetEvidence`, supported `detailModes`, and whether experimental composable identity is enabled.
 
 `fixthis_get_current_screen`
 
@@ -161,6 +161,14 @@ Lists feedback queue summaries for the active feedback session, including draft 
 `fixthis_read_feedback`
 
 Reads the feedback queue as annotation JSON and Markdown, optionally focused on one item. The JSON output preserves saved items, draft/sent delivery state, screens, and handoff batches. The Markdown output is a compact work queue for agents rather than a storage dump.
+
+Arguments:
+
+- `sessionId`: optional feedback session id. If omitted, the active session is used.
+- `itemId`: optional feedback item id to focus the returned payload.
+- `detailMode`: optional Markdown detail level. Supported values are `compact`, `precise`, and `full`; the default is `precise`.
+
+`detailMode` affects only the Markdown content. The JSON content remains complete and includes all persisted session evidence, including optional `targetEvidence`.
 
 The JSON output preserves the full feedback session schema for tools that need exact IDs, paths, and tool contracts. The Markdown output is the compact agent-facing handoff view: it focuses on request, target evidence, and likely source, and intentionally omits internal IDs plus repeated storage metadata such as raw session, screen, item, batch, and screenshot artifact IDs.
 

@@ -34,8 +34,20 @@ These fields can be absent or empty depending on runtime context:
 - `scopeCandidates`
 - `nearbyNodes`
 - `sourceCandidates`
+- `targetEvidence`
 - `searchHints`
 - `screenshot`
+
+### `targetEvidence`
+
+`targetEvidence` is optional additive evidence for agent handoff. It may be absent when the sidekick or capture path cannot compute structured evidence.
+
+- `identityHint`: optional target identity derived from strict `comp:<ComposableName>:<variant>` test tags or stable semantics labels.
+- `occurrence`: optional ordinal/count for the selected target, based on captured merged semantics nodes.
+- `sourceInterpretation`: optional summary of the top source candidate, source-match reasons, and confidence caution.
+- `evidenceQuality`: `BASIC` or `STRUCTURED`.
+- `screenshotKinds`: screenshot artifact kinds available for the annotation, such as `full` and `crop`.
+- `warnings`: human-readable caveats. Agents must treat these as confidence constraints.
 
 ## Feedback Session Schema
 
@@ -113,6 +125,7 @@ Feedback items represent human comments on a persisted evidence snapshot:
 - `sentAtEpochMillis`: time the item was sent to a handoff batch, present for sent items.
 - `status`: `open`, `ready`, `in_progress`, `resolved`, `needs_clarification`, or `wont_fix`.
 - `agentSummary`: optional agent resolution summary.
+- `targetEvidence`: optional additive evidence for stable agent handoff. When present, it follows the annotation `targetEvidence` shape above.
 
 `ready` is retained for persisted/session JSON compatibility. Domain mappers normalize legacy `ready` values to `AnnotationStatus.OPEN`; this is not a JSON field migration.
 
