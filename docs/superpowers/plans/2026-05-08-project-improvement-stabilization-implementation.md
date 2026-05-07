@@ -566,7 +566,7 @@ HANDOFF CHECKPOINT:
 - Modify: `docs/design-zero-setup.md`
 - Modify: `docs/troubleshooting.md`
 
-- [ ] **Step 1: Add writer model tests**
+- [x] **Step 1: Add writer model tests**
 
 Create `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/AgentConfigWriterTest.kt`:
 
@@ -618,7 +618,7 @@ class AgentConfigWriterTest {
 }
 ```
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run:
 
@@ -628,7 +628,23 @@ Run:
 
 Expected: FAIL because writer classes do not exist.
 
-- [ ] **Step 3: Add core writer model and interface**
+RED notes:
+- On session start, Task 4 writer files and `AgentConfigWriterTest.kt` already existed as uncommitted work in this worktree, so the requested missing-class RED could not be reproduced from the live state.
+- Initial exact command `./gradlew :fixthis-cli:test --tests '*AgentConfigWriterTest'`: PASS because implementation files were already present.
+- Additional focused RED added for a separated stale Codex env section: FAIL, `AgentConfigWriterTest > codexMergeRemovesSeparatedStaleFixThisEnv`, `4 tests completed, 1 failed`, assertion at `AgentConfigWriterTest.kt:81`.
+- After updating `CodexConfigWriter`, the same focused command passed.
+- Quality-review RED: `./gradlew :fixthis-cli:test --tests '*AgentConfigWriterTest' --tests '*SetupCommandTest'` failed with 4 expected failures for commented Codex headers, quoted Codex headers, invalid server names, and target-all partial writes on invalid Claude JSON.
+- Quality-review GREEN: the same focused command passed after server-name validation, normalized Codex table matching, and target-all preflight planning.
+- Atomic-write RED: `./gradlew :fixthis-cli:test --tests '*SetupCommandTest.atomicWriterLeavesExistingConfigWhenMoveFails'` failed at compile time because `AtomicConfigFileWriter` did not exist.
+- Atomic-write GREEN: the same focused command passed after adding same-directory temp-file write, atomic move with fallback, and temp cleanup on failure.
+- Final-review RED: after adding single-quoted Codex table coverage, `./gradlew :fixthis-cli:test --tests '*AgentConfigWriterTest'` failed with 2 expected failures for `[mcp_servers.'fixthis']` replacement and stale `[mcp_servers.'fixthis'.env]` removal.
+- Final-review GREEN: `CodexConfigWriter` now normalizes TOML literal single-quoted dotted key segments the same as bare keys for target matching; `./gradlew :fixthis-cli:test --tests '*AgentConfigWriterTest'` passed.
+- Final validation: `./gradlew :fixthis-cli:test --tests '*AgentConfigWriterTest' --tests '*SetupCommandTest'` passed; `git diff --check c9139ba..HEAD` passed.
+- Durability/doc review RED: added focused `AtomicConfigFileWriter` coverage for temp-file force-before-move and parent-directory force-after-move. Initial focused test command failed at compile time because the writer did not expose force hooks; after adding hooks, the unsupported parent-directory force fallback test failed until fallback handling wrapped the force call itself.
+- Durability/doc review GREEN: `AtomicConfigFileWriter` now writes UTF-8 bytes to a same-directory temp file, forces the temp file before move, preserves atomic move with `AtomicMoveNotSupportedException` fallback, and best-effort forces parent-directory metadata after a successful move without corrupting/truncating the moved config when directory fsync is unsupported.
+- Durability/doc review docs fix: `docs/design-zero-setup.md` success output now matches implemented `SetupCommand` output (`Wrote ... MCP config: ...`) and no longer advertises summary rows, checkmarks, or restart guidance.
+
+- [x] **Step 3: Add core writer model and interface**
 
 Create `McpConfigEntry.kt`:
 
@@ -657,7 +673,7 @@ internal interface AgentConfigWriter {
 }
 ```
 
-- [ ] **Step 4: Implement Codex writer**
+- [x] **Step 4: Implement Codex writer**
 
 Create `CodexConfigWriter.kt`:
 
@@ -713,7 +729,7 @@ internal class CodexConfigWriter : AgentConfigWriter {
 }
 ```
 
-- [ ] **Step 5: Implement Claude writer**
+- [x] **Step 5: Implement Claude writer**
 
 Create `ClaudeConfigWriter.kt`:
 
@@ -759,7 +775,7 @@ internal class ClaudeConfigWriter : AgentConfigWriter {
 }
 ```
 
-- [ ] **Step 6: Add Android SDK locator**
+- [x] **Step 6: Add Android SDK locator**
 
 Create `AndroidSdkLocator.kt`:
 
@@ -790,7 +806,7 @@ internal object AndroidSdkLocator {
 }
 ```
 
-- [ ] **Step 7: Wire SetupCommand flags**
+- [x] **Step 7: Wire SetupCommand flags**
 
 Modify `SetupCommand.kt` to add:
 
@@ -803,7 +819,7 @@ private val serverName by option("--server-name", help = "MCP server name to wri
 
 Build `McpConfigEntry` from the resolved package, project root, detected SDK, and current `McpExecutableLocator`. Keep `buildMcpClientConfig(resolvedPackage, root)` output unchanged when `write == false`.
 
-- [ ] **Step 8: Run validation**
+- [x] **Step 8: Run validation**
 
 Run:
 
@@ -817,10 +833,36 @@ git diff --check
 
 Expected: tests pass, default setup still prints JSON, dry-run prints target path and rendered config without writing.
 
-- [ ] **Step 9: Commit**
+Validation notes:
+- Atomic-write focused revalidation `./gradlew :fixthis-cli:test --tests '*SetupCommandTest.atomicWriterLeavesExistingConfigWhenMoveFails'`: PASS.
+- Quality-review focused revalidation `./gradlew :fixthis-cli:test --tests '*AgentConfigWriterTest' --tests '*SetupCommandTest'`: PASS.
+- `./gradlew :fixthis-cli:test`: PASS.
+- `./gradlew :fixthis-cli:installDist`: PASS.
+- `fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.beyondwin.fixthis.sample --project-dir "$PWD"`: PASS; default JSON output remained `command = "fixthis"` with `args = ["mcp", ...]`.
+- `fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.beyondwin.fixthis.sample --project-dir "$PWD" --write --target codex --dry-run`: PASS; printed target path `/Users/kws/.codex/config.toml` and rendered merged config with `ANDROID_HOME`.
+- `git diff --check`: PASS.
+- Durability/doc review validation `./gradlew :fixthis-cli:test --tests '*SetupCommandTest' --tests '*AgentConfigWriterTest'`: PASS.
+- Durability/doc review validation `./gradlew :fixthis-cli:installDist`: PASS.
+- Durability/doc review validation `git diff --check c9139ba..HEAD`: PASS before amending the Task 4 commit.
+
+HANDOFF CHECKPOINT:
+- Task 4 worked only in the shared worktree.
+- Branch stayed `codex/project-improvement-stabilization`.
+- Default setup JSON behavior is unchanged.
+- `--write --target all` now preflights all merges before writing.
+- Config writes now use same-directory temp files, temp-file force before move, atomic move when supported with non-atomic fallback, and best-effort parent-directory force after successful move.
+- Codex writer handles commented, double-quoted, single-quoted, and separated target tables, including stale env sections.
+- Invalid MCP server names fail with `CliktError` before writing.
+- Claude writer merges under `mcpServers` and preserves other servers.
+- SDK detection adds `ANDROID_HOME` only when adb is executable.
+- Zero-setup design docs show the implemented `Wrote ... MCP config: ...` success output.
+- `local.properties` remains ignored and untracked.
+- Task 5 was not started.
+
+- [x] **Step 9: Commit**
 
 ```bash
-git add fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands README.md docs/mcp.md docs/design-zero-setup.md docs/troubleshooting.md
+git add fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands README.md docs/mcp.md docs/design-zero-setup.md docs/troubleshooting.md docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md
 git commit -m "feat: add zero setup mcp config writers"
 ```
 

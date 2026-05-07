@@ -1,6 +1,6 @@
 # Design: Zero-Setup Agent Configuration
 
-**상태**: 제안  
+**상태**: 첫 구현 완료 (Task 4 slice)
 **대상 버전**: V1.1  
 **관련 모듈**: `fixthis-cli`
 
@@ -64,7 +64,7 @@ companion object {
 
 **레이어 2 — 설정 파일 수동 작성**
 
-`fixthis setup` 명령은 JSON을 stdout에 출력하기만 하고, 실제 파일에 쓰지 않는다. 유저가 올바른 파일 위치를 찾아 형식에 맞게 직접 작성해야 한다.
+기존 `fixthis setup` 명령은 JSON을 stdout에 출력하기만 하고, 실제 파일에 쓰지 않았다. Task 4 구현 이후 기본 동작은 그대로 유지하면서, `--write`를 명시한 경우 Codex와 Claude 설정 파일에 FixThis MCP 서버 항목을 merge할 수 있다.
 
 ---
 
@@ -94,23 +94,17 @@ companion object {
 fixthis setup [--package <id>] [--project-dir <path>]
                  [--write]                     ← 신규: 파일에 자동 기록
                  [--target claude|codex|all]   ← 신규: 대상 선택 (기본값: all)
-                 [--dry-run]                   ← 기존 동작 유지 (stdout만)
+                 [--dry-run]                   ← --write와 함께 쓰면 파일 변경 없이 출력
 ```
 
 `--write` 없이 실행하면 기존과 동일하게 JSON을 stdout에 출력한다.  
-`--write` 시에는 파일에 기록하고 결과를 사람이 읽기 좋게 출력한다.
+`--write` 시에는 파일에 기록하고 결과를 사람이 읽기 좋게 출력한다. `--write --dry-run`은 대상 경로와 렌더링된 설정을 출력하지만 파일을 수정하지 않는다.
 
 **예시 출력 (`--write` 성공 시)**:
 
 ```
-ANDROID_HOME  ~/Library/Android/sdk  (auto-detected)
-device        Pixel 7 (adb-R3CN60LXW3L-...)
-fixthis    /절대경로/fixthis-cli/build/install/fixthis/bin/fixthis
-
-✓  .claude/settings.json   (merged)
-✓  ~/.codex/config.toml    (merged)
-
-Restart your AI client to apply the changes.
+Wrote codex MCP config: /Users/example/.codex/config.toml
+Wrote claude MCP config: /repo/.claude/settings.json
 ```
 
 ### 3.2 ANDROID_HOME 자동 탐색
@@ -291,11 +285,7 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
 - FixThis CLI는 `adb.devices()`로 연결된 디바이스를 자동 감지한다
 - 여러 디바이스가 연결된 경우에는 `doctor` 명령이 안내
 
-단, `--serial` 옵션을 명시적으로 전달하면 env에 포함:
-
-```
-fixthis setup --write --serial adb-R3CN60LXW3L-...
-```
+Task 4는 `ANDROID_SERIAL`을 쓰는 별도 옵션을 구현하지 않는다. 디바이스 타겟팅은 실행 시 연결 상태를 기준으로 동적으로 처리하고, 여러 디바이스가 연결된 경우에는 `doctor` 안내로 해결한다.
 
 ---
 
@@ -354,16 +344,16 @@ merge("[mcp_servers.fixthis]\ncommand = \"old\"", entry) shouldNotContain "old"
 
 ## 6. 구현 순서
 
-### Phase 1: 환경 변수 문제 해결 (즉시 효과)
+### Phase 1: 환경 변수 문제 해결 (Task 4 구현됨)
 
 1. `AndroidSdkLocator.kt` 구현 + 테스트
 2. `McpConfigEntry` 모델 정의
 3. `SetupCommand`에 `--write` flag 추가 (Writer 없이 출력 형식만 변경)
-4. 생성되는 JSON에 `env` 필드 포함
+4. `--write`로 생성되는 agent 설정에 `env` 필드 포함
 
-이것만으로도 zsh wrapper 없이 동작하는 설정 JSON을 얻을 수 있다. 유저가 수동으로 붙여넣더라도 훨씬 단순해진다.
+기본 `fixthis setup` JSON 출력은 backward-compatible하게 유지했다. `--write` 경로에서 Android SDK가 감지되면 agent 설정에 `ANDROID_HOME`을 포함해 zsh wrapper 없이 동작하도록 했다.
 
-### Phase 2: 자동 파일 기록
+### Phase 2: 자동 파일 기록 (Task 4 구현됨)
 
 5. `ClaudeConfigWriter` 구현 + 테스트
 6. `CodexConfigWriter` 구현 + 테스트
@@ -383,6 +373,6 @@ Phase 3는 본 설계 범위 밖이며, Phase 1-2가 완료된 후 진행한다.
 
 1. **Codex global vs project-level 설정**: Codex는 `~/.codex/config.toml` (글로벌)만 지원하는가, 아니면 프로젝트 로컬 설정도 가능한가? Claude는 `.claude/settings.json`(프로젝트)과 `~/.claude/settings.json`(글로벌) 양쪽을 지원한다. 현재 설계는 Codex는 글로벌, Claude는 프로젝트 로컬로 기록한다.
 
-2. **기존 fixthis 설정 감지**: `--write` 실행 시 이미 설정이 존재하면 overwrite 전에 확인 메시지를 보여줄 것인가, 조용히 덮어쓸 것인가? 현재 설계는 조용히 merge (덮어씀).
+2. **기존 fixthis 설정 감지**: Task 4는 조용히 merge하고 기존 FixThis 서버 항목만 덮어쓴다. 다른 MCP 서버 항목은 보존한다.
 
-3. **빌드되지 않은 경우**: `McpExecutableLocator.find()`가 null을 반환하면 `command = "fixthis"`를 넣는다. 이 경우 PATH에 `fixthis`가 없으면 MCP 클라이언트 실행 시 실패한다. 경고 메시지 출력 필요.
+3. **빌드되지 않은 경우**: Task 4는 `McpExecutableLocator.find()`가 null이면 `command = "fixthis"` fallback을 쓰고 경고를 출력한다. 이 경우 PATH에 `fixthis`가 없으면 MCP 클라이언트 실행 시 실패할 수 있으므로 `:fixthis-mcp:installDist` 또는 PATH 설정이 필요하다.

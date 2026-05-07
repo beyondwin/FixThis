@@ -133,6 +133,17 @@ Fix:
 - Send wrapper logs to stderr.
 - Use the setup JSON from `fixthis setup`; it passes command and args separately.
 
+## Setup Write Warnings
+
+Symptom: `fixthis setup --write` completes but prints a warning about Android SDK detection or the MCP executable.
+
+Fix:
+
+- Run `fixthis doctor --package <applicationId> --project-dir <projectRoot>` to confirm ADB, package discovery, and bridge readiness.
+- If the warning says Android SDK was not found, set `ANDROID_HOME` or `ANDROID_SDK_ROOT`, or install the Android SDK in the platform default location.
+- If the warning says `fixthis-mcp` was not found, run `./gradlew :fixthis-mcp:installDist` or make sure `fixthis` is available on PATH before restarting the MCP client.
+- Use `fixthis setup --package <applicationId> --project-dir <projectRoot> --write --target codex --dry-run` to inspect the rendered config without modifying files.
+
 ### MCP_SESSION_CLOSED
 
 Reopen the feedback console from the agent or run `fixthis console --package <applicationId>`.

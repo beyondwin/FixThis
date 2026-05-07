@@ -105,7 +105,7 @@ Run:
 fixthis setup --package <applicationId>
 ```
 
-The command prints MCP client config JSON:
+By default, the command prints MCP client config JSON:
 
 ```json
 {
@@ -117,6 +117,20 @@ The command prints MCP client config JSON:
 ```
 
 Use the `command` and `args` fields as separate values. This avoids shell quoting issues for project paths with spaces.
+
+To let FixThis merge the MCP server config into supported agent files, run:
+
+```bash
+fixthis setup --package <applicationId> --write --target all
+```
+
+Supported targets are `codex`, `claude`, and `all`. Codex writes `~/.codex/config.toml`; Claude writes the project-local `.claude/settings.json`. Use `--dry-run` with `--write` to print the target path and rendered merged config without writing:
+
+```bash
+fixthis setup --package <applicationId> --write --target codex --dry-run
+```
+
+When an Android SDK is detected, the written config includes `ANDROID_HOME` so MCP clients do not need a shell wrapper to load profile environment variables.
 
 ## Stdio Rules
 

@@ -98,10 +98,13 @@ The CLI can run diagnostics, launch the debug sample, print MCP setup JSON, and 
 fixthis doctor
 fixthis run
 fixthis setup --package <applicationId>
+fixthis setup --package <applicationId> --write --target codex --dry-run
 fixthis console --package <applicationId>
 ```
 
 If `--package` is omitted, `.fixthis/project.json` must already exist so the CLI can read the application id.
+
+By default, `fixthis setup` still prints MCP client JSON for manual configuration. Add `--write` to merge the FixThis MCP server into agent settings files, with `--target codex`, `--target claude`, or `--target all`. Add `--dry-run` with `--write` to print the planned file path and rendered config without modifying files.
 
 MCP is the primary agent workflow for the feedback console. `fixthis mcp` runs as a stdio JSON-RPC server and can open a local web console where you review a live Android screen preview, annotate feedback with a desktop keyboard, and let the agent read the queue. `fixthis console` opens the same console without requiring an MCP client.
 
@@ -153,4 +156,4 @@ More detail:
 - [Project improvement stabilization design](docs/superpowers/specs/2026-05-08-project-improvement-stabilization-design.md)
 - [Project improvement stabilization implementation plan](docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md)
 - [Feedback console redesign brief](docs/design-claude-redesign-brief.md)
-- [Zero-setup agent configuration proposal](docs/design-zero-setup.md)
+- [Zero-setup agent configuration](docs/design-zero-setup.md)
