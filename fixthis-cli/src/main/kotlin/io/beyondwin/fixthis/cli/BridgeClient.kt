@@ -32,7 +32,6 @@ private const val BridgeProtocolVersion = "1.0"
 private const val SessionPath = "files/fixthis/session.json"
 private const val MaxFrameBytes = 16 * 1024 * 1024
 private const val DefaultSocketTimeoutMillis = 30_000
-private const val FeedbackCaptureTimeoutPaddingMillis = 5_000L
 
 @OptIn(ExperimentalSerializationApi::class)
 val fixThisJson: Json = Json {
@@ -188,64 +187,6 @@ class BridgeClient(
 
     fun resolvePackageName(packageOverride: String?): String =
         ProjectConfig.resolvePackageName(projectRoot, packageOverride)
-
-    suspend fun pullArtifacts(packageName: String, annotation: JsonObject): JsonObject =
-        pullArtifacts(packageName, annotation, requestScope())
-
-    private suspend fun pullArtifacts(packageName: String, annotation: JsonObject, scope: BridgeRequestScope): JsonObject {
-        val annotationId = annotation["id"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
-            ?: return annotation
-        val screenshot = annotation["screenshot"]?.jsonObject ?: return annotation
-        val artifactId = annotationId.sanitizedPathSegment()
-        val artifactDirectory = projectRoot.resolve(".fixthis/artifacts/$artifactId")
-        check(artifactDirectory.exists() || artifactDirectory.mkdirs()) {
-            "Could not create FixThis artifact directory: ${artifactDirectory.absolutePath}"
-        }
-
-        val fullDesktopPath = readScreenshotArtifact(
-            scope = scope,
-            packageName = packageName,
-            kind = "full",
-            androidPath = screenshot["fullPath"]?.jsonPrimitive?.contentOrNull,
-            destination = artifactDirectory.resolve("$artifactId-full.png"),
-        )
-        val cropDesktopPath = readScreenshotArtifact(
-            scope = scope,
-            packageName = packageName,
-            kind = "crop",
-            androidPath = screenshot["cropPath"]?.jsonPrimitive?.contentOrNull,
-            destination = artifactDirectory.resolve("$artifactId-crop.png"),
-        )
-
-        val rewrittenScreenshot = buildJsonObject {
-            screenshot.forEach { (key, value) -> put(key, value) }
-            fullDesktopPath?.let { put("desktopFullPath", it) }
-            cropDesktopPath?.let { put("desktopCropPath", it) }
-        }
-        return buildJsonObject {
-            annotation.forEach { (key, value) -> put(key, value) }
-            put("screenshot", rewrittenScreenshot)
-        }
-    }
-
-    suspend fun startFeedbackCapture(packageName: String, timeoutMillis: Long): JsonObject {
-        val scope = requestScope()
-        val result = requestInScope(
-            scope = scope,
-            packageName = packageName,
-            method = "startFeedbackCapture",
-            params = buildJsonObject {
-                put("timeoutMillis", timeoutMillis)
-            },
-            readTimeoutMillis = timeoutMillis.saturatingPlus(FeedbackCaptureTimeoutPaddingMillis),
-        )
-        val annotation = result["annotation"]?.jsonObject ?: return result
-        val rewrittenAnnotation = pullArtifacts(packageName, annotation, scope)
-        return buildJsonObject {
-            result.forEach { (key, value) -> put(key, value) }
-            put("annotation", rewrittenAnnotation)
-        }
-    }
 
     suspend fun performNavigation(packageName: String, request: JsonObject): JsonObject =
         request(packageName = packageName, method = "performNavigation", params = request)
@@ -490,9 +431,6 @@ private fun allocateLocalPort(): Int =
 
 private fun String.sanitizedPathSegment(): String =
     replace(Regex("[^A-Za-z0-9._-]"), "_")
-
-private fun Long.saturatingPlus(value: Long): Long =
-    if (this > Long.MAX_VALUE - value) Long.MAX_VALUE else this + value
 
 @Serializable
 private data class ProjectMetadata(

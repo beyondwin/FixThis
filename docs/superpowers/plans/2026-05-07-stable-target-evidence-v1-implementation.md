@@ -974,6 +974,8 @@ git commit -m "feat: add source interpretation evidence"
 
 ## Task 5: Compute Target Evidence During Capture
 
+Post-main-merge adaptation: after merging `main`, the in-app overlay feedback capture path was no longer the active product path. The Stable Target Evidence v1 intent is now implemented in the MCP console Save flow: `FeedbackSessionService.savePreviewFeedbackItems` derives `targetEvidence` from the frozen preview's captured merged semantics nodes plus source-index candidates while preserving `AnnotationDto.targetEvidence` as nullable additive JSON. Historical steps below describe the original overlay-oriented plan and are retained for audit context.
+
 **Files:**
 
 - Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/capture/AnnotationCaptureController.kt`

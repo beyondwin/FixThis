@@ -4,8 +4,6 @@ import io.beyondwin.fixthis.cli.AdbDevice
 import io.beyondwin.fixthis.cli.BridgeClient
 import io.beyondwin.fixthis.cli.fixThisJson
 import io.beyondwin.fixthis.compose.core.format.DetailMode
-import io.beyondwin.fixthis.compose.core.format.FixThisMarkdownFormatter
-import io.beyondwin.fixthis.compose.core.model.FixThisAnnotation
 import io.beyondwin.fixthis.mcp.McpProtocol
 import io.beyondwin.fixthis.mcp.console.FeedbackConsoleServer
 import io.beyondwin.fixthis.mcp.resourceText
@@ -35,14 +33,12 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 
-private const val DefaultFeedbackTimeoutMillis = 60_000L
 private const val MaxRecentOverridePackages = 8
 private val resolvedStatuses = setOf(AnnotationStatusDto.RESOLVED, AnnotationStatusDto.WONT_FIX)
 
@@ -58,10 +54,10 @@ class FixThisTools(
         projectRoot = projectRoot.absolutePath,
         defaultPackageName = defaultPackageName,
     ),
+    private val consoleAssetsDir: File? = null,
 ) {
     private val cacheLock = Any()
     private val consoleLock = Any()
-    private val latestAnnotations = mutableMapOf<String, JsonObject>()
     private val latestScreens = mutableMapOf<String, JsonObject>()
     private val latestStatuses = mutableMapOf<String, JsonObject>()
     private val cachedPackageOrder = linkedSetOf<String>()
@@ -103,40 +99,12 @@ class FixThisTools(
                 })
             }
             "fixthis_get_current_screen" -> bridgeToolResult {
-                val usesDefaultPackage = arguments.stringParam("packageName").isNullOrBlank()
                 val packageName = resolvePackageName(arguments)
                 val screen = bridge.inspectCurrentScreen(packageName)
                 cacheScreen(packageName, screen)
                 jsonToolResult(buildJsonObject {
                     put("screen", screen)
-                    if (
-                        arguments.booleanParam("includeScreenshot") != false &&
-                        usesDefaultPackage &&
-                        latestAnnotation(packageName).hasScreenshotArtifact("desktopFullPath", "fullPath")
-                    ) {
-                        put("screenshotResource", "fixthis://screenshot/latest/full.png")
-                    }
                 })
-            }
-            "fixthis_get_ui_feedback" -> bridgeToolResult {
-                val packageName = resolvePackageName(arguments)
-                val timeoutMillis = arguments.longParam("timeoutMs")
-                    ?: arguments.longParam("timeoutMillis")
-                    ?: DefaultFeedbackTimeoutMillis
-                require(timeoutMillis > 0) { "timeoutMs must be greater than 0" }
-                val capture = bridge.startFeedbackCapture(packageName, timeoutMillis)
-                val annotation = capture["annotation"] as? JsonObject
-                if (annotation != null) cacheAnnotation(packageName, annotation)
-                val annotationPayload = annotation
-                    ?: unavailable("FixThis feedback capture did not return an annotation.")
-                val markdown = annotation?.toMarkdown()
-                    ?: "FixThis feedback capture did not return an annotation."
-                toolResult(
-                    content = listOf(
-                        textContent(fixThisJson.encodeToString(JsonObject.serializer(), annotationPayload), "application/json"),
-                        textContent(markdown, "text/markdown"),
-                    ),
-                )
             }
             "fixthis_verify_ui_change" -> bridgeToolResult {
                 val packageName = resolvePackageName(arguments)
@@ -176,6 +144,7 @@ class FixThisTools(
             "fixthis_capture_screen" -> bridgeToolResult {
                 val session = requestedSession(arguments)
                 val screen = feedbackService.captureScreen(session.sessionId)
+                cacheSnapshot(session.packageName, screen)
                 jsonToolResult(buildJsonObject {
                     put("sessionId", session.sessionId)
                     put("screen", McpProtocol.json.encodeToJsonElement(SnapshotDto.serializer(), screen))
@@ -185,6 +154,7 @@ class FixThisTools(
                 val request = arguments.navigationRequest()
                 val session = requestedSession(arguments)
                 val result = feedbackService.navigate(session.sessionId, request)
+                result.screen?.let { screen -> cacheSnapshot(session.packageName, screen) }
                 jsonToolResult(buildJsonObject {
                     put("sessionId", session.sessionId)
                     McpProtocol.json.encodeToJsonElement(FeedbackNavigationResult.serializer(), result)
@@ -255,14 +225,6 @@ class FixThisTools(
                 val packageName = resolveDefaultPackageName()
                 latestScreen(packageName) ?: bridge.inspectCurrentScreen(packageName).also { cacheScreen(packageName, it) }
             }
-            "fixthis://annotation/latest" -> resourceText(
-                uri,
-                fixThisJson.encodeToString(
-                    JsonObject.serializer(),
-                    latestAnnotation(resolveDefaultPackageName())
-                        ?: unavailable("No feedback annotation has been captured for the default package in this MCP session."),
-                ),
-            )
             "fixthis://screenshot/latest/full.png" -> screenshotResource(uri, "desktopFullPath", "fullPath")
             "fixthis://screenshot/latest/crop.png" -> screenshotResource(uri, "desktopCropPath", "cropPath")
             "fixthis://source-index" -> bridgeResource(uri) {
@@ -297,7 +259,7 @@ class FixThisTools(
 
     private fun screenshotResource(uri: String, vararg pathKeys: String): JsonObject {
         val packageName = resolveDefaultPackageName()
-        val path = latestAnnotation(packageName).screenshotArtifactPath(*pathKeys)
+        val path = latestScreen(packageName).screenshotArtifactPath(*pathKeys)
         return resourceText(
             uri,
             fixThisJson.encodeToString(
@@ -328,7 +290,10 @@ class FixThisTools(
                 sessionId = requestedSessionId,
                 newSession = newSession,
             )
-            val server = consoleServer ?: FeedbackConsoleServer(feedbackService).also { consoleServer = it }
+            val server = consoleServer ?: FeedbackConsoleServer(
+                service = feedbackService,
+                consoleAssetsDir = consoleAssetsDir,
+            ).also { consoleServer = it }
             return OpenFeedbackConsoleResult(
                 session = session,
                 consoleUrl = server.start(),
@@ -368,18 +333,15 @@ class FixThisTools(
         }
     }
 
-    private fun cacheAnnotation(packageName: String, annotation: JsonObject) {
-        synchronized(cacheLock) {
-            latestAnnotations[packageName] = annotation
-            rememberCachedPackage(packageName)
-        }
-    }
-
     private fun cacheScreen(packageName: String, screen: JsonObject) {
         synchronized(cacheLock) {
             latestScreens[packageName] = screen
             rememberCachedPackage(packageName)
         }
+    }
+
+    private fun cacheSnapshot(packageName: String, screen: SnapshotDto) {
+        cacheScreen(packageName, McpProtocol.json.encodeToJsonElement(SnapshotDto.serializer(), screen).jsonObject)
     }
 
     private fun cacheStatus(packageName: String, status: JsonObject) {
@@ -388,9 +350,6 @@ class FixThisTools(
             rememberCachedPackage(packageName)
         }
     }
-
-    private fun latestAnnotation(packageName: String): JsonObject? =
-        synchronized(cacheLock) { latestAnnotations[packageName] }
 
     private fun latestScreen(packageName: String): JsonObject? =
         synchronized(cacheLock) { latestScreens[packageName] }
@@ -425,7 +384,6 @@ class FixThisTools(
         while (cachedPackageOrder.count { it != defaultCachePackage } > MaxRecentOverridePackages) {
             val evictedPackage = cachedPackageOrder.firstOrNull { it != defaultCachePackage } ?: return
             cachedPackageOrder.remove(evictedPackage)
-            latestAnnotations.remove(evictedPackage)
             latestScreens.remove(evictedPackage)
             latestStatuses.remove(evictedPackage)
         }
@@ -473,17 +431,9 @@ class FixThisTools(
             normalizedMatchingNodes == null
     }
 
-    private fun JsonObject?.hasScreenshotArtifact(vararg pathKeys: String): Boolean =
-        screenshotArtifactPath(*pathKeys) != null
-
     private fun JsonObject?.screenshotArtifactPath(vararg pathKeys: String): String? {
         val screenshot = this?.get("screenshot") as? JsonObject
         return pathKeys.firstNotNullOfOrNull { key -> (screenshot?.get(key) as? JsonPrimitive)?.contentOrNull }
-    }
-
-    private fun JsonObject.toMarkdown(): String {
-        val annotation = McpProtocol.json.decodeFromJsonElement<FixThisAnnotation>(this)
-        return FixThisMarkdownFormatter.format(annotation)
     }
 
     private fun requestedSession(arguments: JsonObject): SessionDto {
@@ -551,7 +501,6 @@ interface FixThisBridge {
     fun disconnectDevice() = Unit
     suspend fun status(packageName: String): JsonObject
     suspend fun inspectCurrentScreen(packageName: String): JsonObject
-    suspend fun startFeedbackCapture(packageName: String, timeoutMillis: Long): JsonObject
     suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject
     suspend fun performNavigation(packageName: String, request: FeedbackNavigationRequest): JsonObject =
         error("FixThis bridge does not support navigation")
@@ -585,9 +534,6 @@ class CliFixThisBridge(private val client: BridgeClient) : FixThisBridge {
 
     override suspend fun inspectCurrentScreen(packageName: String): JsonObject =
         client.request(packageName, "inspectCurrentScreen")
-
-    override suspend fun startFeedbackCapture(packageName: String, timeoutMillis: Long): JsonObject =
-        client.startFeedbackCapture(packageName, timeoutMillis)
 
     override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
         client.request(
@@ -665,15 +611,6 @@ private val ToolDefinitions = listOf(
             "includeScreenshot" to booleanProperty("Whether to include the latest screenshot resource URI when available."),
             "includeSemantics" to booleanProperty("Whether the caller wants semantics data. V1 bridge inspection returns semantics nodes."),
             "maxNodes" to integerProperty("Maximum nodes requested by the caller. V1 bridge may return fewer or ignore this hint."),
-        ),
-    ),
-    ToolDefinition(
-        name = "fixthis_get_ui_feedback",
-        description = "Compatibility wrapper for single-item FixThis feedback capture. Prefer fixthis_open_feedback_console plus feedback queue tools for new workflows.",
-        inputSchema = objectSchema(
-            "packageName" to stringProperty("Android application id. If omitted, .fixthis/project.json or server --package is used."),
-            "instruction" to stringProperty("Instruction shown by the MCP client to the user before capture."),
-            "timeoutMs" to integerProperty("Capture timeout in milliseconds."),
         ),
     ),
     ToolDefinition(
@@ -759,7 +696,6 @@ private val ToolDefinitions = listOf(
 private val ResourceDefinitions = listOf(
     ResourceDefinition("fixthis://session/current", "Current FixThis session", "Current bridge session and sidekick status."),
     ResourceDefinition("fixthis://screen/current", "Current FixThis screen", "Current inspected Compose screen."),
-    ResourceDefinition("fixthis://annotation/latest", "Latest FixThis annotation", "Latest annotation captured by fixthis_get_ui_feedback."),
     ResourceDefinition("fixthis://screenshot/latest/full.png", "Latest full screenshot", "Desktop-readable latest full screenshot artifact path."),
     ResourceDefinition("fixthis://screenshot/latest/crop.png", "Latest crop screenshot", "Desktop-readable latest crop screenshot artifact path."),
     ResourceDefinition("fixthis://source-index", "FixThis source index", "Source index availability reported by the sidekick bridge."),

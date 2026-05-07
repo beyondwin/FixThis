@@ -12,7 +12,7 @@ import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.text.input.TextInputService
 import androidx.compose.ui.unit.Density
-import io.beyondwin.fixthis.compose.sidekick.overlay.FixThisOverlayHostLayout
+import io.beyondwin.fixthis.compose.sidekick.overlay.FixThisConnectionStatusHostLayout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Test
@@ -75,7 +75,7 @@ class ComposeRootFinderTest {
         val content = FrameLayout(activity)
         val appRoot = FakeRootForTestView(activity)
         val overlayHost = FrameLayout(activity).apply {
-            FixThisOverlayHostLayout.markAsOverlayHost(this)
+            FixThisConnectionStatusHostLayout.markAsOverlayHost(this)
         }
         val overlayRoot = FakeRootForTestView(activity)
         activity.setContentView(content)

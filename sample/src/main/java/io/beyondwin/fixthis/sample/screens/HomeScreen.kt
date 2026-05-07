@@ -35,11 +35,7 @@ fun HomeScreen(padding: PaddingValues) {
             )
         }
         item {
-            SectionHeader(
-                title = "Project health",
-                action = "Refresh",
-                actionModifier = Modifier.testTag("comp:HomePrimaryAction:primary"),
-            )
+            HomePrimaryAction()
         }
         itemsIndexed(FixThisDemoData.metrics) { index, metric ->
             MetricCard(
@@ -64,6 +60,15 @@ fun HomeScreen(padding: PaddingValues) {
             )
         }
     }
+}
+
+@Composable
+private fun HomePrimaryAction() {
+    SectionHeader(
+        title = "Project health",
+        action = "Refresh",
+        actionModifier = Modifier.testTag("comp:HomePrimaryAction:primary"),
+    )
 }
 
 private const val SummaryMetricCardCount = 3

@@ -24,7 +24,6 @@ android {
 
 dependencies {
     implementation(project(":fixthis-compose-core"))
-    implementation(project(":fixthis-compose-overlay"))
     implementation(platform(libs.compose.bom))
     implementation(libs.androidx.startup)
     implementation(libs.compose.ui)

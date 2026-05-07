@@ -40,12 +40,35 @@ class McpServerTest {
     }
 
     @Test
+    fun parsesConsoleAssetsDirectoryOption() {
+        val options = McpOptions.parse(
+            arrayOf(
+                "--console",
+                "--package",
+                "io.beyondwin.fixthis.sample",
+                "--project-dir",
+                "/repo",
+                "--console-assets-dir",
+                "/repo/fixthis-mcp/src/main/resources/console",
+            ),
+        )
+
+        assertTrue(options.consoleMode)
+        assertEquals("io.beyondwin.fixthis.sample", options.packageName)
+        assertEquals(
+            File("/repo/fixthis-mcp/src/main/resources/console").canonicalFile,
+            options.consoleAssetsDir,
+        )
+    }
+
+    @Test
     fun stdioToolsUseConfiguredProjectDir() = runBlocking {
         val projectDir = File("/tmp/fixthis-project").canonicalFile
         val options = McpOptions(
             packageName = "io.beyondwin.fixthis.sample",
             projectDir = projectDir,
             consoleMode = false,
+            consoleAssetsDir = null,
         )
         val bridge = CliFixThisBridge(BridgeClient(projectRoot = projectDir))
         val tools = fixThisToolsForOptions(options, bridge)

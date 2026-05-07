@@ -6,6 +6,8 @@
 
 > Stable Target Evidence v1 사후 보정: v1은 nullable additive `targetEvidence`를 추가하므로 public schema와 bridge protocol은 `1.0`을 유지한다. `ui-tooling-data`는 stable path 요구사항이 아니며, sample 골든 패스 태그는 `sample/` 앱에 있어야 한다. semantics subtree 렌더링은 stable UID parent chain이 없으므로 v1 범위 밖이다.
 
+> main 병합 후 구현 보정: 현재 `main`은 기존 in-app overlay feedback capture와 `fixthis_get_ui_feedback` 경로를 제거하고 MCP browser console의 frozen preview/session 흐름을 표준 경로로 둔다. 따라서 Stable Target Evidence v1의 현재 구현은 `FeedbackSessionService.savePreviewFeedbackItems`에서 저장 시점의 `SnapshotDto.roots.mergedNodes`와 source index를 사용해 `AnnotationDto.targetEvidence`를 산출한다. 과거 overlay capture 경로 언급은 historical review context로만 본다.
+
 ---
 
 ## 1. 전체 플랜 평가
@@ -17,7 +19,7 @@
 1. **Agent가 받는 컨텍스트의 불안정성**: 현재 `FixThisMarkdownFormatter.format()`는 단일 마크다운만 생성하고, JSON은 `FixThisAnnotation` 직렬화를 그대로 흘려보낸다. 따라서 동일한 화면에서 두 번째 Sign In 버튼을 탭하더라도 Agent가 이를 구분할 수 있는 단서(occurrence, ordinal)가 없다.
 2. **소스 매칭의 신뢰도가 출력 형식에 묻혀 있다**: `SourceMatcher`는 점수 비례로 confidence를 산출하지만, 출력에서는 "1번 후보"라는 사실만 강조되고 "이 후보가 *왜* 1번이 되었는가"는 `matchReasons`로만 흐릿하게 노출된다. Agent가 잘못된 파일을 수정할 위험이 그대로 노출된다.
 
-이 두 문제를 "**JSON evidence는 항상 풍부하게, Markdown은 detail mode에 따라 압축**"으로 푸는 방향성은 옳다. 특히 *"compact / precise / full" 토글은 **마크다운 출력만** 바꾼다*는 정책은, 기존 `bridgeToolResult`가 `application/json`과 `text/markdown` 두 컨텐츠를 동시에 반환하는 구조(`FixThisTools.call("fixthis_get_ui_feedback")`의 `toolResult` 호출부)와 정합성이 좋다. JSON 스키마의 안정성을 깨지 않고도 사람이/agent가 보기 좋은 표면을 따로 가져갈 수 있다.
+이 두 문제를 "**JSON evidence는 항상 풍부하게, Markdown은 detail mode에 따라 압축**"으로 푸는 방향성은 옳다. 특히 *"compact / precise / full" 토글은 **마크다운 출력만** 바꾼다*는 정책은, 현재 `fixthis_read_feedback`이 `application/json`과 `text/markdown` 두 컨텐츠를 동시에 반환하는 구조와 정합성이 좋다. JSON 스키마의 안정성을 깨지 않고도 사람이/agent가 보기 좋은 표면을 따로 가져갈 수 있다.
 
 ### 1.2 기존 아키텍처와의 정합성
 
@@ -66,7 +68,7 @@ targetEvidence {
 #### 수정 제안
 
 - `targetEvidence`를 새 최상위 모델로 만들지 말고, **기존 `FixThisAnnotation`에 `targetEvidence: TargetEvidence?` 필드를 옵셔널로 추가**한다. nullable additive evidence이므로 public schema version은 `1.0`을 유지하고 디폴트 값으로 하위 호환을 유지한다. `AnnotationDto`에도 동일한 필드를 매핑해 `SessionDomainMappers`에서 통과시킨다.
-- `occurrence` 계산은 **sidekick에서 inspect 결과가 살아 있는 동안 수행**한다. `FixThisOverlayController`(또는 그에 준하는 캡쳐 진입점, `BridgeEnvironment.startFeedbackCapture`가 호출하는 경로)에서 selectedNode가 결정된 직후 전체 mergedNodes 리스트를 한번 더 훑는 단계를 추가한다. 비용은 mergedNodes O(N) × 비교 키 5종으로 충분히 싸다(보통 N < 500).
+- `occurrence` 계산은 **전체 merged semantics node snapshot이 살아 있는 시점**에 수행한다. 현재 MCP console 구현에서는 Save가 frozen preview를 persisted screen/items로 승격할 때 `FeedbackSessionService.savePreviewFeedbackItems`가 selectedNode를 결정한 직후 `SnapshotDto.roots.mergedNodes`를 한번 더 훑는다. 비용은 mergedNodes O(N) × 비교 키 5종으로 충분히 싸다(보통 N < 500).
 - identityHint 계산은 **순수 함수**로 만들어 compose-core(`io.beyondwin.fixthis.compose.core.identity` 패키지 신설)에 둔다. 디바이스/서버 양쪽에서 재사용 가능해야 한다.
 
 ### 2.2 testTag 컨벤션 파서 (`comp:AppPrimaryButton:primary`)
@@ -390,7 +392,7 @@ Caution: testTag 컨벤션 매칭으로 confidence high
 
 - sample 앱에 최소 3개 이상의 `comp:*` testTag 존재, 그 중 하나는 동일 컴포넌트가 N>1개 등장하는 사례.
 - SourceIndex가 해당 컴포넌트의 정의 파일을 가지고 있고, testTag-기반 매칭으로 confidence=HIGH가 나옴을 단위 테스트로 보장.
-- end-to-end 시나리오: sample 앱 → MCP `fixthis_get_ui_feedback` → JSON에 `targetEvidence.identityHint.composableNameHint == "AppPrimaryButton"` 확인.
+- end-to-end 시나리오: sample 앱 → MCP console Add/Save → `fixthis_read_feedback` JSON에 `targetEvidence.identityHint.composableNameHint == "AppPrimaryButton"` 확인.
 
 이 세 항목이 빠지면 플랜이 *완료*되었더라도 데모는 동작하지 않는다.
 

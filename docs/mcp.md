@@ -1,6 +1,6 @@
 # FixThis MCP
 
-FixThis MCP is the primary agent workflow for the feedback console. The in-app Copy Markdown and Copy JSON workflow still works without MCP.
+FixThis MCP is the primary agent workflow for the feedback console. The Android app only shows MCP browser connection status; selection, comments, copy, send, and persistence happen in the desktop browser console.
 
 ## Repository Sample
 
@@ -66,7 +66,7 @@ Top bar actions are short session-level controls: Refresh, Add, Save, Copy, Send
 
 Add freezes the latest preview only; it does not save. Multiple pending feedback items can be added to one frozen preview. Pending items support Focus and Delete before Save; deleting renumbers pending items so the pending list numbers and overlay numbers match.
 
-Save promotes the frozen preview once into one persisted evidence snapshot and connects all pending items to the same `screenId`. The item's `screenId` field points to the evidence snapshot saved with that item batch, so multiple saved items can share one `screenId`. Later Add on the same visible app screen creates a new evidence snapshot after Save. Live preview frames are not session history: `FeedbackSession.screens` contains persisted evidence snapshots, not every preview frame.
+Save promotes the frozen preview once into one persisted evidence snapshot and connects all pending items to the same `screenId`. The item's `screenId` field points to the evidence snapshot saved with that item batch, so multiple saved items can share one `screenId`. During Save, FixThis derives optional `targetEvidence` for each item from the frozen preview's captured merged semantics nodes and source-index candidates. Later Add on the same visible app screen creates a new evidence snapshot after Save. Live preview frames are not session history: `FeedbackSession.screens` contains persisted evidence snapshots, not every preview frame.
 
 Saved evidence groups can be expanded to review the persisted screenshot, numbered overlay, and saved comments. Send is local persistence, not an external AI API call. FixThis records a handoff batch in the feedback session so an MCP client can read the batch and decide what to do next.
 
@@ -119,12 +119,6 @@ Checks whether the debug app sidekick bridge is reachable. Returns package, acti
 `fixthis_get_current_screen`
 
 Inspects the current Compose screen and returns bridge screen data. It may include a latest screenshot resource URI when a screenshot artifact is already available in the MCP session.
-
-`fixthis_get_ui_feedback`
-
-Compatibility legacy single-feedback tool that starts in-app capture, waits for one submitted comment, and returns annotation JSON plus Markdown.
-
-The `.fixthis/artifacts/` directory is a local, ignored screenshot cache for desktop-readable artifacts. It is not required for the in-app clipboard workflow.
 
 `fixthis_verify_ui_change`
 
@@ -182,7 +176,6 @@ Available resources:
 
 - `fixthis://session/current`
 - `fixthis://screen/current`
-- `fixthis://annotation/latest`
 - `fixthis://screenshot/latest/full.png`
 - `fixthis://screenshot/latest/crop.png`
 - `fixthis://source-index`

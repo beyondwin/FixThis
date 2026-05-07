@@ -67,7 +67,6 @@ class McpProtocolTest {
             listOf(
                 "fixthis_status",
                 "fixthis_get_current_screen",
-                "fixthis_get_ui_feedback",
                 "fixthis_verify_ui_change",
                 "fixthis_open_feedback_console",
                 "fixthis_list_feedback_sessions",
@@ -159,6 +158,33 @@ class McpProtocolTest {
         assertEquals("back", result["action"]!!.jsonPrimitive.content)
         assertEquals(1, bridge.navigationRequests.size)
         assertTrue(result["screen"] != null)
+    }
+
+    @Test
+    fun captureScreenUpdatesLatestScreenshotResource() = runBlocking {
+        val bridge = FakeFixThisBridge(packageName = "io.beyondwin.fixthis.sample")
+        val tools = FixThisTools(
+            bridge = bridge,
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+            projectRoot = createTempDir(prefix = "fixthis-v2-capture-resource-"),
+        )
+        val opened = tools.call("fixthis_open_feedback_console", jsonObject("newSession" to true)).firstJsonContent()
+        val sessionId = opened["sessionId"]!!.jsonPrimitive.content
+
+        val captured = tools.call("fixthis_capture_screen", jsonObject("sessionId" to sessionId)).firstJsonContent()
+        val capturedPath = captured
+            .getValue("screen").jsonObject
+            .getValue("screenshot").jsonObject
+            .getValue("desktopFullPath").jsonPrimitive.content
+        val resource = tools.readResource("fixthis://screenshot/latest/full.png")
+        val payload = parse(
+            resource
+                .getValue("contents").jsonArray[0].jsonObject
+                .getValue("text").jsonPrimitive.content,
+        ).jsonObject
+
+        assertFalse(payload.containsKey("available"))
+        assertEquals(capturedPath, payload.getValue("path").jsonPrimitive.content)
     }
 
     @Test
@@ -615,140 +641,6 @@ class McpProtocolTest {
     }
 
     @Test
-    fun getUiFeedbackReturnsAnnotationAndMarkdownFromBridgeCapture() {
-        val bridge = FakeBridge()
-        val response = runSingleRequest(
-            """{"jsonrpc":"2.0","id":"feedback","method":"tools/call","params":{"name":"fixthis_get_ui_feedback","arguments":{"packageName":"io.beyondwin.fixthis.sample","timeoutMs":1500}}}""",
-            bridge = bridge,
-        )
-
-        assertEquals(listOf("startFeedbackCapture:io.beyondwin.fixthis.sample:1500"), bridge.calls)
-        val content = response.jsonObject
-            .getValue("result").jsonObject
-            .getValue("content").jsonArray
-            .map { it.jsonObject.getValue("text").jsonPrimitive.content }
-
-        assertEquals("annotation-1", parse(content[0]).jsonObject.getValue("id").jsonPrimitive.content)
-        assertFalse(content[0].contains("timeoutMillis"))
-        assertTrue(content[1].contains("# FixThis Compose Feedback"))
-        assertTrue(response.jsonObject.getValue("result").jsonObject.getValue("isError").jsonPrimitive.boolean.not())
-    }
-
-    @Test
-    fun oldGetUiFeedbackStillReturnsAnnotationAndMarkdown() = runBlocking {
-        val response = runSingleRequest(
-            """{"jsonrpc":"2.0","id":"feedback","method":"tools/call","params":{"name":"fixthis_get_ui_feedback","arguments":{"timeoutMs":1500}}}""",
-        )
-
-        assertTrue(response.toString().contains("application/json"))
-        assertTrue(response.toString().contains("text/markdown"))
-    }
-
-    @Test
-    fun getUiFeedbackReturnsUnavailableJsonAndMarkdownWhenCaptureHasNoAnnotation() {
-        val bridge = FakeBridge(annotationEnabled = false)
-        val response = runSingleRequest(
-            """{"jsonrpc":"2.0","id":"feedback","method":"tools/call","params":{"name":"fixthis_get_ui_feedback","arguments":{"timeoutMs":1500}}}""",
-            bridge = bridge,
-        )
-
-        val content = response.jsonObject
-            .getValue("result").jsonObject
-            .getValue("content").jsonArray
-            .map { it.jsonObject.getValue("text").jsonPrimitive.content }
-        val unavailable = parse(content[0]).jsonObject
-
-        assertEquals(false, unavailable.getValue("available").jsonPrimitive.boolean)
-        assertTrue(unavailable.getValue("message").jsonPrimitive.content.contains("annotation"))
-        assertTrue(content[1].contains("did not return an annotation"))
-    }
-
-    @Test
-    fun resourcesUseDefaultPackageScopedCacheInsteadOfLatestOverridePackageArtifacts() {
-        val bridge = FakeBridge(defaultPackageName = "com.default")
-        val server = server(bridge, defaultPackageName = "com.default")
-
-        runSingleRequest(
-            """{"jsonrpc":"2.0","id":"feedback","method":"tools/call","params":{"name":"fixthis_get_ui_feedback","arguments":{"packageName":"com.override","timeoutMs":1500}}}""",
-            server = server,
-        )
-
-        val annotationResponse = runSingleRequest(
-            """{"jsonrpc":"2.0","id":"annotation","method":"resources/read","params":{"uri":"fixthis://annotation/latest"}}""",
-            server = server,
-        )
-        val annotation = parse(
-            annotationResponse.jsonObject
-                .getValue("result").jsonObject
-                .getValue("contents").jsonArray[0].jsonObject
-                .getValue("text").jsonPrimitive.content,
-        ).jsonObject
-
-        assertEquals(false, annotation.getValue("available").jsonPrimitive.boolean)
-
-        val screenResponse = runSingleRequest(
-            """{"jsonrpc":"2.0","id":"screen","method":"resources/read","params":{"uri":"fixthis://screen/current"}}""",
-            server = server,
-        )
-        val screen = parse(
-            screenResponse.jsonObject
-                .getValue("result").jsonObject
-                .getValue("contents").jsonArray[0].jsonObject
-                .getValue("text").jsonPrimitive.content,
-        ).jsonObject
-
-        assertEquals("com.default", screen.getValue("packageName").jsonPrimitive.content)
-        assertTrue(bridge.calls.contains("inspectCurrentScreen:com.default"))
-    }
-
-    @Test
-    fun currentScreenOnlyIncludesScreenshotResourceForDefaultPackageAnnotationWithScreenshot() {
-        val bridge = FakeBridge()
-        val server = server(bridge)
-
-        val withoutAnnotation = runToolCall(
-            server,
-            "fixthis_get_current_screen",
-            """{"packageName":"com.first"}""",
-        )
-        assertFalse(withoutAnnotation.containsKey("screenshotResource"))
-
-        runToolCall(
-            server,
-            "fixthis_get_ui_feedback",
-            """{"packageName":"com.second","timeoutMs":1500}""",
-        )
-        val otherPackageScreen = runToolCall(
-            server,
-            "fixthis_get_current_screen",
-            """{"packageName":"com.first"}""",
-        )
-        assertFalse(otherPackageScreen.containsKey("screenshotResource"))
-
-        val samePackageScreen = runToolCall(
-            server,
-            "fixthis_get_current_screen",
-            """{"packageName":"com.second"}""",
-        )
-        assertFalse(samePackageScreen.containsKey("screenshotResource"))
-
-        runToolCall(
-            server,
-            "fixthis_get_ui_feedback",
-            """{"timeoutMs":1500}""",
-        )
-        val defaultPackageScreen = runToolCall(
-            server,
-            "fixthis_get_current_screen",
-            """{}""",
-        )
-        assertEquals(
-            "fixthis://screenshot/latest/full.png",
-            defaultPackageScreen.getValue("screenshotResource").jsonPrimitive.content,
-        )
-    }
-
-    @Test
     fun currentScreenWithExplicitPackageDoesNotRequireDefaultPackageMetadata() {
         val response = runSingleRequest(
             """{"jsonrpc":"2.0","id":"tool","method":"tools/call","params":{"name":"fixthis_get_current_screen","arguments":{"packageName":"com.explicit"}}}""",
@@ -786,47 +678,8 @@ class McpProtocolTest {
     }
 
     @Test
-    fun packageScopedCachesKeepDefaultAndEvictOlderOverridePackages() {
-        val bridge = FakeBridge(defaultPackageName = "com.default")
-        val server = server(bridge, defaultPackageName = "com.default")
-
-        runToolCall(
-            server,
-            "fixthis_get_ui_feedback",
-            """{"timeoutMs":1500}""",
-        )
-        repeat(10) { index ->
-            runToolCall(
-                server,
-                "fixthis_get_ui_feedback",
-                """{"packageName":"com.$index","timeoutMs":1500}""",
-            )
-        }
-
-        val defaultScreen = runToolCall(
-            server,
-            "fixthis_get_current_screen",
-            """{}""",
-        )
-        val evictedOverrideScreen = runToolCall(
-            server,
-            "fixthis_get_current_screen",
-            """{"packageName":"com.0"}""",
-        )
-        val recentOverrideScreen = runToolCall(
-            server,
-            "fixthis_get_current_screen",
-            """{"packageName":"com.9"}""",
-        )
-
-        assertEquals("fixthis://screenshot/latest/full.png", defaultScreen.getValue("screenshotResource").jsonPrimitive.content)
-        assertFalse(evictedOverrideScreen.containsKey("screenshotResource"))
-        assertFalse(recentOverrideScreen.containsKey("screenshotResource"))
-    }
-
-    @Test
     fun stdioCancellationNotificationIsProcessedWhileToolCallIsPending() = runBlocking {
-        val bridge = BlockingFeedbackBridge()
+        val bridge = BlockingScreenToolBridge()
         val stdout = ByteArrayOutputStream()
         val stderr = ByteArrayOutputStream()
         val input = PipedInputStream()
@@ -836,12 +689,12 @@ class McpProtocolTest {
         }
 
         try {
-            inputWriter.write("""{"jsonrpc":"2.0","id":"feedback","method":"tools/call","params":{"name":"fixthis_get_ui_feedback","arguments":{"timeoutMs":60000}}}""")
+            inputWriter.write("""{"jsonrpc":"2.0","id":"screen","method":"tools/call","params":{"name":"fixthis_get_current_screen","arguments":{}}}""")
             inputWriter.newLine()
             inputWriter.flush()
             withTimeout(1_000) { bridge.started.await() }
 
-            inputWriter.write("""{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":"feedback","reason":"test cancellation"}}""")
+            inputWriter.write("""{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":"screen","reason":"test cancellation"}}""")
             inputWriter.newLine()
             inputWriter.write("""{"jsonrpc":"2.0","id":"ping-after-cancel","method":"ping","params":{}}""")
             inputWriter.newLine()
@@ -865,7 +718,7 @@ class McpProtocolTest {
 
     @Test
     fun stdinEofCancelsPendingToolCallsAndReturnsPromptly() = runBlocking {
-        val bridge = BlockingFeedbackBridge()
+        val bridge = BlockingScreenToolBridge()
         val stdout = ByteArrayOutputStream()
         val stderr = ByteArrayOutputStream()
         val input = PipedInputStream()
@@ -874,7 +727,7 @@ class McpProtocolTest {
             server(bridge).run(input = input, output = stdout, diagnostics = stderr)
         }
 
-        inputWriter.write("""{"jsonrpc":"2.0","id":"feedback","method":"tools/call","params":{"name":"fixthis_get_ui_feedback","arguments":{"timeoutMs":60000}}}""")
+        inputWriter.write("""{"jsonrpc":"2.0","id":"screen","method":"tools/call","params":{"name":"fixthis_get_current_screen","arguments":{}}}""")
         inputWriter.newLine()
         inputWriter.flush()
         withTimeout(1_000) { bridge.started.await() }
@@ -1059,7 +912,6 @@ class McpProtocolTest {
     }
 
     private class FakeBridge(
-        private val annotationEnabled: Boolean = true,
         private val defaultPackageName: String? = "io.beyondwin.fixthis.sample",
         private val verificationMatches: Boolean = true,
     ) : FixThisBridge {
@@ -1087,16 +939,6 @@ class McpProtocolTest {
                 put("packageName", packageName)
                 put("activity", "$packageName.MainActivity")
                 put("roots", JsonArray(emptyList()))
-            }
-        }
-
-        override suspend fun startFeedbackCapture(packageName: String, timeoutMillis: Long): JsonObject {
-            calls += "startFeedbackCapture:$packageName:$timeoutMillis"
-            return buildJsonObject {
-                put("submitted", true)
-                put("timedOut", false)
-                put("timeoutMillis", timeoutMillis)
-                if (annotationEnabled) put("annotation", annotation(packageName))
             }
         }
 
@@ -1128,50 +970,9 @@ class McpProtocolTest {
             destinationDirectory: File?,
         ): JsonObject = JsonObject(emptyMap())
 
-        private fun annotation(packageName: String): JsonObject = buildJsonObject {
-            put("schemaVersion", "1.0")
-            put("id", "annotation-1")
-            put("createdAtEpochMillis", 1_700_000_000_000L)
-            put("platform", "android-compose")
-            put("app", buildJsonObject {
-                put("packageName", packageName)
-                put("debuggable", true)
-            })
-            put("activity", buildJsonObject { put("className", "io.beyondwin.fixthis.sample.MainActivity") })
-            put("tap", buildJsonObject {
-                put("xInWindow", 24.0)
-                put("yInWindow", 48.0)
-            })
-            put("selection", buildJsonObject {
-                put("kind", "SEMANTICS_NODE")
-                put("confidence", "HIGH")
-                put("selectedUid", "node-1")
-                put("source", "TAP_SELECT")
-            })
-            put("selectedNode", buildJsonObject {
-                put("uid", "node-1")
-                put("composeNodeId", 7)
-                put("rootIndex", 0)
-                put("treeKind", "MERGED")
-                put("boundsInWindow", buildJsonObject {
-                    put("left", 0.0)
-                    put("top", 0.0)
-                    put("right", 120.0)
-                    put("bottom", 64.0)
-                })
-                put("text", JsonArray(listOf(JsonPrimitive("Pay now"))))
-                put("role", "Button")
-                put("enabled", true)
-            })
-            put("userComment", "Make this button more prominent")
-            put("screenshot", buildJsonObject {
-                put("desktopFullPath", "/tmp/fixthis/annotation-1-full.png")
-                put("desktopCropPath", "/tmp/fixthis/annotation-1-crop.png")
-            })
-        }
     }
 
-    private class BlockingFeedbackBridge : FixThisBridge {
+    private class BlockingScreenToolBridge : FixThisBridge {
         val started = CompletableDeferred<Unit>()
         val cancelled = CompletableDeferred<Unit>()
 
@@ -1180,9 +981,7 @@ class McpProtocolTest {
 
         override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
 
-        override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
-
-        override suspend fun startFeedbackCapture(packageName: String, timeoutMillis: Long): JsonObject {
+        override suspend fun inspectCurrentScreen(packageName: String): JsonObject {
             started.complete(Unit)
             return try {
                 delay(Long.MAX_VALUE)
@@ -1226,9 +1025,6 @@ class McpProtocolTest {
                 throw error
             }
         }
-
-        override suspend fun startFeedbackCapture(packageName: String, timeoutMillis: Long): JsonObject =
-            JsonObject(emptyMap())
 
         override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
             JsonObject(emptyMap())

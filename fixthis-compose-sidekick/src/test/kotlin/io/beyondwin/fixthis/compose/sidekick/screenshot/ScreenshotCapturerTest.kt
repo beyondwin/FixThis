@@ -1,18 +1,15 @@
 package io.beyondwin.fixthis.compose.sidekick.screenshot
 
 import android.app.Activity
-import android.content.Context
 import android.graphics.Bitmap
-import android.os.Looper
 import android.view.PixelCopy
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import io.beyondwin.fixthis.compose.sidekick.overlay.FixThisOverlayHostLayout
+import io.beyondwin.fixthis.compose.sidekick.overlay.FixThisConnectionStatusHostLayout
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -21,18 +18,17 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class ScreenshotCapturerTest {
     @Test
-    fun captureWaitsForDrawCompletionAfterPreDrawBeforePixelCopyAndRestoresOverlayHost() = runBlocking {
+    fun captureDoesNotHideConnectionStatusHostBeforePixelCopy() = runBlocking {
         val activity = measuredActivity()
         val decorView = activity.window.decorView as ViewGroup
         val host = FrameLayout(activity).apply {
-            FixThisOverlayHostLayout.markAsOverlayHost(this)
+            FixThisConnectionStatusHostLayout.markAsOverlayHost(this)
             visibility = View.VISIBLE
         }
         decorView.addView(host, ViewGroup.LayoutParams(100, 100))
@@ -52,47 +48,11 @@ class ScreenshotCapturerTest {
             capturer.capture(activity = activity, annotationId = "annotation-1")
         }
 
-        assertEquals(0, pixelCopyRequestCount)
-        assertEquals(View.INVISIBLE, host.visibility)
-
-        decorView.viewTreeObserver.dispatchOnPreDraw()
-        assertEquals(0, pixelCopyRequestCount)
-
-        decorView.viewTreeObserver.dispatchOnDraw()
-        assertEquals(0, pixelCopyRequestCount)
-
-        shadowOf(Looper.getMainLooper()).idle()
         val info = capture.await()
 
         assertNotNull(info.fullPath)
         assertEquals(1, pixelCopyRequestCount)
-        assertEquals(View.INVISIBLE, hostVisibilityAtPixelCopy)
-        assertEquals(View.VISIBLE, host.visibility)
-    }
-
-    @Test
-    fun cancellationAfterHidingOverlayHostRestoresVisibility() = runBlocking {
-        val activity = measuredActivity()
-        val decorView = activity.window.decorView as ViewGroup
-        val host = CancellingOnHideFrameLayout(activity).apply {
-            FixThisOverlayHostLayout.markAsOverlayHost(this)
-            visibility = View.VISIBLE
-        }
-        decorView.addView(host, ViewGroup.LayoutParams(100, 100))
-        val capturer = ScreenshotCapturer(
-            store = ScreenshotStore(activity),
-            pixelCopyRequester = PixelCopyRequester { _, _, onFinished, _ ->
-                onFinished(PixelCopy.SUCCESS)
-            },
-        )
-
-        val capture = launch(start = CoroutineStart.LAZY) {
-            capturer.capture(activity = activity, annotationId = "annotation-1")
-        }
-        host.onHide = { capture.cancel() }
-        capture.start()
-        capture.join()
-
+        assertEquals(View.VISIBLE, hostVisibilityAtPixelCopy)
         assertEquals(View.VISIBLE, host.visibility)
     }
 
@@ -117,11 +77,11 @@ class ScreenshotCapturerTest {
 
     @Test
     @Config(sdk = [25])
-    fun captureHidesOverlayHostsAndRestoresVisibility() = runBlocking {
+    fun captureKeepsConnectionStatusHostVisibleOnCanvasFallback() = runBlocking {
         val activity = measuredActivity()
         val decorView = activity.window.decorView as ViewGroup
         val host = FrameLayout(activity).apply {
-            FixThisOverlayHostLayout.markAsOverlayHost(this)
+            FixThisConnectionStatusHostLayout.markAsOverlayHost(this)
             visibility = View.VISIBLE
         }
         decorView.addView(host, ViewGroup.LayoutParams(100, 100))
@@ -146,14 +106,4 @@ class ScreenshotCapturerTest {
         return activity
     }
 
-    private class CancellingOnHideFrameLayout(context: Context) : FrameLayout(context) {
-        var onHide: () -> Unit = {}
-
-        override fun setVisibility(visibility: Int) {
-            super.setVisibility(visibility)
-            if (visibility == View.INVISIBLE) {
-                onHide()
-            }
-        }
-    }
 }

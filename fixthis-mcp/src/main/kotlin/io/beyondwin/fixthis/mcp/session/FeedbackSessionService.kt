@@ -1,11 +1,17 @@
 package io.beyondwin.fixthis.mcp.session
 
 import io.beyondwin.fixthis.cli.AdbDevice
+import io.beyondwin.fixthis.compose.core.identity.IdentityHintFactory
+import io.beyondwin.fixthis.compose.core.identity.OccurrenceCalculator
+import io.beyondwin.fixthis.compose.core.model.EvidenceQuality
 import io.beyondwin.fixthis.compose.core.model.FixThisError
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.beyondwin.fixthis.compose.core.model.TargetEvidence
 import io.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.beyondwin.fixthis.compose.core.source.SourceMatcher
+import io.beyondwin.fixthis.compose.core.source.SourceInterpretationFactory
 import io.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot
 import io.beyondwin.fixthis.mcp.McpProtocol
 import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
@@ -126,7 +132,7 @@ class FeedbackSessionService(
             previewId = previewId,
             screen = payload.toCapturedScreen(screenId = screenId, fallbackDisplayName = "Draft screen"),
         )
-        val sourceIndex = readPreviewSourceIndexOrNull(session.packageName, preview.screen)
+        val sourceIndex = readSourceIndexOrNull(session.packageName, preview.screen)
         previewCache.put(
             PreviewRecord(
                 sessionId = session.sessionId,
@@ -202,8 +208,11 @@ class FeedbackSessionService(
         screenId: String,
         bounds: FixThisRect,
         comment: String,
-    ): AnnotationDto =
-        store.addItem(
+    ): AnnotationDto {
+        val session = store.getSession(sessionId)
+        val screen = session.screens.firstOrNull { it.screenId == screenId }
+            ?: throw FeedbackSessionException("SCREEN_NOT_FOUND: Unknown screen: $screenId")
+        return store.addItem(
             sessionId,
             AnnotationDto(
                 itemId = "pending",
@@ -213,10 +222,17 @@ class FeedbackSessionService(
                 target = AnnotationTargetDto.Area(bounds),
                 comment = comment,
                 status = if (comment.isBlank()) AnnotationStatusDto.OPEN else AnnotationStatusDto.READY,
+                targetEvidence = targetEvidenceFor(
+                    targetType = FeedbackTargetType.AREA,
+                    selectedNode = null,
+                    screen = screen,
+                    sourceCandidates = emptyList(),
+                ),
             ),
         )
+    }
 
-    fun addFeedbackItem(
+    suspend fun addFeedbackItem(
         sessionId: String,
         screenId: String,
         targetType: FeedbackTargetType,
@@ -241,6 +257,20 @@ class FeedbackSessionService(
         val storedBounds = selectedNode?.boundsInWindow ?: bounds
         validateFinitePositiveBounds(storedBounds)
         validateBoundsInsideScreenshot(screen, storedBounds)
+        val evidenceNodes = when (targetType) {
+            FeedbackTargetType.AREA -> areaEvidenceNodes(screen, storedBounds)
+            FeedbackTargetType.NODE -> nodeEvidenceNodes(screen, selectedNode!!)
+        }
+        val sourceIndex = readSourceIndexOrNull(session.packageName, screen)
+        val sourceSelectedNode = when (targetType) {
+            FeedbackTargetType.AREA -> evidenceNodes.firstOrNull()
+            FeedbackTargetType.NODE -> selectedNode
+        }
+        val sourceNearbyNodes = when (targetType) {
+            FeedbackTargetType.AREA -> evidenceNodes.drop(1)
+            FeedbackTargetType.NODE -> evidenceNodes
+        }
+        val sourceCandidates = sourceCandidatesFor(sourceIndex, sourceSelectedNode, sourceNearbyNodes, screen.activityName)
         val target = when (targetType) {
             FeedbackTargetType.AREA -> AnnotationTargetDto.Area(storedBounds)
             FeedbackTargetType.NODE -> AnnotationTargetDto.Node(
@@ -257,8 +287,16 @@ class FeedbackSessionService(
                 updatedAtEpochMillis = 0L,
                 target = target,
                 selectedNode = selectedNode,
+                nearbyNodes = evidenceNodes,
+                sourceCandidates = sourceCandidates,
                 comment = comment,
                 status = AnnotationStatusDto.OPEN,
+                targetEvidence = targetEvidenceFor(
+                    targetType = targetType,
+                    selectedNode = selectedNode,
+                    screen = screen,
+                    sourceCandidates = sourceCandidates,
+                ),
             ),
         )
     }
@@ -358,7 +396,7 @@ class FeedbackSessionService(
         )
     }
 
-    private suspend fun readPreviewSourceIndexOrNull(packageName: String, screen: SnapshotDto): SourceIndex? {
+    private suspend fun readSourceIndexOrNull(packageName: String, screen: SnapshotDto): SourceIndex? {
         if (!screen.sourceIndexAvailable) return null
         if (sourceIndexRegistry.contains(packageName)) return sourceIndexRegistry.cached(packageName)
         val result = runCatching { bridge.readSourceIndex(packageName) }.getOrElse { return null }
@@ -412,6 +450,7 @@ class FeedbackSessionService(
                 boundsInWindow = storedBounds,
             )
         }
+        val sourceCandidates = sourceCandidatesFor(sourceIndex, sourceSelectedNode, sourceNearbyNodes, screen.activityName)
         return AnnotationDto(
             itemId = "pending",
             screenId = screen.screenId,
@@ -420,9 +459,15 @@ class FeedbackSessionService(
             target = target,
             selectedNode = selectedNode,
             nearbyNodes = evidenceNodes,
-            sourceCandidates = sourceCandidatesFor(sourceIndex, sourceSelectedNode, sourceNearbyNodes, screen.activityName),
+            sourceCandidates = sourceCandidates,
             comment = pending.comment,
             status = if (pending.comment.isBlank()) AnnotationStatusDto.OPEN else AnnotationStatusDto.READY,
+            targetEvidence = targetEvidenceFor(
+                targetType = pending.targetType,
+                selectedNode = selectedNode,
+                screen = screen,
+                sourceCandidates = sourceCandidates,
+            ),
         )
     }
 
@@ -494,6 +539,47 @@ class FeedbackSessionService(
         ?.takeIf { it.entries.isNotEmpty() }
         ?.let { SourceMatcher.match(it, selectedNode, nearbyNodes, activityName) }
         .orEmpty()
+
+    private fun targetEvidenceFor(
+        targetType: FeedbackTargetType,
+        selectedNode: FixThisNode?,
+        screen: SnapshotDto,
+        sourceCandidates: List<SourceCandidate>,
+    ): TargetEvidence {
+        val identityHint = IdentityHintFactory.from(selectedNode)
+        val occurrence = OccurrenceCalculator.calculate(
+            selectedNode = selectedNode,
+            nodes = screen.roots.flatMap { root -> root.mergedNodes },
+            identityHint = identityHint,
+        )
+        return TargetEvidence(
+            identityHint = identityHint,
+            occurrence = occurrence,
+            sourceInterpretation = SourceInterpretationFactory.from(sourceCandidates),
+            evidenceQuality = if (identityHint != null || occurrence != null || sourceCandidates.isNotEmpty()) {
+                EvidenceQuality.STRUCTURED
+            } else {
+                EvidenceQuality.BASIC
+            },
+            screenshotKinds = screen.screenshot.availableKinds(),
+            warnings = buildList {
+                if (targetType == FeedbackTargetType.AREA) {
+                    add("Occurrence is not applicable for visual area selections.")
+                }
+                if (targetType == FeedbackTargetType.NODE && selectedNode == null) {
+                    add("No selected semantics node was available for target evidence.")
+                }
+            },
+        )
+    }
+
+    private fun SnapshotScreenshotDto?.availableKinds(): List<String> {
+        val screenshot = this ?: return emptyList()
+        return buildList {
+            if (!screenshot.fullPath.isNullOrBlank() || !screenshot.desktopFullPath.isNullOrBlank()) add("full")
+            if (!screenshot.cropPath.isNullOrBlank() || !screenshot.desktopCropPath.isNullOrBlank()) add("crop")
+        }
+    }
 
     private fun SnapshotDto.allNodes(): List<FixThisNode> =
         roots.flatMap { root -> root.mergedNodes + root.unmergedNodes }

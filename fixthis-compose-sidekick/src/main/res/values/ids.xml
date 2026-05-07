@@ -1,3 +1,4 @@
 <resources>
     <item name="fixthis_overlay_host" type="id" />
+    <item name="fixthis_connection_status_window_handle" type="id" />
 </resources>

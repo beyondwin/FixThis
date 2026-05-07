@@ -25,6 +25,7 @@ class FeedbackConsoleServer(
     private val service: FeedbackSessionService,
     private val host: String = "127.0.0.1",
     private val port: Int = 0,
+    private val consoleAssetsDir: File? = null,
 ) {
     private val lock = Any()
     private var server: HttpServer? = null
@@ -60,7 +61,7 @@ class FeedbackConsoleServer(
         try {
             when (exchange.requestURI.path) {
                 "/" -> exchange.requireMethod("GET") {
-                    exchange.sendText(200, FeedbackConsoleAssets.indexHtml, "text/html; charset=utf-8")
+                    exchange.sendText(200, FeedbackConsoleAssets.html(consoleAssetsDir), "text/html; charset=utf-8")
                 }
                 "/favicon.ico" -> exchange.requireMethod("GET") {
                     exchange.sendNoContent()
@@ -145,14 +146,16 @@ class FeedbackConsoleServer(
                     val request = exchange.decodeAddFeedbackItemBody()
                     val session = service.currentSession()
                     val item = try {
-                        service.addFeedbackItem(
-                            sessionId = session.sessionId,
-                            screenId = request.screenId,
-                            targetType = request.targetType,
-                            bounds = request.bounds,
-                            nodeUid = request.nodeUid,
-                            comment = request.comment,
-                        )
+                        runBlocking {
+                            service.addFeedbackItem(
+                                sessionId = session.sessionId,
+                                screenId = request.screenId,
+                                targetType = request.targetType,
+                                bounds = request.bounds,
+                                nodeUid = request.nodeUid,
+                                comment = request.comment,
+                            )
+                        }
                     } catch (error: IllegalArgumentException) {
                         throw FeedbackConsoleHttpException(400, error.message ?: "Invalid feedback item request")
                     }

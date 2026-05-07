@@ -9,14 +9,11 @@ import android.os.Handler
 import android.os.Looper
 import android.view.PixelCopy
 import android.view.View
-import android.view.ViewTreeObserver
-import io.beyondwin.fixthis.compose.sidekick.overlay.findFixThisOverlayHosts
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.ScreenshotInfo
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -52,24 +49,20 @@ class ScreenshotCapturer(
         }
 
         val failures = mutableListOf<String>()
-        val fullBitmap = decorView.withHiddenFixThisOverlayHosts(mainDispatcher) { hiddenOverlayHosts ->
-            tryPixelCopy(
-                activity = activity,
-                decorView = decorView,
-                width = width,
-                height = height,
-                waitForCleanFrame = hiddenOverlayHosts,
-            )
+        val fullBitmap = tryPixelCopy(
+            activity = activity,
+            width = width,
+            height = height,
+        )
+            .getOrElse { error ->
+                failures += "PixelCopy failed: ${error.message ?: error::class.java.simpleName}"
+                null
+            }
+            ?: tryDrawDecorView(decorView)
                 .getOrElse { error ->
-                    failures += "PixelCopy failed: ${error.message ?: error::class.java.simpleName}"
+                    failures += "Canvas fallback failed: ${error.message ?: error::class.java.simpleName}"
                     null
                 }
-                ?: tryDrawDecorView(decorView)
-                    .getOrElse { error ->
-                        failures += "Canvas fallback failed: ${error.message ?: error::class.java.simpleName}"
-                        null
-                    }
-        }
 
         if (fullBitmap == null) {
             return ScreenshotInfo(
@@ -96,10 +89,8 @@ class ScreenshotCapturer(
 
     private suspend fun tryPixelCopy(
         activity: Activity,
-        decorView: View,
         width: Int,
         height: Int,
-        waitForCleanFrame: Boolean,
     ): Result<Bitmap> {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return Result.failure(UnsupportedOperationException("PixelCopy requires API 26"))
@@ -107,16 +98,6 @@ class ScreenshotCapturer(
 
         return runCatchingCancellable {
             withContext(mainDispatcher) {
-                if (waitForCleanFrame) {
-                    val frameRendered = withTimeoutOrNull(pixelCopyTimeoutMillis) {
-                        decorView.awaitNextDrawAfterInvalidation()
-                        true
-                    } ?: false
-                    if (!frameRendered) {
-                        throw CleanFrameTimedOutException(pixelCopyTimeoutMillis)
-                    }
-                }
-
                 val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
                 try {
                     val result = withTimeoutOrNull(pixelCopyTimeoutMillis) {
@@ -186,91 +167,8 @@ private fun requestPixelCopy(
     PixelCopy.request(activity.window, destination, { result -> onFinished(result) }, handler)
 }
 
-private data class HiddenOverlayHost(val view: View, val visibility: Int)
-
 private class PixelCopyTimedOutException(timeoutMillis: Long) :
     RuntimeException("PixelCopy timed out after ${timeoutMillis}ms")
-
-private class CleanFrameTimedOutException(timeoutMillis: Long) :
-    RuntimeException("Clean frame timed out after ${timeoutMillis}ms")
-
-private suspend fun <T> View.withHiddenFixThisOverlayHosts(
-    mainDispatcher: CoroutineDispatcher,
-    block: suspend (hiddenOverlayHosts: Boolean) -> T,
-): T = withContext(mainDispatcher) {
-    val hiddenOverlayHosts = hideFixThisOverlayHosts()
-    try {
-        block(hiddenOverlayHosts.isNotEmpty())
-    } finally {
-        withContext(NonCancellable) {
-            hiddenOverlayHosts.restore()
-        }
-    }
-}
-
-private suspend fun View.awaitNextDrawAfterInvalidation() {
-    suspendCancellableCoroutine { continuation ->
-        val initialObserver = viewTreeObserver
-        if (!initialObserver.isAlive || !isAttachedToWindow) {
-            continuation.resume(Unit)
-            return@suspendCancellableCoroutine
-        }
-
-        lateinit var listener: ViewTreeObserver.OnDrawListener
-        fun removeListener() {
-            val currentObserver = viewTreeObserver
-            val observer = if (currentObserver.isAlive) currentObserver else initialObserver
-            if (observer.isAlive) {
-                observer.removeOnDrawListener(listener)
-            }
-        }
-
-        fun postAfterDraw(block: () -> Unit) {
-            val posted = post {
-                block()
-            }
-            if (!posted) {
-                Handler(Looper.getMainLooper()).post {
-                    block()
-                }
-            }
-        }
-
-        var completionPosted = false
-        listener = ViewTreeObserver.OnDrawListener {
-            if (!completionPosted) {
-                completionPosted = true
-                postAfterDraw {
-                    removeListener()
-                    if (continuation.isActive) {
-                        continuation.resume(Unit)
-                    }
-                }
-            }
-        }
-        continuation.invokeOnCancellation {
-            postAfterDraw {
-                removeListener()
-            }
-        }
-
-        initialObserver.addOnDrawListener(listener)
-        postInvalidateOnAnimation()
-    }
-}
-
-private fun View.hideFixThisOverlayHosts(): List<HiddenOverlayHost> =
-    findFixThisOverlayHosts().map { host ->
-        HiddenOverlayHost(view = host, visibility = host.visibility).also {
-            host.visibility = View.INVISIBLE
-        }
-    }
-
-private fun List<HiddenOverlayHost>.restore() {
-    forEach { hidden ->
-        hidden.view.visibility = hidden.visibility
-    }
-}
 
 private inline fun <T> runCatchingCancellable(block: () -> T): Result<T> =
     try {

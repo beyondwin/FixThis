@@ -608,11 +608,11 @@
               display: flex;
               flex-direction: column;
               align-items: center;
-              justify-content: center;
+              justify-content: flex-start;
               gap: 10px;
               min-height: 0;
               overflow: auto;
-              padding: 24px;
+              padding: 12px 24px 24px;
               background:
                 radial-gradient(circle at 50% 50%, var(--bg-1) 0%, var(--bg-0) 70%),
                 var(--bg-0);
@@ -621,7 +621,7 @@
             }
             .empty-stage { color: var(--txt-2); font-size: 13px; }
             .annotate-hint-slot {
-              min-height: 6px;
+              min-height: 32px;
               display: flex;
               align-items: flex-end;
               justify-content: center;
@@ -651,19 +651,6 @@
                 0 30px 60px -20px rgba(0, 0, 0, .6),
                 0 12px 24px -8px rgba(0, 0, 0, .4),
                 inset 0 1px 0 rgba(255, 255, 255, .06);
-            }
-            .snapshot-frame::before {
-              content: '';
-              position: absolute;
-              top: 18px;
-              left: 50%;
-              width: 86px;
-              height: 22px;
-              transform: translateX(-50%);
-              border-radius: 999px;
-              background: #000;
-              z-index: 2;
-              pointer-events: none;
             }
             .snapshot-frame img {
               display: block;
