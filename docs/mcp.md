@@ -1,6 +1,6 @@
 # FixThis MCP
 
-FixThis MCP is the primary agent workflow for the feedback console. The in-app Copy Markdown and Copy JSON workflow still works without MCP.
+FixThis MCP is the primary agent workflow for the feedback console. The Android app only shows MCP browser connection status; selection, comments, copy, send, and persistence happen in the desktop browser console.
 
 ## Repository Sample
 
@@ -120,12 +120,6 @@ Checks whether the debug app sidekick bridge is reachable. Returns package, acti
 
 Inspects the current Compose screen and returns bridge screen data. It may include a latest screenshot resource URI when a screenshot artifact is already available in the MCP session.
 
-`fixthis_get_ui_feedback`
-
-Compatibility legacy single-feedback tool that starts in-app capture, waits for one submitted comment, and returns annotation JSON plus Markdown.
-
-The `.fixthis/artifacts/` directory is a local, ignored screenshot cache for desktop-readable artifacts. It is not required for the in-app clipboard workflow.
-
 `fixthis_verify_ui_change`
 
 Checks whether expected text is present on the current screen. `expectedText` is required; `role` is an optional semantic hint.
@@ -174,7 +168,6 @@ Available resources:
 
 - `fixthis://session/current`
 - `fixthis://screen/current`
-- `fixthis://annotation/latest`
 - `fixthis://screenshot/latest/full.png`
 - `fixthis://screenshot/latest/crop.png`
 - `fixthis://source-index`

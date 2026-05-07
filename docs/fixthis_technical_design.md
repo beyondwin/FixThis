@@ -193,10 +193,6 @@ fixthis-compose/
     build.gradle.kts
     src/main/kotlin/io/beyondwin/fixthis/compose/core/...
 
-  fixthis-compose-overlay/
-    build.gradle.kts
-    src/main/kotlin/io/beyondwin/fixthis/compose/overlay/...
-
   fixthis-compose-sidekick/
     build.gradle.kts
     src/main/AndroidManifest.xml
@@ -269,42 +265,16 @@ project(":app").projectDir = file("sample")
 
 `gradle/gradle-daemon-jvm.properties`는 Gradle daemon JVM toolchain을 Java 21로 고정하는 repository 파일이다. 반대로 `local.properties`, `.fixthis/artifacts/`, `.fixthis/feedback-sessions/`는 developer-local 파일이므로 git에서 무시한다.
 
-### 3.2 `fixthis-compose-overlay`
-
-역할:
-
-- floating toolbar
-- selection layer
-- highlight overlay
-- comment sheet
-- copy/share buttons
-- settings/connect UI
-- Compose feedback console Studio shell
-- Studio theme tokens, split canvas components, and toolbar controls
-
-Compose UI module이다.
-
-주요 package:
-
-```text
-io.beyondwin.fixthis.compose.overlay
-```
-
-The MCP/CLI browser console is the supported desktop feedback console surface. It is served from packaged HTML/CSS/JS resources through `FeedbackConsoleAssets.kt` and `FeedbackConsoleServer`.
-
-The in-app overlay mode transitions go through `OverlayStateMachine`, which keeps idle/menu/select/loading/review/comment/export/error transitions explicit and unit-testable.
-
-### 3.3 `fixthis-compose-sidekick`
+### 3.2 `fixthis-compose-sidekick`
 
 역할:
 
 - AndroidX Startup
 - Application lifecycle hook
-- overlay install
+- MCP browser connection status indicator
 - Compose root discovery
 - semantics inspection
 - screenshot capture
-- clipboard/local file export
 - bridge server for MCP
 
 주요 package:
@@ -648,9 +618,7 @@ class FixThisRuntime(
         session.attachOverlayIfNeeded()
     }
 
-    fun onActivityPaused(activity: Activity) {
-        // Keep overlay; no-op by default.
-    }
+    fun onActivityPaused(activity: Activity) = Unit
 
     fun onActivityDestroyed(activity: Activity) {
         sessions.remove(System.identityHashCode(activity))?.detach()
@@ -661,172 +629,41 @@ class FixThisRuntime(
 }
 ```
 
-### 6.3 Overlay host
+### 6.3 MCP status host
 
 ```kotlin
-class FixThisOverlayHostLayout(
-    context: Context
+class FixThisConnectionStatusHostLayout(
+    context: Context,
+    connectionState: BridgeConnectionState
 ) : FrameLayout(context) {
-    init {
-        tag = TAG
-        isClickable = false
-        isFocusable = false
-        clipChildren = false
-        clipToPadding = false
-    }
-
-    companion object {
-        const val TAG = "io.beyondwin.fixthis.compose.overlay.HOST"
-    }
+    // Shows either "MCP connected" or "MCP waiting".
 }
 ```
+
+The status host is non-interactive. It exists only to show whether the app has
+recently received an authorized MCP browser bridge request.
 
 ### 6.4 Attach logic
 
 ```kotlin
-class FixThisActivitySession(
-    private val activity: Activity,
-    private val config: FixThisConfig
-) {
-    private var host: FixThisOverlayHostLayout? = null
-    private lateinit var controller: FixThisOverlayController
-
-    fun attachOverlayIfNeeded() {
-        val decor = activity.window.decorView as? ViewGroup ?: return
-
-        val existing = decor.findViewWithTag<View>(FixThisOverlayHostLayout.TAG)
-        if (existing != null) return
-
-        val newHost = FixThisOverlayHostLayout(activity)
-        controller = FixThisOverlayController(activity, newHost, config)
-
-        newHost.addView(controller.createToolbarView())
-
-        decor.addView(
-            newHost,
-            ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
-        )
-
-        host = newHost
-    }
-
-    fun detach() {
-        val decor = activity.window.decorView as? ViewGroup ?: return
-        host?.let { decor.removeView(it) }
-        host = null
-    }
+fun onActivityResumed(activity: Activity) {
+    FixThisConnectionStatusHostLayout.attachTo(activity)
+    FixThisBridgeRuntime.onActivityResumed(activity)
 }
 ```
 
 ---
 
-## 7. Overlay UI 설계
+## 7. App UI Surface
 
-### 7.1 Overlay state machine
-
-```kotlin
-sealed interface OverlayMode {
-    data object Idle : OverlayMode
-    data object MenuOpen : OverlayMode
-    data class Selecting(val requestId: String?) : OverlayMode
-    data class ReviewingSelection(val draft: FixThisDraft) : OverlayMode
-    data class Commenting(val draft: FixThisDraft) : OverlayMode
-    data class Exported(val annotation: FixThisAnnotation) : OverlayMode
-}
-```
-
-### 7.2 Toolbar
-
-위치:
-
-- bottom-end
-- system bars padding 고려
-- size는 48dp~56dp
-
-UI:
+The app no longer owns feedback selection, comments, copy/share, or submit
+actions. Those actions live in the MCP browser console. The debug app only shows
+connection state:
 
 ```text
-[FixThis]
+MCP waiting
+MCP connected
 ```
-
-터치 시 메뉴:
-
-```text
-Select UI
-Recent
-Connect AI Agent
-```
-
-### 7.3 Selection layer
-
-Selection mode일 때만 full-screen `ComposeView`를 추가한다.
-
-```kotlin
-fun createSelectionLayerView(): ComposeView =
-    ComposeView(activity).apply {
-        setContent {
-            FixThisSelectionLayer(
-                message = "수정할 UI를 탭하세요",
-                onTap = { x, y -> controller.onSelectionTap(x, y) },
-                onCancel = { controller.cancelSelection() }
-            )
-        }
-    }
-```
-
-주의:
-
-- selection layer는 tap을 consume한다.
-- selection layer는 root discovery에서 제외되어야 한다.
-- tap 좌표는 window coordinate로 변환한다.
-
-### 7.4 Highlight layer
-
-선택 후 selected node bounds를 표시한다.
-
-```kotlin
-@Composable
-fun FixThisHighlightLayer(
-    selected: FixThisNode?,
-    candidates: List<ScoredFixThisNode>
-)
-```
-
-표시:
-
-- selected bounds: 명확한 rectangle
-- candidates: 약한 outline
-- selected 없음: tap point marker
-
-색상은 기본 theme에 맡기거나 사용자가 지정 가능하게 한다.
-
-### 7.5 Comment sheet
-
-```kotlin
-@Composable
-fun FixThisCommentSheet(
-    draft: FixThisDraft,
-    onCopyMarkdown: (String) -> Unit,
-    onCopyJson: (String) -> Unit,
-    onShare: (FixThisAnnotation) -> Unit,
-    onDismiss: () -> Unit
-)
-```
-
-필수 정보:
-
-- selected node summary
-- screenshot crop preview
-- comment text field
-- source candidates summary
-- Copy for AI
-- Copy Markdown
-- Copy JSON
-
----
 
 ## 8. Compose root discovery
 
@@ -855,10 +692,10 @@ object ComposeRootFinder {
         var z = 0
 
         fun visit(view: View, skip: Boolean) {
-            val isFixThisOverlay =
-                view.tag == FixThisOverlayHostLayout.TAG
+            val isFixThisStatusHost =
+                view.isFixThisOverlayHost()
 
-            if (skip || isFixThisOverlay) return
+            if (skip || isFixThisStatusHost) return
 
             if (view is RootForTest) {
                 result += ComposeRootHandle(
@@ -1667,9 +1504,9 @@ Error:
 ```text
 status
 inspectCurrentScreen
-startFeedbackCapture
+captureScreenSnapshot
+readSourceIndex
 verifyUiChange
-getLastAnnotation
 readScreenshot
 performNavigation
 ```
@@ -1729,7 +1566,6 @@ Implemented tools:
 ```text
 fixthis_status
 fixthis_get_current_screen
-fixthis_get_ui_feedback
 fixthis_verify_ui_change
 fixthis_open_feedback_console
 fixthis_list_feedback_sessions
@@ -1739,10 +1575,6 @@ fixthis_list_feedback
 fixthis_read_feedback
 fixthis_resolve_feedback
 ```
-
-`fixthis_get_ui_feedback` is a compatibility wrapper for the older single
-annotation flow. New agent workflows should open the feedback console and read
-the persisted feedback queue.
 
 #### `fixthis_status`
 
@@ -1766,26 +1598,10 @@ the persisted feedback queue.
 }
 ```
 
-#### `fixthis_get_ui_feedback`
+#### `fixthis_capture_screen`
 
-입력:
-
-```json
-{
-  "instruction": "수정할 UI를 앱에서 탭하고 원하는 변경사항을 입력하세요.",
-  "timeoutMs": 60000
-}
-```
-
-동작:
-
-```text
-1. bridge.startFeedbackCapture
-2. Android overlay selection mode 활성화
-3. 사용자 UI tap
-4. comment sheet 표시
-5. 사용자 comment 입력
-6. annotation 생성
+Captures the current Android screen into the active feedback console session.
+Selection and comments happen in the MCP browser console, not in the Android app.
 7. MCP result 반환
 ```
 
@@ -1940,7 +1756,6 @@ stores the agent summary.
 ```text
 fixthis://session/current
 fixthis://screen/current
-fixthis://annotation/latest
 fixthis://screenshot/latest/full.png
 fixthis://screenshot/latest/crop.png
 fixthis://source-index
@@ -2208,15 +2023,6 @@ METHOD_FAILED
   - testTag match
   - no index
 
-`fixthis-compose-overlay`
-
-- `OverlayStateMachineTest`
-  - in-app overlay mode transitions
-- `FixThisDraftTest`
-  - draft feedback model formatting/state
-- `ScreenshotCropPreviewStateTest`
-  - screenshot crop preview state
-
 ### 20.2 Android instrumentation tests
 
 FixThis Studio sample app scenarios:
@@ -2329,33 +2135,31 @@ Acceptance:
 
 - sample button/text nodes appear in snapshot
 
-### Phase 4: Selection flow
+### Phase 4: MCP browser console selection flow
 
 Deliverables:
 
-- selection layer
-- tap capture
-- node selection algorithm
-- highlight
-- comment sheet
+- browser preview
+- browser target selection
+- pending feedback items
+- save to session evidence snapshot
 
 Acceptance:
 
-- user can select a button and see selected node summary
+- user can select a target in the MCP browser console and save feedback
 
-### Phase 5: Screenshot and export
+### Phase 5: Screenshot and handoff
 
 Deliverables:
 
 - PixelCopy-first capturer
 - Canvas fallback
-- crop
-- clipboard exporter
-- local file exporter
+- session-owned screenshot artifacts
+- MCP handoff batch
 
 Acceptance:
 
-- Markdown copied to clipboard with screenshot path
+- MCP can read compact Markdown and full JSON for saved feedback
 
 ### Phase 6: Gradle plugin and source index
 
@@ -2588,7 +2392,6 @@ Implement FixThis for Android Compose according to docs/fixthis_technical_design
 
 Build modules:
 - fixthis-compose-core
-- fixthis-compose-overlay
 - fixthis-compose-sidekick
 - fixthis-gradle-plugin
 - fixthis-cli

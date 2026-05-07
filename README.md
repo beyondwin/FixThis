@@ -14,11 +14,9 @@ FixThis V1 is intentionally narrow:
 
 ## What It Does
 
-FixThis adds a debug-only sidekick to your Compose app. In the sample flow, you open the app, tap the FixThis button, select UI with Smart Select, enter a short request, and copy Markdown or JSON for an AI coding agent.
+FixThis adds a debug-only sidekick to your Compose app. The app itself only shows a small MCP browser connection status pill, while feedback selection, comments, screenshots, and handoff happen in the MCP browser console on the desktop.
 
-Smart Select starts with tap selection, offers scope chips for nearby semantic targets, and falls back to area selection for visual regions such as spacing, Canvas-only UI, or places where no Compose semantics node exists.
-
-The exported annotation includes the tap point, selection kind, selected node when available, nearby nodes, source candidates when the Gradle source index can match them, screenshot metadata, the user comment, and non-fatal errors.
+The console captures the current screen through the sidekick bridge, lets you select UI targets or visual areas in the browser, and stores local evidence snapshots that an AI coding agent can read through MCP tools.
 
 ## Setup
 
@@ -51,8 +49,7 @@ The Android Studio sample app is exposed as Gradle project `:app`, while its fil
 ```text
 :app                         -> sample/
 :fixthis-compose-core     -> pure Kotlin domain contracts, use cases, models, selection, formatters, source matching
-:fixthis-compose-overlay  -> Compose in-app overlay UI components
-:fixthis-compose-sidekick -> debug runtime, inspection, screenshots, bridge
+:fixthis-compose-sidekick -> debug runtime, MCP status indicator, inspection, screenshots, bridge
 :fixthis-gradle-plugin    -> plugin and source-index generation
 :fixthis-cli              -> desktop CLI
 :fixthis-mcp              -> stdio MCP server and local feedback console
@@ -129,7 +126,7 @@ Feedback console sessions are resumable. FixThis saves feedback workspace metada
 
 ## Local Artifacts
 
-Legacy annotation screenshot pulls write desktop-readable files under `.fixthis/artifacts/`. Feedback console sessions write workspace metadata and session-owned screenshots under `.fixthis/feedback-sessions/`. These are local debug artifacts and are ignored by git. The current `.gitignore` ignores `.fixthis` as a whole; if your team wants to share `.fixthis/project.json` for package discovery, add an explicit unignore rule for that file.
+Feedback console sessions write workspace metadata and session-owned screenshots under `.fixthis/feedback-sessions/`. These are local debug artifacts and are ignored by git. The current `.gitignore` ignores `.fixthis` as a whole; if your team wants to share `.fixthis/project.json` for package discovery, add an explicit unignore rule for that file.
 
 ## Privacy Notes
 

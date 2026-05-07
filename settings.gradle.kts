@@ -23,7 +23,6 @@ rootProject.name = "FixThis"
 include(":app")
 project(":app").projectDir = file("sample")
 include(":fixthis-compose-core")
-include(":fixthis-compose-overlay")
 include(":fixthis-compose-sidekick")
 include(":fixthis-cli")
 include(":fixthis-mcp")

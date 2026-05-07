@@ -7,14 +7,12 @@ import android.content.pm.ApplicationInfo
 import android.net.LocalServerSocket
 import android.net.LocalSocket
 import android.util.Base64
-import io.beyondwin.fixthis.compose.core.model.FixThisAnnotation
 import io.beyondwin.fixthis.compose.core.model.FixThisError
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.ScreenshotInfo
 import io.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.beyondwin.fixthis.compose.sidekick.inspect.SemanticsInspector
-import io.beyondwin.fixthis.compose.sidekick.overlay.FixThisOverlayHostLayout
 import io.beyondwin.fixthis.compose.sidekick.screenshot.ScreenshotCapturer
 import io.beyondwin.fixthis.compose.sidekick.screenshot.ScreenshotStore
 import java.io.ByteArrayOutputStream
@@ -39,6 +37,7 @@ import kotlinx.serialization.json.jsonPrimitive
 class BridgeServer(
     private val session: SidekickSession,
     private val environment: BridgeEnvironment,
+    private val connectionState: BridgeConnectionState = BridgeConnectionState(),
     private val socketFactory: (String) -> LocalServerSocket = { socketName -> LocalServerSocket(socketName) },
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
@@ -105,6 +104,7 @@ class BridgeServer(
         if (request.token != session.token) {
             return BridgeProtocol.error(request.id, "UNAUTHORIZED", "Missing or mismatched FixThis bridge token")
         }
+        connectionState.markAuthorizedRequest()
 
         return try {
             val result = when (request.method) {
@@ -112,11 +112,7 @@ class BridgeServer(
                 "inspectCurrentScreen" -> BridgeProtocol.json.encodeToJsonElement(environment.inspectCurrentScreen())
                 "captureScreenSnapshot" -> BridgeProtocol.json.encodeToJsonElement(environment.captureScreenSnapshot())
                 "readSourceIndex" -> BridgeProtocol.json.encodeToJsonElement(environment.readSourceIndex())
-                "startFeedbackCapture" -> BridgeProtocol.json.encodeToJsonElement(
-                    environment.startFeedbackCapture(request.params.longParam("timeoutMillis") ?: DefaultFeedbackTimeoutMillis),
-                )
                 "verifyUiChange" -> BridgeProtocol.json.encodeToJsonElement(verifyUiChange(request.params))
-                "getLastAnnotation" -> BridgeProtocol.json.encodeToJsonElement(environment.getLastAnnotation())
                 "readScreenshot" -> BridgeProtocol.json.encodeToJsonElement(readScreenshot(request.params))
                 "performNavigation" -> BridgeProtocol.json.encodeToJsonElement(
                     environment.performNavigation(
@@ -161,16 +157,13 @@ class BridgeServer(
 
     private suspend fun readScreenshot(params: JsonObject): BridgeScreenshotReadResult {
         require(params.stringParam("path") == null) {
-            "Explicit screenshot paths are not supported; use kind=full or kind=crop for the current annotation"
+            "Explicit screenshot paths are not supported; use kind=full or kind=crop for the latest screen snapshot"
         }
         val kind = params.stringParam("kind") ?: "full"
         require(kind == "full" || kind == "crop") { "Unsupported screenshot kind: $kind" }
-        val source = params.stringParam("source") ?: "annotation"
-        require(source == "annotation" || source == "screenSnapshot") { "Unsupported screenshot source: $source" }
-        val screenshot = when (source) {
-            "screenSnapshot" -> environment.getLastScreenSnapshot()?.screenshot
-            else -> environment.getLastAnnotation()?.screenshot
-        }
+        val source = params.stringParam("source") ?: "screenSnapshot"
+        require(source == "screenSnapshot") { "Unsupported screenshot source: $source" }
+        val screenshot = environment.getLastScreenSnapshot()?.screenshot
         val path = when (kind) {
             "crop" -> screenshot?.cropPath
             else -> screenshot?.fullPath
@@ -194,7 +187,6 @@ class BridgeServer(
     }
 
     private companion object {
-        const val DefaultFeedbackTimeoutMillis = 120_000L
         const val MaxScreenshotReadBytes = 16L * 1024L * 1024L
     }
 }
@@ -205,8 +197,6 @@ interface BridgeEnvironment {
     suspend fun captureScreenSnapshot(): BridgeScreenSnapshot
     suspend fun readSourceIndex(): BridgeSourceIndexResult
     suspend fun getLastScreenSnapshot(): BridgeScreenSnapshot?
-    suspend fun startFeedbackCapture(timeoutMillis: Long): BridgeFeedbackCaptureResult
-    suspend fun getLastAnnotation(): FixThisAnnotation?
     suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult
     fun screenshotCacheDirectory(): File
 }
@@ -251,40 +241,6 @@ data class BridgeInspectedRoot(
 )
 
 @Serializable
-data class BridgeFeedbackCaptureResult(
-    val submitted: Boolean,
-    val timedOut: Boolean,
-    val timeoutMillis: Long,
-    val annotation: FixThisAnnotation? = null,
-    val error: BridgeError? = null,
-) {
-    companion object {
-        fun Submitted(timeoutMillis: Long, annotation: FixThisAnnotation): BridgeFeedbackCaptureResult =
-            BridgeFeedbackCaptureResult(
-                submitted = true,
-                timedOut = false,
-                timeoutMillis = timeoutMillis,
-                annotation = annotation,
-            )
-
-        fun Timeout(timeoutMillis: Long): BridgeFeedbackCaptureResult =
-            BridgeFeedbackCaptureResult(
-                submitted = false,
-                timedOut = true,
-                timeoutMillis = timeoutMillis,
-            )
-
-        fun Failed(timeoutMillis: Long, code: String, message: String): BridgeFeedbackCaptureResult =
-            BridgeFeedbackCaptureResult(
-                submitted = false,
-                timedOut = false,
-                timeoutMillis = timeoutMillis,
-                error = BridgeError(code = code, message = message),
-            )
-    }
-}
-
-@Serializable
 data class BridgeUiVerificationResult(
     val verified: Boolean,
     val expectedText: String? = null,
@@ -304,6 +260,7 @@ internal object FixThisBridgeRuntime {
     private val lock = Any()
     private var server: BridgeServer? = null
     private var environment: AndroidBridgeEnvironment? = null
+    internal val connectionState = BridgeConnectionState()
 
     fun start(application: Application): Boolean {
         if (!application.isDebuggable()) return false
@@ -318,6 +275,7 @@ internal object FixThisBridgeRuntime {
             val bridgeServer = BridgeServer(
                 session = session,
                 environment = bridgeEnvironment,
+                connectionState = connectionState,
             )
             store.write(session)
             if (!bridgeServer.start()) return false
@@ -447,39 +405,6 @@ private class AndroidBridgeEnvironment(
     override suspend fun getLastScreenSnapshot(): BridgeScreenSnapshot? =
         withContext(mainDispatcher) {
             lastScreenSnapshot
-        }
-
-    override suspend fun startFeedbackCapture(timeoutMillis: Long): BridgeFeedbackCaptureResult =
-        withContext(mainDispatcher) {
-            val activity = currentActivity?.get()
-                ?: return@withContext BridgeFeedbackCaptureResult.Failed(
-                    timeoutMillis = timeoutMillis,
-                    code = "NO_ACTIVITY",
-                    message = "No resumed Activity is available",
-                )
-            FixThisOverlayHostLayout.attachTo(activity)
-            val controller = FixThisOverlayHostLayout.controllerFor(activity)
-                ?: return@withContext BridgeFeedbackCaptureResult.Failed(
-                    timeoutMillis = timeoutMillis,
-                    code = "NO_OVERLAY_CONTROLLER",
-                    message = "FixThis overlay controller is unavailable",
-                )
-            val result = controller.startFeedbackCapture(timeoutMillis = timeoutMillis)
-            when {
-                result.rejected -> BridgeFeedbackCaptureResult.Failed(
-                    timeoutMillis = timeoutMillis,
-                    code = "CAPTURE_IN_FLIGHT",
-                    message = "A FixThis feedback capture is already in progress",
-                )
-                result.submitted && result.annotation != null -> BridgeFeedbackCaptureResult.Submitted(timeoutMillis, result.annotation)
-                else -> BridgeFeedbackCaptureResult.Timeout(timeoutMillis)
-            }
-        }
-
-    override suspend fun getLastAnnotation(): FixThisAnnotation? =
-        withContext(mainDispatcher) {
-            val activity = currentActivity?.get() ?: return@withContext null
-            FixThisOverlayHostLayout.controllerFor(activity)?.lastAnnotation
         }
 
     override suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult =

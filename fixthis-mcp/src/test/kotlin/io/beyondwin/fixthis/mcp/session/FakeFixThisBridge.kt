@@ -68,8 +68,6 @@ internal class FakeFixThisBridge(
 
     override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
 
-    override suspend fun startFeedbackCapture(packageName: String, timeoutMillis: Long): JsonObject = JsonObject(emptyMap())
-
     override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
         JsonObject(emptyMap())
 

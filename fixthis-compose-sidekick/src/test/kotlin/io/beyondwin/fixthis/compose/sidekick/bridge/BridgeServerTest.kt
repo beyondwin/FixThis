@@ -1,16 +1,8 @@
 package io.beyondwin.fixthis.compose.sidekick.bridge
 
-import io.beyondwin.fixthis.compose.core.model.ActivityInfo
-import io.beyondwin.fixthis.compose.core.model.AppInfo
-import io.beyondwin.fixthis.compose.core.model.FixThisAnnotation
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.ScreenshotInfo
-import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
-import io.beyondwin.fixthis.compose.core.model.SelectionInfo
-import io.beyondwin.fixthis.compose.core.model.SelectionKind
-import io.beyondwin.fixthis.compose.core.model.SelectionSource
-import io.beyondwin.fixthis.compose.core.model.TapPoint
 import io.beyondwin.fixthis.compose.core.model.TreeKind
 import io.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
@@ -58,19 +50,6 @@ class BridgeServerTest {
         assertTrue(status.contains(""""sourceIndexAvailable": true"""))
         assertTrue(inspection.contains(""""uid": "pay-button""""))
         assertTrue(inspection.contains("Pay now"))
-    }
-
-    @Test
-    fun startFeedbackCaptureDoesNotFakeSuccessOnTimeout() = runBlocking {
-        val server = server(environment = RecordingBridgeEnvironment(feedbackResult = BridgeFeedbackCaptureResult.Timeout(25L)))
-
-        val response = server.handleRequestForTest(
-            """{"id":"1","token":"token","method":"startFeedbackCapture","params":{"timeoutMillis":25}}""",
-        )
-
-        assertTrue(response.contains(""""ok": true"""))
-        assertTrue(response.contains(""""submitted": false"""))
-        assertTrue(response.contains(""""timedOut": true"""))
     }
 
     @Test
@@ -169,12 +148,10 @@ class BridgeServerTest {
     }
 
     @Test
-    fun readScreenshotReturnsBase64ForLastAnnotationPath() = runBlocking {
+    fun readScreenshotReturnsBase64ForLastScreenSnapshotPathByDefault() = runBlocking {
         val cacheDirectory = tempDirectory(prefix = "fixthis-cache")
-        val tempFile = screenshotFile(cacheDirectory, "annotation-1-full.png", PngHeader)
-        val screenFile = screenshotFile(cacheDirectory, "screen-1-full.png", PngHeader + byteArrayOf(1, 2, 3))
+        val screenFile = screenshotFile(cacheDirectory, "screen-1-full.png", PngHeader)
         val environment = RecordingBridgeEnvironment(
-            lastAnnotation = annotation().copy(screenshot = ScreenshotInfo(fullPath = tempFile.absolutePath)),
             screenSnapshot = BridgeScreenSnapshot(
                 inspection = BridgeScreenInspection(activity = "MainActivity"),
                 screenshot = ScreenshotInfo(fullPath = screenFile.absolutePath),
@@ -189,8 +166,7 @@ class BridgeServerTest {
 
         assertTrue(response.contains(""""base64": "iVBORw0KGgo=""""))
         assertTrue(response.contains(""""mimeType": "image/png""""))
-        assertTrue(response.contains(tempFile.absolutePath))
-        assertFalse(response.contains(screenFile.absolutePath))
+        assertTrue(response.contains(screenFile.absolutePath))
     }
 
     @Test
@@ -227,7 +203,10 @@ class BridgeServerTest {
             deleteOnExit()
         }
         val environment = RecordingBridgeEnvironment(
-            lastAnnotation = annotation().copy(screenshot = ScreenshotInfo(fullPath = allowed.absolutePath)),
+            screenSnapshot = BridgeScreenSnapshot(
+                inspection = BridgeScreenInspection(activity = "MainActivity"),
+                screenshot = ScreenshotInfo(fullPath = allowed.absolutePath),
+            ),
             screenshotCacheDirectory = cacheDirectory,
         )
         val server = server(environment = environment)
@@ -242,14 +221,17 @@ class BridgeServerTest {
     }
 
     @Test
-    fun readScreenshotRejectsAnnotationPathOutsideScreenshotCache() = runBlocking {
+    fun readScreenshotRejectsScreenSnapshotPathOutsideScreenshotCache() = runBlocking {
         val cacheDirectory = tempDirectory(prefix = "fixthis-cache")
         val outside = File.createTempFile("fixthis-outside", ".png").apply {
             writeBytes(PngHeader)
             deleteOnExit()
         }
         val environment = RecordingBridgeEnvironment(
-            lastAnnotation = annotation().copy(screenshot = ScreenshotInfo(fullPath = outside.absolutePath)),
+            screenSnapshot = BridgeScreenSnapshot(
+                inspection = BridgeScreenInspection(activity = "MainActivity"),
+                screenshot = ScreenshotInfo(fullPath = outside.absolutePath),
+            ),
             screenshotCacheDirectory = cacheDirectory,
         )
         val server = server(environment = environment)
@@ -263,11 +245,14 @@ class BridgeServerTest {
     }
 
     @Test
-    fun readScreenshotRejectsNonPngAnnotationPath() = runBlocking {
+    fun readScreenshotRejectsNonPngScreenSnapshotPath() = runBlocking {
         val cacheDirectory = tempDirectory(prefix = "fixthis-cache")
         val textFile = screenshotFile(cacheDirectory, "annotation-1-full.txt", PngHeader)
         val environment = RecordingBridgeEnvironment(
-            lastAnnotation = annotation().copy(screenshot = ScreenshotInfo(fullPath = textFile.absolutePath)),
+            screenSnapshot = BridgeScreenSnapshot(
+                inspection = BridgeScreenInspection(activity = "MainActivity"),
+                screenshot = ScreenshotInfo(fullPath = textFile.absolutePath),
+            ),
             screenshotCacheDirectory = cacheDirectory,
         )
         val server = server(environment = environment)
@@ -281,13 +266,16 @@ class BridgeServerTest {
     }
 
     @Test
-    fun readScreenshotRejectsOversizedAnnotationPath() = runBlocking {
+    fun readScreenshotRejectsOversizedScreenSnapshotPath() = runBlocking {
         val cacheDirectory = tempDirectory(prefix = "fixthis-cache")
         val oversized = screenshotFile(cacheDirectory, "annotation-1-full.png", PngHeader).apply {
             RandomAccessFile(this, "rw").use { file -> file.setLength(16L * 1024L * 1024L + 1L) }
         }
         val environment = RecordingBridgeEnvironment(
-            lastAnnotation = annotation().copy(screenshot = ScreenshotInfo(fullPath = oversized.absolutePath)),
+            screenSnapshot = BridgeScreenSnapshot(
+                inspection = BridgeScreenInspection(activity = "MainActivity"),
+                screenshot = ScreenshotInfo(fullPath = oversized.absolutePath),
+            ),
             screenshotCacheDirectory = cacheDirectory,
         )
         val server = server(environment = environment)
@@ -328,15 +316,13 @@ class BridgeServerTest {
         )
 
     private class RecordingBridgeEnvironment(
-        private val feedbackResult: BridgeFeedbackCaptureResult = BridgeFeedbackCaptureResult.Timeout(120_000L),
-        private val lastAnnotation: FixThisAnnotation? = annotation(),
         private val screenshotCacheDirectory: File = tempDirectory(prefix = "fixthis-cache"),
         private val screenSnapshot: BridgeScreenSnapshot = BridgeScreenSnapshot(
             inspection = BridgeScreenInspection(activity = "MainActivity"),
         ),
         private val sourceIndexResult: BridgeSourceIndexResult = BridgeSourceIndexResult(sourceIndexAvailable = true),
     ) : BridgeEnvironment {
-        private var lastScreenSnapshot: BridgeScreenSnapshot? = null
+        private var lastScreenSnapshot: BridgeScreenSnapshot? = screenSnapshot
         val navigationRequests: MutableList<BridgeNavigationRequest> = mutableListOf()
 
         override suspend fun status(): BridgeStatus =
@@ -361,16 +347,12 @@ class BridgeServerTest {
                 ),
             )
 
-        override suspend fun startFeedbackCapture(timeoutMillis: Long): BridgeFeedbackCaptureResult = feedbackResult
-
         override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot =
             screenSnapshot.also { lastScreenSnapshot = it }
 
         override suspend fun readSourceIndex(): BridgeSourceIndexResult = sourceIndexResult
 
         override suspend fun getLastScreenSnapshot(): BridgeScreenSnapshot? = lastScreenSnapshot
-
-        override suspend fun getLastAnnotation(): FixThisAnnotation? = lastAnnotation
 
         override suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult {
             navigationRequests += request
@@ -418,21 +400,4 @@ private fun node(): FixThisNode =
         boundsInWindow = FixThisRect(10f, 10f, 100f, 44f),
         text = listOf("Pay now"),
         role = "Button",
-    )
-
-private fun annotation(): FixThisAnnotation =
-    FixThisAnnotation(
-        id = "annotation-1",
-        createdAtEpochMillis = 1234L,
-        app = AppInfo(packageName = "io.beyondwin.fixthis.sample", versionName = "1.0", debuggable = true),
-        activity = ActivityInfo(className = "MainActivity"),
-        tap = TapPoint(xInWindow = 24f, yInWindow = 24f),
-        selection = SelectionInfo(
-            kind = SelectionKind.SEMANTICS_NODE,
-            confidence = SelectionConfidence.HIGH,
-            selectedUid = "pay-button",
-            source = SelectionSource.TAP_SELECT,
-        ),
-        selectedNode = node(),
-        userComment = "Make the pay button clearer",
     )

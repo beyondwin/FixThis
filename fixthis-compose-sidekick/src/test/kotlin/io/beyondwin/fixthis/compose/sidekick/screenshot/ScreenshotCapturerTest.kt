@@ -8,7 +8,7 @@ import android.view.PixelCopy
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import io.beyondwin.fixthis.compose.sidekick.overlay.FixThisOverlayHostLayout
+import io.beyondwin.fixthis.compose.sidekick.overlay.FixThisConnectionStatusHostLayout
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -32,7 +32,7 @@ class ScreenshotCapturerTest {
         val activity = measuredActivity()
         val decorView = activity.window.decorView as ViewGroup
         val host = FrameLayout(activity).apply {
-            FixThisOverlayHostLayout.markAsOverlayHost(this)
+            FixThisConnectionStatusHostLayout.markAsOverlayHost(this)
             visibility = View.VISIBLE
         }
         decorView.addView(host, ViewGroup.LayoutParams(100, 100))
@@ -75,7 +75,7 @@ class ScreenshotCapturerTest {
         val activity = measuredActivity()
         val decorView = activity.window.decorView as ViewGroup
         val host = CancellingOnHideFrameLayout(activity).apply {
-            FixThisOverlayHostLayout.markAsOverlayHost(this)
+            FixThisConnectionStatusHostLayout.markAsOverlayHost(this)
             visibility = View.VISIBLE
         }
         decorView.addView(host, ViewGroup.LayoutParams(100, 100))
@@ -121,7 +121,7 @@ class ScreenshotCapturerTest {
         val activity = measuredActivity()
         val decorView = activity.window.decorView as ViewGroup
         val host = FrameLayout(activity).apply {
-            FixThisOverlayHostLayout.markAsOverlayHost(this)
+            FixThisConnectionStatusHostLayout.markAsOverlayHost(this)
             visibility = View.VISIBLE
         }
         decorView.addView(host, ViewGroup.LayoutParams(100, 100))
