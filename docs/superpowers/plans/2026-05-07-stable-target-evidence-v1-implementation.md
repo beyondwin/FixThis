@@ -2133,7 +2133,7 @@ git commit -m "docs: document stable target evidence handoff"
 - No new files.
 - Verify all changed modules.
 
-- [ ] **Step 1: Run focused JVM tests**
+- [x] **Step 1: Run focused JVM tests**
 
 Run:
 
@@ -2143,7 +2143,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 2: Run sample compile**
+- [x] **Step 2: Run sample compile**
 
 Run:
 
@@ -2153,7 +2153,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 3: Run connected tests when possible**
+- [x] **Step 3: Run connected tests when possible**
 
 Run:
 
@@ -2163,7 +2163,7 @@ Run:
 
 Expected: PASS with a connected Android device or emulator. If unavailable, record the exact Gradle/ADB message in final notes.
 
-- [ ] **Step 4: Verify no protocol version bump happened**
+- [x] **Step 4: Verify no protocol version bump happened**
 
 Run:
 
@@ -2173,7 +2173,7 @@ rg -n 'BridgeProtocolVersion = "1.0"|const val VERSION: String = "1.0"' fixthis-
 
 Expected: output includes both version constants still set to `1.0`.
 
-- [ ] **Step 5: Verify no Compose tooling dependency was added to the stable path**
+- [x] **Step 5: Verify no Compose tooling dependency was added to the stable path**
 
 Run:
 
@@ -2183,7 +2183,7 @@ rg -n 'ui-tooling-data|LocalInspectionTables|parseSourceInformation|mapTree' fix
 
 Expected: no output for stable implementation files. Documentation may mention these names only as out-of-scope or experimental.
 
-- [ ] **Step 6: Route verification failures back to the owning task**
+- [x] **Step 6: Route verification failures back to the owning task**
 
 If verification fails, do not create a catch-all commit. Return to the task that introduced the failing surface, apply the focused fix there, rerun that task's verification command, and use that task's commit step.
 
