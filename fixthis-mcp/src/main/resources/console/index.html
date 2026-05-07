@@ -45,10 +45,26 @@
                   <span class="button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg></span>
                   <span>Send Agent</span>
                 </button>
+            </div>
+          </header>
+          <section id="connectionCard" class="connection-card" data-connection-state="welcome" aria-live="polite">
+            <div class="connection-main">
+              <span class="connection-dot" aria-hidden="true"></span>
+              <div class="connection-copy">
+                <h2 id="connectionHeadline">Connect to your app</h2>
+                <p id="connectionMessage">We'll find your phone and open the app for you.</p>
               </div>
-            </header>
-            <main class="studio-body">
-              <aside class="studio-history">
+            </div>
+            <div class="connection-actions">
+              <button id="connectionPrimaryAction" class="primary-action" type="button">Start</button>
+              <details id="connectionDetails" class="connection-details">
+                <summary>Details</summary>
+                <pre id="connectionDetailsBody">Waiting for connection check.</pre>
+              </details>
+            </div>
+          </section>
+          <main class="studio-body">
+            <aside class="studio-history">
                 <div class="panel-head">
                   <div class="panel-title">History</div>
                   <div id="sessionCount" class="panel-count">0</div>
@@ -83,6 +99,7 @@
                     <button id="zoomInButton" class="zoom-button" type="button" aria-label="Zoom in">+</button>
                   </div>
                 </div>
+                <span id="previewStaleBadge" class="preview-stale-badge" hidden>Connection paused - showing last preview</span>
                 <div id="snapshot" class="snapshot-stage">
                   <div id="selectionOverlay" class="selection-overlay"></div>
                   <div class="empty-stage">Refresh the live preview to begin.</div>

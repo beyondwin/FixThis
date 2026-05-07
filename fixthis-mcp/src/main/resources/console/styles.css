@@ -21,7 +21,7 @@
             body { margin: 0; height: 100vh; overflow: hidden; background: var(--bg-0); }
             .studio-shell {
               display: grid;
-              grid-template-rows: 56px 1fr;
+              grid-template-rows: 56px auto 1fr;
               height: 100vh;
               overflow: hidden;
             }
@@ -97,6 +97,90 @@
             .studio-context { overflow: hidden; }
             .studio-actions { justify-content: flex-end; flex-wrap: wrap; }
             .toolbar { flex-wrap: wrap; margin-top: 8px; }
+            .connection-card {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 16px;
+              min-height: 76px;
+              padding: 14px 18px;
+              border-bottom: 1px solid var(--line);
+              background: rgba(16, 18, 20, .92);
+            }
+            .connection-card[data-connection-state="ready"] {
+              display: none;
+            }
+            .connection-main {
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              min-width: 0;
+            }
+            .connection-dot {
+              width: 12px;
+              height: 12px;
+              border-radius: 999px;
+              background: var(--warning);
+              flex: 0 0 auto;
+              box-shadow: 0 0 0 3px rgba(230, 180, 90, .16);
+            }
+            .connection-card[data-connection-state="ready"] .connection-dot {
+              background: #6fcf97;
+              box-shadow: 0 0 0 3px rgba(111, 207, 151, .16);
+            }
+            .connection-card[data-connection-state="check_phone"] .connection-dot,
+            .connection-card[data-connection-state="unsupported_build"] .connection-dot {
+              background: var(--danger);
+              box-shadow: 0 0 0 3px rgba(242, 109, 109, .16);
+            }
+            .connection-copy {
+              min-width: 0;
+            }
+            .connection-copy h2 {
+              margin: 0;
+              font-size: 18px;
+              line-height: 1.2;
+              letter-spacing: 0;
+            }
+            .connection-copy p {
+              margin: 4px 0 0;
+              color: var(--txt-1);
+              line-height: 1.35;
+            }
+            .connection-actions {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              flex: 0 0 auto;
+            }
+            .primary-action {
+              min-height: 38px;
+              padding: 0 14px;
+              border: 0;
+              border-radius: 8px;
+              background: var(--accent);
+              color: var(--bg-0);
+              font-weight: 800;
+            }
+            .primary-action:disabled {
+              opacity: .55;
+              cursor: not-allowed;
+            }
+            .connection-details {
+              color: var(--txt-1);
+              font-size: 12px;
+            }
+            .connection-details summary {
+              cursor: pointer;
+            }
+            .connection-details pre {
+              max-width: 360px;
+              max-height: 180px;
+              overflow: auto;
+              white-space: pre-wrap;
+              color: var(--txt-0);
+              text-align: left;
+            }
             select, button {
               min-height: 32px;
               border: 1px solid var(--line);
@@ -494,6 +578,7 @@
             .row span { display: block; color: var(--txt-2); font-size: 11px; overflow-wrap: anywhere; }
             .row span + span { display: block; margin-top: 3px; }
             .studio-canvas {
+              position: relative;
               display: grid;
               grid-template-rows: auto 1fr;
             }
@@ -618,6 +703,19 @@
                 var(--bg-0);
               color: var(--txt-2);
               text-align: center;
+            }
+            .preview-stale-badge {
+              position: absolute;
+              top: 62px;
+              left: 12px;
+              z-index: 3;
+              padding: 7px 10px;
+              border-radius: 999px;
+              background: rgba(16, 18, 20, .88);
+              color: var(--txt-0);
+              border: 1px solid var(--line);
+              font-size: 12px;
+              font-weight: 700;
             }
             .empty-stage { color: var(--txt-2); font-size: 13px; }
             .annotate-hint-slot {
@@ -1057,7 +1155,7 @@
                 min-height: 100vh;
                 height: auto;
                 overflow: visible;
-                grid-template-rows: auto 1fr;
+                grid-template-rows: auto auto 1fr;
               }
               .studio-topbar {
                 position: sticky;
@@ -1090,6 +1188,19 @@
               .studio-actions {
                 justify-content: flex-start;
                 flex-wrap: wrap;
+              }
+              .connection-card {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 12px;
+                padding: 12px;
+              }
+              .connection-actions {
+                width: 100%;
+                justify-content: space-between;
+              }
+              .connection-details pre {
+                max-width: calc(100vw - 32px);
               }
               .studio-body {
                 grid-template-columns: 1fr;

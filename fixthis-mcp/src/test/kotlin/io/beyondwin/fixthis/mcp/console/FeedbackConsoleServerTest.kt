@@ -540,13 +540,16 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("data-connection-state=\"none\""))
         assertTrue(html.contains("deviceControl.dataset.connectionState = uiState;"))
         assertTrue(html.contains("deviceConnectionState.textContent = DeviceStateCopy[uiState];"))
-        assertTrue(html.contains("const state = { session: null, preview: null, sessionSummaries: [], selectedDeviceSerial: null, devices: [] };"))
+        assertTrue(html.contains("connection: {"))
+        assertTrue(html.contains("hasEverConnected: false"))
+        assertTrue(html.contains("lastReadyAt: null"))
+        assertTrue(html.contains("launchInFlight: false"))
         assertTrue(html.contains("state.devices = devices;"))
         assertTrue(html.contains("setDeviceUiState(DeviceUiState.CONNECTING, deviceBySerial(state.devices, option.value));"))
     }
 
     @Test
-    fun consoleHtmlSendsBridgeHeartbeatWhileDeviceIsSelected() {
+    fun consoleHtmlRefreshesConnectionStatusWhileDeviceIsSelected() {
         val html = FeedbackConsoleAssets.indexHtml
         val startHeartbeatPolling = javascriptFunctionBody(html, "startHeartbeatPolling")
         val stopHeartbeatPolling = javascriptFunctionBody(html, "stopHeartbeatPolling")
@@ -554,7 +557,7 @@ class FeedbackConsoleServerTest {
 
         assertTrue(html.contains("const HeartbeatIntervalMs = 2000;"))
         assertTrue(html.contains("let heartbeatTimer = null;"))
-        assertTrue(sendBridgeHeartbeat.contains("requestJson('/api/heartbeat'"))
+        assertTrue(sendBridgeHeartbeat.contains("refreshConnection()"))
         assertTrue(sendBridgeHeartbeat.contains("if (!state.selectedDeviceSerial) return;"))
         assertTrue(startHeartbeatPolling.contains("sendBridgeHeartbeat().catch"))
         assertTrue(startHeartbeatPolling.contains("setInterval"))
@@ -562,6 +565,61 @@ class FeedbackConsoleServerTest {
         assertTrue(stopHeartbeatPolling.contains("clearInterval(heartbeatTimer)"))
         assertTrue(html.contains("startHeartbeatPolling();"))
         assertTrue(html.contains("stopHeartbeatPolling();"))
+    }
+
+    @Test
+    fun consoleHasSimpleConnectionRecoveryCard() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val refreshConnectionBody = javascriptFunctionBody(html, "refreshConnection")
+        val renderConnectionBody = javascriptFunctionBody(html, "renderConnection")
+        val launchAppBody = javascriptFunctionBody(html, "launchApp")
+
+        assertTrue(html.contains("id=\"connectionCard\""))
+        assertTrue(html.contains("id=\"connectionHeadline\""))
+        assertTrue(html.contains("id=\"connectionMessage\""))
+        assertTrue(html.contains("id=\"connectionPrimaryAction\""))
+        assertTrue(html.contains("id=\"connectionDetails\""))
+        assertTrue(html.contains("id=\"connectionDetailsBody\""))
+        assertTrue(html.contains("id=\"previewStaleBadge\""))
+        assertTrue(html.contains("/api/connection"))
+        assertTrue(html.contains("/api/app/launch"))
+        assertTrue(refreshConnectionBody.contains("requestJson('/api/connection'"))
+        assertTrue(renderConnectionBody.contains("connectionCard.dataset.connectionState"))
+        assertTrue(renderConnectionBody.contains("state.connection.hasEverConnected"))
+        assertTrue(renderConnectionBody.contains("connectionPrimaryAction.disabled = state.connection.launchInFlight;"))
+        assertFalse(renderConnectionBody.contains("connectionPrimaryAction.disabled = state.connection.launchInFlight || viewState === 'starting';"))
+        assertTrue(launchAppBody.contains("requestJson('/api/app/launch'"))
+    }
+
+    @Test
+    fun connectionDropPreservesDraftWorkAndMarksPreviewStale() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val applyConnectionBody = javascriptFunctionBody(html, "applyConnectionStatus")
+
+        assertTrue(applyConnectionBody.contains("pendingFeedbackItems"))
+        assertTrue(applyConnectionBody.contains("markPreviewStale"))
+        assertTrue(applyConnectionBody.contains("stopLivePreviewPolling"))
+        assertTrue(applyConnectionBody.contains("startLivePreviewPolling"))
+        assertTrue(applyConnectionBody.contains("state.connection.hasEverConnected = true"))
+    }
+
+    @Test
+    fun readyConnectionSyncsSelectedDeviceBeforePreviewPolling() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val applyConnectionBody = javascriptFunctionBody(html, "applyConnectionStatus")
+        val syncSelectedDeviceBody = javascriptFunctionBody(html, "syncSelectedDeviceFromConnection")
+
+        assertTrue(syncSelectedDeviceBody.contains("const selectedDevice = status?.selectedDevice;"))
+        assertTrue(syncSelectedDeviceBody.contains("selectedDevice?.serial"))
+        assertTrue(syncSelectedDeviceBody.contains("state.selectedDeviceSerial = selectedDevice.serial;"))
+        assertTrue(syncSelectedDeviceBody.contains("deviceBySerial(state.devices, selectedDevice.serial)"))
+        assertTrue(syncSelectedDeviceBody.contains("setDeviceUiState"))
+
+        val syncIndex = applyConnectionBody.indexOf("syncSelectedDeviceFromConnection(status);")
+        val pollingIndex = applyConnectionBody.indexOf("startLivePreviewPolling();")
+        assertTrue(syncIndex >= 0, "Connection status should sync server-selected device")
+        assertTrue(pollingIndex >= 0, "Ready connection should start live preview polling")
+        assertTrue(syncIndex < pollingIndex, "Selected device must be synced before preview polling starts")
     }
 
     @Test
