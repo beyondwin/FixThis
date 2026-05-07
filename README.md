@@ -18,6 +18,8 @@ FixThis adds a debug-only sidekick to your Compose app. The app itself only show
 
 The console captures the current screen through the sidekick bridge, lets you select UI targets or visual areas in the browser, and stores local evidence snapshots that an AI coding agent can read through MCP tools.
 
+Saved feedback can include Stable Target Evidence: nullable, additive JSON that describes target identity hints, occurrence among captured merged semantics nodes, source interpretation, screenshot availability, and confidence warnings. Markdown detail modes change only the agent-facing Markdown density; JSON remains complete.
+
 ## Setup
 
 Use the Gradle plugin or add the sidekick as a debug dependency. Release builds are not a supported target.

@@ -2,6 +2,10 @@
 
 FixThis exports one annotation model for clipboard JSON, Markdown, CLI, and MCP. The current schema version is `1.0`.
 
+Current MCP feedback-console sessions are the primary output surface. Legacy
+single-annotation fields remain documented for compatibility because session
+items map through the same core annotation model.
+
 ## Required Fields
 
 These fields are always present in an annotation:
@@ -239,7 +243,8 @@ Errors are structured as:
 }
 ```
 
-Annotation and inspection codes currently include:
+Annotation and inspection codes include current bridge/inspection failures plus
+legacy single-annotation capture failures:
 
 - `NO_NODE_AT_TAP`: no semantics node contained the tap point.
 - `SCOPE_NODE_NOT_FOUND`: requested scope chip node was not found.
@@ -248,7 +253,7 @@ Annotation and inspection codes currently include:
 - `SEMANTICS_UNMERGED_INSPECTION_FAILED`: unmerged tree inspection failed.
 - `NO_ACTIVITY`: no resumed Activity is available.
 - `NO_DECOR_VIEW`: current Activity has no decor view.
-- `NO_OVERLAY_CONTROLLER`: overlay controller is unavailable.
-- `CAPTURE_IN_FLIGHT`: another feedback capture is already active.
+- `NO_OVERLAY_CONTROLLER`: legacy overlay controller is unavailable.
+- `CAPTURE_IN_FLIGHT`: legacy feedback capture is already active.
 
 Bridge and MCP failures may be returned as tool errors or JSON-RPC errors instead of annotation `errors`. See [Troubleshooting](troubleshooting.md).

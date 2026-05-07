@@ -4,13 +4,13 @@ FixThis V1 is a local-first debug tool for Android Jetpack Compose apps.
 
 ## Local-First Behavior
 
-The in-app annotation workflow uses local selection followed by clipboard or file export. The MCP feedback console workflow uses a localhost Studio UI and local feedback session files. FixThis does not upload annotations, screenshots, UI text, source hints, or source candidates.
+The MCP feedback console workflow uses a localhost Studio UI and local feedback session files. The Android app sidekick only provides debug runtime evidence and MCP browser connection status. FixThis does not upload annotations, screenshots, UI text, source hints, target evidence, or source candidates.
 
 The core sidekick does not require Android network permission. MCP uses a desktop stdio process plus ADB and the app-local bridge; it does not make the Android app open an external network server.
 
 The feedback console is served from localhost by the desktop MCP process. The Android app does not host the console and does not need network permissions.
 
-Feedback workspace files are local project artifacts under `.fixthis/feedback-sessions/`. They include feedback session metadata, saved evidence screenshots, source hints, comments, and handoff batches used to resume the console after MCP or console restarts. Live preview frames are transient and are not appended to the feedback session history.
+Feedback workspace files are local project artifacts under `.fixthis/feedback-sessions/`. They include feedback session metadata, saved evidence screenshots, source hints, optional target evidence, comments, and handoff batches used to resume the console after MCP or console restarts. Live preview frames are transient and are not appended to the feedback session history.
 
 Send stores a local handoff batch in the feedback session so MCP tools can read it. It does not upload feedback or screenshots and does not call an external AI API.
 
@@ -47,6 +47,7 @@ CLI/MCP flows may copy screenshot artifacts into the project:
 ```text
 .fixthis/artifacts/<annotation-id>/
 .fixthis/feedback-sessions/<session-id>/
+.fixthis/preview-cache/<session-id>/
 ```
 
 These files are local artifacts and are ignored by git. Treat them like screenshots from a debug device and delete them when no longer needed.

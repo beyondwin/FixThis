@@ -8,6 +8,14 @@
 **문서 버전:** v1.0  
 **작성일:** 2026-05-03
 
+> Current implementation note: this document started as the detailed V1 design.
+> The current mainline product path is MCP feedback console first. The Android
+> sidekick provides debug runtime evidence, screenshots, navigation, and a
+> heartbeat-driven MCP status host; it no longer owns an in-app annotation
+> overlay. Lower historical sections that mention selection overlays or
+> clipboard-first annotation export are retained as design background unless a
+> nearby current-status note says otherwise.
+
 ---
 
 ## 0. 구현 방향 요약
@@ -19,12 +27,10 @@ Android debug app
   └─ fixthis-compose-sidekick
        ├─ AndroidX Startup autoinit
        ├─ ActivityLifecycleCallbacks
-       ├─ DecorView overlay
+       ├─ MCP connection status host
        ├─ Compose RootForTest discovery
        ├─ SemanticsOwner tree read
-       ├─ Node selection
        ├─ Screenshot capture
-       ├─ Annotation export
        └─ Local bridge for MCP
 
 Desktop
@@ -52,9 +58,9 @@ Gradle
 3. no required testTags
 4. no AccessibilityService
 5. no core compiler plugin
-6. in-app annotation UX first
-7. MCP optional
-8. local-first export
+6. MCP feedback console as the primary agent workflow
+7. app UI limited to MCP browser connection status
+8. local-first export and handoff
 9. failure-safe fallback
 ```
 
@@ -65,13 +71,15 @@ Gradle
 ### 1.1 Runtime architecture
 
 ```text
-User taps FixThis button
+User opens MCP feedback console
         ↓
-Selection layer enabled
+Console selects an ADB device and captures preview
         ↓
-User taps Compose UI
+User clicks Add to freeze the latest preview
         ↓
-FixThis sidekick reads current Activity decorView
+User selects a Compose target or visual area in the browser
+        ↓
+MCP service asks sidekick to read current Activity decorView
         ↓
 Find Compose roots implementing RootForTest
         ↓
@@ -81,7 +89,7 @@ Collect merged + unmerged SemanticsNode lists
         ↓
 Map SemanticsNode → FixThisNode
         ↓
-Select best node by tap coordinate and scoring
+Match browser selection to captured semantics node or visual area
         ↓
 Collect candidatesAtPoint and nearbyNodes
         ↓
@@ -91,11 +99,10 @@ Load source index if available
         ↓
 Match sourceCandidates
         ↓
-Build FixThisAnnotation
+Derive optional targetEvidence from merged nodes, strict comp tags,
+occurrence, source candidates, and screenshot availability
         ↓
-User enters comment
-        ↓
-Export Markdown/JSON or return through MCP
+Save feedback item and expose complete JSON plus detailMode Markdown
 ```
 
 ### 1.2 MCP architecture
@@ -231,6 +238,7 @@ fixthis-compose/
 - legacy annotation export model
 - Markdown/JSON formatter
 - source candidate matching
+- stable target evidence models, identity hints, occurrence calculation, and source interpretation
 - redaction policy
 
 Pure Kotlin module로 유지한다. MCP, CLI, Android UI, `.fixthis` persistence layout을 알지 않는다.
@@ -244,6 +252,7 @@ io.beyondwin.fixthis.compose.core.domain.session
 io.beyondwin.fixthis.compose.core.usecase.annotation
 io.beyondwin.fixthis.compose.core.usecase.snapshot
 io.beyondwin.fixthis.compose.core.model
+io.beyondwin.fixthis.compose.core.identity
 io.beyondwin.fixthis.compose.core.selection
 io.beyondwin.fixthis.compose.core.format
 io.beyondwin.fixthis.compose.core.source
@@ -285,11 +294,10 @@ io.beyondwin.fixthis.compose.sidekick.lifecycle
 io.beyondwin.fixthis.compose.sidekick.overlay
 io.beyondwin.fixthis.compose.sidekick.inspect
 io.beyondwin.fixthis.compose.sidekick.screenshot
-io.beyondwin.fixthis.compose.sidekick.export
 io.beyondwin.fixthis.compose.sidekick.bridge
 ```
 
-`fixthis-compose-sidekick/src/androidTest/AndroidManifest.xml` removes the AndroidX Startup metadata for `FixThisInitializer` in sidekick instrumentation tests. That keeps tests focused on the inspected UI/runtime component under test instead of auto-starting the full overlay bridge from the test APK.
+`fixthis-compose-sidekick/src/androidTest/AndroidManifest.xml` removes the AndroidX Startup metadata for `FixThisInitializer` in sidekick instrumentation tests. That keeps tests focused on the inspected UI/runtime component under test instead of auto-starting the full bridge/status host from the test APK.
 
 ### 3.4 `fixthis-gradle-plugin`
 
@@ -331,6 +339,7 @@ Kotlin/JVM CLI로 구현한다. `fixthis mcp`와 `fixthis console`은 sibling di
 - Android sidekick bridge client
 - local feedback console server
 - feedback session store and `.fixthis/feedback-sessions/` persistence
+- target evidence derivation when frozen previews are saved
 - draft/sent handoff queue formatting for agents
 - session DTO/domain mappers that preserve existing JSON field names while mapping to `compose-core` domain models
 - transient preview cache, source-index registry, and screenshot artifact promotion helpers
@@ -572,7 +581,7 @@ Config loading order:
 
 ---
 
-## 6. Activity lifecycle와 overlay attach
+## 6. Activity lifecycle와 status host attach
 
 ### 6.1 Lifecycle callbacks
 
@@ -641,7 +650,7 @@ class FixThisConnectionStatusHostLayout(
 ```
 
 The status host is non-interactive. It exists only to show whether the app has
-recently received an authorized MCP browser bridge request.
+recently received an authorized MCP browser heartbeat.
 
 ### 6.4 Attach logic
 
@@ -1602,15 +1611,17 @@ fixthis_resolve_feedback
 
 Captures the current Android screen into the active feedback console session.
 Selection and comments happen in the MCP browser console, not in the Android app.
-7. MCP result 반환
-```
 
 출력:
 
 ```json
 {
-  "annotation": {},
-  "markdown": "# FixThis Compose Feedback\n..."
+  "sessionId": "fb_s_123",
+  "screen": {
+    "screenId": "screen_1",
+    "activityName": "MainActivity",
+    "sourceIndexAvailable": true
+  }
 }
 ```
 
@@ -2404,18 +2415,20 @@ Core requirements:
 - no AccessibilityService
 - no required testTags
 - AndroidX Startup autoinit
-- ActivityLifecycleCallbacks overlay attach
+- ActivityLifecycleCallbacks status-host attach
 - RootForTest discovery
 - SemanticsOwner merged/unmerged tree inspection
-- coordinate-based node selection
+- browser-console target selection mapped to captured semantics or visual area
 - screenshot capture with PixelCopy-first and Canvas fallback
-- Markdown/JSON annotation export
+- complete JSON plus Markdown detail modes
 - Gradle source index generation
-- optional MCP with feedback console workflow tools
+- MCP feedback console workflow tools
+- nullable Stable Target Evidence v1
 
 Do not implement a Kotlin compiler plugin.
 Do not add network permission to the core sidekick.
-Do not make MCP the only UX.
+Keep Android app UI minimal and debug-only; the current product workflow is MCP
+feedback console first.
 Prioritize failure-safe behavior and local-first privacy.
 ```
 

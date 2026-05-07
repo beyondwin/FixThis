@@ -27,7 +27,7 @@ Fix:
 
 ## MULTIPLE_DEVICES
 
-V1 expects a single active `adb devices` target. If more than one emulator or device is connected, disconnect extra devices or make only one show as `device`.
+The feedback console can list multiple ADB devices and lets you select the active device. CLI commands that do not carry console selection may still need one usable `adb devices` target or an explicit package/device context.
 
 Check:
 
@@ -37,7 +37,7 @@ adb devices
 
 ### NO_DEVICE
 
-Connect a device or start an emulator, then run `adb devices`.
+Connect a device or start an emulator, then run `adb devices`. In the feedback console, use the compact device control's refresh action and select a connected, authorized device.
 
 ## RUN_AS_FAILED
 
@@ -136,6 +136,10 @@ Fix:
 ### MCP_SESSION_CLOSED
 
 Reopen the feedback console from the agent or run `fixthis console --package <applicationId>`.
+
+### MCP status stays waiting
+
+The in-app status pill changes to `MCP connected` only after an authorized MCP browser heartbeat, not after every bridge status or screen-capture request. Open the feedback console and keep the browser tab active long enough for heartbeat polling to run.
 
 ### I reopened the console and do not see my previous feedback
 

@@ -28,6 +28,10 @@ MCP client
 
 The Android app does not host the MCP server. The sidekick only exposes a local bridge inside the debug app process.
 
+The app status pill is heartbeat-driven. It shows `MCP connected` only while an
+authorized browser-console heartbeat is recent; ordinary status, inspect, or
+capture calls do not by themselves mark the browser connected.
+
 ## Feedback Console
 
 The feedback console is an MCP-owned local web UI. The MCP server owns the session queue and exposes it to agents through queue tools. The browser UI is the human review surface: a dark Studio workspace with persisted sessions on the left, live or frozen preview canvas in the center, and a mode-aware Inspector on the right. Its compact device control shows the active short device label plus `No device`, `Connecting`, `Connected`, or `Unavailable`.

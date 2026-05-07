@@ -1,6 +1,6 @@
 # ADR-0006: Stable Target Evidence For Open Source Compose Compatibility
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-05-07
 
 ## Context
@@ -16,9 +16,9 @@ The project can still use optional, best-effort enhancements, but the core hando
 
 ## Decision
 
-Stable Target Evidence v1 will be implemented without requiring Compose tooling data.
+Stable Target Evidence v1 is implemented without requiring Compose tooling data.
 
-The stable path will use only evidence already available in the current architecture:
+The stable path uses only evidence already available in the current architecture:
 
 - `FixThisNode` semantics fields: role, text, editable text, content description, test tag, actions, bounds, sensitivity flags, and tree kind.
 - A strict `comp:<ComposableName>:<variant>` test-tag convention.
@@ -26,9 +26,9 @@ The stable path will use only evidence already available in the current architec
 - Existing `SourceMatcher` candidates and match reasons.
 - Markdown detail modes that change only the Markdown surface, not the JSON payload.
 
-`targetEvidence` will be added as nullable, additive data on `FixThisAnnotation`, domain `Annotation`, and MCP `AnnotationDto`. Existing fields will not be removed or renamed.
+`targetEvidence` is nullable, additive data on `FixThisAnnotation`, domain `Annotation`, and MCP `AnnotationDto`. Existing fields are not removed or renamed.
 
-The bridge protocol version will not be bumped for this additive evidence. Instead, bridge status can expose additive capabilities, such as:
+The bridge protocol version is not bumped for this additive evidence. Instead, bridge status exposes additive capabilities, such as:
 
 ```json
 {
@@ -41,6 +41,10 @@ The bridge protocol version will not be bumped for this additive evidence. Inste
 ```
 
 Compose tooling based composable identity will remain disabled by default and out of scope for Stable Target Evidence v1. If implemented later, it should live behind an experimental capability and preferably in a separate optional module or artifact. The default `fixthis-compose-sidekick` path must continue to work without `ui-tooling-data` or runtime tooling introspection.
+
+Current mainline implementation computes target evidence in the MCP feedback
+session Save path, using the frozen preview's captured merged semantics nodes,
+selected target, source-index candidates, and screenshot artifact availability.
 
 ## Consequences
 
