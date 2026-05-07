@@ -981,7 +981,7 @@ git commit -m "feat: add source interpretation evidence"
 - Modify test: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/capture/AnnotationCaptureControllerTest.kt`
 - Modify test: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayControllerTest.kt`
 
-- [ ] **Step 1: Add capture controller test for target evidence**
+- [x] **Step 1: Add capture controller test for target evidence**
 
 Append to `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/capture/AnnotationCaptureControllerTest.kt`:
 
@@ -1031,7 +1031,7 @@ fun captureAddsTargetEvidenceForSelectedNode() {
 }
 ```
 
-- [ ] **Step 2: Run capture test to verify it fails**
+- [x] **Step 2: Run capture test to verify it fails**
 
 Run:
 
@@ -1041,7 +1041,7 @@ Run:
 
 Expected: FAIL because capture does not populate `targetEvidence`.
 
-- [ ] **Step 3: Compute evidence in AnnotationCaptureController**
+- [x] **Step 3: Compute evidence in AnnotationCaptureController**
 
 Modify imports in `AnnotationCaptureController.kt`:
 
@@ -1085,7 +1085,7 @@ val targetEvidence = TargetEvidence(
 
 Pass `targetEvidence = targetEvidence` in the returned `FixThisAnnotation`.
 
-- [ ] **Step 4: Thread source index into bridge-driven overlay capture**
+- [x] **Step 4: Thread source index into bridge-driven overlay capture**
 
 Modify `FixThisOverlayController.kt` so bridge-driven capture can pass a real source index while manual overlay capture keeps using `SourceIndex()`.
 
@@ -1130,7 +1130,7 @@ with:
 sourceIndex = activeSourceIndex,
 ```
 
-- [ ] **Step 5: Pass source index from AndroidBridgeEnvironment**
+- [x] **Step 5: Pass source index from AndroidBridgeEnvironment**
 
 Modify `BridgeServer.kt` in `AndroidBridgeEnvironment.startFeedbackCapture`:
 
@@ -1144,7 +1144,7 @@ val result = controller.startFeedbackCapture(
 
 Keep manual overlay flows unchanged.
 
-- [ ] **Step 6: Add screenshot kinds after capture screenshot is stored**
+- [x] **Step 6: Add screenshot kinds after capture screenshot is stored**
 
 In `FixThisOverlayController.captureSelection`, after `val screenshot = screenshotCapturer.capture(...)`, replace:
 
@@ -1173,7 +1173,7 @@ private fun ScreenshotInfo.availableKinds(): List<String> =
     }
 ```
 
-- [ ] **Step 7: Run capture and overlay tests**
+- [x] **Step 7: Run capture and overlay tests**
 
 Run:
 
@@ -1183,7 +1183,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/capture/AnnotationCaptureController.kt \

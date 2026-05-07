@@ -1,7 +1,10 @@
 package io.beyondwin.fixthis.compose.sidekick.capture
 
+import io.beyondwin.fixthis.compose.core.identity.IdentityHintFactory
+import io.beyondwin.fixthis.compose.core.identity.OccurrenceCalculator
 import io.beyondwin.fixthis.compose.core.model.ActivityInfo
 import io.beyondwin.fixthis.compose.core.model.AppInfo
+import io.beyondwin.fixthis.compose.core.model.EvidenceQuality
 import io.beyondwin.fixthis.compose.core.model.FixThisAnnotation
 import io.beyondwin.fixthis.compose.core.model.FixThisError
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
@@ -13,9 +16,11 @@ import io.beyondwin.fixthis.compose.core.model.SelectionKind
 import io.beyondwin.fixthis.compose.core.model.SelectionSource
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.beyondwin.fixthis.compose.core.model.TapPoint
+import io.beyondwin.fixthis.compose.core.model.TargetEvidence
 import io.beyondwin.fixthis.compose.core.selection.NodeSelector
 import io.beyondwin.fixthis.compose.core.selection.SelectionOptions
 import io.beyondwin.fixthis.compose.core.source.SourceIndex
+import io.beyondwin.fixthis.compose.core.source.SourceInterpretationFactory
 import io.beyondwin.fixthis.compose.core.source.SourceMatcher
 
 data class AnnotationCaptureInput(
@@ -107,6 +112,31 @@ class AnnotationCaptureController(
             areaBoundsInWindow = input.areaBoundsInWindow,
             activityName = input.activity.className,
         )
+        val identityHint = IdentityHintFactory.from(captureSelection.selectedNode)
+        val occurrence = OccurrenceCalculator.calculate(
+            selectedNode = captureSelection.selectedNode,
+            nodes = input.nodes,
+            identityHint = identityHint,
+        )
+        val sourceInterpretation = SourceInterpretationFactory.from(sourceCandidates)
+        val targetEvidence = TargetEvidence(
+            identityHint = identityHint,
+            occurrence = occurrence,
+            sourceInterpretation = sourceInterpretation,
+            evidenceQuality = if (identityHint != null || occurrence != null || sourceCandidates.isNotEmpty()) {
+                EvidenceQuality.STRUCTURED
+            } else {
+                EvidenceQuality.BASIC
+            },
+            warnings = buildList {
+                if (captureSelection.selection.kind == SelectionKind.VISUAL_AREA) {
+                    add("Occurrence is not applicable for visual area selections.")
+                }
+                if (captureSelection.selectedNode == null && input.areaBoundsInWindow == null) {
+                    add("No selected semantics node was available for target evidence.")
+                }
+            },
+        )
 
         return FixThisAnnotation(
             id = idGenerator(),
@@ -129,6 +159,7 @@ class AnnotationCaptureController(
             screenshot = input.screenshot,
             userComment = input.userComment,
             errors = errors,
+            targetEvidence = targetEvidence,
         )
     }
 

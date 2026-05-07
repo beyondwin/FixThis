@@ -221,6 +221,53 @@ class AnnotationCaptureControllerTest {
         assertNotNull(annotation.errors.firstOrNull { it.code == "NO_NODE_AT_TAP" })
     }
 
+    @Test
+    fun captureAddsTargetEvidenceForSelectedNode() {
+        val selected = node(
+            uid = "primary",
+            bounds = rect(0f, 0f, 160f, 48f),
+            text = listOf("Sign In"),
+            role = "Button",
+            testTag = "comp:AppPrimaryButton:primary",
+            actions = listOf("OnClick"),
+        )
+        val duplicate = node(
+            uid = "secondary",
+            bounds = rect(0f, 80f, 160f, 128f),
+            text = listOf("Sign In"),
+            role = "Button",
+            testTag = "comp:AppPrimaryButton:primary",
+            actions = listOf("OnClick"),
+        )
+
+        val annotation = controller.capture(
+            AnnotationCaptureInput(
+                app = appInfo(),
+                activity = activityInfo(),
+                tap = TapPoint(10f, 10f),
+                nodes = listOf(selected, duplicate),
+                sourceIndex = SourceIndex(
+                    entries = listOf(
+                        SourceIndexEntry(
+                            file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
+                            line = 12,
+                            symbols = listOf("AppPrimaryButton"),
+                        ),
+                    ),
+                ),
+                userComment = "Button color is too muted",
+            ),
+        )
+
+        assertEquals("AppPrimaryButton", annotation.targetEvidence?.identityHint?.composableNameHint)
+        assertEquals(2, annotation.targetEvidence?.occurrence?.count)
+        assertEquals(1, annotation.targetEvidence?.occurrence?.selectedOrdinal)
+        assertEquals(
+            "sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
+            annotation.targetEvidence?.sourceInterpretation?.topCandidate?.file,
+        )
+    }
+
     private fun node(
         uid: String,
         bounds: FixThisRect,

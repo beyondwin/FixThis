@@ -87,11 +87,15 @@ internal class FixThisOverlayController(
     private var completionSequence: Long = 0L
     private var lastCompletionSubmitted: Boolean = false
     private var feedbackCaptureInFlight: Boolean = false
+    private var activeSourceIndex: SourceIndex = SourceIndex()
 
     internal val lastAnnotation: FixThisAnnotation?
         get() = currentAnnotation ?: lastSubmittedAnnotation
 
     fun startSelection() {
+        if (!feedbackCaptureInFlight) {
+            activeSourceIndex = SourceIndex()
+        }
         transitionMode(OverlayMode.Select(requestId = UUID.randomUUID().toString()))
         activeCapture = null
         currentAnnotation = null
@@ -166,12 +170,14 @@ internal class FixThisOverlayController(
         activeCapture = null
         currentAnnotation = null
         lastCompletionSubmitted = false
+        activeSourceIndex = SourceIndex()
         completionSequence++
     }
 
     internal suspend fun startFeedbackCapture(
         timeoutMillis: Long,
         pollMillis: Long = 100L,
+        sourceIndex: SourceIndex = SourceIndex(),
     ): FeedbackCaptureWaitResult {
         if (feedbackCaptureInFlight) {
             return FeedbackCaptureWaitResult(submitted = false, annotation = null, rejected = true)
@@ -179,6 +185,7 @@ internal class FixThisOverlayController(
         feedbackCaptureInFlight = true
         return try {
             val startSequence = completionSequence
+            activeSourceIndex = sourceIndex
             startSelection()
             val submitted = withTimeoutOrNull(timeoutMillis) {
                 while (completionSequence == startSequence) {
@@ -191,6 +198,7 @@ internal class FixThisOverlayController(
                 annotation = if (submitted) lastSubmittedAnnotation else null,
             )
         } finally {
+            activeSourceIndex = SourceIndex()
             feedbackCaptureInFlight = false
         }
     }
@@ -209,7 +217,7 @@ internal class FixThisOverlayController(
             activity = activityInfoProvider(),
             tap = tap,
             nodes = nodes,
-            sourceIndex = SourceIndex(),
+            sourceIndex = activeSourceIndex,
             userComment = userComment,
             scopeNodeUid = scopeNodeUid,
             areaBoundsInWindow = areaBoundsInWindow,
@@ -224,7 +232,12 @@ internal class FixThisOverlayController(
             annotationId = annotationWithoutScreenshot.id,
             selectedBounds = selectedBounds,
         )
-        val annotation = annotationWithoutScreenshot.copy(screenshot = screenshot)
+        val annotation = annotationWithoutScreenshot.copy(
+            screenshot = screenshot,
+            targetEvidence = annotationWithoutScreenshot.targetEvidence?.copy(
+                screenshotKinds = screenshot.availableKinds(),
+            ),
+        )
         transitionMode(OverlayMode.Commenting(annotation.toDraft()))
         activeCapture = ActiveCapture(
             tap = tap,
@@ -304,6 +317,12 @@ private fun FixThisAnnotation.toDraft(): FixThisDraft =
         screenshot = screenshot,
         userComment = userComment,
     )
+
+private fun ScreenshotInfo.availableKinds(): List<String> =
+    buildList {
+        if (!fullPath.isNullOrBlank() || !desktopFullPath.isNullOrBlank()) add("full")
+        if (!cropPath.isNullOrBlank() || !desktopCropPath.isNullOrBlank()) add("crop")
+    }
 
 @Suppress("DEPRECATION")
 private fun Activity.toAppInfo(): AppInfo {

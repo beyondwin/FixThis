@@ -449,8 +449,9 @@ private class AndroidBridgeEnvironment(
             lastScreenSnapshot
         }
 
-    override suspend fun startFeedbackCapture(timeoutMillis: Long): BridgeFeedbackCaptureResult =
-        withContext(mainDispatcher) {
+    override suspend fun startFeedbackCapture(timeoutMillis: Long): BridgeFeedbackCaptureResult {
+        val sourceIndex = readSourceIndex().sourceIndex ?: SourceIndex()
+        return withContext(mainDispatcher) {
             val activity = currentActivity?.get()
                 ?: return@withContext BridgeFeedbackCaptureResult.Failed(
                     timeoutMillis = timeoutMillis,
@@ -464,7 +465,10 @@ private class AndroidBridgeEnvironment(
                     code = "NO_OVERLAY_CONTROLLER",
                     message = "FixThis overlay controller is unavailable",
                 )
-            val result = controller.startFeedbackCapture(timeoutMillis = timeoutMillis)
+            val result = controller.startFeedbackCapture(
+                timeoutMillis = timeoutMillis,
+                sourceIndex = sourceIndex,
+            )
             when {
                 result.rejected -> BridgeFeedbackCaptureResult.Failed(
                     timeoutMillis = timeoutMillis,
@@ -475,6 +479,7 @@ private class AndroidBridgeEnvironment(
                 else -> BridgeFeedbackCaptureResult.Timeout(timeoutMillis)
             }
         }
+    }
 
     override suspend fun getLastAnnotation(): FixThisAnnotation? =
         withContext(mainDispatcher) {
