@@ -417,6 +417,52 @@ class FeedbackQueueFormatterTest {
     }
 
     @Test
+    fun markdownEscapesTargetIdentityHintsBeforeWritingInlineMarkdown() {
+        val selectedNode = FixThisNode(
+            uid = "compose:0:merged:42",
+            composeNodeId = 42,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = FixThisRect(10f, 20f, 110f, 70f),
+            text = listOf("Pay now"),
+        )
+        val session = SessionDto(
+            sessionId = "session-1",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 2L,
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 2L,
+                    updatedAtEpochMillis = 2L,
+                    target = AnnotationTargetDto.Node(selectedNode.uid, selectedNode.boundsInWindow),
+                    selectedNode = selectedNode,
+                    targetEvidence = TargetEvidence(
+                        identityHint = IdentityHint(
+                            composableNameHint = "AppPrimaryButton\n# Injected Heading `compose`",
+                            variantHint = "primary\n- Injected list `variant`",
+                            source = IdentityHintSource.TEST_TAG_CONVENTION,
+                            confidence = IdentityHintConfidence.HIGH,
+                        ),
+                    ),
+                    comment = "Increase button contrast",
+                    sequenceNumber = 1,
+                ),
+            ),
+        )
+
+        val markdown = FeedbackQueueFormatter.toMarkdown(session)
+        val outsideCodeFences = markdownOutsideCodeFences(markdown)
+
+        assertTrue(outsideCodeFences.contains("- Identity: `"))
+        assertFalse(Regex("(?m)^# Injected Heading").containsMatchIn(outsideCodeFences))
+        assertFalse(Regex("(?m)^- Injected list").containsMatchIn(outsideCodeFences))
+    }
+
+    @Test
     fun jsonDoesNotChangeWithDetailMode() {
         val session = SessionDto(
             sessionId = "session-1",
@@ -442,6 +488,17 @@ class FeedbackQueueFormatterTest {
         FeedbackQueueFormatter.toMarkdown(session, DetailMode.FULL)
 
         assertEquals(before, FeedbackQueueFormatter.toJson(session))
+    }
+
+    private fun markdownOutsideCodeFences(markdown: String): String = buildString {
+        var inFence = false
+        markdown.lineSequence().forEach { line ->
+            if (line.startsWith("```")) {
+                inFence = !inFence
+            } else if (!inFence) {
+                appendLine(line)
+            }
+        }
     }
 
     private fun sessionWithTargetEvidenceAndSources(): SessionDto {

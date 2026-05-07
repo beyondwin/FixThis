@@ -139,5 +139,5 @@ object FeedbackQueueFormatter {
         text + listOfNotNull(editableText) + contentDescription + listOfNotNull(testTag, role)
 
     private fun String.inlineSafe(): String =
-        replace("`", "'")
+        lineSequence().joinToString(" ").replace("`", "'")
 }
