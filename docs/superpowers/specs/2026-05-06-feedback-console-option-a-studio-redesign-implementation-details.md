@@ -8,19 +8,19 @@ Related documents:
 - Current live-preview design: `docs/superpowers/specs/2026-05-05-feedback-console-live-preview-batched-items-detailed-design.md`
 - Selection handoff design: `docs/superpowers/specs/2026-05-05-feedback-console-selection-handoff-design.md`
 - Prior V2 design: `docs/superpowers/specs/2026-05-04-feedback-workspace-navigation-v2-design.md`
-- Executable visual prototype: `/Users/kws/Downloads/PointPatch Console _standalone_.html`
-- Detailed Studio spec prototype: `/Users/kws/Downloads/PointPatch Studio Spec _standalone_.html`
+- Executable visual prototype: `/Users/kws/Downloads/FixThis Console _standalone_.html`
+- Detailed Studio spec prototype: `/Users/kws/Downloads/FixThis Studio Spec _standalone_.html`
 
 ## Purpose
 
 This document is the detailed implementation guide for rebuilding the
-PointPatch feedback console around the supplied Option A Studio UI. The task
+FixThis feedback console around the supplied Option A Studio UI. The task
 plan is the executable checklist. This document explains the intended
 architecture, state ownership, event mapping, rendering boundaries, and
 acceptance contracts behind those tasks.
 
 The redesign is complete when the console visually and interactively feels like
-Option A Studio while preserving PointPatch's live-preview and batched evidence
+Option A Studio while preserving FixThis's live-preview and batched evidence
 workflow:
 
 - idle preview interaction navigates the connected Android app
@@ -36,9 +36,9 @@ workflow:
 In scope:
 
 - Replace the embedded console HTML/CSS/JavaScript in
-  `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`.
+  `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`.
 - Update console HTML contract tests in
-  `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`.
+  `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`.
 - Update user/operator documentation that describes the current console UI.
 - Preserve existing server endpoints, persistence schema, CLI behavior, bridge
   contract, and MCP tool contract.
@@ -56,7 +56,7 @@ Out of scope:
 
 ## Source Prototype Contract
 
-`/Users/kws/Downloads/PointPatch Console _standalone_.html` is an executable
+`/Users/kws/Downloads/FixThis Console _standalone_.html` is an executable
 prototype. Use it as the source of truth for Studio interaction feel, not as a
 literal data model to copy.
 
@@ -77,13 +77,13 @@ Observed Option A behavior:
 - Keyboard shortcuts cover tool switching, escape, save, new session, delete,
   and severity shortcuts.
 
-PointPatch must adapt this behavior:
+FixThis must adapt this behavior:
 
 - Keep the Studio shell, history, canvas, inspector, token system, spacing,
   hover/focus behavior, and modal-free workflow.
-- Replace prototype tool mode with PointPatch's `Add` flow. Idle preview clicks
+- Replace prototype tool mode with FixThis's `Add` flow. Idle preview clicks
   navigate; feedback selection only exists while the preview is frozen.
-- Use PointPatch natural screenshot coordinates for bridge requests and saved
+- Use FixThis natural screenshot coordinates for bridge requests and saved
   evidence overlays. Do not convert persisted selection bounds to prototype
   percent coordinates.
 - Do not copy prototype label/severity/status editing into pending items.
@@ -94,7 +94,7 @@ PointPatch must adapt this behavior:
 Primary file:
 
 ```text
-pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt
+fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt
 ```
 
 Important existing JavaScript state and functions:
@@ -144,7 +144,7 @@ The console becomes a three-panel Studio workspace under one top bar.
 
 ```text
 56px top bar
-  left: PointPatch / Studio brand
+  left: FixThis / Studio brand
   middle: session/device context and preview interval
   right: Refresh | Add | Save | Copy | Send | New | Close
 
@@ -504,7 +504,7 @@ function ensurePreviewFrame() {
   if (frame) return frame;
   snapshot.innerHTML =
     '<div id="snapshotFrame" class="snapshot-frame">' +
-      '<img id="snapshotImage" alt="PointPatch preview" aria-label="PointPatch preview">' +
+      '<img id="snapshotImage" alt="FixThis preview" aria-label="FixThis preview">' +
       '<div id="selectionOverlay" class="selection-overlay" aria-hidden="true"></div>' +
     '</div>';
   attachSnapshotHandlers();
@@ -642,7 +642,7 @@ edit already queued items.
 
 ## Session History And Sent Drawer
 
-The left panel should feel like Option A history while using current PointPatch
+The left panel should feel like Option A history while using current FixThis
 session data.
 
 Session cards:
@@ -693,7 +693,7 @@ POST /api/agent-handoffs
 Persistence remains under:
 
 ```text
-.pointpatch/feedback-sessions/
+.fixthis/feedback-sessions/
 ```
 
 Live previews remain transient. `Save` is the only UI action in this flow that
@@ -725,7 +725,7 @@ function isTextInputFocused() {
 Accessibility requirements:
 
 - `error` uses `role="status" aria-live="polite"`.
-- preview image has `alt="PointPatch preview"` and `aria-label`.
+- preview image has `alt="FixThis preview"` and `aria-label`.
 - icon-only navigation buttons have `aria-label`.
 - pending `Focus` and `Delete` buttons include item numbers in `aria-label`.
 - focused state is visible in keyboard and mouse flows.
@@ -737,7 +737,7 @@ embedded HTML/CSS/JavaScript. These tests should protect the contracts that are
 easy to regress:
 
 - Option A shell classes and tokens exist.
-- PointPatch top-bar action IDs and labels remain.
+- FixThis top-bar action IDs and labels remain.
 - no `modeSelect` or `modeNavigate` UI exists.
 - preview refresh calls `renderPreviewOnly()`, not full `render()`.
 - canvas badge and navigation/frozen mode behavior are represented.
@@ -749,14 +749,14 @@ easy to regress:
 Server/service tests protect behavior outside the HTML shell:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionStoreTest --tests io.github.pointpatch.mcp.session.FeedbackSessionServiceTest --tests io.github.pointpatch.mcp.session.FeedbackQueueFormatterTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest --tests io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
 ```
 
 Final required checks:
 
 ```bash
-./gradlew :pointpatch-mcp:test :pointpatch-cli:test :pointpatch-compose-core:test
-./gradlew :pointpatch-cli:installDist :pointpatch-mcp:installDist
+./gradlew :fixthis-mcp:test :fixthis-cli:test :fixthis-compose-core:test
+./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
 git diff --check
 ```
 
@@ -826,7 +826,7 @@ Frozen preview can accidentally be replaced by a newer live preview.
 : Preserve preview generation counters and store `addItemsFlow.screenshotUrl`
   using the preview-scoped screenshot route.
 
-Prototype annotation editing can leak into PointPatch.
+Prototype annotation editing can leak into FixThis.
 : Keep the explicit forbidden list in tests and manual smoke: no pending edit,
   severity, status, label, move, or resize.
 

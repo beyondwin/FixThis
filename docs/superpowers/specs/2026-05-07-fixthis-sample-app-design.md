@@ -7,11 +7,11 @@ Status: approved design, pending implementation plan
 
 Replace the current basic Compose validation sample with a more realistic
 sample app called FixThis. The sample should look like a credible productivity
-app while remaining a local, hardcoded validation target for PointPatch's
+app while remaining a local, hardcoded validation target for FixThis's
 Compose inspection, Smart Select, screenshot, source matching, CLI, and MCP
 flows.
 
-This is a sample-app-only change. The PointPatch library, CLI, MCP server, and
+This is a sample-app-only change. The FixThis library, CLI, MCP server, and
 Gradle plugin namespaces stay unchanged in this phase.
 
 ## Approved Direction
@@ -33,7 +33,7 @@ gallery, or marketing mockup.
 - Android `namespace`: `io.beyondwin.fixthis.sample`
 - Android `applicationId`: `io.beyondwin.fixthis.sample`
 - Kotlin package: `io.beyondwin.fixthis.sample`
-- Existing library package prefix retained: `io.github.pointpatch.*`
+- Existing library package prefix retained: `io.beyondwin.fixthis.*`
 - Existing CLI and MCP product wording retained unless it specifically names
   the sample app package
 
@@ -87,7 +87,7 @@ It should include:
 - recent activity feed with mixed row/card density
 - quick actions that lead conceptually to review or triage workflows
 
-PointPatch coverage:
+FixThis coverage:
 
 - mixed semantic nodes
 - repeated cards with nearby context
@@ -107,7 +107,7 @@ It should include:
 - nested actions for assign, save, more, and mark reviewed
 - at least one disabled action with visible disabled state
 
-PointPatch coverage:
+FixThis coverage:
 
 - `LazyColumn` with repeated cards
 - nested clickable rows and buttons
@@ -128,7 +128,7 @@ It should include:
 - overflow menu
 - confirmation dialog for closing the issue
 
-PointPatch coverage:
+FixThis coverage:
 
 - dialog/overlay selection
 - overflow menu selection
@@ -152,7 +152,7 @@ It should include:
 - primary action `Submit request`
 - secondary action `Clear draft`
 
-PointPatch coverage:
+FixThis coverage:
 
 - text field semantics
 - password/masked editable field
@@ -173,7 +173,7 @@ It should include:
 - rows demonstrating long text, disabled controls, and nested click targets
 - a weak-semantics visual preview block where area selection remains useful
 
-PointPatch coverage:
+FixThis coverage:
 
 - Canvas-only region
 - Canvas with explicit semantics
@@ -303,7 +303,7 @@ Weak semantics:
 - one nested clickable or ambiguous row/card target
 
 Weak semantics are not defects in this sample. They exist to verify that
-PointPatch can still capture useful context when UI is visual or ambiguous.
+FixThis can still capture useful context when UI is visual or ambiguous.
 
 ## Package Rename Scope
 
@@ -323,10 +323,10 @@ Implementation must update:
 
 Implementation must not rename:
 
-- root Gradle project `PointPatch`
-- modules named `pointpatch-*`
-- plugin id `io.github.pointpatch.compose`
-- library packages under `io.github.pointpatch.*`
+- root Gradle project `FixThis`
+- modules named `fixthis-*`
+- plugin id `io.beyondwin.fixthis.compose`
+- library packages under `io.beyondwin.fixthis.*`
 - CLI command names in this phase
 
 ## Testing
@@ -367,7 +367,7 @@ exposed as Gradle project `:app` under `sample/`.
 Update the full smoke command:
 
 ```bash
-pointpatch-cli/build/install/pointpatch/bin/pointpatch run --package io.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
 ```
 
 Do not rewrite historical design documents unless an implementation task
@@ -385,7 +385,7 @@ sample package as part of past design context.
   product screens.
 - Sample tests are updated for new package and visible text anchors.
 - README package examples use `io.beyondwin.fixthis.sample`.
-- PointPatch library, CLI, MCP, and Gradle plugin namespaces remain unchanged.
+- FixThis library, CLI, MCP, and Gradle plugin namespaces remain unchanged.
 
 ## Implementation Notes
 

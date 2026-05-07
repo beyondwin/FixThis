@@ -1,4 +1,4 @@
-# PointPatch V1 Full Design Supplement
+# FixThis V1 Full Design Supplement
 
 Date: 2026-05-04
 Status: approved direction, pending implementation plan
@@ -7,9 +7,9 @@ Status: approved direction, pending implementation plan
 
 This document supplements:
 
-- `docs/pointpatch_prd.md`
-- `docs/pointpatch_technical_design.md`
-- `docs/pointpatch_decisions.md`
+- `docs/fixthis_prd.md`
+- `docs/fixthis_technical_design.md`
+- `docs/fixthis_decisions.md`
 
 The product direction remains:
 
@@ -82,7 +82,7 @@ The default interaction is a single tap.
 Flow:
 
 ```text
-PointPatch button
+FixThis button
 -> Select UI
 -> selection layer appears
 -> user taps target
@@ -96,7 +96,7 @@ without asking the user to draw a box.
 
 ### Refinement: Scope Chips
 
-After a tap, PointPatch should show the selected node and a small set of
+After a tap, FixThis should show the selected node and a small set of
 alternate scope chips. These chips let the user move between smaller and larger
 targets at the same coordinate.
 
@@ -156,7 +156,7 @@ Area Select should not replace Tap Select. It is a visual fallback.
 
 ### Selection Failure
 
-If no semantics node is found, PointPatch must still create an annotation.
+If no semantics node is found, FixThis must still create an annotation.
 
 Output should include:
 
@@ -262,7 +262,7 @@ Required behavior:
 
 - app stores screenshots locally in cache
 - bridge exposes screenshots as binary resources or base64 metadata
-- CLI/MCP can pull screenshots to `.pointpatch/artifacts/`
+- CLI/MCP can pull screenshots to `.fixthis/artifacts/`
 - Markdown export should prefer desktop-readable paths when generated through
   CLI/MCP
 - app-only clipboard export can include Android-local paths and a warning
@@ -270,18 +270,18 @@ Required behavior:
 Suggested desktop path:
 
 ```text
-.pointpatch/artifacts/<annotation-id>/<annotation-id>-full.png
-.pointpatch/artifacts/<annotation-id>/<annotation-id>-crop.png
+.fixthis/artifacts/<annotation-id>/<annotation-id>-full.png
+.fixthis/artifacts/<annotation-id>/<annotation-id>-crop.png
 ```
 
 ## MCP and Bridge Contract
 
 V1 MCP tools:
 
-- `pointpatch_status`
-- `pointpatch_get_current_screen`
-- `pointpatch_get_ui_feedback`
-- `pointpatch_verify_ui_change`
+- `fixthis_status`
+- `fixthis_get_current_screen`
+- `fixthis_get_ui_feedback`
+- `fixthis_verify_ui_change`
 
 The MCP server should use stdio. JSON-RPC messages are newline-delimited on
 stdout. Logs must go to stderr only.
@@ -367,7 +367,7 @@ Acceptance criteria:
 V1 Full is done when:
 
 - Compose sample app covers all required test screens
-- debug app shows PointPatch button
+- debug app shows FixThis button
 - idle overlay does not block normal app touches
 - Tap Select chooses useful semantics nodes
 - Scope Chips can change target scope
@@ -380,9 +380,9 @@ V1 Full is done when:
 - source candidates appear with match reasons
 - CLI can run, inspect, setup, and doctor the sample
 - MCP exposes the four V1 macro tools
-- `pointpatch_get_ui_feedback` opens app selection and returns annotation
+- `fixthis_get_ui_feedback` opens app selection and returns annotation
 - MCP/CLI can provide desktop-readable screenshot artifacts
-- release build has no active PointPatch runtime
+- release build has no active FixThis runtime
 - docs clearly state Compose-only, debug-only, local-first, best-effort source
   mapping, and screenshot privacy limitations
 

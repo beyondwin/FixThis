@@ -16,10 +16,10 @@ iteration. The console should behave like a local review tool:
 - `Copy` and `Send` are top-bar agent actions, not comment-composer actions
 - agent Markdown is concise and source-hinted
 
-The implementation must preserve the existing PointPatch constraints:
+The implementation must preserve the existing FixThis constraints:
 
 - MCP process owns feedback session state
-- `.pointpatch/feedback-sessions/` remains the durable persistence root
+- `.fixthis/feedback-sessions/` remains the durable persistence root
 - Android remains debug-only and local-first
 - navigation remains one-step `back`, `tap`, or `swipe`
 - no arbitrary typing, scripted automation, network mocking, cloud sync, or
@@ -125,18 +125,18 @@ polling is intentionally disallowed.
 
 Live preview:
 
-- may use `.pointpatch/preview-cache/<sessionId>/<previewId>/`
+- may use `.fixthis/preview-cache/<sessionId>/<previewId>/`
 - may be held only in memory if serving the screenshot remains possible
 - must not be appended to `FeedbackSession.screens`
 - must not appear in `FeedbackSessionSummary.screensCount`
-- must not create `.pointpatch/feedback-sessions/<session>/artifacts/screens/`
+- must not create `.fixthis/feedback-sessions/<session>/artifacts/screens/`
   entries until `Save`
 
 Save:
 
 - takes `previewId` and pending item payloads
 - promotes the preview screenshot into
-  `.pointpatch/feedback-sessions/<sessionId>/artifacts/screens/<screenId>/`
+  `.fixthis/feedback-sessions/<sessionId>/artifacts/screens/<screenId>/`
 - creates exactly one `CapturedScreen`
 - creates N `FeedbackItem`s
 - all N items share the promoted `screenId`
@@ -158,9 +158,9 @@ Returns a transient preview.
   "screen": {
     "screenId": "screen-1",
     "displayName": "MainActivity",
-    "activityName": "io.github.pointpatch.sample.MainActivity",
+    "activityName": "io.beyondwin.fixthis.sample.MainActivity",
     "screenshot": {
-      "desktopFullPath": "/repo/.pointpatch/preview-cache/session-1/preview-1/screen-1-full.png",
+      "desktopFullPath": "/repo/.fixthis/preview-cache/session-1/preview-1/screen-1-full.png",
       "width": 720,
       "height": 1600
     },
@@ -178,7 +178,7 @@ Contract:
 `GET /api/preview/screenshot/full`
 
 Returns the latest preview PNG for rendering. The server must only serve files
-under PointPatch-owned preview cache or persisted artifact roots.
+under FixThis-owned preview cache or persisted artifact roots.
 
 `POST /api/items/batch`
 
@@ -284,7 +284,7 @@ Node selection:
 - fall back to unmerged nodes
 - choose smallest containing bounds, with stable tie-break by node order
 - store `FeedbackTarget.Node(nodeUid, bounds)`
-- store the full selected `PointPatchNode`
+- store the full selected `FixThisNode`
 - collect nearby meaningful nodes from the same root
 
 Area selection:
@@ -423,11 +423,11 @@ Do not show by default:
 Markdown should be compact and actionable.
 
 ```markdown
-# PointPatch Feedback Handoff
+# FixThis Feedback Handoff
 
-- Package: `io.github.pointpatch.sample`
+- Package: `io.beyondwin.fixthis.sample`
 - Feedback Items: `2`
-- Screenshots: local debug artifacts available through PointPatch tooling
+- Screenshots: local debug artifacts available through FixThis tooling
 
 ## Item 1
 
@@ -441,7 +441,7 @@ Target:
 - Bounds: `28.0,77.0,692.0,186.0`
 
 Likely Source:
-1. `sample/src/main/java/io/github/pointpatch/sample/screens/FormScreen.kt:37` high confidence
+1. `sample/src/main/java/io/github/fixthis/sample/screens/FormScreen.kt:37` high confidence
    - matched: `Email address`, `emailField`
    - reasons: selected text, selected testTag
 ```
@@ -481,14 +481,14 @@ surface. Deleting old screens remains a separate existing operation.
 Targeted tests:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionStoreTest --tests io.github.pointpatch.mcp.session.FeedbackSessionServiceTest --tests io.github.pointpatch.mcp.session.FeedbackQueueFormatterTest --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest --tests io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Broader tests before completion:
 
 ```bash
-./gradlew :pointpatch-mcp:test :pointpatch-cli:test :pointpatch-compose-core:test
-./gradlew :pointpatch-cli:installDist :pointpatch-mcp:installDist
+./gradlew :fixthis-mcp:test :fixthis-cli:test :fixthis-compose-core:test
+./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
 git diff --check
 ```
 

@@ -1,8 +1,8 @@
-# PointPatch V1 Full Implementation Plan
+# FixThis V1 Full Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build PointPatch V1 Full: a debug-only Android Compose UI selection tool with Smart Select, annotation export, source candidates, CLI, and MCP integration.
+**Goal:** Build FixThis V1 Full: a debug-only Android Compose UI selection tool with Smart Select, annotation export, source candidates, CLI, and MCP integration.
 
 **Architecture:** The repo becomes a root Gradle multi-project build. Android runtime code lives in sidekick/overlay modules, reusable models and selection logic live in pure Kotlin core, Gradle plugin generates debug-only assets and dependencies, and CLI/MCP communicate with the running debug app through an ADB-backed local bridge.
 
@@ -20,15 +20,15 @@ Create or replace these main areas:
 - `build.gradle.kts`: root plugin and repository configuration.
 - `gradle/libs.versions.toml`: shared versions for Android, Kotlin, Compose, serialization, coroutines, tests, CLI.
 - `sample/`: Compose-only Android app used for manual QA and instrumentation tests.
-- `pointpatch-compose-core/`: pure Kotlin models, selection, redaction, formatting, source matching.
-- `pointpatch-compose-overlay/`: Android Compose overlay UI and Smart Select UI state.
-- `pointpatch-compose-sidekick/`: debug app runtime, AndroidX Startup, Activity hooks, root discovery, screenshot, bridge.
-- `pointpatch-gradle-plugin/`: plugin id `io.github.pointpatch.compose`, debug runtime injection, source index generation.
-- `pointpatch-cli/`: desktop CLI commands and ADB bridge client.
-- `pointpatch-mcp/`: stdio MCP server wrapping the CLI bridge client.
+- `fixthis-compose-core/`: pure Kotlin models, selection, redaction, formatting, source matching.
+- `fixthis-compose-overlay/`: Android Compose overlay UI and Smart Select UI state.
+- `fixthis-compose-sidekick/`: debug app runtime, AndroidX Startup, Activity hooks, root discovery, screenshot, bridge.
+- `fixthis-gradle-plugin/`: plugin id `io.beyondwin.fixthis.compose`, debug runtime injection, source index generation.
+- `fixthis-cli/`: desktop CLI commands and ADB bridge client.
+- `fixthis-mcp/`: stdio MCP server wrapping the CLI bridge client.
 - `docs/`: README, privacy, troubleshooting, MCP guide, output schema.
 
-Keep each module focused. Do not put MCP protocol code in Android modules. Do not put Android APIs in `pointpatch-compose-core`.
+Keep each module focused. Do not put MCP protocol code in Android modules. Do not put Android APIs in `fixthis-compose-core`.
 
 ## Task 1: Root Multi-Project Build
 
@@ -60,16 +60,16 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "PointPatch"
+rootProject.name = "FixThis"
 
 include(":app")
 project(":app").projectDir = file("sample")
-include(":pointpatch-compose-core")
-include(":pointpatch-compose-overlay")
-include(":pointpatch-compose-sidekick")
-include(":pointpatch-gradle-plugin")
-include(":pointpatch-cli")
-include(":pointpatch-mcp")
+include(":fixthis-compose-core")
+include(":fixthis-compose-overlay")
+include(":fixthis-compose-sidekick")
+include(":fixthis-gradle-plugin")
+include(":fixthis-cli")
+include(":fixthis-mcp")
 ```
 
 - [x] **Step 2: Create root build file**
@@ -144,13 +144,13 @@ Run:
 ./gradlew projects
 ```
 
-Expected: Gradle lists `:app`, `:pointpatch-compose-core`, `:pointpatch-compose-overlay`, `:pointpatch-compose-sidekick`, `:pointpatch-gradle-plugin`, `:pointpatch-cli`, and `:pointpatch-mcp`.
+Expected: Gradle lists `:app`, `:fixthis-compose-core`, `:fixthis-compose-overlay`, `:fixthis-compose-sidekick`, `:fixthis-gradle-plugin`, `:fixthis-cli`, and `:fixthis-mcp`.
 
 - [x] **Step 5: Commit**
 
 ```bash
 git add settings.gradle.kts build.gradle.kts gradle/libs.versions.toml
-git commit -m "build: create PointPatch multi-project build"
+git commit -m "build: create FixThis multi-project build"
 ```
 
 ## Task 2: Compose Sample App
@@ -159,15 +159,15 @@ git commit -m "build: create PointPatch multi-project build"
 - Delete or replace: `sample/app/`
 - Create: `sample/build.gradle.kts`
 - Create: `sample/src/main/AndroidManifest.xml`
-- Create: `sample/src/main/java/io/github/pointpatch/sample/MainActivity.kt`
-- Create: `sample/src/main/java/io/github/pointpatch/sample/SampleApp.kt`
-- Create: `sample/src/main/java/io/github/pointpatch/sample/screens/CheckoutScreen.kt`
-- Create: `sample/src/main/java/io/github/pointpatch/sample/screens/FeedScreen.kt`
-- Create: `sample/src/main/java/io/github/pointpatch/sample/screens/FormScreen.kt`
-- Create: `sample/src/main/java/io/github/pointpatch/sample/screens/DialogScreen.kt`
-- Create: `sample/src/main/java/io/github/pointpatch/sample/screens/CanvasScreen.kt`
-- Create: `sample/src/main/java/io/github/pointpatch/sample/screens/EdgeCasesScreen.kt`
-- Test: `sample/src/androidTest/java/io/github/pointpatch/sample/SampleAppSmokeTest.kt`
+- Create: `sample/src/main/java/io/github/fixthis/sample/MainActivity.kt`
+- Create: `sample/src/main/java/io/github/fixthis/sample/SampleApp.kt`
+- Create: `sample/src/main/java/io/github/fixthis/sample/screens/CheckoutScreen.kt`
+- Create: `sample/src/main/java/io/github/fixthis/sample/screens/FeedScreen.kt`
+- Create: `sample/src/main/java/io/github/fixthis/sample/screens/FormScreen.kt`
+- Create: `sample/src/main/java/io/github/fixthis/sample/screens/DialogScreen.kt`
+- Create: `sample/src/main/java/io/github/fixthis/sample/screens/CanvasScreen.kt`
+- Create: `sample/src/main/java/io/github/fixthis/sample/screens/EdgeCasesScreen.kt`
+- Test: `sample/src/androidTest/java/io/github/fixthis/sample/SampleAppSmokeTest.kt`
 
 - [x] **Step 1: Replace the sample module build**
 
@@ -180,11 +180,11 @@ plugins {
 }
 
 android {
-    namespace = "io.github.pointpatch.sample"
+    namespace = "io.beyondwin.fixthis.sample"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "io.github.pointpatch.sample"
+        applicationId = "io.beyondwin.fixthis.sample"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -222,9 +222,9 @@ Create `sample/src/main/AndroidManifest.xml`:
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
         android:allowBackup="false"
-        android:label="PointPatch Sample"
+        android:label="FixThis Sample"
         android:supportsRtl="true"
-        android:theme="@style/Theme.PointPatchSample">
+        android:theme="@style/Theme.FixThisSample">
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -243,16 +243,16 @@ Create `sample/src/main/res/values/styles.xml`:
 
 ```xml
 <resources>
-    <style name="Theme.PointPatchSample" parent="android:style/Theme.Material.Light.NoActionBar" />
+    <style name="Theme.FixThisSample" parent="android:style/Theme.Material.Light.NoActionBar" />
 </resources>
 ```
 
 - [x] **Step 4: Create Compose entry activity**
 
-Create `sample/src/main/java/io/github/pointpatch/sample/MainActivity.kt`:
+Create `sample/src/main/java/io/github/fixthis/sample/MainActivity.kt`:
 
 ```kotlin
-package io.github.pointpatch.sample
+package io.beyondwin.fixthis.sample
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -270,10 +270,10 @@ class MainActivity : ComponentActivity() {
 
 - [x] **Step 5: Create tabbed sample app shell**
 
-Create `sample/src/main/java/io/github/pointpatch/sample/SampleApp.kt`:
+Create `sample/src/main/java/io/github/fixthis/sample/SampleApp.kt`:
 
 ```kotlin
-package io.github.pointpatch.sample
+package io.beyondwin.fixthis.sample
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
@@ -286,12 +286,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import io.github.pointpatch.sample.screens.CanvasScreen
-import io.github.pointpatch.sample.screens.CheckoutScreen
-import io.github.pointpatch.sample.screens.DialogScreen
-import io.github.pointpatch.sample.screens.EdgeCasesScreen
-import io.github.pointpatch.sample.screens.FeedScreen
-import io.github.pointpatch.sample.screens.FormScreen
+import io.beyondwin.fixthis.sample.screens.CanvasScreen
+import io.beyondwin.fixthis.sample.screens.CheckoutScreen
+import io.beyondwin.fixthis.sample.screens.DialogScreen
+import io.beyondwin.fixthis.sample.screens.EdgeCasesScreen
+import io.beyondwin.fixthis.sample.screens.FeedScreen
+import io.beyondwin.fixthis.sample.screens.FormScreen
 
 private enum class SampleTab(val label: String) {
     Checkout("Checkout"),
@@ -337,10 +337,10 @@ fun SampleApp() {
 
 - [x] **Step 6: Add Checkout screen**
 
-Create `sample/src/main/java/io/github/pointpatch/sample/screens/CheckoutScreen.kt`:
+Create `sample/src/main/java/io/github/fixthis/sample/screens/CheckoutScreen.kt`:
 
 ```kotlin
-package io.github.pointpatch.sample.screens
+package io.beyondwin.fixthis.sample.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -396,10 +396,10 @@ fun CheckoutScreen(padding: PaddingValues) {
 
 - [x] **Step 7: Add Feed screen**
 
-Create `sample/src/main/java/io/github/pointpatch/sample/screens/FeedScreen.kt`:
+Create `sample/src/main/java/io/github/fixthis/sample/screens/FeedScreen.kt`:
 
 ```kotlin
-package io.github.pointpatch.sample.screens
+package io.beyondwin.fixthis.sample.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -454,10 +454,10 @@ fun FeedScreen(padding: PaddingValues) {
 
 - [x] **Step 8: Add Form screen**
 
-Create `sample/src/main/java/io/github/pointpatch/sample/screens/FormScreen.kt`:
+Create `sample/src/main/java/io/github/fixthis/sample/screens/FormScreen.kt`:
 
 ```kotlin
-package io.github.pointpatch.sample.screens
+package io.beyondwin.fixthis.sample.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -520,10 +520,10 @@ fun FormScreen(padding: PaddingValues) {
 
 - [x] **Step 9: Add Dialog screen**
 
-Create `sample/src/main/java/io/github/pointpatch/sample/screens/DialogScreen.kt`:
+Create `sample/src/main/java/io/github/fixthis/sample/screens/DialogScreen.kt`:
 
 ```kotlin
-package io.github.pointpatch.sample.screens
+package io.beyondwin.fixthis.sample.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -575,10 +575,10 @@ fun DialogScreen(padding: PaddingValues) {
 
 - [x] **Step 10: Add Canvas screen**
 
-Create `sample/src/main/java/io/github/pointpatch/sample/screens/CanvasScreen.kt`:
+Create `sample/src/main/java/io/github/fixthis/sample/screens/CanvasScreen.kt`:
 
 ```kotlin
-package io.github.pointpatch.sample.screens
+package io.beyondwin.fixthis.sample.screens
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
@@ -628,10 +628,10 @@ fun CanvasScreen(padding: PaddingValues) {
 
 - [x] **Step 11: Add Edge Cases screen**
 
-Create `sample/src/main/java/io/github/pointpatch/sample/screens/EdgeCasesScreen.kt`:
+Create `sample/src/main/java/io/github/fixthis/sample/screens/EdgeCasesScreen.kt`:
 
 ```kotlin
-package io.github.pointpatch.sample.screens
+package io.beyondwin.fixthis.sample.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -678,10 +678,10 @@ fun EdgeCasesScreen(padding: PaddingValues) {
 
 - [x] **Step 12: Add sample smoke test**
 
-Create `sample/src/androidTest/java/io/github/pointpatch/sample/SampleAppSmokeTest.kt`:
+Create `sample/src/androidTest/java/io/github/fixthis/sample/SampleAppSmokeTest.kt`:
 
 ```kotlin
-package io.github.pointpatch.sample
+package io.beyondwin.fixthis.sample
 
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -726,17 +726,17 @@ git commit -m "testapp: replace sample with Compose coverage app"
 ## Task 3: Core Annotation Models and Formatters
 
 **Files:**
-- Create: `pointpatch-compose-core/build.gradle.kts`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/model/Models.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/redaction/RedactionPolicy.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/format/PointPatchJsonFormatter.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/format/PointPatchMarkdownFormatter.kt`
-- Test: `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/format/PointPatchMarkdownFormatterTest.kt`
-- Test: `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/redaction/RedactionPolicyTest.kt`
+- Create: `fixthis-compose-core/build.gradle.kts`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/model/Models.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/redaction/RedactionPolicy.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/format/FixThisJsonFormatter.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/format/FixThisMarkdownFormatter.kt`
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt`
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/fixthis/compose/core/redaction/RedactionPolicyTest.kt`
 
 - [x] **Step 1: Configure core module**
 
-Create `pointpatch-compose-core/build.gradle.kts`:
+Create `fixthis-compose-core/build.gradle.kts`:
 
 ```kotlin
 plugins {
@@ -755,12 +755,12 @@ dependencies {
 Create `Models.kt` with:
 
 ```kotlin
-package io.github.pointpatch.compose.core.model
+package io.beyondwin.fixthis.compose.core.model
 
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class PointPatchAnnotation(
+data class FixThisAnnotation(
     val schemaVersion: String = "1.0",
     val id: String,
     val createdAtEpochMillis: Long,
@@ -769,15 +769,15 @@ data class PointPatchAnnotation(
     val activity: ActivityInfo,
     val tap: TapPoint,
     val selection: SelectionInfo,
-    val selectedNode: PointPatchNode? = null,
-    val candidatesAtPoint: List<ScoredPointPatchNode> = emptyList(),
+    val selectedNode: FixThisNode? = null,
+    val candidatesAtPoint: List<ScoredFixThisNode> = emptyList(),
     val scopeCandidates: List<ScopeCandidate> = emptyList(),
-    val nearbyNodes: List<PointPatchNode> = emptyList(),
+    val nearbyNodes: List<FixThisNode> = emptyList(),
     val sourceCandidates: List<SourceCandidate> = emptyList(),
     val searchHints: List<String> = emptyList(),
     val screenshot: ScreenshotInfo? = null,
     val userComment: String,
-    val errors: List<PointPatchError> = emptyList()
+    val errors: List<FixThisError> = emptyList()
 )
 
 @Serializable
@@ -790,7 +790,7 @@ data class ActivityInfo(val className: String)
 data class TapPoint(val xInWindow: Float, val yInWindow: Float)
 
 @Serializable
-data class PointPatchRect(val left: Float, val top: Float, val right: Float, val bottom: Float) {
+data class FixThisRect(val left: Float, val top: Float, val right: Float, val bottom: Float) {
     val width: Float get() = right - left
     val height: Float get() = bottom - top
     val area: Float get() = width.coerceAtLeast(0f) * height.coerceAtLeast(0f)
@@ -814,17 +814,17 @@ data class SelectionInfo(
     val kind: SelectionKind,
     val confidence: SelectionConfidence,
     val selectedUid: String? = null,
-    val areaBoundsInWindow: PointPatchRect? = null,
+    val areaBoundsInWindow: FixThisRect? = null,
     val source: SelectionSource
 )
 
 @Serializable
-data class PointPatchNode(
+data class FixThisNode(
     val uid: String,
     val composeNodeId: Int,
     val rootIndex: Int,
     val treeKind: TreeKind,
-    val boundsInWindow: PointPatchRect,
+    val boundsInWindow: FixThisRect,
     val text: List<String> = emptyList(),
     val editableText: String? = null,
     val contentDescription: List<String> = emptyList(),
@@ -845,10 +845,10 @@ data class PointPatchNode(
 }
 
 @Serializable
-data class ScoredPointPatchNode(val node: PointPatchNode, val score: Double, val breakdown: Map<String, Double>)
+data class ScoredFixThisNode(val node: FixThisNode, val score: Double, val breakdown: Map<String, Double>)
 
 @Serializable
-data class ScopeCandidate(val label: String, val nodeUid: String, val boundsInWindow: PointPatchRect, val score: Double)
+data class ScopeCandidate(val label: String, val nodeUid: String, val boundsInWindow: FixThisRect, val score: Double)
 
 @Serializable
 data class SourceCandidate(
@@ -872,7 +872,7 @@ data class ScreenshotInfo(
 )
 
 @Serializable
-data class PointPatchError(val code: String, val message: String, val details: Map<String, String> = emptyMap())
+data class FixThisError(val code: String, val message: String, val details: Map<String, String> = emptyMap())
 ```
 
 - [x] **Step 3: Add redaction policy**
@@ -880,7 +880,7 @@ data class PointPatchError(val code: String, val message: String, val details: M
 Create `RedactionPolicy.kt`:
 
 ```kotlin
-package io.github.pointpatch.compose.core.redaction
+package io.beyondwin.fixthis.compose.core.redaction
 
 data class RedactedText(
     val text: List<String>,
@@ -908,37 +908,37 @@ object RedactionPolicy {
 
 - [x] **Step 4: Add JSON and Markdown formatters**
 
-Create `PointPatchJsonFormatter.kt`:
+Create `FixThisJsonFormatter.kt`:
 
 ```kotlin
-package io.github.pointpatch.compose.core.format
+package io.beyondwin.fixthis.compose.core.format
 
-import io.github.pointpatch.compose.core.model.PointPatchAnnotation
+import io.beyondwin.fixthis.compose.core.model.FixThisAnnotation
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-object PointPatchJsonFormatter {
+object FixThisJsonFormatter {
     private val json = Json {
         prettyPrint = true
         explicitNulls = false
         encodeDefaults = true
     }
 
-    fun format(annotation: PointPatchAnnotation): String = json.encodeToString(annotation)
+    fun format(annotation: FixThisAnnotation): String = json.encodeToString(annotation)
 }
 ```
 
-Create `PointPatchMarkdownFormatter.kt`:
+Create `FixThisMarkdownFormatter.kt`:
 
 ```kotlin
-package io.github.pointpatch.compose.core.format
+package io.beyondwin.fixthis.compose.core.format
 
-import io.github.pointpatch.compose.core.model.PointPatchAnnotation
-import io.github.pointpatch.compose.core.model.PointPatchNode
+import io.beyondwin.fixthis.compose.core.model.FixThisAnnotation
+import io.beyondwin.fixthis.compose.core.model.FixThisNode
 
-object PointPatchMarkdownFormatter {
-    fun format(annotation: PointPatchAnnotation): String = buildString {
-        appendLine("# PointPatch Compose Feedback")
+object FixThisMarkdownFormatter {
+    fun format(annotation: FixThisAnnotation): String = buildString {
+        appendLine("# FixThis Compose Feedback")
         appendLine()
         appendLine("## User request")
         appendLine(annotation.userComment.ifBlank { "(No comment)" })
@@ -984,7 +984,7 @@ object PointPatchMarkdownFormatter {
         }
     }
 
-    private fun StringBuilder.appendNode(node: PointPatchNode?) {
+    private fun StringBuilder.appendNode(node: FixThisNode?) {
         if (node == null) {
             appendLine("- none")
             return
@@ -998,7 +998,7 @@ object PointPatchMarkdownFormatter {
         appendLine("- Actions: ${node.actions.joinToString().ifBlank { "none" }}")
     }
 
-    private fun PointPatchNode.summary(): String {
+    private fun FixThisNode.summary(): String {
         val label = text.firstOrNull() ?: contentDescription.firstOrNull() ?: role ?: testTag ?: uid
         return "${role ?: "Node"} \"$label\""
     }
@@ -1010,7 +1010,7 @@ object PointPatchMarkdownFormatter {
 Create formatter and redaction tests asserting:
 
 ```kotlin
-assertTrue(markdown.contains("PointPatch Compose Feedback"))
+assertTrue(markdown.contains("FixThis Compose Feedback"))
 assertTrue(markdown.contains("Pay now"))
 assertEquals("<redacted-password>", RedactionPolicy.apply(true, "secret", emptyList()).editableText)
 ```
@@ -1020,7 +1020,7 @@ assertEquals("<redacted-password>", RedactionPolicy.apply(true, "secret", emptyL
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-core:test
+./gradlew :fixthis-compose-core:test
 ```
 
 Expected: all core tests pass.
@@ -1028,19 +1028,19 @@ Expected: all core tests pass.
 - [x] **Step 7: Commit**
 
 ```bash
-git add pointpatch-compose-core
+git add fixthis-compose-core
 git commit -m "core: add annotation schema and formatters"
 ```
 
 ## Task 4: Core Selection and Source Matching
 
 **Files:**
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/selection/NodeSelector.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/selection/NearbyNodeCollector.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/source/SourceIndex.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/source/SourceMatcher.kt`
-- Test: `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/selection/NodeSelectorTest.kt`
-- Test: `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/source/SourceMatcherTest.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/selection/NodeSelector.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/selection/NearbyNodeCollector.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/source/SourceIndex.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/source/SourceMatcher.kt`
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/fixthis/compose/core/selection/NodeSelectorTest.kt`
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/fixthis/compose/core/source/SourceMatcherTest.kt`
 
 - [x] **Step 1: Add failing selector tests**
 
@@ -1049,7 +1049,7 @@ Tests must cover clickable button over text, root penalty, no-node fallback, and
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-core:test --tests '*NodeSelectorTest'
+./gradlew :fixthis-compose-core:test --tests '*NodeSelectorTest'
 ```
 
 Expected: fails because `NodeSelector` does not exist.
@@ -1064,10 +1064,10 @@ Required public API:
 data class SelectionOptions(val maxCandidates: Int = 5, val maxNearbyNodes: Int = 12, val nearbyRadiusPx: Float = 480f)
 
 data class SelectionResult(
-    val selectedNode: PointPatchNode?,
-    val candidatesAtPoint: List<ScoredPointPatchNode>,
+    val selectedNode: FixThisNode?,
+    val candidatesAtPoint: List<ScoredFixThisNode>,
     val scopeCandidates: List<ScopeCandidate>,
-    val nearbyNodes: List<PointPatchNode>,
+    val nearbyNodes: List<FixThisNode>,
     val selection: SelectionInfo
 )
 ```
@@ -1085,7 +1085,7 @@ Create a serializable `SourceIndex`, `SourceIndexEntry`, and `SourceMatcher.matc
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-core:test
+./gradlew :fixthis-compose-core:test
 ```
 
 Expected: selector and matcher tests pass.
@@ -1093,23 +1093,23 @@ Expected: selector and matcher tests pass.
 - [x] **Step 6: Commit**
 
 ```bash
-git add pointpatch-compose-core
+git add fixthis-compose-core
 git commit -m "core: add selection and source matching"
 ```
 
 ## Task 5: Overlay UI and Smart Select State
 
 **Files:**
-- Create: `pointpatch-compose-overlay/build.gradle.kts`
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/overlay/OverlayMode.kt`
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/overlay/PointPatchToolbar.kt`
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/overlay/PointPatchSelectionLayer.kt`
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/overlay/PointPatchCommentSheet.kt`
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/overlay/PointPatchHighlightLayer.kt`
+- Create: `fixthis-compose-overlay/build.gradle.kts`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/overlay/OverlayMode.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/overlay/FixThisToolbar.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/overlay/FixThisSelectionLayer.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/overlay/FixThisCommentSheet.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/overlay/FixThisHighlightLayer.kt`
 
 - [x] **Step 1: Configure overlay module**
 
-Create Android library module with Compose enabled and dependency on `:pointpatch-compose-core`.
+Create Android library module with Compose enabled and dependency on `:fixthis-compose-core`.
 
 - [x] **Step 2: Add overlay state model**
 
@@ -1120,19 +1120,19 @@ sealed interface OverlayMode {
     data object Idle : OverlayMode
     data object MenuOpen : OverlayMode
     data class Selecting(val requestId: String?) : OverlayMode
-    data class ReviewingSelection(val draft: PointPatchDraft) : OverlayMode
-    data class Commenting(val draft: PointPatchDraft) : OverlayMode
+    data class ReviewingSelection(val draft: FixThisDraft) : OverlayMode
+    data class Commenting(val draft: FixThisDraft) : OverlayMode
     data class Exported(val annotationId: String) : OverlayMode
 }
 ```
 
 - [x] **Step 3: Add toolbar composable**
 
-`PointPatchToolbar` shows a 56dp button and menu entries: `Select UI`, `Recent`, `Connect AI Agent`. Only `Select UI` needs to be active in the first implementation.
+`FixThisToolbar` shows a 56dp button and menu entries: `Select UI`, `Recent`, `Connect AI Agent`. Only `Select UI` needs to be active in the first implementation.
 
 - [x] **Step 4: Add selection layer composable**
 
-`PointPatchSelectionLayer` consumes taps only in selecting mode and supports long press / drag to emit visual area bounds.
+`FixThisSelectionLayer` consumes taps only in selecting mode and supports long press / drag to emit visual area bounds.
 
 Public callbacks:
 
@@ -1151,7 +1151,7 @@ Highlight selected bounds and candidate scopes. Comment sheet must show selected
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-overlay:assembleDebug
+./gradlew :fixthis-compose-overlay:assembleDebug
 ```
 
 Expected: overlay module builds.
@@ -1159,20 +1159,20 @@ Expected: overlay module builds.
 - [x] **Step 7: Commit**
 
 ```bash
-git add pointpatch-compose-overlay
+git add fixthis-compose-overlay
 git commit -m "overlay: add Smart Select UI components"
 ```
 
 ## Task 6: Sidekick Autoinit, Activity Hook, and Root Discovery
 
 **Files:**
-- Create: `pointpatch-compose-sidekick/build.gradle.kts`
-- Create: `pointpatch-compose-sidekick/src/main/AndroidManifest.xml`
-- Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/init/PointPatchInitializer.kt`
-- Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/PointPatch.kt`
-- Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/lifecycle/PointPatchActivityLifecycleCallbacks.kt`
-- Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/overlay/PointPatchOverlayHostLayout.kt`
-- Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/inspect/ComposeRootFinder.kt`
+- Create: `fixthis-compose-sidekick/build.gradle.kts`
+- Create: `fixthis-compose-sidekick/src/main/AndroidManifest.xml`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/init/FixThisInitializer.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/FixThis.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacks.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/overlay/FixThisOverlayHostLayout.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/inspect/ComposeRootFinder.kt`
 - Test: sample debug/release manual checks
 
 - [x] **Step 1: Configure sidekick module**
@@ -1181,30 +1181,30 @@ Create Android library module with dependencies on core, overlay, AndroidX Start
 
 - [x] **Step 2: Add AndroidX Startup manifest**
 
-Use `InitializationProvider` and metadata for `PointPatchInitializer`. Do not add `INTERNET` permission.
+Use `InitializationProvider` and metadata for `FixThisInitializer`. Do not add `INTERNET` permission.
 
 - [x] **Step 3: Implement debuggable guard**
 
-`PointPatchInitializer.create(context)` must return immediately unless `ApplicationInfo.FLAG_DEBUGGABLE` is set.
+`FixThisInitializer.create(context)` must return immediately unless `ApplicationInfo.FLAG_DEBUGGABLE` is set.
 
 - [x] **Step 4: Implement lifecycle install**
 
-`PointPatch.install(application)` registers `ActivityLifecycleCallbacks` once using `AtomicBoolean`.
+`FixThis.install(application)` registers `ActivityLifecycleCallbacks` once using `AtomicBoolean`.
 
 - [x] **Step 5: Attach idle overlay host**
 
-On resumed activity, add a `PointPatchOverlayHostLayout` to decorView if one is not already present. Host must be non-clickable while idle except for the toolbar child.
+On resumed activity, add a `FixThisOverlayHostLayout` to decorView if one is not already present. Host must be non-clickable while idle except for the toolbar child.
 
 - [x] **Step 6: Implement ComposeRootFinder**
 
-Traverse decorView, skip any view tagged with `io.github.pointpatch.compose.overlay.HOST`, collect views implementing `androidx.compose.ui.node.RootForTest`, and record bounds in window.
+Traverse decorView, skip any view tagged with `io.beyondwin.fixthis.compose.overlay.HOST`, collect views implementing `androidx.compose.ui.node.RootForTest`, and record bounds in window.
 
 - [x] **Step 7: Add sample debug dependency**
 
 Temporarily add:
 
 ```kotlin
-debugImplementation(project(":pointpatch-compose-sidekick"))
+debugImplementation(project(":fixthis-compose-sidekick"))
 ```
 
 to `sample/build.gradle.kts` until the Gradle plugin task replaces it.
@@ -1215,10 +1215,10 @@ Run:
 
 ```bash
 ./gradlew :app:installDebug
-adb shell monkey -p io.github.pointpatch.sample 1
+adb shell monkey -p io.beyondwin.fixthis.sample 1
 ```
 
-Expected: app launches and PointPatch toolbar is visible.
+Expected: app launches and FixThis toolbar is visible.
 
 Environment-blocked: no device/emulator was connected (`adb devices` returned no devices), so install/monkey and visual toolbar confirmation were not run. Fallback `ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :app:assembleDebug` passed.
 
@@ -1230,25 +1230,25 @@ Run:
 ./gradlew :app:assembleRelease
 ```
 
-Expected: release builds. Manual launch should not show active PointPatch runtime.
+Expected: release builds. Manual launch should not show active FixThis runtime.
 
 `ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :app:assembleRelease` passed. Manual launch was not run because no device/emulator was connected; `debugImplementation` keeps sidekick out of the release runtime classpath.
 
 - [x] **Step 10: Commit**
 
 ```bash
-git add pointpatch-compose-sidekick sample/build.gradle.kts
+git add fixthis-compose-sidekick sample/build.gradle.kts
 git commit -m "sidekick: autoinit debug overlay"
 ```
 
 ## Task 7: Semantics Inspection and Annotation Capture
 
 **Files:**
-- Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/inspect/SemanticsInspector.kt`
-- Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/inspect/SemanticsNodeMapper.kt`
-- Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/capture/AnnotationCaptureController.kt`
-- Create: `pointpatch-compose-sidekick/src/androidTest/kotlin/io/github/pointpatch/compose/sidekick/SemanticsInspectorTest.kt`
-- Added: `sample/src/androidTest/java/io/github/pointpatch/sample/SemanticsInspectorSampleAppTest.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/inspect/SemanticsInspector.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/inspect/SemanticsNodeMapper.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/capture/AnnotationCaptureController.kt`
+- Create: `fixthis-compose-sidekick/src/androidTest/kotlin/io/github/fixthis/compose/sidekick/SemanticsInspectorTest.kt`
+- Added: `sample/src/androidTest/java/io/github/fixthis/sample/SemanticsInspectorSampleAppTest.kt`
 
 - [x] **Step 1: Add inspector instrumentation test**
 
@@ -1258,7 +1258,7 @@ Implemented both a sidekick instrumentation test for semantics/redaction and a s
 
 - [x] **Step 2: Implement SemanticsInspector**
 
-Use `RootForTest.semanticsOwner.getAllSemanticsNodes(mergingEnabled = true/false, skipDeactivatedNodes = true)`. Capture errors as `PointPatchError` instead of throwing.
+Use `RootForTest.semanticsOwner.getAllSemanticsNodes(mergingEnabled = true/false, skipDeactivatedNodes = true)`. Capture errors as `FixThisError` instead of throwing.
 
 - [x] **Step 3: Implement SemanticsNodeMapper**
 
@@ -1268,12 +1268,12 @@ Map text, editable text, contentDescription, role, testTag, stateDescription, se
 
 `AnnotationCaptureController` handles Tap Select, Scope Chip reselection, Area Select fallback, user comment, source matching, and annotation construction.
 
-- [ ] **Step 5: Run instrumentation** — Environment-blocked on 2026-05-04: `:pointpatch-compose-sidekick:connectedDebugAndroidTest` built the instrumentation APK but failed with `com.android.builder.testing.api.DeviceException: No connected devices!`. Substitutes passed: `:pointpatch-compose-sidekick:testDebugUnitTest --rerun-tasks`, `:pointpatch-compose-sidekick:compileDebugAndroidTestKotlin --rerun-tasks`, and `:app:compileDebugAndroidTestKotlin`.
+- [ ] **Step 5: Run instrumentation** — Environment-blocked on 2026-05-04: `:fixthis-compose-sidekick:connectedDebugAndroidTest` built the instrumentation APK but failed with `com.android.builder.testing.api.DeviceException: No connected devices!`. Substitutes passed: `:fixthis-compose-sidekick:testDebugUnitTest --rerun-tasks`, `:fixthis-compose-sidekick:compileDebugAndroidTestKotlin --rerun-tasks`, and `:app:compileDebugAndroidTestKotlin`.
 
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-sidekick:connectedDebugAndroidTest
+./gradlew :fixthis-compose-sidekick:connectedDebugAndroidTest
 ```
 
 Expected: inspector sees sample Compose roots and redacts editable/password content.
@@ -1281,17 +1281,17 @@ Expected: inspector sees sample Compose roots and redacts editable/password cont
 - [x] **Step 6: Commit**
 
 ```bash
-git add pointpatch-compose-sidekick
+git add fixthis-compose-sidekick
 git commit -m "sidekick: inspect Compose semantics and capture annotations"
 ```
 
 ## Task 8: Screenshot, Clipboard, and Local Export
 
 **Files:**
-- Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/screenshot/ScreenshotCapturer.kt`
-- Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/screenshot/ScreenshotStore.kt`
-- Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/export/ClipboardExporter.kt`
-- Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/export/LocalFileExporter.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/screenshot/ScreenshotCapturer.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/screenshot/ScreenshotStore.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/export/ClipboardExporter.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/export/LocalFileExporter.kt`
 
 - [x] **Step 1: Implement screenshot result**
 
@@ -1302,8 +1302,8 @@ Use PixelCopy on API 26+ with timeout; fallback to `decorView.draw(Canvas)`. Ret
 Save PNGs under:
 
 ```text
-context.cacheDir/pointpatch/YYYY-MM-DD/<annotation-id>-full.png
-context.cacheDir/pointpatch/YYYY-MM-DD/<annotation-id>-crop.png
+context.cacheDir/fixthis/YYYY-MM-DD/<annotation-id>-full.png
+context.cacheDir/fixthis/YYYY-MM-DD/<annotation-id>-crop.png
 ```
 
 - [x] **Step 3: Add clipboard export**
@@ -1319,18 +1319,18 @@ Expected: clipboard contains selected UI, nearby context, screenshot path, and u
 - [x] **Step 5: Commit**
 
 ```bash
-git add pointpatch-compose-sidekick
+git add fixthis-compose-sidekick
 git commit -m "sidekick: capture screenshots and export annotations"
 ```
 
 ## Task 9: Gradle Plugin and Source Index
 
 **Files:**
-- Create: `pointpatch-gradle-plugin/build.gradle.kts`
-- Create: `pointpatch-gradle-plugin/src/main/kotlin/io/github/pointpatch/gradle/PointPatchGradlePlugin.kt`
-- Create: `pointpatch-gradle-plugin/src/main/kotlin/io/github/pointpatch/gradle/PointPatchExtension.kt`
-- Create: `pointpatch-gradle-plugin/src/main/kotlin/io/github/pointpatch/gradle/task/GeneratePointPatchSourceIndexTask.kt`
-- Create: `pointpatch-gradle-plugin/src/test/kotlin/io/github/pointpatch/gradle/GeneratePointPatchSourceIndexTaskTest.kt`
+- Create: `fixthis-gradle-plugin/build.gradle.kts`
+- Create: `fixthis-gradle-plugin/src/main/kotlin/io/github/fixthis/gradle/FixThisGradlePlugin.kt`
+- Create: `fixthis-gradle-plugin/src/main/kotlin/io/github/fixthis/gradle/FixThisExtension.kt`
+- Create: `fixthis-gradle-plugin/src/main/kotlin/io/github/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`
+- Create: `fixthis-gradle-plugin/src/test/kotlin/io/github/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt`
 
 - [x] **Step 1: Configure plugin module**
 
@@ -1339,9 +1339,9 @@ Use `java-gradle-plugin`, Kotlin JVM, and serialization. Register plugin id:
 ```kotlin
 gradlePlugin {
     plugins {
-        create("pointpatchCompose") {
-            id = "io.github.pointpatch.compose"
-            implementationClass = "io.github.pointpatch.gradle.PointPatchGradlePlugin"
+        create("fixthisCompose") {
+            id = "io.beyondwin.fixthis.compose"
+            implementationClass = "io.beyondwin.fixthis.gradle.FixThisGradlePlugin"
         }
     }
 }
@@ -1353,7 +1353,7 @@ Create properties: `enabled`, `runtimeVersion`, `addDebugRuntime`, `generateSour
 
 - [x] **Step 3: Implement debug runtime injection**
 
-When `com.android.application` is present, add `pointpatch-compose-sidekick` only to debuggable variants. During local development, support project dependency injection when the sidekick project exists.
+When `com.android.application` is present, add `fixthis-compose-sidekick` only to debuggable variants. During local development, support project dependency injection when the sidekick project exists.
 
 - [x] **Step 4: Implement source index task**
 
@@ -1364,8 +1364,8 @@ Scan Kotlin files and XML string resources. Extract string literals, `Text("..."
 Add generated directory to debug variant assets:
 
 ```text
-assets/pointpatch/pointpatch-source-index.json
-assets/pointpatch/pointpatch-build-info.json
+assets/fixthis/fixthis-source-index.json
+assets/fixthis/fixthis-build-info.json
 ```
 
 - [x] **Step 6: Apply plugin to sample**
@@ -1374,7 +1374,7 @@ Replace temporary debug dependency with:
 
 ```kotlin
 plugins {
-    id("io.github.pointpatch.compose")
+    id("io.beyondwin.fixthis.compose")
 }
 ```
 
@@ -1385,24 +1385,24 @@ through included build or local plugin wiring in the root build.
 Run:
 
 ```bash
-./gradlew :pointpatch-gradle-plugin:test :app:assembleDebug
+./gradlew :fixthis-gradle-plugin:test :app:assembleDebug
 ```
 
-Expected: source index exists in debug assets and sample app still shows PointPatch runtime.
+Expected: source index exists in debug assets and sample app still shows FixThis runtime.
 
 - [x] **Step 8: Commit**
 
 ```bash
-git add pointpatch-gradle-plugin sample/build.gradle.kts
-git commit -m "gradle: add PointPatch plugin and source index"
+git add fixthis-gradle-plugin sample/build.gradle.kts
+git commit -m "gradle: add FixThis plugin and source index"
 ```
 
 ## Task 10: Sidekick Bridge
 
 **Files:**
-- Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/bridge/BridgeServer.kt`
-- Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/bridge/BridgeProtocol.kt`
-- Create: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/bridge/SessionTokenStore.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/bridge/BridgeServer.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/bridge/BridgeProtocol.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/bridge/SessionTokenStore.kt`
 
 - [x] **Step 1: Define bridge protocol**
 
@@ -1413,14 +1413,14 @@ Use length-prefixed UTF-8 JSON frames. Define methods: `status`, `inspectCurrent
 On debug runtime start, write:
 
 ```text
-context.filesDir/pointpatch/session.json
+context.filesDir/fixthis/session.json
 ```
 
 with package name, socket name, random token, sidekick version, bridge protocol version, and process start time.
 
 - [x] **Step 3: Start LocalServerSocket**
 
-Use `localabstract:pointpatch_<packageName>` naming. Reject requests with missing or mismatched token.
+Use `localabstract:fixthis_<packageName>` naming. Reject requests with missing or mismatched token.
 
 - [x] **Step 4: Add bridge methods**
 
@@ -1433,7 +1433,7 @@ Environment-blocked on 2026-05-04: `adb devices` reported no attached devices, s
 Run sample, then:
 
 ```bash
-adb shell run-as io.github.pointpatch.sample cat files/pointpatch/session.json
+adb shell run-as io.beyondwin.fixthis.sample cat files/fixthis/session.json
 ```
 
 Expected: JSON session file with token and socket name.
@@ -1441,25 +1441,25 @@ Expected: JSON session file with token and socket name.
 - [x] **Step 6: Commit**
 
 ```bash
-git add pointpatch-compose-sidekick
+git add fixthis-compose-sidekick
 git commit -m "sidekick: add local bridge protocol"
 ```
 
 ## Task 11: CLI
 
 **Files:**
-- Create: `pointpatch-cli/build.gradle.kts`
-- Create: `pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/Main.kt`
-- Create: `pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/Adb.kt`
-- Create: `pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/BridgeClient.kt`
-- Create: `pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/commands/StatusCommand.kt`
-- Create: `pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/commands/RunCommand.kt`
-- Create: `pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/commands/DoctorCommand.kt`
-- Create: `pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/commands/SetupCommand.kt`
+- Create: `fixthis-cli/build.gradle.kts`
+- Create: `fixthis-cli/src/main/kotlin/io/github/fixthis/cli/Main.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/fixthis/cli/Adb.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/fixthis/cli/BridgeClient.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/fixthis/cli/commands/StatusCommand.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/fixthis/cli/commands/RunCommand.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/fixthis/cli/commands/DoctorCommand.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/fixthis/cli/commands/SetupCommand.kt`
 
 - [x] **Step 1: Configure CLI module**
 
-Use Kotlin JVM, application plugin, serialization, coroutines, and Clikt. Main class: `io.github.pointpatch.cli.MainKt`.
+Use Kotlin JVM, application plugin, serialization, coroutines, and Clikt. Main class: `io.beyondwin.fixthis.cli.MainKt`.
 
 - [x] **Step 2: Implement ADB wrapper**
 
@@ -1467,39 +1467,39 @@ Expose allowlisted operations only: `devices`, `shell`, `forward`, `removeForwar
 
 - [x] **Step 3: Implement bridge client**
 
-Read `.pointpatch/project.json` or accept `--package`. Read sidekick session via `adb shell run-as <package> cat files/pointpatch/session.json`, forward tcp to localabstract socket, frame JSON requests, validate protocol version.
+Read `.fixthis/project.json` or accept `--package`. Read sidekick session via `adb shell run-as <package> cat files/fixthis/session.json`, forward tcp to localabstract socket, frame JSON requests, validate protocol version.
 
 - [x] **Step 4: Implement commands**
 
 Commands:
 
 ```bash
-pointpatch status
-pointpatch run
-pointpatch doctor
-pointpatch setup
-pointpatch mcp
+fixthis status
+fixthis run
+fixthis doctor
+fixthis setup
+fixthis mcp
 ```
 
-`pointpatch mcp` can delegate to the MCP module in Task 12.
+`fixthis mcp` can delegate to the MCP module in Task 12.
 
 - [x] **Step 5: Add bridge-backed screenshot artifact export**
 
 When bridge returns Android-local screenshot paths for the latest annotation, CLI requests `readScreenshot` from the sidekick bridge for `full` and `crop`, decodes the returned PNG base64 into:
 
 ```text
-.pointpatch/artifacts/<annotation-id>/
+.fixthis/artifacts/<annotation-id>/
 ```
 
 and rewrites `desktopFullPath` / `desktopCropPath`.
 
-- [ ] **Step 6: Run CLI status** — Environment-blocked on 2026-05-04: after `:pointpatch-cli:installDist`, `pointpatch status --package io.github.pointpatch.sample` reported `No connected Android device or emulator found` and exited 1. This honestly verified the no-device environment, but could not verify a connected sidekick status.
+- [ ] **Step 6: Run CLI status** — Environment-blocked on 2026-05-04: after `:fixthis-cli:installDist`, `fixthis status --package io.beyondwin.fixthis.sample` reported `No connected Android device or emulator found` and exited 1. This honestly verified the no-device environment, but could not verify a connected sidekick status.
 
 Run:
 
 ```bash
-./gradlew :pointpatch-cli:installDist
-./pointpatch-cli/build/install/pointpatch/bin/pointpatch status --package io.github.pointpatch.sample
+./gradlew :fixthis-cli:installDist
+./fixthis-cli/build/install/fixthis/bin/fixthis status --package io.beyondwin.fixthis.sample
 ```
 
 Expected: reports device, package, app running, sidekick connected, current activity, roots count.
@@ -1507,22 +1507,22 @@ Expected: reports device, package, app running, sidekick connected, current acti
 - [x] **Step 7: Commit**
 
 ```bash
-git add pointpatch-cli
+git add fixthis-cli
 git commit -m "cli: add adb bridge commands"
 ```
 
 ## Task 12: MCP Server
 
 **Files:**
-- Create: `pointpatch-mcp/build.gradle.kts`
-- Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/McpServer.kt`
-- Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/McpProtocol.kt`
-- Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt`
-- Test: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/McpProtocolTest.kt`
+- Create: `fixthis-mcp/build.gradle.kts`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/McpServer.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/McpProtocol.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/tools/FixThisTools.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/McpProtocolTest.kt`
 
 - [x] **Step 1: Configure MCP module**
 
-Use Kotlin JVM, serialization, coroutines, and dependency on `:pointpatch-cli` bridge client APIs.
+Use Kotlin JVM, serialization, coroutines, and dependency on `:fixthis-cli` bridge client APIs.
 
 - [x] **Step 2: Implement stdio JSON-RPC loop**
 
@@ -1536,12 +1536,12 @@ Support `initialize`, `notifications/initialized`, `tools/list`, `tools/call`, `
 
 Tools:
 
-- `pointpatch_status`
-- `pointpatch_get_current_screen`
-- `pointpatch_get_ui_feedback`
-- `pointpatch_verify_ui_change`
+- `fixthis_status`
+- `fixthis_get_current_screen`
+- `fixthis_get_ui_feedback`
+- `fixthis_verify_ui_change`
 
-`pointpatch_get_ui_feedback` calls bridge `startFeedbackCapture`, waits for user selection/comment, pulls screenshots through CLI artifact logic, and returns both JSON annotation and Markdown.
+`fixthis_get_ui_feedback` calls bridge `startFeedbackCapture`, waits for user selection/comment, pulls screenshots through CLI artifact logic, and returns both JSON annotation and Markdown.
 
 - [x] **Step 5: Add protocol tests**
 
@@ -1552,7 +1552,7 @@ Test initialize response, tools/list includes four tools, logs are not written t
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test
+./gradlew :fixthis-mcp:test
 ```
 
 Expected: protocol tests pass.
@@ -1560,8 +1560,8 @@ Expected: protocol tests pass.
 - [x] **Step 7: Commit**
 
 ```bash
-git add pointpatch-mcp
-git commit -m "mcp: expose PointPatch macro tools"
+git add fixthis-mcp
+git commit -m "mcp: expose FixThis macro tools"
 ```
 
 ## Task 13: End-to-End QA and Docs
@@ -1572,9 +1572,9 @@ git commit -m "mcp: expose PointPatch macro tools"
 - Create: `docs/privacy.md`
 - Create: `docs/troubleshooting.md`
 - Create: `docs/mcp.md`
-- Modify: `docs/pointpatch_prd.md`
-- Modify: `docs/pointpatch_technical_design.md`
-- Modify: `docs/pointpatch_decisions.md`
+- Modify: `docs/fixthis_prd.md`
+- Modify: `docs/fixthis_technical_design.md`
+- Modify: `docs/fixthis_decisions.md`
 
 - [x] **Step 1: Update docs with approved V1 Full decisions**
 
@@ -1625,7 +1625,7 @@ Manual test:
 ```text
 1. Install sample debug app.
 2. Open Checkout.
-3. Tap PointPatch.
+3. Tap FixThis.
 4. Select Pay now.
 5. Switch scope from Text to Button.
 6. Enter "Change label to Pay immediately".
@@ -1638,7 +1638,7 @@ Manual test:
 
 ```bash
 git add README.md docs
-git commit -m "docs: document PointPatch v1 full workflow"
+git commit -m "docs: document FixThis v1 full workflow"
 ```
 
 ## Self-Review

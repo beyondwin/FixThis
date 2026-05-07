@@ -16,7 +16,7 @@ plan is the step-by-step execution checklist. This document is the architectural
 and behavioral guide an implementer should use when deciding between plausible
 implementation choices inside those tasks.
 
-V2 is done when PointPatch can:
+V2 is done when FixThis can:
 
 - reopen a feedback session after MCP or console restart
 - preserve screens, feedback items, resolution state, and screenshot paths
@@ -66,26 +66,26 @@ Console or MCP tool
   -> FeedbackSessionService
      -> FeedbackSessionStore
         -> FeedbackSessionPersistence
-     -> PointPatchBridge
+     -> FixThisBridge
         -> BridgeClient
            -> sidekick BridgeServer
 ```
 
-Do not add reverse writes from the sidekick into `.pointpatch/`.
+Do not add reverse writes from the sidekick into `.fixthis/`.
 
 ### Persistence Is Project-Local
 
 All V2 session files and new screenshot artifacts live under:
 
 ```text
-<projectRoot>/.pointpatch/feedback-sessions/
+<projectRoot>/.fixthis/feedback-sessions/
 ```
 
 The implementation may keep reading old V1 artifact paths for compatibility,
 but new captures should be written under the owning session:
 
 ```text
-.pointpatch/feedback-sessions/<sessionId>/artifacts/screens/<screenId>/<screenId>-full.png
+.fixthis/feedback-sessions/<sessionId>/artifacts/screens/<screenId>/<screenId>-full.png
 ```
 
 The path helper must reject path traversal and unsafe IDs. Treat `sessionId` and
@@ -94,7 +94,7 @@ normally generated internally.
 
 ### Navigation Is Single-Step
 
-`pointpatch_navigate_app` and `POST /api/navigation` perform exactly one action.
+`fixthis_navigate_app` and `POST /api/navigation` perform exactly one action.
 They must not accept a sequence of actions, scripts, arbitrary shell commands,
 text input, or exploration instructions.
 
@@ -135,7 +135,7 @@ change the app again.
 ### Files
 
 ```text
-.pointpatch/
+.fixthis/
   feedback-sessions/
     index.json
     <sessionId>/
@@ -160,7 +160,7 @@ The index should use summary records, not full sessions:
   "sessions": [
     {
       "sessionId": "session-1",
-      "packageName": "io.github.pointpatch.sample",
+      "packageName": "io.beyondwin.fixthis.sample",
       "projectRoot": "/repo",
       "createdAtEpochMillis": 1777899900000,
       "updatedAtEpochMillis": 1777900000000,
@@ -259,12 +259,12 @@ auto-selected as the latest active session.
 
 ## Screenshot Artifact Handling
 
-V1 uses `.pointpatch/artifacts/<screenId>/`. V2 should use the session-owned
+V1 uses `.fixthis/artifacts/<screenId>/`. V2 should use the session-owned
 path for new captures. To do that cleanly:
 
 1. `FeedbackSessionService` asks the store for a new `screenId`.
 2. It builds a destination with `FeedbackSessionPaths.screenArtifactDirectory`.
-3. It calls `PointPatchBridge.captureScreenSnapshot` with `sessionId`,
+3. It calls `FixThisBridge.captureScreenSnapshot` with `sessionId`,
    `screenId`, and `destinationDirectory`.
 4. `BridgeClient` pulls the sidekick screenshot into that destination.
 5. The returned screenshot metadata includes `desktopFullPath`.
@@ -276,13 +276,13 @@ The console screenshot route should verify all of these before serving bytes:
 - the screen has a `desktopFullPath`
 - the file exists
 - the file extension is `.png`
-- the canonical file path is under `.pointpatch/feedback-sessions/`
+- the canonical file path is under `.fixthis/feedback-sessions/`
 
 Do not serve arbitrary paths from the session JSON.
 
 ## MCP Tool Contracts
 
-### `pointpatch_open_feedback_console`
+### `fixthis_open_feedback_console`
 
 New optional arguments:
 
@@ -302,7 +302,7 @@ Return fields:
 `resumed` should mean an existing session was opened rather than a new one being
 created. An explicit `sessionId` open is always a resume.
 
-### `pointpatch_list_feedback_sessions`
+### `fixthis_list_feedback_sessions`
 
 Arguments:
 
@@ -319,7 +319,7 @@ This tool should not require a device connection. It reads project-local
 workspace files. If package filtering needs package resolution and no package is
 available, return a clear argument error instead of contacting a device.
 
-### `pointpatch_navigate_app`
+### `fixthis_navigate_app`
 
 Arguments:
 
@@ -419,7 +419,7 @@ Response:
 {
   "performed": true,
   "action": "tap",
-  "activity": "io.github.pointpatch.sample.MainActivity",
+  "activity": "io.beyondwin.fixthis.sample.MainActivity",
   "message": null
 }
 ```
@@ -472,14 +472,14 @@ partial success should be a normal JSON result with `captureError`.
 
 Keep these V1 behaviors intact:
 
-- `pointpatch_get_ui_feedback` still returns annotation JSON and Markdown.
-- `pointpatch_capture_screen` still captures into the active session when no
+- `fixthis_get_ui_feedback` still returns annotation JSON and Markdown.
+- `fixthis_capture_screen` still captures into the active session when no
   `sessionId` is provided.
-- `pointpatch_list_feedback`, `pointpatch_read_feedback`, and
-  `pointpatch_resolve_feedback` still default to the current session.
-- `pointpatch console --package <applicationId>` still prints a localhost URL.
+- `fixthis_list_feedback`, `fixthis_read_feedback`, and
+  `fixthis_resolve_feedback` still default to the current session.
+- `fixthis console --package <applicationId>` still prints a localhost URL.
 
-Do not require users to migrate existing `.pointpatch/artifacts/` content.
+Do not require users to migrate existing `.fixthis/artifacts/` content.
 Existing sessions without V2 storage should remain readable if they are already
 loaded in memory, but new persisted sessions should use the V2 path layout.
 
@@ -520,7 +520,7 @@ real Activity window.
 Minimum connected-device smoke:
 
 1. Install the sample app.
-2. Start the app through PointPatch.
+2. Start the app through FixThis.
 3. Open console.
 4. Capture a screen.
 5. Add feedback.
@@ -549,27 +549,27 @@ Do not weaken tests to pass around these blockers.
 Targeted checks during implementation:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionPersistenceTest
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionStoreTest
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionServiceTest
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.McpProtocolTest
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest
-ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :pointpatch-compose-sidekick:testDebugUnitTest --tests io.github.pointpatch.compose.sidekick.bridge.BridgeServerTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionPersistenceTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.McpProtocolTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :fixthis-compose-sidekick:testDebugUnitTest --tests io.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerTest
 ```
 
 Final checks:
 
 ```bash
-./gradlew :pointpatch-compose-core:test :pointpatch-cli:test :pointpatch-mcp:test
-ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :pointpatch-compose-sidekick:testDebugUnitTest
-./gradlew :pointpatch-cli:installDist :pointpatch-mcp:installDist
+./gradlew :fixthis-compose-core:test :fixthis-cli:test :fixthis-mcp:test
+ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :fixthis-compose-sidekick:testDebugUnitTest
+./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
 ```
 
 Docs-only checks for this document:
 
 ```bash
 git diff --check -- docs/superpowers/specs/2026-05-04-feedback-workspace-navigation-v2-implementation-details.md
-rg -n "feedback-sessions|pointpatch_list_feedback_sessions|pointpatch_navigate_app|captureAfter|SESSION_SAVE_FAILED" docs/superpowers/specs/2026-05-04-feedback-workspace-navigation-v2-implementation-details.md
+rg -n "feedback-sessions|fixthis_list_feedback_sessions|fixthis_navigate_app|captureAfter|SESSION_SAVE_FAILED" docs/superpowers/specs/2026-05-04-feedback-workspace-navigation-v2-implementation-details.md
 ```
 
 ## Done When
@@ -582,5 +582,5 @@ The V2 implementation can be considered complete only when:
 - docs describe the new tools, storage path, privacy behavior, and recovery
   steps
 - no session-owned screenshot route can serve files outside
-  `.pointpatch/feedback-sessions/`
+  `.fixthis/feedback-sessions/`
 - no navigation API accepts multi-step automation or text input

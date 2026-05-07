@@ -10,13 +10,13 @@ Related documents:
 - Current live-preview/batched design, superseded where conflicting:
   `docs/superpowers/specs/2026-05-05-feedback-console-live-preview-batched-items-detailed-design.md`
 - Executable Option A prototype:
-  `/Users/kws/Downloads/PointPatch Console _standalone_.html`
+  `/Users/kws/Downloads/FixThis Console _standalone_.html`
 
 ## Purpose
 
 This document explains how to implement the Option A parity redesign in the
-PointPatch feedback console. It translates the Option A prototype into concrete
-PointPatch server, persistence, API, and browser-client changes.
+FixThis feedback console. It translates the Option A prototype into concrete
+FixThis server, persistence, API, and browser-client changes.
 
 The implementation should make Option A the visible workflow:
 
@@ -36,9 +36,9 @@ it must not shape the visible UI.
 
 In scope:
 
-- `pointpatch-mcp` server/session/data-model changes.
+- `fixthis-mcp` server/session/data-model changes.
 - Embedded browser console in `FeedbackConsoleAssets.kt`.
-- Console API request/response models under `pointpatch-mcp/.../console`.
+- Console API request/response models under `fixthis-mcp/.../console`.
 - Markdown handoff formatting.
 - Persistence compatibility for existing session JSON.
 - Targeted tests for model, service, server, HTML contract, and handoff output.
@@ -58,32 +58,32 @@ Out of scope:
 Primary implementation files:
 
 ```text
-pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionModels.kt
-pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStore.kt
-pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt
-pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatter.kt
-pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionSummary.kt
-pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServer.kt
-pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt
-pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsolePreviewModels.kt
-pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleItemModels.kt
+fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionModels.kt
+fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStore.kt
+fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionService.kt
+fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackQueueFormatter.kt
+fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionSummary.kt
+fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServer.kt
+fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt
+fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsolePreviewModels.kt
+fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleItemModels.kt
 ```
 
 Recommended new file:
 
 ```text
-pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAnnotationModels.kt
+fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAnnotationModels.kt
 ```
 
 Primary test files:
 
 ```text
-pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStoreTest.kt
-pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionServiceTest.kt
-pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionPersistenceTest.kt
-pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatterTest.kt
-pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
-pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/McpProtocolTest.kt
+fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStoreTest.kt
+fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionServiceTest.kt
+fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionPersistenceTest.kt
+fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackQueueFormatterTest.kt
+fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/McpProtocolTest.kt
 ```
 
 ## Data Model
@@ -218,7 +218,7 @@ Response:
     {
       "screenId": "screen-1",
       "title": "MainActivity",
-      "activityName": "io.github.pointpatch.MainActivity",
+      "activityName": "io.beyondwin.fixthis.MainActivity",
       "createdAtEpochMillis": 1715000000000,
       "updatedAtEpochMillis": 1715000001000,
       "annotationCount": 3,
@@ -360,11 +360,11 @@ Response: updated `FeedbackSession`.
 Add `FeedbackConsoleAnnotationModels.kt`:
 
 ```kotlin
-package io.github.pointpatch.mcp.console
+package io.beyondwin.fixthis.mcp.console
 
-import io.github.pointpatch.compose.core.model.PointPatchRect
-import io.github.pointpatch.mcp.session.FeedbackAnnotationSeverity
-import io.github.pointpatch.mcp.session.FeedbackItemStatus
+import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.mcp.session.FeedbackAnnotationSeverity
+import io.beyondwin.fixthis.mcp.session.FeedbackItemStatus
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -372,7 +372,7 @@ data class CreateFeedbackAnnotationRequest(
     val previewId: String? = null,
     val screenId: String? = null,
     val targetType: FeedbackTargetType = FeedbackTargetType.AREA,
-    val bounds: PointPatchRect,
+    val bounds: FixThisRect,
     val nodeUid: String? = null,
     val label: String? = null,
     val severity: FeedbackAnnotationSeverity = FeedbackAnnotationSeverity.MED,
@@ -460,7 +460,7 @@ Create-from-preview flow:
 2. Build the `FeedbackItem` using the existing source-candidate logic from
    `buildFeedbackItemForDraft`.
 3. Promote preview artifacts into
-   `.pointpatch/feedback-sessions/<sessionId>/artifacts/screens/<screenId>/`.
+   `.fixthis/feedback-sessions/<sessionId>/artifacts/screens/<screenId>/`.
 4. Add the persisted `CapturedScreen` and annotation in one store mutation.
 5. Remove preview cache only after the mutation succeeds.
 
@@ -479,7 +479,7 @@ private fun buildFeedbackItem(
     screen: CapturedScreen,
     sourceIndex: SourceIndex?,
     targetType: FeedbackTargetType,
-    bounds: PointPatchRect,
+    bounds: FixThisRect,
     nodeUid: String?,
     label: String?,
     severity: FeedbackAnnotationSeverity,
@@ -738,7 +738,7 @@ Rules:
   `3` on the preview, colored independently by severity.
 - Deleting an annotation renumbers rows and pins with no gaps.
 
-PointPatch stores bounds in natural screenshot coordinates. The browser should
+FixThis stores bounds in natural screenshot coordinates. The browser should
 convert natural bounds to percent CSS values when rendering overlays:
 
 ```javascript
@@ -836,7 +836,7 @@ fields have serializer defaults.
 Targeted model/persistence tests:
 
 ```text
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionPersistenceTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionPersistenceTest
 ```
 
 Required assertions:
@@ -848,7 +848,7 @@ Required assertions:
 Service tests:
 
 ```text
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionServiceTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
 ```
 
 Required assertions:
@@ -867,7 +867,7 @@ Required assertions:
 Console server/API tests:
 
 ```text
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Required assertions:
@@ -890,7 +890,7 @@ Required assertions:
 Formatter tests:
 
 ```text
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackQueueFormatterTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
 ```
 
 Required assertions:
@@ -904,8 +904,8 @@ Required assertions:
 Final verification:
 
 ```text
-./gradlew :pointpatch-mcp:test :pointpatch-cli:test :pointpatch-compose-core:test
-./gradlew :pointpatch-cli:installDist :pointpatch-mcp:installDist
+./gradlew :fixthis-mcp:test :fixthis-cli:test :fixthis-compose-core:test
+./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
 git diff --check
 ```
 
@@ -914,7 +914,7 @@ git diff --check
 Use the executable prototype as the visual reference:
 
 ```text
-file:///Users/kws/Downloads/PointPatch%20Console%20_standalone_.html
+file:///Users/kws/Downloads/FixThis%20Console%20_standalone_.html
 ```
 
 Smoke the implemented console against the same behavior:

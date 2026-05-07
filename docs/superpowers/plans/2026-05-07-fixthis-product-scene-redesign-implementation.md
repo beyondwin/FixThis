@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Redesign the FixThis sample app into a polished Calm Product Studio sample while preserving PointPatch validation coverage.
+**Goal:** Redesign the FixThis sample app into a polished Calm Product Studio sample while preserving FixThis validation coverage.
 
 **Architecture:** Keep the work inside the existing `sample` module. Use immutable demo data, a stronger sample theme, a small shared component system, and five screen files that each render one product scene. Do not add ViewModels, repositories, network calls, persistence, or non-sample namespace changes.
 
@@ -1031,7 +1031,7 @@ Expected: PASS.
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-core:test :pointpatch-gradle-plugin:test
+./gradlew :fixthis-compose-core:test :fixthis-gradle-plugin:test
 ```
 
 Expected: PASS.
@@ -1061,10 +1061,10 @@ Result: attempted twice on `SM-G986N - 13` after `adb devices` reported `device`
 Run:
 
 ```bash
-git diff -- sample README.md pointpatch-compose-core pointpatch-compose-sidekick pointpatch-gradle-plugin pointpatch-cli pointpatch-mcp
+git diff -- sample README.md fixthis-compose-core fixthis-compose-sidekick fixthis-gradle-plugin fixthis-cli fixthis-mcp
 ```
 
-Expected: only sample UI/test changes unless a test anchor required a targeted update. No package rename under `io.github.pointpatch.*`.
+Expected: only sample UI/test changes unless a test anchor required a targeted update. No package rename under `io.beyondwin.fixthis.*`.
 
 - [x] **Step 5: Commit final adjustments**
 
@@ -1088,6 +1088,6 @@ Implemented the FixThis product scene redesign across the sample app. Home, Queu
 
 Verification:
 - ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest
-- ./gradlew :pointpatch-compose-core:test :pointpatch-gradle-plugin:test
+- ./gradlew :fixthis-compose-core:test :fixthis-gradle-plugin:test
 - Connected instrumentation: <run result or not run because no device/emulator was available>
 ```

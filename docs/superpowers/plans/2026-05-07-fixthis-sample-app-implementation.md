@@ -6,7 +6,7 @@
 
 **Architecture:** Keep the work scoped to the Android sample app and package-specific sample references. First migrate the sample package/app identity with a minimal compiling app, then add deterministic demo data, shared Compose components, five product-like screens, and updated tests/docs.
 
-**Tech Stack:** Kotlin, Android Gradle Plugin, Jetpack Compose, Material 3, Compose UI tests, existing PointPatch Gradle plugin.
+**Tech Stack:** Kotlin, Android Gradle Plugin, Jetpack Compose, Material 3, Compose UI tests, existing FixThis Gradle plugin.
 
 ---
 
@@ -18,7 +18,7 @@ Implement the approved design in:
 docs/superpowers/specs/2026-05-07-fixthis-sample-app-design.md
 ```
 
-Do not rename PointPatch library, CLI, MCP, Gradle plugin modules, plugin ids, or packages in this plan.
+Do not rename FixThis library, CLI, MCP, Gradle plugin modules, plugin ids, or packages in this plan.
 
 ## File Structure
 
@@ -54,8 +54,8 @@ sample/src/androidTest/java/io/beyondwin/fixthis/sample/
 Delete the old sample app source package after the new package builds:
 
 ```text
-sample/src/main/java/io/github/pointpatch/sample/
-sample/src/androidTest/java/io/github/pointpatch/sample/
+sample/src/main/java/io/github/fixthis/sample/
+sample/src/androidTest/java/io/github/fixthis/sample/
 ```
 
 ## Task 1: Package Identity And Minimal App Shell
@@ -67,8 +67,8 @@ sample/src/androidTest/java/io/github/pointpatch/sample/
 - Create: `sample/src/main/java/io/beyondwin/fixthis/sample/MainActivity.kt`
 - Create: `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisStudioApp.kt`
 - Create: `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisTheme.kt`
-- Delete in Step 6: `sample/src/main/java/io/github/pointpatch/sample/MainActivity.kt`
-- Delete in Step 6: `sample/src/main/java/io/github/pointpatch/sample/SampleApp.kt`
+- Delete in Step 6: `sample/src/main/java/io/github/fixthis/sample/MainActivity.kt`
+- Delete in Step 6: `sample/src/main/java/io/github/fixthis/sample/SampleApp.kt`
 
 - [x] **Step 1: Update Gradle package identity**
 
@@ -104,7 +104,7 @@ Change `sample/src/main/AndroidManifest.xml`:
         android:allowBackup="false"
         android:label="FixThis"
         android:supportsRtl="true"
-        android:theme="@style/Theme.PointPatchSample">
+        android:theme="@style/Theme.FixThisSample">
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -272,8 +272,8 @@ private fun TemporaryTabContent(tab: FixThisTab, padding: PaddingValues) {
 Run:
 
 ```bash
-rm sample/src/main/java/io/github/pointpatch/sample/MainActivity.kt
-rm sample/src/main/java/io/github/pointpatch/sample/SampleApp.kt
+rm sample/src/main/java/io/github/fixthis/sample/MainActivity.kt
+rm sample/src/main/java/io/github/fixthis/sample/SampleApp.kt
 ```
 
 Expected: old files are removed; old screen files remain until replacement screens are added.
@@ -293,7 +293,7 @@ Expected: `BUILD SUCCESSFUL`.
 Run:
 
 ```bash
-git add sample/build.gradle.kts sample/src/main/AndroidManifest.xml sample/src/main/java/io/beyondwin/fixthis/sample sample/src/main/java/io/github/pointpatch/sample/MainActivity.kt sample/src/main/java/io/github/pointpatch/sample/SampleApp.kt
+git add sample/build.gradle.kts sample/src/main/AndroidManifest.xml sample/src/main/java/io/beyondwin/fixthis/sample sample/src/main/java/io/github/fixthis/sample/MainActivity.kt sample/src/main/java/io/github/fixthis/sample/SampleApp.kt
 git commit -m "feat: rename sample app to FixThis"
 ```
 
@@ -727,7 +727,7 @@ git commit -m "feat: add FixThis sample components"
 - Create: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt`
 - Create: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt`
 - Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisStudioApp.kt`
-- Delete after replacement: `sample/src/main/java/io/github/pointpatch/sample/screens/*.kt`
+- Delete after replacement: `sample/src/main/java/io/github/fixthis/sample/screens/*.kt`
 
 - [x] **Step 1: Create Home screen**
 
@@ -1268,11 +1268,11 @@ fun FixThisStudioApp() {
 Run:
 
 ```bash
-rm -r sample/src/main/java/io/github/pointpatch/sample/screens
-rmdir sample/src/main/java/io/github/pointpatch/sample || true
+rm -r sample/src/main/java/io/github/fixthis/sample/screens
+rmdir sample/src/main/java/io/github/fixthis/sample || true
 ```
 
-Expected: old `io.github.pointpatch.sample` source package is gone from main sample source.
+Expected: old `io.beyondwin.fixthis.sample` source package is gone from main sample source.
 
 - [x] **Step 8: Build product screens**
 
@@ -1289,7 +1289,7 @@ Expected: `BUILD SUCCESSFUL`.
 Run:
 
 ```bash
-git add sample/src/main/java/io/beyondwin/fixthis/sample sample/src/main/java/io/github/pointpatch/sample
+git add sample/src/main/java/io/beyondwin/fixthis/sample sample/src/main/java/io/github/fixthis/sample
 git commit -m "feat: build FixThis Studio sample UI"
 ```
 
@@ -1297,8 +1297,8 @@ git commit -m "feat: build FixThis Studio sample UI"
 
 **Files:**
 
-- Move: `sample/src/androidTest/java/io/github/pointpatch/sample/SampleAppSmokeTest.kt`
-- Move: `sample/src/androidTest/java/io/github/pointpatch/sample/SemanticsInspectorSampleAppTest.kt`
+- Move: `sample/src/androidTest/java/io/github/fixthis/sample/SampleAppSmokeTest.kt`
+- Move: `sample/src/androidTest/java/io/github/fixthis/sample/SemanticsInspectorSampleAppTest.kt`
 - Modify: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
 - Modify: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt`
 
@@ -1308,9 +1308,9 @@ Run:
 
 ```bash
 mkdir -p sample/src/androidTest/java/io/beyondwin/fixthis/sample
-git mv sample/src/androidTest/java/io/github/pointpatch/sample/SampleAppSmokeTest.kt sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt
-git mv sample/src/androidTest/java/io/github/pointpatch/sample/SemanticsInspectorSampleAppTest.kt sample/src/androidTest/java/io/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt
-rmdir sample/src/androidTest/java/io/github/pointpatch/sample || true
+git mv sample/src/androidTest/java/io/github/fixthis/sample/SampleAppSmokeTest.kt sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt
+git mv sample/src/androidTest/java/io/github/fixthis/sample/SemanticsInspectorSampleAppTest.kt sample/src/androidTest/java/io/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt
+rmdir sample/src/androidTest/java/io/github/fixthis/sample || true
 ```
 
 - [x] **Step 2: Update smoke test**
@@ -1353,7 +1353,7 @@ package io.beyondwin.fixthis.sample
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import io.github.pointpatch.compose.sidekick.inspect.SemanticsInspector
+import io.beyondwin.fixthis.compose.sidekick.inspect.SemanticsInspector
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -1410,7 +1410,7 @@ If no device is available, record in the implementation final answer: `connected
 Run:
 
 ```bash
-git add sample/src/androidTest/java/io/beyondwin/fixthis/sample sample/src/androidTest/java/io/github/pointpatch/sample
+git add sample/src/androidTest/java/io/beyondwin/fixthis/sample sample/src/androidTest/java/io/github/fixthis/sample
 git commit -m "test: update FixThis sample tests"
 ```
 
@@ -1419,31 +1419,31 @@ git commit -m "test: update FixThis sample tests"
 **Files:**
 
 - Modify: `README.md`
-- Inspect and selectively modify: `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/source/SourceMatcherTest.kt`
-- Inspect and selectively modify: `pointpatch-gradle-plugin/src/test/kotlin/io/github/pointpatch/gradle/GeneratePointPatchSourceIndexTaskTest.kt`
+- Inspect and selectively modify: `fixthis-compose-core/src/test/kotlin/io/github/fixthis/compose/core/source/SourceMatcherTest.kt`
+- Inspect and selectively modify: `fixthis-gradle-plugin/src/test/kotlin/io/github/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt`
 
 - [x] **Step 1: Update README sample package command**
 
 Change the smoke command in `README.md` from:
 
 ```bash
-pointpatch-cli/build/install/pointpatch/bin/pointpatch run --package io.github.pointpatch.sample
+fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
 ```
 
 to:
 
 ```bash
-pointpatch-cli/build/install/pointpatch/bin/pointpatch run --package io.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
 ```
 
-Keep the repo/module wording as `PointPatch` and `:app`.
+Keep the repo/module wording as `FixThis` and `:app`.
 
 - [x] **Step 2: Audit package references**
 
 Run:
 
 ```bash
-rg -n "io\\.github\\.pointpatch\\.sample|sample/src/main/java/io/github/pointpatch/sample|PointPatch Sample|Pay now|Monthly plan|Email address" README.md sample pointpatch-compose-core pointpatch-compose-sidekick pointpatch-gradle-plugin pointpatch-cli pointpatch-mcp -g '!**/build/**'
+rg -n "io\\.github\\.fixthis\\.sample|sample/src/main/java/io/github/fixthis/sample|FixThis Sample|Pay now|Monthly plan|Email address" README.md sample fixthis-compose-core fixthis-compose-sidekick fixthis-gradle-plugin fixthis-cli fixthis-mcp -g '!**/build/**'
 ```
 
 Expected: results fall into two groups:
@@ -1453,7 +1453,7 @@ Expected: results fall into two groups:
 
 - [x] **Step 3: Update source matcher fixture paths tied to sample source**
 
-In `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/source/SourceMatcherTest.kt`, update package/path examples that are meant to represent current sample source:
+In `fixthis-compose-core/src/test/kotlin/io/github/fixthis/compose/core/source/SourceMatcherTest.kt`, update package/path examples that are meant to represent current sample source:
 
 ```kotlin
 file = "sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt"
@@ -1466,11 +1466,11 @@ text = listOf("Submit request")
 activityName = "io.beyondwin.fixthis.sample.MainActivity"
 ```
 
-Do not bulk-rewrite every `io.github.pointpatch.sample` fixture across MCP/sidekick tests unless the test explicitly claims to model the real sample app path.
+Do not bulk-rewrite every `io.beyondwin.fixthis.sample` fixture across MCP/sidekick tests unless the test explicitly claims to model the real sample app path.
 
 - [x] **Step 4: Update Gradle plugin source index test only if it asserts old sample app text**
 
-In `pointpatch-gradle-plugin/src/test/kotlin/io/github/pointpatch/gradle/GeneratePointPatchSourceIndexTaskTest.kt`, keep synthetic package names if the test creates its own fake files. Update only assertions that expect the app resource text `PointPatch Sample`; use:
+In `fixthis-gradle-plugin/src/test/kotlin/io/github/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt`, keep synthetic package names if the test creates its own fake files. Update only assertions that expect the app resource text `FixThis Sample`; use:
 
 ```xml
 <string name="app_name">FixThis</string>
@@ -1489,7 +1489,7 @@ If the test remains synthetic and not tied to the real sample package, do not re
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-core:test :pointpatch-gradle-plugin:test :app:assembleDebug
+./gradlew :fixthis-compose-core:test :fixthis-gradle-plugin:test :app:assembleDebug
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -1499,7 +1499,7 @@ Expected: `BUILD SUCCESSFUL`.
 Run:
 
 ```bash
-git add README.md pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/source/SourceMatcherTest.kt pointpatch-gradle-plugin/src/test/kotlin/io/github/pointpatch/gradle/GeneratePointPatchSourceIndexTaskTest.kt
+git add README.md fixthis-compose-core/src/test/kotlin/io/github/fixthis/compose/core/source/SourceMatcherTest.kt fixthis-gradle-plugin/src/test/kotlin/io/github/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt
 git commit -m "docs: update FixThis sample package references"
 ```
 
@@ -1517,7 +1517,7 @@ If either test file did not need changes, omit it from `git add`.
 Run:
 
 ```bash
-rg -n "package io\\.github\\.pointpatch\\.sample|io\\.github\\.pointpatch\\.sample\\.screens" sample/src/main sample/src/androidTest
+rg -n "package io\\.github\\.fixthis\\.sample|io\\.github\\.fixthis\\.sample\\.screens" sample/src/main sample/src/androidTest
 ```
 
 Expected: no output.
@@ -1542,7 +1542,7 @@ Expected:
 Run:
 
 ```bash
-./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :pointpatch-compose-core:test :pointpatch-gradle-plugin:test
+./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :fixthis-compose-core:test :fixthis-gradle-plugin:test
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -1571,7 +1571,7 @@ git diff -- sample/build.gradle.kts sample/src/main/AndroidManifest.xml sample/s
 Expected:
 
 - sample app package is `io.beyondwin.fixthis.sample`
-- no implementation touches PointPatch library packages
+- no implementation touches FixThis library packages
 - five screens are present
 - old developer-only screen labels are removed from the visible sample UI
 
@@ -1581,7 +1581,7 @@ Run:
 
 ```bash
 git status --short
-git add sample/build.gradle.kts sample/src/main/AndroidManifest.xml sample/src/main/java sample/src/androidTest/java README.md pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/source/SourceMatcherTest.kt pointpatch-gradle-plugin/src/test/kotlin/io/github/pointpatch/gradle/GeneratePointPatchSourceIndexTaskTest.kt
+git add sample/build.gradle.kts sample/src/main/AndroidManifest.xml sample/src/main/java sample/src/androidTest/java README.md fixthis-compose-core/src/test/kotlin/io/github/fixthis/compose/core/source/SourceMatcherTest.kt fixthis-gradle-plugin/src/test/kotlin/io/github/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt
 git commit -m "fix: stabilize FixThis sample app"
 ```
 
@@ -1594,7 +1594,7 @@ Implementation finished with the sample namespace/application id set to `io.beyo
 Final local verification passed:
 
 ```bash
-./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :pointpatch-compose-core:test :pointpatch-gradle-plugin:test
+./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :fixthis-compose-core:test :fixthis-gradle-plugin:test
 ./gradlew test
 ```
 
@@ -1615,5 +1615,5 @@ Connected instrumentation tests were not run because `adb` was not on `PATH` and
   - No `TBD`, `TODO`, `implement later`, or unspecified validation steps.
   - Each code-changing task includes concrete file paths and code snippets.
 - Scope guard:
-  - No task renames `io.github.pointpatch.*` library packages.
+  - No task renames `io.beyondwin.fixthis.*` library packages.
   - No task adds networking, persistence, auth, ViewModels, or new external dependencies.

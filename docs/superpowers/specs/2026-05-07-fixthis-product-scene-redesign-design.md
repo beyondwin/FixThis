@@ -4,7 +4,7 @@ Date: 2026-05-07
 Status: implemented and verification-recorded on 2026-05-07
 
 Verification record: `./gradlew :app:assembleDebug :app:assembleDebugAndroidTest`
-and `./gradlew :pointpatch-compose-core:test :pointpatch-gradle-plugin:test`
+and `./gradlew :fixthis-compose-core:test :fixthis-gradle-plugin:test`
 passed after implementation. `./gradlew :app:connectedDebugAndroidTest` was
 attempted twice on `SM-G986N - 13` after ADB reported `device`, but failed
 before assertions because the physical device remained behind the secure
@@ -14,11 +14,11 @@ lockscreen/Bouncer and Compose test APIs found no inspectable hierarchy.
 
 Redesign the FixThis sample app so it looks like a credible Android product
 sample rather than a lightly themed Compose validation app. The redesign keeps
-the existing five-tab information architecture and PointPatch validation
+the existing five-tab information architecture and FixThis validation
 coverage, but gives each tab a stronger product scene, shared visual language,
 and more realistic workflow surface.
 
-This is a sample-app-only visual redesign. It must not change PointPatch
+This is a sample-app-only visual redesign. It must not change FixThis
 library, CLI, MCP, Gradle plugin, or package namespaces outside the existing
 sample app.
 
@@ -119,7 +119,7 @@ Required content:
 - recent activity feed that includes an agent handoff event
 - section action that points conceptually to Queue
 
-PointPatch coverage to preserve:
+FixThis coverage to preserve:
 
 - repeated cards with nearby context
 - chips/status labels
@@ -139,7 +139,7 @@ Required content:
 - assign/save/review actions
 - at least one disabled action
 
-PointPatch coverage to preserve:
+FixThis coverage to preserve:
 
 - `LazyColumn` repeated content
 - nested clickable areas
@@ -165,7 +165,7 @@ Required content:
 - close confirmation dialog
 - timeline/activity history
 
-PointPatch coverage to preserve:
+FixThis coverage to preserve:
 
 - dialog selection
 - dropdown/menu selection
@@ -190,7 +190,7 @@ Required content:
 - primary `Submit request` action
 - secondary clear/draft action
 
-PointPatch coverage to preserve:
+FixThis coverage to preserve:
 
 - text field semantics
 - password/masked editable field
@@ -215,7 +215,7 @@ Required content:
 - disabled control
 - nested clickable/control row
 
-PointPatch coverage to preserve:
+FixThis coverage to preserve:
 
 - Canvas-only area
 - Canvas with explicit semantics
@@ -307,7 +307,7 @@ tests were not run.
 - Adding too much decoration could distract from the sample app's validation
   purpose.
 - Richer cards and chips could overflow on narrow screens or large font scales.
-- Removing weak semantics would reduce PointPatch validation coverage.
+- Removing weak semantics would reduce FixThis validation coverage.
 - Changing visible text could break existing instrumentation test anchors.
 
 Mitigation:
@@ -327,5 +327,5 @@ Mitigation:
   dialog, Canvas, disabled control, repeated cards, long text, and weak
   semantics.
 - The app remains deterministic and local.
-- No non-sample PointPatch package or product namespace changes are introduced.
+- No non-sample FixThis package or product namespace changes are introduced.
 - `./gradlew :app:assembleDebug` passes.

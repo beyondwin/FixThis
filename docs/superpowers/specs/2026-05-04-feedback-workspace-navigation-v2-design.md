@@ -4,10 +4,10 @@ Date: 2026-05-04
 
 ## Summary
 
-PointPatch V2 should turn the V1 in-memory feedback console into a resumable
+FixThis V2 should turn the V1 in-memory feedback console into a resumable
 review workspace and add a narrow set of app navigation actions. The MCP server
 continues to own feedback state, but that state is durably saved under the
-project's `.pointpatch/` directory so a review can survive MCP restarts, browser
+project's `.fixthis/` directory so a review can survive MCP restarts, browser
 refreshes, and interrupted agent sessions.
 
 This design intentionally includes both V2A and V2B in one implementation
@@ -42,13 +42,13 @@ navigation understandable.
 - Let users and agents list previous feedback sessions for the current project.
 - Let a console reopen a previous session by `sessionId`.
 - Keep screenshot artifacts owned by their feedback session and safely served
-  only from the project-local PointPatch artifact directory.
+  only from the project-local FixThis artifact directory.
 - Add single-step navigation through the debug sidekick bridge:
   - `back`
   - coordinate `tap`
   - directional `swipe`
 - Let navigation optionally capture the resulting screen into the same session.
-- Preserve V1 queue tools and `pointpatch_get_ui_feedback` compatibility.
+- Preserve V1 queue tools and `fixthis_get_ui_feedback` compatibility.
 - Keep the Android app debug-only and local-first.
 
 ## Non-Goals
@@ -66,9 +66,9 @@ navigation understandable.
 
 ### Resume A Review
 
-1. The user opens the feedback console through MCP or `pointpatch console`.
-2. PointPatch loads persisted sessions from
-   `.pointpatch/feedback-sessions/index.json`.
+1. The user opens the feedback console through MCP or `fixthis console`.
+2. FixThis loads persisted sessions from
+   `.fixthis/feedback-sessions/index.json`.
 3. The console opens the active session, or the most recent open session for
    the same package and project.
 4. The user can switch to a previous session from the session picker.
@@ -88,22 +88,22 @@ navigation understandable.
 
 ### Agent Workflow
 
-1. The agent calls `pointpatch_list_feedback_sessions` to find resumable work.
-2. The agent calls `pointpatch_open_feedback_console` with a `sessionId`, or
+1. The agent calls `fixthis_list_feedback_sessions` to find resumable work.
+2. The agent calls `fixthis_open_feedback_console` with a `sessionId`, or
    opens the latest active session.
-3. The agent reads feedback with `pointpatch_list_feedback` and
-   `pointpatch_read_feedback`.
+3. The agent reads feedback with `fixthis_list_feedback` and
+   `fixthis_read_feedback`.
 4. If a requested view is not visible, the agent may call
-   `pointpatch_navigate_app` with one action and `captureAfter=true`.
-5. The agent resolves feedback with `pointpatch_resolve_feedback`.
+   `fixthis_navigate_app` with one action and `captureAfter=true`.
+5. The agent resolves feedback with `fixthis_resolve_feedback`.
 
 ## Architecture
 
 ```text
 AI client
-  <-> pointpatch mcp
+  <-> fixthis mcp
         <-> feedback session store
-              <-> .pointpatch/feedback-sessions/
+              <-> .fixthis/feedback-sessions/
         <-> local web console
         <-> ADB/local bridge
               <-> debug app sidekick
@@ -122,7 +122,7 @@ It does not host the console and does not accept network traffic.
 All persisted data lives under the project root:
 
 ```text
-.pointpatch/
+.fixthis/
   feedback-sessions/
     index.json
     <sessionId>/
@@ -173,17 +173,17 @@ Session lifecycle rules:
 
 If a session file cannot be decoded, listing should include a skipped-session
 diagnostic in stderr or local console diagnostics, not fail all sessions. If the
-current session cannot be loaded, PointPatch opens a new session and reports the
+current session cannot be loaded, FixThis opens a new session and reports the
 failed session path in the console.
 
 ## Artifact Ownership
 
-V1 screen artifacts are desktop-readable paths under `.pointpatch/artifacts/`.
+V1 screen artifacts are desktop-readable paths under `.fixthis/artifacts/`.
 V2 moves new feedback workspace artifacts under the owning session directory.
 The console screenshot route must serve only PNG files that are:
 
 - present on disk
-- inside the current project's `.pointpatch/feedback-sessions/`
+- inside the current project's `.fixthis/feedback-sessions/`
 - referenced by the loaded session
 - tied to the requested `screenId`
 
@@ -194,17 +194,17 @@ new captures should use the V2 session-owned artifact path.
 
 ### Existing Tools Kept
 
-- `pointpatch_open_feedback_console`
-- `pointpatch_capture_screen`
-- `pointpatch_list_feedback`
-- `pointpatch_read_feedback`
-- `pointpatch_resolve_feedback`
-- `pointpatch_get_ui_feedback`
-- `pointpatch_status`
-- `pointpatch_get_current_screen`
-- `pointpatch_verify_ui_change`
+- `fixthis_open_feedback_console`
+- `fixthis_capture_screen`
+- `fixthis_list_feedback`
+- `fixthis_read_feedback`
+- `fixthis_resolve_feedback`
+- `fixthis_get_ui_feedback`
+- `fixthis_status`
+- `fixthis_get_current_screen`
+- `fixthis_verify_ui_change`
 
-### `pointpatch_open_feedback_console`
+### `fixthis_open_feedback_console`
 
 Extend arguments:
 
@@ -222,7 +222,7 @@ Return:
 - `resumed`
 - `session`
 
-### `pointpatch_list_feedback_sessions`
+### `fixthis_list_feedback_sessions`
 
 List persisted feedback sessions for the project.
 
@@ -237,7 +237,7 @@ Return:
 - `sessions`
 - `skippedSessions`
 
-### `pointpatch_navigate_app`
+### `fixthis_navigate_app`
 
 Perform one explicit navigation action against the current debug app.
 
@@ -271,7 +271,7 @@ Add APIs alongside V1 endpoints:
 - `POST /api/navigation`
 
 `POST /api/navigation` accepts the same action shape as
-`pointpatch_navigate_app`. The console defaults `captureAfter` to `true`.
+`fixthis_navigate_app`. The console defaults `captureAfter` to `true`.
 
 The existing routes remain:
 
@@ -359,7 +359,7 @@ and capture fails, the tool and console should report both facts.
 
 ## Privacy And Security
 
-- Keep all persisted session data under project-local `.pointpatch/`.
+- Keep all persisted session data under project-local `.fixthis/`.
 - Keep generated feedback session files and screenshots out of git.
 - Preserve localhost-only console binding by default.
 - Do not add Android network permissions.
@@ -413,10 +413,10 @@ Manual smoke:
 
 ## Acceptance Criteria
 
-- Restarting MCP or `pointpatch console` does not lose an open feedback queue.
+- Restarting MCP or `fixthis console` does not lose an open feedback queue.
 - Users can list previous sessions and reopen one by `sessionId`.
 - New captures write screenshot artifacts under the owning session directory.
-- Screenshot routes reject paths outside PointPatch feedback session storage.
+- Screenshot routes reject paths outside FixThis feedback session storage.
 - MCP can list sessions, open a specific session, navigate once, and read the
   resulting queue.
 - The console can send Back, Tap, and Swipe actions.

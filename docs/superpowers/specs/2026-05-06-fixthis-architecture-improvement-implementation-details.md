@@ -1,16 +1,16 @@
-# PointPatch Architecture Improvement Implementation Details
+# FixThis Architecture Improvement Implementation Details
 
 - 작성일: 2026-05-06
-- 대상: PointPatch Android 프로젝트 전체
+- 대상: FixThis Android 프로젝트 전체
 - 원본 제안서: `docs/superpowers/specs/2026-05-06-architecture-improvement-proposal.md`
-- 실행 계획서: `docs/superpowers/plans/2026-05-06-pointpatch-architecture-improvement-implementation.md`
+- 실행 계획서: `docs/superpowers/plans/2026-05-06-fixthis-architecture-improvement-implementation.md`
 - 성격: 상세 구현 명세. 제안서의 권고를 현재 코드 구조에 맞춰 실행 가능한 아키텍처 스펙으로 재구성한다.
 
 ---
 
 ## 1. 목적
 
-PointPatch는 현재 기능 단위로는 잘 작동하지만, feedback console, MCP session, Compose Studio UI, sidekick overlay가 같은 도메인 개념을 다른 이름과 다른 모델로 다루고 있다. 이 문서는 다음 결과를 목표로 한다.
+FixThis는 현재 기능 단위로는 잘 작동하지만, feedback console, MCP session, Compose Studio UI, sidekick overlay가 같은 도메인 개념을 다른 이름과 다른 모델로 다루고 있다. 이 문서는 다음 결과를 목표로 한다.
 
 1. 사용자 피드백 단위를 `Annotation`, 화면 캡처 단위를 `Snapshot`, 작업 묶음을 `Session`으로 통일한다.
 2. `compose-core`를 순수 도메인 및 use case의 중심으로 고정한다.
@@ -24,13 +24,13 @@ PointPatch는 현재 기능 단위로는 잘 작동하지만, feedback console, 
 
 | 파일 | 현재 역할 | 문제 신호 |
 |---|---|---|
-| `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt` | HTML, CSS, JavaScript 전체를 Kotlin raw string으로 보관 | 3,198 lines, diff와 lint가 거의 불가능 |
-| `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt` | session lifecycle, preview cache, source index, screenshot artifact, item construction | 581 lines, 동시성 lock과 I/O 책임 혼재 |
-| `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas/PreviewSurface.kt` | screenshot rendering, gesture, drag, overlay, bitmap decode | 595 lines, UI state와 gesture 책임 혼재 |
-| `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas/CanvasToolbar.kt` | tool switch, status, zoom, layout | 358 lines, 하위 컨트롤 분리 부족 |
-| `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt` | console HTML, API, session flow 테스트 | 2,184 lines, 테스트 fixture와 assertion이 한 파일에 집중 |
+| `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt` | HTML, CSS, JavaScript 전체를 Kotlin raw string으로 보관 | 3,198 lines, diff와 lint가 거의 불가능 |
+| `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionService.kt` | session lifecycle, preview cache, source index, screenshot artifact, item construction | 581 lines, 동시성 lock과 I/O 책임 혼재 |
+| `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/canvas/PreviewSurface.kt` | screenshot rendering, gesture, drag, overlay, bitmap decode | 595 lines, UI state와 gesture 책임 혼재 |
+| `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/canvas/CanvasToolbar.kt` | tool switch, status, zoom, layout | 358 lines, 하위 컨트롤 분리 부족 |
+| `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt` | console HTML, API, session flow 테스트 | 2,184 lines, 테스트 fixture와 assertion이 한 파일에 집중 |
 
-추가로 `compose-core`에는 이미 `PointPatchAnnotation`이 존재한다. 이 모델은 sidekick capture payload이며, 새 feedback-domain `Annotation`과 의미가 다르다. 따라서 새 도메인 모델은 `io.github.pointpatch.compose.core.domain.annotation.Annotation`으로 두고, 기존 `PointPatchAnnotation`은 첫 번째 도메인 PR에서 건드리지 않는다.
+추가로 `compose-core`에는 이미 `FixThisAnnotation`이 존재한다. 이 모델은 sidekick capture payload이며, 새 feedback-domain `Annotation`과 의미가 다르다. 따라서 새 도메인 모델은 `io.beyondwin.fixthis.compose.core.domain.annotation.Annotation`으로 두고, 기존 `FixThisAnnotation`은 첫 번째 도메인 PR에서 건드리지 않는다.
 
 ## 3. 범위
 
@@ -54,13 +54,13 @@ PointPatch는 현재 기능 단위로는 잘 작동하지만, feedback console, 
 - Detekt custom rule 즉시 도입
 - Paparazzi, Roborazzi 즉시 도입
 - MCP JSON field name migration
-- 기존 `PointPatchAnnotation` capture payload migration
+- 기존 `FixThisAnnotation` capture payload migration
 
 제외 항목은 아키텍처 경계가 안정화된 뒤 별도 ADR로 결정한다.
 
 ## 4. 설계 원칙
 
-1. **도메인 안쪽으로만 의존한다.** `compose-core`는 MCP, CLI, Android UI, `.pointpatch` 파일 구조를 알지 않는다.
+1. **도메인 안쪽으로만 의존한다.** `compose-core`는 MCP, CLI, Android UI, `.fixthis` 파일 구조를 알지 않는다.
 2. **wire DTO는 외부 계약이다.** JSON 필드명과 `@SerialName`은 MCP 모듈에서만 관리한다.
 3. **UI state는 domain model이 아니다.** Compose 화면은 `AnnotationUiState`, `SnapshotUiState`, toolbar state처럼 화면 전용 모델을 사용한다.
 4. **rename과 behavior change를 분리한다.** 특히 `READY` status 제거는 persisted data migration이므로 mapper compatibility 이후 진행한다.
@@ -71,22 +71,22 @@ PointPatch는 현재 기능 단위로는 잘 작동하지만, feedback console, 
 
 ```text
 Presentation
-  pointpatch-compose-overlay
+  fixthis-compose-overlay
   sample app
   StudioViewModel, Composable, UI state
 
 Application
-  pointpatch-compose-core/usecase
+  fixthis-compose-core/usecase
   CreateAnnotationUseCase, SaveSnapshotUseCase, LoadSessionUseCase
 
 Domain
-  pointpatch-compose-core/domain
+  fixthis-compose-core/domain
   Annotation, Snapshot, Session, Repository interfaces
 
 Data and Integration
-  pointpatch-mcp/session
-  pointpatch-mcp/console
-  pointpatch-compose-sidekick
+  fixthis-mcp/session
+  fixthis-mcp/console
+  fixthis-compose-sidekick
   DTO, persistence, bridge, screenshot artifacts, browser console
 ```
 
@@ -95,8 +95,8 @@ Data and Integration
 ```text
 compose-overlay -> compose-core
 compose-sidekick -> compose-core, compose-overlay
-pointpatch-mcp -> compose-core, pointpatch-cli
-pointpatch-cli -> compose-core
+fixthis-mcp -> compose-core, fixthis-cli
+fixthis-cli -> compose-core
 compose-core -> no project module dependency
 ```
 
@@ -111,13 +111,13 @@ compose-core -> no project module dependency
 | 상태 | `AnnotationStatus` | `AnnotationStatusDto` | `FeedbackItemStatus` | grouped status |
 | 전달 묶음 | `SessionHandoffBatch` | `SessionHandoffBatchDto` | `FeedbackHandoffBatch` | handoff history |
 
-### 6.1 기존 `PointPatchAnnotation` 유지
+### 6.1 기존 `FixThisAnnotation` 유지
 
-`PointPatchAnnotation`은 Android sidekick에서 Compose semantics, tap point, screenshot crop, source hints를 캡처한 payload다. 이 모델은 feedback console session의 annotation과 다르다.
+`FixThisAnnotation`은 Android sidekick에서 Compose semantics, tap point, screenshot crop, source hints를 캡처한 payload다. 이 모델은 feedback console session의 annotation과 다르다.
 
 규칙:
 
-- `PointPatchAnnotation`은 `compose-core/model`에 남긴다.
+- `FixThisAnnotation`은 `compose-core/model`에 남긴다.
 - feedback-domain `Annotation`은 `compose-core/domain/annotation`에 추가한다.
 - 두 모델 간 직접 rename은 하지 않는다.
 - sidekick capture flow가 MCP session으로 저장되는 별도 boundary가 필요해질 때 mapper를 추가한다.
@@ -127,7 +127,7 @@ compose-core -> no project module dependency
 ### 7.1 ID value class
 
 ```kotlin
-package io.github.pointpatch.compose.core.domain.common
+package io.beyondwin.fixthis.compose.core.domain.common
 
 @JvmInline
 value class AnnotationId(val value: String) {
@@ -183,8 +183,8 @@ data class Annotation(
     val createdAtEpochMillis: Long,
     val updatedAtEpochMillis: Long,
     val target: AnnotationTarget,
-    val selectedNode: PointPatchNode? = null,
-    val nearbyNodes: List<PointPatchNode> = emptyList(),
+    val selectedNode: FixThisNode? = null,
+    val nearbyNodes: List<FixThisNode> = emptyList(),
     val sourceCandidates: List<SourceCandidate> = emptyList(),
     val screenshotCrop: SnapshotScreenshot? = null,
     val comment: String,
@@ -197,8 +197,8 @@ data class Annotation(
 )
 
 sealed interface AnnotationTarget {
-    data class Node(val nodeUid: String, val boundsInWindow: PointPatchRect) : AnnotationTarget
-    data class Area(val boundsInWindow: PointPatchRect) : AnnotationTarget
+    data class Node(val nodeUid: String, val boundsInWindow: FixThisRect) : AnnotationTarget
+    data class Area(val boundsInWindow: FixThisRect) : AnnotationTarget
 }
 
 enum class AnnotationDelivery {
@@ -218,14 +218,14 @@ data class Snapshot(
     val screenshot: SnapshotScreenshot? = null,
     val roots: List<SnapshotRoot> = emptyList(),
     val sourceIndexAvailable: Boolean = false,
-    val errors: List<PointPatchError> = emptyList(),
+    val errors: List<FixThisError> = emptyList(),
 )
 
 data class SnapshotRoot(
     val rootIndex: Int,
-    val boundsInWindow: PointPatchRect,
-    val mergedNodes: List<PointPatchNode> = emptyList(),
-    val unmergedNodes: List<PointPatchNode> = emptyList(),
+    val boundsInWindow: FixThisRect,
+    val mergedNodes: List<FixThisNode> = emptyList(),
+    val unmergedNodes: List<FixThisNode> = emptyList(),
 )
 
 data class SnapshotScreenshot(
@@ -363,8 +363,8 @@ private fun AnnotationStatus.toDto(): AnnotationStatusDto =
 현재 `FeedbackConsoleAssets.kt`는 Kotlin raw string 하나가 browser console 전체를 가진다. 목표 구조:
 
 ```text
-pointpatch-mcp/src/main/
-  kotlin/io/github/pointpatch/mcp/console/
+fixthis-mcp/src/main/
+  kotlin/io/github/fixthis/mcp/console/
     FeedbackConsoleAssets.kt
     FeedbackConsoleServer.kt
   resources/console/
@@ -380,8 +380,8 @@ pointpatch-mcp/src/main/
 ```kotlin
 internal object FeedbackConsoleAssets {
     private const val BasePath = "/console"
-    private const val StylesPlaceholder = "<!-- POINTPATCH_STYLES -->"
-    private const val ScriptPlaceholder = "<!-- POINTPATCH_SCRIPT -->"
+    private const val StylesPlaceholder = "<!-- FIXTHIS_STYLES -->"
+    private const val ScriptPlaceholder = "<!-- FIXTHIS_SCRIPT -->"
 
     val indexHtml: String by lazy {
         readText("index.html")
@@ -416,7 +416,7 @@ Asset split PR은 DOM, styles, JavaScript behavior를 바꾸지 않는다.
 목표 파일:
 
 ```text
-pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/theme/
+fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/theme/
   StudioColors.kt
   StudioSemanticColors.kt
   StudioSpacing.kt
@@ -496,7 +496,7 @@ First migration targets:
 ### 12.1 Target components
 
 ```text
-pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/
+fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/
   FeedbackSessionService.kt
   FeedbackSessionStore.kt
   SessionDomainMappers.kt
@@ -555,7 +555,7 @@ class PreviewSnapshotCache(
 Acceptance:
 
 - missing source file throws a clear exception
-- copied files land under `.pointpatch/feedback-sessions/<session>/artifacts/screens/<screen>`
+- copied files land under `.fixthis/feedback-sessions/<session>/artifacts/screens/<screen>`
 - destination path replaces preview-cache path in the returned `SnapshotDto`
 
 ## 13. Overlay state machine
@@ -568,8 +568,8 @@ sealed interface OverlayMode {
     data object MenuOpen : OverlayMode
     data class Select(val requestId: String?) : OverlayMode
     data class Loading(val reason: LoadingReason) : OverlayMode
-    data class ReviewingSelection(val draft: PointPatchDraft) : OverlayMode
-    data class Commenting(val draft: PointPatchDraft) : OverlayMode
+    data class ReviewingSelection(val draft: FixThisDraft) : OverlayMode
+    data class Commenting(val draft: FixThisDraft) : OverlayMode
     data class Exported(val annotationId: String) : OverlayMode
     data class Error(val cause: OverlayError, val recoverable: Boolean) : OverlayMode
 
@@ -703,13 +703,13 @@ This order keeps the highest-conflict rename work after compatibility tests and 
 
 | Surface | Command | Required result |
 |---|---|---|
-| MCP session and console | `./gradlew :pointpatch-mcp:test` | PASS |
-| Core domain and use cases | `./gradlew :pointpatch-compose-core:test` | PASS |
-| Overlay JVM tests | `./gradlew :pointpatch-compose-overlay:testDebugUnitTest` | PASS |
-| Sidekick JVM tests | `./gradlew :pointpatch-compose-sidekick:testDebugUnitTest` | PASS |
+| MCP session and console | `./gradlew :fixthis-mcp:test` | PASS |
+| Core domain and use cases | `./gradlew :fixthis-compose-core:test` | PASS |
+| Overlay JVM tests | `./gradlew :fixthis-compose-overlay:testDebugUnitTest` | PASS |
+| Sidekick JVM tests | `./gradlew :fixthis-compose-sidekick:testDebugUnitTest` | PASS |
 | Full JVM suite | `./gradlew test` | PASS |
-| Import boundary | `rg -n "io\\.github\\.pointpatch\\.mcp" pointpatch-compose-core/src/main/kotlin` | no matches |
-| Legacy naming cleanup | `rg -n "FeedbackItem|CapturedScreen|FeedbackSession" pointpatch-compose-core/src/main/kotlin pointpatch-compose-overlay/src/main/kotlin pointpatch-mcp/src/main/kotlin` | no matches after DTO rename, except transition PRs |
+| Import boundary | `rg -n "io\\.github\\.fixthis\\.mcp" fixthis-compose-core/src/main/kotlin` | no matches |
+| Legacy naming cleanup | `rg -n "FeedbackItem|CapturedScreen|FeedbackSession" fixthis-compose-core/src/main/kotlin fixthis-compose-overlay/src/main/kotlin fixthis-mcp/src/main/kotlin` | no matches after DTO rename, except transition PRs |
 
 ## 18. Done when
 

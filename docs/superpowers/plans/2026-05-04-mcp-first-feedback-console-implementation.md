@@ -4,7 +4,7 @@
 
 **Goal:** Build an MCP-owned desktop feedback console that captures Android Compose screen snapshots, collects multi-screen feedback, and exposes that queue to AI agents through MCP.
 
-**Architecture:** The MCP process owns an in-memory feedback session and serves a localhost web console for humans. The Android sidekick remains a debug-only runtime data source, reached through the existing ADB/local bridge. The CLI `pointpatch console` command delegates to the MCP executable's console mode so non-MCP users can open the same experience.
+**Architecture:** The MCP process owns an in-memory feedback session and serves a localhost web console for humans. The Android sidekick remains a debug-only runtime data source, reached through the existing ADB/local bridge. The CLI `fixthis console` command delegates to the MCP executable's console mode so non-MCP users can open the same experience.
 
 **Tech Stack:** Kotlin/JVM 21, kotlinx.serialization, kotlinx.coroutines, Clikt, Java `HttpServer`, existing ADB bridge, Android Compose sidekick, stdio MCP JSON-RPC.
 
@@ -24,46 +24,46 @@ Remote app control remains out of scope. The console captures and annotates snap
 
 Create or modify these files:
 
-- `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionModels.kt`: serializable session, screen, target, item, and status models.
-- `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStore.kt`: thread-safe in-memory session store.
-- `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatter.kt`: Markdown and JSON export helpers for queues.
-- `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt`: package resolution, bridge calls, capture coordination, item creation, and resolution.
-- `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServer.kt`: localhost HTTP server and JSON API.
-- `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`: HTML, CSS, and JavaScript strings for the console.
-- `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt`: add feedback-session tools while preserving existing tools.
-- `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/McpServer.kt`: add console mode CLI parsing for `pointpatch-mcp --console`.
-- `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/bridge/BridgeServer.kt`: add `captureScreenSnapshot` bridge method and serializable result.
-- `pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/BridgeClient.kt`: add `captureScreenSnapshot` and screen screenshot artifact pull.
-- `pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/commands/ConsoleCommand.kt`: new CLI command that delegates to `pointpatch-mcp --console`.
-- `pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/Main.kt`: register `ConsoleCommand`.
+- `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionModels.kt`: serializable session, screen, target, item, and status models.
+- `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStore.kt`: thread-safe in-memory session store.
+- `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackQueueFormatter.kt`: Markdown and JSON export helpers for queues.
+- `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionService.kt`: package resolution, bridge calls, capture coordination, item creation, and resolution.
+- `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServer.kt`: localhost HTTP server and JSON API.
+- `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`: HTML, CSS, and JavaScript strings for the console.
+- `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/tools/FixThisTools.kt`: add feedback-session tools while preserving existing tools.
+- `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/McpServer.kt`: add console mode CLI parsing for `fixthis-mcp --console`.
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/bridge/BridgeServer.kt`: add `captureScreenSnapshot` bridge method and serializable result.
+- `fixthis-cli/src/main/kotlin/io/github/fixthis/cli/BridgeClient.kt`: add `captureScreenSnapshot` and screen screenshot artifact pull.
+- `fixthis-cli/src/main/kotlin/io/github/fixthis/cli/commands/ConsoleCommand.kt`: new CLI command that delegates to `fixthis-mcp --console`.
+- `fixthis-cli/src/main/kotlin/io/github/fixthis/cli/Main.kt`: register `ConsoleCommand`.
 - `docs/mcp.md`, `README.md`, `docs/output-schema.md`, `docs/troubleshooting.md`, `docs/privacy.md`: document the new flow.
 
 Testing files:
 
-- `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStoreTest.kt`
-- `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatterTest.kt`
-- `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionServiceTest.kt`
-- `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
-- `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/McpProtocolTest.kt`
-- `pointpatch-compose-sidekick/src/test/kotlin/io/github/pointpatch/compose/sidekick/bridge/BridgeServerTest.kt`
-- `pointpatch-cli/src/test/kotlin/io/github/pointpatch/cli/BridgeClientTest.kt`
-- `pointpatch-cli/src/test/kotlin/io/github/pointpatch/cli/commands/ConsoleCommandTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionServiceTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/McpProtocolTest.kt`
+- `fixthis-compose-sidekick/src/test/kotlin/io/github/fixthis/compose/sidekick/bridge/BridgeServerTest.kt`
+- `fixthis-cli/src/test/kotlin/io/github/fixthis/cli/BridgeClientTest.kt`
+- `fixthis-cli/src/test/kotlin/io/github/fixthis/cli/commands/ConsoleCommandTest.kt`
 
 ## Task 1: Feedback Session Models
 
 **Files:**
-- Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionModels.kt`
-- Test: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStoreTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionModels.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
 
 - [x] **Step 1: Write model serialization tests**
 
-Create `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStoreTest.kt`:
+Create `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStoreTest.kt`:
 
 ```kotlin
-package io.github.pointpatch.mcp.session
+package io.beyondwin.fixthis.mcp.session
 
-import io.github.pointpatch.cli.pointPatchJson
-import io.github.pointpatch.compose.core.model.PointPatchRect
+import io.beyondwin.fixthis.cli.fixThisJson
+import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -73,7 +73,7 @@ class FeedbackSessionStoreTest {
     fun feedbackSessionRoundTripsThroughJson() {
         val session = FeedbackSession(
             sessionId = "session-1",
-            packageName = "io.github.pointpatch.sample",
+            packageName = "io.beyondwin.fixthis.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 10L,
             updatedAtEpochMillis = 20L,
@@ -83,7 +83,7 @@ class FeedbackSessionStoreTest {
                     capturedAtEpochMillis = 11L,
                     activityName = "MainActivity",
                     displayName = "MainActivity",
-                    screenshot = FeedbackScreenshot(desktopFullPath = "/repo/.pointpatch/artifacts/screen-1/full.png"),
+                    screenshot = FeedbackScreenshot(desktopFullPath = "/repo/.fixthis/artifacts/screen-1/full.png"),
                 ),
             ),
             items = listOf(
@@ -92,7 +92,7 @@ class FeedbackSessionStoreTest {
                     screenId = "screen-1",
                     createdAtEpochMillis = 12L,
                     updatedAtEpochMillis = 13L,
-                    target = FeedbackTarget.Area(PointPatchRect(1f, 2f, 3f, 4f)),
+                    target = FeedbackTarget.Area(FixThisRect(1f, 2f, 3f, 4f)),
                     comment = "Make this button clearer",
                     status = FeedbackItemStatus.READY,
                 ),
@@ -100,8 +100,8 @@ class FeedbackSessionStoreTest {
             status = FeedbackSessionStatus.READY_FOR_AGENT,
         )
 
-        val encoded = pointPatchJson.encodeToString(FeedbackSession.serializer(), session)
-        val decoded = pointPatchJson.decodeFromString(FeedbackSession.serializer(), encoded)
+        val encoded = fixThisJson.encodeToString(FeedbackSession.serializer(), session)
+        val decoded = fixThisJson.decodeFromString(FeedbackSession.serializer(), encoded)
 
         assertEquals(session, decoded)
         assertTrue(encoded.contains("ready_for_agent"))
@@ -115,22 +115,22 @@ class FeedbackSessionStoreTest {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionStoreTest.feedbackSessionRoundTripsThroughJson
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest.feedbackSessionRoundTripsThroughJson
 ```
 
 Expected: compilation fails because `FeedbackSession` and related models do not exist.
 
 - [x] **Step 3: Add serializable models**
 
-Create `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionModels.kt`:
+Create `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionModels.kt`:
 
 ```kotlin
-package io.github.pointpatch.mcp.session
+package io.beyondwin.fixthis.mcp.session
 
-import io.github.pointpatch.compose.core.model.PointPatchError
-import io.github.pointpatch.compose.core.model.PointPatchNode
-import io.github.pointpatch.compose.core.model.PointPatchRect
-import io.github.pointpatch.compose.core.model.SourceCandidate
+import io.beyondwin.fixthis.compose.core.model.FixThisError
+import io.beyondwin.fixthis.compose.core.model.FixThisNode
+import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.compose.core.model.SourceCandidate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -168,15 +168,15 @@ data class CapturedScreen(
     val screenshot: FeedbackScreenshot? = null,
     val roots: List<FeedbackScreenRoot> = emptyList(),
     val sourceIndexAvailable: Boolean = false,
-    val errors: List<PointPatchError> = emptyList(),
+    val errors: List<FixThisError> = emptyList(),
 )
 
 @Serializable
 data class FeedbackScreenRoot(
     val rootIndex: Int,
-    val boundsInWindow: PointPatchRect,
-    val mergedNodes: List<PointPatchNode> = emptyList(),
-    val unmergedNodes: List<PointPatchNode> = emptyList(),
+    val boundsInWindow: FixThisRect,
+    val mergedNodes: List<FixThisNode> = emptyList(),
+    val unmergedNodes: List<FixThisNode> = emptyList(),
 )
 
 @Serializable
@@ -197,8 +197,8 @@ data class FeedbackItem(
     val createdAtEpochMillis: Long,
     val updatedAtEpochMillis: Long,
     val target: FeedbackTarget,
-    val selectedNode: PointPatchNode? = null,
-    val nearbyNodes: List<PointPatchNode> = emptyList(),
+    val selectedNode: FixThisNode? = null,
+    val nearbyNodes: List<FixThisNode> = emptyList(),
     val sourceCandidates: List<SourceCandidate> = emptyList(),
     val screenshotCrop: FeedbackScreenshot? = null,
     val comment: String,
@@ -210,11 +210,11 @@ data class FeedbackItem(
 sealed interface FeedbackTarget {
     @Serializable
     @SerialName("semantics_node")
-    data class Node(val nodeUid: String, val boundsInWindow: PointPatchRect) : FeedbackTarget
+    data class Node(val nodeUid: String, val boundsInWindow: FixThisRect) : FeedbackTarget
 
     @Serializable
     @SerialName("visual_area")
-    data class Area(val boundsInWindow: PointPatchRect) : FeedbackTarget
+    data class Area(val boundsInWindow: FixThisRect) : FeedbackTarget
 }
 
 @Serializable
@@ -244,7 +244,7 @@ enum class FeedbackItemStatus {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionStoreTest.feedbackSessionRoundTripsThroughJson
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest.feedbackSessionRoundTripsThroughJson
 ```
 
 Expected: PASS.
@@ -252,15 +252,15 @@ Expected: PASS.
 - [x] **Step 5: Commit**
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionModels.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStoreTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionModels.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStoreTest.kt
 git commit -m "mcp: add feedback session models"
 ```
 
 ## Task 2: In-Memory Feedback Session Store
 
 **Files:**
-- Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStore.kt`
-- Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStoreTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStore.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
 
 - [x] **Step 1: Add store behavior tests**
 
@@ -274,7 +274,7 @@ Append to `FeedbackSessionStoreTest`:
         val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
 
         val session = store.openSession(
-            packageName = "io.github.pointpatch.sample",
+            packageName = "io.beyondwin.fixthis.sample",
             projectRoot = "/repo",
         )
         val screen = store.addScreen(
@@ -292,7 +292,7 @@ Append to `FeedbackSessionStoreTest`:
                 screenId = screen.screenId,
                 createdAtEpochMillis = -1L,
                 updatedAtEpochMillis = -1L,
-                target = FeedbackTarget.Area(PointPatchRect(1f, 1f, 10f, 10f)),
+                target = FeedbackTarget.Area(FixThisRect(1f, 1f, 10f, 10f)),
                 comment = "Increase contrast",
             ),
         )
@@ -311,7 +311,7 @@ Append to `FeedbackSessionStoreTest`:
         val clock = FakeClock(100L)
         val ids = FakeIds("session-1", "screen-1", "item-1")
         val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
-        val session = store.openSession("io.github.pointpatch.sample", "/repo")
+        val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
         val screen = store.addScreen(session.sessionId, CapturedScreen("ignored", -1L, displayName = "Checkout"))
         store.addItem(
             session.sessionId,
@@ -320,7 +320,7 @@ Append to `FeedbackSessionStoreTest`:
                 screenId = screen.screenId,
                 createdAtEpochMillis = -1L,
                 updatedAtEpochMillis = -1L,
-                target = FeedbackTarget.Area(PointPatchRect(1f, 1f, 10f, 10f)),
+                target = FeedbackTarget.Area(FixThisRect(1f, 1f, 10f, 10f)),
                 comment = "Increase contrast",
             ),
         )
@@ -352,17 +352,17 @@ Append to `FeedbackSessionStoreTest`:
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionStoreTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest
 ```
 
 Expected: compilation fails because `FeedbackSessionStore` does not exist.
 
 - [x] **Step 3: Implement store**
 
-Create `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStore.kt`:
+Create `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStore.kt`:
 
 ```kotlin
-package io.github.pointpatch.mcp.session
+package io.beyondwin.fixthis.mcp.session
 
 import java.util.UUID
 
@@ -484,7 +484,7 @@ class FeedbackSessionException(message: String) : RuntimeException(message)
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionStoreTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest
 ```
 
 Expected: PASS.
@@ -492,24 +492,24 @@ Expected: PASS.
 - [x] **Step 5: Commit**
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStore.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStoreTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStore.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStoreTest.kt
 git commit -m "mcp: store feedback sessions in memory"
 ```
 
 ## Task 3: Queue Formatting
 
 **Files:**
-- Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatter.kt`
-- Create: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatterTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackQueueFormatter.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`
 
 - [x] **Step 1: Write formatter tests**
 
-Create `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatterTest.kt`:
+Create `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`:
 
 ```kotlin
-package io.github.pointpatch.mcp.session
+package io.beyondwin.fixthis.mcp.session
 
-import io.github.pointpatch.compose.core.model.PointPatchRect
+import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -518,7 +518,7 @@ class FeedbackQueueFormatterTest {
     fun markdownIncludesScreensItemsAndWarnings() {
         val session = FeedbackSession(
             sessionId = "session-1",
-            packageName = "io.github.pointpatch.sample",
+            packageName = "io.beyondwin.fixthis.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 1L,
             updatedAtEpochMillis = 2L,
@@ -527,7 +527,7 @@ class FeedbackQueueFormatterTest {
                     screenId = "screen-1",
                     capturedAtEpochMillis = 1L,
                     displayName = "Checkout",
-                    screenshot = FeedbackScreenshot(desktopFullPath = "/repo/.pointpatch/artifacts/screen-1/full.png"),
+                    screenshot = FeedbackScreenshot(desktopFullPath = "/repo/.fixthis/artifacts/screen-1/full.png"),
                 ),
             ),
             items = listOf(
@@ -536,7 +536,7 @@ class FeedbackQueueFormatterTest {
                     screenId = "screen-1",
                     createdAtEpochMillis = 1L,
                     updatedAtEpochMillis = 1L,
-                    target = FeedbackTarget.Area(PointPatchRect(10f, 20f, 110f, 70f)),
+                    target = FeedbackTarget.Area(FixThisRect(10f, 20f, 110f, 70f)),
                     comment = "Increase button contrast",
                     status = FeedbackItemStatus.READY,
                 ),
@@ -545,8 +545,8 @@ class FeedbackQueueFormatterTest {
 
         val markdown = FeedbackQueueFormatter.toMarkdown(session)
 
-        assertTrue(markdown.contains("# PointPatch Feedback Queue"))
-        assertTrue(markdown.contains("io.github.pointpatch.sample"))
+        assertTrue(markdown.contains("# FixThis Feedback Queue"))
+        assertTrue(markdown.contains("io.beyondwin.fixthis.sample"))
         assertTrue(markdown.contains("Checkout"))
         assertTrue(markdown.contains("Increase button contrast"))
         assertTrue(markdown.contains("Screenshots are local debug artifacts"))
@@ -559,26 +559,26 @@ class FeedbackQueueFormatterTest {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackQueueFormatterTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
 ```
 
 Expected: compilation fails because `FeedbackQueueFormatter` does not exist.
 
 - [x] **Step 3: Implement formatter**
 
-Create `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatter.kt`:
+Create `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackQueueFormatter.kt`:
 
 ```kotlin
-package io.github.pointpatch.mcp.session
+package io.beyondwin.fixthis.mcp.session
 
-import io.github.pointpatch.cli.pointPatchJson
+import io.beyondwin.fixthis.cli.fixThisJson
 
 object FeedbackQueueFormatter {
     fun toJson(session: FeedbackSession): String =
-        pointPatchJson.encodeToString(FeedbackSession.serializer(), session)
+        fixThisJson.encodeToString(FeedbackSession.serializer(), session)
 
     fun toMarkdown(session: FeedbackSession): String = buildString {
-        appendLine("# PointPatch Feedback Queue")
+        appendLine("# FixThis Feedback Queue")
         appendLine()
         appendLine("- Session: `${session.sessionId}`")
         appendLine("- Package: `${session.packageName}`")
@@ -629,7 +629,7 @@ object FeedbackQueueFormatter {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackQueueFormatterTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
 ```
 
 Expected: PASS.
@@ -637,15 +637,15 @@ Expected: PASS.
 - [x] **Step 5: Commit**
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatter.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatterTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackQueueFormatter.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackQueueFormatterTest.kt
 git commit -m "mcp: format feedback queues"
 ```
 
 ## Task 4: Sidekick Screen Snapshot Bridge Method
 
 **Files:**
-- Modify: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/bridge/BridgeServer.kt`
-- Modify: `pointpatch-compose-sidekick/src/test/kotlin/io/github/pointpatch/compose/sidekick/bridge/BridgeServerTest.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/bridge/BridgeServer.kt`
+- Modify: `fixthis-compose-sidekick/src/test/kotlin/io/github/fixthis/compose/sidekick/bridge/BridgeServerTest.kt`
 
 - [x] **Step 1: Add bridge protocol test**
 
@@ -694,7 +694,7 @@ override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot = screenSnaps
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-sidekick:testDebugUnitTest --tests io.github.pointpatch.compose.sidekick.bridge.BridgeServerTest.captureScreenSnapshotReturnsSnapshotResult
+./gradlew :fixthis-compose-sidekick:testDebugUnitTest --tests io.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerTest.captureScreenSnapshotReturnsSnapshotResult
 ```
 
 Expected: compilation fails because `BridgeScreenSnapshot` and `captureScreenSnapshot` do not exist.
@@ -739,11 +739,11 @@ override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot =
         val activity = currentActivity?.get()
         if (activity == null) {
             val inspection = BridgeScreenInspection(
-                errors = listOf(PointPatchError("NO_ACTIVITY", "No resumed Activity is available")),
+                errors = listOf(FixThisError("NO_ACTIVITY", "No resumed Activity is available")),
             )
             return@withContext BridgeScreenSnapshot(
                 inspection = inspection,
-                sourceIndexAvailable = context.hasAsset("pointpatch/pointpatch-source-index.json"),
+                sourceIndexAvailable = context.hasAsset("fixthis/fixthis-source-index.json"),
             )
         }
 
@@ -757,7 +757,7 @@ override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot =
             activity = activity::class.java.name,
             inspection = inspection,
             screenshot = screenshot,
-            sourceIndexAvailable = context.hasAsset("pointpatch/pointpatch-source-index.json"),
+            sourceIndexAvailable = context.hasAsset("fixthis/fixthis-source-index.json"),
         )
     }
 ```
@@ -767,7 +767,7 @@ override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot =
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-sidekick:testDebugUnitTest --tests io.github.pointpatch.compose.sidekick.bridge.BridgeServerTest
+./gradlew :fixthis-compose-sidekick:testDebugUnitTest --tests io.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerTest
 ```
 
 Expected: PASS.
@@ -775,15 +775,15 @@ Expected: PASS.
 - [x] **Step 5: Commit**
 
 ```bash
-git add pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/bridge/BridgeServer.kt pointpatch-compose-sidekick/src/test/kotlin/io/github/pointpatch/compose/sidekick/bridge/BridgeServerTest.kt
+git add fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/bridge/BridgeServer.kt fixthis-compose-sidekick/src/test/kotlin/io/github/fixthis/compose/sidekick/bridge/BridgeServerTest.kt
 git commit -m "sidekick: expose screen snapshot capture"
 ```
 
 ## Task 5: CLI Bridge Client Screen Capture
 
 **Files:**
-- Modify: `pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/BridgeClient.kt`
-- Modify: `pointpatch-cli/src/test/kotlin/io/github/pointpatch/cli/BridgeClientTest.kt`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/fixthis/cli/BridgeClient.kt`
+- Modify: `fixthis-cli/src/test/kotlin/io/github/fixthis/cli/BridgeClientTest.kt`
 
 - [x] **Step 1: Add BridgeClient test**
 
@@ -803,14 +803,14 @@ Add to `BridgeClientTest`:
                       "bridgeProtocolVersion":"1.0",
                       "activity":"MainActivity",
                       "inspection":{"activity":"MainActivity","roots":[],"errors":[]},
-                      "screenshot":{"fullPath":"/data/user/0/pkg/cache/pointpatch/full.png"},
+                      "screenshot":{"fullPath":"/data/user/0/pkg/cache/fixthis/full.png"},
                       "sourceIndexAvailable":true
                     }""",
                 ),
                 bridgeSuccess(
                     """{
                       "bridgeProtocolVersion":"1.0",
-                      "path":"/data/user/0/pkg/cache/pointpatch/full.png",
+                      "path":"/data/user/0/pkg/cache/fixthis/full.png",
                       "kind":"full",
                       "mimeType":"image/png",
                       "base64":"iVBORw0KGgo="
@@ -818,7 +818,7 @@ Add to `BridgeClientTest`:
                 ),
             ),
         )
-        val root = createTempDir(prefix = "pointpatch-bridge-test")
+        val root = createTempDir(prefix = "fixthis-bridge-test")
         val client = BridgeClient(
             adb = adb,
             projectRoot = root,
@@ -826,7 +826,7 @@ Add to `BridgeClientTest`:
             socketConnector = { socket },
         )
 
-        val result = client.captureScreenSnapshot("io.github.pointpatch.sample")
+        val result = client.captureScreenSnapshot("io.beyondwin.fixthis.sample")
 
         val screenshot = result.getValue("screenshot").jsonObject
         assertTrue(screenshot.getValue("desktopFullPath").jsonPrimitive.content.endsWith("-full.png"))
@@ -839,7 +839,7 @@ Add to `BridgeClientTest`:
 Run:
 
 ```bash
-./gradlew :pointpatch-cli:test --tests io.github.pointpatch.cli.BridgeClientTest.captureScreenSnapshotPullsFullScreenshotArtifact
+./gradlew :fixthis-cli:test --tests io.beyondwin.fixthis.cli.BridgeClientTest.captureScreenSnapshotPullsFullScreenshotArtifact
 ```
 
 Expected: compilation fails because `captureScreenSnapshot` does not exist.
@@ -853,9 +853,9 @@ suspend fun captureScreenSnapshot(packageName: String): JsonObject {
     val result = request(packageName = packageName, method = "captureScreenSnapshot")
     val screenshot = result["screenshot"]?.jsonObject ?: return result
     val screenId = "screen-${System.currentTimeMillis()}".sanitizedPathSegment()
-    val artifactDirectory = projectRoot.resolve(".pointpatch/artifacts/$screenId")
+    val artifactDirectory = projectRoot.resolve(".fixthis/artifacts/$screenId")
     check(artifactDirectory.exists() || artifactDirectory.mkdirs()) {
-        "Could not create PointPatch artifact directory: ${artifactDirectory.absolutePath}"
+        "Could not create FixThis artifact directory: ${artifactDirectory.absolutePath}"
     }
     val fullDesktopPath = readScreenshotArtifact(
         packageName = packageName,
@@ -879,7 +879,7 @@ suspend fun captureScreenSnapshot(packageName: String): JsonObject {
 Run:
 
 ```bash
-./gradlew :pointpatch-cli:test --tests io.github.pointpatch.cli.BridgeClientTest
+./gradlew :fixthis-cli:test --tests io.beyondwin.fixthis.cli.BridgeClientTest
 ```
 
 Expected: PASS.
@@ -887,27 +887,27 @@ Expected: PASS.
 - [x] **Step 5: Commit**
 
 ```bash
-git add pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/BridgeClient.kt pointpatch-cli/src/test/kotlin/io/github/pointpatch/cli/BridgeClientTest.kt
+git add fixthis-cli/src/main/kotlin/io/github/fixthis/cli/BridgeClient.kt fixthis-cli/src/test/kotlin/io/github/fixthis/cli/BridgeClientTest.kt
 git commit -m "cli: pull screen snapshot artifacts"
 ```
 
 ## Task 6: Feedback Session Service
 
 **Files:**
-- Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt`
-- Create: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionServiceTest.kt`
-- Create: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FakePointPatchBridge.kt`
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionService.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionServiceTest.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FakeFixThisBridge.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/tools/FixThisTools.kt`
 
 - [x] **Step 1: Extend bridge interface**
 
-In `PointPatchTools.kt`, add to `PointPatchBridge`:
+In `FixThisTools.kt`, add to `FixThisBridge`:
 
 ```kotlin
 suspend fun captureScreenSnapshot(packageName: String): JsonObject
 ```
 
-Add to `CliPointPatchBridge`:
+Add to `CliFixThisBridge`:
 
 ```kotlin
 override suspend fun captureScreenSnapshot(packageName: String): JsonObject =
@@ -916,13 +916,13 @@ override suspend fun captureScreenSnapshot(packageName: String): JsonObject =
 
 - [x] **Step 2: Write service tests**
 
-Create `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionServiceTest.kt`:
+Create `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionServiceTest.kt`:
 
 ```kotlin
-package io.github.pointpatch.mcp.session
+package io.beyondwin.fixthis.mcp.session
 
-import io.github.pointpatch.compose.core.model.PointPatchRect
-import io.github.pointpatch.mcp.tools.PointPatchBridge
+import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.mcp.tools.FixThisBridge
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -936,12 +936,12 @@ class FeedbackSessionServiceTest {
     @Test
     fun captureScreenAddsScreenToCurrentSession() = runBlocking {
         val store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1").next)
-        val bridge = FakePointPatchBridge()
+        val bridge = FakeFixThisBridge()
         val service = FeedbackSessionService(
             bridge = bridge,
             store = store,
             projectRoot = "/repo",
-            defaultPackageName = "io.github.pointpatch.sample",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
         )
 
         val session = service.openSession(null)
@@ -955,14 +955,14 @@ class FeedbackSessionServiceTest {
     @Test
     fun addAreaFeedbackStoresItemForScreen() = runBlocking {
         val store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1", "item-1").next)
-        val service = FeedbackSessionService(FakePointPatchBridge(), store, "/repo", "io.github.pointpatch.sample")
+        val service = FeedbackSessionService(FakeFixThisBridge(), store, "/repo", "io.beyondwin.fixthis.sample")
         val session = service.openSession(null)
         val screen = service.captureScreen(session.sessionId)
 
         val item = service.addAreaFeedback(
             sessionId = session.sessionId,
             screenId = screen.screenId,
-            bounds = PointPatchRect(1f, 2f, 3f, 4f),
+            bounds = FixThisRect(1f, 2f, 3f, 4f),
             comment = "Fix spacing",
         )
 
@@ -978,20 +978,20 @@ class FeedbackSessionServiceTest {
 }
 ```
 
-Create `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FakePointPatchBridge.kt`:
+Create `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FakeFixThisBridge.kt`:
 
 ```kotlin
-package io.github.pointpatch.mcp.session
+package io.beyondwin.fixthis.mcp.session
 
-import io.github.pointpatch.mcp.tools.PointPatchBridge
+import io.beyondwin.fixthis.mcp.tools.FixThisBridge
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-internal class FakePointPatchBridge : PointPatchBridge {
+internal class FakeFixThisBridge : FixThisBridge {
     override fun resolvePackageName(packageOverride: String?): String =
-        packageOverride ?: "io.github.pointpatch.sample"
+        packageOverride ?: "io.beyondwin.fixthis.sample"
 
     override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
     override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
@@ -1006,7 +1006,7 @@ internal class FakePointPatchBridge : PointPatchBridge {
             put("errors", JsonArray(emptyList()))
         })
         put("screenshot", buildJsonObject {
-            put("desktopFullPath", "/repo/.pointpatch/artifacts/screen-1/full.png")
+            put("desktopFullPath", "/repo/.fixthis/artifacts/screen-1/full.png")
         })
     }
 }
@@ -1017,21 +1017,21 @@ internal class FakePointPatchBridge : PointPatchBridge {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionServiceTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
 ```
 
 Expected: compilation fails because `FeedbackSessionService` does not exist.
 
 - [x] **Step 4: Implement service**
 
-Create `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt`:
+Create `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionService.kt`:
 
 ```kotlin
-package io.github.pointpatch.mcp.session
+package io.beyondwin.fixthis.mcp.session
 
-import io.github.pointpatch.compose.core.model.PointPatchRect
-import io.github.pointpatch.mcp.McpProtocol
-import io.github.pointpatch.mcp.tools.PointPatchBridge
+import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.mcp.McpProtocol
+import io.beyondwin.fixthis.mcp.tools.FixThisBridge
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
@@ -1041,7 +1041,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 class FeedbackSessionService(
-    private val bridge: PointPatchBridge,
+    private val bridge: FixThisBridge,
     private val store: FeedbackSessionStore = FeedbackSessionStore(),
     private val projectRoot: String,
     private val defaultPackageName: String? = null,
@@ -1087,7 +1087,7 @@ class FeedbackSessionService(
     fun addAreaFeedback(
         sessionId: String,
         screenId: String,
-        bounds: PointPatchRect,
+        bounds: FixThisRect,
         comment: String,
     ): FeedbackItem =
         store.addItem(
@@ -1115,7 +1115,7 @@ class FeedbackSessionService(
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionServiceTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
 ```
 
 Expected: PASS.
@@ -1123,15 +1123,15 @@ Expected: PASS.
 - [x] **Step 6: Commit**
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionServiceTest.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FakePointPatchBridge.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionService.kt fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/tools/FixThisTools.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionServiceTest.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FakeFixThisBridge.kt
 git commit -m "mcp: coordinate feedback sessions"
 ```
 
 ## Task 7: MCP Feedback Tools
 
 **Files:**
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt`
-- Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/McpProtocolTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/tools/FixThisTools.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/McpProtocolTest.kt`
 
 - [x] **Step 1: Add MCP protocol tests for new tools**
 
@@ -1142,29 +1142,29 @@ Add tests to `McpProtocolTest`:
     fun toolsListIncludesFeedbackQueueTools() = runBlocking {
         val response = handle("""{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}""")
 
-        assertTrue(response.contains("pointpatch_open_feedback_console"))
-        assertTrue(response.contains("pointpatch_capture_screen"))
-        assertTrue(response.contains("pointpatch_list_feedback"))
-        assertTrue(response.contains("pointpatch_read_feedback"))
-        assertTrue(response.contains("pointpatch_resolve_feedback"))
+        assertTrue(response.contains("fixthis_open_feedback_console"))
+        assertTrue(response.contains("fixthis_capture_screen"))
+        assertTrue(response.contains("fixthis_list_feedback"))
+        assertTrue(response.contains("fixthis_read_feedback"))
+        assertTrue(response.contains("fixthis_resolve_feedback"))
     }
 
     @Test
     fun listFeedbackReturnsCurrentSessionQueue() = runBlocking {
-        val tools = PointPatchTools(
-            bridge = FakePointPatchBridge(),
-            defaultPackageName = "io.github.pointpatch.sample",
+        val tools = FixThisTools(
+            bridge = FakeFixThisBridge(),
+            defaultPackageName = "io.beyondwin.fixthis.sample",
             projectRoot = File("/repo"),
         )
         val protocol = McpProtocol(tools)
-        protocol.handleLine("""{"jsonrpc":"2.0","id":"open","method":"tools/call","params":{"name":"pointpatch_open_feedback_console","arguments":{}}}""")
+        protocol.handleLine("""{"jsonrpc":"2.0","id":"open","method":"tools/call","params":{"name":"fixthis_open_feedback_console","arguments":{}}}""")
 
         val response = protocol.handleLine(
-            """{"jsonrpc":"2.0","id":"list","method":"tools/call","params":{"name":"pointpatch_list_feedback","arguments":{}}}""",
+            """{"jsonrpc":"2.0","id":"list","method":"tools/call","params":{"name":"fixthis_list_feedback","arguments":{}}}""",
         ).orEmpty()
 
         assertTrue(response.contains("sessionId"))
-        assertTrue(response.contains("io.github.pointpatch.sample"))
+        assertTrue(response.contains("io.beyondwin.fixthis.sample"))
     }
 ```
 
@@ -1173,18 +1173,18 @@ Add tests to `McpProtocolTest`:
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.McpProtocolTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.McpProtocolTest
 ```
 
 Expected: FAIL because new tools are not registered.
 
-- [x] **Step 3: Wire service into PointPatchTools**
+- [x] **Step 3: Wire service into FixThisTools**
 
-Change the `PointPatchTools` constructor:
+Change the `FixThisTools` constructor:
 
 ```kotlin
-class PointPatchTools(
-    private val bridge: PointPatchBridge = CliPointPatchBridge(BridgeClient()),
+class FixThisTools(
+    private val bridge: FixThisBridge = CliFixThisBridge(BridgeClient()),
     private val defaultPackageName: String? = null,
     private val projectRoot: File = File(".").canonicalFile,
     private val feedbackService: FeedbackSessionService = FeedbackSessionService(
@@ -1198,7 +1198,7 @@ class PointPatchTools(
 Add cases in `call`:
 
 ```kotlin
-"pointpatch_open_feedback_console" -> bridgeToolResult {
+"fixthis_open_feedback_console" -> bridgeToolResult {
     val session = feedbackService.openSession(arguments.stringParam("packageName"))
     jsonToolResult(buildJsonObject {
         put("sessionId", session.sessionId)
@@ -1208,7 +1208,7 @@ Add cases in `call`:
         put("session", McpProtocol.json.encodeToJsonElement(FeedbackSession.serializer(), session))
     })
 }
-"pointpatch_capture_screen" -> bridgeToolResult {
+"fixthis_capture_screen" -> bridgeToolResult {
     val session = feedbackService.currentSession()
     val screen = feedbackService.captureScreen(session.sessionId)
     jsonToolResult(buildJsonObject {
@@ -1216,7 +1216,7 @@ Add cases in `call`:
         put("screen", McpProtocol.json.encodeToJsonElement(CapturedScreen.serializer(), screen))
     })
 }
-"pointpatch_list_feedback" -> bridgeToolResult {
+"fixthis_list_feedback" -> bridgeToolResult {
     val session = feedbackService.currentSession()
     jsonToolResult(buildJsonObject {
         put("sessionId", session.sessionId)
@@ -1236,7 +1236,7 @@ Add cases in `call`:
         })
     })
 }
-"pointpatch_read_feedback" -> bridgeToolResult {
+"fixthis_read_feedback" -> bridgeToolResult {
     val session = feedbackService.currentSession()
     toolResult(
         content = listOf(
@@ -1245,12 +1245,12 @@ Add cases in `call`:
         ),
     )
 }
-"pointpatch_resolve_feedback" -> bridgeToolResult {
+"fixthis_resolve_feedback" -> bridgeToolResult {
     val session = feedbackService.currentSession()
     val itemId = arguments.stringParam("itemId")?.takeIf { it.isNotBlank() }
-        ?: throw PointPatchToolException("pointpatch_resolve_feedback requires itemId")
+        ?: throw FixThisToolException("fixthis_resolve_feedback requires itemId")
     val status = arguments.stringParam("status")?.toFeedbackItemStatus()
-        ?: throw PointPatchToolException("pointpatch_resolve_feedback requires status")
+        ?: throw FixThisToolException("fixthis_resolve_feedback requires status")
     val summary = arguments.stringParam("summary")
     val item = feedbackService.resolveFeedback(session.sessionId, itemId, status, summary)
     jsonToolResult(McpProtocol.json.encodeToJsonElement(FeedbackItem.serializer(), item).jsonObject)
@@ -1265,7 +1265,7 @@ private fun String.toFeedbackItemStatus(): FeedbackItemStatus =
         "resolved" -> FeedbackItemStatus.RESOLVED
         "needs_clarification" -> FeedbackItemStatus.NEEDS_CLARIFICATION
         "wont_fix" -> FeedbackItemStatus.WONT_FIX
-        else -> throw PointPatchToolException("Unsupported feedback resolution status: $this")
+        else -> throw FixThisToolException("Unsupported feedback resolution status: $this")
     }
 ```
 
@@ -1275,28 +1275,28 @@ Add these `ToolDefinition` entries:
 
 ```kotlin
 ToolDefinition(
-    name = "pointpatch_open_feedback_console",
-    description = "Open or return the local PointPatch feedback console for the current MCP session.",
+    name = "fixthis_open_feedback_console",
+    description = "Open or return the local FixThis feedback console for the current MCP session.",
     inputSchema = objectSchema(
-        "packageName" to stringProperty("Android application id. If omitted, .pointpatch/project.json or server --package is used."),
+        "packageName" to stringProperty("Android application id. If omitted, .fixthis/project.json or server --package is used."),
     ),
 )
 ToolDefinition(
-    name = "pointpatch_capture_screen",
-    description = "Capture the current Android screen into the active PointPatch feedback session.",
-    inputSchema = objectSchema(
-        "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
-    ),
-)
-ToolDefinition(
-    name = "pointpatch_list_feedback",
-    description = "List feedback queue summaries for the active PointPatch feedback session.",
+    name = "fixthis_capture_screen",
+    description = "Capture the current Android screen into the active FixThis feedback session.",
     inputSchema = objectSchema(
         "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
     ),
 )
 ToolDefinition(
-    name = "pointpatch_read_feedback",
+    name = "fixthis_list_feedback",
+    description = "List feedback queue summaries for the active FixThis feedback session.",
+    inputSchema = objectSchema(
+        "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
+    ),
+)
+ToolDefinition(
+    name = "fixthis_read_feedback",
     description = "Read the feedback queue as annotation JSON and Markdown.",
     inputSchema = objectSchema(
         "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
@@ -1304,7 +1304,7 @@ ToolDefinition(
     ),
 )
 ToolDefinition(
-    name = "pointpatch_resolve_feedback",
+    name = "fixthis_resolve_feedback",
     description = "Mark a feedback item as resolved, needing clarification, or not fixed.",
     inputSchema = objectSchema(
         "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
@@ -1321,7 +1321,7 @@ ToolDefinition(
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.McpProtocolTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.McpProtocolTest
 ```
 
 Expected: PASS.
@@ -1329,28 +1329,28 @@ Expected: PASS.
 - [x] **Step 6: Commit**
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/McpProtocolTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/tools/FixThisTools.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/McpProtocolTest.kt
 git commit -m "mcp: expose feedback queue tools"
 ```
 
 ## Task 8: Local Feedback Console Server
 
 **Files:**
-- Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServer.kt`
-- Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
-- Create: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServer.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/tools/FixThisTools.kt`
 
 - [x] **Step 1: Write server tests**
 
-Create `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`:
+Create `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`:
 
 ```kotlin
-package io.github.pointpatch.mcp.console
+package io.beyondwin.fixthis.mcp.console
 
-import io.github.pointpatch.mcp.session.FeedbackSessionService
-import io.github.pointpatch.mcp.session.FeedbackSessionStore
-import io.github.pointpatch.mcp.session.FakePointPatchBridge
+import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
+import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.beyondwin.fixthis.mcp.session.FakeFixThisBridge
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.test.Test
@@ -1361,19 +1361,19 @@ class FeedbackConsoleServerTest {
     @Test
     fun servesIndexAndSessionJson() {
         val service = FeedbackSessionService(
-            bridge = FakePointPatchBridge(),
+            bridge = FakeFixThisBridge(),
             store = FeedbackSessionStore(clock = { 100L }, idGenerator = { "session-1" }),
             projectRoot = "/repo",
-            defaultPackageName = "io.github.pointpatch.sample",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
         )
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
             val index = URL(server.url).readText()
-            assertTrue(index.contains("PointPatch Feedback Console"))
+            assertTrue(index.contains("FixThis Feedback Console"))
 
             val session = URL("${server.url}/api/session").readText()
-            assertTrue(session.contains("io.github.pointpatch.sample"))
+            assertTrue(session.contains("io.beyondwin.fixthis.sample"))
         } finally {
             server.stop()
         }
@@ -1381,7 +1381,7 @@ class FeedbackConsoleServerTest {
 
     @Test
     fun rejectsUnsupportedMethods() {
-        val service = FeedbackSessionService(FakePointPatchBridge(), FeedbackSessionStore(), "/repo", "io.github.pointpatch.sample")
+        val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
@@ -1400,7 +1400,7 @@ class FeedbackConsoleServerTest {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: compilation fails because console server files do not exist.
@@ -1410,7 +1410,7 @@ Expected: compilation fails because console server files do not exist.
 Create `FeedbackConsoleAssets.kt`:
 
 ```kotlin
-package io.github.pointpatch.mcp.console
+package io.beyondwin.fixthis.mcp.console
 
 internal object FeedbackConsoleAssets {
     val indexHtml: String = """
@@ -1419,7 +1419,7 @@ internal object FeedbackConsoleAssets {
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1">
-          <title>PointPatch Feedback Console</title>
+          <title>FixThis Feedback Console</title>
           <style>
             body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #1f2328; background: #f6f8fa; }
             header { height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: #ffffff; border-bottom: 1px solid #d0d7de; }
@@ -1437,7 +1437,7 @@ internal object FeedbackConsoleAssets {
         </head>
         <body>
           <header>
-            <strong>PointPatch Feedback Console</strong>
+            <strong>FixThis Feedback Console</strong>
             <span id="status">Connecting...</span>
           </header>
           <main>
@@ -1493,15 +1493,15 @@ internal object FeedbackConsoleAssets {
 Create `FeedbackConsoleServer.kt`:
 
 ```kotlin
-package io.github.pointpatch.mcp.console
+package io.beyondwin.fixthis.mcp.console
 
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
-import io.github.pointpatch.cli.pointPatchJson
-import io.github.pointpatch.compose.core.model.PointPatchRect
-import io.github.pointpatch.mcp.session.FeedbackQueueFormatter
-import io.github.pointpatch.mcp.session.FeedbackSession
-import io.github.pointpatch.mcp.session.FeedbackSessionService
+import io.beyondwin.fixthis.cli.fixThisJson
+import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatter
+import io.beyondwin.fixthis.mcp.session.FeedbackSession
+import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import java.net.InetSocketAddress
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
@@ -1541,7 +1541,7 @@ class FeedbackConsoleServer(
                     val item = service.addAreaFeedback(
                         sessionId = session.sessionId,
                         screenId = screenId,
-                        bounds = PointPatchRect(request.bounds.left, request.bounds.top, request.bounds.right, request.bounds.bottom),
+                        bounds = FixThisRect(request.bounds.left, request.bounds.top, request.bounds.right, request.bounds.bottom),
                         comment = request.comment,
                     )
                     exchange.respondJson(item)
@@ -1572,10 +1572,10 @@ class FeedbackConsoleServer(
     }
 
     private fun HttpExchange.respondJson(value: FeedbackSession) =
-        respondText(pointPatchJson.encodeToString(FeedbackSession.serializer(), value), "application/json")
+        respondText(fixThisJson.encodeToString(FeedbackSession.serializer(), value), "application/json")
 
     private inline fun <reified T> HttpExchange.respondJson(value: T) =
-        respondText(pointPatchJson.encodeToString(value), "application/json")
+        respondText(fixThisJson.encodeToString(value), "application/json")
 
     private fun HttpExchange.respondText(text: String, contentType: String, status: Int = 200) {
         val bytes = text.toByteArray(Charsets.UTF_8)
@@ -1597,14 +1597,14 @@ private data class BoundsRequest(val left: Float, val top: Float, val right: Flo
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: PASS.
 
-- [x] **Step 6: Wire `pointpatch_open_feedback_console` to return URL**
+- [x] **Step 6: Wire `fixthis_open_feedback_console` to return URL**
 
-Update `PointPatchTools` to own a lazy console server:
+Update `FixThisTools` to own a lazy console server:
 
 ```kotlin
 private var consoleServer: FeedbackConsoleServer? = null
@@ -1615,7 +1615,7 @@ private fun openConsoleUrl(): String {
 }
 ```
 
-Change `pointpatch_open_feedback_console` to:
+Change `fixthis_open_feedback_console` to:
 
 ```kotlin
 val url = openConsoleUrl()
@@ -1628,7 +1628,7 @@ and return `consoleUrl = url`.
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test
+./gradlew :fixthis-mcp:test
 ```
 
 Expected: PASS.
@@ -1636,24 +1636,24 @@ Expected: PASS.
 - [x] **Step 8: Commit**
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/McpProtocolTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/tools/FixThisTools.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/McpProtocolTest.kt
 git commit -m "mcp: serve feedback console"
 ```
 
 ## Task 9: MCP Console Mode And CLI Command
 
 **Files:**
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/McpServer.kt`
-- Create: `pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/commands/ConsoleCommand.kt`
-- Modify: `pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/Main.kt`
-- Create: `pointpatch-cli/src/test/kotlin/io/github/pointpatch/cli/commands/ConsoleCommandTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/McpServer.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/fixthis/cli/commands/ConsoleCommand.kt`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/fixthis/cli/Main.kt`
+- Create: `fixthis-cli/src/test/kotlin/io/github/fixthis/cli/commands/ConsoleCommandTest.kt`
 
 - [x] **Step 1: Add command tests**
 
 Create `ConsoleCommandTest.kt`:
 
 ```kotlin
-package io.github.pointpatch.cli.commands
+package io.beyondwin.fixthis.cli.commands
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -1662,19 +1662,19 @@ import kotlin.test.assertTrue
 class ConsoleCommandTest {
     @Test
     fun buildsMcpConsoleCommand() {
-        val executable = java.io.File("/tmp/pointpatch-mcp")
+        val executable = java.io.File("/tmp/fixthis-mcp")
         val command = buildConsoleProcessCommand(
             executable = executable,
-            packageName = "io.github.pointpatch.sample",
+            packageName = "io.beyondwin.fixthis.sample",
             projectDir = "/repo",
         )
 
         assertEquals(
             listOf(
-                "/tmp/pointpatch-mcp",
+                "/tmp/fixthis-mcp",
                 "--console",
                 "--package",
-                "io.github.pointpatch.sample",
+                "io.beyondwin.fixthis.sample",
                 "--project-dir",
                 "/repo",
             ),
@@ -1685,7 +1685,7 @@ class ConsoleCommandTest {
     @Test
     fun buildsMcpConsoleCommandWithoutPackageOverride() {
         val command = buildConsoleProcessCommand(
-            executable = java.io.File("/tmp/pointpatch-mcp"),
+            executable = java.io.File("/tmp/fixthis-mcp"),
             packageName = null,
             projectDir = "/repo",
         )
@@ -1701,7 +1701,7 @@ class ConsoleCommandTest {
 Run:
 
 ```bash
-./gradlew :pointpatch-cli:test --tests io.github.pointpatch.cli.commands.ConsoleCommandTest
+./gradlew :fixthis-cli:test --tests io.beyondwin.fixthis.cli.commands.ConsoleCommandTest
 ```
 
 Expected: compilation fails because `ConsoleCommand` helpers do not exist.
@@ -1731,14 +1731,14 @@ In `main`, branch before stdio server:
 
 ```kotlin
 if (options.consoleMode) {
-    val bridge = CliPointPatchBridge(BridgeClient(projectRoot = options.projectDir))
-    val tools = PointPatchTools(
+    val bridge = CliFixThisBridge(BridgeClient(projectRoot = options.projectDir))
+    val tools = FixThisTools(
         bridge = bridge,
         defaultPackageName = options.packageName,
         projectRoot = options.projectDir,
     )
     val result = runBlocking {
-        tools.call("pointpatch_open_feedback_console", kotlinx.serialization.json.JsonObject(emptyMap()))
+        tools.call("fixthis_open_feedback_console", kotlinx.serialization.json.JsonObject(emptyMap()))
     }
     val text = result["content"]?.jsonArray
         ?.firstOrNull()?.jsonObject
@@ -1757,7 +1757,7 @@ Import `jsonArray`, `jsonObject`, and `content`.
 Create `ConsoleCommand.kt`:
 
 ```kotlin
-package io.github.pointpatch.cli.commands
+package io.beyondwin.fixthis.cli.commands
 
 import com.github.ajalt.clikt.core.CoreCliktCommand
 import com.github.ajalt.clikt.parameters.options.default
@@ -1767,12 +1767,12 @@ import kotlin.system.exitProcess
 
 class ConsoleCommand : CoreCliktCommand(name = "console") {
     private val packageName by option("--package", help = "Android application id")
-    private val projectDir by option("--project-dir", help = "Project root containing .pointpatch/project.json").default(".")
+    private val projectDir by option("--project-dir", help = "Project root containing .fixthis/project.json").default(".")
 
     override fun run() {
         val executable = McpExecutableLocator.find()
             ?: throw com.github.ajalt.clikt.core.CliktError(
-                "Could not find pointpatch-mcp executable. Run :pointpatch-mcp:installDist or add pointpatch-mcp to PATH.",
+                "Could not find fixthis-mcp executable. Run :fixthis-mcp:installDist or add fixthis-mcp to PATH.",
             )
         val command = buildConsoleProcessCommand(
             executable = executable,
@@ -1814,7 +1814,7 @@ ConsoleCommand(),
 Run:
 
 ```bash
-./gradlew :pointpatch-cli:test :pointpatch-mcp:test
+./gradlew :fixthis-cli:test :fixthis-mcp:test
 ```
 
 Expected: PASS.
@@ -1822,15 +1822,15 @@ Expected: PASS.
 - [x] **Step 6: Commit**
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/McpServer.kt pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/commands/ConsoleCommand.kt pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/Main.kt pointpatch-cli/src/test/kotlin/io/github/pointpatch/cli/commands/ConsoleCommandTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/McpServer.kt fixthis-cli/src/main/kotlin/io/github/fixthis/cli/commands/ConsoleCommand.kt fixthis-cli/src/main/kotlin/io/github/fixthis/cli/Main.kt fixthis-cli/src/test/kotlin/io/github/fixthis/cli/commands/ConsoleCommandTest.kt
 git commit -m "cli: add feedback console command"
 ```
 
 ## Task 10: Compatibility Wrapper For Single Feedback
 
 **Files:**
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt`
-- Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/McpProtocolTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/tools/FixThisTools.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/McpProtocolTest.kt`
 
 - [x] **Step 1: Add compatibility behavior test**
 
@@ -1840,7 +1840,7 @@ Add to `McpProtocolTest`:
     @Test
     fun oldGetUiFeedbackStillReturnsAnnotationAndMarkdown() = runBlocking {
         val response = handle(
-            """{"jsonrpc":"2.0","id":"feedback","method":"tools/call","params":{"name":"pointpatch_get_ui_feedback","arguments":{"timeoutMs":1500}}}""",
+            """{"jsonrpc":"2.0","id":"feedback","method":"tools/call","params":{"name":"fixthis_get_ui_feedback","arguments":{"timeoutMs":1500}}}""",
         )
 
         assertTrue(response.contains("application/json"))
@@ -1853,17 +1853,17 @@ Add to `McpProtocolTest`:
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.McpProtocolTest.oldGetUiFeedbackStillReturnsAnnotationAndMarkdown
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.McpProtocolTest.oldGetUiFeedbackStillReturnsAnnotationAndMarkdown
 ```
 
 Expected: PASS with the existing path before refactoring.
 
 - [x] **Step 3: Add deprecation note in tool description**
 
-Update the existing `pointpatch_get_ui_feedback` description:
+Update the existing `fixthis_get_ui_feedback` description:
 
 ```kotlin
-description = "Compatibility wrapper for single-item PointPatch feedback capture. Prefer pointpatch_open_feedback_console plus feedback queue tools for new workflows.",
+description = "Compatibility wrapper for single-item FixThis feedback capture. Prefer fixthis_open_feedback_console plus feedback queue tools for new workflows.",
 ```
 
 Keep the existing `startFeedbackCapture` implementation intact. Do not rewrite it to depend on the new web console in this task. This preserves current MCP client behavior while the new queue tools ship.
@@ -1873,7 +1873,7 @@ Keep the existing `startFeedbackCapture` implementation intact. Do not rewrite i
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test
+./gradlew :fixthis-mcp:test
 ```
 
 Expected: PASS.
@@ -1881,7 +1881,7 @@ Expected: PASS.
 - [x] **Step 5: Commit**
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/McpProtocolTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/tools/FixThisTools.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/McpProtocolTest.kt
 git commit -m "mcp: keep single feedback compatibility"
 ```
 
@@ -1899,15 +1899,15 @@ git commit -m "mcp: keep single feedback compatibility"
 In `README.md`, replace the MCP summary paragraph with:
 
 ```markdown
-MCP is the primary agent workflow for the feedback console. `pointpatch mcp` runs as a stdio JSON-RPC server and can open a local web console where you review Android screen snapshots, add feedback with a desktop keyboard, and let the agent read the queue. `pointpatch console` opens the same console without requiring an MCP client.
+MCP is the primary agent workflow for the feedback console. `fixthis mcp` runs as a stdio JSON-RPC server and can open a local web console where you review Android screen snapshots, add feedback with a desktop keyboard, and let the agent read the queue. `fixthis console` opens the same console without requiring an MCP client.
 ```
 
 Add usage:
 
 ```markdown
 ```bash
-pointpatch setup --package <applicationId>
-pointpatch console --package <applicationId>
+fixthis setup --package <applicationId>
+fixthis console --package <applicationId>
 ```
 ```
 
@@ -1922,14 +1922,14 @@ The feedback console is an MCP-owned local web UI. The MCP server owns the sessi
 
 Typical flow:
 
-1. Call `pointpatch_open_feedback_console`.
+1. Call `fixthis_open_feedback_console`.
 2. Capture one or more screens in the console.
 3. Add feedback items on desktop snapshots.
-4. Call `pointpatch_list_feedback`.
-5. Call `pointpatch_read_feedback`.
-6. Make code changes and call `pointpatch_resolve_feedback`.
+4. Call `fixthis_list_feedback`.
+5. Call `fixthis_read_feedback`.
+6. Make code changes and call `fixthis_resolve_feedback`.
 
-The CLI command `pointpatch console --package <applicationId>` opens the same local console for copy/export workflows.
+The CLI command `fixthis console --package <applicationId>` opens the same local console for copy/export workflows.
 ```
 
 Add the five new tools to the tools list with one-sentence descriptions.
@@ -1955,10 +1955,10 @@ In `docs/troubleshooting.md`, add entries for:
 Connect a device or start an emulator, then run `adb devices`.
 
 ### SIDEKICK_UNREACHABLE
-Install and launch a debuggable build with PointPatch sidekick enabled, then retry `pointpatch status`.
+Install and launch a debuggable build with FixThis sidekick enabled, then retry `fixthis status`.
 
 ### MCP_SESSION_CLOSED
-Reopen the feedback console from the agent or run `pointpatch console --package <applicationId>`.
+Reopen the feedback console from the agent or run `fixthis console --package <applicationId>`.
 
 ### SCREEN_CAPTURE_FAILED
 The console may still show semantics without a screenshot. Retry Capture current screen after the app finishes drawing.
@@ -1969,7 +1969,7 @@ The console may still show semantics without a screenshot. Retry Capture current
 In `docs/privacy.md`, add:
 
 ```markdown
-The feedback console is served from localhost by the desktop MCP process. The Android app does not host the console and does not need network permissions. Console screenshots are local debug artifacts under `.pointpatch/artifacts/`.
+The feedback console is served from localhost by the desktop MCP process. The Android app does not host the console and does not need network permissions. Console screenshots are local debug artifacts under `.fixthis/artifacts/`.
 ```
 
 - [x] **Step 6: Run docs grep check**
@@ -1977,10 +1977,10 @@ The feedback console is served from localhost by the desktop MCP process. The An
 Run:
 
 ```bash
-rg -n "pointpatch_get_ui_feedback|pointpatch console|pointpatch_open_feedback_console|feedback queue" README.md docs
+rg -n "fixthis_get_ui_feedback|fixthis console|fixthis_open_feedback_console|feedback queue" README.md docs
 ```
 
-Expected: output includes the new console flow and still mentions `pointpatch_get_ui_feedback` only as a compatibility or legacy single-feedback tool.
+Expected: output includes the new console flow and still mentions `fixthis_get_ui_feedback` only as a compatibility or legacy single-feedback tool.
 
 - [x] **Step 7: Commit**
 
@@ -1999,7 +1999,7 @@ git commit -m "docs: document feedback console workflow"
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-core:test :pointpatch-cli:test :pointpatch-mcp:test
+./gradlew :fixthis-compose-core:test :fixthis-cli:test :fixthis-mcp:test
 ```
 
 Expected: PASS.
@@ -2009,7 +2009,7 @@ Expected: PASS.
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-sidekick:testDebugUnitTest
+./gradlew :fixthis-compose-sidekick:testDebugUnitTest
 ```
 
 Expected: PASS.
@@ -2019,14 +2019,14 @@ Expected: PASS.
 Run:
 
 ```bash
-./gradlew :pointpatch-cli:installDist :pointpatch-mcp:installDist
+./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
 ```
 
 Expected: PASS and install scripts exist under:
 
 ```text
-pointpatch-cli/build/install/pointpatch/bin/pointpatch
-pointpatch-mcp/build/install/pointpatch-mcp/bin/pointpatch-mcp
+fixthis-cli/build/install/fixthis/bin/fixthis
+fixthis-mcp/build/install/fixthis-mcp/bin/fixthis-mcp
 ```
 
 - [x] **Step 4: Run no-device console smoke**
@@ -2034,7 +2034,7 @@ pointpatch-mcp/build/install/pointpatch-mcp/bin/pointpatch-mcp
 Run:
 
 ```bash
-pointpatch-cli/build/install/pointpatch/bin/pointpatch console --package io.github.pointpatch.sample
+fixthis-cli/build/install/fixthis/bin/fixthis console --package io.beyondwin.fixthis.sample
 ```
 
 Expected without a connected device: command starts the console server and the console shows a clear no-device or sidekick-unreachable state when capture is attempted. Stop the process with Ctrl-C after confirming the URL prints.
@@ -2045,8 +2045,8 @@ Run:
 
 ```bash
 ./gradlew :app:installDebug
-pointpatch-cli/build/install/pointpatch/bin/pointpatch run --package io.github.pointpatch.sample
-pointpatch-cli/build/install/pointpatch/bin/pointpatch console --package io.github.pointpatch.sample
+fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis console --package io.beyondwin.fixthis.sample
 ```
 
 Expected:
@@ -2055,7 +2055,7 @@ Expected:
 - Capture current screen adds the first screen
 - adding feedback creates a queue item
 - navigating the app manually and capturing again adds a second screen
-- `pointpatch_list_feedback` through MCP returns the same queue
+- `fixthis_list_feedback` through MCP returns the same queue
 
 - [x] **Step 6: Commit verification-only notes if docs needed adjustment**
 
@@ -2070,7 +2070,7 @@ If no files changed, do not create an empty commit.
 
 ## Self-Review Checklist
 
-- Spec coverage: this plan covers MCP-first ownership, desktop web console, multi-screen queue, copy/export, MCP list/read/resolve, CLI `pointpatch console`, sidekick capture, privacy, error states, tests, and docs.
+- Spec coverage: this plan covers MCP-first ownership, desktop web console, multi-screen queue, copy/export, MCP list/read/resolve, CLI `fixthis console`, sidekick capture, privacy, error states, tests, and docs.
 - Wording scan: the plan avoids incomplete-marker terms, unbounded error-handling instructions, and references to undefined future work.
 - Type consistency: model names use `FeedbackSession`, `CapturedScreen`, `FeedbackItem`, `FeedbackTarget`, `FeedbackItemStatus`, and `FeedbackSessionStatus` consistently across tasks.
 - Scope control: remote control and arbitrary Android input are excluded from tasks.

@@ -7,12 +7,12 @@ Date: 2026-05-06
 This design supersedes the earlier Feedback Console V1.2 implementation
 direction where it conflicts with the executable Option A prototype. The next
 console iteration should follow Option A's annotation workspace first, then
-adapt PointPatch's local Android data sources to that interaction model.
+adapt FixThis's local Android data sources to that interaction model.
 
 The reference prototype is:
 
 ```text
-/Users/kws/Downloads/PointPatch Console _standalone_.html
+/Users/kws/Downloads/FixThis Console _standalone_.html
 ```
 
 The target is not another incremental polish pass on the current console. It is
@@ -22,7 +22,7 @@ prototype unless this document explicitly removes a prototype control.
 
 ## Precedence Decision
 
-Option A behavior now wins over the prior PointPatch console contract.
+Option A behavior now wins over the prior FixThis console contract.
 
 This means the following previous restrictions are superseded for this redesign:
 
@@ -33,7 +33,7 @@ This means the following previous restrictions are superseded for this redesign:
 - Preview interaction is annotation-first when the user is in the Studio
   workspace; visible one-step navigation controls are removed from this UI.
 
-PointPatch still provides the live Android screenshot, Compose node metadata,
+FixThis still provides the live Android screenshot, Compose node metadata,
 local persistence, and local handoff/export plumbing. Those implementation
 details should serve the Option A workspace rather than dictate the visible UI.
 
@@ -42,7 +42,7 @@ details should serve the Option A workspace rather than dictate the visible UI.
 The prototype is the behavioral source, with these explicit visual deviations:
 
 - Remove the top-right prototype action button `+ New session`.
-- Keep the Option A primary `Save snapshot` action, but change its PointPatch
+- Keep the Option A primary `Save snapshot` action, but change its FixThis
   behavior: clicking it sends the currently registered annotations to the AI
   agent handoff path.
 - Remove the visible navigation cluster `Back`, `Up`, `Down`, `Left`, `Right`.
@@ -61,7 +61,7 @@ Use the Option A dark Studio shell:
 
 ```text
 56px top bar
-  left: PointPatch Studio brand
+  left: FixThis Studio brand
   middle: project/session/device context styled as an Option A breadcrumb
   right: Save snapshot primary action, with no New Session action
 
@@ -326,7 +326,7 @@ renumbers both immediately with no gaps.
 
 This section is the implementation-level interaction contract extracted from
 the Option A prototype. The implementation should preserve these event outcomes
-even if PointPatch uses different internal API names.
+even if FixThis uses different internal API names.
 
 ### History Events
 
@@ -480,14 +480,14 @@ comment = empty
 Widget click targeting:
 
 - Option A targets the closest widget metadata marker under the pointer.
-- PointPatch should adapt this to Compose semantics nodes: select the smallest
+- FixThis should adapt this to Compose semantics nodes: select the smallest
   containing semantics node when available, and use dragged region selection
   when no node is found or when the user drags.
 
 Save snapshot click:
 
 - The visible action remains `Save snapshot`.
-- Unlike the prototype's local-only snapshot cloning, PointPatch maps this
+- Unlike the prototype's local-only snapshot cloning, FixThis maps this
   action to agent handoff: it sends the active snapshot/session's currently
   registered annotations to the persisted local handoff path.
 - The action is disabled when there are no registered annotations.
@@ -505,7 +505,7 @@ draggingRect
 tool // select | annotate
 ```
 
-PointPatch can map these to existing session concepts internally, but the UI
+FixThis can map these to existing session concepts internally, but the UI
 state should not be shaped around `pendingFeedbackItems` as the primary user
 model. If existing names remain during implementation, they should be internal
 compatibility details only.
@@ -563,7 +563,7 @@ Option A parity changes the handoff source from "pending items waiting for Save"
 to "current registered annotations".
 
 `Save snapshot` is the primary user action for handing registered annotations to
-the AI agent. In PointPatch terms, it creates the persisted local handoff that
+the AI agent. In FixThis terms, it creates the persisted local handoff that
 the agent/tooling can read. It must not call an external AI API unless a later
 design explicitly adds that integration.
 

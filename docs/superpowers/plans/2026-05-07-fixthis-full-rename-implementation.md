@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rename the active PointPatch codebase and current product contracts to FixThis with `io.beyondwin.fixthis` packages and no compatibility aliases for old public names.
+**Goal:** Rename the active FixThis codebase and current product contracts to FixThis with `io.beyondwin.fixthis` packages and no compatibility aliases for old public names.
 
 **Architecture:** Treat this as one breaking contract rename with checkpoints. First rename the Gradle graph, then move packages and identifiers, then update runtime persistence/bridge contracts, then update CLI/MCP contracts, and finally update current docs and audit historical leftovers.
 
@@ -19,20 +19,20 @@ The spec touches Gradle, Kotlin packages, runtime paths, CLI, MCP, docs, and tes
 The implementation renames these active modules:
 
 ```text
-pointpatch-compose-core           -> fixthis-compose-core
-pointpatch-compose-overlay        -> fixthis-compose-overlay
-pointpatch-compose-sidekick       -> fixthis-compose-sidekick
-pointpatch-gradle-plugin          -> fixthis-gradle-plugin
-pointpatch-cli                    -> fixthis-cli
-pointpatch-mcp                    -> fixthis-mcp
+fixthis-compose-core           -> fixthis-compose-core
+fixthis-compose-overlay        -> fixthis-compose-overlay
+fixthis-compose-sidekick       -> fixthis-compose-sidekick
+fixthis-gradle-plugin          -> fixthis-gradle-plugin
+fixthis-cli                    -> fixthis-cli
+fixthis-mcp                    -> fixthis-mcp
 ```
 
 The implementation moves Kotlin package roots in those modules:
 
 ```text
-src/main/kotlin/io/github/pointpatch      -> src/main/kotlin/io/beyondwin/fixthis
-src/test/kotlin/io/github/pointpatch      -> src/test/kotlin/io/beyondwin/fixthis
-src/androidTest/kotlin/io/github/pointpatch -> src/androidTest/kotlin/io/beyondwin/fixthis
+src/main/kotlin/io/github/fixthis      -> src/main/kotlin/io/beyondwin/fixthis
+src/test/kotlin/io/github/fixthis      -> src/test/kotlin/io/beyondwin/fixthis
+src/androidTest/kotlin/io/github/fixthis -> src/androidTest/kotlin/io/beyondwin/fixthis
 ```
 
 The sample app package stays:
@@ -45,37 +45,37 @@ sample/src/androidTest/java/io/beyondwin/fixthis/sample
 Files with brand-bearing names must be renamed, not just edited:
 
 ```text
-fixthis-compose-core/.../format/PointPatchJsonFormatter.kt                 -> FixThisJsonFormatter.kt
-fixthis-compose-core/.../format/PointPatchMarkdownFormatter.kt             -> FixThisMarkdownFormatter.kt
-fixthis-compose-core/.../format/PointPatchMarkdownFormatterTest.kt         -> FixThisMarkdownFormatterTest.kt
-fixthis-compose-sidekick/.../PointPatch.kt                                 -> FixThis.kt
-fixthis-compose-sidekick/.../init/PointPatchInitializer.kt                 -> FixThisInitializer.kt
-fixthis-compose-sidekick/.../lifecycle/PointPatchActivityLifecycleCallbacks.kt -> FixThisActivityLifecycleCallbacks.kt
-fixthis-compose-sidekick/.../overlay/PointPatchOverlayController.kt        -> FixThisOverlayController.kt
-fixthis-compose-sidekick/.../overlay/PointPatchOverlayHostLayout.kt        -> FixThisOverlayHostLayout.kt
-fixthis-compose-sidekick/.../PointPatchTest.kt                             -> FixThisTest.kt
-fixthis-compose-sidekick/.../overlay/PointPatchOverlayControllerTest.kt    -> FixThisOverlayControllerTest.kt
-fixthis-compose-sidekick/.../overlay/PointPatchOverlayHostLayoutTest.kt    -> FixThisOverlayHostLayoutTest.kt
-fixthis-compose-overlay/.../overlay/PointPatchSelectionLayer.kt            -> FixThisSelectionLayer.kt
-fixthis-compose-overlay/.../overlay/PointPatchHighlightLayer.kt            -> FixThisHighlightLayer.kt
-fixthis-compose-overlay/.../overlay/PointPatchCommentSheet.kt              -> FixThisCommentSheet.kt
-fixthis-compose-overlay/.../overlay/PointPatchToolbar.kt                   -> FixThisToolbar.kt
-fixthis-compose-overlay/.../overlay/PointPatchDraftTest.kt                 -> FixThisDraftTest.kt
-fixthis-gradle-plugin/.../PointPatchExtension.kt                           -> FixThisExtension.kt
-fixthis-gradle-plugin/.../PointPatchGradlePlugin.kt                        -> FixThisGradlePlugin.kt
-fixthis-gradle-plugin/.../task/GeneratePointPatchSourceIndexTask.kt        -> GenerateFixThisSourceIndexTask.kt
-fixthis-gradle-plugin/.../GeneratePointPatchSourceIndexTaskTest.kt         -> GenerateFixThisSourceIndexTaskTest.kt
-fixthis-gradle-plugin/.../PointPatchGradlePluginTest.kt                    -> FixThisGradlePluginTest.kt
-fixthis-mcp/.../tools/PointPatchTools.kt                                   -> FixThisTools.kt
-fixthis-mcp/.../session/FakePointPatchBridge.kt                            -> FakeFixThisBridge.kt
+fixthis-compose-core/.../format/FixThisJsonFormatter.kt                 -> FixThisJsonFormatter.kt
+fixthis-compose-core/.../format/FixThisMarkdownFormatter.kt             -> FixThisMarkdownFormatter.kt
+fixthis-compose-core/.../format/FixThisMarkdownFormatterTest.kt         -> FixThisMarkdownFormatterTest.kt
+fixthis-compose-sidekick/.../FixThis.kt                                 -> FixThis.kt
+fixthis-compose-sidekick/.../init/FixThisInitializer.kt                 -> FixThisInitializer.kt
+fixthis-compose-sidekick/.../lifecycle/FixThisActivityLifecycleCallbacks.kt -> FixThisActivityLifecycleCallbacks.kt
+fixthis-compose-sidekick/.../overlay/FixThisOverlayController.kt        -> FixThisOverlayController.kt
+fixthis-compose-sidekick/.../overlay/FixThisOverlayHostLayout.kt        -> FixThisOverlayHostLayout.kt
+fixthis-compose-sidekick/.../FixThisTest.kt                             -> FixThisTest.kt
+fixthis-compose-sidekick/.../overlay/FixThisOverlayControllerTest.kt    -> FixThisOverlayControllerTest.kt
+fixthis-compose-sidekick/.../overlay/FixThisOverlayHostLayoutTest.kt    -> FixThisOverlayHostLayoutTest.kt
+fixthis-compose-overlay/.../overlay/FixThisSelectionLayer.kt            -> FixThisSelectionLayer.kt
+fixthis-compose-overlay/.../overlay/FixThisHighlightLayer.kt            -> FixThisHighlightLayer.kt
+fixthis-compose-overlay/.../overlay/FixThisCommentSheet.kt              -> FixThisCommentSheet.kt
+fixthis-compose-overlay/.../overlay/FixThisToolbar.kt                   -> FixThisToolbar.kt
+fixthis-compose-overlay/.../overlay/FixThisDraftTest.kt                 -> FixThisDraftTest.kt
+fixthis-gradle-plugin/.../FixThisExtension.kt                           -> FixThisExtension.kt
+fixthis-gradle-plugin/.../FixThisGradlePlugin.kt                        -> FixThisGradlePlugin.kt
+fixthis-gradle-plugin/.../task/GenerateFixThisSourceIndexTask.kt        -> GenerateFixThisSourceIndexTask.kt
+fixthis-gradle-plugin/.../GenerateFixThisSourceIndexTaskTest.kt         -> GenerateFixThisSourceIndexTaskTest.kt
+fixthis-gradle-plugin/.../FixThisGradlePluginTest.kt                    -> FixThisGradlePluginTest.kt
+fixthis-mcp/.../tools/FixThisTools.kt                                   -> FixThisTools.kt
+fixthis-mcp/.../session/FakeFixThisBridge.kt                            -> FakeFixThisBridge.kt
 ```
 
 Current documentation files with product filenames should be renamed:
 
 ```text
-docs/pointpatch_prd.md              -> docs/fixthis_prd.md
-docs/pointpatch_technical_design.md -> docs/fixthis_technical_design.md
-docs/pointpatch_decisions.md        -> docs/fixthis_decisions.md
+docs/fixthis_prd.md              -> docs/fixthis_prd.md
+docs/fixthis_technical_design.md -> docs/fixthis_technical_design.md
+docs/fixthis_decisions.md        -> docs/fixthis_decisions.md
 ```
 
 ## Task 1: Baseline and Rename Audit
@@ -111,12 +111,12 @@ fi
 
 Expected if starting from `main`: `Switched to a new branch 'codex/fixthis-full-rename'`.
 
-- [x] **Step 3: Record current PointPatch hit count**
+- [x] **Step 3: Record current FixThis hit count**
 
 Run:
 
 ```bash
-rg -n -i "pointpatch" -g '!**/build/**' -g '!**/.gradle/**' | wc -l
+rg -n -i "fixthis" -g '!**/build/**' -g '!**/.gradle/**' | wc -l
 ```
 
 Expected: a non-zero count. This is the baseline that later tasks reduce to migration notes and historical docs only.
@@ -126,7 +126,7 @@ Expected: a non-zero count. This is the baseline that later tasks reduce to migr
 Run:
 
 ```bash
-./gradlew :pointpatch-gradle-plugin:test :pointpatch-cli:test :pointpatch-mcp:test :pointpatch-compose-core:test :pointpatch-compose-sidekick:test
+./gradlew :fixthis-gradle-plugin:test :fixthis-cli:test :fixthis-mcp:test :fixthis-compose-core:test :fixthis-compose-sidekick:test
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -159,12 +159,12 @@ Expected: no output. Do not create an empty commit.
 Run:
 
 ```bash
-git mv pointpatch-compose-core fixthis-compose-core
-git mv pointpatch-compose-overlay fixthis-compose-overlay
-git mv pointpatch-compose-sidekick fixthis-compose-sidekick
-git mv pointpatch-gradle-plugin fixthis-gradle-plugin
-git mv pointpatch-cli fixthis-cli
-git mv pointpatch-mcp fixthis-mcp
+git mv fixthis-compose-core fixthis-compose-core
+git mv fixthis-compose-overlay fixthis-compose-overlay
+git mv fixthis-compose-sidekick fixthis-compose-sidekick
+git mv fixthis-gradle-plugin fixthis-gradle-plugin
+git mv fixthis-cli fixthis-cli
+git mv fixthis-mcp fixthis-mcp
 ```
 
 Expected: no command output and `git status --short` shows six rename entries.
@@ -212,13 +212,13 @@ Run:
 ```bash
 rg --files -0 -g '*.gradle.kts' -g 'settings.gradle.kts' |
   xargs -0 perl -pi -e '
-    s/pointpatch-compose-core/fixthis-compose-core/g;
-    s/pointpatch-compose-overlay/fixthis-compose-overlay/g;
-    s/pointpatch-compose-sidekick/fixthis-compose-sidekick/g;
-    s/pointpatch-gradle-plugin/fixthis-gradle-plugin/g;
-    s/pointpatch-cli/fixthis-cli/g;
-    s/pointpatch-mcp/fixthis-mcp/g;
-    s/PointPatch/FixThis/g;
+    s/fixthis-compose-core/fixthis-compose-core/g;
+    s/fixthis-compose-overlay/fixthis-compose-overlay/g;
+    s/fixthis-compose-sidekick/fixthis-compose-sidekick/g;
+    s/fixthis-gradle-plugin/fixthis-gradle-plugin/g;
+    s/fixthis-cli/fixthis-cli/g;
+    s/fixthis-mcp/fixthis-mcp/g;
+    s/FixThis/FixThis/g;
   '
 ```
 
@@ -330,7 +330,7 @@ Run:
 ./gradlew projects
 ```
 
-Expected: output lists `:fixthis-cli`, `:fixthis-compose-core`, `:fixthis-compose-overlay`, `:fixthis-compose-sidekick`, `:fixthis-mcp`, and no `:pointpatch-*` project names.
+Expected: output lists `:fixthis-cli`, `:fixthis-compose-core`, `:fixthis-compose-overlay`, `:fixthis-compose-sidekick`, `:fixthis-mcp`, and no `:fixthis-*` project names.
 
 - [x] **Step 9: Commit Gradle graph rename**
 
@@ -357,7 +357,7 @@ Run:
 ```bash
 for module in fixthis-compose-core fixthis-compose-overlay fixthis-compose-sidekick fixthis-gradle-plugin fixthis-cli fixthis-mcp; do
   for source_set in src/main/kotlin src/test/kotlin src/androidTest/kotlin; do
-    old="$module/$source_set/io/github/pointpatch"
+    old="$module/$source_set/io/github/fixthis"
     new_parent="$module/$source_set/io/beyondwin"
     if [ -d "$old" ]; then
       mkdir -p "$new_parent"
@@ -377,10 +377,10 @@ Run:
 ```bash
 rg --files -0 fixthis-* sample -g '*.kt' -g '*.kts' -g '*.xml' -g '*.json' -g '*.properties' |
   xargs -0 perl -pi -e '
-    s/io\.github\.pointpatch/io.beyondwin.fixthis/g;
-    s/PointPatch/FixThis/g;
-    s/pointPatch/fixThis/g;
-    s/pointpatch/fixthis/g;
+    s/io\.github\.fixthis/io.beyondwin.fixthis/g;
+    s/FixThis/FixThis/g;
+    s/fixThis/fixThis/g;
+    s/fixthis/fixthis/g;
   '
 ```
 
@@ -391,29 +391,29 @@ Expected: no command output.
 Run:
 
 ```bash
-git mv fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/PointPatchJsonFormatter.kt fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisJsonFormatter.kt
-git mv fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/PointPatchMarkdownFormatter.kt fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt
-git mv fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/format/PointPatchMarkdownFormatterTest.kt fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt
-git mv fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/PointPatch.kt fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/FixThis.kt
-git mv fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/init/PointPatchInitializer.kt fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/init/FixThisInitializer.kt
-git mv fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/lifecycle/PointPatchActivityLifecycleCallbacks.kt fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacks.kt
-git mv fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/PointPatchOverlayController.kt fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayController.kt
-git mv fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/PointPatchOverlayHostLayout.kt fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayHostLayout.kt
-git mv fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/PointPatchTest.kt fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/FixThisTest.kt
-git mv fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/PointPatchOverlayControllerTest.kt fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayControllerTest.kt
-git mv fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/PointPatchOverlayHostLayoutTest.kt fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayHostLayoutTest.kt
-git mv fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/PointPatchSelectionLayer.kt fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisSelectionLayer.kt
-git mv fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/PointPatchHighlightLayer.kt fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisHighlightLayer.kt
-git mv fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/PointPatchCommentSheet.kt fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisCommentSheet.kt
-git mv fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/PointPatchToolbar.kt fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisToolbar.kt
-git mv fixthis-compose-overlay/src/test/kotlin/io/beyondwin/fixthis/compose/overlay/PointPatchDraftTest.kt fixthis-compose-overlay/src/test/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisDraftTest.kt
-git mv fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/PointPatchExtension.kt fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/FixThisExtension.kt
-git mv fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/PointPatchGradlePlugin.kt fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/FixThisGradlePlugin.kt
-git mv fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GeneratePointPatchSourceIndexTask.kt fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt
-git mv fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GeneratePointPatchSourceIndexTaskTest.kt fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt
-git mv fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/PointPatchGradlePluginTest.kt fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/FixThisGradlePluginTest.kt
-git mv fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/PointPatchTools.kt fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt
-git mv fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FakePointPatchBridge.kt fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FakeFixThisBridge.kt
+git mv fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisJsonFormatter.kt fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisJsonFormatter.kt
+git mv fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt
+git mv fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt
+git mv fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/FixThis.kt fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/FixThis.kt
+git mv fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/init/FixThisInitializer.kt fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/init/FixThisInitializer.kt
+git mv fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacks.kt fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacks.kt
+git mv fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayController.kt fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayController.kt
+git mv fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayHostLayout.kt fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayHostLayout.kt
+git mv fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/FixThisTest.kt fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/FixThisTest.kt
+git mv fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayControllerTest.kt fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayControllerTest.kt
+git mv fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayHostLayoutTest.kt fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayHostLayoutTest.kt
+git mv fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisSelectionLayer.kt fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisSelectionLayer.kt
+git mv fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisHighlightLayer.kt fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisHighlightLayer.kt
+git mv fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisCommentSheet.kt fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisCommentSheet.kt
+git mv fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisToolbar.kt fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisToolbar.kt
+git mv fixthis-compose-overlay/src/test/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisDraftTest.kt fixthis-compose-overlay/src/test/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisDraftTest.kt
+git mv fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/FixThisExtension.kt fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/FixThisExtension.kt
+git mv fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/FixThisGradlePlugin.kt fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/FixThisGradlePlugin.kt
+git mv fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt
+git mv fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt
+git mv fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/FixThisGradlePluginTest.kt fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/FixThisGradlePluginTest.kt
+git mv fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt
+git mv fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FakeFixThisBridge.kt fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FakeFixThisBridge.kt
 ```
 
 Expected: no command output.
@@ -423,7 +423,7 @@ Expected: no command output.
 Run:
 
 ```bash
-find fixthis-* sample \( -name '*PointPatch*' -o -name '*pointpatch*' \) -print
+find fixthis-* sample \( -name '*FixThis*' -o -name '*fixthis*' \) -print
 ```
 
 Expected: no output. If output appears, rename each active source/test file with `git mv` and rerun this command.
@@ -466,7 +466,7 @@ Expected: commit succeeds.
 Run:
 
 ```bash
-rg -n -S "files/pointpatch|cache/pointpatch|pointpatch_|pointpatch/pointpatch|generated/pointpatch|PointPatch|pointPatch|pointpatch" \
+rg -n -S "files/fixthis|cache/fixthis|fixthis_|fixthis/fixthis|generated/fixthis|FixThis|fixThis|fixthis" \
   fixthis-compose-sidekick fixthis-gradle-plugin \
   -g '!**/build/**' -g '!**/.gradle/**'
 ```
@@ -500,7 +500,7 @@ fun socketNameForPackage(packageName: String): String = "fixthis_$packageName"
 const val FixThisSidekickVersion: String = "0.1.0"
 ```
 
-Expected: the old `PointPatchSidekickVersion` symbol is gone and callers use `FixThisSidekickVersion`.
+Expected: the old `FixThisSidekickVersion` symbol is gone and callers use `FixThisSidekickVersion`.
 
 - [x] **Step 3: Ensure screenshot cache contract is FixThis**
 
@@ -719,9 +719,9 @@ Expected: commit succeeds.
 **Files:**
 - Modify: `.gitignore`
 - Modify: `README.md`
-- Rename: `docs/pointpatch_prd.md` -> `docs/fixthis_prd.md`
-- Rename: `docs/pointpatch_technical_design.md` -> `docs/fixthis_technical_design.md`
-- Rename: `docs/pointpatch_decisions.md` -> `docs/fixthis_decisions.md`
+- Rename: `docs/fixthis_prd.md` -> `docs/fixthis_prd.md`
+- Rename: `docs/fixthis_technical_design.md` -> `docs/fixthis_technical_design.md`
+- Rename: `docs/fixthis_decisions.md` -> `docs/fixthis_decisions.md`
 - Modify: `docs/project-overview.md`
 - Modify: `docs/mcp.md`
 - Modify: `docs/troubleshooting.md`
@@ -734,9 +734,9 @@ Expected: commit succeeds.
 Run:
 
 ```bash
-git mv docs/pointpatch_prd.md docs/fixthis_prd.md
-git mv docs/pointpatch_technical_design.md docs/fixthis_technical_design.md
-git mv docs/pointpatch_decisions.md docs/fixthis_decisions.md
+git mv docs/fixthis_prd.md docs/fixthis_prd.md
+git mv docs/fixthis_technical_design.md docs/fixthis_technical_design.md
+git mv docs/fixthis_decisions.md docs/fixthis_decisions.md
 ```
 
 Expected: no command output.
@@ -750,10 +750,10 @@ rg --files -0 README.md docs .gitignore \
   -g '*.md' -g '.gitignore' \
   -g '!docs/superpowers/**' |
   xargs -0 perl -pi -e '
-    s/io\.github\.pointpatch/io.beyondwin.fixthis/g;
-    s/PointPatch/FixThis/g;
-    s/pointPatch/fixThis/g;
-    s/pointpatch/fixthis/g;
+    s/io\.github\.fixthis/io.beyondwin.fixthis/g;
+    s/FixThis/FixThis/g;
+    s/fixThis/fixThis/g;
+    s/fixthis/fixthis/g;
   '
 ```
 
@@ -775,16 +775,16 @@ Confirm `.gitignore` contains:
 .playwright-cli
 ```
 
-Expected: no `.pointpatch` ignore entries remain in `.gitignore`.
+Expected: no `.fixthis` ignore entries remain in `.gitignore`.
 
 - [x] **Step 4: Add migration note to README**
 
 Add this short note near the top of `README.md`, after the opening paragraph:
 
 ```markdown
-> Migration note: FixThis was previously named PointPatch. This repository uses
+> Migration note: FixThis was previously named FixThis. This repository uses
 > the new `fixthis` CLI, `io.beyondwin.fixthis.*` packages, `fixthis_*` MCP
-> tools, and `.fixthis/` local storage paths. Old PointPatch public contracts are
+> tools, and `.fixthis/` local storage paths. Old FixThis public contracts are
 > not preserved in this breaking rename.
 ```
 
@@ -831,7 +831,7 @@ Expected: commit succeeds.
 
 **Files:**
 - Modify only files with unclassified old-name hits from the audit.
-- Historical docs under `docs/superpowers/specs/` and `docs/superpowers/plans/` may retain PointPatch wording if they describe past work.
+- Historical docs under `docs/superpowers/specs/` and `docs/superpowers/plans/` may retain FixThis wording if they describe past work.
 
 - [x] **Step 1: Run full JVM/unit verification**
 
@@ -896,12 +896,12 @@ pass because the device was locked/keyguarded and the sample app moved from
 `RESUMED` to `PAUSED`/`STOPPED` with `lockNow pending`. Treat this as an
 environment residual risk, not evidence of a FixThis rename regression.
 
-- [x] **Step 6: Audit remaining PointPatch names**
+- [x] **Step 6: Audit remaining FixThis names**
 
 Run:
 
 ```bash
-rg -n -i "pointpatch" -g '!**/build/**' -g '!**/.gradle/**'
+rg -n -i "fixthis" -g '!**/build/**' -g '!**/.gradle/**'
 ```
 
 Expected: remaining matches are limited to:
@@ -968,5 +968,5 @@ Include these points in the final response:
 - Renamed runtime storage to .fixthis, files/fixthis, and cache/fixthis.
 - Updated current docs and added the migration note.
 - Reported verification commands and whether connected Android tests ran.
-- Reported remaining pointpatch audit hits, limited to historical specs/plans and migration notes.
+- Reported remaining fixthis audit hits, limited to historical specs/plans and migration notes.
 ```

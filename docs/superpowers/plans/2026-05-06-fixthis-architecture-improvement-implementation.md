@@ -1,10 +1,10 @@
-# PointPatch Architecture Improvement Implementation Plan
+# FixThis Architecture Improvement Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Refactor PointPatch toward clearer domain boundaries, smaller testable modules, resource-backed console assets, a complete Studio design system, and explicit overlay/session state transitions without breaking the existing MCP, CLI, or persisted session contracts.
+**Goal:** Refactor FixThis toward clearer domain boundaries, smaller testable modules, resource-backed console assets, a complete Studio design system, and explicit overlay/session state transitions without breaking the existing MCP, CLI, or persisted session contracts.
 
-**Architecture:** Keep `compose-core` as the pure Kotlin center for capture models, feedback domain models, repository contracts, and use cases. Keep MCP JSON wire DTOs and file persistence in `pointpatch-mcp`, and keep Compose-only UI state and Studio theme tokens in `pointpatch-compose-overlay`. Sequence the work so each PR either preserves behavior exactly or changes one domain contract with compatibility tests.
+**Architecture:** Keep `compose-core` as the pure Kotlin center for capture models, feedback domain models, repository contracts, and use cases. Keep MCP JSON wire DTOs and file persistence in `fixthis-mcp`, and keep Compose-only UI state and Studio theme tokens in `fixthis-compose-overlay`. Sequence the work so each PR either preserves behavior exactly or changes one domain contract with compatibility tests.
 
 **Tech Stack:** Kotlin 2.2.21, JVM 21, Android Gradle Plugin 9.1.1, kotlinx.serialization 1.9.0, kotlinx.coroutines 1.10.2, Compose BOM 2026.04.01, JUnit 4, Kotlin test, existing Gradle modules.
 
@@ -15,9 +15,9 @@
 The source proposal is directionally right, but the implementation order needs tightening for this repository:
 
 - `FeedbackConsoleAssets.kt` should be split before broad renames. It is a 3,198-line Kotlin raw string and can be made reviewable with behavior-preserving resource loading before touching domain names.
-- `PointPatchAnnotation` already exists in `compose-core/src/main/kotlin/io/github/pointpatch/compose/core/model/Models.kt` as a capture payload. The new feedback-domain `Annotation` must live under `io.github.pointpatch.compose.core.domain.annotation` and must not replace `PointPatchAnnotation` in the first domain PR.
+- `FixThisAnnotation` already exists in `compose-core/src/main/kotlin/io/github/fixthis/compose/core/model/Models.kt` as a capture payload. The new feedback-domain `Annotation` must live under `io.beyondwin.fixthis.compose.core.domain.annotation` and must not replace `FixThisAnnotation` in the first domain PR.
 - `FeedbackItemStatus.READY` removal is a data migration, not a mechanical rename. Decode compatibility for persisted `"ready"` values must be locked before writing new normalized statuses.
-- Repository interfaces can live in `compose-core`, but file-backed implementations and JSON DTOs stay in `pointpatch-mcp`; `compose-core` must not know about MCP wire names, `.pointpatch` paths, or HTTP.
+- Repository interfaces can live in `compose-core`, but file-backed implementations and JSON DTOs stay in `fixthis-mcp`; `compose-core` must not know about MCP wire names, `.fixthis` paths, or HTTP.
 - `synchronized` to `Mutex` should happen after service decomposition creates small lock scopes. Replacing all locks first would make the code async-shaped without reducing responsibility.
 - Detekt, screenshot regression, and dependency graph tooling are valuable but should land after the main architecture paths are explicit. Before then, lightweight tests and PR checklist guards provide enough friction.
 
@@ -26,70 +26,70 @@ The source proposal is directionally right, but the implementation order needs t
 - Proposal file: `docs/superpowers/specs/2026-05-06-architecture-improvement-proposal.md`
 - Existing untracked proposal state: `?? docs/superpowers/specs/2026-05-06-architecture-improvement-proposal.md`
 - Verified high-risk file sizes:
-  - `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`: 3,198 lines
-  - `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt`: 581 lines
-  - `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas/PreviewSurface.kt`: 595 lines
-  - `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas/CanvasToolbar.kt`: 358 lines
-  - `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`: 2,184 lines
+  - `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`: 3,198 lines
+  - `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionService.kt`: 581 lines
+  - `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/canvas/PreviewSurface.kt`: 595 lines
+  - `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/canvas/CanvasToolbar.kt`: 358 lines
+  - `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`: 2,184 lines
 - Verified Gradle commands:
-  - `./gradlew :pointpatch-mcp:test --dry-run`
-  - `./gradlew :pointpatch-compose-core:test --dry-run`
-  - `./gradlew :pointpatch-compose-overlay:testDebugUnitTest --dry-run`
+  - `./gradlew :fixthis-mcp:test --dry-run`
+  - `./gradlew :fixthis-compose-core:test --dry-run`
+  - `./gradlew :fixthis-compose-overlay:testDebugUnitTest --dry-run`
   - `./gradlew test --dry-run`
 
 ## Target File Structure
 
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain/common/DomainIds.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain/annotation/Annotation.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain/annotation/AnnotationRepository.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain/session/Session.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain/session/SessionRepository.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain/snapshot/Snapshot.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain/snapshot/SnapshotRepository.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/usecase/annotation/CreateAnnotationUseCase.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/usecase/snapshot/SaveSnapshotUseCase.kt`
-- Create: `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/domain/annotation/AnnotationStatusTest.kt`
-- Create: `pointpatch-mcp/src/main/resources/console/index.html`
-- Create: `pointpatch-mcp/src/main/resources/console/styles.css`
-- Create: `pointpatch-mcp/src/main/resources/console/app.js`
-- Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/SessionDomainMappers.kt`
-- Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/PreviewSnapshotCache.kt`
-- Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/SourceIndexRegistry.kt`
-- Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/ScreenshotArtifactPromoter.kt`
-- Create: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/ArchitectureCompatibilityTest.kt`
-- Create: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/PreviewSnapshotCacheTest.kt`
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/theme/StudioTheme.kt`
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/theme/StudioSpacing.kt`
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/theme/StudioShapes.kt`
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/theme/StudioElevation.kt`
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/theme/StudioSemanticColors.kt`
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/overlay/OverlayStateMachine.kt`
-- Create: `pointpatch-compose-overlay/src/test/kotlin/io/github/pointpatch/compose/overlay/OverlayStateMachineTest.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/domain/common/DomainIds.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/domain/annotation/Annotation.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/domain/annotation/AnnotationRepository.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/domain/session/Session.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/domain/session/SessionRepository.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/domain/snapshot/Snapshot.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/domain/snapshot/SnapshotRepository.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/usecase/annotation/CreateAnnotationUseCase.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/usecase/snapshot/SaveSnapshotUseCase.kt`
+- Create: `fixthis-compose-core/src/test/kotlin/io/github/fixthis/compose/core/domain/annotation/AnnotationStatusTest.kt`
+- Create: `fixthis-mcp/src/main/resources/console/index.html`
+- Create: `fixthis-mcp/src/main/resources/console/styles.css`
+- Create: `fixthis-mcp/src/main/resources/console/app.js`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/SessionDomainMappers.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/PreviewSnapshotCache.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/SourceIndexRegistry.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/ScreenshotArtifactPromoter.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/ArchitectureCompatibilityTest.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/PreviewSnapshotCacheTest.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/theme/StudioTheme.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/theme/StudioSpacing.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/theme/StudioShapes.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/theme/StudioElevation.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/theme/StudioSemanticColors.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/overlay/OverlayStateMachine.kt`
+- Create: `fixthis-compose-overlay/src/test/kotlin/io/github/fixthis/compose/overlay/OverlayStateMachineTest.kt`
 - Create: `docs/adr/README.md`
 - Create: `.github/pull_request_template.md`
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServer.kt`
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionModels.kt`
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStore.kt`
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt`
-- Modify: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/overlay/OverlayMode.kt`
-- Modify: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/overlay/PointPatchOverlayController.kt`
-- Modify: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas/PreviewSurface.kt`
-- Modify: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas/CanvasToolbar.kt`
-- Modify: related tests under `pointpatch-mcp/src/test`, `pointpatch-compose-core/src/test`, and `pointpatch-compose-overlay/src/test`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServer.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionModels.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStore.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionService.kt`
+- Modify: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/overlay/OverlayMode.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/overlay/FixThisOverlayController.kt`
+- Modify: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/canvas/PreviewSurface.kt`
+- Modify: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/canvas/CanvasToolbar.kt`
+- Modify: related tests under `fixthis-mcp/src/test`, `fixthis-compose-core/src/test`, and `fixthis-compose-overlay/src/test`
 
 ## Task 1: Lock Compatibility Before Refactoring
 
 **Files:**
-- Create: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/ArchitectureCompatibilityTest.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/ArchitectureCompatibilityTest.kt`
 
 - [x] **Step 1: Write JSON and status compatibility tests**
 
 ```kotlin
-package io.github.pointpatch.mcp.session
+package io.beyondwin.fixthis.mcp.session
 
-import io.github.pointpatch.cli.pointPatchJson
-import io.github.pointpatch.compose.core.model.PointPatchRect
+import io.beyondwin.fixthis.cli.fixThisJson
+import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -97,7 +97,7 @@ import kotlin.test.assertTrue
 class ArchitectureCompatibilityTest {
     @Test
     fun legacyReadyFeedbackItemStatusStillDecodes() {
-        val item = pointPatchJson.decodeFromString(
+        val item = fixThisJson.decodeFromString(
             FeedbackItem.serializer(),
             """
             {
@@ -127,7 +127,7 @@ class ArchitectureCompatibilityTest {
     fun sessionWireFormatKeepsExistingFieldNames() {
         val session = FeedbackSession(
             sessionId = "session-1",
-            packageName = "io.github.pointpatch.sample",
+            packageName = "io.beyondwin.fixthis.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 10L,
             updatedAtEpochMillis = 20L,
@@ -145,7 +145,7 @@ class ArchitectureCompatibilityTest {
                     screenId = "screen-1",
                     createdAtEpochMillis = 12L,
                     updatedAtEpochMillis = 13L,
-                    target = FeedbackTarget.Area(PointPatchRect(1f, 2f, 3f, 4f)),
+                    target = FeedbackTarget.Area(FixThisRect(1f, 2f, 3f, 4f)),
                     comment = "Fix spacing",
                     status = FeedbackItemStatus.READY,
                 ),
@@ -153,7 +153,7 @@ class ArchitectureCompatibilityTest {
             status = FeedbackSessionStatus.READY_FOR_AGENT,
         )
 
-        val encoded = pointPatchJson.encodeToString(FeedbackSession.serializer(), session)
+        val encoded = fixThisJson.encodeToString(FeedbackSession.serializer(), session)
 
         assertTrue(encoded.contains("\"screens\""))
         assertTrue(encoded.contains("\"items\""))
@@ -170,7 +170,7 @@ class ArchitectureCompatibilityTest {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.ArchitectureCompatibilityTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.ArchitectureCompatibilityTest
 ```
 
 Expected: PASS before any refactor.
@@ -178,18 +178,18 @@ Expected: PASS before any refactor.
 - [x] **Step 3: Commit**
 
 ```bash
-git add pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/ArchitectureCompatibilityTest.kt
+git add fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/ArchitectureCompatibilityTest.kt
 git commit -m "test: lock architecture compatibility contracts"
 ```
 
 ## Task 2: Split FeedbackConsole Assets Into Resources
 
 **Files:**
-- Create: `pointpatch-mcp/src/main/resources/console/index.html`
-- Create: `pointpatch-mcp/src/main/resources/console/styles.css`
-- Create: `pointpatch-mcp/src/main/resources/console/app.js`
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
-- Test: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
+- Create: `fixthis-mcp/src/main/resources/console/index.html`
+- Create: `fixthis-mcp/src/main/resources/console/styles.css`
+- Create: `fixthis-mcp/src/main/resources/console/app.js`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [x] **Step 1: Add failing resource-loader contract tests**
 
@@ -229,7 +229,7 @@ import kotlin.test.assertFailsWith
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: the traversal test fails because `FeedbackConsoleAssets.resource` does not exist yet.
@@ -238,8 +238,8 @@ Expected: the traversal test fails because `FeedbackConsoleAssets.resource` does
 
 Move the current HTML document from `FeedbackConsoleAssets.indexHtml` into three resources:
 
-- `index.html` keeps document structure and uses `<!-- POINTPATCH_STYLES -->` inside `<head>`.
-- `index.html` uses `<!-- POINTPATCH_SCRIPT -->` before `</body>`.
+- `index.html` keeps document structure and uses `<!-- FIXTHIS_STYLES -->` inside `<head>`.
+- `index.html` uses `<!-- FIXTHIS_SCRIPT -->` before `</body>`.
 - `styles.css` receives only the CSS currently inside `<style>`.
 - `app.js` receives only the JavaScript currently inside `<script>`.
 
@@ -248,12 +248,12 @@ The resulting `index.html` must still contain the same DOM nodes and IDs after `
 - [x] **Step 4: Replace the Kotlin asset object with a loader**
 
 ```kotlin
-package io.github.pointpatch.mcp.console
+package io.beyondwin.fixthis.mcp.console
 
 internal object FeedbackConsoleAssets {
     private const val BasePath = "/console"
-    private const val StylesPlaceholder = "<!-- POINTPATCH_STYLES -->"
-    private const val ScriptPlaceholder = "<!-- POINTPATCH_SCRIPT -->"
+    private const val StylesPlaceholder = "<!-- FIXTHIS_STYLES -->"
+    private const val ScriptPlaceholder = "<!-- FIXTHIS_SCRIPT -->"
 
     val indexHtml: String by lazy {
         readText("index.html")
@@ -284,7 +284,7 @@ internal object FeedbackConsoleAssets {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: PASS. Existing HTML contract tests still see `FeedbackConsoleAssets.indexHtml` with inline CSS and JavaScript.
@@ -292,19 +292,19 @@ Expected: PASS. Existing HTML contract tests still see `FeedbackConsoleAssets.in
 - [x] **Step 6: Commit**
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/main/resources/console pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt fixthis-mcp/src/main/resources/console fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "refactor: load feedback console assets from resources"
 ```
 
 ## Task 3: Add Studio Theme Entry Point And Tokens
 
 **Files:**
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/theme/StudioSpacing.kt`
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/theme/StudioShapes.kt`
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/theme/StudioElevation.kt`
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/theme/StudioSemanticColors.kt`
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/theme/StudioTheme.kt`
-- Modify: `pointpatch-compose-overlay/src/test/kotlin/io/github/pointpatch/compose/console/studio/StudioModelAndThemeTest.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/theme/StudioSpacing.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/theme/StudioShapes.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/theme/StudioElevation.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/theme/StudioSemanticColors.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/theme/StudioTheme.kt`
+- Modify: `fixthis-compose-overlay/src/test/kotlin/io/github/fixthis/compose/console/studio/StudioModelAndThemeTest.kt`
 
 - [x] **Step 1: Write token tests**
 
@@ -341,8 +341,8 @@ Add imports:
 
 ```kotlin
 import androidx.compose.ui.unit.dp
-import io.github.pointpatch.compose.console.studio.theme.StudioSpacing
-import io.github.pointpatch.compose.console.studio.theme.darkStudioSemanticColors
+import io.beyondwin.fixthis.compose.console.studio.theme.StudioSpacing
+import io.beyondwin.fixthis.compose.console.studio.theme.darkStudioSemanticColors
 ```
 
 - [x] **Step 2: Run the tests and confirm they are red**
@@ -350,7 +350,7 @@ import io.github.pointpatch.compose.console.studio.theme.darkStudioSemanticColor
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-overlay:testDebugUnitTest --tests io.github.pointpatch.compose.console.studio.StudioModelAndThemeTest
+./gradlew :fixthis-compose-overlay:testDebugUnitTest --tests io.beyondwin.fixthis.compose.console.studio.StudioModelAndThemeTest
 ```
 
 Expected: compile failure because `StudioSpacing` and `darkStudioSemanticColors` do not exist.
@@ -358,7 +358,7 @@ Expected: compile failure because `StudioSpacing` and `darkStudioSemanticColors`
 - [x] **Step 3: Add spacing, shapes, and elevation**
 
 ```kotlin
-package io.github.pointpatch.compose.console.studio.theme
+package io.beyondwin.fixthis.compose.console.studio.theme
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.Dp
@@ -376,7 +376,7 @@ internal data class StudioSpacing(
 ```
 
 ```kotlin
-package io.github.pointpatch.compose.console.studio.theme
+package io.beyondwin.fixthis.compose.console.studio.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Immutable
@@ -395,7 +395,7 @@ internal data class StudioShapes(
 ```
 
 ```kotlin
-package io.github.pointpatch.compose.console.studio.theme
+package io.beyondwin.fixthis.compose.console.studio.theme
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.Dp
@@ -413,7 +413,7 @@ internal data class StudioElevation(
 - [x] **Step 4: Add semantic colors and theme object**
 
 ```kotlin
-package io.github.pointpatch.compose.console.studio.theme
+package io.beyondwin.fixthis.compose.console.studio.theme
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
@@ -458,7 +458,7 @@ internal fun darkStudioSemanticColors(): StudioSemanticColors =
 ```
 
 ```kotlin
-package io.github.pointpatch.compose.console.studio.theme
+package io.beyondwin.fixthis.compose.console.studio.theme
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -516,7 +516,7 @@ internal object StudioThemeTokens {
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-overlay:testDebugUnitTest --tests io.github.pointpatch.compose.console.studio.StudioModelAndThemeTest
+./gradlew :fixthis-compose-overlay:testDebugUnitTest --tests io.beyondwin.fixthis.compose.console.studio.StudioModelAndThemeTest
 ```
 
 Expected: PASS.
@@ -524,23 +524,23 @@ Expected: PASS.
 - [x] **Step 6: Commit**
 
 ```bash
-git add pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/theme pointpatch-compose-overlay/src/test/kotlin/io/github/pointpatch/compose/console/studio/StudioModelAndThemeTest.kt
+git add fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/theme fixthis-compose-overlay/src/test/kotlin/io/github/fixthis/compose/console/studio/StudioModelAndThemeTest.kt
 git commit -m "feat: add studio theme tokens"
 ```
 
 ## Task 4: Introduce Feedback Domain Models In Compose Core
 
 **Files:**
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain/common/DomainIds.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain/annotation/Annotation.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain/session/Session.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain/snapshot/Snapshot.kt`
-- Create: `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/domain/annotation/AnnotationStatusTest.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/domain/common/DomainIds.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/domain/annotation/Annotation.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/domain/session/Session.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/domain/snapshot/Snapshot.kt`
+- Create: `fixthis-compose-core/src/test/kotlin/io/github/fixthis/compose/core/domain/annotation/AnnotationStatusTest.kt`
 
 - [x] **Step 1: Write a domain status test**
 
 ```kotlin
-package io.github.pointpatch.compose.core.domain.annotation
+package io.beyondwin.fixthis.compose.core.domain.annotation
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -562,7 +562,7 @@ class AnnotationStatusTest {
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-core:test --tests io.github.pointpatch.compose.core.domain.annotation.AnnotationStatusTest
+./gradlew :fixthis-compose-core:test --tests io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationStatusTest
 ```
 
 Expected: compile failure because the domain package does not exist.
@@ -570,7 +570,7 @@ Expected: compile failure because the domain package does not exist.
 - [x] **Step 3: Add stable value IDs**
 
 ```kotlin
-package io.github.pointpatch.compose.core.domain.common
+package io.beyondwin.fixthis.compose.core.domain.common
 
 @JvmInline
 value class AnnotationId(val value: String) {
@@ -597,14 +597,14 @@ value class SnapshotId(val value: String) {
 - [x] **Step 4: Add annotation domain model**
 
 ```kotlin
-package io.github.pointpatch.compose.core.domain.annotation
+package io.beyondwin.fixthis.compose.core.domain.annotation
 
-import io.github.pointpatch.compose.core.domain.common.AnnotationId
-import io.github.pointpatch.compose.core.domain.common.SessionId
-import io.github.pointpatch.compose.core.domain.common.SnapshotId
-import io.github.pointpatch.compose.core.model.PointPatchNode
-import io.github.pointpatch.compose.core.model.PointPatchRect
-import io.github.pointpatch.compose.core.model.SourceCandidate
+import io.beyondwin.fixthis.compose.core.domain.common.AnnotationId
+import io.beyondwin.fixthis.compose.core.domain.common.SessionId
+import io.beyondwin.fixthis.compose.core.domain.common.SnapshotId
+import io.beyondwin.fixthis.compose.core.model.FixThisNode
+import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.compose.core.model.SourceCandidate
 
 data class Annotation(
     val id: AnnotationId,
@@ -613,8 +613,8 @@ data class Annotation(
     val createdAtEpochMillis: Long,
     val updatedAtEpochMillis: Long,
     val target: AnnotationTarget,
-    val selectedNode: PointPatchNode? = null,
-    val nearbyNodes: List<PointPatchNode> = emptyList(),
+    val selectedNode: FixThisNode? = null,
+    val nearbyNodes: List<FixThisNode> = emptyList(),
     val sourceCandidates: List<SourceCandidate> = emptyList(),
     val screenshotCrop: SnapshotScreenshot? = null,
     val comment: String,
@@ -627,8 +627,8 @@ data class Annotation(
 )
 
 sealed interface AnnotationTarget {
-    data class Node(val nodeUid: String, val boundsInWindow: PointPatchRect) : AnnotationTarget
-    data class Area(val boundsInWindow: PointPatchRect) : AnnotationTarget
+    data class Node(val nodeUid: String, val boundsInWindow: FixThisRect) : AnnotationTarget
+    data class Area(val boundsInWindow: FixThisRect) : AnnotationTarget
 }
 
 enum class AnnotationDelivery {
@@ -664,11 +664,11 @@ data class SnapshotScreenshot(
 - [x] **Step 5: Add session and snapshot domain models**
 
 ```kotlin
-package io.github.pointpatch.compose.core.domain.session
+package io.beyondwin.fixthis.compose.core.domain.session
 
-import io.github.pointpatch.compose.core.domain.annotation.Annotation
-import io.github.pointpatch.compose.core.domain.common.SessionId
-import io.github.pointpatch.compose.core.domain.snapshot.Snapshot
+import io.beyondwin.fixthis.compose.core.domain.annotation.Annotation
+import io.beyondwin.fixthis.compose.core.domain.common.SessionId
+import io.beyondwin.fixthis.compose.core.domain.snapshot.Snapshot
 
 data class Session(
     val id: SessionId,
@@ -698,13 +698,13 @@ enum class SessionStatus {
 ```
 
 ```kotlin
-package io.github.pointpatch.compose.core.domain.snapshot
+package io.beyondwin.fixthis.compose.core.domain.snapshot
 
-import io.github.pointpatch.compose.core.domain.annotation.SnapshotScreenshot
-import io.github.pointpatch.compose.core.domain.common.SnapshotId
-import io.github.pointpatch.compose.core.model.PointPatchError
-import io.github.pointpatch.compose.core.model.PointPatchNode
-import io.github.pointpatch.compose.core.model.PointPatchRect
+import io.beyondwin.fixthis.compose.core.domain.annotation.SnapshotScreenshot
+import io.beyondwin.fixthis.compose.core.domain.common.SnapshotId
+import io.beyondwin.fixthis.compose.core.model.FixThisError
+import io.beyondwin.fixthis.compose.core.model.FixThisNode
+import io.beyondwin.fixthis.compose.core.model.FixThisRect
 
 data class Snapshot(
     val id: SnapshotId,
@@ -714,14 +714,14 @@ data class Snapshot(
     val screenshot: SnapshotScreenshot? = null,
     val roots: List<SnapshotRoot> = emptyList(),
     val sourceIndexAvailable: Boolean = false,
-    val errors: List<PointPatchError> = emptyList(),
+    val errors: List<FixThisError> = emptyList(),
 )
 
 data class SnapshotRoot(
     val rootIndex: Int,
-    val boundsInWindow: PointPatchRect,
-    val mergedNodes: List<PointPatchNode> = emptyList(),
-    val unmergedNodes: List<PointPatchNode> = emptyList(),
+    val boundsInWindow: FixThisRect,
+    val mergedNodes: List<FixThisNode> = emptyList(),
+    val unmergedNodes: List<FixThisNode> = emptyList(),
 )
 ```
 
@@ -730,7 +730,7 @@ data class SnapshotRoot(
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-core:test
+./gradlew :fixthis-compose-core:test
 ```
 
 Expected: PASS.
@@ -738,15 +738,15 @@ Expected: PASS.
 - [x] **Step 7: Commit**
 
 ```bash
-git add pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/domain
+git add fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/domain fixthis-compose-core/src/test/kotlin/io/github/fixthis/compose/core/domain
 git commit -m "feat: add feedback domain models"
 ```
 
 ## Task 5: Add MCP Domain Mappers Before Renaming DTOs
 
 **Files:**
-- Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/SessionDomainMappers.kt`
-- Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/ArchitectureCompatibilityTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/SessionDomainMappers.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/ArchitectureCompatibilityTest.kt`
 
 - [x] **Step 1: Add mapper compatibility tests**
 
@@ -760,21 +760,21 @@ fun legacyReadyStatusMapsToOpenDomainStatus() {
         screenId = "screen-1",
         createdAtEpochMillis = 12L,
         updatedAtEpochMillis = 13L,
-        target = FeedbackTarget.Area(PointPatchRect(1f, 2f, 3f, 4f)),
+        target = FeedbackTarget.Area(FixThisRect(1f, 2f, 3f, 4f)),
         comment = "Ready from old session",
         status = FeedbackItemStatus.READY,
     )
 
     val domain = dto.toDomainAnnotation(sessionId = "session-1")
 
-    assertEquals(io.github.pointpatch.compose.core.domain.annotation.AnnotationStatus.OPEN, domain.status)
+    assertEquals(io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationStatus.OPEN, domain.status)
 }
 
 @Test
 fun domainSessionMapsBackToExistingWireFieldNames() {
     val dto = FeedbackSession(
         sessionId = "session-1",
-        packageName = "io.github.pointpatch.sample",
+        packageName = "io.beyondwin.fixthis.sample",
         projectRoot = "/repo",
         createdAtEpochMillis = 10L,
         updatedAtEpochMillis = 20L,
@@ -794,7 +794,7 @@ fun domainSessionMapsBackToExistingWireFieldNames() {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.ArchitectureCompatibilityTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.ArchitectureCompatibilityTest
 ```
 
 Expected: compile failure because the mapper functions do not exist.
@@ -802,21 +802,21 @@ Expected: compile failure because the mapper functions do not exist.
 - [x] **Step 3: Add the mapper file**
 
 ```kotlin
-package io.github.pointpatch.mcp.session
+package io.beyondwin.fixthis.mcp.session
 
-import io.github.pointpatch.compose.core.domain.annotation.Annotation
-import io.github.pointpatch.compose.core.domain.annotation.AnnotationDelivery
-import io.github.pointpatch.compose.core.domain.annotation.AnnotationStatus
-import io.github.pointpatch.compose.core.domain.annotation.AnnotationTarget
-import io.github.pointpatch.compose.core.domain.annotation.SnapshotScreenshot
-import io.github.pointpatch.compose.core.domain.common.AnnotationId
-import io.github.pointpatch.compose.core.domain.common.SessionId
-import io.github.pointpatch.compose.core.domain.common.SnapshotId
-import io.github.pointpatch.compose.core.domain.session.Session
-import io.github.pointpatch.compose.core.domain.session.SessionHandoffBatch
-import io.github.pointpatch.compose.core.domain.session.SessionStatus
-import io.github.pointpatch.compose.core.domain.snapshot.Snapshot
-import io.github.pointpatch.compose.core.domain.snapshot.SnapshotRoot
+import io.beyondwin.fixthis.compose.core.domain.annotation.Annotation
+import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationDelivery
+import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationStatus
+import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationTarget
+import io.beyondwin.fixthis.compose.core.domain.annotation.SnapshotScreenshot
+import io.beyondwin.fixthis.compose.core.domain.common.AnnotationId
+import io.beyondwin.fixthis.compose.core.domain.common.SessionId
+import io.beyondwin.fixthis.compose.core.domain.common.SnapshotId
+import io.beyondwin.fixthis.compose.core.domain.session.Session
+import io.beyondwin.fixthis.compose.core.domain.session.SessionHandoffBatch
+import io.beyondwin.fixthis.compose.core.domain.session.SessionStatus
+import io.beyondwin.fixthis.compose.core.domain.snapshot.Snapshot
+import io.beyondwin.fixthis.compose.core.domain.snapshot.SnapshotRoot
 
 fun FeedbackSession.toDomainSession(): Session =
     Session(
@@ -1024,7 +1024,7 @@ private fun SnapshotScreenshot.toFeedbackScreenshotDto(): FeedbackScreenshot =
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test
+./gradlew :fixthis-mcp:test
 ```
 
 Expected: PASS.
@@ -1032,35 +1032,35 @@ Expected: PASS.
 - [x] **Step 5: Commit**
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/SessionDomainMappers.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/ArchitectureCompatibilityTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/SessionDomainMappers.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/ArchitectureCompatibilityTest.kt
 git commit -m "feat: map session dto models to domain models"
 ```
 
 ## Task 6: Add Repository Contracts And Use Cases
 
 **Files:**
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain/session/SessionRepository.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain/annotation/AnnotationRepository.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain/snapshot/SnapshotRepository.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/usecase/annotation/CreateAnnotationUseCase.kt`
-- Create: `pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/usecase/snapshot/SaveSnapshotUseCase.kt`
-- Create: `pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/usecase/annotation/CreateAnnotationUseCaseTest.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/domain/session/SessionRepository.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/domain/annotation/AnnotationRepository.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/domain/snapshot/SnapshotRepository.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/usecase/annotation/CreateAnnotationUseCase.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/usecase/snapshot/SaveSnapshotUseCase.kt`
+- Create: `fixthis-compose-core/src/test/kotlin/io/github/fixthis/compose/core/usecase/annotation/CreateAnnotationUseCaseTest.kt`
 
 - [x] **Step 1: Write the first use case test**
 
 ```kotlin
-package io.github.pointpatch.compose.core.usecase.annotation
+package io.beyondwin.fixthis.compose.core.usecase.annotation
 
-import io.github.pointpatch.compose.core.domain.annotation.AnnotationStatus
-import io.github.pointpatch.compose.core.domain.annotation.AnnotationTarget
-import io.github.pointpatch.compose.core.domain.annotation.Annotation
-import io.github.pointpatch.compose.core.domain.annotation.AnnotationRepository
-import io.github.pointpatch.compose.core.domain.common.AnnotationId
-import io.github.pointpatch.compose.core.domain.common.SessionId
-import io.github.pointpatch.compose.core.domain.common.SnapshotId
-import io.github.pointpatch.compose.core.domain.session.Session
-import io.github.pointpatch.compose.core.domain.session.SessionRepository
-import io.github.pointpatch.compose.core.model.PointPatchRect
+import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationStatus
+import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationTarget
+import io.beyondwin.fixthis.compose.core.domain.annotation.Annotation
+import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationRepository
+import io.beyondwin.fixthis.compose.core.domain.common.AnnotationId
+import io.beyondwin.fixthis.compose.core.domain.common.SessionId
+import io.beyondwin.fixthis.compose.core.domain.common.SnapshotId
+import io.beyondwin.fixthis.compose.core.domain.session.Session
+import io.beyondwin.fixthis.compose.core.domain.session.SessionRepository
+import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -1071,7 +1071,7 @@ class CreateAnnotationUseCaseTest {
         val sessions = FakeSessionRepository(
             Session(
                 id = SessionId("session-1"),
-                packageName = "io.github.pointpatch.sample",
+                packageName = "io.beyondwin.fixthis.sample",
                 projectRoot = "/repo",
                 createdAtEpochMillis = 10L,
                 updatedAtEpochMillis = 10L,
@@ -1088,7 +1088,7 @@ class CreateAnnotationUseCaseTest {
         val created = useCase(
             sessionId = SessionId("session-1"),
             snapshotId = SnapshotId("screen-1"),
-            target = AnnotationTarget.Area(PointPatchRect(1f, 2f, 3f, 4f)),
+            target = AnnotationTarget.Area(FixThisRect(1f, 2f, 3f, 4f)),
             comment = "Fix spacing",
         )
 
@@ -1124,7 +1124,7 @@ private class FakeAnnotationRepository : AnnotationRepository {
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-core:test --tests io.github.pointpatch.compose.core.usecase.annotation.CreateAnnotationUseCaseTest
+./gradlew :fixthis-compose-core:test --tests io.beyondwin.fixthis.compose.core.usecase.annotation.CreateAnnotationUseCaseTest
 ```
 
 Expected: compile failure because repositories and use case do not exist.
@@ -1132,9 +1132,9 @@ Expected: compile failure because repositories and use case do not exist.
 - [x] **Step 3: Add repository interfaces**
 
 ```kotlin
-package io.github.pointpatch.compose.core.domain.session
+package io.beyondwin.fixthis.compose.core.domain.session
 
-import io.github.pointpatch.compose.core.domain.common.SessionId
+import io.beyondwin.fixthis.compose.core.domain.common.SessionId
 
 interface SessionRepository {
     suspend fun find(id: SessionId): Session?
@@ -1143,7 +1143,7 @@ interface SessionRepository {
 ```
 
 ```kotlin
-package io.github.pointpatch.compose.core.domain.annotation
+package io.beyondwin.fixthis.compose.core.domain.annotation
 
 interface AnnotationRepository {
     suspend fun save(annotation: Annotation): Annotation
@@ -1151,9 +1151,9 @@ interface AnnotationRepository {
 ```
 
 ```kotlin
-package io.github.pointpatch.compose.core.domain.snapshot
+package io.beyondwin.fixthis.compose.core.domain.snapshot
 
-import io.github.pointpatch.compose.core.domain.common.SnapshotId
+import io.beyondwin.fixthis.compose.core.domain.common.SnapshotId
 
 interface SnapshotRepository {
     suspend fun find(id: SnapshotId): Snapshot?
@@ -1164,16 +1164,16 @@ interface SnapshotRepository {
 - [x] **Step 4: Add `CreateAnnotationUseCase`**
 
 ```kotlin
-package io.github.pointpatch.compose.core.usecase.annotation
+package io.beyondwin.fixthis.compose.core.usecase.annotation
 
-import io.github.pointpatch.compose.core.domain.annotation.Annotation
-import io.github.pointpatch.compose.core.domain.annotation.AnnotationRepository
-import io.github.pointpatch.compose.core.domain.annotation.AnnotationStatus
-import io.github.pointpatch.compose.core.domain.annotation.AnnotationTarget
-import io.github.pointpatch.compose.core.domain.common.AnnotationId
-import io.github.pointpatch.compose.core.domain.common.SessionId
-import io.github.pointpatch.compose.core.domain.common.SnapshotId
-import io.github.pointpatch.compose.core.domain.session.SessionRepository
+import io.beyondwin.fixthis.compose.core.domain.annotation.Annotation
+import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationRepository
+import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationStatus
+import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationTarget
+import io.beyondwin.fixthis.compose.core.domain.common.AnnotationId
+import io.beyondwin.fixthis.compose.core.domain.common.SessionId
+import io.beyondwin.fixthis.compose.core.domain.common.SnapshotId
+import io.beyondwin.fixthis.compose.core.domain.session.SessionRepository
 
 class CreateAnnotationUseCase(
     private val sessions: SessionRepository,
@@ -1211,7 +1211,7 @@ class CreateAnnotationUseCase(
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-core:test
+./gradlew :fixthis-compose-core:test
 ```
 
 Expected: PASS.
@@ -1219,23 +1219,23 @@ Expected: PASS.
 - [x] **Step 6: Commit**
 
 ```bash
-git add pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/usecase pointpatch-compose-core/src/test/kotlin/io/github/pointpatch/compose/core/usecase
+git add fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/domain fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/usecase fixthis-compose-core/src/test/kotlin/io/github/fixthis/compose/core/usecase
 git commit -m "feat: add feedback repositories and create annotation use case"
 ```
 
 ## Task 7: Rename MCP Wire Models To DTO Names
 
 **Files:**
-- Move: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionModels.kt` to `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/SessionDtoModels.kt`
-- Move: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleItemModels.kt` to `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/AnnotationRequestModels.kt`
-- Modify: all imports and references under `pointpatch-mcp/src/main/kotlin`, `pointpatch-mcp/src/test/kotlin`, `pointpatch-cli/src/main/kotlin`, and `pointpatch-cli/src/test/kotlin`
+- Move: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionModels.kt` to `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/SessionDtoModels.kt`
+- Move: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleItemModels.kt` to `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/AnnotationRequestModels.kt`
+- Modify: all imports and references under `fixthis-mcp/src/main/kotlin`, `fixthis-mcp/src/test/kotlin`, `fixthis-cli/src/main/kotlin`, and `fixthis-cli/src/test/kotlin`
 
 - [x] **Step 1: Run compatibility tests before the rename**
 
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.ArchitectureCompatibilityTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.ArchitectureCompatibilityTest
 ```
 
 Expected: PASS.
@@ -1306,24 +1306,24 @@ Expected: PASS.
 - [x] **Step 6: Commit**
 
 ```bash
-git add pointpatch-mcp pointpatch-cli
+git add fixthis-mcp fixthis-cli
 git commit -m "refactor: rename feedback wire models to annotation dto names"
 ```
 
 ## Task 8: Split Preview Cache And Source Index Registry Out Of Session Service
 
 **Files:**
-- Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/PreviewSnapshotCache.kt`
-- Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/SourceIndexRegistry.kt`
-- Create: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/PreviewSnapshotCacheTest.kt`
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/PreviewSnapshotCache.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/SourceIndexRegistry.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/PreviewSnapshotCacheTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionService.kt`
 
 - [x] **Step 1: Write cache tests**
 
 ```kotlin
-package io.github.pointpatch.mcp.session
+package io.beyondwin.fixthis.mcp.session
 
-import io.github.pointpatch.mcp.console.FeedbackPreviewSnapshot
+import io.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -1375,7 +1375,7 @@ private fun previewRecord(previewId: String): PreviewRecord =
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.PreviewSnapshotCacheTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.PreviewSnapshotCacheTest
 ```
 
 Expected: compile failure because the cache and top-level `PreviewRecord` do not exist.
@@ -1383,10 +1383,10 @@ Expected: compile failure because the cache and top-level `PreviewRecord` do not
 - [x] **Step 3: Add cache and top-level record**
 
 ```kotlin
-package io.github.pointpatch.mcp.session
+package io.beyondwin.fixthis.mcp.session
 
-import io.github.pointpatch.compose.core.source.SourceIndex
-import io.github.pointpatch.mcp.console.FeedbackPreviewSnapshot
+import io.beyondwin.fixthis.compose.core.source.SourceIndex
+import io.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot
 
 data class PreviewRecord(
     val sessionId: String,
@@ -1427,9 +1427,9 @@ class PreviewSnapshotCache(
 - [x] **Step 4: Add source index registry**
 
 ```kotlin
-package io.github.pointpatch.mcp.session
+package io.beyondwin.fixthis.mcp.session
 
-import io.github.pointpatch.compose.core.source.SourceIndex
+import io.beyondwin.fixthis.compose.core.source.SourceIndex
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -1471,7 +1471,7 @@ Replace `previewSnapshots` and `previewSavesInFlight` access in small increments
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionServiceTest --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: PASS.
@@ -1479,21 +1479,21 @@ Expected: PASS.
 - [x] **Step 7: Commit**
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/PreviewSnapshotCacheTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/PreviewSnapshotCacheTest.kt
 git commit -m "refactor: split preview cache from session service"
 ```
 
 ## Task 9: Extract Screenshot Artifact Promotion
 
 **Files:**
-- Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/ScreenshotArtifactPromoter.kt`
-- Create: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/ScreenshotArtifactPromoterTest.kt`
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/ScreenshotArtifactPromoter.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/ScreenshotArtifactPromoterTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionService.kt`
 
 - [x] **Step 1: Write artifact promotion test**
 
 ```kotlin
-package io.github.pointpatch.mcp.session
+package io.beyondwin.fixthis.mcp.session
 
 import java.io.File
 import kotlin.test.Test
@@ -1503,8 +1503,8 @@ import kotlin.test.assertTrue
 class ScreenshotArtifactPromoterTest {
     @Test
     fun promotesPreviewScreenshotsIntoSessionArtifactDirectory() {
-        val root = createTempDir(prefix = "pointpatch-promoter-")
-        val previewDir = File(root, ".pointpatch/preview-cache/session-1/preview-1").apply { mkdirs() }
+        val root = createTempDir(prefix = "fixthis-promoter-")
+        val previewDir = File(root, ".fixthis/preview-cache/session-1/preview-1").apply { mkdirs() }
         val full = File(previewDir, "source-full.png").apply { writeBytes(byteArrayOf(1, 2, 3)) }
         val crop = File(previewDir, "source-crop.png").apply { writeBytes(byteArrayOf(4, 5, 6)) }
         val promoter = ScreenshotArtifactPromoter()
@@ -1521,8 +1521,8 @@ class ScreenshotArtifactPromoterTest {
         val promoted = promoter.promote(projectRoot = root.absolutePath, sessionId = "session-1", screen = screen)
 
         val screenshot = promoted.screenshot!!
-        assertTrue(screenshot.desktopFullPath!!.contains(".pointpatch/feedback-sessions/session-1/artifacts/screens/screen-1"))
-        assertTrue(screenshot.desktopCropPath!!.contains(".pointpatch/feedback-sessions/session-1/artifacts/screens/screen-1"))
+        assertTrue(screenshot.desktopFullPath!!.contains(".fixthis/feedback-sessions/session-1/artifacts/screens/screen-1"))
+        assertTrue(screenshot.desktopCropPath!!.contains(".fixthis/feedback-sessions/session-1/artifacts/screens/screen-1"))
         assertEquals(byteArrayOf(1, 2, 3).toList(), File(screenshot.desktopFullPath!!).readBytes().toList())
         assertEquals(byteArrayOf(4, 5, 6).toList(), File(screenshot.desktopCropPath!!).readBytes().toList())
     }
@@ -1534,7 +1534,7 @@ class ScreenshotArtifactPromoterTest {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.ScreenshotArtifactPromoterTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.ScreenshotArtifactPromoterTest
 ```
 
 Expected: compile failure because `ScreenshotArtifactPromoter` does not exist.
@@ -1542,7 +1542,7 @@ Expected: compile failure because `ScreenshotArtifactPromoter` does not exist.
 - [x] **Step 3: Add promoter**
 
 ```kotlin
-package io.github.pointpatch.mcp.session
+package io.beyondwin.fixthis.mcp.session
 
 import java.io.File
 
@@ -1553,7 +1553,7 @@ class ScreenshotArtifactPromoter {
             .screenArtifactDirectory(sessionId, screen.screenId)
         if (!artifactDirectory.exists()) {
             check(artifactDirectory.mkdirs()) {
-                "Could not create PointPatch artifact directory: ${artifactDirectory.absolutePath}"
+                "Could not create FixThis artifact directory: ${artifactDirectory.absolutePath}"
             }
         }
         val promotedFullPath = promotePath(
@@ -1612,7 +1612,7 @@ Remove the old private `promotePreviewArtifacts` and `promoteScreenshotPath` fun
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test
+./gradlew :fixthis-mcp:test
 ```
 
 Expected: PASS.
@@ -1620,23 +1620,23 @@ Expected: PASS.
 - [x] **Step 6: Commit**
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/ScreenshotArtifactPromoterTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/ScreenshotArtifactPromoterTest.kt
 git commit -m "refactor: extract screenshot artifact promotion"
 ```
 
 ## Task 10: Make OverlayMode Transitions Explicit
 
 **Files:**
-- Modify: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/overlay/OverlayMode.kt`
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/overlay/OverlayStateMachine.kt`
-- Create: `pointpatch-compose-overlay/src/test/kotlin/io/github/pointpatch/compose/overlay/OverlayStateMachineTest.kt`
-- Modify: `pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/overlay/PointPatchOverlayController.kt`
+- Modify: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/overlay/OverlayMode.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/overlay/OverlayStateMachine.kt`
+- Create: `fixthis-compose-overlay/src/test/kotlin/io/github/fixthis/compose/overlay/OverlayStateMachineTest.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/overlay/FixThisOverlayController.kt`
 - Modify: related overlay tests
 
 - [x] **Step 1: Write state transition tests**
 
 ```kotlin
-package io.github.pointpatch.compose.overlay
+package io.beyondwin.fixthis.compose.overlay
 
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
@@ -1683,7 +1683,7 @@ class OverlayStateMachineTest {
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-overlay:testDebugUnitTest --tests io.github.pointpatch.compose.overlay.OverlayStateMachineTest
+./gradlew :fixthis-compose-overlay:testDebugUnitTest --tests io.beyondwin.fixthis.compose.overlay.OverlayStateMachineTest
 ```
 
 Expected: compile failure because `OverlayStateMachine`, `Select`, `Loading`, and `Error` do not exist.
@@ -1696,8 +1696,8 @@ sealed interface OverlayMode {
     data object MenuOpen : OverlayMode
     data class Select(val requestId: String?) : OverlayMode
     data class Loading(val reason: LoadingReason) : OverlayMode
-    data class ReviewingSelection(val draft: PointPatchDraft) : OverlayMode
-    data class Commenting(val draft: PointPatchDraft) : OverlayMode
+    data class ReviewingSelection(val draft: FixThisDraft) : OverlayMode
+    data class Commenting(val draft: FixThisDraft) : OverlayMode
     data class Exported(val annotationId: String) : OverlayMode
     data class Error(val cause: OverlayError, val recoverable: Boolean) : OverlayMode
 
@@ -1719,7 +1719,7 @@ sealed interface OverlayMode {
 - [x] **Step 4: Add state machine**
 
 ```kotlin
-package io.github.pointpatch.compose.overlay
+package io.beyondwin.fixthis.compose.overlay
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -1794,7 +1794,7 @@ mode is OverlayMode.Select
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-overlay:testDebugUnitTest :pointpatch-compose-sidekick:testDebugUnitTest
+./gradlew :fixthis-compose-overlay:testDebugUnitTest :fixthis-compose-sidekick:testDebugUnitTest
 ```
 
 Expected: PASS.
@@ -1802,18 +1802,18 @@ Expected: PASS.
 - [x] **Step 7: Commit**
 
 ```bash
-git add pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/overlay pointpatch-compose-overlay/src/test/kotlin/io/github/pointpatch/compose/overlay pointpatch-compose-sidekick/src/main/kotlin/io/github/pointpatch/compose/sidekick/overlay pointpatch-compose-sidekick/src/test/kotlin
+git add fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/overlay fixthis-compose-overlay/src/test/kotlin/io/github/fixthis/compose/overlay fixthis-compose-sidekick/src/main/kotlin/io/github/fixthis/compose/sidekick/overlay fixthis-compose-sidekick/src/test/kotlin
 git commit -m "refactor: add overlay state machine"
 ```
 
 ## Task 11: Reduce PreviewSurface Responsibility
 
 **Files:**
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas/PreviewScreenshotContent.kt`
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas/PreviewGestureLayer.kt`
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas/AnnotationOverlay.kt`
-- Modify: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas/PreviewSurface.kt`
-- Test: `pointpatch-compose-overlay/src/test/kotlin/io/github/pointpatch/compose/console/studio/canvas/CanvasHelpersTest.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/canvas/PreviewScreenshotContent.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/canvas/PreviewGestureLayer.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/canvas/AnnotationOverlay.kt`
+- Modify: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/canvas/PreviewSurface.kt`
+- Test: `fixthis-compose-overlay/src/test/kotlin/io/github/fixthis/compose/console/studio/canvas/CanvasHelpersTest.kt`
 
 - [x] **Step 1: Add helper tests for gesture enablement**
 
@@ -1875,7 +1875,7 @@ After extraction, `PreviewSurface.kt` should contain the public `PreviewSurface`
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-overlay:testDebugUnitTest
+./gradlew :fixthis-compose-overlay:testDebugUnitTest
 ```
 
 Expected: PASS.
@@ -1883,17 +1883,17 @@ Expected: PASS.
 - [x] **Step 7: Commit**
 
 ```bash
-git add pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas pointpatch-compose-overlay/src/test/kotlin/io/github/pointpatch/compose/console/studio/canvas
+git add fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/canvas fixthis-compose-overlay/src/test/kotlin/io/github/fixthis/compose/console/studio/canvas
 git commit -m "refactor: split preview surface rendering"
 ```
 
 ## Task 12: Reduce CanvasToolbar Responsibility
 
 **Files:**
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas/toolbar/ToolSwitcher.kt`
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas/toolbar/ToolStatusBar.kt`
-- Create: `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas/toolbar/ZoomControl.kt`
-- Move: toolbar-specific logic from `pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas/CanvasToolbar.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/canvas/toolbar/ToolSwitcher.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/canvas/toolbar/ToolStatusBar.kt`
+- Create: `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/canvas/toolbar/ZoomControl.kt`
+- Move: toolbar-specific logic from `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/canvas/CanvasToolbar.kt`
 
 - [x] **Step 1: Move state-free tool switcher first**
 
@@ -1933,7 +1933,7 @@ Create `ToolStatusBar.kt` for hint text and `ZoomControl.kt` for zoom buttons. K
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-overlay:testDebugUnitTest
+./gradlew :fixthis-compose-overlay:testDebugUnitTest
 ```
 
 Expected: PASS.
@@ -1941,7 +1941,7 @@ Expected: PASS.
 - [x] **Step 5: Commit**
 
 ```bash
-git add pointpatch-compose-overlay/src/main/kotlin/io/github/pointpatch/compose/console/studio/canvas pointpatch-compose-overlay/src/test/kotlin/io/github/pointpatch/compose/console/studio/canvas
+git add fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/canvas fixthis-compose-overlay/src/test/kotlin/io/github/fixthis/compose/console/studio/canvas
 git commit -m "refactor: split canvas toolbar controls"
 ```
 
@@ -1961,7 +1961,7 @@ git commit -m "refactor: split canvas toolbar controls"
 ```markdown
 # Architecture Decision Records
 
-This directory records durable architecture decisions for PointPatch.
+This directory records durable architecture decisions for FixThis.
 
 Each ADR uses a monotonic numeric prefix, a short kebab-case title, and one status:
 
@@ -1985,7 +1985,7 @@ Use this exact structure for each ADR and fill the title and decision sentence f
 
 ## Context
 
-PointPatch now has UI, MCP, CLI, capture, persistence, and Gradle plugin responsibilities. Domain concepts must not depend on MCP JSON, Android UI, or file-system layout.
+FixThis now has UI, MCP, CLI, capture, persistence, and Gradle plugin responsibilities. Domain concepts must not depend on MCP JSON, Android UI, or file-system layout.
 
 ## Decision
 
@@ -2009,8 +2009,8 @@ PointPatch now has UI, MCP, CLI, capture, persistence, and Gradle plugin respons
 ## Summary
 
 ## Impacted Layers
-- [ ] Domain (`pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/domain`)
-- [ ] Use cases (`pointpatch-compose-core/src/main/kotlin/io/github/pointpatch/compose/core/usecase`)
+- [ ] Domain (`fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/domain`)
+- [ ] Use cases (`fixthis-compose-core/src/main/kotlin/io/github/fixthis/compose/core/usecase`)
 - [ ] MCP DTO / persistence
 - [ ] CLI / bridge
 - [ ] Compose overlay UI
@@ -2067,7 +2067,7 @@ Expected: PASS.
 Run:
 
 ```bash
-./gradlew :pointpatch-compose-overlay:testDebugUnitTest :pointpatch-compose-sidekick:testDebugUnitTest
+./gradlew :fixthis-compose-overlay:testDebugUnitTest :fixthis-compose-sidekick:testDebugUnitTest
 ```
 
 Expected: PASS.
@@ -2077,8 +2077,8 @@ Expected: PASS.
 Run:
 
 ```bash
-rg -n "io\\.github\\.pointpatch\\.mcp" pointpatch-compose-core/src/main/kotlin
-rg -n "FeedbackItem|CapturedScreen|FeedbackSession" pointpatch-compose-core/src/main/kotlin pointpatch-compose-overlay/src/main/kotlin pointpatch-mcp/src/main/kotlin
+rg -n "io\\.github\\.fixthis\\.mcp" fixthis-compose-core/src/main/kotlin
+rg -n "FeedbackItem|CapturedScreen|FeedbackSession" fixthis-compose-core/src/main/kotlin fixthis-compose-overlay/src/main/kotlin fixthis-mcp/src/main/kotlin
 ```
 
 Expected:
@@ -2089,16 +2089,16 @@ Expected:
 Actual:
 
 - `./gradlew test`: PASS, exit code 0.
-- `./gradlew :pointpatch-gradle-plugin:test`: PASS, exit code 0.
-- `./gradlew :pointpatch-compose-overlay:testDebugUnitTest :pointpatch-compose-sidekick:testDebugUnitTest`: PASS, exit code 0.
-- `rg -n "io\\.github\\.pointpatch\\.mcp" pointpatch-compose-core/src/main/kotlin`: no matches, exit code 1 as expected.
-- `rg -n "FeedbackItem|CapturedScreen|FeedbackSession" pointpatch-compose-core/src/main/kotlin pointpatch-compose-overlay/src/main/kotlin pointpatch-mcp/src/main/kotlin`: matches only retained MCP service/API, persistence, console/tool compatibility names, and human-facing feedback item/session strings; no `compose-core` or `compose-overlay` matches, and no unrenamed MCP wire DTO class blockers.
+- `./gradlew :fixthis-gradle-plugin:test`: PASS, exit code 0.
+- `./gradlew :fixthis-compose-overlay:testDebugUnitTest :fixthis-compose-sidekick:testDebugUnitTest`: PASS, exit code 0.
+- `rg -n "io\\.github\\.fixthis\\.mcp" fixthis-compose-core/src/main/kotlin`: no matches, exit code 1 as expected.
+- `rg -n "FeedbackItem|CapturedScreen|FeedbackSession" fixthis-compose-core/src/main/kotlin fixthis-compose-overlay/src/main/kotlin fixthis-mcp/src/main/kotlin`: matches only retained MCP service/API, persistence, console/tool compatibility names, and human-facing feedback item/session strings; no `compose-core` or `compose-overlay` matches, and no unrenamed MCP wire DTO class blockers.
 
 - [x] **Step 4: Commit final cleanup**
 
 ```bash
 git status --short
-git add docs/adr .github pointpatch-compose-core pointpatch-compose-overlay pointpatch-compose-sidekick pointpatch-mcp pointpatch-cli
+git add docs/adr .github fixthis-compose-core fixthis-compose-overlay fixthis-compose-sidekick fixthis-mcp fixthis-cli
 git commit -m "chore: complete architecture improvement cleanup"
 ```
 
@@ -2121,4 +2121,4 @@ git commit -m "chore: complete architecture improvement cleanup"
 - Type consistency:
   - Domain models use `Annotation`, `Snapshot`, and `Session`.
   - MCP wire models become `AnnotationDto`, `SnapshotDto`, and `SessionDto`.
-  - Existing `PointPatchAnnotation` remains the sidekick capture payload until a separate capture-domain migration is designed.
+  - Existing `FixThisAnnotation` remains the sidekick capture payload until a separate capture-domain migration is designed.

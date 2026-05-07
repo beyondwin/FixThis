@@ -31,14 +31,14 @@ The design also takes inspiration from the DTA project:
 - DTA GitHub repository: <https://github.com/yamsergey/dta>
 - User-provided DTA overview video: <https://www.youtube.com/watch?v=y_XaG8E1QuU>
 
-Useful DTA patterns for PointPatch are screenshot highlighting, click-to-select,
-layout/screenshot inspection, and visible device context. PointPatch should not
+Useful DTA patterns for FixThis are screenshot highlighting, click-to-select,
+layout/screenshot inspection, and visible device context. FixThis should not
 copy DTA's broader network inspector, mocking, websocket platform, arbitrary
 input, or automation scope.
 
 ## Product Decision
 
-PointPatch should make the feedback console feel like a clear review workspace.
+FixThis should make the feedback console feel like a clear review workspace.
 The user should always know:
 
 - which device is active
@@ -51,7 +51,7 @@ The user should always know:
 The existing V2 principles still apply:
 
 - the MCP process owns feedback session state
-- session data persists under `.pointpatch/feedback-sessions/`
+- session data persists under `.fixthis/feedback-sessions/`
 - Android remains debug-only and local-first
 - navigation remains limited to one explicit `back`, `tap`, or `swipe`
 - no text entry automation, script execution, exploration loops, cloud sync, or
@@ -71,8 +71,8 @@ The existing V2 principles still apply:
   draft workspace.
 - Preserve sent history as read-only session history.
 - Let users select and disconnect the active device in the browser console.
-- Keep existing MCP tools compatible, especially `pointpatch_read_feedback` and
-  `pointpatch_resolve_feedback`.
+- Keep existing MCP tools compatible, especially `fixthis_read_feedback` and
+  `fixthis_resolve_feedback`.
 
 ## Non-Goals
 
@@ -82,7 +82,7 @@ The existing V2 principles still apply:
   permissions.
 - Do not add DTA-style network inspection or mocking.
 - Do not push directly into a specific AI product API from the console. "Send to
-  Agent" means PointPatch records an agent-readable handoff batch that MCP tools
+  Agent" means FixThis records an agent-readable handoff batch that MCP tools
   can read.
 - Do not delete sent handoff history through casual clear actions.
 
@@ -149,7 +149,7 @@ Disconnect means:
 - disable live capture and navigation until another device is selected
 
 Disconnect must not call `adb disconnect`, detach USB, or affect the user's ADB
-server outside PointPatch-owned resources.
+server outside FixThis-owned resources.
 
 ## Modes
 
@@ -311,11 +311,11 @@ it is part of the persisted session.
 The console does not call an external AI API. It records a handoff batch so the
 agent can read it through MCP:
 
-- `pointpatch_list_feedback`
-- `pointpatch_read_feedback`
-- `pointpatch_resolve_feedback`
+- `fixthis_list_feedback`
+- `fixthis_read_feedback`
+- `fixthis_resolve_feedback`
 
-`pointpatch_read_feedback` should make draft vs sent state clear. It should
+`fixthis_read_feedback` should make draft vs sent state clear. It should
 include handoff history, batch numbers, item comments, target bounds, selected
 node metadata when available, screenshot paths, and screen labels.
 
@@ -457,14 +457,14 @@ The server validates that:
 
 Existing tools remain the primary agent interface.
 
-`pointpatch_list_feedback` should summarize:
+`fixthis_list_feedback` should summarize:
 
 - draft item count
 - sent batch count
 - unresolved sent item count
 - latest batch summary
 
-`pointpatch_read_feedback` should include:
+`fixthis_read_feedback` should include:
 
 - current draft items
 - sent history grouped by batch
@@ -472,11 +472,11 @@ Existing tools remain the primary agent interface.
 - screen labels and screenshot paths
 - source candidates and selected node metadata when available
 
-`pointpatch_resolve_feedback` keeps updating item resolution state. Resolving a
+`fixthis_resolve_feedback` keeps updating item resolution state. Resolving a
 sent item updates the sent history view because the history references live item
 ids, not copied item objects.
 
-An optional future tool such as `pointpatch_send_feedback_to_agent` can mirror
+An optional future tool such as `fixthis_send_feedback_to_agent` can mirror
 the console's handoff creation, but the first implementation can keep handoff
 creation console-only if MCP agents already read the queue.
 
@@ -496,12 +496,12 @@ Affected operations include:
 - `shell monkey`
 
 The selected serial should be console-process state, not global project
-configuration. It should not be persisted into `.pointpatch/project.json`.
+configuration. It should not be persisted into `.fixthis/project.json`.
 
 ## Privacy And Security
 
-- Keep all session data and screenshots under project-local `.pointpatch/`.
-- Keep `.pointpatch/feedback-sessions/` and screenshot artifacts ignored by git.
+- Keep all session data and screenshots under project-local `.fixthis/`.
+- Keep `.fixthis/feedback-sessions/` and screenshot artifacts ignored by git.
 - Keep the console bound to localhost by default.
 - Do not add Android network permissions.
 - Do not expose screenshot paths outside the current project and referenced
@@ -537,7 +537,7 @@ Unit tests:
 - draft clearing preserves sent history
 - handoff creation moves draft items to sent delivery state
 - old session JSON loads with empty handoff history
-- `pointpatch_read_feedback` groups draft and sent batches
+- `fixthis_read_feedback` groups draft and sent batches
 
 UI asset smoke tests:
 
@@ -559,7 +559,7 @@ Manual smoke:
 7. Send draft to agent and verify the draft clears.
 8. Verify `Sent History` shows Batch #1 with both items.
 9. Refresh the browser and verify history persists.
-10. Use `pointpatch_read_feedback` and verify the agent-readable output includes
+10. Use `fixthis_read_feedback` and verify the agent-readable output includes
     the sent batch.
 11. Switch to Navigate mode and verify screenshot click performs a tap.
 12. Disconnect the device from the console and verify capture/navigation are
@@ -579,7 +579,7 @@ Manual smoke:
 ## Acceptance Criteria
 
 - The user can select an active ADB device from the browser console.
-- Disconnect clears only PointPatch console device state and owned forwards.
+- Disconnect clears only FixThis console device state and owned forwards.
 - The snapshot has clear `Select` and `Navigate` modes.
 - Select mode click highlights a component without tapping the app.
 - Select mode drag creates a custom visual area.
@@ -590,7 +590,7 @@ Manual smoke:
 - `Send Draft to Agent` creates a batch, clears active draft state, and keeps the
   batch visible in sent history.
 - Sent history survives console refresh and MCP restart.
-- `pointpatch_read_feedback` exposes draft and sent feedback in an
+- `fixthis_read_feedback` exposes draft and sent feedback in an
   agent-readable form.
 - Session, screen, item, and batch lists use human-readable labels with UUIDs
   only as secondary metadata.

@@ -12,12 +12,12 @@
 
 ## File Structure
 
-- Modify `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
+- Modify `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`
   - Add device control CSS classes.
   - Replace topbar device markup.
   - Add device UI state helpers and short-label helpers.
   - Update refresh/select/clear behavior and copy.
-- Modify `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
   - Update existing static HTML assertions.
   - Add focused static tests for device state copy, helper functions, and no raw selected serial in normal status text.
 
@@ -28,7 +28,7 @@ The first implementation should not modify server API models. The current `Conso
 ### Task 1: Update Static HTML Tests For The New Device Contract
 
 **Files:**
-- Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [x] **Step 1: Replace the old device assertions in `consoleHtmlIncludesSelectionHandoffWorkspace`**
 
@@ -45,8 +45,8 @@ assertTrue(html.contains("aria-label=\"Android device\""))
 assertTrue(html.contains("aria-label=\"Refresh devices\""))
 assertTrue(html.contains("title=\"Refresh devices\""))
 assertTrue(html.contains("Clear selection"))
-assertTrue(html.contains("aria-label=\"Clear PointPatch device selection\""))
-assertTrue(html.contains("title=\"Clear PointPatch device selection\""))
+assertTrue(html.contains("aria-label=\"Clear FixThis device selection\""))
+assertTrue(html.contains("title=\"Clear FixThis device selection\""))
 assertTrue(html.contains("/api/devices"))
 assertTrue(html.contains("/api/device/select"))
 assertTrue(html.contains("/api/device/disconnect"))
@@ -113,7 +113,7 @@ fun consoleHtmlShortensWifiAdbSerialsForNormalDeviceLabels() {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.consoleHtmlIncludesSelectionHandoffWorkspace --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.consoleHtmlShowsReadableDeviceConnectionStates --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.consoleHtmlShortensWifiAdbSerialsForNormalDeviceLabels
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlIncludesSelectionHandoffWorkspace --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlShowsReadableDeviceConnectionStates --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlShortensWifiAdbSerialsForNormalDeviceLabels
 ```
 
 Expected result: tests fail because `deviceControl`, connection state helpers, and serial shortening are not implemented yet.
@@ -123,7 +123,7 @@ Expected result: tests fail because `deviceControl`, connection state helpers, a
 ### Task 2: Replace Device Topbar Markup With The Compact Device Control
 
 **Files:**
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`
 
 - [x] **Step 1: Replace the device markup in `.studio-context`**
 
@@ -161,7 +161,7 @@ with:
   <option value="5000">5s</option>
 </select>
 <button id="refreshDevicesButton" class="icon-button" type="button" title="Refresh devices" aria-label="Refresh devices">↻</button>
-<button id="disconnectDeviceButton" class="clear-device-button" type="button" title="Clear PointPatch device selection" aria-label="Clear PointPatch device selection">Clear selection</button>
+<button id="disconnectDeviceButton" class="clear-device-button" type="button" title="Clear FixThis device selection" aria-label="Clear FixThis device selection">Clear selection</button>
 <span id="deviceStatus" class="status-pill" hidden>No device</span>
 ```
 
@@ -189,7 +189,7 @@ const deviceConnectionState = document.getElementById('deviceConnectionState');
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.consoleHtmlIncludesSelectionHandoffWorkspace
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlIncludesSelectionHandoffWorkspace
 ```
 
 Expected result: this test still fails until CSS and JS helper assertions are implemented.
@@ -199,7 +199,7 @@ Expected result: this test still fails until CSS and JS helper assertions are im
 ### Task 3: Add Device Control CSS
 
 **Files:**
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`
 
 - [x] **Step 1: Add device CSS after the generic `select, button` styles**
 
@@ -354,7 +354,7 @@ with:
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.consoleHtmlIncludesSelectionHandoffWorkspace
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlIncludesSelectionHandoffWorkspace
 ```
 
 Expected result: failures remain only for JS helper/state assertions.
@@ -364,7 +364,7 @@ Expected result: failures remain only for JS helper/state assertions.
 ### Task 4: Implement Browser State, Device Label, And State Helpers
 
 **Files:**
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`
 
 - [x] **Step 1: Extend browser state to cache the latest device payload**
 
@@ -459,7 +459,7 @@ function deviceBySerial(devices, serial) {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.consoleHtmlShowsReadableDeviceConnectionStates --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.consoleHtmlShortensWifiAdbSerialsForNormalDeviceLabels
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlShowsReadableDeviceConnectionStates --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlShortensWifiAdbSerialsForNormalDeviceLabels
 ```
 
 Expected result: helper-focused tests pass; render behavior may still fail in the broader workspace test if `renderDeviceList` has not been updated.
@@ -469,7 +469,7 @@ Expected result: helper-focused tests pass; render behavior may still fail in th
 ### Task 5: Update Device Rendering And Actions
 
 **Files:**
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`
 
 - [x] **Step 1: Replace `renderDeviceList`**
 
@@ -610,7 +610,7 @@ async function disconnectDevice() {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.consoleHtmlIncludesSelectionHandoffWorkspace --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.consoleHtmlShowsReadableDeviceConnectionStates --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.consoleHtmlShortensWifiAdbSerialsForNormalDeviceLabels
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlIncludesSelectionHandoffWorkspace --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlShowsReadableDeviceConnectionStates --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlShortensWifiAdbSerialsForNormalDeviceLabels
 ```
 
 Expected result: all three focused static tests pass.
@@ -620,14 +620,14 @@ Expected result: all three focused static tests pass.
 ### Task 6: Verify API Behavior Still Matches Existing Device Semantics
 
 **Files:**
-- Test only: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
+- Test only: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [x] **Step 1: Run existing device API tests**
 
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.devicesApiListsAndSelectsActiveDevice --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.deviceSelectApiReturnsBadRequestForBlankSerial --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.deviceSelectApiReturnsConflictForMissingSerialWithoutChangingSelection --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.deviceSelectApiReturnsConflictForOfflineDeviceWithoutChangingSelection
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.devicesApiListsAndSelectsActiveDevice --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.deviceSelectApiReturnsBadRequestForBlankSerial --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.deviceSelectApiReturnsConflictForMissingSerialWithoutChangingSelection --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.deviceSelectApiReturnsConflictForOfflineDeviceWithoutChangingSelection
 ```
 
 Expected result: pass. The implementation must not change server selection behavior.
@@ -637,7 +637,7 @@ Expected result: pass. The implementation must not change server selection behav
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected result: pass. If tests fail because old visible copy such as `Devices`, `Disconnect`, or `Selected ` is asserted elsewhere, update those tests to the new spec copy rather than restoring old UI text.
@@ -651,11 +651,11 @@ Expected result: pass. If tests fail because old visible copy such as `Devices`,
 
 QA defect note, 2026-05-06: fixed stale live preview after a refresh turns the selected device unavailable/no-device. `renderDeviceList` now rerenders the preview region after invalidating selection context, covered by `consoleHtmlRerendersPreviewWhenDeviceSelectionInvalidatesPreview`.
 
-Manual QA note, 2026-05-06: started the feedback console at `http://127.0.0.1:57082` after `:pointpatch-mcp:installDist`; `adb` is not available in this environment, so physical USB/Wi-Fi ADB connection persistence could not be verified. Browser QA covered real no-device console rendering plus a synthetic local console harness for ready, connecting, connected, unavailable, refresh, and clear-selection states.
+Manual QA note, 2026-05-06: started the feedback console at `http://127.0.0.1:57082` after `:fixthis-mcp:installDist`; `adb` is not available in this environment, so physical USB/Wi-Fi ADB connection persistence could not be verified. Browser QA covered real no-device console rendering plus a synthetic local console harness for ready, connecting, connected, unavailable, refresh, and clear-selection states.
 
 - [x] **Step 1: Start the feedback console**
 
-Use the existing workflow for opening the PointPatch feedback console. If using the MCP tool, open the console for the sample app.
+Use the existing workflow for opening the FixThis feedback console. If using the MCP tool, open the console for the sample app.
 
 - [x] **Step 2: Verify no-device state**
 
@@ -704,7 +704,7 @@ Click `Clear selection`.
 Expected behavior:
 
 - UI shows `No device`
-- PointPatch active selection is cleared
+- FixThis active selection is cleared
 - physical USB/Wi-Fi ADB connection remains intact
 - subsequent device refresh can rediscover the same device
 
@@ -720,7 +720,7 @@ Expected behavior:
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test
+./gradlew :fixthis-mcp:test
 ```
 
 Expected result: pass.
@@ -730,7 +730,7 @@ Expected result: pass.
 Run:
 
 ```bash
-git diff -- pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
+git diff -- fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 ```
 
 Expected result:
@@ -746,7 +746,7 @@ Expected result:
 Run:
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "fix: clarify feedback console device connection control"
 ```
 

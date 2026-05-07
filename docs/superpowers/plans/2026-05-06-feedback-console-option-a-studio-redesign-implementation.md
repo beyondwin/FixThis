@@ -2,27 +2,27 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rebuild the PointPatch feedback console UI around the supplied Option A Studio design while preserving the shipped live-preview, batched pending items, evidence snapshot, Copy, and Send contracts.
+**Goal:** Rebuild the FixThis feedback console UI around the supplied Option A Studio design while preserving the shipped live-preview, batched pending items, evidence snapshot, Copy, and Send contracts.
 
 **Architecture:** Keep the MCP/session/storage APIs unchanged and replace the browser console shell in `FeedbackConsoleAssets.kt` with an Option A Studio-inspired layout. Split the client-side rendering into stable regions so live preview polling updates only the preview surface, while session, pending, draft, and sent panels update only on their own state changes.
 
-**Tech Stack:** Kotlin/JVM, embedded HTML/CSS/vanilla JavaScript in `pointpatch-mcp`, existing `FeedbackConsoleServer`, existing MCP session service/store APIs, Kotlin tests, Playwright/manual browser smoke.
+**Tech Stack:** Kotlin/JVM, embedded HTML/CSS/vanilla JavaScript in `fixthis-mcp`, existing `FeedbackConsoleServer`, existing MCP session service/store APIs, Kotlin tests, Playwright/manual browser smoke.
 
 ---
 
 ## Source Inputs
 
-- Visual prototype: `/Users/kws/Downloads/PointPatch Console _standalone_.html`
-- Detailed Option A spec: `/Users/kws/Downloads/PointPatch Studio Spec _standalone_.html`
+- Visual prototype: `/Users/kws/Downloads/FixThis Console _standalone_.html`
+- Detailed Option A spec: `/Users/kws/Downloads/FixThis Studio Spec _standalone_.html`
 - Detailed implementation guide: `docs/superpowers/specs/2026-05-06-feedback-console-option-a-studio-redesign-implementation-details.md`
-- Current console asset: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
-- Current console tests: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
+- Current console asset: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`
+- Current console tests: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 - Current live-preview contract: `docs/superpowers/specs/2026-05-05-feedback-console-live-preview-batched-items-detailed-design.md`
 - Current UX status: `docs/design-feedback-console-ux.md`
 
 ## Confirmed Prototype Event Contract
 
-`/Users/kws/Downloads/PointPatch Console _standalone_.html` is an executable prototype, not just a static reference. Treat its Option A implementation as the behavioral source for the Studio interaction feel, then map that behavior onto PointPatch's stricter feedback-console contracts.
+`/Users/kws/Downloads/FixThis Console _standalone_.html` is an executable prototype, not just a static reference. Treat its Option A implementation as the behavioral source for the Studio interaction feel, then map that behavior onto FixThis's stricter feedback-console contracts.
 
 Observed Option A behavior:
 
@@ -36,15 +36,15 @@ Observed Option A behavior:
 - The detail inspector edits prototype-only fields: label, severity, comment, and status; delete removes only the selected annotation.
 - Prototype keyboard shortcuts include view/annotate switching, escape, save, new session, delete, and severity shortcuts.
 
-PointPatch mapping constraints:
+FixThis mapping constraints:
 
-- Do not copy prototype annotation editing wholesale. PointPatch pending items remain append-only except `Focus` and `Delete`.
+- Do not copy prototype annotation editing wholesale. FixThis pending items remain append-only except `Focus` and `Delete`.
 - Do not introduce a Select/Navigate toggle. Idle preview interaction remains navigation; feedback selection only exists after `Add` freezes the preview.
-- Map prototype `Annotate` behavior to PointPatch's frozen `Add` flow: click selects a Compose node, drag selects an area, comment queues a pending item, and the UI returns to a stable pending list.
-- Keep PointPatch natural screenshot coordinates for bridge requests and evidence overlays. Do not migrate persisted selection bounds to prototype percent coordinates.
+- Map prototype `Annotate` behavior to FixThis's frozen `Add` flow: click selects a Compose node, drag selects an area, comment queues a pending item, and the UI returns to a stable pending list.
+- Keep FixThis natural screenshot coordinates for bridge requests and evidence overlays. Do not migrate persisted selection bounds to prototype percent coordinates.
 - Keep Option A's history, canvas, inspector, spacing, tokens, hover, focus, and modal-free interaction feel.
 
-## Option A To PointPatch Mapping
+## Option A To FixThis Mapping
 
 Adopt from Option A:
 
@@ -52,9 +52,9 @@ Adopt from Option A:
 - 56px top bar plus 3-column body: left history/sidebar, center canvas, right inspector.
 - Canvas toolbar, live/frozen badges, phone-like preview frame, numbered overlays, hover/focus states, 120ms transitions, reduced-motion guard.
 - History-card style for sessions and sent handoff history.
-- Inspector pattern: list/detail feel, but mapped to PointPatch's current add-flow and saved evidence groups.
+- Inspector pattern: list/detail feel, but mapped to FixThis's current add-flow and saved evidence groups.
 
-Preserve from PointPatch:
+Preserve from FixThis:
 
 - Idle preview click is navigation. There is no Select/Navigate toggle.
 - Top-level session actions remain short: `Refresh`, `Add`, `Save`, `Copy`, `Send`, `New`, `Close`.
@@ -64,15 +64,15 @@ Preserve from PointPatch:
 - Pending items support only `Focus` and `Delete`; no pending edit, severity, status, label editing, pin move, or pin resize.
 - `Save` promotes one frozen preview to one evidence snapshot and links all pending items to the same `screenId`.
 - Saved evidence groups show persisted screenshot, numbered overlay, and saved comments.
-- MCP process owns session state and `.pointpatch/feedback-sessions/` persistence.
+- MCP process owns session state and `.fixthis/feedback-sessions/` persistence.
 
 ## File Structure
 
-- Modify `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
+- Modify `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`
   - Owns the redesigned browser shell, CSS tokens, DOM layout, JavaScript state, render functions, events, and API calls.
   - Keep endpoint paths and request/response payloads stable.
-- Modify `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
-  - Add/adjust HTML contract tests for Option A structure, stable preview rendering, mode-aware inspector, and retained PointPatch contracts.
+- Modify `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+  - Add/adjust HTML contract tests for Option A structure, stable preview rendering, mode-aware inspector, and retained FixThis contracts.
 - Modify `docs/design-feedback-console-ux.md`
   - Update the status doc after implementation to describe the Option A Studio console, not the current light debug layout.
 - No server API, store, persistence, bridge, CLI, or Compose-core file changes are expected for this redesign.
@@ -80,7 +80,7 @@ Preserve from PointPatch:
 ## Task 1: Lock The Redesign Contract In Tests
 
 **Files:**
-- Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [x] **Step 1: Add failing HTML contract tests for the Studio shell**
 
@@ -107,13 +107,13 @@ fun consoleHtmlUsesOptionAStudioShell() {
 }
 ```
 
-- [x] **Step 2: Add failing tests for preserved PointPatch actions**
+- [x] **Step 2: Add failing tests for preserved FixThis actions**
 
 Add this test:
 
 ```kotlin
 @Test
-fun consoleHtmlKeepsPointPatchTopLevelActionsInStudioTopbar() {
+fun consoleHtmlKeepsFixThisTopLevelActionsInStudioTopbar() {
     val html = FeedbackConsoleAssets.indexHtml
 
     assertTrue(html.contains("id=\"refreshButton\""))
@@ -158,25 +158,25 @@ fun consoleHtmlRefreshPreviewOnlyRendersPreviewRegion() {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: the three new tests fail because the current console still uses the light layout, `queue-pane`, and full `render()` on preview refresh.
 
-Actual RED run: 2 failures. `consoleHtmlKeepsPointPatchTopLevelActionsInStudioTopbar` already passes because the current console has the preserved top-level PointPatch button IDs and labels, while `consoleHtmlUsesOptionAStudioShell` and `consoleHtmlRefreshPreviewOnlyRendersPreviewRegion` remain red.
+Actual RED run: 2 failures. `consoleHtmlKeepsFixThisTopLevelActionsInStudioTopbar` already passes because the current console has the preserved top-level FixThis button IDs and labels, while `consoleHtmlUsesOptionAStudioShell` and `consoleHtmlRefreshPreviewOnlyRendersPreviewRegion` remain red.
 
 - [x] **Step 5: Commit the failing tests**
 
 ```bash
-git add pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "test: lock studio console redesign contract"
 ```
 
 ## Task 2: Replace The Static Shell With Option A Studio Layout
 
 **Files:**
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
-- Test: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [x] **Step 1: Replace the top-level CSS tokens and grid**
 
@@ -268,7 +268,7 @@ Keep all existing IDs used by JavaScript, but move them into the Studio layout:
       <div class="studio-brand">
         <div class="studio-mark" aria-hidden="true">◐</div>
         <div>
-          <h1>PointPatch</h1>
+          <h1>FixThis</h1>
           <div class="brand-caption">Studio</div>
         </div>
       </div>
@@ -477,7 +477,7 @@ button:disabled { opacity: .4; cursor: default; }
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.consoleHtmlUsesOptionAStudioShell --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.consoleHtmlKeepsPointPatchTopLevelActionsInStudioTopbar
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlUsesOptionAStudioShell --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlKeepsFixThisTopLevelActionsInStudioTopbar
 ```
 
 Expected: the two tests added in Task 1 pass.
@@ -485,15 +485,15 @@ Expected: the two tests added in Task 1 pass.
 - [x] **Step 5: Commit the shell replacement**
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt
 git commit -m "feat: add studio console shell"
 ```
 
 ## Task 3: Split Rendering So Live Preview Does Not Flicker Draft
 
 **Files:**
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
-- Test: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [x] **Step 1: Add stable region functions**
 
@@ -557,7 +557,7 @@ function ensurePreviewFrame() {
   if (frame) return frame;
   snapshot.innerHTML =
     '<div id="snapshotFrame" class="snapshot-frame">' +
-      '<img id="snapshotImage" alt="PointPatch preview">' +
+      '<img id="snapshotImage" alt="FixThis preview">' +
       '<div id="selectionOverlay" class="selection-overlay" aria-hidden="true"></div>' +
     '</div>';
   attachSnapshotHandlers();
@@ -630,7 +630,7 @@ function focusPendingFeedbackItem(index) {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.consoleHtmlRefreshPreviewOnlyRendersPreviewRegion
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlRefreshPreviewOnlyRendersPreviewRegion
 ```
 
 Expected: pass. The test proves preview polling no longer calls the full `render()`.
@@ -638,15 +638,15 @@ Expected: pass. The test proves preview polling no longer calls the full `render
 - [x] **Step 6: Commit render isolation**
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "fix: isolate live preview rendering"
 ```
 
 ## Task 4: Implement Studio Canvas Behavior
 
 **Files:**
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
-- Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [x] **Step 1: Add canvas behavior test**
 
@@ -752,7 +752,7 @@ Replace green/orange overlay colors with Studio colors while retaining focused s
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.consoleHtmlRendersStudioCanvasModesAndNavigation
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlRendersStudioCanvasModesAndNavigation
 ```
 
 Expected: pass.
@@ -760,15 +760,15 @@ Expected: pass.
 - [x] **Step 6: Commit canvas behavior**
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat: add studio canvas modes"
 ```
 
 ## Task 5: Rebuild The Inspector As Mode-Aware Studio Workspace
 
 **Files:**
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
-- Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [x] **Step 1: Add inspector mode test**
 
@@ -945,7 +945,7 @@ function hydrateSavedEvidencePreviews() {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.consoleHtmlUsesModeAwareStudioInspector
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlUsesModeAwareStudioInspector
 ```
 
 Expected: pass.
@@ -953,15 +953,15 @@ Expected: pass.
 - [x] **Step 8: Commit inspector workspace**
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat: add mode-aware studio inspector"
 ```
 
 ## Task 6: Add Studio Session History And Sent Drawer
 
 **Files:**
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
-- Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [x] **Step 1: Add session history test**
 
@@ -1067,7 +1067,7 @@ async function refreshSessions() {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.consoleHtmlRendersStudioSessionHistoryWithoutInternalIds
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlRendersStudioSessionHistoryWithoutInternalIds
 ```
 
 Expected: pass.
@@ -1075,15 +1075,15 @@ Expected: pass.
 - [x] **Step 5: Commit session history**
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat: style studio session history"
 ```
 
 ## Task 7: Add Keyboard And Accessibility Polish Within Existing Scope
 
 **Files:**
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
-- Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [x] **Step 1: Add keyboard/accessibility test**
 
@@ -1102,7 +1102,7 @@ fun consoleHtmlAddsStudioKeyboardAndAccessibilityGuards() {
     assertTrue(html.contains("event.key.toLowerCase() === 'n'"))
     assertTrue(html.contains("document.addEventListener('keydown', handleGlobalShortcut)"))
     assertTrue(html.contains("role=\"status\" aria-live=\"polite\""))
-    assertTrue(html.contains("aria-label=\"PointPatch preview\""))
+    assertTrue(html.contains("aria-label=\"FixThis preview\""))
 }
 ```
 
@@ -1162,7 +1162,7 @@ In `renderPendingItems()`, include ARIA labels:
 In `ensurePreviewFrame()`, use:
 
 ```javascript
-'<img id="snapshotImage" alt="PointPatch preview" aria-label="PointPatch preview">' +
+'<img id="snapshotImage" alt="FixThis preview" aria-label="FixThis preview">' +
 ```
 
 - [x] **Step 4: Run keyboard/accessibility test**
@@ -1170,7 +1170,7 @@ In `ensurePreviewFrame()`, use:
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest.consoleHtmlAddsStudioKeyboardAndAccessibilityGuards
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlAddsStudioKeyboardAndAccessibilityGuards
 ```
 
 Expected: pass.
@@ -1178,7 +1178,7 @@ Expected: pass.
 - [x] **Step 5: Commit accessibility polish**
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat: add studio console shortcuts"
 ```
 
@@ -1192,7 +1192,7 @@ git commit -m "feat: add studio console shortcuts"
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: pass. If an older string-contract test fails because it expects the old light layout, update only that assertion to the Studio equivalent while keeping the behavioral contract.
@@ -1202,7 +1202,7 @@ Expected: pass. If an older string-contract test fails because it expects the ol
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionStoreTest --tests io.github.pointpatch.mcp.session.FeedbackSessionServiceTest --tests io.github.pointpatch.mcp.session.FeedbackQueueFormatterTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest --tests io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
 ```
 
 Expected: pass. No persisted JSON schema, preview save, or handoff behavior should change.
@@ -1212,7 +1212,7 @@ Expected: pass. No persisted JSON schema, preview save, or handoff behavior shou
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test :pointpatch-cli:test :pointpatch-compose-core:test
+./gradlew :fixthis-mcp:test :fixthis-cli:test :fixthis-compose-core:test
 ```
 
 Expected: pass.
@@ -1222,7 +1222,7 @@ Expected: pass.
 Run:
 
 ```bash
-./gradlew :pointpatch-cli:installDist :pointpatch-mcp:installDist
+./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
 ```
 
 Expected: pass.
@@ -1242,7 +1242,7 @@ Expected: no output.
 If Step 1 required test assertion updates, commit them:
 
 ```bash
-git add pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "test: update console studio assertions"
 ```
 
@@ -1258,7 +1258,7 @@ If no files changed, do not create a commit for this task.
 Run:
 
 ```bash
-./gradlew :pointpatch-cli:installDist :pointpatch-mcp:installDist
+./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
 ```
 
 Expected: pass.
@@ -1285,7 +1285,7 @@ List of devices attached
 Run:
 
 ```bash
-ANDROID_HOME=/Users/kws/Library/Android/sdk PATH=/Users/kws/Library/Android/sdk/platform-tools:$PATH ./pointpatch-cli/build/install/pointpatch/bin/pointpatch run --package io.github.pointpatch.sample
+ANDROID_HOME=/Users/kws/Library/Android/sdk PATH=/Users/kws/Library/Android/sdk/platform-tools:$PATH ./fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
 ```
 
 Expected: CLI prints a local console URL and `sidekick: connected` when the device is usable.
@@ -1337,7 +1337,7 @@ No smoke bug fixes were made on 2026-05-06, so no commit was created.
 If smoke required code fixes, run the targeted test from the affected task, then commit:
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "fix: polish studio console smoke issues"
 ```
 
@@ -1358,7 +1358,7 @@ Replace the current workflow summary in `docs/design-feedback-console-ux.md` wit
 
 **Status:** Current Studio UI, based on the Option A redesign.
 **Current version:** V1.2
-**Related module:** `pointpatch-mcp`
+**Related module:** `fixthis-mcp`
 
 The shipped feedback console is a local-first, MCP-owned Studio UI for Android preview feedback. The browser UI uses a dark three-panel workspace: Sessions on the left, live/frozen preview canvas in the center, and a mode-aware Inspector on the right.
 
@@ -1418,8 +1418,8 @@ If `docs/troubleshooting.md` did not change, omit it from `git add`.
 Run all final checks before declaring completion:
 
 ```bash
-./gradlew :pointpatch-mcp:test :pointpatch-cli:test :pointpatch-compose-core:test
-./gradlew :pointpatch-cli:installDist :pointpatch-mcp:installDist
+./gradlew :fixthis-mcp:test :fixthis-cli:test :fixthis-compose-core:test
+./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
 git diff --check
 ```
 
@@ -1430,6 +1430,6 @@ If a connected Android device is available, also run the connected smoke in Task
 ## Self-Review Notes
 
 - Spec coverage: Option A layout, history, canvas, inspector, click/drag annotation creation, save/restore semantics, responsive/accessibility, tokens, and QA expectations are mapped to tasks.
-- PointPatch contract coverage: live preview, frozen preview, pending Focus/Delete, Save one snapshot/N items, Copy/Send, MCP persistence, no Select/Navigate toggle, and no pending edit are preserved.
+- FixThis contract coverage: live preview, frozen preview, pending Focus/Delete, Save one snapshot/N items, Copy/Send, MCP persistence, no Select/Navigate toggle, and no pending edit are preserved.
 - Type consistency: the plan uses existing JavaScript names where possible: `addItemsFlow`, `pendingFeedbackItems`, `currentSelection`, `state.preview`, `state.session`, `renderSelectionOverlay`, `renderNumberedFeedbackOverlay`, `savePendingFeedbackItems`.
 - Scope boundary: no server API, persistence schema, external AI API, network mocking, arbitrary typing, cloud sync, or multi-user feature is introduced.

@@ -23,7 +23,7 @@ Topbar device controls render as:
 ```
 
 If topbar space becomes tight, the clear button may display `Clear`, but its
-accessible label and tooltip must remain `Clear PointPatch device selection`.
+accessible label and tooltip must remain `Clear FixThis device selection`.
 
 The selected device control is one visual unit:
 
@@ -69,7 +69,7 @@ The UI uses four user-facing states:
 
 | State | Meaning | Color | Topbar copy |
 | --- | --- | --- | --- |
-| No device | No active PointPatch device selection. Live capture is disabled. | gray | `No device` |
+| No device | No active FixThis device selection. Live capture is disabled. | gray | `No device` |
 | Connecting | User selected a device or refreshed devices and the console is reconciling selection. | amber | `Connecting` |
 | Connected | Active selected device exists and ADB reports `state == "device"`. | green | `Connected` |
 | Unavailable | Selected/attempted device is offline, unauthorized, missing, or selection failed. | red | `Unavailable` |
@@ -107,10 +107,10 @@ status.
 
 The existing `Disconnect` button becomes `Clear selection` or compact `Clear`.
 
-This action clears only PointPatch's active device selection and owned bridge
+This action clears only FixThis's active device selection and owned bridge
 resources. It must not imply or perform `adb disconnect`, detach USB, or affect
-the user's ADB server outside PointPatch resources. The tooltip/accessibility
-copy should say `Clear PointPatch device selection`.
+the user's ADB server outside FixThis resources. The tooltip/accessibility
+copy should say `Clear FixThis device selection`.
 
 ## Behavior
 
@@ -141,7 +141,7 @@ Refreshing devices:
 
 Clearing selection:
 
-- Clear active PointPatch selection.
+- Clear active FixThis selection.
 - Show `No device`.
 - Disable live preview polling and capture/navigation surfaces that require a
   device.
@@ -179,7 +179,7 @@ HTML/static tests should assert:
 - raw selected serial is not used in normal `deviceStatus` text
 - device label helper prefers model/deviceName/product before serial
 - `Refresh devices` copy or accessible label exists
-- `Clear selection` or `Clear PointPatch device selection` exists
+- `Clear selection` or `Clear FixThis device selection` exists
 - states/copy for `Connected`, `Connecting`, `Unavailable`, and `No device`
   exist in the browser asset
 - unavailable devices remain disabled

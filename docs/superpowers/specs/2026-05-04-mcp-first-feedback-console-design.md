@@ -4,7 +4,7 @@ Date: 2026-05-04
 
 ## Summary
 
-PointPatch should move from an app-first single annotation flow to an
+FixThis should move from an app-first single annotation flow to an
 MCP-first feedback session. The MCP server owns a multi-screen feedback queue,
 and a local desktop web console becomes the human-facing UI for capturing and
 editing feedback.
@@ -16,7 +16,7 @@ across screens, and let the AI agent read the queue through MCP.
 
 ## Product Decision
 
-Previous PointPatch V1 docs treated MCP as an optional advanced workflow. This
+Previous FixThis V1 docs treated MCP as an optional advanced workflow. This
 design intentionally changes that product center:
 
 - MCP is the primary agent workflow.
@@ -30,7 +30,7 @@ design intentionally changes that product center:
 - Remove the need to type comments on a device or emulator.
 - Support multi-screen feedback queues, not just one annotation at a time.
 - Let agents list, read, and resolve feedback through MCP tools.
-- Keep PointPatch local-first and debug-only.
+- Keep FixThis local-first and debug-only.
 - Reuse the existing sidekick bridge, screenshot, semantics, source candidate,
   CLI, and MCP foundations where possible.
 
@@ -45,8 +45,8 @@ design intentionally changes that product center:
 
 ## User Flow
 
-1. The user or agent opens a PointPatch feedback session.
-2. PointPatch returns or opens a local web console URL.
+1. The user or agent opens a FixThis feedback session.
+2. FixThis returns or opens a local web console URL.
 3. The console captures the current Android screen through the MCP server and
    sidekick bridge.
 4. The user clicks or drags on the desktop snapshot to create feedback targets.
@@ -62,7 +62,7 @@ design intentionally changes that product center:
 
 ```text
 AI client
-  <-> pointpatch mcp
+  <-> fixthis mcp
         <-> local web console
         <-> ADB/local bridge
               <-> debug app sidekick
@@ -97,7 +97,7 @@ Responsibilities:
 - store captured screens
 - store feedback items
 - expose queue state through MCP tools
-- write screenshot artifacts under `.pointpatch/artifacts/`
+- write screenshot artifacts under `.fixthis/artifacts/`
 - track item status and agent resolution summaries
 
 ### Local Web Console
@@ -197,27 +197,27 @@ visual spacing, canvas regions, and low-semantics UI still need feedback.
 
 ## MCP Tools
 
-### `pointpatch_open_feedback_console`
+### `fixthis_open_feedback_console`
 
 Opens or returns the local web console URL for the active feedback session.
 Returns package, project root, session id, URL, and bridge status.
 
-### `pointpatch_capture_screen`
+### `fixthis_capture_screen`
 
 Captures the current Android screen into the active session. Returns a screen
 summary and any non-fatal capture errors.
 
-### `pointpatch_list_feedback`
+### `fixthis_list_feedback`
 
 Returns queue summaries for the current session. This is the agent's fast path
 for understanding available feedback.
 
-### `pointpatch_read_feedback`
+### `fixthis_read_feedback`
 
 Returns the full queue or a selected item as annotation JSON and Markdown,
 including screenshot artifact paths when available.
 
-### `pointpatch_resolve_feedback`
+### `fixthis_resolve_feedback`
 
 Updates feedback item status and stores the agent's resolution summary.
 
@@ -227,13 +227,13 @@ Allowed statuses are `resolved`, `needs_clarification`, and `wont_fix`.
 
 Keep:
 
-- `pointpatch_status`
-- `pointpatch_get_current_screen`
-- `pointpatch_verify_ui_change`
+- `fixthis_status`
+- `fixthis_get_current_screen`
+- `fixthis_verify_ui_change`
 
 Deprecate or wrap:
 
-- `pointpatch_get_ui_feedback`
+- `fixthis_get_ui_feedback`
 
 The wrapper can create a single-item feedback session and return the same JSON
 and Markdown shape expected by existing clients.
@@ -243,7 +243,7 @@ and Markdown shape expected by existing clients.
 Add this CLI entrypoint:
 
 ```bash
-pointpatch console --package <applicationId>
+fixthis console --package <applicationId>
 ```
 
 The command should open or print the same local console URL used by MCP. MCP
@@ -268,11 +268,11 @@ Those errors should travel with the screen or feedback item.
 
 ## Privacy And Security
 
-PointPatch remains local-first:
+FixThis remains local-first:
 
 - serve the console on localhost
 - do not add Android app network permissions
-- keep screenshots under `.pointpatch/artifacts/`
+- keep screenshots under `.fixthis/artifacts/`
 - keep generated brainstorming files under `.superpowers/brainstorm`
 - keep screenshot artifacts and brainstorming files out of git
 - continue redacting editable and password text from semantics
@@ -298,11 +298,11 @@ Integration tests:
 - local web session creation
 - screen capture into queue
 - feedback list/read/resolve flow
-- compatibility wrapper for `pointpatch_get_ui_feedback`
+- compatibility wrapper for `fixthis_get_ui_feedback`
 
 CLI tests:
 
-- `pointpatch console` resolves package/project
+- `fixthis console` resolves package/project
 - command prints a local console URL
 - no-device and multiple-device failures are clear
 

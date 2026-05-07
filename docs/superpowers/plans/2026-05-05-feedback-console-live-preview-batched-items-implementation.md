@@ -44,7 +44,7 @@ Default live preview behavior:
 - Keep a manual `Refresh` button that fetches once immediately.
 - Keep only the latest preview records in transient console state or an overwriteable temp/cache location.
 - Do not store live preview responses as `FeedbackSession.screens`.
-- Do not copy preview artifacts into `.pointpatch/feedback-sessions/<session>/artifacts/screens/` until `Save`.
+- Do not copy preview artifacts into `.fixthis/feedback-sessions/<session>/artifacts/screens/` until `Save`.
 
 This preview does not consume AI tokens by itself. Tokens are only consumed when an AI agent reads exported Markdown/JSON or receives screenshots/semantics as model input.
 
@@ -77,22 +77,22 @@ Expanding the group shows the persisted screenshot with saved numbered overlays 
 
 Create:
 
-- `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsolePreviewModels.kt`: request/response models for transient preview snapshots and pending item save requests.
+- `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsolePreviewModels.kt`: request/response models for transient preview snapshots and pending item save requests.
 
 Modify:
 
-- `pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/BridgeClient.kt`: add a preview-friendly screenshot capture path if needed by server APIs.
-- `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt`: expose preview and source-index bridge operations needed by the console service.
-- `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStore.kt`: add an atomic `addScreenWithItems` mutation so one saved snapshot creates multiple items in a single persisted session update.
-- `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt`: own transient live preview state, promote one frozen preview into persisted evidence on save, compute source candidates, and collect node evidence for node and area targets.
-- `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatter.kt`: compact agent-facing Markdown around requests, target evidence, and likely source files.
-- `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServer.kt`: add preview, batched save, and preview image routes.
-- `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`: replace persistent Select/Navigate toggles with navigation-default live preview and add-items flow UI.
-- `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FakePointPatchBridge.kt`: fake preview payloads with semantics and source-index availability.
-- `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStoreTest.kt`: atomic batched screen/item persistence coverage.
-- `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionServiceTest.kt`: transient preview, save-time promotion, source candidates, and area evidence coverage.
-- `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatterTest.kt`: compact handoff output coverage.
-- `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`: console API and HTML behavior smoke coverage.
+- `fixthis-cli/src/main/kotlin/io/github/fixthis/cli/BridgeClient.kt`: add a preview-friendly screenshot capture path if needed by server APIs.
+- `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/tools/FixThisTools.kt`: expose preview and source-index bridge operations needed by the console service.
+- `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStore.kt`: add an atomic `addScreenWithItems` mutation so one saved snapshot creates multiple items in a single persisted session update.
+- `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionService.kt`: own transient live preview state, promote one frozen preview into persisted evidence on save, compute source candidates, and collect node evidence for node and area targets.
+- `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackQueueFormatter.kt`: compact agent-facing Markdown around requests, target evidence, and likely source files.
+- `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServer.kt`: add preview, batched save, and preview image routes.
+- `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`: replace persistent Select/Navigate toggles with navigation-default live preview and add-items flow UI.
+- `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FakeFixThisBridge.kt`: fake preview payloads with semantics and source-index availability.
+- `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStoreTest.kt`: atomic batched screen/item persistence coverage.
+- `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionServiceTest.kt`: transient preview, save-time promotion, source candidates, and area evidence coverage.
+- `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`: compact handoff output coverage.
+- `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`: console API and HTML behavior smoke coverage.
 - `README.md`
 - `docs/mcp.md`
 - `docs/output-schema.md`
@@ -122,7 +122,7 @@ Expected: branch is understood, HEAD is recorded, and only known unrelated untra
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionStoreTest --tests io.github.pointpatch.mcp.session.FeedbackSessionServiceTest --tests io.github.pointpatch.mcp.session.FeedbackQueueFormatterTest --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest --tests io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -138,7 +138,7 @@ Completed: branch/status/instructions and targeted baseline tests
 Changed files: none
 Contracts: no behavior changes yet
 Review issues: none
-Verification: targeted :pointpatch-mcp:test command PASS
+Verification: targeted :fixthis-mcp:test command PASS
 Risks: none
 Next action: Task 1 failing persistence tests
 Worktree/branch: current workspace and branch
@@ -149,8 +149,8 @@ Session-owned processes: list any console process started by this session
 
 **Files:**
 
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStore.kt`
-- Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStoreTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStore.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
 
 - [x] **Step 1: Write failing store test for one screen and multiple items**
 
@@ -163,11 +163,11 @@ fun addScreenWithItemsPersistsOneScreenAndMultipleDraftItemsAtomically() {
         clock = sequenceClock(1_000L, 2_000L),
         idGenerator = sequenceIds("session-1", "screen-1", "item-1", "item-2"),
     )
-    val session = store.openSession("io.github.pointpatch.sample", "/repo")
+    val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
     val screen = CapturedScreen(
         screenId = "pending",
         capturedAtEpochMillis = 0L,
-        activityName = "io.github.pointpatch.sample.MainActivity",
+        activityName = "io.beyondwin.fixthis.sample.MainActivity",
         displayName = "MainActivity",
         screenshot = FeedbackScreenshot(width = 720, height = 1600),
     )
@@ -176,7 +176,7 @@ fun addScreenWithItemsPersistsOneScreenAndMultipleDraftItemsAtomically() {
         screenId = "pending",
         createdAtEpochMillis = 0L,
         updatedAtEpochMillis = 0L,
-        target = FeedbackTarget.Area(PointPatchRect(10f, 20f, 110f, 80f)),
+        target = FeedbackTarget.Area(FixThisRect(10f, 20f, 110f, 80f)),
         comment = "Change headline copy",
     )
     val second = FeedbackItem(
@@ -184,7 +184,7 @@ fun addScreenWithItemsPersistsOneScreenAndMultipleDraftItemsAtomically() {
         screenId = "pending",
         createdAtEpochMillis = 0L,
         updatedAtEpochMillis = 0L,
-        target = FeedbackTarget.Area(PointPatchRect(120f, 200f, 260f, 280f)),
+        target = FeedbackTarget.Area(FixThisRect(120f, 200f, 260f, 280f)),
         comment = "Add more left margin",
     )
 
@@ -218,7 +218,7 @@ private fun sequenceIds(vararg values: String): () -> String {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionStoreTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest
 ```
 
 Expected: FAIL because `addScreenWithItems` does not exist.
@@ -262,7 +262,7 @@ fun addScreenWithItems(sessionId: String, screen: CapturedScreen, items: List<Fe
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionStoreTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -272,7 +272,7 @@ Expected: `BUILD SUCCESSFUL`.
 Run:
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStore.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionStoreTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStore.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStoreTest.kt
 git commit -m "feat: persist batched feedback items with one snapshot"
 ```
 
@@ -280,20 +280,20 @@ git commit -m "feat: persist batched feedback items with one snapshot"
 
 **Files:**
 
-- Create: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsolePreviewModels.kt`
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt`
-- Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FakePointPatchBridge.kt`
-- Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionServiceTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsolePreviewModels.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionService.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FakeFixThisBridge.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionServiceTest.kt`
 
 - [x] **Step 1: Add preview model file**
 
 Create `FeedbackConsolePreviewModels.kt`:
 
 ```kotlin
-package io.github.pointpatch.mcp.console
+package io.beyondwin.fixthis.mcp.console
 
-import io.github.pointpatch.compose.core.model.PointPatchRect
-import io.github.pointpatch.mcp.session.CapturedScreen
+import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.mcp.session.CapturedScreen
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -311,7 +311,7 @@ data class SavePreviewFeedbackItemsRequest(
 @Serializable
 data class PendingDraftFeedbackItem(
     val targetType: FeedbackTargetType,
-    val bounds: PointPatchRect,
+    val bounds: FixThisRect,
     val nodeUid: String? = null,
     val comment: String,
 )
@@ -324,11 +324,11 @@ Add this test to `FeedbackSessionServiceTest`:
 ```kotlin
 @Test
 fun savingFrozenPreviewPersistsOneScreenForMultipleItems() = runBlocking {
-    val bridge = FakePointPatchBridge.withScreen(
-        selectedNode = pointPatchNode(
+    val bridge = FakeFixThisBridge.withScreen(
+        selectedNode = fixThisNode(
             uid = "email-label",
             text = listOf("Email address"),
-            bounds = PointPatchRect(28f, 77f, 692f, 186f),
+            bounds = FixThisRect(28f, 77f, 692f, 186f),
         ),
     )
     val store = FeedbackSessionStore(
@@ -336,7 +336,7 @@ fun savingFrozenPreviewPersistsOneScreenForMultipleItems() = runBlocking {
         idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1", "item-2"),
     )
     val service = FeedbackSessionService(bridge = bridge, store = store, projectRoot = "/repo")
-    val session = service.openSession("io.github.pointpatch.sample", newSession = true)
+    val session = service.openSession("io.beyondwin.fixthis.sample", newSession = true)
 
     val preview = service.capturePreview(session.sessionId)
     assertTrue(store.getSession(session.sessionId).screens.isEmpty())
@@ -348,12 +348,12 @@ fun savingFrozenPreviewPersistsOneScreenForMultipleItems() = runBlocking {
             PendingDraftFeedbackItem(
                 targetType = FeedbackTargetType.NODE,
                 nodeUid = "email-label",
-                bounds = PointPatchRect(28f, 77f, 692f, 186f),
+                bounds = FixThisRect(28f, 77f, 692f, 186f),
                 comment = "Rename this label",
             ),
             PendingDraftFeedbackItem(
                 targetType = FeedbackTargetType.AREA,
-                bounds = PointPatchRect(112f, 426f, 351f, 588f),
+                bounds = FixThisRect(112f, 426f, 351f, 588f),
                 comment = "Change this visual area",
             ),
         ),
@@ -372,7 +372,7 @@ fun savingFrozenPreviewPersistsOneScreenForMultipleItems() = runBlocking {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionServiceTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
 ```
 
 Expected: FAIL because preview promotion APIs do not exist.
@@ -388,7 +388,7 @@ suspend fun capturePreview(sessionId: String): FeedbackPreviewSnapshot {
     val session = store.getSession(sessionId)
     val previewId = store.nextId()
     val screenId = store.nextId()
-    val artifactDirectory = File(session.projectRoot, ".pointpatch/preview-cache/${session.sessionId}/$previewId")
+    val artifactDirectory = File(session.projectRoot, ".fixthis/preview-cache/${session.sessionId}/$previewId")
     val payload = bridge.captureScreenSnapshot(
         packageName = session.packageName,
         sessionId = session.sessionId,
@@ -435,7 +435,7 @@ fun savePreviewFeedbackItems(
 }
 ```
 
-`promotePreviewArtifacts(sessionId, screen)` copies or moves the frozen preview screenshot from `.pointpatch/preview-cache/...` into `.pointpatch/feedback-sessions/<session>/artifacts/screens/<screenId>/` exactly once. It must not issue a new ADB capture during save; the saved evidence must match the frozen image the user selected.
+`promotePreviewArtifacts(sessionId, screen)` copies or moves the frozen preview screenshot from `.fixthis/preview-cache/...` into `.fixthis/feedback-sessions/<session>/artifacts/screens/<screenId>/` exactly once. It must not issue a new ADB capture during save; the saved evidence must match the frozen image the user selected.
 
 Implement `buildFeedbackItemForDraft(screen, pending)` so:
 
@@ -449,7 +449,7 @@ Implement `buildFeedbackItemForDraft(screen, pending)` so:
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionServiceTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -459,7 +459,7 @@ Expected: `BUILD SUCCESSFUL`.
 Run:
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsolePreviewModels.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FakePointPatchBridge.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionServiceTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsolePreviewModels.kt fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionService.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FakeFixThisBridge.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionServiceTest.kt
 git commit -m "feat: promote frozen previews into batched feedback"
 ```
 
@@ -467,10 +467,10 @@ git commit -m "feat: promote frozen previews into batched feedback"
 
 **Files:**
 
-- Modify: `pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/BridgeClient.kt`
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt`
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServer.kt`
-- Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/fixthis/cli/BridgeClient.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/tools/FixThisTools.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServer.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [x] **Step 1: Write failing API tests**
 
@@ -531,7 +531,7 @@ fun savingDraftItemsAppendsOneScreenAndTwoItems() {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: FAIL because preview and batched save routes do not exist.
@@ -558,7 +558,7 @@ Add server routes:
 }
 ```
 
-Add `decodeSavePreviewFeedbackItemsBody()` using `pointPatchJson.decodeFromString(SavePreviewFeedbackItemsRequest.serializer(), body)`.
+Add `decodeSavePreviewFeedbackItemsBody()` using `fixThisJson.decodeFromString(SavePreviewFeedbackItemsRequest.serializer(), body)`.
 
 - [x] **Step 4: Add screenshot serving for preview**
 
@@ -568,14 +568,14 @@ Serve preview screenshots through a console-owned route:
 GET /api/preview/screenshot/full
 ```
 
-Only serve PNG files under PointPatch-owned preview cache or persisted artifact directories.
+Only serve PNG files under FixThis-owned preview cache or persisted artifact directories.
 
 - [x] **Step 5: Run API tests and verify GREEN**
 
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -585,7 +585,7 @@ Expected: `BUILD SUCCESSFUL`.
 Run:
 
 ```bash
-git add pointpatch-cli/src/main/kotlin/io/github/pointpatch/cli/BridgeClient.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/tools/PointPatchTools.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServer.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-cli/src/main/kotlin/io/github/fixthis/cli/BridgeClient.kt fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/tools/FixThisTools.kt fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServer.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat: add live preview and batched save console APIs"
 ```
 
@@ -593,8 +593,8 @@ git commit -m "feat: add live preview and batched save console APIs"
 
 **Files:**
 
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt`
-- Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [x] **Step 1: Write failing HTML behavior smoke tests**
 
@@ -641,7 +641,7 @@ assertTrue(html.contains("savePendingFeedbackItems"))
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: FAIL because the old mode UI is still present.
@@ -688,7 +688,7 @@ Add JS constants and lifecycle:
 ```javascript
 const DefaultLivePreviewIntervalMs = 2000;
 const MinLivePreviewIntervalMs = 1000;
-const PreviewIntervalStorageKey = 'pointpatch.previewIntervalMs';
+const PreviewIntervalStorageKey = 'fixthis.previewIntervalMs';
 let livePreviewTimer = null;
 let addItemsFlow = null;
 
@@ -912,7 +912,7 @@ Source: sample/src/main/java/.../FormScreen.kt:37
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -922,7 +922,7 @@ Expected: `BUILD SUCCESSFUL`.
 Run:
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleAssets.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleAssets.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat: simplify console add-items workflow"
 ```
 
@@ -930,10 +930,10 @@ git commit -m "feat: simplify console add-items workflow"
 
 **Files:**
 
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt`
-- Modify: `pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatter.kt`
-- Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionServiceTest.kt`
-- Modify: `pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatterTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionService.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackQueueFormatter.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionServiceTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`
 
 - [x] **Step 1: Write failing formatter test for compact source-hinted handoff**
 
@@ -942,22 +942,22 @@ Add:
 ```kotlin
 @Test
 fun markdownFocusesOnRequestTargetEvidenceAndLikelySource() {
-    val selectedNode = PointPatchNode(
+    val selectedNode = FixThisNode(
         uid = "email-label",
         composeNodeId = 42,
         rootIndex = 0,
         treeKind = TreeKind.MERGED,
-        boundsInWindow = PointPatchRect(28f, 77f, 692f, 186f),
+        boundsInWindow = FixThisRect(28f, 77f, 692f, 186f),
         text = listOf("Email address"),
         testTag = "emailField",
     )
     val session = FeedbackSession(
         sessionId = "session-1",
-        packageName = "io.github.pointpatch.sample",
+        packageName = "io.beyondwin.fixthis.sample",
         projectRoot = "/repo",
         createdAtEpochMillis = 1L,
         updatedAtEpochMillis = 2L,
-        screens = listOf(CapturedScreen("screen-1", 2L, activityName = "io.github.pointpatch.sample.MainActivity", displayName = "MainActivity")),
+        screens = listOf(CapturedScreen("screen-1", 2L, activityName = "io.beyondwin.fixthis.sample.MainActivity", displayName = "MainActivity")),
         items = listOf(
             FeedbackItem(
                 itemId = "item-1",
@@ -968,7 +968,7 @@ fun markdownFocusesOnRequestTargetEvidenceAndLikelySource() {
                 selectedNode = selectedNode,
                 sourceCandidates = listOf(
                     SourceCandidate(
-                        file = "sample/src/main/java/io/github/pointpatch/sample/screens/FormScreen.kt",
+                        file = "sample/src/main/java/io/github/fixthis/sample/screens/FormScreen.kt",
                         line = 37,
                         score = 0.95,
                         matchedTerms = listOf("Email address", "emailField"),
@@ -984,7 +984,7 @@ fun markdownFocusesOnRequestTargetEvidenceAndLikelySource() {
 
     val markdown = FeedbackQueueFormatter.toMarkdown(session)
 
-    assertTrue(markdown.contains("# PointPatch Feedback Handoff"))
+    assertTrue(markdown.contains("# FixThis Feedback Handoff"))
     assertTrue(markdown.contains("Request:"))
     assertTrue(markdown.contains("Give this field 20 more px of left margin"))
     assertTrue(markdown.contains("Likely Source:"))
@@ -1003,7 +1003,7 @@ fun markdownFocusesOnRequestTargetEvidenceAndLikelySource() {
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackQueueFormatterTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
 ```
 
 Expected: FAIL because the current Markdown still includes repeated metadata.
@@ -1013,11 +1013,11 @@ Expected: FAIL because the current Markdown still includes repeated metadata.
 Change `FeedbackQueueFormatter.toMarkdown` to output:
 
 ```markdown
-# PointPatch Feedback Handoff
+# FixThis Feedback Handoff
 
 - Package: `...`
 - Feedback Items: `N`
-- Screenshots: local debug artifacts available through PointPatch tooling
+- Screenshots: local debug artifacts available through FixThis tooling
 
 ## Item 1
 
@@ -1067,7 +1067,7 @@ In `FeedbackSessionService`, source evidence rules are:
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test --tests io.github.pointpatch.mcp.session.FeedbackSessionServiceTest --tests io.github.pointpatch.mcp.session.FeedbackQueueFormatterTest
+./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest --tests io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -1077,7 +1077,7 @@ Expected: `BUILD SUCCESSFUL`.
 Run:
 
 ```bash
-git add pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionService.kt pointpatch-mcp/src/main/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatter.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackSessionServiceTest.kt pointpatch-mcp/src/test/kotlin/io/github/pointpatch/mcp/session/FeedbackQueueFormatterTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionService.kt fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackQueueFormatter.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionServiceTest.kt fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackQueueFormatterTest.kt
 git commit -m "feat: export compact source-hinted feedback handoff"
 ```
 
@@ -1157,7 +1157,7 @@ git commit -m "docs: explain live preview feedback workflow"
 Run:
 
 ```bash
-./gradlew :pointpatch-mcp:test :pointpatch-cli:test :pointpatch-compose-core:test
+./gradlew :fixthis-mcp:test :fixthis-cli:test :fixthis-compose-core:test
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -1167,7 +1167,7 @@ Expected: `BUILD SUCCESSFUL`.
 Run:
 
 ```bash
-./gradlew :pointpatch-cli:installDist :pointpatch-mcp:installDist
+./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -1187,7 +1187,7 @@ Expected: if `SM_G986N` is connected in `device` state, continue to Step 4. If n
 Run:
 
 ```bash
-ANDROID_HOME=/Users/kws/Library/Android/sdk PATH=/Users/kws/Library/Android/sdk/platform-tools:$PATH pointpatch-cli/build/install/pointpatch/bin/pointpatch console --package io.github.pointpatch.sample
+ANDROID_HOME=/Users/kws/Library/Android/sdk PATH=/Users/kws/Library/Android/sdk/platform-tools:$PATH fixthis-cli/build/install/fixthis/bin/fixthis console --package io.beyondwin.fixthis.sample
 ```
 
 Record the console URL. Do not kill unrelated processes.

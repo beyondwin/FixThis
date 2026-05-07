@@ -2,11 +2,6 @@
 
 FixThis lets you point at Jetpack Compose UI in a debug Android app, describe what should change, and export runtime context that an AI coding agent can use.
 
-> Migration note: FixThis was previously named PointPatch. This repository uses
-> the new `fixthis` CLI, `io.beyondwin.fixthis.*` packages, `fixthis_*` MCP
-> tools, and `.fixthis/` local storage paths. Old PointPatch public contracts are
-> not preserved in this breaking rename.
-
 FixThis V1 is intentionally narrow:
 
 - Android Jetpack Compose only.
