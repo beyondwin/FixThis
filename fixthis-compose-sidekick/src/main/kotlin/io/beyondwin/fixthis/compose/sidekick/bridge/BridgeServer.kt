@@ -219,7 +219,22 @@ data class BridgeStatus(
     val bridgeProtocolVersion: String,
     val sourceIndexAvailable: Boolean,
     val capabilities: BridgeCapabilities = BridgeCapabilities(),
-)
+) {
+    constructor(
+        activity: String?,
+        rootsCount: Int,
+        sidekickVersion: String,
+        bridgeProtocolVersion: String,
+        sourceIndexAvailable: Boolean,
+    ) : this(
+        activity = activity,
+        rootsCount = rootsCount,
+        sidekickVersion = sidekickVersion,
+        bridgeProtocolVersion = bridgeProtocolVersion,
+        sourceIndexAvailable = sourceIndexAvailable,
+        capabilities = BridgeCapabilities(),
+    )
+}
 
 @Serializable
 data class BridgeCapabilities(

@@ -83,6 +83,36 @@ class BridgeServerTest {
     }
 
     @Test
+    fun bridgeStatusKeepsJvmConstructorCompatibility() {
+        val constructorParameterTypes = BridgeStatus::class.java.declaredConstructors
+            .map { constructor -> constructor.parameterTypes.toList() }
+
+        assertTrue(
+            constructorParameterTypes.contains(
+                listOf(
+                    String::class.java,
+                    Int::class.javaPrimitiveType,
+                    String::class.java,
+                    String::class.java,
+                    Boolean::class.javaPrimitiveType,
+                ),
+            ),
+        )
+        assertTrue(
+            constructorParameterTypes.contains(
+                listOf(
+                    String::class.java,
+                    Int::class.javaPrimitiveType,
+                    String::class.java,
+                    String::class.java,
+                    Boolean::class.javaPrimitiveType,
+                    BridgeCapabilities::class.java,
+                ),
+            ),
+        )
+    }
+
+    @Test
     fun startFeedbackCaptureDoesNotFakeSuccessOnTimeout() = runBlocking {
         val server = server(environment = RecordingBridgeEnvironment(feedbackResult = BridgeFeedbackCaptureResult.Timeout(25L)))
 
