@@ -1,5 +1,6 @@
 package io.beyondwin.fixthis.mcp.session
 
+import io.beyondwin.fixthis.cli.AdbDevice
 import io.beyondwin.fixthis.compose.core.model.EvidenceQuality
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
@@ -11,6 +12,7 @@ import io.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
 import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import io.beyondwin.fixthis.mcp.console.AnnotationDraftDto
+import io.beyondwin.fixthis.mcp.console.ConsoleConnectionState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -20,6 +22,188 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class FeedbackSessionServiceTest {
+    @Test
+    fun connectionStatusIsReadyWhenDeviceAndHeartbeatSucceed() = runBlocking {
+        val bridge = FakeFixThisBridge()
+        bridge.selectDevice("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp")
+        val service = serviceWithBridge(bridge)
+        service.currentSession()
+
+        val status = service.connectionStatus()
+
+        assertEquals(ConsoleConnectionState.READY, status.state)
+        assertEquals("Ready", status.headline)
+        assertEquals(true, status.canCapture)
+        assertEquals(true, status.canNavigate)
+    }
+
+    @Test
+    fun connectionStatusAsksToChooseDeviceWhenMultipleReadyDevicesExist() = runBlocking {
+        val bridge = FakeFixThisBridge(
+            devicesOverride = listOf(
+                AdbDevice("device-1", "device", model = "Pixel_8"),
+                AdbDevice("device-2", "device", model = "SM_G986N"),
+            ),
+        )
+        val service = serviceWithBridge(bridge)
+        service.currentSession()
+
+        val status = service.connectionStatus()
+
+        assertEquals(ConsoleConnectionState.CHOOSE_DEVICE, status.state)
+        assertEquals("Choose a device", status.headline)
+        assertEquals(false, status.canCapture)
+    }
+
+    @Test
+    fun connectionStatusAsksToOpenAppWhenDeviceIsReadyButHeartbeatFails() = runBlocking {
+        val bridge = FakeFixThisBridge(heartbeatError = RuntimeException("Bridge closed before sending a response"))
+        bridge.selectDevice("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp")
+        val service = serviceWithBridge(bridge)
+        service.currentSession()
+
+        val status = service.connectionStatus()
+
+        assertEquals(ConsoleConnectionState.OPEN_APP, status.state)
+        assertEquals("Open the app", status.headline)
+        assertTrue(status.details.rawError.orEmpty().contains("Bridge closed before sending a response"))
+    }
+
+    @Test
+    fun connectionStatusPropagatesCancellationFromHeartbeat() = runBlocking {
+        val bridge = FakeFixThisBridge(heartbeatError = CancellationException("connection check cancelled"))
+        bridge.selectDevice("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp")
+        val service = serviceWithBridge(bridge)
+        service.currentSession()
+
+        val error = assertFailsWith<CancellationException> {
+            service.connectionStatus()
+        }
+        assertEquals("connection check cancelled", error.message)
+    }
+
+    @Test
+    fun connectionStatusReportsUnsupportedBuildWhenHeartbeatFailsWithRunAsPermissionError() = runBlocking {
+        val bridge = FakeFixThisBridge(heartbeatError = RuntimeException("run-as: package not debuggable: permission denied"))
+        bridge.selectDevice("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp")
+        val service = serviceWithBridge(bridge)
+        service.currentSession()
+
+        val status = service.connectionStatus()
+
+        assertEquals(ConsoleConnectionState.UNSUPPORTED_BUILD, status.state)
+        assertEquals("This build cannot connect", status.headline)
+    }
+
+    @Test
+    fun connectionStatusMapsDeviceEnumerationFailureToCheckPhoneDetails() = runBlocking {
+        val bridge = FakeFixThisBridge(devicesError = RuntimeException("adb server is unavailable"))
+        val service = serviceWithBridge(bridge)
+        service.currentSession()
+
+        val status = service.connectionStatus()
+
+        assertEquals(ConsoleConnectionState.CHECK_PHONE, status.state)
+        assertEquals("Check your phone", status.headline)
+        assertTrue(status.details.rawError.orEmpty().contains("adb server is unavailable"))
+        assertEquals("unknown", status.details.deviceState)
+        assertEquals("not checked", status.details.bridgeState)
+    }
+
+    @Test
+    fun launchAppForCurrentSessionDelegatesToBridgeAndReturnsStartingState() = runBlocking {
+        val bridge = FakeFixThisBridge(heartbeatError = RuntimeException("not ready yet"))
+        bridge.selectDevice("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp")
+        val service = serviceWithBridge(bridge)
+        service.currentSession()
+
+        val status = service.launchAppForCurrentSession()
+
+        assertEquals(listOf("io.beyondwin.fixthis.sample"), bridge.launchedPackages)
+        assertEquals(ConsoleConnectionState.STARTING, status.state)
+    }
+
+    @Test
+    fun launchAppForCurrentSessionTurnsWelcomeIntoStartingState() = runBlocking {
+        val bridge = FakeFixThisBridge(heartbeatError = RuntimeException("not ready yet"))
+        val service = serviceWithBridge(bridge)
+        service.currentSession()
+
+        val status = service.launchAppForCurrentSession()
+
+        assertEquals(listOf("io.beyondwin.fixthis.sample"), bridge.launchedPackages)
+        assertEquals(ConsoleConnectionState.STARTING, status.state)
+        assertEquals("Opening app", status.headline)
+        assertEquals("We're opening the app and connecting.", status.message)
+        assertEquals(null, status.primaryAction)
+    }
+
+    @Test
+    fun launchAppForCurrentSessionScopesWelcomeLaunchToSingleReadyDevice() = runBlocking {
+        val bridge = FakeFixThisBridge(
+            devicesOverride = listOf(
+                AdbDevice("device-1", "device", model = "Pixel_8"),
+                AdbDevice("device-2", "offline", model = "Offline"),
+            ),
+            heartbeatError = RuntimeException("not ready yet"),
+        )
+        val service = serviceWithBridge(bridge)
+        service.currentSession()
+
+        val status = service.launchAppForCurrentSession()
+
+        assertEquals(ConsoleConnectionState.STARTING, status.state)
+        assertEquals(listOf("io.beyondwin.fixthis.sample"), bridge.launchedPackages)
+        assertEquals("device-1", bridge.selectedDeviceSerial())
+    }
+
+    @Test
+    fun launchAppForCurrentSessionPreservesUnsupportedBuildStatus() = runBlocking {
+        val bridge = FakeFixThisBridge(heartbeatError = RuntimeException("run-as: package not debuggable"))
+        bridge.selectDevice("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp")
+        val service = serviceWithBridge(bridge)
+        service.currentSession()
+
+        val status = service.launchAppForCurrentSession()
+
+        assertEquals(emptyList(), bridge.launchedPackages)
+        assertEquals(ConsoleConnectionState.UNSUPPORTED_BUILD, status.state)
+        assertEquals("This build cannot connect", status.headline)
+    }
+
+    @Test
+    fun launchAppForCurrentSessionPreservesCheckPhoneStatus() = runBlocking {
+        val bridge = FakeFixThisBridge(
+            devicesOverride = listOf(AdbDevice("device-1", "offline", model = "Pixel_8")),
+        )
+        val service = serviceWithBridge(bridge)
+        service.currentSession()
+
+        val status = service.launchAppForCurrentSession()
+
+        assertEquals(emptyList(), bridge.launchedPackages)
+        assertEquals(ConsoleConnectionState.CHECK_PHONE, status.state)
+        assertEquals("Check your phone", status.headline)
+    }
+
+    @Test
+    fun launchAppForCurrentSessionPreservesChooseDeviceStatus() = runBlocking {
+        val bridge = FakeFixThisBridge(
+            devicesOverride = listOf(
+                AdbDevice("device-1", "device", model = "Pixel_8"),
+                AdbDevice("device-2", "device", model = "SM_G986N"),
+            ),
+        )
+        val service = serviceWithBridge(bridge)
+        service.currentSession()
+
+        val status = service.launchAppForCurrentSession()
+
+        assertEquals(emptyList(), bridge.launchedPackages)
+        assertEquals(ConsoleConnectionState.CHOOSE_DEVICE, status.state)
+        assertEquals("Choose a device", status.headline)
+    }
+
     @Test
     fun openSessionReusesCurrentSessionForSamePackageAndProject() {
         val store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1").next)
@@ -1133,6 +1317,14 @@ class FeedbackSessionServiceTest {
             field.isAccessible = true
             (field.get(this) as FeedbackSessionStore).addScreen(sessionId, screen)
         }
+
+    private fun serviceWithBridge(bridge: FakeFixThisBridge): FeedbackSessionService =
+        FeedbackSessionService(
+            bridge = bridge,
+            store = FeedbackSessionStore(),
+            projectRoot = createTempDir(prefix = "fixthis-connection-service-").absolutePath,
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
 
     private class FakeIds(vararg values: String) {
         private val queue = ArrayDeque(values.toList())

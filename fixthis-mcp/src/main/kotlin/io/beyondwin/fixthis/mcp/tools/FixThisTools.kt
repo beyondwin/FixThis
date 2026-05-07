@@ -499,6 +499,7 @@ interface FixThisBridge {
     fun selectedDeviceSerial(): String? = null
     fun selectDevice(serial: String) = Unit
     fun disconnectDevice() = Unit
+    fun launchApp(packageName: String) = Unit
     suspend fun status(packageName: String): JsonObject
     suspend fun heartbeat(packageName: String): JsonObject = status(packageName)
     suspend fun inspectCurrentScreen(packageName: String): JsonObject
@@ -529,6 +530,9 @@ class CliFixThisBridge(private val client: BridgeClient) : FixThisBridge {
 
     override fun disconnectDevice() =
         client.disconnectDevice()
+
+    override fun launchApp(packageName: String) =
+        client.launchApp(packageName)
 
     override suspend fun status(packageName: String): JsonObject =
         client.request(packageName, "status")

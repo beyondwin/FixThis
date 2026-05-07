@@ -22,9 +22,13 @@ internal class FakeFixThisBridge(
     private val sourceIndexAvailable: Boolean = true,
     private val sourceIndex: SourceIndex? = defaultSourceIndex(),
     private val sourceIndexReadError: String? = null,
+    private val devicesOverride: List<AdbDevice>? = null,
+    private val devicesError: Throwable? = null,
+    private val heartbeatError: Throwable? = null,
 ) : FixThisBridge {
     val resolvedOverrides = mutableListOf<String?>()
     val navigationRequests = mutableListOf<FeedbackNavigationRequest>()
+    val launchedPackages = mutableListOf<String>()
     var lastCaptureSessionId: String? = null
         private set
     var lastCaptureScreenId: String? = null
@@ -45,8 +49,9 @@ internal class FakeFixThisBridge(
         return packageOverride ?: packageName
     }
 
-    override fun devices(): List<AdbDevice> =
-        listOf(
+    override fun devices(): List<AdbDevice> {
+        devicesError?.let { throw it }
+        return devicesOverride ?: listOf(
             AdbDevice(
                 serial = "adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp",
                 state = "device",
@@ -55,6 +60,7 @@ internal class FakeFixThisBridge(
                 deviceName = "y2q",
             ),
         )
+    }
 
     override fun selectedDeviceSerial(): String? = selectedDeviceSerial
 
@@ -69,6 +75,15 @@ internal class FakeFixThisBridge(
     override suspend fun status(packageName: String): JsonObject = buildJsonObject {
         statusCount += 1
         put("activity", "MainActivity")
+    }
+
+    override suspend fun heartbeat(packageName: String): JsonObject {
+        heartbeatError?.let { throw it }
+        return status(packageName)
+    }
+
+    override fun launchApp(packageName: String) {
+        launchedPackages += packageName
     }
 
     override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
