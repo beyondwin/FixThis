@@ -43,6 +43,7 @@
             let addItemsFlow = null;
             let addItemsFlowStarting = false;
             let newHistoryAnnotateModeStarting = false;
+            let promptActionInFlight = false;
             let pendingFeedbackItems = [];
             let focusedPendingItemIndex = null;
             let currentSelection = null;
@@ -289,6 +290,82 @@
               return item.bounds || boundsForTarget(item.target);
             }
 
+            function promptListValue(values) {
+              const joined = (values || [])
+                .map(value => String(value || '').trim())
+                .filter(Boolean)
+                .join(' | ');
+              return joined || null;
+            }
+
+            function promptScalarValue(value) {
+              const scalar = String(value || '').trim();
+              return scalar || null;
+            }
+
+            function promptNodeEvidence(node) {
+              if (!node) return [];
+              const lines = [];
+              const textValue = promptListValue(node.text);
+              const editableText = promptScalarValue(node.editableText);
+              const contentDescription = promptListValue(node.contentDescription);
+              const testTag = promptScalarValue(node.testTag);
+              const role = promptScalarValue(node.role);
+              if (textValue) lines.push('   UI Text: ' + textValue);
+              if (editableText) lines.push('   Editable Text: ' + editableText);
+              if (contentDescription) lines.push('   Content Description: ' + contentDescription);
+              if (testTag) lines.push('   Test Tag: ' + testTag);
+              if (role) lines.push('   Role: ' + role);
+              return lines;
+            }
+
+            function promptTargetEvidence(item) {
+              const evidence = item.targetEvidence || {};
+              const lines = [];
+              const hint = evidence.identityHint || {};
+              const identity = [hint.composableNameHint, hint.variantHint]
+                .map(promptScalarValue)
+                .filter(Boolean)
+                .join(':');
+              if (identity) lines.push('   Identity: ' + identity);
+              if (hint.stableLabel) lines.push('   Stable Label: ' + hint.stableLabel);
+              if (evidence.occurrence) {
+                lines.push('   Occurrence: ' + evidence.occurrence.selectedOrdinal + '/' + evidence.occurrence.count);
+              }
+              const interpretation = evidence.sourceInterpretation || {};
+              if (interpretation.caution) lines.push('   Source Caution: ' + interpretation.caution);
+              if ((evidence.warnings || []).length) lines.push('   Warnings: ' + evidence.warnings.join(', '));
+              return lines;
+            }
+
+            function promptSourceConfidence(candidate, target) {
+              if (target?.type === 'visual_area') return 'low';
+              return String(candidate?.confidence || 'unknown').toLowerCase();
+            }
+
+            function promptSourceLocation(candidate) {
+              const file = promptScalarValue(candidate?.file);
+              if (!file) return 'unknown';
+              return file + (candidate.line ? ':' + candidate.line : '');
+            }
+
+            function promptLikelySources(sourceCandidates, target) {
+              const lines = [];
+              if (!(sourceCandidates || []).length) {
+                return ['     No source candidate from current evidence; search by target labels and request.'];
+              }
+              (sourceCandidates || []).slice(0, 3).forEach((candidate, index) => {
+                lines.push('     ' + (index + 1) + '. ' + promptSourceLocation(candidate) + ' (' + promptSourceConfidence(candidate, target) + ' confidence)');
+                if ((candidate.matchedTerms || []).length) {
+                  lines.push('        matched: ' + candidate.matchedTerms.join(', '));
+                }
+                if ((candidate.matchReasons || []).length) {
+                  lines.push('        reasons: ' + candidate.matchReasons.join(', '));
+                }
+              });
+              return lines;
+            }
+
             function currentAnnotationsPrompt(annotations = currentPromptAnnotations()) {
               if (!state.session || annotations.length === 0) {
                 throw new Error('Select a history item with annotations before sending it to an agent.');
@@ -313,6 +390,10 @@
                   '   Status: ' + statusLabel(annotationStatus(item)),
                   '   Target: ' + (item.targetType ? pendingTargetLabel(item) : targetLabel(item)),
                   '   Bounds: ' + (bounds ? formatBounds(bounds) : 'unknown'),
+                  ...promptNodeEvidence(item.selectedNode),
+                  ...promptTargetEvidence(item),
+                  '   Likely Source:',
+                  ...promptLikelySources(item.sourceCandidates, item.target),
                   '   Comment: ' + (String(item.comment || '').trim() || 'No comment')
                 );
               });
@@ -730,12 +811,12 @@
 
             function updateComposerState() {
               const hasPromptAnnotations = currentPromptAnnotations().length > 0;
-              copyPromptButton.disabled = false;
-              sendAgentButton.disabled = false;
-              copyPromptButton.dataset.unavailable = String(!hasPromptAnnotations);
-              sendAgentButton.dataset.unavailable = String(!hasPromptAnnotations);
-              copyPromptButton.classList.toggle('is-disabled', !hasPromptAnnotations);
-              sendAgentButton.classList.toggle('is-disabled', !hasPromptAnnotations);
+              copyPromptButton.disabled = promptActionInFlight;
+              sendAgentButton.disabled = promptActionInFlight;
+              copyPromptButton.dataset.unavailable = String(!hasPromptAnnotations || promptActionInFlight);
+              sendAgentButton.dataset.unavailable = String(!hasPromptAnnotations || promptActionInFlight);
+              copyPromptButton.classList.toggle('is-disabled', !hasPromptAnnotations || promptActionInFlight);
+              sendAgentButton.classList.toggle('is-disabled', !hasPromptAnnotations || promptActionInFlight);
               cancelAddFlowButton.disabled = !addItemsFlow;
               addItemButton.hidden = true;
               addItemButton.disabled = true;
@@ -1106,6 +1187,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   previewId: addItemsFlow.previewId,
+                  screen: addItemsFlow.screen,
                   items: pendingPayloadItems({ allowFallbackComments: allowFallbackComments, onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments })
                 })
               });
@@ -1704,22 +1786,30 @@
 
             async function sendAgentPrompt() {
               error.textContent = '';
+              if (promptActionInFlight) return;
               ensurePromptAnnotationsAvailable();
-              if (addItemsFlow) {
-                await persistPendingFeedbackItems({ onlyWrittenComments: true });
+              promptActionInFlight = true;
+              updateComposerState();
+              try {
+                if (addItemsFlow) {
+                  await persistPendingFeedbackItems({ onlyWrittenComments: true });
+                }
+                const prompt = currentAnnotationsPrompt();
+                state.session = await requestJson('/api/agent-handoffs', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ prompt: prompt })
+                });
+                comment.value = '';
+                resetAnnotationComposerState();
+                invalidatePreviewContext();
+                await refreshSessions();
+                render();
+                startLivePreviewPolling();
+              } finally {
+                promptActionInFlight = false;
+                updateComposerState();
               }
-              const prompt = currentAnnotationsPrompt();
-              state.session = await requestJson('/api/agent-handoffs', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: prompt })
-              });
-              comment.value = '';
-              resetAnnotationComposerState();
-              invalidatePreviewContext();
-              await refreshSessions();
-              render();
-              startLivePreviewPolling();
             }
 
             async function navigate(action, extras = {}) {
@@ -1853,8 +1943,19 @@
 
             async function copyPrompt() {
               error.textContent = '';
-              const annotations = ensurePromptAnnotationsAvailable();
-              await copyTextToClipboard(currentAnnotationsPrompt(annotations));
+              if (promptActionInFlight) return;
+              ensurePromptAnnotationsAvailable();
+              promptActionInFlight = true;
+              updateComposerState();
+              try {
+                if (addItemsFlow) {
+                  await persistPendingFeedbackItems({ onlyWrittenComments: true });
+                }
+                await copyTextToClipboard(currentAnnotationsPrompt());
+              } finally {
+                promptActionInFlight = false;
+                updateComposerState();
+              }
             }
 
             function isTextInputFocused(target = document.activeElement) {

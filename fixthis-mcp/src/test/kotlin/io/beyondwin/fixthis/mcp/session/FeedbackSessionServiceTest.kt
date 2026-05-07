@@ -659,7 +659,7 @@ class FeedbackSessionServiceTest {
     }
 
     @Test
-    fun capturePreviewDeletesEvictedPreviewCacheDirectories() = runBlocking {
+    fun capturePreviewRetainsEvictedPreviewCacheDirectoriesForLateScreenshotRequests() = runBlocking {
         val root = createTempDir(prefix = "fixthis-v2-preview-cache-")
         try {
             val store = FeedbackSessionStore(
@@ -689,9 +689,9 @@ class FeedbackSessionServiceTest {
             }
 
             val previewRoot = root.resolve(".fixthis/preview-cache/${session.sessionId}")
-            assertFalse(previewRoot.resolve("preview-1").exists())
+            assertTrue(previewRoot.resolve("preview-1").exists())
             assertEquals(
-                listOf("preview-2", "preview-3", "preview-4"),
+                listOf("preview-1", "preview-2", "preview-3", "preview-4"),
                 previewRoot.listFiles().orEmpty().filter { it.isDirectory }.map { it.name }.sorted(),
             )
         } finally {
@@ -810,6 +810,48 @@ class FeedbackSessionServiceTest {
         val stored = store.getSession(session.sessionId)
         assertEquals(1, stored.screens.size)
         assertEquals(1, stored.items.size)
+    }
+
+    @Test
+    fun savingPreviewCanRecoverFromMissingMemoryCacheUsingFrozenScreenSnapshot() = runBlocking {
+        val root = createTempDir(prefix = "fixthis-v2-preview-recover-")
+        val store = FeedbackSessionStore(
+            clock = sequenceClock(1_000L, 2_000L),
+            idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1"),
+        )
+        val firstService = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val session = firstService.openSession(null, newSession = true)
+        val preview = firstService.capturePreview(session.sessionId)
+        val restartedService = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+
+        val updated = restartedService.savePreviewFeedbackItems(
+            sessionId = session.sessionId,
+            previewId = preview.previewId,
+            items = listOf(
+                AnnotationDraftDto(
+                    targetType = FeedbackTargetType.NODE,
+                    nodeUid = "email-label",
+                    bounds = FixThisRect(28f, 77f, 692f, 186f),
+                    comment = "Rename this label",
+                ),
+            ),
+            fallbackScreen = preview.screen,
+        )
+
+        assertEquals(1, updated.screens.size)
+        assertEquals(1, updated.items.size)
+        assertEquals("email-label", updated.items.single().selectedNode?.uid)
+        assertTrue(updated.items.single().sourceCandidates.isNotEmpty())
     }
 
     @Test

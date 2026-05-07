@@ -22,6 +22,9 @@ import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.file.Files
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -74,6 +77,38 @@ class FeedbackConsoleServerTest {
 
             assertEquals(204, connection.responseCode)
         } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun lightweightRequestsStillRespondWhilePreviewCaptureIsWaitingOnBridge() {
+        val previewStarted = CountDownLatch(1)
+        val releasePreview = CountDownLatch(1)
+        val bridge = BlockingCaptureBridge(previewStarted, releasePreview)
+        val service = FeedbackSessionService(
+            bridge = bridge,
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = { "session-1" }),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        val previewThread = thread(isDaemon = true, name = "blocking-preview-test-request") {
+            runCatching { URL("${server.url}/api/preview").readText() }
+        }
+        try {
+            assertTrue(previewStarted.await(2, TimeUnit.SECONDS))
+
+            val connection = URL("${server.url}/api/session").openConnection() as HttpURLConnection
+            connection.connectTimeout = 500
+            connection.readTimeout = 500
+
+            assertEquals(200, connection.responseCode)
+            assertTrue(connection.inputStream.bufferedReader().readText().contains("io.beyondwin.fixthis.sample"))
+        } finally {
+            releasePreview.countDown()
+            previewThread.join(2_000)
             server.stop()
         }
     }
@@ -290,6 +325,7 @@ class FeedbackConsoleServerTest {
         val copyPromptBody = javascriptFunctionBody(html, "copyPrompt")
         val sendAgentPromptBody = javascriptFunctionBody(html, "sendAgentPrompt")
         val currentPromptAnnotationsBody = javascriptFunctionBody(html, "currentPromptAnnotations")
+        val currentAnnotationsPromptBody = javascriptFunctionBody(html, "currentAnnotationsPrompt")
         val promptGuardBody = javascriptFunctionBody(html, "ensurePromptAnnotationsAvailable")
         val renderSessionsListBody = javascriptFunctionBody(html, "renderSessionsListFromPayload")
         val clearSentHistoryBody = javascriptFunctionBody(html, "clearSentHistory")
@@ -300,21 +336,43 @@ class FeedbackConsoleServerTest {
         assertTrue(currentPromptAnnotationsBody.contains(".filter(hasWrittenAnnotationComment)"))
         assertTrue(html.contains("function ensurePromptAnnotationsAvailable()"))
         assertTrue(promptGuardBody.contains("window.alert(message)"))
+        assertTrue(html.contains("let promptActionInFlight = false;"))
+        assertTrue(html.contains("if (promptActionInFlight) return;"))
+        assertTrue(html.contains("promptActionInFlight = true;"))
+        assertTrue(html.contains("promptActionInFlight = false;"))
         assertTrue(html.contains("async function copyTextToClipboard(text)"))
         assertTrue(html.contains("navigator.clipboard.writeText(text)"))
         assertTrue(html.contains("document.execCommand('copy')"))
         assertTrue(html.contains("fallback.remove()"))
         assertTrue(copyPromptBody.contains("ensurePromptAnnotationsAvailable();"))
-        assertTrue(copyPromptBody.contains("await copyTextToClipboard(currentAnnotationsPrompt(annotations))"))
+        assertTrue(copyPromptBody.contains("persistPendingFeedbackItems({ onlyWrittenComments: true })"))
+        assertTrue(copyPromptBody.contains("await copyTextToClipboard(currentAnnotationsPrompt())"))
+        assertTrue(html.contains("screen: addItemsFlow.screen"))
+        assertTrue(currentAnnotationsPromptBody.contains("promptNodeEvidence(item.selectedNode)"))
+        assertTrue(currentAnnotationsPromptBody.contains("promptTargetEvidence(item)"))
+        assertTrue(currentAnnotationsPromptBody.contains("promptLikelySources(item.sourceCandidates, item.target)"))
+        assertTrue(html.contains("function promptNodeEvidence(node)"))
+        assertTrue(html.contains("function promptTargetEvidence(item)"))
+        assertTrue(html.contains("function promptLikelySources(sourceCandidates, target)"))
+        assertTrue(html.contains("'   UI Text: '"))
+        assertTrue(html.contains("'   Content Description: '"))
+        assertTrue(html.contains("'   Test Tag: '"))
+        assertTrue(html.contains("'   Role: '"))
+        assertTrue(html.contains("'   Identity: '"))
+        assertTrue(html.contains("'   Occurrence: '"))
+        assertTrue(html.contains("'   Likely Source:'"))
+        assertTrue(html.contains(".slice(0, 3).forEach"))
         assertTrue(sendAgentPromptBody.contains("ensurePromptAnnotationsAvailable();"))
         assertTrue(sendAgentPromptBody.contains("const prompt = currentAnnotationsPrompt();"))
         assertTrue(sendAgentPromptBody.contains("persistPendingFeedbackItems({ onlyWrittenComments: true })"))
         assertTrue(sendAgentPromptBody.contains("body: JSON.stringify({ prompt: prompt })"))
         assertTrue(updateComposerStateBody.contains("const hasPromptAnnotations = currentPromptAnnotations().length > 0;"))
-        assertTrue(updateComposerStateBody.contains("copyPromptButton.dataset.unavailable = String(!hasPromptAnnotations);"))
-        assertTrue(updateComposerStateBody.contains("sendAgentButton.dataset.unavailable = String(!hasPromptAnnotations);"))
-        assertTrue(updateComposerStateBody.contains("copyPromptButton.classList.toggle('is-disabled', !hasPromptAnnotations);"))
-        assertTrue(updateComposerStateBody.contains("sendAgentButton.classList.toggle('is-disabled', !hasPromptAnnotations);"))
+        assertTrue(updateComposerStateBody.contains("copyPromptButton.disabled = promptActionInFlight;"))
+        assertTrue(updateComposerStateBody.contains("sendAgentButton.disabled = promptActionInFlight;"))
+        assertTrue(updateComposerStateBody.contains("copyPromptButton.dataset.unavailable = String(!hasPromptAnnotations || promptActionInFlight);"))
+        assertTrue(updateComposerStateBody.contains("sendAgentButton.dataset.unavailable = String(!hasPromptAnnotations || promptActionInFlight);"))
+        assertTrue(updateComposerStateBody.contains("copyPromptButton.classList.toggle('is-disabled', !hasPromptAnnotations || promptActionInFlight);"))
+        assertTrue(updateComposerStateBody.contains("sendAgentButton.classList.toggle('is-disabled', !hasPromptAnnotations || promptActionInFlight);"))
         assertTrue(renderSessionsListBody.contains("session.status !== 'ready_for_agent'"))
         assertTrue(html.contains("id=\"clearSentHistoryButton\""))
         assertTrue(clearSentHistoryBody.contains("window.confirm"))
@@ -438,7 +496,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("function clearDraft"))
         assertTrue(html.contains("function sendAgentPrompt"))
         assertTrue(html.contains("selectionSummary.textContent = currentSelection"))
-        assertTrue(html.contains("sendAgentButton.classList.toggle('is-disabled', !hasPromptAnnotations);"))
+        assertTrue(html.contains("sendAgentButton.classList.toggle('is-disabled', !hasPromptAnnotations || promptActionInFlight);"))
         assertTrue(html.contains("formatSessionLabel"))
         assertTrue(html.contains("formatSessionSummary"))
         assertTrue(html.contains("historyOpenCount"))
@@ -1432,6 +1490,55 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun previewIdScreenshotRouteServesEvictedPreviewPngFromDiskArtifact() = runBlocking {
+        val projectRoot = Files.createTempDirectory("fixthis-console-preview-evicted").toFile()
+        try {
+            val firstPng = byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47, 0x01)
+            val service = FeedbackSessionService(
+                bridge = SequencedSessionScreenshotBridge(
+                    firstPng,
+                    byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47, 0x02),
+                    byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47, 0x03),
+                    byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47, 0x04),
+                ),
+                store = FeedbackSessionStore(
+                    clock = { 100L },
+                    idGenerator = FakeIds(
+                        "session-1",
+                        "preview-1",
+                        "preview-screen-1",
+                        "preview-2",
+                        "preview-screen-2",
+                        "preview-3",
+                        "preview-screen-3",
+                        "preview-4",
+                        "preview-screen-4",
+                    ).next,
+                ),
+                projectRoot = projectRoot.absolutePath,
+                defaultPackageName = "io.beyondwin.fixthis.sample",
+            )
+            val server = FeedbackConsoleServer(service = service, port = 0)
+            server.start()
+            try {
+                val firstPreview = fixThisJson.parseToJsonElement(URL("${server.url}/api/preview").readText()).jsonObject
+                repeat(3) { URL("${server.url}/api/preview").readText() }
+                val firstPreviewId = firstPreview.getValue("previewId").jsonPrimitive.content
+
+                val connection = URL("${server.url}/api/preview/$firstPreviewId/screenshot/full").openConnection() as HttpURLConnection
+
+                assertEquals(200, connection.responseCode)
+                assertEquals("image/png", connection.contentType)
+                assertTrue(connection.inputStream.use { it.readBytes() }.contentEquals(firstPng))
+            } finally {
+                server.stop()
+            }
+        } finally {
+            projectRoot.deleteRecursively()
+        }
+    }
+
+    @Test
     fun previewScreenshotRouteRejectsPersistedScreenshotsOutsideFixThisRoots() {
         val projectRoot = Files.createTempDirectory("fixthis-console-preview-safe").toFile()
         val outsideArtifact = Files.createTempFile("fixthis-outside", ".png").toFile()
@@ -2254,6 +2361,42 @@ class FeedbackConsoleServerTest {
             })
             put("screenshot", buildJsonObject {
                 put("desktopFullPath", artifact.absolutePath)
+            })
+        }
+    }
+
+    private class BlockingCaptureBridge(
+        private val previewStarted: CountDownLatch,
+        private val releasePreview: CountDownLatch,
+    ) : FixThisBridge {
+        override fun resolvePackageName(packageOverride: String?): String =
+            packageOverride ?: "io.beyondwin.fixthis.sample"
+
+        override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
+            JsonObject(emptyMap())
+
+        override suspend fun captureScreenSnapshot(
+            packageName: String,
+            sessionId: String?,
+            screenId: String?,
+            destinationDirectory: File?,
+        ): JsonObject = buildJsonObject {
+            previewStarted.countDown()
+            releasePreview.await(5, TimeUnit.SECONDS)
+            put("activity", "MainActivity")
+            put("sourceIndexAvailable", true)
+            put("inspection", buildJsonObject {
+                put("activity", "MainActivity")
+                put("roots", JsonArray(emptyList()))
+                put("errors", JsonArray(emptyList()))
+            })
+            put("screenshot", buildJsonObject {
+                put("width", 720)
+                put("height", 1600)
             })
         }
     }

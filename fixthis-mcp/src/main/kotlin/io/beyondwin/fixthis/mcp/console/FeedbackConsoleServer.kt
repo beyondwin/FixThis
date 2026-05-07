@@ -17,6 +17,9 @@ import java.io.File
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.URLDecoder
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
@@ -29,6 +32,7 @@ class FeedbackConsoleServer(
 ) {
     private val lock = Any()
     private var server: HttpServer? = null
+    private var executor: ExecutorService? = null
 
     val url: String
         get() = "http://${host.toUrlHost()}:${runningServer().address.port}"
@@ -36,10 +40,13 @@ class FeedbackConsoleServer(
     fun start(): String =
         synchronized(lock) {
             server?.let { return@synchronized url }
+            val requestExecutor = consoleHttpExecutor()
             HttpServer.create(InetSocketAddress(InetAddress.getByName(host), port), 0)
                 .also { httpServer ->
                     httpServer.createContext("/") { exchange -> handle(exchange) }
+                    httpServer.executor = requestExecutor
                     httpServer.start()
+                    executor = requestExecutor
                     server = httpServer
                 }
             url
@@ -49,6 +56,8 @@ class FeedbackConsoleServer(
         synchronized(lock) {
             server?.stop(0)
             server = null
+            executor?.shutdownNow()
+            executor = null
         }
     }
 
@@ -172,6 +181,7 @@ class FeedbackConsoleServer(
                             sessionId = service.currentSession().sessionId,
                             previewId = request.previewId,
                             items = request.items,
+                            fallbackScreen = request.screen,
                         )
                     } catch (error: IllegalArgumentException) {
                         throw FeedbackConsoleHttpException(400, error.message ?: "Invalid feedback item request")
@@ -455,6 +465,13 @@ private fun String.previewIdFromScreenshotPath(): String =
 
 private fun String.toUrlHost(): String =
     if (contains(':') && !startsWith("[")) "[$this]" else this
+
+private fun consoleHttpExecutor(): ExecutorService {
+    val requestIds = AtomicInteger(0)
+    return Executors.newCachedThreadPool { task ->
+        Thread(task, "fixthis-console-http-${requestIds.incrementAndGet()}")
+    }
+}
 
 private val allowedNavigationRequestKeys = setOf("action", "x", "y", "direction", "distance", "captureAfter")
 

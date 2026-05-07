@@ -14,6 +14,7 @@ data class FeedbackPreviewSnapshot(
 data class SaveSnapshotRequest(
     val previewId: String,
     val items: List<AnnotationDraftDto>,
+    val screen: SnapshotDto? = null,
 )
 
 @Serializable

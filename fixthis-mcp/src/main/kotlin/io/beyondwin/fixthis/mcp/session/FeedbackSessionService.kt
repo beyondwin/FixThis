@@ -145,19 +145,26 @@ class FeedbackSessionService(
                 snapshot = preview,
                 sourceIndex = sourceIndex,
             ),
-        ).forEach { it.deletePreviewCacheDirectory() }
+        )
         return preview
     }
 
     fun previewScreenshotFile(sessionId: String, previewId: String): File {
-        val record = previewCache.get(sessionId, previewId)
+        previewCache.get(sessionId, previewId)?.let { record ->
+            return previewScreenshotFile(record)
+        }
+        return previewScreenshotArtifactFile(sessionId, previewId)
             ?: throw FeedbackSessionException("PREVIEW_NOT_FOUND: Unknown preview: $previewId")
+    }
+
+    private fun previewScreenshotFile(record: PreviewRecord): File {
+        val previewId = record.snapshot.previewId
         val screenshotPath = record.snapshot.screen.screenshot?.desktopFullPath
             ?: throw FeedbackSessionException("PREVIEW_SCREENSHOT_NOT_FOUND: Screenshot not found for preview: $previewId")
         val screenshotFile = File(screenshotPath).canonicalFile
         val previewDirectory = File(
             File(record.projectRoot).canonicalFile,
-            ".fixthis/preview-cache/$sessionId/$previewId",
+            ".fixthis/preview-cache/${record.sessionId}/$previewId",
         ).canonicalFile
         if (
             !screenshotFile.isFile ||
@@ -167,6 +174,20 @@ class FeedbackSessionService(
             throw FeedbackSessionException("PREVIEW_SCREENSHOT_NOT_FOUND: Screenshot not found for preview: $previewId")
         }
         return screenshotFile
+    }
+
+    private fun previewScreenshotArtifactFile(sessionId: String, previewId: String): File? {
+        val session = store.getSession(sessionId)
+        val previewRoot = File(session.projectRoot, ".fixthis/preview-cache/$sessionId").canonicalFile
+        val previewDirectory = File(previewRoot, previewId).canonicalFile
+        if (!previewDirectory.toPath().startsWith(previewRoot.toPath()) || !previewDirectory.isDirectory) {
+            return null
+        }
+        return previewDirectory
+            .walkTopDown()
+            .filter { file -> file.isFile && file.extension.lowercase() == "png" && file.name.endsWith("-full.png") }
+            .map { file -> file.canonicalFile }
+            .firstOrNull { file -> file.toPath().startsWith(previewDirectory.toPath()) }
     }
 
     suspend fun navigate(sessionId: String, request: FeedbackNavigationRequest): FeedbackNavigationResult {
@@ -310,12 +331,15 @@ class FeedbackSessionService(
         sessionId: String,
         previewId: String,
         items: List<AnnotationDraftDto>,
+        fallbackScreen: SnapshotDto? = null,
     ): SessionDto {
         require(items.isNotEmpty()) { "At least one feedback item is required" }
         val inFlightKey = "$sessionId:$previewId"
-        val preview = synchronized(sessionLock) {
+        val cachedPreview = synchronized(sessionLock) {
             val record = previewCache.get(sessionId, previewId)
-                ?: throw FeedbackSessionException("PREVIEW_NOT_FOUND: Unknown preview: $previewId")
+            if (record == null && fallbackScreen == null) {
+                throw FeedbackSessionException("PREVIEW_NOT_FOUND: Unknown preview: $previewId")
+            }
             if (!previewSavesInFlight.add(inFlightKey)) {
                 throw FeedbackSessionException("PREVIEW_SAVE_IN_PROGRESS: Preview is already being saved: $previewId")
             }
@@ -323,6 +347,7 @@ class FeedbackSessionService(
         }
 
         return try {
+            val preview = cachedPreview ?: fallbackPreviewRecord(sessionId, previewId, fallbackScreen!!)
             val feedbackItems = items.map { pending ->
                 buildFeedbackItemForDraft(preview.snapshot.screen, preview.sourceIndex, pending)
             }
@@ -344,6 +369,18 @@ class FeedbackSessionService(
             }
             throw error
         }
+    }
+
+    private fun fallbackPreviewRecord(sessionId: String, previewId: String, screen: SnapshotDto): PreviewRecord {
+        val session = store.getSession(sessionId)
+        val sanitizedScreen = screen.withExistingScreenshotArtifactsOnly()
+        val sourceIndex = kotlinx.coroutines.runBlocking { readSourceIndexOrNull(session.packageName, sanitizedScreen) }
+        return PreviewRecord(
+            sessionId = sessionId,
+            projectRoot = session.projectRoot,
+            snapshot = FeedbackPreviewSnapshot(previewId = previewId, screen = sanitizedScreen),
+            sourceIndex = sourceIndex,
+        )
     }
 
     fun clearDraftItems(sessionId: String): SessionDto =
@@ -584,6 +621,18 @@ class FeedbackSessionService(
             if (!screenshot.fullPath.isNullOrBlank() || !screenshot.desktopFullPath.isNullOrBlank()) add("full")
             if (!screenshot.cropPath.isNullOrBlank() || !screenshot.desktopCropPath.isNullOrBlank()) add("crop")
         }
+    }
+
+    private fun SnapshotDto.withExistingScreenshotArtifactsOnly(): SnapshotDto {
+        val screenshot = screenshot ?: return this
+        fun existingPath(path: String?): String? =
+            path?.takeIf { it.isNotBlank() }?.takeIf { File(it).isFile }
+        return copy(
+            screenshot = screenshot.copy(
+                desktopFullPath = existingPath(screenshot.desktopFullPath),
+                desktopCropPath = existingPath(screenshot.desktopCropPath),
+            ),
+        )
     }
 
     private fun SnapshotDto.allNodes(): List<FixThisNode> =
