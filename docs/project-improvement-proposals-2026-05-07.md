@@ -19,6 +19,8 @@ Recommended improvement sequence:
 
 Detailed design: `docs/superpowers/specs/2026-05-08-project-improvement-stabilization-design.md`
 
+Detailed implementation plan: `docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md`
+
 ## Analysis Baseline
 
 Observed repository shape:

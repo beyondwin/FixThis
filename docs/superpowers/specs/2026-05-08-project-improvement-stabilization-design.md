@@ -3,6 +3,7 @@
 **Date:** 2026-05-08
 **Status:** Proposed
 **Source proposal:** `docs/project-improvement-proposals-2026-05-07.md`
+**Implementation plan:** `docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md`
 **Primary modules:** `fixthis-mcp`, `fixthis-cli`, `fixthis-gradle-plugin`, `sample`, project docs and CI
 
 ## Purpose
