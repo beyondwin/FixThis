@@ -245,7 +245,7 @@ git commit -m "feat: let bridge client launch selected app"
 - Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FakeFixThisBridge.kt`
 - Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt`
 
-- [ ] **Step 1: Add failing service tests**
+- [x] **Step 1: Add failing service tests**
 
 Add these tests to `FeedbackSessionServiceTest.kt`:
 
@@ -330,7 +330,7 @@ private fun serviceWithBridge(bridge: FakeFixThisBridge): FeedbackSessionService
     )
 ```
 
-- [ ] **Step 2: Run service tests and verify RED**
+- [x] **Step 2: Run service tests and verify RED**
 
 Run:
 
@@ -340,7 +340,7 @@ Run:
 
 Expected: fails because the connection DTOs and service methods do not exist.
 
-- [ ] **Step 3: Create connection DTOs**
+- [x] **Step 3: Create connection DTOs**
 
 Create `ConsoleConnectionModels.kt`:
 
@@ -411,7 +411,7 @@ fun AdbDevice.toConnectionDevice(selectedSerial: String?): ConsoleConnectionDevi
     )
 ```
 
-- [ ] **Step 4: Extend bridge interface and fake bridge**
+- [x] **Step 4: Extend bridge interface and fake bridge**
 
 In `FixThisTools.kt`, extend `FixThisBridge`:
 
@@ -459,7 +459,7 @@ override fun launchApp(packageName: String) {
 }
 ```
 
-- [ ] **Step 5: Implement service diagnosis**
+- [x] **Step 5: Implement service diagnosis**
 
 In `FeedbackSessionService.kt`, add imports:
 
@@ -592,7 +592,7 @@ suspend fun launchAppForCurrentSession(): ConsoleConnectionStatus {
 }
 ```
 
-- [ ] **Step 6: Run service tests and verify GREEN**
+- [x] **Step 6: Run service tests and verify GREEN**
 
 Run:
 
@@ -602,7 +602,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleConnectionModels.kt fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FakeFixThisBridge.kt fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt
