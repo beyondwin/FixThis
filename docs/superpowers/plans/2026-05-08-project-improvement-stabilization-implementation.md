@@ -1276,16 +1276,17 @@ git commit -m "refactor: split feedback console routes"
 **Files:**
 - Create JS modules under `fixthis-mcp/src/main/console/`
 - Create: `scripts/build-console-assets.mjs`
+- Create: `scripts/console-browser-smoke.mjs`
 - Modify generated: `fixthis-mcp/src/main/resources/console/app.js`
 - Modify tests as needed under `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/`
 
-- [ ] **Step 1: Add deterministic asset build script**
+- [x] **Step 1: Add deterministic asset build script**
 
 Create `scripts/build-console-assets.mjs`:
 
 ```javascript
 #!/usr/bin/env node
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -1312,9 +1313,12 @@ const output = sources
   .join('\n');
 
 const target = resolve(root, 'fixthis-mcp/src/main/resources/console/app.js');
-const current = readFileSync(target, 'utf8');
-
 if (process.argv.includes('--check')) {
+  if (!existsSync(target)) {
+    console.error('Generated console app.js is missing. Run node scripts/build-console-assets.mjs.');
+    process.exit(1);
+  }
+  const current = readFileSync(target, 'utf8');
   if (current !== output) {
     console.error('Generated console app.js is out of date. Run node scripts/build-console-assets.mjs.');
     process.exit(1);
@@ -1322,10 +1326,11 @@ if (process.argv.includes('--check')) {
   process.exit(0);
 }
 
+mkdirSync(dirname(target), { recursive: true });
 writeFileSync(target, output);
 ```
 
-- [ ] **Step 2: Split app.js into modules without behavior changes**
+- [x] **Step 2: Split app.js into modules without behavior changes**
 
 Move code by responsibility:
 
@@ -1343,23 +1348,55 @@ Move code by responsibility:
 
 Keep globals inside the same IIFE pattern if the current `app.js` uses one. Do not introduce npm dependencies.
 
-- [ ] **Step 3: Generate and check assets**
+- [x] **Step 3: Generate and check assets**
 
 Run:
 
 ```bash
 node scripts/build-console-assets.mjs
 node scripts/build-console-assets.mjs --check
-for file in fixthis-mcp/src/main/console/*.js fixthis-mcp/src/main/resources/console/app.js; do node --check "$file"; done
+for file in fixthis-mcp/src/main/console/*.js fixthis-mcp/src/main/resources/console/app.js scripts/build-console-assets.mjs scripts/console-browser-smoke.mjs; do node --check "$file"; done
+npx --yes --package=playwright -- node scripts/console-browser-smoke.mjs
 ./gradlew :fixthis-mcp:test --tests '*FeedbackConsoleServerTest'
 ```
 
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- RED: Added `generatedConsoleAppMatchesConsoleSourceModules`; it failed because `fixthis-mcp/src/main/console/state.js` did not exist.
+- GREEN: Added deterministic source modules and `scripts/build-console-assets.mjs`, regenerated `fixthis-mcp/src/main/resources/console/app.js`, and the focused asset-contract test passed.
+- Validation:
+  - `node scripts/build-console-assets.mjs --check`: PASS.
+  - `for file in fixthis-mcp/src/main/console/*.js fixthis-mcp/src/main/resources/console/app.js; do node --check "$file"; done`: PASS.
+  - `./gradlew :fixthis-mcp:test --tests '*FeedbackConsoleServerTest.generatedConsoleAppMatchesConsoleSourceModules'`: PASS.
+  - `./gradlew :fixthis-mcp:test`: PASS.
+  - `git diff --check`: PASS.
+- Review-fix RED:
+  - Missing generated target reproduction failed before the fix with `ENOENT` from `readFileSync(target)`, proving write mode could not regenerate `fixthis-mcp/src/main/resources/console/app.js` when absent.
+  - Browser smoke command failed before the fix with `MODULE_NOT_FOUND` because `scripts/console-browser-smoke.mjs` did not exist.
+- Review-fix GREEN:
+  - `scripts/build-console-assets.mjs` now reads the generated target only in `--check`, reports a missing target as check failure, and creates the output directory before writing, so write mode can regenerate a missing `app.js`.
+  - Added `scripts/console-browser-smoke.mjs`, a local deterministic Playwright smoke that serves committed console HTML/CSS/JS with fake API responses and exercises ready/reconnect/stale connection behavior, device selection, select/annotate flow, agent handoff, and session history switching.
+  - `npx --yes --package=playwright -- node scripts/console-browser-smoke.mjs`: PASS.
+- Final quality-review fix:
+  - Tightened the browser smoke fake `/api/connection` selected-device payload to the real `ConsoleConnectionDevice` schema (`serial`, `state`, `label`, `selected`) while keeping `/api/devices` on the `ConsoleDevice` schema.
+  - Added smoke assertions for the selected connection-device schema, the rendered device label after connection refresh, invalid select-mode tap navigation returning 400, and successful select-mode tap navigation returning HTTP 200 before counting the call.
+  - Focused revalidation after this fix: `node --check scripts/console-browser-smoke.mjs`: PASS; `npx --yes --package=playwright -- node scripts/console-browser-smoke.mjs`: PASS.
+- Final browser-smoke contract fixes:
+  - `/api/connection` now returns connection-schema `devices`, and the console device label helper accepts that schema's `label` field.
+  - The fake `/api/items/batch` validates the real save request shape and rejects invalid payloads before mutating session state; smoke covers missing `previewId`.
+  - The fake `/api/navigation` rejects unsupported fields from the real route allowlist before counting navigation; smoke covers unsupported fields and bad coordinates.
+  - Smoke now exercises Copy Prompt before Send Agent with a Playwright clipboard stub and verifies both prompts include the annotation comment.
+- Task 9 review-failure fix:
+  - Updated the stale console HTML contract test to assert the real connection-device fallback order (`label` first) while preserving normal device fallback through Wi-Fi ADB serial shortening.
+  - Focused validation after this fix: `./gradlew :fixthis-mcp:test --tests '*FeedbackConsoleServerTest.consoleHtmlShortensWifiAdbSerialsForNormalDeviceLabels'`: PASS.
+  - Console suite validation after this fix: `./gradlew :fixthis-mcp:test --tests '*FeedbackConsoleServerTest'`: PASS.
+  - Asset/smoke validation after this fix: `node scripts/build-console-assets.mjs --check`: PASS; `npx --yes --package=playwright -- node scripts/console-browser-smoke.mjs`: PASS.
+  - Diff validation after this fix: `git diff --check 10ba965..HEAD`: PASS.
+
+- [x] **Step 4: Commit**
 
 ```bash
-git add scripts/build-console-assets.mjs fixthis-mcp/src/main/console fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console
+git add scripts/build-console-assets.mjs scripts/console-browser-smoke.mjs fixthis-mcp/src/main/console fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console
 git commit -m "refactor: modularize console javascript assets"
 ```
 

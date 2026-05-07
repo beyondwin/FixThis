@@ -1,3 +1,4 @@
+// state.js
             const DefaultLivePreviewIntervalMs = 1000;
             const MinLivePreviewIntervalMs = 1000;
             const HeartbeatIntervalMs = 2000;
@@ -143,347 +144,7 @@
               return String(count) + ' ' + (count === 1 ? singular : plural);
             }
 
-            function sessionOrdinalLookup(sessions) {
-              const ordinalBySessionId = new Map();
-              [...(sessions || [])]
-                .sort((left, right) =>
-                  (left.createdAtEpochMillis || 0) - (right.createdAtEpochMillis || 0) ||
-                  String(left.sessionId || '').localeCompare(String(right.sessionId || ''))
-                )
-                .forEach((session, index) => {
-                  ordinalBySessionId.set(session.sessionId, index + 1);
-                });
-              return ordinalBySessionId;
-            }
-
-            function formatSessionLabel(session, ordinal) {
-              const safeOrdinal = Math.max(1, Number(ordinal || 1));
-              return 'Session ' + safeOrdinal;
-            }
-
-            function formatSessionSummary(session) {
-              return 'You · ' + formatHistoryDate(session.updatedAtEpochMillis);
-            }
-
-            function pendingHistoryItemsForSession(session) {
-              if (!addItemsFlow || state.session?.sessionId !== session?.sessionId) return [];
-              return pendingFeedbackItems;
-            }
-
-            function historyOpenCount(session) {
-              const pending = pendingHistoryItemsForSession(session);
-              return (session.unresolvedItemsCount || 0) + pending.filter(item => annotationStatus(item) !== 'resolved').length;
-            }
-
-            function historyDoneCount(session) {
-              const pending = pendingHistoryItemsForSession(session);
-              const persistedDone = Math.max(0, (session.itemsCount || 0) - (session.unresolvedItemsCount || 0));
-              return persistedDone + pending.filter(item => annotationStatus(item) === 'resolved').length;
-            }
-
-            function historyPointsCount(session) {
-              return (session.itemsCount || 0) + pendingHistoryItemsForSession(session).length;
-            }
-
-            function renderHistoryStrip(session) {
-              const open = historyOpenCount(session);
-              const done = historyDoneCount(session);
-              const total = historyPointsCount(session);
-              if (!total) return '<span class="hi-strip-cell empty"></span>';
-              return [
-                ...Array.from({ length: open }, () => '<span class="hi-strip-cell"></span>'),
-                ...Array.from({ length: done }, () => '<span class="hi-strip-cell done"></span>')
-              ].join('');
-            }
-
-            function firstLine(value) {
-              return text(value).split(/\r?\n/)[0] || '(No comment)';
-            }
-
-            function formatItemLabel(item, index) {
-              const number = item.sequenceNumber ? item.sequenceNumber : index + 1;
-              return '#' + number + ' ' + firstLine(item.comment || '(No comment)');
-            }
-
-            function formatSavedEvidenceItemLabel(item, index) {
-              return '#' + (index + 1) + ' ' + firstLine(item.comment || '(No comment)');
-            }
-
-            function findScreen(screenId) {
-              return (state.session?.screens || []).find(screen => screen.screenId === screenId) || null;
-            }
-
-            function boundsForTarget(target) {
-              return target?.boundsInWindow || null;
-            }
-
-            function targetLabel(item) {
-              const target = item?.target || {};
-              if (target.type === 'semantics_node' || target.nodeUid) {
-                return item.selectedNode ? componentLabel(item.selectedNode) : 'Component target';
-              }
-              if (target.type === 'visual_area' || target.boundsInWindow) return 'Custom area';
-              return 'Unknown target';
-            }
-
-            function pendingTargetLabel(item) {
-              return item.targetType === 'node' ? 'Component target' : 'Custom area';
-            }
-
-            function annotationTitle(item, index) {
-              return item.label || pendingTargetLabel(item) + ' #' + (index + 1);
-            }
-
-            function annotationSeverity(item) {
-              return item.severity || 'med';
-            }
-
-            function annotationStatus(item) {
-              return String(item.status || 'open').replace('_', '-');
-            }
-
-            function severityColor(severity) {
-              if (severity === 'high') return '#f26d6d';
-              if (severity === 'low') return '#5bb4e8';
-              return '#e6b45a';
-            }
-
-            function colorWithAlpha(color, alpha) {
-              const match = String(color || '').match(/^#([0-9a-f]{6})$/i);
-              if (!match) return color;
-              const hex = match[1];
-              const red = parseInt(hex.slice(0, 2), 16);
-              const green = parseInt(hex.slice(2, 4), 16);
-              const blue = parseInt(hex.slice(4, 6), 16);
-              return 'rgba(' + red + ', ' + green + ', ' + blue + ', ' + alpha + ')';
-            }
-
-            function statusLabel(status) {
-              if (status === 'in-progress') return 'In-progress';
-              if (status === 'resolved') return 'Resolved';
-              return 'Open';
-            }
-
-            function statusClass(status) {
-              if (status === 'in-progress') return 'st-in-progress';
-              if (status === 'resolved') return 'st-resolved';
-              return 'st-open';
-            }
-
-            function toolbarAnnotations() {
-              if (addItemsFlow) return pendingFeedbackItems;
-              return (state.session?.items || []).filter(item => item.delivery !== 'sent');
-            }
-
-            function hasWrittenAnnotationComment(item) {
-              return Boolean(String(item?.comment || '').trim());
-            }
-
-            function currentPromptAnnotations() {
-              if (!state.session) return [];
-              return toolbarAnnotations().filter(hasWrittenAnnotationComment);
-            }
-
-            function promptUnavailableMessage() {
-              if (!state.session) return 'Select a history item before copying or sending annotations.';
-              const annotations = toolbarAnnotations();
-              if (!annotations.length) return 'The selected history item has no annotations to send.';
-              if (!annotations.some(hasWrittenAnnotationComment)) return 'Add a comment to at least one annotation before copying or sending it.';
-              return 'No completed annotations are ready to send.';
-            }
-
-            function ensurePromptAnnotationsAvailable() {
-              const annotations = currentPromptAnnotations();
-              if (annotations.length) return annotations;
-              const message = promptUnavailableMessage();
-              error.textContent = message;
-              window.alert(message);
-              throw new Error(message);
-            }
-
-            function promptItemTitle(item, index) {
-              return item.label || (item.comment ? firstLine(item.comment) : targetLabel(item)) || ('Annotation ' + (index + 1));
-            }
-
-            function promptItemBounds(item) {
-              return item.bounds || boundsForTarget(item.target);
-            }
-
-            function promptListValue(values) {
-              const joined = (values || [])
-                .map(value => String(value || '').trim())
-                .filter(Boolean)
-                .join(' | ');
-              return joined || null;
-            }
-
-            function promptScalarValue(value) {
-              const scalar = String(value || '').trim();
-              return scalar || null;
-            }
-
-            function promptNodeEvidence(node) {
-              if (!node) return [];
-              const lines = [];
-              const textValue = promptListValue(node.text);
-              const editableText = promptScalarValue(node.editableText);
-              const contentDescription = promptListValue(node.contentDescription);
-              const testTag = promptScalarValue(node.testTag);
-              const role = promptScalarValue(node.role);
-              if (textValue) lines.push('   UI Text: ' + textValue);
-              if (editableText) lines.push('   Editable Text: ' + editableText);
-              if (contentDescription) lines.push('   Content Description: ' + contentDescription);
-              if (testTag) lines.push('   Test Tag: ' + testTag);
-              if (role) lines.push('   Role: ' + role);
-              return lines;
-            }
-
-            function promptTargetEvidence(item) {
-              const evidence = item.targetEvidence || {};
-              const lines = [];
-              const hint = evidence.identityHint || {};
-              const identity = [hint.composableNameHint, hint.variantHint]
-                .map(promptScalarValue)
-                .filter(Boolean)
-                .join(':');
-              if (identity) lines.push('   Identity: ' + identity);
-              if (hint.stableLabel) lines.push('   Stable Label: ' + hint.stableLabel);
-              if (evidence.occurrence) {
-                lines.push('   Occurrence: ' + evidence.occurrence.selectedOrdinal + '/' + evidence.occurrence.count);
-              }
-              const interpretation = evidence.sourceInterpretation || {};
-              if (interpretation.caution) lines.push('   Source Caution: ' + interpretation.caution);
-              if ((evidence.warnings || []).length) lines.push('   Warnings: ' + evidence.warnings.join(', '));
-              return lines;
-            }
-
-            function promptSourceConfidence(candidate, target) {
-              if (target?.type === 'visual_area') return 'low';
-              return String(candidate?.confidence || 'unknown').toLowerCase();
-            }
-
-            function promptSourceLocation(candidate) {
-              const file = promptScalarValue(candidate?.file);
-              if (!file) return 'unknown';
-              return file + (candidate.line ? ':' + candidate.line : '');
-            }
-
-            function promptLikelySources(sourceCandidates, target) {
-              const lines = [];
-              if (!(sourceCandidates || []).length) {
-                return ['     No source candidate from current evidence; search by target labels and request.'];
-              }
-              (sourceCandidates || []).slice(0, 3).forEach((candidate, index) => {
-                lines.push('     ' + (index + 1) + '. ' + promptSourceLocation(candidate) + ' (' + promptSourceConfidence(candidate, target) + ' confidence)');
-                if ((candidate.matchedTerms || []).length) {
-                  lines.push('        matched: ' + candidate.matchedTerms.join(', '));
-                }
-                if ((candidate.matchReasons || []).length) {
-                  lines.push('        reasons: ' + candidate.matchReasons.join(', '));
-                }
-              });
-              return lines;
-            }
-
-            function currentAnnotationsPrompt(annotations = currentPromptAnnotations()) {
-              if (!state.session || annotations.length === 0) {
-                throw new Error('Select a history item with annotations before sending it to an agent.');
-              }
-              const summary = selectedHistorySummary();
-              const sessionLabel = summary ? formatSessionLabel(summary, 0) : 'Selected history';
-              const lines = [
-                'FixThis feedback handoff',
-                '',
-                'History: ' + sessionLabel,
-                'Package: ' + (state.session.packageName || 'unknown'),
-                'Annotations: ' + annotations.length,
-                '',
-                'Please inspect the UI feedback below and apply the requested fixes.'
-              ];
-              annotations.forEach((item, index) => {
-                const bounds = promptItemBounds(item);
-                lines.push(
-                  '',
-                  String(index + 1) + '. ' + promptItemTitle(item, index),
-                  '   Severity: ' + annotationSeverity(item),
-                  '   Status: ' + statusLabel(annotationStatus(item)),
-                  '   Target: ' + (item.targetType ? pendingTargetLabel(item) : targetLabel(item)),
-                  '   Bounds: ' + (bounds ? formatBounds(bounds) : 'unknown'),
-                  ...promptNodeEvidence(item.selectedNode),
-                  ...promptTargetEvidence(item),
-                  '   Likely Source:',
-                  ...promptLikelySources(item.sourceCandidates, item.target),
-                  '   Comment: ' + (String(item.comment || '').trim() || 'No comment')
-                );
-              });
-              return lines.join('\n');
-            }
-
-            function selectedHistorySummary() {
-              const sessionId = state.session?.sessionId;
-              if (!sessionId) return null;
-              return (state.sessionSummaries || []).find(session => session.sessionId === sessionId) || null;
-            }
-
-            function toolbarAnnotationCounts() {
-              if (addItemsFlow) {
-                const pending = pendingFeedbackItems;
-                return {
-                  open: pending.filter(item => annotationStatus(item) !== 'resolved').length,
-                  resolved: pending.filter(item => annotationStatus(item) === 'resolved').length
-                };
-              }
-              const summary = selectedHistorySummary();
-              if (summary) {
-                return {
-                  open: historyOpenCount(summary),
-                  resolved: historyDoneCount(summary)
-                };
-              }
-              const annotations = toolbarAnnotations();
-              return {
-                open: annotations.filter(item => annotationStatus(item) !== 'resolved').length,
-                resolved: annotations.filter(item => annotationStatus(item) === 'resolved').length
-              };
-            }
-
-            function toolbarOpenCount() {
-              return toolbarAnnotationCounts().open;
-            }
-
-            function toolbarResolvedCount() {
-              return toolbarAnnotationCounts().resolved;
-            }
-
-            function selectedAnnotation() {
-              if (focusedPendingItemIndex == null) return null;
-              return pendingFeedbackItems[focusedPendingItemIndex] || null;
-            }
-
-            function sourceHintLabel(item) {
-              return (item.sourceCandidates || []).length ? 'Source hint available' : 'No source hint';
-            }
-
-            function formatBatchLabel(batch) {
-              return 'Batch #' + (batch.sequenceNumber || '-');
-            }
-
-            function batchItems(batch) {
-              const itemsById = new Map((state.session?.items || []).map(item => [item.itemId, item]));
-              return (batch.itemIds || []).map(itemId => itemsById.get(itemId) || { itemId: itemId, missing: true });
-            }
-
-            function formatBatchItemSummary(item) {
-              if (item.missing) return 'Missing feedback item metadata.';
-              return firstLine(item.comment || '(No comment)');
-            }
-
-            function formatBatchDetails(batch, items) {
-              const count = (batch.itemIds || []).length;
-              const itemCount = count + ' item' + (count === 1 ? '' : 's');
-              return formatTime(batch.createdAtEpochMillis) + ' | ' + itemCount + ' | ' + (items.map(formatBatchItemSummary).join('; ') || 'No feedback items recorded.');
-            }
-
+// api.js
             async function requestJson(path, options = {}) {
               const response = await fetch(path, options);
               if (!response.ok) {
@@ -492,71 +153,31 @@
               return response.json();
             }
 
-            function requestLivePreview() {
-              if (previewRequestInFlight && previewRequestInFlightContextGeneration === previewRequestContextGeneration) return previewRequestInFlight;
-              const requestContextGeneration = previewRequestContextGeneration;
-              const request = requestJson('/api/preview')
-                .finally(() => {
-                  if (previewRequestInFlight === request) {
-                    previewRequestInFlight = null;
-                    previewRequestInFlightContextGeneration = null;
-                  }
-                });
-              previewRequestInFlight = request;
-              previewRequestInFlightContextGeneration = requestContextGeneration;
-              return previewRequestInFlight;
+
+            async function copyTextToClipboard(text) {
+              try {
+                if (navigator.clipboard?.writeText) {
+                  await navigator.clipboard.writeText(text);
+                  return;
+                }
+              } catch (cause) {
+                // Fall back below for browser surfaces that deny Clipboard API writes.
+              }
+              const fallback = document.createElement('textarea');
+              fallback.value = text;
+              fallback.setAttribute('readonly', '');
+              fallback.style.position = 'fixed';
+              fallback.style.top = '-9999px';
+              fallback.style.left = '-9999px';
+              document.body.appendChild(fallback);
+              fallback.focus();
+              fallback.select();
+              const copied = document.execCommand('copy');
+              fallback.remove();
+              if (!copied) throw new Error('Copy failed. Select the prompt and copy it manually.');
             }
 
-            function invalidatePreviewContext() {
-              previewRequestGeneration++;
-              previewRequestContextGeneration++;
-              state.preview = null;
-              previewRequestInFlight = null;
-              previewRequestInFlightContextGeneration = null;
-            }
-
-            function previewScreenshotUrl(previewId) {
-              return '/api/preview/' + encodeURIComponent(previewId) + '/screenshot/full';
-            }
-
-            function screenImageUrl(screen) {
-              if (addItemsFlow) return addItemsFlow.screenshotUrl;
-              if (state.preview?.screen === screen && state.preview?.previewId) return previewScreenshotUrl(state.preview.previewId);
-              if (screen?.screenId) return '/api/screens/' + encodeURIComponent(screen.screenId) + '/screenshot/full';
-              return '';
-            }
-
-            function shortenDeviceSerial(serial) {
-              const raw = String(serial || '').trim();
-              if (!raw) return '';
-              const withoutServiceSuffix = raw.split('._adb-tls-connect._tcp')[0];
-              if (withoutServiceSuffix.startsWith('adb-')) return withoutServiceSuffix.substring(4);
-              if (withoutServiceSuffix.length <= 24) return withoutServiceSuffix;
-              return withoutServiceSuffix.slice(0, 10) + '...' + withoutServiceSuffix.slice(-6);
-            }
-
-            function deviceLabel(device) {
-              if (!device) return 'No device';
-              return device.model || device.deviceName || device.product || shortenDeviceSerial(device.serial) || 'Unknown device';
-            }
-
-            function deviceDetail(device) {
-              if (!device) return 'No device';
-              if (device.state === 'device') return 'connected';
-              return (device.state || 'unknown') + ' · unavailable';
-            }
-
-            function deviceOptionLabel(device) {
-              return deviceLabel(device) + ' - ' + deviceDetail(device);
-            }
-
-            function setDeviceUiState(uiState, device = null) {
-              deviceControl.dataset.connectionState = uiState;
-              deviceName.textContent = device ? deviceLabel(device) : 'No device';
-              deviceConnectionState.textContent = DeviceStateCopy[uiState];
-              deviceStatus.textContent = deviceName.textContent + ' - ' + deviceConnectionState.textContent;
-            }
-
+// connection.js
             function connectionActionLabel(action) {
               if (action === 'START') return 'Start';
               if (action === 'OPEN_APP') return 'Open app';
@@ -715,6 +336,58 @@
               }
             }
 
+
+            async function sendBridgeHeartbeat() {
+              if (!state.selectedDeviceSerial) return;
+              await refreshConnection();
+            }
+
+            function startHeartbeatPolling() {
+              stopHeartbeatPolling();
+              sendBridgeHeartbeat().catch(showError);
+              heartbeatTimer = setInterval(() => {
+                if (state.selectedDeviceSerial) sendBridgeHeartbeat().catch(showError);
+              }, HeartbeatIntervalMs);
+            }
+
+            function stopHeartbeatPolling() {
+              if (heartbeatTimer) clearInterval(heartbeatTimer);
+              heartbeatTimer = null;
+            }
+
+// devices.js
+            function shortenDeviceSerial(serial) {
+              const raw = String(serial || '').trim();
+              if (!raw) return '';
+              const withoutServiceSuffix = raw.split('._adb-tls-connect._tcp')[0];
+              if (withoutServiceSuffix.startsWith('adb-')) return withoutServiceSuffix.substring(4);
+              if (withoutServiceSuffix.length <= 24) return withoutServiceSuffix;
+              return withoutServiceSuffix.slice(0, 10) + '...' + withoutServiceSuffix.slice(-6);
+            }
+
+            function deviceLabel(device) {
+              if (!device) return 'No device';
+              return device.label || device.model || device.deviceName || device.product || shortenDeviceSerial(device.serial) || 'Unknown device';
+            }
+
+            function deviceDetail(device) {
+              if (!device) return 'No device';
+              if (device.state === 'device') return 'connected';
+              return (device.state || 'unknown') + ' · unavailable';
+            }
+
+            function deviceOptionLabel(device) {
+              return deviceLabel(device) + ' - ' + deviceDetail(device);
+            }
+
+            function setDeviceUiState(uiState, device = null) {
+              deviceControl.dataset.connectionState = uiState;
+              deviceName.textContent = device ? deviceLabel(device) : 'No device';
+              deviceConnectionState.textContent = DeviceStateCopy[uiState];
+              deviceStatus.textContent = deviceName.textContent + ' - ' + deviceConnectionState.textContent;
+            }
+
+
             function deviceBySerial(devices, serial) {
               if (!serial) return null;
               return (devices || []).find(device => device.serial === serial) || null;
@@ -833,23 +506,41 @@
               applyConnectionStatus(welcomeConnectionStatus());
             }
 
-            async function sendBridgeHeartbeat() {
-              if (!state.selectedDeviceSerial) return;
-              await refreshConnection();
+// preview.js
+            function requestLivePreview() {
+              if (previewRequestInFlight && previewRequestInFlightContextGeneration === previewRequestContextGeneration) return previewRequestInFlight;
+              const requestContextGeneration = previewRequestContextGeneration;
+              const request = requestJson('/api/preview')
+                .finally(() => {
+                  if (previewRequestInFlight === request) {
+                    previewRequestInFlight = null;
+                    previewRequestInFlightContextGeneration = null;
+                  }
+                });
+              previewRequestInFlight = request;
+              previewRequestInFlightContextGeneration = requestContextGeneration;
+              return previewRequestInFlight;
             }
 
-            function startHeartbeatPolling() {
-              stopHeartbeatPolling();
-              sendBridgeHeartbeat().catch(showError);
-              heartbeatTimer = setInterval(() => {
-                if (state.selectedDeviceSerial) sendBridgeHeartbeat().catch(showError);
-              }, HeartbeatIntervalMs);
+            function invalidatePreviewContext() {
+              previewRequestGeneration++;
+              previewRequestContextGeneration++;
+              state.preview = null;
+              previewRequestInFlight = null;
+              previewRequestInFlightContextGeneration = null;
             }
 
-            function stopHeartbeatPolling() {
-              if (heartbeatTimer) clearInterval(heartbeatTimer);
-              heartbeatTimer = null;
+            function previewScreenshotUrl(previewId) {
+              return '/api/preview/' + encodeURIComponent(previewId) + '/screenshot/full';
             }
+
+            function screenImageUrl(screen) {
+              if (addItemsFlow) return addItemsFlow.screenshotUrl;
+              if (state.preview?.screen === screen && state.preview?.previewId) return previewScreenshotUrl(state.preview.previewId);
+              if (screen?.screenId) return '/api/screens/' + encodeURIComponent(screen.screenId) + '/screenshot/full';
+              return '';
+            }
+
 
             function configuredPreviewIntervalMs() {
               const rawValue = previewIntervalSelect.value;
@@ -924,6 +615,117 @@
               previewZoom = Math.round(clamp(nextZoom, PreviewZoomMin, PreviewZoomMax) * 10) / 10;
               applyPreviewZoom();
             }
+
+
+            async function refreshPreview() {
+              error.textContent = '';
+              if (addItemsFlow) return;
+              const requestGeneration = ++previewRequestGeneration;
+              try {
+                const preview = await requestLivePreview();
+                if (addItemsFlow || requestGeneration !== previewRequestGeneration) return;
+                state.preview = preview;
+                if (userConnectionState(state.connection.current) === 'ready') markPreviewStale(false);
+                renderPreviewOnly();
+              } catch (cause) {
+                markPreviewStale(true);
+                refreshConnection({ preservePreviewStale: true }).catch(() => {});
+                throw cause;
+              }
+            }
+
+
+            async function navigate(action, extras = {}) {
+              error.textContent = '';
+              const navigation = await requestJson('/api/navigation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: action,
+                  captureAfter: false,
+                  ...extras
+                })
+              });
+              clearSelection();
+              await refresh();
+              await refreshPreview();
+              if (navigation.captureError) {
+                error.textContent = 'Navigation performed, but capture failed: ' + navigation.captureError;
+              }
+            }
+
+// annotations.js
+            function boundsForTarget(target) {
+              return target?.boundsInWindow || null;
+            }
+
+            function targetLabel(item) {
+              const target = item?.target || {};
+              if (target.type === 'semantics_node' || target.nodeUid) {
+                return item.selectedNode ? componentLabel(item.selectedNode) : 'Component target';
+              }
+              if (target.type === 'visual_area' || target.boundsInWindow) return 'Custom area';
+              return 'Unknown target';
+            }
+
+            function pendingTargetLabel(item) {
+              return item.targetType === 'node' ? 'Component target' : 'Custom area';
+            }
+
+            function annotationTitle(item, index) {
+              return item.label || pendingTargetLabel(item) + ' #' + (index + 1);
+            }
+
+            function annotationSeverity(item) {
+              return item.severity || 'med';
+            }
+
+            function annotationStatus(item) {
+              return String(item.status || 'open').replace('_', '-');
+            }
+
+            function severityColor(severity) {
+              if (severity === 'high') return '#f26d6d';
+              if (severity === 'low') return '#5bb4e8';
+              return '#e6b45a';
+            }
+
+            function colorWithAlpha(color, alpha) {
+              const match = String(color || '').match(/^#([0-9a-f]{6})$/i);
+              if (!match) return color;
+              const hex = match[1];
+              const red = parseInt(hex.slice(0, 2), 16);
+              const green = parseInt(hex.slice(2, 4), 16);
+              const blue = parseInt(hex.slice(4, 6), 16);
+              return 'rgba(' + red + ', ' + green + ', ' + blue + ', ' + alpha + ')';
+            }
+
+            function statusLabel(status) {
+              if (status === 'in-progress') return 'In-progress';
+              if (status === 'resolved') return 'Resolved';
+              return 'Open';
+            }
+
+            function statusClass(status) {
+              if (status === 'in-progress') return 'st-in-progress';
+              if (status === 'resolved') return 'st-resolved';
+              return 'st-open';
+            }
+
+            function toolbarAnnotations() {
+              if (addItemsFlow) return pendingFeedbackItems;
+              return (state.session?.items || []).filter(item => item.delivery !== 'sent');
+            }
+
+            function hasWrittenAnnotationComment(item) {
+              return Boolean(String(item?.comment || '').trim());
+            }
+
+            function currentPromptAnnotations() {
+              if (!state.session) return [];
+              return toolbarAnnotations().filter(hasWrittenAnnotationComment);
+            }
+
 
             function naturalPointFromEvent(event, image) {
               const rect = image.getBoundingClientRect();
@@ -1017,94 +819,6 @@
                   : (toolMode === 'annotate' ? 'Click a component or drag a region to create an annotation.' : 'No annotation selected.'));
             }
 
-            function renderOverlayBox(overlay, image, bounds, labelText, isDragPreview = false, isFocused = false, annotationIndex = null, extraClass = '', color = null) {
-              if (!bounds) return;
-              const left = bounds.left * 100 / image.naturalWidth;
-              const top = bounds.top * 100 / image.naturalHeight;
-              const width = (bounds.right - bounds.left) * 100 / image.naturalWidth;
-              const height = (bounds.bottom - bounds.top) * 100 / image.naturalHeight;
-              const box = document.createElement('div');
-              box.className = 'selection-box' + (isDragPreview ? ' drag-preview' : '') + (isFocused ? ' focused' : '') + (annotationIndex == null ? '' : ' annotation-pin') + (extraClass ? ' ' + extraClass : '');
-              box.style.left = left + '%';
-              box.style.top = top + '%';
-              box.style.width = width + '%';
-              box.style.height = height + '%';
-              if (color) {
-                box.style.setProperty('--selection-color', color);
-                box.style.setProperty('--selection-fill', colorWithAlpha(color, .12));
-                box.style.setProperty('--selection-fill-strong', colorWithAlpha(color, .22));
-                box.style.setProperty('--selection-halo', colorWithAlpha(color, .24));
-              }
-              if (annotationIndex != null) {
-                box.setAttribute('role', 'button');
-                box.setAttribute('aria-label', 'Select annotation ' + (annotationIndex + 1));
-                box.tabIndex = 0;
-                box.addEventListener('click', event => {
-                  event.stopPropagation();
-                  focusPendingFeedbackItem(annotationIndex);
-                });
-                box.addEventListener('keydown', event => {
-                  if (event.key !== 'Enter' && event.key !== ' ') return;
-                  event.preventDefault();
-                  focusPendingFeedbackItem(annotationIndex);
-                });
-              }
-              overlay.appendChild(box);
-
-              if (!labelText) return;
-              const label = document.createElement('div');
-              label.className = 'selection-label' + (isFocused ? ' focused' : '');
-              label.style.left = left + '%';
-              label.style.top = top + '%';
-              if (color) {
-                label.style.setProperty('--selection-color', color);
-                label.style.setProperty('--selection-halo', colorWithAlpha(color, .24));
-              }
-              label.textContent = labelText;
-              overlay.appendChild(label);
-            }
-
-            function renderNumberedFeedbackOverlay(overlay, image) {
-              pendingFeedbackItems.forEach((item, index) => {
-                renderOverlayBox(overlay, image, item.bounds, String(index + 1), false, index === focusedPendingItemIndex, index, '', severityColor(annotationSeverity(item)));
-              });
-            }
-
-            function renderSelectionOverlay() {
-              const overlay = document.getElementById('selectionOverlay');
-              const image = document.getElementById('snapshotImage');
-              if (!overlay) {
-                updateComposerState();
-                return;
-              }
-              overlay.innerHTML = '';
-              if (!image) {
-                updateComposerState();
-                return;
-              }
-              if (!image.naturalWidth || !image.naturalHeight) {
-                image.addEventListener('load', renderSelectionOverlay, { once: true });
-                updateComposerState();
-                return;
-              }
-
-              renderNumberedFeedbackOverlay(overlay, image);
-              const screen = latestScreen();
-              const persistedItems = persistedItemsForScreen(screen?.screenId);
-              if (!addItemsFlow && persistedItems.length) {
-                renderSavedEvidenceOverlay(overlay, image, persistedItems);
-              }
-              if (currentSelection) {
-                renderOverlayBox(overlay, image, currentSelection.bounds, currentSelection.label);
-              }
-              if (addItemsFlow && toolMode === 'annotate' && hoveredAnnotationTarget && !dragPreview) {
-                renderOverlayBox(overlay, image, hoveredAnnotationTarget.bounds, null, false, false, null, 'hover-preview');
-              }
-              if (dragPreview) {
-                renderOverlayBox(overlay, image, dragPreview, null, true);
-              }
-              updateComposerState();
-            }
 
             function nodesForHitTest(screen, nodesSelector) {
               const nodes = [];
@@ -1243,22 +957,6 @@
               updateComposerState();
             }
 
-            async function refreshPreview() {
-              error.textContent = '';
-              if (addItemsFlow) return;
-              const requestGeneration = ++previewRequestGeneration;
-              try {
-                const preview = await requestLivePreview();
-                if (addItemsFlow || requestGeneration !== previewRequestGeneration) return;
-                state.preview = preview;
-                if (userConnectionState(state.connection.current) === 'ready') markPreviewStale(false);
-                renderPreviewOnly();
-              } catch (cause) {
-                markPreviewStale(true);
-                refreshConnection({ preservePreviewStale: true }).catch(() => {});
-                throw cause;
-              }
-            }
 
             async function startAddItemsFlow() {
               if (addItemsFlowStarting) return;
@@ -1410,6 +1108,144 @@
               renderInspectorRegion();
             }
 
+// history.js
+            function sessionOrdinalLookup(sessions) {
+              const ordinalBySessionId = new Map();
+              [...(sessions || [])]
+                .sort((left, right) =>
+                  (left.createdAtEpochMillis || 0) - (right.createdAtEpochMillis || 0) ||
+                  String(left.sessionId || '').localeCompare(String(right.sessionId || ''))
+                )
+                .forEach((session, index) => {
+                  ordinalBySessionId.set(session.sessionId, index + 1);
+                });
+              return ordinalBySessionId;
+            }
+
+            function formatSessionLabel(session, ordinal) {
+              const safeOrdinal = Math.max(1, Number(ordinal || 1));
+              return 'Session ' + safeOrdinal;
+            }
+
+            function formatSessionSummary(session) {
+              return 'You · ' + formatHistoryDate(session.updatedAtEpochMillis);
+            }
+
+            function pendingHistoryItemsForSession(session) {
+              if (!addItemsFlow || state.session?.sessionId !== session?.sessionId) return [];
+              return pendingFeedbackItems;
+            }
+
+            function historyOpenCount(session) {
+              const pending = pendingHistoryItemsForSession(session);
+              return (session.unresolvedItemsCount || 0) + pending.filter(item => annotationStatus(item) !== 'resolved').length;
+            }
+
+            function historyDoneCount(session) {
+              const pending = pendingHistoryItemsForSession(session);
+              const persistedDone = Math.max(0, (session.itemsCount || 0) - (session.unresolvedItemsCount || 0));
+              return persistedDone + pending.filter(item => annotationStatus(item) === 'resolved').length;
+            }
+
+            function historyPointsCount(session) {
+              return (session.itemsCount || 0) + pendingHistoryItemsForSession(session).length;
+            }
+
+            function renderHistoryStrip(session) {
+              const open = historyOpenCount(session);
+              const done = historyDoneCount(session);
+              const total = historyPointsCount(session);
+              if (!total) return '<span class="hi-strip-cell empty"></span>';
+              return [
+                ...Array.from({ length: open }, () => '<span class="hi-strip-cell"></span>'),
+                ...Array.from({ length: done }, () => '<span class="hi-strip-cell done"></span>')
+              ].join('');
+            }
+
+            function firstLine(value) {
+              return text(value).split(/\r?\n/)[0] || '(No comment)';
+            }
+
+            function formatItemLabel(item, index) {
+              const number = item.sequenceNumber ? item.sequenceNumber : index + 1;
+              return '#' + number + ' ' + firstLine(item.comment || '(No comment)');
+            }
+
+            function formatSavedEvidenceItemLabel(item, index) {
+              return '#' + (index + 1) + ' ' + firstLine(item.comment || '(No comment)');
+            }
+
+            function findScreen(screenId) {
+              return (state.session?.screens || []).find(screen => screen.screenId === screenId) || null;
+            }
+
+
+            function selectedHistorySummary() {
+              const sessionId = state.session?.sessionId;
+              if (!sessionId) return null;
+              return (state.sessionSummaries || []).find(session => session.sessionId === sessionId) || null;
+            }
+
+            function toolbarAnnotationCounts() {
+              if (addItemsFlow) {
+                const pending = pendingFeedbackItems;
+                return {
+                  open: pending.filter(item => annotationStatus(item) !== 'resolved').length,
+                  resolved: pending.filter(item => annotationStatus(item) === 'resolved').length
+                };
+              }
+              const summary = selectedHistorySummary();
+              if (summary) {
+                return {
+                  open: historyOpenCount(summary),
+                  resolved: historyDoneCount(summary)
+                };
+              }
+              const annotations = toolbarAnnotations();
+              return {
+                open: annotations.filter(item => annotationStatus(item) !== 'resolved').length,
+                resolved: annotations.filter(item => annotationStatus(item) === 'resolved').length
+              };
+            }
+
+            function toolbarOpenCount() {
+              return toolbarAnnotationCounts().open;
+            }
+
+            function toolbarResolvedCount() {
+              return toolbarAnnotationCounts().resolved;
+            }
+
+            function selectedAnnotation() {
+              if (focusedPendingItemIndex == null) return null;
+              return pendingFeedbackItems[focusedPendingItemIndex] || null;
+            }
+
+            function sourceHintLabel(item) {
+              return (item.sourceCandidates || []).length ? 'Source hint available' : 'No source hint';
+            }
+
+            function formatBatchLabel(batch) {
+              return 'Batch #' + (batch.sequenceNumber || '-');
+            }
+
+            function batchItems(batch) {
+              const itemsById = new Map((state.session?.items || []).map(item => [item.itemId, item]));
+              return (batch.itemIds || []).map(itemId => itemsById.get(itemId) || { itemId: itemId, missing: true });
+            }
+
+            function formatBatchItemSummary(item) {
+              if (item.missing) return 'Missing feedback item metadata.';
+              return firstLine(item.comment || '(No comment)');
+            }
+
+            function formatBatchDetails(batch, items) {
+              const count = (batch.itemIds || []).length;
+              const itemCount = count + ' item' + (count === 1 ? '' : 's');
+              return formatTime(batch.createdAtEpochMillis) + ' | ' + itemCount + ' | ' + (items.map(formatBatchItemSummary).join('; ') || 'No feedback items recorded.');
+            }
+
+
             function hasActiveHistorySessionForAnnotating() {
               return Boolean(
                 state.session &&
@@ -1474,6 +1310,506 @@
                 '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>' +
               '</button>';
             }
+
+
+            function renderSessionsListFromPayload(sessionSummaries) {
+              state.sessionSummaries = sessionSummaries;
+              const activeId = state.session?.sessionId;
+              const activeSummaries = sessionSummaries.filter(session => session.status !== 'ready_for_agent' && session.status !== 'closed');
+              const ordinalBySessionId = sessionOrdinalLookup(activeSummaries);
+              sessionCount.textContent = String(activeSummaries.length);
+              const renderedSessions = activeSummaries.map((session, index) => {
+                const open = historyOpenCount(session);
+                const done = historyDoneCount(session);
+                const points = historyPointsCount(session);
+                const label = formatSessionLabel(session, ordinalBySessionId.get(session.sessionId) || index + 1);
+                return '<div class="history-item session-row ' + (session.sessionId === activeId ? 'is-active' : '') + '" role="button" tabindex="0" data-session-id="' + escapeHtml(session.sessionId) + '">' +
+                  '<span class="hi-head">' +
+                    '<span class="hi-title">' + escapeHtml(label) + '</span>' +
+                    '<button type="button" class="hi-del" data-delete-session-id="' + escapeHtml(session.sessionId) + '" aria-label="Delete history item ' + escapeHtml(label) + '">×</button>' +
+                  '</span>' +
+                  '<span class="hi-meta">' + escapeHtml(formatSessionSummary(session)) + '</span>' +
+                  '<span class="hi-stats">' +
+                    '<span class="hi-pip open">' + escapeHtml(countLabel(open, 'open', 'open')) + '</span>' +
+                    '<span class="hi-pip done">' + escapeHtml(countLabel(done, 'done', 'done')) + '</span>' +
+                    '<span class="hi-pip points">' + escapeHtml(countLabel(points, 'pt', 'pts')) + '</span>' +
+                  '</span>' +
+                  '<span class="hi-strip">' + renderHistoryStrip(session) + '</span>' +
+                '</div>';
+              }).join('');
+              sessions.innerHTML = renderedSessions
+                ? renderedSessions + historyStartAnnotatingItemHtml()
+                : historyStartAnnotatingItemHtml() + emptySessionsHtml();
+              document.querySelectorAll('.session-row').forEach(row => {
+                row.addEventListener('click', event => {
+                  if (event.target.closest('[data-delete-session-id]')) return;
+                  openSession(row.dataset.sessionId).catch(showError);
+                });
+                row.addEventListener('keydown', event => {
+                  if (event.target.closest('[data-delete-session-id]')) return;
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openSession(row.dataset.sessionId).catch(showError);
+                  }
+                });
+              });
+              document.querySelectorAll('[data-delete-session-id]').forEach(button => {
+                button.addEventListener('click', event => {
+                  event.stopPropagation();
+                  deleteHistorySession(button.dataset.deleteSessionId).catch(showError);
+                });
+              });
+              document.querySelectorAll('[data-start-new-history-annotating]').forEach(button => {
+                button.addEventListener('click', () => enterNewHistoryAnnotateMode().catch(showError));
+              });
+            }
+
+            function renderSessionsList() {
+              const activeId = state.session?.sessionId;
+              document.querySelectorAll('.session-row').forEach(row => {
+                row.classList.toggle('is-active', row.dataset.sessionId === activeId);
+              });
+            }
+
+            function renderCurrentSessionList() {
+              renderSessionsListFromPayload(state.sessionSummaries || []);
+            }
+
+            function sentHistorySummaries() {
+              return (state.sessionSummaries || []).filter(session => session.status === 'ready_for_agent' || (session.sentBatchesCount || 0) > 0);
+            }
+
+            function renderSentHistory() {
+              const session = state.session;
+              const allItems = session?.items || [];
+              const sentItems = allItems.filter(item => item.delivery === 'sent');
+              const handoffBatches = session ? session.handoffBatches || [] : [];
+              const batchIds = new Set(handoffBatches.map(batch => batch.batchId));
+              const batchedItemIds = new Set(handoffBatches.flatMap(batch => batch.itemIds || []));
+              const batchRows = handoffBatches.map(batch => {
+                const items = batchItems(batch);
+                return '<div class="row">' +
+                  '<strong>' + escapeHtml(formatBatchLabel(batch)) + '</strong>' +
+                  '<span>' + escapeHtml(formatBatchDetails(batch, items)) + '</span>' +
+                '</div>';
+              });
+              const unbatchedRows = sentItems
+                .filter(item => !item.handoffBatchId || !batchIds.has(item.handoffBatchId) || !batchedItemIds.has(item.itemId))
+                .map(item => {
+                  const label = item.handoffBatchId ? 'Missing batch metadata' : 'Unbatched sent item';
+                  const detail = item.handoffBatchId ? 'No batch metadata' : 'Sent outside a batch';
+                  return '<div class="row">' +
+                    '<strong>' + escapeHtml(label) + '</strong>' +
+                    '<span>' + escapeHtml(firstLine(item.comment || '(No comment)')) + ' · ' + escapeHtml(detail) + '</span>' +
+                  '</div>';
+                });
+              const renderedSessionIds = new Set(session && (handoffBatches.length || sentItems.length) ? [session.sessionId] : []);
+              const summaryRows = sentHistorySummaries()
+                .filter(summary => !renderedSessionIds.has(summary.sessionId))
+                .map((summary, index) => {
+                  const sentCount = summary.itemsCount || summary.sentItemsCount || summary.sentBatchesCount || 0;
+                  return '<div class="row">' +
+                    '<strong>' + escapeHtml(formatSessionLabel(summary, index)) + '</strong>' +
+                    '<span>' + escapeHtml(countLabel(sentCount, 'annotation', 'annotations')) + ' sent · ' + escapeHtml(formatSessionSummary(summary)) + '</span>' +
+                  '</div>';
+                });
+              const rows = batchRows.concat(unbatchedRows, summaryRows);
+              clearSentHistoryButton.hidden = rows.length === 0;
+              sentHistory.innerHTML = rows.join('') || '<div class="row"><span>No sent handoff history.</span></div>';
+            }
+
+
+            async function refreshSessions() {
+              const response = await requestJson('/api/sessions');
+              renderSessionsListFromPayload(response.sessions || []);
+              return response.sessions || [];
+            }
+
+            async function refresh() {
+              error.textContent = '';
+              state.session = await requestJson('/api/session');
+              await refreshSessions();
+              await refreshDevices();
+              await refreshConnection();
+              render();
+            }
+
+            async function openSession(sessionId) {
+              error.textContent = '';
+              stopLivePreviewPolling();
+              await flushPendingAnnotationsBeforeSessionChange();
+              resetAnnotationComposerState();
+              invalidatePreviewContext();
+              state.session = await requestJson('/api/session/open', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId: sessionId })
+              });
+              await refresh();
+              if (!latestPersistedScreen() && shouldAutoFetchPreview()) {
+                await refreshPreview();
+              }
+              startLivePreviewPolling();
+            }
+
+            async function newSession() {
+              error.textContent = '';
+              await flushPendingAnnotationsBeforeSessionChange();
+              resetAnnotationComposerState();
+              invalidatePreviewContext();
+              state.session = await requestJson('/api/session/open', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ newSession: true })
+              });
+              await refresh();
+              startLivePreviewPolling();
+            }
+
+            async function closeSession() {
+              error.textContent = '';
+              if (!state.session) return;
+              resetAnnotationComposerState();
+              invalidatePreviewContext();
+              await requestJson('/api/session/close', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId: state.session.sessionId })
+              });
+              state.session = null;
+              await refreshSessions();
+              render();
+              await refreshDevices();
+            }
+
+            async function deleteHistorySession(sessionId) {
+              error.textContent = '';
+              if (!sessionId) return;
+              const isDisplayedSession = () => state.session?.sessionId === sessionId;
+              if (isDisplayedSession()) {
+                resetAnnotationComposerState();
+                invalidatePreviewContext();
+              }
+              await requestJson('/api/session/close', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId: sessionId })
+              });
+              if (isDisplayedSession()) {
+                resetAnnotationComposerState();
+                invalidatePreviewContext();
+                state.session = null;
+              }
+              await refreshSessions();
+              render();
+              await refreshDevices();
+            }
+
+            async function clearDraft() {
+              error.textContent = '';
+              if (!window.confirm('Discard all unsent draft feedback items?')) return;
+              await requestJson('/api/items/draft', { method: 'DELETE' });
+              clearSelection();
+              await refresh();
+            }
+
+            async function clearSentHistory() {
+              error.textContent = '';
+              const ids = new Set(sentHistorySummaries().map(session => session.sessionId));
+              if (state.session && ((state.session.handoffBatches || []).length || (state.session.items || []).some(item => item.delivery === 'sent'))) {
+                ids.add(state.session.sessionId);
+              }
+              if (ids.size === 0) return;
+              if (!window.confirm('Clear all sent history? Sent handoff records will be removed from this console.')) return;
+              for (const sessionId of ids) {
+                await requestJson('/api/session/close', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ sessionId: sessionId })
+                });
+              }
+              if (state.session && ids.has(state.session.sessionId)) {
+                resetAnnotationComposerState();
+                invalidatePreviewContext();
+                state.session = null;
+              }
+              await refreshSessions();
+              render();
+              await refreshDevices();
+            }
+
+// prompt.js
+            function promptUnavailableMessage() {
+              if (!state.session) return 'Select a history item before copying or sending annotations.';
+              const annotations = toolbarAnnotations();
+              if (!annotations.length) return 'The selected history item has no annotations to send.';
+              if (!annotations.some(hasWrittenAnnotationComment)) return 'Add a comment to at least one annotation before copying or sending it.';
+              return 'No completed annotations are ready to send.';
+            }
+
+            function ensurePromptAnnotationsAvailable() {
+              const annotations = currentPromptAnnotations();
+              if (annotations.length) return annotations;
+              const message = promptUnavailableMessage();
+              error.textContent = message;
+              window.alert(message);
+              throw new Error(message);
+            }
+
+            function promptItemTitle(item, index) {
+              return item.label || (item.comment ? firstLine(item.comment) : targetLabel(item)) || ('Annotation ' + (index + 1));
+            }
+
+            function promptItemBounds(item) {
+              return item.bounds || boundsForTarget(item.target);
+            }
+
+            function promptListValue(values) {
+              const joined = (values || [])
+                .map(value => String(value || '').trim())
+                .filter(Boolean)
+                .join(' | ');
+              return joined || null;
+            }
+
+            function promptScalarValue(value) {
+              const scalar = String(value || '').trim();
+              return scalar || null;
+            }
+
+            function promptNodeEvidence(node) {
+              if (!node) return [];
+              const lines = [];
+              const textValue = promptListValue(node.text);
+              const editableText = promptScalarValue(node.editableText);
+              const contentDescription = promptListValue(node.contentDescription);
+              const testTag = promptScalarValue(node.testTag);
+              const role = promptScalarValue(node.role);
+              if (textValue) lines.push('   UI Text: ' + textValue);
+              if (editableText) lines.push('   Editable Text: ' + editableText);
+              if (contentDescription) lines.push('   Content Description: ' + contentDescription);
+              if (testTag) lines.push('   Test Tag: ' + testTag);
+              if (role) lines.push('   Role: ' + role);
+              return lines;
+            }
+
+            function promptTargetEvidence(item) {
+              const evidence = item.targetEvidence || {};
+              const lines = [];
+              const hint = evidence.identityHint || {};
+              const identity = [hint.composableNameHint, hint.variantHint]
+                .map(promptScalarValue)
+                .filter(Boolean)
+                .join(':');
+              if (identity) lines.push('   Identity: ' + identity);
+              if (hint.stableLabel) lines.push('   Stable Label: ' + hint.stableLabel);
+              if (evidence.occurrence) {
+                lines.push('   Occurrence: ' + evidence.occurrence.selectedOrdinal + '/' + evidence.occurrence.count);
+              }
+              const interpretation = evidence.sourceInterpretation || {};
+              if (interpretation.caution) lines.push('   Source Caution: ' + interpretation.caution);
+              if ((evidence.warnings || []).length) lines.push('   Warnings: ' + evidence.warnings.join(', '));
+              return lines;
+            }
+
+            function promptSourceConfidence(candidate, target) {
+              if (target?.type === 'visual_area') return 'low';
+              return String(candidate?.confidence || 'unknown').toLowerCase();
+            }
+
+            function promptSourceLocation(candidate) {
+              const file = promptScalarValue(candidate?.file);
+              if (!file) return 'unknown';
+              return file + (candidate.line ? ':' + candidate.line : '');
+            }
+
+            function promptLikelySources(sourceCandidates, target) {
+              const lines = [];
+              if (!(sourceCandidates || []).length) {
+                return ['     No source candidate from current evidence; search by target labels and request.'];
+              }
+              (sourceCandidates || []).slice(0, 3).forEach((candidate, index) => {
+                lines.push('     ' + (index + 1) + '. ' + promptSourceLocation(candidate) + ' (' + promptSourceConfidence(candidate, target) + ' confidence)');
+                if ((candidate.matchedTerms || []).length) {
+                  lines.push('        matched: ' + candidate.matchedTerms.join(', '));
+                }
+                if ((candidate.matchReasons || []).length) {
+                  lines.push('        reasons: ' + candidate.matchReasons.join(', '));
+                }
+              });
+              return lines;
+            }
+
+            function currentAnnotationsPrompt(annotations = currentPromptAnnotations()) {
+              if (!state.session || annotations.length === 0) {
+                throw new Error('Select a history item with annotations before sending it to an agent.');
+              }
+              const summary = selectedHistorySummary();
+              const sessionLabel = summary ? formatSessionLabel(summary, 0) : 'Selected history';
+              const lines = [
+                'FixThis feedback handoff',
+                '',
+                'History: ' + sessionLabel,
+                'Package: ' + (state.session.packageName || 'unknown'),
+                'Annotations: ' + annotations.length,
+                '',
+                'Please inspect the UI feedback below and apply the requested fixes.'
+              ];
+              annotations.forEach((item, index) => {
+                const bounds = promptItemBounds(item);
+                lines.push(
+                  '',
+                  String(index + 1) + '. ' + promptItemTitle(item, index),
+                  '   Severity: ' + annotationSeverity(item),
+                  '   Status: ' + statusLabel(annotationStatus(item)),
+                  '   Target: ' + (item.targetType ? pendingTargetLabel(item) : targetLabel(item)),
+                  '   Bounds: ' + (bounds ? formatBounds(bounds) : 'unknown'),
+                  ...promptNodeEvidence(item.selectedNode),
+                  ...promptTargetEvidence(item),
+                  '   Likely Source:',
+                  ...promptLikelySources(item.sourceCandidates, item.target),
+                  '   Comment: ' + (String(item.comment || '').trim() || 'No comment')
+                );
+              });
+              return lines.join('\n');
+            }
+
+
+            async function sendAgentPrompt() {
+              error.textContent = '';
+              if (promptActionInFlight) return;
+              ensurePromptAnnotationsAvailable();
+              promptActionInFlight = true;
+              updateComposerState();
+              try {
+                if (addItemsFlow) {
+                  await persistPendingFeedbackItems({ onlyWrittenComments: true });
+                }
+                const prompt = currentAnnotationsPrompt();
+                state.session = await requestJson('/api/agent-handoffs', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ prompt: prompt })
+                });
+                comment.value = '';
+                resetAnnotationComposerState();
+                invalidatePreviewContext();
+                await refreshSessions();
+                render();
+                startLivePreviewPolling();
+              } finally {
+                promptActionInFlight = false;
+                updateComposerState();
+              }
+            }
+
+            async function copyPrompt() {
+              error.textContent = '';
+              if (promptActionInFlight) return;
+              ensurePromptAnnotationsAvailable();
+              promptActionInFlight = true;
+              updateComposerState();
+              try {
+                if (addItemsFlow) {
+                  await persistPendingFeedbackItems({ onlyWrittenComments: true });
+                }
+                await copyTextToClipboard(currentAnnotationsPrompt());
+              } finally {
+                promptActionInFlight = false;
+                updateComposerState();
+              }
+            }
+
+// rendering.js
+            function renderOverlayBox(overlay, image, bounds, labelText, isDragPreview = false, isFocused = false, annotationIndex = null, extraClass = '', color = null) {
+              if (!bounds) return;
+              const left = bounds.left * 100 / image.naturalWidth;
+              const top = bounds.top * 100 / image.naturalHeight;
+              const width = (bounds.right - bounds.left) * 100 / image.naturalWidth;
+              const height = (bounds.bottom - bounds.top) * 100 / image.naturalHeight;
+              const box = document.createElement('div');
+              box.className = 'selection-box' + (isDragPreview ? ' drag-preview' : '') + (isFocused ? ' focused' : '') + (annotationIndex == null ? '' : ' annotation-pin') + (extraClass ? ' ' + extraClass : '');
+              box.style.left = left + '%';
+              box.style.top = top + '%';
+              box.style.width = width + '%';
+              box.style.height = height + '%';
+              if (color) {
+                box.style.setProperty('--selection-color', color);
+                box.style.setProperty('--selection-fill', colorWithAlpha(color, .12));
+                box.style.setProperty('--selection-fill-strong', colorWithAlpha(color, .22));
+                box.style.setProperty('--selection-halo', colorWithAlpha(color, .24));
+              }
+              if (annotationIndex != null) {
+                box.setAttribute('role', 'button');
+                box.setAttribute('aria-label', 'Select annotation ' + (annotationIndex + 1));
+                box.tabIndex = 0;
+                box.addEventListener('click', event => {
+                  event.stopPropagation();
+                  focusPendingFeedbackItem(annotationIndex);
+                });
+                box.addEventListener('keydown', event => {
+                  if (event.key !== 'Enter' && event.key !== ' ') return;
+                  event.preventDefault();
+                  focusPendingFeedbackItem(annotationIndex);
+                });
+              }
+              overlay.appendChild(box);
+
+              if (!labelText) return;
+              const label = document.createElement('div');
+              label.className = 'selection-label' + (isFocused ? ' focused' : '');
+              label.style.left = left + '%';
+              label.style.top = top + '%';
+              if (color) {
+                label.style.setProperty('--selection-color', color);
+                label.style.setProperty('--selection-halo', colorWithAlpha(color, .24));
+              }
+              label.textContent = labelText;
+              overlay.appendChild(label);
+            }
+
+            function renderNumberedFeedbackOverlay(overlay, image) {
+              pendingFeedbackItems.forEach((item, index) => {
+                renderOverlayBox(overlay, image, item.bounds, String(index + 1), false, index === focusedPendingItemIndex, index, '', severityColor(annotationSeverity(item)));
+              });
+            }
+
+            function renderSelectionOverlay() {
+              const overlay = document.getElementById('selectionOverlay');
+              const image = document.getElementById('snapshotImage');
+              if (!overlay) {
+                updateComposerState();
+                return;
+              }
+              overlay.innerHTML = '';
+              if (!image) {
+                updateComposerState();
+                return;
+              }
+              if (!image.naturalWidth || !image.naturalHeight) {
+                image.addEventListener('load', renderSelectionOverlay, { once: true });
+                updateComposerState();
+                return;
+              }
+
+              renderNumberedFeedbackOverlay(overlay, image);
+              const screen = latestScreen();
+              const persistedItems = persistedItemsForScreen(screen?.screenId);
+              if (!addItemsFlow && persistedItems.length) {
+                renderSavedEvidenceOverlay(overlay, image, persistedItems);
+              }
+              if (currentSelection) {
+                renderOverlayBox(overlay, image, currentSelection.bounds, currentSelection.label);
+              }
+              if (addItemsFlow && toolMode === 'annotate' && hoveredAnnotationTarget && !dragPreview) {
+                renderOverlayBox(overlay, image, hoveredAnnotationTarget.bounds, null, false, false, null, 'hover-preview');
+              }
+              if (dragPreview) {
+                renderOverlayBox(overlay, image, dragPreview, null, true);
+              }
+              updateComposerState();
+            }
+
 
             function emptySessionsHtml() {
               return '<div class="empty-state"><div class="empty-title">No saved sessions.</div></div>';
@@ -1640,111 +1976,6 @@
               bindStartAnnotatingButtons(draftItems);
             }
 
-            function renderSessionsListFromPayload(sessionSummaries) {
-              state.sessionSummaries = sessionSummaries;
-              const activeId = state.session?.sessionId;
-              const activeSummaries = sessionSummaries.filter(session => session.status !== 'ready_for_agent' && session.status !== 'closed');
-              const ordinalBySessionId = sessionOrdinalLookup(activeSummaries);
-              sessionCount.textContent = String(activeSummaries.length);
-              const renderedSessions = activeSummaries.map((session, index) => {
-                const open = historyOpenCount(session);
-                const done = historyDoneCount(session);
-                const points = historyPointsCount(session);
-                const label = formatSessionLabel(session, ordinalBySessionId.get(session.sessionId) || index + 1);
-                return '<div class="history-item session-row ' + (session.sessionId === activeId ? 'is-active' : '') + '" role="button" tabindex="0" data-session-id="' + escapeHtml(session.sessionId) + '">' +
-                  '<span class="hi-head">' +
-                    '<span class="hi-title">' + escapeHtml(label) + '</span>' +
-                    '<button type="button" class="hi-del" data-delete-session-id="' + escapeHtml(session.sessionId) + '" aria-label="Delete history item ' + escapeHtml(label) + '">×</button>' +
-                  '</span>' +
-                  '<span class="hi-meta">' + escapeHtml(formatSessionSummary(session)) + '</span>' +
-                  '<span class="hi-stats">' +
-                    '<span class="hi-pip open">' + escapeHtml(countLabel(open, 'open', 'open')) + '</span>' +
-                    '<span class="hi-pip done">' + escapeHtml(countLabel(done, 'done', 'done')) + '</span>' +
-                    '<span class="hi-pip points">' + escapeHtml(countLabel(points, 'pt', 'pts')) + '</span>' +
-                  '</span>' +
-                  '<span class="hi-strip">' + renderHistoryStrip(session) + '</span>' +
-                '</div>';
-              }).join('');
-              sessions.innerHTML = renderedSessions
-                ? renderedSessions + historyStartAnnotatingItemHtml()
-                : historyStartAnnotatingItemHtml() + emptySessionsHtml();
-              document.querySelectorAll('.session-row').forEach(row => {
-                row.addEventListener('click', event => {
-                  if (event.target.closest('[data-delete-session-id]')) return;
-                  openSession(row.dataset.sessionId).catch(showError);
-                });
-                row.addEventListener('keydown', event => {
-                  if (event.target.closest('[data-delete-session-id]')) return;
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    openSession(row.dataset.sessionId).catch(showError);
-                  }
-                });
-              });
-              document.querySelectorAll('[data-delete-session-id]').forEach(button => {
-                button.addEventListener('click', event => {
-                  event.stopPropagation();
-                  deleteHistorySession(button.dataset.deleteSessionId).catch(showError);
-                });
-              });
-              document.querySelectorAll('[data-start-new-history-annotating]').forEach(button => {
-                button.addEventListener('click', () => enterNewHistoryAnnotateMode().catch(showError));
-              });
-            }
-
-            function renderSessionsList() {
-              const activeId = state.session?.sessionId;
-              document.querySelectorAll('.session-row').forEach(row => {
-                row.classList.toggle('is-active', row.dataset.sessionId === activeId);
-              });
-            }
-
-            function renderCurrentSessionList() {
-              renderSessionsListFromPayload(state.sessionSummaries || []);
-            }
-
-            function sentHistorySummaries() {
-              return (state.sessionSummaries || []).filter(session => session.status === 'ready_for_agent' || (session.sentBatchesCount || 0) > 0);
-            }
-
-            function renderSentHistory() {
-              const session = state.session;
-              const allItems = session?.items || [];
-              const sentItems = allItems.filter(item => item.delivery === 'sent');
-              const handoffBatches = session ? session.handoffBatches || [] : [];
-              const batchIds = new Set(handoffBatches.map(batch => batch.batchId));
-              const batchedItemIds = new Set(handoffBatches.flatMap(batch => batch.itemIds || []));
-              const batchRows = handoffBatches.map(batch => {
-                const items = batchItems(batch);
-                return '<div class="row">' +
-                  '<strong>' + escapeHtml(formatBatchLabel(batch)) + '</strong>' +
-                  '<span>' + escapeHtml(formatBatchDetails(batch, items)) + '</span>' +
-                '</div>';
-              });
-              const unbatchedRows = sentItems
-                .filter(item => !item.handoffBatchId || !batchIds.has(item.handoffBatchId) || !batchedItemIds.has(item.itemId))
-                .map(item => {
-                  const label = item.handoffBatchId ? 'Missing batch metadata' : 'Unbatched sent item';
-                  const detail = item.handoffBatchId ? 'No batch metadata' : 'Sent outside a batch';
-                  return '<div class="row">' +
-                    '<strong>' + escapeHtml(label) + '</strong>' +
-                    '<span>' + escapeHtml(firstLine(item.comment || '(No comment)')) + ' · ' + escapeHtml(detail) + '</span>' +
-                  '</div>';
-                });
-              const renderedSessionIds = new Set(session && (handoffBatches.length || sentItems.length) ? [session.sessionId] : []);
-              const summaryRows = sentHistorySummaries()
-                .filter(summary => !renderedSessionIds.has(summary.sessionId))
-                .map((summary, index) => {
-                  const sentCount = summary.itemsCount || summary.sentItemsCount || summary.sentBatchesCount || 0;
-                  return '<div class="row">' +
-                    '<strong>' + escapeHtml(formatSessionLabel(summary, index)) + '</strong>' +
-                    '<span>' + escapeHtml(countLabel(sentCount, 'annotation', 'annotations')) + ' sent · ' + escapeHtml(formatSessionSummary(summary)) + '</span>' +
-                  '</div>';
-                });
-              const rows = batchRows.concat(unbatchedRows, summaryRows);
-              clearSentHistoryButton.hidden = rows.length === 0;
-              sentHistory.innerHTML = rows.join('') || '<div class="row"><span>No sent handoff history.</span></div>';
-            }
 
             function renderSessionRegions() {
               const session = state.session;
@@ -1854,172 +2085,6 @@
               updateComposerState();
             }
 
-            async function refreshSessions() {
-              const response = await requestJson('/api/sessions');
-              renderSessionsListFromPayload(response.sessions || []);
-              return response.sessions || [];
-            }
-
-            async function refresh() {
-              error.textContent = '';
-              state.session = await requestJson('/api/session');
-              await refreshSessions();
-              await refreshDevices();
-              await refreshConnection();
-              render();
-            }
-
-            async function openSession(sessionId) {
-              error.textContent = '';
-              stopLivePreviewPolling();
-              await flushPendingAnnotationsBeforeSessionChange();
-              resetAnnotationComposerState();
-              invalidatePreviewContext();
-              state.session = await requestJson('/api/session/open', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionId: sessionId })
-              });
-              await refresh();
-              if (!latestPersistedScreen() && shouldAutoFetchPreview()) {
-                await refreshPreview();
-              }
-              startLivePreviewPolling();
-            }
-
-            async function newSession() {
-              error.textContent = '';
-              await flushPendingAnnotationsBeforeSessionChange();
-              resetAnnotationComposerState();
-              invalidatePreviewContext();
-              state.session = await requestJson('/api/session/open', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ newSession: true })
-              });
-              await refresh();
-              startLivePreviewPolling();
-            }
-
-            async function closeSession() {
-              error.textContent = '';
-              if (!state.session) return;
-              resetAnnotationComposerState();
-              invalidatePreviewContext();
-              await requestJson('/api/session/close', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionId: state.session.sessionId })
-              });
-              state.session = null;
-              await refreshSessions();
-              render();
-              await refreshDevices();
-            }
-
-            async function deleteHistorySession(sessionId) {
-              error.textContent = '';
-              if (!sessionId) return;
-              const isDisplayedSession = () => state.session?.sessionId === sessionId;
-              if (isDisplayedSession()) {
-                resetAnnotationComposerState();
-                invalidatePreviewContext();
-              }
-              await requestJson('/api/session/close', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionId: sessionId })
-              });
-              if (isDisplayedSession()) {
-                resetAnnotationComposerState();
-                invalidatePreviewContext();
-                state.session = null;
-              }
-              await refreshSessions();
-              render();
-              await refreshDevices();
-            }
-
-            async function clearDraft() {
-              error.textContent = '';
-              if (!window.confirm('Discard all unsent draft feedback items?')) return;
-              await requestJson('/api/items/draft', { method: 'DELETE' });
-              clearSelection();
-              await refresh();
-            }
-
-            async function clearSentHistory() {
-              error.textContent = '';
-              const ids = new Set(sentHistorySummaries().map(session => session.sessionId));
-              if (state.session && ((state.session.handoffBatches || []).length || (state.session.items || []).some(item => item.delivery === 'sent'))) {
-                ids.add(state.session.sessionId);
-              }
-              if (ids.size === 0) return;
-              if (!window.confirm('Clear all sent history? Sent handoff records will be removed from this console.')) return;
-              for (const sessionId of ids) {
-                await requestJson('/api/session/close', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ sessionId: sessionId })
-                });
-              }
-              if (state.session && ids.has(state.session.sessionId)) {
-                resetAnnotationComposerState();
-                invalidatePreviewContext();
-                state.session = null;
-              }
-              await refreshSessions();
-              render();
-              await refreshDevices();
-            }
-
-            async function sendAgentPrompt() {
-              error.textContent = '';
-              if (promptActionInFlight) return;
-              ensurePromptAnnotationsAvailable();
-              promptActionInFlight = true;
-              updateComposerState();
-              try {
-                if (addItemsFlow) {
-                  await persistPendingFeedbackItems({ onlyWrittenComments: true });
-                }
-                const prompt = currentAnnotationsPrompt();
-                state.session = await requestJson('/api/agent-handoffs', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ prompt: prompt })
-                });
-                comment.value = '';
-                resetAnnotationComposerState();
-                invalidatePreviewContext();
-                await refreshSessions();
-                render();
-                startLivePreviewPolling();
-              } finally {
-                promptActionInFlight = false;
-                updateComposerState();
-              }
-            }
-
-            async function navigate(action, extras = {}) {
-              error.textContent = '';
-              const navigation = await requestJson('/api/navigation', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  action: action,
-                  captureAfter: false,
-                  ...extras
-                })
-              });
-              clearSelection();
-              await refresh();
-              await refreshPreview();
-              if (navigation.captureError) {
-                error.textContent = 'Navigation performed, but capture failed: ' + navigation.captureError;
-              }
-            }
-
             function attachSnapshotHandlers() {
               const image = document.getElementById('snapshotImage');
               if (!image) return;
@@ -2107,46 +2172,7 @@
               image.addEventListener('pointerleave', clearHoverPreview);
             }
 
-            async function copyTextToClipboard(text) {
-              try {
-                if (navigator.clipboard?.writeText) {
-                  await navigator.clipboard.writeText(text);
-                  return;
-                }
-              } catch (cause) {
-                // Fall back below for browser surfaces that deny Clipboard API writes.
-              }
-              const fallback = document.createElement('textarea');
-              fallback.value = text;
-              fallback.setAttribute('readonly', '');
-              fallback.style.position = 'fixed';
-              fallback.style.top = '-9999px';
-              fallback.style.left = '-9999px';
-              document.body.appendChild(fallback);
-              fallback.focus();
-              fallback.select();
-              const copied = document.execCommand('copy');
-              fallback.remove();
-              if (!copied) throw new Error('Copy failed. Select the prompt and copy it manually.');
-            }
-
-            async function copyPrompt() {
-              error.textContent = '';
-              if (promptActionInFlight) return;
-              ensurePromptAnnotationsAvailable();
-              promptActionInFlight = true;
-              updateComposerState();
-              try {
-                if (addItemsFlow) {
-                  await persistPendingFeedbackItems({ onlyWrittenComments: true });
-                }
-                await copyTextToClipboard(currentAnnotationsPrompt());
-              } finally {
-                promptActionInFlight = false;
-                updateComposerState();
-              }
-            }
-
+// shortcuts.js
             function isTextInputFocused(target = document.activeElement) {
               const element = target?.nodeType === Node.ELEMENT_NODE ? target : target?.parentElement || document.activeElement;
               const tag = element?.tagName;
@@ -2172,6 +2198,7 @@
               }
             }
 
+// main.js
             selectToolButton.addEventListener('click', enterSelectMode);
             annotateToolButton.addEventListener('click', () => enterAnnotateMode().catch(showError));
             zoomOutButton.addEventListener('click', () => setPreviewZoom(previewZoom - PreviewZoomStep));

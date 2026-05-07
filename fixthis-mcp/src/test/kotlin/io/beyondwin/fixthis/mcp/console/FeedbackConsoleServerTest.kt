@@ -199,6 +199,34 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun generatedConsoleAppMatchesConsoleSourceModules() {
+        val root = generateSequence(File("").absoluteFile) { it.parentFile }
+            .first { File(it, "settings.gradle.kts").isFile || File(it, "settings.gradle").isFile }
+        val sourceDir = File(root, "fixthis-mcp/src/main/console")
+        val modules = listOf(
+            "state.js",
+            "api.js",
+            "connection.js",
+            "devices.js",
+            "preview.js",
+            "annotations.js",
+            "history.js",
+            "prompt.js",
+            "rendering.js",
+            "shortcuts.js",
+            "main.js",
+        )
+        val expected = modules.joinToString("\n") { name ->
+            val source = File(sourceDir, name)
+            assertTrue(source.isFile, "Expected console source module $name")
+            "// $name\n${source.readText().trimEnd()}\n"
+        }
+        val generated = File(root, "fixthis-mcp/src/main/resources/console/app.js").readText()
+
+        assertEquals(expected, generated)
+    }
+
+    @Test
     fun servesConsoleAssetsFromConfiguredDirectoryWithoutCaching() {
         val assetsDir = Files.createTempDirectory("fixthis-console-assets").toFile()
         val service = FeedbackSessionService(
@@ -883,7 +911,17 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("function shortenDeviceSerial(serial)"))
         assertTrue(html.contains("withoutServiceSuffix = raw.split('._adb-tls-connect._tcp')[0];"))
         assertTrue(html.contains("if (withoutServiceSuffix.startsWith('adb-')) return withoutServiceSuffix.substring(4);"))
-        assertTrue(html.contains("return device.model || device.deviceName || device.product || shortenDeviceSerial(device.serial) || 'Unknown device';"))
+
+        val deviceLabelFallback = Regex("""function deviceLabel\(device\) \{\s+if \(!device\) return 'No device';\s+return ([^;]+);""")
+            .find(html)
+            ?.groupValues
+            ?.get(1)
+
+        assertEquals(
+            "device.label || device.model || device.deviceName || device.product || shortenDeviceSerial(device.serial) || 'Unknown device'",
+            deviceLabelFallback,
+            "Connection-device label must be the first label fallback while preserving normal device serial shortening",
+        )
     }
 
     @Test
