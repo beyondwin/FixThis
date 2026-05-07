@@ -139,6 +139,7 @@ More detail:
 
 - [Project overview](docs/project-overview.md)
 - [Product requirements](docs/fixthis_prd.md)
+- [Contributing](CONTRIBUTING.md)
 - [Technical design](docs/fixthis_technical_design.md)
 - [Decisions](docs/fixthis_decisions.md)
 - [Architecture decisions](docs/adr/README.md)

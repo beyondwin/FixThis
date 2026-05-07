@@ -333,8 +333,9 @@ HANDOFF CHECKPOINT:
 - Create: `CONTRIBUTING.md`
 - Modify: `.github/pull_request_template.md`
 - Modify: `README.md`
+- Modify: `docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md`
 
-- [ ] **Step 1: Add GitHub Actions workflow**
+- [x] **Step 1: Add GitHub Actions workflow**
 
 Create `.github/workflows/ci.yml`:
 
@@ -382,7 +383,7 @@ jobs:
         run: git diff --check
 ```
 
-- [ ] **Step 2: Add contributor guide**
+- [x] **Step 2: Add contributor guide**
 
 Create `CONTRIBUTING.md`:
 
@@ -422,15 +423,15 @@ Connected-device verification is manual until the project has a reliable device 
 - New coroutine code does not hold monitor locks around disk or bridge I/O.
 ```
 
-- [ ] **Step 3: Align PR template verification language**
+- [x] **Step 3: Align PR template verification language**
 
 Update `.github/pull_request_template.md` so the verification table includes the same required local checks and explicit SKIPPED reason rule from `CONTRIBUTING.md`.
 
-- [ ] **Step 4: Link contributor guide from README**
+- [x] **Step 4: Link contributor guide from README**
 
 Add a `CONTRIBUTING.md` link under README `More detail`.
 
-- [ ] **Step 5: Run docs and local baseline validation**
+- [x] **Step 5: Run docs and local baseline validation**
 
 Run:
 
@@ -443,12 +444,30 @@ node --check fixthis-mcp/src/main/resources/console/app.js
 
 Expected: PASS locally.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
-git add .github/workflows/ci.yml CONTRIBUTING.md .github/pull_request_template.md README.md
+git add .github/workflows/ci.yml CONTRIBUTING.md .github/pull_request_template.md README.md docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md
 git commit -m "ci: add baseline project verification"
 ```
+
+Validation notes:
+- `git diff --check`: PASS.
+- `./gradlew :fixthis-compose-core:test :fixthis-cli:test :fixthis-mcp:test :fixthis-compose-sidekick:testDebugUnitTest :fixthis-gradle-plugin:test`: PASS.
+- `./gradlew :app:assembleDebug :fixthis-cli:installDist :fixthis-mcp:installDist`: PASS.
+- `node --check fixthis-mcp/src/main/resources/console/app.js`: PASS.
+- Quality review fix: CI checkout now uses `fetch-depth: 0`, and CI whitespace validation checks committed ranges with `origin/${BASE_REF}...HEAD` for pull requests or `${BEFORE}..${SHA}` for pushes, with fallbacks for missing/all-zero `BEFORE`.
+- Revalidation after quality review fix: `git diff --check`: PASS; `node --check fixthis-mcp/src/main/resources/console/app.js`: PASS.
+
+HANDOFF CHECKPOINT:
+- Task 2 stayed in `/Users/kws/.config/superpowers/worktrees/FixThis/project-improvement-stabilization`.
+- Added the pull request/main-branch CI baseline with Java 21 and Android SDK setup.
+- Quality review fix made the CI whitespace check range-aware so committed whitespace errors in PRs are checked.
+- Added `CONTRIBUTING.md` with required local checks and connected-device skip categories.
+- PR template now names the required checks and requires explicit connected-device skip reasons.
+- README `More detail` links the contributor guide.
+- Required local validation passed before the Task 2 commit, and YAML/docs-only revalidation passed before amend.
+- Connected-device checks remain manual; no device CI was added.
 
 ## Task 3: Remove Project-Owned Test Deprecation Warnings
 

@@ -24,9 +24,14 @@
 - [ ] Related ADR is linked or updated
 
 ## Verification
-- [ ] Commands run are listed below with PASS or FAIL results
-- [ ] Relevant checks that were not run are listed as SKIPPED with a reason and residual risk
+- [ ] Required local checks are listed below with PASS or FAIL results
+- [ ] Connected-device verification is listed below, or SKIPPED with one of: `SKIPPED_NO_DEVICE`, `SKIPPED_UNAUTHORIZED_DEVICE`, `SKIPPED_LOCKED_DEVICE`, `SKIPPED_WIRELESS_ADB_LOST`
+- [ ] Any other relevant checks that were not run are listed as SKIPPED with a reason and residual risk
 
 | Command / check | Result | Notes |
 | --- | --- | --- |
-|  | PASS / FAIL / SKIPPED |  |
+| `./gradlew :fixthis-compose-core:test :fixthis-cli:test :fixthis-mcp:test :fixthis-compose-sidekick:testDebugUnitTest :fixthis-gradle-plugin:test` | PASS / FAIL |  |
+| `./gradlew :app:assembleDebug :fixthis-cli:installDist :fixthis-mcp:installDist` | PASS / FAIL |  |
+| `node --check fixthis-mcp/src/main/resources/console/app.js` | PASS / FAIL |  |
+| `git diff --check` | PASS / FAIL |  |
+| Connected-device verification | PASS / FAIL / SKIPPED_* |  |

@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  baseline:
+    name: Baseline verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make Gradle executable
+        run: chmod +x ./gradlew
+
+      - name: Run unit tests
+        run: ./gradlew :fixthis-compose-core:test :fixthis-cli:test :fixthis-mcp:test :fixthis-compose-sidekick:testDebugUnitTest :fixthis-gradle-plugin:test
+
+      - name: Build sample and distributions
+        run: ./gradlew :app:assembleDebug :fixthis-cli:installDist :fixthis-mcp:installDist
+
+      - name: Check console JavaScript syntax
+        run: node --check fixthis-mcp/src/main/resources/console/app.js
+
+      - name: Check whitespace
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          zero_sha="0000000000000000000000000000000000000000"
+
+          if [[ "${EVENT_NAME}" == "pull_request" ]]; then
+            git diff --check "origin/${BASE_REF}...HEAD"
+          elif [[ -n "${BEFORE}" && "${BEFORE}" != "${zero_sha}" ]] && git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            git diff --check "${BEFORE}..${SHA}"
+          elif git rev-parse --verify "${SHA}^" >/dev/null 2>&1; then
+            git diff --check "${SHA}^..${SHA}"
+          else
+            git diff-tree --check --root -r "${SHA}"
+          fi
