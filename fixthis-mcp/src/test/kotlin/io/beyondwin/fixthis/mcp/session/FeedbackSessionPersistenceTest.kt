@@ -109,6 +109,34 @@ class FeedbackSessionPersistenceTest {
     }
 
     @Test
+    fun loadSessionWithoutTargetEvidenceStillWorks() {
+        val root = createTempDir(prefix = "fixthis-v2-legacy-target-evidence-")
+        val paths = FeedbackSessionPaths(root)
+        paths.sessionDirectory("session-1").mkdirs()
+        paths.sessionFile("session-1").writeText(
+            """
+            {
+              "schemaVersion": "1.0",
+              "sessionId": "session-1",
+              "packageName": "io.beyondwin.fixthis.sample",
+              "projectRoot": "${root.absolutePath}",
+              "createdAtEpochMillis": 100,
+              "updatedAtEpochMillis": 200,
+              "screens": [],
+              "items": [],
+              "handoffBatches": [],
+              "status": "active"
+            }
+            """.trimIndent(),
+        )
+
+        val loaded = FeedbackSessionPersistence(paths).load("session-1")
+
+        assertEquals("session-1", loaded.sessionId)
+        assertEquals(0, loaded.items.size)
+    }
+
+    @Test
     fun failedIndexWriteLeavesExistingSessionFileUnchanged() {
         val root = createTempDir(prefix = "fixthis-v2-partial-save-")
         val paths = FeedbackSessionPaths(root)

@@ -1204,7 +1204,7 @@ git commit -m "feat: compute target evidence during capture"
 - Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionPersistenceTest.kt`
 - Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
 
-- [ ] **Step 1: Add persistence test for old session JSON**
+- [x] **Step 1: Add persistence test for old session JSON**
 
 Append to `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionPersistenceTest.kt`:
 
@@ -1239,7 +1239,7 @@ fun loadSessionWithoutTargetEvidenceStillWorks() {
 }
 ```
 
-- [ ] **Step 2: Run persistence test**
+- [x] **Step 2: Run persistence test**
 
 Run:
 
@@ -1249,7 +1249,7 @@ Run:
 
 Expected: PASS before and after model changes. This guards the old-session path.
 
-- [ ] **Step 3: Add targetEvidence to domain Annotation**
+- [x] **Step 3: Add targetEvidence to domain Annotation**
 
 Modify `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt`:
 
@@ -1265,7 +1265,7 @@ val targetEvidence: TargetEvidence? = null,
 
 Place it after `screenshotCrop` and before `comment` to keep evidence fields grouped.
 
-- [ ] **Step 4: Add targetEvidence to AnnotationDto**
+- [x] **Step 4: Add targetEvidence to AnnotationDto**
 
 Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt`:
 
@@ -1281,7 +1281,7 @@ val targetEvidence: TargetEvidence? = null,
 
 Place it after `screenshotCrop` and before `comment`.
 
-- [ ] **Step 5: Map targetEvidence in both directions**
+- [x] **Step 5: Map targetEvidence in both directions**
 
 Modify `SessionDomainMappers.kt`.
 
@@ -1297,7 +1297,7 @@ In `Annotation.toAnnotationDto()`, add:
 targetEvidence = targetEvidence,
 ```
 
-- [ ] **Step 6: Run MCP session tests**
+- [x] **Step 6: Run MCP session tests**
 
 Run:
 
@@ -1307,7 +1307,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt \

@@ -1,7 +1,18 @@
 package io.beyondwin.fixthis.mcp.session
 
 import io.beyondwin.fixthis.cli.fixThisJson
+import io.beyondwin.fixthis.compose.core.model.EvidenceQuality
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.compose.core.model.IdentityHint
+import io.beyondwin.fixthis.compose.core.model.IdentityHintConfidence
+import io.beyondwin.fixthis.compose.core.model.IdentityHintSource
+import io.beyondwin.fixthis.compose.core.model.Occurrence
+import io.beyondwin.fixthis.compose.core.model.OccurrenceSignature
+import io.beyondwin.fixthis.compose.core.model.OccurrenceSignatureType
+import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
+import io.beyondwin.fixthis.compose.core.model.SourceCandidateSummary
+import io.beyondwin.fixthis.compose.core.model.SourceInterpretation
+import io.beyondwin.fixthis.compose.core.model.TargetEvidence
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -46,6 +57,62 @@ class FeedbackSessionStoreTest {
         assertEquals(session, decoded)
         assertTrue(encoded.contains("ready_for_agent"))
         assertTrue(encoded.contains("visual_area"))
+    }
+
+    @Test
+    fun feedbackSessionRoundTripsTargetEvidenceThroughJson() {
+        val evidence = targetEvidenceForTest()
+        val session = SessionDto(
+            sessionId = "session-1",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 10L,
+            updatedAtEpochMillis = 20L,
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 12L,
+                    updatedAtEpochMillis = 13L,
+                    target = AnnotationTargetDto.Area(FixThisRect(1f, 2f, 3f, 4f)),
+                    comment = "Make this button clearer",
+                    targetEvidence = evidence,
+                ),
+            ),
+        )
+
+        val encoded = fixThisJson.encodeToString(SessionDto.serializer(), session)
+        val decoded = fixThisJson.decodeFromString(SessionDto.serializer(), encoded)
+
+        assertTrue(encoded.contains("\"targetEvidence\""))
+        assertEquals(evidence, decoded.items.single().targetEvidence)
+    }
+
+    @Test
+    fun domainSessionMappersPreserveTargetEvidence() {
+        val evidence = targetEvidenceForTest()
+        val session = SessionDto(
+            sessionId = "session-1",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 10L,
+            updatedAtEpochMillis = 20L,
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 12L,
+                    updatedAtEpochMillis = 13L,
+                    target = AnnotationTargetDto.Area(FixThisRect(1f, 2f, 3f, 4f)),
+                    comment = "Make this button clearer",
+                    targetEvidence = evidence,
+                ),
+            ),
+        )
+
+        val roundTrip = session.toDomainSession().toSessionDto()
+
+        assertEquals(evidence, roundTrip.items.single().targetEvidence)
     }
 
     @Test
@@ -563,4 +630,34 @@ class FeedbackSessionStoreTest {
         private val queue = ArrayDeque(values.toList())
         fun next(): String = queue.removeFirst()
     }
+
+    private fun targetEvidenceForTest(): TargetEvidence =
+        TargetEvidence(
+            identityHint = IdentityHint(
+                composableNameHint = "AppPrimaryButton",
+                variantHint = "primary",
+                stableLabel = "Button Sign In",
+                source = IdentityHintSource.TEST_TAG_CONVENTION,
+                confidence = IdentityHintConfidence.HIGH,
+            ),
+            occurrence = Occurrence(
+                signature = OccurrenceSignature(
+                    type = OccurrenceSignatureType.IDENTITY_HINT,
+                    value = "AppPrimaryButton:primary",
+                ),
+                count = 2,
+                selectedOrdinal = 1,
+            ),
+            sourceInterpretation = SourceInterpretation(
+                topCandidate = SourceCandidateSummary(
+                    file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
+                    line = 42,
+                    confidence = SelectionConfidence.HIGH,
+                ),
+                reasonSummary = listOf("selected testTag convention composable"),
+            ),
+            evidenceQuality = EvidenceQuality.STRUCTURED,
+            screenshotKinds = listOf("full", "crop"),
+            warnings = listOf("fallback source candidate was ignored"),
+        )
 }
