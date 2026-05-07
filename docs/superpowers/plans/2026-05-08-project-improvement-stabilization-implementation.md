@@ -199,7 +199,7 @@ Expected: no commit for Task 0 unless a workspace handoff note is intentionally 
 - Modify: `docs/fixthis_prd.md`
 - Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Add the contract document**
+- [x] **Step 1: Add the contract document**
 
 Create `docs/feedback-console-contract.md` with this content as the initial contract:
 
@@ -251,7 +251,7 @@ Create `docs/feedback-console-contract.md` with this content as the initial cont
 - FixThis does not upload screenshots, comments, prompt text, source hints, or target evidence by default.
 ```
 
-- [ ] **Step 2: Update public docs to link the contract**
+- [x] **Step 2: Update public docs to link the contract**
 
 In `README.md`, `docs/mcp.md`, `docs/design-feedback-console-ux.md`, and `docs/fixthis_prd.md`, replace stale `Add` / `Save` / `Copy` / `Send` flow language with the canonical terms from the contract. Keep historical design docs unchanged unless they present themselves as current status.
 
@@ -261,7 +261,7 @@ Example replacement sentence:
 The current console contract is documented in `docs/feedback-console-contract.md`; the shipped workflow uses `Annotate`, `Add annotation`, `Copy Prompt`, and `Send Agent`.
 ```
 
-- [ ] **Step 3: Add or update console contract assertions**
+- [x] **Step 3: Add or update console contract assertions**
 
 In `FeedbackConsoleServerTest.kt`, add a focused HTML contract test if one does not already exist:
 
@@ -290,7 +290,7 @@ fun browserConsoleUsesCurrentFeedbackContractLabels() {
 
 Use existing server helper names if the test file already has a helper equivalent to `server()`.
 
-- [ ] **Step 4: Run targeted validation**
+- [x] **Step 4: Run targeted validation**
 
 Run:
 
@@ -302,12 +302,29 @@ git diff --check
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs/feedback-console-contract.md README.md docs/mcp.md docs/design-feedback-console-ux.md docs/fixthis_prd.md fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "docs: align feedback console contract"
 ```
+
+Validation notes:
+- `./gradlew :fixthis-mcp:test --tests '*FeedbackConsoleServerTest'`: PASS. Existing `URL(String)` deprecation warnings remain outside the new contract test; Task 3 owns URL helper cleanup.
+- `node --check fixthis-mcp/src/main/resources/console/app.js`: PASS.
+- `git diff --check`: PASS.
+- Spec review fix: strengthened the focused HTML contract test to assert the documented stable DOM ids as exact `id="..."` strings, then reran the same validation set before amending the Task 1 commit.
+- Second spec review fix: extended the same focused test to assert every documented canonical label, including both `Clear Selection` and device `Clear selection`, plus `Refresh devices`; reran the validation set before amending again.
+- Quality review fix: paired each documented DOM id with its intended contract label in the same served `<button>` element snippet, then reran the validation set before amending again.
+
+HANDOFF CHECKPOINT:
+- Task 1 stayed in `/Users/kws/.config/superpowers/worktrees/FixThis/project-improvement-stabilization`.
+- Added `docs/feedback-console-contract.md` as the canonical V1 console contract.
+- Current docs now reference `Annotate`, `Add annotation`, `Copy Prompt`, and `Send Agent`.
+- Historical PRD background was left historical; current/mainline PRD text was aligned.
+- Added focused HTML assertions that pair every canonical label with its stable DOM id, plus stale-label absence checks.
+- Required validation passed before the amended Task 1 commit.
+- Existing test-file `URL(String)` warnings remain for Task 3.
 
 ## Task 2: Add CI And Contributor Verification Baseline
 

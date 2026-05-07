@@ -20,6 +20,7 @@ import io.beyondwin.fixthis.mcp.session.AnnotationTargetDto
 import io.beyondwin.fixthis.mcp.tools.FixThisBridge
 import java.io.File
 import java.net.HttpURLConnection
+import java.net.URI
 import java.net.URL
 import java.nio.file.Files
 import java.util.concurrent.CountDownLatch
@@ -60,6 +61,48 @@ class FeedbackConsoleServerTest {
         } finally {
             server.stop()
         }
+    }
+
+    @Test
+    fun browserConsoleUsesCurrentFeedbackContractLabels() {
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = { "session-1" }),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val index = URI(server.url).toURL().readText()
+
+            assertButtonContainsContractLabel(index, "copyPromptButton", "Copy Prompt")
+            assertButtonContainsContractLabel(index, "sendAgentButton", "Send Agent")
+            assertButtonContainsContractLabel(index, "selectToolButton", "Select")
+            assertButtonContainsContractLabel(index, "annotateToolButton", "Annotate")
+            assertButtonContainsContractLabel(index, "addItemButton", "Add annotation")
+            assertButtonContainsContractLabel(index, "cancelAddFlowButton", "Exit Annotate")
+            assertButtonContainsContractLabel(index, "clearSelectionButton", "Clear Selection")
+            assertButtonContainsContractLabel(index, "clearDraftButton", "Clear Draft")
+            assertButtonContainsContractLabel(index, "refreshDevicesButton", "Refresh devices")
+            assertButtonContainsContractLabel(index, "disconnectDeviceButton", "Clear selection")
+            assertFalse(index.contains("Save snapshot"))
+            assertFalse(index.contains("Add to Pending"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    private fun assertButtonContainsContractLabel(html: String, id: String, label: String) {
+        val button = Regex("""<button\b(?=[^>]*\bid="${Regex.escape(id)}")[\s\S]*?</button>""")
+            .find(html)
+            ?.value
+
+        assertTrue(button != null, "Expected served HTML to include button id=\"$id\"")
+        assertTrue(
+            button!!.contains(label),
+            "Expected button id=\"$id\" to contain contract label \"$label\"",
+        )
     }
 
     @Test

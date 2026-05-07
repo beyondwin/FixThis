@@ -1,6 +1,6 @@
 # FixThis MCP
 
-FixThis MCP is the primary agent workflow for the feedback console. The Android app only shows MCP browser connection status; selection, comments, copy, send, and persistence happen in the desktop browser console.
+FixThis MCP is the primary agent workflow for the feedback console. The Android app only shows MCP browser connection status; selection, comments, `Copy Prompt`, `Send Agent`, and persistence happen in the desktop browser console.
 
 ## Repository Sample
 
@@ -40,14 +40,16 @@ Feedback console sessions are resumable. Workspace metadata and session-owned sc
 
 The console UI and local API can list, reopen, and close persisted sessions. Closing a session marks it `closed` without deleting its workspace files; closed sessions are skipped by default and included when callers pass `includeClosed`.
 
+The current console contract is documented in [`docs/feedback-console-contract.md`](feedback-console-contract.md); the shipped workflow uses `Annotate`, `Add annotation`, `Copy Prompt`, and `Send Agent`.
+
 Typical flow:
 
 1. Call `fixthis_open_feedback_console`.
 2. Start from the connection card. Click `Start`, choose a device when asked, or use `Open app`, `Reconnect`, or `Try again` until the card reaches `Ready`.
 3. Use the live preview to navigate the app.
-4. Click Add to freeze the latest preview.
-5. Select targets or visual areas and create one or more pending items.
-6. Click Save once to persist one evidence snapshot for those pending items.
+4. Click `Annotate` to freeze the latest preview.
+5. Select targets or visual areas and click `Add annotation` to create one or more pending annotations.
+6. Click `Copy Prompt` to persist written pending annotations when needed and copy compact prompt text, or click `Send Agent` to persist them and create a local handoff batch.
 7. Call `fixthis_list_feedback`.
 8. Call `fixthis_read_feedback`.
 9. Make code changes and call `fixthis_resolve_feedback`.
@@ -60,22 +62,21 @@ Console workflow:
 2. If the card shows `Choose a device`, select one connected device from the compact device control. Offline, unauthorized, and otherwise unavailable devices are visible but not selectable.
 3. If the card shows `Open the app`, `Reconnect`, or `Check your phone`, use the card action before taking new live preview or navigation actions.
 4. When the card shows `Ready`, use the app normally from the console preview.
-5. Click Add when ready to leave feedback on the current screen.
+5. Click `Annotate` when ready to leave feedback on the current screen.
 6. Select a UI target or drag a visual area and write a comment.
-7. Click Add to Pending; numbered overlay markers and pending rows stay in sync.
-8. Click Save once to store one evidence snapshot and all pending items.
-9. Review the saved evidence group in the Inspector Draft view, including the persisted screenshot, numbered overlay, and comments.
-10. Click Copy for compact Markdown or Send when ready to create a local handoff batch.
+7. Click `Add annotation`; numbered overlay markers and pending rows stay in sync.
+8. Review the draft evidence group in the Inspector Draft view, including the frozen screenshot, numbered overlay, and comments.
+9. Click `Copy Prompt` for compact Markdown or `Send Agent` when ready to create a local handoff batch.
 
-The console defaults to navigation and has no Select/Navigate toggle. Preview clicks navigate the app until Add freezes the latest preview for feedback targeting. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions.
+The console defaults to `Select` mode. Preview clicks navigate the app until `Annotate` freezes the latest preview for feedback targeting. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions.
 
-Top bar actions are short session-level controls: Refresh, Add, Save, Copy, Send, New, and Close. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 1s. Preview polling pauses while the browser tab is hidden and while the Add/frozen-preview flow is active.
+Top bar actions are short session-level controls, including `Copy Prompt`, `Send Agent`, New, and Close. Canvas controls include `Select`, `Annotate`, `Add annotation`, and `Exit Annotate`. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 1s. Preview polling pauses while the browser tab is hidden and while the `Annotate` frozen-preview flow is active.
 
-Add freezes the latest preview only; it does not save. Multiple pending feedback items can be added to one frozen preview. Pending items support Focus and Delete before Save; deleting renumbers pending items so the pending list numbers and overlay numbers match.
+`Annotate` freezes the latest preview only; it does not write a session item by itself. Multiple pending annotations can be added to one frozen preview with `Add annotation`. Pending items support Focus and Delete before they are persisted; deleting renumbers pending items so the pending list numbers and overlay numbers match.
 
-Save promotes the frozen preview once into one persisted evidence snapshot and connects all pending items to the same `screenId`. The item's `screenId` field points to the evidence snapshot saved with that item batch, so multiple saved items can share one `screenId`. During Save, FixThis derives optional `targetEvidence` for each item from the frozen preview's captured merged semantics nodes and source-index candidates. Later Add on the same visible app screen creates a new evidence snapshot after Save. Live preview frames are not session history: `FeedbackSession.screens` contains persisted evidence snapshots, not every preview frame.
+`Copy Prompt` and `Send Agent` persist written pending annotations when needed, promote the frozen preview into one persisted evidence snapshot, and connect those items to the same `screenId`. The item's `screenId` field points to the evidence snapshot saved with that item batch, so multiple saved items can share one `screenId`. During persistence, FixThis derives optional `targetEvidence` for each item from the frozen preview's captured merged semantics nodes and source-index candidates. Later `Annotate` work on the same visible app screen can create another evidence snapshot when pending annotations are persisted. Live preview frames are not session history: `FeedbackSession.screens` contains persisted evidence snapshots, not every preview frame.
 
-Saved evidence groups can be expanded to review the persisted screenshot, numbered overlay, and saved comments. Send is local persistence, not an external AI API call. FixThis records a handoff batch in the feedback session so an MCP client can read the batch and decide what to do next.
+Saved evidence groups can be expanded to review the persisted screenshot, numbered overlay, and saved comments. `Send Agent` is local persistence, not an external AI API call. FixThis records a handoff batch in the feedback session so an MCP client can read the batch and decide what to do next.
 
 ### Connection Recovery API
 

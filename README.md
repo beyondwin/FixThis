@@ -103,11 +103,11 @@ fixthis console --package <applicationId>
 
 If `--package` is omitted, `.fixthis/project.json` must already exist so the CLI can read the application id.
 
-MCP is the primary agent workflow for the feedback console. `fixthis mcp` runs as a stdio JSON-RPC server and can open a local web console where you review a live Android screen preview, add feedback with a desktop keyboard, and let the agent read the queue. `fixthis console` opens the same console without requiring an MCP client.
+MCP is the primary agent workflow for the feedback console. `fixthis mcp` runs as a stdio JSON-RPC server and can open a local web console where you review a live Android screen preview, annotate feedback with a desktop keyboard, and let the agent read the queue. `fixthis console` opens the same console without requiring an MCP client.
 
-The feedback console is a dark Studio workspace: persisted sessions on the left, live or frozen Android preview in the center, and a mode-aware Inspector on the right. It defaults to navigation. There is no Select/Navigate toggle: normal preview clicks navigate the app, while Add freezes the latest preview so you can mark feedback targets. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions. The compact device control selects the active ADB device for FixThis bridge requests, shows `No device`, `Connecting`, `Connected`, or `Unavailable`, and keeps unavailable, offline, or unauthorized devices visible but not selectable.
+The feedback console is a dark Studio workspace: persisted sessions on the left, live or frozen Android preview in the center, and a mode-aware Inspector on the right. It defaults to `Select` mode, where normal preview clicks navigate the app. `Annotate` freezes the latest preview so you can mark feedback targets. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions. The compact device control selects the active ADB device for FixThis bridge requests, shows `No device`, `Connecting`, `Connected`, or `Unavailable`, and keeps unavailable, offline, or unauthorized devices visible but not selectable.
 
-Top bar actions are short session-level controls: Refresh, Add, Save, Copy, Send, New, and Close. The device refresh control is the `Refresh devices` icon button, and `Clear selection` clears only FixThis's active device selection. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 1s. Preview polling pauses while the browser tab is hidden, while the Add/frozen-preview flow is active, and when the selected device becomes unavailable.
+Top bar actions are short session-level controls, including `Copy Prompt`, `Send Agent`, New, and Close. Canvas controls include `Select`, `Annotate`, `Add annotation`, and `Exit Annotate`. The device refresh control is the `Refresh devices` icon button, and `Clear selection` clears only FixThis's active device selection. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 1s. Preview polling pauses while the browser tab is hidden, while the `Annotate` frozen-preview flow is active, and when the selected device becomes unavailable.
 
 Feedback console flow:
 
@@ -115,16 +115,15 @@ Feedback console flow:
 2. Click `Start`. The console finds the selected/only ready Android device, opens the debug app when possible, and connects to the FixThis sidekick bridge.
 3. Use the recovery card as needed: `Choose device` when multiple ready devices are connected, `Open app`, `Reconnect`, or `Try again` when the app or bridge needs recovery. Draft annotations and the last preview remain visible while reconnecting.
 4. When the card shows `Ready`, click `Capture screen` to refresh the preview, then use the app normally from the console preview.
-5. Click Add when ready to leave feedback on the current screen.
+5. Click `Annotate` when ready to leave feedback on the current screen.
 6. Select a UI target or drag a visual area and write a comment.
-7. Click Add to Pending; numbered overlay markers and pending rows stay in sync.
-8. Click Save once to store one evidence snapshot and all pending items.
-9. Review the saved evidence group in the Inspector Draft view, including the persisted screenshot, numbered overlay, and comments.
-10. Click Copy for compact Markdown or Send when ready to create a local handoff batch.
+7. Click `Add annotation`; numbered overlay markers and pending rows stay in sync.
+8. Review the draft evidence group in the Inspector Draft view, including the frozen screenshot, numbered overlay, and comments.
+9. Click `Copy Prompt` for compact Markdown or `Send Agent` when ready to create a local handoff batch.
 
-Add freezes the latest preview only; it does not save. You can add multiple pending feedback items to one frozen preview. Pending items support Focus and Delete before Save; deleting renumbers pending items so the pending list numbers and overlay numbers match. Save promotes the frozen preview once into one persisted evidence snapshot and connects all pending items to that same `screenId`. Later Add on the same visible app screen creates a new evidence snapshot after Save.
+`Annotate` freezes the latest preview only; it does not write a session item by itself. You can add multiple browser-side pending annotations to one frozen preview with `Add annotation`. Pending items support Focus and Delete before they are persisted; deleting renumbers pending items so the pending list numbers and overlay numbers match. `Copy Prompt` and `Send Agent` persist written pending annotations when needed, promote the frozen preview into one evidence snapshot, and connect those items to the same `screenId`. Later `Annotate` work on the same visible app screen can create another evidence snapshot when pending annotations are persisted.
 
-Saved evidence groups can be expanded to review the persisted screenshot, numbered overlay, and saved comments. Send creates a persisted local handoff batch that MCP tools can read. It does not call an external AI API. Agent-facing Markdown is compact and focused on the request, target evidence, and likely source; it intentionally omits internal IDs and repeated storage metadata. JSON remains complete for tools and preserves IDs, paths, and MCP contracts.
+Saved evidence groups can be expanded to review the persisted screenshot, numbered overlay, and saved comments. `Send Agent` creates a persisted local handoff batch that MCP tools can read. It does not call an external AI API. Agent-facing Markdown is compact and focused on the request, target evidence, and likely source; it intentionally omits internal IDs and repeated storage metadata. JSON remains complete for tools and preserves IDs, paths, and MCP contracts.
 
 Feedback console sessions are resumable. FixThis saves feedback workspace metadata and screenshot artifacts under `.fixthis/feedback-sessions/`, so an MCP or console restart does not discard queued feedback.
 
@@ -147,6 +146,7 @@ More detail:
 - [Privacy](docs/privacy.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [MCP](docs/mcp.md)
+- [Feedback console contract](docs/feedback-console-contract.md)
 - [Feedback console UX status](docs/design-feedback-console-ux.md)
 - [Project improvement proposals](docs/project-improvement-proposals-2026-05-07.md)
 - [Project improvement stabilization design](docs/superpowers/specs/2026-05-08-project-improvement-stabilization-design.md)
