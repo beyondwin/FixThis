@@ -1126,7 +1126,7 @@ git commit -m "feat: add resilient console recovery UI"
 - Modify: `fixthis-mcp/src/main/resources/console/app.js`
 - Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
-- [ ] **Step 1: Add failing tests for preview and pending preservation**
+- [x] **Step 1: Add failing tests for preview and pending preservation**
 
 Add asset assertions:
 
@@ -1146,7 +1146,7 @@ fun previewFailureMarksConnectionPausedWithoutClearingDrafts() {
 
 The last assertion documents that drafts are only cleared by explicit draft lifecycle code. Do not add new disconnect-path clearing.
 
-- [ ] **Step 2: Run asset tests and verify RED**
+- [x] **Step 2: Run asset tests and verify RED**
 
 Run:
 
@@ -1156,7 +1156,7 @@ Run:
 
 Expected: fails until preview error handling marks stale previews and refreshes connection status.
 
-- [ ] **Step 3: Update preview error handling**
+- [x] **Step 3: Update preview error handling**
 
 In `refreshPreview`, wrap bridge-dependent fetch:
 
@@ -1195,7 +1195,7 @@ Then use:
 error.textContent = friendlyErrorMessage(cause?.message || cause);
 ```
 
-- [ ] **Step 4: Verify no disconnect path clears pending work**
+- [x] **Step 4: Verify no disconnect path clears pending work**
 
 Search:
 
@@ -1205,7 +1205,7 @@ rg -n "pendingFeedbackItems = \\[\\]|addItemsFlow = null|state.preview = null|in
 
 Expected: clearing happens only on explicit user flow boundaries such as cancel, save completion, session/device context change, or new session. It must not happen inside heartbeat or connection failure handling.
 
-- [ ] **Step 5: Run asset tests and verify GREEN**
+- [x] **Step 5: Run asset tests and verify GREEN**
 
 Run:
 
@@ -1215,7 +1215,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
