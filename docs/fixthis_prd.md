@@ -112,10 +112,12 @@ FixThis는 개발과 디버그 용도다. production feature가 아니다.
 
 ```text
 앱 실행
-→ FixThis 버튼 클릭
-→ UI 선택
-→ 원하는 변경사항 입력
-→ Copy for Codex/Claude/Cursor
+→ fixthis console 또는 agent의 fixthis_open_feedback_console
+→ connection card에서 Start/Open app/Reconnect로 Ready 도달
+→ live preview에서 UI 탐색
+→ Add로 preview freeze
+→ target 선택과 comment 입력
+→ Save 후 Copy 또는 Send
 → AI가 코드 수정
 ```
 
@@ -132,8 +134,9 @@ FixThis는 개발과 디버그 용도다. production feature가 아니다.
 ```text
 fixthis setup --package <applicationId>
 → fixthis run
-→ AI agent에서 FixThis MCP tool 사용
-→ 앱에서 UI 선택
+→ AI agent에서 fixthis_open_feedback_console 사용
+→ console connection card가 Ready 상태인지 확인
+→ browser preview에서 UI 선택
 → agent가 source candidate를 받고 코드 수정
 → agent가 verify tool로 검증
 ```
@@ -148,10 +151,11 @@ fixthis setup --package <applicationId>
 주요 흐름:
 
 ```text
-앱에서 FixThis 버튼
-→ 문제 UI 선택
+desktop feedback console 열기
+→ Start/Open app으로 앱 preview 연결
+→ 문제 UI 선택 또는 영역 drag
 → "이 여백 줄여주세요" 입력
-→ 공유 또는 복사
+→ Save 후 Copy 또는 Send
 ```
 
 주의:
@@ -204,8 +208,8 @@ AI coding agent가 해당 UI를 수정할 수 있도록 context를 전달한다.
 
 ### 5.1 Primary goals
 
-1. 사용자가 Compose UI를 탭해서 수정 대상을 선택할 수 있다.
-2. 사용자가 원하는 변경사항을 앱 안에서 입력할 수 있다.
+1. 사용자가 desktop feedback console의 live/frozen preview에서 Compose UI 수정 대상을 선택할 수 있다.
+2. 사용자가 원하는 변경사항을 browser console에서 입력할 수 있다.
 3. 선택된 UI에 대한 정확한 runtime context를 생성한다.
 4. 생성된 context를 Markdown/JSON으로 복사하거나 공유할 수 있다.
 5. `testTag` 없이도 대부분의 Material/Compose UI에서 동작한다.
@@ -273,7 +277,8 @@ FixThis는 Android Jetpack Compose debug 앱에서 수정할 UI를 지목하고 
 ```text
 debug 앱 실행
 → fixthis console 또는 fixthis_open_feedback_console
-→ device 선택
+→ connection card에서 Start/Open app/Reconnect/Choose device/Try again 처리
+→ Ready 상태 확인
 → live preview에서 앱 탐색
 → Add로 preview freeze
 → target 또는 visual area 선택
@@ -305,28 +310,34 @@ debug 앱 실행
 1. 사용자가 AI agent에서 fixthis_open_feedback_console을 호출하거나
    fixthis console --package <applicationId>를 실행한다.
 
-2. browser feedback console의 Studio workspace에서 연결된 ADB device를 선택한다.
+2. browser feedback console의 connection card에서 `Start`를 누른다. Console은
+   selected 또는 only ready ADB device를 찾고, 필요한 경우 debug app을 launch한 뒤
+   sidekick bridge를 확인한다.
 
-3. live preview에서 앱을 평소처럼 탐색한다. preview click은 기본적으로
+3. 여러 ready device가 있으면 `Choose a device` 상태에서 device를 선택한다.
+   앱이 닫혔거나 bridge가 끊기면 `Open app`, `Reconnect`, 또는 `Try again`으로
+   복구한다. Draft feedback과 마지막 preview는 복구 중에도 유지된다.
+
+4. `Ready`가 되면 live preview에서 앱을 평소처럼 탐색한다. preview click은 기본적으로
    debug-only navigation이다.
 
-4. 피드백을 남길 화면에서 Add를 눌러 최신 preview를 freeze한다.
+5. 피드백을 남길 화면에서 Add를 눌러 최신 preview를 freeze한다.
 
-5. component를 클릭하거나 custom area를 drag하고 comment를 입력한 뒤
+6. component를 클릭하거나 custom area를 drag하고 comment를 입력한 뒤
    Add to Pending을 누른다. 같은 frozen preview에 여러 pending item을 추가할 수
    있고, pending item은 Focus/Delete만 지원한다.
 
-6. Save를 한 번 누르면 console은 frozen preview를 evidence snapshot 하나로
+7. Save를 한 번 누르면 console은 frozen preview를 evidence snapshot 하나로
    저장하고 모든 pending item을 같은 `screenId`에 연결한다.
 
-7. Send를 누르면 console은 외부 AI API를 호출하지 않고,
+8. Send를 누르면 console은 외부 AI API를 호출하지 않고,
    `.fixthis/feedback-sessions/` 아래에 local handoff batch를 기록한다.
 
-8. AI agent가 `fixthis_read_feedback`으로 compact Markdown과 complete JSON을
+9. AI agent가 `fixthis_read_feedback`으로 compact Markdown과 complete JSON을
    읽는다. Markdown은 request, target evidence, likely source 중심이고 JSON은
    batch, item, screen, selected node, source candidate, screenshot path를 보존한다.
 
-9. AI agent가 source candidate를 참고해 코드 수정하고,
+10. AI agent가 source candidate를 참고해 코드 수정하고,
    `fixthis_verify_ui_change` 또는 console capture로 결과를 확인한다.
 ```
 

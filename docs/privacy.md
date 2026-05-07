@@ -62,4 +62,6 @@ Feedback navigation actions are debug-only touch or key events dispatched inside
 
 Device selection is local FixThis console state. Clicking `Clear selection` in the console does not run `adb disconnect` and does not detach USB or Wi-Fi ADB; it clears FixThis's active device selection and owned bridge resources.
 
+The browser console's recovery card uses local MCP-process HTTP endpoints to diagnose and recover the app connection. `GET /api/connection` checks ADB device state and the sidekick bridge. `POST /api/app/launch` starts the selected or only ready debug app through ADB when recovery requires opening the app. These endpoints are bound to localhost with the rest of the console and do not upload diagnostics, raw bridge errors, screenshots, or feedback.
+
 This bridge is intended for a trusted local development machine with ADB access to a debug app. Do not use it as a remote service boundary.

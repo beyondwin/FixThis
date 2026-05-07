@@ -108,9 +108,10 @@ MCP stdio server와 local feedback console 서버다.
 
 - `McpProtocol`: JSON-RPC initialize/tools/resources/ping/cancellation 처리.
 - `tools/FixThisTools.kt`: MCP tool/resource registry와 CLI bridge adapter.
-- `session/FeedbackSessionService.kt`: session workflow orchestration. Session open/resume, preview capture, persisted evidence capture, navigation, annotation 저장, target evidence 산출, handoff, resolve를 조율한다.
+- `session/FeedbackSessionService.kt`: session workflow orchestration. Session open/resume, connection diagnosis, app launch recovery, preview capture, persisted evidence capture, navigation, annotation 저장, target evidence 산출, handoff, resolve를 조율한다.
 - `session/SessionDtoModels.kt`, `console/AnnotationRequestModels.kt`: MCP/local-console DTO와 persisted JSON field names. Existing field names such as `items`, `screens`, `itemId`, and `screenId` are compatibility contracts.
 - `session/SessionDomainMappers.kt`: DTO와 `compose-core` domain model 사이의 명시적 mapper. Legacy `"ready"` item status는 domain에서 `AnnotationStatus.OPEN`으로 normalize된다.
+- `console/ConsoleConnectionModels.kt`: browser console의 recovery card contract. `WELCOME`, `READY`, `OPEN_APP`, `STARTING`, `RECONNECT`, `CHOOSE_DEVICE`, `CHECK_PHONE`, `UNSUPPORTED_BUILD` 상태와 primary action을 직렬화한다.
 - `session/PreviewSnapshotCache.kt`, `SourceIndexRegistry.kt`, `ScreenshotArtifactPromoter.kt`: transient preview cache, source-index caching, frozen preview screenshot promotion을 service에서 분리한다.
 - `session/FeedbackSessionStore.kt`, `FeedbackSessionPersistence.kt`: `.fixthis/feedback-sessions/<session-id>/session.json` persistence.
 - `console/FeedbackConsoleServer.kt`: `127.0.0.1` HTTP console과 `/api/*` endpoints.
@@ -168,15 +169,16 @@ flowchart TD
 ```mermaid
 flowchart TD
     A["fixthis_open_feedback_console or fixthis console"] --> B["MCP starts local HTTP console"]
-    B --> C["User selects ADB device"]
-    C --> D["Console polls preview via captureScreenSnapshot"]
-    D --> E["User clicks Add to freeze latest preview"]
-    E --> F["User selects semantics node or visual area and writes comments"]
-    F --> G["Save persists one screen evidence snapshot"]
-    G --> H["Feedback items share that screenId"]
-    H --> I["Send creates local handoff batch"]
-    I --> J["Agent reads queue with fixthis_read_feedback"]
-    J --> K["Agent resolves items with fixthis_resolve_feedback"]
+    B --> C["Connection card polls /api/connection"]
+    C --> D["Start / Open app / Reconnect / Try again reaches Ready"]
+    D --> E["Console polls preview via captureScreenSnapshot"]
+    E --> F["User clicks Add to freeze latest preview"]
+    F --> G["User selects semantics node or visual area and writes comments"]
+    G --> H["Save persists one screen evidence snapshot"]
+    H --> I["Feedback items share that screenId"]
+    I --> J["Send creates local handoff batch"]
+    J --> K["Agent reads queue with fixthis_read_feedback"]
+    K --> L["Agent resolves items with fixthis_resolve_feedback"]
 ```
 
 Important distinction:
@@ -184,6 +186,8 @@ Important distinction:
 - Preview frames are temporary and stored under `.fixthis/preview-cache/`.
 - Saved evidence lives under `.fixthis/feedback-sessions/<session-id>/`.
 - `Send` is local persistence for MCP handoff. It does not call an external AI API.
+- Connection recovery is console-local UI state. `GET /api/connection` diagnoses ADB device and sidekick bridge state, while `POST /api/app/launch` launches the selected or only ready app when that is a valid recovery action. These calls do not persist feedback data.
+- When a device or bridge drops, pending browser draft work and the last preview remain visible. The preview is marked stale until the card returns to `Ready`.
 
 ## Local Files And Artifacts
 

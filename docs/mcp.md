@@ -43,26 +43,29 @@ The console UI and local API can list, reopen, and close persisted sessions. Clo
 Typical flow:
 
 1. Call `fixthis_open_feedback_console`.
-2. Use the live preview to navigate the app.
-3. Click Add to freeze the latest preview.
-4. Select targets or visual areas and create one or more pending items.
-5. Click Save once to persist one evidence snapshot for those pending items.
-6. Call `fixthis_list_feedback`.
-7. Call `fixthis_read_feedback`.
-8. Make code changes and call `fixthis_resolve_feedback`.
+2. Start from the connection card. Click `Start`, choose a device when asked, or use `Open app`, `Reconnect`, or `Try again` until the card reaches `Ready`.
+3. Use the live preview to navigate the app.
+4. Click Add to freeze the latest preview.
+5. Select targets or visual areas and create one or more pending items.
+6. Click Save once to persist one evidence snapshot for those pending items.
+7. Call `fixthis_list_feedback`.
+8. Call `fixthis_read_feedback`.
+9. Make code changes and call `fixthis_resolve_feedback`.
 
 The CLI command `fixthis console --package <applicationId>` opens the same local console for copy/export workflows.
 
 Console workflow:
 
-1. Select a connected ADB device from the compact device control. Offline, unauthorized, and otherwise unavailable devices are visible but not selectable.
-2. Use the app normally from the console preview.
-3. Click Add when ready to leave feedback on the current screen.
-4. Select a UI target or drag a visual area and write a comment.
-5. Click Add to Pending; numbered overlay markers and pending rows stay in sync.
-6. Click Save once to store one evidence snapshot and all pending items.
-7. Review the saved evidence group in the Inspector Draft view, including the persisted screenshot, numbered overlay, and comments.
-8. Click Copy for compact Markdown or Send when ready to create a local handoff batch.
+1. Open the connection card. `Start` finds the selected or only ready Android device, launches the debug app when appropriate, and checks the sidekick bridge.
+2. If the card shows `Choose a device`, select one connected device from the compact device control. Offline, unauthorized, and otherwise unavailable devices are visible but not selectable.
+3. If the card shows `Open the app`, `Reconnect`, or `Check your phone`, use the card action before taking new live preview or navigation actions.
+4. When the card shows `Ready`, use the app normally from the console preview.
+5. Click Add when ready to leave feedback on the current screen.
+6. Select a UI target or drag a visual area and write a comment.
+7. Click Add to Pending; numbered overlay markers and pending rows stay in sync.
+8. Click Save once to store one evidence snapshot and all pending items.
+9. Review the saved evidence group in the Inspector Draft view, including the persisted screenshot, numbered overlay, and comments.
+10. Click Copy for compact Markdown or Send when ready to create a local handoff batch.
 
 The console defaults to navigation and has no Select/Navigate toggle. Preview clicks navigate the app until Add freezes the latest preview for feedback targeting. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions.
 
@@ -73,6 +76,25 @@ Add freezes the latest preview only; it does not save. Multiple pending feedback
 Save promotes the frozen preview once into one persisted evidence snapshot and connects all pending items to the same `screenId`. The item's `screenId` field points to the evidence snapshot saved with that item batch, so multiple saved items can share one `screenId`. During Save, FixThis derives optional `targetEvidence` for each item from the frozen preview's captured merged semantics nodes and source-index candidates. Later Add on the same visible app screen creates a new evidence snapshot after Save. Live preview frames are not session history: `FeedbackSession.screens` contains persisted evidence snapshots, not every preview frame.
 
 Saved evidence groups can be expanded to review the persisted screenshot, numbered overlay, and saved comments. Send is local persistence, not an external AI API call. FixThis records a handoff batch in the feedback session so an MCP client can read the batch and decide what to do next.
+
+### Connection Recovery API
+
+The browser console owns connection recovery through local HTTP endpoints on the MCP process:
+
+- `GET /api/connection`: returns the current console connection status.
+- `POST /api/app/launch`: launches the selected or only ready debug app when the current status is `WELCOME` or `OPEN_APP`, then returns the next connection status.
+
+`/api/connection` returns a `ConsoleConnectionStatus` object:
+
+- `state`: `WELCOME`, `READY`, `OPEN_APP`, `STARTING`, `RECONNECT`, `CHOOSE_DEVICE`, `CHECK_PHONE`, or `UNSUPPORTED_BUILD`.
+- `headline` and `message`: user-facing recovery copy.
+- `primaryAction`: `START`, `OPEN_APP`, `RECONNECT`, `TRY_AGAIN`, `CHOOSE_DEVICE`, or `CAPTURE` when one action is available.
+- `selectedDevice`, `devices`, and `packageName`: local device/package context.
+- `canCapture` and `canNavigate`: whether live bridge actions are currently allowed.
+- `canUseCachedWork`: whether saved/draft console work can remain visible.
+- `details`: raw `deviceState`, `bridgeState`, and `rawError` for troubleshooting.
+
+When the bridge or device drops, the console keeps pending browser draft work and the last preview visible, marks the preview stale, and disables new bridge actions until the status returns to `READY`.
 
 ## Setup Output
 

@@ -161,6 +161,20 @@ Preview polling pauses when the browser tab is hidden and while the Add/frozen-p
 
 The navigation action can succeed while follow-up capture fails. Check the `captureError` field or click Refresh manually after the app finishes drawing.
 
+## Browser Console Connection Card States
+
+The connection card is the first place to look when capture, preview, or navigation is unavailable.
+
+- `Connect to your app`: click `Start`. The console will use the selected or only ready device, launch the debug app when possible, and check the sidekick bridge.
+- `Ready`: live capture and debug navigation are allowed. Click `Capture screen` when you want a fresh preview immediately.
+- `Open the app`: ADB sees a usable device, but the sidekick bridge is not reachable. Click `Open app` to launch the active package.
+- `Reconnect`: the console reached the bridge before, but a later heartbeat, preview, or navigation request failed. Click `Reconnect` to reopen the app and refresh the bridge session.
+- `Choose a device`: more than one ready device is connected. Pick one from the compact device control.
+- `Check your phone`: no usable device is available, ADB failed, or the selected device is offline/unauthorized/missing. Check `adb devices -l`, unlock/authorize the device, then click `Try again`.
+- `This build cannot connect`: the package is not debuggable, `run-as` is denied, the sidekick is missing, or the build cannot expose the FixThis bridge. Install a debuggable build with the sidekick enabled.
+
+Open `Details` for raw `deviceState`, `bridgeState`, and `rawError`. These details are diagnostic; the normal action button is the supported recovery path.
+
 ## Bridge Connection Failures
 
 Bridge failures usually mean the desktop CLI could not connect through ADB to the sidekick local socket.

@@ -35,6 +35,7 @@ FixThis for Android Compose
 - AndroidX Startup과 ActivityLifecycleCallbacks로 자동 설치한다.
 - MCP feedback console을 현재 기본 agent workflow로 둔다.
 - 앱 내부 UI는 MCP browser 연결 상태 표시로 제한한다.
+- Browser feedback console이 device/app/bridge connection recovery를 소유한다.
 - source mapping은 Gradle source index부터 시작한다.
 - Stable Target Evidence v1은 nullable additive evidence로 제공하며 bridge protocol `1.0`을 유지한다.
 - privacy-first, local-first로 설계한다.
@@ -723,7 +724,8 @@ tools다.
 
 ```text
 feedback console open/resume
-→ Studio workspace에서 device 선택 후 live preview canvas로 앱 탐색
+→ connection card에서 Start/Open app/Reconnect/Choose device/Try again으로 Ready 도달
+→ Studio workspace에서 live preview canvas로 앱 탐색
 → Add로 최신 preview freeze
 → component/custom area feedback을 Add to Pending으로 pending item에 추가
 → Save 한 번으로 evidence snapshot 1개와 item N개 저장
@@ -1102,7 +1104,9 @@ fixthis_read_feedback
 ```text
 AI opens feedback console
   ↓
-Studio workspace에서 device 선택 후 live preview canvas로 앱 탐색
+Connection card에서 Start/Open app/Reconnect/Choose device/Try again으로 Ready 도달
+  ↓
+Studio workspace에서 live preview canvas로 앱 탐색
   ↓
 Add로 최신 preview freeze
   ↓

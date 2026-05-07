@@ -86,6 +86,33 @@ Feedback session summaries are returned by `fixthis_list_feedback_sessions` and 
 
 `fixthis_list_feedback` returns the same session context plus `unresolvedSentItemsCount`, the number of sent feedback items not resolved or marked won't fix.
 
+## Feedback Console Connection Status
+
+Connection status is console-local API data returned by `GET /api/connection` and `POST /api/app/launch`. It is not persisted into `FeedbackSession` JSON.
+
+Fields:
+
+- `state`: `WELCOME`, `READY`, `OPEN_APP`, `STARTING`, `RECONNECT`, `CHOOSE_DEVICE`, `CHECK_PHONE`, or `UNSUPPORTED_BUILD`.
+- `headline`: short user-facing state label.
+- `message`: user-facing recovery guidance.
+- `primaryAction`: optional next action. Values are `START`, `OPEN_APP`, `RECONNECT`, `TRY_AGAIN`, `CHOOSE_DEVICE`, or `CAPTURE`.
+- `selectedDevice`: selected device summary when available.
+- `devices`: available device summaries.
+- `packageName`: Android application id for the console session.
+- `canCapture`: whether live capture/preview actions are currently allowed.
+- `canNavigate`: whether debug navigation actions are currently allowed.
+- `canUseCachedWork`: whether the console can keep saved/draft work visible while disconnected.
+- `details`: optional diagnostic object with `deviceState`, `bridgeState`, and `rawError`.
+
+Device summaries include:
+
+- `serial`: ADB serial.
+- `state`: raw ADB state, such as `device`, `offline`, or `unauthorized`.
+- `label`: short display label derived from model, device name, product, or serial.
+- `selected`: whether this is the active console device.
+
+`POST /api/app/launch` returns the same shape. It only attempts app launch from `WELCOME` or `OPEN_APP`; `CHECK_PHONE`, `CHOOSE_DEVICE`, and `UNSUPPORTED_BUILD` are returned without hiding their underlying cause.
+
 ## Captured Screen Schema
 
 Captured screens represent persisted evidence snapshots in a feedback session. The feedback console creates them when Save promotes a frozen preview; MCP tools can also create them through explicit capture or navigation with `captureAfter`. Live preview frames are not captured screens:
@@ -138,6 +165,8 @@ Feedback items represent human comments on a persisted evidence snapshot. When a
 The feedback console defaults to navigation. Add freezes the latest preview so the user can select a target or drag a visual area, write a comment, and create one or more pending UI-only items. Pending items are numbered in the Studio UI and support Focus and Delete until Save. Save promotes that frozen preview once into one persisted evidence snapshot, stores all pending items, and connects them to the same `screenId`. Later Add on the same visible app screen creates a new evidence snapshot after Save.
 
 Send creates a persisted handoff batch, changes saved items to `delivery: "sent"`, sets `handoffBatchId` and `sentAtEpochMillis`, and records those items in `handoffBatches`. It does not create a new external AI API payload; MCP tools read the persisted session data.
+
+Connection loss does not change feedback delivery fields. Browser-only pending items and the last preview stay visible as cached work, the preview is marked stale, and new bridge actions resume only after the connection status returns to `READY`.
 
 Delivery values:
 
