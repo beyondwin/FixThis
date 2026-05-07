@@ -581,6 +581,45 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun connectionApiReturnsSimpleConnectionStatus() {
+        val bridge = FakeFixThisBridge()
+        bridge.selectDevice("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp")
+        val service = FeedbackSessionService(bridge, FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")
+        val server = FeedbackConsoleServer(service).also { it.start() }
+        try {
+            val body = URL("${server.url}/api/connection").readText()
+            val json = fixThisJson.parseToJsonElement(body).jsonObject
+
+            assertEquals("READY", json.getValue("state").jsonPrimitive.content)
+            assertEquals("Ready", json.getValue("headline").jsonPrimitive.content)
+            assertEquals(true, json.getValue("canCapture").jsonPrimitive.boolean)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun launchAppApiLaunchesSelectedPackageAndReturnsStartingStatus() {
+        val bridge = FakeFixThisBridge(heartbeatError = RuntimeException("not ready yet"))
+        bridge.selectDevice("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp")
+        val service = FeedbackSessionService(bridge, FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")
+        val server = FeedbackConsoleServer(service).also { it.start() }
+        try {
+            val connection = URL("${server.url}/api/app/launch").openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.outputStream.use { it.write(ByteArray(0)) }
+
+            assertEquals(200, connection.responseCode)
+            val json = fixThisJson.parseToJsonElement(connection.inputStream.bufferedReader().readText()).jsonObject
+            assertEquals("STARTING", json.getValue("state").jsonPrimitive.content)
+            assertEquals(listOf("io.beyondwin.fixthis.sample"), bridge.launchedPackages)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
     fun consoleHtmlDisablesPreviewPollingForUnavailableDeviceSelection() {
         val html = FeedbackConsoleAssets.indexHtml
 
