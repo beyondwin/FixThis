@@ -15,6 +15,20 @@ For this repository's sample app, use the Android Studio `app` configuration or 
 fixthis run --package io.beyondwin.fixthis.sample
 ```
 
+For repeatable host and connected-device diagnostics, run the smoke harness:
+
+```bash
+scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample
+```
+
+For host-only validation without an attached device, run:
+
+```bash
+scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample --host-only
+```
+
+Reports are written under ignored `.fixthis/smoke-reports/` as Markdown and JSON. Connected smoke can finish with an explicit skip category: `SKIPPED_HOST_ONLY`, `SKIPPED_ADB_NOT_FOUND`, `SKIPPED_NO_DEVICE`, `SKIPPED_UNAUTHORIZED_DEVICE`, `SKIPPED_OFFLINE_DEVICE`, `SKIPPED_LOCKED_DEVICE`, `SKIPPED_WIRELESS_ADB_LOST`, or `SKIPPED_MULTIPLE_DEVICES`.
+
 ## ADB_NOT_FOUND
 
 Symptom: `fixthis doctor` fails at `ADB found` or the CLI reports that it cannot run `adb`.

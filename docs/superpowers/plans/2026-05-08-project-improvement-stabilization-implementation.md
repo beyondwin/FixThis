@@ -28,7 +28,7 @@
 - Preserve unrelated local changes. If `fixthis-mcp/src/main/resources/console/app.js` or `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` contains unrelated uncommitted work, read and preserve it before editing.
 - Update checkbox state in this file as tasks complete.
 - After each task, run the listed validation command and record PASS, FAIL, or SKIPPED with the reason.
-- For connected-device checks, SKIPPED is acceptable only with an explicit category such as `SKIPPED_NO_DEVICE`, `SKIPPED_UNAUTHORIZED_DEVICE`, `SKIPPED_LOCKED_DEVICE`, or `SKIPPED_WIRELESS_ADB_LOST`.
+- For connected-device checks, SKIPPED is acceptable only with an explicit category. Connected-device state categories include `SKIPPED_NO_DEVICE`, `SKIPPED_UNAUTHORIZED_DEVICE`, `SKIPPED_OFFLINE_DEVICE`, `SKIPPED_LOCKED_DEVICE`, `SKIPPED_WIRELESS_ADB_LOST`, or `SKIPPED_MULTIPLE_DEVICES`; use `SKIPPED_HOST_ONLY` only for intentional host-only/manual smoke skips.
 - Do not run broad process cleanup such as `killall node`, `pkill node`, `killall chrome`, or `pkill playwright`.
 
 ## Current Baseline
@@ -873,7 +873,7 @@ git commit -m "feat: add zero setup mcp config writers"
 - Modify: `CONTRIBUTING.md`
 - Modify: `docs/troubleshooting.md`
 
-- [ ] **Step 1: Add host-only smoke script**
+- [x] **Step 1: Add host-only smoke script**
 
 Create `scripts/fixthis-smoke.sh`:
 
@@ -957,7 +957,7 @@ fixthis-cli/build/install/fixthis/bin/fixthis doctor --package "${PACKAGE_NAME}"
 record "- Result: PASS"
 ```
 
-- [ ] **Step 2: Make the script executable**
+- [x] **Step 2: Make the script executable**
 
 Run:
 
@@ -965,7 +965,7 @@ Run:
 chmod +x scripts/fixthis-smoke.sh
 ```
 
-- [ ] **Step 3: Run host-only validation**
+- [x] **Step 3: Run host-only validation**
 
 Run:
 
@@ -975,7 +975,7 @@ scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample --host-only
 
 Expected: report is created under `.fixthis/smoke-reports/` and result is `SKIPPED_HOST_ONLY`.
 
-- [ ] **Step 4: Document smoke categories**
+- [x] **Step 4: Document smoke categories**
 
 Update `CONTRIBUTING.md` and `docs/troubleshooting.md` with the command and categories:
 
@@ -989,12 +989,19 @@ scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample
 Expected connected-device skip categories include `SKIPPED_NO_DEVICE`, `SKIPPED_UNAUTHORIZED_DEVICE`, `SKIPPED_OFFLINE_DEVICE`, and `SKIPPED_HOST_ONLY`.
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/fixthis-smoke.sh CONTRIBUTING.md docs/troubleshooting.md
 git commit -m "test: add connected smoke harness"
 ```
+
+Task 5 validation notes:
+
+- `bash -n scripts/fixthis-smoke.sh`: PASS.
+- `scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample --host-only`: PASS, report `/Users/kws/.config/superpowers/worktrees/FixThis/project-improvement-stabilization/.fixthis/smoke-reports/20260507T190913Z.md`, result `SKIPPED_HOST_ONLY`.
+- Review cleanup validation: `scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample --host-only --no-build` passed with `SKIPPED_HOST_ONLY` and wrote suffixed reports under `.fixthis/smoke-reports/`; two parallel runs in the same second wrote distinct JSON reports `20260507T191410Z-pid14289-1500025148.json` and `20260507T191410Z-pid14309-240865872.json`.
+- Connected-device smoke was not run for Task 5 because no authorized, unlocked device was established before validation. Residual risk: ready-device install, launch, lockscreen detection, and `fixthis doctor` paths still need one connected-device run and may report `SKIPPED_NO_DEVICE`, `SKIPPED_UNAUTHORIZED_DEVICE`, `SKIPPED_OFFLINE_DEVICE`, `SKIPPED_LOCKED_DEVICE`, `SKIPPED_WIRELESS_ADB_LOST`, or `SKIPPED_MULTIPLE_DEVICES` depending on local ADB state.
 
 ## Task 6: Extract ConsoleConnectionService From FeedbackSessionService
 

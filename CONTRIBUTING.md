@@ -13,12 +13,28 @@ git diff --check
 
 ## Connected Device Checks
 
-Connected-device verification is manual until the project has a reliable device or emulator runner. When it is skipped, record one of these categories in the pull request:
+Connected-device verification is manual until the project has a reliable device or emulator runner. Run the smoke harness when validating device behavior:
 
+```bash
+scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample
+```
+
+For host-only validation, use:
+
+```bash
+scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample --host-only
+```
+
+Smoke reports are written under ignored `.fixthis/smoke-reports/` as Markdown and JSON. When connected smoke is skipped, record one of these categories in the pull request:
+
+- `SKIPPED_HOST_ONLY`
+- `SKIPPED_ADB_NOT_FOUND`
 - `SKIPPED_NO_DEVICE`
 - `SKIPPED_UNAUTHORIZED_DEVICE`
+- `SKIPPED_OFFLINE_DEVICE`
 - `SKIPPED_LOCKED_DEVICE`
 - `SKIPPED_WIRELESS_ADB_LOST`
+- `SKIPPED_MULTIPLE_DEVICES`
 
 ## Local Artifacts
 
