@@ -125,7 +125,7 @@
 **Files:**
 - No source file changes.
 
-- [ ] **Step 1: Confirm the starting state**
+- [x] **Step 1: Confirm the starting state**
 
 Run:
 
@@ -137,7 +137,7 @@ git log --oneline --decorate -5
 
 Expected: branch is `main` or a dedicated implementation branch. If the working tree is dirty, identify unrelated changes and preserve them.
 
-- [ ] **Step 2: Create an implementation branch or worktree**
+- [x] **Step 2: Create an implementation branch or worktree**
 
 Run from the original repo when using a branch:
 
@@ -153,7 +153,7 @@ git worktree add /Users/kws/.config/superpowers/worktrees/FixThis/project-improv
 
 Expected: a dedicated branch named `codex/project-improvement-stabilization`.
 
-- [ ] **Step 3: Run the baseline checks**
+- [x] **Step 3: Run the baseline checks**
 
 Run:
 
@@ -166,7 +166,26 @@ git diff --check
 
 Expected: PASS, or a captured baseline failure with raw output and root-cause notes before proceeding.
 
-- [ ] **Step 4: Commit only if branch metadata docs were changed**
+Baseline notes:
+- `git status --short`: PASS, clean before Task 0 edits.
+- `git branch --show-current`: PASS, `codex/project-improvement-stabilization`.
+- Worktree verification: PASS, existing linked worktree at `/Users/kws/.config/superpowers/worktrees/FixThis/project-improvement-stabilization`; no second worktree created.
+- First Gradle attempt: FAIL_BASELINE_ENV, Android SDK location not found because this ignored worktree did not yet have `local.properties`.
+- Root cause resolution: added ignored worktree-local `local.properties` with the same SDK path as the original checkout; not committed.
+- `./gradlew :fixthis-compose-core:test :fixthis-cli:test :fixthis-mcp:test :fixthis-compose-sidekick:testDebugUnitTest :fixthis-gradle-plugin:test`: PASS after SDK configuration. Existing project-owned deprecation warnings are captured for Task 3.
+- `./gradlew :app:assembleDebug :fixthis-cli:installDist :fixthis-mcp:installDist`: PASS after SDK configuration.
+- `node --check fixthis-mcp/src/main/resources/console/app.js`: PASS.
+- `git diff --check`: PASS.
+
+HANDOFF CHECKPOINT:
+- Task 0 ran in the integration worktree only.
+- Branch is `codex/project-improvement-stabilization` at `a4ed51a` before plan-tracking commit.
+- No source files were changed.
+- Initial Gradle failure was environment-only: missing ignored SDK config in the worktree.
+- Added ignored `local.properties` locally and reran the required baseline.
+- Gradle tests, assemble/installDist, Node syntax, and whitespace checks passed.
+
+- [x] **Step 4: Commit only if branch metadata docs were changed**
 
 Expected: no commit for Task 0 unless a workspace handoff note is intentionally added.
 
