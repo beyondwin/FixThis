@@ -375,7 +375,7 @@ git commit -m "feat: add target evidence annotation model"
 - Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/identity/TestTagConventionTest.kt`
 - Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/identity/IdentityHintFactoryTest.kt`
 
-- [ ] **Step 1: Write TestTagConvention tests**
+- [x] **Step 1: Write TestTagConvention tests**
 
 Create `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/identity/TestTagConventionTest.kt`:
 
@@ -415,7 +415,7 @@ class TestTagConventionTest {
 }
 ```
 
-- [ ] **Step 2: Write IdentityHintFactory tests**
+- [x] **Step 2: Write IdentityHintFactory tests**
 
 Create `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/identity/IdentityHintFactoryTest.kt`:
 
@@ -476,7 +476,7 @@ class IdentityHintFactoryTest {
 }
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run:
 
@@ -486,7 +486,7 @@ Run:
 
 Expected: FAIL because the new identity classes do not exist.
 
-- [ ] **Step 4: Implement TestTagConvention**
+- [x] **Step 4: Implement TestTagConvention**
 
 Create `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/identity/TestTagConvention.kt`:
 
@@ -508,7 +508,7 @@ object TestTagConvention {
 }
 ```
 
-- [ ] **Step 5: Implement IdentityHintFactory**
+- [x] **Step 5: Implement IdentityHintFactory**
 
 Create `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/identity/IdentityHintFactory.kt`:
 
@@ -560,7 +560,7 @@ object IdentityHintFactory {
 }
 ```
 
-- [ ] **Step 6: Run identity tests**
+- [x] **Step 6: Run identity tests**
 
 Run:
 
@@ -570,7 +570,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/identity \
