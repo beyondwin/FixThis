@@ -62,10 +62,13 @@ The `screenshot:` line is optional and omitted when no screenshot artifact is av
 ```
 N. [marker N] <title>
    target: <role> "<label>" bounds=left,top,right,bottom[; targetRisk=overlap]
+   crop: <path>
    src? <file>:<line> <confidence>[; why=<token>+<token>][; risk=<token>]
 ```
 
-The `src?` line is optional and absent when no source candidates are available for the item.
+The `crop:` line is optional and emitted only when a per-item screenshot crop path is available.
+
+The `src?` line is always present. When no source candidates are available for the item, the line reads `src? unknown`.
 
 - `N` — 1-based annotation number matching the numbered overlay marker.
 - `target:` — semantic role, accessibility label, and window-pixel bounding box at default density 1.0.
