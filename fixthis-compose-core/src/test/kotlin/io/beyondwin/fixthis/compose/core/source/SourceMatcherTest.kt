@@ -321,6 +321,206 @@ class SourceMatcherTest {
         assertTrue(match.matchReasons.contains("activity"))
     }
 
+    @Test
+    fun ambiguousTopTwoMarginAttachesAmbiguousRiskAndDowngrades() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "ScreenA.kt",
+                        line = 1,
+                        text = listOf("Save"),
+                        testTags = listOf("save"),
+                    ),
+                    SourceIndexEntry(
+                        file = "ScreenB.kt",
+                        line = 1,
+                        text = listOf("Save"),
+                        testTags = listOf("save"),
+                    ),
+                ),
+            ),
+        )
+
+        val matches = matcher.match(
+            selectedNode = node(uid = "save", text = listOf("Save"), testTag = "save"),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        )
+
+        assertTrue(matches.size >= 2)
+        val top = matches.first()
+        assertTrue(top.confidence != SelectionConfidence.HIGH)
+        assertTrue(SourceCandidateRisk.AMBIGUOUS in top.riskFlags)
+    }
+
+    @Test
+    fun textOnlyMatchIsCappedAtMedium() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "TextOnly.kt",
+                        line = 1,
+                        text = listOf("Hello"),
+                    ),
+                ),
+            ),
+        )
+
+        val match = matcher.match(
+            selectedNode = node(uid = "hello", text = listOf("Hello")),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        ).single()
+
+        assertTrue(
+            match.confidence == SelectionConfidence.MEDIUM || match.confidence == SelectionConfidence.LOW,
+        )
+        assertTrue(SourceCandidateRisk.TEXT_ONLY in match.riskFlags)
+    }
+
+    @Test
+    fun nearbyOnlyMatchIsCappedAtLow() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "NearbyOnly.kt",
+                        line = 1,
+                        text = listOf("Pay"),
+                    ),
+                ),
+            ),
+        )
+
+        val match = matcher.match(
+            selectedNode = node(uid = "anchor"),
+            nearbyNodes = listOf(node(uid = "pay-text", text = listOf("Pay"))),
+            activityName = null,
+        ).singleOrNull()
+
+        if (match != null) {
+            assertEquals(SelectionConfidence.LOW, match.confidence)
+            assertTrue(SourceCandidateRisk.NEARBY_ONLY in match.riskFlags)
+        }
+    }
+
+    @Test
+    fun activityOnlyMatchIsCappedAtLow() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "ActivityOnly.kt",
+                        line = 1,
+                        activityNames = listOf("MainActivity"),
+                    ),
+                ),
+            ),
+        )
+
+        val match = matcher.match(
+            selectedNode = node(uid = "x"),
+            nearbyNodes = emptyList(),
+            activityName = "io.beyondwin.fixthis.sample.MainActivity",
+        ).singleOrNull()
+
+        if (match != null) {
+            assertEquals(SelectionConfidence.LOW, match.confidence)
+            assertTrue(SourceCandidateRisk.ACTIVITY_ONLY in match.riskFlags)
+        }
+    }
+
+    @Test
+    fun arbitraryLiteralOnlyMatchIsCappedAtLow() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "Literal.kt",
+                        line = 1,
+                        signals = listOf(
+                            SourceSignal(
+                                kind = SourceSignalKind.ARBITRARY_STRING_LITERAL,
+                                value = "Pay now",
+                                confidenceWeight = 0.35,
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val match = matcher.match(
+            selectedNode = node(uid = "pay", text = listOf("Pay now")),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        ).single()
+
+        assertEquals(SelectionConfidence.LOW, match.confidence)
+        assertTrue(SourceCandidateRisk.ARBITRARY_LITERAL in match.riskFlags)
+        assertTrue("arbitrary literal" in match.matchReasons)
+    }
+
+    @Test
+    fun legacyFallbackOnlyMatchEmitsLegacyReasonAndCapsAtLow() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "LegacyOnly.kt",
+                        line = 1,
+                        text = listOf("Pay now"),
+                    ),
+                ),
+            ),
+        )
+
+        val match = matcher.match(
+            selectedNode = node(uid = "pay", text = listOf("Pay now")),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        ).single()
+
+        // The fixture has no typed signals, so the legacy fallback origin marker
+        // fires and dominates over the text-only cap (legacy fallback is more
+        // specific / stronger evidence about candidate quality).
+        assertEquals(SelectionConfidence.LOW, match.confidence)
+        assertTrue(SourceCandidateRisk.LEGACY_FALLBACK in match.riskFlags)
+        assertTrue("legacy fallback" in match.matchReasons)
+    }
+
+    @Test
+    fun strongEvidenceWithClearMarginRemainsHigh() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "AppPrimaryButton.kt",
+                        line = 12,
+                        symbols = listOf("AppPrimaryButton"),
+                        testTags = listOf("comp:AppPrimaryButton:primary"),
+                    ),
+                    SourceIndexEntry(
+                        file = "Other.kt",
+                        line = 1,
+                        text = listOf("primary"),
+                    ),
+                ),
+            ),
+        )
+
+        val match = matcher.match(
+            selectedNode = node(uid = "btn", testTag = "comp:AppPrimaryButton:primary"),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        ).first()
+
+        assertEquals(SelectionConfidence.HIGH, match.confidence)
+        assertTrue(match.scoreMargin!! >= 0.20)
+    }
+
     private fun node(
         uid: String,
         text: List<String> = emptyList(),
