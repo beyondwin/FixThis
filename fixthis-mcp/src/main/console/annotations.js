@@ -352,7 +352,7 @@
               currentSelection = null;
               hoveredAnnotationTarget = null;
               focusedPendingItemIndex = pendingFeedbackItems.length - 1;
-              toolMode = 'select';
+              toolMode = 'annotate';
               comment.value = '';
               renderPreviewOnly();
               renderInspectorRegion();

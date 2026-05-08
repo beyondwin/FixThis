@@ -68,6 +68,9 @@ class FeedbackSessionService(
     fun currentSession(): SessionDto =
         store.currentSession() ?: openSession(null)
 
+    fun currentSessionOrNull(): SessionDto? =
+        store.currentSession()
+
     fun getSession(sessionId: String): SessionDto = store.getSession(sessionId)
 
     fun listSessions(packageNameOverride: String? = null, includeClosed: Boolean = false): FeedbackSessionList {
@@ -93,7 +96,7 @@ class FeedbackSessionService(
     }
 
     suspend fun connectionStatus(): ConsoleConnectionStatus =
-        connectionService.connectionStatus(currentSession())
+        connectionService.connectionStatus(currentSessionOrNull() ?: transientConsoleSession())
 
     suspend fun launchAppForCurrentSession(): ConsoleConnectionStatus =
         connectionService.launchAppForSession(currentSession())
@@ -223,4 +226,13 @@ class FeedbackSessionService(
     private companion object {
         const val MaxRetainedPreviews = 3
     }
+
+    private fun transientConsoleSession(): SessionDto =
+        SessionDto(
+            sessionId = "",
+            packageName = bridge.resolvePackageName(defaultPackageName),
+            projectRoot = projectRoot,
+            createdAtEpochMillis = 0L,
+            updatedAtEpochMillis = 0L,
+        )
 }

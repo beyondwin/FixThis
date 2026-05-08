@@ -815,7 +815,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("const HeartbeatIntervalMs = 2000;"))
         assertTrue(html.contains("let heartbeatTimer = null;"))
         assertTrue(sendBridgeHeartbeat.contains("refreshConnection()"))
-        assertTrue(sendBridgeHeartbeat.contains("if (!state.selectedDeviceSerial) return;"))
+        assertTrue(sendBridgeHeartbeat.contains("if (!state.session || !state.selectedDeviceSerial) return;"))
         assertTrue(startHeartbeatPolling.contains("sendBridgeHeartbeat().catch"))
         assertTrue(startHeartbeatPolling.contains("setInterval"))
         assertTrue(startHeartbeatPolling.contains("HeartbeatIntervalMs"))
@@ -955,6 +955,47 @@ class FeedbackConsoleServerTest {
             assertEquals("READY", json.getValue("state").jsonPrimitive.content)
             assertEquals("Ready", json.getValue("headline").jsonPrimitive.content)
             assertEquals(true, json.getValue("canCapture").jsonPrimitive.boolean)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun connectionStatusDoesNotCreateHiddenSessionAfterHistoryIsCleared() {
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "session-2").next),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service).also { it.start() }
+        try {
+            val client = ConsoleHttpTestClient(server.url)
+            val open = client.connection(
+                "/api/session/open",
+                method = "POST",
+                body = """{"newSession":true}""",
+            )
+            assertEquals(200, open.responseCode)
+            open.inputStream.close()
+
+            val close = client.connection(
+                "/api/session/close",
+                method = "POST",
+                body = """{"sessionId":"session-1"}""",
+            )
+            assertEquals(200, close.responseCode)
+            close.inputStream.close()
+
+            val connection = client.connection("/api/connection")
+            assertEquals(200, connection.responseCode)
+            connection.inputStream.close()
+
+            val sessions = fixThisJson.parseToJsonElement(client.get("/api/sessions")).jsonObject
+                .getValue("sessions")
+                .jsonArray
+
+            assertEquals(0, sessions.size)
         } finally {
             server.stop()
         }
@@ -1575,6 +1616,7 @@ class FeedbackConsoleServerTest {
     @Test
     fun consoleHtmlAnnotationSaveUsesCurrentSelectionPayload() {
         val html = FeedbackConsoleAssets.indexHtml
+        val createAnnotationFromSelection = javascriptFunctionBody(html, "createAnnotationFromSelection")
 
         assertTrue(html.contains("previewId: addItemsFlow.previewId"))
         assertTrue(html.contains("items: pendingPayloadItems({ allowFallbackComments: allowFallbackComments, onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments })"))
@@ -1583,7 +1625,8 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("bounds: selection.bounds"))
         assertTrue(html.contains("function pendingPayloadItems"))
         assertTrue(html.contains("function persistPendingFeedbackItems"))
-        assertTrue(html.contains("toolMode = 'select';"))
+        assertTrue(createAnnotationFromSelection.contains("toolMode = 'annotate';"))
+        assertFalse(createAnnotationFromSelection.contains("toolMode = 'select';"))
         assertTrue(html.contains("suppressNextClick = true;"))
         assertTrue(html.contains("function updateSelectedAnnotationComment"))
         assertTrue(html.contains("item.comment = comment.value;"))

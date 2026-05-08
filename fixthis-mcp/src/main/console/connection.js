@@ -158,7 +158,7 @@
 
 
             async function sendBridgeHeartbeat() {
-              if (!state.selectedDeviceSerial) return;
+              if (!state.session || !state.selectedDeviceSerial) return;
               await refreshConnection();
             }
 
