@@ -2773,19 +2773,20 @@ Commit: `chore: final validation pass for source candidate confidence handoff`.
 
 ## Phase 0 Outputs
 
-(Phase 0 tasks append their locked content here. The numbered sub-sections mirror the steps in Phase 0; fill them in as Phase 0 progresses.)
-
 ### 0.1 Constants
 
 ```
-CLEAR_MARGIN = 0.20
-CLOSE_RACE_MARGIN = 0.15
-AMBIGUITY_GAP_POLICY: scoreMargin in [0.15, 0.20) is "MEDIUM ceiling" zone -
-    confidence is capped at MEDIUM, no AMBIGUOUS risk is flagged, no margin caution.
-scoreMargin formula: (topScore - nextScore) / max(topScore, 0.001)
-Single-candidate result: scoreMargin = 1.0
-Empty result list: no candidate emitted, no margin
-Score basis: SourceCandidate.score (rawScore / HIGH_CONFIDENCE_SCORE coerced to [0,1]).
+SourceMatcher confidence constants (final, locked):
+- CLEAR_MARGIN = 0.20            // strict separation required for HIGH eligibility
+- CLOSE_RACE_MARGIN = 0.15       // below this, attach AMBIGUOUS risk and downgrade one level
+- AMBIGUITY_GAP_POLICY: scoreMargin in [0.15, 0.20) is the "MEDIUM ceiling" zone:
+    confidence is capped at MEDIUM, no AMBIGUOUS risk is flagged, no caution from margin.
+- scoreMargin formula: (topScore - nextScore) / max(topScore, 0.001)
+- Single-candidate result: scoreMargin = 1.0
+- Empty result list: no candidate emitted, no margin
+- Score fed into the formula is the post-normalization candidate score in [0.0, 1.0]
+  (i.e., SourceCandidate.score = rawScore / HIGH_CONFIDENCE_SCORE coerced to [0,1]).
+- SourceCandidate.score is unchanged from today's normalization. The new fields are additive.
 ```
 
 ### 0.2 Evidence classification
