@@ -2881,7 +2881,36 @@ candidates may set caution from their own flags).
 
 ### 0.5 New reason emissions and token mapping
 
-(See full block in Step 0.5.)
+Reason emission additions (Phase 3 will implement):
+
+1. When the matched signal kind is STRING_RESOURCE and the originating reason
+   bucket would be "selected text" or "selected contentDescription", also add
+   "selected stringResource" to matchReasons.
+2. When ALL the matched terms came only via ARBITRARY_STRING_LITERAL signals
+   (no UI_TEXT / CONTENT_DESCRIPTION / TEST_TAG / STRICT_COMP_TEST_TAG /
+   ROLE / ACTIVITY_NAME / COMPOSABLE_SYMBOL signals fired), append
+   "arbitrary literal" exactly once.
+3. When ALL the candidate's matched terms came only via the legacy fallback
+   (signal-less candidates list), append "legacy fallback" exactly once.
+
+These are derived after scoring; they do not change rawScore. Their reason
+strings are stable identifiers used by the formatter mapping.
+
+| Reason string | Token |
+| --- | --- |
+| `selected text` | `text` |
+| `selected contentDescription` | `contentDescription` |
+| `selected testTag` | `tag` |
+| `selected testTag convention composable` | `compTag` |
+| `selected role` | `role` |
+| `nearby text` | `nearbyText` |
+| `nearby contentDescription` | `nearbyContentDescription` |
+| `nearby testTag` | `nearbyTag` |
+| `nearby role` | `nearbyRole` |
+| `activity` | `activity` |
+| `selected stringResource` | `stringRes` |
+| `arbitrary literal` | `literal` |
+| `legacy fallback` | `legacy` |
 
 ### 0.6 Parity fixtures
 
