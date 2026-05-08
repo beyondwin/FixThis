@@ -18,6 +18,7 @@ import io.beyondwin.fixthis.compose.core.model.SelectionInfo
 import io.beyondwin.fixthis.compose.core.model.SelectionKind
 import io.beyondwin.fixthis.compose.core.model.SelectionSource
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
 import io.beyondwin.fixthis.compose.core.model.SourceCandidateSummary
 import io.beyondwin.fixthis.compose.core.model.SourceInterpretation
 import io.beyondwin.fixthis.compose.core.model.TapPoint
@@ -27,6 +28,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -474,6 +476,43 @@ class FixThisMarkdownFormatterTest {
         role = role,
         testTag = testTag,
         actions = actions
+    )
+
+    @Test
+    fun compactFormatEmitsSrcTokenLineWithLowercaseConfidence() {
+        val annotation = annotationWithSingleSource(
+            confidence = SelectionConfidence.MEDIUM,
+            reasons = listOf("selected text"),
+            risk = SourceCandidateRisk.TEXT_ONLY,
+        )
+
+        val markdown = FixThisMarkdownFormatter.format(annotation, DetailMode.COMPACT)
+
+        val sourceLine = markdown.lines().firstOrNull { it.trim().startsWith("src?") }
+        assertNotNull(sourceLine)
+        assertTrue(sourceLine!!.contains(" medium"))
+        assertTrue(sourceLine.contains("why=text"))
+        assertTrue(sourceLine.contains("risk=text-only"))
+    }
+
+    private fun annotationWithSingleSource(
+        confidence: SelectionConfidence,
+        reasons: List<String>,
+        risk: SourceCandidateRisk,
+    ): FixThisAnnotation = annotation(
+        userComment = "Fix this button",
+        selectedNode = node(uid = "pay-button", text = listOf("Pay now"), role = "Button"),
+        sourceCandidates = listOf(
+            SourceCandidate(
+                file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
+                line = 42,
+                score = 0.8,
+                matchedTerms = listOf("Pay now"),
+                matchReasons = reasons,
+                confidence = confidence,
+                riskFlags = listOf(risk),
+            ),
+        ),
     )
 
     private fun linesOutsideCodeFences(markdown: String): Set<String> {
