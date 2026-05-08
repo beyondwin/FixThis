@@ -70,9 +70,12 @@
               }
 
               renderNumberedFeedbackOverlay(overlay, image);
-              if (!addItemsFlow) {
-                const persistedItems = savedEvidenceItems();
-                if (persistedItems.length) renderSavedEvidenceOverlay(overlay, image, persistedItems);
+              if (!addItemsFlow && focusedSavedItemId) {
+                const focusedItem = savedEvidenceItems().find(item => item.itemId === focusedSavedItemId);
+                if (focusedItem) {
+                  const sameScreenItems = savedEvidenceItems().filter(item => item.screenId === focusedItem.screenId);
+                  renderSavedEvidenceOverlay(overlay, image, sameScreenItems);
+                }
               }
               if (currentSelection) {
                 renderOverlayBox(overlay, image, currentSelection.bounds, currentSelection.label);
