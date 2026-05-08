@@ -41,32 +41,47 @@
       "pre_task_sha": "0acc30aad00121240aea7a77a274f235f0447feb",
       "escalations": 0, "review_retries": 0, "verifier_retries": 0,
       "timing": {"started": "2026-05-09T01:12:00Z", "completed": "2026-05-09T01:15:00Z"}
+    },
+    "task_4": {
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": ["fixthis-mcp/src/main/resources/console/app.js"],
+      "commit": "d649745307d36cca4c58fd84a561ab1dd86af068",
+      "pre_task_sha": "077245ce009fcdacee41552cc720023068242106",
+      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
+      "timing": {"started": "2026-05-09T01:15:00Z", "completed": "2026-05-09T01:20:00Z"}
     }
   },
   "task_summaries": {
     "task_1": {
       "files": ["fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt"],
       "exposed_apis": [],
-      "key_decision": "Update 3 test assertions to TDD red state for new JS behavior",
-      "for_next_tasks": "Tests assert corrected latestScreen() multi-branch and renderSelectionOverlay focusedSavedItemId gate; fail until Task 4 updates app.js"
+      "key_decision": "Update 3 test assertions to TDD red state",
+      "for_next_tasks": "Tests assert new latestScreen() and renderSelectionOverlay behavior; now pass after Tasks 2-4"
     },
     "task_2": {
       "files": ["fixthis-mcp/src/main/console/preview.js"],
-      "exposed_apis": ["latestScreen (updated behavior)"],
-      "key_decision": "Live preview takes priority over latestPersistedScreen() in fallback",
-      "for_next_tasks": "latestScreen() returns focusedScreen from state.session.screens when focusedSavedItemId set; Task 4 must mirror to app.js"
+      "exposed_apis": ["latestScreen (updated)"],
+      "key_decision": "Live preview prioritized over latestPersistedScreen in fallback",
+      "for_next_tasks": "latestScreen() returns focusedScreen from state.session.screens when focusedSavedItemId set"
     },
     "task_3": {
       "files": ["fixthis-mcp/src/main/console/rendering.js"],
-      "exposed_apis": ["renderSelectionOverlay (updated behavior)"],
-      "key_decision": "Gate saved overlay on focusedSavedItemId; filter to same-screen items only",
-      "for_next_tasks": "renderSelectionOverlay now only draws saved pins when focusedSavedItemId is set and only for matching screenId; Task 4 must mirror to app.js"
+      "exposed_apis": ["renderSelectionOverlay (updated)"],
+      "key_decision": "Saved overlay gated on focusedSavedItemId; filtered by screenId",
+      "for_next_tasks": "renderSelectionOverlay only draws saved pins when focusedSavedItemId set, same-screen only"
+    },
+    "task_4": {
+      "files": ["fixthis-mcp/src/main/resources/console/app.js"],
+      "exposed_apis": [],
+      "key_decision": "app.js byte-for-byte mirrored from preview.js and rendering.js changes",
+      "for_next_tasks": "generatedConsoleAppMatchesConsoleSourceModules passes; all 3 target tests should now pass in Task 5"
     }
   },
-  "low_tasks_pending_verification": ["task_1", "task_2", "task_3"],
+  "low_tasks_pending_verification": ["task_1", "task_2", "task_3", "task_4"],
   "last_compaction_after_task": -1,
   "current_task": 4,
-  "current_step_within_task": 1,
+  "current_step_within_task": "compaction",
   "current_pre_task_sha": null,
   "current_review_retries": 0,
   "current_verifier_retries": 0,
