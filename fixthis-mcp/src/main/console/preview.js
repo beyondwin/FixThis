@@ -85,7 +85,15 @@
             }
 
             function latestScreen() {
-              return addItemsFlow?.screen || latestPersistedScreen() || state.preview?.screen;
+              if (addItemsFlow) return addItemsFlow.screen;
+              if (focusedSavedItemId) {
+                const focusedItem = savedEvidenceItems().find(item => item.itemId === focusedSavedItemId);
+                if (focusedItem) {
+                  const focusedScreen = (state.session?.screens || []).find(s => s.screenId === focusedItem.screenId);
+                  if (focusedScreen) return focusedScreen;
+                }
+              }
+              return state.preview?.screen || latestPersistedScreen();
             }
 
             function clamp(value, min, max) {
