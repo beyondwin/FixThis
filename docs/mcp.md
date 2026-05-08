@@ -213,6 +213,20 @@ The JSON output preserves the full feedback session schema for tools that need e
 
 Marks a feedback item as resolved, needing clarification, or not fixed and stores the agent summary.
 
+### Optional SourceCandidate fields
+
+`SourceCandidate` objects appear in the JSON payload returned by `fixthis_read_feedback` under each feedback item's `targetEvidence.sourceCandidates` list. The following fields are optional and were added to carry confidence and risk metadata. Older persisted sessions (written before this feature was introduced) deserialize correctly because all new fields are optional; the formatter emits them only when they are present.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `ranking` | `Int` | 1-based position in the sorted candidate list. The top candidate has `ranking=1`. |
+| `scoreMargin` | `Double` | `(topScore - nextScore) / max(topScore, 0.001)`. A value of `1.0` indicates a single candidate with no competition. Lower values indicate a closer race between candidates. |
+| `evidenceStrength` | `String` | One of `STRONG`, `MODERATE`, or `WEAK`. Reflects how semantically reliable the matching evidence is. |
+| `riskFlags` | `List<String>` | Empty list for confident matches. May include tokens such as `AREA_SELECTION` (match derived from a drawn visual area rather than a precise node selection) or `AMBIGUOUS` (multiple candidates scored similarly). |
+| `caution` | `String?` | Human-readable explanation present when `riskFlags` is non-empty. Absent (`null` or missing) for clean matches. |
+
+These fields inform the compact `src?` handoff line: `confidence` is derived from `evidenceStrength` and `riskFlags`, `why=` tokens come from the candidate's reason list, and the `risk=` token summarises the dominant risk flag. The full JSON remains available for tools that need the raw values.
+
 ## Resources
 
 Available resources:
