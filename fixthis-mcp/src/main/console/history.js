@@ -83,13 +83,6 @@
                   resolved: pending.filter(item => annotationStatus(item) === 'resolved').length
                 };
               }
-              const summary = selectedHistorySummary();
-              if (summary) {
-                return {
-                  open: historyOpenCount(summary),
-                  resolved: historyDoneCount(summary)
-                };
-              }
               const annotations = toolbarAnnotations();
               return {
                 open: annotations.filter(item => annotationStatus(item) !== 'resolved').length,

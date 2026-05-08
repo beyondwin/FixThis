@@ -11,13 +11,14 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
         path == "/api/items" ||
             path == "/api/items/batch" ||
             path == "/api/items/draft" ||
+            path.startsWith("/api/items/") ||
             path == "/api/agent-handoffs"
 
     override fun handle(exchange: HttpExchange) {
         when (exchange.requestURI.path) {
             "/api/items" -> exchange.requireMethod("POST") {
                 val request = exchange.decodeAddFeedbackItemBody()
-                val session = service.currentSession()
+                val session = service.requireCurrentSession()
                 val item = try {
                     runBlocking {
                         service.addFeedbackItem(
@@ -38,7 +39,7 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
                 val request = exchange.decodeSavePreviewFeedbackItemsBody()
                 val session = try {
                     service.savePreviewFeedbackItems(
-                        sessionId = service.currentSession().sessionId,
+                        sessionId = service.requireCurrentSession().sessionId,
                         previewId = request.previewId,
                         items = request.items,
                         fallbackScreen = request.screen,
@@ -49,11 +50,41 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
                 exchange.sendJson(200, session)
             }
             "/api/items/draft" -> exchange.requireMethod("DELETE") {
-                exchange.sendJson(200, service.clearDraftItems(service.currentSession().sessionId))
+                exchange.sendJson(200, service.clearDraftItems(service.requireCurrentSession().sessionId))
             }
             "/api/agent-handoffs" -> exchange.requireMethod("POST") {
                 val request = exchange.decodeAgentHandoffBody()
-                exchange.sendJson(200, service.sendDraftToAgent(service.currentSession().sessionId, request.prompt))
+                exchange.sendJson(200, service.sendDraftToAgent(service.requireCurrentSession().sessionId, request.prompt))
+            }
+            else -> {
+                if (!exchange.requestURI.path.startsWith("/api/items/")) return
+                val itemId = exchange.requestURI.path.removePrefix("/api/items/")
+                    .takeIf { it.isNotBlank() }
+                    ?: throw FeedbackConsoleHttpException(404, "Feedback item not found")
+                when (exchange.requestMethod) {
+                    "PUT" -> {
+                        val request = exchange.decodeUpdateFeedbackItemBody()
+                        val session = service.updateDraftFeedback(
+                            sessionId = service.requireCurrentSession().sessionId,
+                            itemId = itemId,
+                            label = request.label,
+                            severity = request.severity,
+                            comment = request.comment,
+                            status = request.status,
+                        )
+                        exchange.sendJson(200, session)
+                    }
+                    "DELETE" -> {
+                        exchange.sendJson(
+                            200,
+                            service.deleteDraftFeedback(
+                                sessionId = service.requireCurrentSession().sessionId,
+                                itemId = itemId,
+                            ),
+                        )
+                    }
+                    else -> exchange.requireMethod("PUT") {}
+                }
             }
         }
     }
@@ -75,6 +106,9 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
 
     private fun HttpExchange.decodeSavePreviewFeedbackItemsBody(): SaveSnapshotRequest =
         decodeJsonBody(SaveSnapshotRequest.serializer())
+
+    private fun HttpExchange.decodeUpdateFeedbackItemBody(): UpdateAnnotationRequest =
+        decodeJsonBody(UpdateAnnotationRequest.serializer())
 
     private fun HttpExchange.decodeAgentHandoffBody(): AgentHandoffRequest =
         decodeJsonBody(AgentHandoffRequest.serializer(), blankValue = AgentHandoffRequest())

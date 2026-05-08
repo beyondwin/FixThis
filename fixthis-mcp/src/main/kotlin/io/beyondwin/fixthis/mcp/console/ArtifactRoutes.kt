@@ -20,7 +20,7 @@ internal class ArtifactRoutes(private val service: FeedbackSessionService) : Con
                 exchange.sendJson(
                     200,
                     service.deleteScreen(
-                        service.currentSession().sessionId,
+                        service.requireCurrentSession().sessionId,
                         exchange.requestURI.path.screenIdFromScreenPath(),
                     ),
                 )
@@ -29,7 +29,7 @@ internal class ArtifactRoutes(private val service: FeedbackSessionService) : Con
     }
 
     private fun HttpExchange.sendScreenshot(screenId: String) {
-        val session = service.currentSession()
+        val session = service.requireCurrentSession()
         val screen = session.screens.firstOrNull { it.screenId == screenId }
             ?: throw FeedbackConsoleHttpException(404, "Screenshot not found")
         val screenshotPath = screen.screenshot?.desktopFullPath

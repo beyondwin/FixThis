@@ -22,12 +22,12 @@ internal class PreviewRoutes(private val service: FeedbackSessionService) : Cons
     override fun handle(exchange: HttpExchange) {
         when (exchange.requestURI.path) {
             "/api/capture" -> exchange.requireMethod("POST") {
-                val session = service.currentSession()
+                val session = service.requireCurrentSession()
                 val screen = runBlocking { service.captureScreen(session.sessionId) }
                 exchange.sendJson(200, screen)
             }
             "/api/preview" -> exchange.requireMethod("GET") {
-                val session = service.currentSession()
+                val session = service.requireCurrentSession()
                 exchange.sendJson(200, runBlocking { service.capturePreview(session.sessionId) })
             }
             "/api/preview/screenshot/full" -> exchange.requireMethod("GET") {
@@ -35,7 +35,7 @@ internal class PreviewRoutes(private val service: FeedbackSessionService) : Cons
             }
             "/api/navigation" -> exchange.requireMethod("POST") {
                 val request = exchange.decodeNavigationBody()
-                val session = service.currentSession()
+                val session = service.requireCurrentSession()
                 val result = try {
                     runBlocking { service.navigate(session.sessionId, request) }
                 } catch (error: IllegalArgumentException) {
@@ -54,13 +54,13 @@ internal class PreviewRoutes(private val service: FeedbackSessionService) : Cons
     }
 
     private fun HttpExchange.sendPreviewScreenshot(previewId: String) {
-        val session = service.currentSession()
+        val session = service.requireCurrentSession()
         val screenshotFile = service.previewScreenshotFile(session.sessionId, previewId)
         sendBytes(200, screenshotFile.readBytes(), "image/png")
     }
 
     private fun HttpExchange.sendPreviewScreenshot() {
-        val session = service.currentSession()
+        val session = service.requireCurrentSession()
         val projectRoot = File(session.projectRoot).canonicalFile
         val previewRoot = File(projectRoot, ".fixthis/preview-cache/${session.sessionId}").canonicalFile
         val persistedRoot = FeedbackSessionPaths(projectRoot).rootDirectory

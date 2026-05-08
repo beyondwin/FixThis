@@ -1,6 +1,8 @@
 package io.beyondwin.fixthis.mcp.console
 
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.mcp.session.AnnotationSeverityDto
+import io.beyondwin.fixthis.mcp.session.AnnotationStatusDto
 import io.beyondwin.fixthis.mcp.session.SnapshotDto
 import kotlinx.serialization.Serializable
 
@@ -27,5 +29,8 @@ data class AnnotationDraftDto(
     val targetType: FeedbackTargetType,
     val bounds: FixThisRect,
     val nodeUid: String? = null,
+    val label: String? = null,
+    val severity: AnnotationSeverityDto = AnnotationSeverityDto.MED,
+    val status: AnnotationStatusDto = AnnotationStatusDto.OPEN,
     val comment: String,
 )

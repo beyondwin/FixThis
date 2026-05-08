@@ -133,6 +133,7 @@
             }
 
             async function captureScreen() {
+              if (!state.session) return;
               await refreshPreview();
             }
 

@@ -126,7 +126,7 @@
                 }));
                 startHeartbeatPolling();
                 await refreshConnection();
-                if (userConnectionState(state.connection.current) === 'ready') {
+                if (state.session && userConnectionState(state.connection.current) === 'ready') {
                   await refreshPreview();
                   startLivePreviewPolling();
                 }

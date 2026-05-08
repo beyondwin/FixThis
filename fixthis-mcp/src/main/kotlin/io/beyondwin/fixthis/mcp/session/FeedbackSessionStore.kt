@@ -272,6 +272,60 @@ class FeedbackSessionStore(
             item
         }
 
+    fun updateDraftItem(
+        sessionId: String,
+        itemId: String,
+        label: String?,
+        severity: AnnotationSeverityDto?,
+        comment: String?,
+        status: AnnotationStatusDto?,
+    ): SessionDto =
+        synchronized(lock) {
+            val session = getSessionLocked(sessionId)
+            val now = clock()
+            var found = false
+            val updatedItems = session.items.map { item ->
+                if (item.itemId != itemId) return@map item
+                found = true
+                if (item.delivery != FeedbackDelivery.DRAFT) {
+                    throw FeedbackSessionException("ITEM_NOT_EDITABLE: Only draft feedback items can be edited: $itemId")
+                }
+                item.copy(
+                    label = label ?: item.label,
+                    severity = severity ?: item.severity,
+                    comment = comment ?: item.comment,
+                    status = status ?: item.status,
+                    updatedAtEpochMillis = now,
+                )
+            }
+            if (!found) throw FeedbackSessionException("Unknown feedback item: $itemId")
+            val updated = session.copy(items = updatedItems, updatedAtEpochMillis = now)
+            save(updated)
+            sessions[sessionId] = updated
+            updated
+        }
+
+    fun deleteDraftItem(sessionId: String, itemId: String): SessionDto =
+        synchronized(lock) {
+            val session = getSessionLocked(sessionId)
+            val item = session.items.find { it.itemId == itemId }
+                ?: throw FeedbackSessionException("Unknown feedback item: $itemId")
+            if (item.delivery != FeedbackDelivery.DRAFT) {
+                throw FeedbackSessionException("ITEM_NOT_EDITABLE: Only draft feedback items can be deleted: $itemId")
+            }
+            val updatedBatches = session.handoffBatches
+                .map { batch -> batch.copy(itemIds = batch.itemIds.filterNot { it == itemId }) }
+                .filter { it.itemIds.isNotEmpty() }
+            val updated = session.copy(
+                items = session.items.filterNot { it.itemId == itemId },
+                handoffBatches = updatedBatches,
+                updatedAtEpochMillis = clock(),
+            )
+            save(updated)
+            sessions[sessionId] = updated
+            updated
+        }
+
     private fun getSessionLocked(sessionId: String): SessionDto =
         sessions[sessionId] ?: throw FeedbackSessionException("Unknown feedback session: $sessionId")
 

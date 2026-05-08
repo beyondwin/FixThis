@@ -66,6 +66,7 @@
             let promptActionInFlight = false;
             let pendingFeedbackItems = [];
             let focusedPendingItemIndex = null;
+            let focusedSavedItemId = null;
             let currentSelection = null;
             let toolMode = 'select';
             let annotationSequence = 1;
@@ -319,6 +320,7 @@
             }
 
             async function captureScreen() {
+              if (!state.session) return;
               await refreshPreview();
             }
 
@@ -490,7 +492,7 @@
                 }));
                 startHeartbeatPolling();
                 await refreshConnection();
-                if (userConnectionState(state.connection.current) === 'ready') {
+                if (state.session && userConnectionState(state.connection.current) === 'ready') {
                   await refreshPreview();
                   startLivePreviewPolling();
                 }
@@ -556,7 +558,7 @@
             }
 
             function shouldPollPreview() {
-              return !document.hidden && !addItemsFlow && Boolean(state.selectedDeviceSerial) && userConnectionState(state.connection.current) === 'ready';
+              return !document.hidden && !addItemsFlow && Boolean(state.session) && Boolean(state.selectedDeviceSerial) && userConnectionState(state.connection.current) === 'ready';
             }
 
             function shouldAutoFetchPreview() {
@@ -625,7 +627,7 @@
 
             async function refreshPreview() {
               error.textContent = '';
-              if (addItemsFlow) return;
+              if (!state.session || addItemsFlow) return;
               const requestGeneration = ++previewRequestGeneration;
               try {
                 const preview = await requestLivePreview();
@@ -643,6 +645,7 @@
 
             async function navigate(action, extras = {}) {
               error.textContent = '';
+              if (!state.session) return;
               const navigation = await requestJson('/api/navigation', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -666,6 +669,7 @@
             }
 
             function targetLabel(item) {
+              if (String(item?.label || '').trim()) return item.label;
               const target = item?.target || {};
               if (target.type === 'semantics_node' || target.nodeUid) {
                 return item.selectedNode ? componentLabel(item.selectedNode) : 'Component target';
@@ -936,6 +940,7 @@
               if (clearFlow) addItemsFlow = null;
               pendingFeedbackItems = [];
               focusedPendingItemIndex = null;
+              focusedSavedItemId = null;
               currentSelection = null;
               hoveredAnnotationTarget = null;
               toolMode = 'select';
@@ -955,6 +960,7 @@
             function clearSelection() {
               currentSelection = null;
               focusedPendingItemIndex = null;
+              focusedSavedItemId = null;
               hoveredAnnotationTarget = null;
               comment.value = '';
               clearDragState();
@@ -1014,7 +1020,8 @@
               pendingFeedbackItems.push(annotation);
               currentSelection = null;
               hoveredAnnotationTarget = null;
-              focusedPendingItemIndex = pendingFeedbackItems.length - 1;
+              focusedPendingItemIndex = null;
+              focusedSavedItemId = null;
               toolMode = 'annotate';
               comment.value = '';
               renderPreviewOnly();
@@ -1025,6 +1032,7 @@
             function deletePendingFeedbackItem(index) {
               pendingFeedbackItems.splice(index, 1);
               focusedPendingItemIndex = null;
+              focusedSavedItemId = null;
               currentSelection = null;
               hoveredAnnotationTarget = null;
               comment.value = '';
@@ -1035,11 +1043,52 @@
 
             function focusPendingFeedbackItem(index) {
               focusedPendingItemIndex = index;
+              focusedSavedItemId = null;
               currentSelection = null;
               toolMode = 'select';
               comment.value = pendingFeedbackItems[index]?.comment || '';
               renderPreviewOnly();
               renderInspectorRegion();
+            }
+
+            function focusSavedEvidenceItem(itemId) {
+              focusedSavedItemId = itemId;
+              focusedPendingItemIndex = null;
+              currentSelection = null;
+              toolMode = 'select';
+              comment.value = '';
+              renderPreviewOnly();
+              renderInspectorRegion();
+            }
+
+            function normalizedPersistedStatus(status) {
+              return String(status || 'open').replace('-', '_');
+            }
+
+            async function persistSavedEvidenceItem(item) {
+              if (!item?.itemId) return state.session;
+              state.session = await requestJson('/api/items/' + encodeURIComponent(item.itemId), {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  label: String(item.label || '').trim() || null,
+                  severity: annotationSeverity(item),
+                  comment: String(item.comment || ''),
+                  status: normalizedPersistedStatus(annotationStatus(item))
+                })
+              });
+              renderCurrentSessionList();
+              updateComposerState();
+              return state.session;
+            }
+
+            async function deleteSavedEvidenceItem(itemId) {
+              if (!itemId) return;
+              state.session = await requestJson('/api/items/' + encodeURIComponent(itemId), { method: 'DELETE' });
+              focusedSavedItemId = null;
+              renderPreviewOnly();
+              renderInspectorRegion();
+              renderCurrentSessionList();
             }
 
             function updateSelectedAnnotationComment() {
@@ -1059,6 +1108,9 @@
                 targetType: item.targetType,
                 bounds: item.bounds,
                 nodeUid: item.nodeUid,
+                label: String(item.label || '').trim() || null,
+                severity: annotationSeverity(item),
+                status: normalizedPersistedStatus(annotationStatus(item)),
                 comment: allowFallbackComments
                   ? (String(item.comment || '').trim() || item.label || pendingTargetLabel(item))
                   : (allowBlankComments ? String(item.comment || '') : item.comment)
@@ -1198,13 +1250,6 @@
                 return {
                   open: pending.filter(item => annotationStatus(item) !== 'resolved').length,
                   resolved: pending.filter(item => annotationStatus(item) === 'resolved').length
-                };
-              }
-              const summary = selectedHistorySummary();
-              if (summary) {
-                return {
-                  open: historyOpenCount(summary),
-                  resolved: historyDoneCount(summary)
                 };
               }
               const annotations = toolbarAnnotations();
@@ -1727,7 +1772,7 @@
             }
 
 // rendering.js
-            function renderOverlayBox(overlay, image, bounds, labelText, isDragPreview = false, isFocused = false, annotationIndex = null, extraClass = '', color = null) {
+            function renderOverlayBox(overlay, image, bounds, labelText, isDragPreview = false, isFocused = false, annotationIndex = null, extraClass = '', color = null, selectHandler = focusPendingFeedbackItem) {
               if (!bounds) return;
               const left = bounds.left * 100 / image.naturalWidth;
               const top = bounds.top * 100 / image.naturalHeight;
@@ -1751,12 +1796,12 @@
                 box.tabIndex = 0;
                 box.addEventListener('click', event => {
                   event.stopPropagation();
-                  focusPendingFeedbackItem(annotationIndex);
+                  selectHandler(annotationIndex);
                 });
                 box.addEventListener('keydown', event => {
                   if (event.key !== 'Enter' && event.key !== ' ') return;
                   event.preventDefault();
-                  focusPendingFeedbackItem(annotationIndex);
+                  selectHandler(annotationIndex);
                 });
               }
               overlay.appendChild(box);
@@ -1934,6 +1979,7 @@
               pendingItems.querySelector('[data-delete-current]').addEventListener('click', () => {
                 deletePendingFeedbackItem(index);
               });
+              commentInput.focus();
             }
 
             function savedEvidenceGroups() {
@@ -1950,36 +1996,155 @@
               return (state.session?.items || []).filter(item => item.delivery !== 'sent');
             }
 
+            function selectedSavedAnnotation() {
+              if (!focusedSavedItemId) return null;
+              return savedEvidenceItems().find(item => item.itemId === focusedSavedItemId) || null;
+            }
+
             function persistedItemsForScreen(screenId) {
               if (!screenId) return [];
               return savedEvidenceItems().filter(item => item.screenId === screenId);
             }
 
             function renderSavedEvidenceOverlay(overlay, image, items) {
+              const allSavedItems = savedEvidenceItems();
               items.forEach((item, index) => {
-                renderOverlayBox(overlay, image, boundsForTarget(item.target), String(index + 1), false, false, null, '', severityColor(annotationSeverity(item)));
+                const savedIndex = Math.max(0, allSavedItems.findIndex(savedItem => savedItem.itemId === item.itemId));
+                renderOverlayBox(
+                  overlay,
+                  image,
+                  boundsForTarget(item.target),
+                  String(savedIndex + 1),
+                  false,
+                  item.itemId === focusedSavedItemId,
+                  savedIndex,
+                  '',
+                  severityColor(annotationSeverity(item)),
+                  () => focusSavedEvidenceItem(item.itemId)
+                );
               });
             }
 
             function renderSavedEvidenceGroups() {
               const items = savedEvidenceItems();
+              const selected = selectedSavedAnnotation();
+              if (selected) {
+                renderSavedAnnotationDetail(selected, items.findIndex(item => item.itemId === selected.itemId));
+                return;
+              }
               draftItems.innerHTML = items.length
                 ? '<div class="ann-list">' + items.map((item, index) => {
                   const commentText = firstLine(item.comment || 'No comment');
                   const hasComment = Boolean(String(item.comment || '').trim());
                   const status = annotationStatus(item);
                   const color = severityColor(annotationSeverity(item));
-                  return '<div class="ann-row saved-item-row" style="--annotation-color:' + color + '">' +
+                  return '<button type="button" class="ann-row saved-item-row ' + (item.itemId === focusedSavedItemId ? 'active' : '') + '" style="--annotation-color:' + color + '" data-focus-saved="' + escapeHtml(item.itemId) + '">' +
                     '<span class="ann-row-num" style="background:' + color + '">' + (index + 1) + '</span>' +
                     '<span class="ann-row-body">' +
                       '<span class="ann-row-title">' + escapeHtml(targetLabel(item)) + '</span>' +
                       '<span class="ann-row-comment ' + (hasComment ? '' : 'empty-comment') + '">' + escapeHtml(commentText) + '</span>' +
                     '</span>' +
                     '<span class="ann-row-status ' + statusClass(status) + '">' + escapeHtml(statusLabel(status)) + '</span>' +
-                  '</div>';
+                  '</button>';
                 }).join('') + '</div>'
                 : '<div class="empty-state"><div class="empty-title">No saved annotations yet.</div><div class="empty-body">Use <b>Annotate</b> to freeze the preview and add comments.</div>' + startAnnotatingButtonHtml() + '</div>';
+              draftItems.querySelectorAll('[data-focus-saved]').forEach(button => {
+                button.addEventListener('click', () => focusSavedEvidenceItem(button.dataset.focusSaved));
+              });
               bindStartAnnotatingButtons(draftItems);
+            }
+
+            function renderSavedAnnotationDetail(item, index) {
+              const severity = annotationSeverity(item);
+              const status = annotationStatus(item);
+              draftItems.innerHTML =
+                '<div class="annotation-detail">' +
+                  '<button type="button" class="annotation-back" data-back-saved-annotations>← All annotations</button>' +
+                  '<div class="annotation-field">' +
+                    '<label for="annotationLabelInput">Label</label>' +
+                    '<input id="annotationLabelInput" class="annotation-input" value="' + escapeHtml(targetLabel(item)) + '">' +
+                  '</div>' +
+                  '<div class="annotation-field">' +
+                    '<label>Severity</label>' +
+                    '<div class="annotation-segmented" role="group" aria-label="Severity">' +
+                      ['high', 'med', 'low'].map(value =>
+                        '<button type="button" class="' + (severity === value ? 'active' : '') + '" data-set-severity="' + value + '"' +
+                          (severity === value ? ' style="background:' + severityColor(value) + '; color: var(--bg-0);"' : '') + '>' +
+                          escapeHtml(value === 'med' ? 'Med' : value) +
+                        '</button>'
+                      ).join('') +
+                    '</div>' +
+                  '</div>' +
+                  '<div class="annotation-field">' +
+                    '<label for="annotationCommentInput">Comment</label>' +
+                    '<textarea id="annotationCommentInput" class="annotation-textarea">' + escapeHtmlValue(item.comment) + '</textarea>' +
+                  '</div>' +
+                  '<div class="annotation-field">' +
+                    '<label>Status</label>' +
+                    '<div class="annotation-segmented" role="group" aria-label="Status">' +
+                      ['open', 'in-progress', 'resolved'].map(value =>
+                        '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '">' +
+                          escapeHtml(statusLabel(value)) +
+                        '</button>'
+                      ).join('') +
+                    '</div>' +
+                  '</div>' +
+                  '<div class="annotation-actions">' +
+                    '<button type="button" class="annotation-danger" data-delete-current>Delete</button>' +
+                    '<button type="button" class="annotation-done" data-back-saved-annotations>Done</button>' +
+                  '</div>' +
+                '</div>';
+              const labelInput = draftItems.querySelector('#annotationLabelInput');
+              const commentInput = draftItems.querySelector('#annotationCommentInput');
+              labelInput.addEventListener('input', event => {
+                item.label = event.target.value;
+                updateComposerState();
+                renderPreviewOnly();
+              });
+              labelInput.addEventListener('change', () => {
+                persistSavedEvidenceItem(item).catch(showError);
+              });
+              commentInput.addEventListener('input', event => {
+                item.comment = event.target.value;
+                updateComposerState();
+              });
+              commentInput.addEventListener('change', () => {
+                persistSavedEvidenceItem(item).catch(showError);
+              });
+              draftItems.querySelectorAll('[data-set-severity]').forEach(button => {
+                button.addEventListener('click', () => {
+                  item.severity = button.dataset.setSeverity;
+                  persistSavedEvidenceItem(item)
+                    .then(() => renderInspectorRegion())
+                    .catch(showError);
+                });
+              });
+              draftItems.querySelectorAll('[data-set-status]').forEach(button => {
+                button.addEventListener('click', () => {
+                  item.status = button.dataset.setStatus;
+                  persistSavedEvidenceItem(item)
+                    .then(() => {
+                      renderPreviewOnly();
+                      renderInspectorRegion();
+                    })
+                    .catch(showError);
+                });
+              });
+              draftItems.querySelectorAll('[data-back-saved-annotations]').forEach(button => {
+                button.addEventListener('click', () => {
+                  persistSavedEvidenceItem(item)
+                    .then(() => {
+                      focusedSavedItemId = null;
+                      renderPreviewOnly();
+                      renderInspectorRegion();
+                    })
+                    .catch(showError);
+                });
+              });
+              draftItems.querySelector('[data-delete-current]').addEventListener('click', () => {
+                deleteSavedEvidenceItem(item.itemId).catch(showError);
+              });
+              commentInput.focus();
             }
 
 

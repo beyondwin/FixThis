@@ -19,8 +19,7 @@ internal class ConnectionRoutes(private val service: FeedbackSessionService) : C
                 exchange.sendJson(200, runBlocking { service.launchAppForCurrentSession() })
             }
             "/api/heartbeat" -> exchange.requireMethod("GET") {
-                val session = service.currentSession()
-                exchange.sendJson(200, runBlocking { service.heartbeat(session.sessionId) })
+                exchange.sendJson(200, runBlocking { service.heartbeatForCurrentSession() })
             }
         }
     }

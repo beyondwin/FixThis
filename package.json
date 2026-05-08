@@ -1,0 +1,11 @@
+{
+  "name": "fixthis",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "console:smoke": "node scripts/console-browser-smoke.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.59.1"
+  }
+}

@@ -29,7 +29,9 @@ internal class SessionRoutes(
                 exchange.sendNoContent()
             }
             "/api/session" -> exchange.requireMethod("GET") {
-                exchange.sendJson(200, service.currentSession())
+                service.currentSessionOrNull()
+                    ?.let { exchange.sendJson(200, it) }
+                    ?: exchange.sendText(200, "null", "application/json; charset=utf-8")
             }
             "/api/sessions" -> exchange.requireMethod("GET") {
                 exchange.sendJson(
@@ -46,11 +48,11 @@ internal class SessionRoutes(
             }
             "/api/session/close" -> exchange.requireMethod("POST") {
                 val request = exchange.decodeOpenSessionBody()
-                val sessionId = request.sessionId ?: service.currentSession().sessionId
+                val sessionId = request.sessionId ?: service.requireCurrentSession().sessionId
                 exchange.sendJson(200, service.closeSession(sessionId))
             }
             "/api/export/markdown" -> exchange.requireMethod("GET") {
-                exchange.sendText(200, FeedbackQueueFormatter.toMarkdown(service.currentSession()), "text/markdown; charset=utf-8")
+                exchange.sendText(200, FeedbackQueueFormatter.toMarkdown(service.requireCurrentSession()), "text/markdown; charset=utf-8")
             }
         }
     }

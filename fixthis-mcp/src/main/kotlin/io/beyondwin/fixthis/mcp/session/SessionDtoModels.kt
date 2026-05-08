@@ -76,6 +76,8 @@ data class AnnotationDto(
     val nearbyNodes: List<FixThisNode> = emptyList(),
     val sourceCandidates: List<SourceCandidate> = emptyList(),
     val screenshotCrop: SnapshotScreenshotDto? = null,
+    val label: String? = null,
+    val severity: AnnotationSeverityDto = AnnotationSeverityDto.MED,
     val comment: String,
     val sequenceNumber: Int? = null,
     val delivery: FeedbackDelivery = FeedbackDelivery.DRAFT,
@@ -85,6 +87,18 @@ data class AnnotationDto(
     val agentSummary: String? = null,
     val targetEvidence: TargetEvidence? = null,
 )
+
+@Serializable
+enum class AnnotationSeverityDto {
+    @SerialName("high")
+    HIGH,
+
+    @SerialName("med")
+    MED,
+
+    @SerialName("low")
+    LOW,
+}
 
 @Serializable
 sealed interface AnnotationTargetDto {

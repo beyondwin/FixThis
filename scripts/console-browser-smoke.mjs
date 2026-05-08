@@ -277,8 +277,9 @@ async function handleApi(request, response, url) {
       screenId: screen.screenId,
       delivery: 'draft',
       comment: item.comment,
-      severity: 'med',
-      status: 'open',
+      severity: item.severity || 'med',
+      status: item.status || 'open',
+      label: item.label || null,
       targetType: item.targetType,
       selectedNode: item.nodeUid ? screen.roots[0].mergedNodes.find(node => node.uid === item.nodeUid) : null,
       target: {
@@ -289,6 +290,30 @@ async function handleApi(request, response, url) {
     }));
     session.items = session.items.concat(items);
     session.updatedAtEpochMillis = now + 20_000;
+    return jsonResponse(response, session);
+  }
+  if (request.method === 'PUT' && url.pathname.startsWith('/api/items/')) {
+    const itemId = decodeURIComponent(url.pathname.slice('/api/items/'.length));
+    const body = await readJsonBody(request);
+    const session = currentSession();
+    session.items = session.items.map(item => item.itemId === itemId
+      ? {
+          ...item,
+          label: body.label ?? item.label,
+          severity: body.severity ?? item.severity,
+          comment: body.comment ?? item.comment,
+          status: body.status ?? item.status,
+          updatedAtEpochMillis: now + 25_000,
+        }
+      : item);
+    session.updatedAtEpochMillis = now + 25_000;
+    return jsonResponse(response, session);
+  }
+  if (request.method === 'DELETE' && url.pathname.startsWith('/api/items/')) {
+    const itemId = decodeURIComponent(url.pathname.slice('/api/items/'.length));
+    const session = currentSession();
+    session.items = session.items.filter(item => item.itemId !== itemId);
+    session.updatedAtEpochMillis = now + 25_000;
     return jsonResponse(response, session);
   }
   if (request.method === 'POST' && url.pathname === '/api/agent-handoffs') {
@@ -405,10 +430,27 @@ async function runSmoke(baseUrl) {
     await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#connectionCard[data-connection-state="welcome"]');
 
-    await page.locator('#sessions .session-row').filter({ hasText: 'Session 2' }).click();
-    await page.waitForFunction(() => document.querySelector('#sessions .session-row.is-active')?.textContent.includes('Session 2'));
-    await page.locator('#sessions .session-row').filter({ hasText: 'Session 1' }).click();
-    await page.waitForFunction(() => document.querySelector('#sessions .session-row.is-active')?.textContent.includes('Session 1'));
+    await page.locator('#sessions .session-row[data-session-id="session-2"]').click();
+    await page.waitForFunction(() => document.querySelector('#sessions .session-row.is-active')?.dataset.sessionId === 'session-2');
+    await page.waitForFunction(() => document.querySelectorAll('.saved-item-row').length === 1);
+    await page.locator('.saved-item-row').first().click();
+    await page.waitForFunction(() => document.activeElement?.id === 'annotationCommentInput');
+    const editedHistoryComment = 'Edited history annotation';
+    await page.fill('#annotationCommentInput', editedHistoryComment);
+    const historyUpdateResponse = page.waitForResponse(response =>
+      response.url().includes('/api/items/item-old') && response.request().method() === 'PUT'
+    );
+    await page.click('.annotation-done');
+    assert.ok((await historyUpdateResponse).ok(), 'Saved annotation edit should persist');
+    assert.equal(currentSession().items[0].comment, editedHistoryComment);
+    await page.waitForSelector('.saved-item-row');
+    assert.match(await page.locator('#draftItems').textContent(), /Edited history annotation/);
+    await page.locator('#sessions .session-row[data-session-id="session-1"]').click();
+    await page.waitForFunction(() => document.querySelector('#sessions .session-row.is-active')?.dataset.sessionId === 'session-1');
+    await page.locator('#sessions .session-row[data-session-id="session-2"]').click();
+    await page.waitForFunction(comment => document.querySelector('#draftItems')?.textContent.includes(comment), editedHistoryComment);
+    await page.locator('#sessions .session-row[data-session-id="session-1"]').click();
+    await page.waitForFunction(() => document.querySelector('#sessions .session-row.is-active')?.dataset.sessionId === 'session-1');
 
     const readyConnectionResponse = page.waitForResponse(response =>
       response.url().includes('/api/connection') && response.request().method() === 'GET'
@@ -487,6 +529,13 @@ async function runSmoke(baseUrl) {
     await page.waitForSelector('#snapshot[data-tool-mode="annotate"]');
     await page.waitForSelector('#annotateHint');
     await page.locator('#snapshotImage').click({ position: { x: 160, y: 120 } });
+    await page.mouse.move(imageBox.x + 40, imageBox.y + 40);
+    await page.mouse.down();
+    await page.mouse.move(imageBox.x + 120, imageBox.y + 90);
+    await page.mouse.up();
+    await page.waitForFunction(() => document.querySelectorAll('.pending-item-row').length === 2);
+    await page.waitForFunction(() => document.querySelectorAll('.selection-box.annotation-pin').length === 2);
+    await page.locator('.pending-item-row').first().click();
     await page.waitForSelector('#annotationCommentInput');
     const annotationComment = 'Make the checkout button clearer';
     await page.fill('#annotationCommentInput', annotationComment);

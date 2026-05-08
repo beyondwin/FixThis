@@ -9,6 +9,9 @@ sample/.idea/
 **/build/
 .kotlin/
 
+# Node
+node_modules/
+
 # Android local/generated files
 local.properties
 /captures/

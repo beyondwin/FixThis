@@ -12,6 +12,7 @@ import io.beyondwin.fixthis.compose.core.model.TreeKind
 import io.beyondwin.fixthis.mcp.session.SnapshotDto
 import io.beyondwin.fixthis.mcp.session.FakeFixThisBridge
 import io.beyondwin.fixthis.mcp.session.AnnotationDto
+import io.beyondwin.fixthis.mcp.session.AnnotationStatusDto
 import io.beyondwin.fixthis.mcp.session.FeedbackNavigationAction
 import io.beyondwin.fixthis.mcp.session.SnapshotRootDto
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionException
@@ -86,8 +87,41 @@ class FeedbackConsoleServerTest {
             val index = ConsoleHttpTestClient(server.url).get()
             assertTrue(index.contains("FixThis Feedback Console"))
 
-            val session = ConsoleHttpTestClient(server.url).get("/api/session")
+            val client = ConsoleHttpTestClient(server.url)
+            val opened = client.connection(
+                "/api/session/open",
+                method = "POST",
+                body = """{"newSession":true}""",
+            )
+            assertEquals(200, opened.responseCode)
+            opened.inputStream.close()
+
+            val session = client.get("/api/session")
             assertTrue(session.contains("io.beyondwin.fixthis.sample"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun sessionApiDoesNotCreateSessionWhenHistoryIsEmpty() {
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = { "session-1" }),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val client = ConsoleHttpTestClient(server.url)
+
+            assertEquals("null", client.get("/api/session"))
+
+            val sessions = fixThisJson.parseToJsonElement(client.get("/api/sessions")).jsonObject
+                .getValue("sessions")
+                .jsonArray
+            assertEquals(0, sessions.size)
         } finally {
             server.stop()
         }
@@ -114,12 +148,66 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
+            service.openSession(null, newSession = true)
             val token = consoleTokenFrom(ConsoleHttpTestClient(server.url).get())
             val connection = ConsoleHttpTestClient(server.url).connection("/api/items/draft")
             connection.requestMethod = "DELETE"
             connection.setRequestProperty("X-FixThis-Console-Token", token)
 
             assertEquals(200, connection.responseCode)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun itemPatchUpdatesDraftAnnotation() {
+        val store = FeedbackSessionStore(
+            clock = FakeLongs(100L, 200L, 300L, 400L).next,
+            idGenerator = FakeIds("session-1", "item-1").next,
+        )
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        store.addScreen(
+            session.sessionId,
+            SnapshotDto(
+                screenId = "screen-1",
+                capturedAtEpochMillis = 100L,
+                displayName = "Screen 1",
+            ),
+        )
+        store.addItem(
+            session.sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = "screen-1",
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(1f, 2f, 3f, 4f)),
+                comment = "Before",
+            ),
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val connection = ConsoleHttpTestClient(server.url).connection(
+                "/api/items/item-1",
+                method = "PUT",
+                body = """{"comment":"After","status":"in_progress"}""",
+            )
+
+            assertEquals(200, connection.responseCode)
+            val payload = fixThisJson.parseToJsonElement(connection.inputStream.bufferedReader().readText()).jsonObject
+            val item = payload.getValue("items").jsonArray.single().jsonObject
+            assertEquals("After", item.getValue("comment").jsonPrimitive.content)
+            assertEquals("in_progress", item.getValue("status").jsonPrimitive.content)
+            assertEquals("After", service.getSession("session-1").items.single().comment)
+            assertEquals(AnnotationStatusDto.IN_PROGRESS, service.getSession("session-1").items.single().status)
         } finally {
             server.stop()
         }
@@ -301,6 +389,7 @@ class FeedbackConsoleServerTest {
         )
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
+        service.openSession(null, newSession = true)
         val previewThread = thread(isDaemon = true, name = "blocking-preview-test-request") {
             runCatching { ConsoleHttpTestClient(server.url).get("/api/preview") }
         }
@@ -462,10 +551,13 @@ class FeedbackConsoleServerTest {
     fun consoleHtmlUsesModeAwareStudioInspector() {
         val html = FeedbackConsoleAssets.indexHtml
         val pendingRenderer = javascriptFunctionBody(html, "renderPendingItems")
+        val createAnnotationFromSelection = javascriptFunctionBody(html, "createAnnotationFromSelection")
+        val renderSavedEvidenceGroups = javascriptFunctionBody(html, "renderSavedEvidenceGroups")
 
         assertTrue(html.contains("function renderComposerInspector"))
         assertTrue(html.contains("function renderSavedAnnotationsInspector"))
         assertTrue(html.contains("function renderAnnotationDetail"))
+        assertTrue(html.contains("function renderSavedAnnotationDetail"))
         assertTrue(html.contains("function colorWithAlpha(color, alpha)"))
         assertTrue(html.contains("box.style.setProperty('--selection-color', color);"))
         assertTrue(html.contains("label.style.setProperty('--selection-color', color);"))
@@ -485,14 +577,17 @@ class FeedbackConsoleServerTest {
         assertTrue(pendingRenderer.contains("ann-row-status"))
         assertTrue(pendingRenderer.contains("startAnnotatingButtonHtml()"))
         assertTrue(pendingRenderer.contains("data-focus-pending"))
+        assertTrue(createAnnotationFromSelection.contains("focusedPendingItemIndex = null;"))
+        assertFalse(createAnnotationFromSelection.contains("focusedPendingItemIndex = pendingFeedbackItems.length - 1;"))
         assertFalse(pendingRenderer.contains("data-delete-pending"))
+        assertTrue(renderSavedEvidenceGroups.contains("data-focus-saved"))
         assertTrue(html.contains("grid-template-columns: 28px minmax(0, 1fr) auto;"))
         assertTrue(Regex("\\.ann-row-body \\{\\s+min-width: 0;\\s+overflow: hidden;").containsMatchIn(html))
         assertTrue(Regex("\\.ann-row-title \\{\\s+display: block;\\s+max-width: 100%;").containsMatchIn(html))
         assertTrue(Regex("\\.ann-row-status \\{\\s+justify-self: end;").containsMatchIn(html))
         assertTrue(pendingRenderer.contains("style=\"--annotation-color:"))
         assertTrue(html.contains("renderOverlayBox(overlay, image, item.bounds, String(index + 1), false, index === focusedPendingItemIndex, index, '', severityColor(annotationSeverity(item)))"))
-        assertTrue(html.contains("renderOverlayBox(overlay, image, boundsForTarget(item.target), String(index + 1), false, false, null, '', severityColor(annotationSeverity(item)))"))
+        assertTrue(html.contains("focusSavedEvidenceItem(item.itemId)"))
         assertFalse(html.contains("item.bounds, '#' + (index + 1)"))
         assertFalse(html.contains("boundsForTarget(item.target), '#' + (index + 1)"))
         assertTrue(html.contains("<label for=\"annotationLabelInput\">Label</label>"))
@@ -507,6 +602,25 @@ class FeedbackConsoleServerTest {
         assertTrue(annotationActionCss.contains("border: 1px solid transparent;"))
         assertTrue(annotationActionCss.contains("background: rgba(255, 111, 111, .08);"))
         assertTrue(annotationActionCss.contains("border-color: var(--line);"))
+    }
+
+    @Test
+    fun consoleHtmlEditsSelectedAnnotationsAndFocusesComment() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val toolbarAnnotationCounts = javascriptFunctionBody(html, "toolbarAnnotationCounts")
+        val renderAnnotationDetail = javascriptFunctionBody(html, "renderAnnotationDetail")
+        val renderSavedAnnotationDetail = javascriptFunctionBody(html, "renderSavedAnnotationDetail")
+        val persistSavedEvidenceItem = javascriptFunctionBody(html, "persistSavedEvidenceItem")
+
+        assertTrue(toolbarAnnotationCounts.contains("const annotations = toolbarAnnotations();"))
+        assertFalse(toolbarAnnotationCounts.contains("const summary = selectedHistorySummary();"))
+        assertTrue(renderAnnotationDetail.contains("commentInput.focus();"))
+        assertTrue(renderSavedAnnotationDetail.contains("id=\"annotationCommentInput\""))
+        assertFalse(renderSavedAnnotationDetail.contains("readonly"))
+        assertTrue(renderSavedAnnotationDetail.contains("persistSavedEvidenceItem(item)"))
+        assertTrue(persistSavedEvidenceItem.contains("requestJson('/api/items/' + encodeURIComponent(item.itemId)"))
+        assertTrue(persistSavedEvidenceItem.contains("method: 'PUT'"))
+        assertTrue(renderSavedAnnotationDetail.contains("commentInput.focus();"))
     }
 
     @Test
@@ -825,6 +939,18 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun consoleHtmlDoesNotAutoCapturePreviewWithoutActiveSession() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val shouldPollPreview = javascriptFunctionBody(html, "shouldPollPreview")
+        val captureScreen = javascriptFunctionBody(html, "captureScreen")
+        val selectDevice = javascriptFunctionBody(html, "selectDevice")
+
+        assertTrue(shouldPollPreview.contains("Boolean(state.session)"))
+        assertTrue(captureScreen.contains("if (!state.session) return;"))
+        assertTrue(selectDevice.contains("if (state.session && userConnectionState(state.connection.current) === 'ready')"))
+    }
+
+    @Test
     fun consoleHasSimpleConnectionRecoveryCard() {
         val html = FeedbackConsoleAssets.indexHtml
         val refreshConnectionBody = javascriptFunctionBody(html, "refreshConnection")
@@ -995,6 +1121,82 @@ class FeedbackConsoleServerTest {
                 .getValue("sessions")
                 .jsonArray
 
+            assertEquals(0, sessions.size)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun appLaunchApiDoesNotCreateHiddenSessionWhenHistoryIsEmpty() {
+        val bridge = FakeFixThisBridge()
+        bridge.selectDevice("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp")
+        val service = FeedbackSessionService(
+            bridge = bridge,
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1").next),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service).also { it.start() }
+        try {
+            val client = ConsoleHttpTestClient(server.url)
+            val launch = client.connection("/api/app/launch", method = "POST", body = "{}")
+
+            assertEquals(200, launch.responseCode)
+            launch.inputStream.close()
+            val sessions = fixThisJson.parseToJsonElement(client.get("/api/sessions")).jsonObject
+                .getValue("sessions")
+                .jsonArray
+            assertEquals(0, sessions.size)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun heartbeatApiDoesNotCreateHiddenSessionWhenHistoryIsEmpty() {
+        val bridge = FakeFixThisBridge()
+        bridge.selectDevice("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp")
+        val service = FeedbackSessionService(
+            bridge = bridge,
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1").next),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service).also { it.start() }
+        try {
+            val client = ConsoleHttpTestClient(server.url)
+            val heartbeat = client.connection("/api/heartbeat")
+
+            assertEquals(200, heartbeat.responseCode)
+            heartbeat.inputStream.close()
+            val sessions = fixThisJson.parseToJsonElement(client.get("/api/sessions")).jsonObject
+                .getValue("sessions")
+                .jsonArray
+            assertEquals(0, sessions.size)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun previewApiRejectsEmptyHistoryWithoutCreatingHiddenSession() {
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1").next),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service).also { it.start() }
+        try {
+            val client = ConsoleHttpTestClient(server.url)
+            val preview = client.connection("/api/preview")
+
+            assertEquals(409, preview.responseCode)
+            assertTrue(preview.errorStream.bufferedReader().readText().contains("NO_ACTIVE_SESSION"))
+            val sessions = fixThisJson.parseToJsonElement(client.get("/api/sessions")).jsonObject
+                .getValue("sessions")
+                .jsonArray
             assertEquals(0, sessions.size)
         } finally {
             server.stop()
@@ -1362,8 +1564,16 @@ class FeedbackConsoleServerTest {
     fun consoleHtmlKeepsSavedAnnotationPreviewsInCenterDeviceOnly() {
         val html = FeedbackConsoleAssets.indexHtml
         val renderSavedEvidenceGroups = javascriptFunctionBody(html, "renderSavedEvidenceGroups")
+        val renderSavedEvidenceOverlay = javascriptFunctionBody(html, "renderSavedEvidenceOverlay")
+        val renderOverlayBox = javascriptFunctionBody(html, "renderOverlayBox")
 
         assertTrue(html.contains("function renderSavedEvidenceOverlay(overlay, image, items)"))
+        assertTrue(html.contains("let focusedSavedItemId = null"))
+        assertTrue(html.contains("function focusSavedEvidenceItem(itemId)"))
+        assertTrue(html.contains("function selectedSavedAnnotation()"))
+        assertTrue(renderOverlayBox.contains("selectHandler"))
+        assertTrue(renderOverlayBox.contains("selectHandler(annotationIndex);"))
+        assertTrue(renderSavedEvidenceOverlay.contains("focusSavedEvidenceItem(item.itemId)"))
         assertTrue(html.contains("persistedItemsForScreen(screen?.screenId)"))
         assertFalse(renderSavedEvidenceGroups.contains("saved-evidence-preview"))
         assertFalse(renderSavedEvidenceGroups.contains("hydrateSavedEvidencePreviews"))
@@ -1392,6 +1602,7 @@ class FeedbackConsoleServerTest {
     @Test
     fun consoleHtmlRendersOptionACanvasToolbar() {
         val html = FeedbackConsoleAssets.indexHtml
+        val toolbarAnnotationCounts = javascriptFunctionBody(html, "toolbarAnnotationCounts")
 
         assertTrue(html.contains("frame.dataset.mode = mode"))
         assertFalse(html.contains("navigationControls.hidden"))
@@ -1404,9 +1615,9 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("sessionSummaries: []"))
         assertTrue(html.contains("function selectedHistorySummary()"))
         assertTrue(html.contains("function toolbarAnnotationCounts()"))
-        assertTrue(html.contains("const summary = selectedHistorySummary();"))
-        assertTrue(html.contains("open: historyOpenCount(summary)"))
-        assertTrue(html.contains("resolved: historyDoneCount(summary)"))
+        assertFalse(toolbarAnnotationCounts.contains("const summary = selectedHistorySummary();"))
+        assertFalse(toolbarAnnotationCounts.contains("open: historyOpenCount(summary)"))
+        assertFalse(toolbarAnnotationCounts.contains("resolved: historyDoneCount(summary)"))
         assertTrue(html.contains("state.sessionSummaries = sessionSummaries;"))
         assertTrue(html.contains("toolbarOpenCount()"))
         assertTrue(html.contains("toolbarResolvedCount()"))
@@ -1627,6 +1838,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("function persistPendingFeedbackItems"))
         assertTrue(createAnnotationFromSelection.contains("toolMode = 'annotate';"))
         assertFalse(createAnnotationFromSelection.contains("toolMode = 'select';"))
+        assertTrue(createAnnotationFromSelection.contains("focusedPendingItemIndex = null;"))
         assertTrue(html.contains("suppressNextClick = true;"))
         assertTrue(html.contains("function updateSelectedAnnotationComment"))
         assertTrue(html.contains("item.comment = comment.value;"))
@@ -1659,6 +1871,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
+            service.openSession(null, newSession = true)
             val before = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/session")).jsonObject
 
             val preview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject
@@ -1688,6 +1901,7 @@ class FeedbackConsoleServerTest {
             val server = FeedbackConsoleServer(service = service, port = 0)
             server.start()
             try {
+                service.openSession(null, newSession = true)
                 val preview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject
                 val previewId = preview.getValue("previewId").jsonPrimitive.content
 
@@ -1751,6 +1965,7 @@ class FeedbackConsoleServerTest {
             val server = FeedbackConsoleServer(service = service, port = 0)
             server.start()
             try {
+                service.openSession(null, newSession = true)
                 val preview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject
                 val previewId = preview.getValue("previewId").jsonPrimitive.content
 
@@ -1799,6 +2014,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
+            service.openSession(null, newSession = true)
             val connection = ConsoleHttpTestClient(server.url).connection("/api/items/batch")
             connection.requestMethod = "POST"
             connection.doOutput = true
@@ -1823,6 +2039,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
+            service.openSession(null, newSession = true)
             val connection = ConsoleHttpTestClient(server.url).connection("/api/items/batch")
             connection.requestMethod = "POST"
             connection.doOutput = true
@@ -1882,6 +2099,7 @@ class FeedbackConsoleServerTest {
             val server = FeedbackConsoleServer(service = service, port = 0)
             server.start()
             try {
+                service.openSession(null, newSession = true)
                 ConsoleHttpTestClient(server.url).get("/api/preview")
 
                 val connection = ConsoleHttpTestClient(server.url).connection("/api/preview/screenshot/full")
@@ -1921,6 +2139,7 @@ class FeedbackConsoleServerTest {
             val server = FeedbackConsoleServer(service = service, port = 0)
             server.start()
             try {
+                service.openSession(null, newSession = true)
                 val firstPreview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject
                 val secondPreview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject
                 val firstPreviewId = firstPreview.getValue("previewId").jsonPrimitive.content
@@ -1975,6 +2194,7 @@ class FeedbackConsoleServerTest {
             val server = FeedbackConsoleServer(service = service, port = 0)
             server.start()
             try {
+                service.openSession(null, newSession = true)
                 val firstPreview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject
                 repeat(3) { ConsoleHttpTestClient(server.url).get("/api/preview") }
                 val firstPreviewId = firstPreview.getValue("previewId").jsonPrimitive.content
@@ -2480,7 +2700,11 @@ class FeedbackConsoleServerTest {
             val server = FeedbackConsoleServer(service = service, port = 0)
             server.start()
             try {
-                val connection = ConsoleHttpTestClient(server.url).connection("/api/session")
+                val connection = ConsoleHttpTestClient(server.url).connection(
+                    "/api/session/open",
+                    method = "POST",
+                    body = """{"newSession":true}""",
+                )
 
                 assertEquals(500, connection.responseCode)
                 assertTrue(connection.errorStream.bufferedReader().readText().contains("SESSION_SAVE_FAILED:"))
@@ -2555,6 +2779,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
+            service.openSession(null, newSession = true)
             val connection = ConsoleHttpTestClient(server.url).connection("/api/navigation")
             connection.requestMethod = "POST"
             connection.doOutput = true
@@ -2708,6 +2933,11 @@ class FeedbackConsoleServerTest {
     private class FakeIds(vararg values: String) {
         private val queue = ArrayDeque(values.toList())
         val next: () -> String = { queue.removeFirst() }
+    }
+
+    private class FakeLongs(vararg values: Long) {
+        private val queue = ArrayDeque(values.toList())
+        val next: () -> Long = { queue.removeFirst() }
     }
 
     private fun FeedbackSessionService.captureFakeScreenForTest(sessionId: String): SnapshotDto =

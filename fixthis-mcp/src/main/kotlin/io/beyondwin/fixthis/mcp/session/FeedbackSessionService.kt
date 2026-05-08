@@ -71,6 +71,9 @@ class FeedbackSessionService(
     fun currentSessionOrNull(): SessionDto? =
         store.currentSession()
 
+    fun requireCurrentSession(): SessionDto =
+        currentSessionOrNull() ?: throw FeedbackSessionException("NO_ACTIVE_SESSION: Start a feedback session first")
+
     fun getSession(sessionId: String): SessionDto = store.getSession(sessionId)
 
     fun listSessions(packageNameOverride: String? = null, includeClosed: Boolean = false): FeedbackSessionList {
@@ -95,11 +98,16 @@ class FeedbackSessionService(
         return bridge.heartbeat(session.packageName)
     }
 
+    suspend fun heartbeatForCurrentSession(): JsonObject {
+        val session = currentSessionOrNull() ?: transientConsoleSession()
+        return bridge.heartbeat(session.packageName)
+    }
+
     suspend fun connectionStatus(): ConsoleConnectionStatus =
         connectionService.connectionStatus(currentSessionOrNull() ?: transientConsoleSession())
 
     suspend fun launchAppForCurrentSession(): ConsoleConnectionStatus =
-        connectionService.launchAppForSession(currentSession())
+        connectionService.launchAppForSession(currentSessionOrNull() ?: transientConsoleSession())
 
     suspend fun captureScreen(sessionId: String): SnapshotDto {
         val session = store.getSession(sessionId)
@@ -222,6 +230,26 @@ class FeedbackSessionService(
 
     fun resolveFeedback(sessionId: String, itemId: String, status: AnnotationStatusDto, summary: String?): AnnotationDto =
         store.updateItemStatus(sessionId, itemId, status, summary)
+
+    fun updateDraftFeedback(
+        sessionId: String,
+        itemId: String,
+        label: String?,
+        severity: AnnotationSeverityDto?,
+        comment: String?,
+        status: AnnotationStatusDto?,
+    ): SessionDto =
+        store.updateDraftItem(
+            sessionId = sessionId,
+            itemId = itemId,
+            label = label,
+            severity = severity,
+            comment = comment,
+            status = status,
+        )
+
+    fun deleteDraftFeedback(sessionId: String, itemId: String): SessionDto =
+        store.deleteDraftItem(sessionId, itemId)
 
     private companion object {
         const val MaxRetainedPreviews = 3

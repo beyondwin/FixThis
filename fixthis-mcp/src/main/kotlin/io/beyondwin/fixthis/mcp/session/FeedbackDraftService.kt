@@ -111,8 +111,11 @@ class FeedbackDraftService(
                     nodeUid = pending.nodeUid,
                     comment = pending.comment,
                     allowBlankComment = allowBlankComments,
-                    writtenStatus = AnnotationStatusDto.READY,
+                    writtenStatus = pending.status,
                     missingNodeContext = "preview",
+                ).copy(
+                    label = pending.label?.takeIf { it.isNotBlank() },
+                    severity = pending.severity,
                 )
             }
             val persistedScreen = screenshotArtifactPromoter.promote(

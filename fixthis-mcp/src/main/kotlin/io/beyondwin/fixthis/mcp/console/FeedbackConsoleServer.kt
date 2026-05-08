@@ -126,6 +126,8 @@ private fun FeedbackSessionException.toConsoleHttpException(): FeedbackConsoleHt
         text.startsWith("PREVIEW_SCREENSHOT_NOT_FOUND:") -> 404
         text.startsWith("SCREEN_NOT_FOUND:") -> 400
         text.startsWith("NO_DRAFT_FEEDBACK:") -> 409
+        text.startsWith("NO_ACTIVE_SESSION:") -> 409
+        text.startsWith("ITEM_NOT_EDITABLE:") -> 409
         text.startsWith("DEVICE_NOT_AVAILABLE:") -> 409
         text.startsWith("PREVIEW_SAVE_IN_PROGRESS:") -> 409
         else -> 500

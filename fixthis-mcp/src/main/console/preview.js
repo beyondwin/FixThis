@@ -41,7 +41,7 @@
             }
 
             function shouldPollPreview() {
-              return !document.hidden && !addItemsFlow && Boolean(state.selectedDeviceSerial) && userConnectionState(state.connection.current) === 'ready';
+              return !document.hidden && !addItemsFlow && Boolean(state.session) && Boolean(state.selectedDeviceSerial) && userConnectionState(state.connection.current) === 'ready';
             }
 
             function shouldAutoFetchPreview() {
@@ -110,7 +110,7 @@
 
             async function refreshPreview() {
               error.textContent = '';
-              if (addItemsFlow) return;
+              if (!state.session || addItemsFlow) return;
               const requestGeneration = ++previewRequestGeneration;
               try {
                 const preview = await requestLivePreview();
@@ -128,6 +128,7 @@
 
             async function navigate(action, extras = {}) {
               error.textContent = '';
+              if (!state.session) return;
               const navigation = await requestJson('/api/navigation', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

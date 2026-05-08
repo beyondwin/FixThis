@@ -3,6 +3,7 @@
             }
 
             function targetLabel(item) {
+              if (String(item?.label || '').trim()) return item.label;
               const target = item?.target || {};
               if (target.type === 'semantics_node' || target.nodeUid) {
                 return item.selectedNode ? componentLabel(item.selectedNode) : 'Component target';
@@ -273,6 +274,7 @@
               if (clearFlow) addItemsFlow = null;
               pendingFeedbackItems = [];
               focusedPendingItemIndex = null;
+              focusedSavedItemId = null;
               currentSelection = null;
               hoveredAnnotationTarget = null;
               toolMode = 'select';
@@ -292,6 +294,7 @@
             function clearSelection() {
               currentSelection = null;
               focusedPendingItemIndex = null;
+              focusedSavedItemId = null;
               hoveredAnnotationTarget = null;
               comment.value = '';
               clearDragState();
@@ -351,7 +354,8 @@
               pendingFeedbackItems.push(annotation);
               currentSelection = null;
               hoveredAnnotationTarget = null;
-              focusedPendingItemIndex = pendingFeedbackItems.length - 1;
+              focusedPendingItemIndex = null;
+              focusedSavedItemId = null;
               toolMode = 'annotate';
               comment.value = '';
               renderPreviewOnly();
@@ -362,6 +366,7 @@
             function deletePendingFeedbackItem(index) {
               pendingFeedbackItems.splice(index, 1);
               focusedPendingItemIndex = null;
+              focusedSavedItemId = null;
               currentSelection = null;
               hoveredAnnotationTarget = null;
               comment.value = '';
@@ -372,11 +377,52 @@
 
             function focusPendingFeedbackItem(index) {
               focusedPendingItemIndex = index;
+              focusedSavedItemId = null;
               currentSelection = null;
               toolMode = 'select';
               comment.value = pendingFeedbackItems[index]?.comment || '';
               renderPreviewOnly();
               renderInspectorRegion();
+            }
+
+            function focusSavedEvidenceItem(itemId) {
+              focusedSavedItemId = itemId;
+              focusedPendingItemIndex = null;
+              currentSelection = null;
+              toolMode = 'select';
+              comment.value = '';
+              renderPreviewOnly();
+              renderInspectorRegion();
+            }
+
+            function normalizedPersistedStatus(status) {
+              return String(status || 'open').replace('-', '_');
+            }
+
+            async function persistSavedEvidenceItem(item) {
+              if (!item?.itemId) return state.session;
+              state.session = await requestJson('/api/items/' + encodeURIComponent(item.itemId), {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  label: String(item.label || '').trim() || null,
+                  severity: annotationSeverity(item),
+                  comment: String(item.comment || ''),
+                  status: normalizedPersistedStatus(annotationStatus(item))
+                })
+              });
+              renderCurrentSessionList();
+              updateComposerState();
+              return state.session;
+            }
+
+            async function deleteSavedEvidenceItem(itemId) {
+              if (!itemId) return;
+              state.session = await requestJson('/api/items/' + encodeURIComponent(itemId), { method: 'DELETE' });
+              focusedSavedItemId = null;
+              renderPreviewOnly();
+              renderInspectorRegion();
+              renderCurrentSessionList();
             }
 
             function updateSelectedAnnotationComment() {
@@ -396,6 +442,9 @@
                 targetType: item.targetType,
                 bounds: item.bounds,
                 nodeUid: item.nodeUid,
+                label: String(item.label || '').trim() || null,
+                severity: annotationSeverity(item),
+                status: normalizedPersistedStatus(annotationStatus(item)),
                 comment: allowFallbackComments
                   ? (String(item.comment || '').trim() || item.label || pendingTargetLabel(item))
                   : (allowBlankComments ? String(item.comment || '') : item.comment)
