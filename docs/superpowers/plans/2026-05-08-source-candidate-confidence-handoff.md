@@ -2852,11 +2852,32 @@ Confidence classification rules (post-margin, per candidate):
 ### 0.4 Risk precedence and caution generator
 
 ```
-Precedence: AMBIGUOUS > AREA_SELECTION > TEXT_ONLY > NEARBY_ONLY >
-            ARBITRARY_LITERAL > ACTIVITY_ONLY > LEGACY_FALLBACK
-```
+Risk precedence (highest first):
+  AMBIGUOUS > AREA_SELECTION > TEXT_ONLY > NEARBY_ONLY > ARBITRARY_LITERAL >
+  ACTIVITY_ONLY > LEGACY_FALLBACK
 
-(See full caution mapping in Step 0.4.)
+Caution generator (used by SourceInterpretationFactory):
+
+Inputs: confidence, riskFlags (already ordered by precedence).
+
+If riskFlags is empty and confidence in {HIGH, MEDIUM}: caution = null.
+If riskFlags is empty and confidence == LOW: caution =
+    "Top source candidate has low confidence; verify before editing."
+If riskFlags is empty and confidence == NONE: caution =
+    "No source candidate was available from current evidence."
+
+Otherwise pick the highest-precedence flag and emit:
+  AMBIGUOUS         -> "Verify this source candidate before editing; top candidates are close."
+  AREA_SELECTION    -> "Visual-area selection; use screenshot and bounds before editing."
+  TEXT_ONLY         -> "Text-only match; confirm against screenshot and code."
+  NEARBY_ONLY       -> "Nearby-only match; confirm against screenshot and code."
+  ARBITRARY_LITERAL -> "Match relied on a generic string literal; confirm against screenshot and code."
+  ACTIVITY_ONLY     -> "Activity-only match; confirm against screenshot and code."
+  LEGACY_FALLBACK   -> "Legacy-fallback match; confirm against screenshot and code."
+
+Caution is also written to SourceCandidate.caution (top candidate only; non-top
+candidates may set caution from their own flags).
+```
 
 ### 0.5 New reason emissions and token mapping
 
