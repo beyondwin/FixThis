@@ -43,3 +43,62 @@
 
 - `Send Agent` stores a local handoff batch.
 - FixThis does not upload screenshots, comments, prompt text, source hints, or target evidence by default.
+
+## Compact handoff schema
+
+Rule: source hints are candidates; verify screenshot, target, and code before editing.
+
+### Screen header
+
+```
+Screen <id>: <displayName>
+screenshot: <path>
+```
+
+The `screenshot:` line is optional and omitted when no screenshot artifact is available for the screen.
+
+### Item lines
+
+```
+N. [marker N] <title>
+   target: <role> "<label>" bounds=left,top,right,bottom[; targetRisk=overlap]
+   src? <file>:<line> <confidence>; why=<token>+<token>; risk=<token>
+```
+
+The `src?` line is optional and absent when no source candidates are available for the item.
+
+- `N` — 1-based annotation number matching the numbered overlay marker.
+- `target:` — semantic role, accessibility label, and window-pixel bounding box at default density 1.0.
+- `targetRisk=overlap` — present when the target participates in an overlap group (see below).
+- `src?` — top source candidate: file path relative to project root, 1-based line number, and confidence level.
+- `why=` — `+`-joined reason tokens explaining why the candidate was selected.
+- `risk=` — a single risk token summarizing the candidate's caution category.
+- Confidence is lowercase: `high`, `medium`, `low`, or `none`.
+
+### Reason-token mapping
+
+| Reason string | Token |
+| --- | --- |
+| `selected text` | `text` |
+| `selected contentDescription` | `contentDescription` |
+| `selected testTag` | `tag` |
+| `selected testTag convention composable` | `compTag` |
+| `selected role` | `role` |
+| `nearby text` | `nearbyText` |
+| `nearby contentDescription` | `nearbyContentDescription` |
+| `nearby testTag` | `nearbyTag` |
+| `nearby role` | `nearbyRole` |
+| `activity` | `activity` |
+| `selected stringResource` | `stringRes` |
+| `arbitrary literal` | `literal` |
+| `legacy fallback` | `legacy` |
+
+### Overlap groups
+
+When two or more annotations on the same screen have targets that overlap (visual-area intersection IoSA >= 0.25, or weak-label center distance <= 24dp at default density 1.0), they are collected into an explicit overlap group:
+
+```
+Overlap group N (resolve one marker at a time):
+```
+
+Each item in the group carries `targetRisk=overlap` on its `target:` line. Resolve the group one marker at a time to avoid editing the wrong composable. Coordinate space is window pixels at default density 1.0; the 24dp center-distance fallback is conservative on high-density screens.
