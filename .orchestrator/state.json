@@ -50,47 +50,40 @@
       "pre_task_sha": "077245ce009fcdacee41552cc720023068242106",
       "escalations": 0, "review_retries": 0, "verifier_retries": 0,
       "timing": {"started": "2026-05-09T01:15:00Z", "completed": "2026-05-09T01:20:00Z"}
+    },
+    "task_5": {
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": [],
+      "commit": null,
+      "pre_task_sha": "f4e32df7750c99fef9010f3432249a7760673cdd",
+      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
+      "timing": {"started": "2026-05-09T01:30:00Z", "completed": "2026-05-09T01:31:00Z"}
     }
   },
   "task_summaries": {
-    "task_1": {
-      "files": ["fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt"],
-      "exposed_apis": [],
-      "key_decision": "3 assertions updated for new behavior + line 1639 relaxed after bundle change",
-      "for_next_tasks": "All 3 TDD target tests pass; full suite 281/283 passing"
-    },
-    "task_2": {
-      "files": ["fixthis-mcp/src/main/console/preview.js"],
-      "exposed_apis": ["latestScreen (updated)"],
-      "key_decision": "Live preview prioritized; focusedSavedItemId branch returns session screen",
-      "for_next_tasks": "latestScreen() now correctly switches image on annotation focus"
-    },
-    "task_3": {
-      "files": ["fixthis-mcp/src/main/console/rendering.js"],
-      "exposed_apis": ["renderSelectionOverlay (updated)"],
-      "key_decision": "Saved overlay gated on focusedSavedItemId; filtered by screenId",
-      "for_next_tasks": "No cross-screen pin leak; deselect clears overlay cleanly"
-    },
-    "task_4": {
-      "files": ["fixthis-mcp/src/main/resources/console/app.js"],
-      "exposed_apis": [],
-      "key_decision": "app.js byte-for-byte mirrored; bundle equality test passes",
-      "for_next_tasks": "All source changes are live in the served bundle"
-    }
+    "task_1": {"files": ["FeedbackConsoleServerTest.kt"], "key_decision": "3 assertions updated + line 1639 relaxed", "for_next_tasks": "All TDD targets pass"},
+    "task_2": {"files": ["preview.js"], "key_decision": "latestScreen() prioritizes live preview; focusedSavedItemId returns session screen", "for_next_tasks": "Image switching works on annotation focus"},
+    "task_3": {"files": ["rendering.js"], "key_decision": "Saved overlay gated on focusedSavedItemId + screenId filter", "for_next_tasks": "No cross-screen pin leak"},
+    "task_4": {"files": ["app.js"], "key_decision": "app.js byte-for-byte mirrored; bundle equality passes", "for_next_tasks": "All changes live in served bundle"},
+    "task_5": {"files": [], "key_decision": "Final verification: 283 tests, 2 pre-existing failures only", "for_next_tasks": "none"}
   },
   "low_tasks_pending_verification": [],
-  "last_compaction_after_task": 4,
+  "last_compaction_after_task": 5,
   "current_task": 5,
-  "current_step_within_task": 1,
+  "current_step_within_task": "phase2",
   "current_pre_task_sha": null,
   "current_review_retries": 0,
   "current_verifier_retries": 0,
   "current_escalation_count": 0,
   "current_previous_issues": [],
-  "phase_summaries": ["Phase 1 (Tasks 1-4): annotation screen mismatch fix complete; 281/283 tests passing; CHANGELOG updated"],
+  "phase_summaries": [
+    "Phase 1 (Tasks 1-4): annotation screen mismatch fix complete; 281/283 tests passing; CHANGELOG updated",
+    "Phase 2 (Task 5): final verification passed; 283 tests, 2 pre-existing failures only"
+  ],
   "phase_doc_commits": ["4f62496"],
   "timestamps": {
     "started_at": "2026-05-09T01:05:10Z",
-    "completed_at": null
+    "completed_at": "2026-05-09T01:31:00Z"
   }
 }
