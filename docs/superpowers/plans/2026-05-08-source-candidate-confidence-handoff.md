@@ -2814,7 +2814,40 @@ Consolidation rule (review finding #8): when both `selected testTag` (literal) a
 
 ### 0.3 Confidence classification rules
 
-(See full block in Step 0.3.)
+```
+Confidence classification rules (post-margin, per candidate):
+
+1. Compute EvidenceProfile from the candidate's matched reason set.
+2. Compute scoreMargin from sorted candidates (single -> 1.0, empty -> n/a).
+3. Determine baseConfidence:
+   - HIGH if (strongEvidenceCount >= 1 AND scoreMargin >= CLEAR_MARGIN)
+       OR (mediumEvidenceCount >= 2 AND mediumEvidenceCount counts >= 2 distinct
+           selected medium evidence kinds AND scoreMargin >= CLEAR_MARGIN).
+   - MEDIUM if (selected UI text OR selected contentDescription) AND another
+       selected signal (any strength), regardless of margin (subject to caps).
+   - MEDIUM if strong evidence with scoreMargin in [CLOSE_RACE_MARGIN, CLEAR_MARGIN).
+   - LOW otherwise (provided rawScore > 0).
+   - NONE if no evidence and rawScore == 0.
+4. Apply caps (lower bound only; never upgrade):
+   - text-only selected match (only "selected text" fired) -> max MEDIUM (TEXT_ONLY).
+   - nearby-only match (no selected reason fired, only nearby reasons) -> max LOW (NEARBY_ONLY).
+   - activity-only match (only "activity" reason fired) -> max LOW (ACTIVITY_ONLY).
+   - arbitrary literal-only match (only "arbitrary literal" fired) -> max LOW (ARBITRARY_LITERAL).
+   - legacy-only match (only "legacy fallback" fired) -> max LOW (LEGACY_FALLBACK).
+   - visual area selection (passed in by caller) -> max LOW (AREA_SELECTION).
+5. Apply ambiguity downgrade:
+   - if scoreMargin < CLOSE_RACE_MARGIN AND candidate count >= 2:
+     downgrade by one level (HIGH -> MEDIUM, MEDIUM -> LOW, LOW unchanged) and
+     attach AMBIGUOUS risk.
+   - if CLOSE_RACE_MARGIN <= scoreMargin < CLEAR_MARGIN AND baseConfidence == HIGH:
+     cap to MEDIUM. No AMBIGUOUS risk attached.
+6. Risk flags accumulate in this iteration order (deterministic):
+   AMBIGUOUS, AREA_SELECTION, TEXT_ONLY, NEARBY_ONLY, ARBITRARY_LITERAL,
+   ACTIVITY_ONLY, LEGACY_FALLBACK.
+7. Final confidence is determined after both caps and ambiguity downgrade.
+   The resulting evidenceStrength is STRONG if hasStrong, MEDIUM if hasMedium
+   else WEAK (unaffected by margin/caps).
+```
 
 ### 0.4 Risk precedence and caution generator
 
