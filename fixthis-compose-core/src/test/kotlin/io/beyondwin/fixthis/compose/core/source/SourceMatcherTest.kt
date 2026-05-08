@@ -356,13 +356,21 @@ class SourceMatcherTest {
 
     @Test
     fun textOnlyMatchIsCappedAtMedium() {
+        // Use a typed UI_TEXT signal so the entry matches via a typed signal (not legacy fallback).
+        // A legacy-only entry would produce LEGACY_FALLBACK flag instead of TEXT_ONLY.
         val matcher = SourceMatcher(
             SourceIndex(
                 entries = listOf(
                     SourceIndexEntry(
                         file = "TextOnly.kt",
                         line = 1,
-                        text = listOf("Hello"),
+                        signals = listOf(
+                            SourceSignal(
+                                kind = SourceSignalKind.UI_TEXT,
+                                value = "Hello",
+                                confidenceWeight = 1.0,
+                            ),
+                        ),
                     ),
                 ),
             ),
