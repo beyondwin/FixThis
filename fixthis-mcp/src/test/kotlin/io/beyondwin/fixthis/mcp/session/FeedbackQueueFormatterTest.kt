@@ -542,6 +542,45 @@ class FeedbackQueueFormatterTest {
         assertTrue(markdown.contains("src? unknown"), "Expected 'src? unknown' when item has no source candidates")
     }
 
+    @Test
+    fun compactMarkdownSplitsOverlappingItemsIntoExplicitGroups() {
+        val session = SessionDto(
+            sessionId = "session-1",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 5L,
+            screens = listOf(SnapshotDto("screen-1", 2L, displayName = "Checkout")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "a",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 2L,
+                    updatedAtEpochMillis = 2L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 100f, 100f)),
+                    comment = "Resize",
+                    sequenceNumber = 1,
+                ),
+                AnnotationDto(
+                    itemId = "b",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 2L,
+                    updatedAtEpochMillis = 2L,
+                    target = AnnotationTargetDto.Area(FixThisRect(99f, 99f, 200f, 200f)),
+                    comment = "Recolor",
+                    sequenceNumber = 2,
+                ),
+            ),
+        )
+
+        val markdown = FeedbackQueueFormatter.toMarkdown(session, DetailMode.COMPACT)
+
+        assertTrue(markdown.contains("Overlap group"))
+        assertTrue(markdown.contains("Resize"))
+        assertTrue(markdown.contains("Recolor"))
+        assertTrue(markdown.contains("targetRisk=overlap") || markdown.contains("resolve one marker at a time"))
+    }
+
     private fun sessionWithScreenshotAndOverlay(): SessionDto = SessionDto(
         sessionId = "session-1",
         packageName = "io.beyondwin.fixthis.sample",
