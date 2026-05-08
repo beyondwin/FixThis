@@ -2791,7 +2791,26 @@ SourceMatcher confidence constants (final, locked):
 
 ### 0.2 Evidence classification
 
-(See full table in Step 0.2.)
+| Reason string emitted by matcher | Signal kind / origin | Strength |
+| --- | --- | --- |
+| `selected testTag convention composable` (parsed `comp:<Composable>:<variant>` testTag matched against composable symbol) | from `STRICT_COMP_TEST_TAG` or `COMPOSABLE_SYMBOL` typed signal, OR legacy `symbols`/`file` fallback | `STRONG` |
+| `selected testTag` (selected testTag value matches a typed `STRICT_COMP_TEST_TAG` or `TEST_TAG` signal) | from typed `STRICT_COMP_TEST_TAG`/`TEST_TAG` signal | `STRONG` |
+| `selected testTag` (selected testTag value matched only via legacy `testTags` list with no typed signal) | legacy fallback | `WEAK` (counted under `legacy fallback`) |
+| `selected text` matched via `UI_TEXT` typed signal | typed `UI_TEXT` | `MEDIUM` |
+| `selected text` matched via `STRING_RESOURCE` typed signal | typed `STRING_RESOURCE` | `MEDIUM` (also emit `selected stringResource` reason; see step 0.5) |
+| `selected text` matched only via `ARBITRARY_STRING_LITERAL` | typed `ARBITRARY_STRING_LITERAL` | `WEAK` (also emit `arbitrary literal` reason; see step 0.5) |
+| `selected text` matched only via legacy text/excerpt fallback | legacy | `WEAK` (also emit `legacy fallback` reason) |
+| `selected contentDescription` matched via `CONTENT_DESCRIPTION` or `STRING_RESOURCE` typed signal | typed | `MEDIUM` |
+| `selected contentDescription` matched via `ARBITRARY_STRING_LITERAL` | typed literal | `WEAK` |
+| `selected role` (combined with at least one other selected typed signal) | typed `ROLE` | `MEDIUM` |
+| `selected role` (only signal present from selected node) | typed `ROLE` | `WEAK` |
+| `nearby text` / `nearby contentDescription` / `nearby testTag` / `nearby role` | any kind | `WEAK` |
+| `activity` | typed `ACTIVITY_NAME` or legacy | `WEAK` |
+| `selected stringResource` (new reason, emitted when a typed `STRING_RESOURCE` signal carried the selected term) | typed `STRING_RESOURCE` | `MEDIUM` |
+| `arbitrary literal` (new reason, emitted when only `ARBITRARY_STRING_LITERAL` matched) | typed `ARBITRARY_STRING_LITERAL` | `WEAK` |
+| `legacy fallback` (new reason, emitted when only legacy non-signal lists matched) | legacy `text`/`testTags`/`symbols`/`excerpt`/etc. | `WEAK` |
+
+Consolidation rule (review finding #8): when both `selected testTag` (literal) and `selected testTag convention composable` fire on the same candidate, the candidate has `STRONG` evidence once. Never double-count for confidence classification (the existing `score = max(...)` clamp already prevents score double-counting; this rule extends to evidence counting).
 
 ### 0.3 Confidence classification rules
 
