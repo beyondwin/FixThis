@@ -581,6 +581,17 @@ class FeedbackQueueFormatterTest {
         assertTrue(markdown.contains("targetRisk=overlap") || markdown.contains("resolve one marker at a time"))
     }
 
+    @Test
+    fun compactPromptIsShorterThanPreciseForRepresentativeSession() {
+        val session = sessionWithTargetEvidenceAndSources()
+        val precise = FeedbackQueueFormatter.toMarkdown(session, DetailMode.PRECISE)
+        val compact = FeedbackQueueFormatter.toMarkdown(session, DetailMode.COMPACT)
+        assertTrue(
+            compact.length < precise.length,
+            "expected COMPACT (${compact.length}) shorter than PRECISE (${precise.length})",
+        )
+    }
+
     private fun sessionWithScreenshotAndOverlay(): SessionDto = SessionDto(
         sessionId = "session-1",
         packageName = "io.beyondwin.fixthis.sample",
