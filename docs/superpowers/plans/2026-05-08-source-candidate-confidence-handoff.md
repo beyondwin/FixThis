@@ -2943,8 +2943,22 @@ If `node` is not on PATH, the test marks itself SKIPPED with a clear reason
 ### 0.7 Overlap detector coordinate space
 
 ```
-Bounds in window coordinates (px). IoSA dimensionless. Center distance threshold
-24dp * density (default density = 1.0; future migration may capture density).
+Overlap detector coordinate space:
+
+- All bounds passed to AnnotationOverlapDetector are FixThisRect values from
+  AnnotationDto.target (Node.boundsInWindow or Area.boundsInWindow). Compose
+  capture pipeline already normalizes these to window coordinates in pixels.
+- IoSA (intersection-over-smaller-area) is dimensionless. Threshold 0.25 is
+  unit-independent and applies directly.
+- For the visual-area-vs-visual-area case, ANY non-zero intersection counts
+  (the threshold is effectively 0.0 IoSA for that case).
+- For the center-distance fallback (24dp), the detector accepts an optional
+  density parameter (Float, default 1.0). The threshold is computed as
+  24f * density window-pixels. Sessions persisted today do not record density,
+  so the default-1.0 path is used; FixThis docs add a note that this is
+  conservative for high-density screens (more overlaps reported, fewer missed).
+- A future migration may capture density alongside bounds; until then the
+  default is documented in CHANGELOG.md and docs/feedback-console-contract.md.
 ```
 
 ### 0.8 Test impact inventory
