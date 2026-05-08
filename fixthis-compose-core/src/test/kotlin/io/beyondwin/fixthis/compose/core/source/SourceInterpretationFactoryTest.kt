@@ -2,6 +2,7 @@ package io.beyondwin.fixthis.compose.core.source
 
 import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -38,18 +39,27 @@ class SourceInterpretationFactoryTest {
     }
 
     @Test
-    fun cautionsForLowAndNoConfidenceCandidates() {
-        val expectedCaution = "Top source candidate has low confidence; verify before editing."
-
-        val lowInterpretation = SourceInterpretationFactory.from(
+    fun cautionsForLowConfidenceCandidate() {
+        val interpretation = SourceInterpretationFactory.from(
             sourceCandidates = listOf(candidate(confidence = SelectionConfidence.LOW)),
         )
-        val noneInterpretation = SourceInterpretationFactory.from(
+
+        assertEquals(
+            "Top source candidate has low confidence; verify before editing.",
+            interpretation.caution,
+        )
+    }
+
+    @Test
+    fun cautionsForNoneConfidenceCandidate() {
+        val interpretation = SourceInterpretationFactory.from(
             sourceCandidates = listOf(candidate(confidence = SelectionConfidence.NONE)),
         )
 
-        assertEquals(expectedCaution, lowInterpretation.caution)
-        assertEquals(expectedCaution, noneInterpretation.caution)
+        assertEquals(
+            "No source candidate was available from current evidence.",
+            interpretation.caution,
+        )
     }
 
     @Test
@@ -78,6 +88,57 @@ class SourceInterpretationFactoryTest {
                 "nearby text",
             ),
             interpretation.reasonSummary,
+        )
+    }
+
+    @Test
+    fun ambiguousFlagProducesAmbiguityCaution() {
+        val candidate = SourceCandidate(
+            file = "Foo.kt",
+            line = 1,
+            score = 0.5,
+            confidence = SelectionConfidence.MEDIUM,
+            riskFlags = listOf(SourceCandidateRisk.AMBIGUOUS),
+        )
+        val interpretation = SourceInterpretationFactory.from(listOf(candidate))
+
+        assertEquals(
+            "Verify this source candidate before editing; top candidates are close.",
+            interpretation.caution,
+        )
+    }
+
+    @Test
+    fun areaSelectionFlagProducesAreaCaution() {
+        val candidate = SourceCandidate(
+            file = "Foo.kt",
+            line = 1,
+            score = 0.5,
+            confidence = SelectionConfidence.LOW,
+            riskFlags = listOf(SourceCandidateRisk.AREA_SELECTION, SourceCandidateRisk.TEXT_ONLY),
+        )
+        val interpretation = SourceInterpretationFactory.from(listOf(candidate))
+
+        assertEquals(
+            "Visual-area selection; use screenshot and bounds before editing.",
+            interpretation.caution,
+        )
+    }
+
+    @Test
+    fun textOnlyFlagProducesTextOnlyCaution() {
+        val candidate = SourceCandidate(
+            file = "Foo.kt",
+            line = 1,
+            score = 0.5,
+            confidence = SelectionConfidence.MEDIUM,
+            riskFlags = listOf(SourceCandidateRisk.TEXT_ONLY),
+        )
+        val interpretation = SourceInterpretationFactory.from(listOf(candidate))
+
+        assertEquals(
+            "Text-only match; confirm against screenshot and code.",
+            interpretation.caution,
         )
     }
 
