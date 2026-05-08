@@ -66,6 +66,7 @@
             let pendingFeedbackItems = [];
             let focusedPendingItemIndex = null;
             let focusedSavedItemId = null;
+            let focusedSavedSessionId = null;
             let currentSelection = null;
             let toolMode = 'select';
             let annotationSequence = 1;

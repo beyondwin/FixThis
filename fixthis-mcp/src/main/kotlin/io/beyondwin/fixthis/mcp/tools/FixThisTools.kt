@@ -55,6 +55,7 @@ class FixThisTools(
         defaultPackageName = defaultPackageName,
     ),
     private val consoleAssetsDir: File? = null,
+    private val consolePort: Int = 0,
 ) {
     private val cacheLock = Any()
     private val consoleLock = Any()
@@ -293,6 +294,7 @@ class FixThisTools(
             val server = consoleServer ?: FeedbackConsoleServer(
                 service = feedbackService,
                 consoleAssetsDir = consoleAssetsDir,
+                port = consolePort,
             ).also { consoleServer = it }
             return OpenFeedbackConsoleResult(
                 session = session,

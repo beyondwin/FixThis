@@ -26,6 +26,7 @@ data class AddAnnotationRequest(
 
 @Serializable
 data class UpdateAnnotationRequest(
+    val sessionId: String? = null,
     val label: String? = null,
     val severity: AnnotationSeverityDto? = null,
     val comment: String? = null,

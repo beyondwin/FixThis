@@ -125,6 +125,7 @@ fun main(args: Array<String>) {
             defaultPackageName = options.packageName,
             projectRoot = options.projectDir,
             consoleAssetsDir = options.consoleAssetsDir,
+            consolePort = options.consolePort,
         )
         val result = runBlocking {
             tools.call("fixthis_open_feedback_console", JsonObject(emptyMap()))
@@ -155,6 +156,7 @@ internal fun fixThisToolsForOptions(options: McpOptions, bridge: CliFixThisBridg
         defaultPackageName = options.packageName,
         projectRoot = options.projectDir,
         consoleAssetsDir = options.consoleAssetsDir,
+        consolePort = options.consolePort,
     )
 
 internal data class ConsoleStartupResult(val isError: Boolean, val text: String)
@@ -173,12 +175,14 @@ internal data class McpOptions(
     val projectDir: File,
     val consoleMode: Boolean,
     val consoleAssetsDir: File?,
+    val consolePort: Int = 0,
 ) {
     companion object {
         fun parse(args: Array<String>): McpOptions {
             var packageName: String? = null
             var projectDir = File(".").canonicalFile
             var consoleAssetsDir: File? = null
+            var consolePort = 0
             var consoleMode = false
             var index = 0
             while (index < args.size) {
@@ -206,6 +210,14 @@ internal data class McpOptions(
                         ).canonicalFile
                         index += 2
                     }
+                    "--console-port" -> {
+                        val rawPort = args.getOrNull(index + 1)
+                            ?: throw IllegalArgumentException("--console-port requires a value")
+                        consolePort = rawPort.toIntOrNull()
+                            ?.takeIf { it in 0..65535 }
+                            ?: throw IllegalArgumentException("--console-port must be between 0 and 65535")
+                        index += 2
+                    }
                     else -> throw IllegalArgumentException("Unknown fixthis-mcp argument: $arg")
                 }
             }
@@ -214,6 +226,7 @@ internal data class McpOptions(
                 projectDir = projectDir,
                 consoleMode = consoleMode,
                 consoleAssetsDir = consoleAssetsDir,
+                consolePort = consolePort,
             )
         }
     }

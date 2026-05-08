@@ -55,10 +55,25 @@ class McpServerTest {
 
         assertTrue(options.consoleMode)
         assertEquals("io.beyondwin.fixthis.sample", options.packageName)
+        assertEquals(0, options.consolePort)
         assertEquals(
             File("/repo/fixthis-mcp/src/main/resources/console").canonicalFile,
             options.consoleAssetsDir,
         )
+    }
+
+    @Test
+    fun parsesConsolePortOption() {
+        val options = McpOptions.parse(
+            arrayOf(
+                "--console",
+                "--console-port",
+                "60006",
+            ),
+        )
+
+        assertTrue(options.consoleMode)
+        assertEquals(60006, options.consolePort)
     }
 
     @Test
@@ -69,6 +84,7 @@ class McpServerTest {
             projectDir = projectDir,
             consoleMode = false,
             consoleAssetsDir = null,
+            consolePort = 0,
         )
         val bridge = CliFixThisBridge(BridgeClient(projectRoot = projectDir))
         val tools = fixThisToolsForOptions(options, bridge)

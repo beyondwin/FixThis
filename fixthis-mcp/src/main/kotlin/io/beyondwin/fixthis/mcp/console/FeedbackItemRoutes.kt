@@ -65,7 +65,8 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
                     "PUT" -> {
                         val request = exchange.decodeUpdateFeedbackItemBody()
                         val session = service.updateDraftFeedback(
-                            sessionId = service.requireCurrentSession().sessionId,
+                            sessionId = request.sessionId?.takeIf { it.isNotBlank() }
+                                ?: service.requireCurrentSession().sessionId,
                             itemId = itemId,
                             label = request.label,
                             severity = request.severity,
@@ -78,7 +79,8 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
                         exchange.sendJson(
                             200,
                             service.deleteDraftFeedback(
-                                sessionId = service.requireCurrentSession().sessionId,
+                                sessionId = exchange.queryParameter("sessionId")?.takeIf { it.isNotBlank() }
+                                    ?: service.requireCurrentSession().sessionId,
                                 itemId = itemId,
                             ),
                         )

@@ -30,7 +30,8 @@ const fake = {
 
 fake.sessions.set('session-1', makeSession('session-1', 0, []));
 fake.sessions.set('session-2', makeSession('session-2', -10_000, [
-  makePersistedItem('item-old', 'Existing history annotation', 'screen-session-2'),
+  makePersistedItem('item-older', 'Earlier screen annotation', 'screen-session-2-old', { left: 120, top: 260, right: 320, bottom: 360 }),
+  makePersistedItem('item-old', 'Existing history annotation', 'screen-session-2', { left: 40, top: 40, right: 160, bottom: 120 }),
 ]));
 
 function makeSession(sessionId, timeOffset, items) {
@@ -41,12 +42,12 @@ function makeSession(sessionId, timeOffset, items) {
     createdAtEpochMillis: now + timeOffset,
     updatedAtEpochMillis: now + timeOffset,
     items,
-    screens: items.length ? [makeScreen('screen-' + sessionId)] : [],
+    screens: [...new Set(items.map(item => item.screenId))].map(makeScreen),
     handoffBatches: [],
   };
 }
 
-function makePersistedItem(itemId, comment, screenId) {
+function makePersistedItem(itemId, comment, screenId, bounds = { left: 40, top: 40, right: 160, bottom: 120 }) {
   return {
     itemId,
     sequenceNumber: 1,
@@ -57,7 +58,7 @@ function makePersistedItem(itemId, comment, screenId) {
     status: 'open',
     target: {
       type: 'visual_area',
-      boundsInWindow: { left: 40, top: 40, right: 160, bottom: 120 },
+      boundsInWindow: bounds,
     },
     sourceCandidates: [],
   };
@@ -196,6 +197,10 @@ function textResponse(response, value, status = 200, contentType = 'text/plain; 
   response.end(value);
 }
 
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function readJsonBody(request) {
   const chunks = [];
   for await (const chunk of request) chunks.push(chunk);
@@ -218,7 +223,14 @@ function screenshotSvg() {
 async function handleApi(request, response, url) {
   if (request.method === 'GET' && url.pathname === '/api/session') return jsonResponse(response, currentSession());
   if (request.method === 'GET' && url.pathname === '/api/sessions') {
-    return jsonResponse(response, { sessions: Array.from(fake.sessions.values()).map(sessionSummary) });
+    return jsonResponse(response, {
+      sessions: Array.from(fake.sessions.values())
+        .map(sessionSummary)
+        .sort((left, right) =>
+          (right.updatedAtEpochMillis || 0) - (left.updatedAtEpochMillis || 0) ||
+          String(left.sessionId || '').localeCompare(String(right.sessionId || ''))
+        ),
+    });
   }
   if (request.method === 'GET' && url.pathname === '/api/devices') return jsonResponse(response, devicePayload());
   if (request.method === 'GET' && url.pathname === '/api/connection') return jsonResponse(response, connectionPayload());
@@ -295,7 +307,8 @@ async function handleApi(request, response, url) {
   if (request.method === 'PUT' && url.pathname.startsWith('/api/items/')) {
     const itemId = decodeURIComponent(url.pathname.slice('/api/items/'.length));
     const body = await readJsonBody(request);
-    const session = currentSession();
+    const session = fake.sessions.get(body.sessionId) || currentSession();
+    await delay(100);
     session.items = session.items.map(item => item.itemId === itemId
       ? {
           ...item,
@@ -429,11 +442,23 @@ async function runSmoke(baseUrl) {
 
     await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#connectionCard[data-connection-state="welcome"]');
+    await page.waitForFunction(() => document.querySelectorAll('#sessions .session-row').length >= 2);
+    assert.deepEqual(
+      await page.$$eval('#sessions .session-row', rows => rows.slice(0, 2).map(row => row.dataset.sessionId)),
+      ['session-2', 'session-1'],
+      'History sessions should stay in creation order, not API updated order',
+    );
 
     await page.locator('#sessions .session-row[data-session-id="session-2"]').click();
     await page.waitForFunction(() => document.querySelector('#sessions .session-row.is-active')?.dataset.sessionId === 'session-2');
-    await page.waitForFunction(() => document.querySelectorAll('.saved-item-row').length === 1);
-    await page.locator('.saved-item-row').first().click();
+    await page.waitForFunction(() => document.querySelectorAll('.saved-item-row').length === 2);
+    await page.waitForFunction(() =>
+      Array.from(document.querySelectorAll('#selectionOverlay .selection-label'))
+        .map(label => label.textContent)
+        .filter(Boolean)
+        .join(',') === '1,2'
+    );
+    await page.locator('.saved-item-row').nth(1).click();
     await page.waitForFunction(() => document.activeElement?.id === 'annotationCommentInput');
     const editedHistoryComment = 'Edited history annotation';
     await page.fill('#annotationCommentInput', editedHistoryComment);
@@ -441,8 +466,11 @@ async function runSmoke(baseUrl) {
       response.url().includes('/api/items/item-old') && response.request().method() === 'PUT'
     );
     await page.click('.annotation-done');
+    await page.locator('#sessions .session-row[data-session-id="session-1"]').click();
     assert.ok((await historyUpdateResponse).ok(), 'Saved annotation edit should persist');
-    assert.equal(currentSession().items[0].comment, editedHistoryComment);
+    await page.waitForFunction(() => document.querySelector('#sessions .session-row.is-active')?.dataset.sessionId === 'session-1');
+    assert.equal(fake.sessions.get('session-2').items[1].comment, editedHistoryComment);
+    await page.locator('#sessions .session-row[data-session-id="session-2"]').click();
     await page.waitForSelector('.saved-item-row');
     assert.match(await page.locator('#draftItems').textContent(), /Edited history annotation/);
     await page.locator('#sessions .session-row[data-session-id="session-1"]').click();

@@ -70,10 +70,9 @@
               }
 
               renderNumberedFeedbackOverlay(overlay, image);
-              const screen = latestScreen();
-              const persistedItems = persistedItemsForScreen(screen?.screenId);
-              if (!addItemsFlow && persistedItems.length) {
-                renderSavedEvidenceOverlay(overlay, image, persistedItems);
+              if (!addItemsFlow) {
+                const persistedItems = savedEvidenceItems();
+                if (persistedItems.length) renderSavedEvidenceOverlay(overlay, image, persistedItems);
               }
               if (currentSelection) {
                 renderOverlayBox(overlay, image, currentSelection.bounds, currentSelection.label);
@@ -227,11 +226,6 @@
               return savedEvidenceItems().find(item => item.itemId === focusedSavedItemId) || null;
             }
 
-            function persistedItemsForScreen(screenId) {
-              if (!screenId) return [];
-              return savedEvidenceItems().filter(item => item.screenId === screenId);
-            }
-
             function renderSavedEvidenceOverlay(overlay, image, items) {
               const allSavedItems = savedEvidenceItems();
               items.forEach((item, index) => {
@@ -283,6 +277,7 @@
             function renderSavedAnnotationDetail(item, index) {
               const severity = annotationSeverity(item);
               const status = annotationStatus(item);
+              const editSessionId = focusedSavedSessionId || state.session?.sessionId || null;
               draftItems.innerHTML =
                 '<div class="annotation-detail">' +
                   '<button type="button" class="annotation-back" data-back-saved-annotations>← All annotations</button>' +
@@ -328,19 +323,19 @@
                 renderPreviewOnly();
               });
               labelInput.addEventListener('change', () => {
-                persistSavedEvidenceItem(item).catch(showError);
+                persistSavedEvidenceItem(item, editSessionId).catch(showError);
               });
               commentInput.addEventListener('input', event => {
                 item.comment = event.target.value;
                 updateComposerState();
               });
               commentInput.addEventListener('change', () => {
-                persistSavedEvidenceItem(item).catch(showError);
+                persistSavedEvidenceItem(item, editSessionId).catch(showError);
               });
               draftItems.querySelectorAll('[data-set-severity]').forEach(button => {
                 button.addEventListener('click', () => {
                   item.severity = button.dataset.setSeverity;
-                  persistSavedEvidenceItem(item)
+                  persistSavedEvidenceItem(item, editSessionId)
                     .then(() => renderInspectorRegion())
                     .catch(showError);
                 });
@@ -348,7 +343,7 @@
               draftItems.querySelectorAll('[data-set-status]').forEach(button => {
                 button.addEventListener('click', () => {
                   item.status = button.dataset.setStatus;
-                  persistSavedEvidenceItem(item)
+                  persistSavedEvidenceItem(item, editSessionId)
                     .then(() => {
                       renderPreviewOnly();
                       renderInspectorRegion();
@@ -358,9 +353,10 @@
               });
               draftItems.querySelectorAll('[data-back-saved-annotations]').forEach(button => {
                 button.addEventListener('click', () => {
-                  persistSavedEvidenceItem(item)
+                  persistSavedEvidenceItem(item, editSessionId)
                     .then(() => {
                       focusedSavedItemId = null;
+                      focusedSavedSessionId = null;
                       renderPreviewOnly();
                       renderInspectorRegion();
                     })
@@ -368,7 +364,7 @@
                 });
               });
               draftItems.querySelector('[data-delete-current]').addEventListener('click', () => {
-                deleteSavedEvidenceItem(item.itemId).catch(showError);
+                deleteSavedEvidenceItem(item.itemId, editSessionId).catch(showError);
               });
               commentInput.focus();
             }

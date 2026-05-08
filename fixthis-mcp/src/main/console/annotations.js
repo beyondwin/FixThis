@@ -275,6 +275,7 @@
               pendingFeedbackItems = [];
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;
+              focusedSavedSessionId = null;
               currentSelection = null;
               hoveredAnnotationTarget = null;
               toolMode = 'select';
@@ -295,6 +296,7 @@
               currentSelection = null;
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;
+              focusedSavedSessionId = null;
               hoveredAnnotationTarget = null;
               comment.value = '';
               clearDragState();
@@ -356,6 +358,7 @@
               hoveredAnnotationTarget = null;
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;
+              focusedSavedSessionId = null;
               toolMode = 'annotate';
               comment.value = '';
               renderPreviewOnly();
@@ -367,6 +370,7 @@
               pendingFeedbackItems.splice(index, 1);
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;
+              focusedSavedSessionId = null;
               currentSelection = null;
               hoveredAnnotationTarget = null;
               comment.value = '';
@@ -378,6 +382,7 @@
             function focusPendingFeedbackItem(index) {
               focusedPendingItemIndex = index;
               focusedSavedItemId = null;
+              focusedSavedSessionId = null;
               currentSelection = null;
               toolMode = 'select';
               comment.value = pendingFeedbackItems[index]?.comment || '';
@@ -387,6 +392,7 @@
 
             function focusSavedEvidenceItem(itemId) {
               focusedSavedItemId = itemId;
+              focusedSavedSessionId = state.session?.sessionId || null;
               focusedPendingItemIndex = null;
               currentSelection = null;
               toolMode = 'select';
@@ -399,30 +405,50 @@
               return String(status || 'open').replace('-', '_');
             }
 
-            async function persistSavedEvidenceItem(item) {
+            function applySavedSessionUpdate(updatedSession, sessionId) {
+              const updatedSessionId = updatedSession?.sessionId || sessionId;
+              if (state.session?.sessionId === updatedSessionId) {
+                state.session = updatedSession;
+                renderCurrentSessionList();
+                updateComposerState();
+              } else {
+                refreshSessions().catch(showError);
+              }
+              return updatedSession;
+            }
+
+            async function persistSavedEvidenceItem(item, sessionId = focusedSavedSessionId || state.session?.sessionId || null) {
               if (!item?.itemId) return state.session;
-              state.session = await requestJson('/api/items/' + encodeURIComponent(item.itemId), {
+              const updatedSession = await requestJson('/api/items/' + encodeURIComponent(item.itemId), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                  sessionId: sessionId,
                   label: String(item.label || '').trim() || null,
                   severity: annotationSeverity(item),
                   comment: String(item.comment || ''),
                   status: normalizedPersistedStatus(annotationStatus(item))
                 })
               });
-              renderCurrentSessionList();
-              updateComposerState();
-              return state.session;
+              return applySavedSessionUpdate(updatedSession, sessionId);
             }
 
-            async function deleteSavedEvidenceItem(itemId) {
+            async function deleteSavedEvidenceItem(itemId, sessionId = focusedSavedSessionId || state.session?.sessionId || null) {
               if (!itemId) return;
-              state.session = await requestJson('/api/items/' + encodeURIComponent(itemId), { method: 'DELETE' });
-              focusedSavedItemId = null;
-              renderPreviewOnly();
-              renderInspectorRegion();
-              renderCurrentSessionList();
+              const sessionQuery = sessionId
+                ? '?sessionId=' + encodeURIComponent(sessionId)
+                : '';
+              const updatedSession = await requestJson('/api/items/' + encodeURIComponent(itemId) + sessionQuery, { method: 'DELETE' });
+              if (state.session?.sessionId === (updatedSession?.sessionId || sessionId)) {
+                focusedSavedItemId = null;
+                focusedSavedSessionId = null;
+                state.session = updatedSession;
+                renderPreviewOnly();
+                renderInspectorRegion();
+                renderCurrentSessionList();
+              } else {
+                refreshSessions().catch(showError);
+              }
             }
 
             function updateSelectedAnnotationComment() {

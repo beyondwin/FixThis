@@ -214,6 +214,55 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun itemPatchUsesRequestedSessionWhenCurrentSessionChanged() {
+        val store = FeedbackSessionStore(
+            clock = FakeLongs(100L, 200L, 300L, 400L, 500L, 600L, 700L).next,
+            idGenerator = FakeIds("session-1", "item-1", "session-2").next,
+        )
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val session1 = service.openSession(null, newSession = true)
+        store.addScreen(
+            session1.sessionId,
+            SnapshotDto(
+                screenId = "screen-1",
+                capturedAtEpochMillis = 100L,
+                displayName = "Screen 1",
+            ),
+        )
+        store.addItem(
+            session1.sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = "screen-1",
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(1f, 2f, 3f, 4f)),
+                comment = "Before",
+            ),
+        )
+        service.openSession(null, newSession = true)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val connection = ConsoleHttpTestClient(server.url).connection(
+                "/api/items/item-1",
+                method = "PUT",
+                body = """{"sessionId":"session-1","comment":"After"}""",
+            )
+
+            assertEquals(200, connection.responseCode)
+            assertEquals("After", service.getSession("session-1").items.single().comment)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
     fun mutatingApiRejectsForbiddenOriginEvenWithConsoleToken() {
         val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")
         val server = FeedbackConsoleServer(service = service, port = 0)
@@ -617,9 +666,11 @@ class FeedbackConsoleServerTest {
         assertTrue(renderAnnotationDetail.contains("commentInput.focus();"))
         assertTrue(renderSavedAnnotationDetail.contains("id=\"annotationCommentInput\""))
         assertFalse(renderSavedAnnotationDetail.contains("readonly"))
-        assertTrue(renderSavedAnnotationDetail.contains("persistSavedEvidenceItem(item)"))
+        assertTrue(renderSavedAnnotationDetail.contains("const editSessionId = focusedSavedSessionId || state.session?.sessionId || null;"))
+        assertTrue(renderSavedAnnotationDetail.contains("persistSavedEvidenceItem(item, editSessionId)"))
         assertTrue(persistSavedEvidenceItem.contains("requestJson('/api/items/' + encodeURIComponent(item.itemId)"))
         assertTrue(persistSavedEvidenceItem.contains("method: 'PUT'"))
+        assertTrue(persistSavedEvidenceItem.contains("sessionId: sessionId"))
         assertTrue(renderSavedAnnotationDetail.contains("commentInput.focus();"))
     }
 
@@ -1350,6 +1401,8 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("function sessionOrdinalLookup(sessions)"))
         assertTrue(html.contains("createdAtEpochMillis || 0"))
         assertTrue(html.contains("ordinalBySessionId.set(session.sessionId, index + 1);"))
+        assertTrue(html.contains("function stableHistorySessions(sessions)"))
+        assertTrue(html.contains("const renderedActiveSummaries = stableHistorySessions(activeSummaries);"))
         assertTrue(formatSessionLabel.contains("const safeOrdinal = Math.max(1, Number(ordinal || 1));"))
         assertTrue(formatSessionLabel.contains("return 'Session ' + safeOrdinal;"))
         assertFalse(formatSessionLabel.contains("state.session"))
@@ -1358,6 +1411,7 @@ class FeedbackConsoleServerTest {
         assertFalse(formatSessionLabel.contains("packageTail"))
         assertFalse(formatSessionLabel.contains("Feedback snapshot"))
         assertTrue(html.contains("const ordinalBySessionId = sessionOrdinalLookup(activeSummaries);"))
+        assertTrue(html.contains("const renderedSessions = renderedActiveSummaries.map((session, index) => {"))
         assertTrue(html.contains("const label = formatSessionLabel(session, ordinalBySessionId.get(session.sessionId) || index + 1);"))
         assertTrue(html.contains(".sent-history-drawer .history-list"))
         assertTrue(html.contains("max-height:"))
@@ -1551,12 +1605,12 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("function screenImageUrl(screen)"))
         assertTrue(html.contains("return addItemsFlow?.screen || latestPersistedScreen() || state.preview?.screen;"))
         assertTrue(html.contains("'/api/screens/' + encodeURIComponent(screen.screenId) + '/screenshot/full'"))
-        assertTrue(html.contains("const persistedItems = persistedItemsForScreen(screen?.screenId);"))
+        assertTrue(html.contains("const persistedItems = savedEvidenceItems();"))
         assertTrue(html.contains("renderSavedEvidenceOverlay(overlay, image, persistedItems);"))
         assertFalse(html.contains("if (!addItemsFlow && !state.preview && persistedItems.length)"))
         assertTrue(Regex("async function openSession\\(sessionId\\)[\\s\\S]*stopLivePreviewPolling\\(\\);[\\s\\S]*await refresh\\(\\);").containsMatchIn(html))
         assertTrue(html.contains("function savedEvidenceItems()"))
-        assertTrue(html.contains("return savedEvidenceItems().filter(item => item.screenId === screenId);"))
+        assertFalse(html.contains("function persistedItemsForScreen(screenId)"))
         assertFalse(html.contains("escapeHtml(formatSavedEvidenceItemLabel(item, index))"))
     }
 
@@ -1574,7 +1628,7 @@ class FeedbackConsoleServerTest {
         assertTrue(renderOverlayBox.contains("selectHandler"))
         assertTrue(renderOverlayBox.contains("selectHandler(annotationIndex);"))
         assertTrue(renderSavedEvidenceOverlay.contains("focusSavedEvidenceItem(item.itemId)"))
-        assertTrue(html.contains("persistedItemsForScreen(screen?.screenId)"))
+        assertTrue(html.contains("const persistedItems = savedEvidenceItems();"))
         assertFalse(renderSavedEvidenceGroups.contains("saved-evidence-preview"))
         assertFalse(renderSavedEvidenceGroups.contains("hydrateSavedEvidencePreviews"))
         assertFalse(html.contains("function hydrateSavedEvidencePreviews()"))

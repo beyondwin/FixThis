@@ -1,14 +1,17 @@
             function sessionOrdinalLookup(sessions) {
               const ordinalBySessionId = new Map();
-              [...(sessions || [])]
-                .sort((left, right) =>
-                  (left.createdAtEpochMillis || 0) - (right.createdAtEpochMillis || 0) ||
-                  String(left.sessionId || '').localeCompare(String(right.sessionId || ''))
-                )
+              stableHistorySessions(sessions)
                 .forEach((session, index) => {
                   ordinalBySessionId.set(session.sessionId, index + 1);
                 });
               return ordinalBySessionId;
+            }
+
+            function stableHistorySessions(sessions) {
+              return [...(sessions || [])].sort((left, right) =>
+                (left.createdAtEpochMillis || 0) - (right.createdAtEpochMillis || 0) ||
+                String(left.sessionId || '').localeCompare(String(right.sessionId || ''))
+              );
             }
 
             function formatSessionLabel(session, ordinal) {
@@ -199,8 +202,9 @@
               const activeId = state.session?.sessionId;
               const activeSummaries = sessionSummaries.filter(session => session.status !== 'ready_for_agent' && session.status !== 'closed');
               const ordinalBySessionId = sessionOrdinalLookup(activeSummaries);
+              const renderedActiveSummaries = stableHistorySessions(activeSummaries);
               sessionCount.textContent = String(activeSummaries.length);
-              const renderedSessions = activeSummaries.map((session, index) => {
+              const renderedSessions = renderedActiveSummaries.map((session, index) => {
                 const open = historyOpenCount(session);
                 const done = historyDoneCount(session);
                 const points = historyPointsCount(session);
