@@ -356,7 +356,7 @@
               pendingFeedbackItems.push(annotation);
               currentSelection = null;
               hoveredAnnotationTarget = null;
-              focusedPendingItemIndex = null;
+              focusedPendingItemIndex = pendingFeedbackItems.length - 1;
               focusedSavedItemId = null;
               focusedSavedSessionId = null;
               toolMode = 'annotate';
