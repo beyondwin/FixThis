@@ -179,8 +179,8 @@ class FixThisMarkdownFormatterTest {
         assertTrue(markdown.contains("Target:"))
         assertTrue(markdown.contains("AppPrimaryButton"))
         assertTrue(markdown.contains("Occurrence: 1/2"))
-        assertTrue(markdown.contains("Top Source:"))
         assertTrue(markdown.contains("AppPrimaryButton.kt:42"))
+        assertFalse(markdown.contains("Top Source:"))
         assertFalse(markdown.contains("Nearby context"))
         assertFalse(markdown.contains("SecondaryButton.kt"))
     }

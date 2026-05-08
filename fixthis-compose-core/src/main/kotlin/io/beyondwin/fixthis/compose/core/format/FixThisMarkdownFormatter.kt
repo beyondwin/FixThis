@@ -20,14 +20,49 @@ object FixThisMarkdownFormatter {
     private fun formatCompact(annotation: FixThisAnnotation): String = buildString {
         appendLine("# FixThis Feedback")
         appendLine()
+        appendLine("Rule: source hints are candidates; verify screenshot, target, and code before editing.")
+        appendLine()
         appendLine("Request:")
         appendFreeFormBlock(annotation.userComment)
         appendLine()
         appendLine("Target:")
         appendCompactTarget(annotation)
         appendLine()
-        appendLine("Top Source:")
-        appendSourceCandidates(annotation.sourceCandidates, maxCandidates = 1)
+        appendCompactSourceLine(annotation.sourceCandidates.firstOrNull())
+    }
+
+    private fun StringBuilder.appendCompactSourceLine(candidate: SourceCandidate?) {
+        if (candidate == null) {
+            appendLine("src? unknown")
+            return
+        }
+        val confidence = candidate.confidence.name.lowercase()
+        val why = candidate.matchReasons
+            .mapNotNull { compactReasonToken(it) }
+            .distinct()
+            .joinToString("+")
+        val risk = candidate.riskFlags.firstOrNull()?.name?.lowercase()?.replace('_', '-')
+        val parts = mutableListOf("src? ${candidate.location()} $confidence")
+        if (why.isNotBlank()) parts.add("why=$why")
+        if (risk != null) parts.add("risk=$risk")
+        appendLine(parts.joinToString("; "))
+    }
+
+    private fun compactReasonToken(reason: String): String? = when (reason) {
+        "selected text" -> "text"
+        "selected contentDescription" -> "contentDescription"
+        "selected testTag" -> "tag"
+        "selected testTag convention composable" -> "compTag"
+        "selected role" -> "role"
+        "nearby text" -> "nearbyText"
+        "nearby contentDescription" -> "nearbyContentDescription"
+        "nearby testTag" -> "nearbyTag"
+        "nearby role" -> "nearbyRole"
+        "activity" -> "activity"
+        "selected stringResource" -> "stringRes"
+        "arbitrary literal" -> "literal"
+        "legacy fallback" -> "legacy"
+        else -> null
     }
 
     private fun formatPrecise(annotation: FixThisAnnotation): String = buildString {
