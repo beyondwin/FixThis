@@ -21,16 +21,8 @@
       "files": ["fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt"],
       "commit": "7b298389a2e01d1ee5424e07ce643870d4596d36",
       "pre_task_sha": "3046b0ee061bf1d9012880f9f7d7fb6df780d9b9",
-      "escalations": 0,
-      "review_retries": 0,
-      "verifier_retries": 0,
-      "timing": {
-        "started": "2026-05-09T01:05:10Z",
-        "implementer_done": "2026-05-09T01:08:00Z",
-        "reviewer_done": "2026-05-09T01:09:00Z",
-        "verifier_done": null,
-        "completed": "2026-05-09T01:09:00Z"
-      }
+      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
+      "timing": {"started": "2026-05-09T01:05:10Z", "completed": "2026-05-09T01:09:00Z"}
     },
     "task_2": {
       "status": "COMPLETE",
@@ -38,16 +30,17 @@
       "files": ["fixthis-mcp/src/main/console/preview.js"],
       "commit": "ec7268c170ecf62dc4dde3ccf9f40221a7cc81a0",
       "pre_task_sha": "c20fdad64433e4842b826250977fdad6e36c4638",
-      "escalations": 0,
-      "review_retries": 0,
-      "verifier_retries": 0,
-      "timing": {
-        "started": "2026-05-09T01:09:00Z",
-        "implementer_done": "2026-05-09T01:11:00Z",
-        "reviewer_done": "2026-05-09T01:12:00Z",
-        "verifier_done": null,
-        "completed": "2026-05-09T01:12:00Z"
-      }
+      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
+      "timing": {"started": "2026-05-09T01:09:00Z", "completed": "2026-05-09T01:12:00Z"}
+    },
+    "task_3": {
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": ["fixthis-mcp/src/main/console/rendering.js"],
+      "commit": "d5e228be856510a8c24605739c015907004ca082",
+      "pre_task_sha": "0acc30aad00121240aea7a77a274f235f0447feb",
+      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
+      "timing": {"started": "2026-05-09T01:12:00Z", "completed": "2026-05-09T01:15:00Z"}
     }
   },
   "task_summaries": {
@@ -55,18 +48,24 @@
       "files": ["fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt"],
       "exposed_apis": [],
       "key_decision": "Update 3 test assertions to TDD red state for new JS behavior",
-      "for_next_tasks": "Tests now assert corrected latestScreen() multi-branch and renderSelectionOverlay focusedSavedItemId gate; they fail until Tasks 2-4 update the JS source/bundle"
+      "for_next_tasks": "Tests assert corrected latestScreen() multi-branch and renderSelectionOverlay focusedSavedItemId gate; fail until Task 4 updates app.js"
     },
     "task_2": {
       "files": ["fixthis-mcp/src/main/console/preview.js"],
       "exposed_apis": ["latestScreen (updated behavior)"],
-      "key_decision": "Live preview (state.preview?.screen) now takes priority over latestPersistedScreen() in fallback",
-      "for_next_tasks": "latestScreen() now returns focusedScreen from state.session.screens when focusedSavedItemId is set; Task 4 must mirror this exactly to app.js"
+      "key_decision": "Live preview takes priority over latestPersistedScreen() in fallback",
+      "for_next_tasks": "latestScreen() returns focusedScreen from state.session.screens when focusedSavedItemId set; Task 4 must mirror to app.js"
+    },
+    "task_3": {
+      "files": ["fixthis-mcp/src/main/console/rendering.js"],
+      "exposed_apis": ["renderSelectionOverlay (updated behavior)"],
+      "key_decision": "Gate saved overlay on focusedSavedItemId; filter to same-screen items only",
+      "for_next_tasks": "renderSelectionOverlay now only draws saved pins when focusedSavedItemId is set and only for matching screenId; Task 4 must mirror to app.js"
     }
   },
-  "low_tasks_pending_verification": ["task_1", "task_2"],
+  "low_tasks_pending_verification": ["task_1", "task_2", "task_3"],
   "last_compaction_after_task": -1,
-  "current_task": 3,
+  "current_task": 4,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
