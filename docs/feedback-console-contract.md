@@ -62,7 +62,7 @@ The `screenshot:` line is optional and omitted when no screenshot artifact is av
 ```
 N. [marker N] <title>
    target: <role> "<label>" bounds=left,top,right,bottom[; targetRisk=overlap]
-   src? <file>:<line> <confidence>; why=<token>+<token>; risk=<token>
+   src? <file>:<line> <confidence>[; why=<token>+<token>][; risk=<token>]
 ```
 
 The `src?` line is optional and absent when no source candidates are available for the item.
@@ -71,9 +71,9 @@ The `src?` line is optional and absent when no source candidates are available f
 - `target:` — semantic role, accessibility label, and window-pixel bounding box at default density 1.0.
 - `targetRisk=overlap` — present when the target participates in an overlap group (see below).
 - `src?` — top source candidate: file path relative to project root, 1-based line number, and confidence level.
-- `why=` — `+`-joined reason tokens explaining why the candidate was selected.
-- `risk=` — a single risk token summarizing the candidate's caution category.
-- Confidence is lowercase: `high`, `medium`, `low`, or `none`.
+- `why=` — optional `+`-joined reason tokens explaining why the candidate was selected. Omitted when no reason tokens are present.
+- `risk=` — optional single risk token summarizing the candidate's caution category. Omitted when `riskFlags` is empty (confident matches have no risk token).
+- Confidence is lowercase: `high`, `medium`, `low`, or `none`. The value `none` is emitted only when a source candidate entry has no confidence value; this should not occur in normal sessions — `high`, `medium`, and `low` cover the normal range.
 
 ### Reason-token mapping
 
