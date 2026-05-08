@@ -3,8 +3,11 @@ package io.beyondwin.fixthis.compose.core.source
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
+import io.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
+import io.beyondwin.fixthis.compose.core.model.SourceEvidenceStrength
 import io.beyondwin.fixthis.compose.core.model.TreeKind
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -205,7 +208,11 @@ class SourceMatcherTest {
             activityName = null
         ).single()
 
-        assertEquals(SelectionConfidence.MEDIUM, match.confidence)
+        assertEquals(SelectionConfidence.HIGH, match.confidence)
+        assertEquals(1, match.ranking)
+        assertEquals(1.0, match.scoreMargin!!, 0.0)
+        assertEquals(SourceEvidenceStrength.STRONG, match.evidenceStrength)
+        assertTrue(match.riskFlags.isEmpty())
         assertEquals(0.65, match.score, 0.0)
         assertTrue(match.matchedTerms.contains("comp:AppPrimaryButton:primary"))
         assertTrue(match.matchedTerms.contains("AppPrimaryButton"))
