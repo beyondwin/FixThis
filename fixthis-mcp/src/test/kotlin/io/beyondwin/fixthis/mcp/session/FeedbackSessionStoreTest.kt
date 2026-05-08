@@ -22,6 +22,18 @@ import kotlin.test.assertTrue
 
 class FeedbackSessionStoreTest {
     @Test
+    fun deserializesLegacySessionJsonWithoutNewSourceCandidateFields() {
+        val raw = javaClass.classLoader.getResource("legacy/source-candidate-v1.json")!!.readText()
+        val session = fixThisJson.decodeFromString(SessionDto.serializer(), raw)
+        val candidate = session.items.single().sourceCandidates.single()
+
+        assertEquals("Foo.kt", candidate.file)
+        assertEquals(SelectionConfidence.MEDIUM, candidate.confidence)
+        assertTrue(candidate.riskFlags.isEmpty())
+        assertEquals(null, candidate.scoreMargin)
+    }
+
+    @Test
     fun feedbackSessionRoundTripsThroughJson() {
         val session = SessionDto(
             sessionId = "session-1",
