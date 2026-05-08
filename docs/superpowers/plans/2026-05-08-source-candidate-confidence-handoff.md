@@ -2915,9 +2915,29 @@ strings are stable identifiers used by the formatter mapping.
 ### 0.6 Parity fixtures
 
 ```
-fixthis-mcp/src/test/resources/parity/session.json
-fixthis-mcp/src/test/resources/parity/expected-prompt.txt
-fixthis-mcp/src/test/resources/parity/run-prompt.js (vm.createContext sandbox)
+Parity fixtures (Phase 8 will create):
+
+- fixthis-mcp/src/test/resources/parity/session.json
+- fixthis-mcp/src/test/resources/parity/expected-prompt.txt
+- fixthis-mcp/src/test/resources/parity/run-prompt.js (Node harness)
+
+Parity runner approach: PromptParityTest spawns
+`node parity/run-prompt.js parity/session.json` from a Gradle test, captures
+stdout, normalizes line endings, and compares against expected-prompt.txt. The
+Node harness loads `prompt.js` source as a string, then evaluates the script
+inside a fresh `vm.createContext({ ... })` sandbox with a controlled set of
+helper stubs (no DOM, no network). This is a checked-in test fixture only;
+production code never executes prompt.js this way.
+
+The Kotlin formatter is exercised in the same test by deserializing
+parity/session.json into a SessionDto, calling
+FeedbackQueueFormatter.toMarkdown(session, DetailMode.COMPACT), and asserting
+that the COMPACT Markdown contains the same set of compact-token lines (`src?`,
+`why=`, `risk=`) the JS prompt produces, after a normalizer that strips Markdown
+headers and per-screen verification rule lines.
+
+If `node` is not on PATH, the test marks itself SKIPPED with a clear reason
+("node not available; install Node 18+ to run parity test"). It does NOT fail.
 ```
 
 ### 0.7 Overlap detector coordinate space
