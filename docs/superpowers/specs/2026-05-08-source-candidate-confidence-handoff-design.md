@@ -61,6 +61,8 @@ heuristic hints sound more definitive than they are.
 - Preserve full JSON evidence for tools and debugging.
 - Include screenshot, overlay, and crop references when they reduce item
   ambiguity.
+- Detect overlapping annotation targets and avoid sending them as one compact
+  agent task unless the handoff makes the separation explicit.
 - Add tests that measure confidence safety, prompt shape, prompt size, and
   fixture-level matching behavior.
 
@@ -258,12 +260,41 @@ Recommended artifact policy:
 - Continue documenting that screenshots can contain sensitive data and should be
   reviewed before sharing exported artifacts.
 
+Overlap policy:
+
+- Detect overlap among persisted items that share the same `screenId`.
+- Treat items as overlapping when their bounds intersect with meaningful area,
+  when one item mostly contains another, or when two visual-area selections have
+  near-identical centers.
+- Compact handoff should not silently batch overlapping items as ordinary
+  sibling tasks.
+- Default behavior should split overlapping items into separate agent handoff
+  groups. A single `Send Agent` action can still create one persisted handoff
+  batch for audit history, but the Markdown snapshot should render overlap
+  groups separately with clear headers.
+- If overlapping items must appear in one prompt, each item must include a
+  marker, bounds, crop if available, and `targetRisk=overlap`; the prompt should
+  tell the agent to resolve one marker at a time.
+- Non-overlapping items from the same screen can remain grouped under one
+  screen-level screenshot because marker numbers and bounds are enough to keep
+  them distinct.
+
+Recommended initial overlap thresholds:
+
+- Any non-zero intersection between two visual-area selections counts as
+  overlapping.
+- Node or mixed node/area targets count as overlapping when intersection-over-
+  smaller-area is at least `0.25`.
+- Near-identical center fallback applies when center distance is under `24px`
+  and either target has weak semantic labels.
+
 If overlay generation is too large for the first implementation slice, the
 minimum viable version is:
 
 - include stable item marker numbers in Markdown;
 - include bounds for every item;
 - include full screenshot path once per screen;
+- split overlapping items into separate Markdown groups;
 - add crop paths only when already available.
 
 Overlay generation can then follow as a second slice without changing the
@@ -288,6 +319,29 @@ screenshot: .fixthis/feedback-sessions/.../screen-1-full.png
 overlay: .fixthis/feedback-sessions/.../screen-1-marked.png
 ```
 
+When overlapping targets exist, render separate groups instead of one ordinary
+screen item list:
+
+```text
+Overlap group A: handle one marker at a time.
+screen: screen-1 Checkout
+screenshot: .fixthis/feedback-sessions/.../screen-1-full.png
+
+1. [marker 1] Move the card title down
+target: Text "Revenue" bounds=40,120,220,152 targetRisk=overlap
+crop: .fixthis/feedback-sessions/.../item-1-crop.png
+src?: DashboardCard.kt:44 medium; why=text; risk=text_only
+
+Overlap group B: handle one marker at a time.
+screen: screen-1 Checkout
+screenshot: .fixthis/feedback-sessions/.../screen-1-full.png
+
+2. [marker 2] Increase the card padding
+target: Card bounds=24,96,360,220 targetRisk=overlap
+crop: .fixthis/feedback-sessions/.../item-2-crop.png
+src?: DashboardCard.kt:31 medium; why=nearbyText+role; risk=nearby_only
+```
+
 Item-level context is compact and independent:
 
 ```text
@@ -308,6 +362,9 @@ Prompt rules:
   confidence, area-derived, or in a close race.
 - Omit default `Severity` and `Status`.
 - Do not repeat the screenshot path for each item on the same screen.
+- Split overlapping targets into separate Markdown groups, or add
+  `targetRisk=overlap` and one-marker-at-a-time instructions when a single
+  prompt is unavoidable.
 - For `DetailMode.PRECISE`, include more target evidence and up to 3 source
   candidates.
 - For `DetailMode.FULL`, include raw matched terms, match reasons, scores,
@@ -425,6 +482,7 @@ Start with the minimum viable artifact changes:
 - screen-level full screenshot path appears once in Markdown when available;
 - item marker numbers are stable and visible;
 - bounds remain present for every item;
+- overlapping item bounds are detected and rendered as separate Markdown groups;
 - existing crop paths are included when available.
 
 Then add overlay/crop generation if the first slice shows the agent still
@@ -455,6 +513,8 @@ Validate:
 - false `HIGH` count is zero for known ambiguous scenes;
 - caution exists when expected;
 - prompt output includes marker and screenshot context for multi-item screens.
+- overlapping annotations are not rendered as one ordinary same-screen task
+  list.
 
 Primary files:
 
@@ -515,6 +575,8 @@ git diff --check
   `Likely Source`, `matched`, and `reasons` blocks.
 - Multi-item same-screen handoff includes stable item markers and screen-level
   screenshot context once.
+- Overlapping same-screen annotations are split into explicit overlap groups or
+  marked with `targetRisk=overlap` and one-marker-at-a-time instructions.
 - Prompt length for representative batches is lower than the current console
   prompt while preserving target evidence.
 - Tests cover matcher confidence, source interpretation caution, formatter
