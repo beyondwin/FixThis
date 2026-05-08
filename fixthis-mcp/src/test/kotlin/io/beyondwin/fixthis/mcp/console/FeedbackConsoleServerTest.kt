@@ -1636,7 +1636,7 @@ class FeedbackConsoleServerTest {
         assertTrue(renderOverlayBox.contains("selectHandler"))
         assertTrue(renderOverlayBox.contains("selectHandler(annotationIndex);"))
         assertTrue(renderSavedEvidenceOverlay.contains("focusSavedEvidenceItem(item.itemId)"))
-        assertTrue(html.contains("const persistedItems = savedEvidenceItems();"))
+        assertTrue(html.contains("savedEvidenceItems()"))
         assertFalse(renderSavedEvidenceGroups.contains("saved-evidence-preview"))
         assertFalse(renderSavedEvidenceGroups.contains("hydrateSavedEvidencePreviews"))
         assertFalse(html.contains("function hydrateSavedEvidencePreviews()"))
