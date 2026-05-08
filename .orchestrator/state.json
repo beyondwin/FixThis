@@ -31,6 +31,23 @@
         "verifier_done": null,
         "completed": "2026-05-09T01:09:00Z"
       }
+    },
+    "task_2": {
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": ["fixthis-mcp/src/main/console/preview.js"],
+      "commit": "ec7268c170ecf62dc4dde3ccf9f40221a7cc81a0",
+      "pre_task_sha": "c20fdad64433e4842b826250977fdad6e36c4638",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "timing": {
+        "started": "2026-05-09T01:09:00Z",
+        "implementer_done": "2026-05-09T01:11:00Z",
+        "reviewer_done": "2026-05-09T01:12:00Z",
+        "verifier_done": null,
+        "completed": "2026-05-09T01:12:00Z"
+      }
     }
   },
   "task_summaries": {
@@ -39,11 +56,17 @@
       "exposed_apis": [],
       "key_decision": "Update 3 test assertions to TDD red state for new JS behavior",
       "for_next_tasks": "Tests now assert corrected latestScreen() multi-branch and renderSelectionOverlay focusedSavedItemId gate; they fail until Tasks 2-4 update the JS source/bundle"
+    },
+    "task_2": {
+      "files": ["fixthis-mcp/src/main/console/preview.js"],
+      "exposed_apis": ["latestScreen (updated behavior)"],
+      "key_decision": "Live preview (state.preview?.screen) now takes priority over latestPersistedScreen() in fallback",
+      "for_next_tasks": "latestScreen() now returns focusedScreen from state.session.screens when focusedSavedItemId is set; Task 4 must mirror this exactly to app.js"
     }
   },
-  "low_tasks_pending_verification": ["task_1"],
+  "low_tasks_pending_verification": ["task_1", "task_2"],
   "last_compaction_after_task": -1,
-  "current_task": 2,
+  "current_task": 3,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
