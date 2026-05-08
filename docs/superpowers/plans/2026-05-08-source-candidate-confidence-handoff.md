@@ -2963,7 +2963,22 @@ Overlap detector coordinate space:
 
 ### 0.8 Test impact inventory
 
-(See full table in Step 0.8.)
+| File | Line | Current expectation | New expectation under Phase 3 rules | Justification |
+| --- | --- | --- | --- | --- |
+| `SourceMatcherTest.kt` | 51 | `SelectionConfidence.HIGH` for top candidate | `HIGH` retained | Selected text + testTag (literal STRONG) + role + activity vs second candidate (text + activity only). Normalized topScore approx 0.9, nextScore approx 0.4, scoreMargin > 0.5 >= CLEAR_MARGIN. Strong evidence + clear margin -> HIGH. |
+| `SourceMatcherTest.kt` | 208 | `SelectionConfidence.MEDIUM` at score 0.65 | `HIGH` (intentional update) | Selected `comp:` testTag with strict-comp-style match against single candidate (margin = 1.0). Strong evidence + single candidate -> HIGH. Test must update. |
+| `SourceInterpretationFactoryTest.kt` | 20-27 | Caution null for HIGH | Caution null retained | No risk flags on construction; HIGH+empty flags -> caution null. |
+| `SourceInterpretationFactoryTest.kt` | 80-90 | Default fixture HIGH | Caution null retained | Same as above. |
+| `TargetEvidenceModelTest.kt` | 95, 127, 147 | HIGH source confidence | Retained where the fixture exposes strong evidence and a single candidate; downgrade to MEDIUM if the fixture has multiple close candidates and the new rules require it. Verify each fixture; default to MEDIUM if uncertain and update the assertion. | New rules can downgrade. |
+| `FixThisMarkdownFormatterTest.kt` | 79, 121, 326, 374, 447 | HIGH visible in PRECISE/FULL Markdown | PRECISE/FULL Markdown unchanged because tokens still come from `confidence.name.lowercase()` | Wire format change is COMPACT-only. |
+| `FixThisMarkdownFormatterTest.kt` | 334, 342, 399, 422 | MEDIUM visible | Same | Same. |
+| `FeedbackQueueFormatterTest.kt` | 62 | HIGH single source candidate, asserts `Likely Source:` block | Default mode is PRECISE; PRECISE keeps `Likely Source:` block. No change. | Default mode locked to PRECISE. |
+| `FeedbackQueueFormatterTest.kt` | 180 | HIGH on visual-area candidate, output `low confidence` | Same. Visual-area cap unchanged at the formatter layer. | Existing area cap preserved by formatter. |
+| `FeedbackQueueFormatterTest.kt` | 325 | HIGH single source candidate, asserts no internal IDs | Same. | PRECISE format unchanged. |
+| `FeedbackQueueFormatterTest.kt` | 553, 561 | HIGH/MEDIUM in PRECISE/FULL | Same. | PRECISE/FULL unchanged. |
+| `FeedbackSessionStoreTest.kt` | 659 | HIGH on persisted candidate | Same. Backward-compatible deserialization (Phase 1) preserves field. | No behavior change in store. |
+
+(The plan does not edit `NodeSelectorTest.kt:44`; that test asserts `SelectionInfo.confidence`, not `SourceCandidate.confidence`, and is out of scope.)
 
 ---
 
