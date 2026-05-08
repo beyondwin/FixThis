@@ -1,0 +1,33 @@
+{
+  "status": "PASS",
+  "summary": "All 283 tests ran; exactly 2 failures remain, both matching the pre-existing exempt tests (consoleHtmlUsesModeAwareStudioInspector and consoleHtmlAnnotationSaveUsesCurrentSelectionPayload). No new failures introduced by the changed files.",
+  "risk_level": "LOW (BATCH)",
+  "tests_run": [
+    "cd /Users/kws/.config/superpowers/worktrees/FixThis/annotation-screen-mismatch-fix-20260509-010510 && ./gradlew :fixthis-mcp:test --tests \"io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest\" 2>&1 | tail -30",
+    "cd /Users/kws/.config/superpowers/worktrees/FixThis/annotation-screen-mismatch-fix-20260509-010510 && ./gradlew :fixthis-mcp:test 2>&1 | tail -20"
+  ],
+  "results": [
+    {
+      "suite": "FeedbackConsoleServerTest",
+      "status": "PASS",
+      "count": 109,
+      "failures": 2,
+      "exempt_failures": [
+        "consoleHtmlUsesModeAwareStudioInspector (FeedbackConsoleServerTest.kt:629)",
+        "consoleHtmlAnnotationSaveUsesCurrentSelectionPayload (FeedbackConsoleServerTest.kt:1905)"
+      ]
+    },
+    {
+      "suite": "Full :fixthis-mcp:test",
+      "status": "PASS",
+      "count": 283,
+      "failures": 2,
+      "exempt_failures": [
+        "consoleHtmlUsesModeAwareStudioInspector (FeedbackConsoleServerTest.kt:629)",
+        "consoleHtmlAnnotationSaveUsesCurrentSelectionPayload (FeedbackConsoleServerTest.kt:1905)"
+      ]
+    }
+  ],
+  "issues": ["none"],
+  "escalation": null
+}

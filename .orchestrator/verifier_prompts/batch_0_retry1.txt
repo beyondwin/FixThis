@@ -1,0 +1,55 @@
+You are a Verifier sub-agent running on Sonnet. Run tests calibrated to the risk level provided. Do not modify any implementation files.
+
+## Risk Level: LOW (BATCH)
+
+## Files Changed
+
+- fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+- fixthis-mcp/src/main/console/preview.js
+- fixthis-mcp/src/main/console/rendering.js
+- fixthis-mcp/src/main/resources/console/app.js
+
+## Baseline (do not introduce new failures beyond this)
+
+Passing: 281 | Failing: 2
+
+The 2 pre-existing failures (exempt):
+- consoleHtmlUsesModeAwareStudioInspector (FeedbackConsoleServerTest.kt:629)
+- consoleHtmlAnnotationSaveUsesCurrentSelectionPayload (FeedbackConsoleServerTest.kt:1897 or nearby)
+
+## Test Command
+
+`./gradlew :fixthis-mcp:test` — use this exact command. Do not re-derive.
+
+## Acceptance Criteria
+
+Run the full FeedbackConsoleServerTest suite first:
+```bash
+cd /Users/kws/.config/superpowers/worktrees/FixThis/annotation-screen-mismatch-fix-20260509-010510 && ./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest" 2>&1 | tail -30
+```
+
+Then the full suite:
+```bash
+cd /Users/kws/.config/superpowers/worktrees/FixThis/annotation-screen-mismatch-fix-20260509-010510 && ./gradlew :fixthis-mcp:test 2>&1 | tail -20
+```
+
+Pass condition: only the 2 pre-existing failures remain. No new failures.
+
+## Result File
+
+Write your structured result to: `/Users/kws/.config/superpowers/worktrees/FixThis/annotation-screen-mismatch-fix-20260509-010510/.orchestrator/verifier_results/batch_0_retry1.json`
+
+JSON schema:
+```json
+{
+  "status": "PASS",
+  "summary": "<≤3 sentences>",
+  "risk_level": "LOW (BATCH)",
+  "tests_run": ["<command1>", "<command2>"],
+  "results": [{"suite": "<name>", "status": "PASS", "count": 0, "failures": 0}],
+  "issues": ["none"],
+  "escalation": null
+}
+```
+
+After writing the file, print its contents to stdout for logging.

@@ -1,0 +1,48 @@
+{
+  "status": "FAIL",
+  "summary": "1 new test failure beyond the 2 pre-existing baseline failures. The test consoleHtmlKeepsSavedAnnotationPreviewsInCenterDeviceOnly fails at FeedbackConsoleServerTest.kt:1639 because the assertion assertTrue(html.contains(\"const persistedItems = savedEvidenceItems();\")) is not satisfied — this string does not appear anywhere in app.js or the console source files (preview.js, rendering.js). The other 2 acceptance criteria tests (consoleHtmlKeepsFrozenPreviewStableAndShowsPersistedScreenHistory and generatedConsoleAppMatchesConsoleSourceModules) pass. Full suite: 283 tests, 3 failed (2 pre-existing + 1 new).",
+  "risk_level": "LOW (BATCH)",
+  "tests_run": [
+    "cd /Users/kws/.config/superpowers/worktrees/FixThis/annotation-screen-mismatch-fix-20260509-010510 && ./gradlew :fixthis-mcp:test --tests '...consoleHtmlKeepsFrozenPreviewStableAndShowsPersistedScreenHistory' --tests '...consoleHtmlKeepsSavedAnnotationPreviewsInCenterDeviceOnly' --tests '...generatedConsoleAppMatchesConsoleSourceModules'",
+    "cd /Users/kws/.config/superpowers/worktrees/FixThis/annotation-screen-mismatch-fix-20260509-010510 && ./gradlew :fixthis-mcp:test --tests 'io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest'",
+    "cd /Users/kws/.config/superpowers/worktrees/FixThis/annotation-screen-mismatch-fix-20260509-010510 && ./gradlew :fixthis-mcp:test"
+  ],
+  "results": [
+    {
+      "suite": "consoleHtmlKeepsFrozenPreviewStableAndShowsPersistedScreenHistory",
+      "status": "PASS",
+      "count": 1,
+      "failures": 0
+    },
+    {
+      "suite": "consoleHtmlKeepsSavedAnnotationPreviewsInCenterDeviceOnly",
+      "status": "FAIL",
+      "count": 1,
+      "failures": 1
+    },
+    {
+      "suite": "generatedConsoleAppMatchesConsoleSourceModules",
+      "status": "PASS",
+      "count": 1,
+      "failures": 0
+    },
+    {
+      "suite": "FeedbackConsoleServerTest (full suite)",
+      "status": "FAIL",
+      "count": 109,
+      "failures": 3
+    },
+    {
+      "suite": "Full test suite",
+      "status": "FAIL",
+      "count": 283,
+      "failures": 3
+    }
+  ],
+  "issues": [
+    "NEW FAILURE: consoleHtmlKeepsSavedAnnotationPreviewsInCenterDeviceOnly (FeedbackConsoleServerTest.kt:1639): assertTrue(html.contains(\"const persistedItems = savedEvidenceItems();\")) — this string is absent from app.js and all console source files (preview.js, rendering.js). Implementation is incomplete for this assertion.",
+    "PRE-EXISTING (exempt): consoleHtmlUsesModeAwareStudioInspector (FeedbackConsoleServerTest.kt:629)",
+    "PRE-EXISTING (exempt): consoleHtmlAnnotationSaveUsesCurrentSelectionPayload (FeedbackConsoleServerTest.kt:1905)"
+  ],
+  "escalation": null
+}

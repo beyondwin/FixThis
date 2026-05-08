@@ -1,0 +1,11 @@
+{
+  "status": "DONE",
+  "summary": "Added a ### Fixed entry under ## Unreleased in CHANGELOG.md describing the annotation screen mismatch bug fix; README.md and other docs do not describe cross-screen preview behavior at the affected level of detail and required no changes.",
+  "files_updated": [
+    {
+      "path": "CHANGELOG.md",
+      "change": "Added ### Fixed section under ## Unreleased with user-facing description of the annotation screen mismatch bug fix (live preview priority, saved-screenshot swap on annotation focus, cross-screen pin elimination)."
+    }
+  ],
+  "commit": "4f62496"
+}
