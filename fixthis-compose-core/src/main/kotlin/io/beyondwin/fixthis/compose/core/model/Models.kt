@@ -101,7 +101,12 @@ data class SourceCandidate(
     val score: Double,
     val matchedTerms: List<String> = emptyList(),
     val matchReasons: List<String> = emptyList(),
-    val confidence: SelectionConfidence
+    val confidence: SelectionConfidence,
+    val ranking: Int? = null,
+    val scoreMargin: Double? = null,
+    val evidenceStrength: SourceEvidenceStrength? = null,
+    val riskFlags: List<SourceCandidateRisk> = emptyList(),
+    val caution: String? = null,
 )
 
 @Serializable
