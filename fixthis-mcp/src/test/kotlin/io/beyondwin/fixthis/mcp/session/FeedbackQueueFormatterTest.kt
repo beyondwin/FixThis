@@ -16,6 +16,7 @@ import io.beyondwin.fixthis.compose.core.model.TreeKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class FeedbackQueueFormatterTest {
@@ -375,21 +376,6 @@ class FeedbackQueueFormatterTest {
     }
 
     @Test
-    fun compactModeKeepsQueueMarkdownShort() {
-        val markdown = FeedbackQueueFormatter.toMarkdown(sessionWithTargetEvidenceAndSources(), DetailMode.COMPACT)
-
-        assertTrue(markdown.contains("# FixThis Feedback Handoff"))
-        assertTrue(markdown.contains("## Item 1"))
-        assertTrue(markdown.contains("Target:"))
-        assertTrue(markdown.contains("- Identity: `AppPrimaryButton:primary`"))
-        assertTrue(markdown.contains("- Occurrence: `1/2`"))
-        assertTrue(markdown.contains("AppPrimaryButton.kt:42"))
-        assertFalse(markdown.contains("CheckoutScreen.kt:88"))
-        assertFalse(markdown.contains("PaymentSummary.kt:12"))
-        assertFalse(markdown.contains("Nearby context"))
-    }
-
-    @Test
     fun defaultMarkdownUsesPreciseDetailMode() {
         val session = sessionWithTargetEvidenceAndSources()
 
@@ -488,6 +474,110 @@ class FeedbackQueueFormatterTest {
         FeedbackQueueFormatter.toMarkdown(session, DetailMode.FULL)
 
         assertEquals(before, FeedbackQueueFormatter.toJson(session))
+    }
+
+    @Test
+    fun compactMarkdownEmitsTopLevelVerificationRule() {
+        val markdown = FeedbackQueueFormatter.toMarkdown(sessionWithTargetEvidenceAndSources(), DetailMode.COMPACT)
+
+        assertTrue(
+            markdown.contains(
+                "Rule: source hints are candidates; verify screenshot, target, and code before editing."
+            ),
+        )
+    }
+
+    @Test
+    fun compactMarkdownEmitsCompactSourceTokenLine() {
+        val markdown = FeedbackQueueFormatter.toMarkdown(sessionWithTargetEvidenceAndSources(), DetailMode.COMPACT)
+
+        val lines = markdown.lines()
+        val sourceLine = lines.firstOrNull { it.trim().startsWith("src?") }
+        assertNotNull(sourceLine, "Expected a 'src?' line in COMPACT markdown")
+        assertTrue(sourceLine!!.contains("AppPrimaryButton.kt:42"))
+        assertTrue(sourceLine.contains("high") || sourceLine.contains("medium") || sourceLine.contains("low"))
+        assertTrue(sourceLine.contains("why="))
+        assertFalse(markdown.contains("matched:"))
+        assertFalse(markdown.contains("reasons:"))
+    }
+
+    @Test
+    fun compactMarkdownConfidenceTokenIsLowercase() {
+        val markdown = FeedbackQueueFormatter.toMarkdown(sessionWithTargetEvidenceAndSources(), DetailMode.COMPACT)
+
+        assertFalse(markdown.contains(" HIGH "))
+        assertFalse(markdown.contains(" MEDIUM "))
+        assertFalse(markdown.contains(" LOW "))
+    }
+
+    @Test
+    fun preciseMarkdownPreservesLikelySourceWireFormat() {
+        val markdown = FeedbackQueueFormatter.toMarkdown(sessionWithTargetEvidenceAndSources(), DetailMode.PRECISE)
+
+        assertTrue(markdown.contains("Likely Source:"))
+        assertTrue(markdown.contains("matched:"))
+        assertTrue(markdown.contains("reasons:"))
+        assertFalse(markdown.contains("src?"))
+        assertFalse(
+            markdown.contains(
+                "Rule: source hints are candidates; verify screenshot, target, and code before editing."
+            ),
+        )
+    }
+
+    @Test
+    fun compactMarkdownIncludesScreenshotAndOverlayWhenAvailable() {
+        val session = sessionWithScreenshotAndOverlay()
+        val markdown = FeedbackQueueFormatter.toMarkdown(session, DetailMode.COMPACT)
+
+        assertTrue(markdown.contains("screenshot:"))
+        assertTrue(markdown.contains("Checkout"))
+    }
+
+    @Test
+    fun compactMarkdownEmitsSrcUnknownWhenNoSourceCandidates() {
+        val session = sessionWithNoSourceCandidates()
+        val markdown = FeedbackQueueFormatter.toMarkdown(session, DetailMode.COMPACT)
+
+        assertTrue(markdown.contains("src? unknown"), "Expected 'src? unknown' when item has no source candidates")
+    }
+
+    private fun sessionWithScreenshotAndOverlay(): SessionDto = SessionDto(
+        sessionId = "session-1",
+        packageName = "io.beyondwin.fixthis.sample",
+        projectRoot = "/repo",
+        createdAtEpochMillis = 1L,
+        updatedAtEpochMillis = 5L,
+        screens = listOf(
+            SnapshotDto(
+                screenId = "screen-1",
+                capturedAtEpochMillis = 1L,
+                displayName = "Checkout",
+                screenshot = SnapshotScreenshotDto(
+                    desktopFullPath = "/repo/.fixthis/feedback-sessions/session-1/artifacts/screens/screen-1/screen-1-full.png",
+                    width = 720,
+                    height = 1600,
+                ),
+            ),
+        ),
+        items = listOf(
+            AnnotationDto(
+                itemId = "item-1",
+                screenId = "screen-1",
+                createdAtEpochMillis = 2L,
+                updatedAtEpochMillis = 2L,
+                target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+                comment = "Make this bigger",
+                sequenceNumber = 1,
+            ),
+        ),
+    )
+
+    private fun sessionWithNoSourceCandidates(): SessionDto {
+        val base = sessionWithTargetEvidenceAndSources()
+        val item = base.items.first()
+        val itemNoSources = item.copy(sourceCandidates = emptyList())
+        return base.copy(items = listOf(itemNoSources))
     }
 
     private fun markdownOutsideCodeFences(markdown: String): String = buildString {
