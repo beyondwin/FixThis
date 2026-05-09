@@ -1,0 +1,30 @@
+{
+  "status": "PASS",
+  "task": "3.2",
+  "description": "Emit instance i/N on grouped UI lines",
+  "checks": {
+    "focused_tests": {
+      "command": "./gradlew :fixthis-mcp:test --tests \"*CompactHandoffRenderer*\" --rerun",
+      "tests": 30,
+      "failures": 0,
+      "skipped": 0,
+      "result": "PASS"
+    },
+    "full_suite": {
+      "command": "./gradlew :fixthis-mcp:test",
+      "tests": 320,
+      "failures": 2,
+      "skipped": 1,
+      "expected_failures": 2,
+      "expected_skipped": 1,
+      "baseline_failures": [
+        "FeedbackConsoleServerTest.consoleHtmlUsesModeAwareStudioInspector",
+        "FeedbackConsoleServerTest.consoleHtmlAnnotationSaveUsesCurrentSelectionPayload"
+      ],
+      "regressions": 0,
+      "result": "PASS"
+    }
+  },
+  "commit": "f43ae5f feat(handoff-v2): emit instance i/N on grouped ui lines (Task 3.2)",
+  "notes": "Test count grew from 318 baseline to 320 (+2 new CompactHandoffRendererTest cases as expected). Both failures are pre-existing baseline failures unrelated to Task 3.2 changes. No regressions."
+}

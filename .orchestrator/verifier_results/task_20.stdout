@@ -1,0 +1,6 @@
+**Status: PASS**
+
+- Focused: 30 CompactHandoffRendererTest tests, 0 failures, 0 skipped (forced rerun)
+- Full suite: 320 tests, 2 failures (both pre-existing baseline: `consoleHtmlUsesModeAwareStudioInspector`, `consoleHtmlAnnotationSaveUsesCurrentSelectionPayload`), 1 skipped — matches expected baseline exactly
+- Test count grew 318→320 (+2 new instance i/N tests as expected); 0 regressions
+- Commit: `f43ae5f`
