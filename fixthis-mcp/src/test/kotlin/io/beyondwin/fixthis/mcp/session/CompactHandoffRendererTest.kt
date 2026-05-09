@@ -906,6 +906,78 @@ class CompactHandoffRendererTest {
         )
     }
 
+    // ---- Task 2.5: candidate caution → note line ----
+
+    private fun makeSessionWithRank1Caution(caution: String?): SessionDto = SessionDto(
+        sessionId = "session-caution",
+        packageName = "io.beyondwin.fixthis.sample",
+        projectRoot = "/repo",
+        createdAtEpochMillis = 1L,
+        updatedAtEpochMillis = 1L,
+        screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
+        items = listOf(
+            AnnotationDto(
+                itemId = "i-caution",
+                screenId = "screen-1",
+                createdAtEpochMillis = 1L,
+                updatedAtEpochMillis = 1L,
+                target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                comment = "fix this",
+                sequenceNumber = 1,
+                sourceCandidates = listOf(
+                    SourceCandidate(
+                        file = "HomeScreen.kt",
+                        line = 10,
+                        score = 0.90,
+                        matchedTerms = emptyList(),
+                        matchReasons = emptyList(),
+                        confidence = SelectionConfidence.MEDIUM,
+                        caution = caution,
+                    ),
+                ),
+            ),
+        ),
+    )
+
+    @Test
+    fun renderEmitsCautionAsNoteLineWhenRankOneHasCaution() {
+        val session = makeSessionWithRank1Caution(caution = "treat as low-confidence")
+        val markdown = CompactHandoffRenderer.render(session)
+        val lines = markdown.lines()
+        val candidatesIdx = lines.indexOfFirst { it == "  candidates:" }
+        assertTrue(candidatesIdx >= 0, "Expected '  candidates:' line but got:\n$markdown")
+        val candidateLine = lines.getOrNull(candidatesIdx + 1)
+        assertTrue(
+            candidateLine != null && candidateLine.trim().startsWith("~ "),
+            "Expected a '~ ' candidate line after candidates: but got: '$candidateLine'",
+        )
+        val noteLine = lines.getOrNull(candidatesIdx + 2)
+        assertTrue(
+            noteLine == "  note: treat as low-confidence",
+            "Expected '  note: treat as low-confidence' immediately after candidate line but got: '$noteLine'\nFull output:\n$markdown",
+        )
+    }
+
+    @Test
+    fun renderOmitsNoteLineWhenCautionNull() {
+        val session = makeSessionWithRank1Caution(caution = null)
+        val markdown = CompactHandoffRenderer.render(session)
+        assertTrue(
+            !markdown.lines().any { it.startsWith("  note:") },
+            "Expected no '  note:' line when caution is null but got:\n$markdown",
+        )
+    }
+
+    @Test
+    fun renderOmitsNoteLineWhenCautionBlank() {
+        val session = makeSessionWithRank1Caution(caution = "   ")
+        val markdown = CompactHandoffRenderer.render(session)
+        assertTrue(
+            !markdown.lines().any { it.startsWith("  note:") },
+            "Expected no '  note:' line when caution is blank but got:\n$markdown",
+        )
+    }
+
     @Test
     fun renderEmitsCandidatesUnknownWhenSourceCandidatesEmpty() {
         val session = SessionDto(

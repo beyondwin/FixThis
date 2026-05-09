@@ -100,6 +100,10 @@ object CompactHandoffRenderer {
             item.sourceCandidates.take(MAX_CANDIDATES_RENDERED).forEachIndexed { idx, candidate ->
                 appendLine("    ${formatCandidateLine(candidate, idx + 1, computedMargin)}")
             }
+            val rank1Caution = item.sourceCandidates.firstOrNull()?.caution
+            if (!rank1Caution.isNullOrBlank()) {
+                appendLine("  note: ${rank1Caution.inlineSafe()}")
+            }
         }
     }
 

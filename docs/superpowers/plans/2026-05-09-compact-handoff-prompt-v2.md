@@ -291,9 +291,9 @@ Goal: replace the single `src? ...` line with a `candidates:` block (≤3 entrie
 
 ### Task 2.5 — Renderer: candidate caution → note line (TDD)
 
-- [ ] **Red:** Test: rank-1 candidate with `caution="treat as low-confidence"` causes a `  note: treat as low-confidence` line to appear immediately after the candidates block. Run; expect failure.
-- [ ] **Green:** After the candidates block, if `rank1?.caution != null && rank1.caution.isNotBlank()`, emit `appendLine("  note: ${caution.inlineSafe()}")`. Run; expect pass.
-- [ ] Add test: caution is null/blank → no note line.
+- [x] **Red:** Test: rank-1 candidate with `caution="treat as low-confidence"` causes a `  note: treat as low-confidence` line to appear immediately after the candidates block. Run; expect failure.
+- [x] **Green:** After the candidates block, if `rank1?.caution != null && rank1.caution.isNotBlank()`, emit `appendLine("  note: ${caution.inlineSafe()}")`. Run; expect pass.
+- [x] Add test: caution is null/blank → no note line.
 - [ ] Commit: `feat(handoff-v2): emit candidate caution as note line`.
 
 **Validation:** Same as 2.1.
