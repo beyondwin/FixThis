@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "summary": "Diff confined to the warning block inside the executable==null branch (text-only change to multi-line actionable message). Forced re-run of :fixthis-cli:test produced BUILD SUCCESSFUL with 56 tests passing across 9 suites and 0 failures, matching the cumulative baseline.",
+  "risk_level": "MID",
+  "tests_run": ["./gradlew :fixthis-cli:test --rerun-tasks"],
+  "results": [{"suite": "fixthis-cli", "status": "PASS", "count": 56, "failures": 0}],
+  "issues": ["none"],
+  "escalation": null
+}

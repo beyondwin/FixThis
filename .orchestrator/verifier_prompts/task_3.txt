@@ -1,0 +1,72 @@
+You are a Verifier sub-agent running on Sonnet via headless `claude -p`. Run tests calibrated to the risk level provided. Do not modify any implementation files.
+
+## Risk Level: MID
+
+## Files Changed
+
+- `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt` (warning text only, in the executable==null branch)
+
+This change is a pure stderr text replacement. No control-flow or behavior change. No new tests added. Risk is upgraded to MID due to file overlap with Task 1 (Task 1 modified the catch block in `buildWritePlans`; Task 3 modifies the unrelated warning block in the executable-detection branch).
+
+## Baseline (do not introduce new failures beyond this)
+
+Passing: 56 | Failing: 0
+
+(Cumulative baseline: 52 original + 1 from Task 1 + 3 from Task 2 = 56. Task 3 adds 0 new tests.)
+
+## Test Command
+
+`./gradlew :fixthis-cli:test`
+
+## Working Directory
+
+`/Users/kws/source/android/FixThis/.claude/worktrees/fixthis-setup-polish-20260509-181733`
+
+`cd` to this directory before running.
+
+## Acceptance Criteria
+
+Spec Change 3 acceptance:
+- The warning text on stderr is the multi-line actionable message.
+- The written config file is still created (behavior unchanged).
+- All existing tests pass.
+
+For this Verifier, the test-suite condition is the actionable check: 56 tests pass, 0 failures.
+
+## Test Instructions
+
+MID:
+1. `cd` to the worktree.
+2. Run `./gradlew :fixthis-cli:test`.
+3. Inspect output: BUILD SUCCESSFUL with 56 passing, 0 failures → PASS. Any failure → FAIL.
+4. Spot-check the diff for unintended changes outside the warning block: run `git diff HEAD~1..HEAD -- fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt` and confirm only the warning block lines changed (the `echo(...)` call inside `if (executable == null)`).
+
+Do NOT modify any files.
+
+## If Tests Fail — Debugging Checklist
+
+1. Read failing test name and confirm it's not a known false positive.
+2. Check if the change accidentally edited Task 1's catch block.
+3. ESCALATE only if the test environment is broken (gradle daemon failure, missing deps).
+
+## Result File
+
+Write your structured result to: `/Users/kws/source/android/FixThis/.claude/worktrees/fixthis-setup-polish-20260509-181733/.orchestrator/verifier_results/task_3.json`
+
+JSON schema:
+```json
+{
+  "status": "PASS",
+  "summary": "<≤3 sentences>",
+  "risk_level": "MID",
+  "tests_run": ["./gradlew :fixthis-cli:test"],
+  "results": [{"suite": "fixthis-cli", "status": "PASS", "count": 56, "failures": 0}],
+  "issues": ["none"],
+  "escalation": null
+}
+```
+
+If FAIL: set `"status": "FAIL"` with `issues` describing failures.
+If ESCALATE: set `"status": "ESCALATE"` and populate `escalation`.
+
+After writing the file, print its contents to stdout for logging.
