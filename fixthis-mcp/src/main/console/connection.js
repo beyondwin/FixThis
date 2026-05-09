@@ -158,16 +158,26 @@
             }
 
 
+            let lastHeartbeatError = null;
+
+            function handleHeartbeatError(cause) {
+              const message = cause && cause.message ? cause.message : String(cause);
+              if (message === lastHeartbeatError) return;
+              lastHeartbeatError = message;
+              showError(cause);
+            }
+
             async function sendBridgeHeartbeat() {
               if (!state.session || !state.selectedDeviceSerial) return;
               await refreshConnection();
+              lastHeartbeatError = null;
             }
 
             function startHeartbeatPolling() {
               stopHeartbeatPolling();
-              sendBridgeHeartbeat().catch(showError);
+              sendBridgeHeartbeat().catch(handleHeartbeatError);
               heartbeatTimer = setInterval(() => {
-                if (state.selectedDeviceSerial) sendBridgeHeartbeat().catch(showError);
+                if (state.selectedDeviceSerial) sendBridgeHeartbeat().catch(handleHeartbeatError);
               }, HeartbeatIntervalMs);
             }
 
