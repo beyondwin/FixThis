@@ -405,43 +405,6 @@
               border-top: 1px solid var(--line);
               background: var(--bg-1);
             }
-            .sent-history-drawer {
-              border-top: 1px solid var(--line);
-              padding: 8px;
-              flex: 0 0 auto;
-              min-height: 0;
-              overflow: hidden;
-            }
-            .sent-history-drawer summary {
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              gap: 8px;
-              cursor: pointer;
-              color: var(--txt-2);
-              font-size: 10px;
-              font-weight: 700;
-              letter-spacing: .14em;
-              text-transform: uppercase;
-              padding: 8px 4px;
-            }
-            .sent-clear-button {
-              min-height: 26px;
-              width: 26px;
-              padding: 0;
-              border-radius: 7px;
-              color: var(--txt-2);
-            }
-            .sent-clear-button svg {
-              width: 14px;
-              height: 14px;
-              stroke: currentColor;
-            }
-            .sent-history-drawer .history-list {
-              max-height: 160px;
-              overflow: auto;
-              padding: 0;
-            }
             .history-item {
               display: grid;
               gap: 0;
