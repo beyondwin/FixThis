@@ -165,6 +165,28 @@
       "escalations": 0,
       "review_retries": 0,
       "verifier_retries": 0
+    },
+    "task_10": {
+      "status": "COMPLETE",
+      "risk": "high",
+      "files": [
+        "fixthis-mcp/src/main/console/annotations.js",
+        "fixthis-mcp/src/main/console/connection.js",
+        "fixthis-mcp/src/main/console/preview.js",
+        "fixthis-mcp/src/main/console/rendering.js",
+        "fixthis-mcp/src/main/resources/console/app.js",
+        "fixthis-mcp/src/main/resources/console/index.html",
+        "fixthis-mcp/src/main/resources/console/styles.css",
+        "fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleConnectionModels.kt",
+        "fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/ConsoleConnectionService.kt",
+        "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt"
+      ],
+      "commit": "1cbe455",
+      "pre_task_sha": "8752d17",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "verifier_followup_commit": "aaaa04c (test alignment for prior tasks 5/6/9)"
     }
   },
   "task_summaries": {
@@ -248,11 +270,26 @@
       "exposed_apis": ["BLOCKED_SUFFIX (devices.js)", "decorateConnectionLabel(baseLabel, reason)"],
       "key_decision": "Suffix appended only when uiState === DeviceUiState.CONNECTED AND interactionBlockedReason is truthy. Inactive dropdown options + Connecting/Unavailable/No device strings unchanged. Separator U+00B7.",
       "for_next_tasks": "Task 10's auto-resume changes do not touch this. Task 11 smoke test should assert the chip suffix appears during blocked state."
+    },
+    "task_10": {
+      "files": [
+        "fixthis-mcp/src/main/console/connection.js",
+        "fixthis-mcp/src/main/console/preview.js",
+        "fixthis-mcp/src/main/console/rendering.js",
+        "fixthis-mcp/src/main/console/annotations.js",
+        "fixthis-mcp/src/main/resources/console/index.html",
+        "fixthis-mcp/src/main/resources/console/styles.css",
+        "fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleConnectionModels.kt",
+        "fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/ConsoleConnectionService.kt"
+      ],
+      "exposed_apis": ["ConsoleAvailabilitySignals.activity: String?", "state.preview.activity", "state.preview.stale", "#canvasStaleNotice DOM", "renderStaleFrameNotice()"],
+      "key_decision": "Step 1 enumeration found NO connection-driven nullification (state.js:72 init only; preview.js:19 invalidatePreviewContext is user-driven session/device switch; annotations.js:282/516 are user save/clear). Auto-resume detection in applyConnectionStatus success path AFTER recomputeInteractionBlockedReason. previousBlockedReason updated unconditionally. Spec gaps accepted: applicationId comparison omitted (packageName binding makes activity-only sufficient); pin manipulation while stale not gated (visual-only treatment).",
+      "for_next_tasks": "Task 11 smoke test should: assert overlay appears on screenInteractive=false, click is no-op while blocked, frozen preview + pins survive screenInteractive=false→true round trip. Task 12 CHANGELOG entry."
     }
   },
   "low_tasks_pending_verification": [],
   "last_compaction_after_task": 9,
-  "current_task": 10,
+  "current_task": 11,
   "phase_docs_skipped": ["phase_1", "phase_2"],
   "phase_summaries_log": [
     {

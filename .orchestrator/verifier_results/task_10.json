@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "summary": "Full HIGH-risk test suite: Kotlin 513 passing, 0 failing (baseline 503 + 10 new). JS pure tests 15/15. Bundle --check silent. Combined Reviewer noted 2 minor spec gaps (applicationId vs activity comparison; visual-only stale gating) deemed acceptable.",
+  "risk_level": "HIGH",
+  "tests_run": [
+    "./gradlew :fixthis-compose-core:test :fixthis-cli:test :fixthis-mcp:test :fixthis-compose-sidekick:testDebugUnitTest :fixthis-gradle-plugin:test",
+    "node --test scripts/console-availability-test.mjs",
+    "node scripts/build-console-assets.mjs --check",
+    "node --check fixthis-mcp/src/main/resources/console/app.js"
+  ],
+  "results": [
+    {"suite": "all-kotlin", "status": "PASS", "count": 513, "failures": 0},
+    {"suite": "console-availability-test", "status": "PASS", "count": 15, "failures": 0}
+  ],
+  "issues": ["none"],
+  "escalation": null,
+  "spec_gaps_accepted": [
+    "applicationId comparison omitted — packageName is bound to session and a different package surfaces as background blocked reason",
+    "Pin manipulation while stale not gated — visual-only notice; pins anchored in frozen image coords are harmless data-wise"
+  ]
+}
