@@ -417,6 +417,7 @@
                 state.session = updatedSession;
                 renderCurrentSessionList();
                 updateComposerState();
+                refreshSessions().catch(showError);
               } else {
                 refreshSessions().catch(showError);
               }
@@ -452,6 +453,7 @@
                 renderPreviewOnly();
                 renderInspectorRegion();
                 renderCurrentSessionList();
+                refreshSessions().catch(showError);
               } else {
                 refreshSessions().catch(showError);
               }
