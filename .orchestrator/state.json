@@ -107,6 +107,21 @@
       "escalations": 0,
       "review_retries": 0,
       "verifier_retries": 0
+    },
+    "task_6": {
+      "status": "COMPLETE",
+      "risk": "mid",
+      "files": [
+        "fixthis-mcp/src/main/console/state.js",
+        "fixthis-mcp/src/main/console/connection.js",
+        "fixthis-mcp/src/main/resources/console/app.js"
+      ],
+      "commit": "e199156",
+      "pre_task_sha": "f8786dc",
+      "escalations": 0,
+      "review_retries": 1,
+      "verifier_retries": 0,
+      "review_fix_commit": "e199156"
     }
   },
   "task_summaries": {
@@ -154,6 +169,15 @@
       "exposed_apis": ["computeBlockedReason(status, isAnnotateMode)", "createBlockedReasonDebouncer({delayMs, now})", "createUnresponsiveTracker({threshold})"],
       "key_decision": "Plain function declarations (no module/IIFE) for bundler concatenation. Plan's `rootsCount === 0` form chosen over spec's `?? 1` (test-equivalent, simpler). Bundler entry inserted after connection.js so downstream modules see the symbols.",
       "for_next_tasks": "Task 6 instantiates `createBlockedReasonDebouncer({delayMs: 300})` and `createUnresponsiveTracker({threshold: 3})` once per session. Task 6 calls `tracker.observeFailure()/observeSuccess()` and reads `tracker.isUnresponsive()`/`tracker.nextBackoffMs()`. Composes with `state.connection.availability` payload from Task 4."
+    },
+    "task_6": {
+      "files": [
+        "fixthis-mcp/src/main/console/state.js",
+        "fixthis-mcp/src/main/console/connection.js"
+      ],
+      "exposed_apis": ["state.connection.availability", "state.connection.interactionBlockedReason", "state.connection.previousBlockedReason", "recomputeInteractionBlockedReason() (file-local helper in connection.js)"],
+      "key_decision": "Heartbeat polling converted from setInterval(HeartbeatIntervalMs) to recursive setTimeout(unresponsiveTracker.nextBackoffMs()) with `heartbeatPolling` boolean gate to prevent .finally() re-arming after stop. recomputeInteractionBlockedReason() shared between success and catch paths. blockedReasonDebouncer + unresponsiveTracker are module-scope singletons in state.js.",
+      "for_next_tasks": "Task 7: read state.connection.interactionBlockedReason in render hook. Task 8: gate canvas pointer handlers in annotations.js using state.connection.interactionBlockedReason !== null. Task 9: read interactionBlockedReason for chip suffix. Task 10: read previousBlockedReason for transition detection (already initialized to null in state.js)."
     }
   },
   "low_tasks_pending_verification": ["task_5"],
