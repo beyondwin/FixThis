@@ -42,6 +42,9 @@ object CompactHandoffRenderer {
             }
             appendLine()
 
+            val itemsForScreen = indexedItems.map { it.value }
+            val grouping = InstanceGroupingHelper.compute(itemsForScreen)
+
             val detectorItems = indexedItems.map { entry ->
                 val isArea = entry.value.target is AnnotationTargetDto.Area
                 val hasWeakLabels = entry.value.selectedNode?.text?.isEmpty() ?: true
@@ -71,17 +74,18 @@ object CompactHandoffRenderer {
                 group.forEach { detectorItem ->
                     val annotation = itemById[detectorItem.id] ?: return@forEach
                     globalCounter += 1
-                    appendCompactItem(globalCounter, annotation, isOverlapGroup)
+                    val label = grouping.labels[annotation.itemId]
+                    appendCompactItem(globalCounter, annotation, isOverlapGroup, label)
                 }
             }
         }
     }
 
-    private fun StringBuilder.appendCompactItem(number: Int, item: AnnotationDto, isOverlap: Boolean) {
+    private fun StringBuilder.appendCompactItem(number: Int, item: AnnotationDto, isOverlap: Boolean, instanceLabel: InstanceLabel? = null) {
         val title = item.comment.lineSequence().firstOrNull()?.takeIf { it.isNotBlank() } ?: "(No request provided)"
         val prefix = if (item.severity == AnnotationSeverityDto.HIGH) "[!] " else ""
         appendLine("${number}. [marker $number] ${prefix}${title.inlineSafe()}")
-        appendLine(compactUiLine(item, isOverlap))
+        appendLine(compactUiLine(item, isOverlap, instanceLabel))
         item.screenshotCrop?.desktopCropPath?.let { appendLine("crop: ${it.inlineSafe()}") }
         appendCandidatesBlock(item)
         appendLine()
@@ -144,7 +148,7 @@ object CompactHandoffRenderer {
         else -> null
     }
 
-    private fun compactUiLine(item: AnnotationDto, isOverlap: Boolean): String {
+    private fun compactUiLine(item: AnnotationDto, isOverlap: Boolean, instanceLabel: InstanceLabel? = null): String {
         val node = item.selectedNode
         val role = node?.role?.takeIf { it.isNotBlank() } ?: when (item.target) {
             is AnnotationTargetDto.Area -> "Area"
@@ -155,7 +159,10 @@ object CompactHandoffRenderer {
             is AnnotationTargetDto.Area -> target.boundsInWindow
             is AnnotationTargetDto.Node -> target.boundsInWindow
         }
-        val base = "  ui: $role tag=$tag  box=${rect.formatBox()}"
+        var base = "  ui: $role tag=$tag  box=${rect.formatBox()}"
+        if (instanceLabel != null) {
+            base += "  instance ${instanceLabel.index}/${instanceLabel.total}"
+        }
         return if (isOverlap) "$base; targetRisk=overlap" else base
     }
 

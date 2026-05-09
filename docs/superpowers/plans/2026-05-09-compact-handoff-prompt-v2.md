@@ -334,9 +334,9 @@ Goal: derive `instance i/N` and the collision `note:` from existing `path` data.
 
 ### Task 3.2 — Renderer: emit instance i/N on ui line (TDD)
 
-- [ ] **Red:** Test: a screen with 3 items grouped into instance 1/3, 2/3, 3/3 produces ui lines ending with `  instance 1/3`, `  instance 2/3`, `  instance 3/3` (in path-leaf order). A screen with 1 lone item produces no `instance` token. Run; expect failure.
-- [ ] **Green:** In `render()`, before iterating items, call `InstanceGroupingHelper.compute(itemsForScreen)`. Pass the result to `appendCompactItem`. In `appendCompactItem`, after the `box=...` token but before any `targetRisk=` suffix, append `  instance ${label.index}/${label.total}` if the item has a label. Run; expect pass.
-- [ ] Commit: `feat(handoff-v2): emit instance i/N on grouped ui lines`.
+- [x] **Red:** Test: a screen with 3 items grouped into instance 1/3, 2/3, 3/3 produces ui lines ending with `  instance 1/3`, `  instance 2/3`, `  instance 3/3` (in path-leaf order). A screen with 1 lone item produces no `instance` token. Run; expect failure.
+- [x] **Green:** In `render()`, before iterating items, call `InstanceGroupingHelper.compute(itemsForScreen)`. Pass the result to `appendCompactItem`. In `appendCompactItem`, after the `box=...` token but before any `targetRisk=` suffix, append `  instance ${label.index}/${label.total}` if the item has a label. Run; expect pass.
+- [x] Commit: `feat(handoff-v2): emit instance i/N on grouped ui lines`.
 
 **Validation:** `./gradlew :fixthis-mcp:test --tests "*CompactHandoffRenderer*"`
 **Expected:** All pass.

@@ -978,6 +978,117 @@ class CompactHandoffRendererTest {
         )
     }
 
+    // ---- Task 3.2: instance i/N on grouped ui lines ----
+
+    private fun makeNode3(
+        uid: String,
+        role: String? = "MetricCard",
+        testTag: String? = "comp:MetricCard:summary",
+        path: List<String> = emptyList(),
+    ) = FixThisNode(
+        uid = uid,
+        composeNodeId = 1,
+        rootIndex = 0,
+        treeKind = TreeKind.MERGED,
+        boundsInWindow = FixThisRect(0f, 0f, 100f, 100f),
+        role = role,
+        testTag = testTag,
+        path = path,
+    )
+
+    private fun makeGroupedCandidate() = SourceCandidate(
+        file = "HomeScreen.kt",
+        line = 44,
+        score = 0.9,
+        matchedTerms = emptyList(),
+        matchReasons = emptyList(),
+        confidence = SelectionConfidence.MEDIUM,
+    )
+
+    @Test
+    fun renderEmitsInstanceLabelsOnGroupedUiLines() {
+        // 3 items sharing same (file:line, testTag), distinct path leaves — should get instance 1/3, 2/3, 3/3
+        // InstanceGroupingHelper.compute orders by path.joinToString("/"); paths: "root/a", "root/b", "root/c" -> a < b < c
+        // Use non-overlapping bounds so overlap detector does not merge them into an overlap group
+        val session = SessionDto(
+            sessionId = "session-instance",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-a",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node(nodeUid = "uid-a", boundsInWindow = FixThisRect(0f, 0f, 100f, 50f)),
+                    selectedNode = makeNode3(uid = "uid-a", path = listOf("root", "a")),
+                    comment = "fix a",
+                    sequenceNumber = 1,
+                    sourceCandidates = listOf(makeGroupedCandidate()),
+                ),
+                AnnotationDto(
+                    itemId = "item-b",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node(nodeUid = "uid-b", boundsInWindow = FixThisRect(0f, 200f, 100f, 250f)),
+                    selectedNode = makeNode3(uid = "uid-b", path = listOf("root", "b")),
+                    comment = "fix b",
+                    sequenceNumber = 2,
+                    sourceCandidates = listOf(makeGroupedCandidate()),
+                ),
+                AnnotationDto(
+                    itemId = "item-c",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node(nodeUid = "uid-c", boundsInWindow = FixThisRect(0f, 400f, 100f, 450f)),
+                    selectedNode = makeNode3(uid = "uid-c", path = listOf("root", "c")),
+                    comment = "fix c",
+                    sequenceNumber = 3,
+                    sourceCandidates = listOf(makeGroupedCandidate()),
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        val uiLines = markdown.lines().filter { it.startsWith("  ui:") }
+        assertTrue(
+            uiLines.size == 3,
+            "Expected 3 ui lines but got ${uiLines.size}:\n$markdown",
+        )
+        assertTrue(
+            uiLines.any { it.endsWith("  instance 1/3") },
+            "Expected a ui line ending with '  instance 1/3' but got:\n${uiLines.joinToString("\n")}",
+        )
+        assertTrue(
+            uiLines.any { it.endsWith("  instance 2/3") },
+            "Expected a ui line ending with '  instance 2/3' but got:\n${uiLines.joinToString("\n")}",
+        )
+        assertTrue(
+            uiLines.any { it.endsWith("  instance 3/3") },
+            "Expected a ui line ending with '  instance 3/3' but got:\n${uiLines.joinToString("\n")}",
+        )
+    }
+
+    @Test
+    fun renderOmitsInstanceLabelForLoneItem() {
+        val session = makeSessionWithNode(
+            itemId = "i-lone",
+            selectedNode = makeNode(role = "Button", testTag = "btn:lone"),
+            bounds = FixThisRect(0f, 0f, 100f, 50f),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        assertTrue(
+            !markdown.lines().any { it.contains("instance ") },
+            "Expected no 'instance ' token in any line for lone item but got:\n$markdown",
+        )
+    }
+
     @Test
     fun renderEmitsCandidatesUnknownWhenSourceCandidatesEmpty() {
         val session = SessionDto(
