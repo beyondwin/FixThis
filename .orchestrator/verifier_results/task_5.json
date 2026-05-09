@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "summary": "Ran the specified gradle test command for the three affected modules. 283 tests executed with exactly the 2 pre-existing baseline failures (consoleHtmlUsesModeAwareStudioInspector, consoleHtmlAnnotationSaveUsesCurrentSelectionPayload) and no new failures. Documentation-only changes did not regress any tests.",
+  "risk_level": "MID",
+  "tests_run": ["./gradlew :fixthis-compose-core:test :fixthis-cli:test :fixthis-mcp:test"],
+  "results": [{"suite": "fixthis-cli + fixthis-compose-core + fixthis-mcp", "status": "PASS", "count": 283, "failures": 2}],
+  "issues": ["2 pre-existing baseline failures present, no new failures"],
+  "escalation": null
+}

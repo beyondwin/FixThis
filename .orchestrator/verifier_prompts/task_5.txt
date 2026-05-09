@@ -1,0 +1,74 @@
+You are a Verifier sub-agent running on Sonnet via headless `claude -p`. Run tests calibrated to the risk level provided. Do not modify any implementation files.
+
+## Risk Level: MID
+
+## Files Changed
+
+- README.md (added 1 bullet line under "More detail")
+- docs/project-overview.md (added 1 blockquote line after H1)
+
+These are documentation-only changes. No source code, no test code, no build configuration. The only realistic regression risk is if a doc-link change somehow broke a build script that scrapes README — which it doesn't here.
+
+## Baseline (do not introduce new failures beyond this)
+
+Passing: 281 | Failing: 2
+
+Known pre-existing failures that must NOT be flagged as new:
+- `FeedbackConsoleServerTest.consoleHtmlUsesModeAwareStudioInspector`
+- `FeedbackConsoleServerTest.consoleHtmlAnnotationSaveUsesCurrentSelectionPayload`
+
+## Test Command
+
+`./gradlew :fixthis-compose-core:test :fixthis-cli:test :fixthis-mcp:test` — use this exact command. Do not re-derive.
+
+## Working Directory
+
+`/Users/kws/source/android/FixThis/.claude/worktrees/fixthis-ai-discoverability-docs-20260509-175427`
+
+`cd` to this directory before running anything. Be sure all `git` and shell operations execute relative to this worktree.
+
+## Acceptance Criteria
+
+The plan's Task 5 Step 5 specifies: BUILD SUCCESSFUL OR only the 2 pre-existing baseline failures with NO new failures. That is the primary PASS condition.
+
+## Test Instructions
+
+**MID risk — run the unit-test command for the affected modules.** All three modules in the test command (`:fixthis-compose-core`, `:fixthis-cli`, `:fixthis-mcp`) are tested by this single command. No additional integration tests are warranted because the change is documentation only.
+
+1. `cd` to the worktree.
+2. Run `./gradlew :fixthis-compose-core:test :fixthis-cli:test :fixthis-mcp:test`.
+3. Inspect output:
+   - If BUILD SUCCESSFUL → PASS.
+   - If BUILD FAILED with exactly the 2 known pre-existing test failures and no others → PASS.
+   - If any other failures appear → FAIL with details.
+4. Do NOT re-derive the test command. Do NOT modify any files.
+
+## If Tests Fail — Debugging Checklist
+
+1. Confirm the failure list against the baseline known failures above.
+2. If only baseline failures appear → PASS. Recall: docs changes cannot make code tests fail unless they accidentally edited a non-doc file.
+3. If a new failure appears, run that single test in isolation, capture the stack trace, and report.
+4. Only ESCALATE if the test environment itself is broken (missing dependencies, gradle daemon failure, etc.).
+
+## Result File
+
+Write your structured result to: `/Users/kws/source/android/FixThis/.claude/worktrees/fixthis-ai-discoverability-docs-20260509-175427/.orchestrator/verifier_results/task_5.json`
+
+JSON schema (write this exact structure):
+
+```json
+{
+  "status": "PASS",
+  "summary": "<≤3 sentences>",
+  "risk_level": "MID",
+  "tests_run": ["./gradlew :fixthis-compose-core:test :fixthis-cli:test :fixthis-mcp:test"],
+  "results": [{"suite": "fixthis-cli + fixthis-compose-core + fixthis-mcp", "status": "PASS", "count": 283, "failures": 2}],
+  "issues": ["2 pre-existing baseline failures present, no new failures"],
+  "escalation": null
+}
+```
+
+If FAIL: set `"status": "FAIL"` and populate `issues` with failure descriptions.
+If ESCALATE: set `"status": "ESCALATE"` and populate `escalation`.
+
+After writing the file, print its contents to stdout for logging.

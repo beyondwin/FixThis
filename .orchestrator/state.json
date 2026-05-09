@@ -72,6 +72,17 @@
       "review_retries": 0,
       "verifier_retries": 0,
       "timing": {"started": "2026-05-09T18:11:00+09:00", "completed": "2026-05-09T18:18:00+09:00"}
+    },
+    "task_5": {
+      "status": "COMPLETE",
+      "risk": "mid",
+      "files": ["README.md", "docs/project-overview.md"],
+      "commit": "6c9274f",
+      "pre_task_sha": "944802cab0faf2b7feabd4daeb4a84cafd609301",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "timing": {"started": "2026-05-09T18:19:00+09:00", "completed": "2026-05-09T18:30:00+09:00"}
     }
   },
   "task_summaries": {
@@ -98,6 +109,12 @@
       "exposed_apis": [],
       "key_decision": "Translated all Korean prose to English using plan Step 2 verbatim phrasings; preserved code blocks/Mermaid; Korean original untouched",
       "for_next_tasks": "Task 5 should add a link `[Project overview (English)](docs/project-overview.en.md)` to README's More detail bullet list, and add `> English version: [project-overview.en.md](project-overview.en.md)` to the top of `docs/project-overview.md`"
+    },
+    "task_5": {
+      "files": ["README.md", "docs/project-overview.md"],
+      "exposed_apis": [],
+      "key_decision": "Cross-references added: README More-detail bullet for English overview, blockquote pointer atop Korean overview. MID Verifier confirmed 283 tests with 2 baseline failures (no regressions)",
+      "for_next_tasks": "End of plan; Phase Transition + Phase 2."
     }
   },
   "low_tasks_pending_verification": ["task_1", "task_2", "task_3", "task_4"],
