@@ -91,11 +91,42 @@ object CompactHandoffRenderer {
         if (item.sourceCandidates.isEmpty()) {
             appendLine("    ~ unknown")
         } else {
-            item.sourceCandidates.forEach { candidate ->
-                val conf = candidate.confidence.name.lowercase()
-                appendLine("    ~ ${candidate.fileWithLine()}  conf=$conf")
+            item.sourceCandidates.forEachIndexed { idx, candidate ->
+                appendLine("    ${formatCandidateLine(candidate, idx + 1)}")
             }
         }
+    }
+
+    private fun formatCandidateLine(candidate: io.beyondwin.fixthis.compose.core.model.SourceCandidate, rank: Int): String {
+        val sb = StringBuilder()
+        sb.append("~ ${candidate.fileWithLine()}  conf=${candidate.confidence.name.lowercase()}")
+        if (rank == 1) {
+            candidate.scoreMargin?.let { margin ->
+                sb.append("  margin=${"%.2f".format(margin)}")
+            }
+            val tokens = candidate.matchReasons.mapNotNull { reasonTokenFor(it) }.distinct().take(4)
+            if (tokens.isNotEmpty()) {
+                sb.append("  matched=[${tokens.joinToString(", ")}]")
+            }
+        }
+        return sb.toString()
+    }
+
+    private fun reasonTokenFor(reason: String): String? = when (reason) {
+        "selected text" -> "text"
+        "selected contentDescription" -> "contentDescription"
+        "selected testTag" -> "tag"
+        "selected testTag convention composable" -> "compTag"
+        "selected role" -> "role"
+        "nearby text" -> "nearbyText"
+        "nearby contentDescription" -> "nearbyContentDescription"
+        "nearby testTag" -> "nearbyTag"
+        "nearby role" -> "nearbyRole"
+        "activity" -> "activity"
+        "selected stringResource" -> "stringRes"
+        "arbitrary literal" -> "literal"
+        "legacy fallback" -> "legacy"
+        else -> null
     }
 
     private fun compactUiLine(item: AnnotationDto, isOverlap: Boolean): String {

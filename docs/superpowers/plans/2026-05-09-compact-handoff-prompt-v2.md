@@ -257,15 +257,15 @@ Goal: replace the single `src? ...` line with a `candidates:` block (≤3 entrie
 
 ### Task 2.2 — Renderer: rank-1 candidate line with margin and matched (TDD)
 
-- [ ] **Red:** Test: rank-1 candidate with `file=src/.../HomeScreen.kt`, `line=44`, `confidence=MEDIUM`, `scoreMargin=0.30`, `matchedTerms=["testTag:summary","compTag:MetricCard"]`, `matchReasons=["selected testTag","selected testTag convention composable","nearby testTag"]` renders as:
+- [x] **Red:** Test: rank-1 candidate with `file=src/.../HomeScreen.kt`, `line=44`, `confidence=MEDIUM`, `scoreMargin=0.30`, `matchedTerms=["testTag:summary","compTag:MetricCard"]`, `matchReasons=["selected testTag","selected testTag convention composable","nearby testTag"]` renders as:
   `    ~ src/.../HomeScreen.kt:44   conf=medium  margin=0.30  matched=[testTag, compTag, nearbyTag]`
   (Three-space outer indent, `~ ` prefix, double-space between major tokens, single space between key-value words.) Run; expect failure.
-- [ ] **Green:** Implement helper `formatCandidateLine(candidate, rank, computedMargin)` that:
+- [x] **Green:** Implement helper `formatCandidateLine(candidate, rank, computedMargin)` that:
   - emits `~ ${candidate.fileWithLine()}` then `  conf=${candidate.confidence.name.lowercase()}`;
   - if `rank == 1` and (margin from candidate or computed) is non-null, append `  margin=${"%.2f".format(margin)}`;
   - if `rank == 1`, append `  matched=[${tokens.joinToString(", ")}]` where tokens are `candidate.matchReasons.mapNotNull { reasonTokenFor(it) }.distinct().take(4)`.
-- [ ] Add a test: rank 2 and rank 3 candidates emit only `~ <file>:<line>  conf=<lvl>` (no `margin=`, no `matched=`). Run; expect pass.
-- [ ] Commit: `feat(handoff-v2): rank-1 candidate line with margin and matched terms`.
+- [x] Add a test: rank 2 and rank 3 candidates emit only `~ <file>:<line>  conf=<lvl>` (no `margin=`, no `matched=`). Run; expect pass.
+- [x] Commit: `feat(handoff-v2): rank-1 candidate line with margin and matched terms`.
 
 **Validation:** Same as 2.1.
 **Expected:** All pass.

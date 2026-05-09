@@ -534,6 +534,102 @@ class CompactHandoffRendererTest {
 
     // ---- Task 2.1: candidates block tests ----
 
+
+    // ---- Task 2.2: rank-1 enrichment (margin + matched) ----
+
+    private fun makeSessionWith2Candidates(
+        rank1ScoreMargin: Double?,
+        rank1MatchReasons: List<String>,
+    ): SessionDto = SessionDto(
+        sessionId = "session-rank1",
+        packageName = "io.beyondwin.fixthis.sample",
+        projectRoot = "/repo",
+        createdAtEpochMillis = 1L,
+        updatedAtEpochMillis = 1L,
+        screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
+        items = listOf(
+            AnnotationDto(
+                itemId = "i-rank1",
+                screenId = "screen-1",
+                createdAtEpochMillis = 1L,
+                updatedAtEpochMillis = 1L,
+                target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                comment = "fix this",
+                sequenceNumber = 1,
+                sourceCandidates = listOf(
+                    SourceCandidate(
+                        file = "src/.../HomeScreen.kt",
+                        line = 44,
+                        score = 0.95,
+                        matchedTerms = listOf("testTag:summary", "compTag:MetricCard"),
+                        matchReasons = rank1MatchReasons,
+                        confidence = SelectionConfidence.MEDIUM,
+                        scoreMargin = rank1ScoreMargin,
+                    ),
+                    SourceCandidate(
+                        file = "Other.kt",
+                        line = 99,
+                        score = 0.65,
+                        matchedTerms = emptyList(),
+                        matchReasons = listOf("selected text"),
+                        confidence = SelectionConfidence.LOW,
+                    ),
+                ),
+            ),
+        ),
+    )
+
+    @Test
+    fun renderEmitsRankOneCandidateWithMarginAndMatched() {
+        val session = makeSessionWith2Candidates(
+            rank1ScoreMargin = 0.30,
+            rank1MatchReasons = listOf(
+                "selected testTag",
+                "selected testTag convention composable",
+                "nearby testTag",
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        val lines = markdown.lines()
+
+        val expectedLine = "    ~ src/.../HomeScreen.kt:44  conf=medium  margin=0.30  matched=[tag, compTag, nearbyTag]"
+        assertTrue(
+            lines.any { it == expectedLine },
+            "Expected to find rank-1 enriched line:\n  '$expectedLine'\nin:\n$markdown",
+        )
+    }
+
+    @Test
+    fun renderEmitsRankTwoCandidateWithoutMarginOrMatched() {
+        val session = makeSessionWith2Candidates(
+            rank1ScoreMargin = 0.30,
+            rank1MatchReasons = listOf("selected testTag"),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        val lines = markdown.lines()
+
+        // rank-2 line should be plain: ~ Other.kt:99  conf=low — no margin= or matched=
+        val rank2Line = lines.firstOrNull { it.contains("Other.kt:99") }
+        assertTrue(
+            rank2Line != null,
+            "Expected a line containing 'Other.kt:99' but got:\n$markdown",
+        )
+        assertTrue(
+            rank2Line!!.trim() == "~ Other.kt:99  conf=low",
+            "Expected rank-2 line to be plain '~ Other.kt:99  conf=low' but got: '$rank2Line'",
+        )
+        assertTrue(
+            !rank2Line.contains("margin="),
+            "Expected no 'margin=' in rank-2 line but got: '$rank2Line'",
+        )
+        assertTrue(
+            !rank2Line.contains("matched="),
+            "Expected no 'matched=' in rank-2 line but got: '$rank2Line'",
+        )
+    }
+
     @Test
     fun renderEmitsCandidatesBlockWithConfLevelForEachCandidate() {
         val session = SessionDto(
@@ -582,8 +678,8 @@ class CompactHandoffRendererTest {
             "Expected exactly '  candidates:' line but got:\n$markdown",
         )
         assertTrue(
-            lines.any { it == "    ~ AppPrimaryButton.kt:42  conf=high" },
-            "Expected '    ~ AppPrimaryButton.kt:42  conf=high' but got:\n$markdown",
+            lines.any { it == "    ~ AppPrimaryButton.kt:42  conf=high  matched=[compTag]" },
+            "Expected '    ~ AppPrimaryButton.kt:42  conf=high  matched=[compTag]' but got:\n$markdown",
         )
         assertTrue(
             lines.any { it == "    ~ CheckoutScreen.kt:88  conf=medium" },
