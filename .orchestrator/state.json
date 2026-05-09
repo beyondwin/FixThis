@@ -91,6 +91,22 @@
       "escalations": 0,
       "review_retries": 0,
       "verifier_retries": 0
+    },
+    "task_5": {
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": [
+        "fixthis-mcp/src/main/console/availability.js",
+        "scripts/console-availability-test.mjs",
+        "scripts/build-console-assets.mjs",
+        "package.json",
+        "fixthis-mcp/src/main/resources/console/app.js"
+      ],
+      "commit": "41d5e5c",
+      "pre_task_sha": "e491f0e",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0
     }
   },
   "task_summaries": {
@@ -129,11 +145,20 @@
       "exposed_apis": ["ConsoleAvailabilitySignals (data class with screenInteractive/keyguardLocked/appForeground/pictureInPicture/rootsCount, all nullable except rootsCount which is Int?)", "ConsoleConnectionStatus.availability: ConsoleAvailabilitySignals?"],
       "key_decision": "READY-branch only call to bridge.status(packageName); legacy/fail → null via swallow. CancellationException rethrown.",
       "for_next_tasks": "Console state.connection.availability mirrors this DTO field-for-field. Task 6 reads it. Field names are the contract — never rename. rootsCount is the Int? from BridgeStatus (already on every status payload, even legacy)."
+    },
+    "task_5": {
+      "files": [
+        "fixthis-mcp/src/main/console/availability.js",
+        "scripts/console-availability-test.mjs"
+      ],
+      "exposed_apis": ["computeBlockedReason(status, isAnnotateMode)", "createBlockedReasonDebouncer({delayMs, now})", "createUnresponsiveTracker({threshold})"],
+      "key_decision": "Plain function declarations (no module/IIFE) for bundler concatenation. Plan's `rootsCount === 0` form chosen over spec's `?? 1` (test-equivalent, simpler). Bundler entry inserted after connection.js so downstream modules see the symbols.",
+      "for_next_tasks": "Task 6 instantiates `createBlockedReasonDebouncer({delayMs: 300})` and `createUnresponsiveTracker({threshold: 3})` once per session. Task 6 calls `tracker.observeFailure()/observeSuccess()` and reads `tracker.isUnresponsive()`/`tracker.nextBackoffMs()`. Composes with `state.connection.availability` payload from Task 4."
     }
   },
-  "low_tasks_pending_verification": [],
+  "low_tasks_pending_verification": ["task_5"],
   "last_compaction_after_task": 3,
-  "current_task": 5,
+  "current_task": 6,
   "phase_docs_skipped": ["phase_1"],
   "phase_summaries_log": [
     {
