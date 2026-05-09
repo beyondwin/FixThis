@@ -146,6 +146,30 @@
               return String(count) + ' ' + (count === 1 ? singular : plural);
             }
 
+            let successClearTimeout = null;
+
+            function showSuccess(message, durationMs = 2000) {
+              if (successClearTimeout) {
+                clearTimeout(successClearTimeout);
+                successClearTimeout = null;
+              }
+              error.textContent = message;
+              error.classList.add('status-success');
+              successClearTimeout = setTimeout(() => {
+                error.textContent = '';
+                error.classList.remove('status-success');
+                successClearTimeout = null;
+              }, durationMs);
+            }
+
+            function clearSuccessStatus() {
+              if (successClearTimeout) {
+                clearTimeout(successClearTimeout);
+                successClearTimeout = null;
+              }
+              error.classList.remove('status-success');
+            }
+
 // api.js
             async function requestJson(path, options = {}) {
               const method = (options.method || 'GET').toUpperCase();
@@ -2601,6 +2625,7 @@
             }
 
             function showError(cause) {
+              clearSuccessStatus();
               error.textContent = friendlyErrorMessage(cause && cause.message ? cause.message : cause);
             }
 
