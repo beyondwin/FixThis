@@ -158,53 +158,178 @@
               return tokens.join('+');
             }
 
-            function compactRiskToken(candidate, target) {
-              const flags = (candidate && candidate.riskFlags) || [];
-              if (flags.length > 0) {
-                return String(flags[0]).toLowerCase().replace(/_/g, '-');
-              }
-              if (target && target.type === 'visual_area') return 'area-selection';
-              return null;
+            // Task 5.2: formatBox — emits (L,T)-(R,B) [W×H] using integer dimensions
+            function formatBox(bounds) {
+              const l = Math.floor(bounds.left);
+              const t = Math.floor(bounds.top);
+              const r = Math.floor(bounds.right);
+              const b = Math.floor(bounds.bottom);
+              const w = Math.max(Math.floor(bounds.right - bounds.left), 0);
+              const h = Math.max(Math.floor(bounds.bottom - bounds.top), 0);
+              return '(' + l + ',' + t + ')-(' + r + ',' + b + ') [' + w + '×' + h + ']';
             }
 
-            function compactSourceLine(item) {
-              const candidate = (item.sourceCandidates || [])[0];
-              if (!candidate) return null;
-              const file = promptScalarValue(candidate.file);
-              if (!file) return null;
-              const location = file + (candidate.line ? ':' + candidate.line : '');
-              const confidence = String(candidate.confidence || 'unknown').toLowerCase();
-              const why = compactReasonTokens(candidate.matchReasons);
-              const risk = compactRiskToken(candidate, item.target);
-              const parts = ['src? ' + location + ' ' + confidence];
-              if (why) parts.push('why=' + why);
-              if (risk) parts.push('risk=' + risk);
-              return '   ' + parts.join('; ');
-            }
-
-            function compactTargetLine(item, isOverlap) {
+            // Task 5.2: compactUiLine — replaces compactTargetLine; emits ui: role tag=tag  box=(L,T)-(R,B) [W×H]
+            function compactUiLine(item, isOverlap, instanceLabel, dupRefMarker) {
               const node = item.selectedNode || {};
               const role = promptScalarValue(node.role) || (item.target && item.target.type === 'visual_area' ? 'Area' : 'Node');
-              const label = (node.text && node.text[0]) || (node.contentDescription && node.contentDescription[0]) || node.testTag || '(unlabelled)';
-              const bounds = promptItemBounds(item);
-              const base = '   target: ' + role + ' "' + label + '" bounds=' + (bounds ? formatBounds(bounds) : 'unknown');
-              return isOverlap ? (base + '; targetRisk=overlap') : base;
+              const tag = promptScalarValue(node.testTag) || '(none)';
+              const bounds = (item.target && item.target.boundsInWindow) || promptItemBounds(item) || { left: 0, top: 0, right: 0, bottom: 0 };
+              let base = '  ui: ' + role + ' tag=' + tag + '  box=' + formatBox(bounds);
+              if (instanceLabel) {
+                base += '  instance ' + instanceLabel.index + '/' + instanceLabel.total;
+              }
+              if (dupRefMarker != null) {
+                return base + '; targetRisk=duplicate-of-marker-' + dupRefMarker;
+              }
+              if (isOverlap) {
+                return base + '; targetRisk=overlap';
+              }
+              return base;
             }
 
-            function compactItemLines(item, marker, isOverlap) {
+            // Task 5.4: compactCandidatesBlock — replaces compactSourceLine; returns array of lines
+            function compactCandidatesBlock(item) {
               const lines = [];
-              const title = (String(item.comment || '').split('\n')[0] || '').trim() || promptItemTitle(item, marker - 1);
+              lines.push('  candidates:');
+              const candidates = item.sourceCandidates || [];
+              if (candidates.length === 0) {
+                lines.push('    ~ unknown');
+                return lines;
+              }
+              const rank1 = candidates[0];
+              const rank2 = candidates[1];
+              const computedMargin = (rank1 && rank2 && (rank1.score - rank2.score) > 0)
+                ? (rank1.score - rank2.score)
+                : null;
+              const maxCandidates = 3;
+              candidates.slice(0, maxCandidates).forEach(function(candidate, idx) {
+                const rank = idx + 1;
+                const file = promptScalarValue(candidate.file);
+                const location = file ? (file + (candidate.line ? ':' + candidate.line : '')) : 'unknown';
+                const confidence = String(candidate.confidence || 'unknown').toLowerCase();
+                let line = '    ~ ' + location + '  conf=' + confidence;
+                if (rank === 1) {
+                  const effectiveMargin = (candidate.scoreMargin != null) ? candidate.scoreMargin : computedMargin;
+                  if (effectiveMargin != null) {
+                    line += '  margin=' + effectiveMargin.toFixed(2);
+                  }
+                  // Build matched=[...] using FIXTHIS_REASON_TOKEN_MAP, deduped, max 4
+                  const reasons = candidate.matchReasons || [];
+                  const seen = new Set();
+                  const tokens = [];
+                  reasons.forEach(function(reason) {
+                    const token = FIXTHIS_REASON_TOKEN_MAP[String(reason || '').trim()];
+                    if (token && !seen.has(token)) {
+                      seen.add(token);
+                      tokens.push(token);
+                    }
+                  });
+                  const capped = tokens.slice(0, 4);
+                  if (capped.length > 0) {
+                    line += '  matched=[' + capped.join(', ') + ']';
+                  }
+                }
+                lines.push(line);
+              });
+              // Caution note from rank-1 candidate (Task 5.4, parity Phase 2.5)
+              const caution = rank1 && rank1.caution ? String(rank1.caution).trim() : null;
+              if (caution) {
+                lines.push('  note: ' + caution);
+              }
+              return lines;
+            }
+
+            // Task 5.5: computeInstanceLabels — mirrors Kotlin InstanceGroupingHelper.compute
+            function computeInstanceLabels(items) {
+              const labels = new Map(); // itemId -> {index, total}
+              const leaderItemIds = new Set();
+
+              // Filter to eligible items (have selectedNode and sourceCandidates)
+              const eligible = (items || []).filter(function(item) {
+                return item.selectedNode != null && (item.sourceCandidates || []).length > 0;
+              });
+
+              // Group by (fileLine + testTag)
+              const groups = new Map(); // key -> [item]
+              eligible.forEach(function(item) {
+                const cand = item.sourceCandidates[0];
+                const file = promptScalarValue(cand.file);
+                const fileLine = file ? (file + (cand.line ? ':' + cand.line : '')) : '';
+                const testTag = item.selectedNode.testTag || '';
+                const key = fileLine + '|' + testTag;
+                if (!groups.has(key)) groups.set(key, []);
+                groups.get(key).push(item);
+              });
+
+              groups.forEach(function(group) {
+                if (group.length < 2) return;
+                // Sort by path.join('/')
+                const ordered = group.slice().sort(function(a, b) {
+                  const pa = (a.selectedNode.path || []).join('/');
+                  const pb = (b.selectedNode.path || []).join('/');
+                  if (pa < pb) return -1;
+                  if (pa > pb) return 1;
+                  return 0;
+                });
+                ordered.forEach(function(item, idx) {
+                  labels.set(item.itemId, { index: idx + 1, total: ordered.length });
+                });
+                leaderItemIds.add(ordered[0].itemId);
+              });
+
+              return { labels: labels, leaderItemIds: leaderItemIds };
+            }
+
+            // Task 5.7: computeDuplicateMarkers — mirrors Kotlin DuplicateMarkerDetector.detect
+            // detectorItems: Array of { itemId, markerNumber, fileLine, testTag, pathLeaves, bounds }
+            function computeDuplicateMarkers(detectorItems) {
+              const result = new Map(); // itemId -> canonical markerNumber
+              const keyGroups = new Map(); // key string -> [detectorItem]
+              (detectorItems || []).forEach(function(di) {
+                const bounds = di.bounds || { left: 0, top: 0, right: 0, bottom: 0 };
+                const key = (di.fileLine || '') + '|' + (di.testTag || '') + '|' + (di.pathLeaves || []).join('/') + '|' + bounds.left + ',' + bounds.top + ',' + bounds.right + ',' + bounds.bottom;
+                if (!keyGroups.has(key)) keyGroups.set(key, []);
+                keyGroups.get(key).push(di);
+              });
+              keyGroups.forEach(function(group) {
+                if (group.length < 2) return;
+                const canonical = group[0].markerNumber;
+                group.slice(1).forEach(function(dup) {
+                  result.set(dup.itemId, canonical);
+                });
+              });
+              return result;
+            }
+
+            // Task 5.5/5.6/5.7: compactItemLines — updated to use new helpers
+            function compactItemLines(item, marker, isOverlap, instanceLabel, dupRefMarker, isInstanceLeader, groupSize) {
+              const lines = [];
+              const rawTitle = (String(item.comment || '').split('\n')[0] || '').trim() || promptItemTitle(item, marker - 1);
+              // Task 5.3: severity prefix
+              const title = (item.severity === 'high') ? '[!] ' + rawTitle : rawTitle;
               lines.push(String(marker) + '. [marker ' + marker + '] ' + title);
-              lines.push(compactTargetLine(item, isOverlap));
-              const sourceLine = compactSourceLine(item);
-              if (sourceLine) lines.push(sourceLine);
+              lines.push(compactUiLine(item, isOverlap, instanceLabel, dupRefMarker));
+              const candidatesBlock = compactCandidatesBlock(item);
+              candidatesBlock.forEach(function(l) { lines.push(l); });
+              // Task 5.6: collision note on group leader (suppressed for overlap groups)
+              if (isInstanceLeader && groupSize >= 2 && !isOverlap) {
+                lines.push('  note: ' + groupSize + ' markers map to same call site — likely list-rendered; disambiguate by instance index');
+              }
               return lines;
             }
 
             function compactScreenHeader(screenId, screen) {
-              const lines = ['Screen ' + screenId + ': ' + (screen && screen.displayName ? screen.displayName : 'Screen')];
+              const shortId = String(screenId).slice(0, 8);
+              const lines = ['Screen ' + shortId + ': ' + (screen && screen.displayName ? screen.displayName : 'Screen')];
               const screenshotPath = screen && screen.screenshot && (screen.screenshot.desktopFullPath || screen.screenshot.fullPath);
               if (screenshotPath) lines.push('screenshot: ' + screenshotPath);
+              const w = screen && screen.screenshot && screen.screenshot.width;
+              const h = screen && screen.screenshot && screen.screenshot.height;
+              if (w && h) lines.push('viewport: ' + w + '×' + h);
+              const activityName = screen && screen.activityName;
+              const displayName = screen && screen.displayName;
+              if (activityName && activityName !== displayName) lines.push('activity: ' + activityName);
               return lines;
             }
 
@@ -223,28 +348,70 @@
                 ''
               ];
               const screensById = {};
-              (state.session.screens || []).forEach(screen => {
+              (state.session.screens || []).forEach(function(screen) {
                 if (screen && screen.screenId) screensById[screen.screenId] = screen;
               });
               const grouped = {};
-              list.forEach(item => {
+              list.forEach(function(item) {
                 const id = item.screenId || 'unknown-screen';
                 if (!grouped[id]) grouped[id] = [];
                 grouped[id].push(item);
               });
               let counter = 0;
-              Object.keys(grouped).forEach(screenId => {
+              Object.keys(grouped).forEach(function(screenId) {
                 lines.push.apply(lines, compactScreenHeader(screenId, screensById[screenId]));
                 lines.push('');
-                const overlapGroups = compactDetectOverlap(grouped[screenId], 1);
-                overlapGroups.forEach((group, groupIdx) => {
+                const itemsForScreen = grouped[screenId];
+
+                // Task 5.5: compute instance grouping for this screen
+                const instanceGrouping = computeInstanceLabels(itemsForScreen);
+
+                const overlapGroups = compactDetectOverlap(itemsForScreen, 1);
+
+                // Task 5.7: pre-pass to assign marker numbers, then build duplicate map
+                let preCounter = counter;
+                const markerByItemId = new Map();
+                overlapGroups.forEach(function(group) {
+                  group.forEach(function(item) {
+                    preCounter += 1;
+                    markerByItemId.set(item.itemId, preCounter);
+                  });
+                });
+                const detectorItems = list.filter(function(item) {
+                  return markerByItemId.has(item.itemId);
+                }).map(function(item) {
+                  const cand = (item.sourceCandidates || [])[0];
+                  const file = cand && promptScalarValue(cand.file);
+                  const fileLine = file ? (file + (cand.line ? ':' + cand.line : '')) : null;
+                  const testTag = item.selectedNode && item.selectedNode.testTag;
+                  const pathLeaves = (item.selectedNode && item.selectedNode.path) || [];
+                  const bounds = (item.target && item.target.boundsInWindow) || promptItemBounds(item) || { left: 0, top: 0, right: 0, bottom: 0 };
+                  return {
+                    itemId: item.itemId,
+                    markerNumber: markerByItemId.get(item.itemId),
+                    fileLine: fileLine,
+                    testTag: testTag,
+                    pathLeaves: pathLeaves,
+                    bounds: bounds
+                  };
+                });
+                const duplicateMap = computeDuplicateMarkers(detectorItems);
+
+                let overlapGroupCounter = 0;
+                overlapGroups.forEach(function(group) {
                   const isOverlap = group.length > 1;
                   if (isOverlap) {
-                    lines.push('Overlap group ' + (groupIdx + 1) + ' (resolve one marker at a time):');
+                    overlapGroupCounter += 1;
+                    lines.push('Overlap group ' + overlapGroupCounter + ' (resolve one marker at a time):');
                   }
-                  group.forEach(item => {
+                  group.forEach(function(item) {
                     counter += 1;
-                    lines.push.apply(lines, compactItemLines(item, counter, isOverlap));
+                    const dupRefMarker = duplicateMap.has(item.itemId) ? duplicateMap.get(item.itemId) : null;
+                    // Task 5.7: suppress instance label for duplicates
+                    const instanceLabel = (dupRefMarker == null) ? (instanceGrouping.labels.get(item.itemId) || null) : null;
+                    const isInstanceLeader = instanceGrouping.leaderItemIds.has(item.itemId);
+                    const groupSize = instanceLabel ? instanceLabel.total : 0;
+                    lines.push.apply(lines, compactItemLines(item, counter, isOverlap, instanceLabel, dupRefMarker, isInstanceLeader, groupSize));
                     lines.push('');
                   });
                 });

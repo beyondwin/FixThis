@@ -1,6 +1,7 @@
 package io.beyondwin.fixthis.mcp.session
 
 object CompactHandoffRenderer {
+    private const val MAX_CANDIDATES_RENDERED = 3
     fun render(session: SessionDto): String = buildString {
         appendLine("# FixThis Feedback Handoff")
         appendLine()
@@ -26,11 +27,23 @@ object CompactHandoffRenderer {
         itemsByScreen.forEach { (screenId, indexedItems) ->
             val screen = session.screens.firstOrNull { it.screenId == screenId }
             val displayName = screen?.displayName ?: "Screen"
-            appendLine("Screen ${screenId}: ${displayName.inlineSafe()}")
+            appendLine("Screen ${screenId.take(8)}: ${displayName.inlineSafe()}")
             screen?.screenshot?.desktopFullPath?.let {
                 appendLine("screenshot: ${it.inlineSafe()}")
             }
+            val w = screen?.screenshot?.width
+            val h = screen?.screenshot?.height
+            if (w != null && h != null) {
+                appendLine("viewport: ${w}×${h}")
+            }
+            val activityName = screen?.activityName
+            if (activityName != null && activityName != displayName) {
+                appendLine("activity: $activityName")
+            }
             appendLine()
+
+            val itemsForScreen = indexedItems.map { it.value }
+            val grouping = InstanceGroupingHelper.compute(itemsForScreen)
 
             val detectorItems = indexedItems.map { entry ->
                 val isArea = entry.value.target is AnnotationTargetDto.Area
@@ -50,6 +63,40 @@ object CompactHandoffRenderer {
             // Build a map from itemId -> AnnotationDto for quick lookup
             val itemById = indexedItems.associate { it.value.itemId to it.value }
 
+            // Pre-pass: assign marker numbers in iteration order to build DuplicateMarkerDetector inputs.
+            // We simulate the globalCounter increment to know which marker each item will receive.
+            var preCounter = globalCounter
+            val markerByItemId = mutableMapOf<String, Int>()
+            groups.forEach { group ->
+                group.forEach { detectorItem ->
+                    if (itemById.containsKey(detectorItem.id)) {
+                        preCounter += 1
+                        markerByItemId[detectorItem.id] = preCounter
+                    }
+                }
+            }
+            val dupDetectorItems = indexedItems.mapNotNull { entry ->
+                val annotation = entry.value
+                val marker = markerByItemId[annotation.itemId] ?: return@mapNotNull null
+                val fileLine = annotation.sourceCandidates.firstOrNull()?.fileWithLine()
+                val pathLeaves = annotation.selectedNode?.path ?: emptyList()
+                val bounds = when (val t = annotation.target) {
+                    is AnnotationTargetDto.Area -> t.boundsInWindow
+                    is AnnotationTargetDto.Node -> t.boundsInWindow
+                }
+                DuplicateMarkerDetector.Item(
+                    itemId = annotation.itemId,
+                    markerNumber = marker,
+                    key = DuplicateMarkerDetector.Key(
+                        fileLine = fileLine,
+                        testTag = annotation.selectedNode?.testTag,
+                        pathLeaves = pathLeaves,
+                        bounds = bounds,
+                    ),
+                )
+            }
+            val duplicateMap = DuplicateMarkerDetector.detect(dupDetectorItems)
+
             var overlapGroupCounter = 0
             groups.forEach { group ->
                 val isOverlapGroup = group.size > 1
@@ -61,49 +108,76 @@ object CompactHandoffRenderer {
                 group.forEach { detectorItem ->
                     val annotation = itemById[detectorItem.id] ?: return@forEach
                     globalCounter += 1
-                    appendCompactItem(globalCounter, annotation, isOverlapGroup)
+                    val dupRefMarker = duplicateMap[annotation.itemId]
+                    // When a duplicate-of-marker token is emitted, suppress the instance label
+                    val label = if (dupRefMarker == null) grouping.labels[annotation.itemId] else null
+                    val isLeader = annotation.itemId in grouping.leaderItemIds
+                    val groupSize = label?.total ?: 0
+                    appendCompactItem(globalCounter, annotation, isOverlapGroup, label, isLeader, groupSize, dupRefMarker)
                 }
             }
         }
     }
 
-    private fun StringBuilder.appendCompactItem(number: Int, item: AnnotationDto, isOverlap: Boolean) {
+    private fun StringBuilder.appendCompactItem(
+        number: Int,
+        item: AnnotationDto,
+        isOverlap: Boolean,
+        instanceLabel: InstanceLabel? = null,
+        isInstanceLeader: Boolean = false,
+        groupSize: Int = 0,
+        dupRefMarker: Int? = null,
+    ) {
         val title = item.comment.lineSequence().firstOrNull()?.takeIf { it.isNotBlank() } ?: "(No request provided)"
-        appendLine("${number}. [marker $number] ${title.inlineSafe()}")
-        val targetSummary = compactTargetSummary(item, isOverlap)
-        appendLine("target: $targetSummary")
+        val prefix = if (item.severity == AnnotationSeverityDto.HIGH) "[!] " else ""
+        appendLine("${number}. [marker $number] ${prefix}${title.inlineSafe()}")
+        appendLine(compactUiLine(item, isOverlap, instanceLabel, dupRefMarker))
         item.screenshotCrop?.desktopCropPath?.let { appendLine("crop: ${it.inlineSafe()}") }
-        appendLine(compactSourceLine(item))
+        appendCandidatesBlock(item)
+        if (isInstanceLeader && groupSize >= 2 && !isOverlap) {
+            appendLine("  note: $groupSize markers map to same call site — likely list-rendered; disambiguate by instance index")
+        }
         appendLine()
     }
 
-    private fun compactTargetSummary(item: AnnotationDto, isOverlap: Boolean): String {
-        val node = item.selectedNode
-        val role = node?.role?.takeIf { it.isNotBlank() } ?: when (item.target) {
-            is AnnotationTargetDto.Area -> "Area"
-            is AnnotationTargetDto.Node -> "Node"
+    private fun StringBuilder.appendCandidatesBlock(item: AnnotationDto) {
+        appendLine("  candidates:")
+        if (item.sourceCandidates.isEmpty()) {
+            appendLine("    ~ unknown")
+        } else {
+            val rank1 = item.sourceCandidates.firstOrNull()
+            val rank2 = item.sourceCandidates.getOrNull(1)
+            val computedMargin = if (rank1 != null && rank2 != null) {
+                (rank1.score - rank2.score).takeIf { it > 0 }
+            } else null
+            item.sourceCandidates.take(MAX_CANDIDATES_RENDERED).forEachIndexed { idx, candidate ->
+                appendLine("    ${formatCandidateLine(candidate, idx + 1, computedMargin)}")
+            }
+            val rank1Caution = item.sourceCandidates.firstOrNull()?.caution
+            if (!rank1Caution.isNullOrBlank()) {
+                appendLine("  note: ${rank1Caution.inlineSafe()}")
+            }
         }
-        val label = node?.text?.firstOrNull()
-            ?: node?.contentDescription?.firstOrNull()
-            ?: node?.testTag
-            ?: "(unlabelled)"
-        val bounds = when (val target = item.target) {
-            is AnnotationTargetDto.Area -> target.boundsInWindow.formatBounds()
-            is AnnotationTargetDto.Node -> target.boundsInWindow.formatBounds()
-        }
-        val base = "${role.inlineSafe()} \"${label.inlineSafe()}\" bounds=$bounds"
-        return if (isOverlap) "$base; targetRisk=overlap" else base
     }
 
-    private fun compactSourceLine(item: AnnotationDto): String {
-        val candidate = item.sourceCandidates.firstOrNull() ?: return "src? unknown"
-        val confidence = candidate.confidence.name.lowercase()
-        val why = candidate.matchReasons.mapNotNull { reasonTokenFor(it) }.distinct().joinToString("+")
-        val risk = candidate.riskFlags.firstOrNull()?.name?.lowercase()?.replace('_', '-')
-        val parts = mutableListOf("src? ${candidate.fileWithLine()} $confidence")
-        if (why.isNotBlank()) parts.add("why=$why")
-        if (risk != null) parts.add("risk=$risk")
-        return parts.joinToString("; ")
+    private fun formatCandidateLine(
+        candidate: io.beyondwin.fixthis.compose.core.model.SourceCandidate,
+        rank: Int,
+        computedMargin: Double? = null,
+    ): String {
+        val sb = StringBuilder()
+        sb.append("~ ${candidate.fileWithLine()}  conf=${candidate.confidence.name.lowercase()}")
+        if (rank == 1) {
+            val effectiveMargin = candidate.scoreMargin ?: computedMargin
+            effectiveMargin?.let { margin ->
+                sb.append("  margin=${"%.2f".format(margin)}")
+            }
+            val tokens = candidate.matchReasons.mapNotNull { reasonTokenFor(it) }.distinct().take(4)
+            if (tokens.isNotEmpty()) {
+                sb.append("  matched=[${tokens.joinToString(", ")}]")
+            }
+        }
+        return sb.toString()
     }
 
     private fun reasonTokenFor(reason: String): String? = when (reason) {
@@ -122,4 +196,32 @@ object CompactHandoffRenderer {
         "legacy fallback" -> "legacy"
         else -> null
     }
+
+    private fun compactUiLine(
+        item: AnnotationDto,
+        isOverlap: Boolean,
+        instanceLabel: InstanceLabel? = null,
+        dupRefMarker: Int? = null,
+    ): String {
+        val node = item.selectedNode
+        val role = node?.role?.takeIf { it.isNotBlank() } ?: when (item.target) {
+            is AnnotationTargetDto.Area -> "Area"
+            is AnnotationTargetDto.Node -> "Node"
+        }
+        val tag = node?.testTag ?: "(none)"
+        val rect = when (val target = item.target) {
+            is AnnotationTargetDto.Area -> target.boundsInWindow
+            is AnnotationTargetDto.Node -> target.boundsInWindow
+        }
+        var base = "  ui: $role tag=$tag  box=${rect.formatBox()}"
+        if (instanceLabel != null) {
+            base += "  instance ${instanceLabel.index}/${instanceLabel.total}"
+        }
+        return when {
+            dupRefMarker != null -> "$base; targetRisk=duplicate-of-marker-$dupRefMarker"
+            isOverlap -> "$base; targetRisk=overlap"
+            else -> base
+        }
+    }
+
 }

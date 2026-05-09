@@ -450,6 +450,11 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             },
         )
         val caution = cautionFor(afterAmbiguity, flags)
+        val scoreMargin = if (index == 0 && normalizedScores.size >= 2) {
+            normalizedScores[0] - normalizedScores[1]
+        } else {
+            null
+        }
         return SourceCandidate(
             file = entry.file,
             line = entry.line,
@@ -458,7 +463,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             matchReasons = matchReasons,
             confidence = afterAmbiguity,
             ranking = margin.ranking,
-            scoreMargin = margin.scoreMargin,
+            scoreMargin = scoreMargin,
             evidenceStrength = profile.strength(),
             riskFlags = flags,
             caution = caution,
