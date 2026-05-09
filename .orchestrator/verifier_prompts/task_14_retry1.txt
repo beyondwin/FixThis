@@ -1,0 +1,27 @@
+You are a Verifier on Sonnet. MID. Re-verification after Task 2.1 retry.
+
+## Worktree
+`/Users/kws/source/android/worktrees/compact-handoff-prompt-v2-20260509-183739` — `cd` here. NEVER `/Users/kws/source/android/FixThis/`.
+
+## Files Changed (commits be40d47 + f645141)
+- CompactHandoffRenderer.kt — appendCandidatesBlock added
+- CompactHandoffRendererTest.kt — 2 new tests
+- FeedbackQueueFormatterTest.kt — assertions updated to v2 candidates: shape
+- PromptParityTest.kt — @Ignored until Phase 5
+- expected-prompt.txt — fixture regenerated to v2 src-line shape
+- plan checkbox flipped
+
+## Baseline
+:fixthis-mcp:test should now show ~301 tests, 2 failures (FeedbackConsoleServerTest pair), 1 skipped (PromptParityTest @Ignore).
+
+## Acceptance
+1. `cd <worktree> && ./gradlew :fixthis-mcp:test 2>&1 | tail -10` — failures = 2 (baseline pair only). Skipped = 1 (PromptParityTest).
+2. `cd <worktree> && ./gradlew :fixthis-mcp:test --tests "*CompactHandoffRenderer*"` — all pass.
+3. `cd <worktree> && ./gradlew :fixthis-mcp:test --tests "*FeedbackQueueFormatter*"` — all pass.
+4. `cd <worktree> && grep -rn "src? " fixthis-mcp/src/test/ 2>/dev/null` — should be ZERO hits in test code (the literal is gone from CompactHandoffRenderer's output and tests).
+
+## Result file: `.orchestrator/verifier_results/task_14_retry1.json`
+
+Schema: `{"status":"PASS|FAIL|ESCALATE", "summary":"...", "risk_level":"MID", "tests_run":[...], "results":[...], "issues":[...], "escalation":null}`
+
+After writing, print contents.
