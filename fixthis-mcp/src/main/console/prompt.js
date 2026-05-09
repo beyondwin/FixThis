@@ -467,63 +467,67 @@
 
 
             async function sendAgentPrompt() {
-              error.textContent = '';
               if (promptActionInFlight) return;
-              ensurePromptAnnotationsAvailable();
-              promptActionInFlight = true;
-              updateComposerState();
-              let sent = false;
-              try {
-                if (addItemsFlow) {
-                  await persistPendingFeedbackItems({ onlyWrittenComments: true });
-                }
-                const prompt = currentAnnotationsPrompt();
-                state.session = await requestJson('/api/agent-handoffs', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ prompt: prompt })
-                });
-                comment.value = '';
-                resetAnnotationComposerState();
-                invalidatePreviewContext();
-                await refreshSessions();
-                render();
-                startLivePreviewPolling();
-                sent = true;
-              } finally {
-                promptActionInFlight = false;
+              await withMutationLock(async () => {
+                error.textContent = '';
+                ensurePromptAnnotationsAvailable();
+                promptActionInFlight = true;
                 updateComposerState();
-                if (sent) {
-                  showSuccess('Saved to MCP ✓', 3000);
+                let sent = false;
+                try {
+                  if (addItemsFlow) {
+                    await persistPendingFeedbackItems({ onlyWrittenComments: true });
+                  }
+                  const prompt = currentAnnotationsPrompt();
+                  state.session = await requestJson('/api/agent-handoffs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt })
+                  });
+                  comment.value = '';
+                  resetAnnotationComposerState();
+                  invalidatePreviewContext();
+                  await refreshSessions();
+                  render();
+                  startLivePreviewPolling();
+                  sent = true;
+                } finally {
+                  promptActionInFlight = false;
+                  updateComposerState();
+                  if (sent) {
+                    showSuccess('Saved to MCP ✓ — agent will pick up', 3000);
+                  }
                 }
-              }
+              });
             }
 
             async function copyPrompt() {
-              error.textContent = '';
               if (promptActionInFlight) return;
-              ensurePromptAnnotationsAvailable();
-              promptActionInFlight = true;
-              updateComposerState();
-              const labelSpan = copyPromptButton.querySelector('span:not(.button-icon)');
-              const originalLabel = labelSpan ? labelSpan.textContent : null;
-              let copied = false;
-              try {
-                if (addItemsFlow) {
-                  await persistPendingFeedbackItems({ onlyWrittenComments: true });
-                }
-                await copyTextToClipboard(currentAnnotationsPrompt());
-                copied = true;
-              } finally {
-                promptActionInFlight = false;
+              await withMutationLock(async () => {
+                error.textContent = '';
+                ensurePromptAnnotationsAvailable();
+                promptActionInFlight = true;
                 updateComposerState();
-                if (copied && labelSpan) {
-                  labelSpan.textContent = 'Copied ✓';
-                  setTimeout(() => {
-                    if (labelSpan.textContent === 'Copied ✓') {
-                      labelSpan.textContent = originalLabel;
-                    }
-                  }, 1500);
+                const labelSpan = copyPromptButton.querySelector('span:not(.button-icon)');
+                const originalLabel = labelSpan ? labelSpan.textContent : null;
+                let copied = false;
+                try {
+                  if (addItemsFlow) {
+                    await persistPendingFeedbackItems({ onlyWrittenComments: true });
+                  }
+                  await copyTextToClipboard(currentAnnotationsPrompt());
+                  copied = true;
+                } finally {
+                  promptActionInFlight = false;
+                  updateComposerState();
+                  if (copied && labelSpan) {
+                    labelSpan.textContent = 'Copied ✓';
+                    setTimeout(() => {
+                      if (labelSpan.textContent === 'Copied ✓') {
+                        labelSpan.textContent = originalLabel;
+                      }
+                    }, 1500);
+                  }
                 }
-              }
+              });
             }

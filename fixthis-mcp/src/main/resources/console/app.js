@@ -1384,7 +1384,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             async function persistSavedEvidenceItem(item, sessionId = focusedSavedSessionId || state.session?.sessionId || null) {
               if (!item?.itemId) return state.session;
-              const updatedSession = await requestJson('/api/items/' + encodeURIComponent(item.itemId), {
+              const updatedSession = await withMutationLock(() => requestJson('/api/items/' + encodeURIComponent(item.itemId), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1394,7 +1394,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   comment: String(item.comment || ''),
                   status: normalizedPersistedStatus(annotationStatus(item))
                 })
-              });
+              }));
               return applySavedSessionUpdate(updatedSession, sessionId);
             }
 
@@ -1403,7 +1403,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               const sessionQuery = sessionId
                 ? '?sessionId=' + encodeURIComponent(sessionId)
                 : '';
-              const updatedSession = await requestJson('/api/items/' + encodeURIComponent(itemId) + sessionQuery, { method: 'DELETE' });
+              const updatedSession = await withMutationLock(() => requestJson('/api/items/' + encodeURIComponent(itemId) + sessionQuery, { method: 'DELETE' }));
               if (state.session?.sessionId === (updatedSession?.sessionId || sessionId)) {
                 focusedSavedItemId = null;
                 focusedSavedSessionId = null;
@@ -1451,7 +1451,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               const allowBlankComments = Boolean(options.allowBlankComments);
               if (!allowFallbackComments && !onlyWrittenComments && !allowBlankComments && pendingFeedbackItems.some(item => !String(item.comment || '').trim())) throw new Error('Add a comment to every annotation before saving.');
               if (onlyWrittenComments && !pendingFeedbackItems.some(hasWrittenAnnotationComment)) throw new Error('Add a comment to at least one annotation before sending.');
-              state.session = await requestJson('/api/items/batch', {
+              state.session = await withMutationLock(() => requestJson('/api/items/batch', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1459,7 +1459,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   screen: addItemsFlow.screen,
                   items: pendingPayloadItems({ allowFallbackComments: allowFallbackComments, onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments })
                 })
-              });
+              }));
               resetAnnotationComposerState();
               state.preview = null;
               return state.session;
@@ -1618,11 +1618,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (hasActiveHistorySessionForAnnotating()) return;
               resetAnnotationComposerState();
               invalidatePreviewContext();
-              state.session = await requestJson('/api/session/open', {
+              state.session = await withMutationLock(() => requestJson('/api/session/open', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ newSession: true })
-              });
+              }));
               await refreshSessions();
             }
 
@@ -1759,11 +1759,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               await flushPendingAnnotationsBeforeSessionChange();
               resetAnnotationComposerState();
               invalidatePreviewContext();
-              state.session = await requestJson('/api/session/open', {
+              state.session = await withMutationLock(() => requestJson('/api/session/open', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: sessionId })
-              });
+              }));
               await refresh();
               if (!latestPersistedScreen() && shouldAutoFetchPreview()) {
                 await refreshPreview();
@@ -1776,11 +1776,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               await flushPendingAnnotationsBeforeSessionChange();
               resetAnnotationComposerState();
               invalidatePreviewContext();
-              state.session = await requestJson('/api/session/open', {
+              state.session = await withMutationLock(() => requestJson('/api/session/open', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ newSession: true })
-              });
+              }));
               await refresh();
               startLivePreviewPolling();
             }
@@ -1790,11 +1790,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (!state.session) return;
               resetAnnotationComposerState();
               invalidatePreviewContext();
-              await requestJson('/api/session/close', {
+              await withMutationLock(() => requestJson('/api/session/close', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: state.session.sessionId })
-              });
+              }));
               state.session = null;
               await refreshSessions();
               render();
@@ -1809,11 +1809,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 resetAnnotationComposerState();
                 invalidatePreviewContext();
               }
-              await requestJson('/api/session/close', {
+              await withMutationLock(() => requestJson('/api/session/close', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: sessionId })
-              });
+              }));
               if (isDisplayedSession()) {
                 resetAnnotationComposerState();
                 invalidatePreviewContext();
@@ -1827,7 +1827,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             async function clearDraft() {
               error.textContent = '';
               if (!window.confirm('Discard all unsent draft feedback items?')) return;
-              await requestJson('/api/items/draft', { method: 'DELETE' });
+              await withMutationLock(() => requestJson('/api/items/draft', { method: 'DELETE' }));
               clearSelection();
               await refresh();
             }
@@ -2302,65 +2302,69 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
 
             async function sendAgentPrompt() {
-              error.textContent = '';
               if (promptActionInFlight) return;
-              ensurePromptAnnotationsAvailable();
-              promptActionInFlight = true;
-              updateComposerState();
-              let sent = false;
-              try {
-                if (addItemsFlow) {
-                  await persistPendingFeedbackItems({ onlyWrittenComments: true });
-                }
-                const prompt = currentAnnotationsPrompt();
-                state.session = await requestJson('/api/agent-handoffs', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ prompt: prompt })
-                });
-                comment.value = '';
-                resetAnnotationComposerState();
-                invalidatePreviewContext();
-                await refreshSessions();
-                render();
-                startLivePreviewPolling();
-                sent = true;
-              } finally {
-                promptActionInFlight = false;
+              await withMutationLock(async () => {
+                error.textContent = '';
+                ensurePromptAnnotationsAvailable();
+                promptActionInFlight = true;
                 updateComposerState();
-                if (sent) {
-                  showSuccess('Saved to MCP ✓', 3000);
+                let sent = false;
+                try {
+                  if (addItemsFlow) {
+                    await persistPendingFeedbackItems({ onlyWrittenComments: true });
+                  }
+                  const prompt = currentAnnotationsPrompt();
+                  state.session = await requestJson('/api/agent-handoffs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt })
+                  });
+                  comment.value = '';
+                  resetAnnotationComposerState();
+                  invalidatePreviewContext();
+                  await refreshSessions();
+                  render();
+                  startLivePreviewPolling();
+                  sent = true;
+                } finally {
+                  promptActionInFlight = false;
+                  updateComposerState();
+                  if (sent) {
+                    showSuccess('Saved to MCP ✓ — agent will pick up', 3000);
+                  }
                 }
-              }
+              });
             }
 
             async function copyPrompt() {
-              error.textContent = '';
               if (promptActionInFlight) return;
-              ensurePromptAnnotationsAvailable();
-              promptActionInFlight = true;
-              updateComposerState();
-              const labelSpan = copyPromptButton.querySelector('span:not(.button-icon)');
-              const originalLabel = labelSpan ? labelSpan.textContent : null;
-              let copied = false;
-              try {
-                if (addItemsFlow) {
-                  await persistPendingFeedbackItems({ onlyWrittenComments: true });
-                }
-                await copyTextToClipboard(currentAnnotationsPrompt());
-                copied = true;
-              } finally {
-                promptActionInFlight = false;
+              await withMutationLock(async () => {
+                error.textContent = '';
+                ensurePromptAnnotationsAvailable();
+                promptActionInFlight = true;
                 updateComposerState();
-                if (copied && labelSpan) {
-                  labelSpan.textContent = 'Copied ✓';
-                  setTimeout(() => {
-                    if (labelSpan.textContent === 'Copied ✓') {
-                      labelSpan.textContent = originalLabel;
-                    }
-                  }, 1500);
+                const labelSpan = copyPromptButton.querySelector('span:not(.button-icon)');
+                const originalLabel = labelSpan ? labelSpan.textContent : null;
+                let copied = false;
+                try {
+                  if (addItemsFlow) {
+                    await persistPendingFeedbackItems({ onlyWrittenComments: true });
+                  }
+                  await copyTextToClipboard(currentAnnotationsPrompt());
+                  copied = true;
+                } finally {
+                  promptActionInFlight = false;
+                  updateComposerState();
+                  if (copied && labelSpan) {
+                    labelSpan.textContent = 'Copied ✓';
+                    setTimeout(() => {
+                      if (labelSpan.textContent === 'Copied ✓') {
+                        labelSpan.textContent = originalLabel;
+                      }
+                    }, 1500);
+                  }
                 }
-              }
+              });
             }
 
 // rendering.js

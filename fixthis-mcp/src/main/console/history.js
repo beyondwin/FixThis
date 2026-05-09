@@ -123,11 +123,11 @@
               if (hasActiveHistorySessionForAnnotating()) return;
               resetAnnotationComposerState();
               invalidatePreviewContext();
-              state.session = await requestJson('/api/session/open', {
+              state.session = await withMutationLock(() => requestJson('/api/session/open', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ newSession: true })
-              });
+              }));
               await refreshSessions();
             }
 
@@ -264,11 +264,11 @@
               await flushPendingAnnotationsBeforeSessionChange();
               resetAnnotationComposerState();
               invalidatePreviewContext();
-              state.session = await requestJson('/api/session/open', {
+              state.session = await withMutationLock(() => requestJson('/api/session/open', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: sessionId })
-              });
+              }));
               await refresh();
               if (!latestPersistedScreen() && shouldAutoFetchPreview()) {
                 await refreshPreview();
@@ -281,11 +281,11 @@
               await flushPendingAnnotationsBeforeSessionChange();
               resetAnnotationComposerState();
               invalidatePreviewContext();
-              state.session = await requestJson('/api/session/open', {
+              state.session = await withMutationLock(() => requestJson('/api/session/open', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ newSession: true })
-              });
+              }));
               await refresh();
               startLivePreviewPolling();
             }
@@ -295,11 +295,11 @@
               if (!state.session) return;
               resetAnnotationComposerState();
               invalidatePreviewContext();
-              await requestJson('/api/session/close', {
+              await withMutationLock(() => requestJson('/api/session/close', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: state.session.sessionId })
-              });
+              }));
               state.session = null;
               await refreshSessions();
               render();
@@ -314,11 +314,11 @@
                 resetAnnotationComposerState();
                 invalidatePreviewContext();
               }
-              await requestJson('/api/session/close', {
+              await withMutationLock(() => requestJson('/api/session/close', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: sessionId })
-              });
+              }));
               if (isDisplayedSession()) {
                 resetAnnotationComposerState();
                 invalidatePreviewContext();
@@ -332,7 +332,7 @@
             async function clearDraft() {
               error.textContent = '';
               if (!window.confirm('Discard all unsent draft feedback items?')) return;
-              await requestJson('/api/items/draft', { method: 'DELETE' });
+              await withMutationLock(() => requestJson('/api/items/draft', { method: 'DELETE' }));
               clearSelection();
               await refresh();
             }

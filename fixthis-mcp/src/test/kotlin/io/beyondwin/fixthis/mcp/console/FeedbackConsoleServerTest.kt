@@ -3609,6 +3609,22 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("async function withMutationLock"))
     }
 
+    @Test
+    fun saveToMcpToastMentionsAgentPickup() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains("Saved to MCP ✓ — agent will pick up"))
+        assertFalse(html.contains("Saved to MCP ✓\","), "Old toast text must be gone")
+    }
+
+    @Test
+    fun mutationsAreWrappedInLock() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val sendAgent = javascriptFunctionBody(html, "sendAgentPrompt")
+        val copyPrompt = javascriptFunctionBody(html, "copyPrompt")
+        assertTrue(sendAgent.contains("withMutationLock"))
+        assertTrue(copyPrompt.contains("withMutationLock"))
+    }
+
     private class FakeExchange(path: String) : HttpExchange() {
         private val uri = URI.create(path)
 

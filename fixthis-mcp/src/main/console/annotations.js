@@ -448,7 +448,7 @@
 
             async function persistSavedEvidenceItem(item, sessionId = focusedSavedSessionId || state.session?.sessionId || null) {
               if (!item?.itemId) return state.session;
-              const updatedSession = await requestJson('/api/items/' + encodeURIComponent(item.itemId), {
+              const updatedSession = await withMutationLock(() => requestJson('/api/items/' + encodeURIComponent(item.itemId), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -458,7 +458,7 @@
                   comment: String(item.comment || ''),
                   status: normalizedPersistedStatus(annotationStatus(item))
                 })
-              });
+              }));
               return applySavedSessionUpdate(updatedSession, sessionId);
             }
 
@@ -467,7 +467,7 @@
               const sessionQuery = sessionId
                 ? '?sessionId=' + encodeURIComponent(sessionId)
                 : '';
-              const updatedSession = await requestJson('/api/items/' + encodeURIComponent(itemId) + sessionQuery, { method: 'DELETE' });
+              const updatedSession = await withMutationLock(() => requestJson('/api/items/' + encodeURIComponent(itemId) + sessionQuery, { method: 'DELETE' }));
               if (state.session?.sessionId === (updatedSession?.sessionId || sessionId)) {
                 focusedSavedItemId = null;
                 focusedSavedSessionId = null;
@@ -515,7 +515,7 @@
               const allowBlankComments = Boolean(options.allowBlankComments);
               if (!allowFallbackComments && !onlyWrittenComments && !allowBlankComments && pendingFeedbackItems.some(item => !String(item.comment || '').trim())) throw new Error('Add a comment to every annotation before saving.');
               if (onlyWrittenComments && !pendingFeedbackItems.some(hasWrittenAnnotationComment)) throw new Error('Add a comment to at least one annotation before sending.');
-              state.session = await requestJson('/api/items/batch', {
+              state.session = await withMutationLock(() => requestJson('/api/items/batch', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -523,7 +523,7 @@
                   screen: addItemsFlow.screen,
                   items: pendingPayloadItems({ allowFallbackComments: allowFallbackComments, onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments })
                 })
-              });
+              }));
               resetAnnotationComposerState();
               state.preview = null;
               return state.session;
