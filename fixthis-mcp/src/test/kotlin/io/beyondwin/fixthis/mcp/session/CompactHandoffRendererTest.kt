@@ -1623,4 +1623,45 @@ class CompactHandoffRendererTest {
             "Expected full path to remain when no source root header is emitted but got:\n$markdown",
         )
     }
+
+    @Test
+    fun rendersIdTokenForEachItem() {
+        val session = SessionDto(
+            sessionId = "session-id-token",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(
+                SnapshotDto(
+                    screenId = "screen-1",
+                    capturedAtEpochMillis = 1L,
+                    displayName = "Home",
+                ),
+            ),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-aaa",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                    comment = "first",
+                    sequenceNumber = 1,
+                ),
+                AnnotationDto(
+                    itemId = "item-bbb",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                    comment = "second",
+                    sequenceNumber = 2,
+                ),
+            ),
+        )
+        val markdown = CompactHandoffRenderer.render(session)
+        assertTrue(markdown.contains("id: item-aaa"), markdown)
+        assertTrue(markdown.contains("id: item-bbb"), markdown)
+    }
 }

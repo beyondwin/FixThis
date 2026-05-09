@@ -131,6 +131,7 @@ object CompactHandoffRenderer {
         val title = item.comment.lineSequence().firstOrNull()?.takeIf { it.isNotBlank() } ?: "(No request provided)"
         val prefix = if (item.severity == AnnotationSeverityDto.HIGH) "[!] " else ""
         appendLine("[${number}] ${prefix}${title.inlineSafe()}")
+        appendLine("  id: ${item.itemId}")
         appendLine(compactUiLine(item, isOverlap, instanceLabel, dupRefMarker))
         item.screenshotCrop?.desktopCropPath?.let { appendLine("crop: ${it.inlineSafe()}") }
         appendCandidatesBlock(item, sourceRoot)
