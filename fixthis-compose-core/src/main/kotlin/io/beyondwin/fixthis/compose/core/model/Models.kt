@@ -107,6 +107,8 @@ data class SourceCandidate(
     val evidenceStrength: SourceEvidenceStrength? = null,
     val riskFlags: List<SourceCandidateRisk> = emptyList(),
     val caution: String? = null,
+    val stale: Boolean? = null,
+    val staleReason: String? = null,
 )
 
 @Serializable

@@ -34,6 +34,8 @@ class SourceCandidateSerializationTest {
         assertEquals(null, candidate.evidenceStrength)
         assertTrue(candidate.riskFlags.isEmpty())
         assertEquals(null, candidate.caution)
+        assertEquals(null, candidate.stale)
+        assertEquals(null, candidate.staleReason)
     }
 
     @Test
@@ -58,6 +60,30 @@ class SourceCandidateSerializationTest {
         assertEquals(candidate, round)
         assertTrue(text.contains("\"ranking\""))
         assertTrue(text.contains("\"riskFlags\""))
+        // §12: stale=null must not appear in serialized output (encodeDefaults=false)
+        assertTrue("stale=null should be omitted from JSON", !text.contains("\"stale\""))
+        assertTrue("staleReason=null should be omitted from JSON", !text.contains("\"staleReason\""))
+    }
+
+    @Test
+    fun roundTripsStaleFields() {
+        val candidate = SourceCandidate(
+            file = "Foo.kt",
+            line = 42,
+            score = 0.9,
+            confidence = SelectionConfidence.HIGH,
+            stale = true,
+            staleReason = "excerpt mismatch",
+        )
+
+        val text = json.encodeToString(SourceCandidate.serializer(), candidate)
+        val round = json.decodeFromString(SourceCandidate.serializer(), text)
+
+        assertEquals(candidate, round)
+        assertEquals(true, round.stale)
+        assertEquals("excerpt mismatch", round.staleReason)
+        assertTrue(text.contains("\"stale\""))
+        assertTrue(text.contains("\"staleReason\""))
     }
 
     @Test
