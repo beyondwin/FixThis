@@ -3707,6 +3707,16 @@ class FeedbackConsoleServerTest {
         )
     }
 
+    @Test
+    fun renderConnectionSurfacesSessionsPollingPaused() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val body = javascriptFunctionBody(html, "renderConnection")
+        assertTrue(
+            body.contains("sessionsPollingPaused") || body.contains("Reconnecting feedback updates"),
+            "renderConnection must consult the paused flag and surface a Reconnecting message"
+        )
+    }
+
     private class FakeExchange(path: String) : HttpExchange() {
         private val uri = URI.create(path)
 

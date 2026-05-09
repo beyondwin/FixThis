@@ -371,8 +371,20 @@
               connectionPrimaryAction.textContent = connectionActionLabel(action);
               connectionPrimaryAction.disabled = state.connection.launchInFlight;
               connectionPrimaryAction.dataset.connectionAction = action || 'START';
-              connectionDetailsBody.textContent = connectionDetailsText(status);
-              connectionDetails.hidden = viewState === 'ready' && !state.connection.hasEverConnected;
+              if (state.connection.sessionsPollingPaused) {
+                // Surface a sub-line indicating sessions polling is paused after consecutive failures.
+                // Uses connectionDetailsBody as the secondary message channel so it does NOT
+                // replace the bridge/device headline above.
+                const baseDetails = connectionDetailsText(status);
+                connectionDetailsBody.textContent = baseDetails
+                  ? baseDetails + '\nReconnecting feedback updates…'
+                  : 'Reconnecting feedback updates…';
+              } else {
+                connectionDetailsBody.textContent = connectionDetailsText(status);
+              }
+              connectionDetails.hidden = viewState === 'ready'
+                && !state.connection.hasEverConnected
+                && !state.connection.sessionsPollingPaused;
             }
 
             async function refreshConnection(options) {
