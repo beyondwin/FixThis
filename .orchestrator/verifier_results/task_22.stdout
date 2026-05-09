@@ -1,0 +1,5 @@
+**Verdict: PASS**
+
+- Targeted: 5/5 DuplicateMarkerDetector tests pass (0 failures, 0 skipped).
+- Full `:fixthis-mcp:test`: 327 total, 2 failures, 1 skipped — matches acceptance (the 2 failures are pre-existing `FeedbackConsoleServerTest` cases, unrelated to Task 4.1).
+- Baseline delta 322 → 327 = +5, exactly the new tests.

@@ -1,0 +1,19 @@
+You are a Verifier on Sonnet. MID. No file modifications.
+
+## Worktree
+`/Users/kws/source/android/worktrees/compact-handoff-prompt-v2-20260509-183739` — `cd` here. NEVER `/Users/kws/source/android/FixThis/`.
+
+## Files Changed (Task 4.1 — DuplicateMarkerDetector)
+- NEW: DuplicateMarkerDetector.kt
+- NEW: DuplicateMarkerDetectorTest.kt
+
+## Baseline
+:fixthis-mcp:test before: 322. After: ~327.
+
+## Acceptance
+1. `cd <worktree> && ./gradlew :fixthis-mcp:test --tests "*DuplicateMarker*"` — all 5 pass.
+2. `cd <worktree> && ./gradlew :fixthis-mcp:test` — failures = 2, skipped = 1.
+
+## Result file: `.orchestrator/verifier_results/task_22.json`
+
+After writing, print contents.

@@ -323,6 +323,20 @@
       "verifier_result": "PASS — CompactHandoffRendererTest 32/32; :fixthis-mcp:test 322 tests, 2 baseline failures, 1 skipped",
       "orchestrator_note": "Reviewer skipped — small additive collision-note emission with 2 focused tests including overlap suppression.",
       "timing": {"started": "2026-05-09T15:15:00Z", "completed": "2026-05-09T15:30:00Z"}
+    },
+    "task_22": {
+      "plan_id": "4.1",
+      "status": "COMPLETE",
+      "risk": "mid",
+      "files": ["fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/DuplicateMarkerDetector.kt", "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/DuplicateMarkerDetectorTest.kt", "docs/superpowers/plans/2026-05-09-compact-handoff-prompt-v2.md"],
+      "commit": "0c0e3b6",
+      "pre_task_sha": "80cb2e8cd54fe6f97bb1236db3c69b1444ab3ee4",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "verifier_result": "PASS — DuplicateMarkerDetectorTest 5/5; :fixthis-mcp:test 327 tests, 2 baseline failures, 1 skipped",
+      "orchestrator_note": "Reviewer skipped — pure new helper file with 5 focused TDD tests.",
+      "timing": {"started": "2026-05-09T15:30:00Z", "completed": "2026-05-09T15:42:00Z"}
     }
   },
   "task_summaries": {
@@ -454,14 +468,20 @@
     },
     "task_21": {
       "files": ["fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt"],
-      "exposed_apis": ["appendCompactItem(number, item, isOverlap, label, isInstanceLeader, groupSize); collision note emitted after appendCandidatesBlock when isInstanceLeader && groupSize>=2 && !isOverlap"],
-      "key_decision": "Wording: '  note: N markers map to same call site — likely list-rendered; disambiguate by instance index' (em-dash U+2014). Overlap supersedes — no collision note for overlap items.",
-      "for_next_tasks": "Task 4.x (duplicate detection) emits a different '; targetRisk=duplicate-of-marker-N' suffix on the ui line — independent of collision-note logic. JS Task 5.6 mirrors collision-note emission."
+      "exposed_apis": ["appendCompactItem(number, item, isOverlap, label, isInstanceLeader, groupSize); collision note when isInstanceLeader && groupSize>=2 && !isOverlap"],
+      "key_decision": "Wording locked. Overlap supersedes.",
+      "for_next_tasks": "JS Task 5.6 mirrors collision-note emission."
+    },
+    "task_22": {
+      "files": ["fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/DuplicateMarkerDetector.kt"],
+      "exposed_apis": ["object DuplicateMarkerDetector.detect(items: List<Item>): Map<itemId, refersToMarker>; Item(itemId, markerNumber, key); Key(fileLine, testTag, pathLeaves, bounds: FixThisRect)"],
+      "key_decision": "Detection: groups by Key (fileLine + testTag + pathLeaves + bounds); for ≥2 groups, all-but-first map to first.markerNumber. Earlier item is canonical.",
+      "for_next_tasks": "Task 4.2 builds Item list (per-screen) with markerNumber from appendCompactItem counter, calls detect(), passes result into appendCompactItem to emit '; targetRisk=duplicate-of-marker-N' suffix on the ui line. Spec note: duplicate token takes precedence over instance label since they refer to same call site by definition. JS Task 5.7 mirrors as computeDuplicateMarkers(items)."
     }
   },
   "low_tasks_pending_verification": [],
   "last_compaction_after_task": 21,
-  "current_task": 22,
+  "current_task": 23,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
