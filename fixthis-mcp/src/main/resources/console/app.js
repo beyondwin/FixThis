@@ -21,7 +21,6 @@
             const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });
             const unresponsiveTracker = createUnresponsiveTracker({ threshold: 3 });
             const sessions = document.getElementById('sessions');
-            const sentHistory = document.getElementById('sentHistory');
             const snapshot = document.getElementById('snapshot');
             const connectionCard = document.getElementById('connectionCard');
             const connectionHeadline = document.getElementById('connectionHeadline');
@@ -49,7 +48,6 @@
             const addItemButton = document.getElementById('addItemButton');
             const copyPromptButton = document.getElementById('copyPromptButton');
             const sendAgentButton = document.getElementById('sendAgentButton');
-            const clearSentHistoryButton = document.getElementById('clearSentHistoryButton');
             const cancelAddFlowButton = document.getElementById('cancelAddFlowButton');
             const clearDraftButton = document.getElementById('clearDraftButton');
             const selectToolButton = document.getElementById('selectToolButton');
@@ -1749,50 +1747,6 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               renderSessionsListFromPayload(state.sessionSummaries || []);
             }
 
-            function sentHistorySummaries() {
-              return (state.sessionSummaries || []).filter(session => session.status === 'ready_for_agent' || (session.sentBatchesCount || 0) > 0);
-            }
-
-            function renderSentHistory() {
-              const session = state.session;
-              const allItems = session?.items || [];
-              const sentItems = allItems.filter(item => item.delivery === 'sent');
-              const handoffBatches = session ? session.handoffBatches || [] : [];
-              const batchIds = new Set(handoffBatches.map(batch => batch.batchId));
-              const batchedItemIds = new Set(handoffBatches.flatMap(batch => batch.itemIds || []));
-              const batchRows = handoffBatches.map(batch => {
-                const items = batchItems(batch);
-                return '<div class="row">' +
-                  '<strong>' + escapeHtml(formatBatchLabel(batch)) + '</strong>' +
-                  '<span>' + escapeHtml(formatBatchDetails(batch, items)) + '</span>' +
-                '</div>';
-              });
-              const unbatchedRows = sentItems
-                .filter(item => !item.handoffBatchId || !batchIds.has(item.handoffBatchId) || !batchedItemIds.has(item.itemId))
-                .map(item => {
-                  const label = item.handoffBatchId ? 'Missing batch metadata' : 'Unbatched sent item';
-                  const detail = item.handoffBatchId ? 'No batch metadata' : 'Sent outside a batch';
-                  return '<div class="row">' +
-                    '<strong>' + escapeHtml(label) + '</strong>' +
-                    '<span>' + escapeHtml(firstLine(item.comment || '(No comment)')) + ' · ' + escapeHtml(detail) + '</span>' +
-                  '</div>';
-                });
-              const renderedSessionIds = new Set(session && (handoffBatches.length || sentItems.length) ? [session.sessionId] : []);
-              const summaryRows = sentHistorySummaries()
-                .filter(summary => !renderedSessionIds.has(summary.sessionId))
-                .map((summary, index) => {
-                  const sentCount = summary.itemsCount || summary.sentItemsCount || summary.sentBatchesCount || 0;
-                  return '<div class="row">' +
-                    '<strong>' + escapeHtml(formatSessionLabel(summary, index)) + '</strong>' +
-                    '<span>' + escapeHtml(countLabel(sentCount, 'annotation', 'annotations')) + ' sent · ' + escapeHtml(formatSessionSummary(summary)) + '</span>' +
-                  '</div>';
-                });
-              const rows = batchRows.concat(unbatchedRows, summaryRows);
-              clearSentHistoryButton.hidden = rows.length === 0;
-              sentHistory.innerHTML = rows.join('') || '<div class="row"><span>No sent handoff history.</span></div>';
-            }
-
-
             // Sync sidebar summaries and the active session in lockstep so the panel/toolbar
             // (driven by state.session) cannot drift behind the sidebar (driven by summaries).
             // Both endpoints fetched in parallel; if one fails the call rejects as before.
@@ -1891,31 +1845,6 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               await requestJson('/api/items/draft', { method: 'DELETE' });
               clearSelection();
               await refresh();
-            }
-
-            async function clearSentHistory() {
-              error.textContent = '';
-              const ids = new Set(sentHistorySummaries().map(session => session.sessionId));
-              if (state.session && ((state.session.handoffBatches || []).length || (state.session.items || []).some(item => item.delivery === 'sent'))) {
-                ids.add(state.session.sessionId);
-              }
-              if (ids.size === 0) return;
-              if (!window.confirm('Clear all sent history? Sent handoff records will be removed from this console.')) return;
-              for (const sessionId of ids) {
-                await requestJson('/api/session/close', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ sessionId: sessionId })
-                });
-              }
-              if (state.session && ids.has(state.session.sessionId)) {
-                resetAnnotationComposerState();
-                invalidatePreviewContext();
-                state.session = null;
-              }
-              await refreshSessions();
-              render();
-              await refreshDevices();
             }
 
 // prompt.js
@@ -2868,9 +2797,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
 
             function renderSessionRegions() {
-              const session = state.session;
               renderSessionsList();
-              renderSentHistory();
             }
 
             function renderComposerInspector() {
@@ -3118,11 +3045,6 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             copyPromptButton.addEventListener('click', () => copyPrompt().catch(showError));
             sendAgentButton.addEventListener('click', () => sendAgentPrompt().catch(showError));
             connectionPrimaryAction.addEventListener('click', () => handleConnectionPrimaryAction().catch(showError));
-            clearSentHistoryButton.addEventListener('click', event => {
-              event.preventDefault();
-              event.stopPropagation();
-              clearSentHistory().catch(showError);
-            });
             document.getElementById('refreshDevicesButton').addEventListener('click', () => {
               refreshDevices()
                 .then(refreshConnection)

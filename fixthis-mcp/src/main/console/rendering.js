@@ -416,9 +416,7 @@
 
 
             function renderSessionRegions() {
-              const session = state.session;
               renderSessionsList();
-              renderSentHistory();
             }
 
             function renderComposerInspector() {
