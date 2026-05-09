@@ -71,9 +71,7 @@
             function latestPersistedScreen() {
               const screens = state.session?.screens || [];
               const persistedScreenIds = new Set(
-                (state.session?.items || [])
-                  .filter(item => item.delivery !== 'sent')
-                  .map(item => item.screenId)
+                (state.session?.items || []).map(item => item.screenId)
               );
               const screenshotScreens = screens
                 .filter(screen => screen?.screenshot?.desktopFullPath);

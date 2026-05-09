@@ -949,6 +949,18 @@ class FeedbackConsoleServerTest {
         )
     }
 
+    @Test
+    fun consoleHtmlNoLongerFiltersSentItemsFromInspector() {
+        val html = FeedbackConsoleAssets.indexHtml
+        // Narrow scope: latestPersistedScreen() must include SENT items.
+        // The send-path filter inside currentPromptAnnotations() is intentional and stays.
+        val latestPersistedScreenBody = javascriptFunctionBody(html, "latestPersistedScreen")
+        assertFalse(
+            latestPersistedScreenBody.contains("delivery !== 'sent'"),
+            "latestPersistedScreen must show SENT items too",
+        )
+    }
+
     private fun javascriptFunctionBody(html: String, functionName: String): String {
         val declarationStart = html.indexOf("function $functionName(")
         assertTrue(declarationStart >= 0, "Missing JavaScript function: $functionName")
