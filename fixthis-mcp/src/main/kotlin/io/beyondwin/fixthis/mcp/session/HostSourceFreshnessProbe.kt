@@ -32,6 +32,24 @@ class HostSourceFreshnessProbe(private val projectRoot: File) {
         }
         val canonicalRoot = projectRoot.canonicalFile
         val files = sourceIndex.entries.map { it.file }.distinct()
+        if (files.isNotEmpty()) {
+            val existsCount = files.count { relative ->
+                val resolved = runCatching { File(canonicalRoot, relative).canonicalFile }.getOrNull()
+                resolved != null &&
+                    resolved.path.startsWith(canonicalRoot.path + File.separator) &&
+                    resolved.isFile
+            }
+            if (existsCount == 0) {
+                return HostSourceFreshnessResult(
+                    installStale = false,
+                    newerFileCount = 0,
+                    totalIndexedFiles = files.size,
+                    installedAtEpochMillis = installEpochMillis,
+                    sampleNewerFiles = emptyList(),
+                    reason = "projectRoot may be misconfigured: 0 of ${files.size} indexed files exist on host",
+                )
+            }
+        }
         val newer = files.mapNotNull { relative ->
             val resolved = runCatching { File(canonicalRoot, relative).canonicalFile }.getOrNull()
                 ?: return@mapNotNull null
