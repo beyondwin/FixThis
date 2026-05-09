@@ -1,6 +1,0 @@
-**Status: PASS**
-
-- `:fixthis-compose-core:test` — 100 tests, 0 failures. All 3 new tests (`scoreMarginIsPopulatedOnRankOneWhenRunnerUpExists`, `scoreMarginIsNullWhenOnlyOneCandidate`, `matchReturnsEmptyListWhenNoCandidates`) present and passing.
-- `:fixthis-mcp:test` — 283 tests, 2 failures, exact baseline match (both `FeedbackConsoleServerTest` cases). No new regressions.
-
-Result written to `.orchestrator/verifier_results/task_5.json`.

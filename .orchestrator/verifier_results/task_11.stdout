@@ -1,9 +1,0 @@
-**PASS** — Task 1.5 rename verified clean.
-
-- `compactTargetSummary` has zero references in production source (`fixthis-mcp/`, `fixthis-compose-core/`, `fixthis-cli/`); only plan/spec doc references remain, which is acceptable.
-- v1 `"target:` literal has zero hits in `fixthis-mcp/src/test/`; PRECISE/FULL formatter `target:` literals live in separate code paths and are untouched.
-- `CompactHandoffRendererTest`: 12/12 pass.
-- `:fixthis-mcp:test`: 296 tests, 2 failures — exactly the documented baseline pair (`consoleHtmlUsesModeAwareStudioInspector`, `consoleHtmlAnnotationSaveUsesCurrentSelectionPayload`).
-- Full `./gradlew test`: same 2 baseline failures, no other module regressions.
-
-Result written to `.orchestrator/verifier_results/task_11.json`.
