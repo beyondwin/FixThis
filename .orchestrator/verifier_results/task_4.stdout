@@ -1,0 +1,1 @@
+PASS. All 58 tests pass (56 baseline + 2 new scope tests), 0 failures. Both `AgentConfigWriter` implementations (ClaudeConfigWriter, CodexConfigWriter) correctly override `scope` with `"project-local"` and `"global"` respectively.

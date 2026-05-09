@@ -1,0 +1,84 @@
+You are a Verifier sub-agent running on Sonnet via headless `claude -p`. Run tests for a MID-risk multi-file interface change. Do not modify any files.
+
+## Risk Level: MID
+
+## Files Changed
+
+- `AgentConfigWriter.kt` (interface — added `val scope: String`)
+- `ClaudeConfigWriter.kt` (added `override val scope = "project-local"`)
+- `CodexConfigWriter.kt` (added `override val scope = "global"`)
+- `SetupCommand.kt` (AgentConfigWritePlan adds scope field; buildWritePlans + applyWritePlan threaded scope)
+- `AgentConfigWriterTest.kt` (2 new tests: claudeWriterScopeIsProjectLocal, codexWriterScopeIsGlobal)
+
+This is a cross-cutting interface change. The risk is that an implementation of `AgentConfigWriter` somewhere outside the listed files would fail to compile if it didn't override `scope`. Confirm there are exactly two implementations (Claude, Codex) — and both have been updated.
+
+## Baseline (do not introduce new failures beyond this)
+
+Passing: 56 | Failing: 0
+
+After this task, expect: 58 passing (56 + 2 new), 0 failures.
+
+## Test Command
+
+`./gradlew :fixthis-cli:test`
+
+## Working Directory
+
+`/Users/kws/source/android/FixThis/.claude/worktrees/fixthis-setup-polish-20260509-181733`
+
+`cd` to this directory before running.
+
+## Acceptance Criteria
+
+Spec Change 4 acceptance:
+- `ClaudeConfigWriter.scope == "project-local"` ✓ asserted by test
+- `CodexConfigWriter.scope == "global"` ✓ asserted by test
+- `fixthis setup --write --target all` output includes `(project-local)` and `(global)` labels — verifiable via SetupCommand.kt line inspection
+- Dry-run output includes scope on the "Target:" line — verifiable via SetupCommand.kt line inspection
+- All existing tests pass; two new scope tests pass.
+
+## Test Instructions
+
+MID:
+1. `cd` to the worktree.
+2. Run `./gradlew :fixthis-cli:test`.
+3. Inspect output: BUILD SUCCESSFUL with 58 passing, 0 failures → PASS.
+4. Confirm exactly two implementations of `AgentConfigWriter` exist by searching:
+   ```bash
+   grep -rn "AgentConfigWriter" fixthis-cli/src/main/kotlin --include="*.kt" | grep "internal class"
+   ```
+   Expected: exactly two matches (ClaudeConfigWriter and CodexConfigWriter).
+5. Confirm no other implementations are missing the override:
+   ```bash
+   grep -rn "AgentConfigWriter" fixthis-cli/src/main/kotlin --include="*.kt"
+   ```
+   Both implementations should declare `override val scope`.
+
+Do NOT modify any files.
+
+## If Tests Fail — Debugging Checklist
+
+1. Compilation error → likely a missed `override val scope` somewhere.
+2. Test failure → check the asserted value and the implementation value match exactly.
+3. ESCALATE only if environment is broken.
+
+## Result File
+
+Write your structured result to: `/Users/kws/source/android/FixThis/.claude/worktrees/fixthis-setup-polish-20260509-181733/.orchestrator/verifier_results/task_4.json`
+
+JSON schema:
+```json
+{
+  "status": "PASS",
+  "summary": "<≤3 sentences>",
+  "risk_level": "MID",
+  "tests_run": ["./gradlew :fixthis-cli:test"],
+  "results": [{"suite": "fixthis-cli", "status": "PASS", "count": 58, "failures": 0}],
+  "issues": ["none"],
+  "escalation": null
+}
+```
+
+If FAIL: set `"status": "FAIL"` with `issues`. If ESCALATE: populate `escalation`.
+
+After writing the file, print its contents to stdout for logging.

@@ -62,6 +62,23 @@
       "review_retries": 0,
       "verifier_retries": 0,
       "timing": {"started": "2026-05-09T18:34:00+09:00", "completed": "2026-05-09T18:40:00+09:00"}
+    },
+    "task_4": {
+      "status": "COMPLETE",
+      "risk": "mid",
+      "files": [
+        "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/AgentConfigWriter.kt",
+        "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt",
+        "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/CodexConfigWriter.kt",
+        "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt",
+        "fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/AgentConfigWriterTest.kt"
+      ],
+      "commit": "77815d5",
+      "pre_task_sha": "d273237820f844281755d0918035c487d5144fe4",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "timing": {"started": "2026-05-09T18:41:00+09:00", "completed": "2026-05-09T18:55:00+09:00"}
     }
   },
   "task_summaries": {
@@ -88,6 +105,18 @@
       "exposed_apis": [],
       "key_decision": "Replaced single-line warning with multi-line actionable message in `if (executable == null)` branch. No control-flow change. Task 1's catch block intact.",
       "for_next_tasks": "Task 4 will modify SetupCommand.kt again (AgentConfigWritePlan, buildWritePlans, applyWritePlan). Do not disturb Task 1's catch block or Task 3's warning block."
+    },
+    "task_4": {
+      "files": [
+        "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/AgentConfigWriter.kt",
+        "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt",
+        "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/CodexConfigWriter.kt",
+        "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt",
+        "fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/AgentConfigWriterTest.kt"
+      ],
+      "exposed_apis": ["AgentConfigWriter.scope: String", "AgentConfigWritePlan.scope: String"],
+      "key_decision": "Added `scope: String` to AgentConfigWriter interface. ClaudeConfigWriter=project-local, CodexConfigWriter=global. AgentConfigWritePlan exposes scope; applyWritePlan echoes `(${scope})` in dry-run Target line and Wrote line. MID Verifier: 58 tests pass.",
+      "for_next_tasks": "End of plan; Phase Transition + Phase 2."
     }
   },
   "low_tasks_pending_verification": ["task_1", "task_2"],
