@@ -12,6 +12,7 @@ import kotlinx.serialization.json.put
 
 internal class ClaudeConfigWriter : AgentConfigWriter {
     override val name: String = "claude"
+    override val scope: String = "project-local"
 
     override fun configFile(projectRoot: File, userHome: File): File =
         projectRoot.resolve(".claude/settings.json")

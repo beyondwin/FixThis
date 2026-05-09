@@ -90,14 +90,14 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
                     cause = e,
                 )
             }
-            AgentConfigWritePlan(writer.name, configFile, merged)
+            AgentConfigWritePlan(writer.name, writer.scope, configFile, merged)
         }
 
     private fun applyWritePlan(plan: AgentConfigWritePlan, dryRun: Boolean) {
         val configFile = plan.configFile
         val merged = plan.content
         if (dryRun) {
-            echo("Target: ${plan.writerName}")
+            echo("Target: ${plan.writerName} (${plan.scope})")
             echo("Path: ${configFile.absolutePath}")
             echo(merged.trimEnd())
             return
@@ -107,11 +107,12 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         } catch (_: Exception) {
             throw CliktError("Could not write ${plan.writerName} MCP config at ${configFile.absolutePath}.")
         }
-        echo("Wrote ${plan.writerName} MCP config: ${configFile.absolutePath}")
+        echo("Wrote ${plan.writerName} MCP config (${plan.scope}): ${configFile.absolutePath}")
     }
 
     private data class AgentConfigWritePlan(
         val writerName: String,
+        val scope: String,
         val configFile: File,
         val content: String,
     )

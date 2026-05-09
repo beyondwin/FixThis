@@ -4,6 +4,7 @@ import java.io.File
 
 internal class CodexConfigWriter : AgentConfigWriter {
     override val name: String = "codex"
+    override val scope: String = "global"
 
     override fun configFile(projectRoot: File, userHome: File): File =
         userHome.resolve(".codex/config.toml")

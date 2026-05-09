@@ -1,5 +1,6 @@
 package io.beyondwin.fixthis.cli.commands
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -198,5 +199,15 @@ class AgentConfigWriterTest {
         val merged = ClaudeConfigWriter().merge(current, entry)
         assertTrue("Expected fixthis server to appear", merged.contains("\"fixthis\""))
         assertTrue("Expected other keys preserved", merged.contains("\"otherKey\""))
+    }
+
+    @Test
+    fun claudeWriterScopeIsProjectLocal() {
+        assertEquals("project-local", ClaudeConfigWriter().scope)
+    }
+
+    @Test
+    fun codexWriterScopeIsGlobal() {
+        assertEquals("global", CodexConfigWriter().scope)
     }
 }
