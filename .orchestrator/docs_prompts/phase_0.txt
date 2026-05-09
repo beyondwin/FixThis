@@ -1,67 +1,49 @@
 You are a Phase Docs Updater sub-agent running on Sonnet. Update documentation to reflect changes made during this phase. Do not change implementation files.
 
-## Files Changed in This Phase
+## Files Changed in This Phase (Tasks 1-7)
 
-- fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
-- fixthis-mcp/src/main/console/preview.js
-- fixthis-mcp/src/main/console/rendering.js
-- fixthis-mcp/src/main/resources/console/app.js
-
-## Summary of Changes
-
-Fixed annotation screen mismatch bug in the FixThis console:
-1. `latestScreen()` in preview.js now returns `state.preview?.screen` (live feed) first, falling back to `latestPersistedScreen()`. When `focusedSavedItemId` is set (user clicked a saved annotation), returns that annotation's screen from `state.session.screens` so the saved screenshot is displayed.
-2. `renderSelectionOverlay()` in rendering.js now gates saved-pin overlay on `focusedSavedItemId` and filters to same-screen items only, preventing cross-screen pin leakage.
-3. app.js bundle updated to mirror both source changes (byte-for-byte).
-4. FeedbackConsoleServerTest.kt updated with TDD assertions for the new behavior.
+- fixthis-mcp/src/main/console/prompt.js — removed window.alert (H2); added "Copied ✓" button feedback (M4); added showSuccess call on agent send (M3)
+- fixthis-mcp/src/main/console/annotations.js — prompt buttons truly disabled via .disabled (H3); flushFocusedPendingComment before focus change (H4)
+- fixthis-mcp/src/main/console/state.js — added showSuccess/clearSuccessStatus helpers
+- fixthis-mcp/src/main/console/main.js — showError now clears success state first
+- fixthis-mcp/src/main/resources/console/styles.css — added .error.status-success CSS rule
+- fixthis-mcp/src/main/console/rendering.js — added blur listener to persist saved annotation comments
+- fixthis-mcp/src/main/resources/console/app.js — regenerated bundle
 
 ## Docs Scope
 
-- CHANGELOG.md (if it exists at the repo root or fixthis-mcp/)
-- README.md (if it exists at the repo root or fixthis-mcp/)
-- docs/ directory (look for any runbook, operator, or changelog files)
+- CHANGELOG.md
+- README.md (only if it mentions console features)
 
-Work in the worktree at: `/Users/kws/.config/superpowers/worktrees/FixThis/annotation-screen-mismatch-fix-20260509-010510`
+Work in the worktree at: /Users/kws/.config/superpowers/worktrees/FixThis/console-uiux-fixes-20260509-165702
 
 ## Instructions
 
-For each doc file in scope:
-1. Read the file first.
-2. Identify sections affected by the changes listed above.
-3. Update only affected sections — do not rewrite unrelated content.
+1. Read CHANGELOG.md first.
+2. Add entries under ## Unreleased -> ### Fixed and ### Added for the changes above.
+3. Use user-facing language. Group by user impact.
+4. Do NOT modify README.md unless it references console features that are directly affected.
 
-Guidance per doc type:
-- **CHANGELOG.md**: Add entry under `## Unreleased` → `### Fixed` with a user-facing description of the bug fix.
-- **README.md**: Only update if it describes the preview/annotation behavior explicitly.
-- Other docs: Update operational steps, behavior descriptions if they reference the preview or overlay behavior.
+## Before Committing
 
-If no relevant doc sections are found for a file, skip it without error.
-
-## Before Committing — Verification Checklist
-
-- Every file in the docs scope was read and checked
-- Only affected sections were updated
-- Commit message follows the format below
+- Only updated CHANGELOG.md's Unreleased section
+- No unrelated content rewritten
 
 Commit all doc changes together:
-```bash
-git add <doc files>
-git commit -m "docs(annotation-screen-mismatch-fix): update documentation after phase implementation"
-```
+git add CHANGELOG.md
+git commit -m "docs(console-uiux-fixes): update documentation after phase 1 implementation"
 
 ## Result File
 
-Write your structured result to: `/Users/kws/.config/superpowers/worktrees/FixThis/annotation-screen-mismatch-fix-20260509-010510/.orchestrator/docs_results/phase_0.json`
+Write your structured result to: /Users/kws/.config/superpowers/worktrees/FixThis/console-uiux-fixes-20260509-165702/.orchestrator/docs_results/phase_0.json
 
 JSON schema:
-```json
 {
   "status": "DONE",
-  "summary": "<≤2 sentences>",
-  "files_updated": [{"path": "<file path>", "change": "<one sentence>"}],
-  "commit": "<full commit hash or null if no changes>"
+  "summary": "2 sentences max",
+  "files_updated": [{"path": "file path", "change": "one sentence"}],
+  "commit": "full commit hash"
 }
-```
 
-If ESCALATE: set "status": "ESCALATE" and add "escalation": {"blocker": "<one sentence>"}.
+If ESCALATE: set status ESCALATE and add escalation blocker field.
 After writing the file, print its contents to stdout for logging.

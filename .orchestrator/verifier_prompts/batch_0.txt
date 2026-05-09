@@ -1,83 +1,46 @@
-You are a Verifier sub-agent running on Sonnet. Run tests calibrated to the risk level provided. Do not modify any implementation files.
+You are a Verifier sub-agent running on Sonnet. Run tests for accumulated LOW risk tasks. Do not modify any implementation files.
 
 ## Risk Level: LOW (BATCH)
 
-## Files Changed
+## Files Changed (all LOW tasks since last compaction)
 
-- fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
-- fixthis-mcp/src/main/console/preview.js
-- fixthis-mcp/src/main/console/rendering.js
-- fixthis-mcp/src/main/resources/console/app.js
+Task 1 (low): fixthis-mcp/src/main/console/prompt.js, fixthis-mcp/src/main/resources/console/app.js
+Task 2 (low): fixthis-mcp/src/main/console/annotations.js, fixthis-mcp/src/main/resources/console/app.js
+Task 7 (low): fixthis-mcp/src/main/console/rendering.js, fixthis-mcp/src/main/resources/console/app.js
 
 ## Baseline (do not introduce new failures beyond this)
 
 Passing: 281 | Failing: 2
 
-The 2 pre-existing failures are:
-- consoleHtmlUsesModeAwareStudioInspector (FeedbackConsoleServerTest.kt:629)
-- consoleHtmlAnnotationSaveUsesCurrentSelectionPayload (FeedbackConsoleServerTest.kt:1897)
-
-These must remain as the only failures. Do not count them as new failures.
-
 ## Test Command
 
 `./gradlew :fixthis-mcp:test` — use this exact command. Do not re-derive.
 
-## Acceptance Criteria
-
-Run these specific tests and confirm they pass (these are the TDD tests that should now be green after Tasks 1-4):
-
-```bash
-cd /Users/kws/.config/superpowers/worktrees/FixThis/annotation-screen-mismatch-fix-20260509-010510 && ./gradlew :fixthis-mcp:test \
-  --tests "io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlKeepsFrozenPreviewStableAndShowsPersistedScreenHistory" \
-  --tests "io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlKeepsSavedAnnotationPreviewsInCenterDeviceOnly" \
-  --tests "io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.generatedConsoleAppMatchesConsoleSourceModules" 2>&1 | tail -30
-```
-
-Also run the full FeedbackConsoleServerTest suite:
-```bash
-cd /Users/kws/.config/superpowers/worktrees/FixThis/annotation-screen-mismatch-fix-20260509-010510 && ./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest" 2>&1 | tail -30
-```
-
-And the full test suite:
-```bash
-cd /Users/kws/.config/superpowers/worktrees/FixThis/annotation-screen-mismatch-fix-20260509-010510 && ./gradlew :fixthis-mcp:test 2>&1 | tail -20
-```
-
-Note: the test named `consoleHtmlInvalidatesPreviewContextOnDeviceAndSessionBoundaries` contains the regex assertion for latestScreen() — verify it passes too.
-
 ## Test Instructions
 
-**If LOW (BATCH):** Run unit tests for all changed files combined.
-- Pass condition: all tests pass that should pass, no new failures vs baseline (the 2 pre-existing failures are exempt).
+**LOW (BATCH):** Run the full Kotlin test suite as regression gate for all accumulated low-risk changes.
+Run: `./gradlew :fixthis-mcp:test`
+Pass condition: 281 passing, 2 failing (pre-existing only).
 
-## If Tests Fail — Debugging Checklist
+## Working Directory
 
-Before escalating, work through these steps in order:
-1. Re-run the failing test in isolation — confirm it fails consistently
-2. Read the full stack trace — identify the exact file:line:error
-3. Is it a real implementation bug, environment issue, or test setup problem?
-4. If environment issue: check for missing dependencies, broken paths
-5. Only ESCALATE if you cannot resolve with available information
+All commands: `/Users/kws/.config/superpowers/worktrees/FixThis/console-uiux-fixes-20260509-165702`
 
 ## Result File
 
-Write your structured result to: `/Users/kws/.config/superpowers/worktrees/FixThis/annotation-screen-mismatch-fix-20260509-010510/.orchestrator/verifier_results/batch_0.json`
+Write your structured result to: `/Users/kws/.config/superpowers/worktrees/FixThis/console-uiux-fixes-20260509-165702/.orchestrator/verifier_results/batch_0.json`
 
-JSON schema (write this exact structure):
+JSON schema:
 ```json
 {
   "status": "PASS",
   "summary": "<≤3 sentences>",
   "risk_level": "LOW (BATCH)",
-  "tests_run": ["<command1>", "<command2>"],
-  "results": [{"suite": "<name>", "status": "PASS", "count": 0, "failures": 0}],
+  "tests_run": ["./gradlew :fixthis-mcp:test"],
+  "results": [{"suite": "<name>", "status": "PASS", "count": 283, "failures": 2}],
   "issues": ["none"],
   "escalation": null
 }
 ```
 
-If FAIL: set "status": "FAIL" and populate issues with failure descriptions.
-If ESCALATE: set "status": "ESCALATE" and populate escalation field.
-
-After writing the file, print its contents to stdout for logging.
+After writing the file, print its contents to stdout.
