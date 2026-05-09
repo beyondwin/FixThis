@@ -337,6 +337,20 @@
       "verifier_result": "PASS — DuplicateMarkerDetectorTest 5/5; :fixthis-mcp:test 327 tests, 2 baseline failures, 1 skipped",
       "orchestrator_note": "Reviewer skipped — pure new helper file with 5 focused TDD tests.",
       "timing": {"started": "2026-05-09T15:30:00Z", "completed": "2026-05-09T15:42:00Z"}
+    },
+    "task_23": {
+      "plan_id": "4.2",
+      "status": "COMPLETE",
+      "risk": "mid",
+      "files": ["fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt", "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt", "docs/superpowers/plans/2026-05-09-compact-handoff-prompt-v2.md"],
+      "commit": "e88ad91",
+      "pre_task_sha": "5f1224f3186b0475ca1398fc4edca4b391d3638c",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "verifier_result": "PASS — CompactHandoffRendererTest 34/34; :fixthis-mcp:test 329 tests, 2 baseline failures, 1 skipped",
+      "orchestrator_note": "Reviewer skipped — 2-pass approach in render() with 2 focused tests covering positive emission + instance-label suppression.",
+      "timing": {"started": "2026-05-09T15:42:00Z", "completed": "2026-05-09T16:05:00Z"}
     }
   },
   "task_summaries": {
@@ -474,14 +488,20 @@
     },
     "task_22": {
       "files": ["fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/DuplicateMarkerDetector.kt"],
-      "exposed_apis": ["object DuplicateMarkerDetector.detect(items: List<Item>): Map<itemId, refersToMarker>; Item(itemId, markerNumber, key); Key(fileLine, testTag, pathLeaves, bounds: FixThisRect)"],
-      "key_decision": "Detection: groups by Key (fileLine + testTag + pathLeaves + bounds); for ≥2 groups, all-but-first map to first.markerNumber. Earlier item is canonical.",
-      "for_next_tasks": "Task 4.2 builds Item list (per-screen) with markerNumber from appendCompactItem counter, calls detect(), passes result into appendCompactItem to emit '; targetRisk=duplicate-of-marker-N' suffix on the ui line. Spec note: duplicate token takes precedence over instance label since they refer to same call site by definition. JS Task 5.7 mirrors as computeDuplicateMarkers(items)."
+      "exposed_apis": ["object DuplicateMarkerDetector.detect(items): Map<itemId, refersToMarker>; Item(itemId, markerNumber, key); Key(fileLine, testTag, pathLeaves, bounds)"],
+      "key_decision": "Earlier item canonical; later items map to its markerNumber.",
+      "for_next_tasks": "JS Task 5.7 mirrors as computeDuplicateMarkers(items)."
+    },
+    "task_23": {
+      "files": ["fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt"],
+      "exposed_apis": ["render() now uses 2-pass approach: pre-compute markers + duplicates, then iterate. Duplicate items get '; targetRisk=duplicate-of-marker-N' suffix and instance label is SUPPRESSED for them."],
+      "key_decision": "Duplicate token suppresses instance label (per spec Appendix worked example item 4). Per-screen marker numbering preserved.",
+      "for_next_tasks": "All Kotlin renderer work COMPLETE. JS Task 5.7 mirrors duplicate detection. Test fixture note: duplicate items share identical bounds → land in overlap group → marker numbering may differ from naive expectation. Sample new test: renderEmitsDuplicateOfMarkerSuffixForDuplicateItem, renderSuppressesInstanceLabelForDuplicateItem."
     }
   },
   "low_tasks_pending_verification": [],
-  "last_compaction_after_task": 21,
-  "current_task": 23,
+  "last_compaction_after_task": 23,
+  "current_task": 24,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
@@ -489,6 +509,19 @@
   "current_escalation_count": 0,
   "current_previous_issues": [],
   "phase_summaries": [
+    {
+      "phase": "Phase 4",
+      "tasks": ["task_22 (4.1 DuplicateMarkerDetector)", "task_23 (4.2 emit duplicate suffix)"],
+      "shipped": [
+        "DuplicateMarkerDetector.detect groups by (fileLine, testTag, pathLeaves, bounds); ≥2 → later items map to canonical marker",
+        "render() 2-pass: pre-compute markers + detect duplicates; emit '; targetRisk=duplicate-of-marker-N' suffix on ui line; suppress instance label for duplicates"
+      ],
+      "batch_verifier": "N/A — all MID, individually verified",
+      "phase_docs": "SKIPPED — feedback-console-contract.md update reserved for Task 7.1",
+      "incident_count": 0,
+      "incidents": [],
+      "milestone": "ALL KOTLIN RENDERER WORK COMPLETE — Phases 0-4 done. Next: Phase 5 (JS parity), Phase 6 (tests), Phase 7 (docs)."
+    },
     {
       "phase": "Phase 3",
       "tasks": ["task_19 (3.1 InstanceGroupingHelper)", "task_20 (3.2 emit instance i/N)", "task_21 (3.3 collision note)"],

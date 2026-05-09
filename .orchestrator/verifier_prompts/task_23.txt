@@ -1,0 +1,19 @@
+You are a Verifier on Sonnet. MID. No file modifications.
+
+## Worktree
+`/Users/kws/source/android/worktrees/compact-handoff-prompt-v2-20260509-183739` — `cd` here. NEVER `/Users/kws/source/android/FixThis/`.
+
+## Files Changed (Task 4.2 — duplicate-of-marker suffix)
+- CompactHandoffRenderer.kt (2-pass approach: pre-compute markers + detect duplicates → emit suffix)
+- CompactHandoffRendererTest.kt (2 new tests)
+
+## Baseline
+:fixthis-mcp:test before: 327. After: ~329. Failures = 2 baseline, skipped = 1.
+
+## Acceptance
+1. `cd <worktree> && ./gradlew :fixthis-mcp:test --tests "*CompactHandoffRenderer*"` — all pass.
+2. `cd <worktree> && ./gradlew :fixthis-mcp:test` — failures = 2, skipped = 1.
+
+## Result file: `.orchestrator/verifier_results/task_23.json`
+
+After writing, print contents.

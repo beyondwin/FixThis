@@ -1,0 +1,40 @@
+{
+  "task_id": 23,
+  "phase": "4.2",
+  "title": "duplicate-of-marker-N suffix on instance label",
+  "verdict": "PASS",
+  "worktree": "/Users/kws/source/android/worktrees/compact-handoff-prompt-v2-20260509-183739",
+  "head_commit": "e88ad91",
+  "checks": {
+    "compactHandoffRendererTests": {
+      "command": "./gradlew :fixthis-mcp:test --tests \"*CompactHandoffRenderer*\" --rerun-tasks",
+      "result": "BUILD SUCCESSFUL",
+      "tests_run": 34,
+      "failures": 0,
+      "skipped": 0,
+      "new_tests_for_task_4_2": [
+        "renderEmitsDuplicateOfMarkerSuffixForDuplicateItem",
+        "renderSuppressesInstanceLabelForDuplicateItem"
+      ]
+    },
+    "fullMcpTestSuite": {
+      "command": "./gradlew :fixthis-mcp:test --rerun-tasks",
+      "result": "BUILD FAILED (baseline only)",
+      "tests_run": 329,
+      "failures": 2,
+      "skipped": 1,
+      "failing_tests": [
+        "FeedbackConsoleServerTest > consoleHtmlUsesModeAwareStudioInspector (baseline)",
+        "FeedbackConsoleServerTest > consoleHtmlAnnotationSaveUsesCurrentSelectionPayload (baseline)"
+      ],
+      "matches_baseline": true
+    }
+  },
+  "acceptance": {
+    "renderer_tests_pass": true,
+    "full_suite_failures_eq_2_baseline": true,
+    "full_suite_skipped_eq_1": true,
+    "test_count_growth_from_327_to_329": true
+  },
+  "notes": "Task 4.2 implementation produces +2 new CompactHandoffRendererTest cases (327 -> 329). All renderer tests pass. Only the 2 known baseline FeedbackConsoleServerTest failures remain — unrelated to this change."
+}
