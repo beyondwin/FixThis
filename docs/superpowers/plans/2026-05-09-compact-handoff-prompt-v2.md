@@ -282,8 +282,8 @@ Goal: replace the single `src? ...` line with a `candidates:` block (≤3 entrie
 
 ### Task 2.4 — Renderer: prefer wire scoreMargin, else compute (TDD)
 
-- [ ] **Red:** Test A: candidate with non-null `scoreMargin=0.42` emits `margin=0.42` (wire value, not recomputed). Test B: candidate with `scoreMargin=null` and `score=0.95`, runner-up with `score=0.65` emits `margin=0.30` (computed from ranks). Test C: only 1 candidate, `scoreMargin=null` → no `margin=` token. Run; expect failures.
-- [ ] **Green:** In the rank-1 branch, compute `effectiveMargin = candidate.scoreMargin ?: (rank1.score - rank2?.score)?.takeIf { it > 0 }`. Render `margin=` only when `effectiveMargin != null`. Run; expect pass.
+- [x] **Red:** Test A: candidate with non-null `scoreMargin=0.42` emits `margin=0.42` (wire value, not recomputed). Test B: candidate with `scoreMargin=null` and `score=0.95`, runner-up with `score=0.65` emits `margin=0.30` (computed from ranks). Test C: only 1 candidate, `scoreMargin=null` → no `margin=` token. Run; expect failures.
+- [x] **Green:** In the rank-1 branch, compute `effectiveMargin = candidate.scoreMargin ?: (rank1.score - rank2?.score)?.takeIf { it > 0 }`. Render `margin=` only when `effectiveMargin != null`. Run; expect pass.
 - [ ] Commit: `feat(handoff-v2): renderer fallback computes margin when wire field is null`.
 
 **Validation:** Same as 2.1.

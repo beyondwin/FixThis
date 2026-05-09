@@ -92,17 +92,27 @@ object CompactHandoffRenderer {
         if (item.sourceCandidates.isEmpty()) {
             appendLine("    ~ unknown")
         } else {
+            val rank1 = item.sourceCandidates.firstOrNull()
+            val rank2 = item.sourceCandidates.getOrNull(1)
+            val computedMargin = if (rank1 != null && rank2 != null) {
+                (rank1.score - rank2.score).takeIf { it > 0 }
+            } else null
             item.sourceCandidates.take(MAX_CANDIDATES_RENDERED).forEachIndexed { idx, candidate ->
-                appendLine("    ${formatCandidateLine(candidate, idx + 1)}")
+                appendLine("    ${formatCandidateLine(candidate, idx + 1, computedMargin)}")
             }
         }
     }
 
-    private fun formatCandidateLine(candidate: io.beyondwin.fixthis.compose.core.model.SourceCandidate, rank: Int): String {
+    private fun formatCandidateLine(
+        candidate: io.beyondwin.fixthis.compose.core.model.SourceCandidate,
+        rank: Int,
+        computedMargin: Double? = null,
+    ): String {
         val sb = StringBuilder()
         sb.append("~ ${candidate.fileWithLine()}  conf=${candidate.confidence.name.lowercase()}")
         if (rank == 1) {
-            candidate.scoreMargin?.let { margin ->
+            val effectiveMargin = candidate.scoreMargin ?: computedMargin
+            effectiveMargin?.let { margin ->
                 sb.append("  margin=${"%.2f".format(margin)}")
             }
             val tokens = candidate.matchReasons.mapNotNull { reasonTokenFor(it) }.distinct().take(4)

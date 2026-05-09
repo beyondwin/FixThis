@@ -677,9 +677,10 @@ class CompactHandoffRendererTest {
             lines.any { it == "  candidates:" },
             "Expected exactly '  candidates:' line but got:\n$markdown",
         )
+        // After Task 2.4: margin is computed from score difference (0.95 - 0.75 = 0.20) when scoreMargin is null
         assertTrue(
-            lines.any { it == "    ~ AppPrimaryButton.kt:42  conf=high  matched=[compTag]" },
-            "Expected '    ~ AppPrimaryButton.kt:42  conf=high  matched=[compTag]' but got:\n$markdown",
+            lines.any { it == "    ~ AppPrimaryButton.kt:42  conf=high  margin=0.20  matched=[compTag]" },
+            "Expected '    ~ AppPrimaryButton.kt:42  conf=high  margin=0.20  matched=[compTag]' but got:\n$markdown",
         )
         assertTrue(
             lines.any { it == "    ~ CheckoutScreen.kt:88  conf=medium" },
@@ -756,6 +757,152 @@ class CompactHandoffRendererTest {
         assertTrue(
             candidateLines.size == 2,
             "Expected exactly 2 '~ ' candidate lines when 2 candidates provided, but got ${candidateLines.size}:\n$markdown",
+        )
+    }
+
+    // ---- Task 2.4: prefer wire scoreMargin, else compute ----
+
+    @Test
+    fun renderEmitsWireMarginWhenNonNull() {
+        // Test A: rank-1 with non-null scoreMargin=0.42 should emit margin=0.42 (wire value, not recomputed)
+        val session = SessionDto(
+            sessionId = "session-wire-margin",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "i-wire",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                    comment = "fix this",
+                    sequenceNumber = 1,
+                    sourceCandidates = listOf(
+                        SourceCandidate(
+                            file = "HomeScreen.kt",
+                            line = 10,
+                            score = 0.99,
+                            matchedTerms = emptyList(),
+                            matchReasons = emptyList(),
+                            confidence = SelectionConfidence.HIGH,
+                            scoreMargin = 0.42,  // wire value present
+                        ),
+                        SourceCandidate(
+                            file = "OtherScreen.kt",
+                            line = 20,
+                            score = 0.50,  // difference would be 0.49, not 0.42
+                            matchedTerms = emptyList(),
+                            matchReasons = emptyList(),
+                            confidence = SelectionConfidence.LOW,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        assertTrue(
+            markdown.contains("margin=0.42"),
+            "Expected 'margin=0.42' (wire value) but got:\n$markdown",
+        )
+        // Verify it uses wire value 0.42, not computed 0.49
+        assertTrue(
+            !markdown.contains("margin=0.49"),
+            "Expected wire margin=0.42, not computed margin=0.49, but got:\n$markdown",
+        )
+    }
+
+    @Test
+    fun renderComputesMarginFromScoresWhenWireNull() {
+        // Test B: rank-1 with scoreMargin=null, score=0.95; rank-2 with score=0.65 -> margin=0.30
+        val session = SessionDto(
+            sessionId = "session-computed-margin",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "i-computed",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                    comment = "fix this",
+                    sequenceNumber = 1,
+                    sourceCandidates = listOf(
+                        SourceCandidate(
+                            file = "HomeScreen.kt",
+                            line = 10,
+                            score = 0.95,
+                            matchedTerms = emptyList(),
+                            matchReasons = emptyList(),
+                            confidence = SelectionConfidence.HIGH,
+                            scoreMargin = null,  // wire field is null -> must compute
+                        ),
+                        SourceCandidate(
+                            file = "OtherScreen.kt",
+                            line = 20,
+                            score = 0.65,
+                            matchedTerms = emptyList(),
+                            matchReasons = emptyList(),
+                            confidence = SelectionConfidence.LOW,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        assertTrue(
+            markdown.contains("margin=0.30"),
+            "Expected computed 'margin=0.30' (0.95 - 0.65) but got:\n$markdown",
+        )
+    }
+
+    @Test
+    fun renderOmitsMarginWhenSingleCandidateAndScoreMarginNull() {
+        // Test C: only 1 candidate with scoreMargin=null -> no margin= token
+        val session = SessionDto(
+            sessionId = "session-single-no-margin",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "i-single",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                    comment = "fix this",
+                    sequenceNumber = 1,
+                    sourceCandidates = listOf(
+                        SourceCandidate(
+                            file = "HomeScreen.kt",
+                            line = 10,
+                            score = 0.90,
+                            matchedTerms = emptyList(),
+                            matchReasons = emptyList(),
+                            confidence = SelectionConfidence.MEDIUM,
+                            scoreMargin = null,  // no runner-up, no wire margin
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        assertTrue(
+            !markdown.contains("margin="),
+            "Expected no 'margin=' token for single candidate with null scoreMargin but got:\n$markdown",
         )
     }
 
