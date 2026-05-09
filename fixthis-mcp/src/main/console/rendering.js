@@ -110,7 +110,8 @@
                   const hasComment = Boolean(String(item.comment || '').trim());
                   const status = annotationStatus(item);
                   const color = severityColor(annotationSeverity(item));
-                  return '<button type="button" class="ann-row pending-item-row ' + (index === focusedPendingItemIndex ? 'active' : '') + '" style="--annotation-color:' + color + '" data-focus-pending="' + index + '">' +
+                  const pendingItemIdAttr = item.itemId ? ' data-item-id="' + escapeHtml(item.itemId) + '"' : '';
+                  return '<button type="button" class="ann-row pending-item-row ' + (index === focusedPendingItemIndex ? 'active' : '') + '" style="--annotation-color:' + color + '"' + pendingItemIdAttr + ' data-focus-pending="' + index + '">' +
                     '<span class="ann-row-num" style="background:' + severityColor(annotationSeverity(item)) + '">' + (index + 1) + '</span>' +
                     '<span class="ann-row-body">' +
                       '<span class="ann-row-title">' + escapeHtml(annotationTitle(item, index)) + '</span>' +
@@ -295,7 +296,7 @@
                     prevScreenId = item.screenId;
                   }
                   return header +
-                    '<button type="button" class="ann-row saved-item-row ' + (item.itemId === focusedSavedItemId ? 'active' : '') + '" style="--annotation-color:' + color + '" data-focus-saved="' + escapeHtml(item.itemId) + '">' +
+                    '<button type="button" class="ann-row saved-item-row ' + (item.itemId === focusedSavedItemId ? 'active' : '') + '" style="--annotation-color:' + color + '" data-item-id="' + escapeHtml(item.itemId) + '" data-focus-saved="' + escapeHtml(item.itemId) + '">' +
                       '<span class="ann-row-num" style="background:' + color + '">' + (index + 1) + '</span>' +
                       '<span class="ann-row-body">' +
                         '<span class="ann-row-title">' + escapeHtml(targetLabel(item)) + '</span>' +
@@ -621,4 +622,35 @@
               image.addEventListener('lostpointercapture', clearDragState);
               image.addEventListener('lostpointercapture', clearHoverPreview);
               image.addEventListener('pointerleave', clearHoverPreview);
+            }
+
+            function mergeSessionIntoState(fresh) {
+              const previous = state.session;
+              const preservedComment = comment.value;
+              const preservedFocusedSavedItemId = focusedSavedItemId;
+              const preservedFocusedPendingIndex = focusedPendingItemIndex;
+              const preservedSelection = currentSelection;
+
+              state.session = fresh;
+
+              comment.value = preservedComment;
+              focusedSavedItemId = preservedFocusedSavedItemId;
+              focusedPendingItemIndex = preservedFocusedPendingIndex;
+              currentSelection = preservedSelection;
+
+              const previousStatusById = new Map(
+                (previous?.items || []).map(item => [item.itemId, item.status])
+              );
+              (fresh.items || []).forEach(item => {
+                const before = previousStatusById.get(item.itemId);
+                if (before && before !== item.status) {
+                  const changedItemId = item.itemId;
+                  requestAnimationFrame(() => {
+                    document.querySelectorAll('[data-item-id="' + CSS.escape(changedItemId) + '"]').forEach(node => {
+                      node.setAttribute('data-just-changed', 'true');
+                      setTimeout(() => node.removeAttribute('data-just-changed'), 800);
+                    });
+                  });
+                }
+              });
             }

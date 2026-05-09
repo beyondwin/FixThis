@@ -1304,3 +1304,8 @@
               gap: 12px;
             }
             .canvas-stale[hidden] { display: none; }
+            .ann-row[data-just-changed],
+            .history-item[data-just-changed] {
+              background-color: rgba(46, 160, 67, 0.18);
+              transition: background-color 800ms ease-out;
+            }

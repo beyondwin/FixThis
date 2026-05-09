@@ -3625,6 +3625,16 @@ class FeedbackConsoleServerTest {
         assertTrue(copyPrompt.contains("withMutationLock"))
     }
 
+    @Test
+    fun mergeSessionIntoStatePreservesUserState() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val body = javascriptFunctionBody(html, "mergeSessionIntoState")
+        assertTrue(body.contains("comment.value"), "Must preserve textarea value")
+        assertTrue(body.contains("focusedSavedItemId") || body.contains("focusedPendingItemIndex"))
+        assertTrue(body.contains("currentSelection"))
+        assertTrue(body.contains("data-just-changed"))
+    }
+
     private class FakeExchange(path: String) : HttpExchange() {
         private val uri = URI.create(path)
 
