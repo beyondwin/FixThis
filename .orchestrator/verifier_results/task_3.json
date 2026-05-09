@@ -1,9 +1,0 @@
-{
-  "status": "PASS",
-  "summary": "Sidekick test suite passes (61 tests, 0 failures). Includes new BridgeStatusAvailabilityTest runtime status assertion.",
-  "risk_level": "MID",
-  "tests_run": ["./gradlew :fixthis-compose-sidekick:testDebugUnitTest"],
-  "results": [{"suite": "fixthis-compose-sidekick", "status": "PASS", "count": 61, "failures": 0}],
-  "issues": ["none"],
-  "escalation": null
-}

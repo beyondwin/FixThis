@@ -1,9 +1,0 @@
-{
-  "status": "PASS",
-  "summary": "LOW batch verification covering task_5 (availability.js + Node tests), task_8 (annotations.js gates), and task_9 (chip suffix). Pure-module Node tests pass 15/15. Bundle --check exits silently. node --check on regenerated app.js silent.",
-  "risk_level": "LOW (BATCH)",
-  "tests_run": ["node --test scripts/console-availability-test.mjs", "node scripts/build-console-assets.mjs --check", "node --check fixthis-mcp/src/main/resources/console/app.js"],
-  "results": [{"suite": "console-availability-test", "status": "PASS", "count": 15, "failures": 0}],
-  "issues": ["none"],
-  "escalation": null
-}

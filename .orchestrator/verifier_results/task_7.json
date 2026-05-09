@@ -1,9 +1,0 @@
-{
-  "status": "PASS",
-  "summary": "Bundle compiles after dedupe. Canonical render site is renderPreviewRegion(). No new test for HTML/CSS overlay (covered by Task 11 smoke test).",
-  "risk_level": "MID",
-  "tests_run": ["node scripts/build-console-assets.mjs --check", "node --check fixthis-mcp/src/main/resources/console/app.js"],
-  "results": [{"suite": "console-bundle", "status": "PASS", "count": 0, "failures": 0}],
-  "issues": ["none"],
-  "escalation": null
-}
