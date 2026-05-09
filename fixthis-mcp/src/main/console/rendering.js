@@ -73,7 +73,12 @@
               if (!addItemsFlow) {
                 const visibleScreen = latestScreen();
                 if (visibleScreen?.screenId) {
-                  const screenSavedItems = savedEvidenceItems().filter(item => item.screenId === visibleScreen.screenId);
+                  const visibleUids = visibleScreenNodeUids(visibleScreen);
+                  const screenSavedItems = savedEvidenceItems().filter(item => {
+                    const nodeUid = item?.target?.nodeUid;
+                    if (nodeUid) return visibleUids.has(nodeUid);
+                    return item.screenId === visibleScreen.screenId;
+                  });
                   if (screenSavedItems.length) renderSavedEvidenceOverlay(overlay, image, screenSavedItems);
                 }
               }
