@@ -144,3 +144,27 @@
             function countLabel(count, singular, plural) {
               return String(count) + ' ' + (count === 1 ? singular : plural);
             }
+
+            let successClearTimeout = null;
+
+            function showSuccess(message, durationMs = 2000) {
+              if (successClearTimeout) {
+                clearTimeout(successClearTimeout);
+                successClearTimeout = null;
+              }
+              error.textContent = message;
+              error.classList.add('status-success');
+              successClearTimeout = setTimeout(() => {
+                error.textContent = '';
+                error.classList.remove('status-success');
+                successClearTimeout = null;
+              }, durationMs);
+            }
+
+            function clearSuccessStatus() {
+              if (successClearTimeout) {
+                clearTimeout(successClearTimeout);
+                successClearTimeout = null;
+              }
+              error.classList.remove('status-success');
+            }

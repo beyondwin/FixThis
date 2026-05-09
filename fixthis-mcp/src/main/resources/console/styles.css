@@ -1091,6 +1091,7 @@
               margin: 0;
               padding: 0 10px 10px;
             }
+            .error.status-success { color: var(--accent); }
             @media (max-width: 1099px) {
               .studio-topbar {
                 grid-template-columns: 140px minmax(0, 1fr) auto;
