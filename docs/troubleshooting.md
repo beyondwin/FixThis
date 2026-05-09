@@ -126,7 +126,7 @@ Retry after the screen is fully rendered. For CLI/MCP, confirm the Android scree
 
 ### SCREEN_CAPTURE_FAILED
 
-The console may still show semantics without a screenshot. Click `Capture screen` after the app finishes drawing. If you are adding feedback, wait until the frozen preview has the screenshot you want before clicking `Copy Prompt` or `Send Agent`; those actions persist written pending annotations when needed.
+The console may still show semantics without a screenshot. Click `Capture screen` after the app finishes drawing. If you are adding feedback, wait until the frozen preview has the screenshot you want before clicking `Copy Prompt` or `Save to MCP`; those actions persist written pending annotations when needed.
 
 ### Capture screen or Annotate does not work
 
@@ -134,15 +134,15 @@ Select a device in the compact console device control. If the control shows `No 
 
 ### I clicked Annotate but do not see saved feedback
 
-`Annotate` freezes the latest preview for targeting only; it does not save. Select a target or visual area, write a comment, click `Add annotation`, review the numbered pending markers, then click `Copy Prompt` or `Send Agent` to persist written pending annotations when needed. Persisted items from the same frozen preview share one evidence snapshot and `screenId`.
+`Annotate` freezes the latest preview for targeting only; it does not save. Select a target or visual area, write a comment, click `Add annotation`, review the numbered pending markers, then click `Copy Prompt` or `Save to MCP` to persist written pending annotations when needed. Persisted items from the same frozen preview share one evidence snapshot and `screenId`.
 
 ### Pending marker numbers changed
 
-Deleting a pending item renumbers the pending list and overlay markers so they keep matching. This is expected before `Copy Prompt` or `Send Agent` persists pending annotations.
+Deleting a pending item renumbers the pending list and overlay markers so they keep matching. This is expected before `Copy Prompt` or `Save to MCP` persists pending annotations.
 
 ### I sent feedback but want to add more
 
-After `Send Agent`, the saved items are recorded in a local handoff batch for MCP tools. It is not an external AI API call. Click `Annotate` again to freeze the current visible screen and create another saved evidence snapshot when pending annotations are persisted, even if the app has not visibly changed.
+After `Save to MCP`, the saved items are recorded in a local handoff batch for MCP tools. It is not an external AI API call. The session stays visible in the main History list with a `working` pip while the agent claims and resolves items. Click `Annotate` again to freeze the current visible screen and create another saved evidence snapshot when pending annotations are persisted, even if the app has not visibly changed.
 
 ## MCP stdout Log Corruption
 
@@ -193,7 +193,7 @@ Run `fixthis_list_feedback_sessions` or reopen the console with the exact `sessi
 
 ### Live preview stopped updating
 
-Preview polling pauses when the browser tab is hidden and while the `Annotate` frozen-preview flow is active. Switch back to the tab, click `Copy Prompt` or `Send Agent` to persist pending annotations, exit annotate mode, or use `Capture screen`. The preview interval options are Manual, 1s, 2s, and 5s, with 1s as the default.
+Preview polling pauses when the browser tab is hidden and while the `Annotate` frozen-preview flow is active. Switch back to the tab, click `Copy Prompt` or `Save to MCP` to persist pending annotations, exit annotate mode, or use `Capture screen`. The preview interval options are Manual, 1s, 2s, and 5s, with 1s as the default.
 
 ### Navigation worked but no new screen appeared
 

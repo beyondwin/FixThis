@@ -20,7 +20,7 @@ The canonical labels and persistence semantics are locked in [`docs/feedback-con
 8. Click `Add annotation`; numbered pending rows and preview overlays stay in sync.
 9. Repeat on the same frozen preview as needed.
 10. Review draft and saved evidence groups in the Inspector Draft view.
-11. Click `Copy Prompt` for compact Markdown or `Send Agent` to persist written pending annotations when needed and create a local handoff batch for MCP tools.
+11. Click `Copy Prompt` for compact Markdown or `Save to MCP` to persist written pending annotations when needed and create a local handoff batch for MCP tools.
 
 ## Current Constraints
 
@@ -30,7 +30,7 @@ The canonical labels and persistence semantics are locked in [`docs/feedback-con
 - Pending items support `Focus` and `Delete` only.
 - Live preview frames are transient and are not added to `FeedbackSession.screens`.
 - `Add annotation` creates browser-side pending annotations.
-- `Copy Prompt` and `Send Agent` persist written pending annotations when needed.
+- `Copy Prompt` and `Save to MCP` persist written pending annotations when needed.
 
 ## Connection Recovery UX
 
