@@ -50,6 +50,17 @@
       "review_retries": 0,
       "verifier_retries": 0,
       "timing": {"started": "2026-05-09T18:01:00+09:00", "completed": "2026-05-09T18:05:00+09:00"}
+    },
+    "task_3": {
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": ["README.md"],
+      "commit": "d726671",
+      "pre_task_sha": "8ed9452733d68a1f697dffe0f3668eaf71dfd1b1",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "timing": {"started": "2026-05-09T18:06:00+09:00", "completed": "2026-05-09T18:10:00+09:00"}
     }
   },
   "task_summaries": {
@@ -64,11 +75,17 @@
       "exposed_apis": [],
       "key_decision": "Created CLAUDE.md verbatim from spec; 5 sections, references AGENTS.md",
       "for_next_tasks": "CLAUDE.md exists at repo root; Task 3 README section should reference AGENTS.md (not CLAUDE.md) for full AI workflow"
+    },
+    "task_3": {
+      "files": ["README.md"],
+      "exposed_apis": [],
+      "key_decision": "Inserted `## Use with Claude Code or Codex` section between What It Does and Setup; no other content touched",
+      "for_next_tasks": "Task 5 will append a doc link below the new section; do not displace it. README header section structure now: ... > Use with Claude Code or Codex > Setup > ..."
     }
   },
-  "low_tasks_pending_verification": ["task_1", "task_2"],
+  "low_tasks_pending_verification": ["task_1", "task_2", "task_3"],
   "last_compaction_after_task": 0,
-  "current_task": 3,
+  "current_task": 4,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
