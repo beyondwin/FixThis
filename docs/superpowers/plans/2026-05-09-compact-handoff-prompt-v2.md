@@ -451,14 +451,14 @@ Goal: lock the v2 contract with cross-language parity and a token-budget regress
 
 ### Task 6.1 — Create v2 prompt-parity fixture
 
-- [ ] Create `fixthis-mcp/src/test/resources/parity/session-v2.json`:
+- [x] Create `fixthis-mcp/src/test/resources/parity/session-v2.json`:
   - 1 screen with `screenId="abcd1234-...UUID..."`, `displayName="Home"`, `activityName="MainActivity"`, `screenshot.width=720`, `screenshot.height=1480`;
   - 4 items: items 1-3 share `(file:HomeScreen.kt:44, testTag:comp:MetricCard:summary)` with distinct path leaves; item 4 is a true duplicate of item 1 (same key, same path, same bounds);
   - rank-1 candidate has `score=0.95`, runner-up `score=0.65`, third `score=0.20` — so renderer-computed margin = 0.30;
   - one item has `severity=high` to exercise `[!]` prefix;
   - leave `scoreMargin=null` on all candidates to exercise the renderer-computed path.
-- [ ] Create `fixthis-mcp/src/test/resources/parity/expected-prompt-v2.txt` with the expected output (paste from a manual Kotlin run; lock here).
-- [ ] Commit: `test(handoff-v2): v2 prompt-parity fixtures`.
+- [x] Create `fixthis-mcp/src/test/resources/parity/expected-prompt-v2.txt` with the expected output (paste from a manual Kotlin run; lock here).
+- [x] Commit: `test(handoff-v2): v2 prompt-parity fixtures`.
 
 ### Task 6.2 — Extend PromptParityTest for v2
 

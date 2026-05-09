@@ -1,0 +1,41 @@
+# FixThis Feedback Handoff
+
+Rule: source hints are candidates; verify screenshot, target, and code before editing.
+
+- Package: `io.beyondwin.fixthis.sample`
+- Feedback Items: `4`
+
+Screen abcd1234: Home
+viewport: 720×1480
+activity: MainActivity
+
+Overlap group 1 (resolve one marker at a time):
+
+1. [marker 1] [!] Improve metric card contrast
+  ui: Card tag=comp:MetricCard:summary  box=(10.0,100.0)-(310.0,200.0) [300×100]  instance 1/4; targetRisk=overlap
+  candidates:
+    ~ HomeScreen.kt:44  conf=high  margin=0.30  matched=[tag, compTag, nearbyTag]
+    ~ MetricCard.kt:12  conf=medium
+    ~ Dashboard.kt:88  conf=low
+
+2. [marker 2] Improve metric card contrast
+  ui: Card tag=comp:MetricCard:summary  box=(10.0,100.0)-(310.0,200.0) [300×100]; targetRisk=duplicate-of-marker-1
+  candidates:
+    ~ HomeScreen.kt:44  conf=high  margin=0.30  matched=[tag, compTag, nearbyTag]
+    ~ MetricCard.kt:12  conf=medium
+    ~ Dashboard.kt:88  conf=low
+
+3. [marker 3] Adjust metric card spacing
+  ui: Card tag=comp:MetricCard:summary  box=(10.0,210.0)-(310.0,310.0) [300×100]  instance 3/4
+  candidates:
+    ~ HomeScreen.kt:44  conf=high  margin=0.30  matched=[tag, compTag, nearbyTag]
+    ~ MetricCard.kt:12  conf=medium
+    ~ Dashboard.kt:88  conf=low
+
+4. [marker 4] Fix metric card font size
+  ui: Card tag=comp:MetricCard:summary  box=(10.0,320.0)-(310.0,420.0) [300×100]  instance 4/4
+  candidates:
+    ~ HomeScreen.kt:44  conf=high  margin=0.30  matched=[tag, compTag, nearbyTag]
+    ~ MetricCard.kt:12  conf=medium
+    ~ Dashboard.kt:88  conf=low
+

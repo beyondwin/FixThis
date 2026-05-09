@@ -1,0 +1,199 @@
+{
+  "schemaVersion": "1.0",
+  "sessionId": "session-parity-v2",
+  "packageName": "io.beyondwin.fixthis.sample",
+  "projectRoot": "/repo",
+  "createdAtEpochMillis": 1,
+  "updatedAtEpochMillis": 2,
+  "screens": [
+    {
+      "screenId": "abcd1234-0000-0000-0000-000000000001",
+      "capturedAtEpochMillis": 1,
+      "displayName": "Home",
+      "activityName": "MainActivity",
+      "screenshot": { "width": 720, "height": 1480 }
+    }
+  ],
+  "items": [
+    {
+      "itemId": "item-1",
+      "screenId": "abcd1234-0000-0000-0000-000000000001",
+      "createdAtEpochMillis": 2,
+      "updatedAtEpochMillis": 2,
+      "target": { "type": "semantics_node", "nodeUid": "node1", "boundsInWindow": { "left": 10.0, "top": 100.0, "right": 310.0, "bottom": 200.0 } },
+      "selectedNode": {
+        "uid": "node1", "composeNodeId": 1, "rootIndex": 0, "treeKind": "MERGED",
+        "boundsInWindow": { "left": 10.0, "top": 100.0, "right": 310.0, "bottom": 200.0 },
+        "text": [], "role": "Card", "testTag": "comp:MetricCard:summary",
+        "path": ["root", "node:1"]
+      },
+      "sourceCandidates": [
+        {
+          "file": "HomeScreen.kt", "line": 44, "score": 0.95,
+          "matchedTerms": ["MetricCard"],
+          "matchReasons": ["selected testTag", "selected testTag convention composable", "nearby testTag"],
+          "confidence": "HIGH",
+          "ranking": 1, "scoreMargin": null,
+          "evidenceStrength": "STRONG",
+          "riskFlags": []
+        },
+        {
+          "file": "MetricCard.kt", "line": 12, "score": 0.65,
+          "matchedTerms": ["MetricCard"],
+          "matchReasons": ["selected testTag"],
+          "confidence": "MEDIUM",
+          "ranking": 2, "scoreMargin": null,
+          "evidenceStrength": "MEDIUM",
+          "riskFlags": []
+        },
+        {
+          "file": "Dashboard.kt", "line": 88, "score": 0.20,
+          "matchedTerms": ["MetricCard"],
+          "matchReasons": ["nearby testTag"],
+          "confidence": "LOW",
+          "ranking": 3, "scoreMargin": null,
+          "evidenceStrength": "WEAK",
+          "riskFlags": []
+        }
+      ],
+      "severity": "high",
+      "comment": "Improve metric card contrast",
+      "sequenceNumber": 1
+    },
+    {
+      "itemId": "item-2",
+      "screenId": "abcd1234-0000-0000-0000-000000000001",
+      "createdAtEpochMillis": 3,
+      "updatedAtEpochMillis": 3,
+      "target": { "type": "semantics_node", "nodeUid": "node2", "boundsInWindow": { "left": 10.0, "top": 210.0, "right": 310.0, "bottom": 310.0 } },
+      "selectedNode": {
+        "uid": "node2", "composeNodeId": 2, "rootIndex": 0, "treeKind": "MERGED",
+        "boundsInWindow": { "left": 10.0, "top": 210.0, "right": 310.0, "bottom": 310.0 },
+        "text": [], "role": "Card", "testTag": "comp:MetricCard:summary",
+        "path": ["root", "node:2"]
+      },
+      "sourceCandidates": [
+        {
+          "file": "HomeScreen.kt", "line": 44, "score": 0.95,
+          "matchedTerms": ["MetricCard"],
+          "matchReasons": ["selected testTag", "selected testTag convention composable", "nearby testTag"],
+          "confidence": "HIGH",
+          "ranking": 1, "scoreMargin": null,
+          "evidenceStrength": "STRONG",
+          "riskFlags": []
+        },
+        {
+          "file": "MetricCard.kt", "line": 12, "score": 0.65,
+          "matchedTerms": ["MetricCard"],
+          "matchReasons": ["selected testTag"],
+          "confidence": "MEDIUM",
+          "ranking": 2, "scoreMargin": null,
+          "evidenceStrength": "MEDIUM",
+          "riskFlags": []
+        },
+        {
+          "file": "Dashboard.kt", "line": 88, "score": 0.20,
+          "matchedTerms": ["MetricCard"],
+          "matchReasons": ["nearby testTag"],
+          "confidence": "LOW",
+          "ranking": 3, "scoreMargin": null,
+          "evidenceStrength": "WEAK",
+          "riskFlags": []
+        }
+      ],
+      "severity": "med",
+      "comment": "Adjust metric card spacing",
+      "sequenceNumber": 2
+    },
+    {
+      "itemId": "item-3",
+      "screenId": "abcd1234-0000-0000-0000-000000000001",
+      "createdAtEpochMillis": 4,
+      "updatedAtEpochMillis": 4,
+      "target": { "type": "semantics_node", "nodeUid": "node3", "boundsInWindow": { "left": 10.0, "top": 320.0, "right": 310.0, "bottom": 420.0 } },
+      "selectedNode": {
+        "uid": "node3", "composeNodeId": 3, "rootIndex": 0, "treeKind": "MERGED",
+        "boundsInWindow": { "left": 10.0, "top": 320.0, "right": 310.0, "bottom": 420.0 },
+        "text": [], "role": "Card", "testTag": "comp:MetricCard:summary",
+        "path": ["root", "node:3"]
+      },
+      "sourceCandidates": [
+        {
+          "file": "HomeScreen.kt", "line": 44, "score": 0.95,
+          "matchedTerms": ["MetricCard"],
+          "matchReasons": ["selected testTag", "selected testTag convention composable", "nearby testTag"],
+          "confidence": "HIGH",
+          "ranking": 1, "scoreMargin": null,
+          "evidenceStrength": "STRONG",
+          "riskFlags": []
+        },
+        {
+          "file": "MetricCard.kt", "line": 12, "score": 0.65,
+          "matchedTerms": ["MetricCard"],
+          "matchReasons": ["selected testTag"],
+          "confidence": "MEDIUM",
+          "ranking": 2, "scoreMargin": null,
+          "evidenceStrength": "MEDIUM",
+          "riskFlags": []
+        },
+        {
+          "file": "Dashboard.kt", "line": 88, "score": 0.20,
+          "matchedTerms": ["MetricCard"],
+          "matchReasons": ["nearby testTag"],
+          "confidence": "LOW",
+          "ranking": 3, "scoreMargin": null,
+          "evidenceStrength": "WEAK",
+          "riskFlags": []
+        }
+      ],
+      "severity": "med",
+      "comment": "Fix metric card font size",
+      "sequenceNumber": 3
+    },
+    {
+      "itemId": "item-4",
+      "screenId": "abcd1234-0000-0000-0000-000000000001",
+      "createdAtEpochMillis": 5,
+      "updatedAtEpochMillis": 5,
+      "target": { "type": "semantics_node", "nodeUid": "node1", "boundsInWindow": { "left": 10.0, "top": 100.0, "right": 310.0, "bottom": 200.0 } },
+      "selectedNode": {
+        "uid": "node1", "composeNodeId": 1, "rootIndex": 0, "treeKind": "MERGED",
+        "boundsInWindow": { "left": 10.0, "top": 100.0, "right": 310.0, "bottom": 200.0 },
+        "text": [], "role": "Card", "testTag": "comp:MetricCard:summary",
+        "path": ["root", "node:1"]
+      },
+      "sourceCandidates": [
+        {
+          "file": "HomeScreen.kt", "line": 44, "score": 0.95,
+          "matchedTerms": ["MetricCard"],
+          "matchReasons": ["selected testTag", "selected testTag convention composable", "nearby testTag"],
+          "confidence": "HIGH",
+          "ranking": 1, "scoreMargin": null,
+          "evidenceStrength": "STRONG",
+          "riskFlags": []
+        },
+        {
+          "file": "MetricCard.kt", "line": 12, "score": 0.65,
+          "matchedTerms": ["MetricCard"],
+          "matchReasons": ["selected testTag"],
+          "confidence": "MEDIUM",
+          "ranking": 2, "scoreMargin": null,
+          "evidenceStrength": "MEDIUM",
+          "riskFlags": []
+        },
+        {
+          "file": "Dashboard.kt", "line": 88, "score": 0.20,
+          "matchedTerms": ["MetricCard"],
+          "matchReasons": ["nearby testTag"],
+          "confidence": "LOW",
+          "ranking": 3, "scoreMargin": null,
+          "evidenceStrength": "WEAK",
+          "riskFlags": []
+        }
+      ],
+      "severity": "med",
+      "comment": "Improve metric card contrast",
+      "sequenceNumber": 4
+    }
+  ]
+}
