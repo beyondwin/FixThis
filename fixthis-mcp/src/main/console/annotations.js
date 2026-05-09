@@ -137,12 +137,9 @@
 
             function updateComposerState() {
               const hasPromptAnnotations = currentPromptAnnotations().length > 0;
-              copyPromptButton.disabled = promptActionInFlight;
-              sendAgentButton.disabled = promptActionInFlight;
-              copyPromptButton.dataset.unavailable = String(!hasPromptAnnotations || promptActionInFlight);
-              sendAgentButton.dataset.unavailable = String(!hasPromptAnnotations || promptActionInFlight);
-              copyPromptButton.classList.toggle('is-disabled', !hasPromptAnnotations || promptActionInFlight);
-              sendAgentButton.classList.toggle('is-disabled', !hasPromptAnnotations || promptActionInFlight);
+              const promptDisabled = !hasPromptAnnotations || promptActionInFlight;
+              copyPromptButton.disabled = promptDisabled;
+              sendAgentButton.disabled = promptDisabled;
               cancelAddFlowButton.disabled = !addItemsFlow;
               addItemButton.hidden = true;
               addItemButton.disabled = true;
