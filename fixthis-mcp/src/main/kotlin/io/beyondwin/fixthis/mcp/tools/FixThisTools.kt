@@ -165,6 +165,10 @@ class FixThisTools(
             }
             "fixthis_list_feedback" -> bridgeToolResult {
                 val session = requestedSession(arguments)
+                val includeAll = arguments.booleanParam("includeAll") ?: false
+                val visibleItems = if (includeAll) session.items else session.items.filter {
+                    it.delivery == FeedbackDelivery.SENT && it.status !in resolvedStatuses
+                }
                 jsonToolResult(buildJsonObject {
                     put("sessionId", session.sessionId)
                     put("packageName", session.packageName)
@@ -178,7 +182,7 @@ class FixThisTools(
                         session.items.count { it.delivery == FeedbackDelivery.SENT && it.status !in resolvedStatuses },
                     )
                     put("items", buildJsonArray {
-                        session.items.forEach { item ->
+                        visibleItems.forEach { item ->
                             add(buildJsonObject {
                                 put("itemId", item.itemId)
                                 put("screenId", item.screenId)
@@ -681,9 +685,10 @@ private val ToolDefinitions = listOf(
     ),
     ToolDefinition(
         name = "fixthis_list_feedback",
-        description = "List feedback queue summaries for the active FixThis feedback session.",
+        description = "List feedback queue summaries for the active FixThis feedback session. By default the items array contains only SENT feedback that is not resolved or wont_fix; pass includeAll=true to include drafts and finished items.",
         inputSchema = objectSchema(
             "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
+            "includeAll" to booleanProperty("When true, return every item in the session instead of only SENT and unfinished items. Defaults to false."),
         ),
     ),
     ToolDefinition(

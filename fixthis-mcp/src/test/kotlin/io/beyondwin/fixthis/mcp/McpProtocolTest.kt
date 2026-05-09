@@ -589,6 +589,114 @@ class McpProtocolTest {
     }
 
     @Test
+    fun listFeedbackDefaultsToSentAndUnfinished() = runBlocking {
+        val bridge = FakeFixThisBridge(packageName = "io.beyondwin.fixthis.sample")
+        val projectRoot = tempDir(prefix = "fixthis-list-default-filter-")
+        val service = feedbackService(
+            bridge,
+            "session-1",
+            "screen-1",
+            "item-1",
+            "item-2",
+            "batch-1",
+            "item-3",
+        )
+        val session = service.openSession(null, newSession = true)
+        val screen = service.captureScreen(session.sessionId)
+        val sentOpenItem = service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            FixThisRect(1f, 1f, 2f, 2f),
+            "Sent open item",
+        )
+        val sentResolvedItem = service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            FixThisRect(2f, 2f, 3f, 3f),
+            "Sent resolved item",
+        )
+        service.sendDraftToAgent(session.sessionId)
+        service.resolveFeedback(session.sessionId, sentResolvedItem.itemId, AnnotationStatusDto.RESOLVED, null)
+        val draftItem = service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            FixThisRect(3f, 3f, 4f, 4f),
+            "Draft item",
+        )
+        val tools = FixThisTools(
+            bridge = bridge,
+            projectRoot = projectRoot,
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+            feedbackService = service,
+        )
+
+        val result = tools.call("fixthis_list_feedback", JsonObject(emptyMap())).firstJsonContent()
+
+        val visibleItemIds = result.getValue("items").jsonArray
+            .map { it.jsonObject.getValue("itemId").jsonPrimitive.content }
+        assertEquals(listOf(sentOpenItem.itemId), visibleItemIds)
+        assertFalse(visibleItemIds.contains(sentResolvedItem.itemId))
+        assertFalse(visibleItemIds.contains(draftItem.itemId))
+        assertEquals(1, result.getValue("draftItemsCount").jsonPrimitive.int)
+        assertEquals(1, result.getValue("sentBatchesCount").jsonPrimitive.int)
+        assertEquals(1, result.getValue("unresolvedSentItemsCount").jsonPrimitive.int)
+        assertEquals(3, result.getValue("itemsCount").jsonPrimitive.int)
+    }
+
+    @Test
+    fun listFeedbackIncludeAllReturnsEverything() = runBlocking {
+        val bridge = FakeFixThisBridge(packageName = "io.beyondwin.fixthis.sample")
+        val projectRoot = tempDir(prefix = "fixthis-list-include-all-")
+        val service = feedbackService(
+            bridge,
+            "session-1",
+            "screen-1",
+            "item-1",
+            "item-2",
+            "batch-1",
+            "item-3",
+        )
+        val session = service.openSession(null, newSession = true)
+        val screen = service.captureScreen(session.sessionId)
+        val sentOpenItem = service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            FixThisRect(1f, 1f, 2f, 2f),
+            "Sent open item",
+        )
+        val sentResolvedItem = service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            FixThisRect(2f, 2f, 3f, 3f),
+            "Sent resolved item",
+        )
+        service.sendDraftToAgent(session.sessionId)
+        service.resolveFeedback(session.sessionId, sentResolvedItem.itemId, AnnotationStatusDto.RESOLVED, null)
+        val draftItem = service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            FixThisRect(3f, 3f, 4f, 4f),
+            "Draft item",
+        )
+        val tools = FixThisTools(
+            bridge = bridge,
+            projectRoot = projectRoot,
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+            feedbackService = service,
+        )
+
+        val result = tools.call("fixthis_list_feedback", jsonObject("includeAll" to true)).firstJsonContent()
+
+        val visibleItemIds = result.getValue("items").jsonArray
+            .map { it.jsonObject.getValue("itemId").jsonPrimitive.content }
+        assertEquals(
+            listOf(sentOpenItem.itemId, sentResolvedItem.itemId, draftItem.itemId),
+            visibleItemIds,
+        )
+        assertEquals(3, result.getValue("itemsCount").jsonPrimitive.int)
+    }
+
+    @Test
     fun readFeedbackWithItemIdFiltersOutUnrelatedHandoffBatches() = runBlocking {
         val bridge = FakeFixThisBridge(packageName = "io.beyondwin.fixthis.sample")
         val service = feedbackService(
