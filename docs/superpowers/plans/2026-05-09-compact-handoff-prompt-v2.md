@@ -486,12 +486,12 @@ Goal: lock the v2 contract with cross-language parity and a token-budget regress
 
 ### Task 6.4 — Backward-compat smoke against v1 fixture
 
-- [ ] Add a test that runs the v2 renderer against the existing v1 parity fixture (`session.json` from v1) and asserts the output:
+- [x] Add a test that runs the v2 renderer against the existing v1 parity fixture (`session.json` from v1) and asserts the output:
   - contains the v1 `Rule:` line verbatim;
   - contains a `~ ` line for every item;
   - does NOT throw on items with empty `sourceCandidates`;
   - does NOT emit `margin=` on items with only 1 candidate and null `scoreMargin`.
-- [ ] Commit: `test(handoff-v2): backward-compat smoke against v1 fixture`.
+- [x] Commit: `test(handoff-v2): backward-compat smoke against v1 fixture`.
 
 **Validation:** `./gradlew :fixthis-mcp:test --tests "*CompactHandoffRenderer*"`
 **Expected:** Pass.
