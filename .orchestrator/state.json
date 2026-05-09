@@ -253,6 +253,20 @@
       "verifier_result": "PASS — :fixthis-mcp:test 306 tests, 2 baseline failures, 1 skipped",
       "orchestrator_note": "Reviewer skipped — diff is 2 lines (const + .take()) plus 4 trivial test additions. Verifier coverage sufficient.",
       "timing": {"started": "2026-05-09T13:55:00Z", "completed": "2026-05-09T14:08:00Z"}
+    },
+    "task_17": {
+      "plan_id": "2.4",
+      "status": "COMPLETE",
+      "risk": "mid",
+      "files": ["fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt", "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt", "docs/superpowers/plans/2026-05-09-compact-handoff-prompt-v2.md"],
+      "commit": "70726e6",
+      "pre_task_sha": "0a2d6a8d0e86f8e08eb362c2f9c170076cd5dc33",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "verifier_result": "PASS — :fixthis-mcp:test 309 tests, 2 baseline failures, 1 skipped",
+      "orchestrator_note": "Reviewer skipped — single helper-function change with focused tests; Verifier coverage sufficient.",
+      "timing": {"started": "2026-05-09T14:08:00Z", "completed": "2026-05-09T14:25:00Z"}
     }
   },
   "task_summaries": {
@@ -356,12 +370,18 @@
       "files": ["fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt"],
       "exposed_apis": ["MAX_CANDIDATES_RENDERED = 3 (private const at object level); appendCandidatesBlock takes only first 3 candidates"],
       "key_decision": "Cap of 3 hardcoded as constant; rank assigned post-take so a 5-candidate item still gets ranks 1/2/3 only.",
-      "for_next_tasks": "JS Task 5.4 must mirror this cap (.slice(0, 3) or similar). New tests: renderCapsCandidatesAtThreeWhenFiveProvided, renderEmitsExactlyOneCandidateLineWhenOneProvided, renderEmitsExactlyTwoCandidateLinesWhenTwoProvided."
+      "for_next_tasks": "JS Task 5.4 must mirror this cap (.slice(0, 3) or similar)."
+    },
+    "task_17": {
+      "files": ["fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt"],
+      "exposed_apis": ["formatCandidateLine accepts effectiveMargin: Double? param; appendCandidatesBlock pre-computes (rank1.score - rank2.score).takeIf { > 0 } and passes it"],
+      "key_decision": "Effective margin = candidate.scoreMargin ?: computedMargin. Wire scoreMargin always wins when non-null. Computed margin is null when only 1 candidate or when score difference is ≤0.",
+      "for_next_tasks": "JS Task 5.4 must mirror this fallback computation. New tests: renderEmitsWireMarginWhenNonNull, renderComputesMarginFromScoresWhenWireNull, renderOmitsMarginWhenSingleCandidateAndScoreMarginNull."
     }
   },
   "low_tasks_pending_verification": [],
   "last_compaction_after_task": 13,
-  "current_task": 17,
+  "current_task": 18,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
