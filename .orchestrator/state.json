@@ -351,6 +351,19 @@
       "verifier_result": "PASS — CompactHandoffRendererTest 34/34; :fixthis-mcp:test 329 tests, 2 baseline failures, 1 skipped",
       "orchestrator_note": "Reviewer skipped — 2-pass approach in render() with 2 focused tests covering positive emission + instance-label suppression.",
       "timing": {"started": "2026-05-09T15:42:00Z", "completed": "2026-05-09T16:05:00Z"}
+    },
+    "task_24": {
+      "plan_id": "5.1",
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": ["fixthis-mcp/src/main/console/prompt.js", "docs/superpowers/plans/2026-05-09-compact-handoff-prompt-v2.md"],
+      "commit": "1cda17a",
+      "pre_task_sha": "0a76f33373ef8e215c9da874c1a94f2d57ae0435",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "orchestrator_note": "Reviewer/Verifier skipped — JS mirror of Tasks 1.2/1.3/1.4; parity verification deferred to Task 6.2 (PromptParityTest currently @Ignored).",
+      "timing": {"started": "2026-05-09T16:05:00Z", "completed": "2026-05-09T16:15:00Z"}
     }
   },
   "task_summaries": {
@@ -494,14 +507,20 @@
     },
     "task_23": {
       "files": ["fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt"],
-      "exposed_apis": ["render() now uses 2-pass approach: pre-compute markers + duplicates, then iterate. Duplicate items get '; targetRisk=duplicate-of-marker-N' suffix and instance label is SUPPRESSED for them."],
-      "key_decision": "Duplicate token suppresses instance label (per spec Appendix worked example item 4). Per-screen marker numbering preserved.",
-      "for_next_tasks": "All Kotlin renderer work COMPLETE. JS Task 5.7 mirrors duplicate detection. Test fixture note: duplicate items share identical bounds → land in overlap group → marker numbering may differ from naive expectation. Sample new test: renderEmitsDuplicateOfMarkerSuffixForDuplicateItem, renderSuppressesInstanceLabelForDuplicateItem."
+      "exposed_apis": ["render() 2-pass with duplicate suffix and instance-label suppression"],
+      "key_decision": "Duplicate token suppresses instance label.",
+      "for_next_tasks": "JS Task 5.7 mirrors duplicate detection."
+    },
+    "task_24": {
+      "files": ["fixthis-mcp/src/main/console/prompt.js"],
+      "exposed_apis": ["compactScreenHeader truncates screenId to 8 chars; emits viewport: WxH (U+00D7) and activity: <name> when applicable"],
+      "key_decision": "Mirrors Kotlin Tasks 1.2-1.4. Same conditions, byte-identical character (× U+00D7).",
+      "for_next_tasks": "Tasks 5.2-5.7 continue mirroring Kotlin in same prompt.js file. Task 5.8 regenerates app.js from updated prompt.js. Task 6.2 re-enables PromptParityTest after JS catches up."
     }
   },
-  "low_tasks_pending_verification": [],
+  "low_tasks_pending_verification": ["task_24"],
   "last_compaction_after_task": 23,
-  "current_task": 24,
+  "current_task": 25,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
