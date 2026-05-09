@@ -1,0 +1,6 @@
+{
+  "status": "DONE",
+  "summary": "Verified CHANGELOG.md v2 seed entry already exists under '## Unreleased / ### Changed' (line 38) with no duplicates. Phase 0's only behavior change (matcher scoreMargin semantic) is internal; no README/docs/mcp.md/contract updates are warranted at this phase per task scope.",
+  "files_updated": [],
+  "commit": null
+}

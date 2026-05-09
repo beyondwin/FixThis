@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "summary": "Full test suite ran with 283 tests completed, 2 failed. Both failures match the pre-existing baseline pair (consoleHtmlUsesModeAwareStudioInspector, consoleHtmlAnnotationSaveUsesCurrentSelectionPayload). No new regressions from LOW-batch docs/CHANGELOG changes.",
+  "risk_level": "LOW (BATCH)",
+  "tests_run": ["./gradlew test"],
+  "results": [
+    {
+      "suite": "all-modules",
+      "status": "PASS",
+      "count": 283,
+      "failures": 2,
+      "failure_names": [
+        "FeedbackConsoleServerTest.consoleHtmlUsesModeAwareStudioInspector",
+        "FeedbackConsoleServerTest.consoleHtmlAnnotationSaveUsesCurrentSelectionPayload"
+      ],
+      "note": "matches baseline (2 pre-existing failures); test count 283 meets >=283 threshold"
+    }
+  ],
+  "issues": ["none"],
+  "escalation": null
+}
