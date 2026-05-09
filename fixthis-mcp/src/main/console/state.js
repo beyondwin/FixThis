@@ -20,7 +20,6 @@
             const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });
             const unresponsiveTracker = createUnresponsiveTracker({ threshold: 3 });
             const sessions = document.getElementById('sessions');
-            const sentHistory = document.getElementById('sentHistory');
             const snapshot = document.getElementById('snapshot');
             const connectionCard = document.getElementById('connectionCard');
             const connectionHeadline = document.getElementById('connectionHeadline');
@@ -48,7 +47,6 @@
             const addItemButton = document.getElementById('addItemButton');
             const copyPromptButton = document.getElementById('copyPromptButton');
             const sendAgentButton = document.getElementById('sendAgentButton');
-            const clearSentHistoryButton = document.getElementById('clearSentHistoryButton');
             const cancelAddFlowButton = document.getElementById('cancelAddFlowButton');
             const clearDraftButton = document.getElementById('clearDraftButton');
             const selectToolButton = document.getElementById('selectToolButton');
