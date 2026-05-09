@@ -482,6 +482,7 @@ class FeedbackConsoleServerTest {
             "state.js",
             "api.js",
             "connection.js",
+            "availability.js",
             "devices.js",
             "preview.js",
             "annotations.js",
@@ -1095,7 +1096,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("Unavailable"))
         assertTrue(html.contains("data-connection-state=\"none\""))
         assertTrue(html.contains("deviceControl.dataset.connectionState = uiState;"))
-        assertTrue(html.contains("deviceConnectionState.textContent = DeviceStateCopy[uiState];"))
+        assertTrue(html.contains("deviceConnectionState.textContent = decorateConnectionLabel(baseLabel, reason);"))
         assertTrue(html.contains("connection: {"))
         assertTrue(html.contains("hasEverConnected: false"))
         assertTrue(html.contains("lastReadyAt: null"))
@@ -1111,14 +1112,16 @@ class FeedbackConsoleServerTest {
         val stopHeartbeatPolling = javascriptFunctionBody(html, "stopHeartbeatPolling")
         val sendBridgeHeartbeat = javascriptFunctionBody(html, "sendBridgeHeartbeat")
 
-        assertTrue(html.contains("const HeartbeatIntervalMs = 2000;"))
         assertTrue(html.contains("let heartbeatTimer = null;"))
+        assertTrue(html.contains("let heartbeatPolling = false;"))
         assertTrue(sendBridgeHeartbeat.contains("refreshConnection()"))
         assertTrue(sendBridgeHeartbeat.contains("if (!state.session || !state.selectedDeviceSerial) return;"))
-        assertTrue(startHeartbeatPolling.contains("sendBridgeHeartbeat().catch"))
-        assertTrue(startHeartbeatPolling.contains("setInterval"))
-        assertTrue(startHeartbeatPolling.contains("HeartbeatIntervalMs"))
-        assertTrue(stopHeartbeatPolling.contains("clearInterval(heartbeatTimer)"))
+        assertTrue(startHeartbeatPolling.contains("sendBridgeHeartbeat()"))
+        assertTrue(startHeartbeatPolling.contains("heartbeatPolling = true"))
+        assertTrue(startHeartbeatPolling.contains("scheduleNextHeartbeat"))
+        assertTrue(stopHeartbeatPolling.contains("heartbeatPolling = false"))
+        assertTrue(stopHeartbeatPolling.contains("clearTimeout(heartbeatTimer)"))
+        assertTrue(html.contains("unresponsiveTracker.nextBackoffMs()"))
         assertTrue(html.contains("startHeartbeatPolling();"))
         assertTrue(html.contains("stopHeartbeatPolling();"))
     }
