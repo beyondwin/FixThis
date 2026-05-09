@@ -147,6 +147,7 @@
                     '<div class="annotation-segmented" role="group" aria-label="Severity">' +
                       ['high', 'med', 'low'].map(value =>
                         '<button type="button" class="' + (severity === value ? 'active' : '') + '" data-set-severity="' + value + '"' +
+                          ' aria-pressed="' + (severity === value ? 'true' : 'false') + '"' +
                           (severity === value ? ' style="background:' + severityColor(value) + '; color: var(--bg-0);"' : '') + '>' +
                           escapeHtml(value === 'med' ? 'Med' : value) +
                         '</button>'
@@ -161,7 +162,8 @@
                     '<label>Status</label>' +
                     '<div class="annotation-segmented" role="group" aria-label="Status">' +
                       ['open', 'in-progress', 'resolved'].map(value =>
-                        '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '">' +
+                        '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '"' +
+                          ' aria-pressed="' + (status === value ? 'true' : 'false') + '">' +
                           escapeHtml(statusLabel(value)) +
                         '</button>'
                       ).join('') +
@@ -293,6 +295,7 @@
                     '<div class="annotation-segmented" role="group" aria-label="Severity">' +
                       ['high', 'med', 'low'].map(value =>
                         '<button type="button" class="' + (severity === value ? 'active' : '') + '" data-set-severity="' + value + '"' +
+                          ' aria-pressed="' + (severity === value ? 'true' : 'false') + '"' +
                           (severity === value ? ' style="background:' + severityColor(value) + '; color: var(--bg-0);"' : '') + '>' +
                           escapeHtml(value === 'med' ? 'Med' : value) +
                         '</button>'
@@ -307,7 +310,8 @@
                     '<label>Status</label>' +
                     '<div class="annotation-segmented" role="group" aria-label="Status">' +
                       ['open', 'in-progress', 'resolved'].map(value =>
-                        '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '">' +
+                        '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '"' +
+                          ' aria-pressed="' + (status === value ? 'true' : 'false') + '">' +
                           escapeHtml(statusLabel(value)) +
                         '</button>'
                       ).join('') +
