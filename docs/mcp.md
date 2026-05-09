@@ -159,6 +159,8 @@ Supported JSON-RPC methods:
 
 Checks whether the debug app sidekick bridge is reachable. Returns package, activity, root count, source-index availability, and bridge status. Bridge status includes sidekick and bridge protocol versions plus `capabilities`, currently `targetEvidence`, supported `detailModes`, and whether experimental composable identity is enabled.
 
+Responses also include an `installStale` boolean and `installStaleReason` string. When `true`, the host has source files modified after the device APK's last install time, so source coordinates returned by other tools may not match what you can edit; reinstall the debug APK before trusting them. `newerSourceFiles` lists up to three example paths. When `installEpochMillis` is unavailable (older sidekick), the check is skipped and `installStale` is `false` with an explanatory reason.
+
 `fixthis_get_current_screen`
 
 Inspects the current Compose screen and returns bridge screen data. It may include a latest screenshot resource URI when a screenshot artifact is already available in the MCP session.
@@ -224,6 +226,8 @@ Marks a feedback item as resolved, needing clarification, or not fixed and store
 | `evidenceStrength` | `String` | One of `STRONG`, `MEDIUM`, or `WEAK`. Internal metadata about how semantically reliable the matching evidence is. This is not the same as the displayed confidence (`high`/`medium`/`low`) shown in the compact handoff line; `evidenceStrength` describes signal quality while displayed confidence is the final classification derived from the full candidate ranking. |
 | `riskFlags` | `List<String>` | Empty list for confident matches. May include tokens such as `AREA_SELECTION` (match derived from a drawn visual area rather than a precise node selection) or `AMBIGUOUS` (multiple candidates scored similarly). |
 | `caution` | `String?` | Human-readable explanation present when `riskFlags` is non-empty. Absent (`null` or missing) for clean matches. |
+
+Each `SourceCandidate` may also carry `stale: true | false | null` and `staleReason`. `true` means the host source line no longer matches the index excerpt — do not edit by file:line; locate the symbol elsewhere first. `null` means the candidate could not be verified (no excerpt or no line, e.g. an XML resource entry).
 
 These fields inform the compact `candidates:` block in the v2 handoff prompt: `matched=[...]` tokens come from the candidate's reason list, and caution text is emitted as a `note:` line when `riskFlags` is non-empty. The full JSON remains available for tools that need the raw values.
 

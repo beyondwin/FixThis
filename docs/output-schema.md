@@ -226,6 +226,8 @@ The item's `screenId` field points to the evidence snapshot saved with the item 
 - `evidenceStrength`: optional `STRONG`, `MODERATE`, `WEAK`, or `NONE` describing how reliable the underlying evidence is. Used to reserve `confidence=HIGH` for strong evidence with a clear top-vs-next margin.
 - `riskFlags`: optional list of confidence-capping risk tokens (for example `VISUAL_AREA_ONLY`, `TEXT_ONLY`, `NEARBY_ONLY`, `ACTIVITY_ONLY`, `ARBITRARY_LITERAL`, `LEGACY_FALLBACK`).
 - `caution`: optional human-readable caveat. Surfaced on the rank-1 candidate as a `note:` line in compact handoff.
+- `stale`: optional `true`, `false`, or `null`. `true` means the host source line no longer matches the index excerpt (do not edit by file:line); `false` means the line-accurate match was verified; `null` means the candidate could not be verified (no excerpt, no line, or an XML resource entry).
+- `staleReason`: optional string explaining the staleness verdict, e.g. `"excerpt mismatch"`, `"file not found on host"`, `"line out of range"`, `"path escapes project root"`, or `"file too large to verify"`.
 
 Generated source-index entries now include additive v2 typed `signals` while preserving the v1 fields (`symbols`, `text`, `contentDescriptions`, `testTags`, `stringResources`, `roles`, and `activityNames`). Current signal kinds are `COMPOSABLE_SYMBOL`, `UI_TEXT`, `STRING_RESOURCE`, `TEST_TAG`, `STRICT_COMP_TEST_TAG`, `CONTENT_DESCRIPTION`, `ROLE`, `ACTIVITY_NAME`, and `ARBITRARY_STRING_LITERAL`; each signal has a `value` and optional `confidenceWeight` defaulting to `1.0`. Readers that do not understand `signals` can continue using v1 fields, and FixThis matching falls back to those v1 fields when no typed signal matches.
 

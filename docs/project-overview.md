@@ -57,7 +57,7 @@ Boundary invariant: `:fixthis-compose-core` does not know about MCP, CLI, Androi
 - `inspect/SemanticsInspector.kt`: merged/unmerged semantics tree를 읽고 `FixThisNode`로 변환한다.
 - `screenshot/*`: app cache 아래 screenshot PNG를 저장한다.
 - `bridge/BridgeServer.kt`: Android local socket bridge. `status`, `inspectCurrentScreen`, `captureScreenSnapshot`, `readSourceIndex`, `verifyUiChange`, `readScreenshot`, `performNavigation`을 token 검증 후 실행한다.
-- `BridgeStatus` availability fields: nullable `screenInteractive`, `keyguardLocked`, `appForeground`, `pictureInPicture`를 함께 보고한다. 데스크톱 콘솔은 이 신호로 `Connected` chip의 blocked sub-state(screen off, locked, backgrounded, PiP, unresponsive, no Compose UI)와 캔버스 overlay/입력 게이팅을 결정한다.
+- `BridgeStatus` availability fields: nullable `screenInteractive`, `keyguardLocked`, `appForeground`, `pictureInPicture`, `installEpochMillis`(APK 마지막 설치 시각; `fixthis_status`의 source staleness 감지에 사용)를 함께 보고한다. 데스크톱 콘솔은 이 신호로 `Connected` chip의 blocked sub-state(screen off, locked, backgrounded, PiP, unresponsive, no Compose UI)와 캔버스 overlay/입력 게이팅을 결정한다.
 - `lifecycle/FixThisActivityLifecycleCallbacks.kt`는 resumed activity counter와 last-resumed weak reference를 추적해 backgrounded/foregrounded 판정을 안정화한다.
 
 ### `:fixthis-gradle-plugin`

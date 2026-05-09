@@ -228,6 +228,20 @@ The connection card is the first place to look when capture, preview, or navigat
 
 Open `Details` for raw `deviceState`, `bridgeState`, and `rawError`. These details are diagnostic; the normal action button is the supported recovery path.
 
+## "Source coordinates point to old code"
+
+Symptom: After editing app code, `fixthis_read_feedback` returns paths/lines that don't match what you see in the editor.
+
+Cause: The debug APK on the device was built before your changes. The on-device `fixthis-source-index.json` still references old line numbers.
+
+Fix:
+
+```bash
+./gradlew :app:installDebug
+```
+
+Cold-launch the app once so the sidekick re-reads the new index. `fixthis_status` will then report `installStale: false`. Per-candidate `stale: true` flags also clear.
+
 ## Bridge Connection Failures
 
 Bridge failures usually mean the desktop CLI could not connect through ADB to the sidekick local socket.

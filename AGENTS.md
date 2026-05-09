@@ -66,7 +66,7 @@ scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample --host-only
 
 | Tool | What it does |
 |------|-------------|
-| `fixthis_status` | Check ADB bridge, package name, source-index availability |
+| `fixthis_status` | Check ADB bridge, package name, source-index availability; reports `installStale` when host source files are newer than the installed APK |
 | `fixthis_get_current_screen` | Inspect current Compose screen semantics and layout |
 | `fixthis_verify_ui_change` | Check whether expected text is present on screen |
 | `fixthis_open_feedback_console` | Open (or return URL of) the local browser feedback console |
