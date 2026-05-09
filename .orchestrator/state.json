@@ -1,254 +1,68 @@
 {
   "schema_version": "2",
-  "plan": "docs/superpowers/plans/2026-05-09-console-uiux-fixes.md",
-  "spec": "docs/superpowers/specs/2026-05-09-console-uiux-fixes-design.md",
-  "branch": "console-uiux-fixes-20260509-165702",
-  "worktree": "/Users/kws/.config/superpowers/worktrees/FixThis/console-uiux-fixes-20260509-165702",
-  "test_command": "./gradlew :fixthis-mcp:test",
-  "baseline": {"passing": 281, "failing": 2},
+  "plan": "docs/superpowers/plans/2026-05-09-fixthis-setup-polish.md",
+  "spec": "docs/superpowers/specs/2026-05-09-fixthis-setup-polish-spec.md",
+  "branch": "worktree-fixthis-setup-polish-20260509-181733",
+  "worktree": "/Users/kws/source/android/FixThis/.claude/worktrees/fixthis-setup-polish-20260509-181733",
+  "test_command": "./gradlew :fixthis-cli:test",
+  "baseline": {"passing": 52, "failing": 0},
+  "baseline_known_failures": [],
   "risk_levels": {
     "task_1": "low",
     "task_2": "low",
     "task_3": "mid",
-    "task_4": "mid",
-    "task_5": "mid",
-    "task_6": "mid",
-    "task_7": "low",
-    "task_8": "mid",
-    "task_9": "low",
-    "task_10": "mid",
-    "task_11": "mid",
-    "task_12": "mid",
-    "task_13": "low"
+    "task_4": "mid"
   },
-  "dependency_graph": {
+  "risk_upgrade_notes": {
+    "task_3": "Upgraded LOW->MID: touches SetupCommand.kt previously modified by Task 1"
+  },
+  "dependencies": {
     "task_1": [],
-    "task_2": [],
+    "task_2": ["task_1"],
     "task_3": [],
-    "task_4": [1, 3],
-    "task_5": [3, 4],
-    "task_6": [2],
-    "task_7": [],
-    "task_8": [3],
-    "task_9": [],
-    "task_10": [7, 9],
-    "task_11": [10],
-    "task_12": [3],
-    "task_13": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    "task_4": ["task_1", "task_2"]
   },
-  "compaction_points": [7, 13],
+  "compaction_points": [4],
   "tasks": {
     "task_1": {
       "status": "COMPLETE",
       "risk": "low",
-      "files": ["fixthis-mcp/src/main/console/prompt.js", "fixthis-mcp/src/main/resources/console/app.js"],
-      "commit": "3f4468f4ae8319017793d99a559eca4594076053",
-      "pre_task_sha": "b71219dec7287c69d4a8d56c97ee8aeafa6b4aef",
-      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
-      "timing": {"started": "2026-05-09T16:57:00Z", "completed": "2026-05-09T17:00:00Z"}
-    },
-    "task_2": {
-      "status": "COMPLETE",
-      "risk": "low",
-      "files": ["fixthis-mcp/src/main/console/annotations.js", "fixthis-mcp/src/main/resources/console/app.js"],
-      "commit": "e3c344147cee5b034a6e626bd39a28dcc0c6fdf1",
-      "pre_task_sha": "0820b5838e3bb088c764196e7406db12fd0072a6",
-      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
-      "timing": {"started": "2026-05-09T17:00:00Z", "completed": "2026-05-09T17:05:00Z"}
-    },
-    "task_3": {
-      "status": "COMPLETE",
-      "risk": "mid",
-      "files": ["fixthis-mcp/src/main/console/state.js", "fixthis-mcp/src/main/console/main.js", "fixthis-mcp/src/main/resources/console/styles.css", "fixthis-mcp/src/main/resources/console/app.js", "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt"],
-      "commit": "adaa1fddfc0f1d571661b2b268e6f92a55e83880",
-      "pre_task_sha": "1752ffe3689331dcb484c40c4e75e4c58619e9a2",
-      "escalations": 1, "review_retries": 0, "verifier_retries": 1,
-      "timing": {"started": "2026-05-09T17:05:00Z", "completed": "2026-05-09T17:20:00Z"}
-    },
-    "task_4": {
-      "status": "COMPLETE",
-      "risk": "mid",
-      "files": ["fixthis-mcp/src/main/console/prompt.js", "fixthis-mcp/src/main/resources/console/app.js"],
-      "commit": "a580a61ece3f74bbd99067733840f556aeee4191",
-      "pre_task_sha": "d22e28d3a4a91f23c0e8a0e0cb793971555a220a",
-      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
-      "timing": {"started": "2026-05-09T17:20:00Z", "completed": "2026-05-09T17:30:00Z"}
-    },
-    "task_5": {
-      "status": "COMPLETE",
-      "risk": "mid",
-      "files": ["fixthis-mcp/src/main/console/prompt.js", "fixthis-mcp/src/main/console/state.js", "fixthis-mcp/src/main/console/main.js", "fixthis-mcp/src/main/resources/console/styles.css", "fixthis-mcp/src/main/resources/console/app.js"],
-      "commit": "fe07d3e8af1d5a12f1a30c3917236c32858abd4f",
-      "pre_task_sha": "ab90115f229330c85b7bd9cfb34cdd81212385bc",
-      "escalations": 1, "review_retries": 1, "verifier_retries": 0,
-      "timing": {"started": "2026-05-09T17:30:00Z", "completed": "2026-05-09T17:50:00Z"}
-    },
-    "task_6": {
-      "status": "COMPLETE",
-      "risk": "mid",
-      "files": ["fixthis-mcp/src/main/console/annotations.js", "fixthis-mcp/src/main/resources/console/app.js"],
-      "commit": "cdfe5c26793def2c2081a90f0ec272d86c899394",
-      "pre_task_sha": "bd186488a541b1c930660461bca5d1842cd87b3b",
-      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
-      "timing": {"started": "2026-05-09T17:50:00Z", "completed": "2026-05-09T18:00:00Z"}
-    },
-    "task_7": {
-      "status": "COMPLETE",
-      "risk": "low",
-      "files": ["fixthis-mcp/src/main/console/rendering.js", "fixthis-mcp/src/main/resources/console/app.js"],
-      "commit": "f02a6422dd765f8b1cafd6f28638718da4e88c22",
-      "pre_task_sha": "4eb64e39631fe8d1d8e6853d81c3e2b21d268ad1",
-      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
-      "timing": {"started": "2026-05-09T18:00:00Z", "completed": "2026-05-09T18:05:00Z"}
-    },
-    "task_8": {
-      "status": "COMPLETE",
-      "risk": "mid",
-      "files": ["fixthis-mcp/src/main/console/connection.js", "fixthis-mcp/src/main/console/main.js", "fixthis-mcp/src/main/resources/console/app.js"],
-      "commit": "0d066f6a4881efdc67efc0e836104f4b33d69754",
-      "pre_task_sha": "4ed892fb96f46cf5805ed27344b0ee321dcfdfe8",
-      "escalations": 0, "review_retries": 1, "verifier_retries": 0,
-      "timing": {"started": "2026-05-09T18:05:00Z", "completed": "2026-05-09T19:30:00Z"}
-    },
-    "task_9": {
-      "status": "COMPLETE",
-      "risk": "low",
-      "files": ["fixthis-mcp/src/main/resources/console/index.html"],
-      "commit": "dd846d04a1be1b5a278ec2119b803d070b77a20e",
-      "pre_task_sha": "0e57b57ee8108f67c89e410844eb08ba89a49c2b",
-      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
-      "timing": {"started": "2026-05-09T19:30:00Z", "completed": "2026-05-09T19:35:00Z"}
-    },
-    "task_10": {
-      "status": "COMPLETE",
-      "risk": "mid",
-      "files": ["fixthis-mcp/src/main/resources/console/index.html", "fixthis-mcp/src/main/console/rendering.js", "fixthis-mcp/src/main/resources/console/app.js"],
-      "commit": "6158b9b4f577eab07176e2378ddc7749c9303293",
-      "pre_task_sha": "811bbf86a3ba1c8cd78872c6289d9ff86d0981d3",
-      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
-      "timing": {"started": "2026-05-09T19:35:00Z", "completed": "2026-05-09T19:45:00Z"}
-    },
-    "task_11": {
-      "status": "COMPLETE",
-      "risk": "mid",
-      "files": ["fixthis-mcp/src/main/console/rendering.js", "fixthis-mcp/src/main/resources/console/app.js"],
-      "commit": "e643d1f5fd49bc0501819fe24fbefa57b8ffa7b5",
-      "pre_task_sha": "f719eb956a355ae4f01fc850bd9852891052c25d",
-      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
-      "timing": {"started": "2026-05-09T19:45:00Z", "completed": "2026-05-09T19:55:00Z"}
-    },
-    "task_12": {
-      "status": "COMPLETE",
-      "risk": "mid",
-      "files": ["fixthis-mcp/src/main/resources/console/styles.css"],
-      "commit": "e6e2de96f894303ff9e08dab780ac549ba7f8301",
-      "pre_task_sha": "217f841118ee5e1d8c9fa196a25e737c179743a8",
-      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
-      "timing": {"started": "2026-05-09T19:55:00Z", "completed": "2026-05-09T20:00:00Z"}
-    },
-    "task_13": {
-      "status": "COMPLETE",
-      "risk": "low",
-      "files": [],
-      "commit": "none",
-      "pre_task_sha": "17aa8140ee80cda46c1e91fc77a04ab5f0e61528",
-      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
-      "timing": {"started": "2026-05-09T20:00:00Z", "completed": "2026-05-09T20:02:00Z"}
+      "files": [
+        "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt",
+        "fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommandTest.kt"
+      ],
+      "commit": "f486fc8",
+      "pre_task_sha": "15be25f2b224c9033d652b0a0c6773a35316fb73",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "timing": {"started": "2026-05-09T18:20:00+09:00", "completed": "2026-05-09T18:25:00+09:00"}
     }
   },
   "task_summaries": {
     "task_1": {
-      "files": ["fixthis-mcp/src/main/console/prompt.js", "fixthis-mcp/src/main/resources/console/app.js"],
+      "files": [
+        "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt",
+        "fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommandTest.kt"
+      ],
       "exposed_apis": [],
-      "key_decision": "Delete window.alert call; keep error.textContent and throw",
-      "for_next_tasks": "ensurePromptAnnotationsAvailable no longer blocks with modal; inline error only"
-    },
-    "task_2": {
-      "files": ["fixthis-mcp/src/main/console/annotations.js", "fixthis-mcp/src/main/resources/console/app.js"],
-      "exposed_apis": [],
-      "key_decision": "copyPromptButton.disabled and sendAgentButton.disabled now use hasPromptAnnotations; dataset.unavailable and is-disabled removed",
-      "for_next_tasks": "Both prompt buttons are natively disabled when no annotated items; keyboard tab skips them"
-    },
-    "task_3": {
-      "files": ["fixthis-mcp/src/main/console/state.js", "fixthis-mcp/src/main/console/main.js", "fixthis-mcp/src/main/resources/console/styles.css"],
-      "exposed_apis": ["showSuccess", "clearSuccessStatus"],
-      "key_decision": "showSuccess/clearSuccessStatus in state.js; showError updated to call clearSuccessStatus; .error.status-success CSS rule added; stale test assertions updated",
-      "for_next_tasks": "showSuccess(message, durationMs) available globally; showError clears success class first; use showSuccess for M3/M4 feedback"
-    },
-    "task_4": {
-      "files": ["fixthis-mcp/src/main/console/prompt.js", "fixthis-mcp/src/main/resources/console/app.js"],
-      "exposed_apis": [],
-      "key_decision": "copyPrompt captures labelSpan before async op; sets 'Copied ✓' on success with 1500ms revert",
-      "for_next_tasks": "copyPrompt has button-label feedback; sendAgentPrompt (Task 5) uses showSuccess from state.js instead"
-    },
-    "task_5": {
-      "files": ["fixthis-mcp/src/main/console/prompt.js", "fixthis-mcp/src/main/console/state.js", "fixthis-mcp/src/main/console/main.js", "fixthis-mcp/src/main/resources/console/styles.css"],
-      "exposed_apis": ["showSuccess", "clearSuccessStatus"],
-      "key_decision": "sendAgentPrompt calls showSuccess('Sent to agent ✓', 3000) on success path; state.js has full showSuccess impl",
-      "for_next_tasks": "showSuccess and clearSuccessStatus exist in bundle; .error.status-success CSS rule active; showError calls clearSuccessStatus"
-    },
-    "task_6": {
-      "files": ["fixthis-mcp/src/main/console/annotations.js", "fixthis-mcp/src/main/resources/console/app.js"],
-      "exposed_apis": ["flushFocusedPendingComment"],
-      "key_decision": "flushFocusedPendingComment() saves comment.value to focused item; called first in createAnnotationFromSelection and focusPendingFeedbackItem",
-      "for_next_tasks": "Comment data preserved on focus switches; annotations.js now guards against data loss on pending item transitions"
-    },
-    "task_7": {
-      "files": ["fixthis-mcp/src/main/console/rendering.js", "fixthis-mcp/src/main/resources/console/app.js"],
-      "exposed_apis": [],
-      "key_decision": "blur listener added to commentInput in renderSavedAnnotationDetail; fires persistSavedEvidenceItem on DOM teardown",
-      "for_next_tasks": "rendering.js has blur handler; Tasks 10+11 that touch rendering.js must retain this blur listener when updating renderSavedAnnotationDetail"
-    },
-    "task_8": {
-      "files": ["fixthis-mcp/src/main/console/connection.js", "fixthis-mcp/src/main/console/main.js", "fixthis-mcp/src/main/resources/console/app.js"],
-      "exposed_apis": ["handleHeartbeatError"],
-      "key_decision": "handleHeartbeatError deduplicates by message string; visibilitychange listener fix was in main.js not connection.js",
-      "for_next_tasks": "handleHeartbeatError is canonical catch for all sendBridgeHeartbeat calls; no downstream tasks depend on connection.js or main.js"
-    },
-    "task_9": {
-      "files": ["fixthis-mcp/src/main/resources/console/index.html"],
-      "exposed_apis": [],
-      "key_decision": "Deleted static #selectionOverlay from #snapshot; JS creates it dynamically via ensurePreviewFrame()",
-      "for_next_tasks": "index.html #snapshot has no static selectionOverlay; JS rendering still manages it dynamically; Task 10 updates #snapshot empty-stage copy"
-    },
-    "task_10": {
-      "files": ["fixthis-mcp/src/main/resources/console/index.html", "fixthis-mcp/src/main/console/rendering.js", "fixthis-mcp/src/main/resources/console/app.js"],
-      "exposed_apis": [],
-      "key_decision": "renderPreviewRegion now shows 3 contextual messages; index.html static fallback updated to match no-session message",
-      "for_next_tasks": "renderPreviewRegion has 3-branch empty logic; Task 11 modifies renderAnnotationDetail and renderSavedAnnotationDetail in rendering.js (not renderPreviewRegion)"
-    },
-    "task_11": {
-      "files": ["fixthis-mcp/src/main/console/rendering.js", "fixthis-mcp/src/main/resources/console/app.js"],
-      "exposed_apis": [],
-      "key_decision": "aria-pressed added to all 4 segmented button groups; blur listener from Task 7 preserved in renderSavedAnnotationDetail",
-      "for_next_tasks": "rendering.js now fully updated; all severity/status buttons have aria-pressed; no further rendering.js changes required"
-    },
-    "task_12": {
-      "files": ["fixthis-mcp/src/main/resources/console/styles.css"],
-      "exposed_apis": [],
-      "key_decision": "focus-visible rings appended at end of styles.css; CSS-only change, no JS bundle rebuild needed",
-      "for_next_tasks": "styles.css has focus-visible rules for tool/zoom/annotation-back/segmented buttons; no further CSS changes needed"
-    },
-    "task_13": {
-      "files": [],
-      "exposed_apis": [],
-      "key_decision": "No files modified; bundle confirmed in sync; working tree clean after all 12 implementation tasks",
-      "for_next_tasks": "All 13 tasks complete; ready for Phase Transition (batch LOW verifier + docs update)"
+      "key_decision": "buildWritePlans catch now binds `e: Exception`, appends `: ${e.message}` to error message, passes `cause = e` to CliktError",
+      "for_next_tasks": "Task 2 will trigger this catch path with mcpServers type validation (IllegalArgumentException). Expect e.message to contain 'mcpServers' and 'not a JSON object'. Existing assertEquals on full message switched to startsWith — Task 2 tests should not regress this."
     }
   },
-  "low_tasks_pending_verification": [],
-  "last_compaction_after_task": 13,
-  "current_task": 14,
+  "low_tasks_pending_verification": ["task_1"],
+  "last_compaction_after_task": 0,
+  "current_task": 2,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
   "current_verifier_retries": 0,
   "current_escalation_count": 0,
   "current_previous_issues": [],
-  "phase_summaries": ["Phase 1 (Tasks 1-7): H2/H3/H4/H5 bugs fixed + M3/M4/L6 UX additions; 281/283 tests passing; batch LOW verified PASS; CHANGELOG updated", "Phase 2 (Tasks 8-13): H7 heartbeat dedup + M7/M10/M12 DOM/accessibility fixes + L15 focus rings; 281/283 tests passing; batch LOW verified PASS; CHANGELOG updated"],
-  "phase_doc_commits": ["4f91a23", "d54a265"],
+  "phase_summaries": [],
+  "phase_doc_commits": [],
   "timestamps": {
-    "started_at": "2026-05-09T16:57:00Z",
-    "completed_at": "2026-05-09T20:10:00Z"
+    "started_at": "2026-05-09T18:17:33+09:00",
+    "completed_at": null
   }
 }

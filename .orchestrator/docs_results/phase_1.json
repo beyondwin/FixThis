@@ -1,6 +1,0 @@
-{
-  "status": "DONE",
-  "summary": "Added five user-facing CHANGELOG.md entries covering Phase 2 tasks 8–13: heartbeat error dedup (T8), removal of duplicate selectionOverlay (T9), contextual empty-preview messaging (T10), aria-pressed on segmented buttons (T11), and :focus-visible focus rings (T12). T13 was a docs-only task and is reflected by these CHANGELOG additions; no other docs files needed updates. Changes committed as d54a265.",
-  "docs_updated": ["CHANGELOG.md"],
-  "commit": "d54a2657efc05ff6d99d41d2b86ee1143f10c73b"
-}
