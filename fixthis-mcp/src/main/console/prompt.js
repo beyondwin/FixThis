@@ -263,6 +263,7 @@
               ensurePromptAnnotationsAvailable();
               promptActionInFlight = true;
               updateComposerState();
+              let sent = false;
               try {
                 if (addItemsFlow) {
                   await persistPendingFeedbackItems({ onlyWrittenComments: true });
@@ -279,9 +280,13 @@
                 await refreshSessions();
                 render();
                 startLivePreviewPolling();
+                sent = true;
               } finally {
                 promptActionInFlight = false;
                 updateComposerState();
+                if (sent) {
+                  showSuccess('Sent to agent ✓', 3000);
+                }
               }
             }
 
