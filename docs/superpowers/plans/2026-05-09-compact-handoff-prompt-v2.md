@@ -117,9 +117,9 @@ Goal: capture the v1 test baseline, lock the v2 fixtures, and ship the one-line 
 
 ### Task 0.2 — Inventory v1 renderer/test surface
 
-- [ ] Read `CompactHandoffRenderer.kt` end-to-end. Confirm functions to be modified: `render`, `appendCompactItem`, `compactTargetSummary`, `compactSourceLine`. Confirm `reasonTokenFor` mapping is unchanged in v2 (used inside `matched=[...]`).
-- [ ] Read `prompt.js` lines 120-253. Confirm functions to be modified: `compactSourceLine`, `compactTargetLine`, `compactItemLines`, `compactScreenHeader`, `currentAnnotationsPromptCompact`. Confirm `FIXTHIS_REASON_TOKEN_MAP` is reused.
-- [ ] Read `CompactHandoffRendererTest.kt` and list every assertion that will need to change. Add the list to this file under "Phase 0 inventory notes". (Tests that assert `bounds=` literal, `target: Node` literal, `src? ` literal — these need v2 updates. Tests that assert `Rule:` line, package line, items line, overlap header — these stay.)
+- [x] Read `CompactHandoffRenderer.kt` end-to-end. Confirm functions to be modified: `render`, `appendCompactItem`, `compactTargetSummary`, `compactSourceLine`. Confirm `reasonTokenFor` mapping is unchanged in v2 (used inside `matched=[...]`).
+- [x] Read `prompt.js` lines 120-253. Confirm functions to be modified: `compactSourceLine`, `compactTargetLine`, `compactItemLines`, `compactScreenHeader`, `currentAnnotationsPromptCompact`. Confirm `FIXTHIS_REASON_TOKEN_MAP` is reused.
+- [x] Read `CompactHandoffRendererTest.kt` and list every assertion that will need to change. Add the list to this file under "Phase 0 inventory notes". (Tests that assert `bounds=` literal, `target: Node` literal, `src? ` literal — these need v2 updates. Tests that assert `Rule:` line, package line, items line, overlap header — these stay.)
 
 **Validation:** Visual inventory; commit a brief notes section to this file.
 **Expected:** Inventory is comprehensive; no surprise tests in unrelated paths.
@@ -564,7 +564,55 @@ Goal: lock the v2 contract with cross-language parity and a token-budget regress
 
 ## Phase 0 inventory notes
 
-(To be filled in during Task 0.2.)
+### Kotlin renderer (`CompactHandoffRenderer.kt`)
+
+File: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt` (125 lines total)
+
+| Function | Line range | What it does today |
+|---|---|---|
+| `render` | lines 4–68 | Builds the full Markdown string: emits the header/rule/package/items lines, groups items by screen, calls `AnnotationOverlapDetector`, then calls `appendCompactItem` for each item; currently no `viewport:`, `activity:`, or screen short-id. |
+| `appendCompactItem` | lines 70–78 | Appends one numbered marker block: emits the title line (`N. [marker N] <comment>`), then `target: <targetSummary>`, optional `crop:` line, and `src? ...` line (via `compactSourceLine`). |
+| `compactTargetSummary` | lines 80–96 | Produces the `target:` line content: resolves role, label (text/contentDescription/testTag), and bounds via `formatBounds()`; appends `; targetRisk=overlap` when inside an overlap group. **This function will be replaced/renamed to `compactUiLine` in v2.** |
+| `compactSourceLine` | lines 98–107 | Produces the `src? <file>:<line> <confidence>[; why=...][; risk=...]` line using only rank-1 candidate. **This function is replaced by the `candidates:` block in v2.** |
+
+**`reasonTokenFor` mapping (lines 109–124):** 13-entry `when` expression mapping verbose match-reason strings to short tokens (`text`, `contentDescription`, `tag`, `compTag`, `role`, `nearbyText`, `nearbyContentDescription`, `nearbyTag`, `nearbyRole`, `activity`, `stringRes`, `literal`, `legacy`). **Unchanged in v2** — it is re-used inside the `matched=[...]` token list for rank-1 candidates in the new `candidates:` block.
+
+---
+
+### JS renderer (`prompt.js` lines 120–253)
+
+File: `fixthis-mcp/src/main/console/prompt.js`
+
+| Function | Line range | What it does today |
+|---|---|---|
+| `compactSourceLine` | lines 170–183 | Returns the `   src? <file>:<line> <confidence>[; why=...][; risk=...]` string using only rank-1 candidate; returns `null` if no candidate. **Replaced by a `candidates:` block in v2.** |
+| `compactTargetLine` | lines 185–192 | Returns the `   target: <role> "<label>" bounds=<bounds>[; targetRisk=overlap]` string. **Replaced by `compactUiLine` / `ui:` format in v2.** |
+| `compactItemLines` | lines 194–202 | Returns the array of lines for one marker: title, `compactTargetLine`, and (if present) `compactSourceLine`. **Modified in v2: calls new ui-line and candidates-block functions; adds severity prefix, instance label.** |
+| `compactScreenHeader` | lines 204–209 | Returns array: `["Screen <id>: <displayName>", "screenshot: <path>"]` (path conditional). **Modified in v2: truncate `screenId` to 8 chars, add `viewport:` and optional `activity:` lines.** |
+| `currentAnnotationsPromptCompact` | lines 211–253 | Top-level function: assembles the full prompt string from session state; calls `compactDetectOverlap`, `compactScreenHeader`, and `compactItemLines` for each group. **Modified in v2: must pass new grouping/duplicate data through to the item renderers.** |
+
+**`FIXTHIS_REASON_TOKEN_MAP` (lines 132–146):** Same 13-entry object as Kotlin's `reasonTokenFor`. **Reused in v2** — consumed by the new `compactCandidatesBlock` when assembling `matched=[...]` for rank-1 candidates.
+
+---
+
+### Tests to update in `CompactHandoffRendererTest.kt`
+
+File: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` (34 lines total)
+
+The test file currently contains **one test** (`renderEmitsTopLevelRuleAndScreenHeader`, lines 9–33). It makes two assertions:
+
+| Line | Assertion | v2 fate |
+|---|---|---|
+| 31 | `assertTrue(markdown.contains("Rule: source hints are candidates"))` | **Stays unchanged** — `Rule:` line is unchanged in v2. |
+| 32 | `assertTrue(markdown.contains("Screen "))` | **Stays unchanged** — screen header line prefix is unchanged (only the UUID is truncated to 8 chars, but still starts with `"Screen "`). |
+
+**No assertions reference `bounds=`, `target: Node`, or `src? ` literals**, so no existing assertion in this file needs updating for v2 format changes.
+
+**Observations:**
+- There are no tests asserting `bounds=...` literals, `target: Node "..."` literals, or `src? ...` literals. The inventory task's reference list (`bounds=`, `target: Node`, `src?`) finds zero hits in this file.
+- Tests that should stay unchanged (they already match this pattern): the two assertions above on `Rule:` line prefix and `Screen ` prefix.
+- The existing test does not assert the `Package:` line, items line, overlap header, `screenshot:` line, or `crop:` line — these will all be added as new v2 tests in Tasks 1.x–4.x rather than being updates to existing tests.
+- The v2 work will **add** many new tests to this file (Tasks 1.2–4.2) and eventually update any assertions added in Phase 1 that reference the v1 `target:` or `src?` shape (Task 1.7). Since those tests do not exist yet, Task 1.7 will update only tests introduced during Phase 1 itself.
 
 ## Smoke notes
 
