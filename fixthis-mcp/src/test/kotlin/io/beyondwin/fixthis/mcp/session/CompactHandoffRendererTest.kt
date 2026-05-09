@@ -1664,4 +1664,38 @@ class CompactHandoffRendererTest {
         assertTrue(markdown.contains("id: item-aaa"), markdown)
         assertTrue(markdown.contains("id: item-bbb"), markdown)
     }
+
+    @Test
+    fun rendersAgentProtocolFooter() {
+        val session = SessionDto(
+            sessionId = "sess-123",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(
+                SnapshotDto(
+                    screenId = "screen-1",
+                    capturedAtEpochMillis = 1L,
+                    displayName = "Home",
+                ),
+            ),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                    comment = "fix",
+                    sequenceNumber = 1,
+                ),
+            ),
+        )
+        val markdown = CompactHandoffRenderer.render(session)
+        assertTrue(markdown.contains("agent_protocol:"), markdown)
+        assertTrue(markdown.contains("before_work: fixthis_claim_feedback"), markdown)
+        assertTrue(markdown.contains("on_complete: fixthis_resolve_feedback"), markdown)
+        assertTrue(markdown.contains("session_id: sess-123"), markdown)
+    }
 }

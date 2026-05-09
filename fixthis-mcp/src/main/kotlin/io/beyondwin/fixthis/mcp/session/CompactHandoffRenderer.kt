@@ -116,6 +116,12 @@ object CompactHandoffRenderer {
                 }
             }
         }
+        appendLine("---")
+        appendLine("agent_protocol:")
+        appendLine("  before_work: fixthis_claim_feedback({sessionId, itemId})")
+        appendLine("  on_complete: fixthis_resolve_feedback({sessionId, itemId, status: resolved|wont_fix|needs_clarification, summary})")
+        appendLine("  user_console_reflects_within: 2s")
+        appendLine("session_id: ${session.sessionId}")
     }
 
     private fun StringBuilder.appendCompactItem(
