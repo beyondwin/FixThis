@@ -857,6 +857,16 @@
               gap: 4px;
               align-content: start;
             }
+            .inspector-section-header {
+              margin: 18px 12px 0;
+              padding: 14px 0 8px;
+              border-top: 1px solid var(--line);
+              color: var(--txt-2);
+              font-size: 11px;
+              font-weight: 700;
+              letter-spacing: 0.14em;
+              text-transform: uppercase;
+            }
             .ann-screen-header {
               padding: 14px 4px 6px;
               margin-top: 6px;

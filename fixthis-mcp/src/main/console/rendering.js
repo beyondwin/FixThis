@@ -426,6 +426,7 @@
               comment.hidden = true;
               pendingItems.hidden = false;
               draftItems.hidden = savedItems.length === 0;
+              if (savedSectionHeader) savedSectionHeader.hidden = savedItems.length === 0;
               inspectorFooter.hidden = savedItems.length === 0;
               clearSelectionButton.hidden = true;
               cancelAddFlowButton.hidden = true;
@@ -443,6 +444,7 @@
               comment.hidden = true;
               pendingItems.hidden = true;
               draftItems.hidden = false;
+              if (savedSectionHeader) savedSectionHeader.hidden = true;
               inspectorFooter.hidden = false;
               clearSelectionButton.hidden = true;
               cancelAddFlowButton.hidden = true;

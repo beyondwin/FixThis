@@ -29,6 +29,7 @@
             const inspectorBody = document.getElementById('inspectorBody');
             const inspectorFooter = document.getElementById('inspectorFooter');
             const draftItems = document.getElementById('draftItems');
+            const savedSectionHeader = document.getElementById('savedSectionHeader');
             const pendingItems = document.getElementById('pendingItems');
             const error = document.getElementById('error');
             const comment = document.getElementById('comment');
