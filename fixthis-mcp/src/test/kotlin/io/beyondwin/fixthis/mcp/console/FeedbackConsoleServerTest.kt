@@ -3661,6 +3661,38 @@ class FeedbackConsoleServerTest {
         )
     }
 
+    @Test
+    fun sessionsPollingDeclaresFailureBackoffConstants() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains("let consecutivePollFailures"), "must declare failure counter")
+        assertTrue(html.contains("MaxConsecutivePollFailures") || html.contains("= 5"),
+            "must declare threshold (named const or literal 5)")
+    }
+
+    @Test
+    fun pollSessionsTickResetsFailureCounterOnSuccess() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val body = javascriptFunctionBody(html, "pollSessionsTick")
+        assertTrue(body.contains("consecutivePollFailures = 0") || body.contains("consecutivePollFailures=0"),
+            "tick must reset counter on success")
+    }
+
+    @Test
+    fun pollSessionsTickIncrementsFailureCounterOnError() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val body = javascriptFunctionBody(html, "pollSessionsTick")
+        assertTrue(body.contains("consecutivePollFailures++") || body.contains("consecutivePollFailures += 1"),
+            "tick must increment counter on failure")
+    }
+
+    @Test
+    fun pollSessionsTickPausesAfterThreshold() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val body = javascriptFunctionBody(html, "pollSessionsTick")
+        assertTrue(body.contains("setSessionsPollingPaused(true)") || body.contains("stopSessionsPolling()"),
+            "tick must pause polling once threshold reached")
+    }
+
     private class FakeExchange(path: String) : HttpExchange() {
         private val uri = URI.create(path)
 

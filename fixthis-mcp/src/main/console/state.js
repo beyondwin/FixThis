@@ -83,6 +83,8 @@
             let lastSessionsEtag = null;
             let lastSessionEtag = null;
             let pendingMutationCount = 0;
+            let consecutivePollFailures = 0;
+            const MaxConsecutivePollFailures = 5;
 
             async function withMutationLock(fn) {
               pendingMutationCount++;
