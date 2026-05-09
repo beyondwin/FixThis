@@ -115,11 +115,9 @@
             function hasActiveHistorySessionForAnnotating() {
               return Boolean(
                 state.session &&
-                state.session.status !== 'ready_for_agent' &&
                 state.session.status !== 'closed' &&
                 (state.sessionSummaries || []).some(session =>
                   session.sessionId === state.session.sessionId &&
-                  session.status !== 'ready_for_agent' &&
                   session.status !== 'closed'
                 )
               );
@@ -181,7 +179,7 @@
             function renderSessionsListFromPayload(sessionSummaries) {
               state.sessionSummaries = sessionSummaries;
               const activeId = state.session?.sessionId;
-              const activeSummaries = sessionSummaries.filter(session => session.status !== 'ready_for_agent' && session.status !== 'closed');
+              const activeSummaries = sessionSummaries.filter(session => session.status !== 'closed');
               const ordinalBySessionId = sessionOrdinalLookup(activeSummaries);
               const renderedActiveSummaries = stableHistorySessions(activeSummaries);
               sessionCount.textContent = String(activeSummaries.length);

@@ -780,7 +780,6 @@ class FeedbackConsoleServerTest {
         assertFalse(updateComposerStateBody.contains("copyPromptButton.dataset.unavailable"))
         assertFalse(updateComposerStateBody.contains("sendAgentButton.dataset.unavailable"))
         assertFalse(updateComposerStateBody.contains("classList.toggle('is-disabled'"))
-        assertTrue(renderSessionsListBody.contains("session.status !== 'ready_for_agent'"))
         assertFalse(html.contains("id=\"clearSentHistoryButton\""))
     }
 
@@ -1782,7 +1781,6 @@ class FeedbackConsoleServerTest {
 
         assertTrue(html.contains("function hasActiveHistorySessionForAnnotating()"))
         assertTrue(ensureSessionForAnnotating.contains("if (hasActiveHistorySessionForAnnotating()) return;"))
-        assertTrue(hasActiveHistorySessionForAnnotating.contains("state.session.status !== 'ready_for_agent'"))
         assertTrue(hasActiveHistorySessionForAnnotating.contains("state.session.status !== 'closed'"))
         assertTrue(hasActiveHistorySessionForAnnotating.contains("(state.sessionSummaries || []).some"))
         assertTrue(ensureSessionForAnnotating.contains("/api/session/open"))
@@ -1793,6 +1791,13 @@ class FeedbackConsoleServerTest {
         assertTrue(enterAnnotateMode.contains("renderCurrentSessionList();"))
         assertTrue(enterAnnotateMode.contains("if (!addItemsFlow) {"))
         assertTrue(enterAnnotateMode.contains("await startAddItemsFlow();"))
+    }
+
+    @Test
+    fun consoleHtmlNoLongerFiltersReadyForAgentSessions() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val rendered = javascriptFunctionBody(html, "renderSessionsListFromPayload")
+        assertFalse(rendered.contains("'ready_for_agent'"), "History list must show sent sessions too")
     }
 
     @Test
