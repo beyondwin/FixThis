@@ -1596,27 +1596,6 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               return (item.sourceCandidates || []).length ? 'Source hint available' : 'No source hint';
             }
 
-            function formatBatchLabel(batch) {
-              return 'Batch #' + (batch.sequenceNumber || '-');
-            }
-
-            function batchItems(batch) {
-              const itemsById = new Map((state.session?.items || []).map(item => [item.itemId, item]));
-              return (batch.itemIds || []).map(itemId => itemsById.get(itemId) || { itemId: itemId, missing: true });
-            }
-
-            function formatBatchItemSummary(item) {
-              if (item.missing) return 'Missing feedback item metadata.';
-              return firstLine(item.comment || '(No comment)');
-            }
-
-            function formatBatchDetails(batch, items) {
-              const count = (batch.itemIds || []).length;
-              const itemCount = count + ' item' + (count === 1 ? '' : 's');
-              return formatTime(batch.createdAtEpochMillis) + ' | ' + itemCount + ' | ' + (items.map(formatBatchItemSummary).join('; ') || 'No feedback items recorded.');
-            }
-
-
             function hasActiveHistorySessionForAnnotating() {
               return Boolean(
                 state.session &&
