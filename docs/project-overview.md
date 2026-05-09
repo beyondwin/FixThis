@@ -1,5 +1,7 @@
 # FixThis Project Overview
 
+> English version: [project-overview.en.md](project-overview.en.md)
+
 이 문서는 현재 저장소의 실제 코드 기준으로 FixThis의 역할, 모듈 경계, 실행 흐름, 개발 명령을 빠르게 파악하기 위한 온보딩 문서다. 제품 요구사항과 장기 설계 배경은 [Product requirements](fixthis_prd.md)와 [Technical design](fixthis_technical_design.md)를 함께 본다.
 
 ## 한 줄 요약

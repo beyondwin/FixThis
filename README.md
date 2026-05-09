@@ -172,6 +172,7 @@ FixThis is local-first. The Android app sidekick is debug-only and intended for 
 More detail:
 
 - [Project overview](docs/project-overview.md)
+- [Project overview (English)](docs/project-overview.en.md)
 - [Product requirements](docs/fixthis_prd.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
