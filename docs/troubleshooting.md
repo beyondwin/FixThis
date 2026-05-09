@@ -244,6 +244,8 @@ Cold-launch the app once so the sidekick re-reads the new index. `fixthis_status
 
 If `fixthis_status` reports `installStaleReason: "projectRoot may be misconfigured: 0 of <N> indexed files exist on host"`, the MCP CLI was likely launched from the wrong directory. Re-run from the project root (the directory containing `settings.gradle.kts`).
 
+To verify the round-trip end-to-end on a connected device, run `./scripts/fixthis-smoke.sh --check-staleness`. The smoke script asserts `installStale: false` after install, bumps a tracked source file's mtime to assert `installStale: true` (with `newerSourceFiles` referencing the touched file), then reinstalls and asserts `installStale: false` again. The original mtime is restored before the reinstall step and again via an exit `trap` so failures do not leave the workspace dirty.
+
 ## Bridge Connection Failures
 
 Bridge failures usually mean the desktop CLI could not connect through ADB to the sidekick local socket.
