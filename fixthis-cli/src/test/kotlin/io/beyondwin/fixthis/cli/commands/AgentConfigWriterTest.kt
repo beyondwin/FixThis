@@ -1,6 +1,7 @@
 package io.beyondwin.fixthis.cli.commands
 
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -160,5 +161,42 @@ class AgentConfigWriterTest {
         assertTrue(merged.contains("[mcp_servers.'other'.env]"))
         assertTrue(merged.contains("TOKEN = \"keep\""))
         assertTrue(merged.contains("ANDROID_HOME = \"/Users/kws/Library/Android/sdk\""))
+    }
+
+    @Test
+    fun claudeMergeThrowsWhenMcpServersIsArray() {
+        val current = """{"mcpServers":[]}"""
+        val ex = assertThrows(IllegalArgumentException::class.java) {
+            ClaudeConfigWriter().merge(current, entry)
+        }
+        assertTrue(
+            "Expected message to mention mcpServers",
+            ex.message!!.contains("\"mcpServers\""),
+        )
+        assertTrue(
+            "Expected message to say not a JSON object",
+            ex.message!!.contains("not a JSON object"),
+        )
+        assertTrue(
+            "Expected message to say fix manually",
+            ex.message!!.contains("Fix the file manually"),
+        )
+    }
+
+    @Test
+    fun claudeMergeThrowsWhenMcpServersIsString() {
+        val current = """{"mcpServers":"wrong"}"""
+        val ex = assertThrows(IllegalArgumentException::class.java) {
+            ClaudeConfigWriter().merge(current, entry)
+        }
+        assertTrue(ex.message!!.contains("not a JSON object"))
+    }
+
+    @Test
+    fun claudeMergeAcceptsAbsentMcpServers() {
+        val current = """{"otherKey":"value"}"""
+        val merged = ClaudeConfigWriter().merge(current, entry)
+        assertTrue("Expected fixthis server to appear", merged.contains("\"fixthis\""))
+        assertTrue("Expected other keys preserved", merged.contains("\"otherKey\""))
     }
 }

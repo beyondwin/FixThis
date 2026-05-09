@@ -21,7 +21,15 @@ internal class ClaudeConfigWriter : AgentConfigWriter {
             ?.takeIf { it.isNotBlank() }
             ?.let { fixThisJson.parseToJsonElement(it).jsonObject }
             ?: JsonObject(emptyMap())
-        val existingServers = root["mcpServers"]?.jsonObject ?: JsonObject(emptyMap())
+        val mcpServersElement = root["mcpServers"]
+        if (mcpServersElement != null && mcpServersElement !is JsonObject) {
+            throw IllegalArgumentException(
+                "\"mcpServers\" in existing .claude/settings.json is not a JSON object " +
+                    "(found ${mcpServersElement::class.simpleName}). " +
+                    "Fix the file manually before running fixthis setup.",
+            )
+        }
+        val existingServers = mcpServersElement?.jsonObject ?: JsonObject(emptyMap())
         val mergedServers = JsonObject(existingServers + (entry.serverName to entry.toClaudeJson()))
         val mergedRoot = JsonObject(root + ("mcpServers" to mergedServers))
         return fixThisJson.encodeToString(JsonObject.serializer(), mergedRoot) + "\n"
