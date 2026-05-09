@@ -36,7 +36,10 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -479,6 +482,7 @@ class FeedbackConsoleServerTest {
             "state.js",
             "api.js",
             "connection.js",
+            "availability.js",
             "devices.js",
             "preview.js",
             "annotations.js",
@@ -1092,7 +1096,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("Unavailable"))
         assertTrue(html.contains("data-connection-state=\"none\""))
         assertTrue(html.contains("deviceControl.dataset.connectionState = uiState;"))
-        assertTrue(html.contains("deviceConnectionState.textContent = DeviceStateCopy[uiState];"))
+        assertTrue(html.contains("deviceConnectionState.textContent = decorateConnectionLabel(baseLabel, reason);"))
         assertTrue(html.contains("connection: {"))
         assertTrue(html.contains("hasEverConnected: false"))
         assertTrue(html.contains("lastReadyAt: null"))
@@ -1108,14 +1112,16 @@ class FeedbackConsoleServerTest {
         val stopHeartbeatPolling = javascriptFunctionBody(html, "stopHeartbeatPolling")
         val sendBridgeHeartbeat = javascriptFunctionBody(html, "sendBridgeHeartbeat")
 
-        assertTrue(html.contains("const HeartbeatIntervalMs = 2000;"))
         assertTrue(html.contains("let heartbeatTimer = null;"))
+        assertTrue(html.contains("let heartbeatPolling = false;"))
         assertTrue(sendBridgeHeartbeat.contains("refreshConnection()"))
         assertTrue(sendBridgeHeartbeat.contains("if (!state.session || !state.selectedDeviceSerial) return;"))
-        assertTrue(startHeartbeatPolling.contains("sendBridgeHeartbeat().catch"))
-        assertTrue(startHeartbeatPolling.contains("setInterval"))
-        assertTrue(startHeartbeatPolling.contains("HeartbeatIntervalMs"))
-        assertTrue(stopHeartbeatPolling.contains("clearInterval(heartbeatTimer)"))
+        assertTrue(startHeartbeatPolling.contains("sendBridgeHeartbeat()"))
+        assertTrue(startHeartbeatPolling.contains("heartbeatPolling = true"))
+        assertTrue(startHeartbeatPolling.contains("scheduleNextHeartbeat"))
+        assertTrue(stopHeartbeatPolling.contains("heartbeatPolling = false"))
+        assertTrue(stopHeartbeatPolling.contains("clearTimeout(heartbeatTimer)"))
+        assertTrue(html.contains("unresponsiveTracker.nextBackoffMs()"))
         assertTrue(html.contains("startHeartbeatPolling();"))
         assertTrue(html.contains("stopHeartbeatPolling();"))
     }
@@ -1263,6 +1269,72 @@ class FeedbackConsoleServerTest {
             assertEquals("READY", json.getValue("state").jsonPrimitive.content)
             assertEquals("Ready", json.getValue("headline").jsonPrimitive.content)
             assertEquals(true, json.getValue("canCapture").jsonPrimitive.boolean)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun connectionStatusSurfacesAvailabilitySignalsFromBridgeStatus() {
+        val bridge = FakeFixThisBridge(
+            statusProvider = {
+                buildJsonObject {
+                    put("activity", "MainActivity")
+                    put("rootsCount", 3)
+                    put("screenInteractive", true)
+                    put("keyguardLocked", false)
+                    put("appForeground", true)
+                    put("pictureInPicture", false)
+                }
+            },
+        )
+        bridge.selectDevice("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp")
+        val service = FeedbackSessionService(bridge, FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")
+        val server = FeedbackConsoleServer(service).also { it.start() }
+        try {
+            val body = ConsoleHttpTestClient(server.url).get("/api/connection")
+            val json = fixThisJson.parseToJsonElement(body).jsonObject
+
+            assertEquals("READY", json.getValue("state").jsonPrimitive.content)
+            val availability = json.getValue("availability").jsonObject
+            assertEquals(true, availability.getValue("screenInteractive").jsonPrimitive.boolean)
+            assertEquals(false, availability.getValue("keyguardLocked").jsonPrimitive.boolean)
+            assertEquals(true, availability.getValue("appForeground").jsonPrimitive.boolean)
+            assertEquals(false, availability.getValue("pictureInPicture").jsonPrimitive.boolean)
+            assertEquals(3, availability.getValue("rootsCount").jsonPrimitive.int)
+            assertEquals("MainActivity", availability.getValue("activity").jsonPrimitive.content)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun connectionStatusOmitsAvailabilityFieldsWhenLegacyBridgeStatusIsMissingThem() {
+        val bridge = FakeFixThisBridge(
+            statusProvider = {
+                buildJsonObject {
+                    put("rootsCount", 2)
+                    put("sidekickVersion", "0.0.1")
+                    put("bridgeProtocolVersion", 1)
+                    put("sourceIndexAvailable", true)
+                }
+            },
+        )
+        bridge.selectDevice("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp")
+        val service = FeedbackSessionService(bridge, FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")
+        val server = FeedbackConsoleServer(service).also { it.start() }
+        try {
+            val body = ConsoleHttpTestClient(server.url).get("/api/connection")
+            val json = fixThisJson.parseToJsonElement(body).jsonObject
+
+            assertEquals("READY", json.getValue("state").jsonPrimitive.content)
+            val availability = json.getValue("availability").jsonObject
+            assertEquals(null, availability["screenInteractive"]?.jsonPrimitive?.booleanOrNull)
+            assertEquals(null, availability["keyguardLocked"]?.jsonPrimitive?.booleanOrNull)
+            assertEquals(null, availability["appForeground"]?.jsonPrimitive?.booleanOrNull)
+            assertEquals(null, availability["pictureInPicture"]?.jsonPrimitive?.booleanOrNull)
+            assertEquals(2, availability.getValue("rootsCount").jsonPrimitive.int)
+            assertEquals(null, availability["activity"]?.jsonPrimitive?.contentOrNull)
         } finally {
             server.stop()
         }

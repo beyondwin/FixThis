@@ -512,6 +512,8 @@
                 hint.remove();
               }
               renderSelectionOverlay();
+              renderCanvasBlockedOverlay();
+              renderStaleFrameNotice();
             }
 
             function renderPreviewOnly() {

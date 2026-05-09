@@ -120,6 +120,10 @@ class BridgeServerTest {
                     String::class.java,
                     Boolean::class.javaPrimitiveType,
                     BridgeCapabilities::class.java,
+                    Boolean::class.javaObjectType,
+                    Boolean::class.javaObjectType,
+                    Boolean::class.javaObjectType,
+                    Boolean::class.javaObjectType,
                 ),
             ),
         )

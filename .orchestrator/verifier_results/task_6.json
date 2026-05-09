@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "summary": "JS pure-module tests pass 15/15. Bundle --check exits 0. node --check on regenerated app.js silent.",
+  "risk_level": "MID",
+  "tests_run": ["node --test scripts/console-availability-test.mjs", "node scripts/build-console-assets.mjs --check", "node --check fixthis-mcp/src/main/resources/console/app.js"],
+  "results": [{"suite": "console-availability-test", "status": "PASS", "count": 15, "failures": 0}],
+  "issues": ["none"],
+  "escalation": null
+}

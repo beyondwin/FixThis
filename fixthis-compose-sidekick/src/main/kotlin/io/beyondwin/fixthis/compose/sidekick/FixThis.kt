@@ -39,10 +39,11 @@ object FixThis {
             }
         }
 
+        val callbacks = FixThisActivityLifecycleCallbacks()
         if (application.isDebuggable()) {
-            FixThisBridgeRuntime.start(application)
+            FixThisBridgeRuntime.start(application, callbacks)
         }
-        register(FixThisActivityLifecycleCallbacks())
+        register(callbacks)
         return true
     }
 

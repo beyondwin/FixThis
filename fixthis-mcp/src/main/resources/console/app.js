@@ -1,7 +1,6 @@
 // state.js
             const DefaultLivePreviewIntervalMs = 1000;
             const MinLivePreviewIntervalMs = 1000;
-            const HeartbeatIntervalMs = 2000;
             const PreviewIntervalStorageKey = 'fixthis.previewIntervalMs.v2';
             const state = {
               session: null,
@@ -13,9 +12,14 @@
                 current: null,
                 hasEverConnected: false,
                 lastReadyAt: null,
-                launchInFlight: false
+                launchInFlight: false,
+                availability: null,
+                interactionBlockedReason: null,
+                previousBlockedReason: null
               }
             };
+            const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });
+            const unresponsiveTracker = createUnresponsiveTracker({ threshold: 3 });
             const sessions = document.getElementById('sessions');
             const sentHistory = document.getElementById('sentHistory');
             const snapshot = document.getElementById('snapshot');
@@ -57,6 +61,7 @@
             const previewStaleBadge = document.getElementById('previewStaleBadge');
             let livePreviewTimer = null;
             let heartbeatTimer = null;
+            let heartbeatPolling = false;
             let previewRequestGeneration = 0;
             let previewRequestContextGeneration = 0;
             let previewRequestInFlight = null;
@@ -279,9 +284,46 @@
               );
             }
 
+            function recomputeInteractionBlockedReason() {
+              const annotate = toolMode === 'annotate';
+              const resolverInput = state.connection.availability
+                ? { ...state.connection.availability, unresponsive: unresponsiveTracker.isUnresponsive() }
+                : { unresponsive: unresponsiveTracker.isUnresponsive() };
+              const rawReason = computeBlockedReason(resolverInput, annotate);
+              state.connection.interactionBlockedReason = blockedReasonDebouncer.observe(rawReason);
+            }
+
             function applyConnectionStatus(status, options) {
               const connectionOptions = options || {};
               state.connection.current = status;
+              state.connection.availability = status?.availability ?? null;
+
+              // Combine availability with the unresponsive tracker for the resolver input.
+              recomputeInteractionBlockedReason();
+
+              // success → clear failure streak
+              unresponsiveTracker.observeSuccess();
+
+              // Mark frozen preview stale when the device's foreground activity has changed.
+              const restoredActivity = state.preview?.activity ?? null;
+              const currentActivity = status?.availability?.activity ?? null;
+              if (state.preview && restoredActivity && currentActivity) {
+                state.preview.stale = restoredActivity !== currentActivity;
+              } else if (state.preview) {
+                state.preview.stale = false;
+              }
+
+              // Detect blocked → unblocked transitions for select-mode auto-resume.
+              if (
+                state.connection.previousBlockedReason !== null &&
+                state.connection.interactionBlockedReason === null
+              ) {
+                if (toolMode === 'select' && state.session) {
+                  refreshPreview().catch(showError);
+                }
+              }
+              state.connection.previousBlockedReason = state.connection.interactionBlockedReason;
+
               syncSelectedDeviceFromConnection(status);
               const viewState = userConnectionState(status);
               if (viewState === 'ready') {
@@ -316,9 +358,15 @@
             }
 
             async function refreshConnection(options) {
-              const status = await requestJson('/api/connection');
-              applyConnectionStatus(status, options);
-              return status;
+              try {
+                const status = await requestJson('/api/connection');
+                applyConnectionStatus(status, options);
+                return status;
+              } catch (error) {
+                unresponsiveTracker.observeFailure();
+                recomputeInteractionBlockedReason();
+                showError(error);
+              }
             }
 
             function welcomeConnectionStatus() {
@@ -386,20 +434,116 @@
               lastHeartbeatError = null;
             }
 
+            function scheduleNextHeartbeat() {
+              if (!heartbeatPolling) return;
+              const nextDelayMs = unresponsiveTracker.nextBackoffMs();
+              heartbeatTimer = setTimeout(() => {
+                heartbeatTimer = null;
+                if (!heartbeatPolling) return;
+                if (!state.selectedDeviceSerial) {
+                  scheduleNextHeartbeat();
+                  return;
+                }
+                sendBridgeHeartbeat()
+                  .catch(handleHeartbeatError)
+                  .finally(scheduleNextHeartbeat);
+              }, nextDelayMs);
+            }
+
             function startHeartbeatPolling() {
               stopHeartbeatPolling();
-              sendBridgeHeartbeat().catch(handleHeartbeatError);
-              heartbeatTimer = setInterval(() => {
-                if (state.selectedDeviceSerial) sendBridgeHeartbeat().catch(handleHeartbeatError);
-              }, HeartbeatIntervalMs);
+              heartbeatPolling = true;
+              sendBridgeHeartbeat()
+                .catch(handleHeartbeatError)
+                .finally(scheduleNextHeartbeat);
             }
 
             function stopHeartbeatPolling() {
-              if (heartbeatTimer) clearInterval(heartbeatTimer);
+              heartbeatPolling = false;
+              if (heartbeatTimer) clearTimeout(heartbeatTimer);
               heartbeatTimer = null;
             }
 
+// availability.js
+// availability.js
+function computeBlockedReason(status, isAnnotateMode) {
+  if (!status) return null;
+  if (status.screenInteractive === false) return 'screenOff';
+  if (status.keyguardLocked === true) return 'locked';
+  if (status.appForeground === false) return 'background';
+  if (status.pictureInPicture === true) return 'pictureInPicture';
+  if (status.unresponsive === true) return 'unresponsive';
+  if (isAnnotateMode && (status.rootsCount === 0)) return 'noComposeUi';
+  return null;
+}
+
+function createBlockedReasonDebouncer({ delayMs = 300, now = () => Date.now() } = {}) {
+  let committed = null;
+  let pending = null;
+  let pendingSince = 0;
+  return {
+    observe(reason) {
+      if (reason === null) {
+        pending = null;
+        pendingSince = 0;
+        committed = null;
+        return null;
+      }
+      if (reason === committed) return committed;
+      if (pending !== reason) {
+        pending = reason;
+        pendingSince = now();
+        return committed;
+      }
+      if (now() - pendingSince >= delayMs) {
+        committed = reason;
+        pending = null;
+        pendingSince = 0;
+        return committed;
+      }
+      return committed;
+    }
+  };
+}
+
+const UNRESPONSIVE_BACKOFF_MS = [1000, 2000, 5000, 10000, 30000];
+
+function createUnresponsiveTracker({ threshold = 3 } = {}) {
+  let streak = 0;
+  return {
+    observeFailure() {
+      streak += 1;
+      return streak >= threshold;
+    },
+    observeSuccess() {
+      streak = 0;
+    },
+    isUnresponsive() {
+      return streak >= threshold;
+    },
+    nextBackoffMs() {
+      const idx = Math.min(streak, UNRESPONSIVE_BACKOFF_MS.length - 1);
+      return UNRESPONSIVE_BACKOFF_MS[idx];
+    },
+  };
+}
+
 // devices.js
+            const BLOCKED_SUFFIX = {
+              screenOff: 'Screen off',
+              locked: 'Locked',
+              background: 'In background',
+              pictureInPicture: 'PiP',
+              unresponsive: 'Unresponsive',
+              noComposeUi: 'No Compose UI',
+            };
+
+            function decorateConnectionLabel(baseLabel, reason) {
+              if (!reason) return baseLabel;
+              const suffix = BLOCKED_SUFFIX[reason];
+              return suffix ? `${baseLabel} · ${suffix}` : baseLabel;
+            }
+
             function shortenDeviceSerial(serial) {
               const raw = String(serial || '').trim();
               if (!raw) return '';
@@ -427,7 +571,11 @@
             function setDeviceUiState(uiState, device = null) {
               deviceControl.dataset.connectionState = uiState;
               deviceName.textContent = device ? deviceLabel(device) : 'No device';
-              deviceConnectionState.textContent = DeviceStateCopy[uiState];
+              const baseLabel = DeviceStateCopy[uiState];
+              const reason = uiState === DeviceUiState.CONNECTED
+                ? (state.connection?.interactionBlockedReason || null)
+                : null;
+              deviceConnectionState.textContent = decorateConnectionLabel(baseLabel, reason);
               deviceStatus.textContent = deviceName.textContent + ' - ' + deviceConnectionState.textContent;
             }
 
@@ -676,7 +824,11 @@
               try {
                 const preview = await requestLivePreview();
                 if (addItemsFlow || requestGeneration !== previewRequestGeneration) return;
-                state.preview = preview;
+                state.preview = {
+                  ...preview,
+                  activity: state.connection?.availability?.activity ?? null,
+                  stale: false,
+                };
                 if (userConnectionState(state.connection.current) === 'ready') markPreviewStale(false);
                 renderPreviewOnly();
               } catch (cause) {
@@ -707,7 +859,72 @@
               }
             }
 
+            function renderCanvasBlockedOverlay() {
+              const overlay = document.getElementById('canvasBlockedOverlay');
+              if (!overlay) return;
+              const reason = state.connection?.interactionBlockedReason ?? null;
+              if (!reason) {
+                overlay.hidden = true;
+                return;
+              }
+              overlay.hidden = false;
+              const headlines = {
+                screenOff: 'Device screen is off',
+                locked: 'Device is locked',
+                background: 'Sample app is in the background',
+                pictureInPicture: 'Sample app is in Picture-in-Picture',
+                unresponsive: 'Sample app is unresponsive',
+                noComposeUi: 'No Compose UI on this screen',
+              };
+              const details = {
+                screenOff: 'Wake the device to continue.',
+                locked: 'Unlock the device to continue.',
+                background: 'Bring the sample app to the foreground.',
+                pictureInPicture: 'Exit Picture-in-Picture to continue.',
+                unresponsive: 'Retrying…',
+                noComposeUi: 'Switch to a screen with Compose content to annotate.',
+              };
+              overlay.querySelector('[data-headline]').textContent = headlines[reason] ?? '';
+              overlay.querySelector('[data-detail]').textContent = details[reason] ?? '';
+              const retry = overlay.querySelector('[data-retry]');
+              retry.hidden = reason !== 'unresponsive';
+            }
+
+            document.getElementById('canvasBlockedOverlay')?.querySelector('[data-retry]')?.addEventListener('click', () => {
+              refreshConnection().catch(showError);
+            });
+
+            function renderStaleFrameNotice() {
+              const root = document.getElementById('canvasStaleNotice');
+              if (!root) return;
+              if (state.preview?.stale) {
+                root.hidden = false;
+              } else {
+                root.hidden = true;
+              }
+            }
+
+            document.getElementById('canvasStaleNotice')?.querySelector('[data-use-latest]')?.addEventListener('click', () => {
+              // Drop the stale frozen preview and any pins anchored to it, then
+              // re-freeze the latest frame via the existing Annotate primer when
+              // appropriate, or fall through to a fresh live preview otherwise.
+              const wasAnnotating = toolMode === 'annotate' || Boolean(addItemsFlow);
+              state.preview = null;
+              pendingFeedbackItems.length = 0;
+              addItemsFlow = null;
+              if (wasAnnotating) {
+                startAddItemsFlow().catch(showError);
+              } else {
+                refreshPreview().catch(showError);
+              }
+              render();
+            });
+
 // annotations.js
+            function isInteractionBlocked() {
+              return Boolean(state.connection?.interactionBlockedReason);
+            }
+
             function boundsForTarget(target) {
               return target?.boundsInWindow || null;
             }
@@ -920,9 +1137,12 @@
             }
 
             function selectNodeAtPoint(event, image) {
+              if (isInteractionBlocked()) return;
               const selection = nodeSelectionAtPoint(event, image);
               if (!selection) {
-                showError(new Error('No component found at that point. Drag to select a custom area.'));
+                if (!isInteractionBlocked()) {
+                  showError(new Error('No component found at that point. Drag to select a custom area.'));
+                }
                 return;
               }
               currentSelection = selection;
@@ -931,6 +1151,7 @@
             }
 
             function previewNodeAtPoint(event, image) {
+              if (isInteractionBlocked()) return;
               const selection = nodeSelectionAtPoint(event, image);
               const nextId = selection?.nodeUid || null;
               const currentId = hoveredAnnotationTarget?.nodeUid || null;
@@ -940,6 +1161,7 @@
             }
 
             function confirmHoveredAnnotationTarget(event, image) {
+              if (isInteractionBlocked()) return;
               if (hoveredAnnotationTarget) {
                 const point = naturalPointFromEvent(event, image);
                 if (containsPoint(hoveredAnnotationTarget.bounds, point)) {
@@ -954,6 +1176,7 @@
             }
 
             function finishAreaSelection(bounds) {
+              if (isInteractionBlocked()) return;
               const selection = {
                 targetType: 'area',
                 bounds: bounds,
@@ -1026,6 +1249,11 @@
                 if (previewRequestInFlight || !preview) {
                   preview = await requestLivePreview();
                   if (addFlowContextGeneration !== previewRequestContextGeneration) return;
+                  preview = {
+                    ...preview,
+                    activity: state.connection?.availability?.activity ?? null,
+                    stale: false,
+                  };
                   state.preview = preview;
                 }
                 if (!state.preview) {
@@ -2510,6 +2738,8 @@
                 hint.remove();
               }
               renderSelectionOverlay();
+              renderCanvasBlockedOverlay();
+              renderStaleFrameNotice();
             }
 
             function renderPreviewOnly() {

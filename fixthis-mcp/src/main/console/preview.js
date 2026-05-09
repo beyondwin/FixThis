@@ -123,7 +123,11 @@
               try {
                 const preview = await requestLivePreview();
                 if (addItemsFlow || requestGeneration !== previewRequestGeneration) return;
-                state.preview = preview;
+                state.preview = {
+                  ...preview,
+                  activity: state.connection?.availability?.activity ?? null,
+                  stale: false,
+                };
                 if (userConnectionState(state.connection.current) === 'ready') markPreviewStale(false);
                 renderPreviewOnly();
               } catch (cause) {
@@ -153,3 +157,64 @@
                 error.textContent = 'Navigation performed, but capture failed: ' + navigation.captureError;
               }
             }
+
+            function renderCanvasBlockedOverlay() {
+              const overlay = document.getElementById('canvasBlockedOverlay');
+              if (!overlay) return;
+              const reason = state.connection?.interactionBlockedReason ?? null;
+              if (!reason) {
+                overlay.hidden = true;
+                return;
+              }
+              overlay.hidden = false;
+              const headlines = {
+                screenOff: 'Device screen is off',
+                locked: 'Device is locked',
+                background: 'Sample app is in the background',
+                pictureInPicture: 'Sample app is in Picture-in-Picture',
+                unresponsive: 'Sample app is unresponsive',
+                noComposeUi: 'No Compose UI on this screen',
+              };
+              const details = {
+                screenOff: 'Wake the device to continue.',
+                locked: 'Unlock the device to continue.',
+                background: 'Bring the sample app to the foreground.',
+                pictureInPicture: 'Exit Picture-in-Picture to continue.',
+                unresponsive: 'Retrying…',
+                noComposeUi: 'Switch to a screen with Compose content to annotate.',
+              };
+              overlay.querySelector('[data-headline]').textContent = headlines[reason] ?? '';
+              overlay.querySelector('[data-detail]').textContent = details[reason] ?? '';
+              const retry = overlay.querySelector('[data-retry]');
+              retry.hidden = reason !== 'unresponsive';
+            }
+
+            document.getElementById('canvasBlockedOverlay')?.querySelector('[data-retry]')?.addEventListener('click', () => {
+              refreshConnection().catch(showError);
+            });
+
+            function renderStaleFrameNotice() {
+              const root = document.getElementById('canvasStaleNotice');
+              if (!root) return;
+              if (state.preview?.stale) {
+                root.hidden = false;
+              } else {
+                root.hidden = true;
+              }
+            }
+
+            document.getElementById('canvasStaleNotice')?.querySelector('[data-use-latest]')?.addEventListener('click', () => {
+              // Drop the stale frozen preview and any pins anchored to it, then
+              // re-freeze the latest frame via the existing Annotate primer when
+              // appropriate, or fall through to a fresh live preview otherwise.
+              const wasAnnotating = toolMode === 'annotate' || Boolean(addItemsFlow);
+              state.preview = null;
+              pendingFeedbackItems.length = 0;
+              addItemsFlow = null;
+              if (wasAnnotating) {
+                startAddItemsFlow().catch(showError);
+              } else {
+                refreshPreview().catch(showError);
+              }
+              render();
+            });

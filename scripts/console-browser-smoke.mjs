@@ -25,6 +25,14 @@ const fake = {
     { serial: 'device-1', model: 'Pixel Smoke', state: 'device' },
     { serial: 'device-2', model: 'Fold Offline', state: 'offline' },
   ],
+  availability: {
+    screenInteractive: true,
+    keyguardLocked: false,
+    appForeground: true,
+    pictureInPicture: false,
+    rootsCount: 1,
+    activity: 'MainActivity',
+  },
   sessions: new Map(),
 };
 
@@ -125,6 +133,7 @@ function connectionPayload() {
     selectedDevice: selectedDevice ? toConnectionDevice(selectedDevice) : null,
     devices: fake.devices.map(toConnectionDevice),
     packageName: 'io.beyondwin.fixthis.sample',
+    availability: fake.connectionState === 'READY' ? { ...fake.availability } : null,
     details: {
       bridgeState: fake.connectionState === 'READY' ? 'ready' : 'paused',
       rawError: fake.connectionState === 'OPEN_APP' ? 'Bridge closed before sending a response' : null,
@@ -577,6 +586,49 @@ async function runSmoke(baseUrl) {
     await page.waitForFunction(() => document.querySelector('#sentHistory')?.textContent.includes('Batch #1'));
     assert.equal(fake.handoffPrompts.length, 1, 'Expected one agent handoff prompt');
     assert.match(fake.handoffPrompts[0], /Make the checkout button clearer/);
+
+    // Scenario: device interaction availability — screen-off blocks annotation, auto-resumes.
+    // Toggles `availability.screenInteractive` between false and true while in Annotate mode.
+    // Asserts: overlay visible during off, overlay gone during on, no spurious error,
+    // and `state.preview` plus pending pins survive the round trip.
+    await page.evaluate(() => { window.__fakeAvailability = window.__fakeAvailability || {}; });
+    fake.availability.screenInteractive = false;
+    await page.waitForFunction(
+      () => document.getElementById('canvasBlockedOverlay')?.hidden === false,
+      { timeout: 10000 }
+    );
+    const headlineWhileBlocked = await page.evaluate(() =>
+      document.querySelector('#canvasBlockedOverlay [data-headline]')?.textContent
+    );
+    assert.equal(headlineWhileBlocked, 'Device screen is off',
+      'Blocked overlay should show screenOff headline');
+    const errorBeforeClick = await page.evaluate(() =>
+      document.getElementById('error')?.textContent ?? ''
+    );
+    await page.locator('#snapshotImage').click({ position: { x: 50, y: 50 }, force: true });
+    const errorAfterClick = await page.evaluate(() =>
+      document.getElementById('error')?.textContent ?? ''
+    );
+    assert.equal(errorAfterClick, errorBeforeClick,
+      'Click while blocked must not surface a new error');
+    const pendingCountWhileBlocked = await page.evaluate(() =>
+      document.querySelectorAll('.pending-item-row').length
+    );
+    fake.availability.screenInteractive = true;
+    await page.waitForFunction(
+      () => document.getElementById('canvasBlockedOverlay')?.hidden === true,
+      { timeout: 10000 }
+    );
+    const pendingCountAfterUnblock = await page.evaluate(() =>
+      document.querySelectorAll('.pending-item-row').length
+    );
+    assert.equal(pendingCountAfterUnblock, pendingCountWhileBlocked,
+      'Pending pins must survive blocked → unblocked round trip');
+    const chipSuffixCleared = await page.evaluate(() =>
+      document.getElementById('deviceConnectionState')?.textContent
+    );
+    assert.equal(chipSuffixCleared.includes('·'), false,
+      'Chip suffix must clear once interaction is unblocked');
 
     assert.deepEqual(consoleErrors, []);
   } finally {

@@ -66,9 +66,46 @@
               );
             }
 
+            function recomputeInteractionBlockedReason() {
+              const annotate = toolMode === 'annotate';
+              const resolverInput = state.connection.availability
+                ? { ...state.connection.availability, unresponsive: unresponsiveTracker.isUnresponsive() }
+                : { unresponsive: unresponsiveTracker.isUnresponsive() };
+              const rawReason = computeBlockedReason(resolverInput, annotate);
+              state.connection.interactionBlockedReason = blockedReasonDebouncer.observe(rawReason);
+            }
+
             function applyConnectionStatus(status, options) {
               const connectionOptions = options || {};
               state.connection.current = status;
+              state.connection.availability = status?.availability ?? null;
+
+              // Combine availability with the unresponsive tracker for the resolver input.
+              recomputeInteractionBlockedReason();
+
+              // success → clear failure streak
+              unresponsiveTracker.observeSuccess();
+
+              // Mark frozen preview stale when the device's foreground activity has changed.
+              const restoredActivity = state.preview?.activity ?? null;
+              const currentActivity = status?.availability?.activity ?? null;
+              if (state.preview && restoredActivity && currentActivity) {
+                state.preview.stale = restoredActivity !== currentActivity;
+              } else if (state.preview) {
+                state.preview.stale = false;
+              }
+
+              // Detect blocked → unblocked transitions for select-mode auto-resume.
+              if (
+                state.connection.previousBlockedReason !== null &&
+                state.connection.interactionBlockedReason === null
+              ) {
+                if (toolMode === 'select' && state.session) {
+                  refreshPreview().catch(showError);
+                }
+              }
+              state.connection.previousBlockedReason = state.connection.interactionBlockedReason;
+
               syncSelectedDeviceFromConnection(status);
               const viewState = userConnectionState(status);
               if (viewState === 'ready') {
@@ -103,9 +140,15 @@
             }
 
             async function refreshConnection(options) {
-              const status = await requestJson('/api/connection');
-              applyConnectionStatus(status, options);
-              return status;
+              try {
+                const status = await requestJson('/api/connection');
+                applyConnectionStatus(status, options);
+                return status;
+              } catch (error) {
+                unresponsiveTracker.observeFailure();
+                recomputeInteractionBlockedReason();
+                showError(error);
+              }
             }
 
             function welcomeConnectionStatus() {
@@ -173,15 +216,32 @@
               lastHeartbeatError = null;
             }
 
+            function scheduleNextHeartbeat() {
+              if (!heartbeatPolling) return;
+              const nextDelayMs = unresponsiveTracker.nextBackoffMs();
+              heartbeatTimer = setTimeout(() => {
+                heartbeatTimer = null;
+                if (!heartbeatPolling) return;
+                if (!state.selectedDeviceSerial) {
+                  scheduleNextHeartbeat();
+                  return;
+                }
+                sendBridgeHeartbeat()
+                  .catch(handleHeartbeatError)
+                  .finally(scheduleNextHeartbeat);
+              }, nextDelayMs);
+            }
+
             function startHeartbeatPolling() {
               stopHeartbeatPolling();
-              sendBridgeHeartbeat().catch(handleHeartbeatError);
-              heartbeatTimer = setInterval(() => {
-                if (state.selectedDeviceSerial) sendBridgeHeartbeat().catch(handleHeartbeatError);
-              }, HeartbeatIntervalMs);
+              heartbeatPolling = true;
+              sendBridgeHeartbeat()
+                .catch(handleHeartbeatError)
+                .finally(scheduleNextHeartbeat);
             }
 
             function stopHeartbeatPolling() {
-              if (heartbeatTimer) clearInterval(heartbeatTimer);
+              heartbeatPolling = false;
+              if (heartbeatTimer) clearTimeout(heartbeatTimer);
               heartbeatTimer = null;
             }

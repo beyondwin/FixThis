@@ -1,6 +1,5 @@
             const DefaultLivePreviewIntervalMs = 1000;
             const MinLivePreviewIntervalMs = 1000;
-            const HeartbeatIntervalMs = 2000;
             const PreviewIntervalStorageKey = 'fixthis.previewIntervalMs.v2';
             const state = {
               session: null,
@@ -12,9 +11,14 @@
                 current: null,
                 hasEverConnected: false,
                 lastReadyAt: null,
-                launchInFlight: false
+                launchInFlight: false,
+                availability: null,
+                interactionBlockedReason: null,
+                previousBlockedReason: null
               }
             };
+            const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });
+            const unresponsiveTracker = createUnresponsiveTracker({ threshold: 3 });
             const sessions = document.getElementById('sessions');
             const sentHistory = document.getElementById('sentHistory');
             const snapshot = document.getElementById('snapshot');
@@ -56,6 +60,7 @@
             const previewStaleBadge = document.getElementById('previewStaleBadge');
             let livePreviewTimer = null;
             let heartbeatTimer = null;
+            let heartbeatPolling = false;
             let previewRequestGeneration = 0;
             let previewRequestContextGeneration = 0;
             let previewRequestInFlight = null;

@@ -27,7 +27,18 @@ data class ConsoleConnectionStatus(
     val canCapture: Boolean = false,
     val canNavigate: Boolean = false,
     val canUseCachedWork: Boolean = true,
+    val availability: ConsoleAvailabilitySignals? = null,
     val details: ConsoleConnectionDetails = ConsoleConnectionDetails(),
+)
+
+@Serializable
+data class ConsoleAvailabilitySignals(
+    val screenInteractive: Boolean? = null,
+    val keyguardLocked: Boolean? = null,
+    val appForeground: Boolean? = null,
+    val pictureInPicture: Boolean? = null,
+    val rootsCount: Int? = null,
+    val activity: String? = null,
 )
 
 @Serializable

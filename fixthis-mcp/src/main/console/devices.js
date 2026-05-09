@@ -1,3 +1,18 @@
+            const BLOCKED_SUFFIX = {
+              screenOff: 'Screen off',
+              locked: 'Locked',
+              background: 'In background',
+              pictureInPicture: 'PiP',
+              unresponsive: 'Unresponsive',
+              noComposeUi: 'No Compose UI',
+            };
+
+            function decorateConnectionLabel(baseLabel, reason) {
+              if (!reason) return baseLabel;
+              const suffix = BLOCKED_SUFFIX[reason];
+              return suffix ? `${baseLabel} · ${suffix}` : baseLabel;
+            }
+
             function shortenDeviceSerial(serial) {
               const raw = String(serial || '').trim();
               if (!raw) return '';
@@ -25,7 +40,11 @@
             function setDeviceUiState(uiState, device = null) {
               deviceControl.dataset.connectionState = uiState;
               deviceName.textContent = device ? deviceLabel(device) : 'No device';
-              deviceConnectionState.textContent = DeviceStateCopy[uiState];
+              const baseLabel = DeviceStateCopy[uiState];
+              const reason = uiState === DeviceUiState.CONNECTED
+                ? (state.connection?.interactionBlockedReason || null)
+                : null;
+              deviceConnectionState.textContent = decorateConnectionLabel(baseLabel, reason);
               deviceStatus.textContent = deviceName.textContent + ' - ' + deviceConnectionState.textContent;
             }
 

@@ -103,6 +103,16 @@
                 <div id="snapshot" class="snapshot-stage">
                   <div class="empty-stage">Connect a device to get started.</div>
                 </div>
+                <div id="canvasBlockedOverlay" class="canvas-blocked" hidden>
+                  <div class="canvas-blocked__icon" aria-hidden="true">🔒</div>
+                  <div class="canvas-blocked__headline" data-headline></div>
+                  <div class="canvas-blocked__detail" data-detail></div>
+                  <button type="button" class="canvas-blocked__retry" data-retry hidden>Retry now</button>
+                </div>
+                <div id="canvasStaleNotice" class="canvas-stale" hidden>
+                  <span>Frozen frame may be out of date.</span>
+                  <button type="button" data-use-latest>Use latest frame</button>
+                </div>
               </section>
               <aside class="studio-inspector">
                 <div class="panel-head">
