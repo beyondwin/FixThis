@@ -2719,6 +2719,10 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                     : 'Connect a device to get started.');
                 snapshot.innerHTML = '<div class="empty-stage">' + emptyMessage + '</div>';
                 updateComposerState();
+                // Even with no screenshot, surface the blocked-reason overlay and
+                // stale-frame notice so users see WHY there's no capture yet.
+                renderCanvasBlockedOverlay();
+                renderStaleFrameNotice();
                 return;
               }
               const frame = ensurePreviewFrame();
