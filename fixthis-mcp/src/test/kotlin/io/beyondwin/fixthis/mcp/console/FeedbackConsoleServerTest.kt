@@ -50,6 +50,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class FeedbackConsoleServerTest {
@@ -3262,6 +3263,69 @@ class FeedbackConsoleServerTest {
             service.openSession(packageNameOverride = "com.example.app", newSession = true)
             val second = client.getResponse("/api/sessions").header("ETag")!!
             assertNotEquals(first, second)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun apiSessionResponseIncludesEtag() {
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            service.openSession(packageNameOverride = "com.example.app", newSession = true)
+            val response = ConsoleHttpTestClient(server.url).getResponse("/api/session")
+            assertEquals(200, response.statusCode)
+            assertNotNull(response.header("ETag"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun apiSessionReturns304ForMatchingIfNoneMatch() {
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            service.openSession(packageNameOverride = "com.example.app", newSession = true)
+            val client = ConsoleHttpTestClient(server.url)
+            val first = client.getResponse("/api/session")
+            val etag = first.header("ETag")!!
+            val second = client.getResponse("/api/session", headers = mapOf("If-None-Match" to etag))
+            assertEquals(304, second.statusCode)
+            assertTrue(second.body.isEmpty())
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun apiSessionWithoutCurrentReturns200NullAndNoEtag() {
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).getResponse("/api/session")
+            assertEquals(200, response.statusCode)
+            assertEquals("null", response.body.trim())
+            assertNull(response.header("ETag"))
         } finally {
             server.stop()
         }

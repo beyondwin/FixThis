@@ -29,9 +29,18 @@ internal class SessionRoutes(
                 exchange.sendNoContent()
             }
             "/api/session" -> exchange.requireMethod("GET") {
-                service.currentSessionOrNull()
-                    ?.let { exchange.sendJson(200, it) }
-                    ?: exchange.sendText(200, "null", "application/json; charset=utf-8")
+                val current = service.currentSessionOrNull()
+                if (current == null) {
+                    exchange.sendText(200, "null", "application/json; charset=utf-8")
+                } else {
+                    val etag = etagOf(current.sessionId, current.updatedAtEpochMillis)
+                    if (exchange.ifNoneMatch() == etag) {
+                        exchange.sendNotModified(etag)
+                    } else {
+                        exchange.responseHeaders.set("ETag", etag)
+                        exchange.sendJson(200, current)
+                    }
+                }
             }
             "/api/sessions" -> exchange.requireMethod("GET") {
                 val list = service.listSessions(
