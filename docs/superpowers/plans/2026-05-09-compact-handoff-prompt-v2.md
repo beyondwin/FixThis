@@ -384,10 +384,10 @@ Goal: when two items share `(file:line, testTag, path leaves, bounds)`, surface 
 
 ### Task 4.2 — Renderer: emit targetRisk=duplicate-of-marker-N (TDD)
 
-- [ ] **Red:** Test: a screen with item 1 and item 4 sharing identical key produces item 4's ui line ending with `; targetRisk=duplicate-of-marker-1`. Item 4 still emits its own candidates block (do not suppress). Item 1 has no risk token. Run; expect failure.
-- [ ] **Green:** After the global `appendCompactItem` loop builds the marker mapping (or pass DupMarkerDetector input pre-computed before the loop with a 2-pass over items to assign marker numbers first), append `; targetRisk=duplicate-of-marker-${refMarker}` to the ui line when the detector returns a hit. Run; expect pass.
-- [ ] Add test: a duplicate item that ALSO is in an instance group still gets the duplicate-of-marker token (the duplicate token takes precedence over instance label since they refer to the same call site by definition). Document precedence in spec Open Question 2 if not already locked.
-- [ ] Commit: `feat(handoff-v2): emit targetRisk=duplicate-of-marker-N for true duplicates`.
+- [x] **Red:** Test: a screen with item 1 and item 4 sharing identical key produces item 4's ui line ending with `; targetRisk=duplicate-of-marker-1`. Item 4 still emits its own candidates block (do not suppress). Item 1 has no risk token. Run; expect failure.
+- [x] **Green:** After the global `appendCompactItem` loop builds the marker mapping (or pass DupMarkerDetector input pre-computed before the loop with a 2-pass over items to assign marker numbers first), append `; targetRisk=duplicate-of-marker-${refMarker}` to the ui line when the detector returns a hit. Run; expect pass.
+- [x] Add test: a duplicate item that ALSO is in an instance group still gets the duplicate-of-marker token (the duplicate token takes precedence over instance label since they refer to the same call site by definition). Document precedence in spec Open Question 2 if not already locked.
+- [x] Commit: `feat(handoff-v2): emit targetRisk=duplicate-of-marker-N for true duplicates`.
 
 **Validation:** `./gradlew :fixthis-mcp:test --tests "*CompactHandoffRenderer*"`
 **Expected:** All pass.

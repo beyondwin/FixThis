@@ -1293,4 +1293,180 @@ class CompactHandoffRendererTest {
             "Expected no 'src?' line in v2 output but got:\n$markdown",
         )
     }
+
+    // ---- Task 4.2: duplicate-of-marker-N suffix ----
+
+    /**
+     * Builds a 4-item session where items 1 and 4 share the same duplicate key
+     * (same fileLine + testTag + pathLeaves + bounds).
+     * Items 2 and 3 have distinct bounds so they are NOT duplicates.
+     *
+     * NOTE: Because items 1 and 4 share identical bounds, the AnnotationOverlapDetector
+     * places them in an overlap group. As a result, in the rendered output:
+     *   - Item 1 becomes marker 1 (canonical, in overlap group)
+     *   - Item 4 becomes marker 2 (duplicate, in overlap group)
+     *   - Item "Fix other A" becomes marker 3
+     *   - Item "Fix other B" becomes marker 4
+     * The test assertions use marker 2 for the duplicate item.
+     */
+    private fun makeDuplicateSession(): SessionDto {
+        val sharedBounds = FixThisRect(28f, 212f, 692f, 419f)
+        val sharedCandidate = SourceCandidate(
+            file = "HomeScreen.kt",
+            line = 44,
+            score = 0.9,
+            matchedTerms = emptyList(),
+            matchReasons = listOf("selected testTag convention composable"),
+            confidence = SelectionConfidence.MEDIUM,
+        )
+        fun makeNode4(uid: String, path: List<String>) = FixThisNode(
+            uid = uid,
+            composeNodeId = 1,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = FixThisRect(0f, 0f, 100f, 100f),
+            role = "MetricCard",
+            testTag = "comp:MetricCard:summary",
+            path = path,
+        )
+        return SessionDto(
+            sessionId = "session-dup",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
+            items = listOf(
+                // item 1 — canonical (will be marker 1)
+                AnnotationDto(
+                    itemId = "dup-item-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node(nodeUid = "uid-1", boundsInWindow = sharedBounds),
+                    selectedNode = makeNode4(uid = "uid-1", path = listOf("root", "MetricCard")),
+                    comment = "Fix MetricCard 1",
+                    sequenceNumber = 1,
+                    sourceCandidates = listOf(sharedCandidate),
+                ),
+                // item 2 — unrelated (distinct bounds, no duplicate)
+                AnnotationDto(
+                    itemId = "dup-item-2",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node(nodeUid = "uid-2", boundsInWindow = FixThisRect(0f, 500f, 100f, 600f)),
+                    selectedNode = makeNode4(uid = "uid-2", path = listOf("root", "OtherA")),
+                    comment = "Fix other A",
+                    sequenceNumber = 2,
+                    sourceCandidates = listOf(
+                        SourceCandidate(
+                            file = "OtherScreen.kt",
+                            line = 10,
+                            score = 0.8,
+                            matchedTerms = emptyList(),
+                            matchReasons = emptyList(),
+                            confidence = SelectionConfidence.LOW,
+                        ),
+                    ),
+                ),
+                // item 3 — unrelated (distinct bounds, no duplicate)
+                AnnotationDto(
+                    itemId = "dup-item-3",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node(nodeUid = "uid-3", boundsInWindow = FixThisRect(0f, 700f, 100f, 800f)),
+                    selectedNode = makeNode4(uid = "uid-3", path = listOf("root", "OtherB")),
+                    comment = "Fix other B",
+                    sequenceNumber = 3,
+                    sourceCandidates = listOf(
+                        SourceCandidate(
+                            file = "AnotherScreen.kt",
+                            line = 20,
+                            score = 0.7,
+                            matchedTerms = emptyList(),
+                            matchReasons = emptyList(),
+                            confidence = SelectionConfidence.LOW,
+                        ),
+                    ),
+                ),
+                // item 4 — duplicate of item 1 (same fileLine + testTag + pathLeaves + bounds)
+                // Shares sharedBounds with item 1 → overlap detector places both in overlap group 1
+                // → item 4 receives marker 2 (not marker 4)
+                AnnotationDto(
+                    itemId = "dup-item-4",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node(nodeUid = "uid-4", boundsInWindow = sharedBounds),
+                    selectedNode = makeNode4(uid = "uid-4", path = listOf("root", "MetricCard")),
+                    comment = "Fix MetricCard 4",
+                    sequenceNumber = 4,
+                    sourceCandidates = listOf(sharedCandidate),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun renderEmitsDuplicateOfMarkerSuffixForDuplicateItem() {
+        val session = makeDuplicateSession()
+        val markdown = CompactHandoffRenderer.render(session)
+        val lines = markdown.lines()
+
+        // items 1 and 4 share identical bounds → overlap group → item 4 gets marker 2.
+        // item 4's ui line (marker 2) must end with "; targetRisk=duplicate-of-marker-1"
+        val dupItemMarkerLine = "2. [marker 2] Fix MetricCard 4"
+        val dupUiLine = lines
+            .dropWhile { it != dupItemMarkerLine }
+            .drop(1)
+            .firstOrNull { it.startsWith("  ui:") }
+        assertTrue(
+            dupUiLine != null,
+            "Expected a ui line after '$dupItemMarkerLine' but got:\n$markdown",
+        )
+        assertTrue(
+            dupUiLine!!.endsWith("; targetRisk=duplicate-of-marker-1"),
+            "Expected duplicate item's ui line to end with '; targetRisk=duplicate-of-marker-1' but got: '$dupUiLine'\nFull output:\n$markdown",
+        )
+
+        // item 1's ui line (marker 1) must NOT have the duplicate-of-marker suffix
+        val canonicalMarkerLine = "1. [marker 1] Fix MetricCard 1"
+        val canonicalUiLine = lines
+            .dropWhile { it != canonicalMarkerLine }
+            .drop(1)
+            .firstOrNull { it.startsWith("  ui:") }
+        assertTrue(
+            canonicalUiLine != null,
+            "Expected a ui line after '$canonicalMarkerLine' but got:\n$markdown",
+        )
+        assertTrue(
+            !canonicalUiLine!!.contains("targetRisk=duplicate-of-marker"),
+            "Expected canonical item's ui line to NOT have duplicate-of-marker suffix but got: '$canonicalUiLine'\nFull output:\n$markdown",
+        )
+    }
+
+    @Test
+    fun renderSuppressesInstanceLabelForDuplicateItem() {
+        val session = makeDuplicateSession()
+        val markdown = CompactHandoffRenderer.render(session)
+        val lines = markdown.lines()
+
+        // item 4 (marker 2) is a duplicate — its ui line must NOT contain "instance "
+        // (duplicate-of-marker token suppresses the instance label per spec Appendix worked example)
+        val dupItemMarkerLine = "2. [marker 2] Fix MetricCard 4"
+        val dupUiLine = lines
+            .dropWhile { it != dupItemMarkerLine }
+            .drop(1)
+            .firstOrNull { it.startsWith("  ui:") }
+        assertTrue(
+            dupUiLine != null,
+            "Expected a ui line after '$dupItemMarkerLine' but got:\n$markdown",
+        )
+        assertTrue(
+            !dupUiLine!!.contains("instance "),
+            "Expected duplicate item's ui line to NOT contain 'instance ' (duplicate suppresses instance label) but got: '$dupUiLine'\nFull output:\n$markdown",
+        )
+    }
 }

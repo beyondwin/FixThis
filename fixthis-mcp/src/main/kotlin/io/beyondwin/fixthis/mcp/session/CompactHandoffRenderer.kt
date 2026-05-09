@@ -63,6 +63,40 @@ object CompactHandoffRenderer {
             // Build a map from itemId -> AnnotationDto for quick lookup
             val itemById = indexedItems.associate { it.value.itemId to it.value }
 
+            // Pre-pass: assign marker numbers in iteration order to build DuplicateMarkerDetector inputs.
+            // We simulate the globalCounter increment to know which marker each item will receive.
+            var preCounter = globalCounter
+            val markerByItemId = mutableMapOf<String, Int>()
+            groups.forEach { group ->
+                group.forEach { detectorItem ->
+                    if (itemById.containsKey(detectorItem.id)) {
+                        preCounter += 1
+                        markerByItemId[detectorItem.id] = preCounter
+                    }
+                }
+            }
+            val dupDetectorItems = indexedItems.mapNotNull { entry ->
+                val annotation = entry.value
+                val marker = markerByItemId[annotation.itemId] ?: return@mapNotNull null
+                val fileLine = annotation.sourceCandidates.firstOrNull()?.fileWithLine()
+                val pathLeaves = annotation.selectedNode?.path ?: emptyList()
+                val bounds = when (val t = annotation.target) {
+                    is AnnotationTargetDto.Area -> t.boundsInWindow
+                    is AnnotationTargetDto.Node -> t.boundsInWindow
+                }
+                DuplicateMarkerDetector.Item(
+                    itemId = annotation.itemId,
+                    markerNumber = marker,
+                    key = DuplicateMarkerDetector.Key(
+                        fileLine = fileLine,
+                        testTag = annotation.selectedNode?.testTag,
+                        pathLeaves = pathLeaves,
+                        bounds = bounds,
+                    ),
+                )
+            }
+            val duplicateMap = DuplicateMarkerDetector.detect(dupDetectorItems)
+
             var overlapGroupCounter = 0
             groups.forEach { group ->
                 val isOverlapGroup = group.size > 1
@@ -74,10 +108,12 @@ object CompactHandoffRenderer {
                 group.forEach { detectorItem ->
                     val annotation = itemById[detectorItem.id] ?: return@forEach
                     globalCounter += 1
-                    val label = grouping.labels[annotation.itemId]
+                    val dupRefMarker = duplicateMap[annotation.itemId]
+                    // When a duplicate-of-marker token is emitted, suppress the instance label
+                    val label = if (dupRefMarker == null) grouping.labels[annotation.itemId] else null
                     val isLeader = annotation.itemId in grouping.leaderItemIds
                     val groupSize = label?.total ?: 0
-                    appendCompactItem(globalCounter, annotation, isOverlapGroup, label, isLeader, groupSize)
+                    appendCompactItem(globalCounter, annotation, isOverlapGroup, label, isLeader, groupSize, dupRefMarker)
                 }
             }
         }
@@ -90,11 +126,12 @@ object CompactHandoffRenderer {
         instanceLabel: InstanceLabel? = null,
         isInstanceLeader: Boolean = false,
         groupSize: Int = 0,
+        dupRefMarker: Int? = null,
     ) {
         val title = item.comment.lineSequence().firstOrNull()?.takeIf { it.isNotBlank() } ?: "(No request provided)"
         val prefix = if (item.severity == AnnotationSeverityDto.HIGH) "[!] " else ""
         appendLine("${number}. [marker $number] ${prefix}${title.inlineSafe()}")
-        appendLine(compactUiLine(item, isOverlap, instanceLabel))
+        appendLine(compactUiLine(item, isOverlap, instanceLabel, dupRefMarker))
         item.screenshotCrop?.desktopCropPath?.let { appendLine("crop: ${it.inlineSafe()}") }
         appendCandidatesBlock(item)
         if (isInstanceLeader && groupSize >= 2 && !isOverlap) {
@@ -160,7 +197,12 @@ object CompactHandoffRenderer {
         else -> null
     }
 
-    private fun compactUiLine(item: AnnotationDto, isOverlap: Boolean, instanceLabel: InstanceLabel? = null): String {
+    private fun compactUiLine(
+        item: AnnotationDto,
+        isOverlap: Boolean,
+        instanceLabel: InstanceLabel? = null,
+        dupRefMarker: Int? = null,
+    ): String {
         val node = item.selectedNode
         val role = node?.role?.takeIf { it.isNotBlank() } ?: when (item.target) {
             is AnnotationTargetDto.Area -> "Area"
@@ -175,7 +217,11 @@ object CompactHandoffRenderer {
         if (instanceLabel != null) {
             base += "  instance ${instanceLabel.index}/${instanceLabel.total}"
         }
-        return if (isOverlap) "$base; targetRisk=overlap" else base
+        return when {
+            dupRefMarker != null -> "$base; targetRisk=duplicate-of-marker-$dupRefMarker"
+            isOverlap -> "$base; targetRisk=overlap"
+            else -> base
+        }
     }
 
 }
