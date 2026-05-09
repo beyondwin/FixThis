@@ -1094,8 +1094,9 @@
                 font-size: 15px;
               }
               .studio-context {
-                display: grid;
-                grid-template-columns: minmax(72px, 1fr) minmax(150px, 190px) 64px auto auto;
+                display: flex;
+                flex-wrap: nowrap;
+                justify-content: flex-start;
                 gap: 6px;
               }
               .studio-actions {
@@ -1112,7 +1113,6 @@
               .device-control {
                 min-width: 150px;
                 max-width: 190px;
-                width: 100%;
               }
               .device-name {
                 font-size: 11px;
