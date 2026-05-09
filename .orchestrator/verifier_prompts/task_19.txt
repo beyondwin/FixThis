@@ -1,0 +1,22 @@
+You are a Verifier on Sonnet. MID. No file modifications.
+
+## Worktree
+`/Users/kws/source/android/worktrees/compact-handoff-prompt-v2-20260509-183739` — `cd` here. NEVER `/Users/kws/source/android/FixThis/`.
+
+## Files Changed (Task 3.1 — InstanceGroupingHelper)
+- NEW: InstanceGroupingHelper.kt
+- NEW: InstanceGroupingHelperTest.kt
+- plan checkboxes
+
+## Baseline
+:fixthis-mcp:test before: 312. After: ~318 (6 new tests in InstanceGroupingHelperTest).
+
+## Acceptance
+1. `cd <worktree> && ./gradlew :fixthis-mcp:test --tests "*InstanceGrouping*"` — all 6 pass.
+2. `cd <worktree> && ./gradlew :fixthis-mcp:test` — failures = 2 (baseline pair only), skipped = 1 (PromptParityTest).
+
+## Result file: `.orchestrator/verifier_results/task_19.json`
+
+Schema: `{"status":"PASS|FAIL|ESCALATE", ...}`
+
+After writing, print contents.
