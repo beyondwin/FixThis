@@ -359,14 +359,14 @@ Goal: when two items share `(file:line, testTag, path leaves, bounds)`, surface 
 
 ### Task 4.1 — DuplicateMarkerDetector as pure helper (TDD)
 
-- [ ] **Red:** Create `DuplicateMarkerDetectorTest.kt` with tests:
+- [x] **Red:** Create `DuplicateMarkerDetectorTest.kt` with tests:
   - 2 items identical in (fileLine, testTag, path, bounds) → second item maps to first item's marker number;
   - 3 items, items 1 and 3 identical, item 2 different → item 3 maps to marker 1;
   - items differing only in `bounds` → not duplicates;
   - items differing only in `path leaves` → not duplicates;
   - markers are 1-indexed and follow the global `appendCompactItem` counter.
   Run; expect compile/test failures.
-- [ ] **Green:** Create `DuplicateMarkerDetector.kt`:
+- [x] **Green:** Create `DuplicateMarkerDetector.kt`:
   ```kotlin
   object DuplicateMarkerDetector {
       data class Item(val itemId: String, val markerNumber: Int, val key: Key)
@@ -377,7 +377,7 @@ Goal: when two items share `(file:line, testTag, path leaves, bounds)`, surface 
   }
   ```
   Implement; run; expect pass.
-- [ ] Commit: `feat(handoff-v2): DuplicateMarkerDetector helper`.
+- [x] Commit: `feat(handoff-v2): DuplicateMarkerDetector helper`.
 
 **Validation:** `./gradlew :fixthis-mcp:test --tests "*DuplicateMarker*"`
 **Expected:** All pass.
