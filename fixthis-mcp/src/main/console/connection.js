@@ -118,6 +118,10 @@
                 if (pendingFeedbackItems.length || state.preview) markPreviewStale(true);
               }
               renderConnection(status);
+              // Re-render the preview region so the canvas blocked-reason overlay and
+              // stale-frame notice reflect the latest interactionBlockedReason / preview.stale.
+              // Without this, the heartbeat-driven state update never reaches the canvas.
+              renderPreviewRegion();
             }
 
             function renderConnection(status) {
