@@ -109,6 +109,15 @@
       "pre_task_sha": "4ed892fb96f46cf5805ed27344b0ee321dcfdfe8",
       "escalations": 0, "review_retries": 1, "verifier_retries": 0,
       "timing": {"started": "2026-05-09T18:05:00Z", "completed": "2026-05-09T19:30:00Z"}
+    },
+    "task_9": {
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": ["fixthis-mcp/src/main/resources/console/index.html"],
+      "commit": "dd846d04a1be1b5a278ec2119b803d070b77a20e",
+      "pre_task_sha": "0e57b57ee8108f67c89e410844eb08ba89a49c2b",
+      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
+      "timing": {"started": "2026-05-09T19:30:00Z", "completed": "2026-05-09T19:35:00Z"}
     }
   },
   "task_summaries": {
@@ -159,11 +168,17 @@
       "exposed_apis": ["handleHeartbeatError"],
       "key_decision": "handleHeartbeatError deduplicates by message string; visibilitychange listener fix was in main.js not connection.js",
       "for_next_tasks": "handleHeartbeatError is canonical catch for all sendBridgeHeartbeat calls; no downstream tasks depend on connection.js or main.js"
+    },
+    "task_9": {
+      "files": ["fixthis-mcp/src/main/resources/console/index.html"],
+      "exposed_apis": [],
+      "key_decision": "Deleted static #selectionOverlay from #snapshot; JS creates it dynamically via ensurePreviewFrame()",
+      "for_next_tasks": "index.html #snapshot has no static selectionOverlay; JS rendering still manages it dynamically; Task 10 updates #snapshot empty-stage copy"
     }
   },
-  "low_tasks_pending_verification": [],
+  "low_tasks_pending_verification": [9],
   "last_compaction_after_task": 7,
-  "current_task": 9,
+  "current_task": 10,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
