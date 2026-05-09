@@ -378,6 +378,19 @@
       "orchestrator_note": "Bundled 6 trivial JS mirror tasks (5.2-5.7) into a single sub-agent dispatch — all touch the same source file and verify together via the parity test (re-enabled in Task 6.2). Saves 12 dispatches (6 implementer + 6 reviewer) without sacrificing verification rigor.",
       "verifier_result": "deferred to Task 6.2 (parity test re-enable)",
       "timing": {"started": "2026-05-09T16:15:00Z", "completed": "2026-05-09T16:35:00Z"}
+    },
+    "task_31": {
+      "plan_id": "5.8",
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": ["fixthis-mcp/src/main/resources/console/app.js", "docs/superpowers/plans/2026-05-09-compact-handoff-prompt-v2.md"],
+      "commit": "226413d",
+      "pre_task_sha": "b99298c96efc2aac4b3b0bc53170dc3067f45610",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "orchestrator_note": "Build artifact regen via `node scripts/build-console-assets.mjs`. node --check passes. 13 v2 token hits in regenerated app.js. Browser smoke deferred (autonomous).",
+      "timing": {"started": "2026-05-09T16:35:00Z", "completed": "2026-05-09T16:42:00Z"}
     }
   },
   "task_summaries": {
@@ -533,14 +546,20 @@
     },
     "task_25_30_bundle": {
       "files": ["fixthis-mcp/src/main/console/prompt.js"],
-      "exposed_apis": ["formatBox, compactUiLine (replaces compactTargetLine), compactCandidatesBlock (replaces compactSourceLine), computeInstanceLabels, computeDuplicateMarkers; compactItemLines + currentAnnotationsPromptCompact updated with 2-pass marker assignment"],
-      "key_decision": "All Kotlin v2 logic mirrored in JS in one consolidated edit. Node --check passes.",
-      "for_next_tasks": "Task 5.8 regenerates app.js via `node scripts/build-console-assets.mjs`. Task 6.2 will re-enable PromptParityTest and validate byte parity for all source-line/instance/note/risk content (LTRB box content has known divergence — JS bare int vs Kotlin .0 floats; spec accepts this)."
+      "exposed_apis": ["compactUiLine, compactCandidatesBlock, computeInstanceLabels, computeDuplicateMarkers, formatBox; 2-pass marker assignment"],
+      "key_decision": "All Kotlin v2 logic mirrored in JS. Node --check passes.",
+      "for_next_tasks": "Task 5.8 regenerated app.js. Task 6.2 re-enables PromptParityTest."
+    },
+    "task_31": {
+      "files": ["fixthis-mcp/src/main/resources/console/app.js"],
+      "exposed_apis": ["app.js bundle regenerated from prompt.js + 10 other console source files"],
+      "key_decision": "Build via node scripts/build-console-assets.mjs (no npm alias).",
+      "for_next_tasks": "Task 6.2 will run PromptParityTest against this regenerated app.js to verify Kotlin/JS byte parity."
     }
   },
-  "low_tasks_pending_verification": ["task_24"],
+  "low_tasks_pending_verification": ["task_24", "task_31"],
   "last_compaction_after_task": 23,
-  "current_task": 31,
+  "current_task": 32,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
@@ -548,6 +567,25 @@
   "current_escalation_count": 0,
   "current_previous_issues": [],
   "phase_summaries": [
+    {
+      "phase": "Phase 5",
+      "tasks": ["task_24 (5.1 viewport/activity/short-id)", "task_25_30_bundle (5.2-5.7 ui/severity/candidates/instance/collision/duplicate)", "task_31 (5.8 regenerate app.js)"],
+      "shipped": [
+        "compactScreenHeader: 8-char screenId, viewport, activity",
+        "compactUiLine replaces compactTargetLine (ui/tag/box format)",
+        "compactCandidatesBlock replaces compactSourceLine (heading + ranked candidates + caution note)",
+        "[!] severity prefix in compactItemLines",
+        "computeInstanceLabels + 'instance i/N' on ui line",
+        "Collision note on group leader (suppressed when overlap)",
+        "computeDuplicateMarkers + ; targetRisk=duplicate-of-marker-N (suppresses instance label)",
+        "app.js regenerated via node scripts/build-console-assets.mjs"
+      ],
+      "batch_verifier": "DEFERRED — verification via PromptParityTest re-enabled in Task 6.2",
+      "phase_docs": "SKIPPED — feedback-console-contract.md update reserved for Task 7.1",
+      "incident_count": 0,
+      "incidents": [],
+      "milestone": "ALL JS PARITY WORK COMPLETE. Next: Phase 6 tests + parity validation, Phase 7 docs."
+    },
     {
       "phase": "Phase 4",
       "tasks": ["task_22 (4.1 DuplicateMarkerDetector)", "task_23 (4.2 emit duplicate suffix)"],
