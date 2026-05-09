@@ -2,10 +2,12 @@ package io.beyondwin.fixthis.compose.sidekick.bridge
 
 import android.app.Activity
 import android.app.Application
+import android.app.KeyguardManager
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.net.LocalServerSocket
 import android.net.LocalSocket
+import android.os.PowerManager
 import android.util.Base64
 import io.beyondwin.fixthis.compose.core.model.FixThisError
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
@@ -13,6 +15,7 @@ import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.ScreenshotInfo
 import io.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.beyondwin.fixthis.compose.sidekick.inspect.SemanticsInspector
+import io.beyondwin.fixthis.compose.sidekick.lifecycle.FixThisActivityLifecycleCallbacks
 import io.beyondwin.fixthis.compose.sidekick.screenshot.ScreenshotCapturer
 import io.beyondwin.fixthis.compose.sidekick.screenshot.ScreenshotStore
 import java.io.ByteArrayOutputStream
@@ -300,7 +303,10 @@ internal object FixThisBridgeRuntime {
     private var environment: AndroidBridgeEnvironment? = null
     internal val connectionState = BridgeConnectionState()
 
-    fun start(application: Application): Boolean {
+    fun start(
+        application: Application,
+        lifecycleCallbacks: FixThisActivityLifecycleCallbacks,
+    ): Boolean {
         if (!application.isDebuggable()) return false
         synchronized(lock) {
             if (server != null) return false
@@ -309,6 +315,7 @@ internal object FixThisBridgeRuntime {
             val bridgeEnvironment = AndroidBridgeEnvironment(
                 context = application,
                 sidekickVersion = session.sidekickVersion,
+                lifecycleCallbacks = lifecycleCallbacks,
             )
             val bridgeServer = BridgeServer(
                 session = session,
@@ -343,9 +350,10 @@ internal object FixThisBridgeRuntime {
     }
 }
 
-private class AndroidBridgeEnvironment(
+internal class AndroidBridgeEnvironment(
     private val context: Context,
     private val sidekickVersion: String,
+    private val lifecycleCallbacks: FixThisActivityLifecycleCallbacks,
     private val mainDispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
     private val inspector: SemanticsInspector = SemanticsInspector(),
     private val screenshotCapturer: ScreenshotCapturer = ScreenshotCapturer(ScreenshotStore(context)),
@@ -362,12 +370,19 @@ private class AndroidBridgeEnvironment(
     override suspend fun status(): BridgeStatus {
         val inspection = inspectCurrentScreen()
         val sourceIndexResult = readSourceIndex()
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+        val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+        val resumedActivity = lifecycleCallbacks.lastResumedActivity()
         return BridgeStatus(
             activity = inspection.activity,
             rootsCount = inspection.roots.size,
             sidekickVersion = sidekickVersion,
             bridgeProtocolVersion = BridgeProtocol.VERSION,
             sourceIndexAvailable = sourceIndexResult.sourceIndexAvailable,
+            screenInteractive = powerManager?.isInteractive,
+            keyguardLocked = keyguardManager?.isKeyguardLocked,
+            appForeground = lifecycleCallbacks.isAppForeground(),
+            pictureInPicture = resumedActivity?.isInPictureInPictureMode,
         )
     }
 
