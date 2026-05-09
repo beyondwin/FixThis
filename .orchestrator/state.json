@@ -123,6 +123,18 @@
       "review_retries": 0,
       "verifier_retries": 0,
       "timing": {"started": "2026-05-09T11:05:00Z", "completed": "2026-05-09T11:13:00Z"}
+    },
+    "task_7": {
+      "plan_id": "1.1",
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": ["fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FormatterExtensions.kt", "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FormatterExtensionsTest.kt", "docs/superpowers/plans/2026-05-09-compact-handoff-prompt-v2.md"],
+      "commit": "012a2e3",
+      "pre_task_sha": "529efdb2b114749698d18efeb5fa95435d71cc4c",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "timing": {"started": "2026-05-09T11:30:00Z", "completed": "2026-05-09T11:42:00Z"}
     }
   },
   "task_summaries": {
@@ -167,11 +179,17 @@
       "exposed_apis": [],
       "key_decision": "v2 placeholder seeded under ## Unreleased / ### Changed",
       "for_next_tasks": "Task 7.3 will replace this placeholder with final user-facing one-paragraph summary; do NOT add a duplicate entry."
+    },
+    "task_7": {
+      "files": ["fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FormatterExtensions.kt"],
+      "exposed_apis": ["FixThisRect.formatBox(): String — returns '(L,T)-(R,B) [W×H]' with × U+00D7; W/H clamped to ≥0"],
+      "key_decision": "formatBox added as new internal extension; formatBounds preserved unchanged for PRECISE/FULL formatters",
+      "for_next_tasks": "Task 1.5 (compactUiLine) calls formatBox() to render the box= portion. JS prompt.js (Task 5.2) must produce byte-identical [W×H] suffix and integer-only width/height computation. The (L,T,R,B) part inside parens has known divergence (Kotlin .0 vs JS bare int) — parity test ignores LTRB but enforces [W×H]."
     }
   },
-  "low_tasks_pending_verification": [],
+  "low_tasks_pending_verification": ["task_7"],
   "last_compaction_after_task": 6,
-  "current_task": 7,
+  "current_task": 8,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
