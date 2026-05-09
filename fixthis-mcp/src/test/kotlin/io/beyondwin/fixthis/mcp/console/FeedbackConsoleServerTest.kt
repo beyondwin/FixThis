@@ -3636,6 +3636,16 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun mergeSessionIntoStateSkipsHighlightOnBulkChange() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val body = javascriptFunctionBody(html, "mergeSessionIntoState")
+        assertTrue(
+            body.contains("BULK_CHANGE_HIGHLIGHT_THRESHOLD") || body.contains(">= 6") || body.contains("> 5"),
+            "mergeSessionIntoState must guard against bulk highlight cascade"
+        )
+    }
+
+    @Test
     fun startSessionsPollingIsCalledOnBoot() {
         val html = FeedbackConsoleAssets.indexHtml
         // Boot chain (16-space indent inside .then()): startSessionsPolling() must follow

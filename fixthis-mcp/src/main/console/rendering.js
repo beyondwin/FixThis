@@ -624,6 +624,8 @@
               image.addEventListener('pointerleave', clearHoverPreview);
             }
 
+            const BULK_CHANGE_HIGHLIGHT_THRESHOLD = 6;
+
             function mergeSessionIntoState(fresh) {
               const previous = state.session;
               const preservedComment = comment.value;
@@ -638,19 +640,26 @@
               focusedPendingItemIndex = preservedFocusedPendingIndex;
               currentSelection = preservedSelection;
 
+              // Compute which items actually changed status since last tick.
               const previousStatusById = new Map(
                 (previous?.items || []).map(item => [item.itemId, item.status])
               );
-              (fresh.items || []).forEach(item => {
+              const changed = (fresh.items || []).filter(item => {
                 const before = previousStatusById.get(item.itemId);
-                if (before && before !== item.status) {
-                  const changedItemId = item.itemId;
-                  requestAnimationFrame(() => {
-                    document.querySelectorAll('[data-item-id="' + CSS.escape(changedItemId) + '"]').forEach(node => {
-                      node.setAttribute('data-just-changed', 'true');
-                      setTimeout(() => node.removeAttribute('data-just-changed'), 800);
-                    });
+                return before && before !== item.status;
+              });
+
+              // Bulk-change guard: skip highlight cascade for ticks with too many transitions.
+              if (changed.length >= BULK_CHANGE_HIGHLIGHT_THRESHOLD) return;
+
+              // Per-item highlight (existing logic, unchanged).
+              changed.forEach(item => {
+                const changedItemId = item.itemId;
+                requestAnimationFrame(() => {
+                  document.querySelectorAll('[data-item-id="' + CSS.escape(changedItemId) + '"]').forEach(node => {
+                    node.setAttribute('data-just-changed', 'true');
+                    setTimeout(() => node.removeAttribute('data-just-changed'), 800);
                   });
-                }
+                });
               });
             }
