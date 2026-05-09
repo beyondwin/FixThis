@@ -300,8 +300,8 @@
       "for_next_tasks": "Nothing for downstream — purely an audit/checkpoint. v1 'src? ' in production code remains intentionally until Task 14 (Plan 2.1 candidates block heading)."
     }
   },
-  "low_tasks_pending_verification": ["task_7", "task_8"],
-  "last_compaction_after_task": 6,
+  "low_tasks_pending_verification": [],
+  "last_compaction_after_task": 13,
   "current_task": 14,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
@@ -310,6 +310,23 @@
   "current_escalation_count": 0,
   "current_previous_issues": [],
   "phase_summaries": [
+    {
+      "phase": "Phase 1",
+      "tasks": ["task_7 (1.1 formatBox)", "task_8 (1.2 viewport)", "task_9 (1.3 activity)", "task_10 (1.4 short-id)", "task_11 (1.5 ui line)", "task_12 (1.6 severity prefix)", "task_13 (1.7 audit)"],
+      "shipped": [
+        "FixThisRect.formatBox() in FormatterExtensions.kt — '(L,T)-(R,B) [W×H]' with × U+00D7",
+        "render() emits 'viewport: WxH' line when screenshot dims non-null",
+        "render() emits 'activity: <name>' line when activityName != null && != displayName",
+        "render() truncates screen header UUID to first 8 chars (screenId.take(8))",
+        "compactTargetSummary renamed to compactUiLine; format = '  ui: <role> tag=<tag>  box=<formatBox()>'[; targetRisk=overlap]; tag=(none) for missing testTag; Node fallback for missing role",
+        "appendCompactItem prepends '[!] ' to title for HIGH severity (MED/LOW unchanged)",
+        "Audit: zero v1 literals (bounds=, target: Node) remain in CompactHandoffRendererTest.kt"
+      ],
+      "batch_verifier": "SKIPPED — cumulative MID verifier coverage (task_12 verifier covered all Phase 1 LOW changes via :fixthis-mcp:test 299 tests, 2 baseline failures)",
+      "phase_docs": "SKIPPED — no top-level docs affected (CHANGELOG seed already in place; feedback-console-contract docs reserved for Task 7.1)",
+      "incident_count": 0,
+      "incidents": []
+    },
     {
       "phase": "Phase 0",
       "tasks": ["task_0 (0.1)", "task_1 (0.2)", "task_2 (0.3)", "task_3 (0.4)", "task_4 (0.5)", "task_5 (0.6)", "task_6 (0.7)"],
