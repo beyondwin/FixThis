@@ -73,6 +73,19 @@
       "review_retries": 0,
       "verifier_retries": 0,
       "timing": {"started": "2026-05-09T10:05:00Z", "completed": "2026-05-09T10:18:00Z"}
+    },
+    "task_3": {
+      "plan_id": "0.4",
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": ["docs/superpowers/plans/2026-05-09-compact-handoff-prompt-v2.md"],
+      "commit": "c36adb9",
+      "pre_task_sha": "1abfe78ba58780332e9609daaefe053d694b51a7",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "incident": "Implementer committed to main checkout (5a99ab8); recovered via cherry-pick to worktree + reset --mixed on main. See feedback memory.",
+      "timing": {"started": "2026-05-09T10:18:00Z", "completed": "2026-05-09T10:30:00Z"}
     }
   },
   "task_summaries": {
@@ -93,11 +106,17 @@
       "exposed_apis": [],
       "key_decision": "v1 budget test is RELATIVE only (compact < precise), no absolute char budget exists",
       "for_next_tasks": "Task 6.3 budget guard formula: v2_budget_chars = ceil(1.5 × v1_baseline_chars). Existing parity fixture expected-prompt.txt = 334 chars; v2 budget for that fixture = 501. Real budget for session-v2.json (4 items) measured in Task 6.3. Existing v1 relative guard at FeedbackQueueFormatterTest.kt:585-593, function compactPromptIsShorterThanPreciseForRepresentativeSession."
+    },
+    "task_3": {
+      "files": ["docs/superpowers/plans/2026-05-09-compact-handoff-prompt-v2.md"],
+      "exposed_apis": [],
+      "key_decision": "Confirmed: matcher fix in Phase 0.6 is needed (31/31 candidates have null scoreMargin across 3 real sessions, 8 items have ≥2 candidates)",
+      "for_next_tasks": "Session JSON uses 'items' key (NOT 'annotations'). Sample data: a8483865 has 16 cands/4 multi; 050f4301 has 4 cands/1 multi; 0c304fd6 has 11 cands/3 multi. Task 5 (0.6 matcher fix) will populate scoreMargin on rank-1 when ≥2 candidates exist."
     }
   },
-  "low_tasks_pending_verification": ["task_0", "task_1", "task_2"],
+  "low_tasks_pending_verification": ["task_0", "task_1", "task_2", "task_3"],
   "last_compaction_after_task": -1,
-  "current_task": 3,
+  "current_task": 4,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
