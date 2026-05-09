@@ -127,6 +127,15 @@
       "pre_task_sha": "811bbf86a3ba1c8cd78872c6289d9ff86d0981d3",
       "escalations": 0, "review_retries": 0, "verifier_retries": 0,
       "timing": {"started": "2026-05-09T19:35:00Z", "completed": "2026-05-09T19:45:00Z"}
+    },
+    "task_11": {
+      "status": "COMPLETE",
+      "risk": "mid",
+      "files": ["fixthis-mcp/src/main/console/rendering.js", "fixthis-mcp/src/main/resources/console/app.js"],
+      "commit": "e643d1f5fd49bc0501819fe24fbefa57b8ffa7b5",
+      "pre_task_sha": "f719eb956a355ae4f01fc850bd9852891052c25d",
+      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
+      "timing": {"started": "2026-05-09T19:45:00Z", "completed": "2026-05-09T19:55:00Z"}
     }
   },
   "task_summaries": {
@@ -189,11 +198,17 @@
       "exposed_apis": [],
       "key_decision": "renderPreviewRegion now shows 3 contextual messages; index.html static fallback updated to match no-session message",
       "for_next_tasks": "renderPreviewRegion has 3-branch empty logic; Task 11 modifies renderAnnotationDetail and renderSavedAnnotationDetail in rendering.js (not renderPreviewRegion)"
+    },
+    "task_11": {
+      "files": ["fixthis-mcp/src/main/console/rendering.js", "fixthis-mcp/src/main/resources/console/app.js"],
+      "exposed_apis": [],
+      "key_decision": "aria-pressed added to all 4 segmented button groups; blur listener from Task 7 preserved in renderSavedAnnotationDetail",
+      "for_next_tasks": "rendering.js now fully updated; all severity/status buttons have aria-pressed; no further rendering.js changes required"
     }
   },
   "low_tasks_pending_verification": [9],
   "last_compaction_after_task": 7,
-  "current_task": 11,
+  "current_task": 12,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,

@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "summary": "Ran ./gradlew :fixthis-mcp:test: 283 tests, 2 failed. Failures match the documented pre-existing baseline (consoleHtmlUsesModeAwareStudioInspector, consoleHtmlAnnotationSaveUsesCurrentSelectionPayload). No new regressions introduced by changes to rendering.js and app.js.",
+  "risk_level": "MID",
+  "tests_run": ["./gradlew :fixthis-mcp:test"],
+  "results": [{"suite": "fixthis-mcp:test", "status": "PASS", "count": 283, "failures": 2}],
+  "issues": ["none"],
+  "escalation": null
+}
