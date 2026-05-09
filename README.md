@@ -20,6 +20,33 @@ The console captures the current screen through the sidekick bridge, lets you se
 
 Saved feedback can include Stable Target Evidence: nullable, additive JSON that describes target identity hints, occurrence among captured merged semantics nodes, source interpretation, screenshot availability, and confidence warnings. Markdown detail modes change only the agent-facing Markdown density; JSON remains complete.
 
+## Use with Claude Code or Codex
+
+FixThis has built-in support for auto-configuring Claude Code and Codex via the `fixthis setup --write` command.
+
+```bash
+# 1. Build CLI and MCP distributions
+./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
+
+# 2. Configure your AI agent (run once per project)
+fixthis-cli/build/install/fixthis/bin/fixthis setup \
+  --package <applicationId> \
+  --write \
+  --target all
+```
+
+`--target all` writes:
+- **Claude Code** → project-local `.claude/settings.json`
+- **Codex** → user-global `~/.codex/config.toml`
+
+Add `--dry-run` to preview config before writing. After setup, open the feedback console from your agent:
+
+```
+fixthis_open_feedback_console
+```
+
+See [AGENTS.md](AGENTS.md) for the full AI workflow.
+
 ## Setup
 
 Use the Gradle plugin or add the sidekick as a debug dependency. Release builds are not a supported target.
