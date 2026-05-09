@@ -34,13 +34,18 @@ internal class SessionRoutes(
                     ?: exchange.sendText(200, "null", "application/json; charset=utf-8")
             }
             "/api/sessions" -> exchange.requireMethod("GET") {
-                exchange.sendJson(
-                    200,
-                    service.listSessions(
-                        packageNameOverride = exchange.queryParameter("packageName"),
-                        includeClosed = exchange.queryBoolean("includeClosed"),
-                    ),
+                val list = service.listSessions(
+                    packageNameOverride = exchange.queryParameter("packageName"),
+                    includeClosed = exchange.queryBoolean("includeClosed"),
                 )
+                val maxUpdated = list.sessions.maxOfOrNull { it.updatedAtEpochMillis } ?: 0L
+                val etag = etagOf("${list.sessions.size}", maxUpdated)
+                if (exchange.ifNoneMatch() == etag) {
+                    exchange.sendNotModified(etag)
+                } else {
+                    exchange.responseHeaders.set("ETag", etag)
+                    exchange.sendJson(200, list)
+                }
             }
             "/api/session/open" -> exchange.requireMethod("POST") {
                 val request = exchange.decodeOpenSessionBody()

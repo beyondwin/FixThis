@@ -48,6 +48,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class FeedbackConsoleServerTest {
@@ -3199,6 +3201,72 @@ class FeedbackConsoleServerTest {
         }
     }
 
+    @Test
+    fun apiSessionsResponseIncludesEtag() {
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val client = ConsoleHttpTestClient(server.url)
+            val first = client.getResponse("/api/sessions")
+            assertEquals(200, first.statusCode)
+            val etag = first.header("ETag")
+            assertNotNull(etag)
+            assertTrue(etag.startsWith("\"") && etag.endsWith("\""), etag)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun apiSessionsReturns304ForMatchingIfNoneMatch() {
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val client = ConsoleHttpTestClient(server.url)
+            val first = client.getResponse("/api/sessions")
+            val etag = first.header("ETag")!!
+            val second = client.getResponse("/api/sessions", headers = mapOf("If-None-Match" to etag))
+            assertEquals(304, second.statusCode)
+            assertEquals(etag, second.header("ETag"))
+            assertTrue(second.body.isEmpty())
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun apiSessionsEtagChangesAfterMutation() {
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val client = ConsoleHttpTestClient(server.url)
+            val first = client.getResponse("/api/sessions").header("ETag")!!
+            service.openSession(packageNameOverride = "com.example.app", newSession = true)
+            val second = client.getResponse("/api/sessions").header("ETag")!!
+            assertNotEquals(first, second)
+        } finally {
+            server.stop()
+        }
+    }
+
     private class FakeIds(vararg values: String) {
         private val queue = ArrayDeque(values.toList())
         val next: () -> String = { queue.removeFirst() }
@@ -3399,6 +3467,27 @@ class FeedbackConsoleServerTest {
         fun get(path: String = "/"): String =
             java.net.URI(baseUrl + path).toURL().readText()
 
+        fun getResponse(path: String, headers: Map<String, String> = emptyMap()): ConsoleHttpResponse {
+            val connection = java.net.URI(baseUrl + path).toURL().openConnection() as java.net.HttpURLConnection
+            connection.requestMethod = "GET"
+            if (path.startsWith("/api/")) {
+                consoleToken?.let { connection.setRequestProperty(ConsoleTokenHeader, it) }
+            }
+            for ((name, value) in headers) {
+                connection.setRequestProperty(name, value)
+            }
+            val statusCode = connection.responseCode
+            val body = runCatching {
+                (connection.errorStream ?: connection.inputStream)?.use { input ->
+                    input.readBytes().toString(Charsets.UTF_8)
+                } ?: ""
+            }.getOrDefault("")
+            val headerFields: Map<String, List<String>> = connection.headerFields
+                .filterKeys { it != null }
+                .mapKeys { (key, _) -> key!! }
+            return ConsoleHttpResponse(statusCode = statusCode, body = body, headers = headerFields)
+        }
+
         fun connection(path: String, method: String = "GET", body: String? = null): java.net.HttpURLConnection {
             val connection = java.net.URI(baseUrl + path).toURL().openConnection() as java.net.HttpURLConnection
             connection.requestMethod = method
@@ -3412,6 +3501,18 @@ class FeedbackConsoleServerTest {
             }
             return connection
         }
+    }
+
+    private data class ConsoleHttpResponse(
+        val statusCode: Int,
+        val body: String,
+        val headers: Map<String, List<String>>,
+    ) {
+        fun header(name: String): String? =
+            headers.entries
+                .firstOrNull { it.key.equals(name, ignoreCase = true) }
+                ?.value
+                ?.firstOrNull()
     }
 
     private class FakeExchange(path: String) : HttpExchange() {
