@@ -48,7 +48,7 @@
   - `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationOverlapDetectorTest.kt`
   - `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/PromptParityTest.kt`
 - v1 JS prompt-parity Node harness: `fixthis-mcp/src/test/resources/parity/run-prompt.js`
-- v1 prompt-budget test (TBD location, locked in Phase 0.3).
+- v1 prompt-budget test: relative guard `compact.length < precise.length` in `FeedbackQueueFormatterTest.kt:585-593` (`compactPromptIsShorterThanPreciseForRepresentativeSession`); no absolute char-count assertion exists (see Phase 0.3 findings).
 
 ## Execution Order Preamble
 
@@ -126,8 +126,8 @@ Goal: capture the v1 test baseline, lock the v2 fixtures, and ship the one-line 
 
 ### Task 0.3 — Locate and read the v1 prompt-budget test
 
-- [ ] Find the v1 prompt-budget regression guard (it was introduced in v1 plan Phase 8). Likely location: `FeedbackQueueFormatterTest.kt` or `CompactHandoffRendererTest.kt`. Note the exact assertion and the budget value.
-- [ ] Calculate the v2 budget: `1.5 × v1_baseline_chars` for an N-item, 1-candidate-each prompt, where v2 will render the same N items with up to 3 candidates each. Record the formula and the concrete number for the existing fixture in this file.
+- [x] Find the v1 prompt-budget regression guard (it was introduced in v1 plan Phase 8). Likely location: `FeedbackQueueFormatterTest.kt` or `CompactHandoffRendererTest.kt`. Note the exact assertion and the budget value.
+- [x] Calculate the v2 budget: `1.5 × v1_baseline_chars` for an N-item, 1-candidate-each prompt, where v2 will render the same N items with up to 3 candidates each. Record the formula and the concrete number for the existing fixture in this file.
 
 **Validation:** Visual; record formula.
 **Expected:** v1 budget exists; v2 formula derived.
@@ -616,6 +616,46 @@ The test file currently contains **one test** (`renderEmitsTopLevelRuleAndScreen
 - The v2 work will **add** many new tests to this file (Tasks 1.2–4.2) and eventually update any assertions added in Phase 1 that reference the v1 `target:` or `src?` shape (Task 1.7). Since those tests do not exist yet, Task 1.7 will update only tests introduced during Phase 1 itself.
 
 **Implication for Task 1.7:** Task 1.7 ("Update existing CompactHandoffRendererTest assertions") is **effectively a no-op for pre-existing tests**. The file currently contains zero assertions referencing `bounds=`, `target: Node`, or `src?` literals. The only assertions that Task 1.7 will need to update are those that Tasks 1.2–1.6 themselves add during Phase 1. The sub-agent running Task 1.7 should not expect to find any pre-existing assertions to modify.
+
+### Phase 0.3 prompt-budget findings
+
+#### v1 budget test status
+
+**No dedicated absolute-char-count budget test exists.** The v1 plan Phase 8 (`Step 8.3`) introduced only a **relative** size guard:
+
+| File | Function | Line(s) | Exact assertion |
+|---|---|---|---|
+| `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt` | `compactPromptIsShorterThanPreciseForRepresentativeSession` | 585–593 | `assertTrue(compact.length < precise.length, "expected COMPACT (${compact.length}) shorter than PRECISE (${precise.length})")` |
+
+The test session is `sessionWithTargetEvidenceAndSources()` — **1 item, 4 source candidates** (scores 0.95/0.75/0.60/0.40). There is no absolute char budget stored anywhere in the codebase.
+
+#### v1 prompt baseline measurement
+
+The parity fixture `fixthis-mcp/src/test/resources/parity/expected-prompt.txt` (1 item, 1 candidate) measures **334 chars** including the trailing newline. This is a minimal 1-item session and serves as a lower bound for the parity fixture only.
+
+The test session used by the v1 budget test (`sessionWithTargetEvidenceAndSources()`) is defined inline in the test file and produces a compact prompt covering 1 item with 3 printed candidates (PRECISE/COMPACT cap at 3; the 4th is excluded). To measure this baseline concretely, run the test in verbose mode — the assertion message emits `compact.length` on failure. As of the current codebase no measurement has been captured, so a calculated estimate is used below.
+
+#### v2 budget formula and proposed baseline
+
+The v2 design spec (AC-8) requires: a 5-item screen with 3 candidates each MUST fit under `1.5 × v1_baseline_size_for_equivalent_5-item-1-candidate session`.
+
+**Formula:**
+```
+v1_baseline_chars = measured_compact_prompt_length for the equivalent N-item session at 1 candidate each
+v2_budget_chars   = ceil(1.5 × v1_baseline_chars)
+```
+
+**Concrete numbers for the existing parity fixture (1 item, 1 candidate):**
+- `v1_baseline_chars` = **334** (measured from `expected-prompt.txt`)
+- `v2_budget_chars`   = `ceil(1.5 × 334)` = **501**
+
+The actual v2 budget guard in Task 6.3 will use the 4-item `session-v2.json` fixture (not yet created). The formula scales linearly: once `session-v2.json` is created, measure its v1-equivalent compact prompt (4 items × 1 candidate each), record the char count, and set the budget to `ceil(1.5 × that_count)`. The `1.5×` multiplier absorbs the extra per-item lines introduced by the `candidates:` block (2 extra `~ ` lines per item × 4 items ≈ ~200–280 chars for typical candidate lines).
+
+**Implication for Task 6.3:** The sub-agent running Task 6.3 must:
+1. Generate the v1-equivalent compact prompt for the `session-v2.json` fixture (render with 1 candidate per item — either use a stripped fixture or cap manually).
+2. Record `v1_baseline_chars` in the test comment.
+3. Assert `v2_prompt.length <= ceil(1.5 * v1_baseline_chars)`.
+4. Update this section with the concrete numbers once measured.
 
 ## Smoke notes
 
