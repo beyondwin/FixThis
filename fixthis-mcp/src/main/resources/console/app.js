@@ -784,6 +784,16 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (!previewIntervalSelect.value) previewIntervalSelect.value = String(DefaultLivePreviewIntervalMs);
             }
 
+            function visibleScreenNodeUids(screen) {
+              const uids = new Set();
+              if (!screen) return uids;
+              (screen.roots || []).forEach(root => {
+                (root.mergedNodes || []).forEach(node => { if (node?.uid) uids.add(node.uid); });
+                (root.unmergedNodes || []).forEach(node => { if (node?.uid) uids.add(node.uid); });
+              });
+              return uids;
+            }
+
             function latestPersistedScreen() {
               const screens = state.session?.screens || [];
               const persistedScreenIds = new Set(
@@ -2443,7 +2453,12 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (!addItemsFlow) {
                 const visibleScreen = latestScreen();
                 if (visibleScreen?.screenId) {
-                  const screenSavedItems = savedEvidenceItems().filter(item => item.screenId === visibleScreen.screenId);
+                  const visibleUids = visibleScreenNodeUids(visibleScreen);
+                  const screenSavedItems = savedEvidenceItems().filter(item => {
+                    const nodeUid = item?.target?.nodeUid;
+                    if (nodeUid) return visibleUids.has(nodeUid);
+                    return item.screenId === visibleScreen.screenId;
+                  });
                   if (screenSavedItems.length) renderSavedEvidenceOverlay(overlay, image, screenSavedItems);
                 }
               }
