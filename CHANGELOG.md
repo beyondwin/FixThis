@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Added
+
+- `fixthis_claim_feedback` MCP tool — agents call it before starting work on an item; status moves to `in_progress` and the browser console reflects the change within ~2 seconds.
+- ETag-based polling on `/api/sessions` and `/api/session` (304 when unchanged); the console polls every 2 seconds and refreshes status badges live.
+- `inProgressItemsCount` in session summaries, surfaced as a `working` pip on each History row.
+- `agent_protocol:` footer plus per-item `id:` token in the compact handoff prompt so the Copy Prompt route is self-describing.
+- `includeAll` parameter on `fixthis_list_feedback` and `fixthis_read_feedback`.
+
+### Changed
+
+- `fixthis_list_feedback` and `fixthis_read_feedback` now default to returning only `delivery: sent` items that are not resolved. Pass `includeAll: true` to restore the previous behavior.
+- `fixthis_resolve_feedback` description now mentions the claim/resolve pairing.
+- "Save to MCP" toast now reads `Saved to MCP ✓ — agent will pick up`.
+
+### Removed
+
+- Sent History drawer in the browser console. Sessions stay in the main History list; the per-row `×` button still closes a session.
+- `points` pip on History rows (replaced by `working`).
+
 ### Fixed
 
 - Canvas `blocked-reason` overlay now renders even before the first screenshot arrives, so screen-off / locked / backgrounded states are communicated during initial connection instead of staying invisible until the first preview lands.

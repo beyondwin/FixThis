@@ -41,14 +41,10 @@
               return persistedDone + pending.filter(item => annotationStatus(item) === 'resolved').length;
             }
 
-            function historyPointsCount(session) {
-              return (session.itemsCount || 0) + pendingHistoryItemsForSession(session).length;
-            }
-
             function renderHistoryStrip(session) {
               const open = historyOpenCount(session);
               const done = historyDoneCount(session);
-              const total = historyPointsCount(session);
+              const total = open + done;
               if (!total) return '<span class="hi-strip-cell empty"></span>';
               return [
                 ...Array.from({ length: open }, () => '<span class="hi-strip-cell"></span>'),
@@ -112,35 +108,12 @@
               return (item.sourceCandidates || []).length ? 'Source hint available' : 'No source hint';
             }
 
-            function formatBatchLabel(batch) {
-              return 'Batch #' + (batch.sequenceNumber || '-');
-            }
-
-            function batchItems(batch) {
-              const itemsById = new Map((state.session?.items || []).map(item => [item.itemId, item]));
-              return (batch.itemIds || []).map(itemId => itemsById.get(itemId) || { itemId: itemId, missing: true });
-            }
-
-            function formatBatchItemSummary(item) {
-              if (item.missing) return 'Missing feedback item metadata.';
-              return firstLine(item.comment || '(No comment)');
-            }
-
-            function formatBatchDetails(batch, items) {
-              const count = (batch.itemIds || []).length;
-              const itemCount = count + ' item' + (count === 1 ? '' : 's');
-              return formatTime(batch.createdAtEpochMillis) + ' | ' + itemCount + ' | ' + (items.map(formatBatchItemSummary).join('; ') || 'No feedback items recorded.');
-            }
-
-
             function hasActiveHistorySessionForAnnotating() {
               return Boolean(
                 state.session &&
-                state.session.status !== 'ready_for_agent' &&
                 state.session.status !== 'closed' &&
                 (state.sessionSummaries || []).some(session =>
                   session.sessionId === state.session.sessionId &&
-                  session.status !== 'ready_for_agent' &&
                   session.status !== 'closed'
                 )
               );
@@ -150,11 +123,11 @@
               if (hasActiveHistorySessionForAnnotating()) return;
               resetAnnotationComposerState();
               invalidatePreviewContext();
-              state.session = await requestJson('/api/session/open', {
+              state.session = await withMutationLock(() => requestJson('/api/session/open', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ newSession: true })
-              });
+              }));
               await refreshSessions();
             }
 
@@ -202,26 +175,27 @@
             function renderSessionsListFromPayload(sessionSummaries) {
               state.sessionSummaries = sessionSummaries;
               const activeId = state.session?.sessionId;
-              const activeSummaries = sessionSummaries.filter(session => session.status !== 'ready_for_agent' && session.status !== 'closed');
+              const activeSummaries = sessionSummaries.filter(session => session.status !== 'closed');
               const ordinalBySessionId = sessionOrdinalLookup(activeSummaries);
               const renderedActiveSummaries = stableHistorySessions(activeSummaries);
               sessionCount.textContent = String(activeSummaries.length);
               const renderedSessions = renderedActiveSummaries.map((session, index) => {
                 const open = historyOpenCount(session);
+                const working = Number(session.inProgressItemsCount || 0);
                 const done = historyDoneCount(session);
-                const points = historyPointsCount(session);
                 const label = formatSessionLabel(session, ordinalBySessionId.get(session.sessionId) || index + 1);
+                const pips = [
+                  open    > 0 ? '<span class="hi-pip open">'    + escapeHtml(countLabel(open,    'open',    'open'))    + '</span>' : '',
+                  working > 0 ? '<span class="hi-pip working">' + escapeHtml(countLabel(working, 'working', 'working')) + '</span>' : '',
+                  done    > 0 ? '<span class="hi-pip done">'    + escapeHtml(countLabel(done,    'done',    'done'))    + '</span>' : '',
+                ].join('');
                 return '<div class="history-item session-row ' + (session.sessionId === activeId ? 'is-active' : '') + '" role="button" tabindex="0" data-session-id="' + escapeHtml(session.sessionId) + '">' +
                   '<span class="hi-head">' +
                     '<span class="hi-title">' + escapeHtml(label) + '</span>' +
                     '<button type="button" class="hi-del" data-delete-session-id="' + escapeHtml(session.sessionId) + '" aria-label="Delete history item ' + escapeHtml(label) + '">×</button>' +
                   '</span>' +
                   '<span class="hi-meta">' + escapeHtml(formatSessionSummary(session)) + '</span>' +
-                  '<span class="hi-stats">' +
-                    '<span class="hi-pip open">' + escapeHtml(countLabel(open, 'open', 'open')) + '</span>' +
-                    '<span class="hi-pip done">' + escapeHtml(countLabel(done, 'done', 'done')) + '</span>' +
-                    '<span class="hi-pip points">' + escapeHtml(countLabel(points, 'pt', 'pts')) + '</span>' +
-                  '</span>' +
+                  '<span class="hi-stats">' + pips + '</span>' +
                   '<span class="hi-strip">' + renderHistoryStrip(session) + '</span>' +
                 '</div>';
               }).join('');
@@ -263,50 +237,6 @@
               renderSessionsListFromPayload(state.sessionSummaries || []);
             }
 
-            function sentHistorySummaries() {
-              return (state.sessionSummaries || []).filter(session => session.status === 'ready_for_agent' || (session.sentBatchesCount || 0) > 0);
-            }
-
-            function renderSentHistory() {
-              const session = state.session;
-              const allItems = session?.items || [];
-              const sentItems = allItems.filter(item => item.delivery === 'sent');
-              const handoffBatches = session ? session.handoffBatches || [] : [];
-              const batchIds = new Set(handoffBatches.map(batch => batch.batchId));
-              const batchedItemIds = new Set(handoffBatches.flatMap(batch => batch.itemIds || []));
-              const batchRows = handoffBatches.map(batch => {
-                const items = batchItems(batch);
-                return '<div class="row">' +
-                  '<strong>' + escapeHtml(formatBatchLabel(batch)) + '</strong>' +
-                  '<span>' + escapeHtml(formatBatchDetails(batch, items)) + '</span>' +
-                '</div>';
-              });
-              const unbatchedRows = sentItems
-                .filter(item => !item.handoffBatchId || !batchIds.has(item.handoffBatchId) || !batchedItemIds.has(item.itemId))
-                .map(item => {
-                  const label = item.handoffBatchId ? 'Missing batch metadata' : 'Unbatched sent item';
-                  const detail = item.handoffBatchId ? 'No batch metadata' : 'Sent outside a batch';
-                  return '<div class="row">' +
-                    '<strong>' + escapeHtml(label) + '</strong>' +
-                    '<span>' + escapeHtml(firstLine(item.comment || '(No comment)')) + ' · ' + escapeHtml(detail) + '</span>' +
-                  '</div>';
-                });
-              const renderedSessionIds = new Set(session && (handoffBatches.length || sentItems.length) ? [session.sessionId] : []);
-              const summaryRows = sentHistorySummaries()
-                .filter(summary => !renderedSessionIds.has(summary.sessionId))
-                .map((summary, index) => {
-                  const sentCount = summary.itemsCount || summary.sentItemsCount || summary.sentBatchesCount || 0;
-                  return '<div class="row">' +
-                    '<strong>' + escapeHtml(formatSessionLabel(summary, index)) + '</strong>' +
-                    '<span>' + escapeHtml(countLabel(sentCount, 'annotation', 'annotations')) + ' sent · ' + escapeHtml(formatSessionSummary(summary)) + '</span>' +
-                  '</div>';
-                });
-              const rows = batchRows.concat(unbatchedRows, summaryRows);
-              clearSentHistoryButton.hidden = rows.length === 0;
-              sentHistory.innerHTML = rows.join('') || '<div class="row"><span>No sent handoff history.</span></div>';
-            }
-
-
             // Sync sidebar summaries and the active session in lockstep so the panel/toolbar
             // (driven by state.session) cannot drift behind the sidebar (driven by summaries).
             // Both endpoints fetched in parallel; if one fails the call rejects as before.
@@ -334,11 +264,11 @@
               await flushPendingAnnotationsBeforeSessionChange();
               resetAnnotationComposerState();
               invalidatePreviewContext();
-              state.session = await requestJson('/api/session/open', {
+              state.session = await withMutationLock(() => requestJson('/api/session/open', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: sessionId })
-              });
+              }));
               await refresh();
               if (!latestPersistedScreen() && shouldAutoFetchPreview()) {
                 await refreshPreview();
@@ -351,11 +281,11 @@
               await flushPendingAnnotationsBeforeSessionChange();
               resetAnnotationComposerState();
               invalidatePreviewContext();
-              state.session = await requestJson('/api/session/open', {
+              state.session = await withMutationLock(() => requestJson('/api/session/open', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ newSession: true })
-              });
+              }));
               await refresh();
               startLivePreviewPolling();
             }
@@ -365,11 +295,11 @@
               if (!state.session) return;
               resetAnnotationComposerState();
               invalidatePreviewContext();
-              await requestJson('/api/session/close', {
+              await withMutationLock(() => requestJson('/api/session/close', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: state.session.sessionId })
-              });
+              }));
               state.session = null;
               await refreshSessions();
               render();
@@ -384,11 +314,11 @@
                 resetAnnotationComposerState();
                 invalidatePreviewContext();
               }
-              await requestJson('/api/session/close', {
+              await withMutationLock(() => requestJson('/api/session/close', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: sessionId })
-              });
+              }));
               if (isDisplayedSession()) {
                 resetAnnotationComposerState();
                 invalidatePreviewContext();
@@ -402,32 +332,7 @@
             async function clearDraft() {
               error.textContent = '';
               if (!window.confirm('Discard all unsent draft feedback items?')) return;
-              await requestJson('/api/items/draft', { method: 'DELETE' });
+              await withMutationLock(() => requestJson('/api/items/draft', { method: 'DELETE' }));
               clearSelection();
               await refresh();
-            }
-
-            async function clearSentHistory() {
-              error.textContent = '';
-              const ids = new Set(sentHistorySummaries().map(session => session.sessionId));
-              if (state.session && ((state.session.handoffBatches || []).length || (state.session.items || []).some(item => item.delivery === 'sent'))) {
-                ids.add(state.session.sessionId);
-              }
-              if (ids.size === 0) return;
-              if (!window.confirm('Clear all sent history? Sent handoff records will be removed from this console.')) return;
-              for (const sessionId of ids) {
-                await requestJson('/api/session/close', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ sessionId: sessionId })
-                });
-              }
-              if (state.session && ids.has(state.session.sessionId)) {
-                resetAnnotationComposerState();
-                invalidatePreviewContext();
-                state.session = null;
-              }
-              await refreshSessions();
-              render();
-              await refreshDevices();
             }

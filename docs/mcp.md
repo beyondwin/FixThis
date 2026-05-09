@@ -1,6 +1,6 @@
 # FixThis MCP
 
-FixThis MCP is the primary agent workflow for the feedback console. The Android app only shows MCP browser connection status; selection, comments, `Copy Prompt`, `Send Agent`, and persistence happen in the desktop browser console.
+FixThis MCP is the primary agent workflow for the feedback console. The Android app only shows MCP browser connection status; selection, comments, `Copy Prompt`, `Save to MCP`, and persistence happen in the desktop browser console.
 
 ## Repository Sample
 
@@ -42,7 +42,7 @@ The console UI and local API can list, reopen, and close persisted sessions. Clo
 
 The local console serves a per-server browser token and requires `X-FixThis-Console-Token` on mutating `/api/*` requests. Mutating requests with a non-localhost `Origin` are rejected. This protects local mutation endpoints such as app launch, navigation, capture, draft writes, and handoff creation from ordinary cross-origin web pages while keeping the console localhost-only.
 
-The current console contract is documented in [`docs/feedback-console-contract.md`](feedback-console-contract.md); the shipped workflow uses `Annotate`, `Add annotation`, `Copy Prompt`, and `Send Agent`.
+The current console contract is documented in [`docs/feedback-console-contract.md`](feedback-console-contract.md); the shipped workflow uses `Annotate`, `Add annotation`, `Copy Prompt`, and `Save to MCP`.
 
 Typical flow:
 
@@ -51,10 +51,11 @@ Typical flow:
 3. Use the live preview to navigate the app.
 4. Click `Annotate` to freeze the latest preview.
 5. Select targets or visual areas and click `Add annotation` to create one or more pending annotations.
-6. Click `Copy Prompt` to persist written pending annotations when needed and copy compact prompt text, or click `Send Agent` to persist them and create a local handoff batch.
-7. Call `fixthis_list_feedback`.
-8. Call `fixthis_read_feedback`.
-9. Make code changes and call `fixthis_resolve_feedback`.
+6. Click `Copy Prompt` to persist written pending annotations when needed and copy compact prompt text, or click `Save to MCP` to persist them and mark the items as ready for an agent to claim.
+7. Call `fixthis_list_feedback` (defaults to SENT and unfinished items).
+8. Call `fixthis_read_feedback({itemId})` for the item to work on.
+9. Call `fixthis_claim_feedback({itemId})` before editing code.
+10. Make code changes and call `fixthis_resolve_feedback({itemId, status, summary})`.
 
 The CLI command `fixthis console --package <applicationId>` opens the same local console for copy/export workflows.
 
@@ -68,17 +69,17 @@ Console workflow:
 6. Select a UI target or drag a visual area and write a comment.
 7. Click `Add annotation`; numbered overlay markers and pending rows stay in sync.
 8. Review the draft evidence group in the Inspector Draft view, including the frozen screenshot, numbered overlay, and comments.
-9. Click `Copy Prompt` for compact Markdown or `Send Agent` when ready to create a local handoff batch.
+9. Click `Copy Prompt` for compact Markdown or `Save to MCP` when ready to mark items as sent so an agent can claim them through MCP.
 
 The console defaults to `Select` mode. Preview clicks navigate the app until `Annotate` freezes the latest preview for feedback targeting. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions.
 
-Top bar actions are short session-level controls: device selection, connection state, `Refresh devices`, `Clear selection`, `Copy Prompt`, and `Send Agent`. Canvas controls include `Select`, `Annotate`, `Add annotation`, and `Exit Annotate`. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 1s. Preview polling pauses while the browser tab is hidden and while the `Annotate` frozen-preview flow is active.
+Top bar actions are short session-level controls: device selection, connection state, `Refresh devices`, `Clear selection`, `Copy Prompt`, and `Save to MCP`. Canvas controls include `Select`, `Annotate`, `Add annotation`, and `Exit Annotate`. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 1s. Preview polling pauses while the browser tab is hidden and while the `Annotate` frozen-preview flow is active.
 
 `Annotate` freezes the latest preview only; it does not write a session item by itself. Multiple pending annotations can be added to one frozen preview with `Add annotation`. Pending items support Focus and Delete before they are persisted; deleting renumbers pending items so the pending list numbers and overlay numbers match.
 
-`Copy Prompt` and `Send Agent` persist written pending annotations when needed, promote the frozen preview into one persisted evidence snapshot, and connect those items to the same `screenId`. The item's `screenId` field points to the evidence snapshot saved with that item batch, so multiple saved items can share one `screenId`. During persistence, FixThis derives optional `targetEvidence` for each item from the frozen preview's captured merged semantics nodes and source-index candidates. Later `Annotate` work on the same visible app screen can create another evidence snapshot when pending annotations are persisted. Live preview frames are not session history: `FeedbackSession.screens` contains persisted evidence snapshots, not every preview frame.
+`Copy Prompt` and `Save to MCP` persist written pending annotations when needed, promote the frozen preview into one persisted evidence snapshot, and connect those items to the same `screenId`. The item's `screenId` field points to the evidence snapshot saved with that item batch, so multiple saved items can share one `screenId`. During persistence, FixThis derives optional `targetEvidence` for each item from the frozen preview's captured merged semantics nodes and source-index candidates. Later `Annotate` work on the same visible app screen can create another evidence snapshot when pending annotations are persisted. Live preview frames are not session history: `FeedbackSession.screens` contains persisted evidence snapshots, not every preview frame.
 
-Saved evidence groups can be expanded to review the persisted screenshot, numbered overlay, and saved comments. `Send Agent` is local persistence, not an external AI API call. FixThis records a handoff batch in the feedback session so an MCP client can read the batch and decide what to do next.
+Saved evidence groups can be expanded to review the persisted screenshot, numbered overlay, and saved comments. `Save to MCP` is local persistence, not an external AI API call. FixThis marks the affected items with `delivery: sent` so MCP clients can list them through `fixthis_list_feedback`, claim one with `fixthis_claim_feedback`, and resolve it with `fixthis_resolve_feedback`. Sessions that contain sent items remain in the main History list; while an agent is actively working on an item the row shows a `working` pip that is driven by the item's `in_progress` status.
 
 ### Connection Recovery API
 
@@ -155,6 +156,14 @@ Supported JSON-RPC methods:
 
 ## Tools
 
+> **Behavior change (May 2026)**: `fixthis_list_feedback` and
+> `fixthis_read_feedback` now default to returning only items that were
+> sent to the agent (`delivery: sent`) and are not yet resolved. Pass
+> `includeAll: true` to restore the previous "all items" behavior. The
+> Sent History drawer in the browser console has been removed; sessions
+> remain in the main History list with a `working` pip while an agent is
+> active.
+
 `fixthis_status`
 
 Checks whether the debug app sidekick bridge is reachable. Returns package, activity, root count, source-index availability, and bridge status. Bridge status includes sidekick and bridge protocol versions plus `capabilities`, currently `targetEvidence`, supported `detailModes`, and whether experimental composable identity is enabled.
@@ -193,7 +202,14 @@ Performs one debug-only `back`, `tap`, or `swipe` action and optionally captures
 
 `fixthis_list_feedback`
 
-Lists feedback queue summaries for the active feedback session, including draft item count, sent handoff batch count, and unresolved sent item count.
+Lists feedback queue summaries for the active feedback session, including draft item count, sent handoff batch count, unresolved sent item count, and the count of items currently `in_progress` (claimed by an agent).
+
+By default this tool returns only items with `delivery: sent` whose `status` is not `resolved`/`wont_fix`. This is the focused agent work queue. Pass `includeAll: true` to receive every item, including drafts and finished items. Older callers that want the previous behavior should set `includeAll: true` explicitly.
+
+Arguments:
+
+- `sessionId`: optional feedback session id. If omitted, the active session is used.
+- `includeAll`: optional boolean. When `true`, return every item regardless of `delivery` and `status`. Default `false`.
 
 `fixthis_read_feedback`
 
@@ -202,16 +218,31 @@ Reads the feedback queue as annotation JSON and Markdown, optionally focused on 
 Arguments:
 
 - `sessionId`: optional feedback session id. If omitted, the active session is used.
-- `itemId`: optional feedback item id to focus the returned payload.
+- `itemId`: optional feedback item id to focus the returned payload. When supplied, the requested item is always returned regardless of the default filter — this lets agents act on a specific id pasted from `Copy Prompt` even if it is still in `delivery: draft`.
+- `includeAll`: optional boolean. When `true`, the queue listing in JSON and Markdown includes drafts and resolved items. Default `false` (matches the focused list described above).
 - `detailMode`: optional Markdown detail level. Supported values are `compact`, `precise`, and `full`; the default is `precise`.
 
 `detailMode` affects only the Markdown content. The JSON content remains complete and includes all persisted session evidence, including optional `targetEvidence`.
 
 The JSON output preserves the full feedback session schema for tools that need exact IDs, paths, and tool contracts. The Markdown output is the compact agent-facing handoff view: it focuses on request, target evidence, and likely source, and intentionally omits internal IDs plus repeated storage metadata such as raw session, screen, item, batch, and screenshot artifact IDs.
 
+The compact Markdown handoff also emits a per-item `id:` token (the feedback item id) and ends with an `agent_protocol:` footer that documents the claim/resolve contract inline. The same compact text is what the `Copy Prompt` button puts on the clipboard, so an agent that only sees the pasted prompt can still reference items by id and call `fixthis_claim_feedback` / `fixthis_resolve_feedback` over MCP.
+
+`fixthis_claim_feedback`
+
+Marks a feedback item as `in_progress` to signal that an agent has begun working on it. Call this after `fixthis_read_feedback` and before making any code changes. The browser console reflects the state change within roughly two seconds via ETag-conditional polling on `/api/sessions` and `/api/session`.
+
+Arguments:
+
+- `sessionId`: optional feedback session id. If omitted, the active session is used.
+- `itemId`: required feedback item id to claim.
+- `agentNote`: optional short string stored with the claim event for human review.
+
+The server rejects claims on already-resolved items.
+
 `fixthis_resolve_feedback`
 
-Marks a feedback item as resolved, needing clarification, or not fixed and stores the agent summary.
+Marks a feedback item as resolved, needing clarification, or not fixed and stores the agent summary. Pair this with `fixthis_claim_feedback`: claim before editing code, resolve after the change is complete or the agent has decided not to fix the item.
 
 ### Optional SourceCandidate fields
 
@@ -226,6 +257,27 @@ Marks a feedback item as resolved, needing clarification, or not fixed and store
 | `caution` | `String?` | Human-readable explanation present when `riskFlags` is non-empty. Absent (`null` or missing) for clean matches. |
 
 These fields inform the compact `candidates:` block in the v2 handoff prompt: `matched=[...]` tokens come from the candidate's reason list, and caution text is emitted as a `note:` line when `riskFlags` is non-empty. The full JSON remains available for tools that need the raw values.
+
+### Agent claim/resolve protocol
+
+After `Save to MCP` is clicked (or after the user pastes a Copy Prompt
+output to an agent), the agent calls:
+
+1. `fixthis_list_feedback` (default returns SENT and unfinished items;
+   pass `includeAll: true` to receive everything).
+2. `fixthis_read_feedback({itemId})` for the item it intends to work on.
+3. `fixthis_claim_feedback({itemId, agentNote?})` BEFORE making any code
+   change. This sets the item's `status` to `in_progress`. The user's
+   browser console reflects the change within ~2 seconds via ETag
+   polling.
+4. After completing the work, `fixthis_resolve_feedback({itemId, status,
+   summary})` with `status` of `resolved`, `wont_fix`, or
+   `needs_clarification`.
+
+The compact handoff prompt (returned by `fixthis_read_feedback` and
+copied by the `Copy Prompt` button) embeds an `agent_protocol:` footer
+that documents this contract inline; an agent that sees only the pasted
+text can still address items by `id` and call MCP tools.
 
 ## Resources
 

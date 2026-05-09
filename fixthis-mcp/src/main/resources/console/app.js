@@ -21,7 +21,6 @@
             const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });
             const unresponsiveTracker = createUnresponsiveTracker({ threshold: 3 });
             const sessions = document.getElementById('sessions');
-            const sentHistory = document.getElementById('sentHistory');
             const snapshot = document.getElementById('snapshot');
             const connectionCard = document.getElementById('connectionCard');
             const connectionHeadline = document.getElementById('connectionHeadline');
@@ -49,7 +48,6 @@
             const addItemButton = document.getElementById('addItemButton');
             const copyPromptButton = document.getElementById('copyPromptButton');
             const sendAgentButton = document.getElementById('sendAgentButton');
-            const clearSentHistoryButton = document.getElementById('clearSentHistoryButton');
             const cancelAddFlowButton = document.getElementById('cancelAddFlowButton');
             const clearDraftButton = document.getElementById('clearDraftButton');
             const selectToolButton = document.getElementById('selectToolButton');
@@ -82,6 +80,19 @@
             let dragPreview = null;
             let suppressNextClick = false;
             let previewZoom = 1;
+            let sessionsPollingTimer = null;
+            let lastSessionsEtag = null;
+            let lastSessionEtag = null;
+            let pendingMutationCount = 0;
+
+            async function withMutationLock(fn) {
+              pendingMutationCount++;
+              try {
+                return await fn();
+              } finally {
+                pendingMutationCount--;
+              }
+            }
 
             const PreviewZoomMin = 0.5;
             const PreviewZoomMax = 2;
@@ -776,9 +787,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             function latestPersistedScreen() {
               const screens = state.session?.screens || [];
               const persistedScreenIds = new Set(
-                (state.session?.items || [])
-                  .filter(item => item.delivery !== 'sent')
-                  .map(item => item.screenId)
+                (state.session?.items || []).map(item => item.screenId)
               );
               const screenshotScreens = screens
                 .filter(screen => screen?.screenshot?.desktopFullPath);
@@ -1375,7 +1384,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             async function persistSavedEvidenceItem(item, sessionId = focusedSavedSessionId || state.session?.sessionId || null) {
               if (!item?.itemId) return state.session;
-              const updatedSession = await requestJson('/api/items/' + encodeURIComponent(item.itemId), {
+              const updatedSession = await withMutationLock(() => requestJson('/api/items/' + encodeURIComponent(item.itemId), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1385,7 +1394,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   comment: String(item.comment || ''),
                   status: normalizedPersistedStatus(annotationStatus(item))
                 })
-              });
+              }));
               return applySavedSessionUpdate(updatedSession, sessionId);
             }
 
@@ -1394,7 +1403,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               const sessionQuery = sessionId
                 ? '?sessionId=' + encodeURIComponent(sessionId)
                 : '';
-              const updatedSession = await requestJson('/api/items/' + encodeURIComponent(itemId) + sessionQuery, { method: 'DELETE' });
+              const updatedSession = await withMutationLock(() => requestJson('/api/items/' + encodeURIComponent(itemId) + sessionQuery, { method: 'DELETE' }));
               if (state.session?.sessionId === (updatedSession?.sessionId || sessionId)) {
                 focusedSavedItemId = null;
                 focusedSavedSessionId = null;
@@ -1442,7 +1451,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               const allowBlankComments = Boolean(options.allowBlankComments);
               if (!allowFallbackComments && !onlyWrittenComments && !allowBlankComments && pendingFeedbackItems.some(item => !String(item.comment || '').trim())) throw new Error('Add a comment to every annotation before saving.');
               if (onlyWrittenComments && !pendingFeedbackItems.some(hasWrittenAnnotationComment)) throw new Error('Add a comment to at least one annotation before sending.');
-              state.session = await requestJson('/api/items/batch', {
+              state.session = await withMutationLock(() => requestJson('/api/items/batch', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1450,7 +1459,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   screen: addItemsFlow.screen,
                   items: pendingPayloadItems({ allowFallbackComments: allowFallbackComments, onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments })
                 })
-              });
+              }));
               resetAnnotationComposerState();
               state.preview = null;
               return state.session;
@@ -1527,14 +1536,10 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               return persistedDone + pending.filter(item => annotationStatus(item) === 'resolved').length;
             }
 
-            function historyPointsCount(session) {
-              return (session.itemsCount || 0) + pendingHistoryItemsForSession(session).length;
-            }
-
             function renderHistoryStrip(session) {
               const open = historyOpenCount(session);
               const done = historyDoneCount(session);
-              const total = historyPointsCount(session);
+              const total = open + done;
               if (!total) return '<span class="hi-strip-cell empty"></span>';
               return [
                 ...Array.from({ length: open }, () => '<span class="hi-strip-cell"></span>'),
@@ -1598,35 +1603,12 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               return (item.sourceCandidates || []).length ? 'Source hint available' : 'No source hint';
             }
 
-            function formatBatchLabel(batch) {
-              return 'Batch #' + (batch.sequenceNumber || '-');
-            }
-
-            function batchItems(batch) {
-              const itemsById = new Map((state.session?.items || []).map(item => [item.itemId, item]));
-              return (batch.itemIds || []).map(itemId => itemsById.get(itemId) || { itemId: itemId, missing: true });
-            }
-
-            function formatBatchItemSummary(item) {
-              if (item.missing) return 'Missing feedback item metadata.';
-              return firstLine(item.comment || '(No comment)');
-            }
-
-            function formatBatchDetails(batch, items) {
-              const count = (batch.itemIds || []).length;
-              const itemCount = count + ' item' + (count === 1 ? '' : 's');
-              return formatTime(batch.createdAtEpochMillis) + ' | ' + itemCount + ' | ' + (items.map(formatBatchItemSummary).join('; ') || 'No feedback items recorded.');
-            }
-
-
             function hasActiveHistorySessionForAnnotating() {
               return Boolean(
                 state.session &&
-                state.session.status !== 'ready_for_agent' &&
                 state.session.status !== 'closed' &&
                 (state.sessionSummaries || []).some(session =>
                   session.sessionId === state.session.sessionId &&
-                  session.status !== 'ready_for_agent' &&
                   session.status !== 'closed'
                 )
               );
@@ -1636,11 +1618,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (hasActiveHistorySessionForAnnotating()) return;
               resetAnnotationComposerState();
               invalidatePreviewContext();
-              state.session = await requestJson('/api/session/open', {
+              state.session = await withMutationLock(() => requestJson('/api/session/open', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ newSession: true })
-              });
+              }));
               await refreshSessions();
             }
 
@@ -1688,26 +1670,27 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             function renderSessionsListFromPayload(sessionSummaries) {
               state.sessionSummaries = sessionSummaries;
               const activeId = state.session?.sessionId;
-              const activeSummaries = sessionSummaries.filter(session => session.status !== 'ready_for_agent' && session.status !== 'closed');
+              const activeSummaries = sessionSummaries.filter(session => session.status !== 'closed');
               const ordinalBySessionId = sessionOrdinalLookup(activeSummaries);
               const renderedActiveSummaries = stableHistorySessions(activeSummaries);
               sessionCount.textContent = String(activeSummaries.length);
               const renderedSessions = renderedActiveSummaries.map((session, index) => {
                 const open = historyOpenCount(session);
+                const working = Number(session.inProgressItemsCount || 0);
                 const done = historyDoneCount(session);
-                const points = historyPointsCount(session);
                 const label = formatSessionLabel(session, ordinalBySessionId.get(session.sessionId) || index + 1);
+                const pips = [
+                  open    > 0 ? '<span class="hi-pip open">'    + escapeHtml(countLabel(open,    'open',    'open'))    + '</span>' : '',
+                  working > 0 ? '<span class="hi-pip working">' + escapeHtml(countLabel(working, 'working', 'working')) + '</span>' : '',
+                  done    > 0 ? '<span class="hi-pip done">'    + escapeHtml(countLabel(done,    'done',    'done'))    + '</span>' : '',
+                ].join('');
                 return '<div class="history-item session-row ' + (session.sessionId === activeId ? 'is-active' : '') + '" role="button" tabindex="0" data-session-id="' + escapeHtml(session.sessionId) + '">' +
                   '<span class="hi-head">' +
                     '<span class="hi-title">' + escapeHtml(label) + '</span>' +
                     '<button type="button" class="hi-del" data-delete-session-id="' + escapeHtml(session.sessionId) + '" aria-label="Delete history item ' + escapeHtml(label) + '">×</button>' +
                   '</span>' +
                   '<span class="hi-meta">' + escapeHtml(formatSessionSummary(session)) + '</span>' +
-                  '<span class="hi-stats">' +
-                    '<span class="hi-pip open">' + escapeHtml(countLabel(open, 'open', 'open')) + '</span>' +
-                    '<span class="hi-pip done">' + escapeHtml(countLabel(done, 'done', 'done')) + '</span>' +
-                    '<span class="hi-pip points">' + escapeHtml(countLabel(points, 'pt', 'pts')) + '</span>' +
-                  '</span>' +
+                  '<span class="hi-stats">' + pips + '</span>' +
                   '<span class="hi-strip">' + renderHistoryStrip(session) + '</span>' +
                 '</div>';
               }).join('');
@@ -1749,50 +1732,6 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               renderSessionsListFromPayload(state.sessionSummaries || []);
             }
 
-            function sentHistorySummaries() {
-              return (state.sessionSummaries || []).filter(session => session.status === 'ready_for_agent' || (session.sentBatchesCount || 0) > 0);
-            }
-
-            function renderSentHistory() {
-              const session = state.session;
-              const allItems = session?.items || [];
-              const sentItems = allItems.filter(item => item.delivery === 'sent');
-              const handoffBatches = session ? session.handoffBatches || [] : [];
-              const batchIds = new Set(handoffBatches.map(batch => batch.batchId));
-              const batchedItemIds = new Set(handoffBatches.flatMap(batch => batch.itemIds || []));
-              const batchRows = handoffBatches.map(batch => {
-                const items = batchItems(batch);
-                return '<div class="row">' +
-                  '<strong>' + escapeHtml(formatBatchLabel(batch)) + '</strong>' +
-                  '<span>' + escapeHtml(formatBatchDetails(batch, items)) + '</span>' +
-                '</div>';
-              });
-              const unbatchedRows = sentItems
-                .filter(item => !item.handoffBatchId || !batchIds.has(item.handoffBatchId) || !batchedItemIds.has(item.itemId))
-                .map(item => {
-                  const label = item.handoffBatchId ? 'Missing batch metadata' : 'Unbatched sent item';
-                  const detail = item.handoffBatchId ? 'No batch metadata' : 'Sent outside a batch';
-                  return '<div class="row">' +
-                    '<strong>' + escapeHtml(label) + '</strong>' +
-                    '<span>' + escapeHtml(firstLine(item.comment || '(No comment)')) + ' · ' + escapeHtml(detail) + '</span>' +
-                  '</div>';
-                });
-              const renderedSessionIds = new Set(session && (handoffBatches.length || sentItems.length) ? [session.sessionId] : []);
-              const summaryRows = sentHistorySummaries()
-                .filter(summary => !renderedSessionIds.has(summary.sessionId))
-                .map((summary, index) => {
-                  const sentCount = summary.itemsCount || summary.sentItemsCount || summary.sentBatchesCount || 0;
-                  return '<div class="row">' +
-                    '<strong>' + escapeHtml(formatSessionLabel(summary, index)) + '</strong>' +
-                    '<span>' + escapeHtml(countLabel(sentCount, 'annotation', 'annotations')) + ' sent · ' + escapeHtml(formatSessionSummary(summary)) + '</span>' +
-                  '</div>';
-                });
-              const rows = batchRows.concat(unbatchedRows, summaryRows);
-              clearSentHistoryButton.hidden = rows.length === 0;
-              sentHistory.innerHTML = rows.join('') || '<div class="row"><span>No sent handoff history.</span></div>';
-            }
-
-
             // Sync sidebar summaries and the active session in lockstep so the panel/toolbar
             // (driven by state.session) cannot drift behind the sidebar (driven by summaries).
             // Both endpoints fetched in parallel; if one fails the call rejects as before.
@@ -1820,11 +1759,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               await flushPendingAnnotationsBeforeSessionChange();
               resetAnnotationComposerState();
               invalidatePreviewContext();
-              state.session = await requestJson('/api/session/open', {
+              state.session = await withMutationLock(() => requestJson('/api/session/open', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: sessionId })
-              });
+              }));
               await refresh();
               if (!latestPersistedScreen() && shouldAutoFetchPreview()) {
                 await refreshPreview();
@@ -1837,11 +1776,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               await flushPendingAnnotationsBeforeSessionChange();
               resetAnnotationComposerState();
               invalidatePreviewContext();
-              state.session = await requestJson('/api/session/open', {
+              state.session = await withMutationLock(() => requestJson('/api/session/open', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ newSession: true })
-              });
+              }));
               await refresh();
               startLivePreviewPolling();
             }
@@ -1851,11 +1790,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (!state.session) return;
               resetAnnotationComposerState();
               invalidatePreviewContext();
-              await requestJson('/api/session/close', {
+              await withMutationLock(() => requestJson('/api/session/close', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: state.session.sessionId })
-              });
+              }));
               state.session = null;
               await refreshSessions();
               render();
@@ -1870,11 +1809,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 resetAnnotationComposerState();
                 invalidatePreviewContext();
               }
-              await requestJson('/api/session/close', {
+              await withMutationLock(() => requestJson('/api/session/close', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: sessionId })
-              });
+              }));
               if (isDisplayedSession()) {
                 resetAnnotationComposerState();
                 invalidatePreviewContext();
@@ -1888,34 +1827,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             async function clearDraft() {
               error.textContent = '';
               if (!window.confirm('Discard all unsent draft feedback items?')) return;
-              await requestJson('/api/items/draft', { method: 'DELETE' });
+              await withMutationLock(() => requestJson('/api/items/draft', { method: 'DELETE' }));
               clearSelection();
               await refresh();
-            }
-
-            async function clearSentHistory() {
-              error.textContent = '';
-              const ids = new Set(sentHistorySummaries().map(session => session.sessionId));
-              if (state.session && ((state.session.handoffBatches || []).length || (state.session.items || []).some(item => item.delivery === 'sent'))) {
-                ids.add(state.session.sessionId);
-              }
-              if (ids.size === 0) return;
-              if (!window.confirm('Clear all sent history? Sent handoff records will be removed from this console.')) return;
-              for (const sessionId of ids) {
-                await requestJson('/api/session/close', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ sessionId: sessionId })
-                });
-              }
-              if (state.session && ids.has(state.session.sessionId)) {
-                resetAnnotationComposerState();
-                invalidatePreviewContext();
-                state.session = null;
-              }
-              await refreshSessions();
-              render();
-              await refreshDevices();
             }
 
 // prompt.js
@@ -2388,65 +2302,69 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
 
             async function sendAgentPrompt() {
-              error.textContent = '';
               if (promptActionInFlight) return;
-              ensurePromptAnnotationsAvailable();
-              promptActionInFlight = true;
-              updateComposerState();
-              let sent = false;
-              try {
-                if (addItemsFlow) {
-                  await persistPendingFeedbackItems({ onlyWrittenComments: true });
-                }
-                const prompt = currentAnnotationsPrompt();
-                state.session = await requestJson('/api/agent-handoffs', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ prompt: prompt })
-                });
-                comment.value = '';
-                resetAnnotationComposerState();
-                invalidatePreviewContext();
-                await refreshSessions();
-                render();
-                startLivePreviewPolling();
-                sent = true;
-              } finally {
-                promptActionInFlight = false;
+              await withMutationLock(async () => {
+                error.textContent = '';
+                ensurePromptAnnotationsAvailable();
+                promptActionInFlight = true;
                 updateComposerState();
-                if (sent) {
-                  showSuccess('Saved to MCP ✓', 3000);
+                let sent = false;
+                try {
+                  if (addItemsFlow) {
+                    await persistPendingFeedbackItems({ onlyWrittenComments: true });
+                  }
+                  const prompt = currentAnnotationsPrompt();
+                  state.session = await requestJson('/api/agent-handoffs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt })
+                  });
+                  comment.value = '';
+                  resetAnnotationComposerState();
+                  invalidatePreviewContext();
+                  await refreshSessions();
+                  render();
+                  startLivePreviewPolling();
+                  sent = true;
+                } finally {
+                  promptActionInFlight = false;
+                  updateComposerState();
+                  if (sent) {
+                    showSuccess('Saved to MCP ✓ — agent will pick up', 3000);
+                  }
                 }
-              }
+              });
             }
 
             async function copyPrompt() {
-              error.textContent = '';
               if (promptActionInFlight) return;
-              ensurePromptAnnotationsAvailable();
-              promptActionInFlight = true;
-              updateComposerState();
-              const labelSpan = copyPromptButton.querySelector('span:not(.button-icon)');
-              const originalLabel = labelSpan ? labelSpan.textContent : null;
-              let copied = false;
-              try {
-                if (addItemsFlow) {
-                  await persistPendingFeedbackItems({ onlyWrittenComments: true });
-                }
-                await copyTextToClipboard(currentAnnotationsPrompt());
-                copied = true;
-              } finally {
-                promptActionInFlight = false;
+              await withMutationLock(async () => {
+                error.textContent = '';
+                ensurePromptAnnotationsAvailable();
+                promptActionInFlight = true;
                 updateComposerState();
-                if (copied && labelSpan) {
-                  labelSpan.textContent = 'Copied ✓';
-                  setTimeout(() => {
-                    if (labelSpan.textContent === 'Copied ✓') {
-                      labelSpan.textContent = originalLabel;
-                    }
-                  }, 1500);
+                const labelSpan = copyPromptButton.querySelector('span:not(.button-icon)');
+                const originalLabel = labelSpan ? labelSpan.textContent : null;
+                let copied = false;
+                try {
+                  if (addItemsFlow) {
+                    await persistPendingFeedbackItems({ onlyWrittenComments: true });
+                  }
+                  await copyTextToClipboard(currentAnnotationsPrompt());
+                  copied = true;
+                } finally {
+                  promptActionInFlight = false;
+                  updateComposerState();
+                  if (copied && labelSpan) {
+                    labelSpan.textContent = 'Copied ✓';
+                    setTimeout(() => {
+                      if (labelSpan.textContent === 'Copied ✓') {
+                        labelSpan.textContent = originalLabel;
+                      }
+                    }, 1500);
+                  }
                 }
-              }
+              });
             }
 
 // rendering.js
@@ -2562,7 +2480,8 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   const hasComment = Boolean(String(item.comment || '').trim());
                   const status = annotationStatus(item);
                   const color = severityColor(annotationSeverity(item));
-                  return '<button type="button" class="ann-row pending-item-row ' + (index === focusedPendingItemIndex ? 'active' : '') + '" style="--annotation-color:' + color + '" data-focus-pending="' + index + '">' +
+                  const pendingItemIdAttr = item.itemId ? ' data-item-id="' + escapeHtml(item.itemId) + '"' : '';
+                  return '<button type="button" class="ann-row pending-item-row ' + (index === focusedPendingItemIndex ? 'active' : '') + '" style="--annotation-color:' + color + '"' + pendingItemIdAttr + ' data-focus-pending="' + index + '">' +
                     '<span class="ann-row-num" style="background:' + severityColor(annotationSeverity(item)) + '">' + (index + 1) + '</span>' +
                     '<span class="ann-row-body">' +
                       '<span class="ann-row-title">' + escapeHtml(annotationTitle(item, index)) + '</span>' +
@@ -2747,7 +2666,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                     prevScreenId = item.screenId;
                   }
                   return header +
-                    '<button type="button" class="ann-row saved-item-row ' + (item.itemId === focusedSavedItemId ? 'active' : '') + '" style="--annotation-color:' + color + '" data-focus-saved="' + escapeHtml(item.itemId) + '">' +
+                    '<button type="button" class="ann-row saved-item-row ' + (item.itemId === focusedSavedItemId ? 'active' : '') + '" style="--annotation-color:' + color + '" data-item-id="' + escapeHtml(item.itemId) + '" data-focus-saved="' + escapeHtml(item.itemId) + '">' +
                       '<span class="ann-row-num" style="background:' + color + '">' + (index + 1) + '</span>' +
                       '<span class="ann-row-body">' +
                         '<span class="ann-row-title">' + escapeHtml(targetLabel(item)) + '</span>' +
@@ -2868,9 +2787,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
 
             function renderSessionRegions() {
-              const session = state.session;
               renderSessionsList();
-              renderSentHistory();
             }
 
             function renderComposerInspector() {
@@ -3077,6 +2994,82 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               image.addEventListener('pointerleave', clearHoverPreview);
             }
 
+            function mergeSessionIntoState(fresh) {
+              const previous = state.session;
+              const preservedComment = comment.value;
+              const preservedFocusedSavedItemId = focusedSavedItemId;
+              const preservedFocusedPendingIndex = focusedPendingItemIndex;
+              const preservedSelection = currentSelection;
+
+              state.session = fresh;
+
+              comment.value = preservedComment;
+              focusedSavedItemId = preservedFocusedSavedItemId;
+              focusedPendingItemIndex = preservedFocusedPendingIndex;
+              currentSelection = preservedSelection;
+
+              const previousStatusById = new Map(
+                (previous?.items || []).map(item => [item.itemId, item.status])
+              );
+              (fresh.items || []).forEach(item => {
+                const before = previousStatusById.get(item.itemId);
+                if (before && before !== item.status) {
+                  const changedItemId = item.itemId;
+                  requestAnimationFrame(() => {
+                    document.querySelectorAll('[data-item-id="' + CSS.escape(changedItemId) + '"]').forEach(node => {
+                      node.setAttribute('data-just-changed', 'true');
+                      setTimeout(() => node.removeAttribute('data-just-changed'), 800);
+                    });
+                  });
+                }
+              });
+            }
+
+// sessions-polling.js
+            const SessionsPollIntervalMs = 2000;
+
+            function shouldPollSessions() {
+              return !document.hidden && pendingMutationCount === 0;
+            }
+
+            function startSessionsPolling() {
+              stopSessionsPolling();
+              sessionsPollingTimer = setInterval(() => {
+                if (shouldPollSessions()) pollSessionsTick().catch(showError);
+              }, SessionsPollIntervalMs);
+            }
+
+            function stopSessionsPolling() {
+              if (sessionsPollingTimer) clearInterval(sessionsPollingTimer);
+              sessionsPollingTimer = null;
+            }
+
+            async function pollSessionsTick() {
+              const listResp = await fetch('/api/sessions', {
+                headers: lastSessionsEtag ? { 'If-None-Match': lastSessionsEtag } : {}
+              });
+              if (listResp.status === 200) {
+                lastSessionsEtag = listResp.headers.get('ETag');
+                const data = await listResp.json();
+                state.sessionSummaries = data.sessions || [];
+                renderSessionsList();
+              }
+
+              if (state.session?.sessionId) {
+                const sessResp = await fetch('/api/session', {
+                  headers: lastSessionEtag ? { 'If-None-Match': lastSessionEtag } : {}
+                });
+                if (sessResp.status === 200) {
+                  lastSessionEtag = sessResp.headers.get('ETag');
+                  const fresh = await sessResp.json();
+                  if (fresh) {
+                    mergeSessionIntoState(fresh);
+                    renderInspectorRegion();
+                  }
+                }
+              }
+            }
+
 // shortcuts.js
             function isTextInputFocused(target = document.activeElement) {
               const element = target?.nodeType === Node.ELEMENT_NODE ? target : target?.parentElement || document.activeElement;
@@ -3118,11 +3111,6 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             copyPromptButton.addEventListener('click', () => copyPrompt().catch(showError));
             sendAgentButton.addEventListener('click', () => sendAgentPrompt().catch(showError));
             connectionPrimaryAction.addEventListener('click', () => handleConnectionPrimaryAction().catch(showError));
-            clearSentHistoryButton.addEventListener('click', event => {
-              event.preventDefault();
-              event.stopPropagation();
-              clearSentHistory().catch(showError);
-            });
             document.getElementById('refreshDevicesButton').addEventListener('click', () => {
               refreshDevices()
                 .then(refreshConnection)
@@ -3139,6 +3127,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (!document.hidden && shouldAutoFetchPreview()) refreshPreview().catch(showError);
               if (!document.hidden && state.selectedDeviceSerial) sendBridgeHeartbeat().catch(handleHeartbeatError);
               startLivePreviewPolling();
+              startSessionsPolling();
             });
             clearSelectionButton.addEventListener('click', clearSelection);
             cancelAddFlowButton.addEventListener('click', cancelAddItemsFlow);
@@ -3174,5 +3163,6 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               .then(() => {
                 startHeartbeatPolling();
                 startLivePreviewPolling();
+                startSessionsPolling();
               })
               .catch(showError);

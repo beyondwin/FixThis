@@ -165,6 +165,10 @@ class FixThisTools(
             }
             "fixthis_list_feedback" -> bridgeToolResult {
                 val session = requestedSession(arguments)
+                val includeAll = arguments.booleanParam("includeAll") ?: false
+                val visibleItems = if (includeAll) session.items else session.items.filter {
+                    it.delivery == FeedbackDelivery.SENT && it.status !in resolvedStatuses
+                }
                 jsonToolResult(buildJsonObject {
                     put("sessionId", session.sessionId)
                     put("packageName", session.packageName)
@@ -178,7 +182,7 @@ class FixThisTools(
                         session.items.count { it.delivery == FeedbackDelivery.SENT && it.status !in resolvedStatuses },
                     )
                     put("items", buildJsonArray {
-                        session.items.forEach { item ->
+                        visibleItems.forEach { item ->
                             add(buildJsonObject {
                                 put("itemId", item.itemId)
                                 put("screenId", item.screenId)
@@ -191,7 +195,12 @@ class FixThisTools(
             }
             "fixthis_read_feedback" -> bridgeToolResult {
                 val detailMode = DetailMode.fromWire(arguments.stringParam("detailMode"))
-                val session = requestedSession(arguments).focusedOn(arguments.stringParam("itemId"))
+                val itemId = arguments.stringParam("itemId")?.takeIf { it.isNotBlank() }
+                val includeAll = arguments.booleanParam("includeAll") ?: false
+                val baseSession = requestedSession(arguments)
+                val session = baseSession
+                    .focusedOn(itemId)
+                    .filteredForAgent(showAll = includeAll || itemId != null)
                 toolResult(
                     content = listOf(
                         textContent(FeedbackQueueFormatter.toJson(session), "application/json"),
@@ -207,6 +216,14 @@ class FixThisTools(
                     ?: throw FixThisToolException("fixthis_resolve_feedback requires status")
                 val summary = arguments.stringParam("summary")
                 val item = feedbackService.resolveFeedback(session.sessionId, itemId, status, summary)
+                jsonToolResult(McpProtocol.json.encodeToJsonElement(AnnotationDto.serializer(), item).jsonObject)
+            }
+            "fixthis_claim_feedback" -> bridgeToolResult {
+                val session = requestedSession(arguments)
+                val itemId = arguments.stringParam("itemId")?.takeIf { it.isNotBlank() }
+                    ?: throw FixThisToolException("fixthis_claim_feedback requires itemId")
+                val agentNote = arguments.stringParam("agentNote")?.takeIf { it.isNotBlank() }
+                val item = feedbackService.claimFeedback(session.sessionId, itemId, agentNote)
                 jsonToolResult(McpProtocol.json.encodeToJsonElement(AnnotationDto.serializer(), item).jsonObject)
             }
             else -> throw FixThisToolException("Unknown FixThis tool: $name")
@@ -464,6 +481,12 @@ class FixThisTools(
         )
     }
 
+    private fun SessionDto.filteredForAgent(showAll: Boolean): SessionDto {
+        if (showAll) return this
+        val visible = items.filter { it.delivery == FeedbackDelivery.SENT && it.status !in resolvedStatuses }
+        return copy(items = visible)
+    }
+
     private fun String.toFeedbackItemStatus(): AnnotationStatusDto =
         when (this) {
             "resolved" -> AnnotationStatusDto.RESOLVED
@@ -673,14 +696,15 @@ private val ToolDefinitions = listOf(
     ),
     ToolDefinition(
         name = "fixthis_list_feedback",
-        description = "List feedback queue summaries for the active FixThis feedback session.",
+        description = "List feedback queue summaries for the active FixThis feedback session. By default the items array contains only SENT feedback that is not resolved or wont_fix; pass includeAll=true to include drafts and finished items.",
         inputSchema = objectSchema(
             "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
+            "includeAll" to booleanProperty("When true, return every item in the session instead of only SENT and unfinished items. Defaults to false."),
         ),
     ),
     ToolDefinition(
         name = "fixthis_read_feedback",
-        description = "Read the feedback queue as annotation JSON and Markdown.",
+        description = "Read the feedback queue as annotation JSON and Markdown. By default returns only SENT items that are not yet resolved. Pass includeAll=true to receive everything; passing itemId always returns that item regardless of state.",
         inputSchema = objectSchema(
             "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
             "itemId" to stringProperty("Optional feedback item id to focus the returned payload."),
@@ -688,17 +712,28 @@ private val ToolDefinitions = listOf(
                 description = "Markdown detail level. JSON remains complete regardless of this value.",
                 values = listOf("compact", "precise", "full"),
             ),
+            "includeAll" to booleanProperty("If true, returns DRAFT and resolved items too."),
         ),
     ),
     ToolDefinition(
         name = "fixthis_resolve_feedback",
-        description = "Mark a feedback item as resolved, needing clarification, or not fixed.",
+        description = "Mark a feedback item as resolved, needing clarification, or not fixed. Call this after claiming an item with fixthis_claim_feedback and finishing the work. Status must be one of resolved, needs_clarification, wont_fix.",
         inputSchema = objectSchema(
             "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
             "itemId" to stringProperty("Feedback item id to update."),
             "status" to stringProperty("One of resolved, needs_clarification, or wont_fix."),
             "summary" to stringProperty("Agent summary shown in the console."),
             required = listOf("itemId", "status"),
+        ),
+    ),
+    ToolDefinition(
+        name = "fixthis_claim_feedback",
+        description = "Mark a feedback item as in-progress before starting work. Call this AFTER reading the item and BEFORE making code changes. Returns the updated item. The user's browser console reflects the change within 2 seconds. After this call you must eventually call fixthis_resolve_feedback for the same itemId.",
+        inputSchema = objectSchema(
+            "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
+            "itemId" to stringProperty("Feedback item id to claim."),
+            "agentNote" to stringProperty("Optional short note shown next to the item in the user's console."),
+            required = listOf("itemId"),
         ),
     ),
 )

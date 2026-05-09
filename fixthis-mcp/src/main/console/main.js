@@ -12,11 +12,6 @@
             copyPromptButton.addEventListener('click', () => copyPrompt().catch(showError));
             sendAgentButton.addEventListener('click', () => sendAgentPrompt().catch(showError));
             connectionPrimaryAction.addEventListener('click', () => handleConnectionPrimaryAction().catch(showError));
-            clearSentHistoryButton.addEventListener('click', event => {
-              event.preventDefault();
-              event.stopPropagation();
-              clearSentHistory().catch(showError);
-            });
             document.getElementById('refreshDevicesButton').addEventListener('click', () => {
               refreshDevices()
                 .then(refreshConnection)
@@ -33,6 +28,7 @@
               if (!document.hidden && shouldAutoFetchPreview()) refreshPreview().catch(showError);
               if (!document.hidden && state.selectedDeviceSerial) sendBridgeHeartbeat().catch(handleHeartbeatError);
               startLivePreviewPolling();
+              startSessionsPolling();
             });
             clearSelectionButton.addEventListener('click', clearSelection);
             cancelAddFlowButton.addEventListener('click', cancelAddItemsFlow);
@@ -68,5 +64,6 @@
               .then(() => {
                 startHeartbeatPolling();
                 startLivePreviewPolling();
+                startSessionsPolling();
               })
               .catch(showError);

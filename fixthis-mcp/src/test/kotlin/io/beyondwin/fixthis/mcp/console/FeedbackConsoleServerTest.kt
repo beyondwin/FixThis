@@ -48,6 +48,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class FeedbackConsoleServerTest {
@@ -489,6 +492,7 @@ class FeedbackConsoleServerTest {
             "history.js",
             "prompt.js",
             "rendering.js",
+            "sessions-polling.js",
             "shortcuts.js",
             "main.js",
         )
@@ -731,7 +735,6 @@ class FeedbackConsoleServerTest {
         val currentAnnotationsPromptBody = javascriptFunctionBody(html, "currentAnnotationsPrompt")
         val promptGuardBody = javascriptFunctionBody(html, "ensurePromptAnnotationsAvailable")
         val renderSessionsListBody = javascriptFunctionBody(html, "renderSessionsListFromPayload")
-        val clearSentHistoryBody = javascriptFunctionBody(html, "clearSentHistory")
 
         assertTrue(html.contains("function currentAnnotationsPrompt"))
         assertTrue(html.contains("function currentPromptAnnotations"))
@@ -778,11 +781,7 @@ class FeedbackConsoleServerTest {
         assertFalse(updateComposerStateBody.contains("copyPromptButton.dataset.unavailable"))
         assertFalse(updateComposerStateBody.contains("sendAgentButton.dataset.unavailable"))
         assertFalse(updateComposerStateBody.contains("classList.toggle('is-disabled'"))
-        assertTrue(renderSessionsListBody.contains("session.status !== 'ready_for_agent'"))
-        assertTrue(html.contains("id=\"clearSentHistoryButton\""))
-        assertTrue(clearSentHistoryBody.contains("window.confirm"))
-        assertTrue(clearSentHistoryBody.contains("/api/session/close"))
-        assertTrue(html.contains("clearSentHistoryButton.addEventListener('click'"))
+        assertFalse(html.contains("id=\"clearSentHistoryButton\""))
     }
 
     @Test
@@ -950,6 +949,18 @@ class FeedbackConsoleServerTest {
         )
     }
 
+    @Test
+    fun consoleHtmlNoLongerFiltersSentItemsFromInspector() {
+        val html = FeedbackConsoleAssets.indexHtml
+        // Narrow scope: latestPersistedScreen() must include SENT items.
+        // The send-path filter inside currentPromptAnnotations() is intentional and stays.
+        val latestPersistedScreenBody = javascriptFunctionBody(html, "latestPersistedScreen")
+        assertFalse(
+            latestPersistedScreenBody.contains("delivery !== 'sent'"),
+            "latestPersistedScreen must show SENT items too",
+        )
+    }
+
     private fun javascriptFunctionBody(html: String, functionName: String): String {
         val declarationStart = html.indexOf("function $functionName(")
         assertTrue(declarationStart >= 0, "Missing JavaScript function: $functionName")
@@ -1040,7 +1051,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("id=\"selectionSummary\""))
         assertTrue(html.contains("id=\"pendingItems\""))
         assertTrue(html.contains("id=\"draftItems\""))
-        assertTrue(html.contains("id=\"sentHistory\""))
+        assertFalse(html.contains("id=\"sentHistory\""))
         assertTrue(html.contains("id=\"sendAgentButton\""))
         assertTrue(html.contains("id=\"copyPromptButton\""))
         assertTrue(html.contains("id=\"clearSelectionButton\""))
@@ -1058,7 +1069,6 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("formatSessionSummary"))
         assertTrue(html.contains("historyOpenCount"))
         assertTrue(html.contains("historyDoneCount"))
-        assertTrue(html.contains("historyPointsCount"))
         assertTrue(html.contains("renderHistoryStrip"))
         assertTrue(html.contains("formatItemLabel"))
         assertTrue(html.contains("function findScreen"))
@@ -1066,16 +1076,6 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("function sourceHintLabel"))
         assertTrue(html.contains("function escapeHtmlValue(value)"))
         assertTrue(html.contains("escapeHtmlValue(item.comment)"))
-        assertTrue(html.contains("function formatBatchLabel"))
-        assertTrue(html.contains("function formatBatchDetails"))
-        assertTrue(html.contains("function batchItems"))
-        assertTrue(html.contains("function formatBatchItemSummary"))
-        assertTrue(html.contains("session.handoffBatches"))
-        assertTrue(html.contains("Batch #"))
-        assertTrue(html.contains("No batch metadata"))
-        assertTrue(html.contains("Sent outside a batch"))
-        assertTrue(html.contains("Unbatched sent item"))
-        assertTrue(html.contains("Missing batch metadata"))
         assertFalse(html.contains("id=\"modeSelect\""))
         assertFalse(html.contains("id=\"modeNavigate\""))
     }
@@ -1591,7 +1591,6 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("class=\"hi-strip\""))
         assertTrue(html.contains("class=\"hi-pip open\""))
         assertTrue(html.contains("class=\"hi-pip done\""))
-        assertTrue(html.contains("class=\"hi-pip points\""))
         assertTrue(html.contains("class=\"hi-strip-cell"))
         assertTrue(html.contains("data-delete-session-id"))
         assertTrue(html.contains("async function deleteHistorySession(sessionId)"))
@@ -1599,7 +1598,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("row.addEventListener('keydown'"))
         assertTrue(html.contains("row.classList.toggle('is-active'"))
         assertTrue(html.contains(".history-list { align-content: start; }"))
-        assertTrue(html.contains("class=\"sent-history-drawer\""))
+        assertFalse(html.contains("class=\"sent-history-drawer\""))
         assertTrue(html.contains("formatSessionSummary(session)"))
         assertTrue(html.contains("function sessionOrdinalLookup(sessions)"))
         assertTrue(html.contains("createdAtEpochMillis || 0"))
@@ -1616,7 +1615,6 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("const ordinalBySessionId = sessionOrdinalLookup(activeSummaries);"))
         assertTrue(html.contains("const renderedSessions = renderedActiveSummaries.map((session, index) => {"))
         assertTrue(html.contains("const label = formatSessionLabel(session, ordinalBySessionId.get(session.sessionId) || index + 1);"))
-        assertTrue(html.contains(".sent-history-drawer .history-list"))
         assertTrue(html.contains("max-height:"))
         assertTrue(html.contains("overflow: auto"))
         assertTrue(html.contains("function historyStartAnnotatingItemHtml()"))
@@ -1782,7 +1780,6 @@ class FeedbackConsoleServerTest {
 
         assertTrue(html.contains("function hasActiveHistorySessionForAnnotating()"))
         assertTrue(ensureSessionForAnnotating.contains("if (hasActiveHistorySessionForAnnotating()) return;"))
-        assertTrue(hasActiveHistorySessionForAnnotating.contains("state.session.status !== 'ready_for_agent'"))
         assertTrue(hasActiveHistorySessionForAnnotating.contains("state.session.status !== 'closed'"))
         assertTrue(hasActiveHistorySessionForAnnotating.contains("(state.sessionSummaries || []).some"))
         assertTrue(ensureSessionForAnnotating.contains("/api/session/open"))
@@ -1793,6 +1790,13 @@ class FeedbackConsoleServerTest {
         assertTrue(enterAnnotateMode.contains("renderCurrentSessionList();"))
         assertTrue(enterAnnotateMode.contains("if (!addItemsFlow) {"))
         assertTrue(enterAnnotateMode.contains("await startAddItemsFlow();"))
+    }
+
+    @Test
+    fun consoleHtmlNoLongerFiltersReadyForAgentSessions() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val rendered = javascriptFunctionBody(html, "renderSessionsListFromPayload")
+        assertFalse(rendered.contains("'ready_for_agent'"), "History list must show sent sessions too")
     }
 
     @Test
@@ -1910,7 +1914,6 @@ class FeedbackConsoleServerTest {
         val html = FeedbackConsoleAssets.indexHtml
         val historyOpenCount = javascriptFunctionBody(html, "historyOpenCount")
         val historyDoneCount = javascriptFunctionBody(html, "historyDoneCount")
-        val historyPointsCount = javascriptFunctionBody(html, "historyPointsCount")
         val createAnnotationFromSelection = javascriptFunctionBody(html, "createAnnotationFromSelection")
         val deletePendingFeedbackItem = javascriptFunctionBody(html, "deletePendingFeedbackItem")
         val renderAnnotationDetail = javascriptFunctionBody(html, "renderAnnotationDetail")
@@ -1919,7 +1922,6 @@ class FeedbackConsoleServerTest {
         assertTrue(historyOpenCount.contains("pendingHistoryItemsForSession(session)"))
         assertTrue(historyOpenCount.contains("(session.unresolvedItemsCount || 0) + pending.filter(item => annotationStatus(item) !== 'resolved').length"))
         assertTrue(historyDoneCount.contains("pending.filter(item => annotationStatus(item) === 'resolved').length"))
-        assertTrue(historyPointsCount.contains("(session.itemsCount || 0) + pendingHistoryItemsForSession(session).length"))
         assertTrue(html.contains("function renderCurrentSessionList()"))
         assertTrue(createAnnotationFromSelection.contains("renderCurrentSessionList();"))
         assertTrue(deletePendingFeedbackItem.contains("renderCurrentSessionList();"))
@@ -3199,6 +3201,156 @@ class FeedbackConsoleServerTest {
         }
     }
 
+    @Test
+    fun apiSessionsResponseIncludesEtag() {
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val client = ConsoleHttpTestClient(server.url)
+            val first = client.getResponse("/api/sessions")
+            assertEquals(200, first.statusCode)
+            val etag = first.header("ETag")
+            assertNotNull(etag)
+            assertTrue(etag.startsWith("\"") && etag.endsWith("\""), etag)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun apiSessionsReturns304ForMatchingIfNoneMatch() {
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val client = ConsoleHttpTestClient(server.url)
+            val first = client.getResponse("/api/sessions")
+            val etag = first.header("ETag")!!
+            val second = client.getResponse("/api/sessions", headers = mapOf("If-None-Match" to etag))
+            assertEquals(304, second.statusCode)
+            assertEquals(etag, second.header("ETag"))
+            assertTrue(second.body.isEmpty())
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun apiSessionsEtagChangesAfterMutation() {
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val client = ConsoleHttpTestClient(server.url)
+            val first = client.getResponse("/api/sessions").header("ETag")!!
+            service.openSession(packageNameOverride = "com.example.app", newSession = true)
+            val second = client.getResponse("/api/sessions").header("ETag")!!
+            assertNotEquals(first, second)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun apiSessionResponseIncludesEtag() {
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            service.openSession(packageNameOverride = "com.example.app", newSession = true)
+            val response = ConsoleHttpTestClient(server.url).getResponse("/api/session")
+            assertEquals(200, response.statusCode)
+            assertNotNull(response.header("ETag"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun apiSessionReturns304ForMatchingIfNoneMatch() {
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            service.openSession(packageNameOverride = "com.example.app", newSession = true)
+            val client = ConsoleHttpTestClient(server.url)
+            val first = client.getResponse("/api/session")
+            val etag = first.header("ETag")!!
+            val second = client.getResponse("/api/session", headers = mapOf("If-None-Match" to etag))
+            assertEquals(304, second.statusCode)
+            assertTrue(second.body.isEmpty())
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun apiSessionWithoutCurrentReturns200NullAndNoEtag() {
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).getResponse("/api/session")
+            assertEquals(200, response.statusCode)
+            assertEquals("null", response.body.trim())
+            assertNull(response.header("ETag"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun historyPipsIncludeWorking() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains("class=\"hi-pip working\""), "History row must support a 'working' pip")
+        assertTrue(html.contains(".hi-pip.working"), "CSS for working pip must exist")
+    }
+
+    @Test
+    fun historyPipDropsPointsLabel() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val rendered = javascriptFunctionBody(html, "renderSessionsListFromPayload")
+        assertFalse(rendered.contains("hi-pip points"), "Points pip must be removed")
+    }
+
+    @Test
+    fun consoleHtmlContainsSessionsPolling() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains("function startSessionsPolling"), html.takeLast(2_000))
+        assertTrue(html.contains("async function pollSessionsTick"), "Polling tick must exist")
+    }
+
     private class FakeIds(vararg values: String) {
         private val queue = ArrayDeque(values.toList())
         val next: () -> String = { queue.removeFirst() }
@@ -3399,6 +3551,27 @@ class FeedbackConsoleServerTest {
         fun get(path: String = "/"): String =
             java.net.URI(baseUrl + path).toURL().readText()
 
+        fun getResponse(path: String, headers: Map<String, String> = emptyMap()): ConsoleHttpResponse {
+            val connection = java.net.URI(baseUrl + path).toURL().openConnection() as java.net.HttpURLConnection
+            connection.requestMethod = "GET"
+            if (path.startsWith("/api/")) {
+                consoleToken?.let { connection.setRequestProperty(ConsoleTokenHeader, it) }
+            }
+            for ((name, value) in headers) {
+                connection.setRequestProperty(name, value)
+            }
+            val statusCode = connection.responseCode
+            val body = runCatching {
+                (connection.errorStream ?: connection.inputStream)?.use { input ->
+                    input.readBytes().toString(Charsets.UTF_8)
+                } ?: ""
+            }.getOrDefault("")
+            val headerFields: Map<String, List<String>> = connection.headerFields
+                .filterKeys { it != null }
+                .mapKeys { (key, _) -> key!! }
+            return ConsoleHttpResponse(statusCode = statusCode, body = body, headers = headerFields)
+        }
+
         fun connection(path: String, method: String = "GET", body: String? = null): java.net.HttpURLConnection {
             val connection = java.net.URI(baseUrl + path).toURL().openConnection() as java.net.HttpURLConnection
             connection.requestMethod = method
@@ -3412,6 +3585,80 @@ class FeedbackConsoleServerTest {
             }
             return connection
         }
+    }
+
+    private data class ConsoleHttpResponse(
+        val statusCode: Int,
+        val body: String,
+        val headers: Map<String, List<String>>,
+    ) {
+        fun header(name: String): String? =
+            headers.entries
+                .firstOrNull { it.key.equals(name, ignoreCase = true) }
+                ?.value
+                ?.firstOrNull()
+    }
+
+    @Test
+    fun consoleHtmlDeclaresPollingGlobals() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains("let pendingMutationCount"))
+        assertTrue(html.contains("let sessionsPollingTimer"))
+        assertTrue(html.contains("let lastSessionsEtag"))
+        assertTrue(html.contains("let lastSessionEtag"))
+        assertTrue(html.contains("async function withMutationLock"))
+    }
+
+    @Test
+    fun saveToMcpToastMentionsAgentPickup() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains("Saved to MCP ✓ — agent will pick up"))
+        assertFalse(html.contains("Saved to MCP ✓\","), "Old toast text must be gone")
+    }
+
+    @Test
+    fun mutationsAreWrappedInLock() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val sendAgent = javascriptFunctionBody(html, "sendAgentPrompt")
+        val copyPrompt = javascriptFunctionBody(html, "copyPrompt")
+        assertTrue(sendAgent.contains("withMutationLock"))
+        assertTrue(copyPrompt.contains("withMutationLock"))
+    }
+
+    @Test
+    fun mergeSessionIntoStatePreservesUserState() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val body = javascriptFunctionBody(html, "mergeSessionIntoState")
+        assertTrue(body.contains("comment.value"), "Must preserve textarea value")
+        assertTrue(body.contains("focusedSavedItemId") || body.contains("focusedPendingItemIndex"))
+        assertTrue(body.contains("currentSelection"))
+        assertTrue(body.contains("data-just-changed"))
+    }
+
+    @Test
+    fun startSessionsPollingIsCalledOnBoot() {
+        val html = FeedbackConsoleAssets.indexHtml
+        // Boot chain (16-space indent inside .then()): startSessionsPolling() must follow
+        // startLivePreviewPolling() in the .then() block that already starts heartbeat + live-preview polling.
+        assertTrue(
+            html.contains(
+                "                startHeartbeatPolling();\n" +
+                    "                startLivePreviewPolling();\n" +
+                    "                startSessionsPolling();\n" +
+                    "              })"
+            ),
+            "main.js boot chain must call startSessionsPolling() after startLivePreviewPolling()"
+        )
+        // Visibility-change handler (14-space indent inside arrow body): must restart sessions polling
+        // alongside the live-preview polling restart when the tab becomes visible again.
+        assertTrue(
+            html.contains(
+                "              startLivePreviewPolling();\n" +
+                    "              startSessionsPolling();\n" +
+                    "            });"
+            ),
+            "visibilitychange handler must restart startSessionsPolling() when tab becomes visible"
+        )
     }
 
     private class FakeExchange(path: String) : HttpExchange() {

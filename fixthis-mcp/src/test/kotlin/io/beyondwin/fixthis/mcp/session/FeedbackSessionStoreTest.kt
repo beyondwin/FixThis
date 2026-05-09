@@ -625,6 +625,133 @@ class FeedbackSessionStoreTest {
         assertEquals(SessionStatusDto.ACTIVE, store.getSession(session.sessionId).status)
     }
 
+    @Test
+    fun claimFeedbackPromotesDraftItemToInProgress() {
+        val clock = FakeClock(100L)
+        val ids = FakeIds("session-1", "screen-1", "item-1")
+        val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
+        val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+        val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
+        store.addItem(
+            session.sessionId,
+            AnnotationDto(
+                "pending",
+                screen.screenId,
+                0L,
+                0L,
+                AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+                comment = "fix this",
+            ),
+        )
+
+        val claimed = store.claimFeedback(session.sessionId, "item-1", agentNote = "starting")
+
+        assertEquals(AnnotationStatusDto.IN_PROGRESS, claimed.status)
+        assertEquals("starting", claimed.agentSummary)
+        assertEquals(FeedbackDelivery.DRAFT, claimed.delivery)
+    }
+
+    @Test
+    fun claimFeedbackOnSentItemKeepsSentDelivery() {
+        val clock = FakeClock(100L)
+        val ids = FakeIds("session-1", "screen-1", "item-1", "batch-1")
+        val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
+        val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+        val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
+        store.addItem(
+            session.sessionId,
+            AnnotationDto(
+                "pending",
+                screen.screenId,
+                0L,
+                0L,
+                AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+                comment = "fix this",
+            ),
+        )
+        store.sendDraftToAgent(session.sessionId, markdownSnapshot = "snap")
+
+        val claimed = store.claimFeedback(session.sessionId, "item-1", agentNote = null)
+
+        assertEquals(AnnotationStatusDto.IN_PROGRESS, claimed.status)
+        assertEquals(FeedbackDelivery.SENT, claimed.delivery)
+    }
+
+    @Test
+    fun claimFeedbackIsIdempotentOnInProgress() {
+        val clock = FakeClock(100L)
+        val ids = FakeIds("session-1", "screen-1", "item-1")
+        val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
+        val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+        val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
+        store.addItem(
+            session.sessionId,
+            AnnotationDto(
+                "pending",
+                screen.screenId,
+                0L,
+                0L,
+                AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+                comment = "fix this",
+            ),
+        )
+
+        store.claimFeedback(session.sessionId, "item-1", agentNote = "first")
+        val secondClaim = store.claimFeedback(session.sessionId, "item-1", agentNote = "second")
+
+        assertEquals(AnnotationStatusDto.IN_PROGRESS, secondClaim.status)
+        assertEquals("second", secondClaim.agentSummary)
+    }
+
+    @Test
+    fun claimFeedbackRejectsResolvedItem() {
+        val clock = FakeClock(100L)
+        val ids = FakeIds("session-1", "screen-1", "item-1")
+        val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
+        val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+        val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
+        store.addItem(
+            session.sessionId,
+            AnnotationDto(
+                "pending",
+                screen.screenId,
+                0L,
+                0L,
+                AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+                comment = "fix this",
+            ),
+        )
+        store.updateItemStatus(session.sessionId, "item-1", AnnotationStatusDto.RESOLVED, agentSummary = "done")
+
+        val ex = assertFailsWith<FeedbackSessionException> {
+            store.claimFeedback(session.sessionId, "item-1", agentNote = null)
+        }
+        assertTrue(ex.message!!.startsWith("ITEM_ALREADY_RESOLVED"))
+    }
+
+    @Test
+    fun claimFeedbackRejectsUnknownItem() {
+        val ids = FakeIds("session-1")
+        val store = FeedbackSessionStore(idGenerator = ids::next)
+        val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+
+        val ex = assertFailsWith<FeedbackSessionException> {
+            store.claimFeedback(session.sessionId, "missing", agentNote = null)
+        }
+        assertTrue(ex.message!!.contains("Unknown feedback item"))
+    }
+
+    @Test
+    fun updateItemStatusStillRejectsInProgress() {
+        val ids = FakeIds("session-1")
+        val store = FeedbackSessionStore(idGenerator = ids::next)
+        val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+
+        assertFailsWith<IllegalArgumentException> {
+            store.updateItemStatus(session.sessionId, "item-1", AnnotationStatusDto.IN_PROGRESS, agentSummary = null)
+        }
+    }
+
     private fun sequenceClock(vararg values: Long): () -> Long {
         val queue = ArrayDeque(values.toList())
         return { queue.removeFirstOrNull() ?: values.last() }

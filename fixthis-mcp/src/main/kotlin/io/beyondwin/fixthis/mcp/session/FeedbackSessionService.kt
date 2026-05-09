@@ -231,6 +231,9 @@ class FeedbackSessionService(
     fun resolveFeedback(sessionId: String, itemId: String, status: AnnotationStatusDto, summary: String?): AnnotationDto =
         store.updateItemStatus(sessionId, itemId, status, summary)
 
+    fun claimFeedback(sessionId: String, itemId: String, agentNote: String?): AnnotationDto =
+        store.claimFeedback(sessionId, itemId, agentNote)
+
     fun updateDraftFeedback(
         sessionId: String,
         itemId: String,

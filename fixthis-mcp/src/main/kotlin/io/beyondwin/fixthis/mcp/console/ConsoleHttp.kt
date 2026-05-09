@@ -109,3 +109,22 @@ internal class FeedbackConsoleHttpException(
     val statusCode: Int,
     override val message: String,
 ) : RuntimeException(message)
+
+internal fun etagOf(prefix: String, version: Long): String = "\"$prefix:$version\""
+
+internal fun HttpExchange.ifNoneMatch(): String? = requestHeaders.getFirst("If-None-Match")
+
+internal fun HttpExchange.sendNotModified(etag: String) {
+    responseHeaders.set("ETag", etag)
+    sendResponseHeaders(304, -1)
+    close()
+}
+
+internal fun HttpExchange.sendJsonWithEtag(
+    statusCode: Int,
+    etag: String,
+    write: () -> Unit,
+) {
+    responseHeaders.set("ETag", etag)
+    write()
+}

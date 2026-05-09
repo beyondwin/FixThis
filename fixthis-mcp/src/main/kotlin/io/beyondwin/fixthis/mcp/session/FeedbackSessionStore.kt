@@ -272,6 +272,37 @@ class FeedbackSessionStore(
             item
         }
 
+    private val resolvedStatusSet = setOf(
+        AnnotationStatusDto.RESOLVED,
+        AnnotationStatusDto.WONT_FIX,
+    )
+
+    fun claimFeedback(sessionId: String, itemId: String, agentNote: String?): AnnotationDto =
+        synchronized(lock) {
+            val session = getSessionLocked(sessionId)
+            val now = clock()
+            var updatedItem: AnnotationDto? = null
+            val updatedItems = session.items.map { item ->
+                if (item.itemId != itemId) return@map item
+                if (item.status in resolvedStatusSet) {
+                    throw FeedbackSessionException(
+                        "ITEM_ALREADY_RESOLVED: Cannot claim resolved feedback item: $itemId",
+                    )
+                }
+                item.copy(
+                    status = AnnotationStatusDto.IN_PROGRESS,
+                    agentSummary = agentNote ?: item.agentSummary,
+                    updatedAtEpochMillis = now,
+                ).also { updatedItem = it }
+            }
+            val item = updatedItem
+                ?: throw FeedbackSessionException("Unknown feedback item: $itemId")
+            val updated = session.copy(items = updatedItems, updatedAtEpochMillis = now)
+            save(updated)
+            sessions[sessionId] = updated
+            item
+        }
+
     fun updateDraftItem(
         sessionId: String,
         itemId: String,

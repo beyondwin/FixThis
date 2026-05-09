@@ -86,6 +86,60 @@ class FeedbackSessionPersistenceTest {
     }
 
     @Test
+    fun summaryCountsInProgressItems() {
+        val session = SessionDto(
+            sessionId = "session-1",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 2L,
+            screens = listOf(SnapshotDto(screenId = "screen-1", capturedAtEpochMillis = 2L, displayName = "Main")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 2L,
+                    updatedAtEpochMillis = 2L,
+                    target = AnnotationTargetDto.Area(FixThisRectForTest.bounds),
+                    comment = "Open",
+                    status = AnnotationStatusDto.OPEN,
+                ),
+                AnnotationDto(
+                    itemId = "item-2",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 2L,
+                    updatedAtEpochMillis = 2L,
+                    target = AnnotationTargetDto.Area(FixThisRectForTest.bounds),
+                    comment = "Working",
+                    status = AnnotationStatusDto.IN_PROGRESS,
+                ),
+                AnnotationDto(
+                    itemId = "item-3",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 2L,
+                    updatedAtEpochMillis = 2L,
+                    target = AnnotationTargetDto.Area(FixThisRectForTest.bounds),
+                    comment = "Also working",
+                    status = AnnotationStatusDto.IN_PROGRESS,
+                ),
+                AnnotationDto(
+                    itemId = "item-4",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 2L,
+                    updatedAtEpochMillis = 2L,
+                    target = AnnotationTargetDto.Area(FixThisRectForTest.bounds),
+                    comment = "Done",
+                    status = AnnotationStatusDto.RESOLVED,
+                ),
+            ),
+        )
+
+        val summary = FeedbackSessionSummary.from(session)
+
+        assertEquals(2, summary.inProgressItemsCount)
+    }
+
+    @Test
     fun persistenceSavesSessionAndIndex() {
         val root = tempDir(prefix = "fixthis-v2-persist-")
         val paths = FeedbackSessionPaths(root)
