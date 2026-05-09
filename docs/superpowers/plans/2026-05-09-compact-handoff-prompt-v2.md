@@ -585,6 +585,7 @@ File: `fixthis-mcp/src/main/console/prompt.js`
 
 | Function | Line range | What it does today |
 |---|---|---|
+| `compactReasonTokens` | lines 148–159 | Wraps `FIXTHIS_REASON_TOKEN_MAP`: takes an array of verbose reason strings, maps each to its short token, deduplicates, and joins them with `+` (e.g. `tag+compTag+nearbyTag`). Called by `compactSourceLine` today. **v2 should reuse this helper inside `compactCandidatesBlock` rather than re-implementing token mapping inline.** |
 | `compactSourceLine` | lines 170–183 | Returns the `   src? <file>:<line> <confidence>[; why=...][; risk=...]` string using only rank-1 candidate; returns `null` if no candidate. **Replaced by a `candidates:` block in v2.** |
 | `compactTargetLine` | lines 185–192 | Returns the `   target: <role> "<label>" bounds=<bounds>[; targetRisk=overlap]` string. **Replaced by `compactUiLine` / `ui:` format in v2.** |
 | `compactItemLines` | lines 194–202 | Returns the array of lines for one marker: title, `compactTargetLine`, and (if present) `compactSourceLine`. **Modified in v2: calls new ui-line and candidates-block functions; adds severity prefix, instance label.** |
@@ -613,6 +614,8 @@ The test file currently contains **one test** (`renderEmitsTopLevelRuleAndScreen
 - Tests that should stay unchanged (they already match this pattern): the two assertions above on `Rule:` line prefix and `Screen ` prefix.
 - The existing test does not assert the `Package:` line, items line, overlap header, `screenshot:` line, or `crop:` line — these will all be added as new v2 tests in Tasks 1.x–4.x rather than being updates to existing tests.
 - The v2 work will **add** many new tests to this file (Tasks 1.2–4.2) and eventually update any assertions added in Phase 1 that reference the v1 `target:` or `src?` shape (Task 1.7). Since those tests do not exist yet, Task 1.7 will update only tests introduced during Phase 1 itself.
+
+**Implication for Task 1.7:** Task 1.7 ("Update existing CompactHandoffRendererTest assertions") is **effectively a no-op for pre-existing tests**. The file currently contains zero assertions referencing `bounds=`, `target: Node`, or `src?` literals. The only assertions that Task 1.7 will need to update are those that Tasks 1.2–1.6 themselves add during Phase 1. The sub-agent running Task 1.7 should not expect to find any pre-existing assertions to modify.
 
 ## Smoke notes
 
