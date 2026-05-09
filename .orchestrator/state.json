@@ -35,11 +35,36 @@
     "task_12": ["task_1","task_2","task_3","task_4","task_5","task_6","task_7","task_8","task_9","task_10","task_11"]
   },
   "compaction_points": [3, 9, 12],
-  "tasks": {},
-  "task_summaries": {},
-  "low_tasks_pending_verification": [],
+  "tasks": {
+    "task_1": {
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": [
+        "fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt",
+        "fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusAvailabilityTest.kt",
+        "fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt"
+      ],
+      "commit": "d82460e",
+      "pre_task_sha": "06d82835",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0
+    }
+  },
+  "task_summaries": {
+    "task_1": {
+      "files": [
+        "fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt",
+        "fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusAvailabilityTest.kt"
+      ],
+      "exposed_apis": ["BridgeStatus.screenInteractive", "BridgeStatus.keyguardLocked", "BridgeStatus.appForeground", "BridgeStatus.pictureInPicture"],
+      "key_decision": "Nullable Boolean fields with null defaults; legacy 5-arg constructor preserved",
+      "for_next_tasks": "BridgeStatus now has 4 new Boolean? fields (screenInteractive, keyguardLocked, appForeground, pictureInPicture). All null-default, kotlinx.serialization. Task 3 must populate these in status(); Task 4 must mirror them in MCP DTO."
+    }
+  },
+  "low_tasks_pending_verification": ["task_1"],
   "last_compaction_after_task": -1,
-  "current_task": 1,
+  "current_task": 2,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
