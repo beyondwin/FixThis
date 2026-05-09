@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "summary": "All 6 CompactHandoffRenderer tests pass including 3 new activity-line tests; full :fixthis-mcp:test reports 290 tests with 2 failures matching the pre-existing FeedbackConsoleServerTest baseline pair.",
+  "risk_level": "MID",
+  "tests_run": ["./gradlew :fixthis-mcp:test --tests \"*CompactHandoffRenderer*\"", "./gradlew :fixthis-mcp:test"],
+  "results": [
+    {"suite": "CompactHandoffRenderer scope", "status": "PASS", "count": 6, "failures": 0, "note": "Includes renderEmitsActivityLineWhenDistinctFromDisplayName, renderOmitsActivityLineWhenEqualToDisplayName, renderOmitsActivityLineWhenActivityNameNull (new), plus renderEmitsTopLevelRuleAndScreenHeader, renderEmitsViewportLineWhenScreenshotHasDimensions, renderOmitsViewportLineWhenDimensionsMissing"},
+    {"suite": "fixthis-mcp:test", "status": "PASS", "count": 290, "failures": 2, "failure_names": ["FeedbackConsoleServerTest.consoleHtmlUsesModeAwareStudioInspector", "FeedbackConsoleServerTest.consoleHtmlAnnotationSaveUsesCurrentSelectionPayload"], "note": "matches baseline"}
+  ],
+  "issues": ["none"],
+  "escalation": null
+}
