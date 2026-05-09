@@ -4,6 +4,7 @@ import io.beyondwin.fixthis.cli.AdbDevice
 import io.beyondwin.fixthis.cli.BridgeClient
 import io.beyondwin.fixthis.cli.fixThisJson
 import io.beyondwin.fixthis.compose.core.format.DetailMode
+import io.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.beyondwin.fixthis.mcp.McpProtocol
 import io.beyondwin.fixthis.mcp.console.FeedbackConsoleServer
 import io.beyondwin.fixthis.mcp.resourceText
@@ -16,6 +17,8 @@ import io.beyondwin.fixthis.mcp.session.FeedbackSwipeDirection
 import io.beyondwin.fixthis.mcp.session.AnnotationDto
 import io.beyondwin.fixthis.mcp.session.AnnotationStatusDto
 import io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatter
+import io.beyondwin.fixthis.mcp.session.HostSourceFreshnessProbe
+import io.beyondwin.fixthis.mcp.session.HostSourceFreshnessResult
 import io.beyondwin.fixthis.mcp.session.SessionDto
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionList
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionPaths
@@ -33,9 +36,11 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 
@@ -56,6 +61,7 @@ class FixThisTools(
     ),
     private val consoleAssetsDir: File? = null,
     private val consolePort: Int = 0,
+    private val freshnessProbe: HostSourceFreshnessProbe = HostSourceFreshnessProbe(projectRoot),
 ) {
     private val cacheLock = Any()
     private val consoleLock = Any()
@@ -88,6 +94,7 @@ class FixThisTools(
                 val packageName = resolvePackageName(arguments)
                 val status = bridge.status(packageName)
                 cacheStatus(packageName, status)
+                val freshness = evaluateFreshness(packageName, status)
                 jsonToolResult(buildJsonObject {
                     put("deviceConnected", true)
                     put("packageName", packageName)
@@ -96,6 +103,13 @@ class FixThisTools(
                     put("currentActivity", status["activity"] ?: JsonPrimitive(""))
                     put("composeRoots", status["rootsCount"] ?: JsonPrimitive(0))
                     put("sourceIndexAvailable", status["sourceIndexAvailable"] ?: JsonPrimitive(false))
+                    put("installStale", JsonPrimitive(freshness.installStale))
+                    freshness.reason?.let { put("installStaleReason", JsonPrimitive(it)) }
+                    if (freshness.installStale) {
+                        put("installStaleHint", JsonPrimitive("Run ./gradlew :app:installDebug then cold-launch the app"))
+                    }
+                    freshness.installedAtEpochMillis?.let { put("installedAtEpochMillis", JsonPrimitive(it)) }
+                    put("newerSourceFiles", buildJsonArray { freshness.sampleNewerFiles.forEach { add(JsonPrimitive(it)) } })
                     put("bridge", status)
                 })
             }
@@ -492,6 +506,37 @@ class FixThisTools(
     private fun unavailable(message: String): JsonObject = buildJsonObject {
         put("available", false)
         put("message", message)
+    }
+
+    private suspend fun evaluateFreshness(
+        packageName: String,
+        status: JsonObject,
+    ): HostSourceFreshnessResult {
+        val sourceIndexAvailable = status["sourceIndexAvailable"]?.jsonPrimitive?.booleanOrNull == true
+        val installEpoch = status["installEpochMillis"]?.jsonPrimitive?.longOrNull
+        if (!sourceIndexAvailable) {
+            return HostSourceFreshnessResult(
+                installStale = false,
+                newerFileCount = 0,
+                totalIndexedFiles = 0,
+                installedAtEpochMillis = installEpoch,
+                sampleNewerFiles = emptyList(),
+                reason = "source index not available",
+            )
+        }
+        val raw = runCatching { bridge.readSourceIndex(packageName) }.getOrNull()
+        val indexElement = raw?.get("sourceIndex")
+        val sourceIndex = indexElement?.let {
+            runCatching { McpProtocol.json.decodeFromJsonElement<SourceIndex>(it) }.getOrNull()
+        } ?: return HostSourceFreshnessResult(
+            installStale = false,
+            newerFileCount = 0,
+            totalIndexedFiles = 0,
+            installedAtEpochMillis = installEpoch,
+            sampleNewerFiles = emptyList(),
+            reason = "source index could not be read",
+        )
+        return freshnessProbe.evaluate(sourceIndex, installEpoch)
     }
 }
 
