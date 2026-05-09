@@ -221,9 +221,9 @@ Goal: switch the v1 token shape to v2 in Kotlin only. No new information; format
 
 ### Task 1.6 — Renderer: severity prefix (TDD)
 
-- [ ] **Red:** Test: an item with `severity=HIGH` and `comment="레드 카드"` renders as `1. [marker 1] [!] 레드 카드`. Severity `MED` and `LOW` render without prefix (no change from v1). Run; expect failure.
-- [ ] **Green:** In `appendCompactItem`, prepend `"[!] "` to the title when `item.severity == AnnotationSeverityDto.HIGH`. Run; expect pass.
-- [ ] Commit: `feat(handoff-v2): prefix [!] for HIGH severity items`.
+- [x] **Red:** Test: an item with `severity=HIGH` and `comment="레드 카드"` renders as `1. [marker 1] [!] 레드 카드`. Severity `MED` and `LOW` render without prefix (no change from v1). Run; expect failure.
+- [x] **Green:** In `appendCompactItem`, prepend `"[!] "` to the title when `item.severity == AnnotationSeverityDto.HIGH`. Run; expect pass.
+- [x] Commit: `feat(handoff-v2): prefix [!] for HIGH severity items`.
 
 **Validation:** Same as 1.2.
 **Expected:** All pass.

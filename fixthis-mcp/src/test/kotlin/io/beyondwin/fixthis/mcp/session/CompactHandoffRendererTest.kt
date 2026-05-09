@@ -424,6 +424,70 @@ class CompactHandoffRendererTest {
         )
     }
 
+    // ---- Task 1.6: severity prefix tests ----
+
+    private fun makeSessionWithSeverity(
+        severity: AnnotationSeverityDto,
+        comment: String,
+    ): SessionDto = SessionDto(
+        sessionId = "session-sev",
+        packageName = "io.beyondwin.fixthis.sample",
+        projectRoot = "/repo",
+        createdAtEpochMillis = 1L,
+        updatedAtEpochMillis = 1L,
+        screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
+        items = listOf(
+            AnnotationDto(
+                itemId = "i-sev",
+                screenId = "screen-1",
+                createdAtEpochMillis = 1L,
+                updatedAtEpochMillis = 1L,
+                target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                severity = severity,
+                comment = comment,
+                sequenceNumber = 1,
+            ),
+        ),
+    )
+
+    @Test
+    fun renderPrependsHighSeverityPrefix() {
+        val session = makeSessionWithSeverity(AnnotationSeverityDto.HIGH, "레드 카드")
+        val markdown = CompactHandoffRenderer.render(session)
+        assertTrue(
+            markdown.lines().any { it == "1. [marker 1] [!] 레드 카드" },
+            "Expected line '1. [marker 1] [!] 레드 카드' but got:\n$markdown",
+        )
+    }
+
+    @Test
+    fun renderOmitsPrefixForMediumSeverity() {
+        val session = makeSessionWithSeverity(AnnotationSeverityDto.MED, "중간 심각도")
+        val markdown = CompactHandoffRenderer.render(session)
+        assertTrue(
+            markdown.lines().any { it == "1. [marker 1] 중간 심각도" },
+            "Expected line '1. [marker 1] 중간 심각도' (no prefix) but got:\n$markdown",
+        )
+        assertTrue(
+            !markdown.contains("[!]"),
+            "Expected no '[!]' prefix for MED severity but got:\n$markdown",
+        )
+    }
+
+    @Test
+    fun renderOmitsPrefixForLowSeverity() {
+        val session = makeSessionWithSeverity(AnnotationSeverityDto.LOW, "낮은 심각도")
+        val markdown = CompactHandoffRenderer.render(session)
+        assertTrue(
+            markdown.lines().any { it == "1. [marker 1] 낮은 심각도" },
+            "Expected line '1. [marker 1] 낮은 심각도' (no prefix) but got:\n$markdown",
+        )
+        assertTrue(
+            !markdown.contains("[!]"),
+            "Expected no '[!]' prefix for LOW severity but got:\n$markdown",
+        )
+    }
+
     @Test
     fun renderPreservesOverlapRiskSuffixOnUiLine() {
         // Two overlapping Node items — overlap group is detected when they share bounds

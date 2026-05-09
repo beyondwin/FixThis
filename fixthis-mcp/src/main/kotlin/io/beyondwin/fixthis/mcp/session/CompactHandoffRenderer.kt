@@ -78,7 +78,8 @@ object CompactHandoffRenderer {
 
     private fun StringBuilder.appendCompactItem(number: Int, item: AnnotationDto, isOverlap: Boolean) {
         val title = item.comment.lineSequence().firstOrNull()?.takeIf { it.isNotBlank() } ?: "(No request provided)"
-        appendLine("${number}. [marker $number] ${title.inlineSafe()}")
+        val prefix = if (item.severity == AnnotationSeverityDto.HIGH) "[!] " else ""
+        appendLine("${number}. [marker $number] ${prefix}${title.inlineSafe()}")
         appendLine(compactUiLine(item, isOverlap))
         item.screenshotCrop?.desktopCropPath?.let { appendLine("crop: ${it.inlineSafe()}") }
         appendLine(compactSourceLine(item))
