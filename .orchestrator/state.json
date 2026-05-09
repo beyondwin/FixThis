@@ -139,6 +139,19 @@
       "review_retries": 1,
       "verifier_retries": 0,
       "review_fix_commit": "331a4ac"
+    },
+    "task_8": {
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": [
+        "fixthis-mcp/src/main/console/annotations.js",
+        "fixthis-mcp/src/main/resources/console/app.js"
+      ],
+      "commit": "4e1ac60",
+      "pre_task_sha": "0ec1935",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0
     }
   },
   "task_summaries": {
@@ -206,11 +219,19 @@
       "exposed_apis": ["#canvasBlockedOverlay (DOM)", "renderCanvasBlockedOverlay() (called only inside renderPreviewRegion)"],
       "key_decision": "Overlay sits inside .studio-canvas as sibling of #snapshot. .studio-canvas already had position: relative. Retry button addEventListener wired once at module init (script tag at end of body so DOM is parsed). Headlines + details hardcoded per spec §7.4 verbatim including U+2026 ellipsis.",
       "for_next_tasks": "Task 8: gate annotation handlers via isInteractionBlocked() that reads state.connection.interactionBlockedReason. Task 10: appends a sibling #canvasStaleNotice node to the same .studio-canvas section."
+    },
+    "task_8": {
+      "files": [
+        "fixthis-mcp/src/main/console/annotations.js"
+      ],
+      "exposed_apis": ["isInteractionBlocked() at top of annotations.js"],
+      "key_decision": "Early-return at top of selectNodeAtPoint, previewNodeAtPoint, confirmHoveredAnnotationTarget, finishAreaSelection. The 'No component found' showError is double-wrapped (defensive).",
+      "for_next_tasks": "Task 10 reuses isInteractionBlocked() if needed for additional handler gating. The navigate('tap') path is NOT gated (acceptable per spec §7.4: bridge would reject anyway, and overlay visually covers canvas)."
     }
   },
-  "low_tasks_pending_verification": ["task_5"],
+  "low_tasks_pending_verification": ["task_5", "task_8"],
   "last_compaction_after_task": 3,
-  "current_task": 8,
+  "current_task": 9,
   "phase_docs_skipped": ["phase_1"],
   "phase_summaries_log": [
     {
