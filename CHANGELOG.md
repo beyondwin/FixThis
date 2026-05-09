@@ -32,3 +32,7 @@
 - Added Stable Target Evidence/source-index signals and sample coverage fixtures for repeatable evidence quality checks.
 - Hardened local console mutation endpoints with browser token and origin checks, and added cleanup support for known local `.fixthis` artifacts.
 - Documented current release blockers, including the missing root `LICENSE` and unpublished external artifact coordinates.
+
+### Changed
+
+- Compact feedback handoff prompt v2 (clarity, multi-candidate, instance disambiguation) — see docs/superpowers/specs/2026-05-09-compact-handoff-prompt-v2-design.md

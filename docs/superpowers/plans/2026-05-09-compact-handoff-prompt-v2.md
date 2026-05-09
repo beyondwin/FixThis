@@ -160,7 +160,7 @@ Goal: capture the v1 test baseline, lock the v2 fixtures, and ship the one-line 
 
 ### Task 0.7 — Initialize CHANGELOG entry
 
-- [ ] Add an `## [Unreleased]` entry in `CHANGELOG.md` under "Changed" with a placeholder line: `- Compact feedback handoff prompt v2 (clarity, multi-candidate, instance disambiguation) — see docs/superpowers/specs/2026-05-09-compact-handoff-prompt-v2-design.md`. Refine wording in Phase 7.
+- [x] Add an `## [Unreleased]` entry in `CHANGELOG.md` under "Changed" with a placeholder line: `- Compact feedback handoff prompt v2 (clarity, multi-candidate, instance disambiguation) — see docs/superpowers/specs/2026-05-09-compact-handoff-prompt-v2-design.md`. Refine wording in Phase 7.
 
 **Validation:** Visual.
 **Expected:** Entry exists.
