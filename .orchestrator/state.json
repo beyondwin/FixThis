@@ -182,7 +182,7 @@
   },
   "low_tasks_pending_verification": ["task_5"],
   "last_compaction_after_task": 3,
-  "current_task": 6,
+  "current_task": 7,
   "phase_docs_skipped": ["phase_1"],
   "phase_summaries_log": [
     {
