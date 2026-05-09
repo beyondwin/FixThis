@@ -1598,6 +1598,22 @@ git add fixthis-mcp/src/main/console/rendering.js \
 git commit -m "feat(console): show SENT items in inspector and preview"
 ```
 
+> **Correction note (2026-05-10 follow-up)**: This task's instructions
+> were written against an earlier code state. At execution time the
+> orchestrator narrowed scope to ONLY `preview.js:75`
+> (`latestPersistedScreen`) because:
+>
+> - `rendering.js`: the filter had already been removed in pre-existing
+>   main work; no changes needed.
+> - `annotations.js:80`: the filter is inside `currentPromptAnnotations()`,
+>   the SEND/COPY path. Removing it would break the send-once invariant
+>   and the Send/Copy button enable/disable logic.
+> - `preview.js:75`: the only display-side filter still in place — this
+>   is what was actually changed (commit `ba31262`).
+>
+> The original three-site instruction is retained above for historical
+> context. A future re-run of this plan should follow the narrowed scope.
+
 ---
 
 ## Task 22: Remove `ready_for_agent` filter from History list
