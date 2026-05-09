@@ -141,8 +141,8 @@ Goal: capture the v1 test baseline, lock the v2 fixtures, and ship the one-line 
 
 ### Task 0.5 — Confirm console asset bundling pipeline
 
-- [ ] Read `build-console-assets.mjs`. Confirm whether `prompt.js` source is concatenated into `app.js` automatically (so v2 changes to `prompt.js` flow into `app.js` after running the build), or whether `app.js` is hand-edited. Record finding in this file.
-- [ ] If concatenated: note the exact build command needed after Phase 5 changes.
+- [x] Read `build-console-assets.mjs`. Confirm whether `prompt.js` source is concatenated into `app.js` automatically (so v2 changes to `prompt.js` flow into `app.js` after running the build), or whether `app.js` is hand-edited. Record finding in this file.
+- [x] If concatenated: note the exact build command needed after Phase 5 changes.
 
 **Validation:** Visual.
 **Expected:** Confirmed concatenation; build command captured.
@@ -656,6 +656,37 @@ The actual v2 budget guard in Task 6.3 will use the 4-item `session-v2.json` fix
 2. Record `v1_baseline_chars` in the test comment.
 3. Assert `v2_prompt.length <= ceil(1.5 * v1_baseline_chars)`.
 4. Update this section with the concrete numbers once measured.
+
+### Phase 0.5 console asset bundling
+
+**Script:** `scripts/build-console-assets.mjs` (project root `/scripts/` directory)
+
+**Concatenation confirmed:** Yes. The script reads every JS source file listed in `sources` from `fixthis-mcp/src/main/console/`, concatenates them in order (with a `// <filename>` comment header before each file's content), and writes the result to `fixthis-mcp/src/main/resources/console/app.js`. The `app.js` file is **never hand-edited** — it is a generated artifact that must be regenerated after any change to the source files.
+
+**Source files concatenated (in order):**
+1. `state.js`
+2. `api.js`
+3. `connection.js`
+4. `devices.js`
+5. `preview.js`
+6. `annotations.js`
+7. `history.js`
+8. `prompt.js`
+9. `rendering.js`
+10. `shortcuts.js`
+11. `main.js`
+
+**Output:** `fixthis-mcp/src/main/resources/console/app.js`
+
+**Exact build command (Task 5.8):** `node scripts/build-console-assets.mjs`
+
+There is **no npm script alias** for this command — `package.json` only defines `"console:smoke": "node scripts/console-browser-smoke.mjs"`. The build command must be invoked directly.
+
+**Check mode:** The script also supports `node scripts/build-console-assets.mjs --check` to verify that the currently-committed `app.js` matches what would be generated (exits 1 with an error message if out of date). This can be used as a CI gate.
+
+**Implication for Phase 5:** After all `prompt.js` edits in Tasks 5.1–5.7 are committed, Task 5.8 must run `node scripts/build-console-assets.mjs` from the project root and commit the regenerated `app.js`.
+
+---
 
 ### Phase 0.4 scoreMargin verification
 
