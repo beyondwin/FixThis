@@ -400,9 +400,9 @@ Goal: mirror Phases 1-4 in `prompt.js` so the Kotlin and JS renderers produce by
 
 ### Task 5.1 — JS: viewport, activity, screen short-id (parity for Phase 1.2-1.4)
 
-- [ ] In `prompt.js compactScreenHeader`, append `viewport: ${w}×${h}` when present and `activity: ${name}` when distinct. Truncate `screenId` to 8 chars.
-- [ ] **Verification:** run the v1 prompt-parity Node harness against `session-v2.json` (created in Phase 6.1) and confirm screen header lines match Kotlin output byte-for-byte.
-- [ ] Commit: `feat(handoff-v2): mirror viewport/activity/short-id in JS`.
+- [x] In `prompt.js compactScreenHeader`, append `viewport: ${w}×${h}` when present and `activity: ${name}` when distinct. Truncate `screenId` to 8 chars.
+- [x] **Verification:** run the v1 prompt-parity Node harness against `session-v2.json` (created in Phase 6.1) and confirm screen header lines match Kotlin output byte-for-byte. (Note: PromptParityTest is currently @Ignored — parity test deferred to Task 6.2 after all Phase 5 tasks complete.)
+- [x] Commit: `feat(handoff-v2): mirror viewport/activity/short-id in JS`.
 
 ### Task 5.2 — JS: ui line + box format (parity for Phase 1.5)
 

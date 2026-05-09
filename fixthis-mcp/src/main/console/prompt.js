@@ -202,9 +202,16 @@
             }
 
             function compactScreenHeader(screenId, screen) {
-              const lines = ['Screen ' + screenId + ': ' + (screen && screen.displayName ? screen.displayName : 'Screen')];
+              const shortId = String(screenId).slice(0, 8);
+              const lines = ['Screen ' + shortId + ': ' + (screen && screen.displayName ? screen.displayName : 'Screen')];
               const screenshotPath = screen && screen.screenshot && (screen.screenshot.desktopFullPath || screen.screenshot.fullPath);
               if (screenshotPath) lines.push('screenshot: ' + screenshotPath);
+              const w = screen && screen.screenshot && screen.screenshot.width;
+              const h = screen && screen.screenshot && screen.screenshot.height;
+              if (w && h) lines.push('viewport: ' + w + '×' + h);
+              const activityName = screen && screen.activityName;
+              const displayName = screen && screen.displayName;
+              if (activityName && activityName !== displayName) lines.push('activity: ' + activityName);
               return lines;
             }
 
