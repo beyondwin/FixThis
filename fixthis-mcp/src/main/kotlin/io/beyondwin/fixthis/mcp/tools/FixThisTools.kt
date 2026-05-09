@@ -701,6 +701,16 @@ private val ToolDefinitions = listOf(
             required = listOf("itemId", "status"),
         ),
     ),
+    ToolDefinition(
+        name = "fixthis_claim_feedback",
+        description = "Mark a feedback item as in-progress before starting work. Call this AFTER reading the item and BEFORE making code changes. Returns the updated item. The user's browser console reflects the change within 2 seconds. After this call you must eventually call fixthis_resolve_feedback for the same itemId.",
+        inputSchema = objectSchema(
+            "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
+            "itemId" to stringProperty("Feedback item id to claim."),
+            "agentNote" to stringProperty("Optional short note shown next to the item in the user's console."),
+            required = listOf("itemId"),
+        ),
+    ),
 )
 
 private val ResourceDefinitions = listOf(

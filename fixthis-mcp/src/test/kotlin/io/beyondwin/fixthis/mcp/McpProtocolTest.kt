@@ -238,9 +238,26 @@ class McpProtocolTest {
                 "fixthis_list_feedback",
                 "fixthis_read_feedback",
                 "fixthis_resolve_feedback",
+                "fixthis_claim_feedback",
             ),
             tools,
         )
+    }
+
+    @Test
+    fun toolsListIncludesClaimFeedback() {
+        val response = runSingleRequest("""{"jsonrpc":"2.0","id":"tools","method":"tools/list","params":{}}""")
+
+        val tools = response.jsonObject
+            .getValue("result").jsonObject
+            .getValue("tools").jsonArray
+        val claim = tools.first { it.jsonObject["name"]!!.jsonPrimitive.content == "fixthis_claim_feedback" }
+        val description = claim.jsonObject["description"]!!.jsonPrimitive.content
+        assertTrue(description, description.contains("before starting work", ignoreCase = true))
+        assertTrue(description, description.contains("fixthis_resolve_feedback", ignoreCase = true))
+        val inputSchema = claim.jsonObject["inputSchema"]!!.jsonObject
+        val required = inputSchema["required"]!!.jsonArray.map { it.jsonPrimitive.content }
+        assertEquals(listOf("itemId"), required)
     }
 
     @Test
