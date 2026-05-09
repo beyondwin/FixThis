@@ -82,6 +82,15 @@
       "pre_task_sha": "ab90115f229330c85b7bd9cfb34cdd81212385bc",
       "escalations": 1, "review_retries": 1, "verifier_retries": 0,
       "timing": {"started": "2026-05-09T17:30:00Z", "completed": "2026-05-09T17:50:00Z"}
+    },
+    "task_6": {
+      "status": "COMPLETE",
+      "risk": "mid",
+      "files": ["fixthis-mcp/src/main/console/annotations.js", "fixthis-mcp/src/main/resources/console/app.js"],
+      "commit": "cdfe5c26793def2c2081a90f0ec272d86c899394",
+      "pre_task_sha": "bd186488a541b1c930660461bca5d1842cd87b3b",
+      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
+      "timing": {"started": "2026-05-09T17:50:00Z", "completed": "2026-05-09T18:00:00Z"}
     }
   },
   "task_summaries": {
@@ -114,11 +123,17 @@
       "exposed_apis": ["showSuccess", "clearSuccessStatus"],
       "key_decision": "sendAgentPrompt calls showSuccess('Sent to agent ✓', 3000) on success path; state.js has full showSuccess impl",
       "for_next_tasks": "showSuccess and clearSuccessStatus exist in bundle; .error.status-success CSS rule active; showError calls clearSuccessStatus"
+    },
+    "task_6": {
+      "files": ["fixthis-mcp/src/main/console/annotations.js", "fixthis-mcp/src/main/resources/console/app.js"],
+      "exposed_apis": ["flushFocusedPendingComment"],
+      "key_decision": "flushFocusedPendingComment() saves comment.value to focused item; called first in createAnnotationFromSelection and focusPendingFeedbackItem",
+      "for_next_tasks": "Comment data preserved on focus switches; annotations.js now guards against data loss on pending item transitions"
     }
   },
   "low_tasks_pending_verification": ["task_1", "task_2"],
   "last_compaction_after_task": -1,
-  "current_task": 6,
+  "current_task": 7,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
