@@ -49,6 +49,18 @@
       "review_retries": 0,
       "verifier_retries": 0,
       "timing": {"started": "2026-05-09T09:44:00Z", "completed": "2026-05-09T09:50:00Z"}
+    },
+    "task_1": {
+      "plan_id": "0.2",
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": ["docs/superpowers/plans/2026-05-09-compact-handoff-prompt-v2.md"],
+      "commit": "5475049",
+      "pre_task_sha": "7c39d713a32766719266a35fc2e4ab686544661b",
+      "escalations": 0,
+      "review_retries": 1,
+      "verifier_retries": 0,
+      "timing": {"started": "2026-05-09T09:50:00Z", "completed": "2026-05-09T10:05:00Z"}
     }
   },
   "task_summaries": {
@@ -57,11 +69,17 @@
       "exposed_apis": [],
       "key_decision": "Baseline 281/283 pass with 2 known failures; acceptable for v2",
       "for_next_tasks": "Baseline data lives in plan's 'Phase 0 baseline notes' section; SHA 6e475198 is the pre-Phase-0 anchor"
+    },
+    "task_1": {
+      "files": ["docs/superpowers/plans/2026-05-09-compact-handoff-prompt-v2.md"],
+      "exposed_apis": [],
+      "key_decision": "Inventory captured; CompactHandoffRendererTest.kt has only 1 test (renderEmitsTopLevelRuleAndScreenHeader) with 2 assertions, neither references v1 literals",
+      "for_next_tasks": "Task 1.7 is effectively a no-op for pre-existing tests; only updates assertions added by Tasks 1.2-1.6. Kotlin renderer functions: render (4-68), appendCompactItem (70-78), compactTargetSummary (80-96), compactSourceLine (98-107), reasonTokenFor (109-124). JS prompt.js: compactReasonTokens (148-159) wraps FIXTHIS_REASON_TOKEN_MAP (132-146); v2 should reuse it."
     }
   },
-  "low_tasks_pending_verification": ["task_0"],
+  "low_tasks_pending_verification": ["task_0", "task_1"],
   "last_compaction_after_task": -1,
-  "current_task": 1,
+  "current_task": 2,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
