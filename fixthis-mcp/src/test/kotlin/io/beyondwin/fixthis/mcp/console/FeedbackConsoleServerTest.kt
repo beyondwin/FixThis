@@ -841,6 +841,21 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun consoleHtmlReplacesPlaceholderYouLabelWithScreensCount() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val formatSessionSummary = javascriptFunctionBody(html, "formatSessionSummary")
+
+        // History cards previously showed "You · May 9 · 19:33" — meaningless on a
+        // single-user tool. Replaced with the session's screensCount so users can scan
+        // sessions by their actual size: e.g. "3 screens · May 9 · 19:33". Sessions
+        // without any captured screen drop the prefix entirely instead of showing "0".
+        assertFalse(formatSessionSummary.contains("'You · '"))
+        assertTrue(formatSessionSummary.contains("session?.screensCount"))
+        assertTrue(formatSessionSummary.contains("countLabel(screens, 'screen', 'screens')"))
+        assertTrue(formatSessionSummary.contains("screens > 0"))
+    }
+
+    @Test
     fun consoleHtmlGroupsSavedAnnotationsByScreenInPanel() {
         val html = FeedbackConsoleAssets.indexHtml
         val renderSavedEvidenceGroups = javascriptFunctionBody(html, "renderSavedEvidenceGroups")

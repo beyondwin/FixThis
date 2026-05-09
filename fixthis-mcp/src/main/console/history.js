@@ -20,7 +20,9 @@
             }
 
             function formatSessionSummary(session) {
-              return 'You · ' + formatHistoryDate(session.updatedAtEpochMillis);
+              const screens = Number(session?.screensCount || 0);
+              const screensLabel = screens > 0 ? countLabel(screens, 'screen', 'screens') + ' · ' : '';
+              return screensLabel + formatHistoryDate(session.updatedAtEpochMillis);
             }
 
             function pendingHistoryItemsForSession(session) {
