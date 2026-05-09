@@ -416,8 +416,42 @@
       "review_retries": 0,
       "verifier_retries": 0,
       "verifier_result": "PASS — both v1 and v2 PromptParityTest pass with Node v25; 0 skipped in :fixthis-mcp:test (down from 1)",
-      "orchestrator_note": "v1 @Ignore removed; src? filter replaced with token-based comparison. Package:/Annotations: excluded from byte-identical set due to Kotlin markdown-list/backtick formatting vs JS plain text (known divergence).",
+      "orchestrator_note": "v1 @Ignore removed; src? filter replaced with token-based comparison. Package:/Annotations: excluded from byte-identical set.",
       "timing": {"started": "2026-05-09T17:10:00Z", "completed": "2026-05-09T17:35:00Z"}
+    },
+    "task_34": {
+      "plan_id": "6.3",
+      "status": "COMPLETE",
+      "risk": "mid",
+      "files": ["fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt", "docs/superpowers/plans/2026-05-09-compact-handoff-prompt-v2.md"],
+      "commit": "d2a766e",
+      "pre_task_sha": "6f441a9737234fad200b0d81ef4a32465871fadf",
+      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
+      "orchestrator_note": "Budget guard: measured baseline 1550 chars, budget 1900 (ceil(1.2x)). Test compactPromptForSessionV2StaysUnderBudget added.",
+      "timing": {"started": "2026-05-09T17:35:00Z", "completed": "2026-05-09T17:50:00Z"}
+    },
+    "task_35": {
+      "plan_id": "6.4",
+      "status": "COMPLETE",
+      "risk": "mid",
+      "files": ["fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt", "docs/superpowers/plans/2026-05-09-compact-handoff-prompt-v2.md"],
+      "commit": "ce54a30",
+      "pre_task_sha": "d2a766e",
+      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
+      "orchestrator_note": "Backward-compat smoke renderRunsCleanlyOnV1Fixture: loads v1 session.json, runs v2 renderer, asserts Rule: line + ≥1 ~ line per item. v1 fixture has scoreMargin=1.0 so margin=1.00 emits as expected.",
+      "timing": {"started": "2026-05-09T17:50:00Z", "completed": "2026-05-09T18:05:00Z"}
+    },
+    "task_36": {
+      "plan_id": "6.5",
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": ["fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt"],
+      "commit": "b5ad48f",
+      "pre_task_sha": "ce54a30",
+      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
+      "verifier_result": "PASS — full ./gradlew test: 332 tests, 2 baseline failures (FeedbackConsoleServerTest pair)",
+      "orchestrator_note": "Verification gate caught 1 new failure (FeedbackConsoleServerTest.consoleHtmlBuildsCopiesAndSendsSelectedHistoryPrompt asserted on v1 'src? ' literal in app.js). Orchestrator-level fix: updated assertion to '  candidates:'. Net result: baseline 2 failures matched.",
+      "timing": {"started": "2026-05-09T18:05:00Z", "completed": "2026-05-09T18:18:00Z"}
     }
   },
   "task_summaries": {
@@ -591,14 +625,32 @@
     },
     "task_33": {
       "files": ["fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/PromptParityTest.kt"],
-      "exposed_apis": ["PromptParityTest active with 2 tests: jsAndKotlinCompactPromptsMatchExpectedFixture (v1) + kotlinAndJsCompactPromptsMatch_v2"],
-      "key_decision": "Both pass with Node available. Package:/Annotations: excluded from byte-identical comparison (Kotlin markdown-list with backticks vs JS plain text — known divergence).",
-      "for_next_tasks": "Task 6.3 (budget guard) and 6.4 (backward-compat smoke) build on this. Task 7.5 final validation gate runs full ./gradlew test."
+      "exposed_apis": ["PromptParityTest re-enabled with v1+v2 tests"],
+      "key_decision": "Both pass with Node available.",
+      "for_next_tasks": "Phase 6 complete."
+    },
+    "task_34": {
+      "files": ["fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt"],
+      "exposed_apis": ["compactPromptForSessionV2StaysUnderBudget asserts rendered.length <= 1900"],
+      "key_decision": "Baseline 1550 chars, budget 1900.",
+      "for_next_tasks": "Recompute budget if v2 fixture changes (Task 7.x docs only — fixture stable)."
+    },
+    "task_35": {
+      "files": ["fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt"],
+      "exposed_apis": ["renderRunsCleanlyOnV1Fixture in CompactHandoffRendererTest"],
+      "key_decision": "v1 fixture renders cleanly under v2 renderer.",
+      "for_next_tasks": "Backward compat assured."
+    },
+    "task_36": {
+      "files": ["fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt"],
+      "exposed_apis": ["FeedbackConsoleServerTest.consoleHtmlBuildsCopiesAndSendsSelectedHistoryPrompt now asserts on '  candidates:' literal"],
+      "key_decision": "Stale v1 'src? ' literal assertion replaced.",
+      "for_next_tasks": "Phase 7 docs work. Test count locked at 332 tests, 2 baseline failures."
     }
   },
   "low_tasks_pending_verification": ["task_24", "task_31", "task_32"],
   "last_compaction_after_task": 23,
-  "current_task": 34,
+  "current_task": 37,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
