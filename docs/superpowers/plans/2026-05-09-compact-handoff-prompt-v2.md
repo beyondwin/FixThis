@@ -110,7 +110,7 @@ Goal: capture the v1 test baseline, lock the v2 fixtures, and ship the one-line 
 
 ### Task 0.1 — Capture baseline test pass count
 
-- [ ] Run the full Gradle test suite: `./gradlew test`. Record total tests, pass count, and any pre-existing failures in this file under "Phase 0 baseline notes". Stop and ask if the baseline is broken in a way that blocks v2.
+- [x] Run the full Gradle test suite: `./gradlew test`. Record total tests, pass count, and any pre-existing failures in this file under "Phase 0 baseline notes". Stop and ask if the baseline is broken in a way that blocks v2.
 
 **Validation:** `./gradlew test`
 **Expected:** ≥281 tests pass (matches recent baselines from console-uiux-fixes / annotation-screen-mismatch); ≤2 pre-existing failures.
@@ -551,7 +551,16 @@ Goal: lock the v2 contract with cross-language parity and a token-budget regress
 
 ## Phase 0 baseline notes
 
-(To be filled in during Task 0.1.)
+- **Command:** `./gradlew test`
+- **Git SHA at baseline:** `6e475198566771d64ab36c733e5bb92b55ae0011`
+- **Branch:** `compact-handoff-prompt-v2-20260509-183739`
+- **Total tests:** 283
+- **Passing:** 281
+- **Failing:** 2 (pre-existing)
+- **Pre-existing failures:**
+  1. `FeedbackConsoleServerTest.consoleHtmlUsesModeAwareStudioInspector` (`FeedbackConsoleServerTest.kt:629`)
+  2. `FeedbackConsoleServerTest.consoleHtmlAnnotationSaveUsesCurrentSelectionPayload` (`FeedbackConsoleServerTest.kt:1905`)
+- **Assessment:** Baseline is acceptable for v2 (≥281 pass, ≤2 pre-existing failures). The 2 failures are pre-existing and unrelated to v2 renderer work; they do not block this plan.
 
 ## Phase 0 inventory notes
 
