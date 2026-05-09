@@ -230,8 +230,10 @@ Goal: switch the v1 token shape to v2 in Kotlin only. No new information; format
 
 ### Task 1.7 — Update existing CompactHandoffRendererTest assertions
 
-- [ ] Identify v1 tests that asserted `bounds=L,T - R,B` literals or `target: Node "tag"` literals (inventoried in Task 0.2). Update each to assert v2 `box=(...)` and `ui: <role> tag=...` shapes. Run; expect all pass.
-- [ ] Commit: `test(handoff-v2): update existing v1 assertions to v2 token shape`.
+- [x] Identify v1 tests that asserted `bounds=L,T - R,B` literals or `target: Node "tag"` literals (inventoried in Task 0.2). Update each to assert v2 `box=(...)` and `ui: <role> tag=...` shapes. Run; expect all pass.
+- [x] Commit: `test(handoff-v2): update existing v1 assertions to v2 token shape`.
+
+**Audit result (2026-05-09):** Confirmed no-op. `grep -rn "bounds=\|target: Node\|src? "` found zero hits in `CompactHandoffRendererTest.kt`. The one `src? unknown` hit was in `FeedbackQueueFormatterTest.kt` (COMPACT mode via `FeedbackQueueFormatter`, not `CompactHandoffRenderer`) — that literal is still live in production code (`CompactHandoffRenderer.kt:105`) and is intentionally preserved until Phase 2 Task 2.1. All `*CompactHandoffRenderer*` tests pass.
 
 **Validation:** `./gradlew :fixthis-mcp:test`
 **Expected:** All pass.
