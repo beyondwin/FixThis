@@ -3029,7 +3029,13 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             const SessionsPollIntervalMs = 2000;
 
             function shouldPollSessions() {
-              return !document.hidden && pendingMutationCount === 0;
+              return !document.hidden && pendingMutationCount === 0 && !isEditingAnnotation();
+            }
+
+            function isEditingAnnotation() {
+              const active = document.activeElement;
+              if (!active) return false;
+              return active.id === 'annotationCommentInput' || active.id === 'annotationLabelInput';
             }
 
             function startSessionsPolling() {
