@@ -134,7 +134,7 @@ Goal: capture the v1 test baseline, lock the v2 fixtures, and ship the one-line 
 
 ### Task 0.4 — Verify scoreMargin is null on real wire data
 
-- [ ] Run a one-shot Python or Kotlin script against an existing session JSON (e.g. `.fixthis/feedback-sessions/a8483865-fd81-4075-a313-2a44d7a6c1d4/session.json`) and confirm every `sourceCandidates[*].scoreMargin` is `null`. This confirms the matcher fix in Phase 0.6 is necessary.
+- [x] Run a one-shot Python or Kotlin script against an existing session JSON (e.g. `.fixthis/feedback-sessions/a8483865-fd81-4075-a313-2a44d7a6c1d4/session.json`) and confirm every `sourceCandidates[*].scoreMargin` is `null`. This confirms the matcher fix in Phase 0.6 is necessary.
 
 **Validation:** Inspection script output.
 **Expected:** `scoreMargin == null` for ≥1 candidate where ≥2 candidates exist on the same item.
@@ -656,6 +656,21 @@ The actual v2 budget guard in Task 6.3 will use the 4-item `session-v2.json` fix
 2. Record `v1_baseline_chars` in the test comment.
 3. Assert `v2_prompt.length <= ceil(1.5 * v1_baseline_chars)`.
 4. Update this section with the concrete numbers once measured.
+
+### Phase 0.4 scoreMargin verification
+
+Ran Python inspection script against 3 real wire sessions (2026-05-09):
+
+**Note:** The session JSON uses `items` (not `annotations`) as the top-level list key.
+
+| Session | Total candidates | null scoreMargin | non-null scoreMargin | Items with ≥2 candidates |
+|---------|-----------------|-----------------|---------------------|--------------------------|
+| a8483865-fd81-4075-a313-2a44d7a6c1d4 | 16 | 16 | 0 | 4 |
+| 050f4301-2b26-4a31-9889-53817f6377f2 | 4 | 4 | 0 | 1 |
+| 0c304fd6-1ab7-42aa-8db5-5daac0f80efe | 11 | 11 | 0 | 3 |
+| **Total** | **31** | **31** | **0** | **8** |
+
+**Conclusion:** All 31 candidates across 3 sessions have `scoreMargin == null`, including 8 items with ≥2 candidates where the matcher fix would compute a real margin. The matcher fix in Phase 0.6 is genuinely needed — the field is never populated on the wire today.
 
 ## Smoke notes
 
