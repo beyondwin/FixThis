@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "console:smoke": "node scripts/console-browser-smoke.mjs"
+    "console:smoke": "node scripts/console-browser-smoke.mjs",
+    "console:availability:test": "node --test scripts/console-availability-test.mjs"
   },
   "devDependencies": {
     "playwright": "^1.59.1"

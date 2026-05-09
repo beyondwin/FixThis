@@ -8,6 +8,7 @@ const sources = [
   'state.js',
   'api.js',
   'connection.js',
+  'availability.js',
   'devices.js',
   'preview.js',
   'annotations.js',
