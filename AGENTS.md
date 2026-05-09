@@ -86,7 +86,7 @@ scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample --host-only
 5. Click a UI element or drag a visual area; type a comment.
 6. Click **Add annotation** — creates a numbered pin in the overlay.
 7. Repeat steps 5–6 for all feedback on this screen.
-8. Click **Send Agent** — persists one evidence snapshot (screenshot + overlay + source candidates) and creates a local handoff batch.
+8. Click **Save to MCP** — persists one evidence snapshot (screenshot + overlay + source candidates) and creates a local handoff batch. Use **Copy Prompt** instead if you'd rather paste the compact Markdown directly into a chat-style agent without going through MCP.
 9. Call `fixthis_read_feedback` to read the queue, then `fixthis_resolve_feedback` after making changes.
 
 ## Diagnostics
@@ -101,7 +101,7 @@ Common issues and remedies are in [docs/troubleshooting.md](docs/troubleshooting
 
 - **Debug builds only.** The sidekick installs only via `debugImplementation`. Never target release builds.
 - **Jetpack Compose only.** No View-based or Flutter targets in V1.
-- **Local-first.** FixThis makes no external API calls. `Send Agent` is local file persistence; screenshots stay on your machine.
+- **Local-first.** FixThis makes no external API calls. `Save to MCP` is local file persistence; screenshots stay on your machine.
 - **Do not commit `.fixthis/`** — it contains screenshots, session metadata, and local artifacts.
 - **Do not rename persisted MCP JSON fields.** Field names `items`, `screens`, `itemId`, `screenId`, `targetEvidence`, and `sourceCandidates` are compatibility contracts for persisted session files. Domain model names may differ; mappers translate at the boundary.
 - **`:fixthis-compose-core` has no dependency on MCP, CLI, Android UI, or `.fixthis/` paths.** Outer modules translate explicitly.
