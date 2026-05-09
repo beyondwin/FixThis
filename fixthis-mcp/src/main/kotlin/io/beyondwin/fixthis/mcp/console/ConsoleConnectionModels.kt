@@ -38,6 +38,7 @@ data class ConsoleAvailabilitySignals(
     val appForeground: Boolean? = null,
     val pictureInPicture: Boolean? = null,
     val rootsCount: Int? = null,
+    val activity: String? = null,
 )
 
 @Serializable

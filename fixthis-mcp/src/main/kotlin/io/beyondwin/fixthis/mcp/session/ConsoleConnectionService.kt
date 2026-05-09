@@ -12,6 +12,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 
 internal class ConsoleConnectionService(
@@ -194,6 +195,7 @@ internal class ConsoleConnectionService(
                 appForeground = payload.bool("appForeground"),
                 pictureInPicture = payload.bool("pictureInPicture"),
                 rootsCount = payload.int("rootsCount"),
+                activity = payload.string("activity"),
             )
         } catch (error: CancellationException) {
             throw error
@@ -206,4 +208,7 @@ internal class ConsoleConnectionService(
 
     private fun JsonObject.int(key: String): Int? =
         (this[key] as? JsonPrimitive)?.intOrNull
+
+    private fun JsonObject.string(key: String): String? =
+        (this[key] as? JsonPrimitive)?.contentOrNull
 }

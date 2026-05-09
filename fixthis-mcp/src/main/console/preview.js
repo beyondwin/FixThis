@@ -123,7 +123,11 @@
               try {
                 const preview = await requestLivePreview();
                 if (addItemsFlow || requestGeneration !== previewRequestGeneration) return;
-                state.preview = preview;
+                state.preview = {
+                  ...preview,
+                  activity: state.connection?.availability?.activity ?? null,
+                  stale: false,
+                };
                 if (userConnectionState(state.connection.current) === 'ready') markPreviewStale(false);
                 renderPreviewOnly();
               } catch (cause) {
@@ -187,4 +191,30 @@
 
             document.getElementById('canvasBlockedOverlay')?.querySelector('[data-retry]')?.addEventListener('click', () => {
               refreshConnection().catch(showError);
+            });
+
+            function renderStaleFrameNotice() {
+              const root = document.getElementById('canvasStaleNotice');
+              if (!root) return;
+              if (state.preview?.stale) {
+                root.hidden = false;
+              } else {
+                root.hidden = true;
+              }
+            }
+
+            document.getElementById('canvasStaleNotice')?.querySelector('[data-use-latest]')?.addEventListener('click', () => {
+              // Drop the stale frozen preview and any pins anchored to it, then
+              // re-freeze the latest frame via the existing Annotate primer when
+              // appropriate, or fall through to a fresh live preview otherwise.
+              const wasAnnotating = toolMode === 'annotate' || Boolean(addItemsFlow);
+              state.preview = null;
+              pendingFeedbackItems.length = 0;
+              addItemsFlow = null;
+              if (wasAnnotating) {
+                startAddItemsFlow().catch(showError);
+              } else {
+                refreshPreview().catch(showError);
+              }
+              render();
             });

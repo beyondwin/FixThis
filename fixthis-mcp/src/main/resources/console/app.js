@@ -304,6 +304,26 @@
               // success → clear failure streak
               unresponsiveTracker.observeSuccess();
 
+              // Mark frozen preview stale when the device's foreground activity has changed.
+              const restoredActivity = state.preview?.activity ?? null;
+              const currentActivity = status?.availability?.activity ?? null;
+              if (state.preview && restoredActivity && currentActivity) {
+                state.preview.stale = restoredActivity !== currentActivity;
+              } else if (state.preview) {
+                state.preview.stale = false;
+              }
+
+              // Detect blocked → unblocked transitions for select-mode auto-resume.
+              if (
+                state.connection.previousBlockedReason !== null &&
+                state.connection.interactionBlockedReason === null
+              ) {
+                if (toolMode === 'select' && state.session) {
+                  refreshPreview().catch(showError);
+                }
+              }
+              state.connection.previousBlockedReason = state.connection.interactionBlockedReason;
+
               syncSelectedDeviceFromConnection(status);
               const viewState = userConnectionState(status);
               if (viewState === 'ready') {
@@ -804,7 +824,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               try {
                 const preview = await requestLivePreview();
                 if (addItemsFlow || requestGeneration !== previewRequestGeneration) return;
-                state.preview = preview;
+                state.preview = {
+                  ...preview,
+                  activity: state.connection?.availability?.activity ?? null,
+                  stale: false,
+                };
                 if (userConnectionState(state.connection.current) === 'ready') markPreviewStale(false);
                 renderPreviewOnly();
               } catch (cause) {
@@ -868,6 +892,32 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             document.getElementById('canvasBlockedOverlay')?.querySelector('[data-retry]')?.addEventListener('click', () => {
               refreshConnection().catch(showError);
+            });
+
+            function renderStaleFrameNotice() {
+              const root = document.getElementById('canvasStaleNotice');
+              if (!root) return;
+              if (state.preview?.stale) {
+                root.hidden = false;
+              } else {
+                root.hidden = true;
+              }
+            }
+
+            document.getElementById('canvasStaleNotice')?.querySelector('[data-use-latest]')?.addEventListener('click', () => {
+              // Drop the stale frozen preview and any pins anchored to it, then
+              // re-freeze the latest frame via the existing Annotate primer when
+              // appropriate, or fall through to a fresh live preview otherwise.
+              const wasAnnotating = toolMode === 'annotate' || Boolean(addItemsFlow);
+              state.preview = null;
+              pendingFeedbackItems.length = 0;
+              addItemsFlow = null;
+              if (wasAnnotating) {
+                startAddItemsFlow().catch(showError);
+              } else {
+                refreshPreview().catch(showError);
+              }
+              render();
             });
 
 // annotations.js
@@ -1199,6 +1249,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 if (previewRequestInFlight || !preview) {
                   preview = await requestLivePreview();
                   if (addFlowContextGeneration !== previewRequestContextGeneration) return;
+                  preview = {
+                    ...preview,
+                    activity: state.connection?.availability?.activity ?? null,
+                    stale: false,
+                  };
                   state.preview = preview;
                 }
                 if (!state.preview) {
@@ -2684,6 +2739,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               }
               renderSelectionOverlay();
               renderCanvasBlockedOverlay();
+              renderStaleFrameNotice();
             }
 
             function renderPreviewOnly() {

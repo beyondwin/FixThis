@@ -86,6 +86,26 @@
               // success → clear failure streak
               unresponsiveTracker.observeSuccess();
 
+              // Mark frozen preview stale when the device's foreground activity has changed.
+              const restoredActivity = state.preview?.activity ?? null;
+              const currentActivity = status?.availability?.activity ?? null;
+              if (state.preview && restoredActivity && currentActivity) {
+                state.preview.stale = restoredActivity !== currentActivity;
+              } else if (state.preview) {
+                state.preview.stale = false;
+              }
+
+              // Detect blocked → unblocked transitions for select-mode auto-resume.
+              if (
+                state.connection.previousBlockedReason !== null &&
+                state.connection.interactionBlockedReason === null
+              ) {
+                if (toolMode === 'select' && state.session) {
+                  refreshPreview().catch(showError);
+                }
+              }
+              state.connection.previousBlockedReason = state.connection.interactionBlockedReason;
+
               syncSelectedDeviceFromConnection(status);
               const viewState = userConnectionState(status);
               if (viewState === 'ready') {

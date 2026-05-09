@@ -513,6 +513,7 @@
               }
               renderSelectionOverlay();
               renderCanvasBlockedOverlay();
+              renderStaleFrameNotice();
             }
 
             function renderPreviewOnly() {

@@ -38,6 +38,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -1298,6 +1299,7 @@ class FeedbackConsoleServerTest {
             assertEquals(true, availability.getValue("appForeground").jsonPrimitive.boolean)
             assertEquals(false, availability.getValue("pictureInPicture").jsonPrimitive.boolean)
             assertEquals(3, availability.getValue("rootsCount").jsonPrimitive.int)
+            assertEquals("MainActivity", availability.getValue("activity").jsonPrimitive.content)
         } finally {
             server.stop()
         }
@@ -1308,7 +1310,6 @@ class FeedbackConsoleServerTest {
         val bridge = FakeFixThisBridge(
             statusProvider = {
                 buildJsonObject {
-                    put("activity", "MainActivity")
                     put("rootsCount", 2)
                     put("sidekickVersion", "0.0.1")
                     put("bridgeProtocolVersion", 1)
@@ -1330,6 +1331,7 @@ class FeedbackConsoleServerTest {
             assertEquals(null, availability["appForeground"]?.jsonPrimitive?.booleanOrNull)
             assertEquals(null, availability["pictureInPicture"]?.jsonPrimitive?.booleanOrNull)
             assertEquals(2, availability.getValue("rootsCount").jsonPrimitive.int)
+            assertEquals(null, availability["activity"]?.jsonPrimitive?.contentOrNull)
         } finally {
             server.stop()
         }

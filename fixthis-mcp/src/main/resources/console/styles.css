@@ -1327,3 +1327,17 @@
               cursor: pointer;
             }
             .canvas-blocked__retry[hidden] { display: none; }
+            .canvas-stale {
+              position: absolute;
+              top: 12px;
+              left: 12px;
+              right: 12px;
+              background: rgba(120, 53, 15, 0.85);
+              color: #fff7ed;
+              padding: 8px 12px;
+              border-radius: 6px;
+              display: flex;
+              align-items: center;
+              gap: 12px;
+            }
+            .canvas-stale[hidden] { display: none; }

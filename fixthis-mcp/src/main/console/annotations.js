@@ -326,6 +326,11 @@
                 if (previewRequestInFlight || !preview) {
                   preview = await requestLivePreview();
                   if (addFlowContextGeneration !== previewRequestContextGeneration) return;
+                  preview = {
+                    ...preview,
+                    activity: state.connection?.availability?.activity ?? null,
+                    stale: false,
+                  };
                   state.preview = preview;
                 }
                 if (!state.preview) {
