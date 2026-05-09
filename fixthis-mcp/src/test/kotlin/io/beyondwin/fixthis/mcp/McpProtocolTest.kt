@@ -261,6 +261,18 @@ class McpProtocolTest {
     }
 
     @Test
+    fun resolveFeedbackDescriptionMentionsClaimPairing() {
+        val response = runSingleRequest("""{"jsonrpc":"2.0","id":"tools","method":"tools/list","params":{}}""")
+
+        val tools = response.jsonObject
+            .getValue("result").jsonObject
+            .getValue("tools").jsonArray
+        val resolve = tools.first { it.jsonObject["name"]!!.jsonPrimitive.content == "fixthis_resolve_feedback" }
+        val description = resolve.jsonObject["description"]!!.jsonPrimitive.content
+        assertTrue(description, description.contains("after claiming", ignoreCase = true))
+    }
+
+    @Test
     fun readFeedbackSchemaAdvertisesDetailMode() {
         val response = runSingleRequest("""{"jsonrpc":"2.0","id":"tools","method":"tools/list","params":{}}""")
 

@@ -700,7 +700,7 @@ private val ToolDefinitions = listOf(
     ),
     ToolDefinition(
         name = "fixthis_resolve_feedback",
-        description = "Mark a feedback item as resolved, needing clarification, or not fixed.",
+        description = "Mark a feedback item as resolved, needing clarification, or not fixed. Call this after claiming an item with fixthis_claim_feedback and finishing the work. Status must be one of resolved, needs_clarification, wont_fix.",
         inputSchema = objectSchema(
             "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
             "itemId" to stringProperty("Feedback item id to update."),
