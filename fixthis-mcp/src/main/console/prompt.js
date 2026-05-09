@@ -291,13 +291,25 @@
               ensurePromptAnnotationsAvailable();
               promptActionInFlight = true;
               updateComposerState();
+              const labelSpan = copyPromptButton.querySelector('span:not(.button-icon)');
+              const originalLabel = labelSpan ? labelSpan.textContent : null;
+              let copied = false;
               try {
                 if (addItemsFlow) {
                   await persistPendingFeedbackItems({ onlyWrittenComments: true });
                 }
                 await copyTextToClipboard(currentAnnotationsPrompt());
+                copied = true;
               } finally {
                 promptActionInFlight = false;
                 updateComposerState();
+                if (copied && labelSpan) {
+                  labelSpan.textContent = 'Copied ✓';
+                  setTimeout(() => {
+                    if (labelSpan.textContent === 'Copied ✓') {
+                      labelSpan.textContent = originalLabel;
+                    }
+                  }, 1500);
+                }
               }
             }
