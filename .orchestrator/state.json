@@ -200,6 +200,17 @@
       "review_retries": 0,
       "verifier_retries": 0,
       "notes": "Implementer ESCALATEd because npm run console:smoke fails at line 455 on main too (pre-existing). Orchestrator authored the scenario directly per spec §9.3 'extends with new fake-fixture flows'. The new scenario is appended after existing scenarios; verification deferred until baseline is fixed in a separate task."
+    },
+    "task_12": {
+      "status": "COMPLETE",
+      "risk": "high",
+      "files": ["CHANGELOG.md"],
+      "commit": "01d93e8",
+      "pre_task_sha": "b19891e",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "automated_only": "Steps 2-3 (manual device scenarios from spec §9.4) deferred to user. installDist + assembleDebug succeeded. 513 Kotlin + 15 JS tests passing."
     }
   },
   "task_summaries": {
@@ -311,6 +322,7 @@
   "low_tasks_pending_verification": [],
   "last_compaction_after_task": 9,
   "current_task": 12,
+  "completed": true,
   "phase_docs_skipped": ["phase_1", "phase_2"],
   "phase_summaries_log": [
     {
@@ -339,6 +351,6 @@
   "playwright_required_in_task_11": true,
   "timestamps": {
     "started_at": "2026-05-09T14:55:00Z",
-    "completed_at": null
+    "completed_at": "2026-05-09T17:30:00Z"
   }
 }
