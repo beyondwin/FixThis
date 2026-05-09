@@ -307,15 +307,21 @@
             }
 
 
+            // Sync sidebar summaries and the active session in lockstep so the panel/toolbar
+            // (driven by state.session) cannot drift behind the sidebar (driven by summaries).
+            // Both endpoints fetched in parallel; if one fails the call rejects as before.
             async function refreshSessions() {
-              const response = await requestJson('/api/sessions');
+              const [response, currentSession] = await Promise.all([
+                requestJson('/api/sessions'),
+                requestJson('/api/session'),
+              ]);
+              state.session = currentSession || null;
               renderSessionsListFromPayload(response.sessions || []);
               return response.sessions || [];
             }
 
             async function refresh() {
               error.textContent = '';
-              state.session = await requestJson('/api/session');
               await refreshSessions();
               await refreshDevices();
               await refreshConnection();

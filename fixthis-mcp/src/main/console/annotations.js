@@ -60,9 +60,14 @@
               return 'st-open';
             }
 
+            // Display-side annotations for the toolbar counter and the right Annotations panel.
+            // Includes already-sent items so the count matches the sidebar Session card's lifetime total
+            // (sidebar uses server-side unresolvedItemsCount, which counts by status only — not delivery).
+            // The send/copy path uses currentPromptAnnotations(), which re-applies the delivery filter
+            // so already-sent items are not re-sent.
             function toolbarAnnotations() {
               if (addItemsFlow) return pendingFeedbackItems;
-              return (state.session?.items || []).filter(item => item.delivery !== 'sent');
+              return state.session?.items || [];
             }
 
             function hasWrittenAnnotationComment(item) {
@@ -71,7 +76,9 @@
 
             function currentPromptAnnotations() {
               if (!state.session) return [];
-              return toolbarAnnotations().filter(hasWrittenAnnotationComment);
+              return toolbarAnnotations()
+                .filter(item => item.delivery !== 'sent')
+                .filter(hasWrittenAnnotationComment);
             }
 
 

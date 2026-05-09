@@ -222,8 +222,12 @@
               return Array.from(groups.entries()).map(entry => ({ screenId: entry[0], items: entry[1] }));
             }
 
+            // Right-panel "Annotations" rows. Includes sent items so the panel count matches the
+            // sidebar Session card. Each row carries its own status badge (Open/Resolved); rows tied
+            // to delivered handoffs render the same as drafts here. Send/copy logic that must skip
+            // already-sent items uses currentPromptAnnotations() instead.
             function savedEvidenceItems() {
-              return (state.session?.items || []).filter(item => item.delivery !== 'sent');
+              return state.session?.items || [];
             }
 
             function selectedSavedAnnotation() {

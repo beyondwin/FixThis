@@ -987,9 +987,14 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               return 'st-open';
             }
 
+            // Display-side annotations for the toolbar counter and the right Annotations panel.
+            // Includes already-sent items so the count matches the sidebar Session card's lifetime total
+            // (sidebar uses server-side unresolvedItemsCount, which counts by status only — not delivery).
+            // The send/copy path uses currentPromptAnnotations(), which re-applies the delivery filter
+            // so already-sent items are not re-sent.
             function toolbarAnnotations() {
               if (addItemsFlow) return pendingFeedbackItems;
-              return (state.session?.items || []).filter(item => item.delivery !== 'sent');
+              return state.session?.items || [];
             }
 
             function hasWrittenAnnotationComment(item) {
@@ -998,7 +1003,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function currentPromptAnnotations() {
               if (!state.session) return [];
-              return toolbarAnnotations().filter(hasWrittenAnnotationComment);
+              return toolbarAnnotations()
+                .filter(item => item.delivery !== 'sent')
+                .filter(hasWrittenAnnotationComment);
             }
 
 
@@ -1786,15 +1793,21 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
 
+            // Sync sidebar summaries and the active session in lockstep so the panel/toolbar
+            // (driven by state.session) cannot drift behind the sidebar (driven by summaries).
+            // Both endpoints fetched in parallel; if one fails the call rejects as before.
             async function refreshSessions() {
-              const response = await requestJson('/api/sessions');
+              const [response, currentSession] = await Promise.all([
+                requestJson('/api/sessions'),
+                requestJson('/api/session'),
+              ]);
+              state.session = currentSession || null;
               renderSessionsListFromPayload(response.sessions || []);
               return response.sessions || [];
             }
 
             async function refresh() {
               error.textContent = '';
-              state.session = await requestJson('/api/session');
               await refreshSessions();
               await refreshDevices();
               await refreshConnection();
@@ -2661,8 +2674,12 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               return Array.from(groups.entries()).map(entry => ({ screenId: entry[0], items: entry[1] }));
             }
 
+            // Right-panel "Annotations" rows. Includes sent items so the panel count matches the
+            // sidebar Session card. Each row carries its own status badge (Open/Resolved); rows tied
+            // to delivered handoffs render the same as drafts here. Send/copy logic that must skip
+            // already-sent items uses currentPromptAnnotations() instead.
             function savedEvidenceItems() {
-              return (state.session?.items || []).filter(item => item.delivery !== 'sent');
+              return state.session?.items || [];
             }
 
             function selectedSavedAnnotation() {
