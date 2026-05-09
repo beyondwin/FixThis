@@ -211,10 +211,10 @@ Goal: switch the v1 token shape to v2 in Kotlin only. No new information; format
 
 ### Task 1.5 — Renderer: ui line replaces target line (TDD)
 
-- [ ] **Red:** Test: an item whose `selectedNode.role="MetricCard"` and `selectedNode.testTag="comp:MetricCard:summary"` and `target.boundsInWindow=(28,212,692,419)` produces `  ui: MetricCard tag=comp:MetricCard:summary  box=(28.0,212.0)-(692.0,419.0) [664×207]`. (Two-space indent, single space between tokens, double-space before `box=`.) Run; expect failure.
-- [ ] **Green:** Rename `compactTargetSummary` to `compactUiLine` (or add new function and have the call site choose). Build the line as: indent + `ui: ` + role + ` tag=` + tag + `  box=` + `formatBox()`. Fall back to `(unlabelled)` for missing tag and `Node`/`Area` for missing role (preserve v1 fallback semantics). Run; expect pass.
-- [ ] Add tests for: missing testTag → `tag=(none)` (or omitted entirely — choose; record decision); missing role → `Node`/`Area`; preserve `targetRisk=overlap` suffix when item is in an overlap group.
-- [ ] Commit: `feat(handoff-v2): replace target line with ui line + formatBox`.
+- [x] **Red:** Test: an item whose `selectedNode.role="MetricCard"` and `selectedNode.testTag="comp:MetricCard:summary"` and `target.boundsInWindow=(28,212,692,419)` produces `  ui: MetricCard tag=comp:MetricCard:summary  box=(28.0,212.0)-(692.0,419.0) [664×207]`. (Two-space indent, single space between tokens, double-space before `box=`.) Run; expect failure.
+- [x] **Green:** Rename `compactTargetSummary` to `compactUiLine` (or add new function and have the call site choose). Build the line as: indent + `ui: ` + role + ` tag=` + tag + `  box=` + `formatBox()`. Fall back to `(unlabelled)` for missing tag and `Node`/`Area` for missing role (preserve v1 fallback semantics). Run; expect pass.
+- [x] Add tests for: missing testTag → `tag=(none)` (or omitted entirely — choose; record decision); missing role → `Node`/`Area`; preserve `targetRisk=overlap` suffix when item is in an overlap group.
+- [x] Commit: `feat(handoff-v2): replace target line with ui line + formatBox`.
 
 **Validation:** Same as 1.2.
 **Expected:** All pass.

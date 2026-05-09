@@ -1,6 +1,8 @@
 package io.beyondwin.fixthis.mcp.session
 
+import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.compose.core.model.TreeKind
 import kotlin.test.assertTrue
 import org.junit.Test
 
@@ -333,5 +335,134 @@ class CompactHandoffRendererTest {
         val markdown = CompactHandoffRenderer.render(session)
         assertTrue(markdown.contains("Rule: source hints are candidates"))
         assertTrue(markdown.contains("Screen "))
+    }
+
+    // ---- Task 1.5: ui line tests ----
+
+    private fun makeNode(
+        uid: String = "uid-1",
+        role: String? = null,
+        testTag: String? = null,
+    ) = FixThisNode(
+        uid = uid,
+        composeNodeId = 1,
+        rootIndex = 0,
+        treeKind = TreeKind.MERGED,
+        boundsInWindow = FixThisRect(0f, 0f, 100f, 100f),
+        role = role,
+        testTag = testTag,
+    )
+
+    private fun makeSessionWithNode(
+        itemId: String,
+        selectedNode: FixThisNode?,
+        bounds: FixThisRect,
+    ): SessionDto = SessionDto(
+        sessionId = "session-ui",
+        packageName = "io.beyondwin.fixthis.sample",
+        projectRoot = "/repo",
+        createdAtEpochMillis = 1L,
+        updatedAtEpochMillis = 1L,
+        screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
+        items = listOf(
+            AnnotationDto(
+                itemId = itemId,
+                screenId = "screen-1",
+                createdAtEpochMillis = 1L,
+                updatedAtEpochMillis = 1L,
+                target = AnnotationTargetDto.Node(nodeUid = "uid-1", boundsInWindow = bounds),
+                selectedNode = selectedNode,
+                comment = "fix this",
+                sequenceNumber = 1,
+            ),
+        ),
+    )
+
+    @Test
+    fun renderEmitsUiLineWithFormatBoxForTaggedNode() {
+        val session = makeSessionWithNode(
+            itemId = "i-ui",
+            selectedNode = makeNode(role = "MetricCard", testTag = "comp:MetricCard:summary"),
+            bounds = FixThisRect(28f, 212f, 692f, 419f),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        val expectedLine = "  ui: MetricCard tag=comp:MetricCard:summary  box=(28.0,212.0)-(692.0,419.0) [664×207]"
+        assertTrue(
+            markdown.lines().any { it == expectedLine },
+            "Expected to find line:\n  '$expectedLine'\nin:\n$markdown",
+        )
+    }
+
+    @Test
+    fun renderEmitsTagNoneWhenTestTagMissing() {
+        val session = makeSessionWithNode(
+            itemId = "i-notag",
+            selectedNode = makeNode(role = "Button", testTag = null),
+            bounds = FixThisRect(0f, 0f, 100f, 50f),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        assertTrue(
+            markdown.lines().any { it.contains("tag=(none)") },
+            "Expected 'tag=(none)' in a ui line but got:\n$markdown",
+        )
+    }
+
+    @Test
+    fun renderFallsBackToNodeForMissingRole() {
+        val session = makeSessionWithNode(
+            itemId = "i-norole",
+            selectedNode = makeNode(role = null, testTag = "some:tag"),
+            bounds = FixThisRect(0f, 0f, 100f, 50f),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        assertTrue(
+            markdown.lines().any { it.startsWith("  ui: Node") },
+            "Expected a line starting with '  ui: Node' but got:\n$markdown",
+        )
+    }
+
+    @Test
+    fun renderPreservesOverlapRiskSuffixOnUiLine() {
+        // Two overlapping Node items — overlap group is detected when they share bounds
+        val sharedBounds = FixThisRect(0f, 0f, 200f, 200f)
+        val session = SessionDto(
+            sessionId = "session-overlap",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "i-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node(nodeUid = "uid-1", boundsInWindow = sharedBounds),
+                    selectedNode = makeNode(uid = "uid-1", role = "Button", testTag = "btn:1"),
+                    comment = "fix 1",
+                    sequenceNumber = 1,
+                ),
+                AnnotationDto(
+                    itemId = "i-2",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node(nodeUid = "uid-2", boundsInWindow = sharedBounds),
+                    selectedNode = makeNode(uid = "uid-2", role = "Text", testTag = "txt:1"),
+                    comment = "fix 2",
+                    sequenceNumber = 2,
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        assertTrue(
+            markdown.lines().any { it.endsWith("; targetRisk=overlap") },
+            "Expected at least one ui line ending with '; targetRisk=overlap' but got:\n$markdown",
+        )
     }
 }

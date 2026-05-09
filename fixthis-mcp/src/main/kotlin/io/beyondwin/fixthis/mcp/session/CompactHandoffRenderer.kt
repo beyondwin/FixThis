@@ -79,28 +79,24 @@ object CompactHandoffRenderer {
     private fun StringBuilder.appendCompactItem(number: Int, item: AnnotationDto, isOverlap: Boolean) {
         val title = item.comment.lineSequence().firstOrNull()?.takeIf { it.isNotBlank() } ?: "(No request provided)"
         appendLine("${number}. [marker $number] ${title.inlineSafe()}")
-        val targetSummary = compactTargetSummary(item, isOverlap)
-        appendLine("target: $targetSummary")
+        appendLine(compactUiLine(item, isOverlap))
         item.screenshotCrop?.desktopCropPath?.let { appendLine("crop: ${it.inlineSafe()}") }
         appendLine(compactSourceLine(item))
         appendLine()
     }
 
-    private fun compactTargetSummary(item: AnnotationDto, isOverlap: Boolean): String {
+    private fun compactUiLine(item: AnnotationDto, isOverlap: Boolean): String {
         val node = item.selectedNode
         val role = node?.role?.takeIf { it.isNotBlank() } ?: when (item.target) {
             is AnnotationTargetDto.Area -> "Area"
             is AnnotationTargetDto.Node -> "Node"
         }
-        val label = node?.text?.firstOrNull()
-            ?: node?.contentDescription?.firstOrNull()
-            ?: node?.testTag
-            ?: "(unlabelled)"
-        val bounds = when (val target = item.target) {
-            is AnnotationTargetDto.Area -> target.boundsInWindow.formatBounds()
-            is AnnotationTargetDto.Node -> target.boundsInWindow.formatBounds()
+        val tag = node?.testTag ?: "(none)"
+        val rect = when (val target = item.target) {
+            is AnnotationTargetDto.Area -> target.boundsInWindow
+            is AnnotationTargetDto.Node -> target.boundsInWindow
         }
-        val base = "${role.inlineSafe()} \"${label.inlineSafe()}\" bounds=$bounds"
+        val base = "  ui: $role tag=$tag  box=${rect.formatBox()}"
         return if (isOverlap) "$base; targetRisk=overlap" else base
     }
 
