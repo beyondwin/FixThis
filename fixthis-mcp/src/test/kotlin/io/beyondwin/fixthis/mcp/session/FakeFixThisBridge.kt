@@ -25,6 +25,7 @@ internal class FakeFixThisBridge(
     private val devicesOverride: List<AdbDevice>? = null,
     private val devicesError: Throwable? = null,
     private val heartbeatError: Throwable? = null,
+    private val statusProvider: (() -> JsonObject)? = null,
 ) : FixThisBridge {
     val resolvedOverrides = mutableListOf<String?>()
     val navigationRequests = mutableListOf<FeedbackNavigationRequest>()
@@ -72,9 +73,11 @@ internal class FakeFixThisBridge(
         selectedDeviceSerial = null
     }
 
-    override suspend fun status(packageName: String): JsonObject = buildJsonObject {
+    override suspend fun status(packageName: String): JsonObject {
         statusCount += 1
-        put("activity", "MainActivity")
+        return statusProvider?.invoke() ?: buildJsonObject {
+            put("activity", "MainActivity")
+        }
     }
 
     override suspend fun heartbeat(packageName: String): JsonObject {

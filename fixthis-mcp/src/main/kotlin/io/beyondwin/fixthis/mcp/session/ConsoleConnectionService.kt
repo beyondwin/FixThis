@@ -1,6 +1,7 @@
 package io.beyondwin.fixthis.mcp.session
 
 import io.beyondwin.fixthis.cli.AdbDevice
+import io.beyondwin.fixthis.mcp.console.ConsoleAvailabilitySignals
 import io.beyondwin.fixthis.mcp.console.ConsoleConnectionAction
 import io.beyondwin.fixthis.mcp.console.ConsoleConnectionDetails
 import io.beyondwin.fixthis.mcp.console.ConsoleConnectionState
@@ -8,6 +9,10 @@ import io.beyondwin.fixthis.mcp.console.ConsoleConnectionStatus
 import io.beyondwin.fixthis.mcp.console.toConnectionDevice
 import io.beyondwin.fixthis.mcp.tools.FixThisBridge
 import kotlinx.coroutines.CancellationException
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.intOrNull
 
 internal class ConsoleConnectionService(
     private val bridge: FixThisBridge,
@@ -110,6 +115,7 @@ internal class ConsoleConnectionService(
 
         return try {
             bridge.heartbeat(session.packageName)
+            val availability = readAvailabilitySignals(session.packageName)
             ConsoleConnectionStatus(
                 state = ConsoleConnectionState.READY,
                 headline = "Ready",
@@ -120,6 +126,7 @@ internal class ConsoleConnectionService(
                 packageName = session.packageName,
                 canCapture = true,
                 canNavigate = true,
+                availability = availability,
                 details = ConsoleConnectionDetails(deviceState = "device", bridgeState = "connected"),
             )
         } catch (error: CancellationException) {
@@ -177,4 +184,26 @@ internal class ConsoleConnectionService(
             }
         }
     }
+
+    private suspend fun readAvailabilitySignals(packageName: String): ConsoleAvailabilitySignals? =
+        try {
+            val payload = bridge.status(packageName)
+            ConsoleAvailabilitySignals(
+                screenInteractive = payload.bool("screenInteractive"),
+                keyguardLocked = payload.bool("keyguardLocked"),
+                appForeground = payload.bool("appForeground"),
+                pictureInPicture = payload.bool("pictureInPicture"),
+                rootsCount = payload.int("rootsCount"),
+            )
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Throwable) {
+            null
+        }
+
+    private fun JsonObject.bool(key: String): Boolean? =
+        (this[key] as? JsonPrimitive)?.booleanOrNull
+
+    private fun JsonObject.int(key: String): Int? =
+        (this[key] as? JsonPrimitive)?.intOrNull
 }
