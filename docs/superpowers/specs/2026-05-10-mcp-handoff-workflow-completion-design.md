@@ -425,6 +425,13 @@ Delete from `rendering.js`: the `renderSentHistory()` call inside `renderSession
 
 `preview.js:75` — remove the `.filter(item => item.delivery !== 'sent')` call inside `latestPersistedScreen()`. SENT items can also be the latest persisted screen.
 
+> **Implementation correction (2026-05-10 follow-up)**: At execution
+> time only `preview.js:75` was modified. The `rendering.js:226` filter
+> had already been removed; the `annotations.js:65` reference moved to
+> `annotations.js:80` inside `currentPromptAnnotations()` where the
+> filter is intentional (send-once invariant). See follow-up plan
+> `2026-05-10-mcp-handoff-followups.md` for context.
+
 ### History list filter loosening
 
 `history.js:205`:
