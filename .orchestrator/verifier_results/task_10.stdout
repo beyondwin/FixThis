@@ -1,5 +1,0 @@
-**Result: PASS**
-
-- 283 tests run, 2 failed
-- Both failures (`consoleHtmlUsesModeAwareStudioInspector`, `consoleHtmlAnnotationSaveUsesCurrentSelectionPayload`) are pre-existing and match the baseline exactly
-- No new failures introduced by changes to `index.html`, `rendering.js`, or `app.js`
