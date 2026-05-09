@@ -173,10 +173,10 @@ Goal: switch the v1 token shape to v2 in Kotlin only. No new information; format
 
 ### Task 1.1 — Add `formatBox()` in FormatterExtensions (TDD)
 
-- [ ] **Red:** Create or extend a `FormatterExtensionsTest.kt` with a test: `FixThisRect(left=28f, top=212f, right=692f, bottom=419f).formatBox()` returns `"(28.0,212.0)-(692.0,419.0) [664×207]"`. Run; expect failure.
-- [ ] **Green:** Add `internal fun FixThisRect.formatBox(): String` to `FormatterExtensions.kt`. Use existing float-format for L/T/R/B (same as `formatBounds`); compute `width = (right - left).toInt()`, `height = (bottom - top).toInt()`. Concatenate. Run; expect pass.
-- [ ] Add a test for negative dimensions (right < left) returning `[0×0]` size suffix (use `coerceAtLeast(0)`). Run; expect pass.
-- [ ] Commit: `feat(formatter): add formatBox() with explicit (L,T)-(R,B) [W×H] shape`.
+- [x] **Red:** Create or extend a `FormatterExtensionsTest.kt` with a test: `FixThisRect(left=28f, top=212f, right=692f, bottom=419f).formatBox()` returns `"(28.0,212.0)-(692.0,419.0) [664×207]"`. Run; expect failure.
+- [x] **Green:** Add `internal fun FixThisRect.formatBox(): String` to `FormatterExtensions.kt`. Use existing float-format for L/T/R/B (same as `formatBounds`); compute `width = (right - left).toInt()`, `height = (bottom - top).toInt()`. Concatenate. Run; expect pass.
+- [x] Add a test for negative dimensions (right < left) returning `[0×0]` size suffix (use `coerceAtLeast(0)`). Run; expect pass.
+- [x] Commit: `feat(formatter): add formatBox() with explicit (L,T)-(R,B) [W×H] shape`.
 
 **Validation:** `./gradlew :fixthis-mcp:test --tests "*FormatterExtensions*"`
 **Expected:** All pass.
