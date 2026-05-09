@@ -309,6 +309,20 @@
       "verifier_result": "PASS — CompactHandoffRendererTest 30/30; :fixthis-mcp:test 320 tests, 2 baseline failures, 1 skipped",
       "orchestrator_note": "Reviewer skipped — wires existing helper into renderer; 2 focused tests + verifier coverage sufficient.",
       "timing": {"started": "2026-05-09T14:55:00Z", "completed": "2026-05-09T15:15:00Z"}
+    },
+    "task_21": {
+      "plan_id": "3.3",
+      "status": "COMPLETE",
+      "risk": "mid",
+      "files": ["fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt", "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt", "docs/superpowers/plans/2026-05-09-compact-handoff-prompt-v2.md"],
+      "commit": "13db57b",
+      "pre_task_sha": "7e23164a12dcbbcd5ed0bdd6e9d93b835e0e01fd",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "verifier_result": "PASS — CompactHandoffRendererTest 32/32; :fixthis-mcp:test 322 tests, 2 baseline failures, 1 skipped",
+      "orchestrator_note": "Reviewer skipped — small additive collision-note emission with 2 focused tests including overlap suppression.",
+      "timing": {"started": "2026-05-09T15:15:00Z", "completed": "2026-05-09T15:30:00Z"}
     }
   },
   "task_summaries": {
@@ -434,14 +448,20 @@
     },
     "task_20": {
       "files": ["fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt"],
-      "exposed_apis": ["render() calls InstanceGroupingHelper.compute(itemsForScreen) per screen; appendCompactItem accepts InstanceLabel?; compactUiLine inserts '  instance i/N' between box= and ; targetRisk= suffix"],
-      "key_decision": "Instance label inserted BETWEEN box= and any ; targetRisk= suffix (per spec grammar). Lone items (singleton groups) get no instance label.",
-      "for_next_tasks": "Task 3.3 (collision note) needs to access leaderItemIds from same grouping computation. Recommend exposing both labels and leaderItemIds via the call chain (render() → appendCompactItem). JS Task 5.5 mirrors instance-label rendering."
+      "exposed_apis": ["render() calls InstanceGroupingHelper per screen; compactUiLine inserts '  instance i/N' between box= and ; targetRisk= suffix"],
+      "key_decision": "Instance label inserted BETWEEN box= and any ; targetRisk= suffix.",
+      "for_next_tasks": "Task 3.3 added collision note. JS Task 5.5 mirrors instance-label rendering."
+    },
+    "task_21": {
+      "files": ["fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt"],
+      "exposed_apis": ["appendCompactItem(number, item, isOverlap, label, isInstanceLeader, groupSize); collision note emitted after appendCandidatesBlock when isInstanceLeader && groupSize>=2 && !isOverlap"],
+      "key_decision": "Wording: '  note: N markers map to same call site — likely list-rendered; disambiguate by instance index' (em-dash U+2014). Overlap supersedes — no collision note for overlap items.",
+      "for_next_tasks": "Task 4.x (duplicate detection) emits a different '; targetRisk=duplicate-of-marker-N' suffix on the ui line — independent of collision-note logic. JS Task 5.6 mirrors collision-note emission."
     }
   },
   "low_tasks_pending_verification": [],
-  "last_compaction_after_task": 18,
-  "current_task": 21,
+  "last_compaction_after_task": 21,
+  "current_task": 22,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
@@ -449,6 +469,19 @@
   "current_escalation_count": 0,
   "current_previous_issues": [],
   "phase_summaries": [
+    {
+      "phase": "Phase 3",
+      "tasks": ["task_19 (3.1 InstanceGroupingHelper)", "task_20 (3.2 emit instance i/N)", "task_21 (3.3 collision note)"],
+      "shipped": [
+        "InstanceGroupingHelper.compute returns InstanceGrouping(labels, leaderItemIds); group by (fileLine, testTag), exclude items missing selectedNode/candidates, ≥2 only",
+        "compactUiLine inserts '  instance i/N' between box= and ; targetRisk= suffix",
+        "Collision note '  note: N markers map to same call site — likely list-rendered; disambiguate by instance index' on each group leader (when not in overlap)"
+      ],
+      "batch_verifier": "N/A — all MID, individually verified",
+      "phase_docs": "SKIPPED — feedback-console-contract.md update reserved for Task 7.1",
+      "incident_count": 0,
+      "incidents": []
+    },
     {
       "phase": "Phase 2",
       "tasks": ["task_14 (2.1 candidates block)", "task_15 (2.2 margin/matched)", "task_16 (2.3 cap at 3)", "task_17 (2.4 margin fallback)", "task_18 (2.5 caution note)"],

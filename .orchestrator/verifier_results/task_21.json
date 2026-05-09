@@ -1,0 +1,30 @@
+{
+  "task_id": 21,
+  "task": "Task 3.3 — collision-note emission for instance-group leaders (verifier)",
+  "worktree": "/Users/kws/source/android/worktrees/compact-handoff-prompt-v2-20260509-183739",
+  "head_commit": "13db57b feat(handoff-v2): collision note on instance-group leader (Task 3.3)",
+  "acceptance": {
+    "targeted_compactHandoffRenderer_tests": {
+      "command": "./gradlew :fixthis-mcp:test --tests \"*CompactHandoffRenderer*\" --rerun-tasks",
+      "tests": 32,
+      "failures": 0,
+      "skipped": 0,
+      "errors": 0,
+      "result": "PASS"
+    },
+    "full_fixthis_mcp_test": {
+      "command": "./gradlew :fixthis-mcp:test --rerun-tasks",
+      "tests": 322,
+      "failures": 2,
+      "skipped": 1,
+      "failing_tests": [
+        "FeedbackConsoleServerTest > consoleHtmlUsesModeAwareStudioInspector",
+        "FeedbackConsoleServerTest > consoleHtmlAnnotationSaveUsesCurrentSelectionPayload"
+      ],
+      "baseline_match": true,
+      "result": "PASS (failures and skip counts match baseline of 2 failures + 1 skipped)"
+    }
+  },
+  "verdict": "PASS",
+  "notes": "All 32 CompactHandoffRendererTest tests pass. Full :fixthis-mcp:test suite reports 322 tests, 2 failed, 1 skipped — exactly the documented baseline (FeedbackConsoleServerTest pre-existing failures). No new regressions introduced by Task 3.3 collision-note emission."
+}
