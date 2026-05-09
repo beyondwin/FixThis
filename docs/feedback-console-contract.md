@@ -51,11 +51,11 @@ Rule: source hints are candidates; verify screenshot, target, and code before ed
 ### v2 prompt grammar (BNF-ish)
 
 ```
-prompt        = header rule package_line items_line "" screen_block+
+prompt        = header rule package_line source_root_line? "" screen_block+
 header        = "# FixThis Feedback Handoff" ""
 rule          = "Rule: source hints are candidates; verify screenshot, target, and code before editing." ""
-package_line  = "- Package: `" pkg "`"
-items_line    = "- Feedback Items: `" count "`"
+package_line   = "- Package: `" pkg "`"
+source_root_line = "- Source root: `" prefix "`"           ; emitted iff ≥2 distinct candidate paths share a directory-boundary prefix ≥10 chars
 screen_block  = screen_header screenshot_line? viewport_line? activity_line? "" (overlap_block | item_block)+
 screen_header = "Screen " short_id ": " display_name
 short_id      = first 8 chars of UUID
@@ -64,15 +64,16 @@ viewport_line   = "viewport: " width "×" height          ; emitted iff screensh
 activity_line   = "activity: " activity_name             ; emitted iff != display_name
 overlap_block = "Overlap group " N " (resolve one marker at a time):" "" item_block+
 item_block    = item_header target_line crop_line? source_block ""
-item_header   = N ". [marker " N "] " title              ; title may include severity prefix
-target_line   = "  ui: " role " tag=" tag "  box=(" x1 "," y1 ")-(" x2 "," y2 ") [" w "×" h "]"
+item_header   = "[" N "] " title                         ; title may include severity prefix
+target_line   = "  " [ "role=" role "  " ] [ "tag=" tag "  " ] "box=(" x1 "," y1 ")-(" x2 "," y2 ")"
                  [ "  instance " i "/" total ]
                  [ "; targetRisk=overlap" ]
                  [ "; targetRisk=duplicate-of-marker-" M ]
 crop_line     = "  crop: " path
-source_block  = "  candidates:" candidate_line{1,3} caution_line?
-candidate_line= "    ~ " file ":" line "  conf=" lvl "  margin=" margin "  matched=[" terms "]"
-                                                                                ↑ first line only; runner-ups omit margin
+source_block  = candidate_line{1,3} caution_line?
+candidate_line= "  " file ":" line "  conf=" lvl "  margin=" margin "  matched=[" terms "]"
+                                                                          ↑ first line only; runner-ups omit margin/matched
+                                                                          ; file is stripped of source_root prefix when present
 caution_line  = "  note: " text                          ; emitted iff caution OR collision
 ```
 
@@ -80,18 +81,19 @@ The `screenshot:` line is optional and omitted when no screenshot artifact is av
 
 The `crop:` line is optional and emitted only when a per-item screenshot crop path is available.
 
-The `candidates:` block is always present. When no source candidates are available for the item, the block contains a single `~ unknown` line.
+When no source candidates are available for the item, the source block consists of a single `  unknown` line.
 
 - `N` — 1-based annotation number matching the numbered overlay marker.
 - `short_id` — first 8 characters of the screen UUID.
 - `viewport:` — screen dimensions in pixels; emitted only when the screenshot artifact has width and height metadata.
 - `activity:` — Android activity name; emitted only when it differs from `display_name`.
-- `ui:` — semantic role and testTag of the selected node, followed by `box=(L,T)-(R,B) [W×H]` in window pixels at default density 1.0.
+- `Source root:` — directory-boundary common prefix of all candidate file paths in the session, with trailing `/`. Emitted only when at least two distinct candidate paths share a prefix of ≥10 chars; otherwise omitted and candidate paths are written verbatim. When emitted, the prefix is removed from every candidate line so each candidate appears as a relative path.
+- target line — emits only the tokens that have content. `role=` and `tag=` are dropped when the corresponding `selectedNode` field is blank; the line collapses to bare `box=` for area selections.
 - `[!]` severity prefix — prepended to the title when item severity is `HIGH`; absent for `MED` and `LOW`.
-- `instance i/N` — emitted on the `ui:` line when multiple items on the same screen share the same `(top_candidate file:line, testTag)`; index assigned by `path`-leaf string sort order.
+- `instance i/N` — emitted on the target line when multiple items on the same screen share the same `(top_candidate file:line, testTag)`; index assigned by `path`-leaf string sort order.
 - `targetRisk=overlap` — present when the target participates in an overlap group (see below).
 - `targetRisk=duplicate-of-marker-M` — present when this item is an exact duplicate of an earlier item (same source, testTag, path leaves, and bounds).
-- `candidates:` — up to 3 source candidates in score order. Rank 1 includes `margin=` (score gap to rank 2, formatted to 2 decimal places) and `matched=[...]` (up to 4 reason tokens). Runner-up lines include only `conf=`.
+- candidate lines — up to 3 in score order. Rank 1 includes `margin=` (score gap to rank 2, formatted to 2 decimal places) and `matched=[...]` (up to 4 reason tokens). Runner-up lines include only `conf=`.
 - `note:` — emitted when the rank-1 candidate has a `caution` field, or when multiple items in an instance group share the same call site (collision note on the first item only).
 - Confidence is lowercase: `high`, `medium`, `low`, or `none`.
 
@@ -131,9 +133,9 @@ Tool-using agents that parsed the v1 compact prompt format must update the follo
 
 | v1 token | v2 token | Rationale |
 | --- | --- | --- |
-| `src? <file>:<line> <conf>` (single line) | `candidates:` block with `~ <file>:<line>  conf=<lvl>` lines (up to 3) | `~` is conventional for "approximate"; the `candidates:` header carries the meaning so per-line markers can be lightweight. Runner-up candidates are now visible. |
-| `bounds=L,T - R,B` | `box=(L,T)-(R,B) [W×H]` | Matches typical `(x,y)` notation; `[W×H]` adds size for aspect-ratio reasoning without opening the screenshot. |
-| `target: Node "tag"` | `ui: <role> tag=<tag>` | Drops unvarying `Node` noise; `tag=` is machine-parseable without positional assumptions. |
+| `src? <file>:<line> <conf>` (single line) | indented `<file>:<line>  conf=<lvl>` lines (up to 3, no header, no `~` prefix) | Two-space indent + `conf=` token is enough to distinguish candidate lines for an agent. The header and `~` prefix were boilerplate. Runner-up candidates are now visible. |
+| `bounds=L,T - R,B` | `box=(L,T)-(R,B)` | Matches typical `(x,y)` notation. The earlier `[W×H]` size suffix was dropped — derivable from the box, and agents can compute it on demand. |
+| `target: Node "tag"` | `[role=<role>  ][tag=<tag>  ]box=...` (with `role=`/`tag=` dropped when blank) | Drops unvarying `Node`/`Area` fallback role and the `tag=(none)` placeholder. Each token is keyed and only emitted when it carries information. |
 | `why=<token>+<token>` | `matched=[<token>, <token>]` | Renamed for clarity: `matched` describes what evidence was found; `why` was ambiguous metadata. The same reason-token vocabulary is reused. |
 | `risk=<token>` (on source line) | `targetRisk=<token>` (on `ui:` line) and `note: <text>` (after candidates block) | Splits target-level risk (`overlap`, `duplicate-of-marker-N`) from source-level caution; v1 conflated them on one line. |
 | Screen UUID `<full-uuid>` | `<first-8-chars>` (short-id) | Reduces visual noise; 8 hex chars are unique enough for disambiguation within a session. |
@@ -142,3 +144,4 @@ Tool-using agents that parsed the v1 compact prompt format must update the follo
 | (absent) | `instance i/N` on `ui:` line | New: disambiguates list-rendered widgets that share a call site. |
 | (absent) | `note: N markers map to same call site — likely list-rendered; disambiguate by instance index` | New: collision signal on the first item of each instance group. |
 | (absent) | `targetRisk=duplicate-of-marker-M` | New: surfaces true marker duplication so agents do not double-resolve. |
+| (absent) | `- Source root: \`<prefix>\`` header + relative candidate paths | New (2026-05-10 trim): hoist the directory-boundary common prefix of all candidate paths once, strip from each candidate line. Net token saving on long monorepo paths; absent for sessions whose candidates do not share a prefix. |

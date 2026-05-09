@@ -158,24 +158,26 @@
               return tokens.join('+');
             }
 
-            // Task 5.2: formatBox — emits (L,T)-(R,B) [W×H] using integer dimensions
+            // formatBox — emits (L,T)-(R,B) using integer coords
             function formatBox(bounds) {
               const l = Math.floor(bounds.left);
               const t = Math.floor(bounds.top);
               const r = Math.floor(bounds.right);
               const b = Math.floor(bounds.bottom);
-              const w = Math.max(Math.floor(bounds.right - bounds.left), 0);
-              const h = Math.max(Math.floor(bounds.bottom - bounds.top), 0);
-              return '(' + l + ',' + t + ')-(' + r + ',' + b + ') [' + w + '×' + h + ']';
+              return '(' + l + ',' + t + ')-(' + r + ',' + b + ')';
             }
 
-            // Task 5.2: compactUiLine — replaces compactTargetLine; emits ui: role tag=tag  box=(L,T)-(R,B) [W×H]
+            // compactUiLine — emits [role=<role>  ][tag=<tag>  ]box=<box> with optional instance/risk suffixes.
+            // Drops role/tag entirely when not present on selectedNode (no fallback noise).
             function compactUiLine(item, isOverlap, instanceLabel, dupRefMarker) {
               const node = item.selectedNode || {};
-              const role = promptScalarValue(node.role) || (item.target && item.target.type === 'visual_area' ? 'Area' : 'Node');
-              const tag = promptScalarValue(node.testTag) || '(none)';
+              const explicitRole = promptScalarValue(node.role);
+              const explicitTag = promptScalarValue(node.testTag);
               const bounds = (item.target && item.target.boundsInWindow) || promptItemBounds(item) || { left: 0, top: 0, right: 0, bottom: 0 };
-              let base = '  ui: ' + role + ' tag=' + tag + '  box=' + formatBox(bounds);
+              let base = '  ';
+              if (explicitRole) base += 'role=' + explicitRole + '  ';
+              if (explicitTag) base += 'tag=' + explicitTag + '  ';
+              base += 'box=' + formatBox(bounds);
               if (instanceLabel) {
                 base += '  instance ' + instanceLabel.index + '/' + instanceLabel.total;
               }
@@ -188,13 +190,54 @@
               return base;
             }
 
-            // Task 5.4: compactCandidatesBlock — replaces compactSourceLine; returns array of lines
-            function compactCandidatesBlock(item) {
+            // Compute longest directory-boundary common prefix across all candidate file paths
+            // in the session. Returns the prefix with trailing "/" if it is at least 10 chars
+            // and at least two distinct candidate paths exist; null otherwise. Mirrors Kotlin
+            // computeSourceRoot — must stay byte-equivalent for parity.
+            const FIXTHIS_SOURCE_ROOT_MIN_LENGTH = 10;
+            function computeSourceRoot(items) {
+              const seen = new Set();
+              const files = [];
+              (items || []).forEach(function(item) {
+                (item.sourceCandidates || []).forEach(function(c) {
+                  const f = promptScalarValue(c.file);
+                  if (f && !seen.has(f)) { seen.add(f); files.push(f); }
+                });
+              });
+              if (files.length < 2) return null;
+              const splits = files.map(function(f) { return f.split('/'); });
+              const first = splits[0];
+              let commonDepth = first.length;
+              for (let k = 1; k < splits.length; k++) {
+                const other = splits[k];
+                commonDepth = Math.min(commonDepth, other.length);
+                for (let i = 0; i < commonDepth; i++) {
+                  if (first[i] !== other[i]) { commonDepth = i; break; }
+                }
+              }
+              let maxDirDepth = splits[0].length - 1;
+              for (let k = 1; k < splits.length; k++) {
+                maxDirDepth = Math.min(maxDirDepth, splits[k].length - 1);
+              }
+              const depth = Math.min(commonDepth, maxDirDepth);
+              if (depth <= 0) return null;
+              const prefix = first.slice(0, depth).join('/') + '/';
+              return prefix.length >= FIXTHIS_SOURCE_ROOT_MIN_LENGTH ? prefix : null;
+            }
+
+            function relativeFileWithLine(candidate, sourceRoot) {
+              const file = promptScalarValue(candidate.file) || '';
+              const rel = (sourceRoot && file.indexOf(sourceRoot) === 0) ? file.slice(sourceRoot.length) : file;
+              return candidate.line ? (rel + ':' + candidate.line) : rel;
+            }
+
+            // compactCandidatesBlock — emits indented candidate lines (no header, no `~` prefix).
+            // Source root prefix (if computed) is stripped from each file path.
+            function compactCandidatesBlock(item, sourceRoot) {
               const lines = [];
-              lines.push('  candidates:');
               const candidates = item.sourceCandidates || [];
               if (candidates.length === 0) {
-                lines.push('    ~ unknown');
+                lines.push('  unknown');
                 return lines;
               }
               const rank1 = candidates[0];
@@ -206,9 +249,9 @@
               candidates.slice(0, maxCandidates).forEach(function(candidate, idx) {
                 const rank = idx + 1;
                 const file = promptScalarValue(candidate.file);
-                const location = file ? (file + (candidate.line ? ':' + candidate.line : '')) : 'unknown';
+                const location = file ? relativeFileWithLine(candidate, sourceRoot) : 'unknown';
                 const confidence = String(candidate.confidence || 'unknown').toLowerCase();
-                let line = '    ~ ' + location + '  conf=' + confidence;
+                let line = '  ' + location + '  conf=' + confidence;
                 if (rank === 1) {
                   const effectiveMargin = (candidate.scoreMargin != null) ? candidate.scoreMargin : computedMargin;
                   if (effectiveMargin != null) {
@@ -302,15 +345,13 @@
               return result;
             }
 
-            // Task 5.5/5.6/5.7: compactItemLines — updated to use new helpers
-            function compactItemLines(item, marker, isOverlap, instanceLabel, dupRefMarker, isInstanceLeader, groupSize) {
+            function compactItemLines(item, marker, isOverlap, instanceLabel, dupRefMarker, isInstanceLeader, groupSize, sourceRoot) {
               const lines = [];
               const rawTitle = (String(item.comment || '').split('\n')[0] || '').trim() || promptItemTitle(item, marker - 1);
-              // Task 5.3: severity prefix
               const title = (item.severity === 'high') ? '[!] ' + rawTitle : rawTitle;
-              lines.push(String(marker) + '. [marker ' + marker + '] ' + title);
+              lines.push('[' + marker + '] ' + title);
               lines.push(compactUiLine(item, isOverlap, instanceLabel, dupRefMarker));
-              const candidatesBlock = compactCandidatesBlock(item);
+              const candidatesBlock = compactCandidatesBlock(item, sourceRoot);
               candidatesBlock.forEach(function(l) { lines.push(l); });
               // Task 5.6: collision note on group leader (suppressed for overlap groups)
               if (isInstanceLeader && groupSize >= 2 && !isOverlap) {
@@ -338,15 +379,16 @@
               if (!state.session || list.length === 0) {
                 throw new Error('Select a history item with annotations before sending it to an agent.');
               }
+              const sourceRoot = computeSourceRoot(list);
               const lines = [
-                'FixThis feedback handoff',
+                '# FixThis Feedback Handoff',
                 '',
                 'Rule: source hints are candidates; verify screenshot, target, and code before editing.',
                 '',
-                'Package: ' + (state.session.packageName || 'unknown'),
-                'Annotations: ' + list.length,
-                ''
+                '- Package: `' + (state.session.packageName || 'unknown') + '`'
               ];
+              if (sourceRoot) lines.push('- Source root: `' + sourceRoot + '`');
+              lines.push('');
               const screensById = {};
               (state.session.screens || []).forEach(function(screen) {
                 if (screen && screen.screenId) screensById[screen.screenId] = screen;
@@ -411,7 +453,7 @@
                     const instanceLabel = (dupRefMarker == null) ? (instanceGrouping.labels.get(item.itemId) || null) : null;
                     const isInstanceLeader = instanceGrouping.leaderItemIds.has(item.itemId);
                     const groupSize = instanceLabel ? instanceLabel.total : 0;
-                    lines.push.apply(lines, compactItemLines(item, counter, isOverlap, instanceLabel, dupRefMarker, isInstanceLeader, groupSize));
+                    lines.push.apply(lines, compactItemLines(item, counter, isOverlap, instanceLabel, dupRefMarker, isInstanceLeader, groupSize, sourceRoot));
                     lines.push('');
                   });
                 });

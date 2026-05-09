@@ -1,13 +1,11 @@
-FixThis feedback handoff
+# FixThis Feedback Handoff
 
 Rule: source hints are candidates; verify screenshot, target, and code before editing.
 
-Package: io.beyondwin.fixthis.sample
-Annotations: 1
+- Package: `io.beyondwin.fixthis.sample`
 
 Screen screen-1: Checkout
 
-1. [marker 1] Increase button contrast
-   target: Button "Pay now" bounds=10,20,110,70
-  candidates:
-    ~ AppPrimaryButton.kt:42  conf=high
+[1] Increase button contrast
+  role=Button  tag=comp:AppPrimaryButton:primary  box=(10,20)-(110,70)
+  AppPrimaryButton.kt:42  conf=high  margin=1.00  matched=[tag, compTag]

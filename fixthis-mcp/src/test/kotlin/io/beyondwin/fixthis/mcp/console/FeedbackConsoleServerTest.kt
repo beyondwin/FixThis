@@ -765,7 +765,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("Rule: source hints are candidates"))
         assertFalse(html.contains("function promptLikelySources("))
         assertFalse(html.contains("'   Likely Source:'"))
-        assertTrue(html.contains("'  candidates:'"))
+        assertTrue(html.contains("function compactCandidatesBlock"))
         assertTrue(currentAnnotationsPromptBody.contains("currentAnnotationsPromptCompact(annotations)"))
         assertTrue(sendAgentPromptBody.contains("ensurePromptAnnotationsAvailable();"))
         assertTrue(sendAgentPromptBody.contains("const prompt = currentAnnotationsPrompt();"))

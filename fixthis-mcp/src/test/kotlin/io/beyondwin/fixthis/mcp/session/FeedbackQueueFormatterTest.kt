@@ -494,9 +494,8 @@ class FeedbackQueueFormatterTest {
         val markdown = FeedbackQueueFormatter.toMarkdown(sessionWithTargetEvidenceAndSources(), DetailMode.COMPACT)
 
         val lines = markdown.lines()
-        assertTrue(lines.any { it == "  candidates:" }, "Expected '  candidates:' line in COMPACT markdown but got:\n$markdown")
-        assertTrue(lines.any { it.trim().startsWith("~ ") && it.contains("AppPrimaryButton.kt:42") && it.contains("conf=high") },
-            "Expected a '~ AppPrimaryButton.kt:42  conf=high' candidates line in COMPACT markdown but got:\n$markdown")
+        assertTrue(lines.any { it.startsWith("  ") && it.contains("AppPrimaryButton.kt:42") && it.contains("conf=high") },
+            "Expected a candidate line for AppPrimaryButton.kt:42 with conf=high in COMPACT markdown but got:\n$markdown")
         assertFalse(lines.any { it.trim().startsWith("src?") },
             "Expected no 'src?' line in v2 COMPACT markdown but got:\n$markdown")
         assertFalse(markdown.contains("matched:"))
@@ -542,10 +541,8 @@ class FeedbackQueueFormatterTest {
         val markdown = FeedbackQueueFormatter.toMarkdown(session, DetailMode.COMPACT)
 
         val lines = markdown.lines()
-        assertTrue(lines.any { it == "  candidates:" },
-            "Expected '  candidates:' line when item has no source candidates but got:\n$markdown")
-        assertTrue(lines.any { it == "    ~ unknown" },
-            "Expected '    ~ unknown' when item has no source candidates but got:\n$markdown")
+        assertTrue(lines.any { it == "  unknown" },
+            "Expected '  unknown' when item has no source candidates but got:\n$markdown")
     }
 
     @Test
@@ -601,9 +598,9 @@ class FeedbackQueueFormatterTest {
     /**
      * Token-budget regression guard for the v2 compact handoff prompt.
      *
-     * Baseline measured 2026-05-09: 1550 chars for expected-prompt-v2.txt
+     * Baseline measured 2026-05-09 (post-trim): 1314 chars for expected-prompt-v2.txt
      * (rendered from session-v2.json, 4-item fixture).
-     * Budget = ceil(1550 × 1.2) rounded to nearest 100 = 1900 chars.
+     * Budget = ceil(1314 × 1.2) rounded to nearest 100 = 1600 chars.
      *
      * If the v2 fixtures change and the baseline legitimately grows, update
      * both the measured comment and the budget constant below.
@@ -614,7 +611,7 @@ class FeedbackQueueFormatterTest {
         org.junit.Assume.assumeTrue("session-v2.json fixture present", sessionFile.exists())
         val session = fixThisJson.decodeFromString(SessionDto.serializer(), sessionFile.readText())
         val rendered = CompactHandoffRenderer.render(session)
-        val budget = 1900 // baseline measured 2026-05-09: 1550 chars
+        val budget = 1600 // baseline measured 2026-05-09 (post-trim): 1314 chars
         assertTrue(
             rendered.length <= budget,
             "v2 compact prompt (${rendered.length} chars) exceeded budget of $budget",

@@ -1,15 +1,34 @@
 # Compact Handoff Prompt v2 — Clarity, Multi-Candidate, and Instance Disambiguation Design
 
 **Date:** 2026-05-09
-**Status:** Draft for review
+**Status:** Shipped (2026-05-09); trimmed 2026-05-10 (see "Post-ship trim" notice below)
 **Related work:**
 - `docs/superpowers/specs/2026-05-08-source-candidate-confidence-handoff-design.md` — v1 of the compact `src?` token format
 - `docs/superpowers/plans/2026-05-08-source-candidate-confidence-handoff.md` — v1 implementation plan
-- `docs/feedback-console-contract.md` — handoff schema doc to update
+- `docs/feedback-console-contract.md` — **canonical** handoff schema doc; reflects the shipped grammar
 - `docs/mcp.md` — `SourceCandidate` field documentation to update
 
 **Primary modules:** `fixthis-mcp` (CompactHandoffRenderer.kt, prompt.js, FormatterExtensions.kt)
 **Secondary modules:** `fixthis-compose-core` (no schema change required; one optional matcher fix to populate `scoreMargin`)
+
+---
+
+## ⚠️ Post-ship trim (2026-05-10)
+
+After this design shipped, real agent-side usage flagged that several tokens were boilerplate the consuming agent did not need: `Annotations:` count, `ui:` prefix, `tag=(none)` placeholder, `[W×H]` size suffix, `candidates:` header, `~` candidate prefix, and `1. [marker N]` double numbering. A follow-up trim removed them and added a `- Source root:` header that hoists the directory-boundary common prefix of candidate paths once per session. Net effect: ~30% fewer tokens with no information loss for the agent.
+
+The **grammar and worked examples below are the original draft and no longer match shipped output.** Refer to `docs/feedback-console-contract.md` for the current grammar. Concrete deltas vs. this draft:
+
+| This draft | Shipped (2026-05-10) |
+| --- | --- |
+| `- Feedback Items: \`N\`` | (removed; count is implicit from marker numbering) |
+| `1. [marker 1] <title>` | `[1] <title>` |
+| `  ui: <role> tag=<tag>  box=(...) [W×H]` | `  [role=<role>  ][tag=<tag>  ]box=(...)` (tokens dropped when blank; no `[W×H]`) |
+| `  candidates:` header + `    ~ <file>:<line>  conf=...` | (no header) `  <file>:<line>  conf=...` |
+| `    ~ unknown` for empty candidates | `  unknown` |
+| (n/a) | `- Source root: \`<prefix>\`` header + candidate paths stripped of that prefix, when ≥2 candidates share a directory-boundary prefix ≥10 chars |
+
+Parity invariant (Kotlin ↔ JS byte equality on stable lines) still holds; the parity-test stable-line tokens were updated to `conf=` (in place of `~ ` / `candidates:`) and now also include `Source root:`.
 
 ---
 

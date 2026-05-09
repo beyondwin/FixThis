@@ -15,9 +15,9 @@ class PromptParityTest {
      * JS emits integers (10,20) — a known LTRB-format divergence.
      */
     private val STABLE_LINE_TOKENS = listOf(
-        "~ ", "instance", "note:", "targetRisk=",
+        "conf=", "instance", "note:", "targetRisk=",
         "viewport:", "activity:", "Screen ", "[!]", "Rule:",
-        "screenshot:", "crop:", "candidates:",
+        "screenshot:", "crop:", "Source root:",
     )
 
     /**
@@ -86,6 +86,59 @@ class PromptParityTest {
                 "JS stable lines:\n${jsParityLines.joinToString("\n")}",
             kotlinParityLines,
             jsParityLines,
+        )
+    }
+
+    /**
+     * Drives both renderers against a fixture whose candidates share a common
+     * `src/main/java/...` directory prefix, asserting the JS and Kotlin source-root
+     * algorithms agree byte-for-byte on the `Source root:` header and the stripped
+     * candidate paths.
+     *
+     * Without this fixture the existing parity fixtures (bare filenames) never
+     * exercise the source-root code path on the JS side.
+     */
+    @Test
+    fun kotlinAndJsSourceRootStrippingMatch() {
+        val resourceRoot = File("src/test/resources/parity")
+        val sessionFile = File(resourceRoot, "session-srcroot.json")
+        val runner = File(resourceRoot, "run-prompt.js")
+        assumeTrue("source-root parity fixture present", sessionFile.exists() && runner.exists())
+
+        val sessionText = sessionFile.readText()
+        val session = fixThisJson.decodeFromString(SessionDto.serializer(), sessionText)
+        val kotlinMarkdown = FeedbackQueueFormatter.toMarkdown(session, DetailMode.COMPACT)
+
+        val kotlinParityLines = kotlinMarkdown.lines().filter { isParityLine(it) }
+
+        assumeTrue("Node must be on PATH for JS comparison", nodeOnPath())
+
+        val process = ProcessBuilder("node", runner.absolutePath, sessionFile.absolutePath)
+            .redirectErrorStream(true)
+            .start()
+        val jsOutput = process.inputStream.bufferedReader().readText().trimEnd('\n')
+        process.waitFor()
+        val jsParityLines = jsOutput.lines().filter { isParityLine(it) }
+
+        assertEquals(
+            "source-root parity: byte-stable lines must match between Kotlin and JS renderers\n" +
+                "Kotlin stable lines:\n${kotlinParityLines.joinToString("\n")}\n" +
+                "JS stable lines:\n${jsParityLines.joinToString("\n")}",
+            kotlinParityLines,
+            jsParityLines,
+        )
+
+        // Belt-and-suspenders: confirm both outputs actually emit the Source root header.
+        // Without this, the test would silently pass if the algorithm regressed to "never emit".
+        assertEquals(
+            "Kotlin output must emit a 'Source root:' header for fixtures with a common prefix",
+            true,
+            kotlinParityLines.any { it.contains("Source root:") },
+        )
+        assertEquals(
+            "JS output must emit a 'Source root:' header for fixtures with a common prefix",
+            true,
+            jsParityLines.any { it.contains("Source root:") },
         )
     }
 

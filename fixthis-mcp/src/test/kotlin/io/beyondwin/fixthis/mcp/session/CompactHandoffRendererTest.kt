@@ -390,7 +390,7 @@ class CompactHandoffRendererTest {
         )
 
         val markdown = CompactHandoffRenderer.render(session)
-        val expectedLine = "  ui: MetricCard tag=comp:MetricCard:summary  box=(28.0,212.0)-(692.0,419.0) [664×207]"
+        val expectedLine = "  role=MetricCard  tag=comp:MetricCard:summary  box=(28.0,212.0)-(692.0,419.0)"
         assertTrue(
             markdown.lines().any { it == expectedLine },
             "Expected to find line:\n  '$expectedLine'\nin:\n$markdown",
@@ -398,7 +398,7 @@ class CompactHandoffRendererTest {
     }
 
     @Test
-    fun renderEmitsTagNoneWhenTestTagMissing() {
+    fun renderOmitsTagWhenTestTagMissing() {
         val session = makeSessionWithNode(
             itemId = "i-notag",
             selectedNode = makeNode(role = "Button", testTag = null),
@@ -407,13 +407,17 @@ class CompactHandoffRendererTest {
 
         val markdown = CompactHandoffRenderer.render(session)
         assertTrue(
-            markdown.lines().any { it.contains("tag=(none)") },
-            "Expected 'tag=(none)' in a ui line but got:\n$markdown",
+            !markdown.contains("tag="),
+            "Expected no 'tag=' token when testTag is missing but got:\n$markdown",
+        )
+        assertTrue(
+            markdown.lines().any { it.startsWith("  role=Button  box=") },
+            "Expected a line starting with '  role=Button  box=' but got:\n$markdown",
         )
     }
 
     @Test
-    fun renderFallsBackToNodeForMissingRole() {
+    fun renderOmitsRoleWhenRoleMissing() {
         val session = makeSessionWithNode(
             itemId = "i-norole",
             selectedNode = makeNode(role = null, testTag = "some:tag"),
@@ -422,8 +426,12 @@ class CompactHandoffRendererTest {
 
         val markdown = CompactHandoffRenderer.render(session)
         assertTrue(
-            markdown.lines().any { it.startsWith("  ui: Node") },
-            "Expected a line starting with '  ui: Node' but got:\n$markdown",
+            !markdown.contains("role="),
+            "Expected no 'role=' token when role is missing but got:\n$markdown",
+        )
+        assertTrue(
+            markdown.lines().any { it.startsWith("  tag=some:tag  box=") },
+            "Expected a line starting with '  tag=some:tag  box=' but got:\n$markdown",
         )
     }
 
@@ -458,8 +466,8 @@ class CompactHandoffRendererTest {
         val session = makeSessionWithSeverity(AnnotationSeverityDto.HIGH, "레드 카드")
         val markdown = CompactHandoffRenderer.render(session)
         assertTrue(
-            markdown.lines().any { it == "1. [marker 1] [!] 레드 카드" },
-            "Expected line '1. [marker 1] [!] 레드 카드' but got:\n$markdown",
+            markdown.lines().any { it == "[1] [!] 레드 카드" },
+            "Expected line '[1] [!] 레드 카드' but got:\n$markdown",
         )
     }
 
@@ -468,8 +476,8 @@ class CompactHandoffRendererTest {
         val session = makeSessionWithSeverity(AnnotationSeverityDto.MED, "중간 심각도")
         val markdown = CompactHandoffRenderer.render(session)
         assertTrue(
-            markdown.lines().any { it == "1. [marker 1] 중간 심각도" },
-            "Expected line '1. [marker 1] 중간 심각도' (no prefix) but got:\n$markdown",
+            markdown.lines().any { it == "[1] 중간 심각도" },
+            "Expected line '[1] 중간 심각도' (no prefix) but got:\n$markdown",
         )
         assertTrue(
             !markdown.contains("[!]"),
@@ -482,8 +490,8 @@ class CompactHandoffRendererTest {
         val session = makeSessionWithSeverity(AnnotationSeverityDto.LOW, "낮은 심각도")
         val markdown = CompactHandoffRenderer.render(session)
         assertTrue(
-            markdown.lines().any { it == "1. [marker 1] 낮은 심각도" },
-            "Expected line '1. [marker 1] 낮은 심각도' (no prefix) but got:\n$markdown",
+            markdown.lines().any { it == "[1] 낮은 심각도" },
+            "Expected line '[1] 낮은 심각도' (no prefix) but got:\n$markdown",
         )
         assertTrue(
             !markdown.contains("[!]"),
@@ -594,7 +602,7 @@ class CompactHandoffRendererTest {
         val markdown = CompactHandoffRenderer.render(session)
         val lines = markdown.lines()
 
-        val expectedLine = "    ~ src/.../HomeScreen.kt:44  conf=medium  margin=0.30  matched=[tag, compTag, nearbyTag]"
+        val expectedLine = "  src/.../HomeScreen.kt:44  conf=medium  margin=0.30  matched=[tag, compTag, nearbyTag]"
         assertTrue(
             lines.any { it == expectedLine },
             "Expected to find rank-1 enriched line:\n  '$expectedLine'\nin:\n$markdown",
@@ -611,15 +619,15 @@ class CompactHandoffRendererTest {
         val markdown = CompactHandoffRenderer.render(session)
         val lines = markdown.lines()
 
-        // rank-2 line should be plain: ~ Other.kt:99  conf=low — no margin= or matched=
+        // rank-2 line should be plain: Other.kt:99  conf=low — no margin= or matched=
         val rank2Line = lines.firstOrNull { it.contains("Other.kt:99") }
         assertTrue(
             rank2Line != null,
             "Expected a line containing 'Other.kt:99' but got:\n$markdown",
         )
         assertTrue(
-            rank2Line!!.trim() == "~ Other.kt:99  conf=low",
-            "Expected rank-2 line to be plain '~ Other.kt:99  conf=low' but got: '$rank2Line'",
+            rank2Line!!.trim() == "Other.kt:99  conf=low",
+            "Expected rank-2 line to be plain 'Other.kt:99  conf=low' but got: '$rank2Line'",
         )
         assertTrue(
             !rank2Line.contains("margin="),
@@ -674,18 +682,14 @@ class CompactHandoffRendererTest {
         val markdown = CompactHandoffRenderer.render(session)
         val lines = markdown.lines()
 
-        assertTrue(
-            lines.any { it == "  candidates:" },
-            "Expected exactly '  candidates:' line but got:\n$markdown",
-        )
         // After Task 2.4: margin is computed from score difference (0.95 - 0.75 = 0.20) when scoreMargin is null
         assertTrue(
-            lines.any { it == "    ~ AppPrimaryButton.kt:42  conf=high  margin=0.20  matched=[compTag]" },
-            "Expected '    ~ AppPrimaryButton.kt:42  conf=high  margin=0.20  matched=[compTag]' but got:\n$markdown",
+            lines.any { it == "  AppPrimaryButton.kt:42  conf=high  margin=0.20  matched=[compTag]" },
+            "Expected '  AppPrimaryButton.kt:42  conf=high  margin=0.20  matched=[compTag]' but got:\n$markdown",
         )
         assertTrue(
-            lines.any { it == "    ~ CheckoutScreen.kt:88  conf=medium" },
-            "Expected '    ~ CheckoutScreen.kt:88  conf=medium' but got:\n$markdown",
+            lines.any { it == "  CheckoutScreen.kt:88  conf=medium" },
+            "Expected '  CheckoutScreen.kt:88  conf=medium' but got:\n$markdown",
         )
         assertTrue(
             !lines.any { it.trim().startsWith("src?") },
@@ -732,10 +736,10 @@ class CompactHandoffRendererTest {
     fun renderCapsCandidatesAtThreeWhenFiveProvided() {
         val session = makeSessionWithNCandidates(5)
         val markdown = CompactHandoffRenderer.render(session)
-        val candidateLines = markdown.lines().filter { it.trim().startsWith("~ ") }
+        val candidateLines = markdown.lines().filter { it.startsWith("  ") && it.contains("conf=") }
         assertTrue(
             candidateLines.size == 3,
-            "Expected exactly 3 '~ ' candidate lines when 5 candidates provided, but got ${candidateLines.size}:\n$markdown",
+            "Expected exactly 3 candidate lines when 5 candidates provided, but got ${candidateLines.size}:\n$markdown",
         )
     }
 
@@ -743,10 +747,10 @@ class CompactHandoffRendererTest {
     fun renderEmitsExactlyOneCandidateLineWhenOneProvided() {
         val session = makeSessionWithNCandidates(1)
         val markdown = CompactHandoffRenderer.render(session)
-        val candidateLines = markdown.lines().filter { it.trim().startsWith("~ ") }
+        val candidateLines = markdown.lines().filter { it.startsWith("  ") && it.contains("conf=") }
         assertTrue(
             candidateLines.size == 1,
-            "Expected exactly 1 '~ ' candidate line when 1 candidate provided, but got ${candidateLines.size}:\n$markdown",
+            "Expected exactly 1 candidate line when 1 candidate provided, but got ${candidateLines.size}:\n$markdown",
         )
     }
 
@@ -754,10 +758,10 @@ class CompactHandoffRendererTest {
     fun renderEmitsExactlyTwoCandidateLinesWhenTwoProvided() {
         val session = makeSessionWithNCandidates(2)
         val markdown = CompactHandoffRenderer.render(session)
-        val candidateLines = markdown.lines().filter { it.trim().startsWith("~ ") }
+        val candidateLines = markdown.lines().filter { it.startsWith("  ") && it.contains("conf=") }
         assertTrue(
             candidateLines.size == 2,
-            "Expected exactly 2 '~ ' candidate lines when 2 candidates provided, but got ${candidateLines.size}:\n$markdown",
+            "Expected exactly 2 candidate lines when 2 candidates provided, but got ${candidateLines.size}:\n$markdown",
         )
     }
 
@@ -945,14 +949,9 @@ class CompactHandoffRendererTest {
         val session = makeSessionWithRank1Caution(caution = "treat as low-confidence")
         val markdown = CompactHandoffRenderer.render(session)
         val lines = markdown.lines()
-        val candidatesIdx = lines.indexOfFirst { it == "  candidates:" }
-        assertTrue(candidatesIdx >= 0, "Expected '  candidates:' line but got:\n$markdown")
-        val candidateLine = lines.getOrNull(candidatesIdx + 1)
-        assertTrue(
-            candidateLine != null && candidateLine.trim().startsWith("~ "),
-            "Expected a '~ ' candidate line after candidates: but got: '$candidateLine'",
-        )
-        val noteLine = lines.getOrNull(candidatesIdx + 2)
+        val candidateIdx = lines.indexOfFirst { it.startsWith("  ") && it.contains("conf=") }
+        assertTrue(candidateIdx >= 0, "Expected a candidate line but got:\n$markdown")
+        val noteLine = lines.getOrNull(candidateIdx + 1)
         assertTrue(
             noteLine == "  note: treat as low-confidence",
             "Expected '  note: treat as low-confidence' immediately after candidate line but got: '$noteLine'\nFull output:\n$markdown",
@@ -1056,10 +1055,10 @@ class CompactHandoffRendererTest {
         )
 
         val markdown = CompactHandoffRenderer.render(session)
-        val uiLines = markdown.lines().filter { it.startsWith("  ui:") }
+        val uiLines = markdown.lines().filter { it.contains("  box=") && it.contains("  instance ") }
         assertTrue(
             uiLines.size == 3,
-            "Expected 3 ui lines but got ${uiLines.size}:\n$markdown",
+            "Expected 3 ui lines with instance labels but got ${uiLines.size}:\n$markdown",
         )
         assertTrue(
             uiLines.any { it.endsWith("  instance 1/3") },
@@ -1178,9 +1177,9 @@ class CompactHandoffRendererTest {
         )
 
         // Collision note appears AFTER item-a's candidates block (leader is item-a, path "root/a")
-        // item-a's marker line: "1. [marker 1] fix a"
-        val itemAMarkerIdx = lines.indexOfFirst { it == "1. [marker 1] fix a" }
-        assertTrue(itemAMarkerIdx >= 0, "Expected item-a marker line '1. [marker 1] fix a' but got:\n$markdown")
+        // item-a's marker line: "[1] fix a"
+        val itemAMarkerIdx = lines.indexOfFirst { it == "[1] fix a" }
+        assertTrue(itemAMarkerIdx >= 0, "Expected item-a marker line '[1] fix a' but got:\n$markdown")
 
         val collisionNoteIdx = lines.indexOfFirst { it == collisionNoteLine }
         assertTrue(
@@ -1189,8 +1188,8 @@ class CompactHandoffRendererTest {
         )
 
         // item-b's and item-c's blocks do NOT have an extra note line
-        val itemBMarkerIdx = lines.indexOfFirst { it == "2. [marker 2] fix b" }
-        val itemCMarkerIdx = lines.indexOfFirst { it == "3. [marker 3] fix c" }
+        val itemBMarkerIdx = lines.indexOfFirst { it == "[2] fix b" }
+        val itemCMarkerIdx = lines.indexOfFirst { it == "[3] fix c" }
         assertTrue(itemBMarkerIdx >= 0, "Expected item-b marker line but got:\n$markdown")
         assertTrue(itemCMarkerIdx >= 0, "Expected item-c marker line but got:\n$markdown")
         assertTrue(
@@ -1282,12 +1281,8 @@ class CompactHandoffRendererTest {
         val lines = markdown.lines()
 
         assertTrue(
-            lines.any { it == "  candidates:" },
-            "Expected exactly '  candidates:' line but got:\n$markdown",
-        )
-        assertTrue(
-            lines.any { it == "    ~ unknown" },
-            "Expected '    ~ unknown' for empty candidates but got:\n$markdown",
+            lines.any { it == "  unknown" },
+            "Expected '  unknown' for empty candidates but got:\n$markdown",
         )
         assertTrue(
             !lines.any { it.trim().startsWith("src?") },
@@ -1418,11 +1413,11 @@ class CompactHandoffRendererTest {
 
         // items 1 and 4 share identical bounds → overlap group → item 4 gets marker 2.
         // item 4's ui line (marker 2) must end with "; targetRisk=duplicate-of-marker-1"
-        val dupItemMarkerLine = "2. [marker 2] Fix MetricCard 4"
+        val dupItemMarkerLine = "[2] Fix MetricCard 4"
         val dupUiLine = lines
             .dropWhile { it != dupItemMarkerLine }
             .drop(1)
-            .firstOrNull { it.startsWith("  ui:") }
+            .firstOrNull { it.contains("  box=") }
         assertTrue(
             dupUiLine != null,
             "Expected a ui line after '$dupItemMarkerLine' but got:\n$markdown",
@@ -1433,11 +1428,11 @@ class CompactHandoffRendererTest {
         )
 
         // item 1's ui line (marker 1) must NOT have the duplicate-of-marker suffix
-        val canonicalMarkerLine = "1. [marker 1] Fix MetricCard 1"
+        val canonicalMarkerLine = "[1] Fix MetricCard 1"
         val canonicalUiLine = lines
             .dropWhile { it != canonicalMarkerLine }
             .drop(1)
-            .firstOrNull { it.startsWith("  ui:") }
+            .firstOrNull { it.contains("  box=") }
         assertTrue(
             canonicalUiLine != null,
             "Expected a ui line after '$canonicalMarkerLine' but got:\n$markdown",
@@ -1456,11 +1451,11 @@ class CompactHandoffRendererTest {
 
         // item 4 (marker 2) is a duplicate — its ui line must NOT contain "instance "
         // (duplicate-of-marker token suppresses the instance label per spec Appendix worked example)
-        val dupItemMarkerLine = "2. [marker 2] Fix MetricCard 4"
+        val dupItemMarkerLine = "[2] Fix MetricCard 4"
         val dupUiLine = lines
             .dropWhile { it != dupItemMarkerLine }
             .drop(1)
-            .firstOrNull { it.startsWith("  ui:") }
+            .firstOrNull { it.contains("  box=") }
         assertTrue(
             dupUiLine != null,
             "Expected a ui line after '$dupItemMarkerLine' but got:\n$markdown",
@@ -1504,12 +1499,12 @@ class CompactHandoffRendererTest {
             "Expected the verbatim Rule: line but got:\n$output",
         )
 
-        // 2. ~ line for every item (fixture has 1 item with 1 candidate)
+        // 2. One candidate line per item (fixture has 1 item with 1 candidate)
         val itemCount = session.items.size
-        val tildeLineCount = output.lines().count { it.trim().startsWith("~ ") }
+        val candidateLineCount = output.lines().count { it.startsWith("  ") && it.contains("conf=") }
         assertTrue(
-            tildeLineCount >= itemCount,
-            "Expected ≥$itemCount '~ ' line(s) (one per item), got $tildeLineCount.\nOutput:\n$output",
+            candidateLineCount >= itemCount,
+            "Expected ≥$itemCount candidate line(s) (one per item), got $candidateLineCount.\nOutput:\n$output",
         )
 
         // 3. No exception path for empty sourceCandidates: renderer produces output without crashing.
@@ -1539,5 +1534,93 @@ class CompactHandoffRendererTest {
                 )
             }
         }
+    }
+
+    // ---- Source-root prefix tests ----
+
+    private fun makeSessionWithCandidateFiles(vararg files: String): SessionDto {
+        val items = files.mapIndexed { idx, file ->
+            AnnotationDto(
+                itemId = "i-$idx",
+                screenId = "screen-1",
+                createdAtEpochMillis = 1L,
+                updatedAtEpochMillis = 1L,
+                target = AnnotationTargetDto.Area(FixThisRect(0f, idx * 100f, 100f, idx * 100f + 50f)),
+                comment = "fix $idx",
+                sequenceNumber = idx + 1,
+                sourceCandidates = listOf(
+                    SourceCandidate(
+                        file = file,
+                        line = 10 + idx,
+                        score = 0.9,
+                        matchedTerms = emptyList(),
+                        matchReasons = emptyList(),
+                        confidence = SelectionConfidence.MEDIUM,
+                    ),
+                ),
+            )
+        }
+        return SessionDto(
+            sessionId = "session-srcroot",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
+            items = items,
+        )
+    }
+
+    @Test
+    fun renderEmitsSourceRootHeaderAndStripsPrefixWhenCommonDirExists() {
+        val session = makeSessionWithCandidateFiles(
+            "src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt",
+            "src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt",
+            "src/main/java/io/beyondwin/fixthis/sample/components/MetricCard.kt",
+        )
+        val markdown = CompactHandoffRenderer.render(session)
+        val lines = markdown.lines()
+        assertTrue(
+            lines.any { it == "- Source root: `src/main/java/io/beyondwin/fixthis/sample/`" },
+            "Expected '- Source root: ...' line but got:\n$markdown",
+        )
+        assertTrue(
+            lines.any { it == "  screens/DiagnosticsScreen.kt:10  conf=medium" },
+            "Expected stripped path 'screens/DiagnosticsScreen.kt:10' but got:\n$markdown",
+        )
+        assertTrue(
+            !markdown.contains("src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt"),
+            "Expected full path to be stripped after Source root header but got:\n$markdown",
+        )
+    }
+
+    @Test
+    fun renderOmitsSourceRootHeaderWhenPathsHaveNoCommonDirectory() {
+        val session = makeSessionWithCandidateFiles("HomeScreen.kt", "MetricCard.kt")
+        val markdown = CompactHandoffRenderer.render(session)
+        assertTrue(
+            !markdown.contains("Source root:"),
+            "Expected no 'Source root:' line when candidates share no directory but got:\n$markdown",
+        )
+        assertTrue(
+            markdown.lines().any { it == "  HomeScreen.kt:10  conf=medium" },
+            "Expected unchanged candidate path 'HomeScreen.kt:10' but got:\n$markdown",
+        )
+    }
+
+    @Test
+    fun renderOmitsSourceRootHeaderWhenOnlyOneCandidatePath() {
+        val session = makeSessionWithCandidateFiles(
+            "src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt",
+        )
+        val markdown = CompactHandoffRenderer.render(session)
+        assertTrue(
+            !markdown.contains("Source root:"),
+            "Expected no 'Source root:' header when only one candidate path exists but got:\n$markdown",
+        )
+        assertTrue(
+            markdown.contains("src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt:10"),
+            "Expected full path to remain when no source root header is emitted but got:\n$markdown",
+        )
     }
 }
