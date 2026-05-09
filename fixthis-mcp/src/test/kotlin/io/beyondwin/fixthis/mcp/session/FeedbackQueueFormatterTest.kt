@@ -488,15 +488,15 @@ class FeedbackQueueFormatterTest {
     }
 
     @Test
-    fun compactMarkdownEmitsCompactSourceTokenLine() {
+    fun compactMarkdownEmitsCandidatesBlock() {
         val markdown = FeedbackQueueFormatter.toMarkdown(sessionWithTargetEvidenceAndSources(), DetailMode.COMPACT)
 
         val lines = markdown.lines()
-        val sourceLine = lines.firstOrNull { it.trim().startsWith("src?") }
-        assertNotNull(sourceLine, "Expected a 'src?' line in COMPACT markdown")
-        assertTrue(sourceLine!!.contains("AppPrimaryButton.kt:42"))
-        assertTrue(sourceLine.contains("high") || sourceLine.contains("medium") || sourceLine.contains("low"))
-        assertTrue(sourceLine.contains("why="))
+        assertTrue(lines.any { it == "  candidates:" }, "Expected '  candidates:' line in COMPACT markdown but got:\n$markdown")
+        assertTrue(lines.any { it.trim().startsWith("~ ") && it.contains("AppPrimaryButton.kt:42") && it.contains("conf=high") },
+            "Expected a '~ AppPrimaryButton.kt:42  conf=high' candidates line in COMPACT markdown but got:\n$markdown")
+        assertFalse(lines.any { it.trim().startsWith("src?") },
+            "Expected no 'src?' line in v2 COMPACT markdown but got:\n$markdown")
         assertFalse(markdown.contains("matched:"))
         assertFalse(markdown.contains("reasons:"))
     }
@@ -535,11 +535,15 @@ class FeedbackQueueFormatterTest {
     }
 
     @Test
-    fun compactMarkdownEmitsSrcUnknownWhenNoSourceCandidates() {
+    fun compactMarkdownEmitsCandidatesUnknownWhenNoSourceCandidates() {
         val session = sessionWithNoSourceCandidates()
         val markdown = FeedbackQueueFormatter.toMarkdown(session, DetailMode.COMPACT)
 
-        assertTrue(markdown.contains("src? unknown"), "Expected 'src? unknown' when item has no source candidates")
+        val lines = markdown.lines()
+        assertTrue(lines.any { it == "  candidates:" },
+            "Expected '  candidates:' line when item has no source candidates but got:\n$markdown")
+        assertTrue(lines.any { it == "    ~ unknown" },
+            "Expected '    ~ unknown' when item has no source candidates but got:\n$markdown")
     }
 
     @Test

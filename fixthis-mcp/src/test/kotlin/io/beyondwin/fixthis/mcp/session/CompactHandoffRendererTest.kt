@@ -2,6 +2,8 @@ package io.beyondwin.fixthis.mcp.session
 
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
+import io.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.beyondwin.fixthis.compose.core.model.TreeKind
 import kotlin.test.assertTrue
 import org.junit.Test
@@ -527,6 +529,109 @@ class CompactHandoffRendererTest {
         assertTrue(
             markdown.lines().any { it.endsWith("; targetRisk=overlap") },
             "Expected at least one ui line ending with '; targetRisk=overlap' but got:\n$markdown",
+        )
+    }
+
+    // ---- Task 2.1: candidates block tests ----
+
+    @Test
+    fun renderEmitsCandidatesBlockWithConfLevelForEachCandidate() {
+        val session = SessionDto(
+            sessionId = "session-cand",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "i-cand",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                    comment = "fix contrast",
+                    sequenceNumber = 1,
+                    sourceCandidates = listOf(
+                        SourceCandidate(
+                            file = "AppPrimaryButton.kt",
+                            line = 42,
+                            score = 0.95,
+                            matchedTerms = listOf("AppPrimaryButton"),
+                            matchReasons = listOf("selected testTag convention composable"),
+                            confidence = SelectionConfidence.HIGH,
+                        ),
+                        SourceCandidate(
+                            file = "CheckoutScreen.kt",
+                            line = 88,
+                            score = 0.75,
+                            matchedTerms = listOf("Pay now"),
+                            matchReasons = listOf("selected text"),
+                            confidence = SelectionConfidence.MEDIUM,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        val lines = markdown.lines()
+
+        assertTrue(
+            lines.any { it == "  candidates:" },
+            "Expected exactly '  candidates:' line but got:\n$markdown",
+        )
+        assertTrue(
+            lines.any { it == "    ~ AppPrimaryButton.kt:42  conf=high" },
+            "Expected '    ~ AppPrimaryButton.kt:42  conf=high' but got:\n$markdown",
+        )
+        assertTrue(
+            lines.any { it == "    ~ CheckoutScreen.kt:88  conf=medium" },
+            "Expected '    ~ CheckoutScreen.kt:88  conf=medium' but got:\n$markdown",
+        )
+        assertTrue(
+            !lines.any { it.trim().startsWith("src?") },
+            "Expected no 'src?' line in v2 output but got:\n$markdown",
+        )
+    }
+
+    @Test
+    fun renderEmitsCandidatesUnknownWhenSourceCandidatesEmpty() {
+        val session = SessionDto(
+            sessionId = "session-nocand",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "i-nocand",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                    comment = "fix spacing",
+                    sequenceNumber = 1,
+                    sourceCandidates = emptyList(),
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        val lines = markdown.lines()
+
+        assertTrue(
+            lines.any { it == "  candidates:" },
+            "Expected exactly '  candidates:' line but got:\n$markdown",
+        )
+        assertTrue(
+            lines.any { it == "    ~ unknown" },
+            "Expected '    ~ unknown' for empty candidates but got:\n$markdown",
+        )
+        assertTrue(
+            !lines.any { it.trim().startsWith("src?") },
+            "Expected no 'src?' line in v2 output but got:\n$markdown",
         )
     }
 }

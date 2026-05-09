@@ -82,8 +82,20 @@ object CompactHandoffRenderer {
         appendLine("${number}. [marker $number] ${prefix}${title.inlineSafe()}")
         appendLine(compactUiLine(item, isOverlap))
         item.screenshotCrop?.desktopCropPath?.let { appendLine("crop: ${it.inlineSafe()}") }
-        appendLine(compactSourceLine(item))
+        appendCandidatesBlock(item)
         appendLine()
+    }
+
+    private fun StringBuilder.appendCandidatesBlock(item: AnnotationDto) {
+        appendLine("  candidates:")
+        if (item.sourceCandidates.isEmpty()) {
+            appendLine("    ~ unknown")
+        } else {
+            item.sourceCandidates.forEach { candidate ->
+                val conf = candidate.confidence.name.lowercase()
+                appendLine("    ~ ${candidate.fileWithLine()}  conf=$conf")
+            }
+        }
     }
 
     private fun compactUiLine(item: AnnotationDto, isOverlap: Boolean): String {
@@ -101,31 +113,4 @@ object CompactHandoffRenderer {
         return if (isOverlap) "$base; targetRisk=overlap" else base
     }
 
-    private fun compactSourceLine(item: AnnotationDto): String {
-        val candidate = item.sourceCandidates.firstOrNull() ?: return "src? unknown"
-        val confidence = candidate.confidence.name.lowercase()
-        val why = candidate.matchReasons.mapNotNull { reasonTokenFor(it) }.distinct().joinToString("+")
-        val risk = candidate.riskFlags.firstOrNull()?.name?.lowercase()?.replace('_', '-')
-        val parts = mutableListOf("src? ${candidate.fileWithLine()} $confidence")
-        if (why.isNotBlank()) parts.add("why=$why")
-        if (risk != null) parts.add("risk=$risk")
-        return parts.joinToString("; ")
-    }
-
-    private fun reasonTokenFor(reason: String): String? = when (reason) {
-        "selected text" -> "text"
-        "selected contentDescription" -> "contentDescription"
-        "selected testTag" -> "tag"
-        "selected testTag convention composable" -> "compTag"
-        "selected role" -> "role"
-        "nearby text" -> "nearbyText"
-        "nearby contentDescription" -> "nearbyContentDescription"
-        "nearby testTag" -> "nearbyTag"
-        "nearby role" -> "nearbyRole"
-        "activity" -> "activity"
-        "selected stringResource" -> "stringRes"
-        "arbitrary literal" -> "literal"
-        "legacy fallback" -> "legacy"
-        else -> null
-    }
 }
