@@ -2660,7 +2660,6 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             function renderPreviewOnly() {
               renderPreviewRegion();
               renderSelectionOverlay();
-              renderCanvasBlockedOverlay();
               updateComposerState();
             }
 
@@ -2669,7 +2668,6 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               renderPreviewRegion();
               renderInspectorRegion();
               renderConnection(state.connection.current);
-              renderCanvasBlockedOverlay();
               updateComposerState();
             }
 

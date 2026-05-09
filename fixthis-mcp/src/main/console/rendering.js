@@ -518,7 +518,6 @@
             function renderPreviewOnly() {
               renderPreviewRegion();
               renderSelectionOverlay();
-              renderCanvasBlockedOverlay();
               updateComposerState();
             }
 
@@ -527,7 +526,6 @@
               renderPreviewRegion();
               renderInspectorRegion();
               renderConnection(state.connection.current);
-              renderCanvasBlockedOverlay();
               updateComposerState();
             }
 
