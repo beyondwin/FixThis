@@ -49,6 +49,19 @@
       "escalations": 0,
       "review_retries": 0,
       "verifier_retries": 0
+    },
+    "task_2": {
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": [
+        "fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacks.kt",
+        "fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacksTest.kt"
+      ],
+      "commit": "77d0965",
+      "pre_task_sha": "1014213",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0
     }
   },
   "task_summaries": {
@@ -60,11 +73,20 @@
       "exposed_apis": ["BridgeStatus.screenInteractive", "BridgeStatus.keyguardLocked", "BridgeStatus.appForeground", "BridgeStatus.pictureInPicture"],
       "key_decision": "Nullable Boolean fields with null defaults; legacy 5-arg constructor preserved",
       "for_next_tasks": "BridgeStatus now has 4 new Boolean? fields (screenInteractive, keyguardLocked, appForeground, pictureInPicture). All null-default, kotlinx.serialization. Task 3 must populate these in status(); Task 4 must mirror them in MCP DTO."
+    },
+    "task_2": {
+      "files": [
+        "fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacks.kt",
+        "fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacksTest.kt"
+      ],
+      "exposed_apis": ["FixThisActivityLifecycleCallbacks.isAppForeground()", "FixThisActivityLifecycleCallbacks.lastResumedActivity()"],
+      "key_decision": "AtomicInteger counter + WeakReference<Activity>; Robolectric tests (Mockito not on classpath); underflow-guarded pause",
+      "for_next_tasks": "Task 3 reads isAppForeground() to populate appForeground, and lastResumedActivity()?.isInPictureInPictureMode for pictureInPicture. Same lifecycle callbacks instance must be passed both to Application.registerActivityLifecycleCallbacks and into FixThisBridgeRuntime."
     }
   },
-  "low_tasks_pending_verification": ["task_1"],
+  "low_tasks_pending_verification": ["task_1", "task_2"],
   "last_compaction_after_task": -1,
-  "current_task": 2,
+  "current_task": 3,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
