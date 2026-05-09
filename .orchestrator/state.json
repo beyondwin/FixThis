@@ -452,6 +452,38 @@
       "verifier_result": "PASS — full ./gradlew test: 332 tests, 2 baseline failures (FeedbackConsoleServerTest pair)",
       "orchestrator_note": "Verification gate caught 1 new failure (FeedbackConsoleServerTest.consoleHtmlBuildsCopiesAndSendsSelectedHistoryPrompt asserted on v1 'src? ' literal in app.js). Orchestrator-level fix: updated assertion to '  candidates:'. Net result: baseline 2 failures matched.",
       "timing": {"started": "2026-05-09T18:05:00Z", "completed": "2026-05-09T18:18:00Z"}
+    },
+    "task_37_38_39_bundle": {
+      "plan_ids": ["7.1", "7.2", "7.3"],
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": ["docs/feedback-console-contract.md", "docs/mcp.md", "CHANGELOG.md", "docs/superpowers/plans/2026-05-09-compact-handoff-prompt-v2.md"],
+      "commit": "3eb62d7",
+      "pre_task_sha": "9c1178f9da5200f6d1900b73cb75fb3ca2c8ea17",
+      "escalations": 0, "review_retries": 0, "verifier_retries": 0,
+      "orchestrator_note": "Bundled 3 docs tasks (7.1 contract, 7.2 mcp, 7.3 CHANGELOG). v1→v2 token migration table added. CHANGELOG placeholder replaced with locked one-paragraph wording.",
+      "timing": {"started": "2026-05-09T18:18:00Z", "completed": "2026-05-09T18:35:00Z"}
+    },
+    "task_40": {
+      "plan_id": "7.4",
+      "status": "DEFERRED",
+      "risk": "low",
+      "files": ["docs/superpowers/plans/2026-05-09-compact-handoff-prompt-v2.md"],
+      "commit": "bf952e5",
+      "pre_task_sha": "3eb62d7",
+      "orchestrator_note": "Manual browser smoke deferred — autonomous run has no GUI. Cross-language byte parity validated via kotlinAndJsCompactPromptsMatch_v2 against session-v2.json fixture (modeled on the a8483865-fd81-4075 collision case structure). Recommend manual smoke before merge by a developer with browser access.",
+      "timing": {"started": "2026-05-09T18:35:00Z", "completed": "2026-05-09T18:36:00Z"}
+    },
+    "task_41": {
+      "plan_id": "7.5",
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": ["docs/superpowers/plans/2026-05-09-compact-handoff-prompt-v2.md"],
+      "commit": "bf952e5",
+      "pre_task_sha": "3eb62d7",
+      "verifier_result": "PASS — ./gradlew test: 332 tests, 2 baseline failures only; node --check prompt.js OK; node --check app.js OK",
+      "orchestrator_note": "Final validation gate. Ready for review/merge.",
+      "timing": {"started": "2026-05-09T18:36:00Z", "completed": "2026-05-09T18:42:00Z"}
     }
   },
   "task_summaries": {
@@ -643,14 +675,26 @@
     },
     "task_36": {
       "files": ["fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt"],
-      "exposed_apis": ["FeedbackConsoleServerTest.consoleHtmlBuildsCopiesAndSendsSelectedHistoryPrompt now asserts on '  candidates:' literal"],
-      "key_decision": "Stale v1 'src? ' literal assertion replaced.",
-      "for_next_tasks": "Phase 7 docs work. Test count locked at 332 tests, 2 baseline failures."
+      "exposed_apis": ["FeedbackConsoleServerTest assertion now uses '  candidates:' literal"],
+      "key_decision": "Stale v1 assertion replaced.",
+      "for_next_tasks": "Test count locked at 332 / 2 baseline."
+    },
+    "task_37_38_39_bundle": {
+      "files": ["docs/feedback-console-contract.md", "docs/mcp.md", "CHANGELOG.md"],
+      "exposed_apis": ["v2 grammar in console contract; mcp.md scoreMargin doc updated; CHANGELOG one-paragraph user-visible v2 summary"],
+      "key_decision": "All Phase 7 prose docs landed.",
+      "for_next_tasks": "Manual smoke deferred."
+    },
+    "task_41": {
+      "files": ["docs/superpowers/plans/2026-05-09-compact-handoff-prompt-v2.md"],
+      "exposed_apis": ["RUN COMPLETE — all 42 tasks COMPLETE or DEFERRED; final validation gate PASS"],
+      "key_decision": "Ready for review/merge.",
+      "for_next_tasks": "Manual browser smoke before merge (Task 7.4 deferred). Otherwise green."
     }
   },
-  "low_tasks_pending_verification": ["task_24", "task_31", "task_32"],
-  "last_compaction_after_task": 23,
-  "current_task": 37,
+  "low_tasks_pending_verification": [],
+  "last_compaction_after_task": 41,
+  "current_task": 42,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
@@ -658,6 +702,36 @@
   "current_escalation_count": 0,
   "current_previous_issues": [],
   "phase_summaries": [
+    {
+      "phase": "Phase 7",
+      "tasks": ["task_37_38_39_bundle (7.1 contract + 7.2 mcp + 7.3 CHANGELOG)", "task_40 (7.4 manual smoke DEFERRED)", "task_41 (7.5 final validation gate PASS)"],
+      "shipped": [
+        "feedback-console-contract.md: v2 grammar replaces v1; v1→v2 token migration table",
+        "mcp.md: SourceCandidate.scoreMargin documented as matcher-populated when runner-up exists",
+        "CHANGELOG.md: locked v2 user-visible one-paragraph summary",
+        "Final gate: 332 tests, 2 pre-existing baseline failures only; node --check OK on prompt.js and app.js"
+      ],
+      "batch_verifier": "ORCHESTRATOR-RUN — ./gradlew test + node --check verified directly",
+      "phase_docs": "INHERENT — Phase 7 IS the docs phase",
+      "incident_count": 0,
+      "incidents": [],
+      "milestone": "RUN COMPLETE. 42/42 tasks (1 deferred). Branch ready for review/merge."
+    },
+    {
+      "phase": "Phase 6",
+      "tasks": ["task_32 (6.1 v2 fixture)", "task_33 (6.2 PromptParityTest re-enable + v2)", "task_34 (6.3 budget guard)", "task_35 (6.4 backward-compat smoke)", "task_36 (6.5 verification gate + assertion fix)"],
+      "shipped": [
+        "session-v2.json + expected-prompt-v2.txt fixtures",
+        "PromptParityTest re-enabled with v1 + v2 tests (Node-conditioned)",
+        "compactPromptForSessionV2StaysUnderBudget guard at 1900 chars (1550 baseline × 1.2)",
+        "renderRunsCleanlyOnV1Fixture backward-compat smoke",
+        "FeedbackConsoleServerTest assertion updated from v1 'src? ' to v2 'candidates:'"
+      ],
+      "batch_verifier": "Final ./gradlew test: 332 tests, 2 baseline failures",
+      "phase_docs": "N/A — covered by Phase 7",
+      "incident_count": 1,
+      "incidents": ["Task 6.5 verification gate found 1 new failure (FeedbackConsoleServerTest stale 'src? ' literal); fixed at orchestrator level."]
+    },
     {
       "phase": "Phase 5",
       "tasks": ["task_24 (5.1 viewport/activity/short-id)", "task_25_30_bundle (5.2-5.7 ui/severity/candidates/instance/collision/duplicate)", "task_31 (5.8 regenerate app.js)"],
@@ -756,6 +830,6 @@
   "phase_doc_commits": [],
   "timestamps": {
     "started_at": "2026-05-09T09:43:45Z",
-    "completed_at": null
+    "completed_at": "2026-05-09T18:42:00Z"
   }
 }
