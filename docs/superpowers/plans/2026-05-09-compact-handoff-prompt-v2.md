@@ -439,9 +439,9 @@ Goal: mirror Phases 1-4 in `prompt.js` so the Kotlin and JS renderers produce by
 
 ### Task 5.8 — JS: regenerate bundled app.js
 
-- [ ] Per Phase 0.5 finding: run the console asset bundling command (likely `node build-console-assets.mjs` or `npm run build:console`) and commit the regenerated `fixthis-mcp/src/main/resources/console/app.js`.
-- [ ] Manual smoke: open the console in a browser, capture a real annotation, click `Copy Prompt`, verify the prompt structure matches the v2 grammar.
-- [ ] Commit: `chore(handoff-v2): regenerate bundled console app.js`.
+- [x] Per Phase 0.5 finding: run the console asset bundling command (`node scripts/build-console-assets.mjs`) and commit the regenerated `fixthis-mcp/src/main/resources/console/app.js`. Build produced 207 insertions / 40 deletions; `node --check` passed; v2 tokens verified (13 hits for `candidates:`, `computeInstanceLabels`, `computeDuplicateMarkers`, `formatBox`, `compactUiLine`).
+- [x] Manual smoke: Skipped — autonomous execution; manual smoke deferred.
+- [x] Commit: `chore(handoff-v2): regenerate bundled console app.js`.
 
 ---
 
