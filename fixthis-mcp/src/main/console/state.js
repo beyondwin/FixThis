@@ -12,9 +12,14 @@
                 current: null,
                 hasEverConnected: false,
                 lastReadyAt: null,
-                launchInFlight: false
+                launchInFlight: false,
+                availability: null,
+                interactionBlockedReason: null,
+                previousBlockedReason: null
               }
             };
+            const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });
+            const unresponsiveTracker = createUnresponsiveTracker({ threshold: 3 });
             const sessions = document.getElementById('sessions');
             const sentHistory = document.getElementById('sentHistory');
             const snapshot = document.getElementById('snapshot');

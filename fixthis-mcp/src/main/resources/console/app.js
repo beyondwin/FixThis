@@ -13,9 +13,14 @@
                 current: null,
                 hasEverConnected: false,
                 lastReadyAt: null,
-                launchInFlight: false
+                launchInFlight: false,
+                availability: null,
+                interactionBlockedReason: null,
+                previousBlockedReason: null
               }
             };
+            const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });
+            const unresponsiveTracker = createUnresponsiveTracker({ threshold: 3 });
             const sessions = document.getElementById('sessions');
             const sentHistory = document.getElementById('sentHistory');
             const snapshot = document.getElementById('snapshot');
@@ -282,6 +287,19 @@
             function applyConnectionStatus(status, options) {
               const connectionOptions = options || {};
               state.connection.current = status;
+              state.connection.availability = status?.availability ?? null;
+
+              // Combine availability with the unresponsive tracker for the resolver input.
+              const annotate = toolMode === 'annotate';
+              const resolverInput = state.connection.availability
+                ? { ...state.connection.availability, unresponsive: unresponsiveTracker.isUnresponsive() }
+                : { unresponsive: unresponsiveTracker.isUnresponsive() };
+              const rawReason = computeBlockedReason(resolverInput, annotate);
+              state.connection.interactionBlockedReason = blockedReasonDebouncer.observe(rawReason);
+
+              // success → clear failure streak
+              unresponsiveTracker.observeSuccess();
+
               syncSelectedDeviceFromConnection(status);
               const viewState = userConnectionState(status);
               if (viewState === 'ready') {
@@ -316,9 +334,20 @@
             }
 
             async function refreshConnection(options) {
-              const status = await requestJson('/api/connection');
-              applyConnectionStatus(status, options);
-              return status;
+              try {
+                const status = await requestJson('/api/connection');
+                applyConnectionStatus(status, options);
+                return status;
+              } catch (error) {
+                unresponsiveTracker.observeFailure();
+                const annotate = toolMode === 'annotate';
+                const resolverInput = state.connection.availability
+                  ? { ...state.connection.availability, unresponsive: unresponsiveTracker.isUnresponsive() }
+                  : { unresponsive: unresponsiveTracker.isUnresponsive() };
+                const rawReason = computeBlockedReason(resolverInput, annotate);
+                state.connection.interactionBlockedReason = blockedReasonDebouncer.observe(rawReason);
+                showError(error);
+              }
             }
 
             function welcomeConnectionStatus() {
@@ -386,16 +415,29 @@
               lastHeartbeatError = null;
             }
 
+            function scheduleNextHeartbeat() {
+              const nextDelayMs = unresponsiveTracker.nextBackoffMs();
+              heartbeatTimer = setTimeout(() => {
+                heartbeatTimer = null;
+                if (!state.selectedDeviceSerial) {
+                  scheduleNextHeartbeat();
+                  return;
+                }
+                sendBridgeHeartbeat()
+                  .catch(handleHeartbeatError)
+                  .finally(scheduleNextHeartbeat);
+              }, nextDelayMs);
+            }
+
             function startHeartbeatPolling() {
               stopHeartbeatPolling();
-              sendBridgeHeartbeat().catch(handleHeartbeatError);
-              heartbeatTimer = setInterval(() => {
-                if (state.selectedDeviceSerial) sendBridgeHeartbeat().catch(handleHeartbeatError);
-              }, HeartbeatIntervalMs);
+              sendBridgeHeartbeat()
+                .catch(handleHeartbeatError)
+                .finally(scheduleNextHeartbeat);
             }
 
             function stopHeartbeatPolling() {
-              if (heartbeatTimer) clearInterval(heartbeatTimer);
+              if (heartbeatTimer) clearTimeout(heartbeatTimer);
               heartbeatTimer = null;
             }
 
