@@ -1068,7 +1068,6 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("formatSessionSummary"))
         assertTrue(html.contains("historyOpenCount"))
         assertTrue(html.contains("historyDoneCount"))
-        assertTrue(html.contains("historyPointsCount"))
         assertTrue(html.contains("renderHistoryStrip"))
         assertTrue(html.contains("formatItemLabel"))
         assertTrue(html.contains("function findScreen"))
@@ -1591,7 +1590,6 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("class=\"hi-strip\""))
         assertTrue(html.contains("class=\"hi-pip open\""))
         assertTrue(html.contains("class=\"hi-pip done\""))
-        assertTrue(html.contains("class=\"hi-pip points\""))
         assertTrue(html.contains("class=\"hi-strip-cell"))
         assertTrue(html.contains("data-delete-session-id"))
         assertTrue(html.contains("async function deleteHistorySession(sessionId)"))
@@ -1915,7 +1913,6 @@ class FeedbackConsoleServerTest {
         val html = FeedbackConsoleAssets.indexHtml
         val historyOpenCount = javascriptFunctionBody(html, "historyOpenCount")
         val historyDoneCount = javascriptFunctionBody(html, "historyDoneCount")
-        val historyPointsCount = javascriptFunctionBody(html, "historyPointsCount")
         val createAnnotationFromSelection = javascriptFunctionBody(html, "createAnnotationFromSelection")
         val deletePendingFeedbackItem = javascriptFunctionBody(html, "deletePendingFeedbackItem")
         val renderAnnotationDetail = javascriptFunctionBody(html, "renderAnnotationDetail")
@@ -1924,7 +1921,6 @@ class FeedbackConsoleServerTest {
         assertTrue(historyOpenCount.contains("pendingHistoryItemsForSession(session)"))
         assertTrue(historyOpenCount.contains("(session.unresolvedItemsCount || 0) + pending.filter(item => annotationStatus(item) !== 'resolved').length"))
         assertTrue(historyDoneCount.contains("pending.filter(item => annotationStatus(item) === 'resolved').length"))
-        assertTrue(historyPointsCount.contains("(session.itemsCount || 0) + pendingHistoryItemsForSession(session).length"))
         assertTrue(html.contains("function renderCurrentSessionList()"))
         assertTrue(createAnnotationFromSelection.contains("renderCurrentSessionList();"))
         assertTrue(deletePendingFeedbackItem.contains("renderCurrentSessionList();"))
@@ -3331,6 +3327,20 @@ class FeedbackConsoleServerTest {
         } finally {
             server.stop()
         }
+    }
+
+    @Test
+    fun historyPipsIncludeWorking() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains("class=\"hi-pip working\""), "History row must support a 'working' pip")
+        assertTrue(html.contains(".hi-pip.working"), "CSS for working pip must exist")
+    }
+
+    @Test
+    fun historyPipDropsPointsLabel() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val rendered = javascriptFunctionBody(html, "renderSessionsListFromPayload")
+        assertFalse(rendered.contains("hi-pip points"), "Points pip must be removed")
     }
 
     private class FakeIds(vararg values: String) {

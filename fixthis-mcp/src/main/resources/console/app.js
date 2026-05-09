@@ -1523,14 +1523,10 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               return persistedDone + pending.filter(item => annotationStatus(item) === 'resolved').length;
             }
 
-            function historyPointsCount(session) {
-              return (session.itemsCount || 0) + pendingHistoryItemsForSession(session).length;
-            }
-
             function renderHistoryStrip(session) {
               const open = historyOpenCount(session);
               const done = historyDoneCount(session);
-              const total = historyPointsCount(session);
+              const total = open + done;
               if (!total) return '<span class="hi-strip-cell empty"></span>';
               return [
                 ...Array.from({ length: open }, () => '<span class="hi-strip-cell"></span>'),
@@ -1667,20 +1663,21 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               sessionCount.textContent = String(activeSummaries.length);
               const renderedSessions = renderedActiveSummaries.map((session, index) => {
                 const open = historyOpenCount(session);
+                const working = Number(session.inProgressItemsCount || 0);
                 const done = historyDoneCount(session);
-                const points = historyPointsCount(session);
                 const label = formatSessionLabel(session, ordinalBySessionId.get(session.sessionId) || index + 1);
+                const pips = [
+                  open    > 0 ? '<span class="hi-pip open">'    + escapeHtml(countLabel(open,    'open',    'open'))    + '</span>' : '',
+                  working > 0 ? '<span class="hi-pip working">' + escapeHtml(countLabel(working, 'working', 'working')) + '</span>' : '',
+                  done    > 0 ? '<span class="hi-pip done">'    + escapeHtml(countLabel(done,    'done',    'done'))    + '</span>' : '',
+                ].join('');
                 return '<div class="history-item session-row ' + (session.sessionId === activeId ? 'is-active' : '') + '" role="button" tabindex="0" data-session-id="' + escapeHtml(session.sessionId) + '">' +
                   '<span class="hi-head">' +
                     '<span class="hi-title">' + escapeHtml(label) + '</span>' +
                     '<button type="button" class="hi-del" data-delete-session-id="' + escapeHtml(session.sessionId) + '" aria-label="Delete history item ' + escapeHtml(label) + '">×</button>' +
                   '</span>' +
                   '<span class="hi-meta">' + escapeHtml(formatSessionSummary(session)) + '</span>' +
-                  '<span class="hi-stats">' +
-                    '<span class="hi-pip open">' + escapeHtml(countLabel(open, 'open', 'open')) + '</span>' +
-                    '<span class="hi-pip done">' + escapeHtml(countLabel(done, 'done', 'done')) + '</span>' +
-                    '<span class="hi-pip points">' + escapeHtml(countLabel(points, 'pt', 'pts')) + '</span>' +
-                  '</span>' +
+                  '<span class="hi-stats">' + pips + '</span>' +
                   '<span class="hi-strip">' + renderHistoryStrip(session) + '</span>' +
                 '</div>';
               }).join('');

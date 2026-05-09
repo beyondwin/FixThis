@@ -498,9 +498,9 @@
               background: #6fcf97;
               box-shadow: 0 0 0 3px rgba(111, 207, 151, .18);
             }
-            .hi-pip.points::before {
-              background: #5bb4e8;
-              box-shadow: 0 0 0 3px rgba(91, 180, 232, .14);
+            .hi-pip.working::before {
+              background: #b76e00;
+              box-shadow: 0 0 0 3px rgba(183, 110, 0, .18);
             }
             .hi-strip {
               display: flex;
