@@ -406,36 +406,36 @@ Goal: mirror Phases 1-4 in `prompt.js` so the Kotlin and JS renderers produce by
 
 ### Task 5.2 — JS: ui line + box format (parity for Phase 1.5)
 
-- [ ] Replace `compactTargetLine` with a `compactUiLine` that emits `  ui: <role> tag=<tag>  box=(L,T)-(R,B) [W×H]`. Reuse `formatBounds` for the (L,T,R,B) part; compute width/height in JS as integers.
-- [ ] Commit: `feat(handoff-v2): mirror ui line + box format in JS`.
+- [x] Replace `compactTargetLine` with a `compactUiLine` that emits `  ui: <role> tag=<tag>  box=(L,T)-(R,B) [W×H]`. Reuse `formatBounds` for the (L,T,R,B) part; compute width/height in JS as integers.
+- [x] Commit: `feat(handoff-v2): mirror ui line + box format in JS`.
 
 ### Task 5.3 — JS: severity prefix (parity for Phase 1.6)
 
-- [ ] In `compactItemLines`, prepend `[!] ` to the title when `item.severity === 'high'`.
-- [ ] Commit: `feat(handoff-v2): mirror severity prefix in JS`.
+- [x] In `compactItemLines`, prepend `[!] ` to the title when `item.severity === 'high'`.
+- [x] Commit: `feat(handoff-v2): mirror severity prefix in JS`.
 
 ### Task 5.4 — JS: candidates block + margin + matched (parity for Phase 2)
 
-- [ ] Replace `compactSourceLine` (returning a single line) with `compactCandidatesBlock` (returning an array of lines: heading + up to 3 candidates + optional caution note). Reuse `FIXTHIS_REASON_TOKEN_MAP`.
-- [ ] Implement margin fallback: prefer `candidate.scoreMargin`; else compute from rank-1 minus rank-2 score; format with `.toFixed(2)`.
-- [ ] Commit: `feat(handoff-v2): mirror candidates block in JS`.
+- [x] Replace `compactSourceLine` (returning a single line) with `compactCandidatesBlock` (returning an array of lines: heading + up to 3 candidates + optional caution note). Reuse `FIXTHIS_REASON_TOKEN_MAP`.
+- [x] Implement margin fallback: prefer `candidate.scoreMargin`; else compute from rank-1 minus rank-2 score; format with `.toFixed(2)`.
+- [x] Commit: `feat(handoff-v2): mirror candidates block in JS`.
 
 ### Task 5.5 — JS: instance grouping (parity for Phase 3.1-3.2)
 
-- [ ] Implement `computeInstanceLabels(items)` mirroring Kotlin `InstanceGroupingHelper.compute`. Return `{ labels: Map<itemId, {index,total}>, leaderItemIds: Set<itemId> }`. Same grouping key (fileLine + testTag), same path-string ordering.
-- [ ] In `compactItemLines`, append `  instance i/total` to ui line when item has a label.
-- [ ] Commit: `feat(handoff-v2): mirror instance grouping in JS`.
+- [x] Implement `computeInstanceLabels(items)` mirroring Kotlin `InstanceGroupingHelper.compute`. Return `{ labels: Map<itemId, {index,total}>, leaderItemIds: Set<itemId> }`. Same grouping key (fileLine + testTag), same path-string ordering.
+- [x] In `compactItemLines`, append `  instance i/total` to ui line when item has a label.
+- [x] Commit: `feat(handoff-v2): mirror instance grouping in JS`.
 
 ### Task 5.6 — JS: collision note (parity for Phase 3.3)
 
-- [ ] When item is in `leaderItemIds` and not in an overlap group, append `  note: ${size} markers map to same call site — likely list-rendered; disambiguate by instance index` after the candidates block.
-- [ ] Commit: `feat(handoff-v2): mirror collision note in JS`.
+- [x] When item is in `leaderItemIds` and not in an overlap group, append `  note: ${size} markers map to same call site — likely list-rendered; disambiguate by instance index` after the candidates block.
+- [x] Commit: `feat(handoff-v2): mirror collision note in JS`.
 
 ### Task 5.7 — JS: duplicate detection (parity for Phase 4)
 
-- [ ] Implement `computeDuplicateMarkers(items)` mirroring Kotlin `DuplicateMarkerDetector.detect`. Same key (fileLine + testTag + pathLeaves + bounds).
-- [ ] Append `; targetRisk=duplicate-of-marker-${ref}` to the ui line of duplicates.
-- [ ] Commit: `feat(handoff-v2): mirror duplicate-marker risk in JS`.
+- [x] Implement `computeDuplicateMarkers(items)` mirroring Kotlin `DuplicateMarkerDetector.detect`. Same key (fileLine + testTag + pathLeaves + bounds).
+- [x] Append `; targetRisk=duplicate-of-marker-${ref}` to the ui line of duplicates.
+- [x] Commit: `feat(handoff-v2): mirror duplicate-marker risk in JS`.
 
 ### Task 5.8 — JS: regenerate bundled app.js
 
