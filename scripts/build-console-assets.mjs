@@ -15,6 +15,7 @@ const sources = [
   'history.js',
   'prompt.js',
   'rendering.js',
+  'sessions-polling.js',
   'shortcuts.js',
   'main.js',
 ];

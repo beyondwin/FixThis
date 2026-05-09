@@ -492,6 +492,7 @@ class FeedbackConsoleServerTest {
             "history.js",
             "prompt.js",
             "rendering.js",
+            "sessions-polling.js",
             "shortcuts.js",
             "main.js",
         )
@@ -3341,6 +3342,13 @@ class FeedbackConsoleServerTest {
         val html = FeedbackConsoleAssets.indexHtml
         val rendered = javascriptFunctionBody(html, "renderSessionsListFromPayload")
         assertFalse(rendered.contains("hi-pip points"), "Points pip must be removed")
+    }
+
+    @Test
+    fun consoleHtmlContainsSessionsPolling() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains("function startSessionsPolling"), html.takeLast(2_000))
+        assertTrue(html.contains("async function pollSessionsTick"), "Polling tick must exist")
     }
 
     private class FakeIds(vararg values: String) {
