@@ -15,7 +15,8 @@
                 launchInFlight: false,
                 availability: null,
                 interactionBlockedReason: null,
-                previousBlockedReason: null
+                previousBlockedReason: null,
+                sessionsPollingPaused: false
               }
             };
             const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });
@@ -3030,9 +3031,12 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 // sessions-polling.js
             const SessionsPollIntervalMs = 2000;
 
-            // Placeholder: Task 2 will replace this with the real implementation
-            // that updates state.connection.sessionsPollingPaused.
-            function setSessionsPollingPaused(_paused) {}
+            function setSessionsPollingPaused(paused) {
+              if (state.connection.sessionsPollingPaused === paused) return;
+              state.connection.sessionsPollingPaused = paused;
+              // Re-render the connection card to surface the change.
+              if (state.connection.current) renderConnection(state.connection.current);
+            }
 
             function shouldPollSessions() {
               return !document.hidden && pendingMutationCount === 0 && !isEditingAnnotation();

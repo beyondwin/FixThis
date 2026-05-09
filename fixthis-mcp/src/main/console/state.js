@@ -14,7 +14,8 @@
                 launchInFlight: false,
                 availability: null,
                 interactionBlockedReason: null,
-                previousBlockedReason: null
+                previousBlockedReason: null,
+                sessionsPollingPaused: false
               }
             };
             const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });

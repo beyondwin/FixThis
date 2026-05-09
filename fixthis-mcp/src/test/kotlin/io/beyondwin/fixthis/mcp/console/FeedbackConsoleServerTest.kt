@@ -3693,6 +3693,20 @@ class FeedbackConsoleServerTest {
             "tick must pause polling once threshold reached")
     }
 
+    @Test
+    fun stateConnectionDeclaresSessionsPollingPaused() {
+        val html = FeedbackConsoleAssets.indexHtml
+        // The flag must be declared on state.connection (or a sibling module-level let).
+        assertTrue(
+            html.contains("sessionsPollingPaused"),
+            "must declare sessionsPollingPaused flag on state.connection"
+        )
+        assertTrue(
+            html.contains("function setSessionsPollingPaused"),
+            "must declare setSessionsPollingPaused helper"
+        )
+    }
+
     private class FakeExchange(path: String) : HttpExchange() {
         private val uri = URI.create(path)
 
