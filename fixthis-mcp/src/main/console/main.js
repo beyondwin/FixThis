@@ -54,7 +54,6 @@
             }
 
             function showError(cause) {
-              clearSuccessStatus();
               error.textContent = friendlyErrorMessage(cause && cause.message ? cause.message : cause);
             }
 
