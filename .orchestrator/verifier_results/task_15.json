@@ -1,0 +1,36 @@
+{
+  "status": "PASS",
+  "summary": "Task 2.2 (rank-1 margin/matched) verified. CompactHandoffRendererTest: 19 tests, 0 failures including the two new tests renderEmitsRankOneCandidateWithMarginAndMatched and renderEmitsRankTwoCandidateWithoutMarginOrMatched. Full :fixthis-mcp:test: 303 tests, 2 failures (baseline pair only), 1 skipped (PromptParityTest @Ignore).",
+  "risk_level": "MID",
+  "tests_run": [
+    ":fixthis-mcp:test --tests *CompactHandoffRenderer*",
+    ":fixthis-mcp:test"
+  ],
+  "results": [
+    {
+      "command": "./gradlew :fixthis-mcp:test --tests *CompactHandoffRenderer*",
+      "outcome": "PASS",
+      "tests": 19,
+      "failures": 0,
+      "skipped": 0,
+      "new_tests_present": [
+        "renderEmitsRankOneCandidateWithMarginAndMatched",
+        "renderEmitsRankTwoCandidateWithoutMarginOrMatched"
+      ]
+    },
+    {
+      "command": "./gradlew :fixthis-mcp:test",
+      "outcome": "EXPECTED_FAIL_BASELINE",
+      "tests": 303,
+      "failures": 2,
+      "skipped": 1,
+      "failing_tests": [
+        "FeedbackConsoleServerTest.consoleHtmlUsesModeAwareStudioInspector",
+        "FeedbackConsoleServerTest.consoleHtmlAnnotationSaveUsesCurrentSelectionPayload"
+      ],
+      "matches_baseline": true
+    }
+  ],
+  "issues": [],
+  "escalation": null
+}

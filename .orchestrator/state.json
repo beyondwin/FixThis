@@ -226,6 +226,19 @@
       "verifier_result": "PASS (retry 1) — :fixthis-mcp:test 301 tests, 2 baseline failures, 1 skipped (PromptParityTest @Ignored)",
       "incident": "Initial Verifier FAIL: 3 downstream consumers (FQFT assertions, expected-prompt.txt, app.js) referenced old src? literal. Reset + retry: fixed FQFT + fixture + @Ignored parity test. Implementer also touched main checkout's plan file by accident; reverted, marked checkboxes via orchestrator patch f645141.",
       "timing": {"started": "2026-05-09T13:00:00Z", "completed": "2026-05-09T13:35:00Z"}
+    },
+    "task_15": {
+      "plan_id": "2.2",
+      "status": "COMPLETE",
+      "risk": "mid",
+      "files": ["fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt", "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt", "docs/superpowers/plans/2026-05-09-compact-handoff-prompt-v2.md"],
+      "commit": "f60ba64",
+      "pre_task_sha": "5ef88ae4aed57c560f47d491a225786babdbfd49",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "verifier_result": "PASS — :fixthis-mcp:test 303 tests, 2 baseline failures, 1 skipped (PromptParityTest)",
+      "timing": {"started": "2026-05-09T13:35:00Z", "completed": "2026-05-09T13:55:00Z"}
     }
   },
   "task_summaries": {
@@ -318,11 +331,17 @@
       "exposed_apis": ["appendCandidatesBlock(item) replaces compactSourceLine call site; emits '  candidates:' heading + '    ~ <file>:<line>  conf=<lvl>' per candidate, or '    ~ unknown' for empty"],
       "key_decision": "PromptParityTest @Ignored (JUnit 4) until Phase 5 ports JS to v2 — re-enable in Task 6.2. expected-prompt.txt fixture regenerated to v2 src-line shape.",
       "for_next_tasks": "Task 2.2 (rank-1 line with margin and matched) ENRICHES the per-candidate line with margin=/matched= for rank-1 only — modify appendCandidatesBlock or add formatCandidateLine helper. Task 2.3 caps at 3. Task 2.5 adds caution-note. The compactSourceLine function still exists in the codebase as dead code (no callers); Task 2.2 should delete it. **CRITICAL**: PromptParityTest must be re-enabled in Phase 5 / Task 6.2 — currently @Ignored. New tests: renderEmitsCandidatesBlockWithCandidateLines, renderEmitsCandidatesUnknownWhenEmpty, plus FQFT compactMarkdownEmitsCandidatesBlock + compactMarkdownEmitsCandidatesUnknownWhenNoSourceCandidates."
+    },
+    "task_15": {
+      "files": ["fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt"],
+      "exposed_apis": ["formatCandidateLine(candidate, rank) helper; rank-1 gets margin= (when scoreMargin non-null) and matched=[tokens, ...]; rank-2/3 only get conf="],
+      "key_decision": "Margin format: %.2f. Matched tokens via reasonTokenFor (re-added in this task), .distinct().take(4). compactSourceLine deleted as dead code.",
+      "for_next_tasks": "Task 2.3 (cap at 3) adds .take(MAX_CANDIDATES_RENDERED=3) to appendCandidatesBlock's iteration. Task 2.4 adds margin fallback (computed from rank1.score - rank2.score when wire scoreMargin is null) — currently uses only candidate.scoreMargin directly. Task 2.5 adds caution-note line. JS Task 5.4 mirrors this format with same .toFixed(2) margin format and FIXTHIS_REASON_TOKEN_MAP. New tests: renderEmitsRankOneCandidateWithMarginAndMatched, renderEmitsRankTwoCandidateWithoutMarginOrMatched."
     }
   },
   "low_tasks_pending_verification": [],
   "last_compaction_after_task": 13,
-  "current_task": 15,
+  "current_task": 16,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
