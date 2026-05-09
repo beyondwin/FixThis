@@ -13,6 +13,7 @@ import io.beyondwin.fixthis.compose.core.source.SourceMatcher
 import io.beyondwin.fixthis.mcp.McpProtocol
 import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import io.beyondwin.fixthis.mcp.tools.FixThisBridge
+import java.io.File
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonPrimitive
@@ -20,6 +21,8 @@ import kotlinx.serialization.json.jsonPrimitive
 class TargetEvidenceService(
     private val bridge: FixThisBridge,
     private val sourceIndexRegistry: SourceIndexRegistry,
+    private val projectRoot: File = File(".").canonicalFile,
+    private val stalenessChecker: SourceCandidateStalenessChecker = SourceCandidateStalenessChecker(projectRoot),
 ) {
     suspend fun readSourceIndexOrNull(packageName: String, screen: SnapshotDto): SourceIndex? {
         if (!screen.sourceIndexAvailable) return null
@@ -266,10 +269,14 @@ class TargetEvidenceService(
         selectedNode: FixThisNode?,
         nearbyNodes: List<FixThisNode>,
         activityName: String?,
-    ) = sourceIndex
-        ?.takeIf { it.entries.isNotEmpty() }
-        ?.let { SourceMatcher.match(it, selectedNode, nearbyNodes, activityName) }
-        .orEmpty()
+    ): List<SourceCandidate> {
+        val raw = sourceIndex
+            ?.takeIf { it.entries.isNotEmpty() }
+            ?.let { SourceMatcher.match(it, selectedNode, nearbyNodes, activityName) }
+            .orEmpty()
+        if (raw.isEmpty() || sourceIndex == null) return raw
+        return stalenessChecker.annotate(raw, sourceIndex)
+    }
 
     private fun SnapshotScreenshotDto?.availableKinds(): List<String> {
         val screenshot = this ?: return emptyList()
