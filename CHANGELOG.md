@@ -14,6 +14,13 @@
 - Empty preview stage now shows context-appropriate guidance instead of a single generic message: "Connect a device to get started." when no session is active, "Waiting for first capture from device…" when connected without a screenshot yet, and "No screenshot artifact for this preview." when a screen exists but its image is missing.
 
 - Fixed annotation screen mismatch in the feedback console: after saving annotations on one screen and navigating the device to another, the preview now shows the live device screen instead of staying stuck on the previous screenshot. Clicking a saved annotation swaps the preview to that annotation's saved screenshot and shows only that screen's annotation pins; deselecting returns to the live preview. Cross-screen pin overlap (screen 1 pins appearing on a screen 2 preview) is also eliminated.
+- `fixthis setup --write` now includes the underlying parse/validation error in the merge-failure message instead of swallowing it.
+- `fixthis setup --write` now produces an actionable error when an existing `.claude/settings.json` has `mcpServers` set to a non-object value (e.g., array or string), instead of leaking a cryptic `JsonElement is not a JsonObject` message.
+- The "`fixthis-mcp` executable not found" warning during `fixthis setup --write` now explains the consequence (MCP clients will fail to start FixThis) and the fix command (`./gradlew :fixthis-mcp:installDist`).
+
+### Changed
+
+- `fixthis setup --write` output now labels each written config with its scope: `(project-local)` for Claude (project's `.claude/settings.json`) and `(global)` for Codex (user's `~/.codex/config.toml`). Affects both the success line and the `--dry-run` `Target:` line.
 
 ### Added
 
