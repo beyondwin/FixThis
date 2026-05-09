@@ -122,6 +122,111 @@ class CompactHandoffRendererTest {
     }
 
     @Test
+    fun renderEmitsActivityLineWhenDistinctFromDisplayName() {
+        val session = SessionDto(
+            sessionId = "session-act",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(
+                SnapshotDto(
+                    screenId = "screen-1",
+                    capturedAtEpochMillis = 1L,
+                    displayName = "Home",
+                    activityName = "MainActivity",
+                ),
+            ),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "i",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                    comment = "x",
+                    sequenceNumber = 1,
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        val lines = markdown.lines()
+        val activityIdx = lines.indexOfFirst { it.startsWith("activity:") }
+        assertTrue(activityIdx >= 0, "Expected an activity: line but got:\n$markdown")
+        assertTrue(lines[activityIdx].contains("MainActivity"),
+            "Expected 'activity: MainActivity' but got: '${lines[activityIdx]}'")
+    }
+
+    @Test
+    fun renderOmitsActivityLineWhenEqualToDisplayName() {
+        val session = SessionDto(
+            sessionId = "session-act-eq",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(
+                SnapshotDto(
+                    screenId = "screen-1",
+                    capturedAtEpochMillis = 1L,
+                    displayName = "MainActivity",
+                    activityName = "MainActivity",
+                ),
+            ),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "i",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                    comment = "x",
+                    sequenceNumber = 1,
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        assertTrue(!markdown.lines().any { it.startsWith("activity:") },
+            "Expected no activity: line when activityName == displayName but got:\n$markdown")
+    }
+
+    @Test
+    fun renderOmitsActivityLineWhenActivityNameNull() {
+        val session = SessionDto(
+            sessionId = "session-act-null",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(
+                SnapshotDto(
+                    screenId = "screen-1",
+                    capturedAtEpochMillis = 1L,
+                    displayName = "Home",
+                    activityName = null,
+                ),
+            ),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "i",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                    comment = "x",
+                    sequenceNumber = 1,
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        assertTrue(!markdown.lines().any { it.startsWith("activity:") },
+            "Expected no activity: line when activityName is null but got:\n$markdown")
+    }
+
+    @Test
     fun renderEmitsTopLevelRuleAndScreenHeader() {
         val session = SessionDto(
             sessionId = "session-1",

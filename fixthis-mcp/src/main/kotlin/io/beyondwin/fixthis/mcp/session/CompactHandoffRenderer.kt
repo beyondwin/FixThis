@@ -35,6 +35,10 @@ object CompactHandoffRenderer {
             if (w != null && h != null) {
                 appendLine("viewport: ${w}×${h}")
             }
+            val activityName = screen?.activityName
+            if (activityName != null && activityName != displayName) {
+                appendLine("activity: $activityName")
+            }
             appendLine()
 
             val detectorItems = indexedItems.map { entry ->

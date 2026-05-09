@@ -193,9 +193,9 @@ Goal: switch the v1 token shape to v2 in Kotlin only. No new information; format
 
 ### Task 1.3 — Renderer: activity line (TDD)
 
-- [ ] **Red:** Test: a screen with `displayName="Home"` and `activityName="MainActivity"` produces a `"activity: MainActivity"` line. A screen with `displayName == activityName` produces no activity line. A screen with `activityName == null` produces no activity line. Run; expect failures.
-- [ ] **Green:** In `render()`, after the `viewport:` line (if present), append `appendLine("activity: ${name}")` when `activityName != null && activityName != displayName`. Run; expect pass.
-- [ ] Commit: `feat(handoff-v2): emit activity line when distinct from displayName`.
+- [x] **Red:** Test: a screen with `displayName="Home"` and `activityName="MainActivity"` produces a `"activity: MainActivity"` line. A screen with `displayName == activityName` produces no activity line. A screen with `activityName == null` produces no activity line. Run; expect failures.
+- [x] **Green:** In `render()`, after the `viewport:` line (if present), append `appendLine("activity: ${name}")` when `activityName != null && activityName != displayName`. Run; expect pass.
+- [x] Commit: `feat(handoff-v2): emit activity line when distinct from displayName`.
 
 **Validation:** Same as 1.2.
 **Expected:** All pass.
