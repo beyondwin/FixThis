@@ -1,0 +1,51 @@
+You are a Verifier sub-agent running on Sonnet. Run tests calibrated to the risk level provided. Do not modify any implementation files.
+
+## Risk Level: MID
+
+## Files Changed
+
+- fixthis-mcp/src/main/console/prompt.js (sendAgentPrompt now calls showSuccess)
+- fixthis-mcp/src/main/console/state.js (showSuccess and clearSuccessStatus added)
+- fixthis-mcp/src/main/console/main.js (showError calls clearSuccessStatus)
+- fixthis-mcp/src/main/resources/console/styles.css (.error.status-success rule added)
+- fixthis-mcp/src/main/resources/console/app.js (bundle regenerated)
+
+## Baseline (do not introduce new failures beyond this)
+
+Passing: 281 | Failing: 2
+
+## Test Command
+
+`./gradlew :fixthis-mcp:test` — use this exact command. Do not re-derive.
+
+## Acceptance Criteria
+
+none provided
+
+## Test Instructions
+
+**If MID:** Run the Kotlin test suite as regression gate.
+Pass condition: no new failures vs baseline (281 passing, 2 failing).
+
+## Working Directory
+
+All commands must be run from: `/Users/kws/.config/superpowers/worktrees/FixThis/console-uiux-fixes-20260509-165702`
+
+## Result File
+
+Write your structured result to: `/Users/kws/.config/superpowers/worktrees/FixThis/console-uiux-fixes-20260509-165702/.orchestrator/verifier_results/task_5.json`
+
+JSON schema:
+```json
+{
+  "status": "PASS",
+  "summary": "<≤3 sentences>",
+  "risk_level": "MID",
+  "tests_run": ["<command>"],
+  "results": [{"suite": "<name>", "status": "PASS", "count": 0, "failures": 0}],
+  "issues": ["none"],
+  "escalation": null
+}
+```
+
+After writing the file, print its contents to stdout for logging.
