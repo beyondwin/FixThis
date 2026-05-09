@@ -1089,6 +1089,171 @@ class CompactHandoffRendererTest {
         )
     }
 
+    // ---- Task 3.3: collision note on instance-group leader ----
+
+    private fun makeGroupedCandidateWithSource() = SourceCandidate(
+        file = "HomeScreen.kt",
+        line = 44,
+        score = 0.9,
+        matchedTerms = emptyList(),
+        matchReasons = emptyList(),
+        confidence = SelectionConfidence.MEDIUM,
+    )
+
+    private fun makeNode33(
+        uid: String,
+        role: String? = "MetricCard",
+        testTag: String? = "comp:MetricCard:summary",
+        path: List<String> = emptyList(),
+    ) = FixThisNode(
+        uid = uid,
+        composeNodeId = 1,
+        rootIndex = 0,
+        treeKind = TreeKind.MERGED,
+        boundsInWindow = FixThisRect(0f, 0f, 100f, 100f),
+        role = role,
+        testTag = testTag,
+        path = path,
+    )
+
+    @Test
+    fun renderEmitsCollisionNoteOnGroupLeader() {
+        // 3 items sharing (file:line, testTag), distinct path leaves — leader is item-a (path "root/a" < "root/b" < "root/c")
+        // Non-overlapping bounds so overlap detector doesn't merge them
+        val session = SessionDto(
+            sessionId = "session-collision",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-a",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node(nodeUid = "uid-a", boundsInWindow = FixThisRect(0f, 0f, 100f, 50f)),
+                    selectedNode = makeNode33(uid = "uid-a", path = listOf("root", "a")),
+                    comment = "fix a",
+                    sequenceNumber = 1,
+                    sourceCandidates = listOf(makeGroupedCandidateWithSource()),
+                ),
+                AnnotationDto(
+                    itemId = "item-b",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node(nodeUid = "uid-b", boundsInWindow = FixThisRect(0f, 200f, 100f, 250f)),
+                    selectedNode = makeNode33(uid = "uid-b", path = listOf("root", "b")),
+                    comment = "fix b",
+                    sequenceNumber = 2,
+                    sourceCandidates = listOf(makeGroupedCandidateWithSource()),
+                ),
+                AnnotationDto(
+                    itemId = "item-c",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node(nodeUid = "uid-c", boundsInWindow = FixThisRect(0f, 400f, 100f, 450f)),
+                    selectedNode = makeNode33(uid = "uid-c", path = listOf("root", "c")),
+                    comment = "fix c",
+                    sequenceNumber = 3,
+                    sourceCandidates = listOf(makeGroupedCandidateWithSource()),
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        val lines = markdown.lines()
+
+        val collisionNoteLine = "  note: 3 markers map to same call site — likely list-rendered; disambiguate by instance index"
+
+        // Collision note appears EXACTLY ONCE
+        val collisionNoteCount = lines.count { it == collisionNoteLine }
+        assertTrue(
+            collisionNoteCount == 1,
+            "Expected collision note to appear exactly once but found $collisionNoteCount times:\n$markdown",
+        )
+
+        // Collision note appears AFTER item-a's candidates block (leader is item-a, path "root/a")
+        // item-a's marker line: "1. [marker 1] fix a"
+        val itemAMarkerIdx = lines.indexOfFirst { it == "1. [marker 1] fix a" }
+        assertTrue(itemAMarkerIdx >= 0, "Expected item-a marker line '1. [marker 1] fix a' but got:\n$markdown")
+
+        val collisionNoteIdx = lines.indexOfFirst { it == collisionNoteLine }
+        assertTrue(
+            collisionNoteIdx > itemAMarkerIdx,
+            "Expected collision note to appear after item-a's marker line but got:\n$markdown",
+        )
+
+        // item-b's and item-c's blocks do NOT have an extra note line
+        val itemBMarkerIdx = lines.indexOfFirst { it == "2. [marker 2] fix b" }
+        val itemCMarkerIdx = lines.indexOfFirst { it == "3. [marker 3] fix c" }
+        assertTrue(itemBMarkerIdx >= 0, "Expected item-b marker line but got:\n$markdown")
+        assertTrue(itemCMarkerIdx >= 0, "Expected item-c marker line but got:\n$markdown")
+        assertTrue(
+            collisionNoteIdx < itemBMarkerIdx,
+            "Expected collision note to appear BEFORE item-b's block (not inside it), but got:\n$markdown",
+        )
+    }
+
+    @Test
+    fun renderOmitsCollisionNoteForOverlapItems() {
+        // 3 items in same instance group AND overlapping bounds => collision note must NOT appear
+        val sharedBounds = FixThisRect(0f, 0f, 200f, 200f)
+        val session = SessionDto(
+            sessionId = "session-overlap-no-collision",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-a",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node(nodeUid = "uid-a", boundsInWindow = sharedBounds),
+                    selectedNode = makeNode33(uid = "uid-a", path = listOf("root", "a")),
+                    comment = "fix a",
+                    sequenceNumber = 1,
+                    sourceCandidates = listOf(makeGroupedCandidateWithSource()),
+                ),
+                AnnotationDto(
+                    itemId = "item-b",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node(nodeUid = "uid-b", boundsInWindow = sharedBounds),
+                    selectedNode = makeNode33(uid = "uid-b", path = listOf("root", "b")),
+                    comment = "fix b",
+                    sequenceNumber = 2,
+                    sourceCandidates = listOf(makeGroupedCandidateWithSource()),
+                ),
+                AnnotationDto(
+                    itemId = "item-c",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node(nodeUid = "uid-c", boundsInWindow = sharedBounds),
+                    selectedNode = makeNode33(uid = "uid-c", path = listOf("root", "c")),
+                    comment = "fix c",
+                    sequenceNumber = 3,
+                    sourceCandidates = listOf(makeGroupedCandidateWithSource()),
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        val collisionNoteLine = "  note: 3 markers map to same call site — likely list-rendered; disambiguate by instance index"
+        assertTrue(
+            !markdown.lines().any { it == collisionNoteLine },
+            "Expected NO collision note for items in an overlap group but got:\n$markdown",
+        )
+    }
+
     @Test
     fun renderEmitsCandidatesUnknownWhenSourceCandidatesEmpty() {
         val session = SessionDto(

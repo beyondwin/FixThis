@@ -343,10 +343,10 @@ Goal: derive `instance i/N` and the collision `note:` from existing `path` data.
 
 ### Task 3.3 — Renderer: collision note on group leader (TDD)
 
-- [ ] **Red:** Test: a screen with 3 items in a single instance group produces exactly ONE `  note: ... list-rendered ... disambiguate by instance index` line, attached to the FIRST item (lowest path-leaf order) in the group, immediately after the candidates block (and any caution note). The other 2 items have no extra note line. Run; expect failure.
-- [ ] **Green:** Pass the `leaderItemIds` set from Phase 3.1 into `appendCompactItem`. After the candidates block + caution note, if `item.itemId in leaderItemIds`, append `appendLine("  note: ${groupSize} markers map to same call site — likely list-rendered; disambiguate by instance index")`. Wording locked here. Run; expect pass.
-- [ ] Add test: items in an overlap group are NOT eligible for a collision note (overlap and collision are different signals; overlap supersedes). Run; expect pass.
-- [ ] Commit: `feat(handoff-v2): collision note on instance-group leader`.
+- [x] **Red:** Test: a screen with 3 items in a single instance group produces exactly ONE `  note: ... list-rendered ... disambiguate by instance index` line, attached to the FIRST item (lowest path-leaf order) in the group, immediately after the candidates block (and any caution note). The other 2 items have no extra note line. Run; expect failure.
+- [x] **Green:** Pass the `leaderItemIds` set from Phase 3.1 into `appendCompactItem`. After the candidates block + caution note, if `item.itemId in leaderItemIds`, append `appendLine("  note: ${groupSize} markers map to same call site — likely list-rendered; disambiguate by instance index")`. Wording locked here. Run; expect pass.
+- [x] Add test: items in an overlap group are NOT eligible for a collision note (overlap and collision are different signals; overlap supersedes). Run; expect pass.
+- [x] Commit: `feat(handoff-v2): collision note on instance-group leader`.
 
 **Validation:** Same as 3.2.
 **Expected:** All pass.

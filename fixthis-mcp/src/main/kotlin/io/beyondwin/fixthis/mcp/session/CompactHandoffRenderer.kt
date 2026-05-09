@@ -75,19 +75,31 @@ object CompactHandoffRenderer {
                     val annotation = itemById[detectorItem.id] ?: return@forEach
                     globalCounter += 1
                     val label = grouping.labels[annotation.itemId]
-                    appendCompactItem(globalCounter, annotation, isOverlapGroup, label)
+                    val isLeader = annotation.itemId in grouping.leaderItemIds
+                    val groupSize = label?.total ?: 0
+                    appendCompactItem(globalCounter, annotation, isOverlapGroup, label, isLeader, groupSize)
                 }
             }
         }
     }
 
-    private fun StringBuilder.appendCompactItem(number: Int, item: AnnotationDto, isOverlap: Boolean, instanceLabel: InstanceLabel? = null) {
+    private fun StringBuilder.appendCompactItem(
+        number: Int,
+        item: AnnotationDto,
+        isOverlap: Boolean,
+        instanceLabel: InstanceLabel? = null,
+        isInstanceLeader: Boolean = false,
+        groupSize: Int = 0,
+    ) {
         val title = item.comment.lineSequence().firstOrNull()?.takeIf { it.isNotBlank() } ?: "(No request provided)"
         val prefix = if (item.severity == AnnotationSeverityDto.HIGH) "[!] " else ""
         appendLine("${number}. [marker $number] ${prefix}${title.inlineSafe()}")
         appendLine(compactUiLine(item, isOverlap, instanceLabel))
         item.screenshotCrop?.desktopCropPath?.let { appendLine("crop: ${it.inlineSafe()}") }
         appendCandidatesBlock(item)
+        if (isInstanceLeader && groupSize >= 2 && !isOverlap) {
+            appendLine("  note: $groupSize markers map to same call site — likely list-rendered; disambiguate by instance index")
+        }
         appendLine()
     }
 
