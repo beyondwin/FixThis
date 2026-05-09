@@ -2318,6 +2318,9 @@
               commentInput.addEventListener('change', () => {
                 persistSavedEvidenceItem(item, editSessionId).catch(showError);
               });
+              commentInput.addEventListener('blur', () => {
+                persistSavedEvidenceItem(item, editSessionId).catch(showError);
+              });
               draftItems.querySelectorAll('[data-set-severity]').forEach(button => {
                 button.addEventListener('click', () => {
                   item.severity = button.dataset.setSeverity;
