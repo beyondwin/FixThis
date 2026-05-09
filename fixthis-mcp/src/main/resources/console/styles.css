@@ -1265,3 +1265,10 @@
             @media (prefers-reduced-motion: reduce) {
               * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
             }
+            .tool-button:focus-visible,
+            .zoom-button:focus-visible,
+            .annotation-back:focus-visible,
+            .annotation-segmented button:focus-visible {
+              outline: 2px solid var(--accent);
+              outline-offset: 2px;
+            }
