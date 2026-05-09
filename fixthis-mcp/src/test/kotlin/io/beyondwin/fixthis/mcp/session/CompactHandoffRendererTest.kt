@@ -691,6 +691,74 @@ class CompactHandoffRendererTest {
         )
     }
 
+    // ---- Task 2.3: cap candidates at 3 ----
+
+    private fun makeSourceCandidate(file: String, line: Int, rank: Int = 1) = SourceCandidate(
+        file = file,
+        line = line,
+        score = 1.0 - (rank - 1) * 0.1,
+        matchedTerms = emptyList(),
+        matchReasons = emptyList(),
+        confidence = SelectionConfidence.LOW,
+    )
+
+    private fun makeSessionWithNCandidates(n: Int): SessionDto {
+        val candidates = (1..n).map { rank -> makeSourceCandidate("File$rank.kt", rank * 10, rank) }
+        return SessionDto(
+            sessionId = "session-cap-$n",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "i-cap",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                    comment = "fix",
+                    sequenceNumber = 1,
+                    sourceCandidates = candidates,
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun renderCapsCandidatesAtThreeWhenFiveProvided() {
+        val session = makeSessionWithNCandidates(5)
+        val markdown = CompactHandoffRenderer.render(session)
+        val candidateLines = markdown.lines().filter { it.trim().startsWith("~ ") }
+        assertTrue(
+            candidateLines.size == 3,
+            "Expected exactly 3 '~ ' candidate lines when 5 candidates provided, but got ${candidateLines.size}:\n$markdown",
+        )
+    }
+
+    @Test
+    fun renderEmitsExactlyOneCandidateLineWhenOneProvided() {
+        val session = makeSessionWithNCandidates(1)
+        val markdown = CompactHandoffRenderer.render(session)
+        val candidateLines = markdown.lines().filter { it.trim().startsWith("~ ") }
+        assertTrue(
+            candidateLines.size == 1,
+            "Expected exactly 1 '~ ' candidate line when 1 candidate provided, but got ${candidateLines.size}:\n$markdown",
+        )
+    }
+
+    @Test
+    fun renderEmitsExactlyTwoCandidateLinesWhenTwoProvided() {
+        val session = makeSessionWithNCandidates(2)
+        val markdown = CompactHandoffRenderer.render(session)
+        val candidateLines = markdown.lines().filter { it.trim().startsWith("~ ") }
+        assertTrue(
+            candidateLines.size == 2,
+            "Expected exactly 2 '~ ' candidate lines when 2 candidates provided, but got ${candidateLines.size}:\n$markdown",
+        )
+    }
+
     @Test
     fun renderEmitsCandidatesUnknownWhenSourceCandidatesEmpty() {
         val session = SessionDto(

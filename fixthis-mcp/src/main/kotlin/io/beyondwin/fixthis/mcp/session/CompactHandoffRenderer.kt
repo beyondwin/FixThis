@@ -1,6 +1,7 @@
 package io.beyondwin.fixthis.mcp.session
 
 object CompactHandoffRenderer {
+    private const val MAX_CANDIDATES_RENDERED = 3
     fun render(session: SessionDto): String = buildString {
         appendLine("# FixThis Feedback Handoff")
         appendLine()
@@ -91,7 +92,7 @@ object CompactHandoffRenderer {
         if (item.sourceCandidates.isEmpty()) {
             appendLine("    ~ unknown")
         } else {
-            item.sourceCandidates.forEachIndexed { idx, candidate ->
+            item.sourceCandidates.take(MAX_CANDIDATES_RENDERED).forEachIndexed { idx, candidate ->
                 appendLine("    ${formatCandidateLine(candidate, idx + 1)}")
             }
         }

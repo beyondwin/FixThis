@@ -272,9 +272,9 @@ Goal: replace the single `src? ...` line with a `candidates:` block (≤3 entrie
 
 ### Task 2.3 — Renderer: cap at 3 candidates (TDD)
 
-- [ ] **Red:** Test: an item with 5 source candidates emits exactly 3 `~ ` lines (ranks 1, 2, 3). Run; expect failure (assuming default emits all).
-- [ ] **Green:** Apply `.take(MAX_CANDIDATES_RENDERED)` where the constant is defined at the top of the file as `private const val MAX_CANDIDATES_RENDERED = 3`. Run; expect pass.
-- [ ] Add test: 1 candidate → 1 line; 2 candidates → 2 lines; 0 candidates → `~ unknown`.
+- [x] **Red:** Test: an item with 5 source candidates emits exactly 3 `~ ` lines (ranks 1, 2, 3). Run; expect failure (assuming default emits all).
+- [x] **Green:** Apply `.take(MAX_CANDIDATES_RENDERED)` where the constant is defined at the top of the file as `private const val MAX_CANDIDATES_RENDERED = 3`. Run; expect pass.
+- [x] Add test: 1 candidate → 1 line; 2 candidates → 2 lines; 0 candidates → `~ unknown`.
 - [ ] Commit: `feat(handoff-v2): cap candidates block at 3 entries`.
 
 **Validation:** Same as 2.1.
