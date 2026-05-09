@@ -39,6 +39,17 @@
       "review_retries": 0,
       "verifier_retries": 0,
       "timing": {"started": "2026-05-09T17:55:00+09:00", "completed": "2026-05-09T18:00:00+09:00"}
+    },
+    "task_2": {
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": ["CLAUDE.md"],
+      "commit": "1dba986",
+      "pre_task_sha": "651498b3066e30d3fa4141b5897bae85ccd1fc79",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "timing": {"started": "2026-05-09T18:01:00+09:00", "completed": "2026-05-09T18:05:00+09:00"}
     }
   },
   "task_summaries": {
@@ -47,11 +58,17 @@
       "exposed_apis": [],
       "key_decision": "Created AGENTS.md verbatim from spec; 9 sections, 10 MCP tool table rows",
       "for_next_tasks": "AGENTS.md exists at repo root; CLAUDE.md (Task 2) should reference it via relative link"
+    },
+    "task_2": {
+      "files": ["CLAUDE.md"],
+      "exposed_apis": [],
+      "key_decision": "Created CLAUDE.md verbatim from spec; 5 sections, references AGENTS.md",
+      "for_next_tasks": "CLAUDE.md exists at repo root; Task 3 README section should reference AGENTS.md (not CLAUDE.md) for full AI workflow"
     }
   },
-  "low_tasks_pending_verification": ["task_1"],
+  "low_tasks_pending_verification": ["task_1", "task_2"],
   "last_compaction_after_task": 0,
-  "current_task": 2,
+  "current_task": 3,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
