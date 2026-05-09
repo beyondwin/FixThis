@@ -8,9 +8,13 @@ import io.beyondwin.fixthis.compose.core.model.IdentityHintSource
 import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.beyondwin.fixthis.compose.core.model.TreeKind
+import io.beyondwin.fixthis.compose.core.source.SourceIndex
+import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
 import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
+import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class TargetEvidenceServiceTest {
@@ -82,10 +86,49 @@ class TargetEvidenceServiceTest {
         assertEquals(SelectionConfidence.LOW, evidence.sourceInterpretation?.topCandidate?.confidence)
     }
 
-    private fun targetEvidenceService(): TargetEvidenceService =
+    @Test
+    fun sourceCandidateIsMarkedStaleWhenLiveContentDiffersFromIndexExcerpt() {
+        val tmpDir = kotlin.io.path.createTempDirectory(prefix = "fixthis-staleness-tes-").toFile()
+            .also { it.deleteOnExit() }
+        val fooKt = File(tmpDir, "Foo.kt")
+        // Live file has different content than what the index excerpt says
+        fooKt.writeText("package sample\n\nfun Foo() = \"live content\"\n")
+
+        val selected = node(uid = "foo-node", text = listOf("UniqueLabelStalenessXYZ"))
+        val screen = screenWith(selected)
+        val sourceIndex = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(
+                    file = "Foo.kt",
+                    line = 3,
+                    text = listOf("UniqueLabelStalenessXYZ"),
+                    excerpt = "fun Foo() = \"original content\"",
+                ),
+            ),
+        )
+        val service = targetEvidenceService(projectRoot = tmpDir)
+
+        val item = service.buildFeedbackItem(
+            screen = screen,
+            sourceIndex = sourceIndex,
+            targetType = FeedbackTargetType.NODE,
+            bounds = selected.boundsInWindow,
+            nodeUid = selected.uid,
+            comment = "needs rename",
+            allowBlankComment = false,
+            writtenStatus = AnnotationStatusDto.OPEN,
+        )
+
+        val candidate = item.sourceCandidates.single { it.file.endsWith("Foo.kt") }
+        assertEquals(true, candidate.stale)
+        assertEquals("excerpt mismatch", candidate.staleReason)
+    }
+
+    private fun targetEvidenceService(projectRoot: File = File(".").canonicalFile): TargetEvidenceService =
         TargetEvidenceService(
             bridge = FakeFixThisBridge(),
             sourceIndexRegistry = SourceIndexRegistry(),
+            projectRoot = projectRoot,
         )
 
     private fun screenWith(vararg nodes: FixThisNode): SnapshotDto =

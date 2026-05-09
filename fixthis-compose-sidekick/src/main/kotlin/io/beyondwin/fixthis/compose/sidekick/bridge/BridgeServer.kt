@@ -218,6 +218,7 @@ data class BridgeStatus(
     val keyguardLocked: Boolean? = null,
     val appForeground: Boolean? = null,
     val pictureInPicture: Boolean? = null,
+    val installEpochMillis: Long? = null,
 ) {
     constructor(
         activity: String?,
@@ -236,6 +237,7 @@ data class BridgeStatus(
         keyguardLocked = null,
         appForeground = null,
         pictureInPicture = null,
+        installEpochMillis = null,
     )
 }
 
@@ -383,8 +385,13 @@ internal class AndroidBridgeEnvironment(
             keyguardLocked = keyguardManager?.isKeyguardLocked,
             appForeground = lifecycleCallbacks.isAppForeground(),
             pictureInPicture = resumedActivity?.isInPictureInPictureMode,
+            installEpochMillis = readInstallEpochMillis(),
         )
     }
+
+    private fun readInstallEpochMillis(): Long? = runCatching {
+        context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime
+    }.getOrNull()
 
     override suspend fun inspectCurrentScreen(): BridgeScreenInspection =
         withContext(mainDispatcher) {

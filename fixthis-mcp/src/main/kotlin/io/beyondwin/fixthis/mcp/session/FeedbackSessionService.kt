@@ -24,7 +24,11 @@ class FeedbackSessionService(
 ) {
     private val connectionService = ConsoleConnectionService(bridge)
     private val screenshotArtifactPromoter = ScreenshotArtifactPromoter()
-    private val targetEvidenceService = TargetEvidenceService(bridge, sourceIndexRegistry)
+    private val targetEvidenceService = TargetEvidenceService(
+        bridge,
+        sourceIndexRegistry,
+        projectRoot = File(projectRoot),
+    )
     private val previewCaptureService = PreviewCaptureService(
         bridge = bridge,
         store = store,
