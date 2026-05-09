@@ -209,6 +209,14 @@ class FixThisTools(
                 val item = feedbackService.resolveFeedback(session.sessionId, itemId, status, summary)
                 jsonToolResult(McpProtocol.json.encodeToJsonElement(AnnotationDto.serializer(), item).jsonObject)
             }
+            "fixthis_claim_feedback" -> bridgeToolResult {
+                val session = requestedSession(arguments)
+                val itemId = arguments.stringParam("itemId")?.takeIf { it.isNotBlank() }
+                    ?: throw FixThisToolException("fixthis_claim_feedback requires itemId")
+                val agentNote = arguments.stringParam("agentNote")?.takeIf { it.isNotBlank() }
+                val item = feedbackService.claimFeedback(session.sessionId, itemId, agentNote)
+                jsonToolResult(McpProtocol.json.encodeToJsonElement(AnnotationDto.serializer(), item).jsonObject)
+            }
             else -> throw FixThisToolException("Unknown FixThis tool: $name")
         }
 

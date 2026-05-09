@@ -738,6 +738,50 @@ class McpProtocolTest {
     }
 
     @Test
+    fun callClaimFeedbackReturnsUpdatedItem() = runBlocking {
+        val bridge = FakeBridge(defaultPackageName = "com.default")
+        val service = feedbackService(bridge, "session-1", "screen-1", "item-1")
+        val session = service.openSession("com.first")
+        val screen = service.captureScreen(session.sessionId)
+        val item = service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            FixThisRect(1f, 2f, 3f, 4f),
+            "Needs work",
+        )
+        val server = server(bridge, feedbackService = service)
+
+        val payload = runToolCall(
+            server,
+            "fixthis_claim_feedback",
+            """{"sessionId":"${session.sessionId}","itemId":"${item.itemId}","agentNote":"starting"}""",
+        )
+
+        assertEquals("in_progress", payload.getValue("status").jsonPrimitive.content)
+        assertEquals("starting", payload.getValue("agentSummary").jsonPrimitive.content)
+    }
+
+    @Test
+    fun callClaimFeedbackRequiresItemId() = runBlocking {
+        val bridge = FakeBridge(defaultPackageName = "com.default")
+        val service = feedbackService(bridge, "session-1", "screen-1", "item-1")
+        val session = service.openSession("com.first")
+        service.captureScreen(session.sessionId)
+        val server = server(bridge, feedbackService = service)
+
+        val error = runToolCallError(
+            server,
+            "fixthis_claim_feedback",
+            """{"sessionId":"${session.sessionId}"}""",
+        )
+
+        assertTrue(
+            error.getValue("message").jsonPrimitive.content,
+            error.getValue("message").jsonPrimitive.content.contains("requires itemId", ignoreCase = true),
+        )
+    }
+
+    @Test
     fun verifyUiChangeSchemaMarksExpectedTextRequired() {
         val response = runSingleRequest("""{"jsonrpc":"2.0","id":"tools","method":"tools/list","params":{}}""")
 
