@@ -70,11 +70,11 @@
               }
 
               renderNumberedFeedbackOverlay(overlay, image);
-              if (!addItemsFlow && focusedSavedItemId) {
-                const focusedItem = savedEvidenceItems().find(item => item.itemId === focusedSavedItemId);
-                if (focusedItem) {
-                  const sameScreenItems = savedEvidenceItems().filter(item => item.screenId === focusedItem.screenId);
-                  renderSavedEvidenceOverlay(overlay, image, sameScreenItems);
+              if (!addItemsFlow) {
+                const visibleScreen = latestScreen();
+                if (visibleScreen?.screenId) {
+                  const screenSavedItems = savedEvidenceItems().filter(item => item.screenId === visibleScreen.screenId);
+                  if (screenSavedItems.length) renderSavedEvidenceOverlay(overlay, image, screenSavedItems);
                 }
               }
               if (currentSelection) {
@@ -388,18 +388,20 @@
 
             function renderComposerInspector() {
               const item = selectedAnnotation();
+              const savedItems = savedEvidenceItems();
               inspectorTitle.textContent = item ? 'Annotation' : 'Annotations';
-              inspectorCount.textContent = String(pendingFeedbackItems.length);
+              inspectorCount.textContent = String(pendingFeedbackItems.length + savedItems.length);
               selectionSummary.hidden = true;
               comment.hidden = true;
               pendingItems.hidden = false;
-              draftItems.hidden = true;
-              inspectorFooter.hidden = true;
+              draftItems.hidden = savedItems.length === 0;
+              inspectorFooter.hidden = savedItems.length === 0;
               clearSelectionButton.hidden = true;
               cancelAddFlowButton.hidden = true;
               addItemButton.hidden = true;
-              clearDraftButton.hidden = true;
+              clearDraftButton.hidden = savedItems.length === 0;
               renderPendingItems();
+              if (savedItems.length) renderSavedEvidenceGroups();
             }
 
             function renderSavedAnnotationsInspector() {

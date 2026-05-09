@@ -27,4 +27,5 @@ local.properties
 .superpowers/brainstorm
 .fixthis
 .playwright-cli
+.playwright-mcp
 .claude

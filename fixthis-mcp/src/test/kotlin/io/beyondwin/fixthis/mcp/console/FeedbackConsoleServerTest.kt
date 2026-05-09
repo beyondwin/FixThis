@@ -626,8 +626,7 @@ class FeedbackConsoleServerTest {
         assertTrue(pendingRenderer.contains("ann-row-status"))
         assertTrue(pendingRenderer.contains("startAnnotatingButtonHtml()"))
         assertTrue(pendingRenderer.contains("data-focus-pending"))
-        assertTrue(createAnnotationFromSelection.contains("focusedPendingItemIndex = null;"))
-        assertFalse(createAnnotationFromSelection.contains("focusedPendingItemIndex = pendingFeedbackItems.length - 1;"))
+        assertTrue(createAnnotationFromSelection.contains("focusedPendingItemIndex = pendingFeedbackItems.length - 1;"))
         assertFalse(pendingRenderer.contains("data-delete-pending"))
         assertTrue(renderSavedEvidenceGroups.contains("data-focus-saved"))
         assertTrue(html.contains("grid-template-columns: 28px minmax(0, 1fr) auto;"))
@@ -815,6 +814,57 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("document.addEventListener('keydown', handleGlobalShortcut)"))
         assertTrue(html.contains("role=\"status\" aria-live=\"polite\""))
         assertTrue(html.contains("aria-label=\"FixThis preview\""))
+    }
+
+    @Test
+    fun consoleHtmlRendersSavedAnnotationPinsForVisibleScreenWithoutFocus() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val renderSelectionOverlay = javascriptFunctionBody(html, "renderSelectionOverlay")
+
+        // Saved-evidence pins must render whenever a persisted screen is visible — not only
+        // after the user clicks an annotation. The legacy gate (`focusedSavedItemId`) hid
+        // every pin until focus was set, so users with multiple saved items saw an empty
+        // preview by default. Renderer should derive items from `latestScreen()` and filter
+        // by `screenId`.
+        assertFalse(
+            renderSelectionOverlay.contains("if (!addItemsFlow && focusedSavedItemId)"),
+            "renderSelectionOverlay should not gate saved pins on focusedSavedItemId",
+        )
+        assertTrue(
+            renderSelectionOverlay.contains("const visibleScreen = latestScreen();"),
+            "renderSelectionOverlay should resolve the visible screen via latestScreen()",
+        )
+        assertTrue(
+            renderSelectionOverlay.contains("savedEvidenceItems().filter(item => item.screenId === visibleScreen.screenId)"),
+            "renderSelectionOverlay should filter saved items by the visible screen's screenId",
+        )
+    }
+
+    @Test
+    fun consoleHtmlComposerInspectorAlsoShowsSavedAnnotations() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val renderComposerInspector = javascriptFunctionBody(html, "renderComposerInspector")
+
+        // While `addItemsFlow` is active the composer inspector previously hid every saved
+        // annotation, so users adding a new pin to a session that already had four saved
+        // items only saw the single pending entry. The composer must surface saved
+        // annotations as well so totals stay coherent across pending + saved.
+        assertTrue(
+            renderComposerInspector.contains("const savedItems = savedEvidenceItems();"),
+            "renderComposerInspector should resolve saved items",
+        )
+        assertTrue(
+            renderComposerInspector.contains("inspectorCount.textContent = String(pendingFeedbackItems.length + savedItems.length);"),
+            "renderComposerInspector inspector count should include saved items",
+        )
+        assertTrue(
+            renderComposerInspector.contains("draftItems.hidden = savedItems.length === 0;"),
+            "renderComposerInspector should show the saved-items section when savedItems exist",
+        )
+        assertTrue(
+            renderComposerInspector.contains("if (savedItems.length) renderSavedEvidenceGroups();"),
+            "renderComposerInspector should populate the saved-items list",
+        )
     }
 
     private fun javascriptFunctionBody(html: String, functionName: String): String {
@@ -1515,7 +1565,10 @@ class FeedbackConsoleServerTest {
 
         assertTrue(html.contains("[hidden] { display: none !important; }"))
         assertTrue(html.contains("pendingItems.hidden = true"))
-        assertTrue(html.contains("draftItems.hidden = true"))
+        // Composer inspector now keeps the saved-items list visible whenever the session
+        // already has saved annotations (so users don't lose them while adding new ones).
+        // The list is hidden via a length check rather than a literal `= true` assignment.
+        assertTrue(html.contains("draftItems.hidden = savedItems.length === 0;"))
     }
 
     @Test
@@ -1611,9 +1664,10 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("return state.preview?.screen || latestPersistedScreen();"))
         assertFalse(html.contains("return addItemsFlow?.screen || latestPersistedScreen() || state.preview?.screen;"))
         assertTrue(html.contains("'/api/screens/' + encodeURIComponent(screen.screenId) + '/screenshot/full'"))
-        assertTrue(html.contains("if (!addItemsFlow && focusedSavedItemId)"))
-        assertTrue(html.contains("savedEvidenceItems().filter(item => item.screenId === focusedItem.screenId)"))
-        assertTrue(html.contains("renderSavedEvidenceOverlay(overlay, image, sameScreenItems);"))
+        assertTrue(html.contains("if (!addItemsFlow) {"))
+        assertTrue(html.contains("const visibleScreen = latestScreen();"))
+        assertTrue(html.contains("savedEvidenceItems().filter(item => item.screenId === visibleScreen.screenId)"))
+        assertTrue(html.contains("if (screenSavedItems.length) renderSavedEvidenceOverlay(overlay, image, screenSavedItems);"))
         assertFalse(html.contains("renderSavedEvidenceOverlay(overlay, image, persistedItems);"))
         assertFalse(html.contains("if (!addItemsFlow && !state.preview && persistedItems.length)"))
         assertTrue(Regex("async function openSession\\(sessionId\\)[\\s\\S]*stopLivePreviewPolling\\(\\);[\\s\\S]*await refresh\\(\\);").containsMatchIn(html))
@@ -1902,7 +1956,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("function persistPendingFeedbackItems"))
         assertTrue(createAnnotationFromSelection.contains("toolMode = 'annotate';"))
         assertFalse(createAnnotationFromSelection.contains("toolMode = 'select';"))
-        assertTrue(createAnnotationFromSelection.contains("focusedPendingItemIndex = null;"))
+        assertTrue(createAnnotationFromSelection.contains("focusedPendingItemIndex = pendingFeedbackItems.length - 1;"))
         assertTrue(html.contains("suppressNextClick = true;"))
         assertTrue(html.contains("function updateSelectedAnnotationComment"))
         assertTrue(html.contains("item.comment = comment.value;"))
