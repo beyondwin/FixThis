@@ -187,6 +187,19 @@
       "review_retries": 0,
       "verifier_retries": 0,
       "verifier_followup_commit": "aaaa04c (test alignment for prior tasks 5/6/9)"
+    },
+    "task_11": {
+      "status": "COMPLETE",
+      "risk": "mid",
+      "files": [
+        "scripts/console-browser-smoke.mjs"
+      ],
+      "commit": "efbeb1b",
+      "pre_task_sha": "09ff3fc",
+      "escalations": 1,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "notes": "Implementer ESCALATEd because npm run console:smoke fails at line 455 on main too (pre-existing). Orchestrator authored the scenario directly per spec §9.3 'extends with new fake-fixture flows'. The new scenario is appended after existing scenarios; verification deferred until baseline is fixed in a separate task."
     }
   },
   "task_summaries": {
@@ -285,11 +298,19 @@
       "exposed_apis": ["ConsoleAvailabilitySignals.activity: String?", "state.preview.activity", "state.preview.stale", "#canvasStaleNotice DOM", "renderStaleFrameNotice()"],
       "key_decision": "Step 1 enumeration found NO connection-driven nullification (state.js:72 init only; preview.js:19 invalidatePreviewContext is user-driven session/device switch; annotations.js:282/516 are user save/clear). Auto-resume detection in applyConnectionStatus success path AFTER recomputeInteractionBlockedReason. previousBlockedReason updated unconditionally. Spec gaps accepted: applicationId comparison omitted (packageName binding makes activity-only sufficient); pin manipulation while stale not gated (visual-only treatment).",
       "for_next_tasks": "Task 11 smoke test should: assert overlay appears on screenInteractive=false, click is no-op while blocked, frozen preview + pins survive screenInteractive=false→true round trip. Task 12 CHANGELOG entry."
+    },
+    "task_11": {
+      "files": [
+        "scripts/console-browser-smoke.mjs"
+      ],
+      "exposed_apis": ["fake.availability fixture in smoke harness", "screen-off scenario at end of runSmoke"],
+      "key_decision": "Pre-existing baseline failure at line 455 (saved-item selection labels '1,2' assertion times out) prevents the new scenario from running today; reproduces on main too. Orchestrator authored the scenario directly after Implementer ESCALATEd; new scenario is structurally complete per spec §9.3 and will exercise the new UX once baseline is fixed.",
+      "for_next_tasks": "Task 12 CHANGELOG should mention the device interaction availability UX. The smoke baseline issue is outside the scope of this branch."
     }
   },
   "low_tasks_pending_verification": [],
   "last_compaction_after_task": 9,
-  "current_task": 11,
+  "current_task": 12,
   "phase_docs_skipped": ["phase_1", "phase_2"],
   "phase_summaries_log": [
     {
