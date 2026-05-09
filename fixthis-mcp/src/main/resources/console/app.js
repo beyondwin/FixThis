@@ -2624,7 +2624,7 @@
             document.addEventListener('keydown', handleGlobalShortcut);
             document.addEventListener('visibilitychange', () => {
               if (!document.hidden && shouldAutoFetchPreview()) refreshPreview().catch(showError);
-              if (!document.hidden && state.selectedDeviceSerial) sendBridgeHeartbeat().catch(showError);
+              if (!document.hidden && state.selectedDeviceSerial) sendBridgeHeartbeat().catch(handleHeartbeatError);
               startLivePreviewPolling();
             });
             clearSelectionButton.addEventListener('click', clearSelection);
