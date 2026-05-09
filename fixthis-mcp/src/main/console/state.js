@@ -1,6 +1,5 @@
             const DefaultLivePreviewIntervalMs = 1000;
             const MinLivePreviewIntervalMs = 1000;
-            const HeartbeatIntervalMs = 2000;
             const PreviewIntervalStorageKey = 'fixthis.previewIntervalMs.v2';
             const state = {
               session: null,
@@ -61,6 +60,7 @@
             const previewStaleBadge = document.getElementById('previewStaleBadge');
             let livePreviewTimer = null;
             let heartbeatTimer = null;
+            let heartbeatPolling = false;
             let previewRequestGeneration = 0;
             let previewRequestContextGeneration = 0;
             let previewRequestInFlight = null;

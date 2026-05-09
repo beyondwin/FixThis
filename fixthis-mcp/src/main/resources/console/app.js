@@ -1,7 +1,6 @@
 // state.js
             const DefaultLivePreviewIntervalMs = 1000;
             const MinLivePreviewIntervalMs = 1000;
-            const HeartbeatIntervalMs = 2000;
             const PreviewIntervalStorageKey = 'fixthis.previewIntervalMs.v2';
             const state = {
               session: null,
@@ -62,6 +61,7 @@
             const previewStaleBadge = document.getElementById('previewStaleBadge');
             let livePreviewTimer = null;
             let heartbeatTimer = null;
+            let heartbeatPolling = false;
             let previewRequestGeneration = 0;
             let previewRequestContextGeneration = 0;
             let previewRequestInFlight = null;
@@ -284,18 +284,22 @@
               );
             }
 
-            function applyConnectionStatus(status, options) {
-              const connectionOptions = options || {};
-              state.connection.current = status;
-              state.connection.availability = status?.availability ?? null;
-
-              // Combine availability with the unresponsive tracker for the resolver input.
+            function recomputeInteractionBlockedReason() {
               const annotate = toolMode === 'annotate';
               const resolverInput = state.connection.availability
                 ? { ...state.connection.availability, unresponsive: unresponsiveTracker.isUnresponsive() }
                 : { unresponsive: unresponsiveTracker.isUnresponsive() };
               const rawReason = computeBlockedReason(resolverInput, annotate);
               state.connection.interactionBlockedReason = blockedReasonDebouncer.observe(rawReason);
+            }
+
+            function applyConnectionStatus(status, options) {
+              const connectionOptions = options || {};
+              state.connection.current = status;
+              state.connection.availability = status?.availability ?? null;
+
+              // Combine availability with the unresponsive tracker for the resolver input.
+              recomputeInteractionBlockedReason();
 
               // success → clear failure streak
               unresponsiveTracker.observeSuccess();
@@ -340,12 +344,7 @@
                 return status;
               } catch (error) {
                 unresponsiveTracker.observeFailure();
-                const annotate = toolMode === 'annotate';
-                const resolverInput = state.connection.availability
-                  ? { ...state.connection.availability, unresponsive: unresponsiveTracker.isUnresponsive() }
-                  : { unresponsive: unresponsiveTracker.isUnresponsive() };
-                const rawReason = computeBlockedReason(resolverInput, annotate);
-                state.connection.interactionBlockedReason = blockedReasonDebouncer.observe(rawReason);
+                recomputeInteractionBlockedReason();
                 showError(error);
               }
             }
@@ -416,9 +415,11 @@
             }
 
             function scheduleNextHeartbeat() {
+              if (!heartbeatPolling) return;
               const nextDelayMs = unresponsiveTracker.nextBackoffMs();
               heartbeatTimer = setTimeout(() => {
                 heartbeatTimer = null;
+                if (!heartbeatPolling) return;
                 if (!state.selectedDeviceSerial) {
                   scheduleNextHeartbeat();
                   return;
@@ -431,12 +432,14 @@
 
             function startHeartbeatPolling() {
               stopHeartbeatPolling();
+              heartbeatPolling = true;
               sendBridgeHeartbeat()
                 .catch(handleHeartbeatError)
                 .finally(scheduleNextHeartbeat);
             }
 
             function stopHeartbeatPolling() {
+              heartbeatPolling = false;
               if (heartbeatTimer) clearTimeout(heartbeatTimer);
               heartbeatTimer = null;
             }
