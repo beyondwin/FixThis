@@ -1,0 +1,20 @@
+You are a Verifier on Sonnet. MID. No file modifications.
+
+## Worktree
+`/Users/kws/source/android/worktrees/compact-handoff-prompt-v2-20260509-183739` — `cd` here. NEVER `/Users/kws/source/android/FixThis/`.
+
+## Files Changed (Task 6.2 — re-enable + extend parity test)
+- PromptParityTest.kt (re-enabled v1, added v2 test)
+
+## Critical Check: PromptParityTest is no longer SKIPPED
+
+Before Task 6.2: 1 skipped (v1 was @Ignored). After: 0 skipped, both pass.
+
+## Acceptance
+1. `cd <worktree> && ./gradlew :fixthis-mcp:test --tests "*PromptParity*"` — 2 tests pass, 0 skipped.
+2. `cd <worktree> && ./gradlew :fixthis-mcp:test` — failures = 2 (baseline pair only), skipped = 0 (down from 1).
+3. `cd <worktree> && ./gradlew test` — full suite, no new module regressions.
+
+## Result file: `.orchestrator/verifier_results/task_33.json`
+
+After writing, print contents.

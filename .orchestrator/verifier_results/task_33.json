@@ -1,0 +1,61 @@
+{
+  "task_id": 33,
+  "phase": "6.2",
+  "title": "re-enable + extend PromptParityTest (v1 + v2)",
+  "verdict": "PASS",
+  "worktree": "/Users/kws/source/android/worktrees/compact-handoff-prompt-v2-20260509-183739",
+  "head_commit": "ab973ab",
+  "files_changed_by_task": [
+    "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/PromptParityTest.kt",
+    "docs/superpowers/plans/2026-05-09-compact-handoff-prompt-v2.md"
+  ],
+  "checks": {
+    "promptParityIsolated": {
+      "command": "./gradlew :fixthis-mcp:test --tests \"*PromptParity*\"",
+      "result": "BUILD SUCCESSFUL (UP-TO-DATE; XML report verified)",
+      "tests_run": 2,
+      "failures": 0,
+      "skipped": 0,
+      "test_cases": [
+        "jsAndKotlinCompactPromptsMatchExpectedFixture",
+        "kotlinAndJsCompactPromptsMatch_v2"
+      ],
+      "no_ignore_annotation_present": true,
+      "acceptance_met": true
+    },
+    "fixthisMcpFullSuite": {
+      "command": "./gradlew :fixthis-mcp:test",
+      "result": "BUILD FAILED",
+      "tests_completed": 330,
+      "failures": 3,
+      "skipped": 0,
+      "failing_tests": [
+        "FeedbackConsoleServerTest.consoleHtmlBuildsCopiesAndSendsSelectedHistoryPrompt (pre-existing from Task 5.8)",
+        "FeedbackConsoleServerTest.consoleHtmlUsesModeAwareStudioInspector (baseline)",
+        "FeedbackConsoleServerTest.consoleHtmlAnnotationSaveUsesCurrentSelectionPayload (baseline)"
+      ],
+      "skip_count_dropped_1_to_0": true,
+      "test_count_growth": "329 -> 330 (re-enabled v1 [+1], added v2 [+1], removed @Ignore skip [-1])"
+    },
+    "fullGradleTest": {
+      "command": "./gradlew test",
+      "result": "BUILD FAILED in :fixthis-mcp:test only",
+      "other_modules_status": "all UP-TO-DATE / passing (compose-core, compose-sidekick, gradle-plugin, cli)",
+      "no_new_cross_module_regressions": true
+    }
+  },
+  "acceptance": {
+    "parity_tests_pass_zero_skipped": true,
+    "full_mcp_failures_eq_2_baseline_only": false,
+    "no_new_module_regressions": true
+  },
+  "regression_attribution": {
+    "new_failing_test": "FeedbackConsoleServerTest.consoleHtmlBuildsCopiesAndSendsSelectedHistoryPrompt",
+    "failing_assertion": "FeedbackConsoleServerTest.kt:765 — assertTrue(html.contains(\"'src? '\"))",
+    "root_cause": "Task 5.8 (commit 226413d) regenerated bundled console app.js, removing the literal 'src? ' token. The console JS no longer contains 'src?' anywhere (verified via grep against fixthis-mcp/src/main/resources/console).",
+    "git_log_evidence": "git log -S\"'src? '\" -- fixthis-mcp/src/main/resources/console/ shows 226413d (Task 5.8) is the most recent removal commit.",
+    "task_6_2_attribution": "NONE. Task 6.2's 2-file diff (PromptParityTest.kt + plan.md) cannot affect FeedbackConsoleServerTest. Issue exists pre-Task 6.2.",
+    "orchestrator_action_required": "Update orchestrator state baseline OR add fixup task to update FeedbackConsoleServerTest.kt:765 (and any other 'src?' assertions) to match Phase 5 prompt-token shape. This should NOT block Task 6.2 acceptance."
+  },
+  "notes": "Task 6.2's direct deliverable is correct: PromptParityTest is re-enabled (no @Ignore), v2 cross-language parity test added, both tests pass byte-stable token comparison, skip count drops 1->0, +1 net passing test. The 3rd module failure is a pre-existing regression from Task 5.8 prompt.js rewrite that escaped earlier verification because no Task 5.x verifier ran the full :fixthis-mcp:test suite covering FeedbackConsoleServerTest. Verdict PASS for Task 6.2 scope; orchestrator should open follow-up to update FeedbackConsoleServerTest assertion strings to match new prompt token shape."
+}
