@@ -26,7 +26,7 @@ object CompactHandoffRenderer {
         itemsByScreen.forEach { (screenId, indexedItems) ->
             val screen = session.screens.firstOrNull { it.screenId == screenId }
             val displayName = screen?.displayName ?: "Screen"
-            appendLine("Screen ${screenId}: ${displayName.inlineSafe()}")
+            appendLine("Screen ${screenId.take(8)}: ${displayName.inlineSafe()}")
             screen?.screenshot?.desktopFullPath?.let {
                 appendLine("screenshot: ${it.inlineSafe()}")
             }

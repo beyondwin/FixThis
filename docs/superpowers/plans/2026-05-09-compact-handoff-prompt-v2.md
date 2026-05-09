@@ -202,9 +202,9 @@ Goal: switch the v1 token shape to v2 in Kotlin only. No new information; format
 
 ### Task 1.4 — Renderer: screen short-id (TDD)
 
-- [ ] **Red:** Test: a screen with `screenId="4ce1eaa3-1e20-4da0-b3be-1a5c806fa934"` is rendered as `"Screen 4ce1eaa3: <displayName>"` (first 8 hex chars). Edge: an ID shorter than 8 chars renders the whole ID. Run; expect failures.
-- [ ] **Green:** In `render()`, change `appendLine("Screen ${screenId}: ...")` to `appendLine("Screen ${screenId.take(8)}: ...")`. Run; expect pass.
-- [ ] Commit: `feat(handoff-v2): truncate screen UUID to 8-char prefix in header`.
+- [x] **Red:** Test: a screen with `screenId="4ce1eaa3-1e20-4da0-b3be-1a5c806fa934"` is rendered as `"Screen 4ce1eaa3: <displayName>"` (first 8 hex chars). Edge: an ID shorter than 8 chars renders the whole ID. Run; expect failures.
+- [x] **Green:** In `render()`, change `appendLine("Screen ${screenId}: ...")` to `appendLine("Screen ${screenId.take(8)}: ...")`. Run; expect pass.
+- [x] Commit: `feat(handoff-v2): truncate screen UUID to 8-char prefix in header`.
 
 **Validation:** Same as 1.2.
 **Expected:** All pass.

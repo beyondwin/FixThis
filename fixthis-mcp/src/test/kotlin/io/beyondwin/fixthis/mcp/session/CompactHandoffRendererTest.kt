@@ -227,6 +227,88 @@ class CompactHandoffRendererTest {
     }
 
     @Test
+    fun renderTruncatesScreenIdToFirst8Chars() {
+        val fullUuid = "4ce1eaa3-1e20-4da0-b3be-1a5c806fa934"
+        val session = SessionDto(
+            sessionId = "session-trunc",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(
+                SnapshotDto(
+                    screenId = fullUuid,
+                    capturedAtEpochMillis = 1L,
+                    displayName = "Home",
+                ),
+            ),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "i",
+                    screenId = fullUuid,
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                    comment = "x",
+                    sequenceNumber = 1,
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        val screenLines = markdown.lines().filter { it.startsWith("Screen ") }
+        assertTrue(screenLines.isNotEmpty(), "Expected at least one Screen header line")
+        val headerLine = screenLines.first()
+        assertTrue(
+            headerLine.contains("Screen 4ce1eaa3:"),
+            "Expected header to contain 'Screen 4ce1eaa3:' but got: '$headerLine'",
+        )
+        assertTrue(
+            !headerLine.substringBefore(":").contains(fullUuid),
+            "Expected full UUID '$fullUuid' NOT to appear before ':' but got: '$headerLine'",
+        )
+    }
+
+    @Test
+    fun renderHandlesScreenIdShorterThan8Chars() {
+        val shortId = "abc"
+        val session = SessionDto(
+            sessionId = "session-short",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(
+                SnapshotDto(
+                    screenId = shortId,
+                    capturedAtEpochMillis = 1L,
+                    displayName = "Home",
+                ),
+            ),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "i",
+                    screenId = shortId,
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                    comment = "x",
+                    sequenceNumber = 1,
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        val screenLines = markdown.lines().filter { it.startsWith("Screen ") }
+        assertTrue(screenLines.isNotEmpty(), "Expected at least one Screen header line")
+        val headerLine = screenLines.first()
+        assertTrue(
+            headerLine.contains("Screen abc:"),
+            "Expected header to contain 'Screen abc:' but got: '$headerLine'",
+        )
+    }
+
+    @Test
     fun renderEmitsTopLevelRuleAndScreenHeader() {
         val session = SessionDto(
             sessionId = "session-1",
