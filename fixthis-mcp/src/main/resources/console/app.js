@@ -2436,7 +2436,12 @@
               const mode = addItemsFlow ? 'frozen' : (state.preview ? 'live' : (screen ? 'frozen' : 'idle'));
               snapshot.dataset.toolMode = toolMode;
               if (!hasScreenshot) {
-                snapshot.innerHTML = '<div class="empty-stage">' + (screen ? 'No screenshot artifact for this preview.' : 'Refresh the live preview to begin.') + '</div>';
+                const emptyMessage = screen
+                  ? 'No screenshot artifact for this preview.'
+                  : (state.session
+                    ? 'Waiting for first capture from device…'
+                    : 'Connect a device to get started.');
+                snapshot.innerHTML = '<div class="empty-stage">' + emptyMessage + '</div>';
                 updateComposerState();
                 return;
               }
