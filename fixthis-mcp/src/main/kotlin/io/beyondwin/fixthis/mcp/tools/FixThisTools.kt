@@ -195,7 +195,12 @@ class FixThisTools(
             }
             "fixthis_read_feedback" -> bridgeToolResult {
                 val detailMode = DetailMode.fromWire(arguments.stringParam("detailMode"))
-                val session = requestedSession(arguments).focusedOn(arguments.stringParam("itemId"))
+                val itemId = arguments.stringParam("itemId")?.takeIf { it.isNotBlank() }
+                val includeAll = arguments.booleanParam("includeAll") ?: false
+                val baseSession = requestedSession(arguments)
+                val session = baseSession
+                    .focusedOn(itemId)
+                    .filteredForAgent(showAll = includeAll || itemId != null)
                 toolResult(
                     content = listOf(
                         textContent(FeedbackQueueFormatter.toJson(session), "application/json"),
@@ -476,6 +481,12 @@ class FixThisTools(
         )
     }
 
+    private fun SessionDto.filteredForAgent(showAll: Boolean): SessionDto {
+        if (showAll) return this
+        val visible = items.filter { it.delivery == FeedbackDelivery.SENT && it.status !in resolvedStatuses }
+        return copy(items = visible)
+    }
+
     private fun String.toFeedbackItemStatus(): AnnotationStatusDto =
         when (this) {
             "resolved" -> AnnotationStatusDto.RESOLVED
@@ -693,7 +704,7 @@ private val ToolDefinitions = listOf(
     ),
     ToolDefinition(
         name = "fixthis_read_feedback",
-        description = "Read the feedback queue as annotation JSON and Markdown.",
+        description = "Read the feedback queue as annotation JSON and Markdown. By default returns only SENT items that are not yet resolved. Pass includeAll=true to receive everything; passing itemId always returns that item regardless of state.",
         inputSchema = objectSchema(
             "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
             "itemId" to stringProperty("Optional feedback item id to focus the returned payload."),
@@ -701,6 +712,7 @@ private val ToolDefinitions = listOf(
                 description = "Markdown detail level. JSON remains complete regardless of this value.",
                 values = listOf("compact", "precise", "full"),
             ),
+            "includeAll" to booleanProperty("If true, returns DRAFT and resolved items too."),
         ),
     ),
     ToolDefinition(

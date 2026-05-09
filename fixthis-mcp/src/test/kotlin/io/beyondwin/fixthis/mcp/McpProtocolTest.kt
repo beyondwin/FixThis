@@ -834,6 +834,78 @@ class McpProtocolTest {
     }
 
     @Test
+    fun readFeedbackDefaultExcludesDraftItems() = runBlocking {
+        val bridge = FakeFixThisBridge(packageName = "io.beyondwin.fixthis.sample")
+        val service = feedbackService(
+            bridge,
+            "session-1",
+            "screen-1",
+            "item-sent",
+            "batch-1",
+            "item-draft",
+        )
+        val session = service.openSession(null, newSession = true)
+        val screen = service.captureScreen(session.sessionId)
+        val sentItem = service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            FixThisRect(1f, 1f, 2f, 2f),
+            "Sent feedback",
+        )
+        service.sendDraftToAgent(session.sessionId)
+        val draftItem = service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            FixThisRect(2f, 2f, 3f, 3f),
+            "Draft feedback",
+        )
+        val server = server(bridge, feedbackService = service)
+
+        val content = runToolCallContentTexts(
+            server,
+            "fixthis_read_feedback",
+            """{"sessionId":"${session.sessionId}"}""",
+        )
+        val payload = parse(content[0]).jsonObject
+        val itemIds = payload.getValue("items").jsonArray
+            .map { it.jsonObject.getValue("itemId").jsonPrimitive.content }
+
+        assertEquals(listOf(sentItem.itemId), itemIds)
+        assertFalse(itemIds.contains(draftItem.itemId))
+    }
+
+    @Test
+    fun readFeedbackByItemIdIgnoresDefaultFilter() = runBlocking {
+        val bridge = FakeFixThisBridge(packageName = "io.beyondwin.fixthis.sample")
+        val service = feedbackService(
+            bridge,
+            "session-1",
+            "screen-1",
+            "draft-1",
+        )
+        val session = service.openSession(null, newSession = true)
+        val screen = service.captureScreen(session.sessionId)
+        val draftItem = service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            FixThisRect(1f, 1f, 2f, 2f),
+            "Draft only feedback",
+        )
+        val server = server(bridge, feedbackService = service)
+
+        val content = runToolCallContentTexts(
+            server,
+            "fixthis_read_feedback",
+            """{"sessionId":"${session.sessionId}","itemId":"${draftItem.itemId}"}""",
+        )
+        val payload = parse(content[0]).jsonObject
+        val itemIds = payload.getValue("items").jsonArray
+            .map { it.jsonObject.getValue("itemId").jsonPrimitive.content }
+
+        assertEquals(listOf(draftItem.itemId), itemIds)
+    }
+
+    @Test
     fun resolveFeedbackRejectsInvalidStatus() = runBlocking {
         val bridge = FakeBridge(defaultPackageName = "com.default")
         val service = feedbackService(bridge, "session-1", "screen-1", "item-1")
