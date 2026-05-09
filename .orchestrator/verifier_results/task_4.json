@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "summary": "MCP test suite passes (290 tests, 0 failures). Includes 2 new FeedbackConsoleServerTest cases for populated and legacy availability signals.",
+  "risk_level": "MID",
+  "tests_run": ["./gradlew :fixthis-mcp:test"],
+  "results": [{"suite": "fixthis-mcp", "status": "PASS", "count": 290, "failures": 0}],
+  "issues": ["none"],
+  "escalation": null
+}
