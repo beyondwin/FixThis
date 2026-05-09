@@ -478,8 +478,8 @@ Goal: lock the v2 contract with cross-language parity and a token-budget regress
 
 ### Task 6.3 — Prompt-budget regression guard
 
-- [ ] Extend the v1 prompt-budget test (located in Phase 0.3): add an assertion that the v2 rendering of `session-v2.json` is ≤ `1.5 × v1_baseline_size_for_equivalent_4item_session`. Document baseline number in the test comment; recompute if v2 fixtures change.
-- [ ] Commit: `test(handoff-v2): token budget regression guard`.
+- [x] Extend the v1 prompt-budget test (located in Phase 0.3): add an assertion that the v2 rendering of `session-v2.json` is ≤ `1.5 × v1_baseline_size_for_equivalent_4item_session`. Document baseline number in the test comment; recompute if v2 fixtures change.
+- [x] Commit: `test(handoff-v2): token budget regression guard`.
 
 **Validation:** `./gradlew :fixthis-mcp:test --tests "*Budget*"` (or wherever the v1 test lives).
 **Expected:** Pass.
