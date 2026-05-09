@@ -37,6 +37,20 @@
       "review_retries": 0,
       "verifier_retries": 0,
       "timing": {"started": "2026-05-09T18:20:00+09:00", "completed": "2026-05-09T18:25:00+09:00"}
+    },
+    "task_2": {
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": [
+        "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt",
+        "fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/AgentConfigWriterTest.kt"
+      ],
+      "commit": "c5d43b3",
+      "pre_task_sha": "75f70166b729f60580f08cf1b7f052cd177ae880",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "timing": {"started": "2026-05-09T18:26:00+09:00", "completed": "2026-05-09T18:33:00+09:00"}
     }
   },
   "task_summaries": {
@@ -48,11 +62,20 @@
       "exposed_apis": [],
       "key_decision": "buildWritePlans catch now binds `e: Exception`, appends `: ${e.message}` to error message, passes `cause = e` to CliktError",
       "for_next_tasks": "Task 2 will trigger this catch path with mcpServers type validation (IllegalArgumentException). Expect e.message to contain 'mcpServers' and 'not a JSON object'. Existing assertEquals on full message switched to startsWith — Task 2 tests should not regress this."
+    },
+    "task_2": {
+      "files": [
+        "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt",
+        "fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/AgentConfigWriterTest.kt"
+      ],
+      "exposed_apis": [],
+      "key_decision": "ClaudeConfigWriter.merge now type-checks mcpServers JsonElement; throws IllegalArgumentException with actionable message when not a JsonObject. Test class-level `entry` fixture reused for new tests.",
+      "for_next_tasks": "Task 3 modifies SetupCommand.kt warning text only (no test). Task 4 adds `scope` property to AgentConfigWriter interface and implementations - will touch ClaudeConfigWriter (this file) again."
     }
   },
-  "low_tasks_pending_verification": ["task_1"],
+  "low_tasks_pending_verification": ["task_1", "task_2"],
   "last_compaction_after_task": 0,
-  "current_task": 2,
+  "current_task": 3,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
