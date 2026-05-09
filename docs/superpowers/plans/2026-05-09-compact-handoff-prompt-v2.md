@@ -307,7 +307,7 @@ Goal: derive `instance i/N` and the collision `note:` from existing `path` data.
 
 ### Task 3.1 — InstanceGroupingHelper as pure helper (TDD)
 
-- [ ] **Red:** Create `InstanceGroupingHelperTest.kt` with tests:
+- [x] **Red:** Create `InstanceGroupingHelperTest.kt` with tests:
   - 3 items with same `(file:line, testTag)` and distinct path leaves → returns map with all 3 itemIds, labels `(1/3, 2/3, 3/3)` ordered by `path.joinToString("/")`;
   - 2 items with same `(file:line, testTag)` but identical path → labels `(1/2, 2/2)` (still grouped — duplicate detection runs separately);
   - 1 item alone → returned map does NOT include this item;
@@ -315,7 +315,7 @@ Goal: derive `instance i/N` and the collision `note:` from existing `path` data.
   - items missing `selectedNode` or candidates → not grouped (excluded);
   - leaderItemIds set contains the first item of each group (used by collision note placement).
   Run; expect compile or test failures.
-- [ ] **Green:** Create `InstanceGroupingHelper.kt` with:
+- [x] **Green:** Create `InstanceGroupingHelper.kt` with:
   ```kotlin
   data class InstanceLabel(val index: Int, val total: Int)
   data class InstanceGrouping(
@@ -327,7 +327,7 @@ Goal: derive `instance i/N` and the collision `note:` from existing `path` data.
   }
   ```
   Implement; run; expect pass.
-- [ ] Commit: `feat(handoff-v2): InstanceGroupingHelper for list-rendered widget disambiguation`.
+- [x] Commit: `feat(handoff-v2): InstanceGroupingHelper for list-rendered widget disambiguation`.
 
 **Validation:** `./gradlew :fixthis-mcp:test --tests "*InstanceGrouping*"`
 **Expected:** All pass.
