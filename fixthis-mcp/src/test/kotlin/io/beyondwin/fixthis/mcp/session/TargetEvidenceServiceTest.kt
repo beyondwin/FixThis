@@ -88,7 +88,7 @@ class TargetEvidenceServiceTest {
 
     @Test
     fun sourceCandidateIsMarkedStaleWhenLiveContentDiffersFromIndexExcerpt() {
-        val tmpDir = kotlin.io.path.createTempDirectory(prefix = "fixthis-staleness-tes-").toFile()
+        val tmpDir = kotlin.io.path.createTempDirectory(prefix = "fixthis-staleness-test-").toFile()
             .also { it.deleteOnExit() }
         val fooKt = File(tmpDir, "Foo.kt")
         // Live file has different content than what the index excerpt says

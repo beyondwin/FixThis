@@ -60,7 +60,7 @@ class HostSourceFreshnessProbeTest {
         val result = probe.evaluate(index, installEpochMillis = null)
 
         assertFalse(result.installStale)
-        assertTrue(result.reason!!.contains("install epoch"))
+        assertEquals("install epoch unavailable; older sidekick", result.reason)
     }
 
     @Test
