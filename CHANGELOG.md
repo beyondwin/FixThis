@@ -38,6 +38,7 @@
 - `fixthis setup --write` now includes the underlying parse/validation error in the merge-failure message instead of swallowing it.
 - `fixthis setup --write` now produces an actionable error when an existing `.claude/settings.json` has `mcpServers` set to a non-object value (e.g., array or string), instead of leaking a cryptic `JsonElement is not a JsonObject` message.
 - The "`fixthis-mcp` executable not found" warning during `fixthis setup --write` now explains the consequence (MCP clients will fail to start FixThis) and the fix command (`./gradlew :fixthis-mcp:installDist`).
+- Annotation pins now stay visible across live preview polls within the same screen and disappear naturally when the device navigates to a different screen, instead of vanishing each second and only reappearing after a session re-open. Pin visibility is judged per-annotation by anchor (semantics-node uid) on the visible screen, with screenId equality kept as a fallback for area-only annotations.
 
 ### Changed
 
