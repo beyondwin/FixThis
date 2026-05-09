@@ -210,7 +210,7 @@ class SourceMatcherTest {
 
         assertEquals(SelectionConfidence.HIGH, match.confidence)
         assertEquals(1, match.ranking)
-        assertEquals(1.0, match.scoreMargin!!, 0.0)
+        assertEquals(null, match.scoreMargin) // single candidate — no runner-up, so scoreMargin is null
         assertEquals(SourceEvidenceStrength.STRONG, match.evidenceStrength)
         assertTrue(match.riskFlags.isEmpty())
         assertEquals(0.65, match.score, 0.0)
@@ -526,7 +526,101 @@ class SourceMatcherTest {
         ).first()
 
         assertEquals(SelectionConfidence.HIGH, match.confidence)
-        assertTrue(match.scoreMargin!! >= 0.20)
+        // Other.kt scores 0 (no matching signals) so only AppPrimaryButton.kt is returned;
+        // with a single candidate, scoreMargin is null (no runner-up to compute difference against).
+        assertEquals(null, match.scoreMargin)
+    }
+
+    @Test
+    fun scoreMarginIsPopulatedOnRankOneWhenRunnerUpExists() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "HighScore.kt",
+                        line = 1,
+                        signals = listOf(
+                            SourceSignal(
+                                kind = SourceSignalKind.UI_TEXT,
+                                value = "Checkout",
+                                confidenceWeight = 1.0,
+                            ),
+                        ),
+                    ),
+                    SourceIndexEntry(
+                        file = "LowScore.kt",
+                        line = 1,
+                        signals = listOf(
+                            SourceSignal(
+                                kind = SourceSignalKind.ARBITRARY_STRING_LITERAL,
+                                value = "Checkout",
+                                confidenceWeight = 0.35,
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val results = matcher.match(
+            selectedNode = node(uid = "checkout", text = listOf("Checkout")),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        )
+
+        assertTrue("Expected ≥2 candidates", results.size >= 2)
+        assertFalse("rank-1 scoreMargin must not be null", results[0].scoreMargin == null)
+        assertEquals(
+            "scoreMargin must equal score[0] - score[1]",
+            results[0].score - results[1].score,
+            results[0].scoreMargin!!,
+            1e-6,
+        )
+    }
+
+    @Test
+    fun scoreMarginIsNullWhenOnlyOneCandidate() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "OnlyOne.kt",
+                        line = 1,
+                        signals = listOf(
+                            SourceSignal(
+                                kind = SourceSignalKind.UI_TEXT,
+                                value = "Submit",
+                                confidenceWeight = 1.0,
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val results = matcher.match(
+            selectedNode = node(uid = "submit", text = listOf("Submit")),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        )
+
+        assertEquals("Expected exactly 1 candidate", 1, results.size)
+        assertEquals("scoreMargin must be null when only one candidate", null, results[0].scoreMargin)
+    }
+
+    @Test
+    fun matchReturnsEmptyListWhenNoCandidates() {
+        val matcher = SourceMatcher(
+            SourceIndex(entries = emptyList()),
+        )
+
+        val results = matcher.match(
+            selectedNode = node(uid = "btn", text = listOf("Any Text")),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        )
+
+        assertTrue("Expected empty result list when no index entries", results.isEmpty())
     }
 
     private fun node(

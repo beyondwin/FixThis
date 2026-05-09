@@ -149,11 +149,11 @@ Goal: capture the v1 test baseline, lock the v2 fixtures, and ship the one-line 
 
 ### Task 0.6 — Matcher: populate scoreMargin (TDD)
 
-- [ ] **Red:** Add a test in `SourceMatcherTest.kt` that calls the matcher with input producing ≥2 candidates and asserts `result[0].scoreMargin != null` and equals `result[0].score - result[1].score` within ε=1e-6. Run; expect failure.
-- [ ] **Green:** In `SourceMatcher.kt`, locate the function that constructs the result list (`match()` or wherever `List<SourceCandidate>` is finalized). After sorting by score, assign rank-1's `scoreMargin = sortedScores[0] - sortedScores[1]` (only when `sortedScores.size >= 2`). Run; expect pass.
-- [ ] Add a second test: 1 candidate → `scoreMargin == null`; 0 candidates → empty list. Run; expect pass.
-- [ ] Run full module: `./gradlew :fixthis-compose-core:test`. Expect all pass.
-- [ ] Commit: `fix(matcher): populate scoreMargin on rank-1 source candidate when runner-up exists`.
+- [x] **Red:** Add a test in `SourceMatcherTest.kt` that calls the matcher with input producing ≥2 candidates and asserts `result[0].scoreMargin != null` and equals `result[0].score - result[1].score` within ε=1e-6. Run; expect failure.
+- [x] **Green:** In `SourceMatcher.kt`, locate the function that constructs the result list (`match()` or wherever `List<SourceCandidate>` is finalized). After sorting by score, assign rank-1's `scoreMargin = sortedScores[0] - sortedScores[1]` (only when `sortedScores.size >= 2`). Run; expect pass.
+- [x] Add a second test: 1 candidate → `scoreMargin == null`; 0 candidates → empty list. Run; expect pass.
+- [x] Run full module: `./gradlew :fixthis-compose-core:test`. Expect all pass.
+- [x] Commit: `fix(matcher): populate scoreMargin on rank-1 source candidate when runner-up exists`.
 
 **Validation:** `./gradlew :fixthis-compose-core:test`
 **Expected:** All tests pass; new tests included.
