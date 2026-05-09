@@ -90,10 +90,16 @@
 
             async function withMutationLock(fn) {
               pendingMutationCount++;
+              let succeeded = false;
               try {
-                return await fn();
+                const result = await fn();
+                succeeded = true;
+                return result;
               } finally {
                 pendingMutationCount--;
+                if (succeeded && pendingMutationCount === 0 && state.connection?.sessionsPollingPaused) {
+                  startSessionsPolling();
+                }
               }
             }
 

@@ -3717,6 +3717,26 @@ class FeedbackConsoleServerTest {
         )
     }
 
+    @Test
+    fun visibilityChangeRecoversFromPolledFailure() {
+        val html = FeedbackConsoleAssets.indexHtml
+        // The visibilitychange handler must restart polling when paused.
+        assertTrue(
+            html.contains("sessionsPollingPaused") && html.contains("startSessionsPolling"),
+            "visibility handler must consult sessionsPollingPaused and call startSessionsPolling"
+        )
+    }
+
+    @Test
+    fun withMutationLockRecoversFromPolledFailure() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val body = javascriptFunctionBody(html, "withMutationLock")
+        assertTrue(
+            body.contains("sessionsPollingPaused") || body.contains("startSessionsPolling"),
+            "withMutationLock finally-block must restart polling if paused"
+        )
+    }
+
     private class FakeExchange(path: String) : HttpExchange() {
         private val uri = URI.create(path)
 
