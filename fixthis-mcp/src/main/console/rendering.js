@@ -147,6 +147,7 @@
                     '<div class="annotation-segmented" role="group" aria-label="Severity">' +
                       ['high', 'med', 'low'].map(value =>
                         '<button type="button" class="' + (severity === value ? 'active' : '') + '" data-set-severity="' + value + '"' +
+                          ' aria-pressed="' + (severity === value ? 'true' : 'false') + '"' +
                           (severity === value ? ' style="background:' + severityColor(value) + '; color: var(--bg-0);"' : '') + '>' +
                           escapeHtml(value === 'med' ? 'Med' : value) +
                         '</button>'
@@ -161,7 +162,8 @@
                     '<label>Status</label>' +
                     '<div class="annotation-segmented" role="group" aria-label="Status">' +
                       ['open', 'in-progress', 'resolved'].map(value =>
-                        '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '">' +
+                        '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '"' +
+                          ' aria-pressed="' + (status === value ? 'true' : 'false') + '">' +
                           escapeHtml(statusLabel(value)) +
                         '</button>'
                       ).join('') +
@@ -293,6 +295,7 @@
                     '<div class="annotation-segmented" role="group" aria-label="Severity">' +
                       ['high', 'med', 'low'].map(value =>
                         '<button type="button" class="' + (severity === value ? 'active' : '') + '" data-set-severity="' + value + '"' +
+                          ' aria-pressed="' + (severity === value ? 'true' : 'false') + '"' +
                           (severity === value ? ' style="background:' + severityColor(value) + '; color: var(--bg-0);"' : '') + '>' +
                           escapeHtml(value === 'med' ? 'Med' : value) +
                         '</button>'
@@ -307,7 +310,8 @@
                     '<label>Status</label>' +
                     '<div class="annotation-segmented" role="group" aria-label="Status">' +
                       ['open', 'in-progress', 'resolved'].map(value =>
-                        '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '">' +
+                        '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '"' +
+                          ' aria-pressed="' + (status === value ? 'true' : 'false') + '">' +
                           escapeHtml(statusLabel(value)) +
                         '</button>'
                       ).join('') +
@@ -333,6 +337,9 @@
                 updateComposerState();
               });
               commentInput.addEventListener('change', () => {
+                persistSavedEvidenceItem(item, editSessionId).catch(showError);
+              });
+              commentInput.addEventListener('blur', () => {
                 persistSavedEvidenceItem(item, editSessionId).catch(showError);
               });
               draftItems.querySelectorAll('[data-set-severity]').forEach(button => {
@@ -440,7 +447,12 @@
               const mode = addItemsFlow ? 'frozen' : (state.preview ? 'live' : (screen ? 'frozen' : 'idle'));
               snapshot.dataset.toolMode = toolMode;
               if (!hasScreenshot) {
-                snapshot.innerHTML = '<div class="empty-stage">' + (screen ? 'No screenshot artifact for this preview.' : 'Refresh the live preview to begin.') + '</div>';
+                const emptyMessage = screen
+                  ? 'No screenshot artifact for this preview.'
+                  : (state.session
+                    ? 'Waiting for first capture from device…'
+                    : 'Connect a device to get started.');
+                snapshot.innerHTML = '<div class="empty-stage">' + emptyMessage + '</div>';
                 updateComposerState();
                 return;
               }

@@ -137,12 +137,9 @@
 
             function updateComposerState() {
               const hasPromptAnnotations = currentPromptAnnotations().length > 0;
-              copyPromptButton.disabled = promptActionInFlight;
-              sendAgentButton.disabled = promptActionInFlight;
-              copyPromptButton.dataset.unavailable = String(!hasPromptAnnotations || promptActionInFlight);
-              sendAgentButton.dataset.unavailable = String(!hasPromptAnnotations || promptActionInFlight);
-              copyPromptButton.classList.toggle('is-disabled', !hasPromptAnnotations || promptActionInFlight);
-              sendAgentButton.classList.toggle('is-disabled', !hasPromptAnnotations || promptActionInFlight);
+              const promptDisabled = !hasPromptAnnotations || promptActionInFlight;
+              copyPromptButton.disabled = promptDisabled;
+              sendAgentButton.disabled = promptDisabled;
               cancelAddFlowButton.disabled = !addItemsFlow;
               addItemButton.hidden = true;
               addItemButton.disabled = true;
@@ -340,9 +337,17 @@
               }
             }
 
+            function flushFocusedPendingComment() {
+              if (focusedPendingItemIndex == null) return;
+              const item = pendingFeedbackItems[focusedPendingItemIndex];
+              if (!item) return;
+              item.comment = comment.value;
+            }
+
             function createAnnotationFromSelection(selection) {
               if (!addItemsFlow) throw new Error('Switch to Annotate before selecting feedback.');
               if (!selection) throw new Error('Select a component or area first.');
+              flushFocusedPendingComment();
               const annotation = {
                 annotationId: 'local-' + annotationSequence++,
                 targetType: selection.targetType,
@@ -380,6 +385,7 @@
             }
 
             function focusPendingFeedbackItem(index) {
+              flushFocusedPendingComment();
               focusedPendingItemIndex = index;
               focusedSavedItemId = null;
               focusedSavedSessionId = null;

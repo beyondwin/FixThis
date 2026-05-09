@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "summary": "283 tests completed, 2 failed. Both failures (consoleHtmlUsesModeAwareStudioInspector and consoleHtmlAnnotationSaveUsesCurrentSelectionPayload) match the pre-existing baseline exactly. No new failures introduced by the changed files.",
+  "risk_level": "MID",
+  "tests_run": ["./gradlew :fixthis-mcp:test"],
+  "results": [{"suite": "FeedbackConsoleServerTest", "status": "PASS", "count": 283, "failures": 2}],
+  "issues": ["none"],
+  "escalation": null
+}

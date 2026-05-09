@@ -146,6 +146,30 @@
               return String(count) + ' ' + (count === 1 ? singular : plural);
             }
 
+            let successClearTimeout = null;
+
+            function showSuccess(message, durationMs = 2000) {
+              if (successClearTimeout) {
+                clearTimeout(successClearTimeout);
+                successClearTimeout = null;
+              }
+              error.textContent = message;
+              error.classList.add('status-success');
+              successClearTimeout = setTimeout(() => {
+                error.textContent = '';
+                error.classList.remove('status-success');
+                successClearTimeout = null;
+              }, durationMs);
+            }
+
+            function clearSuccessStatus() {
+              if (successClearTimeout) {
+                clearTimeout(successClearTimeout);
+                successClearTimeout = null;
+              }
+              error.classList.remove('status-success');
+            }
+
 // api.js
             async function requestJson(path, options = {}) {
               const method = (options.method || 'GET').toUpperCase();
@@ -346,16 +370,26 @@
             }
 
 
+            let lastHeartbeatError = null;
+
+            function handleHeartbeatError(cause) {
+              const message = cause && cause.message ? cause.message : String(cause);
+              if (message === lastHeartbeatError) return;
+              lastHeartbeatError = message;
+              showError(cause);
+            }
+
             async function sendBridgeHeartbeat() {
               if (!state.session || !state.selectedDeviceSerial) return;
               await refreshConnection();
+              lastHeartbeatError = null;
             }
 
             function startHeartbeatPolling() {
               stopHeartbeatPolling();
-              sendBridgeHeartbeat().catch(showError);
+              sendBridgeHeartbeat().catch(handleHeartbeatError);
               heartbeatTimer = setInterval(() => {
-                if (state.selectedDeviceSerial) sendBridgeHeartbeat().catch(showError);
+                if (state.selectedDeviceSerial) sendBridgeHeartbeat().catch(handleHeartbeatError);
               }, HeartbeatIntervalMs);
             }
 
@@ -812,12 +846,9 @@
 
             function updateComposerState() {
               const hasPromptAnnotations = currentPromptAnnotations().length > 0;
-              copyPromptButton.disabled = promptActionInFlight;
-              sendAgentButton.disabled = promptActionInFlight;
-              copyPromptButton.dataset.unavailable = String(!hasPromptAnnotations || promptActionInFlight);
-              sendAgentButton.dataset.unavailable = String(!hasPromptAnnotations || promptActionInFlight);
-              copyPromptButton.classList.toggle('is-disabled', !hasPromptAnnotations || promptActionInFlight);
-              sendAgentButton.classList.toggle('is-disabled', !hasPromptAnnotations || promptActionInFlight);
+              const promptDisabled = !hasPromptAnnotations || promptActionInFlight;
+              copyPromptButton.disabled = promptDisabled;
+              sendAgentButton.disabled = promptDisabled;
               cancelAddFlowButton.disabled = !addItemsFlow;
               addItemButton.hidden = true;
               addItemButton.disabled = true;
@@ -1015,9 +1046,17 @@
               }
             }
 
+            function flushFocusedPendingComment() {
+              if (focusedPendingItemIndex == null) return;
+              const item = pendingFeedbackItems[focusedPendingItemIndex];
+              if (!item) return;
+              item.comment = comment.value;
+            }
+
             function createAnnotationFromSelection(selection) {
               if (!addItemsFlow) throw new Error('Switch to Annotate before selecting feedback.');
               if (!selection) throw new Error('Select a component or area first.');
+              flushFocusedPendingComment();
               const annotation = {
                 annotationId: 'local-' + annotationSequence++,
                 targetType: selection.targetType,
@@ -1055,6 +1094,7 @@
             }
 
             function focusPendingFeedbackItem(index) {
+              flushFocusedPendingComment();
               focusedPendingItemIndex = index;
               focusedSavedItemId = null;
               focusedSavedSessionId = null;
@@ -1642,7 +1682,6 @@
               if (annotations.length) return annotations;
               const message = promptUnavailableMessage();
               error.textContent = message;
-              window.alert(message);
               throw new Error(message);
             }
 
@@ -1895,6 +1934,7 @@
               ensurePromptAnnotationsAvailable();
               promptActionInFlight = true;
               updateComposerState();
+              let sent = false;
               try {
                 if (addItemsFlow) {
                   await persistPendingFeedbackItems({ onlyWrittenComments: true });
@@ -1911,9 +1951,13 @@
                 await refreshSessions();
                 render();
                 startLivePreviewPolling();
+                sent = true;
               } finally {
                 promptActionInFlight = false;
                 updateComposerState();
+                if (sent) {
+                  showSuccess('Sent to agent ✓', 3000);
+                }
               }
             }
 
@@ -1923,14 +1967,26 @@
               ensurePromptAnnotationsAvailable();
               promptActionInFlight = true;
               updateComposerState();
+              const labelSpan = copyPromptButton.querySelector('span:not(.button-icon)');
+              const originalLabel = labelSpan ? labelSpan.textContent : null;
+              let copied = false;
               try {
                 if (addItemsFlow) {
                   await persistPendingFeedbackItems({ onlyWrittenComments: true });
                 }
                 await copyTextToClipboard(currentAnnotationsPrompt());
+                copied = true;
               } finally {
                 promptActionInFlight = false;
                 updateComposerState();
+                if (copied && labelSpan) {
+                  labelSpan.textContent = 'Copied ✓';
+                  setTimeout(() => {
+                    if (labelSpan.textContent === 'Copied ✓') {
+                      labelSpan.textContent = originalLabel;
+                    }
+                  }, 1500);
+                }
               }
             }
 
@@ -2084,6 +2140,7 @@
                     '<div class="annotation-segmented" role="group" aria-label="Severity">' +
                       ['high', 'med', 'low'].map(value =>
                         '<button type="button" class="' + (severity === value ? 'active' : '') + '" data-set-severity="' + value + '"' +
+                          ' aria-pressed="' + (severity === value ? 'true' : 'false') + '"' +
                           (severity === value ? ' style="background:' + severityColor(value) + '; color: var(--bg-0);"' : '') + '>' +
                           escapeHtml(value === 'med' ? 'Med' : value) +
                         '</button>'
@@ -2098,7 +2155,8 @@
                     '<label>Status</label>' +
                     '<div class="annotation-segmented" role="group" aria-label="Status">' +
                       ['open', 'in-progress', 'resolved'].map(value =>
-                        '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '">' +
+                        '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '"' +
+                          ' aria-pressed="' + (status === value ? 'true' : 'false') + '">' +
                           escapeHtml(statusLabel(value)) +
                         '</button>'
                       ).join('') +
@@ -2230,6 +2288,7 @@
                     '<div class="annotation-segmented" role="group" aria-label="Severity">' +
                       ['high', 'med', 'low'].map(value =>
                         '<button type="button" class="' + (severity === value ? 'active' : '') + '" data-set-severity="' + value + '"' +
+                          ' aria-pressed="' + (severity === value ? 'true' : 'false') + '"' +
                           (severity === value ? ' style="background:' + severityColor(value) + '; color: var(--bg-0);"' : '') + '>' +
                           escapeHtml(value === 'med' ? 'Med' : value) +
                         '</button>'
@@ -2244,7 +2303,8 @@
                     '<label>Status</label>' +
                     '<div class="annotation-segmented" role="group" aria-label="Status">' +
                       ['open', 'in-progress', 'resolved'].map(value =>
-                        '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '">' +
+                        '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '"' +
+                          ' aria-pressed="' + (status === value ? 'true' : 'false') + '">' +
                           escapeHtml(statusLabel(value)) +
                         '</button>'
                       ).join('') +
@@ -2270,6 +2330,9 @@
                 updateComposerState();
               });
               commentInput.addEventListener('change', () => {
+                persistSavedEvidenceItem(item, editSessionId).catch(showError);
+              });
+              commentInput.addEventListener('blur', () => {
                 persistSavedEvidenceItem(item, editSessionId).catch(showError);
               });
               draftItems.querySelectorAll('[data-set-severity]').forEach(button => {
@@ -2377,7 +2440,12 @@
               const mode = addItemsFlow ? 'frozen' : (state.preview ? 'live' : (screen ? 'frozen' : 'idle'));
               snapshot.dataset.toolMode = toolMode;
               if (!hasScreenshot) {
-                snapshot.innerHTML = '<div class="empty-stage">' + (screen ? 'No screenshot artifact for this preview.' : 'Refresh the live preview to begin.') + '</div>';
+                const emptyMessage = screen
+                  ? 'No screenshot artifact for this preview.'
+                  : (state.session
+                    ? 'Waiting for first capture from device…'
+                    : 'Connect a device to get started.');
+                snapshot.innerHTML = '<div class="empty-stage">' + emptyMessage + '</div>';
                 updateComposerState();
                 return;
               }
@@ -2565,7 +2633,7 @@
             document.addEventListener('keydown', handleGlobalShortcut);
             document.addEventListener('visibilitychange', () => {
               if (!document.hidden && shouldAutoFetchPreview()) refreshPreview().catch(showError);
-              if (!document.hidden && state.selectedDeviceSerial) sendBridgeHeartbeat().catch(showError);
+              if (!document.hidden && state.selectedDeviceSerial) sendBridgeHeartbeat().catch(handleHeartbeatError);
               startLivePreviewPolling();
             });
             clearSelectionButton.addEventListener('click', clearSelection);
@@ -2588,6 +2656,7 @@
             }
 
             function showError(cause) {
+              clearSuccessStatus();
               error.textContent = friendlyErrorMessage(cause && cause.message ? cause.message : cause);
             }
 
