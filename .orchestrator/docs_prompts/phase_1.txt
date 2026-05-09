@@ -1,0 +1,56 @@
+You are a Phase Docs Updater sub-agent. Update CHANGELOG.md and any other relevant documentation to reflect the changes implemented in Phase 2 (Tasks 8–13) of the console-uiux-fixes branch. Do not modify any implementation files.
+
+## Working Directory
+
+All work: `/Users/kws/.config/superpowers/worktrees/FixThis/console-uiux-fixes-20260509-165702`
+
+## Changes to Document (Tasks 8–13)
+
+**Task 8 (H7 — Suppress repeated heartbeat errors):**
+- `connection.js`: Added `handleHeartbeatError()` dedup helper that suppresses consecutive identical heartbeat errors; only the first occurrence calls `showError`. `sendBridgeHeartbeat()` resets dedup state on success.
+- `main.js`: Updated `visibilitychange` listener to use `handleHeartbeatError` instead of `showError`.
+
+**Task 9 (M12 — Remove duplicate #selectionOverlay):**
+- `index.html`: Removed static `<div id="selectionOverlay">` from `#snapshot` block. JS creates this element dynamically via `ensurePreviewFrame()`.
+
+**Task 10 (M10 — Improve empty preview stage messaging):**
+- `rendering.js`: `renderPreviewRegion` now shows three contextual messages: "Connect a device to get started." (no session), "Waiting for first capture from device…" (session connected, no screenshot yet), "No screenshot artifact for this preview." (screen exists, no path).
+- `index.html`: Static fallback message updated to "Connect a device to get started."
+
+**Task 11 (M7 — aria-pressed on segmented buttons):**
+- `rendering.js`: Added `aria-pressed="true/false"` to severity and status segmented buttons in both `renderAnnotationDetail` (pending annotations) and `renderSavedAnnotationDetail` (saved annotations). Screen readers now announce selected state.
+
+**Task 12 (L15 — Keyboard focus rings):**
+- `styles.css`: Added `:focus-visible` CSS rules for `.tool-button`, `.zoom-button`, `.annotation-back`, and `.annotation-segmented button`. 2px solid accent-color outline with 2px offset; only appears on keyboard navigation, not mouse clicks.
+
+## Docs Scope
+
+Update these files only if they exist and are relevant:
+- `CHANGELOG.md` — add user-facing entries under an appropriate heading
+
+Look at the existing CHANGELOG.md to understand the format (it was last updated for Tasks 1–7). Add entries for Tasks 8–13 following the same style.
+
+## Commit Instructions
+
+After updating docs:
+```bash
+git -C /Users/kws/.config/superpowers/worktrees/FixThis/console-uiux-fixes-20260509-165702 add CHANGELOG.md
+git -C /Users/kws/.config/superpowers/worktrees/FixThis/console-uiux-fixes-20260509-165702 diff --cached --quiet || \
+  git -C /Users/kws/.config/superpowers/worktrees/FixThis/console-uiux-fixes-20260509-165702 commit -m "docs(console-uiux-fixes): update CHANGELOG for phase 2 (tasks 8-13)"
+```
+
+## Result File
+
+Write your structured result to: `/Users/kws/.config/superpowers/worktrees/FixThis/console-uiux-fixes-20260509-165702/.orchestrator/docs_results/phase_1.json`
+
+JSON schema:
+```json
+{
+  "status": "DONE",
+  "summary": "<≤3 sentences>",
+  "docs_updated": ["CHANGELOG.md"],
+  "commit": "<sha or 'none' if no changes>"
+}
+```
+
+After writing the file, print its contents to stdout.
