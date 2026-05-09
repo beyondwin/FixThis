@@ -285,7 +285,7 @@
                 promptActionInFlight = false;
                 updateComposerState();
                 if (sent) {
-                  showSuccess('Sent to agent ✓', 3000);
+                  showSuccess('Saved to MCP ✓', 3000);
                 }
               }
             }
