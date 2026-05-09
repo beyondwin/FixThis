@@ -57,6 +57,8 @@ Runtime that executes inside the target Android debug app.
 - `inspect/SemanticsInspector.kt`: reads the merged/unmerged semantics tree and converts it to `FixThisNode`.
 - `screenshot/*`: saves screenshot PNGs under the app cache.
 - `bridge/BridgeServer.kt`: Android local socket bridge. Executes `status`, `inspectCurrentScreen`, `captureScreenSnapshot`, `readSourceIndex`, `verifyUiChange`, `readScreenshot`, `performNavigation` after token validation.
+- `BridgeStatus` availability fields: also reports nullable `screenInteractive`, `keyguardLocked`, `appForeground`, `pictureInPicture`. The desktop console uses these signals to drive the `Connected` chip's blocked sub-state (screen off, locked, backgrounded, PiP, unresponsive, no Compose UI) and the canvas overlay/input gating.
+- `lifecycle/FixThisActivityLifecycleCallbacks.kt` tracks a resumed-activity counter and last-resumed weak reference to stabilize backgrounded/foregrounded detection.
 
 ### `:fixthis-gradle-plugin`
 
@@ -191,6 +193,7 @@ Important distinction:
 - `Send Agent` is local persistence for MCP handoff. It does not call an external AI API.
 - Connection recovery is console-local UI state. `GET /api/connection` diagnoses ADB device and sidekick bridge state, while `POST /api/app/launch` launches the selected or only ready app when that is a valid recovery action. These calls do not persist feedback data.
 - When a device or bridge drops, pending browser draft work and the last preview remain visible. The preview is marked stale until the card returns to `Ready`.
+- When the device is `Connected` but not interactable (screen off, lock screen, app backgrounded, PiP, unresponsive, no Compose UI), the console renders a cause-specific overlay on the canvas and gates selection input. When the cause clears, the prior tool mode, frozen preview, and pending pins are auto-resumed.
 
 ## Local Files And Artifacts
 
@@ -279,6 +282,8 @@ Recommended order for a developer seeing this project for the first time:
 - Semantics redaction is not screenshot pixel redaction.
 - The feedback console's `Annotate` mode freezes the preview but does not save. `Add annotation` creates a browser-side pending item. Only `Copy Prompt` or `Send Agent` creates a persisted evidence snapshot.
 - Persisted MCP JSON field names are a compatibility contract. They may differ from domain model names; check the mapper boundary.
+- A `Connected` chip does not always mean the device is interactable. Screen off / locked / backgrounded / PiP / unresponsive / no-Compose-UI all stay `Connected` but report a blocked sub-state.
+- Compact handoff output uses the v2 format. Instead of a single `src?` line, it emits a `candidates:` block (rank-1 by default, capped at 3) and `viewport:`, `activity:`, `instance i/N`, and collision/duplicate-marker note lines. PRECISE/FULL detail modes and the JSON wire format are unchanged.
 
 ---
 

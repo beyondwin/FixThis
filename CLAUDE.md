@@ -18,12 +18,17 @@ See [AGENTS.md](AGENTS.md) for project overview, MCP setup, AI workflow, and con
 # Build CLI + MCP distributions (required before fixthis setup or fixthis run)
 ./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
 
-# JS console asset syntax check
+# Rebundle console JS modules after editing fixthis-mcp/src/main/console/*.js
+node scripts/build-console-assets.mjs
+
+# JS console asset syntax check (the bundled output)
 node --check fixthis-mcp/src/main/resources/console/app.js
 
 # Full lint+diff check
 git diff --check
 ```
+
+The console JS sources live as ES modules under `fixthis-mcp/src/main/console/`. They are concatenated into the served `fixthis-mcp/src/main/resources/console/app.js` by `scripts/build-console-assets.mjs`. Rebundle after editing any module, then re-run `installDist` to refresh the packaged JAR.
 
 ## Module Map
 

@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Canvas `blocked-reason` overlay now renders even before the first screenshot arrives, so screen-off / locked / backgrounded states are communicated during initial connection instead of staying invisible until the first preview lands.
+- Connection-status changes now re-render the preview region, so the canvas overlay and input gating refresh immediately when blocked-reason transitions occur (previously the overlay could lag behind the chip until the next preview frame).
 - Removed a disruptive browser alert dialog that interrupted the workflow when copying the prompt; copying now works silently without a popup.
 - "Copy Prompt" and "Send Agent" buttons are now correctly disabled while a request is in progress, preventing duplicate submissions.
 - Switching focus between annotation entries no longer discards in-progress comment text; any pending comment is saved before the focus change takes effect.

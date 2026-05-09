@@ -57,6 +57,8 @@ Boundary invariant: `:fixthis-compose-core` does not know about MCP, CLI, Androi
 - `inspect/SemanticsInspector.kt`: merged/unmerged semantics tree를 읽고 `FixThisNode`로 변환한다.
 - `screenshot/*`: app cache 아래 screenshot PNG를 저장한다.
 - `bridge/BridgeServer.kt`: Android local socket bridge. `status`, `inspectCurrentScreen`, `captureScreenSnapshot`, `readSourceIndex`, `verifyUiChange`, `readScreenshot`, `performNavigation`을 token 검증 후 실행한다.
+- `BridgeStatus` availability fields: nullable `screenInteractive`, `keyguardLocked`, `appForeground`, `pictureInPicture`를 함께 보고한다. 데스크톱 콘솔은 이 신호로 `Connected` chip의 blocked sub-state(screen off, locked, backgrounded, PiP, unresponsive, no Compose UI)와 캔버스 overlay/입력 게이팅을 결정한다.
+- `lifecycle/FixThisActivityLifecycleCallbacks.kt`는 resumed activity counter와 last-resumed weak reference를 추적해 backgrounded/foregrounded 판정을 안정화한다.
 
 ### `:fixthis-gradle-plugin`
 
@@ -191,6 +193,7 @@ Important distinction:
 - `Send Agent` is local persistence for MCP handoff. It does not call an external AI API.
 - Connection recovery is console-local UI state. `GET /api/connection` diagnoses ADB device and sidekick bridge state, while `POST /api/app/launch` launches the selected or only ready app when that is a valid recovery action. These calls do not persist feedback data.
 - When a device or bridge drops, pending browser draft work and the last preview remain visible. The preview is marked stale until the card returns to `Ready`.
+- `Connected`이지만 상호작용이 불가능한 경우(screen off, lock screen, app backgrounded, PiP, unresponsive, no Compose UI) 콘솔은 캔버스에 cause-specific overlay를 그리고 selection 입력을 차단한다. cause가 해제되면 직전 tool mode, frozen preview, pending pin들을 그대로 자동 재개한다.
 
 ## Local Files And Artifacts
 
@@ -279,3 +282,5 @@ Android instrumentation tests require an unlocked interactive emulator or device
 - semantics redaction은 screenshot pixel redaction이 아니다.
 - feedback console의 `Annotate`는 freeze만 하고 저장하지 않는다. `Add annotation`은 browser-side pending item을 만들고, `Copy Prompt` 또는 `Send Agent`가 필요 시 persisted evidence snapshot을 만든다.
 - persisted MCP JSON field names는 compatibility contract다. Domain model naming과 다를 수 있으므로 mapper boundary에서 확인한다.
+- `Connected` chip이 항상 상호작용 가능을 의미하지는 않는다. screen off / locked / backgrounded / PiP / unresponsive / no-Compose-UI는 동일하게 `Connected`이지만 blocked sub-state로 보고된다.
+- compact handoff 출력은 v2 형식이다. 단일 `src?` 라인 대신 `candidates:` block(rank-1 기본, 최대 3개)과 `viewport:`, `activity:`, `instance i/N`, collision/duplicate-marker note 라인을 사용한다. PRECISE/FULL 모드와 JSON wire format은 변경되지 않는다.

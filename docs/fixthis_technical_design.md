@@ -284,12 +284,13 @@ project(":app").projectDir = file("sample")
 역할:
 
 - AndroidX Startup
-- Application lifecycle hook
+- Application lifecycle hook (resumed activity counter + last-resumed weak reference)
 - MCP browser connection status indicator
 - Compose root discovery
 - semantics inspection
 - screenshot capture
 - bridge server for MCP
+- availability signals on `BridgeStatus`: nullable `screenInteractive`, `keyguardLocked`, `appForeground`, `pictureInPicture`. Desktop console maps these to a `Connected` blocked sub-state and a cause-specific canvas overlay.
 
 주요 package:
 
@@ -1609,9 +1610,15 @@ fixthis_resolve_feedback
   "sidekickConnected": true,
   "currentActivity": "com.example.MainActivity",
   "composeRoots": 1,
-  "sourceIndexAvailable": true
+  "sourceIndexAvailable": true,
+  "screenInteractive": true,
+  "keyguardLocked": false,
+  "appForeground": true,
+  "pictureInPicture": false
 }
 ```
+
+The trailing four fields are nullable. Older sidekick builds may omit them; readers must treat absent fields as "unknown" rather than "false". The desktop console combines them with heartbeat/unresponsiveness tracking to drive the `Connected` blocked sub-state and the canvas overlay.
 
 #### `fixthis_capture_screen`
 

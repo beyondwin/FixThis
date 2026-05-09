@@ -199,6 +199,21 @@ Preview polling pauses when the browser tab is hidden and while the `Annotate` f
 
 The navigation action can succeed while follow-up capture fails. Check the `captureError` field or click `Capture screen` manually after the app finishes drawing.
 
+## Connected But Interaction Is Blocked
+
+The compact device chip can show `Connected` while still suppressing canvas selection and capture-driven actions. In that case the canvas renders a per-cause overlay and FixThis auto-resumes the prior tool mode, frozen preview, and pending pins when the cause clears. Causes are reported by the sidekick via the `BridgeStatus` availability fields (`screenInteractive`, `keyguardLocked`, `appForeground`, `pictureInPicture`) and resolved by priority on the desktop.
+
+| Sub-state | Cause | Fix |
+| --- | --- | --- |
+| Screen off | Device display is off (`screenInteractive=false`) | Wake the device. |
+| Lock screen | `keyguardLocked=true` over a foregrounded app | Unlock the device manually. ADB wake/dismiss is not enough on secure lockscreens. |
+| App backgrounded | `appForeground=false` | Bring the debug app back to foreground (relaunch, recents, or `Open app`). |
+| Picture-in-Picture | `pictureInPicture=true` | Restore the app to fullscreen. |
+| Sample app unresponsive | Heartbeat or status calls timing out | Wait for the app to recover, or relaunch via `Reconnect`. |
+| No Compose UI | Foreground screen is not Compose (View/WebView/dialog) | Navigate to a Compose screen. See [No Compose Roots](#no-compose-roots). |
+
+Browser-side draft work and the last preview remain visible while blocked. Selection and `Capture screen` resume automatically once the cause clears; you do not need to re-enter `Annotate` or re-add pending pins.
+
 ## Browser Console Connection Card States
 
 The connection card is the first place to look when capture, preview, or navigation is unavailable.

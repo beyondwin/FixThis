@@ -95,7 +95,7 @@ fixthis console --package io.beyondwin.fixthis.sample \
   --console-assets-dir "$PWD/fixthis-mcp/src/main/resources/console"
 ```
 
-This option is only for FixThis contributors iterating on the local console assets. Normal users should use the packaged resources.
+This option is only for FixThis contributors iterating on the local console assets. Normal users should use the packaged resources. The console JS is bundled — its modular sources live under `fixthis-mcp/src/main/console/`, and `node scripts/build-console-assets.mjs` concatenates them into the `app.js` that `--console-assets-dir` serves. Run that script after editing any module.
 
 `gradle/gradle-daemon-jvm.properties` pins the Gradle daemon JVM toolchain to Java 21. Local Android SDK settings still belong in `local.properties`, which is ignored.
 
@@ -137,7 +137,7 @@ By default, `fixthis setup` still prints MCP client JSON for manual configuratio
 
 MCP is the primary agent workflow for the feedback console. `fixthis mcp` runs as a stdio JSON-RPC server and can open a local web console where you review a live Android screen preview, annotate feedback with a desktop keyboard, and let the agent read the queue. `fixthis console` opens the same console without requiring an MCP client.
 
-The feedback console is a dark Studio workspace: persisted sessions on the left, live or frozen Android preview in the center, and a mode-aware Inspector on the right. It defaults to `Select` mode, where normal preview clicks navigate the app. `Annotate` freezes the latest preview so you can mark feedback targets. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions. The compact device control selects the active ADB device for FixThis bridge requests, shows `No device`, `Connecting`, `Connected`, or `Unavailable`, and keeps unavailable, offline, or unauthorized devices visible but not selectable.
+The feedback console is a dark Studio workspace: persisted sessions on the left, live or frozen Android preview in the center, and a mode-aware Inspector on the right. It defaults to `Select` mode, where normal preview clicks navigate the app. `Annotate` freezes the latest preview so you can mark feedback targets. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions. The compact device control selects the active ADB device for FixThis bridge requests, shows `No device`, `Connecting`, `Connected`, or `Unavailable`, and keeps unavailable, offline, or unauthorized devices visible but not selectable. While `Connected`, the chip can also annotate a blocked sub-state (screen off, lock screen, app backgrounded, Picture-in-Picture, sample app unresponsive, or no Compose UI on the current screen); the canvas shows a per-cause overlay and suppresses selection input until the cause clears, then auto-resumes the prior tool mode, frozen preview, and pending pins.
 
 Top bar actions are short session-level controls: device selection, connection state, `Refresh devices`, `Clear selection`, `Copy Prompt`, and `Send Agent`. Canvas controls include `Select`, `Annotate`, `Add annotation`, and `Exit Annotate`. `Clear selection` clears only FixThis's active device selection. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 1s. Preview polling pauses while the browser tab is hidden, while the `Annotate` frozen-preview flow is active, and when the selected device becomes unavailable.
 

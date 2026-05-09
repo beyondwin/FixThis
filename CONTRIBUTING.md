@@ -11,6 +11,20 @@ node --check fixthis-mcp/src/main/resources/console/app.js
 git diff --check
 ```
 
+If you edited any console JS module under `fixthis-mcp/src/main/console/`, rebundle the served asset before running `installDist` and the syntax check:
+
+```bash
+node scripts/build-console-assets.mjs
+```
+
+Optional console smoke harnesses (require Node + a recent Chromium via Playwright) live under `scripts/`:
+
+```bash
+node scripts/console-browser-smoke.mjs       # end-to-end console smoke
+node scripts/console-availability-test.mjs   # availability/blocked-state harness
+node scripts/console-blocked-harness.mjs     # blocked-overlay rendering harness
+```
+
 ## Connected Device Checks
 
 Connected-device verification is manual until the project has a reliable device or emulator runner. Run the smoke harness when validating device behavior:
