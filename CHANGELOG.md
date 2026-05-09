@@ -32,3 +32,4 @@
 - Added Stable Target Evidence/source-index signals and sample coverage fixtures for repeatable evidence quality checks.
 - Hardened local console mutation endpoints with browser token and origin checks, and added cleanup support for known local `.fixthis` artifacts.
 - Documented current release blockers, including the missing root `LICENSE` and unpublished external artifact coordinates.
+- Added AGENTS.md and CLAUDE.md at repo root and a "Use with Claude Code or Codex" section in README so Claude Code and Codex users can discover the existing fixthis setup --write workflow without digging through source. Added an English translation of docs/project-overview.md as docs/project-overview.en.md.
