@@ -11,7 +11,6 @@
               if (annotations.length) return annotations;
               const message = promptUnavailableMessage();
               error.textContent = message;
-              window.alert(message);
               throw new Error(message);
             }
 
