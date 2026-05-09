@@ -160,6 +160,19 @@
       "verifier_retries": 0,
       "verifier_result": "PASS — :fixthis-mcp:test 290 tests, 2 baseline failures only",
       "timing": {"started": "2026-05-09T11:55:00Z", "completed": "2026-05-09T12:08:00Z"}
+    },
+    "task_10": {
+      "plan_id": "1.4",
+      "status": "COMPLETE",
+      "risk": "mid",
+      "files": ["fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt", "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt", "docs/superpowers/plans/2026-05-09-compact-handoff-prompt-v2.md"],
+      "commit": "ef1f54a",
+      "pre_task_sha": "081fbd6245f9796324cca4a26e4b44abf74c4765",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "verifier_result": "PASS — :fixthis-mcp:test 292 tests, 2 baseline failures only",
+      "timing": {"started": "2026-05-09T12:08:00Z", "completed": "2026-05-09T12:18:00Z"}
     }
   },
   "task_summaries": {
@@ -222,11 +235,17 @@
       "exposed_apis": ["render() now emits 'activity: <name>' line after viewport when activityName != null && activityName != displayName"],
       "key_decision": "Activity line emitted between viewport block and blank-line separator; suppressed on null and on equal-to-displayName",
       "for_next_tasks": "Task 5.1 JS parity: must mirror activity-line condition. New tests: renderEmitsActivityLineWhenDistinctFromDisplayName, renderOmitsActivityLineWhenEqualToDisplayName, renderOmitsActivityLineWhenActivityNameNull. Screen DTO field is activityName."
+    },
+    "task_10": {
+      "files": ["fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt"],
+      "exposed_apis": ["render() screen header now uses screenId.take(8) for the prefix"],
+      "key_decision": "One-line take(8) change at the screen-header line; short IDs unaffected (take returns whole string)",
+      "for_next_tasks": "Task 5.1 JS parity: must mirror screenId.slice(0,8) (or substring(0,8)). New tests: renderTruncatesScreenIdToFirst8Chars, renderHandlesScreenIdShorterThan8Chars."
     }
   },
   "low_tasks_pending_verification": ["task_7", "task_8"],
   "last_compaction_after_task": 6,
-  "current_task": 10,
+  "current_task": 11,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
