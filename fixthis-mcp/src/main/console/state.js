@@ -79,6 +79,19 @@
             let dragPreview = null;
             let suppressNextClick = false;
             let previewZoom = 1;
+            let sessionsPollingTimer = null;
+            let lastSessionsEtag = null;
+            let lastSessionEtag = null;
+            let pendingMutationCount = 0;
+
+            async function withMutationLock(fn) {
+              pendingMutationCount++;
+              try {
+                return await fn();
+              } finally {
+                pendingMutationCount--;
+              }
+            }
 
             const PreviewZoomMin = 0.5;
             const PreviewZoomMax = 2;

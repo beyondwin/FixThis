@@ -3599,6 +3599,16 @@ class FeedbackConsoleServerTest {
                 ?.firstOrNull()
     }
 
+    @Test
+    fun consoleHtmlDeclaresPollingGlobals() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains("let pendingMutationCount"))
+        assertTrue(html.contains("let sessionsPollingTimer"))
+        assertTrue(html.contains("let lastSessionsEtag"))
+        assertTrue(html.contains("let lastSessionEtag"))
+        assertTrue(html.contains("async function withMutationLock"))
+    }
+
     private class FakeExchange(path: String) : HttpExchange() {
         private val uri = URI.create(path)
 
