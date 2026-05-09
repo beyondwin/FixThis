@@ -152,6 +152,19 @@
       "escalations": 0,
       "review_retries": 0,
       "verifier_retries": 0
+    },
+    "task_9": {
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": [
+        "fixthis-mcp/src/main/console/devices.js",
+        "fixthis-mcp/src/main/resources/console/app.js"
+      ],
+      "commit": "a2e8ed0",
+      "pre_task_sha": "427ff18",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0
     }
   },
   "task_summaries": {
@@ -227,11 +240,19 @@
       "exposed_apis": ["isInteractionBlocked() at top of annotations.js"],
       "key_decision": "Early-return at top of selectNodeAtPoint, previewNodeAtPoint, confirmHoveredAnnotationTarget, finishAreaSelection. The 'No component found' showError is double-wrapped (defensive).",
       "for_next_tasks": "Task 10 reuses isInteractionBlocked() if needed for additional handler gating. The navigate('tap') path is NOT gated (acceptable per spec §7.4: bridge would reject anyway, and overlay visually covers canvas)."
+    },
+    "task_9": {
+      "files": [
+        "fixthis-mcp/src/main/console/devices.js"
+      ],
+      "exposed_apis": ["BLOCKED_SUFFIX (devices.js)", "decorateConnectionLabel(baseLabel, reason)"],
+      "key_decision": "Suffix appended only when uiState === DeviceUiState.CONNECTED AND interactionBlockedReason is truthy. Inactive dropdown options + Connecting/Unavailable/No device strings unchanged. Separator U+00B7.",
+      "for_next_tasks": "Task 10's auto-resume changes do not touch this. Task 11 smoke test should assert the chip suffix appears during blocked state."
     }
   },
-  "low_tasks_pending_verification": ["task_5", "task_8"],
+  "low_tasks_pending_verification": ["task_5", "task_8", "task_9"],
   "last_compaction_after_task": 3,
-  "current_task": 9,
+  "current_task": 10,
   "phase_docs_skipped": ["phase_1"],
   "phase_summaries_log": [
     {
