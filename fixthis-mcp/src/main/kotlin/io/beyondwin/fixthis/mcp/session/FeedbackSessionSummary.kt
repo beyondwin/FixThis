@@ -20,6 +20,7 @@ data class FeedbackSessionSummary(
     val screensCount: Int,
     val itemsCount: Int,
     val unresolvedItemsCount: Int,
+    val inProgressItemsCount: Int = 0,
     val draftItemsCount: Int = 0,
     val sentBatchesCount: Int = 0,
 ) {
@@ -37,6 +38,7 @@ data class FeedbackSessionSummary(
                 unresolvedItemsCount = session.items.count { item ->
                     item.status !in setOf(AnnotationStatusDto.RESOLVED, AnnotationStatusDto.WONT_FIX)
                 },
+                inProgressItemsCount = session.items.count { item -> item.status == AnnotationStatusDto.IN_PROGRESS },
                 draftItemsCount = session.items.count { item -> item.delivery == FeedbackDelivery.DRAFT },
                 sentBatchesCount = session.handoffBatches.size,
             )
