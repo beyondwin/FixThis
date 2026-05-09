@@ -61,6 +61,17 @@
       "review_retries": 0,
       "verifier_retries": 0,
       "timing": {"started": "2026-05-09T18:06:00+09:00", "completed": "2026-05-09T18:10:00+09:00"}
+    },
+    "task_4": {
+      "status": "COMPLETE",
+      "risk": "low",
+      "files": ["docs/project-overview.en.md"],
+      "commit": "8978765",
+      "pre_task_sha": "ee8e67a3677e4e84a34da71e69331354953ba719",
+      "escalations": 0,
+      "review_retries": 0,
+      "verifier_retries": 0,
+      "timing": {"started": "2026-05-09T18:11:00+09:00", "completed": "2026-05-09T18:18:00+09:00"}
     }
   },
   "task_summaries": {
@@ -81,11 +92,17 @@
       "exposed_apis": [],
       "key_decision": "Inserted `## Use with Claude Code or Codex` section between What It Does and Setup; no other content touched",
       "for_next_tasks": "Task 5 will append a doc link below the new section; do not displace it. README header section structure now: ... > Use with Claude Code or Codex > Setup > ..."
+    },
+    "task_4": {
+      "files": ["docs/project-overview.en.md"],
+      "exposed_apis": [],
+      "key_decision": "Translated all Korean prose to English using plan Step 2 verbatim phrasings; preserved code blocks/Mermaid; Korean original untouched",
+      "for_next_tasks": "Task 5 should add a link `[Project overview (English)](docs/project-overview.en.md)` to README's More detail bullet list, and add `> English version: [project-overview.en.md](project-overview.en.md)` to the top of `docs/project-overview.md`"
     }
   },
-  "low_tasks_pending_verification": ["task_1", "task_2", "task_3"],
+  "low_tasks_pending_verification": ["task_1", "task_2", "task_3", "task_4"],
   "last_compaction_after_task": 0,
-  "current_task": 4,
+  "current_task": 5,
   "current_step_within_task": 1,
   "current_pre_task_sha": null,
   "current_review_retries": 0,
