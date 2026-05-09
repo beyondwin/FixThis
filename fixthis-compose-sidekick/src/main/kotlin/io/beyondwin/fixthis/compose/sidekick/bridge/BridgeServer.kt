@@ -211,6 +211,10 @@ data class BridgeStatus(
     val bridgeProtocolVersion: String,
     val sourceIndexAvailable: Boolean,
     val capabilities: BridgeCapabilities = BridgeCapabilities(),
+    val screenInteractive: Boolean? = null,
+    val keyguardLocked: Boolean? = null,
+    val appForeground: Boolean? = null,
+    val pictureInPicture: Boolean? = null,
 ) {
     constructor(
         activity: String?,
@@ -225,6 +229,10 @@ data class BridgeStatus(
         bridgeProtocolVersion = bridgeProtocolVersion,
         sourceIndexAvailable = sourceIndexAvailable,
         capabilities = BridgeCapabilities(),
+        screenInteractive = null,
+        keyguardLocked = null,
+        appForeground = null,
+        pictureInPicture = null,
     )
 }
 
