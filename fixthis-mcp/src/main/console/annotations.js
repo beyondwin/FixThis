@@ -337,9 +337,17 @@
               }
             }
 
+            function flushFocusedPendingComment() {
+              if (focusedPendingItemIndex == null) return;
+              const item = pendingFeedbackItems[focusedPendingItemIndex];
+              if (!item) return;
+              item.comment = comment.value;
+            }
+
             function createAnnotationFromSelection(selection) {
               if (!addItemsFlow) throw new Error('Switch to Annotate before selecting feedback.');
               if (!selection) throw new Error('Select a component or area first.');
+              flushFocusedPendingComment();
               const annotation = {
                 annotationId: 'local-' + annotationSequence++,
                 targetType: selection.targetType,
@@ -377,6 +385,7 @@
             }
 
             function focusPendingFeedbackItem(index) {
+              flushFocusedPendingComment();
               focusedPendingItemIndex = index;
               focusedSavedItemId = null;
               focusedSavedSessionId = null;
