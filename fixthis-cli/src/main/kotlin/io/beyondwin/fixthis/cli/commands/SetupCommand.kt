@@ -82,8 +82,11 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
             val merged = try {
                 val current = configFile.takeIf { it.isFile }?.readText()
                 writer.merge(current, entry)
-            } catch (_: Exception) {
-                throw CliktError("Could not merge ${writer.name} MCP config at ${configFile.absolutePath}.")
+            } catch (e: Exception) {
+                throw CliktError(
+                    "Could not merge ${writer.name} MCP config at ${configFile.absolutePath}: ${e.message}",
+                    cause = e,
+                )
             }
             AgentConfigWritePlan(writer.name, configFile, merged)
         }
