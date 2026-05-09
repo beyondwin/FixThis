@@ -250,6 +250,26 @@
               });
             }
 
+            function savedScreenOrdinalLookup() {
+              const screens = state.session?.screens || [];
+              const ordered = [...screens].sort((left, right) =>
+                (left.capturedAtEpochMillis || 0) - (right.capturedAtEpochMillis || 0) ||
+                String(left.screenId || '').localeCompare(String(right.screenId || ''))
+              );
+              const ordinalByScreenId = new Map();
+              ordered.forEach((screen, index) => ordinalByScreenId.set(screen.screenId, index + 1));
+              return ordinalByScreenId;
+            }
+
+            function savedScreenHeaderHtml(item, ordinalByScreenId, isFirst) {
+              const screen = (state.session?.screens || []).find(s => s.screenId === item.screenId);
+              const ordinal = ordinalByScreenId.get(item.screenId) || ordinalByScreenId.size + 1;
+              const time = screen?.capturedAtEpochMillis ? formatTime(screen.capturedAtEpochMillis) : '-';
+              return '<div class="ann-screen-header' + (isFirst ? ' first' : '') + '">' +
+                escapeHtml('Screen ' + ordinal + ' · ' + time) +
+              '</div>';
+            }
+
             function renderSavedEvidenceGroups() {
               const items = savedEvidenceItems();
               const selected = selectedSavedAnnotation();
@@ -257,22 +277,33 @@
                 renderSavedAnnotationDetail(selected, items.findIndex(item => item.itemId === selected.itemId));
                 return;
               }
-              draftItems.innerHTML = items.length
-                ? '<div class="ann-list">' + items.map((item, index) => {
+              if (items.length) {
+                const ordinalByScreenId = savedScreenOrdinalLookup();
+                let prevScreenId = null;
+                const rows = items.map((item, index) => {
                   const commentText = firstLine(item.comment || 'No comment');
                   const hasComment = Boolean(String(item.comment || '').trim());
                   const status = annotationStatus(item);
                   const color = severityColor(annotationSeverity(item));
-                  return '<button type="button" class="ann-row saved-item-row ' + (item.itemId === focusedSavedItemId ? 'active' : '') + '" style="--annotation-color:' + color + '" data-focus-saved="' + escapeHtml(item.itemId) + '">' +
-                    '<span class="ann-row-num" style="background:' + color + '">' + (index + 1) + '</span>' +
-                    '<span class="ann-row-body">' +
-                      '<span class="ann-row-title">' + escapeHtml(targetLabel(item)) + '</span>' +
-                      '<span class="ann-row-comment ' + (hasComment ? '' : 'empty-comment') + '">' + escapeHtml(commentText) + '</span>' +
-                    '</span>' +
-                    '<span class="ann-row-status ' + statusClass(status) + '">' + escapeHtml(statusLabel(status)) + '</span>' +
-                  '</button>';
-                }).join('') + '</div>'
-                : '<div class="empty-state"><div class="empty-title">No saved annotations yet.</div><div class="empty-body">Use <b>Annotate</b> to freeze the preview and add comments.</div>' + startAnnotatingButtonHtml() + '</div>';
+                  let header = '';
+                  if (item.screenId !== prevScreenId) {
+                    header = savedScreenHeaderHtml(item, ordinalByScreenId, prevScreenId === null);
+                    prevScreenId = item.screenId;
+                  }
+                  return header +
+                    '<button type="button" class="ann-row saved-item-row ' + (item.itemId === focusedSavedItemId ? 'active' : '') + '" style="--annotation-color:' + color + '" data-focus-saved="' + escapeHtml(item.itemId) + '">' +
+                      '<span class="ann-row-num" style="background:' + color + '">' + (index + 1) + '</span>' +
+                      '<span class="ann-row-body">' +
+                        '<span class="ann-row-title">' + escapeHtml(targetLabel(item)) + '</span>' +
+                        '<span class="ann-row-comment ' + (hasComment ? '' : 'empty-comment') + '">' + escapeHtml(commentText) + '</span>' +
+                      '</span>' +
+                      '<span class="ann-row-status ' + statusClass(status) + '">' + escapeHtml(statusLabel(status)) + '</span>' +
+                    '</button>';
+                }).join('');
+                draftItems.innerHTML = '<div class="ann-list">' + rows + '</div>';
+              } else {
+                draftItems.innerHTML = '<div class="empty-state"><div class="empty-title">No saved annotations yet.</div><div class="empty-body">Use <b>Annotate</b> to freeze the preview and add comments.</div>' + startAnnotatingButtonHtml() + '</div>';
+              }
               draftItems.querySelectorAll('[data-focus-saved]').forEach(button => {
                 button.addEventListener('click', () => focusSavedEvidenceItem(button.dataset.focusSaved));
               });

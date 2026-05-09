@@ -118,7 +118,7 @@
 
             function formatTime(epochMillis) {
               if (!epochMillis) return '-';
-              return new Date(epochMillis).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              return new Date(epochMillis).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
             }
 
             function formatHistoryDate(epochMillis) {

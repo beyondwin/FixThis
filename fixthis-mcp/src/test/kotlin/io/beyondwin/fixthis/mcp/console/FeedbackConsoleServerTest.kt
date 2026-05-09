@@ -841,6 +841,50 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun consoleHtmlGroupsSavedAnnotationsByScreenInPanel() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val renderSavedEvidenceGroups = javascriptFunctionBody(html, "renderSavedEvidenceGroups")
+
+        // The saved-annotations panel previously rendered a flat list of "1, 2, 3, 4" rows
+        // even when items were spread across multiple captured screens, so users with more
+        // than one screen could not tell which annotation belonged to which screen. The
+        // renderer must now emit a "Screen N · HH:MM" header + separator at every screen
+        // boundary, using each screen's capture order to pick the ordinal.
+        assertTrue(
+            html.contains("ann-screen-header"),
+            "Bundle should reference the ann-screen-header marker",
+        )
+        assertTrue(
+            renderSavedEvidenceGroups.contains("savedScreenOrdinalLookup()"),
+            "renderSavedEvidenceGroups should derive a screen ordinal lookup",
+        )
+        assertTrue(
+            renderSavedEvidenceGroups.contains("if (item.screenId !== prevScreenId)"),
+            "renderSavedEvidenceGroups should compare adjacent items' screenId",
+        )
+        assertTrue(
+            renderSavedEvidenceGroups.contains("savedScreenHeaderHtml(item, ordinalByScreenId, prevScreenId === null)"),
+            "renderSavedEvidenceGroups should emit a header on every screen-id boundary",
+        )
+        assertTrue(
+            html.contains("function savedScreenOrdinalLookup"),
+            "savedScreenOrdinalLookup helper should be defined",
+        )
+        assertTrue(
+            html.contains("function savedScreenHeaderHtml"),
+            "savedScreenHeaderHtml helper should be defined",
+        )
+        assertTrue(
+            html.contains(".ann-screen-header {"),
+            "styles.css should style the new screen header",
+        )
+        assertTrue(
+            html.contains(".ann-screen-header.first {"),
+            "styles.css should suppress the divider above the first screen header",
+        )
+    }
+
+    @Test
     fun consoleHtmlComposerInspectorAlsoShowsSavedAnnotations() {
         val html = FeedbackConsoleAssets.indexHtml
         val renderComposerInspector = javascriptFunctionBody(html, "renderComposerInspector")
