@@ -35,4 +35,4 @@
 
 ### Changed
 
-- Compact feedback handoff prompt v2 (clarity, multi-candidate, instance disambiguation) — see docs/superpowers/specs/2026-05-09-compact-handoff-prompt-v2-design.md
+- Compact feedback handoff prompt v2 — replaced single-line `src?` hint with a multi-candidate `candidates:` block, added `viewport:`, `activity:`, `instance i/N`, collision and duplicate-marker notes; matcher now populates `scoreMargin`. PRECISE/FULL detail modes and JSON wire format unchanged.

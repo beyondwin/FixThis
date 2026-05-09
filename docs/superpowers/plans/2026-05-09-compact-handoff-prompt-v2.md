@@ -511,19 +511,19 @@ Goal: lock the v2 contract with cross-language parity and a token-budget regress
 
 ### Task 7.1 — Update feedback-console-contract.md
 
-- [ ] Replace the v1 token grammar section with the v2 grammar from the design spec (Appendix-style table is fine).
-- [ ] Add a "v1 → v2 token migration" sub-section listing each renamed/replaced token and the rationale.
-- [ ] Commit: `docs(contract): document v2 compact handoff prompt grammar`.
+- [x] Replace the v1 token grammar section with the v2 grammar from the design spec (Appendix-style table is fine).
+- [x] Add a "v1 → v2 token migration" sub-section listing each renamed/replaced token and the rationale.
+- [x] Commit: `docs(contract): document v2 compact handoff prompt grammar`.
 
 ### Task 7.2 — Update mcp.md
 
-- [ ] In the `SourceCandidate` field reference, update `scoreMargin` to "populated by the matcher when at least one runner-up exists; otherwise null".
-- [ ] Commit: `docs(mcp): document scoreMargin population`.
+- [x] In the `SourceCandidate` field reference, update `scoreMargin` to "populated by the matcher when at least one runner-up exists; otherwise null".
+- [x] Commit: `docs(mcp): document scoreMargin population`.
 
 ### Task 7.3 — Finalize CHANGELOG entry
 
-- [ ] Replace the placeholder Unreleased entry with a one-paragraph user-visible summary: "Compact feedback handoff prompt v2 — replaced single-line `src?` hint with a multi-candidate `candidates:` block, added `viewport:`, `activity:`, `instance i/N`, collision and duplicate-marker notes; matcher now populates `scoreMargin`. PRECISE/FULL detail modes and JSON wire format unchanged."
-- [ ] Commit: `docs(changelog): record v2 compact handoff prompt`.
+- [x] Replace the placeholder Unreleased entry with a one-paragraph user-visible summary: "Compact feedback handoff prompt v2 — replaced single-line `src?` hint with a multi-candidate `candidates:` block, added `viewport:`, `activity:`, `instance i/N`, collision and duplicate-marker notes; matcher now populates `scoreMargin`. PRECISE/FULL detail modes and JSON wire format unchanged."
+- [x] Commit: `docs(changelog): record v2 compact handoff prompt`.
 
 ### Task 7.4 — Manual smoke on a real session
 

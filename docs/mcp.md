@@ -220,12 +220,12 @@ Marks a feedback item as resolved, needing clarification, or not fixed and store
 | Field | Type | Description |
 | --- | --- | --- |
 | `ranking` | `Int` | 1-based position in the sorted candidate list. The top candidate has `ranking=1`. |
-| `scoreMargin` | `Double` | `(topScore - nextScore) / max(topScore, 0.001)`. A value of `1.0` indicates a single candidate with no competition. Lower values indicate a closer race between candidates. |
+| `scoreMargin` | `Double` | Populated by the matcher when at least one runner-up exists; otherwise null. Computed as `topScore - nextScore`; a higher value indicates a more decisive top candidate. |
 | `evidenceStrength` | `String` | One of `STRONG`, `MEDIUM`, or `WEAK`. Internal metadata about how semantically reliable the matching evidence is. This is not the same as the displayed confidence (`high`/`medium`/`low`) shown in the compact handoff line; `evidenceStrength` describes signal quality while displayed confidence is the final classification derived from the full candidate ranking. |
 | `riskFlags` | `List<String>` | Empty list for confident matches. May include tokens such as `AREA_SELECTION` (match derived from a drawn visual area rather than a precise node selection) or `AMBIGUOUS` (multiple candidates scored similarly). |
 | `caution` | `String?` | Human-readable explanation present when `riskFlags` is non-empty. Absent (`null` or missing) for clean matches. |
 
-These fields inform the compact `src?` handoff line: `why=` tokens come from the candidate's reason list, and the `risk=` token summarises the dominant risk flag when `riskFlags` is non-empty. The full JSON remains available for tools that need the raw values.
+These fields inform the compact `candidates:` block in the v2 handoff prompt: `matched=[...]` tokens come from the candidate's reason list, and caution text is emitted as a `note:` line when `riskFlags` is non-empty. The full JSON remains available for tools that need the raw values.
 
 ## Resources
 
