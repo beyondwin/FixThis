@@ -1,0 +1,31 @@
+{
+  "status": "PASS",
+  "summary": "fixthis-compose-core: 100 tests, 0 failures (including 3 new SourceMatcher tests for scoreMargin and empty-candidates). fixthis-mcp: 283 tests, 2 failures matching the pre-existing baseline exactly. No new regressions introduced.",
+  "risk_level": "MID",
+  "tests_run": [
+    "./gradlew :fixthis-compose-core:test --rerun-tasks",
+    "./gradlew :fixthis-mcp:test"
+  ],
+  "results": [
+    {
+      "suite": "fixthis-compose-core:test",
+      "status": "PASS",
+      "count": 100,
+      "failures": 0,
+      "note": "All tests pass; new tests scoreMarginIsPopulatedOnRankOneWhenRunnerUpExists, scoreMarginIsNullWhenOnlyOneCandidate, matchReturnsEmptyListWhenNoCandidates present and passing"
+    },
+    {
+      "suite": "fixthis-mcp:test",
+      "status": "PASS",
+      "count": 283,
+      "failures": 2,
+      "failure_names": [
+        "FeedbackConsoleServerTest.consoleHtmlUsesModeAwareStudioInspector",
+        "FeedbackConsoleServerTest.consoleHtmlAnnotationSaveUsesCurrentSelectionPayload"
+      ],
+      "note": "matches pre-existing baseline; no new failures"
+    }
+  ],
+  "issues": ["none"],
+  "escalation": null
+}
