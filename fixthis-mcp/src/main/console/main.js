@@ -28,6 +28,7 @@
               if (!document.hidden && shouldAutoFetchPreview()) refreshPreview().catch(showError);
               if (!document.hidden && state.selectedDeviceSerial) sendBridgeHeartbeat().catch(handleHeartbeatError);
               startLivePreviewPolling();
+              startSessionsPolling();
             });
             clearSelectionButton.addEventListener('click', clearSelection);
             cancelAddFlowButton.addEventListener('click', cancelAddItemsFlow);
@@ -63,5 +64,6 @@
               .then(() => {
                 startHeartbeatPolling();
                 startLivePreviewPolling();
+                startSessionsPolling();
               })
               .catch(showError);

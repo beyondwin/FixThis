@@ -3635,6 +3635,32 @@ class FeedbackConsoleServerTest {
         assertTrue(body.contains("data-just-changed"))
     }
 
+    @Test
+    fun startSessionsPollingIsCalledOnBoot() {
+        val html = FeedbackConsoleAssets.indexHtml
+        // Boot chain (16-space indent inside .then()): startSessionsPolling() must follow
+        // startLivePreviewPolling() in the .then() block that already starts heartbeat + live-preview polling.
+        assertTrue(
+            html.contains(
+                "                startHeartbeatPolling();\n" +
+                    "                startLivePreviewPolling();\n" +
+                    "                startSessionsPolling();\n" +
+                    "              })"
+            ),
+            "main.js boot chain must call startSessionsPolling() after startLivePreviewPolling()"
+        )
+        // Visibility-change handler (14-space indent inside arrow body): must restart sessions polling
+        // alongside the live-preview polling restart when the tab becomes visible again.
+        assertTrue(
+            html.contains(
+                "              startLivePreviewPolling();\n" +
+                    "              startSessionsPolling();\n" +
+                    "            });"
+            ),
+            "visibilitychange handler must restart startSessionsPolling() when tab becomes visible"
+        )
+    }
+
     private class FakeExchange(path: String) : HttpExchange() {
         private val uri = URI.create(path)
 

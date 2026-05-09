@@ -3127,6 +3127,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (!document.hidden && shouldAutoFetchPreview()) refreshPreview().catch(showError);
               if (!document.hidden && state.selectedDeviceSerial) sendBridgeHeartbeat().catch(handleHeartbeatError);
               startLivePreviewPolling();
+              startSessionsPolling();
             });
             clearSelectionButton.addEventListener('click', clearSelection);
             cancelAddFlowButton.addEventListener('click', cancelAddItemsFlow);
@@ -3162,5 +3163,6 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               .then(() => {
                 startHeartbeatPolling();
                 startLivePreviewPolling();
+                startSessionsPolling();
               })
               .catch(showError);
