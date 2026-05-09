@@ -816,6 +816,41 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               }
             }
 
+            function renderCanvasBlockedOverlay() {
+              const overlay = document.getElementById('canvasBlockedOverlay');
+              if (!overlay) return;
+              const reason = state.connection?.interactionBlockedReason ?? null;
+              if (!reason) {
+                overlay.hidden = true;
+                return;
+              }
+              overlay.hidden = false;
+              const headlines = {
+                screenOff: 'Device screen is off',
+                locked: 'Device is locked',
+                background: 'Sample app is in the background',
+                pictureInPicture: 'Sample app is in Picture-in-Picture',
+                unresponsive: 'Sample app is unresponsive',
+                noComposeUi: 'No Compose UI on this screen',
+              };
+              const details = {
+                screenOff: 'Wake the device to continue.',
+                locked: 'Unlock the device to continue.',
+                background: 'Bring the sample app to the foreground.',
+                pictureInPicture: 'Exit Picture-in-Picture to continue.',
+                unresponsive: 'Retrying…',
+                noComposeUi: 'Switch to a screen with Compose content to annotate.',
+              };
+              overlay.querySelector('[data-headline]').textContent = headlines[reason] ?? '';
+              overlay.querySelector('[data-detail]').textContent = details[reason] ?? '';
+              const retry = overlay.querySelector('[data-retry]');
+              retry.hidden = reason !== 'unresponsive';
+            }
+
+            document.getElementById('canvasBlockedOverlay')?.querySelector('[data-retry]')?.addEventListener('click', () => {
+              refreshConnection().catch(showError);
+            });
+
 // annotations.js
             function boundsForTarget(target) {
               return target?.boundsInWindow || null;
@@ -2619,11 +2654,13 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 hint.remove();
               }
               renderSelectionOverlay();
+              renderCanvasBlockedOverlay();
             }
 
             function renderPreviewOnly() {
               renderPreviewRegion();
               renderSelectionOverlay();
+              renderCanvasBlockedOverlay();
               updateComposerState();
             }
 
@@ -2632,6 +2669,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               renderPreviewRegion();
               renderInspectorRegion();
               renderConnection(state.connection.current);
+              renderCanvasBlockedOverlay();
               updateComposerState();
             }
 
