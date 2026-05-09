@@ -852,6 +852,10 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             });
 
 // annotations.js
+            function isInteractionBlocked() {
+              return Boolean(state.connection?.interactionBlockedReason);
+            }
+
             function boundsForTarget(target) {
               return target?.boundsInWindow || null;
             }
@@ -1064,9 +1068,12 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function selectNodeAtPoint(event, image) {
+              if (isInteractionBlocked()) return;
               const selection = nodeSelectionAtPoint(event, image);
               if (!selection) {
-                showError(new Error('No component found at that point. Drag to select a custom area.'));
+                if (!isInteractionBlocked()) {
+                  showError(new Error('No component found at that point. Drag to select a custom area.'));
+                }
                 return;
               }
               currentSelection = selection;
@@ -1075,6 +1082,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function previewNodeAtPoint(event, image) {
+              if (isInteractionBlocked()) return;
               const selection = nodeSelectionAtPoint(event, image);
               const nextId = selection?.nodeUid || null;
               const currentId = hoveredAnnotationTarget?.nodeUid || null;
@@ -1084,6 +1092,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function confirmHoveredAnnotationTarget(event, image) {
+              if (isInteractionBlocked()) return;
               if (hoveredAnnotationTarget) {
                 const point = naturalPointFromEvent(event, image);
                 if (containsPoint(hoveredAnnotationTarget.bounds, point)) {
@@ -1098,6 +1107,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function finishAreaSelection(bounds) {
+              if (isInteractionBlocked()) return;
               const selection = {
                 targetType: 'area',
                 bounds: bounds,
