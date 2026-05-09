@@ -12,11 +12,6 @@
             copyPromptButton.addEventListener('click', () => copyPrompt().catch(showError));
             sendAgentButton.addEventListener('click', () => sendAgentPrompt().catch(showError));
             connectionPrimaryAction.addEventListener('click', () => handleConnectionPrimaryAction().catch(showError));
-            clearSentHistoryButton.addEventListener('click', event => {
-              event.preventDefault();
-              event.stopPropagation();
-              clearSentHistory().catch(showError);
-            });
             document.getElementById('refreshDevicesButton').addEventListener('click', () => {
               refreshDevices()
                 .then(refreshConnection)
