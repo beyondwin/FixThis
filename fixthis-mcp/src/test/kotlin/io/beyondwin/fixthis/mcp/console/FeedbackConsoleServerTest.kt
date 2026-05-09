@@ -734,7 +734,6 @@ class FeedbackConsoleServerTest {
         val currentAnnotationsPromptBody = javascriptFunctionBody(html, "currentAnnotationsPrompt")
         val promptGuardBody = javascriptFunctionBody(html, "ensurePromptAnnotationsAvailable")
         val renderSessionsListBody = javascriptFunctionBody(html, "renderSessionsListFromPayload")
-        val clearSentHistoryBody = javascriptFunctionBody(html, "clearSentHistory")
 
         assertTrue(html.contains("function currentAnnotationsPrompt"))
         assertTrue(html.contains("function currentPromptAnnotations"))
@@ -782,10 +781,7 @@ class FeedbackConsoleServerTest {
         assertFalse(updateComposerStateBody.contains("sendAgentButton.dataset.unavailable"))
         assertFalse(updateComposerStateBody.contains("classList.toggle('is-disabled'"))
         assertTrue(renderSessionsListBody.contains("session.status !== 'ready_for_agent'"))
-        assertTrue(html.contains("id=\"clearSentHistoryButton\""))
-        assertTrue(clearSentHistoryBody.contains("window.confirm"))
-        assertTrue(clearSentHistoryBody.contains("/api/session/close"))
-        assertTrue(html.contains("clearSentHistoryButton.addEventListener('click'"))
+        assertFalse(html.contains("id=\"clearSentHistoryButton\""))
     }
 
     @Test
@@ -1043,7 +1039,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("id=\"selectionSummary\""))
         assertTrue(html.contains("id=\"pendingItems\""))
         assertTrue(html.contains("id=\"draftItems\""))
-        assertTrue(html.contains("id=\"sentHistory\""))
+        assertFalse(html.contains("id=\"sentHistory\""))
         assertTrue(html.contains("id=\"sendAgentButton\""))
         assertTrue(html.contains("id=\"copyPromptButton\""))
         assertTrue(html.contains("id=\"clearSelectionButton\""))
@@ -1602,7 +1598,7 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("row.addEventListener('keydown'"))
         assertTrue(html.contains("row.classList.toggle('is-active'"))
         assertTrue(html.contains(".history-list { align-content: start; }"))
-        assertTrue(html.contains("class=\"sent-history-drawer\""))
+        assertFalse(html.contains("class=\"sent-history-drawer\""))
         assertTrue(html.contains("formatSessionSummary(session)"))
         assertTrue(html.contains("function sessionOrdinalLookup(sessions)"))
         assertTrue(html.contains("createdAtEpochMillis || 0"))
@@ -1619,7 +1615,6 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("const ordinalBySessionId = sessionOrdinalLookup(activeSummaries);"))
         assertTrue(html.contains("const renderedSessions = renderedActiveSummaries.map((session, index) => {"))
         assertTrue(html.contains("const label = formatSessionLabel(session, ordinalBySessionId.get(session.sessionId) || index + 1);"))
-        assertTrue(html.contains(".sent-history-drawer .history-list"))
         assertTrue(html.contains("max-height:"))
         assertTrue(html.contains("overflow: auto"))
         assertTrue(html.contains("function historyStartAnnotatingItemHtml()"))
