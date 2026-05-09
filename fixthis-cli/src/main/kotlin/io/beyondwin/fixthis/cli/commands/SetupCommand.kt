@@ -46,8 +46,10 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         }
         if (executable == null) {
             echo(
-                "Warning: fixthis-mcp executable not found; writing MCP config with `fixthis mcp`. " +
-                    "Ensure `fixthis` is on PATH or run `./gradlew :fixthis-mcp:installDist`.",
+                "Warning: fixthis-mcp executable not found.\n" +
+                    "  The written config will use `fixthis mcp` as a command fallback.\n" +
+                    "  MCP clients will fail to start FixThis unless `fixthis` is on PATH.\n" +
+                    "  Fix: run `./gradlew :fixthis-mcp:installDist` then re-run `fixthis setup --write`.",
                 err = true,
             )
         }
@@ -82,17 +84,20 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
             val merged = try {
                 val current = configFile.takeIf { it.isFile }?.readText()
                 writer.merge(current, entry)
-            } catch (_: Exception) {
-                throw CliktError("Could not merge ${writer.name} MCP config at ${configFile.absolutePath}.")
+            } catch (e: Exception) {
+                throw CliktError(
+                    "Could not merge ${writer.name} MCP config at ${configFile.absolutePath}: ${e.message}",
+                    cause = e,
+                )
             }
-            AgentConfigWritePlan(writer.name, configFile, merged)
+            AgentConfigWritePlan(writer.name, writer.scope, configFile, merged)
         }
 
     private fun applyWritePlan(plan: AgentConfigWritePlan, dryRun: Boolean) {
         val configFile = plan.configFile
         val merged = plan.content
         if (dryRun) {
-            echo("Target: ${plan.writerName}")
+            echo("Target: ${plan.writerName} (${plan.scope})")
             echo("Path: ${configFile.absolutePath}")
             echo(merged.trimEnd())
             return
@@ -102,11 +107,12 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         } catch (_: Exception) {
             throw CliktError("Could not write ${plan.writerName} MCP config at ${configFile.absolutePath}.")
         }
-        echo("Wrote ${plan.writerName} MCP config: ${configFile.absolutePath}")
+        echo("Wrote ${plan.writerName} MCP config (${plan.scope}): ${configFile.absolutePath}")
     }
 
     private data class AgentConfigWritePlan(
         val writerName: String,
+        val scope: String,
         val configFile: File,
         val content: String,
     )

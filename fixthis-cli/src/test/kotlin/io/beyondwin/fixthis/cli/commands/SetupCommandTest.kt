@@ -4,6 +4,7 @@ import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.parse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -77,7 +78,10 @@ class SetupCommandTest {
         }
 
         assertEquals(originalCodex, codexConfig.readText())
-        assertEquals("Could not merge claude MCP config at ${claudeSettings.absolutePath}.", error.message)
+        assertTrue(
+            "Expected message to start with merge error prefix",
+            error.message!!.startsWith("Could not merge claude MCP config at ${claudeSettings.absolutePath}:"),
+        )
     }
 
     @Test
@@ -155,6 +159,38 @@ class SetupCommandTest {
                 System.setProperty("user.home", original)
             }
         }
+    }
+
+    @Test
+    fun mergeErrorIncludesCauseMessageForDebugging() {
+        val projectRoot = temporaryFolder.newFolder("project").canonicalFile
+        val userHome = temporaryFolder.newFolder("home")
+        val claudeSettings = projectRoot.resolve(".claude/settings.json")
+        claudeSettings.parentFile.mkdirs()
+        claudeSettings.writeText("""{"mcpServers":""")   // truncated JSON
+
+        val error = withUserHome(userHome) {
+            assertThrows(CliktError::class.java) {
+                SetupCommand().parse(
+                    listOf(
+                        "--package", "io.beyondwin.fixthis.sample",
+                        "--project-dir", projectRoot.absolutePath,
+                        "--write",
+                        "--target", "claude",
+                    ),
+                )
+            }
+        }
+
+        assertTrue(
+            "Expected message to contain file path",
+            error.message!!.contains(claudeSettings.absolutePath),
+        )
+        assertTrue(
+            "Expected message to contain cause detail",
+            error.message!!.length > "Could not merge claude MCP config at ${claudeSettings.absolutePath}:".length,
+        )
+        assertNotNull("Expected cause to be set", error.cause)
     }
 
     private fun assertTempConfigPath(parent: Path, path: Path) {
