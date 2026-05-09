@@ -46,8 +46,10 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         }
         if (executable == null) {
             echo(
-                "Warning: fixthis-mcp executable not found; writing MCP config with `fixthis mcp`. " +
-                    "Ensure `fixthis` is on PATH or run `./gradlew :fixthis-mcp:installDist`.",
+                "Warning: fixthis-mcp executable not found.\n" +
+                    "  The written config will use `fixthis mcp` as a command fallback.\n" +
+                    "  MCP clients will fail to start FixThis unless `fixthis` is on PATH.\n" +
+                    "  Fix: run `./gradlew :fixthis-mcp:installDist` then re-run `fixthis setup --write`.",
                 err = true,
             )
         }
