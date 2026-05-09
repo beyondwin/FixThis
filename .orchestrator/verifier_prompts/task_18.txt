@@ -1,0 +1,21 @@
+You are a Verifier on Sonnet. MID. No file modifications.
+
+## Worktree
+`/Users/kws/source/android/worktrees/compact-handoff-prompt-v2-20260509-183739` — `cd` here. NEVER `/Users/kws/source/android/FixThis/`.
+
+## Files Changed (Task 2.5 — caution → note line)
+- CompactHandoffRenderer.kt (caution emission inside appendCandidatesBlock)
+- CompactHandoffRendererTest.kt (3 new tests)
+
+## Baseline
+:fixthis-mcp:test before: 309. After: ~312. Failures = 2 baseline, skipped = 1.
+
+## Acceptance
+1. `cd <worktree> && ./gradlew :fixthis-mcp:test --tests "*CompactHandoffRenderer*"` — all pass.
+2. `cd <worktree> && ./gradlew :fixthis-mcp:test` — failures = 2, skipped = 1.
+
+## Result file: `.orchestrator/verifier_results/task_18.json`
+
+Schema: `{"status":"PASS|FAIL|ESCALATE", ...}`
+
+After writing, print contents.

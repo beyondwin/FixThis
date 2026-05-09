@@ -1,0 +1,6 @@
+**Status: PASS**
+
+- `:fixthis-mcp:test --tests "*CompactHandoffRenderer*"` → 28 tests, 0 failures (includes the 3 new caution/note-line tests).
+- `:fixthis-mcp:test` (full) → 312 total, **2 failures + 1 skipped**, matching the baseline exactly. The two failures are the pre-existing `FeedbackConsoleServerTest` cases. +3 delta vs 309 baseline accounts for the new tests.
+
+Result file written and printed.
