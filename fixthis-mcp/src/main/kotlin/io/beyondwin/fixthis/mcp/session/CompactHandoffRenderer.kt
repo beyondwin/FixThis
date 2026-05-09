@@ -30,6 +30,11 @@ object CompactHandoffRenderer {
             screen?.screenshot?.desktopFullPath?.let {
                 appendLine("screenshot: ${it.inlineSafe()}")
             }
+            val w = screen?.screenshot?.width
+            val h = screen?.screenshot?.height
+            if (w != null && h != null) {
+                appendLine("viewport: ${w}×${h}")
+            }
             appendLine()
 
             val detectorItems = indexedItems.map { entry ->

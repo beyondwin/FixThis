@@ -183,10 +183,10 @@ Goal: switch the v1 token shape to v2 in Kotlin only. No new information; format
 
 ### Task 1.2 — Renderer: viewport line (TDD)
 
-- [ ] **Red:** Add a test in `CompactHandoffRendererTest.kt`: a session whose screen has `screenshot(width=720, height=1480)` produces a screen block containing `"viewport: 720×1480"` on its own line, after the `screenshot:` line. Run; expect failure.
-- [ ] **Green:** In `render()`, after the `screenshot:` line, append `appendLine("viewport: ${w}×${h}")` when both width and height are non-null. Run; expect pass.
-- [ ] Add a test: width or height null → no viewport line. Run; expect pass.
-- [ ] Commit: `feat(handoff-v2): emit viewport line when screenshot has dims`.
+- [x] **Red:** Add a test in `CompactHandoffRendererTest.kt`: a session whose screen has `screenshot(width=720, height=1480)` produces a screen block containing `"viewport: 720×1480"` on its own line, after the `screenshot:` line. Run; expect failure.
+- [x] **Green:** In `render()`, after the `screenshot:` line, append `appendLine("viewport: ${w}×${h}")` when both width and height are non-null. Run; expect pass.
+- [x] Add a test: width or height null → no viewport line. Run; expect pass.
+- [x] Commit: `feat(handoff-v2): emit viewport line when screenshot has dims`.
 
 **Validation:** `./gradlew :fixthis-mcp:test --tests "*CompactHandoffRenderer*"`
 **Expected:** All pass.
