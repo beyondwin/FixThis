@@ -404,14 +404,22 @@
               });
               draftItems.querySelectorAll('[data-back-saved-annotations]').forEach(button => {
                 button.addEventListener('click', () => {
-                  persistSavedEvidenceItem(item, editSessionId)
-                    .then(() => {
-                      focusedSavedItemId = null;
-                      focusedSavedSessionId = null;
-                      renderPreviewOnly();
-                      renderInspectorRegion();
-                    })
-                    .catch(showError);
+                  // Navigation must always succeed; persist is best-effort.
+                  // If the item was sent to MCP, the server will reject the PATCH with
+                  // ITEM_NOT_EDITABLE — we should still let the user leave the detail view.
+                  const goBack = () => {
+                    focusedSavedItemId = null;
+                    focusedSavedSessionId = null;
+                    renderPreviewOnly();
+                    renderInspectorRegion();
+                  };
+                  if (item.delivery === 'sent') {
+                    goBack();
+                  } else {
+                    persistSavedEvidenceItem(item, editSessionId)
+                      .then(goBack)
+                      .catch(error => { showError(error); goBack(); });
+                  }
                 });
               });
               draftItems.querySelector('[data-delete-current]').addEventListener('click', () => {
