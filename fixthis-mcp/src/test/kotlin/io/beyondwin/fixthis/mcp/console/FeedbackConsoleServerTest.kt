@@ -838,8 +838,20 @@ class FeedbackConsoleServerTest {
             "renderSelectionOverlay should resolve the visible screen via latestScreen()",
         )
         assertTrue(
+            renderSelectionOverlay.contains("const visibleUids = visibleScreenNodeUids(visibleScreen);"),
+            "renderSelectionOverlay should compute the visible-screen node-uid set once per call",
+        )
+        assertTrue(
+            renderSelectionOverlay.contains("if (nodeUid) return visibleUids.has(nodeUid);"),
+            "renderSelectionOverlay should match node-anchored saved items by nodeUid presence on the visible screen",
+        )
+        assertTrue(
+            renderSelectionOverlay.contains("return item.screenId === visibleScreen.screenId;"),
+            "renderSelectionOverlay should fall back to screenId equality for area-anchored items without nodeUid",
+        )
+        assertFalse(
             renderSelectionOverlay.contains("savedEvidenceItems().filter(item => item.screenId === visibleScreen.screenId)"),
-            "renderSelectionOverlay should filter saved items by the visible screen's screenId",
+            "renderSelectionOverlay should no longer use the legacy single-line screenId-only filter",
         )
     }
 
@@ -1821,7 +1833,10 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("'/api/screens/' + encodeURIComponent(screen.screenId) + '/screenshot/full'"))
         assertTrue(html.contains("if (!addItemsFlow) {"))
         assertTrue(html.contains("const visibleScreen = latestScreen();"))
-        assertTrue(html.contains("savedEvidenceItems().filter(item => item.screenId === visibleScreen.screenId)"))
+        assertTrue(html.contains("const visibleUids = visibleScreenNodeUids(visibleScreen);"))
+        assertTrue(html.contains("if (nodeUid) return visibleUids.has(nodeUid);"))
+        assertTrue(html.contains("return item.screenId === visibleScreen.screenId;"))
+        assertFalse(html.contains("savedEvidenceItems().filter(item => item.screenId === visibleScreen.screenId)"))
         assertTrue(html.contains("if (screenSavedItems.length) renderSavedEvidenceOverlay(overlay, image, screenSavedItems);"))
         assertFalse(html.contains("renderSavedEvidenceOverlay(overlay, image, persistedItems);"))
         assertFalse(html.contains("if (!addItemsFlow && !state.preview && persistedItems.length)"))
