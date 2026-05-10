@@ -3927,6 +3927,112 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun markHandedOffEndpointUpdatesLastHandedOffAtForItems() {
+        var nowMillis = 100L
+        val store = FeedbackSessionStore(clock = { nowMillis })
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val (sessionId, itemId) = seedSessionWithOneItem(store, service)
+        // Promote DRAFT to SENT so the item carries SENT delivery before the call.
+        service.sendDraftToAgent(sessionId, listOf(itemId))
+        nowMillis = 500L
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/sessions/$sessionId/items/mark-handed-off",
+                body = """{"itemIds":["$itemId"]}""",
+            )
+            assertEquals(200, response.statusCode)
+            assertTrue(
+                response.contentTypeStartsWith("application/json"),
+                "got: ${response.header("Content-Type")}",
+            )
+            val item = store.getSession(sessionId).items.first { it.itemId == itemId }
+            assertEquals(500L, item.lastHandedOffAtEpochMillis)
+            assertEquals(500L, item.updatedAtEpochMillis)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun markHandedOffEndpointRejectsEmptyItemIds() {
+        val store = FeedbackSessionStore()
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val (sessionId, _) = seedSessionWithOneItem(store, service)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/sessions/$sessionId/items/mark-handed-off",
+                body = """{"itemIds":[]}""",
+            )
+            assertEquals(400, response.statusCode)
+            assertTrue(
+                response.contentTypeStartsWith("application/json"),
+                "got: ${response.header("Content-Type")}",
+            )
+            assertTrue(response.body.contains("\"error\""), "expected error JSON body, got:\n${response.body}")
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun markHandedOffEndpointReturns404ForUnknownSession() {
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = { "session-1" }),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/sessions/00000000-0000-0000-0000-000000000000/items/mark-handed-off",
+                body = """{"itemIds":["x"]}""",
+            )
+            assertEquals(404, response.statusCode)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun markHandedOffEndpointRequiresConsoleToken() {
+        val store = FeedbackSessionStore()
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val (sessionId, itemId) = seedSessionWithOneItem(store, service)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url, includeConsoleToken = false).postJson(
+                path = "/api/sessions/$sessionId/items/mark-handed-off",
+                body = """{"itemIds":["$itemId"]}""",
+            )
+            assertEquals(403, response.statusCode)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
     fun agentHandoffsAcceptsItemIdsAndReturnsRenderedPrompt() {
         val store = FeedbackSessionStore()
         val service = FeedbackSessionService(

@@ -286,6 +286,9 @@ class FeedbackSessionService(
     fun deleteDraftFeedback(sessionId: String, itemId: String): SessionDto =
         store.deleteDraftItem(sessionId, itemId)
 
+    fun markItemsHandedOff(sessionId: String, itemIds: List<String>): SessionDto =
+        store.markItemsHandedOff(sessionId, itemIds)
+
     private companion object {
         const val MaxRetainedPreviews = 3
     }

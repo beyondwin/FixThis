@@ -37,3 +37,8 @@ data class UpdateAnnotationRequest(
 data class HandoffPreviewRequest(
     val itemIds: List<String> = emptyList(),
 )
+
+@Serializable
+data class MarkHandedOffRequest(
+    val itemIds: List<String> = emptyList(),
+)

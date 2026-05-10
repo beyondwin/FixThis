@@ -252,6 +252,29 @@ class FeedbackSessionStore(
             commitSessionMutation(session, updated)
         }
 
+    fun markItemsHandedOff(sessionId: String, itemIds: List<String>): SessionDto =
+        synchronized(lock) {
+            if (itemIds.isEmpty()) {
+                throw FeedbackSessionException("itemIds must not be empty")
+            }
+            val session = getSessionLocked(sessionId)
+            val targetSet = itemIds.toSet()
+            val now = clock()
+            val updatedItems = session.items.map { item ->
+                if (item.itemId in targetSet) {
+                    item.copy(
+                        lastHandedOffAtEpochMillis = now,
+                        updatedAtEpochMillis = now,
+                    )
+                } else item
+            }
+            val updated = session.copy(
+                items = updatedItems,
+                updatedAtEpochMillis = now,
+            )
+            commitSessionMutation(session, updated)
+        }
+
     fun markReadyForAgent(sessionId: String): SessionDto =
         synchronized(lock) {
             val session = getSessionLocked(sessionId)
