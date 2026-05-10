@@ -32,3 +32,4 @@ local.properties
 .playwright-mcp
 .claude
 .orchestrator
+.worktrees
