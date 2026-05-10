@@ -71,7 +71,10 @@ A single `VERSION` string identifies the protocol surface. **Current value:
 `"1.1"`** (defined in
 `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt`).
 
-The same value is **mirrored** in three other places that must stay in sync:
+The same value is **mirrored** in three other places that must stay in sync.
+A `BridgeProtocolVersionSyncTest` in `:fixthis-mcp:test` enforces equality
+across all four sites at CI time and names each file with its observed value
+on failure:
 
 | File | Purpose | Constant |
 |------|---------|----------|
@@ -141,9 +144,10 @@ method signature on the bridge:
 7. Verify staleness banner behavior locally by running an old APK against the
    new console (manual smoke).
 
-CI does not enforce mirror equality automatically — the smoke test harness is
-the safety net. A pre-commit grep for the four mirrored constants is on the
-roadmap.
+CI enforces mirror equality automatically via `BridgeProtocolVersionSyncTest`
+(`:fixthis-mcp:test`). If you bump one site and forget another, the test
+fails and lists each file with its current value, so you don't have to wait
+for a smoke test to catch the drift.
 
 ## Token security
 

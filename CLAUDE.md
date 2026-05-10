@@ -13,8 +13,9 @@ constraints — those apply equally to Claude Code.
   `--console-assets-dir`.
 - **Bridge protocol changes** must update `BridgeProtocol.VERSION`, the console
   `MinimumSupportedProtocolVersion`, and the mirrored constants in
-  `BridgeClient.kt` and `ServerVersionRoutes.kt`. Full procedure:
-  [`docs/reference/bridge-protocol.md`](docs/reference/bridge-protocol.md).
+  `BridgeClient.kt` and `ServerVersionRoutes.kt`. `BridgeProtocolVersionSyncTest`
+  (`:fixthis-mcp:test`) enforces equality across all four sites at CI time. Full
+  procedure: [`docs/reference/bridge-protocol.md`](docs/reference/bridge-protocol.md).
 - **Architecture invariants** (core has no MCP/CLI/Android dep, persisted JSON
   field names are compatibility contracts, sidekick hosts no HTTP/MCP server)
   → [`docs/architecture/overview.md`](docs/architecture/overview.md) and
