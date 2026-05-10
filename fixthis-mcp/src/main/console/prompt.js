@@ -47,6 +47,17 @@
                 return response.text();
             }
 
+            async function markItemsHandedOff(sessionId, itemIds) {
+                return await requestJson(
+                    '/api/sessions/' + encodeURIComponent(sessionId) + '/items/mark-handed-off',
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ itemIds }),
+                    }
+                );
+            }
+
             async function copyPrompt() {
                 if (promptActionInFlight) return;
                 await withMutationLock(async () => {
@@ -62,6 +73,13 @@
                         const markdown = await fetchHandoffPreview(state.session.sessionId, itemIds);
                         await copyTextToClipboard(markdown);
                         copied = true;
+                        try {
+                            const updated = await markItemsHandedOff(state.session.sessionId, itemIds);
+                            state.session = updated;
+                            renderInspectorRegion();
+                        } catch (markError) {
+                            // Clipboard write succeeded — silently ignore mark errors.
+                        }
                     } finally {
                         promptActionInFlight = false;
                         updateComposerState();

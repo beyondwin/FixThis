@@ -7,6 +7,7 @@ import io.beyondwin.fixthis.compose.core.format.DetailMode
 import io.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.beyondwin.fixthis.mcp.McpProtocol
 import io.beyondwin.fixthis.mcp.console.FeedbackConsoleServer
+import io.beyondwin.fixthis.mcp.console.enrichSessionWithStaleness
 import io.beyondwin.fixthis.mcp.resourceText
 import io.beyondwin.fixthis.mcp.session.SnapshotDto
 import io.beyondwin.fixthis.mcp.session.FeedbackDelivery
@@ -141,7 +142,7 @@ class FixThisTools(
                     put("projectRoot", opened.session.projectRoot)
                     put("consoleUrl", opened.consoleUrl)
                     put("resumed", opened.resumed)
-                    put("session", McpProtocol.json.encodeToJsonElement(SessionDto.serializer(), opened.session))
+                    put("session", enrichSessionWithStaleness(opened.session))
                 })
             }
             "fixthis_list_feedback_sessions" -> bridgeToolResult {
@@ -197,10 +198,14 @@ class FixThisTools(
                     )
                     put("items", buildJsonArray {
                         visibleItems.forEach { item ->
+                            val handedOff = item.lastHandedOffAtEpochMillis
+                            val stale = handedOff != null && item.updatedAtEpochMillis > handedOff
                             add(buildJsonObject {
                                 put("itemId", item.itemId)
                                 put("screenId", item.screenId)
                                 put("status", item.status.name.lowercase())
+                                put("delivery", item.delivery.name.lowercase())
+                                put("staleAfterHandoff", stale)
                                 put("comment", item.comment)
                             })
                         }

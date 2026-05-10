@@ -4,10 +4,12 @@ import io.beyondwin.fixthis.cli.fixThisJson
 import io.beyondwin.fixthis.compose.core.format.DetailMode
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.beyondwin.fixthis.mcp.console.enrichSessionWithStaleness
+import kotlinx.serialization.json.JsonObject
 
 object FeedbackQueueFormatter {
     fun toJson(session: SessionDto): String =
-        fixThisJson.encodeToString(SessionDto.serializer(), session)
+        fixThisJson.encodeToString(JsonObject.serializer(), enrichSessionWithStaleness(session))
 
     fun toMarkdown(session: SessionDto): String =
         toMarkdown(session, DetailMode.PRECISE)

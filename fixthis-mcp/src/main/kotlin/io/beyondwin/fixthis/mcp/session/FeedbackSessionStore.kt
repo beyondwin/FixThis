@@ -199,10 +199,14 @@ class FeedbackSessionStore(
         synchronized(lock) {
             val session = getSessionLocked(sessionId)
             val targetSet = targetItemIds?.toSet()
-            val candidateDrafts = session.items.filter {
-                it.delivery == FeedbackDelivery.DRAFT && (targetSet == null || it.itemId in targetSet)
+            val candidates = session.items.filter { item ->
+                val matchesTarget = targetSet == null || item.itemId in targetSet
+                matchesTarget && (
+                    item.delivery == FeedbackDelivery.DRAFT ||
+                        (item.delivery == FeedbackDelivery.SENT && item.status == AnnotationStatusDto.READY)
+                    )
             }
-            if (candidateDrafts.isEmpty()) {
+            if (candidates.isEmpty()) {
                 throw FeedbackSessionException("NO_DRAFT_FEEDBACK: No draft feedback items to send")
             }
             val now = clock()
@@ -210,26 +214,62 @@ class FeedbackSessionStore(
                 batchId = idGenerator(),
                 sequenceNumber = session.handoffBatches.size + 1,
                 createdAtEpochMillis = now,
-                itemIds = candidateDrafts.map { it.itemId },
+                itemIds = candidates.map { it.itemId },
                 markdownSnapshot = markdownSnapshot,
             )
             val updatedItems = session.items.map { item ->
-                if (item.delivery == FeedbackDelivery.DRAFT && (targetSet == null || item.itemId in targetSet)) {
-                    item.copy(
-                        delivery = FeedbackDelivery.SENT,
-                        handoffBatchId = batch.batchId,
-                        sentAtEpochMillis = now,
-                        status = AnnotationStatusDto.READY,
-                        updatedAtEpochMillis = now,
-                    )
-                } else {
-                    item
+                val matchesTarget = targetSet == null || item.itemId in targetSet
+                when {
+                    item.delivery == FeedbackDelivery.DRAFT && matchesTarget -> {
+                        item.copy(
+                            delivery = FeedbackDelivery.SENT,
+                            handoffBatchId = batch.batchId,
+                            sentAtEpochMillis = now,
+                            lastHandedOffAtEpochMillis = now,
+                            status = AnnotationStatusDto.READY,
+                            updatedAtEpochMillis = now,
+                        )
+                    }
+                    item.delivery == FeedbackDelivery.SENT &&
+                        item.status == AnnotationStatusDto.READY &&
+                        matchesTarget -> {
+                        // Re-save: preserve sentAt; refresh lastHandedOffAt + handoffBatchId.
+                        item.copy(
+                            handoffBatchId = batch.batchId,
+                            lastHandedOffAtEpochMillis = now,
+                            updatedAtEpochMillis = now,
+                        )
+                    }
+                    else -> item
                 }
             }
             val updated = session.copy(
                 items = updatedItems,
                 handoffBatches = session.handoffBatches + batch,
                 status = SessionStatusDto.READY_FOR_AGENT,
+                updatedAtEpochMillis = now,
+            )
+            commitSessionMutation(session, updated)
+        }
+
+    fun markItemsHandedOff(sessionId: String, itemIds: List<String>): SessionDto =
+        synchronized(lock) {
+            if (itemIds.isEmpty()) {
+                throw FeedbackSessionException("itemIds must not be empty")
+            }
+            val session = getSessionLocked(sessionId)
+            val targetSet = itemIds.toSet()
+            val now = clock()
+            val updatedItems = session.items.map { item ->
+                if (item.itemId in targetSet) {
+                    item.copy(
+                        lastHandedOffAtEpochMillis = now,
+                        updatedAtEpochMillis = now,
+                    )
+                } else item
+            }
+            val updated = session.copy(
+                items = updatedItems,
                 updatedAtEpochMillis = now,
             )
             commitSessionMutation(session, updated)
@@ -325,8 +365,8 @@ class FeedbackSessionStore(
             val updatedItems = session.items.map { item ->
                 if (item.itemId != itemId) return@map item
                 found = true
-                if (item.delivery != FeedbackDelivery.DRAFT) {
-                    throw FeedbackSessionException("ITEM_NOT_EDITABLE: Only draft feedback items can be edited: $itemId")
+                if (isLockedForEdit(item)) {
+                    throw FeedbackSessionException("ITEM_NOT_EDITABLE: Agent has claimed this item: $itemId")
                 }
                 item.copy(
                     label = label ?: item.label,
@@ -348,8 +388,8 @@ class FeedbackSessionStore(
             val session = getSessionLocked(sessionId)
             val item = session.items.find { it.itemId == itemId }
                 ?: throw FeedbackSessionException("Unknown feedback item: $itemId")
-            if (item.delivery != FeedbackDelivery.DRAFT) {
-                throw FeedbackSessionException("ITEM_NOT_EDITABLE: Only draft feedback items can be deleted: $itemId")
+            if (isLockedForEdit(item)) {
+                throw FeedbackSessionException("ITEM_NOT_EDITABLE: Agent has claimed this item: $itemId")
             }
             val updatedBatches = session.handoffBatches
                 .map { batch -> batch.copy(itemIds = batch.itemIds.filterNot { it == itemId }) }
@@ -363,6 +403,10 @@ class FeedbackSessionStore(
             sessions[sessionId] = updated
             updated
         }
+
+    private fun isLockedForEdit(item: AnnotationDto): Boolean =
+        item.delivery == FeedbackDelivery.SENT &&
+            item.status in setOf(AnnotationStatusDto.IN_PROGRESS, AnnotationStatusDto.RESOLVED)
 
     private fun getSessionLocked(sessionId: String): SessionDto =
         sessions[sessionId] ?: throw FeedbackSessionException("Unknown feedback session: $sessionId")

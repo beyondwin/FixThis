@@ -48,16 +48,34 @@
               return 'rgba(' + red + ', ' + green + ', ' + blue + ', ' + alpha + ')';
             }
 
-            function statusLabel(status) {
-              if (status === 'in-progress') return 'In-progress';
-              if (status === 'resolved') return 'Resolved';
-              return 'Open';
+            function lifecyclePhase(item) {
+              const status = String(item?.status || 'open');
+              if (status === 'resolved') return 'resolved';
+              if (status === 'in_progress' || status === 'in-progress') return 'in_progress';
+              if (item?.delivery === 'sent') {
+                return item?.staleAfterHandoff ? 'sent_modified' : 'sent';
+              }
+              return 'draft';
             }
 
-            function statusClass(status) {
-              if (status === 'in-progress') return 'st-in-progress';
-              if (status === 'resolved') return 'st-resolved';
-              return 'st-open';
+            function statusLabel(item) {
+              switch (lifecyclePhase(item)) {
+                case 'resolved': return 'Resolved';
+                case 'in_progress': return 'In Progress';
+                case 'sent_modified': return 'Sent · Modified';
+                case 'sent': return 'Sent';
+                default: return 'Draft';
+              }
+            }
+
+            function statusClass(item) {
+              return 'st-' + lifecyclePhase(item).replace('_', '-');
+            }
+
+            function statusValueLabel(value) {
+              if (value === 'in-progress' || value === 'in_progress') return 'In Progress';
+              if (value === 'resolved') return 'Resolved';
+              return 'Open';
             }
 
             // Display-side annotations for the toolbar counter and the right Annotations panel.
