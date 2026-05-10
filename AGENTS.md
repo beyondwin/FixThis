@@ -11,24 +11,33 @@ FixThis adds a debug-only sidekick to Jetpack Compose Android apps and exposes c
 ## Quick Start
 
 ```bash
-# Build CLI and MCP distributions
-./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
+# Bootstrap MCP integration (build + register with Claude Code / Codex)
+./scripts/bootstrap-mcp.sh --package <applicationId>
+```
 
-# Configure your AI agent (run once per project)
+`--package` is the Android applicationId of the app you are running FixThis against (e.g. `io.beyondwin.fixthis.sample`). The script writes:
+
+- **Claude** → project-local `.claude/settings.json` (only affects this project)
+- **Codex** → user-global `~/.codex/config.toml` (affects all Codex sessions)
+
+Pass `--target claude` or `--target codex` to limit the targets, or `--dry-run` to preview without writing:
+
+```bash
+./scripts/bootstrap-mcp.sh --package <applicationId> --dry-run
+```
+
+After it completes, restart Claude Code or Codex so the new MCP server is picked up.
+
+### Manual setup
+
+If you cannot run the wrapper (e.g., on Windows), the equivalent two-step form is:
+
+```bash
+./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
 fixthis-cli/build/install/fixthis/bin/fixthis setup \
   --package <applicationId> \
   --write \
   --target all
-```
-
-`--target all` writes two config entries:
-- **Claude** → project-local `.claude/settings.json` (only affects this project)
-- **Codex** → user-global `~/.codex/config.toml` (affects all Codex sessions)
-
-Preview what will be written without touching any files:
-
-```bash
-fixthis setup --package <applicationId> --write --target all --dry-run
 ```
 
 ## Build and Test
