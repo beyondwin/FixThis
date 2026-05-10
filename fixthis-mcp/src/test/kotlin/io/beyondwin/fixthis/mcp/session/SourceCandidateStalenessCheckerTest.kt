@@ -4,8 +4,8 @@ import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
-import org.junit.Test
 import java.io.File
+import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -110,6 +110,42 @@ class SourceCandidateStalenessCheckerTest {
         assertTrue(result.staleReason!!.startsWith("path escapes project root"))
     }
 
+    @Test
+    fun `marks candidate stale when host file exceeds 1 MB cap`() {
+        val tmp = tempDir()
+        val big = File(tmp, "Big.kt")
+        // exactly 1 MB + 1 byte to trip the > MaxBytesToRead branch
+        big.writeText("a".repeat(1_048_577))
+        val index = SourceIndex(
+            entries = listOf(SourceIndexEntry(file = "Big.kt", line = 1, excerpt = "a")),
+        )
+        val candidate = candidate(file = "Big.kt", line = 1)
+        val checker = SourceCandidateStalenessChecker(tmp)
+
+        val result = checker.annotate(listOf(candidate), index).single()
+
+        assertEquals(true, result.stale)
+        assertEquals("file too large to verify", result.staleReason)
+    }
+
+    @Test
+    fun `does not flag size when host file is exactly at 1 MB cap`() {
+        val tmp = tempDir()
+        val cap = File(tmp, "Cap.kt")
+        // exactly 1 MB — should NOT trip > MaxBytesToRead (strict greater-than)
+        cap.writeText("a".repeat(1_048_576))
+        val index = SourceIndex(
+            entries = listOf(SourceIndexEntry(file = "Cap.kt", line = 1, excerpt = "a".repeat(1_048_576))),
+        )
+        val candidate = candidate(file = "Cap.kt", line = 1)
+        val checker = SourceCandidateStalenessChecker(tmp)
+
+        val result = checker.annotate(listOf(candidate), index).single()
+
+        // file is fine size-wise; line 1 matches excerpt → fresh
+        assertEquals(false, result.stale)
+    }
+
     private fun candidate(file: String, line: Int?): SourceCandidate =
         SourceCandidate(
             file = file,
@@ -118,6 +154,6 @@ class SourceCandidateStalenessCheckerTest {
             confidence = SelectionConfidence.HIGH,
         )
 
-    private fun tempDir(): File =
-        kotlin.io.path.createTempDirectory(prefix = "fixthis-staleness-").toFile().also { it.deleteOnExit() }
+    private fun tempDir(prefix: String = "fixthis-staleness-"): File =
+        kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
 }

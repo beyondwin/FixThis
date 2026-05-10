@@ -749,4 +749,82 @@ class FeedbackQueueFormatterTest {
             ),
         )
     }
+
+    // ---- Task 3 (C6): stale marker rendering ----
+
+    private fun sessionWithStaleCandidate(stale: Boolean?, staleReason: String?): SessionDto {
+        val selectedNode = FixThisNode(
+            uid = "node-stale",
+            composeNodeId = 1,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = FixThisRect(0f, 0f, 10f, 10f),
+            text = listOf("Pay now"),
+        )
+        return SessionDto(
+            sessionId = "session-stale",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-stale",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node(selectedNode.uid, selectedNode.boundsInWindow),
+                    selectedNode = selectedNode,
+                    sourceCandidates = listOf(
+                        SourceCandidate(
+                            file = "HomeScreen.kt",
+                            line = 10,
+                            score = 0.9,
+                            matchedTerms = emptyList(),
+                            matchReasons = emptyList(),
+                            confidence = SelectionConfidence.HIGH,
+                            stale = stale,
+                            staleReason = staleReason,
+                        ),
+                    ),
+                    comment = "fix",
+                    sequenceNumber = 1,
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `render emits stale marker on rank 1 when candidate is stale`() {
+        val markdown = FeedbackQueueFormatter.toMarkdown(
+            sessionWithStaleCandidate(stale = true, staleReason = "excerpt mismatch"),
+        )
+        assertTrue(
+            markdown.contains("⚠ stale: excerpt mismatch"),
+            "Expected stale marker '⚠ stale: excerpt mismatch' in:\n$markdown",
+        )
+    }
+
+    @Test
+    fun `render omits stale marker when candidate is fresh`() {
+        val markdown = FeedbackQueueFormatter.toMarkdown(
+            sessionWithStaleCandidate(stale = false, staleReason = null),
+        )
+        assertFalse(
+            markdown.contains("⚠ stale"),
+            "Expected no stale marker when stale=false, but got:\n$markdown",
+        )
+    }
+
+    @Test
+    fun `render omits stale marker when candidate stale is null`() {
+        val markdown = FeedbackQueueFormatter.toMarkdown(
+            sessionWithStaleCandidate(stale = null, staleReason = null),
+        )
+        assertFalse(
+            markdown.contains("⚠ stale"),
+            "Expected no stale marker when stale=null, but got:\n$markdown",
+        )
+    }
 }

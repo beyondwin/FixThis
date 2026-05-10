@@ -60,7 +60,7 @@ class HostSourceFreshnessProbeTest {
         val result = probe.evaluate(index, installEpochMillis = null)
 
         assertFalse(result.installStale)
-        assertTrue(result.reason!!.contains("install epoch"))
+        assertEquals("install epoch unavailable; older sidekick", result.reason)
     }
 
     @Test
@@ -79,6 +79,48 @@ class HostSourceFreshnessProbeTest {
 
         assertEquals(1, result.newerFileCount)
         assertEquals(1, result.totalIndexedFiles)
+    }
+
+    @Test
+    fun `flags possible projectRoot misconfiguration when zero indexed files exist on host`() {
+        val tmp = tempDir()
+        // tmp는 비어있음 — 인덱스가 가리키는 파일은 하나도 존재하지 않는다.
+        val installed = 1_700_000_000_000L
+        val index = SourceIndex(entries = listOf(
+            SourceIndexEntry(file = "missing/A.kt", line = 1, excerpt = "a"),
+            SourceIndexEntry(file = "missing/B.kt", line = 1, excerpt = "b"),
+            SourceIndexEntry(file = "missing/C.kt", line = 1, excerpt = "c"),
+        ))
+        val probe = HostSourceFreshnessProbe(tmp)
+
+        val result = probe.evaluate(index, installEpochMillis = installed)
+
+        assertFalse(result.installStale)
+        assertEquals(0, result.newerFileCount)
+        assertEquals(3, result.totalIndexedFiles)
+        assertTrue(
+            result.reason!!.startsWith("projectRoot may be misconfigured"),
+            "got: ${result.reason}",
+        )
+    }
+
+    @Test
+    fun `does not flag misconfiguration when at least one indexed file exists`() {
+        val tmp = tempDir()
+        val installed = 1_700_000_000_000L
+        // 한 파일만 존재 — 부분 dirty라 misconfig 아님
+        val one = File(tmp, "Exists.kt").also { it.writeText("a") }
+        one.setLastModified(installed - 60_000)
+        val index = SourceIndex(entries = listOf(
+            SourceIndexEntry(file = "Exists.kt", line = 1, excerpt = "a"),
+            SourceIndexEntry(file = "Missing.kt", line = 1, excerpt = "b"),
+        ))
+        val probe = HostSourceFreshnessProbe(tmp)
+
+        val result = probe.evaluate(index, installEpochMillis = installed)
+
+        assertFalse(result.installStale)
+        assertFalse(result.reason?.startsWith("projectRoot may be misconfigured") == true)
     }
 
     private fun tempDir(): File =

@@ -58,7 +58,7 @@ class FixThisToolsStatusTest {
     }
 
     @Test
-    fun `status omits installStale when sidekick lacks installEpochMillis`() {
+    fun `status reports installStale=false with inconclusive reason when sidekick lacks installEpochMillis`() {
         val tmp = tempDir()
         val bridge = FakeFixThisBridge(
             sourceIndex = SourceIndex(),
