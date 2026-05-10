@@ -197,8 +197,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778394300000;
-const ConsoleBuildGitSha = '041ea4b';
+const ConsoleBuildEpochMs = 1778394660000;
+const ConsoleBuildGitSha = 'c86d7fd';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -2416,12 +2416,46 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               const severity = annotationSeverity(item);
               const status = annotationStatus(item);
               const editSessionId = focusedSavedSessionId || state.session?.sessionId || null;
+              const phase = lifecyclePhase(item);
+              const editable = phase === 'draft' || phase === 'sent' || phase === 'sent_modified';
+              const dis = editable ? '' : ' disabled';
+              const deletable = phase !== 'in_progress' && phase !== 'resolved';
+              const deleteDis = deletable ? '' : ' disabled';
+              const banner = (() => {
+                if (phase === 'sent_modified') {
+                  return '<div class="annotation-banner annotation-banner-warn">' +
+                    '<span>⚠ Modified after Save — agent will see the previous version.</span>' +
+                    '<button type="button" class="annotation-resave" data-resave-current>Re-save</button>' +
+                    '</div>';
+                }
+                if (phase === 'sent') {
+                  const ts = item.lastHandedOffAtEpochMillis ? formatTime(item.lastHandedOffAtEpochMillis) : '';
+                  return '<div class="annotation-banner annotation-banner-info">' +
+                    'Sent to MCP' + (ts ? ' · ' + escapeHtml(ts) : '') +
+                    '. Modify to refine before agent picks up.' +
+                    '</div>';
+                }
+                if (phase === 'in_progress') {
+                  return '<div class="annotation-banner annotation-banner-locked">' +
+                    '🔒 Agent working on this — edits locked.' +
+                    '</div>';
+                }
+                if (phase === 'resolved') {
+                  const summary = item.agentSummary ? escapeHtml(item.agentSummary) : '(no summary provided)';
+                  return '<div class="annotation-banner annotation-banner-done">' +
+                    '<div>✓ Agent completed</div>' +
+                    '<pre class="annotation-summary">' + summary + '</pre>' +
+                    '</div>';
+                }
+                return '';
+              })();
               draftItems.innerHTML =
-                '<div class="annotation-detail">' +
+                '<div class="annotation-detail" data-phase="' + escapeHtml(phase) + '">' +
                   '<button type="button" class="annotation-back" data-back-saved-annotations>← All annotations</button>' +
+                  banner +
                   '<div class="annotation-field">' +
                     '<label for="annotationLabelInput">Label</label>' +
-                    '<input id="annotationLabelInput" class="annotation-input" value="' + escapeHtml(targetLabel(item)) + '">' +
+                    '<input id="annotationLabelInput" class="annotation-input" value="' + escapeHtml(targetLabel(item)) + '"' + dis + '>' +
                   '</div>' +
                   '<div class="annotation-field">' +
                     '<label>Severity</label>' +
@@ -2429,7 +2463,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                       ['high', 'med', 'low'].map(value =>
                         '<button type="button" class="' + (severity === value ? 'active' : '') + '" data-set-severity="' + value + '"' +
                           ' aria-pressed="' + (severity === value ? 'true' : 'false') + '"' +
-                          (severity === value ? ' style="background:' + severityColor(value) + '; color: var(--bg-0);"' : '') + '>' +
+                          (severity === value ? ' style="background:' + severityColor(value) + '; color: var(--bg-0);"' : '') + dis + '>' +
                           escapeHtml(value === 'med' ? 'Med' : value) +
                         '</button>'
                       ).join('') +
@@ -2437,46 +2471,52 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   '</div>' +
                   '<div class="annotation-field">' +
                     '<label for="annotationCommentInput">Comment</label>' +
-                    '<textarea id="annotationCommentInput" class="annotation-textarea">' + escapeHtmlValue(item.comment) + '</textarea>' +
+                    '<textarea id="annotationCommentInput" class="annotation-textarea"' + dis + '>' + escapeHtmlValue(item.comment) + '</textarea>' +
                   '</div>' +
                   '<div class="annotation-field">' +
                     '<label>Status</label>' +
                     '<div class="annotation-segmented" role="group" aria-label="Status">' +
                       ['open', 'in-progress', 'resolved'].map(value =>
                         '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '"' +
-                          ' aria-pressed="' + (status === value ? 'true' : 'false') + '">' +
+                          ' aria-pressed="' + (status === value ? 'true' : 'false') + '"' + dis + '>' +
                           escapeHtml(statusValueLabel(value)) +
                         '</button>'
                       ).join('') +
                     '</div>' +
                   '</div>' +
                   '<div class="annotation-actions">' +
-                    '<button type="button" class="annotation-danger" data-delete-current>Delete</button>' +
+                    '<button type="button" class="annotation-danger" data-delete-current' + deleteDis + '>Delete</button>' +
                     '<button type="button" class="annotation-done" data-back-saved-annotations>Done</button>' +
                   '</div>' +
                 '</div>';
               const labelInput = draftItems.querySelector('#annotationLabelInput');
               const commentInput = draftItems.querySelector('#annotationCommentInput');
               labelInput.addEventListener('input', event => {
+                if (!editable) return;
                 item.label = event.target.value;
                 updateComposerState();
                 renderPreviewOnly();
               });
               labelInput.addEventListener('change', () => {
+                if (!editable) return;
                 persistSavedEvidenceItem(item, editSessionId).catch(showError);
               });
               commentInput.addEventListener('input', event => {
+                if (!editable) return;
                 item.comment = event.target.value;
                 updateComposerState();
               });
               commentInput.addEventListener('change', () => {
+                if (!editable) return;
                 persistSavedEvidenceItem(item, editSessionId).catch(showError);
               });
               commentInput.addEventListener('blur', () => {
+                if (!editable) return;
                 persistSavedEvidenceItem(item, editSessionId).catch(showError);
               });
               draftItems.querySelectorAll('[data-set-severity]').forEach(button => {
                 button.addEventListener('click', () => {
+                  if (!editable) return;
                   item.severity = button.dataset.setSeverity;
                   persistSavedEvidenceItem(item, editSessionId)
                     .then(() => renderInspectorRegion())
@@ -2485,6 +2525,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               });
               draftItems.querySelectorAll('[data-set-status]').forEach(button => {
                 button.addEventListener('click', () => {
+                  if (!editable) return;
                   item.status = button.dataset.setStatus;
                   persistSavedEvidenceItem(item, editSessionId)
                     .then(() => {
@@ -2494,18 +2535,37 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                     .catch(showError);
                 });
               });
+              draftItems.querySelectorAll('[data-resave-current]').forEach(button => {
+                button.addEventListener('click', async () => {
+                  try {
+                    const result = await requestJson('/api/agent-handoffs', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ itemIds: [item.itemId] }),
+                    });
+                    state.session = result.session;
+                    renderInspectorRegion();
+                    renderPreviewOnly();
+                    showSuccess('Re-saved to MCP ✓', 2000);
+                  } catch (error) {
+                    showError(error);
+                  }
+                });
+              });
               draftItems.querySelectorAll('[data-back-saved-annotations]').forEach(button => {
                 button.addEventListener('click', () => {
                   // Navigation must always succeed; persist is best-effort.
-                  // If the item was sent to MCP, the server will reject the PATCH with
-                  // ITEM_NOT_EDITABLE — we should still let the user leave the detail view.
+                  // Editable phases (draft/sent/sent_modified) attempt persist; non-editable
+                  // phases (in_progress/resolved) skip persist entirely. The server would
+                  // reject a PATCH on non-editable items with ITEM_NOT_EDITABLE — we should
+                  // still let the user leave the detail view.
                   const goBack = () => {
                     focusedSavedItemId = null;
                     focusedSavedSessionId = null;
                     renderPreviewOnly();
                     renderInspectorRegion();
                   };
-                  if (item.delivery === 'sent') {
+                  if (!editable) {
                     goBack();
                   } else {
                     persistSavedEvidenceItem(item, editSessionId)
@@ -2514,10 +2574,14 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   }
                 });
               });
-              draftItems.querySelector('[data-delete-current]').addEventListener('click', () => {
-                deleteSavedEvidenceItem(item.itemId, editSessionId).catch(showError);
-              });
-              commentInput.focus();
+              const deleteButton = draftItems.querySelector('[data-delete-current]');
+              if (deleteButton) {
+                deleteButton.addEventListener('click', () => {
+                  if (!deletable) return;
+                  deleteSavedEvidenceItem(item.itemId, editSessionId).catch(showError);
+                });
+              }
+              if (editable) commentInput.focus();
             }
 
 

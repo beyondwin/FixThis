@@ -1045,6 +1045,13 @@
               color: var(--txt-0);
               outline: none;
             }
+            .annotation-banner { margin: 8px 0; padding: 10px 12px; border-radius: 6px; font-size: 13px; }
+            .annotation-banner-info { background: rgba(245, 158, 11, .14); color: #fcd34d; }
+            .annotation-banner-warn { background: rgba(245, 158, 11, .24); color: #fde68a; border: 1px solid #f59e0b; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+            .annotation-banner-locked { background: rgba(59, 130, 246, .14); color: #93c5fd; }
+            .annotation-banner-done { background: rgba(34, 197, 94, .14); color: #86efac; }
+            .annotation-summary { white-space: pre-wrap; max-height: 240px; overflow-y: auto; margin-top: 8px; padding: 8px; background: rgba(0, 0, 0, .25); border-radius: 4px; }
+            .annotation-resave { padding: 4px 12px; cursor: pointer; }
             img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); }
             .evidence-card {
               display: grid;
