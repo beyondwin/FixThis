@@ -3248,7 +3248,6 @@ class FeedbackConsoleServerTest {
         // so the CSS rules are observable as substrings in the rendered indexHtml.
         val html = FeedbackConsoleAssets.indexHtml
         assertTrue(html.contains(".staleness-banner"), "banner CSS class must exist")
-        assertTrue(html.contains("#stalenessBanner") || html.contains(".staleness-banner"), "banner styled")
     }
 
     private class FakeIds(vararg values: String) {
