@@ -211,6 +211,48 @@ class FeedbackSessionStoreTest {
     }
 
     @Test
+    fun loadsLegacySessionJsonWithoutLastHandedOffAtField() {
+        val decoded = fixThisJson.decodeFromString(
+            SessionDto.serializer(),
+            """
+            {
+              "schemaVersion": "1.0",
+              "sessionId": "legacy-1",
+              "packageName": "io.beyondwin.fixthis.sample",
+              "projectRoot": "/repo",
+              "createdAtEpochMillis": 1,
+              "updatedAtEpochMillis": 1,
+              "screens": [],
+              "items": [
+                {
+                  "itemId": "item-1",
+                  "screenId": "screen-1",
+                  "createdAtEpochMillis": 1,
+                  "updatedAtEpochMillis": 1,
+                  "target": {
+                    "type": "visual_area",
+                    "boundsInWindow": {
+                      "left": 0.0,
+                      "top": 0.0,
+                      "right": 1.0,
+                      "bottom": 1.0
+                    }
+                  },
+                  "comment": "x",
+                  "delivery": "sent",
+                  "status": "ready",
+                  "sentAtEpochMillis": 1
+                }
+              ]
+            }
+            """.trimIndent(),
+        )
+
+        assertEquals(1, decoded.items.size)
+        assertNull(decoded.items.single().lastHandedOffAtEpochMillis, "legacy field should default to null")
+    }
+
+    @Test
     fun storeAssignsItemSequenceNumbersAndSendsDraftBatch() {
         val clock = FakeClock(100L)
         val ids = FakeIds("session-1", "screen-1", "item-1", "item-2", "batch-1")

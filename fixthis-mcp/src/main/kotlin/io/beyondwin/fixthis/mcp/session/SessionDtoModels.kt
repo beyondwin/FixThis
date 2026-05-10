@@ -83,6 +83,7 @@ data class AnnotationDto(
     val delivery: FeedbackDelivery = FeedbackDelivery.DRAFT,
     val handoffBatchId: String? = null,
     val sentAtEpochMillis: Long? = null,
+    val lastHandedOffAtEpochMillis: Long? = null,
     val status: AnnotationStatusDto = AnnotationStatusDto.OPEN,
     val agentSummary: String? = null,
     val targetEvidence: TargetEvidence? = null,
