@@ -62,7 +62,7 @@ short_id      = first 8 chars of UUID
 screenshot_line = "screenshot: " path
 viewport_line   = "viewport: " width "×" height          ; emitted iff screenshot has dims
 activity_line   = "activity: " activity_name             ; emitted iff != display_name
-overlap_block = "Overlap group " N " (resolve one marker at a time):" "" item_block+
+overlap_block = "Overlap group " N " (resolve one marker at a time):" item_block+
 item_block    = item_header target_line crop_line? source_block ""
 item_header   = "[" N "] " title                         ; title may include severity prefix
 target_line   = "  " [ "role=" role "  " ] [ "tag=" tag "  " ] "box=(" x1 "," y1 ")-(" x2 "," y2 ")"
