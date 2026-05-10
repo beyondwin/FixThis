@@ -43,7 +43,7 @@ class FeedbackSessionStore(
         }
 
     fun currentSession(): SessionDto? =
-        synchronized(lock) { currentSessionId?.let { sessions[it] } }
+        synchronized(lock) { currentSessionId?.let { getSessionLocked(it) } }
 
     fun getSession(sessionId: String): SessionDto =
         synchronized(lock) {
@@ -66,9 +66,7 @@ class FeedbackSessionStore(
 
     fun openExistingSession(sessionId: String): SessionDto =
         synchronized(lock) {
-            val session = sessions[sessionId]
-                ?: persistence?.load(sessionId)?.also { sessions[it.sessionId] = it }
-                ?: throw FeedbackSessionException("Unknown feedback session: $sessionId")
+            val session = getSessionLocked(sessionId)
             currentSessionId = session.sessionId
             session
         }
@@ -409,7 +407,17 @@ class FeedbackSessionStore(
             item.status in setOf(AnnotationStatusDto.IN_PROGRESS, AnnotationStatusDto.RESOLVED)
 
     private fun getSessionLocked(sessionId: String): SessionDto =
-        sessions[sessionId] ?: throw FeedbackSessionException("Unknown feedback session: $sessionId")
+        loadPersistedSessionIfAvailable(sessionId)
+            ?: sessions[sessionId]
+            ?: throw FeedbackSessionException("Unknown feedback session: $sessionId")
+
+    private fun loadPersistedSessionIfAvailable(sessionId: String): SessionDto? {
+        val loaded = persistence?.let { persistence ->
+            runCatching { persistence.load(sessionId) }.getOrNull()
+        } ?: return null
+        sessions[loaded.sessionId] = loaded
+        return loaded
+    }
 
     private fun nextItemSequenceNumber(session: SessionDto): Int =
         session.items.mapNotNull { it.sequenceNumber }.maxOrNull()?.plus(1)

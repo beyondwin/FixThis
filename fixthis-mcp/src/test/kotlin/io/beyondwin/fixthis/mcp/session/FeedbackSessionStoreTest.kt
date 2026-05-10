@@ -899,6 +899,70 @@ class FeedbackSessionStoreTest {
     }
 
     @Test
+    fun staleStoreMutationPreservesNewerAgentResolutionFromDisk() {
+        val root = tempDir(prefix = "fixthis-v2-cross-process-")
+        val paths = FeedbackSessionPaths(root)
+        val persistence = FeedbackSessionPersistence(paths, clock = { 100L })
+        val consoleClock = MutableClock(1000L)
+        val ids = FakeIds("session-1", "screen-1", "item-1", "item-2", "batch-1")
+        val consoleStore = FeedbackSessionStore(
+            clock = consoleClock::now,
+            idGenerator = ids::next,
+            persistence = persistence,
+        )
+        val session = consoleStore.openSession("io.beyondwin.fixthis.sample", root.absolutePath)
+        val screen = consoleStore.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Home"))
+        consoleStore.addItem(
+            session.sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = screen.screenId,
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+                comment = "first",
+            ),
+        )
+        consoleStore.addItem(
+            session.sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = screen.screenId,
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(10f, 10f, 20f, 20f)),
+                comment = "second",
+            ),
+        )
+        consoleStore.sendDraftToAgent(session.sessionId, markdownSnapshot = "snap")
+
+        val agentStore = FeedbackSessionStore(clock = { 2000L }, persistence = persistence)
+        agentStore.updateItemStatus(
+            sessionId = session.sessionId,
+            itemId = "item-1",
+            status = AnnotationStatusDto.RESOLVED,
+            agentSummary = "fixed",
+        )
+
+        consoleClock.value = 3000L
+        consoleStore.updateDraftItem(
+            sessionId = session.sessionId,
+            itemId = "item-2",
+            label = null,
+            severity = null,
+            comment = "second edited from console",
+            status = null,
+        )
+
+        val persisted = persistence.load(session.sessionId)
+        val first = persisted.items.single { it.itemId == "item-1" }
+        val second = persisted.items.single { it.itemId == "item-2" }
+        assertEquals(AnnotationStatusDto.RESOLVED, first.status)
+        assertEquals("fixed", first.agentSummary)
+        assertEquals("second edited from console", second.comment)
+    }
+
+    @Test
     fun updateDraftItemRejectsSentInProgress() {
         val clock = MutableClock(1000L)
         val ids = FakeIds("session-1", "screen-1", "item-1", "batch-1")
