@@ -499,7 +499,21 @@ class FeedbackConsoleServerTest {
         }
         val generated = File(root, "fixthis-mcp/src/main/resources/console/app.js").readText()
 
-        assertEquals(expected, generated)
+        // Strip the dynamic build header (injected between state.js and api.js) before comparing.
+        // The header entry has the form: // build-header\nconst ConsoleBuildEpochMs = N;\nconst ConsoleBuildGitSha = 'X';\n
+        // After join('\n') the seam between state.js and the header adds one more \n, giving \n\n before api.js.
+        val headerRegex = Regex(
+            "// build-header\\nconst ConsoleBuildEpochMs = \\d+;\\nconst ConsoleBuildGitSha = '[a-z0-9]+';\\n\\n",
+        )
+        val withoutHeader = generated.replace(headerRegex, "")
+        assertEquals(expected, withoutHeader)
+    }
+
+    @Test
+    fun consoleBundleEmbedsBuildEpochAndGitSha() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains("const ConsoleBuildEpochMs = "), "must embed build epoch")
+        assertTrue(html.contains("const ConsoleBuildGitSha = '"), "must embed git sha")
     }
 
     @Test

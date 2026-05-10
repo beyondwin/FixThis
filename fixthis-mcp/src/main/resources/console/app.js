@@ -176,6 +176,10 @@
               error.classList.remove('status-success');
             }
 
+// build-header
+const ConsoleBuildEpochMs = 1778385840000;
+const ConsoleBuildGitSha = '5ad0c25';
+
 // api.js
             async function requestJson(path, options = {}) {
               const method = (options.method || 'GET').toUpperCase();

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,12 +20,32 @@ const sources = [
   'main.js',
 ];
 
-const output = sources
-  .map((name) => {
-    const path = resolve(root, 'fixthis-mcp/src/main/console', name);
-    return `// ${name}\n${readFileSync(path, 'utf8').trimEnd()}\n`;
+// Compute build metadata for the header injected between state.js and api.js.
+const epochMs = Math.floor(Date.now() / 60000) * 60000;
+
+let gitSha;
+try {
+  gitSha = execSync('git rev-parse --short HEAD', {
+    cwd: root,
+    stdio: ['ignore', 'pipe', 'ignore'],
   })
-  .join('\n');
+    .toString()
+    .trim();
+} catch (_) {
+  gitSha = 'unknown';
+}
+
+const buildHeader = `// build-header\nconst ConsoleBuildEpochMs = ${epochMs};\nconst ConsoleBuildGitSha = '${gitSha}';\n`;
+
+const entries = sources.map((name) => {
+  const path = resolve(root, 'fixthis-mcp/src/main/console', name);
+  return `// ${name}\n${readFileSync(path, 'utf8').trimEnd()}\n`;
+});
+
+// Splice the build header between state.js (index 0) and api.js (index 1).
+entries.splice(1, 0, buildHeader);
+
+const output = entries.join('\n');
 
 const target = resolve(root, 'fixthis-mcp/src/main/resources/console/app.js');
 
