@@ -17,9 +17,9 @@ Recommended improvement sequence:
 5. Add browser-level and connected-device smoke automation.
 6. Improve source-index precision and external-adoption readiness.
 
-Detailed design: `docs/internal/superpowers/specs/2026-05-08-project-improvement-stabilization-design.md`
+Detailed design: `docs/superpowers/specs/2026-05-08-project-improvement-stabilization-design.md`
 
-Detailed implementation plan: `docs/internal/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md`
+Detailed implementation plan: `docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md`
 
 Task 14 documentation-sync note: this proposal records the 2026-05-07 analysis baseline. The stabilization branch has since implemented the console contract, CI/onboarding baseline, smoke harness, MCP modularization, Source Index v2 typed signals, sample coverage fixture, local mutation guard, `fixthis clean`, release-readiness docs, and MCP compatibility fixtures. Evidence bullets below that cite old Add/Save wording are historical analysis context; current behavior is documented in `README.md`, `docs/mcp.md`, and `docs/feedback-console-contract.md`.
 

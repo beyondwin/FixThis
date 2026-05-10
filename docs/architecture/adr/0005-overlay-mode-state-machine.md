@@ -3,7 +3,7 @@
 - Status: Superseded — overlay module retired (2026-05-10)
 - Date: 2026-05-06
 
-> **2026-05-10 update.** The `fixthis-compose-overlay` module described below was retired before V1 ship. This ADR is preserved for the decision-trail history; no current module exposes the state machine documented here. Selection / commenting flow now lives in the desktop console (`fixthis-mcp`), and the in-app sidekick (`fixthis-compose-sidekick`) is reduced to a connection-status pill plus the bridge that the console talks to. See `docs/internal/superpowers/specs/2026-05-10-project-cleanup-pass-design.md` for context.
+> **2026-05-10 update.** The `fixthis-compose-overlay` module described below was retired before V1 ship. This ADR is preserved for the decision-trail history; no current module exposes the state machine documented here. Selection / commenting flow now lives in the desktop console (`fixthis-mcp`), and the in-app sidekick (`fixthis-compose-sidekick`) is reduced to a connection-status pill plus the bridge that the console talks to. See `docs/superpowers/specs/2026-05-10-project-cleanup-pass-design.md` for context.
 
 ## Context
 

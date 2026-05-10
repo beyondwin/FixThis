@@ -270,7 +270,7 @@ Android instrumentation tests require an unlocked interactive emulator or device
 7. [Technical design](fixthis_technical_design.md): 더 긴 설계 배경과 module-by-module 설계.
 8. [Architecture Decision Records](adr/README.md): 현재 코드에서 지켜야 하는 durable architecture decisions.
 
-`docs/internal/superpowers/plans/`와 `docs/internal/superpowers/specs/`는 implementation history와 작업 지시 기록이다. 현재 architecture source of truth는 위 current-facing 문서와 ADR을 우선한다.
+`docs/superpowers/plans/`와 `docs/superpowers/specs/`는 implementation history와 작업 지시 기록이다. 현재 architecture source of truth는 위 current-facing 문서와 ADR을 우선한다.
 
 ## 자주 헷갈리는 지점
 

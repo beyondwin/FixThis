@@ -270,7 +270,7 @@ Recommended order for a developer seeing this project for the first time:
 7. [Technical design (archived, Korean)](../archive/technical-design-v1-2026-05-03.md): longer design rationale and module-by-module design.
 8. [Architecture Decision Records](adr/README.md): durable architecture decisions that the current code upholds.
 
-`docs/internal/superpowers/plans/` and `docs/internal/superpowers/specs/` contain implementation history and work-order records. For current architecture, the above documents and ADRs take precedence.
+`docs/superpowers/plans/` and `docs/superpowers/specs/` contain implementation history and work-order records. For current architecture, the above documents and ADRs take precedence.
 
 ## Common Confusions
 

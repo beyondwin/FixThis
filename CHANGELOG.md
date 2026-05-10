@@ -115,6 +115,6 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ### Docs
 
-- `docs/internal/superpowers/plans/2026-05-10-mcp-handoff-workflow-completion.md` and `docs/internal/superpowers/specs/2026-05-10-mcp-handoff-workflow-completion-design.md` amended in-place with correction notes for T21 (`delivery !== 'sent'` filter removal) — the original 3-site instruction targeted code that had already been refactored; only `preview.js:75` was actually modified at execution time.
+- `docs/superpowers/plans/2026-05-10-mcp-handoff-workflow-completion.md` and `docs/superpowers/specs/2026-05-10-mcp-handoff-workflow-completion-design.md` amended in-place with correction notes for T21 (`delivery !== 'sent'` filter removal) — the original 3-site instruction targeted code that had already been refactored; only `preview.js:75` was actually modified at execution time.
 - `CLAUDE.md` 에 "After Code Changes — Restart Console Stack" 섹션 추가. fixthis-mcp 코드 변경 후 재시작 의무 명문화. (stale-binary-detection feature)
 - `CLAUDE.md` 에 "Bridge Protocol Compatibility" 섹션 추가. BridgeStatus / BridgeProtocol 시그니처 변경 PR 의 VERSION bump 규칙 명시. (BridgeProtocol.VERSION, sidekickBuildEpochMs 포함)
