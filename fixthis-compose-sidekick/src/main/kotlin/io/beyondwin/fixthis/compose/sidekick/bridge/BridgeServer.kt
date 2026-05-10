@@ -219,7 +219,20 @@ data class BridgeStatus(
     val keyguardLocked: Boolean? = null,
     val appForeground: Boolean? = null,
     val pictureInPicture: Boolean? = null,
+    /**
+     * APK install/update timestamp in milliseconds (`PackageManager.lastUpdateTime`).
+     * Populated by [AndroidBridgeEnvironment.readInstallEpochMillis]; null if read fails.
+     * Used to detect "the user reinstalled the sample APK" (e.g. for cache invalidation),
+     * NOT for build-binary staleness — for that, see [sidekickBuildEpochMs].
+     */
     val installEpochMillis: Long? = null,
+    /**
+     * Sidekick BUILD timestamp in milliseconds (minute-rounded; from `BuildInfo.BUILD_EPOCH_MS`).
+     * Populated unconditionally by sidekick when this version of the protocol is in effect.
+     * Compared by the console's `checkSidekickBuildEpoch()` against the bundled
+     * `ConsoleBuildEpochMs`; drift > 5 min surfaces a "sample sidekick is older than console"
+     * staleness banner. NOT the install time — for that, see [installEpochMillis].
+     */
     val sidekickBuildEpochMs: Long? = null,
 ) {
     constructor(
