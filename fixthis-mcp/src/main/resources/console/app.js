@@ -177,8 +177,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778388000000;
-const ConsoleBuildGitSha = '13c061c';
+const ConsoleBuildEpochMs = 1778389740000;
+const ConsoleBuildGitSha = '98a90e8';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -236,6 +236,35 @@ const ConsoleBuildGitSha = '13c061c';
                 sessionStorage.setItem(StalenessDismissKey, banner.dataset.hash || '');
                 banner.hidden = true;
               });
+
+            const MinimumSupportedProtocolVersion = '1.1';
+
+            function checkProtocolCompat(status) {
+              const v = status?.bridgeProtocolVersion;
+              if (typeof v !== 'string') return;
+              if (v !== MinimumSupportedProtocolVersion) {
+                renderStalenessBanner({
+                  severity: 'critical',
+                  headline: `Bridge protocol v${v} is too old`,
+                  detail: 'Reinstall the sample APK (./gradlew :app:installDebug) to update sidekick.',
+                  hash: `protocol-${v}`,
+                });
+              }
+            }
+
+            function checkSidekickBuildEpoch(status) {
+              const sidekickEpoch = status?.sidekickBuildEpochMs;
+              if (typeof sidekickEpoch !== 'number') return;
+              const drift = Math.abs(sidekickEpoch - ConsoleBuildEpochMs);
+              if (drift > StaleThresholdMs) {
+                renderStalenessBanner({
+                  severity: 'warning',
+                  headline: 'Sample app sidekick is older than this console',
+                  detail: 'Reinstall the sample APK to refresh.',
+                  hash: `sidekick-${sidekickEpoch}`,
+                });
+              }
+            }
 
 // api.js
             async function requestJson(path, options = {}) {
@@ -401,6 +430,8 @@ const ConsoleBuildGitSha = '13c061c';
               // stale-frame notice reflect the latest interactionBlockedReason / preview.stale.
               // Without this, the heartbeat-driven state update never reaches the canvas.
               renderPreviewRegion();
+              checkProtocolCompat(status);
+              checkSidekickBuildEpoch(status);
             }
 
             function renderConnection(status) {

@@ -53,3 +53,32 @@
                 sessionStorage.setItem(StalenessDismissKey, banner.dataset.hash || '');
                 banner.hidden = true;
               });
+
+            const MinimumSupportedProtocolVersion = '1.1';
+
+            function checkProtocolCompat(status) {
+              const v = status?.bridgeProtocolVersion;
+              if (typeof v !== 'string') return;
+              if (v !== MinimumSupportedProtocolVersion) {
+                renderStalenessBanner({
+                  severity: 'critical',
+                  headline: `Bridge protocol v${v} is too old`,
+                  detail: 'Reinstall the sample APK (./gradlew :app:installDebug) to update sidekick.',
+                  hash: `protocol-${v}`,
+                });
+              }
+            }
+
+            function checkSidekickBuildEpoch(status) {
+              const sidekickEpoch = status?.sidekickBuildEpochMs;
+              if (typeof sidekickEpoch !== 'number') return;
+              const drift = Math.abs(sidekickEpoch - ConsoleBuildEpochMs);
+              if (drift > StaleThresholdMs) {
+                renderStalenessBanner({
+                  severity: 'warning',
+                  headline: 'Sample app sidekick is older than this console',
+                  detail: 'Reinstall the sample APK to refresh.',
+                  hash: `sidekick-${sidekickEpoch}`,
+                });
+              }
+            }

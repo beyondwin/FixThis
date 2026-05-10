@@ -3259,6 +3259,25 @@ class FeedbackConsoleServerTest {
         )
     }
 
+    @Test
+    fun stalenessExposesMinimumProtocolVersion() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains("const MinimumSupportedProtocolVersion"),
+            "must expose minimum supported protocol version constant")
+        assertTrue(html.contains("function checkProtocolCompat"),
+            "must expose checkProtocolCompat function")
+    }
+
+    @Test
+    fun applyConnectionStatusCallsCheckProtocolCompat() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val body = javascriptFunctionBody(html, "applyConnectionStatus")
+        assertTrue(body.contains("checkProtocolCompat"),
+            "applyConnectionStatus must invoke checkProtocolCompat")
+        assertTrue(body.contains("checkSidekickBuildEpoch"),
+            "applyConnectionStatus must invoke checkSidekickBuildEpoch")
+    }
+
     private class FakeIds(vararg values: String) {
         private val queue = ArrayDeque(values.toList())
         val next: () -> String = { queue.removeFirst() }

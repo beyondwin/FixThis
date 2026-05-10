@@ -122,6 +122,8 @@
               // stale-frame notice reflect the latest interactionBlockedReason / preview.stale.
               // Without this, the heartbeat-driven state update never reaches the canvas.
               renderPreviewRegion();
+              checkProtocolCompat(status);
+              checkSidekickBuildEpoch(status);
             }
 
             function renderConnection(status) {
