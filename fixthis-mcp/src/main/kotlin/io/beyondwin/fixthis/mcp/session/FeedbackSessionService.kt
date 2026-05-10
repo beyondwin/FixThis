@@ -236,7 +236,11 @@ class FeedbackSessionService(
         require(itemIds.isNotEmpty()) { "itemIds must not be empty" }
         val session = store.getSession(sessionId)
         val prompt = CompactHandoffRenderer.render(session, itemIds = itemIds)
-        val updated = feedbackDraftService.sendDraftToAgent(sessionId, prompt)
+        val updated = feedbackDraftService.sendDraftToAgent(
+            sessionId = sessionId,
+            prompt = prompt,
+            targetItemIds = itemIds,
+        )
         return SendDraftToAgentResult(session = updated, prompt = prompt)
     }
 

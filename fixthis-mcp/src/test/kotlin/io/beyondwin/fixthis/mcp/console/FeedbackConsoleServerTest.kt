@@ -22,6 +22,7 @@ import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 import io.beyondwin.fixthis.mcp.session.SnapshotScreenshotDto
 import io.beyondwin.fixthis.mcp.session.AnnotationTargetDto
+import io.beyondwin.fixthis.mcp.session.FeedbackDelivery
 import io.beyondwin.fixthis.mcp.tools.FixThisBridge
 import java.io.File
 import java.io.InputStream
@@ -3983,6 +3984,46 @@ class FeedbackConsoleServerTest {
                 body = """{"itemIds":[]}""",
             )
             assertEquals(400, response.statusCode)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun agentHandoffsFlipsOnlySpecifiedItemIdsToSentLeavesOthersAsDraft() {
+        val store = FeedbackSessionStore()
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val (sessionId, keepItemId) = seedSessionWithOneItem(store, service)
+        // Add a second DRAFT item that should NOT be flipped
+        val secondItem = store.addItem(
+            sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = "screen-1",
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(5f, 6f, 7f, 8f)),
+                comment = "second draft",
+            ),
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/agent-handoffs",
+                body = """{"itemIds":["$keepItemId"]}""",
+            )
+            assertEquals(200, response.statusCode)
+            val sessionAfter = store.getSession(sessionId)
+            val keptItem = sessionAfter.items.first { it.itemId == keepItemId }
+            val otherItem = sessionAfter.items.first { it.itemId == secondItem.itemId }
+            assertEquals(FeedbackDelivery.SENT, keptItem.delivery, "specified item should flip to SENT")
+            assertEquals(FeedbackDelivery.DRAFT, otherItem.delivery, "unspecified item should remain DRAFT")
         } finally {
             server.stop()
         }

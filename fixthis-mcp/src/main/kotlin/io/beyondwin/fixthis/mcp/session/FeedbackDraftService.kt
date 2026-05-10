@@ -159,10 +159,15 @@ class FeedbackDraftService(
     fun clearDraftItems(sessionId: String): SessionDto =
         store.clearDraftItems(sessionId)
 
-    fun sendDraftToAgent(sessionId: String, prompt: String? = null): SessionDto =
+    fun sendDraftToAgent(
+        sessionId: String,
+        prompt: String? = null,
+        targetItemIds: List<String>? = null,
+    ): SessionDto =
         store.sendDraftToAgent(
             sessionId,
             markdownSnapshot = prompt?.takeIf { it.isNotBlank() } ?: FeedbackQueueFormatter.toMarkdown(store.getSession(sessionId)),
+            targetItemIds = targetItemIds,
         )
 
     fun markReadyForAgent(sessionId: String): SessionDto =
