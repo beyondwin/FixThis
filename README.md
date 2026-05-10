@@ -110,24 +110,29 @@ Release builds are not a supported target — the sidekick is debug-only by desi
 
 ### 2. Configure your AI agent
 
-FixThis auto-configures Claude Code and Codex via `fixthis setup --write`:
+```bash
+# Bootstrap MCP integration (build + register with Claude Code / Codex)
+./scripts/bootstrap-mcp.sh --package <applicationId>
+```
+
+`--package` is the Android applicationId of the app you are running FixThis against. The script writes:
+
+- **Claude Code** → project-local `.claude/settings.json`
+- **Codex** → user-global `~/.codex/config.toml`
+
+Pass `--target claude` or `--target codex` to limit the targets, or `--dry-run` to preview without writing. After it completes, restart Claude Code or Codex so the new MCP server is picked up.
+
+For other chat-style agents (Cursor, ChatGPT, etc.) use **Copy Prompt** — no setup required.
+
+#### Manual setup (Windows or no shell script)
 
 ```bash
-# Build CLI / MCP once
 ./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
-
-# Wire your agent (run once per project)
 fixthis-cli/build/install/fixthis/bin/fixthis setup \
   --package <applicationId> \
   --write \
   --target all
 ```
-
-`--target all` writes:
-- **Claude Code** → project-local `.claude/settings.json`
-- **Codex** → user-global `~/.codex/config.toml`
-
-Use `--target codex` or `--target claude` for one of the two. Add `--dry-run` to preview without modifying files. For other chat-style agents (Cursor, ChatGPT, etc.) use **Copy Prompt** — no setup required.
 
 ### 3. Open the console
 
