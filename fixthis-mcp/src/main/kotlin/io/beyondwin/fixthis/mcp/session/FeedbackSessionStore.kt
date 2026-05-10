@@ -342,8 +342,8 @@ class FeedbackSessionStore(
             val updatedItems = session.items.map { item ->
                 if (item.itemId != itemId) return@map item
                 found = true
-                if (item.delivery != FeedbackDelivery.DRAFT) {
-                    throw FeedbackSessionException("ITEM_NOT_EDITABLE: Only draft feedback items can be edited: $itemId")
+                if (isLockedForEdit(item)) {
+                    throw FeedbackSessionException("ITEM_NOT_EDITABLE: Agent has claimed this item: $itemId")
                 }
                 item.copy(
                     label = label ?: item.label,
@@ -365,8 +365,8 @@ class FeedbackSessionStore(
             val session = getSessionLocked(sessionId)
             val item = session.items.find { it.itemId == itemId }
                 ?: throw FeedbackSessionException("Unknown feedback item: $itemId")
-            if (item.delivery != FeedbackDelivery.DRAFT) {
-                throw FeedbackSessionException("ITEM_NOT_EDITABLE: Only draft feedback items can be deleted: $itemId")
+            if (isLockedForEdit(item)) {
+                throw FeedbackSessionException("ITEM_NOT_EDITABLE: Agent has claimed this item: $itemId")
             }
             val updatedBatches = session.handoffBatches
                 .map { batch -> batch.copy(itemIds = batch.itemIds.filterNot { it == itemId }) }
@@ -380,6 +380,10 @@ class FeedbackSessionStore(
             sessions[sessionId] = updated
             updated
         }
+
+    private fun isLockedForEdit(item: AnnotationDto): Boolean =
+        item.delivery == FeedbackDelivery.SENT &&
+            item.status in setOf(AnnotationStatusDto.IN_PROGRESS, AnnotationStatusDto.RESOLVED)
 
     private fun getSessionLocked(sessionId: String): SessionDto =
         sessions[sessionId] ?: throw FeedbackSessionException("Unknown feedback session: $sessionId")

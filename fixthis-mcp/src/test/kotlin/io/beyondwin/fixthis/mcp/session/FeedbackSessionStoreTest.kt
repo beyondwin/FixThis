@@ -859,6 +859,174 @@ class FeedbackSessionStoreTest {
         assertEquals("batch-2000", item.handoffBatchId, "handoffBatchId points to latest batch")
     }
 
+    @Test
+    fun updateDraftItemAllowsSentReadyComment() {
+        val clock = MutableClock(1000L)
+        val ids = FakeIds("session-1", "screen-1", "item-1", "batch-1")
+        val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
+        val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+        val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
+        store.addItem(
+            session.sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = screen.screenId,
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+                comment = "original",
+            ),
+        )
+        store.sendDraftToAgent(session.sessionId, markdownSnapshot = "snap")
+
+        clock.value = 2000L
+        val updated = store.updateDraftItem(
+            sessionId = session.sessionId,
+            itemId = "item-1",
+            label = null,
+            severity = null,
+            comment = "edited after send",
+            status = null,
+        )
+        val item = updated.items.single { it.itemId == "item-1" }
+        assertEquals("edited after send", item.comment)
+        assertEquals(FeedbackDelivery.SENT, item.delivery)
+        assertEquals(AnnotationStatusDto.READY, item.status)
+        assertTrue(
+            item.updatedAtEpochMillis > item.sentAtEpochMillis!!,
+            "updatedAt must reflect the post-send edit",
+        )
+    }
+
+    @Test
+    fun updateDraftItemRejectsSentInProgress() {
+        val clock = MutableClock(1000L)
+        val ids = FakeIds("session-1", "screen-1", "item-1", "batch-1")
+        val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
+        val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+        val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
+        store.addItem(
+            session.sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = screen.screenId,
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+                comment = "original",
+            ),
+        )
+        store.sendDraftToAgent(session.sessionId, markdownSnapshot = "snap")
+        store.claimFeedback(session.sessionId, "item-1", agentNote = "starting")
+
+        val ex = assertFailsWith<FeedbackSessionException> {
+            store.updateDraftItem(
+                sessionId = session.sessionId,
+                itemId = "item-1",
+                label = null,
+                severity = null,
+                comment = "should be blocked",
+                status = null,
+            )
+        }
+        assertTrue(ex.message!!.startsWith("ITEM_NOT_EDITABLE"))
+        assertTrue(
+            ex.message!!.contains("Agent has claimed this item"),
+            "error message reflects new lock semantics: ${ex.message}",
+        )
+    }
+
+    @Test
+    fun updateDraftItemRejectsSentResolved() {
+        val clock = MutableClock(1000L)
+        val ids = FakeIds("session-1", "screen-1", "item-1", "batch-1")
+        val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
+        val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+        val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
+        store.addItem(
+            session.sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = screen.screenId,
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+                comment = "original",
+            ),
+        )
+        store.sendDraftToAgent(session.sessionId, markdownSnapshot = "snap")
+        store.updateItemStatus(
+            sessionId = session.sessionId,
+            itemId = "item-1",
+            status = AnnotationStatusDto.RESOLVED,
+            agentSummary = "fixed",
+        )
+
+        val ex = assertFailsWith<FeedbackSessionException> {
+            store.updateDraftItem(
+                sessionId = session.sessionId,
+                itemId = "item-1",
+                label = null,
+                severity = null,
+                comment = "should be blocked",
+                status = null,
+            )
+        }
+        assertTrue(ex.message!!.startsWith("ITEM_NOT_EDITABLE"))
+    }
+
+    @Test
+    fun deleteDraftItemAllowsSentReady() {
+        val clock = MutableClock(1000L)
+        val ids = FakeIds("session-1", "screen-1", "item-1", "batch-1")
+        val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
+        val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+        val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
+        store.addItem(
+            session.sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = screen.screenId,
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+                comment = "original",
+            ),
+        )
+        store.sendDraftToAgent(session.sessionId, markdownSnapshot = "snap")
+
+        val updated = store.deleteDraftItem(session.sessionId, "item-1")
+        assertTrue(updated.items.none { it.itemId == "item-1" })
+    }
+
+    @Test
+    fun deleteDraftItemRejectsSentInProgress() {
+        val clock = MutableClock(1000L)
+        val ids = FakeIds("session-1", "screen-1", "item-1", "batch-1")
+        val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
+        val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+        val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
+        store.addItem(
+            session.sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = screen.screenId,
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+                comment = "original",
+            ),
+        )
+        store.sendDraftToAgent(session.sessionId, markdownSnapshot = "snap")
+        store.claimFeedback(session.sessionId, "item-1", agentNote = null)
+
+        val ex = assertFailsWith<FeedbackSessionException> {
+            store.deleteDraftItem(session.sessionId, "item-1")
+        }
+        assertTrue(ex.message!!.startsWith("ITEM_NOT_EDITABLE"))
+        assertTrue(ex.message!!.contains("Agent has claimed this item"))
+    }
+
     private class MutableClock(var value: Long) {
         fun now(): Long = value
     }
