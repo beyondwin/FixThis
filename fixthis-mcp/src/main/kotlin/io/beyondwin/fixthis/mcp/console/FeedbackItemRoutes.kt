@@ -54,7 +54,12 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
             }
             "/api/agent-handoffs" -> exchange.requireMethod("POST") {
                 val request = exchange.decodeAgentHandoffBody()
-                exchange.sendJson(200, service.sendDraftToAgent(service.requireCurrentSession().sessionId, request.prompt))
+                if (request.itemIds.isEmpty()) {
+                    throw FeedbackConsoleHttpException(400, "itemIds must not be empty (legacy {prompt} body is no longer accepted; use {itemIds:[...]})")
+                }
+                val sessionId = service.requireCurrentSession().sessionId
+                val result = service.sendDraftToAgent(sessionId, request.itemIds)
+                exchange.sendJson(200, AgentHandoffResponse(session = result.session, prompt = result.prompt))
             }
             else -> {
                 if (!exchange.requestURI.path.startsWith("/api/items/")) return

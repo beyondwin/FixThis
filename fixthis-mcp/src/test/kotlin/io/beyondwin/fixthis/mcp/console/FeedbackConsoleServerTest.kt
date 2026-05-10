@@ -2573,18 +2573,17 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val handoff = ConsoleHttpTestClient(server.url).connection("/api/agent-handoffs")
-            handoff.requestMethod = "POST"
-            handoff.doOutput = true
-            handoff.setRequestProperty("Content-Type", "application/json")
-            handoff.outputStream.use { it.write("""{"prompt":"custom agent prompt"}""".toByteArray()) }
-
-            assertEquals(200, handoff.responseCode)
-            val body = handoff.inputStream.bufferedReader().readText()
-            val response = fixThisJson.parseToJsonElement(body).jsonObject
-            assertTrue(response["handoffBatches"]?.jsonArray.orEmpty().isNotEmpty())
-            assertEquals("sent", response["items"]?.jsonArray?.single()?.jsonObject?.get("delivery")?.jsonPrimitive?.content)
-            assertEquals("custom agent prompt", response["handoffBatches"]?.jsonArray?.single()?.jsonObject?.get("markdownSnapshot")?.jsonPrimitive?.content)
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/agent-handoffs",
+                body = """{"itemIds":["item-1"]}""",
+            )
+            assertEquals(200, response.statusCode)
+            val payload = fixThisJson.parseToJsonElement(response.body).jsonObject
+            val sessionObj = payload["session"]!!.jsonObject
+            assertTrue(sessionObj["handoffBatches"]?.jsonArray.orEmpty().isNotEmpty())
+            assertEquals("sent", sessionObj["items"]?.jsonArray?.single()?.jsonObject?.get("delivery")?.jsonPrimitive?.content)
+            val prompt = payload["prompt"]!!.jsonPrimitive.content
+            assertTrue(prompt.contains("id: item-1"), "prompt should contain 'id: item-1', got:\n$prompt")
         } finally {
             server.stop()
         }
@@ -2602,14 +2601,12 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val handoff = ConsoleHttpTestClient(server.url).connection("/api/agent-handoffs")
-            handoff.requestMethod = "POST"
-            handoff.doOutput = true
-            handoff.setRequestProperty("Content-Type", "application/json")
-            handoff.outputStream.use { it.write("{}".toByteArray()) }
-
-            assertEquals(409, handoff.responseCode)
-            assertTrue(handoff.errorStream.bufferedReader().readText().contains("NO_DRAFT_FEEDBACK"))
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/agent-handoffs",
+                body = """{"itemIds":["fake-id"]}""",
+            )
+            assertEquals(409, response.statusCode)
+            assertTrue(response.body.contains("NO_DRAFT_FEEDBACK"))
         } finally {
             server.stop()
         }
@@ -3906,6 +3903,89 @@ class FeedbackConsoleServerTest {
             ),
         )
         return Pair(session.sessionId, item.itemId)
+    }
+
+    @Test
+    fun agentHandoffsAcceptsItemIdsAndReturnsRenderedPrompt() {
+        val store = FeedbackSessionStore()
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val (_, itemId) = seedSessionWithOneItem(store, service)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/agent-handoffs",
+                body = """{"itemIds":["$itemId"]}""",
+            )
+            assertEquals(200, response.statusCode)
+            val payload = fixThisJson.parseToJsonElement(response.body).jsonObject
+            assertTrue(payload.containsKey("session"), "response should have 'session', got: ${response.body}")
+            assertTrue(payload.containsKey("prompt"), "response should have 'prompt', got: ${response.body}")
+            val prompt = payload["prompt"]!!.jsonPrimitive.content
+            assertTrue(prompt.contains("id: $itemId"), "prompt should contain 'id: $itemId', got:\n$prompt")
+            val sessionObj = payload["session"]!!.jsonObject
+            val itemDelivery = sessionObj["items"]!!.jsonArray
+                .map { it.jsonObject }
+                .first { it["itemId"]!!.jsonPrimitive.content == itemId }["delivery"]!!.jsonPrimitive.content
+            assertEquals("sent", itemDelivery)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun agentHandoffsRejectsLegacyPromptBody() {
+        val store = FeedbackSessionStore()
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        seedSessionWithOneItem(store, service)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/agent-handoffs",
+                body = """{"prompt":"# old format"}""",
+            )
+            assertEquals(400, response.statusCode)
+            assertTrue(
+                response.body.contains("itemIds"),
+                "error message should mention itemIds, got: ${response.body}",
+            )
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun agentHandoffsRejectsEmptyItemIds() {
+        val store = FeedbackSessionStore()
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        seedSessionWithOneItem(store, service)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/agent-handoffs",
+                body = """{"itemIds":[]}""",
+            )
+            assertEquals(400, response.statusCode)
+        } finally {
+            server.stop()
+        }
     }
 
     private class FakeExchange(path: String) : HttpExchange() {

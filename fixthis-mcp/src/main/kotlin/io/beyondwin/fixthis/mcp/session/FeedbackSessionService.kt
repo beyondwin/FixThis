@@ -14,6 +14,8 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
+data class SendDraftToAgentResult(val session: SessionDto, val prompt: String)
+
 class FeedbackSessionService(
     private val bridge: FixThisBridge,
     private val store: FeedbackSessionStore = FeedbackSessionStore(),
@@ -230,8 +232,17 @@ class FeedbackSessionService(
     fun deleteScreen(sessionId: String, screenId: String): SessionDto =
         store.deleteScreen(sessionId, screenId)
 
-    fun sendDraftToAgent(sessionId: String, prompt: String? = null): SessionDto =
-        feedbackDraftService.sendDraftToAgent(sessionId, prompt)
+    fun sendDraftToAgent(sessionId: String, itemIds: List<String>): SendDraftToAgentResult {
+        require(itemIds.isNotEmpty()) { "itemIds must not be empty" }
+        val session = store.getSession(sessionId)
+        val prompt = CompactHandoffRenderer.render(session, itemIds = itemIds)
+        val updated = feedbackDraftService.sendDraftToAgent(sessionId, prompt)
+        return SendDraftToAgentResult(session = updated, prompt = prompt)
+    }
+
+    /** Sends all current draft items to agent (convenience overload for tests and MCP tools). */
+    fun sendDraftToAgent(sessionId: String): SessionDto =
+        feedbackDraftService.sendDraftToAgent(sessionId)
 
     fun markReadyForAgent(sessionId: String): SessionDto =
         feedbackDraftService.markReadyForAgent(sessionId)

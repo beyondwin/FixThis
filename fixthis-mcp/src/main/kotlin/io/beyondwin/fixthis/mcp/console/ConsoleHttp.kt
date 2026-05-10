@@ -78,6 +78,10 @@ internal fun HttpExchange.sendJson(statusCode: Int, value: JsonObject) {
     sendText(statusCode, fixThisJson.encodeToString(JsonObject.serializer(), value), "application/json; charset=utf-8")
 }
 
+internal fun HttpExchange.sendJson(statusCode: Int, value: AgentHandoffResponse) {
+    sendText(statusCode, fixThisJson.encodeToString(AgentHandoffResponse.serializer(), value), "application/json; charset=utf-8")
+}
+
 internal fun HttpExchange.sendJson(statusCode: Int, value: ConsoleDeviceList) {
     sendText(statusCode, fixThisJson.encodeToString(ConsoleDeviceList.serializer(), value), "application/json; charset=utf-8")
 }
