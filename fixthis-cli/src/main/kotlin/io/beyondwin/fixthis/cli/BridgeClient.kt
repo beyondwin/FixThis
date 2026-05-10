@@ -28,7 +28,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
-private const val BridgeProtocolVersion = "1.0"
+private const val BridgeProtocolVersion = "1.1"
 private const val SessionPath = "files/fixthis/session.json"
 private const val MaxFrameBytes = 16 * 1024 * 1024
 private const val DefaultSocketTimeoutMillis = 30_000

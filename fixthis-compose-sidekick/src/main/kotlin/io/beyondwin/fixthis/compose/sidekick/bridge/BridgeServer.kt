@@ -218,6 +218,7 @@ data class BridgeStatus(
     val keyguardLocked: Boolean? = null,
     val appForeground: Boolean? = null,
     val pictureInPicture: Boolean? = null,
+    val sidekickBuildEpochMs: Long? = null,
 ) {
     constructor(
         activity: String?,
@@ -236,6 +237,7 @@ data class BridgeStatus(
         keyguardLocked = null,
         appForeground = null,
         pictureInPicture = null,
+        sidekickBuildEpochMs = null,
     )
 }
 

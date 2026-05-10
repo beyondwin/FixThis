@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BridgeProtocolTest {
@@ -27,5 +28,26 @@ class BridgeProtocolTest {
 
         assertEquals("""{"method":"status"}""", BridgeProtocol.readFrame(input))
         assertNull(BridgeProtocol.readFrame(input))
+    }
+
+    @Test
+    fun bridgeStatusIncludesSidekickBuildEpoch() {
+        val status = BridgeStatus(
+            rootsCount = 0,
+            sidekickVersion = "test",
+            bridgeProtocolVersion = BridgeProtocol.VERSION,
+            sourceIndexAvailable = false,
+            sidekickBuildEpochMs = 1234567890L,
+        )
+        val encoded = BridgeProtocol.json.encodeToString(BridgeStatus.serializer(), status)
+        assertTrue(
+            "must serialize sidekickBuildEpochMs, got: $encoded",
+            encoded.contains("\"sidekickBuildEpochMs\": 1234567890"),
+        )
+    }
+
+    @Test
+    fun bridgeProtocolVersionBumpedFor1_1() {
+        assertEquals("1.1", BridgeProtocol.VERSION)
     }
 }
