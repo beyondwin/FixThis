@@ -1,0 +1,92 @@
+# Working with AI Agents
+
+FixThis hands UI context to AI coding agents in two modes. Pick the section
+below that matches how you drive your agent.
+
+| Agent style                       | Mode             | Setup                              |
+| --------------------------------- | ---------------- | ---------------------------------- |
+| Claude Code (CLI)                 | **Save to MCP**  | `fixthis setup --write --target claude` |
+| Codex CLI                         | **Save to MCP**  | `fixthis setup --write --target codex`  |
+| Cursor / ChatGPT / any chat agent | **Copy Prompt**  | None — paste from the clipboard    |
+
+Both modes share the same compact Markdown prompt format and the same JSON
+evidence; **Save to MCP** just removes the manual paste step.
+
+## Claude Code
+
+Claude Code reads MCP servers from per-project `.claude/settings.json`. Bootstrap:
+
+```bash
+./scripts/bootstrap-mcp.sh --package <applicationId> --target claude
+```
+
+After the script writes the config, **restart Claude Code** so it picks up the
+new MCP server. Then in any Claude Code session for this project:
+
+```
+fixthis_open_feedback_console
+```
+
+opens the browser console. After saving feedback, ask the agent to pick it up:
+
+> Read the latest FixThis handoff and start fixing.
+
+The agent calls `fixthis_read_feedback`, gets the compact Markdown prompt and
+JSON evidence, and edits the right call sites.
+
+When you've made the change, ask the agent to mark it resolved:
+
+> Mark all FixThis items in that batch as resolved.
+
+The agent calls `fixthis_resolve_feedback` per item.
+
+## Codex CLI
+
+Codex reads MCP servers from user-global `~/.codex/config.toml`. Bootstrap:
+
+```bash
+./scripts/bootstrap-mcp.sh --package <applicationId> --target codex
+```
+
+Restart Codex so it picks up the new MCP server. After that, the workflow is
+identical to Claude Code — `fixthis_open_feedback_console` to open the console,
+`fixthis_read_feedback` / `fixthis_resolve_feedback` for the queue.
+
+Codex also reads `AGENTS.md` at the repository root. The shipped `AGENTS.md`
+points Codex at the same MCP setup so a fresh clone is wired up out of the box.
+
+## Cursor, ChatGPT, and other chat-style agents
+
+For agents without first-class MCP support, use **Copy Prompt** in the console:
+
+1. Annotate as usual in the FixThis Studio console.
+2. Click **Copy Prompt** instead of **Save to MCP**.
+3. Paste into the agent's chat input. The pasted Markdown contains:
+   - the user comment(s)
+   - target evidence (bounds, semantics path, instance index)
+   - top-3 source-file candidates with line numbers and match reasons
+   - severity / status
+
+The agent can start editing immediately — no MCP setup, no restart, no extra
+tools.
+
+## Behavior shared across modes
+
+- **Both modes are local.** No FixThis call goes to an external API. **Save to
+  MCP** persists `.fixthis/feedback-sessions/<id>/` files; **Copy Prompt** writes
+  to the clipboard.
+- **JSON is always complete.** Agent-facing Markdown is intentionally compact
+  and omits internal IDs and storage metadata. JSON kept on disk preserves all
+  IDs, paths, and MCP contracts — see the
+  [Output schema](../reference/output-schema.md).
+- **Multiple annotations batch into one handoff.** Whether you Copy Prompt or
+  Save to MCP, every pending annotation on the frozen preview lands in the same
+  batch.
+
+## What's next
+
+- [Feedback console tour](feedback-console-tour.md) — annotate / pin / hand off,
+  with screenshots
+- [MCP tools reference](../reference/mcp-tools.md) — exact tool signatures and
+  return shapes
+- [CLI reference](../reference/cli.md) — `fixthis setup` and friends

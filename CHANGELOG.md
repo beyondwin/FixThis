@@ -1,5 +1,30 @@
 # Changelog
 
+All notable user-visible changes to FixThis are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## Versioning policy
+
+- **MAJOR** (`X.y.z`) — breaking changes to the public Gradle plugin API,
+  the persisted MCP JSON schema (`items`, `screens`, `itemId`, `screenId`,
+  `targetEvidence`, `sourceCandidates`), or the CLI flag surface documented in
+  [`docs/reference/cli.md`](docs/reference/cli.md).
+- **MINOR** (`x.Y.z`) — additive features, new MCP tools, new CLI flags with
+  safe defaults, or wire-protocol bumps that remain backward-compatible at
+  the persisted-JSON layer.
+- **PATCH** (`x.y.Z`) — bug fixes, internal refactors, doc updates,
+  console-only UI improvements with no contract change.
+
+The bridge protocol (`BridgeProtocol.VERSION`) carries its own version
+independent of the package version. Wire-visible bridge changes follow the
+checklist in
+[`docs/reference/bridge-protocol.md`](docs/reference/bridge-protocol.md).
+
+Until the first `1.0.0` external release, breaking changes may land under
+minor / patch labels — see [release-readiness](docs/contributing/release-readiness.md).
+
 ## Unreleased
 
 ### Added
@@ -88,6 +113,6 @@
 
 ### Docs
 
-- `docs/superpowers/plans/2026-05-10-mcp-handoff-workflow-completion.md` and `docs/superpowers/specs/2026-05-10-mcp-handoff-workflow-completion-design.md` amended in-place with correction notes for T21 (`delivery !== 'sent'` filter removal) — the original 3-site instruction targeted code that had already been refactored; only `preview.js:75` was actually modified at execution time.
+- `docs/internal/superpowers/plans/2026-05-10-mcp-handoff-workflow-completion.md` and `docs/internal/superpowers/specs/2026-05-10-mcp-handoff-workflow-completion-design.md` amended in-place with correction notes for T21 (`delivery !== 'sent'` filter removal) — the original 3-site instruction targeted code that had already been refactored; only `preview.js:75` was actually modified at execution time.
 - `CLAUDE.md` 에 "After Code Changes — Restart Console Stack" 섹션 추가. fixthis-mcp 코드 변경 후 재시작 의무 명문화. (stale-binary-detection feature)
 - `CLAUDE.md` 에 "Bridge Protocol Compatibility" 섹션 추가. BridgeStatus / BridgeProtocol 시그니처 변경 PR 의 VERSION bump 규칙 명시. (BridgeProtocol.VERSION, sidekickBuildEpochMs 포함)

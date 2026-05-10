@@ -1,8 +1,8 @@
-<!-- English translation of docs/project-overview.md — Korean original is the source of truth -->
+<!-- Current source of truth. Korean original archived at ../archive/project-overview-ko-2026-05.md -->
 
 # FixThis Project Overview
 
-This document is an onboarding reference based on the current repository code. For product requirements and long-term design rationale, see [Product requirements](fixthis_prd.md) and [Technical design](fixthis_technical_design.md).
+This document is an onboarding reference based on the current repository code. For product requirements and long-term design rationale, see [Product requirements (archived, Korean)](../archive/prd-v1-2026-05-03.md) and [Technical design (archived, Korean)](../archive/technical-design-v1-2026-05-03.md).
 
 ## One-Line Summary
 
@@ -251,7 +251,7 @@ Run local unit tests:
 ./gradlew :fixthis-compose-sidekick:testDebugUnitTest
 ```
 
-Android instrumentation tests require an unlocked interactive emulator or device. A physical device can still report `device` in ADB while a secure lockscreen prevents Compose hierarchy inspection; see [Troubleshooting](troubleshooting.md#connected-test-says-no-compose-hierarchies-found).
+Android instrumentation tests require an unlocked interactive emulator or device. A physical device can still report `device` in ADB while a secure lockscreen prevents Compose hierarchy inspection; see [Troubleshooting](../guides/troubleshooting.md#connected-test-says-no-compose-hierarchies-found).
 
 ```bash
 ./gradlew connectedAndroidTest
@@ -261,16 +261,16 @@ Android instrumentation tests require an unlocked interactive emulator or device
 
 Recommended order for a developer seeing this project for the first time:
 
-1. [README](../README.md): product summary and quick start.
+1. [README](../../README.md): product summary and quick start.
 2. This document: current code structure and runtime flow.
-3. [MCP](mcp.md): feedback console and MCP tool contracts.
-4. [Output schema](output-schema.md): annotation/session JSON fields.
-5. [Privacy](privacy.md): local-first, redaction, screenshot caution.
-6. [Troubleshooting](troubleshooting.md): ADB/sidekick/MCP failure diagnosis.
-7. [Technical design](fixthis_technical_design.md): longer design rationale and module-by-module design.
+3. [MCP tools](../reference/mcp-tools.md): feedback console and MCP tool contracts.
+4. [Output schema](../reference/output-schema.md): annotation/session JSON fields.
+5. [Privacy](../reference/privacy.md): local-first, redaction, screenshot caution.
+6. [Troubleshooting](../guides/troubleshooting.md): ADB/sidekick/MCP failure diagnosis.
+7. [Technical design (archived, Korean)](../archive/technical-design-v1-2026-05-03.md): longer design rationale and module-by-module design.
 8. [Architecture Decision Records](adr/README.md): durable architecture decisions that the current code upholds.
 
-`docs/superpowers/plans/` and `docs/superpowers/specs/` contain implementation history and work-order records. For current architecture, the above documents and ADRs take precedence.
+`docs/internal/superpowers/plans/` and `docs/internal/superpowers/specs/` contain implementation history and work-order records. For current architecture, the above documents and ADRs take precedence.
 
 ## Common Confusions
 
@@ -287,4 +287,4 @@ Recommended order for a developer seeing this project for the first time:
 
 ---
 
-See also: [Korean original](project-overview.md)
+See also: [Korean original (archived)](../archive/project-overview-ko-2026-05.md)

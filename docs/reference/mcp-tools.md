@@ -42,7 +42,7 @@ The console UI and local API can list, reopen, and close persisted sessions. Clo
 
 The local console serves a per-server browser token and requires `X-FixThis-Console-Token` on mutating `/api/*` requests. Mutating requests with a non-localhost `Origin` are rejected. This protects local mutation endpoints such as app launch, navigation, capture, draft writes, and handoff creation from ordinary cross-origin web pages while keeping the console localhost-only.
 
-The current console contract is documented in [`docs/feedback-console-contract.md`](feedback-console-contract.md); the shipped workflow uses `Annotate`, `Add annotation`, `Copy Prompt`, and `Save to MCP`.
+The current console contract is documented in [`docs/reference/feedback-console-contract.md`](feedback-console-contract.md); the shipped workflow uses `Annotate`, `Add annotation`, `Copy Prompt`, and `Save to MCP`.
 
 Typical flow:
 
@@ -312,4 +312,4 @@ The bridge is a local debug-app bridge, not a remote service:
 - It rejects explicit screenshot paths; screenshot reads use the current annotation or current screen snapshot source with `kind=full` or `kind=crop`.
 - It rejects missing or mismatched session tokens.
 
-Common bridge failure cases are covered in [Troubleshooting](troubleshooting.md).
+Common bridge failure cases are covered in [Troubleshooting](../guides/troubleshooting.md).

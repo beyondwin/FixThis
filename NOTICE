@@ -1,0 +1,21 @@
+FixThis for Android Compose
+Copyright 2026 FixThis contributors
+
+This product includes software developed by the FixThis contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+---
+
+This product depends on third-party libraries with their own licenses,
+including (but not limited to):
+
+- Jetpack Compose, Kotlin, AndroidX libraries — Apache License 2.0
+- kotlinx.coroutines, kotlinx.serialization — Apache License 2.0
+
+Refer to each module's `build.gradle.kts` for the authoritative dependency
+list and to the upstream projects for their license texts.

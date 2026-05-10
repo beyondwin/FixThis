@@ -294,4 +294,4 @@ legacy single-annotation capture failures:
 - `NO_OVERLAY_CONTROLLER`: legacy overlay controller is unavailable.
 - `CAPTURE_IN_FLIGHT`: legacy feedback capture is already active.
 
-Bridge and MCP failures may be returned as tool errors or JSON-RPC errors instead of annotation `errors`. See [Troubleshooting](troubleshooting.md).
+Bridge and MCP failures may be returned as tool errors or JSON-RPC errors instead of annotation `errors`. See [Troubleshooting](../guides/troubleshooting.md).
