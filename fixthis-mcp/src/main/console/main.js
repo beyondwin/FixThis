@@ -62,6 +62,7 @@
                 return null;
               })
               .then(() => {
+                checkServerStaleness().catch(() => { /* silent */ });
                 startHeartbeatPolling();
                 startLivePreviewPolling();
                 startSessionsPolling();

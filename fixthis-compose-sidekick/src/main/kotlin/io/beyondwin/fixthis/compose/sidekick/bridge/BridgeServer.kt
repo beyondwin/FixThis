@@ -10,6 +10,7 @@ import android.net.LocalSocket
 import android.os.PowerManager
 import android.util.Base64
 import io.beyondwin.fixthis.compose.core.model.FixThisError
+import io.beyondwin.fixthis.compose.sidekick.BuildInfo
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.ScreenshotInfo
@@ -219,6 +220,7 @@ data class BridgeStatus(
     val appForeground: Boolean? = null,
     val pictureInPicture: Boolean? = null,
     val installEpochMillis: Long? = null,
+    val sidekickBuildEpochMs: Long? = null,
 ) {
     constructor(
         activity: String?,
@@ -238,6 +240,7 @@ data class BridgeStatus(
         appForeground = null,
         pictureInPicture = null,
         installEpochMillis = null,
+        sidekickBuildEpochMs = null,
     )
 }
 
@@ -386,6 +389,7 @@ internal class AndroidBridgeEnvironment(
             appForeground = lifecycleCallbacks.isAppForeground(),
             pictureInPicture = resumedActivity?.isInPictureInPictureMode,
             installEpochMillis = readInstallEpochMillis(),
+            sidekickBuildEpochMs = BuildInfo.BUILD_EPOCH_MS,
         )
     }
 

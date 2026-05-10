@@ -8,6 +8,8 @@ sample/.idea/
 /build/
 **/build/
 .kotlin/
+fixthis-mcp/build/generated/source/buildinfo/
+fixthis-compose-sidekick/build/generated/source/buildinfo/
 
 # Node
 node_modules/

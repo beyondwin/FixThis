@@ -259,3 +259,13 @@ Check:
 - The bridge protocol version matches the CLI/MCP version.
 
 Retry with `fixthis doctor --package <applicationId>` to see the failing stage.
+
+## Console Staleness Banner
+
+The browser console shows a red banner at the top when it detects that the JS, the running MCP/console JAR, or the connected sample APK is out of date. The same banner is reused for three causes:
+
+- **Console JS is stale** — the bundled JS build epoch is older than `/api/server-version` reports for the running server. Re-run `bash scripts/restart-console.sh` (or `node scripts/build-console-assets.mjs && ./gradlew :fixthis-mcp:installDist` and restart) and hard-reload the browser tab.
+- **Bridge protocol mismatch** — the sample APK’s sidekick reports a `bridgeProtocolVersion` older than the console’s `MinimumSupportedProtocolVersion`. Rebuild and reinstall the debug sample APK (e.g. `bash scripts/restart-console.sh --with-app`).
+- **Sidekick build is older than the console** — the sample APK was built before the running console JAR was built. Reinstall the debug APK as above so its sidekick matches.
+
+The banner is dismissable; it does not block usage, but recovery features that depend on the new protocol fields will degrade until you refresh the stale side. See `CLAUDE.md` (`## Bridge Protocol Compatibility`) for the contract that governs when `BridgeProtocol.VERSION` and the console’s minimum must change in lockstep.

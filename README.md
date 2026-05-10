@@ -174,6 +174,10 @@ fixthis console --package io.beyondwin.fixthis.sample \
 
 This option is only for FixThis contributors iterating on the local console assets. Normal users should use the packaged resources. The console JS is bundled — its modular sources live under `fixthis-mcp/src/main/console/`, and `node scripts/build-console-assets.mjs` concatenates them into the `app.js` that `--console-assets-dir` serves. Run that script after editing any module.
 
+`--console-assets-dir` reloads HTML/CSS/JS from source on every request, but the Kotlin server itself runs from the installed JAR. After editing any Kotlin code in `:fixthis-mcp` or `:fixthis-compose-sidekick`, run `bash scripts/restart-console.sh` to rebuild and relaunch the console (add `--with-app` to also reinstall the sample APK). See `CLAUDE.md` for details.
+
+As a safety net, the console compares its bundled build epoch against the running server on load and shows a dismissable staleness banner if they disagree — so a forgotten restart surfaces in the browser instead of silently serving an old JAR. The same banner also fires when the connected sample APK reports an outdated bridge protocol version (the sidekick’s `bridgeProtocolVersion` is older than the console’s minimum) or a sidekick build epoch older than the console’s build, so a forgotten debug-APK reinstall surfaces in the browser too.
+
 `gradle/gradle-daemon-jvm.properties` pins the Gradle daemon JVM toolchain to Java 21. Local Android SDK settings still belong in `local.properties`, which is ignored.
 
 ## Sample App

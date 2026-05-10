@@ -79,6 +79,22 @@ class BridgeStatusAvailabilityTest {
     }
 
     @Test
+    fun `runtime status reports sidekick build epoch`() = runBlocking {
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        val lifecycle = FixThisActivityLifecycleCallbacks()
+
+        val environment = AndroidBridgeEnvironment(
+            context = app,
+            sidekickVersion = "test",
+            lifecycleCallbacks = lifecycle,
+        )
+
+        val status = environment.status()
+        assertNotNull("sidekickBuildEpochMs must be set", status.sidekickBuildEpochMs)
+        assertTrue("sidekickBuildEpochMs must be positive", status.sidekickBuildEpochMs!! > 0L)
+    }
+
+    @Test
     fun `runtime status reports availability from collaborators`() = runBlocking {
         val app = ApplicationProvider.getApplicationContext<Application>()
         val powerManager = app.getSystemService(Context.POWER_SERVICE) as PowerManager

@@ -24,6 +24,7 @@ class FeedbackConsoleServer(
     private val lock = Any()
     private val routeTable = ConsoleRouteTable(
         listOf(
+            ServerVersionRoutes(),
             SessionRoutes(service, consoleAssetsDir, consoleToken),
             DeviceRoutes(service),
             ConnectionRoutes(service),

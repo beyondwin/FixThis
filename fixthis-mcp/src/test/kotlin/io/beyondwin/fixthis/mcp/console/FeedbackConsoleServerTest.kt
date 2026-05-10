@@ -484,6 +484,7 @@ class FeedbackConsoleServerTest {
         val sourceDir = File(root, "fixthis-mcp/src/main/console")
         val modules = listOf(
             "state.js",
+            "staleness.js",
             "api.js",
             "connection.js",
             "availability.js",
@@ -504,7 +505,40 @@ class FeedbackConsoleServerTest {
         }
         val generated = File(root, "fixthis-mcp/src/main/resources/console/app.js").readText()
 
-        assertEquals(expected, generated)
+        // Strip the dynamic build header (injected between state.js and api.js) before comparing.
+        // The header entry has the form: // build-header\nconst ConsoleBuildEpochMs = N;\nconst ConsoleBuildGitSha = 'X';\n
+        // After join('\n') the seam between state.js and the header adds one more \n, giving \n\n before api.js.
+        val headerRegex = Regex(
+            "// build-header\\nconst ConsoleBuildEpochMs = \\d+;\\nconst ConsoleBuildGitSha = '[a-z0-9]+';\\n\\n",
+        )
+        val withoutHeader = generated.replace(headerRegex, "")
+        assertEquals(expected, withoutHeader)
+    }
+
+    @Test
+    fun consoleBundleEmbedsBuildEpochAndGitSha() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains("const ConsoleBuildEpochMs = "), "must embed build epoch")
+        assertTrue(html.contains("const ConsoleBuildGitSha = '"), "must embed git sha")
+    }
+
+    @Test
+    fun stalenessModuleExposesCheckAndRender() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains("const StaleThresholdMs"), "threshold const must exist")
+        assertTrue(html.contains("async function checkServerStaleness"), "check function must exist")
+        assertTrue(html.contains("function renderStalenessBanner"), "render function must exist")
+    }
+
+    @Test
+    fun stalenessCheckHandlesMissingEndpoint() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val body = javascriptFunctionBody(html, "checkServerStaleness")
+        // 404 = stale signal; 5xx and network errors = silent
+        assertTrue(
+            body.contains("resp.status === 404") || body.contains("!resp.ok"),
+            "must treat 404 as stale signal",
+        )
     }
 
     @Test
@@ -3303,6 +3337,51 @@ class FeedbackConsoleServerTest {
         val html = FeedbackConsoleAssets.indexHtml
         assertTrue(html.contains("function startSessionsPolling"), html.takeLast(2_000))
         assertTrue(html.contains("async function pollSessionsTick"), "Polling tick must exist")
+    }
+
+    @Test
+    fun stalenessBannerElementExistsInHtml() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains("id=\"stalenessBanner\""), "banner element must exist")
+        assertTrue(html.contains("data-headline"), "banner must have headline slot")
+        assertTrue(html.contains("data-detail"), "banner must have detail slot")
+        assertTrue(html.contains("data-dismiss"), "banner must have dismiss button")
+    }
+
+    @Test
+    fun stalenessBannerStylesExistInHtml() {
+        // FeedbackConsoleAssets inlines styles.css into indexHtml via the StylesPlaceholder,
+        // so the CSS rules are observable as substrings in the rendered indexHtml.
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains(".staleness-banner"), "banner CSS class must exist")
+    }
+
+    @Test
+    fun bootSequenceCallsCheckServerStaleness() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(
+            html.contains("checkServerStaleness().catch"),
+            "boot must invoke checkServerStaleness with a catch",
+        )
+    }
+
+    @Test
+    fun stalenessExposesMinimumProtocolVersion() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains("const MinimumSupportedProtocolVersion"),
+            "must expose minimum supported protocol version constant")
+        assertTrue(html.contains("function checkProtocolCompat"),
+            "must expose checkProtocolCompat function")
+    }
+
+    @Test
+    fun applyConnectionStatusCallsCheckProtocolCompat() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val body = javascriptFunctionBody(html, "applyConnectionStatus")
+        assertTrue(body.contains("checkProtocolCompat"),
+            "applyConnectionStatus must invoke checkProtocolCompat")
+        assertTrue(body.contains("checkSidekickBuildEpoch"),
+            "applyConnectionStatus must invoke checkSidekickBuildEpoch")
     }
 
     private class FakeIds(vararg values: String) {
