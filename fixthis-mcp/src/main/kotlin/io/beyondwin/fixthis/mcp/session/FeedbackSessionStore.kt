@@ -191,11 +191,18 @@ class FeedbackSessionStore(
             commitSessionMutation(session, updated)
         }
 
-    fun sendDraftToAgent(sessionId: String, markdownSnapshot: String?): SessionDto =
+    fun sendDraftToAgent(
+        sessionId: String,
+        markdownSnapshot: String?,
+        targetItemIds: List<String>? = null,
+    ): SessionDto =
         synchronized(lock) {
             val session = getSessionLocked(sessionId)
-            val draftItems = session.items.filter { it.delivery == FeedbackDelivery.DRAFT }
-            if (draftItems.isEmpty()) {
+            val targetSet = targetItemIds?.toSet()
+            val candidateDrafts = session.items.filter {
+                it.delivery == FeedbackDelivery.DRAFT && (targetSet == null || it.itemId in targetSet)
+            }
+            if (candidateDrafts.isEmpty()) {
                 throw FeedbackSessionException("NO_DRAFT_FEEDBACK: No draft feedback items to send")
             }
             val now = clock()
@@ -203,11 +210,11 @@ class FeedbackSessionStore(
                 batchId = idGenerator(),
                 sequenceNumber = session.handoffBatches.size + 1,
                 createdAtEpochMillis = now,
-                itemIds = draftItems.map { it.itemId },
+                itemIds = candidateDrafts.map { it.itemId },
                 markdownSnapshot = markdownSnapshot,
             )
             val updatedItems = session.items.map { item ->
-                if (item.delivery == FeedbackDelivery.DRAFT) {
+                if (item.delivery == FeedbackDelivery.DRAFT && (targetSet == null || item.itemId in targetSet)) {
                     item.copy(
                         delivery = FeedbackDelivery.SENT,
                         handoffBatchId = batch.batchId,

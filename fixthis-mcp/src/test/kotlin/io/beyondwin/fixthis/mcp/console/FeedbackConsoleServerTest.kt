@@ -22,6 +22,7 @@ import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 import io.beyondwin.fixthis.mcp.session.SnapshotScreenshotDto
 import io.beyondwin.fixthis.mcp.session.AnnotationTargetDto
+import io.beyondwin.fixthis.mcp.session.FeedbackDelivery
 import io.beyondwin.fixthis.mcp.tools.FixThisBridge
 import java.io.File
 import java.io.InputStream
@@ -723,65 +724,6 @@ class FeedbackConsoleServerTest {
         assertFalse(html.contains(">Close<"))
         assertFalse(html.contains("id=\"modeSelect\""))
         assertFalse(html.contains("id=\"modeNavigate\""))
-    }
-
-    @Test
-    fun consoleHtmlBuildsCopiesAndSendsSelectedHistoryPrompt() {
-        val html = FeedbackConsoleAssets.indexHtml
-        val updateComposerStateBody = javascriptFunctionBody(html, "updateComposerState")
-        val copyPromptBody = javascriptFunctionBody(html, "copyPrompt")
-        val sendAgentPromptBody = javascriptFunctionBody(html, "sendAgentPrompt")
-        val currentPromptAnnotationsBody = javascriptFunctionBody(html, "currentPromptAnnotations")
-        val currentAnnotationsPromptBody = javascriptFunctionBody(html, "currentAnnotationsPrompt")
-        val promptGuardBody = javascriptFunctionBody(html, "ensurePromptAnnotationsAvailable")
-        val renderSessionsListBody = javascriptFunctionBody(html, "renderSessionsListFromPayload")
-
-        assertTrue(html.contains("function currentAnnotationsPrompt"))
-        assertTrue(html.contains("function currentPromptAnnotations"))
-        assertTrue(html.contains("function hasWrittenAnnotationComment(item)"))
-        assertTrue(currentPromptAnnotationsBody.contains(".filter(hasWrittenAnnotationComment)"))
-        assertTrue(html.contains("function ensurePromptAnnotationsAvailable()"))
-        assertFalse(promptGuardBody.contains("window.alert(message)"))
-        assertTrue(html.contains("let promptActionInFlight = false;"))
-        assertTrue(html.contains("if (promptActionInFlight) return;"))
-        assertTrue(html.contains("promptActionInFlight = true;"))
-        assertTrue(html.contains("promptActionInFlight = false;"))
-        assertTrue(html.contains("async function copyTextToClipboard(text)"))
-        assertTrue(html.contains("navigator.clipboard.writeText(text)"))
-        assertTrue(html.contains("document.execCommand('copy')"))
-        assertTrue(html.contains("fallback.remove()"))
-        assertTrue(copyPromptBody.contains("ensurePromptAnnotationsAvailable();"))
-        assertTrue(copyPromptBody.contains("persistPendingFeedbackItems({ onlyWrittenComments: true })"))
-        assertTrue(copyPromptBody.contains("await copyTextToClipboard(currentAnnotationsPrompt())"))
-        assertTrue(html.contains("screen: addItemsFlow.screen"))
-        assertTrue(html.contains("function promptNodeEvidence(node)"))
-        assertTrue(html.contains("function promptTargetEvidence(item)"))
-        assertTrue(html.contains("'   UI Text: '"))
-        assertTrue(html.contains("'   Content Description: '"))
-        assertTrue(html.contains("'   Test Tag: '"))
-        assertTrue(html.contains("'   Role: '"))
-        assertTrue(html.contains("'   Identity: '"))
-        assertTrue(html.contains("'   Occurrence: '"))
-        assertTrue(html.contains("function currentAnnotationsPromptCompact"))
-        assertTrue(html.contains("function compactDetectOverlap"))
-        assertTrue(html.contains("FIXTHIS_REASON_TOKEN_MAP"))
-        assertTrue(html.contains("Rule: source hints are candidates"))
-        assertFalse(html.contains("function promptLikelySources("))
-        assertFalse(html.contains("'   Likely Source:'"))
-        assertTrue(html.contains("function compactCandidatesBlock"))
-        assertTrue(currentAnnotationsPromptBody.contains("currentAnnotationsPromptCompact(annotations)"))
-        assertTrue(sendAgentPromptBody.contains("ensurePromptAnnotationsAvailable();"))
-        assertTrue(sendAgentPromptBody.contains("const prompt = currentAnnotationsPrompt();"))
-        assertTrue(sendAgentPromptBody.contains("persistPendingFeedbackItems({ onlyWrittenComments: true })"))
-        assertTrue(sendAgentPromptBody.contains("body: JSON.stringify({ prompt: prompt })"))
-        assertTrue(updateComposerStateBody.contains("const hasPromptAnnotations = currentPromptAnnotations().length > 0;"))
-        assertTrue(updateComposerStateBody.contains("const promptDisabled = !hasPromptAnnotations || promptActionInFlight;"))
-        assertTrue(updateComposerStateBody.contains("copyPromptButton.disabled = promptDisabled;"))
-        assertTrue(updateComposerStateBody.contains("sendAgentButton.disabled = promptDisabled;"))
-        assertFalse(updateComposerStateBody.contains("copyPromptButton.dataset.unavailable"))
-        assertFalse(updateComposerStateBody.contains("sendAgentButton.dataset.unavailable"))
-        assertFalse(updateComposerStateBody.contains("classList.toggle('is-disabled'"))
-        assertFalse(html.contains("id=\"clearSentHistoryButton\""))
     }
 
     @Test
@@ -2573,18 +2515,17 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val handoff = ConsoleHttpTestClient(server.url).connection("/api/agent-handoffs")
-            handoff.requestMethod = "POST"
-            handoff.doOutput = true
-            handoff.setRequestProperty("Content-Type", "application/json")
-            handoff.outputStream.use { it.write("""{"prompt":"custom agent prompt"}""".toByteArray()) }
-
-            assertEquals(200, handoff.responseCode)
-            val body = handoff.inputStream.bufferedReader().readText()
-            val response = fixThisJson.parseToJsonElement(body).jsonObject
-            assertTrue(response["handoffBatches"]?.jsonArray.orEmpty().isNotEmpty())
-            assertEquals("sent", response["items"]?.jsonArray?.single()?.jsonObject?.get("delivery")?.jsonPrimitive?.content)
-            assertEquals("custom agent prompt", response["handoffBatches"]?.jsonArray?.single()?.jsonObject?.get("markdownSnapshot")?.jsonPrimitive?.content)
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/agent-handoffs",
+                body = """{"itemIds":["item-1"]}""",
+            )
+            assertEquals(200, response.statusCode)
+            val payload = fixThisJson.parseToJsonElement(response.body).jsonObject
+            val sessionObj = payload["session"]!!.jsonObject
+            assertTrue(sessionObj["handoffBatches"]?.jsonArray.orEmpty().isNotEmpty())
+            assertEquals("sent", sessionObj["items"]?.jsonArray?.single()?.jsonObject?.get("delivery")?.jsonPrimitive?.content)
+            val prompt = payload["prompt"]!!.jsonPrimitive.content
+            assertTrue(prompt.contains("id: item-1"), "prompt should contain 'id: item-1', got:\n$prompt")
         } finally {
             server.stop()
         }
@@ -2602,14 +2543,12 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val handoff = ConsoleHttpTestClient(server.url).connection("/api/agent-handoffs")
-            handoff.requestMethod = "POST"
-            handoff.doOutput = true
-            handoff.setRequestProperty("Content-Type", "application/json")
-            handoff.outputStream.use { it.write("{}".toByteArray()) }
-
-            assertEquals(409, handoff.responseCode)
-            assertTrue(handoff.errorStream.bufferedReader().readText().contains("NO_DRAFT_FEEDBACK"))
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/agent-handoffs",
+                body = """{"itemIds":["fake-id"]}""",
+            )
+            assertEquals(409, response.statusCode)
+            assertTrue(response.body.contains("NO_DRAFT_FEEDBACK"))
         } finally {
             server.stop()
         }
@@ -3600,6 +3539,25 @@ class FeedbackConsoleServerTest {
             }
             return connection
         }
+
+        fun postJson(path: String, body: String): ConsoleHttpResponse {
+            val conn = java.net.URI(baseUrl + path).toURL().openConnection() as java.net.HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.doOutput = true
+            conn.setRequestProperty("Content-Type", "application/json")
+            if (path.startsWith("/api/")) {
+                consoleToken?.let { conn.setRequestProperty(ConsoleTokenHeader, it) }
+            }
+            conn.outputStream.use { output -> output.write(body.toByteArray(Charsets.UTF_8)) }
+            val statusCode = conn.responseCode
+            val responseBody = runCatching {
+                (conn.errorStream ?: conn.inputStream)?.use { it.readBytes().toString(Charsets.UTF_8) } ?: ""
+            }.getOrDefault("")
+            val headerFields: Map<String, List<String>> = conn.headerFields
+                .filterKeys { it != null }
+                .mapKeys { (key, _) -> key!! }
+            return ConsoleHttpResponse(statusCode = statusCode, body = responseBody, headers = headerFields)
+        }
     }
 
     private data class ConsoleHttpResponse(
@@ -3612,6 +3570,9 @@ class FeedbackConsoleServerTest {
                 .firstOrNull { it.key.equals(name, ignoreCase = true) }
                 ?.value
                 ?.firstOrNull()
+
+        fun contentTypeStartsWith(prefix: String): Boolean =
+            header("Content-Type")?.startsWith(prefix) == true
     }
 
     @Test
@@ -3760,6 +3721,253 @@ class FeedbackConsoleServerTest {
             body.contains("sessionsPollingPaused") || body.contains("startSessionsPolling"),
             "withMutationLock finally-block must restart polling if paused"
         )
+    }
+
+    @Test
+    fun handoffPreviewEndpointReturnsMarkdownForRequestedItems() {
+        val store = FeedbackSessionStore()
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val (sessionId, itemId) = seedSessionWithOneItem(store, service)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/sessions/$sessionId/handoff-preview",
+                body = """{"itemIds":["$itemId"]}""",
+            )
+            assertEquals(200, response.statusCode)
+            assertTrue(response.contentTypeStartsWith("text/markdown"), "got: ${response.header("Content-Type")}")
+            assertTrue(response.body.contains("id: $itemId"), "expected 'id: $itemId' in:\n${response.body}")
+            assertTrue(response.body.contains("session_id: $sessionId"), "expected 'session_id:' in:\n${response.body}")
+            assertTrue(response.body.contains("agent_protocol:"), "expected agent_protocol block in:\n${response.body}")
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun handoffPreviewEndpointRejectsEmptyItemIds() {
+        val store = FeedbackSessionStore()
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val (sessionId, _) = seedSessionWithOneItem(store, service)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/sessions/$sessionId/handoff-preview",
+                body = """{"itemIds":[]}""",
+            )
+            assertEquals(400, response.statusCode)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun handoffPreviewEndpointReturns404ForUnknownSession() {
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = { "session-1" }),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/sessions/00000000-0000-0000-0000-000000000000/handoff-preview",
+                body = """{"itemIds":["x"]}""",
+            )
+            assertEquals(404, response.statusCode)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun handoffPreviewEndpointEmitsJsonErrorBody() {
+        val store = FeedbackSessionStore()
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val (sessionId, _) = seedSessionWithOneItem(store, service)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/sessions/$sessionId/handoff-preview",
+                body = """{"itemIds":[]}""",
+            )
+            assertEquals(400, response.statusCode)
+            assertTrue(response.contentTypeStartsWith("application/json"), "got: ${response.header("Content-Type")}")
+            assertTrue(response.body.contains("\"error\""), "expected error JSON body, got:\n${response.body}")
+            assertTrue(response.body.contains("itemIds must not be empty"), "expected reason in body, got:\n${response.body}")
+        } finally {
+            server.stop()
+        }
+    }
+
+    private fun seedSessionWithOneItem(
+        store: FeedbackSessionStore,
+        service: FeedbackSessionService,
+    ): Pair<String, String> {
+        val session = service.openSession(null, newSession = true)
+        store.addScreen(
+            session.sessionId,
+            SnapshotDto(
+                screenId = "screen-1",
+                capturedAtEpochMillis = 100L,
+                displayName = "Screen 1",
+            ),
+        )
+        val item = store.addItem(
+            session.sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = "screen-1",
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(1f, 2f, 3f, 4f)),
+                comment = "Test feedback",
+            ),
+        )
+        return Pair(session.sessionId, item.itemId)
+    }
+
+    @Test
+    fun agentHandoffsAcceptsItemIdsAndReturnsRenderedPrompt() {
+        val store = FeedbackSessionStore()
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val (_, itemId) = seedSessionWithOneItem(store, service)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/agent-handoffs",
+                body = """{"itemIds":["$itemId"]}""",
+            )
+            assertEquals(200, response.statusCode)
+            val payload = fixThisJson.parseToJsonElement(response.body).jsonObject
+            assertTrue(payload.containsKey("session"), "response should have 'session', got: ${response.body}")
+            assertTrue(payload.containsKey("prompt"), "response should have 'prompt', got: ${response.body}")
+            val prompt = payload["prompt"]!!.jsonPrimitive.content
+            assertTrue(prompt.contains("id: $itemId"), "prompt should contain 'id: $itemId', got:\n$prompt")
+            val sessionObj = payload["session"]!!.jsonObject
+            val itemDelivery = sessionObj["items"]!!.jsonArray
+                .map { it.jsonObject }
+                .first { it["itemId"]!!.jsonPrimitive.content == itemId }["delivery"]!!.jsonPrimitive.content
+            assertEquals("sent", itemDelivery)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun agentHandoffsRejectsLegacyPromptBody() {
+        val store = FeedbackSessionStore()
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        seedSessionWithOneItem(store, service)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/agent-handoffs",
+                body = """{"prompt":"# old format"}""",
+            )
+            assertEquals(400, response.statusCode)
+            assertTrue(
+                response.body.contains("itemIds"),
+                "error message should mention itemIds, got: ${response.body}",
+            )
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun agentHandoffsRejectsEmptyItemIds() {
+        val store = FeedbackSessionStore()
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        seedSessionWithOneItem(store, service)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/agent-handoffs",
+                body = """{"itemIds":[]}""",
+            )
+            assertEquals(400, response.statusCode)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun agentHandoffsFlipsOnlySpecifiedItemIdsToSentLeavesOthersAsDraft() {
+        val store = FeedbackSessionStore()
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val (sessionId, keepItemId) = seedSessionWithOneItem(store, service)
+        // Add a second DRAFT item that should NOT be flipped
+        val secondItem = store.addItem(
+            sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = "screen-1",
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(5f, 6f, 7f, 8f)),
+                comment = "second draft",
+            ),
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/agent-handoffs",
+                body = """{"itemIds":["$keepItemId"]}""",
+            )
+            assertEquals(200, response.statusCode)
+            val sessionAfter = store.getSession(sessionId)
+            val keptItem = sessionAfter.items.first { it.itemId == keepItemId }
+            val otherItem = sessionAfter.items.first { it.itemId == secondItem.itemId }
+            assertEquals(FeedbackDelivery.SENT, keptItem.delivery, "specified item should flip to SENT")
+            assertEquals(FeedbackDelivery.DRAFT, otherItem.delivery, "unspecified item should remain DRAFT")
+        } finally {
+            server.stop()
+        }
     }
 
     private class FakeExchange(path: String) : HttpExchange() {

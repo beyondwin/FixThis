@@ -1766,4 +1766,137 @@ class CompactHandoffRendererTest {
         assertTrue(markdown.contains("on_complete: fixthis_resolve_feedback"), markdown)
         assertTrue(markdown.contains("session_id: sess-123"), markdown)
     }
+
+    // ---- Task 1 (this plan): itemIds filter ----
+
+    @Test
+    fun renderFiltersItemsByItemIdsWhenProvided() {
+        val session = SessionDto(
+            sessionId = "session-filter",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(
+                SnapshotDto(
+                    screenId = "screen-1",
+                    capturedAtEpochMillis = 1L,
+                    displayName = "Home",
+                    screenshot = SnapshotScreenshotDto(
+                        desktopFullPath = "/p.png",
+                        width = 1, height = 1,
+                    ),
+                ),
+            ),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "keep",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                    comment = "kept",
+                    sequenceNumber = 1,
+                ),
+                AnnotationDto(
+                    itemId = "drop",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                    comment = "dropped",
+                    sequenceNumber = 2,
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session, itemIds = listOf("keep"))
+
+        assertTrue(markdown.contains("id: keep"), "expected 'id: keep' in:\n$markdown")
+        assertTrue(!markdown.contains("id: drop"), "should not include filtered-out item, got:\n$markdown")
+    }
+
+    @Test
+    fun renderEmitsScreenshotLineUsingFullPathFallbackWhenDesktopPathMissing() {
+        val session = SessionDto(
+            sessionId = "session-fallback",
+            packageName = "x",
+            projectRoot = "/r",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(
+                SnapshotDto(
+                    screenId = "screen-1",
+                    capturedAtEpochMillis = 1L,
+                    displayName = "S",
+                    screenshot = SnapshotScreenshotDto(
+                        desktopFullPath = null,
+                        fullPath = "/device/path/s.png",
+                        width = 1, height = 1,
+                    ),
+                ),
+            ),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "i",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                    comment = "x",
+                    sequenceNumber = 1,
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+
+        assertTrue(
+            markdown.lineSequence().any { it == "screenshot: /device/path/s.png" },
+            "expected screenshot fallback line, got:\n$markdown",
+        )
+    }
+
+    @Test
+    fun renderEmitsNoBlankLineBetweenOverlapHeaderAndFirstItem() {
+        val sharedBounds = FixThisRect(0f, 0f, 1f, 1f)
+        val session = SessionDto(
+            sessionId = "session-overlap-blank",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "ov-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(sharedBounds),
+                    comment = "overlap first",
+                    sequenceNumber = 1,
+                ),
+                AnnotationDto(
+                    itemId = "ov-2",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(sharedBounds),
+                    comment = "overlap second",
+                    sequenceNumber = 2,
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        val lines = markdown.lines()
+        val overlapIdx = lines.indexOfFirst { it.startsWith("Overlap group") }
+        assertTrue(overlapIdx >= 0, "expected Overlap group header in:\n$markdown")
+        val nextLine = lines.getOrNull(overlapIdx + 1) ?: ""
+        assertTrue(
+            nextLine.startsWith("[1]") || nextLine.startsWith("[2]"),
+            "expected first item directly after overlap header, got: '$nextLine'\nfull:\n$markdown",
+        )
+    }
 }

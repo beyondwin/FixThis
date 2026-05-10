@@ -30,6 +30,7 @@ class FeedbackConsoleServer(
             PreviewRoutes(service),
             FeedbackItemRoutes(service),
             ArtifactRoutes(service),
+            HandoffPreviewRoutes(service),
         ),
     )
     private var server: HttpServer? = null
@@ -73,15 +74,15 @@ class FeedbackConsoleServer(
                 exchange.requireConsoleMutationAllowed(consoleToken)
             }
             if (!routeTable.handle(exchange)) {
-                exchange.sendText(404, "Not found", "text/plain; charset=utf-8")
+                exchange.sendErrorJson(404, "Not found")
             }
         } catch (error: FeedbackConsoleHttpException) {
-            exchange.sendText(error.statusCode, error.message, "text/plain; charset=utf-8")
+            exchange.sendErrorJson(error.statusCode, error.message)
         } catch (error: FeedbackSessionException) {
             val httpError = error.toConsoleHttpException()
-            exchange.sendText(httpError.statusCode, httpError.message, "text/plain; charset=utf-8")
+            exchange.sendErrorJson(httpError.statusCode, httpError.message)
         } catch (error: Throwable) {
-            exchange.sendText(500, error.message ?: error::class.java.simpleName, "text/plain; charset=utf-8")
+            exchange.sendErrorJson(500, error.message ?: error::class.java.simpleName)
         }
     }
 }

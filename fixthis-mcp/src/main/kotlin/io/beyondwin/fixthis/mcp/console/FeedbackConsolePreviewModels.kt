@@ -3,6 +3,7 @@ package io.beyondwin.fixthis.mcp.console
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.mcp.session.AnnotationSeverityDto
 import io.beyondwin.fixthis.mcp.session.AnnotationStatusDto
+import io.beyondwin.fixthis.mcp.session.SessionDto
 import io.beyondwin.fixthis.mcp.session.SnapshotDto
 import kotlinx.serialization.Serializable
 
@@ -21,7 +22,13 @@ data class SaveSnapshotRequest(
 
 @Serializable
 data class AgentHandoffRequest(
-    val prompt: String? = null,
+    val itemIds: List<String> = emptyList(),
+)
+
+@Serializable
+data class AgentHandoffResponse(
+    val session: SessionDto,
+    val prompt: String,
 )
 
 @Serializable
