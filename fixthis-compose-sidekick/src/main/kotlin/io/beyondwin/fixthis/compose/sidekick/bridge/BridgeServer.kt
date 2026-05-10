@@ -10,6 +10,7 @@ import android.net.LocalSocket
 import android.os.PowerManager
 import android.util.Base64
 import io.beyondwin.fixthis.compose.core.model.FixThisError
+import io.beyondwin.fixthis.compose.sidekick.BuildInfo
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.ScreenshotInfo
@@ -385,6 +386,7 @@ internal class AndroidBridgeEnvironment(
             keyguardLocked = keyguardManager?.isKeyguardLocked,
             appForeground = lifecycleCallbacks.isAppForeground(),
             pictureInPicture = resumedActivity?.isInPictureInPictureMode,
+            sidekickBuildEpochMs = BuildInfo.BUILD_EPOCH_MS,
         )
     }
 

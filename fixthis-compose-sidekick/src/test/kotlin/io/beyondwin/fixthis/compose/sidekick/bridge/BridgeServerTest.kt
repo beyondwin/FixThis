@@ -1,5 +1,6 @@
 package io.beyondwin.fixthis.compose.sidekick.bridge
 
+import io.beyondwin.fixthis.compose.sidekick.BuildInfo
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.ScreenshotInfo
@@ -15,6 +16,7 @@ import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -367,6 +369,17 @@ class BridgeServerTest {
     }
 
     @Test
+    fun statusReportsSidekickBuildEpoch() = runBlocking {
+        val server = server()
+
+        val response = server.handleRequestForTest("""{"id":"1","token":"token","method":"status"}""")
+        val result = BridgeProtocol.json.parseToJsonElement(response).jsonObject.getValue("result").jsonObject
+        val epoch = result.getValue("sidekickBuildEpochMs").jsonPrimitive.long
+
+        assertTrue("sidekickBuildEpochMs must be positive, got $epoch", epoch > 0L)
+    }
+
+    @Test
     fun verifyUiChangeReportsFalseWhenExpectedTextIsAbsent() = runBlocking {
         val server = server()
 
@@ -414,6 +427,7 @@ class BridgeServerTest {
                 sidekickVersion = "0.1.0-test",
                 bridgeProtocolVersion = BridgeProtocol.VERSION,
                 sourceIndexAvailable = true,
+                sidekickBuildEpochMs = BuildInfo.BUILD_EPOCH_MS,
             )
 
         override suspend fun inspectCurrentScreen(): BridgeScreenInspection =
