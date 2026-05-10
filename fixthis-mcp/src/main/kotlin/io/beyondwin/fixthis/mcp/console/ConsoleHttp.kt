@@ -11,6 +11,8 @@ import java.net.URLDecoder
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
 
 @Serializable
 internal data class ConsoleErrorBody(val error: String)
@@ -47,7 +49,8 @@ internal fun HttpExchange.queryBoolean(name: String): Boolean {
 }
 
 internal fun HttpExchange.sendJson(statusCode: Int, value: SessionDto) {
-    sendText(statusCode, fixThisJson.encodeToString(SessionDto.serializer(), value), "application/json; charset=utf-8")
+    val enriched = enrichSessionWithStaleness(value)
+    sendText(statusCode, fixThisJson.encodeToString(JsonObject.serializer(), enriched), "application/json; charset=utf-8")
 }
 
 internal fun HttpExchange.sendJson(statusCode: Int, value: FeedbackSessionList) {
@@ -79,7 +82,10 @@ internal fun HttpExchange.sendJson(statusCode: Int, value: JsonObject) {
 }
 
 internal fun HttpExchange.sendJson(statusCode: Int, value: AgentHandoffResponse) {
-    sendText(statusCode, fixThisJson.encodeToString(AgentHandoffResponse.serializer(), value), "application/json; charset=utf-8")
+    val base = fixThisJson.encodeToJsonElement(AgentHandoffResponse.serializer(), value).jsonObject
+    val sessionEl = base["session"]?.jsonObject
+    val enriched = if (sessionEl == null) base else JsonObject(base + ("session" to enrichSessionJson(sessionEl)))
+    sendText(statusCode, fixThisJson.encodeToString(JsonObject.serializer(), enriched), "application/json; charset=utf-8")
 }
 
 internal fun HttpExchange.sendJson(statusCode: Int, value: ConsoleDeviceList) {

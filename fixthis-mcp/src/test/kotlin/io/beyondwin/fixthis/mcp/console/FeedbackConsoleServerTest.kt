@@ -44,6 +44,7 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -4150,6 +4151,94 @@ class FeedbackConsoleServerTest {
             val otherItem = sessionAfter.items.first { it.itemId == secondItem.itemId }
             assertEquals(FeedbackDelivery.SENT, keptItem.delivery, "specified item should flip to SENT")
             assertEquals(FeedbackDelivery.DRAFT, otherItem.delivery, "unspecified item should remain DRAFT")
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun sessionResponseIncludesStaleAfterHandoffFalseInitially() {
+        val store = FeedbackSessionStore(clock = { 100L })
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        seedSessionWithOneItem(store, service)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val body = ConsoleHttpTestClient(server.url).get("/api/session")
+            val items = fixThisJson.parseToJsonElement(body).jsonObject
+                .getValue("items").jsonArray
+            assertEquals(1, items.size)
+            val item = items[0].jsonObject
+            assertTrue(item.containsKey("staleAfterHandoff"), "missing staleAfterHandoff: $item")
+            assertEquals(false, item.getValue("staleAfterHandoff").jsonPrimitive.boolean)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun sessionResponseStaleAfterHandoffTrueWhenUpdatedAfterSend() {
+        var nowMillis = 100L
+        val store = FeedbackSessionStore(clock = { nowMillis })
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val (sessionId, itemId) = seedSessionWithOneItem(store, service)
+        nowMillis = 200L
+        service.sendDraftToAgent(sessionId, listOf(itemId))
+        nowMillis = 500L
+        service.updateDraftFeedback(sessionId, itemId, label = null, severity = null, comment = "edited", status = null)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val body = ConsoleHttpTestClient(server.url).get("/api/session")
+            val item = fixThisJson.parseToJsonElement(body).jsonObject
+                .getValue("items").jsonArray
+                .single { it.jsonObject.getValue("itemId").jsonPrimitive.content == itemId }
+                .jsonObject
+            assertEquals(true, item.getValue("staleAfterHandoff").jsonPrimitive.boolean)
+            assertEquals(200L, item.getValue("lastHandedOffAtEpochMillis").jsonPrimitive.long)
+            assertEquals(500L, item.getValue("updatedAtEpochMillis").jsonPrimitive.long)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun sessionResponseStaleAfterHandoffFalseAfterReSave() {
+        var nowMillis = 100L
+        val store = FeedbackSessionStore(clock = { nowMillis })
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val (sessionId, itemId) = seedSessionWithOneItem(store, service)
+        nowMillis = 200L
+        service.sendDraftToAgent(sessionId, listOf(itemId))
+        nowMillis = 500L
+        service.updateDraftFeedback(sessionId, itemId, label = null, severity = null, comment = "edited", status = null)
+        nowMillis = 700L
+        service.sendDraftToAgent(sessionId, listOf(itemId))
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val body = ConsoleHttpTestClient(server.url).get("/api/session")
+            val item = fixThisJson.parseToJsonElement(body).jsonObject
+                .getValue("items").jsonArray
+                .single { it.jsonObject.getValue("itemId").jsonPrimitive.content == itemId }
+                .jsonObject
+            assertEquals(false, item.getValue("staleAfterHandoff").jsonPrimitive.boolean)
+            assertEquals(700L, item.getValue("lastHandedOffAtEpochMillis").jsonPrimitive.long)
         } finally {
             server.stop()
         }

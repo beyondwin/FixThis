@@ -31,6 +31,7 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import kotlinx.serialization.json.put
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -903,6 +904,100 @@ class McpProtocolTest {
             .map { it.jsonObject.getValue("itemId").jsonPrimitive.content }
 
         assertEquals(listOf(draftItem.itemId), itemIds)
+    }
+
+    @Test
+    fun listFeedbackToolResponseIncludesDeliveryAndStaleAfterHandoff() = runBlocking {
+        val bridge = FakeFixThisBridge(packageName = "io.beyondwin.fixthis.sample")
+        var nowMillis = 100L
+        val service = FeedbackSessionService(
+            bridge = bridge,
+            store = FeedbackSessionStore(
+                clock = { nowMillis },
+                idGenerator = FakeIds("session-1", "screen-1", "item-1", "batch-1").next,
+            ),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val screen = service.captureScreen(session.sessionId)
+        val sentItem = service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            FixThisRect(1f, 1f, 2f, 2f),
+            "Sent feedback",
+        )
+        nowMillis = 200L
+        service.sendDraftToAgent(session.sessionId, listOf(sentItem.itemId))
+        nowMillis = 500L
+        service.updateDraftFeedback(
+            sessionId = session.sessionId,
+            itemId = sentItem.itemId,
+            label = null,
+            severity = null,
+            comment = "edited after send",
+            status = null,
+        )
+        val server = server(bridge, feedbackService = service)
+
+        val result = runToolCall(
+            server,
+            "fixthis_list_feedback",
+            """{"sessionId":"${session.sessionId}"}""",
+        )
+        val item = result.getValue("items").jsonArray
+            .single { it.jsonObject.getValue("itemId").jsonPrimitive.content == sentItem.itemId }
+            .jsonObject
+        assertEquals("sent", item.getValue("delivery").jsonPrimitive.content)
+        assertEquals(true, item.getValue("staleAfterHandoff").jsonPrimitive.boolean)
+    }
+
+    @Test
+    fun readFeedbackToolResponseIncludesLifecycleFieldsForSentItem() = runBlocking {
+        val bridge = FakeFixThisBridge(packageName = "io.beyondwin.fixthis.sample")
+        var nowMillis = 100L
+        val service = FeedbackSessionService(
+            bridge = bridge,
+            store = FeedbackSessionStore(
+                clock = { nowMillis },
+                idGenerator = FakeIds("session-1", "screen-1", "item-1", "batch-1").next,
+            ),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val screen = service.captureScreen(session.sessionId)
+        val sentItem = service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            FixThisRect(1f, 1f, 2f, 2f),
+            "Sent feedback",
+        )
+        nowMillis = 200L
+        service.sendDraftToAgent(session.sessionId, listOf(sentItem.itemId))
+        nowMillis = 500L
+        service.updateDraftFeedback(
+            sessionId = session.sessionId,
+            itemId = sentItem.itemId,
+            label = null,
+            severity = null,
+            comment = "edited after send",
+            status = null,
+        )
+        val server = server(bridge, feedbackService = service)
+
+        val content = runToolCallContentTexts(
+            server,
+            "fixthis_read_feedback",
+            """{"sessionId":"${session.sessionId}","itemId":"${sentItem.itemId}"}""",
+        )
+        val payload = parse(content[0]).jsonObject
+        val item = payload.getValue("items").jsonArray
+            .single { it.jsonObject.getValue("itemId").jsonPrimitive.content == sentItem.itemId }
+            .jsonObject
+        assertEquals("sent", item.getValue("delivery").jsonPrimitive.content)
+        assertEquals(true, item.getValue("staleAfterHandoff").jsonPrimitive.boolean)
+        assertEquals(200L, item.getValue("lastHandedOffAtEpochMillis").jsonPrimitive.long)
     }
 
     @Test
