@@ -3250,6 +3250,15 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains(".staleness-banner"), "banner CSS class must exist")
     }
 
+    @Test
+    fun bootSequenceCallsCheckServerStaleness() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(
+            html.contains("checkServerStaleness().catch"),
+            "boot must invoke checkServerStaleness with a catch",
+        )
+    }
+
     private class FakeIds(vararg values: String) {
         private val queue = ArrayDeque(values.toList())
         val next: () -> String = { queue.removeFirst() }

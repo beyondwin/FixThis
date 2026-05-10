@@ -68,5 +68,6 @@
               .then(() => {
                 startHeartbeatPolling();
                 startLivePreviewPolling();
+                checkServerStaleness().catch(() => { /* silent */ });
               })
               .catch(showError);
