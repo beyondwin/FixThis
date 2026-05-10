@@ -39,6 +39,8 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ### Changed
 
+- Console staleness banner now distinguishes "sample app sidekick is older than console" vs "this console is older than sample app sidekick" via numeric component-wise compare on the bridge protocol version, replacing the previous symmetric string equality. Banner copy and dismiss-hash include the direction. (R1 from bridge-protocol-safety-net.)
+- New `BridgeProtocolVersionSyncTest` unit test in `:fixthis-mcp:test` enforces that all four bridge-protocol-version mirror sites (`BridgeProtocol.kt`, `BridgeClient.kt`, `ServerVersionRoutes.kt`, `staleness.js`) hold the same string. A forgotten bump now fails standard CI with a diagnostic naming each file and its observed value. (R2 from bridge-protocol-safety-net.)
 - console: documented `<pre id="connectionDetailsBody">` + `white-space: pre-wrap`
   dependency in `connection.js` for the Reconnecting sub-line. Defensive comment
   only, no behavior change. (H1, prevents silent visual regression on HTML/CSS
