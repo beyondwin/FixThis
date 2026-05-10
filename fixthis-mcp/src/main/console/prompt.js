@@ -32,9 +32,12 @@
             }
 
             async function fetchHandoffPreview(sessionId, itemIds) {
+                const headers = new Headers({ 'Content-Type': 'application/json' });
+                const token = window.FixThisConsoleConfig?.consoleToken;
+                if (token) headers.set('X-FixThis-Console-Token', token);
                 const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/handoff-preview`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers,
                     body: JSON.stringify({ itemIds }),
                 });
                 if (!response.ok) {
