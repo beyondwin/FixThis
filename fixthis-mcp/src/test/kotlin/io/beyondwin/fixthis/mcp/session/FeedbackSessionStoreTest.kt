@@ -794,6 +794,75 @@ class FeedbackSessionStoreTest {
         }
     }
 
+    @Test
+    fun sendDraftToAgentSetsLastHandedOffAtToSentAt() {
+        val clock = FakeClock(1000L)
+        val ids = FakeIds("session-1", "screen-1", "item-1", "batch-1")
+        val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
+        val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+        val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
+        store.addItem(
+            session.sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = screen.screenId,
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+                comment = "First",
+            ),
+        )
+
+        val updated = store.sendDraftToAgent(session.sessionId, markdownSnapshot = "snap")
+        val item = updated.items.single { it.itemId == "item-1" }
+
+        assertEquals(1000L, item.sentAtEpochMillis)
+        assertEquals(1000L, item.lastHandedOffAtEpochMillis)
+    }
+
+    @Test
+    fun sendDraftToAgentReSaveUpdatesLastHandedOffAtAndAddsNewBatch() {
+        val clock = MutableClock(1000L)
+        val ids = FakeIds("session-1", "screen-1", "item-1", "batch-1000", "batch-2000")
+        val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
+        val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+        val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
+        store.addItem(
+            session.sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = screen.screenId,
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+                comment = "First",
+            ),
+        )
+
+        val first = store.sendDraftToAgent(session.sessionId, markdownSnapshot = "snap-1")
+        assertEquals(1000L, first.items.single { it.itemId == "item-1" }.lastHandedOffAtEpochMillis)
+        assertEquals(1, first.handoffBatches.size)
+
+        clock.value = 2000L
+        val second = store.sendDraftToAgent(
+            sessionId = session.sessionId,
+            markdownSnapshot = "snap-2",
+            targetItemIds = listOf("item-1"),
+        )
+        val item = second.items.single { it.itemId == "item-1" }
+        assertEquals(2000L, item.lastHandedOffAtEpochMillis, "re-save updates lastHandedOffAt")
+        assertEquals(1000L, item.sentAtEpochMillis, "first sentAt is preserved")
+        assertEquals(FeedbackDelivery.SENT, item.delivery)
+        assertEquals(2, second.handoffBatches.size, "re-save creates a new batch")
+        assertEquals("batch-2000", second.handoffBatches[1].batchId)
+        assertEquals(listOf("item-1"), second.handoffBatches[1].itemIds)
+        assertEquals("batch-2000", item.handoffBatchId, "handoffBatchId points to latest batch")
+    }
+
+    private class MutableClock(var value: Long) {
+        fun now(): Long = value
+    }
+
     private fun sequenceClock(vararg values: Long): () -> Long {
         val queue = ArrayDeque(values.toList())
         return { queue.removeFirstOrNull() ?: values.last() }

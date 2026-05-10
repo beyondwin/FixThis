@@ -199,10 +199,14 @@ class FeedbackSessionStore(
         synchronized(lock) {
             val session = getSessionLocked(sessionId)
             val targetSet = targetItemIds?.toSet()
-            val candidateDrafts = session.items.filter {
-                it.delivery == FeedbackDelivery.DRAFT && (targetSet == null || it.itemId in targetSet)
+            val candidates = session.items.filter { item ->
+                val matchesTarget = targetSet == null || item.itemId in targetSet
+                matchesTarget && (
+                    item.delivery == FeedbackDelivery.DRAFT ||
+                        (item.delivery == FeedbackDelivery.SENT && item.status == AnnotationStatusDto.READY)
+                    )
             }
-            if (candidateDrafts.isEmpty()) {
+            if (candidates.isEmpty()) {
                 throw FeedbackSessionException("NO_DRAFT_FEEDBACK: No draft feedback items to send")
             }
             val now = clock()
@@ -210,20 +214,33 @@ class FeedbackSessionStore(
                 batchId = idGenerator(),
                 sequenceNumber = session.handoffBatches.size + 1,
                 createdAtEpochMillis = now,
-                itemIds = candidateDrafts.map { it.itemId },
+                itemIds = candidates.map { it.itemId },
                 markdownSnapshot = markdownSnapshot,
             )
             val updatedItems = session.items.map { item ->
-                if (item.delivery == FeedbackDelivery.DRAFT && (targetSet == null || item.itemId in targetSet)) {
-                    item.copy(
-                        delivery = FeedbackDelivery.SENT,
-                        handoffBatchId = batch.batchId,
-                        sentAtEpochMillis = now,
-                        status = AnnotationStatusDto.READY,
-                        updatedAtEpochMillis = now,
-                    )
-                } else {
-                    item
+                val matchesTarget = targetSet == null || item.itemId in targetSet
+                when {
+                    item.delivery == FeedbackDelivery.DRAFT && matchesTarget -> {
+                        item.copy(
+                            delivery = FeedbackDelivery.SENT,
+                            handoffBatchId = batch.batchId,
+                            sentAtEpochMillis = now,
+                            lastHandedOffAtEpochMillis = now,
+                            status = AnnotationStatusDto.READY,
+                            updatedAtEpochMillis = now,
+                        )
+                    }
+                    item.delivery == FeedbackDelivery.SENT &&
+                        item.status == AnnotationStatusDto.READY &&
+                        matchesTarget -> {
+                        // Re-save: preserve sentAt; refresh lastHandedOffAt + handoffBatchId.
+                        item.copy(
+                            handoffBatchId = batch.batchId,
+                            lastHandedOffAtEpochMillis = now,
+                            updatedAtEpochMillis = now,
+                        )
+                    }
+                    else -> item
                 }
             }
             val updated = session.copy(
