@@ -3855,6 +3855,32 @@ class FeedbackConsoleServerTest {
         }
     }
 
+    @Test
+    fun handoffPreviewEndpointEmitsJsonErrorBody() {
+        val store = FeedbackSessionStore()
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val (sessionId, _) = seedSessionWithOneItem(store, service)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/sessions/$sessionId/handoff-preview",
+                body = """{"itemIds":[]}""",
+            )
+            assertEquals(400, response.statusCode)
+            assertTrue(response.contentTypeStartsWith("application/json"), "got: ${response.header("Content-Type")}")
+            assertTrue(response.body.contains("\"error\""), "expected error JSON body, got:\n${response.body}")
+            assertTrue(response.body.contains("itemIds must not be empty"), "expected reason in body, got:\n${response.body}")
+        } finally {
+            server.stop()
+        }
+    }
+
     private fun seedSessionWithOneItem(
         store: FeedbackSessionStore,
         service: FeedbackSessionService,

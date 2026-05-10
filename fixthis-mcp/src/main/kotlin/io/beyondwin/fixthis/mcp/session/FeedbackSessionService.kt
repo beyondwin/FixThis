@@ -80,7 +80,9 @@ class FeedbackSessionService(
 
     fun getSession(sessionId: String): SessionDto = store.getSession(sessionId)
 
-    fun findSession(sessionId: String): SessionDto? = runCatching { store.getSession(sessionId) }.getOrNull()
+    fun findSession(sessionId: String): SessionDto? = try {
+        store.getSession(sessionId)
+    } catch (_: FeedbackSessionException) { null }
 
     fun listSessions(packageNameOverride: String? = null, includeClosed: Boolean = false): FeedbackSessionList {
         val packageName = packageNameOverride

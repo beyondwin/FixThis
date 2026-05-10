@@ -9,12 +9,20 @@ import io.beyondwin.fixthis.mcp.session.SnapshotDto
 import io.beyondwin.fixthis.mcp.session.FeedbackNavigationResult
 import java.net.URLDecoder
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
+
+@Serializable
+internal data class ConsoleErrorBody(val error: String)
+
+internal fun HttpExchange.sendErrorJson(status: Int, message: String) {
+    sendText(status, fixThisJson.encodeToString(ConsoleErrorBody.serializer(), ConsoleErrorBody(message)), "application/json; charset=utf-8")
+}
 
 internal fun HttpExchange.requireMethod(method: String, block: () -> Unit) {
     if (requestMethod != method) {
         responseHeaders.add("Allow", method)
-        sendText(405, "Method not allowed", "text/plain; charset=utf-8")
+        sendErrorJson(405, "Method not allowed")
         return
     }
     block()
