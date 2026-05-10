@@ -197,8 +197,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778394900000;
-const ConsoleBuildGitSha = '05e784b';
+const ConsoleBuildEpochMs = 1778419560000;
+const ConsoleBuildGitSha = 'e9b73f2';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -259,15 +259,45 @@ const ConsoleBuildGitSha = '05e784b';
 
             const MinimumSupportedProtocolVersion = '1.1';
 
+            // Parse "1.1" -> [1, 1]; "1" -> [1]; non-numeric / null / undefined -> null.
+            function parseProtocolVersion(s) {
+              if (typeof s !== 'string') return null;
+              const parts = s.split('.').map((token) => Number(token));
+              if (parts.length === 0) return null;
+              if (parts.some((n) => !Number.isFinite(n))) return null;
+              return parts;
+            }
+
+            // Returns negative / 0 / positive. Shorter array right-padded with 0.
+            function compareProtocolVersion(a, b) {
+              const len = Math.max(a.length, b.length);
+              for (let i = 0; i < len; i++) {
+                const ai = a[i] ?? 0;
+                const bi = b[i] ?? 0;
+                if (ai !== bi) return ai - bi;
+              }
+              return 0;
+            }
+
             function checkProtocolCompat(status) {
-              const v = status?.bridgeProtocolVersion;
-              if (typeof v !== 'string') return;
-              if (v !== MinimumSupportedProtocolVersion) {
+              const reported = parseProtocolVersion(status?.bridgeProtocolVersion);
+              const expected = parseProtocolVersion(MinimumSupportedProtocolVersion);
+              if (!reported || !expected) return;
+              const cmp = compareProtocolVersion(reported, expected);
+              if (cmp === 0) return;
+              if (cmp < 0) {
                 renderStalenessBanner({
                   severity: 'critical',
-                  headline: `Bridge protocol v${v} is too old`,
+                  headline: `Sample app bridge protocol v${status.bridgeProtocolVersion} is older than this console (expects v${MinimumSupportedProtocolVersion})`,
                   detail: 'Reinstall the sample APK (./gradlew :app:installDebug) to update sidekick.',
-                  hash: `protocol-${v}`,
+                  hash: `protocol-sidekick-old-${status.bridgeProtocolVersion}`,
+                });
+              } else {
+                renderStalenessBanner({
+                  severity: 'critical',
+                  headline: `This console is older than sample app bridge protocol v${status.bridgeProtocolVersion} (expects v${MinimumSupportedProtocolVersion})`,
+                  detail: 'Restart fixthis-mcp + hard reload the browser tab to update console.',
+                  hash: `protocol-console-old-${status.bridgeProtocolVersion}`,
                 });
               }
             }

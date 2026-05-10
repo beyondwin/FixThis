@@ -3376,6 +3376,32 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun stalenessExposesProtocolVersionParser() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains("function parseProtocolVersion"),
+            "must expose parseProtocolVersion helper")
+        assertTrue(html.contains("function compareProtocolVersion"),
+            "must expose compareProtocolVersion helper")
+    }
+
+    @Test
+    fun protocolCompatBannersBothDirections() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val body = javascriptFunctionBody(html, "checkProtocolCompat")
+        assertTrue(body.contains("protocol-sidekick-old-"),
+            "must produce sidekick-old-direction hash")
+        assertTrue(body.contains("protocol-console-old-"),
+            "must produce console-old-direction hash")
+        assertTrue(body.contains("compareProtocolVersion("),
+            "must call compareProtocolVersion")
+        assertFalse(
+            body.contains("=== MinimumSupportedProtocolVersion") ||
+                body.contains("!== MinimumSupportedProtocolVersion"),
+            "must NOT compare via string equality (use numeric compareProtocolVersion instead)",
+        )
+    }
+
+    @Test
     fun applyConnectionStatusCallsCheckProtocolCompat() {
         val html = FeedbackConsoleAssets.indexHtml
         val body = javascriptFunctionBody(html, "applyConnectionStatus")
