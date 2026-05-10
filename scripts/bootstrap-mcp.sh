@@ -57,6 +57,6 @@ echo "[bootstrap] step 1/2 — building :fixthis-cli and :fixthis-mcp installDis
 
 echo "[bootstrap] step 2/2 — running fixthis setup --target $TARGET"
 ./fixthis-cli/build/install/fixthis/bin/fixthis setup \
-    --package "$PACKAGE" --write --target "$TARGET" "${EXTRA_FLAGS[@]}"
+    --package "$PACKAGE" --write --target "$TARGET" ${EXTRA_FLAGS[@]+"${EXTRA_FLAGS[@]}"}
 
 echo "[bootstrap] complete — restart Claude Code or Codex to pick up the new MCP server"
