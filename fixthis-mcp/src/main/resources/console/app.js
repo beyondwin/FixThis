@@ -177,8 +177,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778389740000;
-const ConsoleBuildGitSha = '98a90e8';
+const ConsoleBuildEpochMs = 1778390400000;
+const ConsoleBuildGitSha = '46a4d15';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.

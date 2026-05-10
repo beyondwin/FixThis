@@ -22,10 +22,13 @@
 
 ### Changed
 
+- `BridgeProtocol.VERSION` "1.0" → "1.1" (sidekickBuildEpochMs 필드 추가에 따른 minor bump). 옛 sample APK 가 새 콘솔에 연결되면 빨간 banner 로 reinstall 안내.
 - `fixthis setup --write` output now labels each written config with its scope: `(project-local)` for Claude (project's `.claude/settings.json`) and `(global)` for Codex (user's `~/.codex/config.toml`). Affects both the success line and the `--dry-run` `Target:` line.
 
 ### Added
 
+- `scripts/restart-console.sh` 헬퍼. stale fixthis-mcp/cli 콘솔 프로세스를 종료하고 incremental gradle 빌드 + 재시작을 단일 커맨드로 묶음. `--with-app` 으로 샘플 APK 도 같이 재설치, `--dry-run` 으로 동작 미리보기.
+- 콘솔 boot 시 자동 staleness 감지 (staleness banner). `fixthis-mcp` JAR 또는 sidekick 빌드가 5분 이상 차이 나면 dismissable banner 로 알림. 새 endpoint `/api/server-version` (server build epoch + git sha + bridge protocol version) + `BridgeStatus.sidekickBuildEpochMs` 필드 추가.
 - Console now models a `Connected` sub-state for screen-off, app-backgrounded, lock screen, Picture-in-Picture, unresponsive sample app, and "no Compose UI on this screen", with a canvas overlay, canvas-input gating, top-bar chip suffix, and automatic resume of the prior tool mode, frozen preview, and pending pins when the cause clears. Sidekick exposes `screenInteractive`, `keyguardLocked`, `appForeground`, and `pictureInPicture` on `BridgeStatus`.
 - "Copy Prompt" button now briefly displays a "Copied ✓" confirmation after copying to the clipboard, giving clear visual feedback.
 - "Send Agent" action now shows a success status message in the console status bar after the request completes successfully.
@@ -47,3 +50,8 @@
 ### Changed
 
 - Compact feedback handoff prompt v2 — replaced single-line `src?` hint with a multi-candidate `candidates:` block, added `viewport:`, `activity:`, `instance i/N`, collision and duplicate-marker notes; matcher now populates `scoreMargin`. PRECISE/FULL detail modes and JSON wire format unchanged.
+
+### Docs
+
+- `CLAUDE.md` 에 "After Code Changes — Restart Console Stack" 섹션 추가. fixthis-mcp 코드 변경 후 재시작 의무 명문화. (stale-binary-detection feature)
+- `CLAUDE.md` 에 "Bridge Protocol Compatibility" 섹션 추가. BridgeStatus / BridgeProtocol 시그니처 변경 PR 의 VERSION bump 규칙 명시. (BridgeProtocol.VERSION, sidekickBuildEpochMs 포함)
