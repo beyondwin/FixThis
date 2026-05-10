@@ -43,7 +43,7 @@ const entries = sources.map((name) => {
   return `// ${name}\n${readFileSync(path, 'utf8').trimEnd()}\n`;
 });
 
-// Splice the build header between state.js (index 0) and api.js (index 1).
+// Splice the build header at entries index 1 — between state.js (sources[0]) and staleness.js (sources[1]).
 entries.splice(1, 0, buildHeader);
 
 const output = entries.join('\n');

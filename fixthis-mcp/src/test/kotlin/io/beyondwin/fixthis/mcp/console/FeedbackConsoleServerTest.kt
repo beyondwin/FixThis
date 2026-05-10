@@ -528,10 +528,10 @@ class FeedbackConsoleServerTest {
     @Test
     fun stalenessCheckHandlesMissingEndpoint() {
         val html = FeedbackConsoleAssets.indexHtml
-        val body = javascriptFunctionBody(html, "renderStalenessBanner")
+        val body = javascriptFunctionBody(html, "checkServerStaleness")
         // 404 = stale signal; 5xx and network errors = silent
         assertTrue(
-            html.contains("resp.status === 404") || html.contains("!resp.ok"),
+            body.contains("resp.status === 404") || body.contains("!resp.ok"),
             "must treat 404 as stale signal",
         )
     }
