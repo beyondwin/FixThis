@@ -74,6 +74,10 @@ internal fun HttpExchange.sendJson(statusCode: Int, value: ConsoleDeviceList) {
     sendText(statusCode, fixThisJson.encodeToString(ConsoleDeviceList.serializer(), value), "application/json; charset=utf-8")
 }
 
+internal fun HttpExchange.sendMarkdown(statusCode: Int, text: String) {
+    sendText(statusCode, text, "text/markdown; charset=utf-8")
+}
+
 internal fun HttpExchange.sendText(statusCode: Int, text: String, contentType: String) {
     sendBytes(statusCode, text.toByteArray(Charsets.UTF_8), contentType)
 }

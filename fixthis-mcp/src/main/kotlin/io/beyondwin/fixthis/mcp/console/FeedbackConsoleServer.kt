@@ -30,6 +30,7 @@ class FeedbackConsoleServer(
             PreviewRoutes(service),
             FeedbackItemRoutes(service),
             ArtifactRoutes(service),
+            HandoffPreviewRoutes(service),
         ),
     )
     private var server: HttpServer? = null

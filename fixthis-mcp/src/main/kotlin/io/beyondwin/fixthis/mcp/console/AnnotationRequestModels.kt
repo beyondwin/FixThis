@@ -32,3 +32,8 @@ data class UpdateAnnotationRequest(
     val comment: String? = null,
     val status: AnnotationStatusDto? = null,
 )
+
+@Serializable
+data class HandoffPreviewRequest(
+    val itemIds: List<String> = emptyList(),
+)

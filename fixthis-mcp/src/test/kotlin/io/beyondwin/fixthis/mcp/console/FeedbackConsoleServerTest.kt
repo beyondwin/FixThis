@@ -3600,6 +3600,25 @@ class FeedbackConsoleServerTest {
             }
             return connection
         }
+
+        fun postJson(path: String, body: String): ConsoleHttpResponse {
+            val conn = java.net.URI(baseUrl + path).toURL().openConnection() as java.net.HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.doOutput = true
+            conn.setRequestProperty("Content-Type", "application/json")
+            if (path.startsWith("/api/")) {
+                consoleToken?.let { conn.setRequestProperty(ConsoleTokenHeader, it) }
+            }
+            conn.outputStream.use { output -> output.write(body.toByteArray(Charsets.UTF_8)) }
+            val statusCode = conn.responseCode
+            val responseBody = runCatching {
+                (conn.errorStream ?: conn.inputStream)?.use { it.readBytes().toString(Charsets.UTF_8) } ?: ""
+            }.getOrDefault("")
+            val headerFields: Map<String, List<String>> = conn.headerFields
+                .filterKeys { it != null }
+                .mapKeys { (key, _) -> key!! }
+            return ConsoleHttpResponse(statusCode = statusCode, body = responseBody, headers = headerFields)
+        }
     }
 
     private data class ConsoleHttpResponse(
@@ -3612,6 +3631,9 @@ class FeedbackConsoleServerTest {
                 .firstOrNull { it.key.equals(name, ignoreCase = true) }
                 ?.value
                 ?.firstOrNull()
+
+        fun contentTypeStartsWith(prefix: String): Boolean =
+            header("Content-Type")?.startsWith(prefix) == true
     }
 
     @Test
@@ -3760,6 +3782,104 @@ class FeedbackConsoleServerTest {
             body.contains("sessionsPollingPaused") || body.contains("startSessionsPolling"),
             "withMutationLock finally-block must restart polling if paused"
         )
+    }
+
+    @Test
+    fun handoffPreviewEndpointReturnsMarkdownForRequestedItems() {
+        val store = FeedbackSessionStore()
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val (sessionId, itemId) = seedSessionWithOneItem(store, service)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/sessions/$sessionId/handoff-preview",
+                body = """{"itemIds":["$itemId"]}""",
+            )
+            assertEquals(200, response.statusCode)
+            assertTrue(response.contentTypeStartsWith("text/markdown"), "got: ${response.header("Content-Type")}")
+            assertTrue(response.body.contains("id: $itemId"), "expected 'id: $itemId' in:\n${response.body}")
+            assertTrue(response.body.contains("session_id: $sessionId"), "expected 'session_id:' in:\n${response.body}")
+            assertTrue(response.body.contains("agent_protocol:"), "expected agent_protocol block in:\n${response.body}")
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun handoffPreviewEndpointRejectsEmptyItemIds() {
+        val store = FeedbackSessionStore()
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val (sessionId, _) = seedSessionWithOneItem(store, service)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/sessions/$sessionId/handoff-preview",
+                body = """{"itemIds":[]}""",
+            )
+            assertEquals(400, response.statusCode)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun handoffPreviewEndpointReturns404ForUnknownSession() {
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = FeedbackSessionStore(clock = { 100L }, idGenerator = { "session-1" }),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/sessions/00000000-0000-0000-0000-000000000000/handoff-preview",
+                body = """{"itemIds":["x"]}""",
+            )
+            assertEquals(404, response.statusCode)
+        } finally {
+            server.stop()
+        }
+    }
+
+    private fun seedSessionWithOneItem(
+        store: FeedbackSessionStore,
+        service: FeedbackSessionService,
+    ): Pair<String, String> {
+        val session = service.openSession(null, newSession = true)
+        store.addScreen(
+            session.sessionId,
+            SnapshotDto(
+                screenId = "screen-1",
+                capturedAtEpochMillis = 100L,
+                displayName = "Screen 1",
+            ),
+        )
+        val item = store.addItem(
+            session.sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = "screen-1",
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(1f, 2f, 3f, 4f)),
+                comment = "Test feedback",
+            ),
+        )
+        return Pair(session.sessionId, item.itemId)
     }
 
     private class FakeExchange(path: String) : HttpExchange() {

@@ -80,6 +80,8 @@ class FeedbackSessionService(
 
     fun getSession(sessionId: String): SessionDto = store.getSession(sessionId)
 
+    fun findSession(sessionId: String): SessionDto? = runCatching { store.getSession(sessionId) }.getOrNull()
+
     fun listSessions(packageNameOverride: String? = null, includeClosed: Boolean = false): FeedbackSessionList {
         val packageName = packageNameOverride
             ?.takeIf { it.isNotBlank() }
