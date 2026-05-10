@@ -2,19 +2,21 @@ package io.beyondwin.fixthis.mcp.session
 
 object CompactHandoffRenderer {
     private const val MAX_CANDIDATES_RENDERED = 3
-    fun render(session: SessionDto): String = buildString {
+    fun render(session: SessionDto, itemIds: List<String>? = null): String = buildString {
+        val effectiveSession = if (itemIds == null) session
+            else session.copy(items = session.items.filter { it.itemId in itemIds })
         appendLine("# FixThis Feedback Handoff")
         appendLine()
         appendLine("Rule: source hints are candidates; verify screenshot, target, and code before editing.")
         appendLine()
-        appendLine("- Package: `${session.packageName}`")
-        val sourceRoot = computeSourceRoot(session)
+        appendLine("- Package: `${effectiveSession.packageName}`")
+        val sourceRoot = computeSourceRoot(effectiveSession)
         if (sourceRoot != null) {
             appendLine("- Source root: `$sourceRoot`")
         }
         appendLine()
 
-        val orderedItems = session.items.withIndex()
+        val orderedItems = effectiveSession.items.withIndex()
             .sortedWith(
                 compareBy<IndexedValue<AnnotationDto>> { it.value.sequenceNumber ?: Int.MAX_VALUE }
                     .thenBy { it.index },
@@ -28,10 +30,10 @@ object CompactHandoffRenderer {
         val itemsByScreen = orderedItems.groupBy { it.value.screenId }
         var globalCounter = 0
         itemsByScreen.forEach { (screenId, indexedItems) ->
-            val screen = session.screens.firstOrNull { it.screenId == screenId }
+            val screen = effectiveSession.screens.firstOrNull { it.screenId == screenId }
             val displayName = screen?.displayName ?: "Screen"
             appendLine("Screen ${screenId.take(8)}: ${displayName.inlineSafe()}")
-            screen?.screenshot?.desktopFullPath?.let {
+            (screen?.screenshot?.desktopFullPath ?: screen?.screenshot?.fullPath)?.let {
                 appendLine("screenshot: ${it.inlineSafe()}")
             }
             val w = screen?.screenshot?.width
@@ -103,7 +105,6 @@ object CompactHandoffRenderer {
                 if (isOverlapGroup) {
                     overlapGroupCounter += 1
                     appendLine("Overlap group $overlapGroupCounter (resolve one marker at a time):")
-                    appendLine()
                 }
                 group.forEach { detectorItem ->
                     val annotation = itemById[detectorItem.id] ?: return@forEach
@@ -121,7 +122,7 @@ object CompactHandoffRenderer {
         appendLine("  before_work: fixthis_claim_feedback({sessionId, itemId})")
         appendLine("  on_complete: fixthis_resolve_feedback({sessionId, itemId, status: resolved|wont_fix|needs_clarification, summary})")
         appendLine("  user_console_reflects_within: 2s")
-        appendLine("session_id: ${session.sessionId}")
+        appendLine("session_id: ${effectiveSession.sessionId}")
     }
 
     private fun StringBuilder.appendCompactItem(
