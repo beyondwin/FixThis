@@ -32,7 +32,7 @@
 
             function historyOpenCount(session) {
               const pending = pendingHistoryItemsForSession(session);
-              return (session.unresolvedItemsCount || 0) + pending.filter(item => annotationStatus(item) !== 'resolved').length;
+              return (session.unresolvedItemsCount || 0) + (session.inProgressItemsCount || 0) + pending.filter(item => annotationStatus(item) !== 'resolved').length;
             }
 
             function historyDoneCount(session) {
@@ -181,13 +181,11 @@
               sessionCount.textContent = String(activeSummaries.length);
               const renderedSessions = renderedActiveSummaries.map((session, index) => {
                 const open = historyOpenCount(session);
-                const working = Number(session.inProgressItemsCount || 0);
                 const done = historyDoneCount(session);
                 const label = formatSessionLabel(session, ordinalBySessionId.get(session.sessionId) || index + 1);
                 const pips = [
-                  open    > 0 ? '<span class="hi-pip open">'    + escapeHtml(countLabel(open,    'open',    'open'))    + '</span>' : '',
-                  working > 0 ? '<span class="hi-pip working">' + escapeHtml(countLabel(working, 'working', 'working')) + '</span>' : '',
-                  done    > 0 ? '<span class="hi-pip done">'    + escapeHtml(countLabel(done,    'done',    'done'))    + '</span>' : '',
+                  open > 0 ? '<span class="hi-pip open">' + escapeHtml(countLabel(open, 'open', 'open')) + '</span>' : '',
+                  done > 0 ? '<span class="hi-pip done">' + escapeHtml(countLabel(done, 'resolved', 'resolved')) + '</span>' : '',
                 ].join('');
                 return '<div class="history-item session-row ' + (session.sessionId === activeId ? 'is-active' : '') + '" role="button" tabindex="0" data-session-id="' + escapeHtml(session.sessionId) + '">' +
                   '<span class="hi-head">' +

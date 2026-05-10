@@ -1912,7 +1912,7 @@ class FeedbackConsoleServerTest {
 
         assertTrue(html.contains("function pendingHistoryItemsForSession(session)"))
         assertTrue(historyOpenCount.contains("pendingHistoryItemsForSession(session)"))
-        assertTrue(historyOpenCount.contains("(session.unresolvedItemsCount || 0) + pending.filter(item => annotationStatus(item) !== 'resolved').length"))
+        assertTrue(historyOpenCount.contains("(session.unresolvedItemsCount || 0) + (session.inProgressItemsCount || 0) + pending.filter(item => annotationStatus(item) !== 'resolved').length"))
         assertTrue(historyDoneCount.contains("pending.filter(item => annotationStatus(item) === 'resolved').length"))
         assertTrue(html.contains("function renderCurrentSessionList()"))
         assertTrue(createAnnotationFromSelection.contains("renderCurrentSessionList();"))
@@ -3320,10 +3320,14 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
-    fun historyPipsIncludeWorking() {
+    fun historyPipsCollapseWorkingIntoOpen() {
         val html = FeedbackConsoleAssets.indexHtml
-        assertTrue(html.contains("class=\"hi-pip working\""), "History row must support a 'working' pip")
-        assertTrue(html.contains(".hi-pip.working"), "CSS for working pip must exist")
+        assertFalse(html.contains("class=\"hi-pip working\""), "History pips must not render a separate working/WIP pip")
+        val historyOpenCount = javascriptFunctionBody(html, "historyOpenCount")
+        assertTrue(
+            historyOpenCount.contains("(session.inProgressItemsCount || 0)"),
+            "historyOpenCount must include in-progress items so WIP collapses into the open count"
+        )
     }
 
     @Test

@@ -498,10 +498,6 @@
               background: #6fcf97;
               box-shadow: 0 0 0 3px rgba(111, 207, 151, .18);
             }
-            .hi-pip.working::before {
-              background: #b76e00;
-              box-shadow: 0 0 0 3px rgba(183, 110, 0, .18);
-            }
             .hi-strip {
               display: flex;
               gap: 2px;
@@ -515,7 +511,6 @@
             }
             .hi-strip-cell.done {
               background: #6fcf97;
-              opacity: .35;
             }
             .hi-strip-cell.empty {
               background: var(--line);
