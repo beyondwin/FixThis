@@ -184,6 +184,7 @@ const PIN_HYSTERESIS_MS = 800;
 - 옵션 B: `FeedbackConsoleServerTest.kt` 에 HTML 어서션 추가 — `assertTrue(html.contains("<pre id=\"connectionDetailsBody\""))` + 스타일 매칭. 더 견고하지만 over-test 가능.
 
 **트리거:** `index.html` 또는 `styles.css` 리팩터 PR 이 들어오면 — 또는 다음 콘솔 UI 작업 묶음에 옵션 A 한 줄 포함.
+**Resolved:** 2026-05-10, commit 29f235c (옵션 A 채택 — connection.js 인라인 코멘트). 트리거 조건은 더 이상 활성 risk 가 아님.
 
 ---
 
@@ -202,6 +203,7 @@ const PIN_HYSTERESIS_MS = 800;
 - 옵션 B: 번들 결과의 `node --check` 외에 노드 런타임에서 페어wise 함수 호출 가능성을 한 번 dry-run.
 
 **트리거:** 빌드 스크립트 변경 또는 콘솔 모듈 추가/제거 PR.
+**Resolved:** 2026-05-10, commit a7adb0a (옵션 A 채택 — build-console-assets.mjs 에 directory-scan + Set diff 누락 검증 추가). 미선언 신규 .js 파일은 빌드 시점에 즉시 실패한다.
 
 ---
 
@@ -302,7 +304,7 @@ const PIN_HYSTERESIS_MS = 800;
 ## 우선순위 (H 시리즈)
 
 1. **H6** — orchestrator 신뢰도 직결. 다음 multi-agent 실행 직전에 반드시.
-2. **H1, H2, H3** — 중간. 다음 콘솔 UI 작업 또는 백엔드 인프라 작업 때 함께 검토. H3 는 spinner 한 개 수준이면 단독으로도 검토 가능.
+2. **H3** — 중간. 다음 콘솔 UI 작업 묶음 또는 spinner 단독 PR. (H1, H2 는 2026-05-10 해결됨 — commits 29f235c, a7adb0a.)
 3. **H4, H5, H7, H8** — 트리거 기반 (사용자 보고, 텔레메트리, 환경 변경, 인접 리팩터).
 
 ---
@@ -323,9 +325,15 @@ const PIN_HYSTERESIS_MS = 800;
 
 다음 작업 세션을 잡을 때 참고용 합본:
 
-1. **R1 + R3 동시 검증 스모크** — 가장 먼저. 다른 모든 R 항목의 dependency.
+1. **R1 + R3 동시 검증 스모크** — 가장 먼저. 다른 모든 R 항목의 dependency. (post-merge-essential-followups executor run 에서는 디바이스 부재로 의도적으로 deferred — 사용자 수동 수행 대기.)
 2. **H6 orchestrator Reviewer 프롬프트 갱신** — 다음 multi-agent 실행 전 반드시.
 3. **R1 결과에 따라** R2/R3 별 plan 여부 결정.
-4. **H1/H2/H3** — 다음 콘솔 UI 작업 묶음에 포함.
+4. **H3** — 다음 콘솔 UI 작업 묶음에 포함. (H1, H2 는 2026-05-10 해결됨.)
 5. **H5** — 다음 orchestrator 실행이 SDK 이슈로 막히면.
 6. **R4, R5, H4, H7, H8** — 트리거 대기.
+
+## Resolved (2026-05-10, post-merge-essential-followups executor run)
+
+- **H1** (HTML/CSS dependency comment) — commit `29f235c`
+- **H2** (build-script drift detector) — commit `a7adb0a`
+- **R1, R3** — NOT resolved this run; manual smoke deferred. Operator will run S1–S11 + R3 nodeUid intersection check separately and update markers afterward.

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -19,6 +19,21 @@ const sources = [
   'shortcuts.js',
   'main.js',
 ];
+
+const sourceDir = resolve(root, 'fixthis-mcp/src/main/console');
+const declared = new Set(sources);
+const onDisk = readdirSync(sourceDir)
+  .filter((name) => name.endsWith('.js'));
+
+const undeclared = onDisk.filter((name) => !declared.has(name));
+if (undeclared.length > 0) {
+  console.error(
+    `build-console-assets: ${undeclared.length} .js file(s) on disk are not declared in the sources array:\n` +
+    undeclared.map((n) => `  - ${n}`).join('\n') +
+    `\nAdd them explicitly to the sources array (order matters — later modules can reference earlier ones).`
+  );
+  process.exit(1);
+}
 
 const output = sources
   .map((name) => {
