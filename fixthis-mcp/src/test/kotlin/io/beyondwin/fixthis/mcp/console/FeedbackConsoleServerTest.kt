@@ -3233,6 +3233,24 @@ class FeedbackConsoleServerTest {
         }
     }
 
+    @Test
+    fun stalenessBannerElementExistsInHtml() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains("id=\"stalenessBanner\""), "banner element must exist")
+        assertTrue(html.contains("data-headline"), "banner must have headline slot")
+        assertTrue(html.contains("data-detail"), "banner must have detail slot")
+        assertTrue(html.contains("data-dismiss"), "banner must have dismiss button")
+    }
+
+    @Test
+    fun stalenessBannerStylesExistInHtml() {
+        // FeedbackConsoleAssets inlines styles.css into indexHtml via the StylesPlaceholder,
+        // so the CSS rules are observable as substrings in the rendered indexHtml.
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains(".staleness-banner"), "banner CSS class must exist")
+        assertTrue(html.contains("#stalenessBanner") || html.contains(".staleness-banner"), "banner styled")
+    }
+
     private class FakeIds(vararg values: String) {
         private val queue = ArrayDeque(values.toList())
         val next: () -> String = { queue.removeFirst() }

@@ -1341,3 +1341,34 @@
               gap: 12px;
             }
             .canvas-stale[hidden] { display: none; }
+            .staleness-banner {
+              position: sticky;
+              top: 0;
+              z-index: 100;
+              background: #fff7e6;
+              border-bottom: 1px solid #f0c000;
+              color: #5a4500;
+              padding: 8px 16px;
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              font-size: 13px;
+            }
+            .staleness-banner[data-severity="critical"] {
+              background: #ffe6e6;
+              border-bottom-color: #d04040;
+              color: #5a0000;
+            }
+            .staleness-banner [data-headline] { font-weight: 600; }
+            .staleness-banner [data-detail] {
+              font-family: ui-monospace, SFMono-Regular, monospace;
+              opacity: 0.85;
+            }
+            .staleness-banner [data-dismiss] {
+              margin-left: auto;
+              background: transparent;
+              border: 0;
+              font-size: 18px;
+              cursor: pointer;
+              color: inherit;
+            }
