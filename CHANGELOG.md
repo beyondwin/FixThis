@@ -12,6 +12,14 @@
 
 ### Changed
 
+- console: documented `<pre id="connectionDetailsBody">` + `white-space: pre-wrap`
+  dependency in `connection.js` for the Reconnecting sub-line. Defensive comment
+  only, no behavior change. (H1, prevents silent visual regression on HTML/CSS
+  refactor.)
+- build: `scripts/build-console-assets.mjs` now asserts every `.js` file in the
+  console source directory is declared in the ordered `sources` array. Catches
+  the case where a contributor adds a module file but forgets to register it.
+  (H2, prevents silent absence from the bundle.)
 - `fixthis_list_feedback` and `fixthis_read_feedback` now default to returning only `delivery: sent` items that are not resolved. Pass `includeAll: true` to restore the previous behavior.
 - `fixthis_resolve_feedback` description now mentions the claim/resolve pairing.
 - "Save to MCP" toast now reads `Saved to MCP ✓ — agent will pick up`.
