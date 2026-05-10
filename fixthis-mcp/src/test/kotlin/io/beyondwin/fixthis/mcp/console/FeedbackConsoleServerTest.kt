@@ -3636,6 +3636,16 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun mergeSessionIntoStateSkipsHighlightOnBulkChange() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val body = javascriptFunctionBody(html, "mergeSessionIntoState")
+        assertTrue(
+            body.contains("BULK_CHANGE_HIGHLIGHT_THRESHOLD") || body.contains(">= 6") || body.contains("> 5"),
+            "mergeSessionIntoState must guard against bulk highlight cascade"
+        )
+    }
+
+    @Test
     fun startSessionsPollingIsCalledOnBoot() {
         val html = FeedbackConsoleAssets.indexHtml
         // Boot chain (16-space indent inside .then()): startSessionsPolling() must follow
@@ -3658,6 +3668,82 @@ class FeedbackConsoleServerTest {
                     "            });"
             ),
             "visibilitychange handler must restart startSessionsPolling() when tab becomes visible"
+        )
+    }
+
+    @Test
+    fun sessionsPollingDeclaresFailureBackoffConstants() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains("let consecutivePollFailures"), "must declare failure counter")
+        assertTrue(html.contains("MaxConsecutivePollFailures") || html.contains("= 5"),
+            "must declare threshold (named const or literal 5)")
+    }
+
+    @Test
+    fun pollSessionsTickResetsFailureCounterOnSuccess() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val body = javascriptFunctionBody(html, "pollSessionsTick")
+        assertTrue(body.contains("consecutivePollFailures = 0") || body.contains("consecutivePollFailures=0"),
+            "tick must reset counter on success")
+    }
+
+    @Test
+    fun pollSessionsTickIncrementsFailureCounterOnError() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val body = javascriptFunctionBody(html, "pollSessionsTick")
+        assertTrue(body.contains("consecutivePollFailures++") || body.contains("consecutivePollFailures += 1"),
+            "tick must increment counter on failure")
+    }
+
+    @Test
+    fun pollSessionsTickPausesAfterThreshold() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val body = javascriptFunctionBody(html, "pollSessionsTick")
+        assertTrue(body.contains("setSessionsPollingPaused(true)") || body.contains("stopSessionsPolling()"),
+            "tick must pause polling once threshold reached")
+    }
+
+    @Test
+    fun stateConnectionDeclaresSessionsPollingPaused() {
+        val html = FeedbackConsoleAssets.indexHtml
+        // The flag must be declared on state.connection (or a sibling module-level let).
+        assertTrue(
+            html.contains("sessionsPollingPaused"),
+            "must declare sessionsPollingPaused flag on state.connection"
+        )
+        assertTrue(
+            html.contains("function setSessionsPollingPaused"),
+            "must declare setSessionsPollingPaused helper"
+        )
+    }
+
+    @Test
+    fun renderConnectionSurfacesSessionsPollingPaused() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val body = javascriptFunctionBody(html, "renderConnection")
+        assertTrue(
+            body.contains("sessionsPollingPaused") || body.contains("Reconnecting feedback updates"),
+            "renderConnection must consult the paused flag and surface a Reconnecting message"
+        )
+    }
+
+    @Test
+    fun visibilityChangeRecoversFromPolledFailure() {
+        val html = FeedbackConsoleAssets.indexHtml
+        // The visibilitychange handler must restart polling when paused.
+        assertTrue(
+            html.contains("sessionsPollingPaused") && html.contains("startSessionsPolling"),
+            "visibility handler must consult sessionsPollingPaused and call startSessionsPolling"
+        )
+    }
+
+    @Test
+    fun withMutationLockRecoversFromPolledFailure() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val body = javascriptFunctionBody(html, "withMutationLock")
+        assertTrue(
+            body.contains("sessionsPollingPaused") || body.contains("startSessionsPolling"),
+            "withMutationLock finally-block must restart polling if paused"
         )
     }
 

@@ -15,7 +15,8 @@
                 launchInFlight: false,
                 availability: null,
                 interactionBlockedReason: null,
-                previousBlockedReason: null
+                previousBlockedReason: null,
+                sessionsPollingPaused: false
               }
             };
             const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });
@@ -84,13 +85,21 @@
             let lastSessionsEtag = null;
             let lastSessionEtag = null;
             let pendingMutationCount = 0;
+            let consecutivePollFailures = 0;
+            const MaxConsecutivePollFailures = 5;
 
             async function withMutationLock(fn) {
               pendingMutationCount++;
+              let succeeded = false;
               try {
-                return await fn();
+                const result = await fn();
+                succeeded = true;
+                return result;
               } finally {
                 pendingMutationCount--;
+                if (succeeded && pendingMutationCount === 0 && state.connection?.sessionsPollingPaused) {
+                  startSessionsPolling();
+                }
               }
             }
 
@@ -368,8 +377,20 @@
               connectionPrimaryAction.textContent = connectionActionLabel(action);
               connectionPrimaryAction.disabled = state.connection.launchInFlight;
               connectionPrimaryAction.dataset.connectionAction = action || 'START';
-              connectionDetailsBody.textContent = connectionDetailsText(status);
-              connectionDetails.hidden = viewState === 'ready' && !state.connection.hasEverConnected;
+              if (state.connection.sessionsPollingPaused) {
+                // Surface a sub-line indicating sessions polling is paused after consecutive failures.
+                // Uses connectionDetailsBody as the secondary message channel so it does NOT
+                // replace the bridge/device headline above.
+                const baseDetails = connectionDetailsText(status);
+                connectionDetailsBody.textContent = baseDetails
+                  ? baseDetails + '\nReconnecting feedback updates…'
+                  : 'Reconnecting feedback updates…';
+              } else {
+                connectionDetailsBody.textContent = connectionDetailsText(status);
+              }
+              connectionDetails.hidden = viewState === 'ready'
+                && !state.connection.hasEverConnected
+                && !state.connection.sessionsPollingPaused;
             }
 
             async function refreshConnection(options) {
@@ -2994,6 +3015,8 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               image.addEventListener('pointerleave', clearHoverPreview);
             }
 
+            const BULK_CHANGE_HIGHLIGHT_THRESHOLD = 6;
+
             function mergeSessionIntoState(fresh) {
               const previous = state.session;
               const preservedComment = comment.value;
@@ -3008,25 +3031,39 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               focusedPendingItemIndex = preservedFocusedPendingIndex;
               currentSelection = preservedSelection;
 
+              // Compute which items actually changed status since last tick.
               const previousStatusById = new Map(
                 (previous?.items || []).map(item => [item.itemId, item.status])
               );
-              (fresh.items || []).forEach(item => {
+              const changed = (fresh.items || []).filter(item => {
                 const before = previousStatusById.get(item.itemId);
-                if (before && before !== item.status) {
-                  const changedItemId = item.itemId;
-                  requestAnimationFrame(() => {
-                    document.querySelectorAll('[data-item-id="' + CSS.escape(changedItemId) + '"]').forEach(node => {
-                      node.setAttribute('data-just-changed', 'true');
-                      setTimeout(() => node.removeAttribute('data-just-changed'), 800);
-                    });
+                return before && before !== item.status;
+              });
+
+              // Bulk-change guard: skip highlight cascade for ticks with too many transitions.
+              if (changed.length >= BULK_CHANGE_HIGHLIGHT_THRESHOLD) return;
+
+              // Per-item highlight (existing logic, unchanged).
+              changed.forEach(item => {
+                const changedItemId = item.itemId;
+                requestAnimationFrame(() => {
+                  document.querySelectorAll('[data-item-id="' + CSS.escape(changedItemId) + '"]').forEach(node => {
+                    node.setAttribute('data-just-changed', 'true');
+                    setTimeout(() => node.removeAttribute('data-just-changed'), 800);
                   });
-                }
+                });
               });
             }
 
 // sessions-polling.js
             const SessionsPollIntervalMs = 2000;
+
+            function setSessionsPollingPaused(paused) {
+              if (state.connection.sessionsPollingPaused === paused) return;
+              state.connection.sessionsPollingPaused = paused;
+              // Re-render the connection card to surface the change.
+              if (state.connection.current) renderConnection(state.connection.current);
+            }
 
             function shouldPollSessions() {
               return !document.hidden && pendingMutationCount === 0 && !isEditingAnnotation();
@@ -3040,8 +3077,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function startSessionsPolling() {
               stopSessionsPolling();
+              consecutivePollFailures = 0;
               sessionsPollingTimer = setInterval(() => {
-                if (shouldPollSessions()) pollSessionsTick().catch(showError);
+                if (shouldPollSessions()) pollSessionsTick().catch(() => {
+                  // pollSessionsTick already handles its own failures; this catch is defensive.
+                });
               }, SessionsPollIntervalMs);
             }
 
@@ -3051,28 +3091,43 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             async function pollSessionsTick() {
-              const listResp = await fetch('/api/sessions', {
-                headers: lastSessionsEtag ? { 'If-None-Match': lastSessionsEtag } : {}
-              });
-              if (listResp.status === 200) {
-                lastSessionsEtag = listResp.headers.get('ETag');
-                const data = await listResp.json();
-                state.sessionSummaries = data.sessions || [];
-                renderSessionsList();
-              }
-
-              if (state.session?.sessionId) {
-                const sessResp = await fetch('/api/session', {
-                  headers: lastSessionEtag ? { 'If-None-Match': lastSessionEtag } : {}
+              try {
+                const listResp = await fetch('/api/sessions', {
+                  headers: lastSessionsEtag ? { 'If-None-Match': lastSessionsEtag } : {}
                 });
-                if (sessResp.status === 200) {
-                  lastSessionEtag = sessResp.headers.get('ETag');
-                  const fresh = await sessResp.json();
-                  if (fresh) {
-                    mergeSessionIntoState(fresh);
-                    renderInspectorRegion();
+                if (listResp.status === 200) {
+                  lastSessionsEtag = listResp.headers.get('ETag');
+                  const data = await listResp.json();
+                  state.sessionSummaries = data.sessions || [];
+                  renderSessionsList();
+                }
+
+                if (state.session?.sessionId) {
+                  const sessResp = await fetch('/api/session', {
+                    headers: lastSessionEtag ? { 'If-None-Match': lastSessionEtag } : {}
+                  });
+                  if (sessResp.status === 200) {
+                    lastSessionEtag = sessResp.headers.get('ETag');
+                    const fresh = await sessResp.json();
+                    if (fresh) {
+                      mergeSessionIntoState(fresh);
+                      renderInspectorRegion();
+                    }
                   }
                 }
+
+                // success path: reset counter and ensure not paused
+                consecutivePollFailures = 0;
+                if (state.connection?.sessionsPollingPaused) {
+                  setSessionsPollingPaused(false);
+                }
+              } catch (err) {
+                consecutivePollFailures++;
+                if (consecutivePollFailures >= MaxConsecutivePollFailures) {
+                  setSessionsPollingPaused(true);
+                  stopSessionsPolling();
+                }
+                // Swallow error silently while in backoff window — no toast for transient failures.
               }
             }
 

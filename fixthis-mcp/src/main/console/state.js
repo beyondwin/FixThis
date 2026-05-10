@@ -14,7 +14,8 @@
                 launchInFlight: false,
                 availability: null,
                 interactionBlockedReason: null,
-                previousBlockedReason: null
+                previousBlockedReason: null,
+                sessionsPollingPaused: false
               }
             };
             const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });
@@ -83,13 +84,21 @@
             let lastSessionsEtag = null;
             let lastSessionEtag = null;
             let pendingMutationCount = 0;
+            let consecutivePollFailures = 0;
+            const MaxConsecutivePollFailures = 5;
 
             async function withMutationLock(fn) {
               pendingMutationCount++;
+              let succeeded = false;
               try {
-                return await fn();
+                const result = await fn();
+                succeeded = true;
+                return result;
               } finally {
                 pendingMutationCount--;
+                if (succeeded && pendingMutationCount === 0 && state.connection?.sessionsPollingPaused) {
+                  startSessionsPolling();
+                }
               }
             }
 
