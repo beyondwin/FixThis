@@ -480,6 +480,7 @@ class FeedbackConsoleServerTest {
         val sourceDir = File(root, "fixthis-mcp/src/main/console")
         val modules = listOf(
             "state.js",
+            "staleness.js",
             "api.js",
             "connection.js",
             "availability.js",
@@ -514,6 +515,25 @@ class FeedbackConsoleServerTest {
         val html = FeedbackConsoleAssets.indexHtml
         assertTrue(html.contains("const ConsoleBuildEpochMs = "), "must embed build epoch")
         assertTrue(html.contains("const ConsoleBuildGitSha = '"), "must embed git sha")
+    }
+
+    @Test
+    fun stalenessModuleExposesCheckAndRender() {
+        val html = FeedbackConsoleAssets.indexHtml
+        assertTrue(html.contains("const StaleThresholdMs"), "threshold const must exist")
+        assertTrue(html.contains("async function checkServerStaleness"), "check function must exist")
+        assertTrue(html.contains("function renderStalenessBanner"), "render function must exist")
+    }
+
+    @Test
+    fun stalenessCheckHandlesMissingEndpoint() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val body = javascriptFunctionBody(html, "renderStalenessBanner")
+        // 404 = stale signal; 5xx and network errors = silent
+        assertTrue(
+            html.contains("resp.status === 404") || html.contains("!resp.ok"),
+            "must treat 404 as stale signal",
+        )
     }
 
     @Test
