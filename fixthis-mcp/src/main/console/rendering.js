@@ -113,16 +113,16 @@
                 ? '<div class="ann-list">' + pendingFeedbackItems.map((item, index) => {
                   const commentText = firstLine(item.comment || 'No comment');
                   const hasComment = Boolean(String(item.comment || '').trim());
-                  const status = annotationStatus(item);
+                  const phase = lifecyclePhase(item);
                   const color = severityColor(annotationSeverity(item));
                   const pendingItemIdAttr = item.itemId ? ' data-item-id="' + escapeHtml(item.itemId) + '"' : '';
-                  return '<button type="button" class="ann-row pending-item-row ' + (index === focusedPendingItemIndex ? 'active' : '') + '" style="--annotation-color:' + color + '"' + pendingItemIdAttr + ' data-focus-pending="' + index + '">' +
+                  return '<button type="button" class="ann-row pending-item-row ' + (index === focusedPendingItemIndex ? 'active' : '') + '" style="--annotation-color:' + color + '" data-phase="' + escapeHtml(phase) + '"' + pendingItemIdAttr + ' data-focus-pending="' + index + '">' +
                     '<span class="ann-row-num" style="background:' + severityColor(annotationSeverity(item)) + '">' + (index + 1) + '</span>' +
                     '<span class="ann-row-body">' +
                       '<span class="ann-row-title">' + escapeHtml(annotationTitle(item, index)) + '</span>' +
                       '<span class="ann-row-comment ' + (hasComment ? '' : 'empty-comment') + '">' + escapeHtml(commentText) + '</span>' +
                     '</span>' +
-                    '<span class="ann-row-status ' + statusClass(status) + '">' + escapeHtml(statusLabel(status)) + '</span>' +
+                    '<span class="ann-row-status ' + statusClass(item) + '">' + escapeHtml(statusLabel(item)) + '</span>' +
                   '</button>';
                 }).join('') + '</div>'
                 : '<div class="empty-state"><div class="empty-title">No annotations yet.</div><div class="empty-body">Switch to <b>Annotate</b>, then click or drag on the preview.</div>' + startAnnotatingButtonHtml() + '</div>';
@@ -170,7 +170,7 @@
                       ['open', 'in-progress', 'resolved'].map(value =>
                         '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '"' +
                           ' aria-pressed="' + (status === value ? 'true' : 'false') + '">' +
-                          escapeHtml(statusLabel(value)) +
+                          escapeHtml(statusValueLabel(value)) +
                         '</button>'
                       ).join('') +
                     '</div>' +
@@ -293,7 +293,7 @@
                 const rows = items.map((item, index) => {
                   const commentText = firstLine(item.comment || 'No comment');
                   const hasComment = Boolean(String(item.comment || '').trim());
-                  const status = annotationStatus(item);
+                  const phase = lifecyclePhase(item);
                   const color = severityColor(annotationSeverity(item));
                   let header = '';
                   if (item.screenId !== prevScreenId) {
@@ -301,13 +301,13 @@
                     prevScreenId = item.screenId;
                   }
                   return header +
-                    '<button type="button" class="ann-row saved-item-row ' + (item.itemId === focusedSavedItemId ? 'active' : '') + '" style="--annotation-color:' + color + '" data-item-id="' + escapeHtml(item.itemId) + '" data-focus-saved="' + escapeHtml(item.itemId) + '">' +
+                    '<button type="button" class="ann-row saved-item-row ' + (item.itemId === focusedSavedItemId ? 'active' : '') + '" style="--annotation-color:' + color + '" data-phase="' + escapeHtml(phase) + '" data-item-id="' + escapeHtml(item.itemId) + '" data-focus-saved="' + escapeHtml(item.itemId) + '">' +
                       '<span class="ann-row-num" style="background:' + color + '">' + (index + 1) + '</span>' +
                       '<span class="ann-row-body">' +
                         '<span class="ann-row-title">' + escapeHtml(targetLabel(item)) + '</span>' +
                         '<span class="ann-row-comment ' + (hasComment ? '' : 'empty-comment') + '">' + escapeHtml(commentText) + '</span>' +
                       '</span>' +
-                      '<span class="ann-row-status ' + statusClass(status) + '">' + escapeHtml(statusLabel(status)) + '</span>' +
+                      '<span class="ann-row-status ' + statusClass(item) + '">' + escapeHtml(statusLabel(item)) + '</span>' +
                     '</button>';
                 }).join('');
                 draftItems.innerHTML = '<div class="ann-list">' + rows + '</div>';
@@ -353,7 +353,7 @@
                       ['open', 'in-progress', 'resolved'].map(value =>
                         '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '"' +
                           ' aria-pressed="' + (status === value ? 'true' : 'false') + '">' +
-                          escapeHtml(statusLabel(value)) +
+                          escapeHtml(statusValueLabel(value)) +
                         '</button>'
                       ).join('') +
                     '</div>' +

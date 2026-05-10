@@ -913,9 +913,24 @@
               text-transform: uppercase;
               white-space: nowrap;
             }
-            .ann-row-status.st-open { background: rgba(230, 180, 90, .16); color: #e6b45a; }
-            .ann-row-status.st-in-progress { background: rgba(91, 157, 255, .16); color: #5b9dff; }
-            .ann-row-status.st-resolved { background: rgba(111, 207, 151, .16); color: #6fcf97; }
+            .ann-row-status.st-draft { background: rgba(156, 163, 175, .18); color: #cbd5e1; }
+            .ann-row-status.st-sent { background: rgba(245, 158, 11, .18); color: #fcd34d; }
+            .ann-row-status.st-sent-modified {
+              background: rgba(245, 158, 11, .28);
+              color: #fde68a;
+              border: 1px solid #f59e0b;
+            }
+            .ann-row-status.st-sent-modified::before { content: '⚠ '; }
+            .ann-row-status.st-in-progress { background: rgba(59, 130, 246, .18); color: #93c5fd; }
+            .ann-row-status.st-in-progress::before { content: '🔒 '; }
+            .ann-row-status.st-resolved { background: rgba(34, 197, 94, .18); color: #86efac; }
+            .ann-row-status.st-resolved::before { content: '✓ '; }
+
+            .ann-row[data-phase="draft"] { border-left: 4px solid #9ca3af; }
+            .ann-row[data-phase="sent"] { border-left: 4px solid #f59e0b; }
+            .ann-row[data-phase="sent_modified"] { border-left: 4px solid #b45309; }
+            .ann-row[data-phase="in_progress"] { border-left: 4px solid #3b82f6; }
+            .ann-row[data-phase="resolved"] { border-left: 4px solid #22c55e; opacity: 0.85; }
             .annotation-detail {
               flex: 1 1 auto;
               overflow-y: auto;
