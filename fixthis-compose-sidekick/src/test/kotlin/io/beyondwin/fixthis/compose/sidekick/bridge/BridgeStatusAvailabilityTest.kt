@@ -21,7 +21,10 @@ import org.robolectric.Shadows
 
 @RunWith(RobolectricTestRunner::class)
 class BridgeStatusAvailabilityTest {
-    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
 
     @Test
     fun `legacy constructor populates new fields with null`() {

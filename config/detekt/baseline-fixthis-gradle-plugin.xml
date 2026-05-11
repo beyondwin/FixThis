@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:GenerateFixThisSourceIndexTask.kt$GenerateFixThisSourceIndexTask$private fun scanKotlinFile(file: File): List&lt;SourceIndexEntryAsset&gt;</ID>
+    <ID>LongMethod:GenerateFixThisSourceIndexTask.kt$GenerateFixThisSourceIndexTask$private fun scanKotlinFile(file: File): List&lt;SourceIndexEntryAsset&gt;</ID>
+    <ID>LongMethod:GenerateFixThisSourceIndexTaskTest.kt$GenerateFixThisSourceIndexTaskTest$@Test fun `emits typed source index signals while preserving v1 fields`()</ID>
+    <ID>LongMethod:GenerateFixThisSourceIndexTaskTest.kt$GenerateFixThisSourceIndexTaskTest$@Test fun `scans kotlin source for compose source hints`()</ID>
+    <ID>LongMethod:GenerateFixThisSourceIndexTaskTest.kt$GenerateFixThisSourceIndexTaskTest$@Test fun `scans multiline raw kotlin string literals`()</ID>
+    <ID>LoopWithTooManyJumpStatements:GenerateFixThisSourceIndexTask.kt$GenerateFixThisSourceIndexTask$for</ID>
+    <ID>MaxLineLength:GenerateFixThisSourceIndexTask.kt$GenerateFixThisSourceIndexTask$private</ID>
+    <ID>MaxLineLength:GenerateFixThisSourceIndexTask.kt$GenerateFixThisSourceIndexTask$private fun classNameAt(offset: Int, classDeclarations: List&lt;Pair&lt;Int, String&gt;&gt;): String?</ID>
+    <ID>TooManyFunctions:GenerateFixThisSourceIndexTask.kt$GenerateFixThisSourceIndexTask : DefaultTask</ID>
+  </CurrentIssues>
+</SmellBaseline>

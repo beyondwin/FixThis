@@ -1,0 +1,63 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ComplexCondition:OccurrenceCalculator.kt$OccurrenceCalculator$composableName != null &amp;&amp; variant != null &amp;&amp; parsedTag?.composableName == composableName &amp;&amp; parsedTag.variant == variant</ID>
+    <ID>CyclomaticComplexMethod:FixThisMarkdownFormatter.kt$FixThisMarkdownFormatter$private fun compactReasonToken(reason: String): String?</ID>
+    <ID>CyclomaticComplexMethod:SourceMatcher.kt$SourceMatcher$private fun score( entry: SourceIndexEntry, selectedNode: FixThisNode, nearbyNodes: List&lt;FixThisNode&gt;, activityName: String?, ): MatchScore</ID>
+    <ID>LongMethod:FixThisMarkdownFormatterTest.kt$FixThisMarkdownFormatterTest$private fun annotationWithTargetEvidence(): FixThisAnnotation</ID>
+    <ID>LongMethod:SourceMatcher.kt$SourceMatcher$private fun score( entry: SourceIndexEntry, selectedNode: FixThisNode, nearbyNodes: List&lt;FixThisNode&gt;, activityName: String?, ): MatchScore</ID>
+    <ID>LongMethod:TargetEvidenceModelTest.kt$TargetEvidenceModelTest$@Test fun annotationWithTargetEvidenceEncodesAndDecodes()</ID>
+    <ID>LongParameterList:FixThisMarkdownFormatterTest.kt$FixThisMarkdownFormatterTest$( uid: String, text: List&lt;String&gt; = emptyList(), contentDescription: List&lt;String&gt; = emptyList(), role: String? = null, testTag: String? = null, actions: List&lt;String&gt; = emptyList(), )</ID>
+    <ID>LongParameterList:FixThisMarkdownFormatterTest.kt$FixThisMarkdownFormatterTest$( userComment: String = "Please inspect this", selectedNode: FixThisNode? = null, sourceCandidates: List&lt;SourceCandidate&gt; = emptyList(), searchHints: List&lt;String&gt; = emptyList(), screenshot: ScreenshotInfo? = null, errors: List&lt;FixThisError&gt; = emptyList(), )</ID>
+    <ID>LongParameterList:NodeSelectorTest.kt$NodeSelectorTest$( uid: String, bounds: FixThisRect, text: List&lt;String&gt; = emptyList(), contentDescription: List&lt;String&gt; = emptyList(), editableText: String? = null, role: String? = null, testTag: String? = null, actions: List&lt;String&gt; = emptyList(), rootIndex: Int = 0, treeKind: TreeKind = TreeKind.MERGED, enabled: Boolean = true, )</ID>
+    <ID>LongParameterList:OccurrenceCalculatorTest.kt$OccurrenceCalculatorTest$( uid: String, testTag: String? = null, text: List&lt;String&gt; = emptyList(), contentDescription: List&lt;String&gt; = emptyList(), role: String? = null, top: Float = 0f, left: Float = 0f, isSensitive: Boolean = false, )</ID>
+    <ID>LongParameterList:SourceMatcher.kt$SourceMatcher$( entry: SourceIndexEntry, testTag: String, matchedTerms: MutableSet&lt;String&gt;, matchReasons: MutableSet&lt;String&gt;, scoredEvidence: MutableSet&lt;String&gt;, ctx: ScoreContext, )</ID>
+    <ID>LongParameterList:SourceMatcher.kt$SourceMatcher$( hit: WeightHit, term: String, reason: String, score: Double, matchedTerms: MutableSet&lt;String&gt;, matchReasons: MutableSet&lt;String&gt;, scoredEvidence: MutableSet&lt;String&gt;, ctx: ScoreContext, isNearby: Boolean = false, )</ID>
+    <ID>LongParameterList:SourceMatcherTest.kt$SourceMatcherTest$( uid: String, text: List&lt;String&gt; = emptyList(), contentDescription: List&lt;String&gt; = emptyList(), role: String? = null, testTag: String? = null, actions: List&lt;String&gt; = emptyList(), )</ID>
+    <ID>MagicNumber:NodeSelector.kt$NodeSelector$10.0</ID>
+    <ID>MagicNumber:NodeSelector.kt$NodeSelector$100.0</ID>
+    <ID>MagicNumber:NodeSelector.kt$NodeSelector$12.0</ID>
+    <ID>MagicNumber:NodeSelector.kt$NodeSelector$14.0</ID>
+    <ID>MagicNumber:NodeSelector.kt$NodeSelector$16.0</ID>
+    <ID>MagicNumber:NodeSelector.kt$NodeSelector$18.0</ID>
+    <ID>MagicNumber:NodeSelector.kt$NodeSelector$20.0</ID>
+    <ID>MagicNumber:NodeSelector.kt$NodeSelector$24.0</ID>
+    <ID>MagicNumber:NodeSelector.kt$NodeSelector$28.0</ID>
+    <ID>MagicNumber:NodeSelector.kt$NodeSelector$4.0</ID>
+    <ID>MagicNumber:NodeSelector.kt$NodeSelector$45.0</ID>
+    <ID>MagicNumber:NodeSelector.kt$NodeSelector$55.0</ID>
+    <ID>MagicNumber:NodeSelector.kt$NodeSelector$6.0</ID>
+    <ID>MagicNumber:NodeSelector.kt$NodeSelector$85.0</ID>
+    <ID>MagicNumber:SourceInterpretationFactory.kt$SourceInterpretationFactory$5</ID>
+    <ID>MagicNumber:SourceMatcher.kt$SourceMatcher$0.35</ID>
+    <ID>MagicNumber:SourceMatcher.kt$SourceMatcher$0.85</ID>
+    <ID>MagicNumber:SourceMatcher.kt$SourceMatcher$1.15</ID>
+    <ID>MaxLineLength:EvidenceProfile.kt$EvidenceProfile.Companion$fun fromReasons(reasons: Collection&lt;String&gt;, rawScore: Double): EvidenceProfile</ID>
+    <ID>MaxLineLength:FixThisMarkdownFormatter.kt$FixThisMarkdownFormatter$appendLine(" - details: ${error.details.entries.joinToString { "${it.key.markdownInline()}=${it.value.markdownInline()}" }}")</ID>
+    <ID>MaxLineLength:FixThisMarkdownFormatter.kt$FixThisMarkdownFormatter$appendLine("- ${node.summary()} (${node.uid.markdownInline()}, ${node.treeKind}, ${node.boundsInWindow.format()})")</ID>
+    <ID>MaxLineLength:FixThisMarkdownFormatter.kt$FixThisMarkdownFormatter$private fun List&lt;String&gt;.markdownListValue(): String</ID>
+    <ID>MaxLineLength:FixThisMarkdownFormatterTest.kt$FixThisMarkdownFormatterTest$val markdown = FixThisMarkdownFormatter.format(annotation(selectedNode = node(uid = "pay-button")), DetailMode.PRECISE)</ID>
+    <ID>MaxLineLength:Models.kt$AppInfo$data</ID>
+    <ID>MaxLineLength:NodeSelector.kt$NodeSelector$.</ID>
+    <ID>MaxLineLength:NodeSelector.kt$NodeSelector$private fun FixThisNode.primaryText(): String?</ID>
+    <ID>MaxLineLength:NodeSelectorTest.kt$NodeSelectorTest$assertTrue(result.candidatesAtPoint.first { it.node.uid == "disabled-pay-button" }.breakdown.getValue("disabledPenalty") &lt; 0.0)</ID>
+    <ID>MaxLineLength:NodeSelectorTest.kt$NodeSelectorTest$assertTrue(result.candidatesAtPoint.first { it.node.uid == "empty-card" }.breakdown.getValue("largeEmptyPenalty") &lt; 0.0)</ID>
+    <ID>MaxLineLength:NodeSelectorTest.kt$NodeSelectorTest$assertTrue(result.candidatesAtPoint.map { it.node.uid }.containsAll(listOf("root", "empty-card", "details-button")))</ID>
+    <ID>MaxLineLength:NodeSelectorTest.kt$NodeSelectorTest$private fun rect(left: Float, top: Float, right: Float, bottom: Float): FixThisRect</ID>
+    <ID>MaxLineLength:SourceCandidateRiskPrecedenceTest.kt$SourceCandidateRiskPrecedenceTest$val flags = listOf(SourceCandidateRisk.TEXT_ONLY, SourceCandidateRisk.AMBIGUOUS, SourceCandidateRisk.LEGACY_FALLBACK)</ID>
+    <ID>MaxLineLength:SourceInterpretationFactoryTest.kt$SourceInterpretationFactoryTest$assertEquals("sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt", interpretation.topCandidate?.file)</ID>
+    <ID>MaxLineLength:SourceMatcher.kt$SourceMatcher$private</ID>
+    <ID>MaxLineLength:SourceMatcher.kt$SourceMatcher.WeightHit$// Weight-hit carrier: weight from the winning signal, its kind (null = legacy), and whether it came from legacy path</ID>
+    <ID>MaxLineLength:SourceMatcherTest.kt$SourceMatcherTest$assertEquals("sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt", matches.first().file)</ID>
+    <ID>MaxLineLength:SourceMatcherTest.kt$SourceMatcherTest$assertEquals(listOf("Screen1.kt", "Screen2.kt", "Screen3.kt", "Screen4.kt", "Screen5.kt"), matches.map { it.file })</ID>
+    <ID>NestedBlockDepth:SourceMatcher.kt$SourceMatcher$private fun SourceIndexEntry.bestSignalHit( terms: List&lt;String&gt;, kinds: Set&lt;SourceSignalKind&gt;, ): Pair&lt;Double, SourceSignalKind?&gt;</ID>
+    <ID>ReturnCount:IdentityHintFactory.kt$IdentityHintFactory$fun from(node: FixThisNode?): IdentityHint?</ID>
+    <ID>ReturnCount:OccurrenceCalculator.kt$OccurrenceCalculator$fun calculate( selectedNode: FixThisNode?, nodes: List&lt;FixThisNode&gt;, identityHint: IdentityHint?, ): Occurrence?</ID>
+    <ID>ReturnCount:OccurrenceCalculator.kt$OccurrenceCalculator$private fun FixThisNode.signature(identityHint: IdentityHint?): OccurrenceSignature?</ID>
+    <ID>ReturnCount:RedactionPolicy.kt$RedactionPolicy$fun apply( isPassword: Boolean, editableText: String?, text: List&lt;String&gt;, redactEditableText: Boolean = true, ): RedactedText</ID>
+    <ID>ReturnCount:SourceMatcher.kt$SourceMatcher$private fun addIfMatches( hit: WeightHit, term: String, reason: String, score: Double, matchedTerms: MutableSet&lt;String&gt;, matchReasons: MutableSet&lt;String&gt;, scoredEvidence: MutableSet&lt;String&gt;, ctx: ScoreContext, isNearby: Boolean = false, ): Double</ID>
+    <ID>TooManyFunctions:FixThisMarkdownFormatter.kt$FixThisMarkdownFormatter</ID>
+    <ID>TooManyFunctions:SourceMatcher.kt$SourceMatcher</ID>
+  </CurrentIssues>
+</SmellBaseline>

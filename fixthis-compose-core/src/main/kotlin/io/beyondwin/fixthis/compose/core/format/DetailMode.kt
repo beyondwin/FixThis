@@ -3,7 +3,8 @@ package io.beyondwin.fixthis.compose.core.format
 enum class DetailMode {
     COMPACT,
     PRECISE,
-    FULL;
+    FULL,
+    ;
 
     companion object {
         fun fromWire(value: String?): DetailMode = when (value?.trim()?.lowercase()) {

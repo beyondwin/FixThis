@@ -3,16 +3,16 @@ package io.beyondwin.fixthis.mcp.console
 import com.sun.net.httpserver.HttpExchange
 import io.beyondwin.fixthis.cli.fixThisJson
 import io.beyondwin.fixthis.mcp.session.AnnotationDto
+import io.beyondwin.fixthis.mcp.session.FeedbackNavigationResult
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionList
 import io.beyondwin.fixthis.mcp.session.SessionDto
 import io.beyondwin.fixthis.mcp.session.SnapshotDto
-import io.beyondwin.fixthis.mcp.session.FeedbackNavigationResult
-import java.net.URLDecoder
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonObject
+import java.net.URLDecoder
 
 @Serializable
 internal data class ConsoleErrorBody(val error: String)
@@ -30,17 +30,16 @@ internal fun HttpExchange.requireMethod(method: String, block: () -> Unit) {
     block()
 }
 
-internal fun HttpExchange.queryParameter(name: String): String? =
-    requestURI.rawQuery
-        ?.split("&")
-        ?.firstNotNullOfOrNull { parameter ->
-            val pieces = parameter.split("=", limit = 2)
-            URLDecoder.decode(pieces[0], Charsets.UTF_8.name())
-                .takeIf { it == name }
-                ?.let {
-                    URLDecoder.decode(pieces.getOrElse(1) { "" }, Charsets.UTF_8.name())
-                }
-        }
+internal fun HttpExchange.queryParameter(name: String): String? = requestURI.rawQuery
+    ?.split("&")
+    ?.firstNotNullOfOrNull { parameter ->
+        val pieces = parameter.split("=", limit = 2)
+        URLDecoder.decode(pieces[0], Charsets.UTF_8.name())
+            .takeIf { it == name }
+            ?.let {
+                URLDecoder.decode(pieces.getOrElse(1) { "" }, Charsets.UTF_8.name())
+            }
+    }
 
 internal fun HttpExchange.queryBoolean(name: String): Boolean {
     val value = queryParameter(name) ?: return false
@@ -111,8 +110,7 @@ internal fun HttpExchange.sendNoContent() {
     close()
 }
 
-internal fun HttpExchange.requestBodyText(): String =
-    requestBody.use { input -> input.readBytes().toString(Charsets.UTF_8) }
+internal fun HttpExchange.requestBodyText(): String = requestBody.use { input -> input.readBytes().toString(Charsets.UTF_8) }
 
 internal fun <T> HttpExchange.decodeJsonBody(
     serializer: KSerializer<T>,

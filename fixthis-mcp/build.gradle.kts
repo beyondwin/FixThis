@@ -17,10 +17,14 @@ application {
 // app.js share the exact same SHA/epoch within a single build. Otherwise the
 // console staleness banner fires on freshly built JARs (the committed bundle's
 // embedded SHA is always one commit behind the commit that contains it).
-val resolvedGitSha: String = providers.exec {
-    commandLine("git", "rev-parse", "--short", "HEAD")
-    isIgnoreExitValue = true
-}.standardOutput.asText.orNull?.trim()?.ifBlank { "unknown" } ?: "unknown"
+val resolvedGitSha: String =
+    providers
+        .exec {
+            commandLine("git", "rev-parse", "--short", "HEAD")
+            isIgnoreExitValue = true
+        }.standardOutput.asText.orNull
+        ?.trim()
+        ?.ifBlank { "unknown" } ?: "unknown"
 val resolvedBuildEpochMs: Long = (System.currentTimeMillis() / 60_000L) * 60_000L
 
 val generateBuildInfo by tasks.registering {
@@ -40,7 +44,7 @@ val generateBuildInfo by tasks.registering {
                 const val BUILD_EPOCH_MS: Long = ${epoch}L
                 const val GIT_SHA: String = "$sha"
             }
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 }
@@ -62,8 +66,7 @@ tasks.processResources {
                 .replace(
                     Regex("""(const\s+ConsoleBuildEpochMs\s*=\s*)\d+(\s*;)"""),
                     "$1$epoch$2",
-                )
-                .replace(
+                ).replace(
                     Regex("""(const\s+ConsoleBuildGitSha\s*=\s*)'[^']*'(\s*;)"""),
                     "$1'$sha'$2",
                 )

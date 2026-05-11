@@ -1,8 +1,8 @@
 package io.beyondwin.fixthis.mcp.session
 
-import java.io.File
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
+import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -96,8 +96,7 @@ class EvidenceCoordinatorTest {
         val bridge: FakeFixThisBridge,
         val projectRoot: File,
     ) {
-        fun openSession(): SessionDto =
-            store.openSession(packageName = "io.beyondwin.fixthis.sample", projectRoot = projectRoot.absolutePath)
+        fun openSession(): SessionDto = store.openSession(packageName = "io.beyondwin.fixthis.sample", projectRoot = projectRoot.absolutePath)
     }
 
     private fun newFixture(
@@ -131,6 +130,5 @@ class EvidenceCoordinatorTest {
         return Fixture(coordinator, store, bridge, root)
     }
 
-    private fun tempDir(prefix: String): File =
-        kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
+    private fun tempDir(prefix: String): File = kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
 }

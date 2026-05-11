@@ -1,11 +1,11 @@
 package io.beyondwin.fixthis.compose.sidekick.bridge
 
-import java.io.File
-import java.nio.file.Files
-import kotlin.io.path.createTempDirectory
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
+import java.nio.file.Files
+import kotlin.io.path.createTempDirectory
 
 class PathSafetyTest {
     @Test
@@ -90,6 +90,5 @@ class PathSafetyTest {
         assertFalse(PathSafety.isUnder(child, parent))
     }
 
-    private fun tempDirectory(prefix: String): File =
-        createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
+    private fun tempDirectory(prefix: String): File = createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
 }

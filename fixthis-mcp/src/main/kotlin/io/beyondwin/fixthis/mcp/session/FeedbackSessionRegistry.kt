@@ -21,36 +21,33 @@ class FeedbackSessionRegistry(
         packageNameOverride: String?,
         sessionId: String? = null,
         newSession: Boolean = false,
-    ): SessionDto =
-        synchronized(sessionLock) {
-            sessionId?.takeIf { it.isNotBlank() }?.let { return@synchronized store.openExistingSession(it) }
-            val packageName = bridge.resolvePackageName(
-                packageNameOverride?.takeIf { it.isNotBlank() } ?: defaultPackageName,
-            )
-            if (!newSession) {
-                store.currentSession()
-                    ?.takeIf {
-                        it.packageName == packageName &&
-                            it.projectRoot == projectRoot &&
-                            it.status != SessionStatusDto.CLOSED
-                    }
-                    ?.let { return@synchronized it }
-                store.listSessions(packageName = packageName)
-                    .sessions
-                    .firstOrNull { it.projectRoot == projectRoot }
-                    ?.let { return@synchronized store.openExistingSession(it.sessionId) }
-            }
-            store.openSession(packageName = packageName, projectRoot = projectRoot)
+    ): SessionDto = synchronized(sessionLock) {
+        sessionId?.takeIf { it.isNotBlank() }?.let { return@synchronized store.openExistingSession(it) }
+        val packageName = bridge.resolvePackageName(
+            packageNameOverride?.takeIf { it.isNotBlank() } ?: defaultPackageName,
+        )
+        if (!newSession) {
+            store.currentSession()
+                ?.takeIf {
+                    it.packageName == packageName &&
+                        it.projectRoot == projectRoot &&
+                        it.status != SessionStatusDto.CLOSED
+                }
+                ?.let { return@synchronized it }
+            store.listSessions(packageName = packageName)
+                .sessions
+                .firstOrNull { it.projectRoot == projectRoot }
+                ?.let { return@synchronized store.openExistingSession(it.sessionId) }
         }
+        store.openSession(packageName = packageName, projectRoot = projectRoot)
+    }
 
-    fun currentSession(): SessionDto =
-        store.currentSession() ?: openSession(null)
+    fun currentSession(): SessionDto = store.currentSession() ?: openSession(null)
 
     fun currentSessionOrNull(): SessionDto? = store.currentSession()
 
-    fun requireCurrentSession(): SessionDto =
-        currentSessionOrNull()
-            ?: throw FeedbackSessionException("NO_ACTIVE_SESSION: Start a feedback session first")
+    fun requireCurrentSession(): SessionDto = currentSessionOrNull()
+        ?: throw FeedbackSessionException("NO_ACTIVE_SESSION: Start a feedback session first")
 
     fun getSession(sessionId: String): SessionDto = store.getSession(sessionId)
 
@@ -76,12 +73,11 @@ class FeedbackSessionRegistry(
      * Builds a transient SessionDto for the welcome console flow when no real session
      * has been opened yet. Used by connection-status / launch flows on the façade.
      */
-    fun transientConsoleSession(): SessionDto =
-        SessionDto(
-            sessionId = "",
-            packageName = bridge.resolvePackageName(defaultPackageName),
-            projectRoot = projectRoot,
-            createdAtEpochMillis = 0L,
-            updatedAtEpochMillis = 0L,
-        )
+    fun transientConsoleSession(): SessionDto = SessionDto(
+        sessionId = "",
+        packageName = bridge.resolvePackageName(defaultPackageName),
+        projectRoot = projectRoot,
+        createdAtEpochMillis = 0L,
+        updatedAtEpochMillis = 0L,
+    )
 }

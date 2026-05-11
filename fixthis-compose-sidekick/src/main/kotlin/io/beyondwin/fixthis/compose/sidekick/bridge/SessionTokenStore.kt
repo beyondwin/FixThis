@@ -2,9 +2,9 @@ package io.beyondwin.fixthis.compose.sidekick.bridge
 
 import android.content.Context
 import android.util.Base64
+import kotlinx.serialization.Serializable
 import java.io.File
 import java.security.SecureRandom
-import kotlinx.serialization.Serializable
 
 @Serializable
 data class SidekickSession(
@@ -40,8 +40,7 @@ class SessionTokenStore(
         )
     }
 
-    fun createAndWrite(packageName: String): SidekickSession =
-        create(packageName).also(::write)
+    fun createAndWrite(packageName: String): SidekickSession = create(packageName).also(::write)
 
     fun write(session: SidekickSession) {
         val directory = File(context.filesDir, "fixthis")

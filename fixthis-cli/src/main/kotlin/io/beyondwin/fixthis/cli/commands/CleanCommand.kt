@@ -63,35 +63,34 @@ internal fun cleanFixThisArtifacts(
     }
 }
 
-private fun deleteDirectoryWithoutFollowingLinks(directory: Path, projectRoot: Path): Boolean =
-    try {
-        Files.walkFileTree(
-            directory,
-            object : SimpleFileVisitor<Path>() {
-                override fun preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult {
-                    val canonicalDirectory = dir.toFile().canonicalFile.toPath().normalize()
-                    if (!canonicalDirectory.startsWith(projectRoot)) {
-                        throw IOException("Refusing to delete outside project root: $dir")
-                    }
-                    return FileVisitResult.CONTINUE
+private fun deleteDirectoryWithoutFollowingLinks(directory: Path, projectRoot: Path): Boolean = try {
+    Files.walkFileTree(
+        directory,
+        object : SimpleFileVisitor<Path>() {
+            override fun preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult {
+                val canonicalDirectory = dir.toFile().canonicalFile.toPath().normalize()
+                if (!canonicalDirectory.startsWith(projectRoot)) {
+                    throw IOException("Refusing to delete outside project root: $dir")
                 }
+                return FileVisitResult.CONTINUE
+            }
 
-                override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
-                    Files.deleteIfExists(file)
-                    return FileVisitResult.CONTINUE
-                }
+            override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
+                Files.deleteIfExists(file)
+                return FileVisitResult.CONTINUE
+            }
 
-                override fun postVisitDirectory(dir: Path, exc: IOException?): FileVisitResult {
-                    if (exc != null) throw exc
-                    Files.deleteIfExists(dir)
-                    return FileVisitResult.CONTINUE
-                }
-            },
-        )
-        true
-    } catch (_: IOException) {
-        false
-    }
+            override fun postVisitDirectory(dir: Path, exc: IOException?): FileVisitResult {
+                if (exc != null) throw exc
+                Files.deleteIfExists(dir)
+                return FileVisitResult.CONTINUE
+            }
+        },
+    )
+    true
+} catch (_: IOException) {
+    false
+}
 
 internal data class CleanArtifactResult(
     val relativePath: String,

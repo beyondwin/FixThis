@@ -3,9 +3,6 @@ package io.beyondwin.fixthis.mcp
 import io.beyondwin.fixthis.cli.BridgeClient
 import io.beyondwin.fixthis.mcp.tools.CliFixThisBridge
 import io.beyondwin.fixthis.mcp.tools.FixThisTools
-import java.io.File
-import java.io.InputStream
-import java.io.OutputStream
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +19,9 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.io.File
+import java.io.InputStream
+import java.io.OutputStream
 import kotlin.system.exitProcess
 
 class McpServer(private val protocol: McpProtocol = McpProtocol()) {
@@ -100,8 +100,7 @@ class McpServer(private val protocol: McpProtocol = McpProtocol()) {
         }
     }
 
-    private fun String.isCancellableRequest(): Boolean =
-        this == "tools/call" || this == "resources/read"
+    private fun String.isCancellableRequest(): Boolean = this == "tools/call" || this == "resources/read"
 }
 
 fun main(args: Array<String>) {
@@ -141,14 +140,13 @@ fun main(args: Array<String>) {
     }
 }
 
-internal fun fixThisToolsForOptions(options: McpOptions, bridge: CliFixThisBridge): FixThisTools =
-    FixThisTools(
-        bridge = bridge,
-        defaultPackageName = options.packageName,
-        projectRoot = options.projectDir,
-        consoleAssetsDir = options.consoleAssetsDir,
-        consolePort = options.consolePort,
-    )
+internal fun fixThisToolsForOptions(options: McpOptions, bridge: CliFixThisBridge): FixThisTools = FixThisTools(
+    bridge = bridge,
+    defaultPackageName = options.packageName,
+    projectRoot = options.projectDir,
+    consoleAssetsDir = options.consoleAssetsDir,
+    consolePort = options.consolePort,
+)
 
 internal data class ConsoleStartupResult(val isError: Boolean, val text: String)
 

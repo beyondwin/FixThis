@@ -65,46 +65,45 @@ class AndroidNavigationPerformer(
     private val touchEventDispatcher: (View, MotionEvent) -> Boolean = { view, event -> view.dispatchTouchEvent(event) },
     private val keyEventDispatcher: (View, KeyEvent) -> Boolean = { view, event -> view.dispatchKeyEvent(event) },
 ) : NavigationPerformer {
-    override suspend fun perform(request: BridgeNavigationRequest): BridgeNavigationResult =
-        withContext(mainDispatcher) {
-            val activity = activityProvider()
-                ?: error("No resumed Activity is available for navigation")
-            val decorView = activity.window?.decorView
-                ?: error("Current Activity has no decorView")
-            val width = decorView.width
-            val height = decorView.height
-            require(width > 0 && height > 0) { "Current Activity decorView has no bounds" }
+    override suspend fun perform(request: BridgeNavigationRequest): BridgeNavigationResult = withContext(mainDispatcher) {
+        val activity = activityProvider()
+            ?: error("No resumed Activity is available for navigation")
+        val decorView = activity.window?.decorView
+            ?: error("Current Activity has no decorView")
+        val width = decorView.width
+        val height = decorView.height
+        require(width > 0 && height > 0) { "Current Activity decorView has no bounds" }
 
-            when (request.action) {
-                BridgeNavigationAction.BACK -> dispatchBack(decorView)
-                BridgeNavigationAction.TAP -> {
-                    val x = request.x ?: error("Tap navigation requires x")
-                    val y = request.y ?: error("Tap navigation requires y")
-                    require(x.isFinite() && y.isFinite() && x >= 0f && y >= 0f && x < width && y < height) {
-                        "Tap coordinates are outside the current window"
-                    }
-                    dispatchTap(decorView, x, y)
+        when (request.action) {
+            BridgeNavigationAction.BACK -> dispatchBack(decorView)
+            BridgeNavigationAction.TAP -> {
+                val x = request.x ?: error("Tap navigation requires x")
+                val y = request.y ?: error("Tap navigation requires y")
+                require(x.isFinite() && y.isFinite() && x >= 0f && y >= 0f && x < width && y < height) {
+                    "Tap coordinates are outside the current window"
                 }
-                BridgeNavigationAction.SWIPE -> {
-                    val direction = request.direction ?: error("Swipe navigation requires direction")
-                    val distance = request.distance ?: (minOf(width, height) * DefaultSwipeDistanceFraction)
-                    require(distance.isFinite() && distance > 0f) { "Swipe distance must be greater than 0" }
-                    dispatchSwipe(
-                        view = decorView,
-                        startX = width / 2f,
-                        startY = height / 2f,
-                        direction = direction,
-                        distance = distance,
-                    )
-                }
+                dispatchTap(decorView, x, y)
             }
-
-            BridgeNavigationResult(
-                performed = true,
-                action = request.action,
-                activity = activity::class.java.name,
-            )
+            BridgeNavigationAction.SWIPE -> {
+                val direction = request.direction ?: error("Swipe navigation requires direction")
+                val distance = request.distance ?: (minOf(width, height) * DefaultSwipeDistanceFraction)
+                require(distance.isFinite() && distance > 0f) { "Swipe distance must be greater than 0" }
+                dispatchSwipe(
+                    view = decorView,
+                    startX = width / 2f,
+                    startY = height / 2f,
+                    direction = direction,
+                    distance = distance,
+                )
+            }
         }
+
+        BridgeNavigationResult(
+            performed = true,
+            action = request.action,
+            activity = activity::class.java.name,
+        )
+    }
 
     private fun dispatchBack(view: View) {
         val now = SystemClock.uptimeMillis()

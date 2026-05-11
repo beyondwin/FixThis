@@ -311,8 +311,7 @@ class FeedbackSessionPersistenceTest {
     }
 }
 
-private fun tempDir(prefix: String): File =
-    kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
+private fun tempDir(prefix: String): File = kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
 
 private object FixThisRectForTest {
     val bounds = io.beyondwin.fixthis.compose.core.model.FixThisRect(1f, 2f, 3f, 4f)

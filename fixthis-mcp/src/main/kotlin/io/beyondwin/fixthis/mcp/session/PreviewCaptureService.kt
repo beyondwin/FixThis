@@ -4,7 +4,6 @@ import io.beyondwin.fixthis.compose.core.model.FixThisError
 import io.beyondwin.fixthis.mcp.McpProtocol
 import io.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot
 import io.beyondwin.fixthis.mcp.tools.FixThisBridge
-import java.io.File
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
@@ -12,6 +11,7 @@ import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.io.File
 
 class PreviewCaptureService(
     private val bridge: FixThisBridge,

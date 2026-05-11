@@ -98,10 +98,9 @@ class FixThisGradlePlugin : Plugin<Project> {
         project.dependencies.add(configurationName, dependency)
     }
 
-    private fun String.capitalized(): String =
-        replaceFirstChar { char ->
-            if (char.isLowerCase()) char.titlecase() else char.toString()
-        }
+    private fun String.capitalized(): String = replaceFirstChar { char ->
+        if (char.isLowerCase()) char.titlecase() else char.toString()
+    }
 }
 
 internal fun activeSourceSetNames(

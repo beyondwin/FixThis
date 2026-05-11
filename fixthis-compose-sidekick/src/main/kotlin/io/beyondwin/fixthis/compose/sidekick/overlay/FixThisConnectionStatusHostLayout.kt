@@ -105,15 +105,13 @@ internal class FixThisConnectionStatusHostLayout(
         statusIcon.setConnected(connected)
     }
 
-    private fun translucentColor(red: Int, green: Int, blue: Int): Int =
-        Color.argb(PillBackgroundAlpha, red, green, blue)
+    private fun translucentColor(red: Int, green: Int, blue: Int): Int = Color.argb(PillBackgroundAlpha, red, green, blue)
 
-    private fun pillBackground(color: Int): GradientDrawable =
-        GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = resources.displayMetrics.density.times(999).toFloat()
-            setColor(color)
-        }
+    private fun pillBackground(color: Int): GradientDrawable = GradientDrawable().apply {
+        shape = GradientDrawable.RECTANGLE
+        cornerRadius = resources.displayMetrics.density.times(999).toFloat()
+        setColor(color)
+    }
 
     private fun addStatusIcon() {
         val size = resources.displayMetrics.density.times(16).toInt()
@@ -248,8 +246,7 @@ private class StatusIndicatorView(context: Context) : View(context) {
     }
 
     @Suppress("unused")
-    private fun isPulseRunningForTest(): Boolean =
-        pulseAnimator.isRunning
+    private fun isPulseRunningForTest(): Boolean = pulseAnimator.isRunning
 
     private fun updatePulseAnimator() {
         if (connected && isAttachedToWindow) {
@@ -271,8 +268,7 @@ private data class StatusWindowHandle(
     val host: View,
 )
 
-private fun View.attachedStatusWindowHandle(): StatusWindowHandle? =
-    getTag(R.id.fixthis_connection_status_window_handle) as? StatusWindowHandle
+private fun View.attachedStatusWindowHandle(): StatusWindowHandle? = getTag(R.id.fixthis_connection_status_window_handle) as? StatusWindowHandle
 
 private fun Activity.statusBarInsetPx(): Int? {
     val insets = window.decorView.rootWindowInsets ?: return null
@@ -295,21 +291,18 @@ private fun Context.statusBarHeightPx(): Int {
     return resourceHeight.takeIf { it > 0 } ?: dp(DefaultStatusBarHeightDp)
 }
 
-private fun Context.dp(value: Int): Int =
-    resources.displayMetrics.density.times(value).toInt()
+private fun Context.dp(value: Int): Int = resources.displayMetrics.density.times(value).toInt()
 
 private const val DefaultStatusBarHeightDp = 24
 private const val TopStatusBarGapDp = 8
 
-internal fun View.findFixThisOverlayHosts(): List<View> =
-    if (this is ViewGroup) {
-        childrenDepthFirst().filter { it.isFixThisOverlayHost() }.toList()
-    } else {
-        emptyList()
-    }
+internal fun View.findFixThisOverlayHosts(): List<View> = if (this is ViewGroup) {
+    childrenDepthFirst().filter { it.isFixThisOverlayHost() }.toList()
+} else {
+    emptyList()
+}
 
-internal fun View.isFixThisOverlayHost(): Boolean =
-    getTag(R.id.fixthis_overlay_host) == true || tag == FixThisConnectionStatusHostLayout.HOST_TAG
+internal fun View.isFixThisOverlayHost(): Boolean = getTag(R.id.fixthis_overlay_host) == true || tag == FixThisConnectionStatusHostLayout.HOST_TAG
 
 private fun ViewGroup.childrenDepthFirst(): Sequence<View> = sequence {
     for (index in 0 until childCount) {

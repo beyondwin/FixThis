@@ -8,8 +8,8 @@ import io.beyondwin.fixthis.mcp.console.ConsoleConnectionStatus
 import io.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot
 import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import io.beyondwin.fixthis.mcp.tools.FixThisBridge
-import java.io.File
 import kotlinx.serialization.json.JsonObject
+import java.io.File
 
 data class SendDraftToAgentResult(val session: SessionDto, val prompt: String)
 
@@ -81,8 +81,7 @@ class FeedbackSessionService(
 
     fun findSession(sessionId: String): SessionDto? = registry.findSession(sessionId)
 
-    fun listSessions(packageNameOverride: String? = null, includeClosed: Boolean = false): FeedbackSessionList =
-        registry.listSessions(packageNameOverride, includeClosed)
+    fun listSessions(packageNameOverride: String? = null, includeClosed: Boolean = false): FeedbackSessionList = registry.listSessions(packageNameOverride, includeClosed)
 
     fun closeSession(sessionId: String): SessionDto = registry.closeSession(sessionId)
 
@@ -106,24 +105,19 @@ class FeedbackSessionService(
         return bridge.heartbeat(session.packageName)
     }
 
-    suspend fun connectionStatus(): ConsoleConnectionStatus =
-        connectionService.connectionStatus(registry.currentSessionOrNull() ?: registry.transientConsoleSession())
+    suspend fun connectionStatus(): ConsoleConnectionStatus = connectionService.connectionStatus(registry.currentSessionOrNull() ?: registry.transientConsoleSession())
 
-    suspend fun launchAppForCurrentSession(): ConsoleConnectionStatus =
-        connectionService.launchAppForSession(registry.currentSessionOrNull() ?: registry.transientConsoleSession())
+    suspend fun launchAppForCurrentSession(): ConsoleConnectionStatus = connectionService.launchAppForSession(registry.currentSessionOrNull() ?: registry.transientConsoleSession())
 
     // --- Evidence capture (delegates to EvidenceCoordinator) ---
 
     suspend fun captureScreen(sessionId: String): SnapshotDto = evidence.captureScreen(sessionId)
 
-    suspend fun capturePreview(sessionId: String): FeedbackPreviewSnapshot =
-        evidence.capturePreview(sessionId)
+    suspend fun capturePreview(sessionId: String): FeedbackPreviewSnapshot = evidence.capturePreview(sessionId)
 
-    fun previewScreenshotFile(sessionId: String, previewId: String): File =
-        evidence.previewScreenshotFile(sessionId, previewId)
+    fun previewScreenshotFile(sessionId: String, previewId: String): File = evidence.previewScreenshotFile(sessionId, previewId)
 
-    suspend fun navigate(sessionId: String, request: FeedbackNavigationRequest): FeedbackNavigationResult =
-        evidence.navigate(sessionId, request)
+    suspend fun navigate(sessionId: String, request: FeedbackNavigationRequest): FeedbackNavigationResult = evidence.navigate(sessionId, request)
 
     // --- Annotation CRUD (delegates to AnnotationRepository) ---
 
@@ -152,8 +146,7 @@ class FeedbackSessionService(
 
     fun clearDraftItems(sessionId: String): SessionDto = annotations.clearDraftItems(sessionId)
 
-    fun deleteScreen(sessionId: String, screenId: String): SessionDto =
-        annotations.deleteScreen(sessionId, screenId)
+    fun deleteScreen(sessionId: String, screenId: String): SessionDto = annotations.deleteScreen(sessionId, screenId)
 
     fun resolveFeedback(
         sessionId: String,
@@ -162,8 +155,7 @@ class FeedbackSessionService(
         summary: String?,
     ): AnnotationDto = annotations.resolveFeedback(sessionId, itemId, status, summary)
 
-    fun claimFeedback(sessionId: String, itemId: String, agentNote: String?): AnnotationDto =
-        annotations.claimFeedback(sessionId, itemId, agentNote)
+    fun claimFeedback(sessionId: String, itemId: String, agentNote: String?): AnnotationDto = annotations.claimFeedback(sessionId, itemId, agentNote)
 
     fun updateDraftFeedback(
         sessionId: String,
@@ -174,11 +166,9 @@ class FeedbackSessionService(
         status: AnnotationStatusDto?,
     ): SessionDto = annotations.updateDraftFeedback(sessionId, itemId, label, severity, comment, status)
 
-    fun deleteDraftFeedback(sessionId: String, itemId: String): SessionDto =
-        annotations.deleteDraftFeedback(sessionId, itemId)
+    fun deleteDraftFeedback(sessionId: String, itemId: String): SessionDto = annotations.deleteDraftFeedback(sessionId, itemId)
 
-    fun markItemsHandedOff(sessionId: String, itemIds: List<String>): SessionDto =
-        annotations.markItemsHandedOff(sessionId, itemIds)
+    fun markItemsHandedOff(sessionId: String, itemIds: List<String>): SessionDto = annotations.markItemsHandedOff(sessionId, itemIds)
 
     // --- Handoff (kept on façade; uses registry for session lookup) ---
 
@@ -204,11 +194,9 @@ class FeedbackSessionService(
             "to keep CompactHandoffRenderer as the single source of truth for handoff markdown.",
         ReplaceWith("sendDraftToAgent(sessionId, itemIds)"),
     )
-    fun sendDraftToAgent(sessionId: String): SessionDto =
-        feedbackDraftService.sendDraftToAgent(sessionId)
+    fun sendDraftToAgent(sessionId: String): SessionDto = feedbackDraftService.sendDraftToAgent(sessionId)
 
-    fun markReadyForAgent(sessionId: String): SessionDto =
-        feedbackDraftService.markReadyForAgent(sessionId)
+    fun markReadyForAgent(sessionId: String): SessionDto = feedbackDraftService.markReadyForAgent(sessionId)
 
     private companion object {
         const val MaxRetainedPreviews = 3

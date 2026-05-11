@@ -135,29 +135,28 @@ class TargetEvidenceModelTest {
         assertEquals(listOf("fallback source candidate was ignored"), targetEvidence?.warnings)
     }
 
-    private fun baseAnnotation(): FixThisAnnotation =
-        FixThisAnnotation(
-            id = "annotation-1",
-            createdAtEpochMillis = 100,
-            app = AppInfo(packageName = "io.beyondwin.fixthis.sample", debuggable = true),
-            activity = ActivityInfo(className = "io.beyondwin.fixthis.sample.MainActivity"),
-            tap = TapPoint(xInWindow = 20f, yInWindow = 30f),
-            selection = SelectionInfo(
-                kind = SelectionKind.SEMANTICS_NODE,
-                confidence = SelectionConfidence.HIGH,
-                selectedUid = "compose:0:merged:7",
-                source = SelectionSource.TAP_SELECT,
-            ),
-            selectedNode = FixThisNode(
-                uid = "compose:0:merged:7",
-                composeNodeId = 7,
-                rootIndex = 0,
-                treeKind = TreeKind.MERGED,
-                boundsInWindow = FixThisRect(0f, 0f, 100f, 48f),
-                text = listOf("Sign In"),
-                role = "Button",
-                testTag = "comp:AppPrimaryButton:primary",
-            ),
-            userComment = "Button color is too muted",
-        )
+    private fun baseAnnotation(): FixThisAnnotation = FixThisAnnotation(
+        id = "annotation-1",
+        createdAtEpochMillis = 100,
+        app = AppInfo(packageName = "io.beyondwin.fixthis.sample", debuggable = true),
+        activity = ActivityInfo(className = "io.beyondwin.fixthis.sample.MainActivity"),
+        tap = TapPoint(xInWindow = 20f, yInWindow = 30f),
+        selection = SelectionInfo(
+            kind = SelectionKind.SEMANTICS_NODE,
+            confidence = SelectionConfidence.HIGH,
+            selectedUid = "compose:0:merged:7",
+            source = SelectionSource.TAP_SELECT,
+        ),
+        selectedNode = FixThisNode(
+            uid = "compose:0:merged:7",
+            composeNodeId = 7,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = FixThisRect(0f, 0f, 100f, 48f),
+            text = listOf("Sign In"),
+            role = "Button",
+            testTag = "comp:AppPrimaryButton:primary",
+        ),
+        userComment = "Button color is too muted",
+    )
 }

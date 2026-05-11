@@ -1,7 +1,5 @@
 package io.beyondwin.fixthis.cli.commands
 
-import java.io.IOException
-import kotlin.system.measureTimeMillis
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -9,6 +7,8 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
+import java.io.IOException
+import kotlin.system.measureTimeMillis
 
 class RunCommandTest {
     @Test

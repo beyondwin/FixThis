@@ -1,12 +1,12 @@
 package io.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
+import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.TreeKind
 import io.beyondwin.fixthis.mcp.console.AnnotationDraftDto
 import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
-import java.io.File
 import kotlinx.coroutines.runBlocking
+import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -301,34 +301,32 @@ class FeedbackDraftServiceTest {
         val draftService: FeedbackDraftService,
     )
 
-    private fun previewScreen(sourceIndexAvailable: Boolean): SnapshotDto =
-        SnapshotDto(
-            screenId = "screen-1",
-            capturedAtEpochMillis = 100L,
-            displayName = "Checkout",
-            roots = listOf(
-                SnapshotRootDto(
-                    rootIndex = 0,
-                    boundsInWindow = FixThisRect(0f, 0f, 720f, 1600f),
-                    mergedNodes = listOf(
-                        FixThisNode(
-                            uid = "email-label",
-                            composeNodeId = 42,
-                            rootIndex = 0,
-                            treeKind = TreeKind.MERGED,
-                            boundsInWindow = FixThisRect(28f, 77f, 692f, 186f),
-                            text = listOf("Email address"),
-                            testTag = "emailField",
-                        ),
+    private fun previewScreen(sourceIndexAvailable: Boolean): SnapshotDto = SnapshotDto(
+        screenId = "screen-1",
+        capturedAtEpochMillis = 100L,
+        displayName = "Checkout",
+        roots = listOf(
+            SnapshotRootDto(
+                rootIndex = 0,
+                boundsInWindow = FixThisRect(0f, 0f, 720f, 1600f),
+                mergedNodes = listOf(
+                    FixThisNode(
+                        uid = "email-label",
+                        composeNodeId = 42,
+                        rootIndex = 0,
+                        treeKind = TreeKind.MERGED,
+                        boundsInWindow = FixThisRect(28f, 77f, 692f, 186f),
+                        text = listOf("Email address"),
+                        testTag = "emailField",
                     ),
                 ),
             ),
-            sourceIndexAvailable = sourceIndexAvailable,
-            screenshot = SnapshotScreenshotDto(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
-        )
+        ),
+        sourceIndexAvailable = sourceIndexAvailable,
+        screenshot = SnapshotScreenshotDto(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
+    )
 
-    private fun tempDir(prefix: String): File =
-        kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
+    private fun tempDir(prefix: String): File = kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
 
     private fun sequenceClock(vararg values: Long): () -> Long {
         val queue = ArrayDeque(values.toList())

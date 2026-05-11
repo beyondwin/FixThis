@@ -2,10 +2,44 @@ plugins {
     `java-gradle-plugin`
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.spotless)
+    alias(libs.plugins.detekt)
 }
 
 kotlin {
     jvmToolchain(21)
+}
+
+val ktlintVersion = libs.versions.ktlint.get()
+
+spotless {
+    kotlin {
+        target("**/*.kt")
+        targetExclude("**/build/**", "**/generated/**")
+        ktlint(ktlintVersion).editorConfigOverride(
+            mapOf(
+                "ktlint_standard_no-wildcard-imports" to "enabled",
+                "ktlint_standard_function-naming" to "disabled",
+                "ktlint_standard_property-naming" to "disabled",
+                "ktlint_standard_max-line-length" to "disabled",
+                "ktlint_standard_comment-wrapping" to "disabled",
+                "ktlint_standard_type-argument-comment" to "disabled",
+            ),
+        )
+    }
+    kotlinGradle {
+        target("**/*.gradle.kts")
+        targetExclude("**/build/**")
+        ktlint(ktlintVersion)
+    }
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom(files("${rootProject.projectDir}/../config/detekt/detekt.yml"))
+    // See note in root build.gradle.kts about per-module baseline files.
+    baseline = file("${rootProject.projectDir}/../config/detekt/baseline-fixthis-gradle-plugin.xml")
+    parallel = true
 }
 
 gradlePlugin {
@@ -17,10 +51,11 @@ gradlePlugin {
     }
 }
 
-val functionalTestSourceSet = sourceSets.create("functionalTest") {
-    compileClasspath += sourceSets["main"].output
-    runtimeClasspath += output + compileClasspath
-}
+val functionalTestSourceSet =
+    sourceSets.create("functionalTest") {
+        compileClasspath += sourceSets["main"].output
+        runtimeClasspath += output + compileClasspath
+    }
 
 configurations["functionalTestImplementation"].extendsFrom(configurations["testImplementation"])
 configurations["functionalTestRuntimeOnly"].extendsFrom(configurations["testRuntimeOnly"])
@@ -32,25 +67,27 @@ val sidekickDir = rootProject.projectDir.resolve("../fixthis-compose-sidekick")
 val consumerRulesFile = sidekickDir.resolve("consumer-rules.pro")
 val sidekickDebugManifestFile = sidekickDir.resolve("src/debug/AndroidManifest.xml")
 val sidekickMainManifestFile = sidekickDir.resolve("src/main/AndroidManifest.xml")
-val sidekickInitializerSourceFile = sidekickDir.resolve(
-    "src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/init/FixThisInitializer.kt",
-)
+val sidekickInitializerSourceFile =
+    sidekickDir.resolve(
+        "src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/init/FixThisInitializer.kt",
+    )
 
-val functionalTest = tasks.register<Test>("functionalTest") {
-    description = "Runs functional tests for the FixThis Gradle plugin."
-    group = "verification"
-    testClassesDirs = functionalTestSourceSet.output.classesDirs
-    classpath = functionalTestSourceSet.runtimeClasspath
-    useJUnit()
-    systemProperty("fixthis.consumerRules.path", consumerRulesFile.absolutePath)
-    systemProperty("fixthis.sidekick.debugManifest.path", sidekickDebugManifestFile.absolutePath)
-    systemProperty("fixthis.sidekick.mainManifest.path", sidekickMainManifestFile.absolutePath)
-    systemProperty("fixthis.sidekick.initializerSource.path", sidekickInitializerSourceFile.absolutePath)
-    inputs.file(consumerRulesFile).withPropertyName("consumerRules")
-    inputs.file(sidekickDebugManifestFile).withPropertyName("sidekickDebugManifest")
-    inputs.file(sidekickMainManifestFile).withPropertyName("sidekickMainManifest")
-    inputs.file(sidekickInitializerSourceFile).withPropertyName("sidekickInitializerSource")
-}
+val functionalTest =
+    tasks.register<Test>("functionalTest") {
+        description = "Runs functional tests for the FixThis Gradle plugin."
+        group = "verification"
+        testClassesDirs = functionalTestSourceSet.output.classesDirs
+        classpath = functionalTestSourceSet.runtimeClasspath
+        useJUnit()
+        systemProperty("fixthis.consumerRules.path", consumerRulesFile.absolutePath)
+        systemProperty("fixthis.sidekick.debugManifest.path", sidekickDebugManifestFile.absolutePath)
+        systemProperty("fixthis.sidekick.mainManifest.path", sidekickMainManifestFile.absolutePath)
+        systemProperty("fixthis.sidekick.initializerSource.path", sidekickInitializerSourceFile.absolutePath)
+        inputs.file(consumerRulesFile).withPropertyName("consumerRules")
+        inputs.file(sidekickDebugManifestFile).withPropertyName("sidekickDebugManifest")
+        inputs.file(sidekickMainManifestFile).withPropertyName("sidekickMainManifest")
+        inputs.file(sidekickInitializerSourceFile).withPropertyName("sidekickInitializerSource")
+    }
 
 tasks.named("check") {
     dependsOn(functionalTest)

@@ -7,7 +7,7 @@ object NearbyNodeCollector {
         nodes: List<FixThisNode>,
         anchor: FixThisNode,
         maxNodes: Int = 12,
-        radiusPx: Float = 480f
+        radiusPx: Float = 480f,
     ): List<FixThisNode> {
         if (maxNodes <= 0 || radiusPx < 0f) return emptyList()
 
@@ -21,7 +21,7 @@ object NearbyNodeCollector {
             .sortedWith(
                 compareBy<Pair<FixThisNode, Float>> { it.second }
                     .thenBy { it.first.boundsInWindow.area }
-                    .thenBy { it.first.uid }
+                    .thenBy { it.first.uid },
             )
             .filter { (node, _) -> seen.add(node.semanticIdentity()) }
             .take(maxNodes)
@@ -47,7 +47,7 @@ internal fun FixThisNode.semanticIdentity(): String {
         role.orEmpty(),
         text.joinToString("\u001f"),
         contentDescription.joinToString("\u001f"),
-        testTag.orEmpty()
+        testTag.orEmpty(),
     )
     return parts.joinToString("\u001e").lowercase()
 }

@@ -19,24 +19,24 @@ class NodeSelectorTest {
     fun selectsClickableButtonOverTextAtSameTapPoint() {
         val root = node(
             uid = "root",
-            bounds = rect(0f, 0f, 400f, 800f)
+            bounds = rect(0f, 0f, 400f, 800f),
         )
         val button = node(
             uid = "pay-button",
             bounds = rect(40f, 100f, 220f, 156f),
             text = listOf("Pay now"),
             role = "Button",
-            actions = listOf("OnClick")
+            actions = listOf("OnClick"),
         )
         val text = node(
             uid = "pay-text",
             bounds = rect(70f, 112f, 180f, 140f),
-            text = listOf("Pay now")
+            text = listOf("Pay now"),
         )
 
         val result = NodeSelector.select(
             nodes = listOf(root, button, text),
-            tap = TapPoint(110f, 128f)
+            tap = TapPoint(110f, 128f),
         )
 
         assertEquals("pay-button", result.selectedNode?.uid)
@@ -52,23 +52,23 @@ class NodeSelectorTest {
     fun appliesRootAndHugeContainerPenalty() {
         val root = node(
             uid = "root",
-            bounds = rect(0f, 0f, 1080f, 2400f)
+            bounds = rect(0f, 0f, 1080f, 2400f),
         )
         val card = node(
             uid = "empty-card",
-            bounds = rect(20f, 80f, 1000f, 900f)
+            bounds = rect(20f, 80f, 1000f, 900f),
         )
         val button = node(
             uid = "details-button",
             bounds = rect(80f, 160f, 260f, 220f),
             text = listOf("Details"),
             role = "Button",
-            actions = listOf("OnClick")
+            actions = listOf("OnClick"),
         )
 
         val result = NodeSelector.select(
             nodes = listOf(root, card, button),
-            tap = TapPoint(100f, 180f)
+            tap = TapPoint(100f, 180f),
         )
 
         assertEquals("details-button", result.selectedNode?.uid)
@@ -84,10 +84,10 @@ class NodeSelectorTest {
                 node(
                     uid = "outside",
                     bounds = rect(0f, 0f, 100f, 100f),
-                    text = listOf("Outside")
-                )
+                    text = listOf("Outside"),
+                ),
             ),
-            tap = TapPoint(300f, 300f)
+            tap = TapPoint(300f, 300f),
         )
 
         assertNull(result.selectedNode)
@@ -106,13 +106,13 @@ class NodeSelectorTest {
             bounds = rect(20f, 20f, 140f, 72f),
             text = listOf("Save"),
             role = "Button",
-            actions = listOf("OnClick")
+            actions = listOf("OnClick"),
         )
 
         val result = NodeSelector.select(
             nodes = listOf(button),
             tap = TapPoint(40f, 40f),
-            options = SelectionOptions(maxCandidates = 0)
+            options = SelectionOptions(maxCandidates = 0),
         )
 
         assertEquals("save-button", result.selectedNode?.uid)
@@ -130,10 +130,10 @@ class NodeSelectorTest {
                     bounds = rect(30f, 30f, 30f, 30f),
                     text = listOf("Save"),
                     role = "Button",
-                    actions = listOf("OnClick")
-                )
+                    actions = listOf("OnClick"),
+                ),
             ),
-            tap = TapPoint(30f, 30f)
+            tap = TapPoint(30f, 30f),
         )
 
         assertNull(result.selectedNode)
@@ -151,17 +151,17 @@ class NodeSelectorTest {
             text = listOf("Pay now"),
             role = "Button",
             actions = listOf("OnClick"),
-            enabled = false
+            enabled = false,
         )
         val enabledLabel = node(
             uid = "enabled-pay-label",
             bounds = rect(48f, 32f, 152f, 62f),
-            text = listOf("Pay now")
+            text = listOf("Pay now"),
         )
 
         val result = NodeSelector.select(
             nodes = listOf(disabledButton, enabledLabel),
-            tap = TapPoint(80f, 48f)
+            tap = TapPoint(80f, 48f),
         )
 
         assertEquals("enabled-pay-label", result.selectedNode?.uid)
@@ -177,18 +177,18 @@ class NodeSelectorTest {
             contentDescription = listOf("Notifications setting"),
             role = "Switch",
             testTag = "notificationsSwitch",
-            actions = listOf("OnClick")
+            actions = listOf("OnClick"),
         )
         val label = node(
             uid = "settings-label",
             bounds = rect(32f, 54f, 220f, 86f),
-            text = listOf("Notifications")
+            text = listOf("Notifications"),
         )
 
         val result = NodeSelector.select(
             nodes = listOf(root, row, label),
             tap = TapPoint(60f, 68f),
-            options = SelectionOptions(maxCandidates = 4)
+            options = SelectionOptions(maxCandidates = 4),
         )
 
         val rowScope = result.scopeCandidates.firstOrNull { it.nodeUid == "settings-row" }
@@ -208,39 +208,39 @@ class NodeSelectorTest {
             bounds = rect(40f, 40f, 140f, 90f),
             text = listOf("Selected"),
             role = "Button",
-            actions = listOf("OnClick")
+            actions = listOf("OnClick"),
         )
         val nearLabel = node(
             uid = "near-label",
             bounds = rect(150f, 40f, 260f, 90f),
-            text = listOf("Nearby")
+            text = listOf("Nearby"),
         )
         val duplicateNearLabel = node(
             uid = "duplicate-near-label",
             bounds = rect(160f, 42f, 270f, 92f),
             text = listOf("Nearby"),
-            editableText = "volatile draft"
+            editableText = "volatile draft",
         )
         val tagged = node(
             uid = "tagged",
             bounds = rect(280f, 40f, 360f, 90f),
-            testTag = "secondaryAction"
+            testTag = "secondaryAction",
         )
         val otherRoot = node(
             uid = "other-root-label",
             bounds = rect(145f, 40f, 255f, 90f),
             text = listOf("Other root"),
-            rootIndex = 1
+            rootIndex = 1,
         )
         val meaningless = node(
             uid = "meaningless",
-            bounds = rect(150f, 100f, 260f, 160f)
+            bounds = rect(150f, 100f, 260f, 160f),
         )
 
         val result = NodeSelector.select(
             nodes = listOf(anchor, nearLabel, duplicateNearLabel, tagged, otherRoot, meaningless),
             tap = TapPoint(70f, 60f),
-            options = SelectionOptions(maxNearbyNodes = 4, nearbyRadiusPx = 400f)
+            options = SelectionOptions(maxNearbyNodes = 4, nearbyRadiusPx = 400f),
         )
 
         assertEquals("anchor", result.selectedNode?.uid)
@@ -258,7 +258,7 @@ class NodeSelectorTest {
         actions: List<String> = emptyList(),
         rootIndex: Int = 0,
         treeKind: TreeKind = TreeKind.MERGED,
-        enabled: Boolean = true
+        enabled: Boolean = true,
     ): FixThisNode = FixThisNode(
         uid = uid,
         composeNodeId = uid.hashCode(),
@@ -271,9 +271,8 @@ class NodeSelectorTest {
         role = role,
         testTag = testTag,
         actions = actions,
-        enabled = enabled
+        enabled = enabled,
     )
 
-    private fun rect(left: Float, top: Float, right: Float, bottom: Float): FixThisRect =
-        FixThisRect(left = left, top = top, right = right, bottom = bottom)
+    private fun rect(left: Float, top: Float, right: Float, bottom: Float): FixThisRect = FixThisRect(left = left, top = top, right = right, bottom = bottom)
 }

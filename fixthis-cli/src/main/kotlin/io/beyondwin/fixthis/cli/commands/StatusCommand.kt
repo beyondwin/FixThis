@@ -1,17 +1,16 @@
 package io.beyondwin.fixthis.cli.commands
 
-import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.CoreCliktCommand
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import io.beyondwin.fixthis.cli.Adb
 import io.beyondwin.fixthis.cli.BridgeClient
-import java.io.File
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import java.io.File
 
 class StatusCommand : CoreCliktCommand(name = "status") {
     private val packageName by option("--package", help = "Android application id to connect to")

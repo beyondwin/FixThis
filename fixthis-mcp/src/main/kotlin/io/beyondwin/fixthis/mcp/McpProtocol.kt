@@ -20,12 +20,10 @@ private const val JsonRpcVersion = "2.0"
 private const val McpProtocolVersion = "2025-06-18"
 
 class McpProtocol(private val tools: FixThisTools = FixThisTools()) {
-    suspend fun handleLine(line: String): String? {
-        return when (val message = decodeLine(line)) {
-            is McpIncoming.ImmediateResponse -> message.response
-            is McpIncoming.Notification -> null
-            is McpRequest -> handleRequest(message)
-        }
+    suspend fun handleLine(line: String): String? = when (val message = decodeLine(line)) {
+        is McpIncoming.ImmediateResponse -> message.response
+        is McpIncoming.Notification -> null
+        is McpRequest -> handleRequest(message)
     }
 
     internal fun decodeLine(line: String): McpIncoming {
@@ -35,8 +33,7 @@ class McpProtocol(private val tools: FixThisTools = FixThisTools()) {
 
         val id = request["id"]
         val responseId = id.validRequestIdOrNull()
-        fun invalid(message: String): McpIncoming =
-            McpIncoming.ImmediateResponse(response(responseId, error = errorObject(-32600, "Invalid Request: $message")))
+        fun invalid(message: String): McpIncoming = McpIncoming.ImmediateResponse(response(responseId, error = errorObject(-32600, "Invalid Request: $message")))
 
         val jsonrpc = (request["jsonrpc"] as? JsonPrimitive)?.stringContentOrNull()
         if (jsonrpc != JsonRpcVersion) return invalid("jsonrpc must be 2.0")
@@ -121,22 +118,19 @@ class McpProtocol(private val tools: FixThisTools = FixThisTools()) {
         element as? JsonObject ?: throw SerializationException("JSON-RPC request must be an object")
     }
 
-    private fun JsonElement.jsonObjectOrInvalid(name: String): JsonObject =
-        this as? JsonObject ?: throw McpInvalidParamsException("$name must be an object")
+    private fun JsonElement.jsonObjectOrInvalid(name: String): JsonObject = this as? JsonObject ?: throw McpInvalidParamsException("$name must be an object")
 
-    private fun JsonObject.stringParam(name: String): String? =
-        (this[name] as? JsonPrimitive)?.contentOrNull
+    private fun JsonObject.stringParam(name: String): String? = (this[name] as? JsonPrimitive)?.contentOrNull
 
-    private fun response(id: JsonElement?, result: JsonElement? = null, error: JsonObject? = null): String =
-        json.encodeToString(
-            JsonObject.serializer(),
-            buildJsonObject {
-                put("jsonrpc", JsonRpcVersion)
-                put("id", id ?: JsonNull)
-                result?.let { put("result", it) }
-                error?.let { put("error", it) }
-            },
-        )
+    private fun response(id: JsonElement?, result: JsonElement? = null, error: JsonObject? = null): String = json.encodeToString(
+        JsonObject.serializer(),
+        buildJsonObject {
+            put("jsonrpc", JsonRpcVersion)
+            put("id", id ?: JsonNull)
+            result?.let { put("result", it) }
+            error?.let { put("error", it) }
+        },
+    )
 
     private fun errorObject(code: Int, message: String): JsonObject = buildJsonObject {
         put("code", code)
@@ -173,14 +167,12 @@ internal fun JsonElement?.validRequestIdOrNull(): JsonPrimitive? {
     return primitive.longOrNull?.let { primitive }
 }
 
-internal fun JsonPrimitive.requestIdKey(): String =
-    if (isStringPrimitive) "s:$content" else "i:${longOrNull}"
+internal fun JsonPrimitive.requestIdKey(): String = if (isStringPrimitive) "s:$content" else "i:$longOrNull"
 
 private val JsonPrimitive.isStringPrimitive: Boolean
     get() = this !== JsonNull && toString().startsWith("\"")
 
-private fun JsonPrimitive.stringContentOrNull(): String? =
-    if (isStringPrimitive) contentOrNull else null
+private fun JsonPrimitive.stringContentOrNull(): String? = if (isStringPrimitive) contentOrNull else null
 
 class McpInvalidParamsException(message: String) : RuntimeException(message)
 

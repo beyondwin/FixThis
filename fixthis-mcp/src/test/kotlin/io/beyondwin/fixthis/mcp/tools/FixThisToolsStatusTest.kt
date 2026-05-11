@@ -28,9 +28,11 @@ class FixThisToolsStatusTest {
         src.setLastModified(installed + 120_000)
 
         val bridge = FakeFixThisBridge(
-            sourceIndex = SourceIndex(entries = listOf(
-                SourceIndexEntry(file = "sample/src/main/kotlin/Foo.kt", line = 1, excerpt = "fun foo() {}"),
-            )),
+            sourceIndex = SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(file = "sample/src/main/kotlin/Foo.kt", line = 1, excerpt = "fun foo() {}"),
+                ),
+            ),
             sourceIndexAvailable = true,
             statusProvider = {
                 buildJsonObject {
@@ -85,13 +87,11 @@ class FixThisToolsStatusTest {
         assertTrue(payload["installStaleReason"]!!.jsonPrimitive.content.contains("install epoch"))
     }
 
-    private fun JsonObject.firstStructuredPayload(): JsonObject =
-        this["structuredContent"]?.jsonObject
-            ?: this["content"]?.jsonArray?.firstOrNull()?.jsonObject?.get("text")?.let {
-                kotlinx.serialization.json.Json.parseToJsonElement(it.jsonPrimitive.content).jsonObject
-            }
-            ?: error("Cannot locate structured payload in $this")
+    private fun JsonObject.firstStructuredPayload(): JsonObject = this["structuredContent"]?.jsonObject
+        ?: this["content"]?.jsonArray?.firstOrNull()?.jsonObject?.get("text")?.let {
+            kotlinx.serialization.json.Json.parseToJsonElement(it.jsonPrimitive.content).jsonObject
+        }
+        ?: error("Cannot locate structured payload in $this")
 
-    private fun tempDir(): File =
-        kotlin.io.path.createTempDirectory(prefix = "fixthis-status-").toFile().also { it.deleteOnExit() }
+    private fun tempDir(): File = kotlin.io.path.createTempDirectory(prefix = "fixthis-status-").toFile().also { it.deleteOnExit() }
 }

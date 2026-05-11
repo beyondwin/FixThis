@@ -105,5 +105,4 @@ class ScreenshotCapturerTest {
         decorView.layout(0, 0, 200, 200)
         return activity
     }
-
 }

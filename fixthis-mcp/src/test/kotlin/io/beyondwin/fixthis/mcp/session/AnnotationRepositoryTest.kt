@@ -2,8 +2,8 @@ package io.beyondwin.fixthis.mcp.session
 
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
-import java.io.File
 import kotlinx.coroutines.runBlocking
+import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -195,23 +195,21 @@ class AnnotationRepositoryTest {
         val repository: AnnotationRepository,
         val store: FeedbackSessionStore,
     ) {
-        fun openSession(): SessionDto =
-            store.openSession(packageName = "io.beyondwin.fixthis.sample", projectRoot = "/repo")
+        fun openSession(): SessionDto = store.openSession(packageName = "io.beyondwin.fixthis.sample", projectRoot = "/repo")
 
-        suspend fun captureScreen(sessionId: String): SnapshotDto =
-            store.addScreen(
-                sessionId,
-                SnapshotDto(
-                    screenId = "pending",
-                    capturedAtEpochMillis = 0L,
-                    displayName = "Checkout",
-                    screenshot = SnapshotScreenshotDto(
-                        width = 720,
-                        height = 1600,
-                        desktopFullPath = "/repo/screen.png",
-                    ),
+        suspend fun captureScreen(sessionId: String): SnapshotDto = store.addScreen(
+            sessionId,
+            SnapshotDto(
+                screenId = "pending",
+                capturedAtEpochMillis = 0L,
+                displayName = "Checkout",
+                screenshot = SnapshotScreenshotDto(
+                    width = 720,
+                    height = 1600,
+                    desktopFullPath = "/repo/screen.png",
                 ),
-            )
+            ),
+        )
     }
 
     private fun newFixture(ids: List<String>): Fixture {

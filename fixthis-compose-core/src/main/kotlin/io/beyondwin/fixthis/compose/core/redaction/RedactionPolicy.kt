@@ -3,7 +3,7 @@ package io.beyondwin.fixthis.compose.core.redaction
 data class RedactedText(
     val text: List<String>,
     val editableText: String?,
-    val redacted: Boolean
+    val redacted: Boolean,
 )
 
 object RedactionPolicy {
@@ -11,7 +11,7 @@ object RedactionPolicy {
         isPassword: Boolean,
         editableText: String?,
         text: List<String>,
-        redactEditableText: Boolean = true
+        redactEditableText: Boolean = true,
     ): RedactedText {
         if (isPassword) {
             return RedactedText(listOf("<redacted-password>"), "<redacted-password>", true)

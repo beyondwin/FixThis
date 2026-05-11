@@ -2,11 +2,11 @@ package io.beyondwin.fixthis.mcp.session
 
 import io.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot
 import io.beyondwin.fixthis.mcp.tools.FixThisBridge
-import java.io.File
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import java.io.File
 
 /**
  * Coordinates evidence capture: screenshots, preview snapshots, and navigation
@@ -40,11 +40,9 @@ class EvidenceCoordinator(
         return store.addScreen(sessionId, screen)
     }
 
-    suspend fun capturePreview(sessionId: String): FeedbackPreviewSnapshot =
-        previewCaptureService.capturePreview(store.getSession(sessionId))
+    suspend fun capturePreview(sessionId: String): FeedbackPreviewSnapshot = previewCaptureService.capturePreview(store.getSession(sessionId))
 
-    fun previewScreenshotFile(sessionId: String, previewId: String): File =
-        previewCaptureService.previewScreenshotFile(sessionId, previewId)
+    fun previewScreenshotFile(sessionId: String, previewId: String): File = previewCaptureService.previewScreenshotFile(sessionId, previewId)
 
     suspend fun navigate(
         sessionId: String,

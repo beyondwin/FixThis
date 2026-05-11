@@ -2,7 +2,6 @@ package io.beyondwin.fixthis.mcp
 
 import io.beyondwin.fixthis.cli.BridgeClient
 import io.beyondwin.fixthis.mcp.tools.CliFixThisBridge
-import java.io.File
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
@@ -12,6 +11,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class McpServerTest {
     @Test

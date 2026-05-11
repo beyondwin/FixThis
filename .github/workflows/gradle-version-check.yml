@@ -1,0 +1,56 @@
+name: Gradle version check
+
+# Runs the ben-manes versions plugin (`dependencyUpdates` task) on a weekly
+# cadence to report dependencies that have fallen behind. The report is
+# uploaded as a workflow artifact.
+#
+# NOTE (scope trim — tracked as a follow-up in CHANGELOG):
+# Auto-opening an issue / failing the workflow when a non-test dependency is
+# ≥ 1 minor version behind is deferred. For now we only generate and publish
+# the report; humans inspect it. Wiring an issue-creation step (or a
+# threshold-based exit code) is a follow-up gate.
+
+on:
+  schedule:
+    # Monday 05:00 UTC — weekly check
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-updates:
+    name: dependencyUpdates report
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make Gradle executable
+        run: chmod +x ./gradlew
+
+      - name: Run dependencyUpdates
+        run: ./gradlew dependencyUpdates --no-daemon -Drevision=release
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-updates-report
+          path: |
+            build/dependencyUpdates/
+            **/build/dependencyUpdates/
+          if-no-files-found: warn
+          retention-days: 30

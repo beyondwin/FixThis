@@ -38,8 +38,7 @@ class Adb(
     private val runner: AdbCommandRunner = ProcessAdbCommandRunner(),
     private val selectedSerial: String? = null,
 ) : AdbFacade {
-    override fun forDevice(serial: String?): AdbFacade =
-        Adb(adbExecutable = adbExecutable, runner = runner, selectedSerial = serial?.takeIf { it.isNotBlank() })
+    override fun forDevice(serial: String?): AdbFacade = Adb(adbExecutable = adbExecutable, runner = runner, selectedSerial = serial?.takeIf { it.isNotBlank() })
 
     override fun devices(): List<AdbDevice> {
         val result = checkedRun(listOf("devices", "-l"), includeSelectedSerial = false)
@@ -51,8 +50,7 @@ class Adb(
             .toList()
     }
 
-    fun shell(vararg arguments: String): AdbResult =
-        checkedRun(listOf("shell") + arguments)
+    fun shell(vararg arguments: String): AdbResult = checkedRun(listOf("shell") + arguments)
 
     override fun forward(localPort: Int, socketAddress: String) {
         require(localPort in 1..65535) { "Invalid local TCP port: $localPort" }
@@ -77,8 +75,7 @@ class Adb(
         monkey(packageName)
     }
 
-    override fun runAsCat(packageName: String, path: String): String =
-        checkedRun(listOf("shell", "run-as", packageName, "cat", path)).stdout
+    override fun runAsCat(packageName: String, path: String): String = checkedRun(listOf("shell", "run-as", packageName, "cat", path)).stdout
 
     override fun pull(androidPath: String, destination: File) {
         checkedRun(listOf("pull", androidPath, destination.path))
@@ -116,8 +113,7 @@ class Adb(
     }
 
     companion object {
-        fun forProject(projectRoot: File): Adb =
-            Adb(adbExecutable = defaultAdbExecutable(projectRoot = projectRoot))
+        fun forProject(projectRoot: File): Adb = Adb(adbExecutable = defaultAdbExecutable(projectRoot = projectRoot))
 
         fun defaultAdbExecutable(
             projectRoot: File? = null,
@@ -142,8 +138,7 @@ class Adb(
             return properties.getProperty("sdk.dir")?.takeIf { it.isNotBlank() }
         }
 
-        private fun adbExecutableName(): String =
-            if (System.getProperty("os.name").startsWith("Windows", ignoreCase = true)) "adb.exe" else "adb"
+        private fun adbExecutableName(): String = if (System.getProperty("os.name").startsWith("Windows", ignoreCase = true)) "adb.exe" else "adb"
     }
 }
 

@@ -69,12 +69,9 @@ object OccurrenceCalculator {
         return null
     }
 
-    private fun List<String>.firstNonBlankOrNull(): String? =
-        firstNotNullOfOrNull { it.takeUnlessBlank() }
+    private fun List<String>.firstNonBlankOrNull(): String? = firstNotNullOfOrNull { it.takeUnlessBlank() }
 
-    private fun String.takeUnlessBlank(): String? =
-        trim().replace(Regex("\\s+"), " ").takeUnless { it.isBlank() }
+    private fun String.takeUnlessBlank(): String? = trim().replace(Regex("\\s+"), " ").takeUnless { it.isBlank() }
 
-    private fun String.takeUnlessBlankAfterTrim(): String? =
-        trim().takeUnless { it.isBlank() }
+    private fun String.takeUnlessBlankAfterTrim(): String? = trim().takeUnless { it.isBlank() }
 }

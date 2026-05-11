@@ -8,8 +8,7 @@ object TestTagConvention {
         val variant: String,
     )
 
-    fun parse(testTag: String?): Parsed? =
-        testTag
-            ?.let(pattern::matchEntire)
-            ?.let { match -> Parsed(composableName = match.groupValues[1], variant = match.groupValues[2]) }
+    fun parse(testTag: String?): Parsed? = testTag
+        ?.let(pattern::matchEntire)
+        ?.let { match -> Parsed(composableName = match.groupValues[1], variant = match.groupValues[2]) }
 }

@@ -4,8 +4,8 @@ import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.CoreNoOpCliktCommand
 import com.github.ajalt.clikt.core.parse
 import com.github.ajalt.clikt.core.subcommands
-import io.beyondwin.fixthis.cli.commands.ConsoleCommand
 import io.beyondwin.fixthis.cli.commands.CleanCommand
+import io.beyondwin.fixthis.cli.commands.ConsoleCommand
 import io.beyondwin.fixthis.cli.commands.DoctorCommand
 import io.beyondwin.fixthis.cli.commands.McpCommand
 import io.beyondwin.fixthis.cli.commands.RunCommand

@@ -9,26 +9,25 @@ import io.beyondwin.fixthis.mcp.McpProtocol
 import io.beyondwin.fixthis.mcp.console.FeedbackConsoleServer
 import io.beyondwin.fixthis.mcp.console.enrichSessionWithStaleness
 import io.beyondwin.fixthis.mcp.resourceText
-import io.beyondwin.fixthis.mcp.session.SnapshotDto
+import io.beyondwin.fixthis.mcp.session.AnnotationDto
+import io.beyondwin.fixthis.mcp.session.AnnotationStatusDto
 import io.beyondwin.fixthis.mcp.session.FeedbackDelivery
 import io.beyondwin.fixthis.mcp.session.FeedbackNavigationAction
 import io.beyondwin.fixthis.mcp.session.FeedbackNavigationRequest
 import io.beyondwin.fixthis.mcp.session.FeedbackNavigationResult
-import io.beyondwin.fixthis.mcp.session.FeedbackSwipeDirection
-import io.beyondwin.fixthis.mcp.session.AnnotationDto
-import io.beyondwin.fixthis.mcp.session.AnnotationStatusDto
 import io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatter
-import io.beyondwin.fixthis.mcp.session.HostSourceFreshnessProbe
-import io.beyondwin.fixthis.mcp.session.HostSourceFreshnessResult
-import io.beyondwin.fixthis.mcp.session.SessionDto
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionList
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionPaths
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionPersistence
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.beyondwin.fixthis.mcp.session.FeedbackSwipeDirection
+import io.beyondwin.fixthis.mcp.session.HostSourceFreshnessProbe
+import io.beyondwin.fixthis.mcp.session.HostSourceFreshnessResult
+import io.beyondwin.fixthis.mcp.session.SessionDto
+import io.beyondwin.fixthis.mcp.session.SnapshotDto
 import io.beyondwin.fixthis.mcp.textContent
 import io.beyondwin.fixthis.mcp.toolResult
-import java.io.File
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -44,6 +43,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
+import java.io.File
 
 private const val MaxRecentOverridePackages = 8
 private val resolvedStatuses = setOf(AnnotationStatusDto.RESOLVED, AnnotationStatusDto.WONT_FIX)
@@ -89,14 +89,14 @@ class FixThisTools(
         }
     }
 
-    suspend fun call(name: String, arguments: JsonObject): JsonObject =
-        when (name) {
-            "fixthis_status" -> bridgeToolResult {
-                val packageName = resolvePackageName(arguments)
-                val status = bridge.status(packageName)
-                cacheStatus(packageName, status)
-                val freshness = evaluateFreshness(packageName, status)
-                jsonToolResult(buildJsonObject {
+    suspend fun call(name: String, arguments: JsonObject): JsonObject = when (name) {
+        "fixthis_status" -> bridgeToolResult {
+            val packageName = resolvePackageName(arguments)
+            val status = bridge.status(packageName)
+            cacheStatus(packageName, status)
+            val freshness = evaluateFreshness(packageName, status)
+            jsonToolResult(
+                buildJsonObject {
                     put("deviceConnected", true)
                     put("packageName", packageName)
                     put("appRunning", status["activity"] != null)
@@ -112,79 +112,95 @@ class FixThisTools(
                     freshness.installedAtEpochMillis?.let { put("installedAtEpochMillis", JsonPrimitive(it)) }
                     put("newerSourceFiles", buildJsonArray { freshness.sampleNewerFiles.forEach { add(JsonPrimitive(it)) } })
                     put("bridge", status)
-                })
-            }
-            "fixthis_get_current_screen" -> bridgeToolResult {
-                val packageName = resolvePackageName(arguments)
-                val screen = bridge.inspectCurrentScreen(packageName)
-                cacheScreen(packageName, screen)
-                jsonToolResult(buildJsonObject {
+                },
+            )
+        }
+        "fixthis_get_current_screen" -> bridgeToolResult {
+            val packageName = resolvePackageName(arguments)
+            val screen = bridge.inspectCurrentScreen(packageName)
+            cacheScreen(packageName, screen)
+            jsonToolResult(
+                buildJsonObject {
                     put("screen", screen)
-                })
-            }
-            "fixthis_verify_ui_change" -> bridgeToolResult {
-                val packageName = resolvePackageName(arguments)
-                val expectedText = arguments.stringParam("expectedText")?.takeIf { it.isNotBlank() }
-                    ?: throw FixThisToolException("fixthis_verify_ui_change requires expectedText")
-                val role = arguments.stringParam("role")?.takeIf { it.isNotBlank() }
-                val bridgeResult = bridge.verifyUiChange(packageName, expectedText, role)
-                jsonToolResult(normalizeVerifyUiChangeResult(bridgeResult, role))
-            }
-            "fixthis_open_feedback_console" -> bridgeToolResult {
-                val opened = openConsole(
-                    packageName = arguments.stringParam("packageName"),
-                    sessionId = arguments.stringParam("sessionId"),
-                    newSession = arguments.booleanParam("newSession") == true,
-                )
-                jsonToolResult(buildJsonObject {
+                },
+            )
+        }
+        "fixthis_verify_ui_change" -> bridgeToolResult {
+            val packageName = resolvePackageName(arguments)
+            val expectedText = arguments.stringParam("expectedText")?.takeIf { it.isNotBlank() }
+                ?: throw FixThisToolException("fixthis_verify_ui_change requires expectedText")
+            val role = arguments.stringParam("role")?.takeIf { it.isNotBlank() }
+            val bridgeResult = bridge.verifyUiChange(packageName, expectedText, role)
+            jsonToolResult(normalizeVerifyUiChangeResult(bridgeResult, role))
+        }
+        "fixthis_open_feedback_console" -> bridgeToolResult {
+            val opened = openConsole(
+                packageName = arguments.stringParam("packageName"),
+                sessionId = arguments.stringParam("sessionId"),
+                newSession = arguments.booleanParam("newSession") == true,
+            )
+            jsonToolResult(
+                buildJsonObject {
                     put("sessionId", opened.session.sessionId)
                     put("packageName", opened.session.packageName)
                     put("projectRoot", opened.session.projectRoot)
                     put("consoleUrl", opened.consoleUrl)
                     put("resumed", opened.resumed)
                     put("session", enrichSessionWithStaleness(opened.session))
-                })
-            }
-            "fixthis_list_feedback_sessions" -> bridgeToolResult {
-                val sessions = feedbackService.listSessions(
-                    packageNameOverride = arguments.stringParam("packageName"),
-                    includeClosed = arguments.booleanParam("includeClosed") == true,
-                )
-                val payload = McpProtocol.json.encodeToJsonElement(FeedbackSessionList.serializer(), sessions).jsonObject
-                jsonToolResult(buildJsonObject {
+                },
+            )
+        }
+        "fixthis_list_feedback_sessions" -> bridgeToolResult {
+            val sessions = feedbackService.listSessions(
+                packageNameOverride = arguments.stringParam("packageName"),
+                includeClosed = arguments.booleanParam("includeClosed") == true,
+            )
+            val payload = McpProtocol.json.encodeToJsonElement(FeedbackSessionList.serializer(), sessions).jsonObject
+            jsonToolResult(
+                buildJsonObject {
                     put("projectRoot", projectRoot.absolutePath)
                     put("sessions", payload.getValue("sessions"))
                     put("skippedSessions", payload.getValue("skippedSessions"))
-                })
-            }
-            "fixthis_capture_screen" -> bridgeToolResult {
-                val session = requestedSession(arguments)
-                val screen = feedbackService.captureScreen(session.sessionId)
-                cacheSnapshot(session.packageName, screen)
-                jsonToolResult(buildJsonObject {
+                },
+            )
+        }
+        "fixthis_capture_screen" -> bridgeToolResult {
+            val session = requestedSession(arguments)
+            val screen = feedbackService.captureScreen(session.sessionId)
+            cacheSnapshot(session.packageName, screen)
+            jsonToolResult(
+                buildJsonObject {
                     put("sessionId", session.sessionId)
                     put("screen", McpProtocol.json.encodeToJsonElement(SnapshotDto.serializer(), screen))
-                })
-            }
-            "fixthis_navigate_app" -> bridgeToolResult {
-                val request = arguments.navigationRequest()
-                val session = requestedSession(arguments)
-                val result = feedbackService.navigate(session.sessionId, request)
-                result.screen?.let { screen -> cacheSnapshot(session.packageName, screen) }
-                jsonToolResult(buildJsonObject {
+                },
+            )
+        }
+        "fixthis_navigate_app" -> bridgeToolResult {
+            val request = arguments.navigationRequest()
+            val session = requestedSession(arguments)
+            val result = feedbackService.navigate(session.sessionId, request)
+            result.screen?.let { screen -> cacheSnapshot(session.packageName, screen) }
+            jsonToolResult(
+                buildJsonObject {
                     put("sessionId", session.sessionId)
                     McpProtocol.json.encodeToJsonElement(FeedbackNavigationResult.serializer(), result)
                         .jsonObject
                         .forEach { (key, value) -> put(key, value) }
-                })
-            }
-            "fixthis_list_feedback" -> bridgeToolResult {
-                val session = requestedSession(arguments)
-                val includeAll = arguments.booleanParam("includeAll") ?: false
-                val visibleItems = if (includeAll) session.items else session.items.filter {
+                },
+            )
+        }
+        "fixthis_list_feedback" -> bridgeToolResult {
+            val session = requestedSession(arguments)
+            val includeAll = arguments.booleanParam("includeAll") ?: false
+            val visibleItems = if (includeAll) {
+                session.items
+            } else {
+                session.items.filter {
                     it.delivery == FeedbackDelivery.SENT && it.status !in resolvedStatuses
                 }
-                jsonToolResult(buildJsonObject {
+            }
+            jsonToolResult(
+                buildJsonObject {
                     put("sessionId", session.sessionId)
                     put("packageName", session.packageName)
                     put("status", session.status.name.lowercase())
@@ -196,103 +212,106 @@ class FixThisTools(
                         "unresolvedSentItemsCount",
                         session.items.count { it.delivery == FeedbackDelivery.SENT && it.status !in resolvedStatuses },
                     )
-                    put("items", buildJsonArray {
-                        visibleItems.forEach { item ->
-                            val handedOff = item.lastHandedOffAtEpochMillis
-                            val stale = handedOff != null && item.updatedAtEpochMillis > handedOff
-                            add(buildJsonObject {
-                                put("itemId", item.itemId)
-                                put("screenId", item.screenId)
-                                put("status", item.status.name.lowercase())
-                                put("delivery", item.delivery.name.lowercase())
-                                put("staleAfterHandoff", stale)
-                                put("comment", item.comment)
-                            })
-                        }
-                    })
-                })
-            }
-            "fixthis_read_feedback" -> bridgeToolResult {
-                val detailMode = DetailMode.fromWire(arguments.stringParam("detailMode"))
-                val itemId = arguments.stringParam("itemId")?.takeIf { it.isNotBlank() }
-                val includeAll = arguments.booleanParam("includeAll") ?: false
-                val baseSession = requestedSession(arguments)
-                val session = baseSession
-                    .focusedOn(itemId)
-                    .filteredForAgent(showAll = includeAll || itemId != null)
-                toolResult(
-                    content = listOf(
-                        textContent(FeedbackQueueFormatter.toJson(session), "application/json"),
-                        textContent(FeedbackQueueFormatter.toMarkdown(session, detailMode), "text/markdown"),
-                    ),
-                )
-            }
-            "fixthis_resolve_feedback" -> bridgeToolResult {
-                val session = requestedSession(arguments)
-                val itemId = arguments.stringParam("itemId")?.takeIf { it.isNotBlank() }
-                    ?: throw FixThisToolException("fixthis_resolve_feedback requires itemId")
-                val status = arguments.stringParam("status")?.takeIf { it.isNotBlank() }?.toFeedbackItemStatus()
-                    ?: throw FixThisToolException("fixthis_resolve_feedback requires status")
-                val summary = arguments.stringParam("summary")
-                val item = feedbackService.resolveFeedback(session.sessionId, itemId, status, summary)
-                jsonToolResult(McpProtocol.json.encodeToJsonElement(AnnotationDto.serializer(), item).jsonObject)
-            }
-            "fixthis_claim_feedback" -> bridgeToolResult {
-                val session = requestedSession(arguments)
-                val itemId = arguments.stringParam("itemId")?.takeIf { it.isNotBlank() }
-                    ?: throw FixThisToolException("fixthis_claim_feedback requires itemId")
-                val agentNote = arguments.stringParam("agentNote")?.takeIf { it.isNotBlank() }
-                val item = feedbackService.claimFeedback(session.sessionId, itemId, agentNote)
-                jsonToolResult(McpProtocol.json.encodeToJsonElement(AnnotationDto.serializer(), item).jsonObject)
-            }
-            else -> throw FixThisToolException("Unknown FixThis tool: $name")
-        }
-
-    suspend fun readResource(uri: String): JsonObject =
-        when (uri) {
-            "fixthis://session/current" -> bridgeResource(uri) {
-                val packageName = resolveDefaultPackageName()
-                val status = latestStatus(packageName) ?: bridge.status(packageName).also { cacheStatus(packageName, it) }
-                buildJsonObject {
-                    put("packageName", packageName)
-                    put("status", status)
-                }
-            }
-            "fixthis://screen/current" -> bridgeResource(uri) {
-                val packageName = resolveDefaultPackageName()
-                latestScreen(packageName) ?: bridge.inspectCurrentScreen(packageName).also { cacheScreen(packageName, it) }
-            }
-            "fixthis://screenshot/latest/full.png" -> screenshotResource(uri, "desktopFullPath", "fullPath")
-            "fixthis://screenshot/latest/crop.png" -> screenshotResource(uri, "desktopCropPath", "cropPath")
-            "fixthis://source-index" -> bridgeResource(uri) {
-                val packageName = resolveDefaultPackageName()
-                val status = latestStatus(packageName) ?: bridge.status(packageName).also { cacheStatus(packageName, it) }
-                buildJsonObject {
-                    put("available", status["sourceIndexAvailable"] ?: JsonPrimitive(false))
-                    put("source", "bridge-status")
-                }
-            }
-            else -> throw FixThisToolException("Unknown FixThis resource: $uri")
-        }
-
-    private suspend fun bridgeToolResult(block: suspend () -> JsonObject): JsonObject =
-        try {
-            block()
-        } catch (error: FixThisToolException) {
-            throw error
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: IllegalArgumentException) {
-            throw FixThisToolException(error.message ?: "Invalid FixThis tool arguments")
-        } catch (error: Throwable) {
-            toolResult(
-                isError = true,
-                content = listOf(textContent(error.message ?: error::class.java.simpleName)),
+                    put(
+                        "items",
+                        buildJsonArray {
+                            visibleItems.forEach { item ->
+                                val handedOff = item.lastHandedOffAtEpochMillis
+                                val stale = handedOff != null && item.updatedAtEpochMillis > handedOff
+                                add(
+                                    buildJsonObject {
+                                        put("itemId", item.itemId)
+                                        put("screenId", item.screenId)
+                                        put("status", item.status.name.lowercase())
+                                        put("delivery", item.delivery.name.lowercase())
+                                        put("staleAfterHandoff", stale)
+                                        put("comment", item.comment)
+                                    },
+                                )
+                            }
+                        },
+                    )
+                },
             )
         }
+        "fixthis_read_feedback" -> bridgeToolResult {
+            val detailMode = DetailMode.fromWire(arguments.stringParam("detailMode"))
+            val itemId = arguments.stringParam("itemId")?.takeIf { it.isNotBlank() }
+            val includeAll = arguments.booleanParam("includeAll") ?: false
+            val baseSession = requestedSession(arguments)
+            val session = baseSession
+                .focusedOn(itemId)
+                .filteredForAgent(showAll = includeAll || itemId != null)
+            toolResult(
+                content = listOf(
+                    textContent(FeedbackQueueFormatter.toJson(session), "application/json"),
+                    textContent(FeedbackQueueFormatter.toMarkdown(session, detailMode), "text/markdown"),
+                ),
+            )
+        }
+        "fixthis_resolve_feedback" -> bridgeToolResult {
+            val session = requestedSession(arguments)
+            val itemId = arguments.stringParam("itemId")?.takeIf { it.isNotBlank() }
+                ?: throw FixThisToolException("fixthis_resolve_feedback requires itemId")
+            val status = arguments.stringParam("status")?.takeIf { it.isNotBlank() }?.toFeedbackItemStatus()
+                ?: throw FixThisToolException("fixthis_resolve_feedback requires status")
+            val summary = arguments.stringParam("summary")
+            val item = feedbackService.resolveFeedback(session.sessionId, itemId, status, summary)
+            jsonToolResult(McpProtocol.json.encodeToJsonElement(AnnotationDto.serializer(), item).jsonObject)
+        }
+        "fixthis_claim_feedback" -> bridgeToolResult {
+            val session = requestedSession(arguments)
+            val itemId = arguments.stringParam("itemId")?.takeIf { it.isNotBlank() }
+                ?: throw FixThisToolException("fixthis_claim_feedback requires itemId")
+            val agentNote = arguments.stringParam("agentNote")?.takeIf { it.isNotBlank() }
+            val item = feedbackService.claimFeedback(session.sessionId, itemId, agentNote)
+            jsonToolResult(McpProtocol.json.encodeToJsonElement(AnnotationDto.serializer(), item).jsonObject)
+        }
+        else -> throw FixThisToolException("Unknown FixThis tool: $name")
+    }
 
-    private suspend fun bridgeResource(uri: String, block: suspend () -> JsonObject): JsonObject =
-        resourceText(uri, fixThisJson.encodeToString(JsonObject.serializer(), block()))
+    suspend fun readResource(uri: String): JsonObject = when (uri) {
+        "fixthis://session/current" -> bridgeResource(uri) {
+            val packageName = resolveDefaultPackageName()
+            val status = latestStatus(packageName) ?: bridge.status(packageName).also { cacheStatus(packageName, it) }
+            buildJsonObject {
+                put("packageName", packageName)
+                put("status", status)
+            }
+        }
+        "fixthis://screen/current" -> bridgeResource(uri) {
+            val packageName = resolveDefaultPackageName()
+            latestScreen(packageName) ?: bridge.inspectCurrentScreen(packageName).also { cacheScreen(packageName, it) }
+        }
+        "fixthis://screenshot/latest/full.png" -> screenshotResource(uri, "desktopFullPath", "fullPath")
+        "fixthis://screenshot/latest/crop.png" -> screenshotResource(uri, "desktopCropPath", "cropPath")
+        "fixthis://source-index" -> bridgeResource(uri) {
+            val packageName = resolveDefaultPackageName()
+            val status = latestStatus(packageName) ?: bridge.status(packageName).also { cacheStatus(packageName, it) }
+            buildJsonObject {
+                put("available", status["sourceIndexAvailable"] ?: JsonPrimitive(false))
+                put("source", "bridge-status")
+            }
+        }
+        else -> throw FixThisToolException("Unknown FixThis resource: $uri")
+    }
+
+    private suspend fun bridgeToolResult(block: suspend () -> JsonObject): JsonObject = try {
+        block()
+    } catch (error: FixThisToolException) {
+        throw error
+    } catch (error: CancellationException) {
+        throw error
+    } catch (error: IllegalArgumentException) {
+        throw FixThisToolException(error.message ?: "Invalid FixThis tool arguments")
+    } catch (error: Throwable) {
+        toolResult(
+            isError = true,
+            content = listOf(textContent(error.message ?: error::class.java.simpleName)),
+        )
+    }
+
+    private suspend fun bridgeResource(uri: String, block: suspend () -> JsonObject): JsonObject = resourceText(uri, fixThisJson.encodeToString(JsonObject.serializer(), block()))
 
     private fun screenshotResource(uri: String, vararg pathKeys: String): JsonObject {
         val packageName = resolveDefaultPackageName()
@@ -301,16 +320,19 @@ class FixThisTools(
             uri,
             fixThisJson.encodeToString(
                 JsonObject.serializer(),
-                if (path == null) unavailable("No screenshot artifact is available for $uri") else buildJsonObject {
-                    put("path", path)
-                    put("note", "FixThis exposes screenshot artifacts as desktop-readable paths.")
+                if (path == null) {
+                    unavailable("No screenshot artifact is available for $uri")
+                } else {
+                    buildJsonObject {
+                        put("path", path)
+                        put("note", "FixThis exposes screenshot artifacts as desktop-readable paths.")
+                    }
                 },
             ),
         )
     }
 
-    private fun jsonToolResult(payload: JsonObject): JsonObject =
-        toolResult(content = listOf(textContent(fixThisJson.encodeToString(JsonObject.serializer(), payload), "application/json")))
+    private fun jsonToolResult(payload: JsonObject): JsonObject = toolResult(content = listOf(textContent(fixThisJson.encodeToString(JsonObject.serializer(), payload), "application/json")))
 
     private fun openConsole(packageName: String?, sessionId: String?, newSession: Boolean): OpenFeedbackConsoleResult {
         synchronized(consoleLock) {
@@ -389,11 +411,9 @@ class FixThisTools(
         }
     }
 
-    private fun latestScreen(packageName: String): JsonObject? =
-        synchronized(cacheLock) { latestScreens[packageName] }
+    private fun latestScreen(packageName: String): JsonObject? = synchronized(cacheLock) { latestScreens[packageName] }
 
-    private fun latestStatus(packageName: String): JsonObject? =
-        synchronized(cacheLock) { latestStatuses[packageName] }
+    private fun latestStatus(packageName: String): JsonObject? = synchronized(cacheLock) { latestStatuses[packageName] }
 
     private fun resolvePackageName(arguments: JsonObject): String {
         val packageOverride = arguments.stringParam("packageName")?.takeIf { it.isNotBlank() }
@@ -402,8 +422,7 @@ class FixThisTools(
         return packageName
     }
 
-    private fun resolveDefaultPackageName(): String =
-        bridge.resolvePackageName(defaultPackageName).also { rememberDefaultPackage(it) }
+    private fun resolveDefaultPackageName(): String = bridge.resolvePackageName(defaultPackageName).also { rememberDefaultPackage(it) }
 
     private fun rememberDefaultPackage(packageName: String) {
         synchronized(cacheLock) {
@@ -427,17 +446,13 @@ class FixThisTools(
         }
     }
 
-    private fun JsonObject.stringParam(name: String): String? =
-        (this[name] as? JsonPrimitive)?.contentOrNull
+    private fun JsonObject.stringParam(name: String): String? = (this[name] as? JsonPrimitive)?.contentOrNull
 
-    private fun JsonObject.longParam(name: String): Long? =
-        (this[name] as? JsonPrimitive)?.longOrNull
+    private fun JsonObject.longParam(name: String): Long? = (this[name] as? JsonPrimitive)?.longOrNull
 
-    private fun JsonObject.booleanParam(name: String): Boolean? =
-        (this[name] as? JsonPrimitive)?.booleanOrNull
+    private fun JsonObject.booleanParam(name: String): Boolean? = (this[name] as? JsonPrimitive)?.booleanOrNull
 
-    private fun JsonObject.floatParam(name: String): Float? =
-        (this[name] as? JsonPrimitive)?.floatOrNull
+    private fun JsonObject.floatParam(name: String): Float? = (this[name] as? JsonPrimitive)?.floatOrNull
 
     private fun JsonObject.navigationRequest(): FeedbackNavigationRequest {
         requireOnlyNavigationKeys()
@@ -506,30 +521,27 @@ class FixThisTools(
         return copy(items = visible)
     }
 
-    private fun String.toFeedbackItemStatus(): AnnotationStatusDto =
-        when (this) {
-            "resolved" -> AnnotationStatusDto.RESOLVED
-            "needs_clarification" -> AnnotationStatusDto.NEEDS_CLARIFICATION
-            "wont_fix" -> AnnotationStatusDto.WONT_FIX
-            else -> throw FixThisToolException("Unsupported feedback resolution status: $this")
-        }
+    private fun String.toFeedbackItemStatus(): AnnotationStatusDto = when (this) {
+        "resolved" -> AnnotationStatusDto.RESOLVED
+        "needs_clarification" -> AnnotationStatusDto.NEEDS_CLARIFICATION
+        "wont_fix" -> AnnotationStatusDto.WONT_FIX
+        else -> throw FixThisToolException("Unsupported feedback resolution status: $this")
+    }
 
-    private fun String.toNavigationAction(): FeedbackNavigationAction =
-        when (this) {
-            "back" -> FeedbackNavigationAction.BACK
-            "tap" -> FeedbackNavigationAction.TAP
-            "swipe" -> FeedbackNavigationAction.SWIPE
-            else -> throw FixThisToolException("Unsupported navigation action: $this")
-        }
+    private fun String.toNavigationAction(): FeedbackNavigationAction = when (this) {
+        "back" -> FeedbackNavigationAction.BACK
+        "tap" -> FeedbackNavigationAction.TAP
+        "swipe" -> FeedbackNavigationAction.SWIPE
+        else -> throw FixThisToolException("Unsupported navigation action: $this")
+    }
 
-    private fun String.toSwipeDirection(): FeedbackSwipeDirection =
-        when (this) {
-            "up" -> FeedbackSwipeDirection.UP
-            "down" -> FeedbackSwipeDirection.DOWN
-            "left" -> FeedbackSwipeDirection.LEFT
-            "right" -> FeedbackSwipeDirection.RIGHT
-            else -> throw FixThisToolException("Unsupported swipe direction: $this")
-        }
+    private fun String.toSwipeDirection(): FeedbackSwipeDirection = when (this) {
+        "up" -> FeedbackSwipeDirection.UP
+        "down" -> FeedbackSwipeDirection.DOWN
+        "left" -> FeedbackSwipeDirection.LEFT
+        "right" -> FeedbackSwipeDirection.RIGHT
+        else -> throw FixThisToolException("Unsupported swipe direction: $this")
+    }
 
     private fun unavailable(message: String): JsonObject = buildJsonObject {
         put("available", false)
@@ -579,8 +591,7 @@ interface FixThisBridge {
     suspend fun heartbeat(packageName: String): JsonObject = status(packageName)
     suspend fun inspectCurrentScreen(packageName: String): JsonObject
     suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject
-    suspend fun performNavigation(packageName: String, request: FeedbackNavigationRequest): JsonObject =
-        error("FixThis bridge does not support navigation")
+    suspend fun performNavigation(packageName: String, request: FeedbackNavigationRequest): JsonObject = error("FixThis bridge does not support navigation")
     suspend fun readSourceIndex(packageName: String): JsonObject = JsonObject(emptyMap())
     suspend fun captureScreenSnapshot(
         packageName: String,
@@ -591,64 +602,51 @@ interface FixThisBridge {
 }
 
 class CliFixThisBridge(private val client: BridgeClient) : FixThisBridge {
-    override fun resolvePackageName(packageOverride: String?): String =
-        client.resolvePackageName(packageOverride)
+    override fun resolvePackageName(packageOverride: String?): String = client.resolvePackageName(packageOverride)
 
-    override fun devices(): List<AdbDevice> =
-        client.devices()
+    override fun devices(): List<AdbDevice> = client.devices()
 
-    override fun selectedDeviceSerial(): String? =
-        client.selectedDeviceSerial()
+    override fun selectedDeviceSerial(): String? = client.selectedDeviceSerial()
 
-    override fun selectDevice(serial: String) =
-        client.selectDevice(serial)
+    override fun selectDevice(serial: String) = client.selectDevice(serial)
 
-    override fun disconnectDevice() =
-        client.disconnectDevice()
+    override fun disconnectDevice() = client.disconnectDevice()
 
-    override fun launchApp(packageName: String) =
-        client.launchApp(packageName)
+    override fun launchApp(packageName: String) = client.launchApp(packageName)
 
-    override suspend fun status(packageName: String): JsonObject =
-        client.request(packageName, "status")
+    override suspend fun status(packageName: String): JsonObject = client.request(packageName, "status")
 
-    override suspend fun heartbeat(packageName: String): JsonObject =
-        client.request(packageName, "heartbeat")
+    override suspend fun heartbeat(packageName: String): JsonObject = client.request(packageName, "heartbeat")
 
-    override suspend fun inspectCurrentScreen(packageName: String): JsonObject =
-        client.request(packageName, "inspectCurrentScreen")
+    override suspend fun inspectCurrentScreen(packageName: String): JsonObject = client.request(packageName, "inspectCurrentScreen")
 
-    override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
-        client.request(
-            packageName = packageName,
-            method = "verifyUiChange",
-            params = buildJsonObject {
-                put("expectedText", expectedText)
-                role?.let { put("role", it) }
-            },
-        )
+    override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject = client.request(
+        packageName = packageName,
+        method = "verifyUiChange",
+        params = buildJsonObject {
+            put("expectedText", expectedText)
+            role?.let { put("role", it) }
+        },
+    )
 
-    override suspend fun performNavigation(packageName: String, request: FeedbackNavigationRequest): JsonObject =
-        client.performNavigation(
-            packageName = packageName,
-            request = McpProtocol.json.encodeToJsonElement(FeedbackNavigationRequest.serializer(), request).jsonObject,
-        )
+    override suspend fun performNavigation(packageName: String, request: FeedbackNavigationRequest): JsonObject = client.performNavigation(
+        packageName = packageName,
+        request = McpProtocol.json.encodeToJsonElement(FeedbackNavigationRequest.serializer(), request).jsonObject,
+    )
 
-    override suspend fun readSourceIndex(packageName: String): JsonObject =
-        client.readSourceIndex(packageName)
+    override suspend fun readSourceIndex(packageName: String): JsonObject = client.readSourceIndex(packageName)
 
     override suspend fun captureScreenSnapshot(
         packageName: String,
         sessionId: String?,
         screenId: String?,
         destinationDirectory: File?,
-    ): JsonObject =
-        client.captureScreenSnapshot(
-            packageName = packageName,
-            sessionId = sessionId,
-            screenId = screenId,
-            destinationDirectory = destinationDirectory,
-        )
+    ): JsonObject = client.captureScreenSnapshot(
+        packageName = packageName,
+        sessionId = sessionId,
+        screenId = screenId,
+        destinationDirectory = destinationDirectory,
+    )
 }
 
 class FixThisToolException(message: String) : RuntimeException(message)

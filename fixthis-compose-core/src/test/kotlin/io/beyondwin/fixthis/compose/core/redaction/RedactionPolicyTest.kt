@@ -11,7 +11,7 @@ class RedactionPolicyTest {
         val redacted = RedactionPolicy.apply(
             isPassword = true,
             editableText = "secret",
-            text = emptyList()
+            text = emptyList(),
         )
 
         assertEquals(listOf("<redacted-password>"), redacted.text)
@@ -24,7 +24,7 @@ class RedactionPolicyTest {
         val redacted = RedactionPolicy.apply(
             isPassword = true,
             editableText = null,
-            text = listOf("secret")
+            text = listOf("secret"),
         )
 
         assertEquals(listOf("<redacted-password>"), redacted.text)
@@ -37,7 +37,7 @@ class RedactionPolicyTest {
         val redacted = RedactionPolicy.apply(
             isPassword = false,
             editableText = "private draft",
-            text = listOf("Label")
+            text = listOf("Label"),
         )
 
         assertEquals(listOf("Label"), redacted.text)
@@ -51,7 +51,7 @@ class RedactionPolicyTest {
             isPassword = false,
             editableText = "visible",
             text = listOf("Label"),
-            redactEditableText = false
+            redactEditableText = false,
         )
 
         assertEquals(listOf("Label"), redacted.text)

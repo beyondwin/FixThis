@@ -54,8 +54,7 @@ class SourceCandidateStalenessChecker(private val projectRoot: File) {
         }
     }
 
-    private fun SourceCandidate.flagStale(reason: String): SourceCandidate =
-        copy(stale = true, staleReason = reason)
+    private fun SourceCandidate.flagStale(reason: String): SourceCandidate = copy(stale = true, staleReason = reason)
 
     private fun entryKey(file: String, line: Int?): String = "$file::${line ?: -1}"
 

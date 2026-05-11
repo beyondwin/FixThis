@@ -47,8 +47,7 @@ object FixThis {
         return true
     }
 
-    private fun Application.isDebuggable(): Boolean =
-        runCatching {
-            applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
-        }.getOrDefault(false)
+    private fun Application.isDebuggable(): Boolean = runCatching {
+        applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
+    }.getOrDefault(false)
 }

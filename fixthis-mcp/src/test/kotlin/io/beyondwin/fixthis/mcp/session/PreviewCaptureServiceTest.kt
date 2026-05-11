@@ -1,7 +1,7 @@
 package io.beyondwin.fixthis.mcp.session
 
-import java.io.File
 import kotlinx.coroutines.runBlocking
+import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -89,19 +89,17 @@ class PreviewCaptureServiceTest {
         bridge: FakeFixThisBridge,
         store: FeedbackSessionStore,
         previewCache: PreviewSnapshotCache,
-    ): PreviewCaptureService =
-        PreviewCaptureService(
+    ): PreviewCaptureService = PreviewCaptureService(
+        bridge = bridge,
+        store = store,
+        previewCache = previewCache,
+        targetEvidenceService = TargetEvidenceService(
             bridge = bridge,
-            store = store,
-            previewCache = previewCache,
-            targetEvidenceService = TargetEvidenceService(
-                bridge = bridge,
-                sourceIndexRegistry = SourceIndexRegistry(),
-            ),
-        )
+            sourceIndexRegistry = SourceIndexRegistry(),
+        ),
+    )
 
-    private fun tempDir(prefix: String): File =
-        kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
+    private fun tempDir(prefix: String): File = kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
 
     private fun sequenceIds(vararg values: String): () -> String {
         val queue = ArrayDeque(values.toList())

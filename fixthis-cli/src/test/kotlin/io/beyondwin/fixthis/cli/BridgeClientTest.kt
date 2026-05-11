@@ -1,14 +1,5 @@
 package io.beyondwin.fixthis.cli
 
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.Closeable
-import java.io.File
-import java.io.IOException
-import java.io.InputStream
-import java.net.ServerSocket
-import java.net.SocketTimeoutException
-import java.util.ArrayDeque
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
@@ -17,7 +8,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
@@ -28,6 +18,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.IOException
+import java.io.InputStream
+import java.net.SocketTimeoutException
+import java.util.ArrayDeque
 
 class BridgeClientTest {
     @get:Rule
@@ -637,9 +634,7 @@ class BridgeClientTest {
 
     private class TimeoutBridgeSocket : BridgeSocket {
         override val input = object : ByteArrayInputStream(ByteArray(0)) {
-            override fun read(): Int {
-                throw SocketTimeoutException("test timeout")
-            }
+            override fun read(): Int = throw SocketTimeoutException("test timeout")
         }
         override val output = ByteArrayOutputStream()
         override var readTimeoutMillis: Int = 0
@@ -663,6 +658,7 @@ class BridgeClientTest {
         override var readTimeoutMillis: Int = 0
         val readStarted = CompletableDeferred<Unit>()
         val closed = CompletableDeferred<Unit>()
+
         @Volatile
         private var isClosed = false
 
@@ -689,19 +685,18 @@ class BridgeClientTest {
     ) : AdbFacade {
         override fun devices(): List<AdbDevice> = devices
 
-        override fun forDevice(serial: String?): AdbFacade =
-            FakeAdbFacade(
-                sessionJson = sessionJson,
-                devices = devices,
-                selectedSerial = serial,
-                forwarded = forwarded,
-                removedForwards = removedForwards,
-                pulled = pulled,
-                runAsSerials = runAsSerials,
-                forwardSerials = forwardSerials,
-                removeForwardSerials = removeForwardSerials,
-                launchedApps = launchedApps,
-            )
+        override fun forDevice(serial: String?): AdbFacade = FakeAdbFacade(
+            sessionJson = sessionJson,
+            devices = devices,
+            selectedSerial = serial,
+            forwarded = forwarded,
+            removedForwards = removedForwards,
+            pulled = pulled,
+            runAsSerials = runAsSerials,
+            forwardSerials = forwardSerials,
+            removeForwardSerials = removeForwardSerials,
+            launchedApps = launchedApps,
+        )
 
         override fun runAsCat(packageName: String, path: String): String {
             runAsSerials += selectedSerial

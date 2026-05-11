@@ -3,22 +3,21 @@ package io.beyondwin.fixthis.mcp.console
 import com.sun.net.httpserver.HttpExchange
 import io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatter
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
-import java.io.File
 import kotlinx.serialization.Serializable
+import java.io.File
 
 internal class SessionRoutes(
     private val service: FeedbackSessionService,
     private val consoleAssetsDir: File?,
     private val consoleToken: String,
 ) : ConsoleRoute {
-    override fun matches(path: String): Boolean =
-        path == "/" ||
-            path == "/favicon.ico" ||
-            path == "/api/session" ||
-            path == "/api/sessions" ||
-            path == "/api/session/open" ||
-            path == "/api/session/close" ||
-            path == "/api/export/markdown"
+    override fun matches(path: String): Boolean = path == "/" ||
+        path == "/favicon.ico" ||
+        path == "/api/session" ||
+        path == "/api/sessions" ||
+        path == "/api/session/open" ||
+        path == "/api/session/close" ||
+        path == "/api/export/markdown"
 
     override fun handle(exchange: HttpExchange) {
         when (exchange.requestURI.path) {
@@ -71,8 +70,7 @@ internal class SessionRoutes(
         }
     }
 
-    private fun HttpExchange.decodeOpenSessionBody(): OpenSessionRequest =
-        decodeJsonBody(OpenSessionRequest.serializer())
+    private fun HttpExchange.decodeOpenSessionBody(): OpenSessionRequest = decodeJsonBody(OpenSessionRequest.serializer())
 
     @Serializable
     private data class OpenSessionRequest(

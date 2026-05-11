@@ -1,0 +1,24 @@
+# Detekt configuration for FixThis.
+#
+# We rely on Detekt's upstream defaults via `buildUponDefaultConfig = true`
+# in the Gradle plugin extension. Only project-specific overrides go here.
+# Current findings are absorbed by config/detekt/baseline.xml so CI fails
+# only on NEW violations.
+
+build:
+  maxIssues: 0
+
+config:
+  validation: true
+  warningsAsErrors: false
+  excludes: ''
+
+# Exclude generated and build outputs from all rule sets.
+processors:
+  active: true
+
+console-reports:
+  active: true
+
+output-reports:
+  active: true

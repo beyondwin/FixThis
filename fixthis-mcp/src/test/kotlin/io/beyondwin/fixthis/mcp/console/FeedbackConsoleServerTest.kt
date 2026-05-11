@@ -9,30 +9,21 @@ import io.beyondwin.fixthis.cli.fixThisJson
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.TreeKind
-import io.beyondwin.fixthis.mcp.session.SnapshotDto
-import io.beyondwin.fixthis.mcp.session.FakeFixThisBridge
 import io.beyondwin.fixthis.mcp.session.AnnotationDto
 import io.beyondwin.fixthis.mcp.session.AnnotationStatusDto
+import io.beyondwin.fixthis.mcp.session.AnnotationTargetDto
+import io.beyondwin.fixthis.mcp.session.FakeFixThisBridge
+import io.beyondwin.fixthis.mcp.session.FeedbackDelivery
 import io.beyondwin.fixthis.mcp.session.FeedbackNavigationAction
-import io.beyondwin.fixthis.mcp.session.SnapshotRootDto
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionException
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionPaths
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionPersistence
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.beyondwin.fixthis.mcp.session.SnapshotDto
+import io.beyondwin.fixthis.mcp.session.SnapshotRootDto
 import io.beyondwin.fixthis.mcp.session.SnapshotScreenshotDto
-import io.beyondwin.fixthis.mcp.session.AnnotationTargetDto
-import io.beyondwin.fixthis.mcp.session.FeedbackDelivery
 import io.beyondwin.fixthis.mcp.tools.FixThisBridge
-import java.io.File
-import java.io.InputStream
-import java.io.OutputStream
-import java.net.InetSocketAddress
-import java.net.URI
-import java.nio.file.Files
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
-import kotlin.concurrent.thread
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -46,10 +37,19 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
 import kotlinx.serialization.json.put
+import java.io.File
+import java.io.InputStream
+import java.io.OutputStream
+import java.net.InetSocketAddress
+import java.net.URI
+import java.nio.file.Files
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -386,12 +386,11 @@ class FeedbackConsoleServerTest {
         )
     }
 
-    private fun consoleTokenFrom(html: String): String =
-        Regex("consoleToken:\\s*\"([^\"]+)\"")
-            .find(html)
-            ?.groupValues
-            ?.get(1)
-            ?: throw AssertionError("Expected served console HTML to include consoleToken config")
+    private fun consoleTokenFrom(html: String): String = Regex("consoleToken:\\s*\"([^\"]+)\"")
+        .find(html)
+        ?.groupValues
+        ?.get(1)
+        ?: throw AssertionError("Expected served console HTML to include consoleToken config")
 
     private fun rawHttpResponseCode(
         baseUrl: String,
@@ -3326,7 +3325,7 @@ class FeedbackConsoleServerTest {
         val historyOpenCount = javascriptFunctionBody(html, "historyOpenCount")
         assertTrue(
             historyOpenCount.contains("(session.inProgressItemsCount || 0)"),
-            "historyOpenCount must include in-progress items so WIP collapses into the open count"
+            "historyOpenCount must include in-progress items so WIP collapses into the open count",
         )
     }
 
@@ -3373,31 +3372,45 @@ class FeedbackConsoleServerTest {
     @Test
     fun stalenessExposesMinimumProtocolVersion() {
         val html = FeedbackConsoleAssets.indexHtml
-        assertTrue(html.contains("const MinimumSupportedProtocolVersion"),
-            "must expose minimum supported protocol version constant")
-        assertTrue(html.contains("function checkProtocolCompat"),
-            "must expose checkProtocolCompat function")
+        assertTrue(
+            html.contains("const MinimumSupportedProtocolVersion"),
+            "must expose minimum supported protocol version constant",
+        )
+        assertTrue(
+            html.contains("function checkProtocolCompat"),
+            "must expose checkProtocolCompat function",
+        )
     }
 
     @Test
     fun stalenessExposesProtocolVersionParser() {
         val html = FeedbackConsoleAssets.indexHtml
-        assertTrue(html.contains("function parseProtocolVersion"),
-            "must expose parseProtocolVersion helper")
-        assertTrue(html.contains("function compareProtocolVersion"),
-            "must expose compareProtocolVersion helper")
+        assertTrue(
+            html.contains("function parseProtocolVersion"),
+            "must expose parseProtocolVersion helper",
+        )
+        assertTrue(
+            html.contains("function compareProtocolVersion"),
+            "must expose compareProtocolVersion helper",
+        )
     }
 
     @Test
     fun protocolCompatBannersBothDirections() {
         val html = FeedbackConsoleAssets.indexHtml
         val body = javascriptFunctionBody(html, "checkProtocolCompat")
-        assertTrue(body.contains("protocol-sidekick-old-"),
-            "must produce sidekick-old-direction hash")
-        assertTrue(body.contains("protocol-console-old-"),
-            "must produce console-old-direction hash")
-        assertTrue(body.contains("compareProtocolVersion("),
-            "must call compareProtocolVersion")
+        assertTrue(
+            body.contains("protocol-sidekick-old-"),
+            "must produce sidekick-old-direction hash",
+        )
+        assertTrue(
+            body.contains("protocol-console-old-"),
+            "must produce console-old-direction hash",
+        )
+        assertTrue(
+            body.contains("compareProtocolVersion("),
+            "must call compareProtocolVersion",
+        )
         assertFalse(
             body.contains("=== MinimumSupportedProtocolVersion") ||
                 body.contains("!== MinimumSupportedProtocolVersion"),
@@ -3409,10 +3422,14 @@ class FeedbackConsoleServerTest {
     fun applyConnectionStatusCallsCheckProtocolCompat() {
         val html = FeedbackConsoleAssets.indexHtml
         val body = javascriptFunctionBody(html, "applyConnectionStatus")
-        assertTrue(body.contains("checkProtocolCompat"),
-            "applyConnectionStatus must invoke checkProtocolCompat")
-        assertTrue(body.contains("checkSidekickBuildEpoch"),
-            "applyConnectionStatus must invoke checkSidekickBuildEpoch")
+        assertTrue(
+            body.contains("checkProtocolCompat"),
+            "applyConnectionStatus must invoke checkProtocolCompat",
+        )
+        assertTrue(
+            body.contains("checkSidekickBuildEpoch"),
+            "applyConnectionStatus must invoke checkSidekickBuildEpoch",
+        )
     }
 
     private class FakeIds(vararg values: String) {
@@ -3425,21 +3442,18 @@ class FeedbackConsoleServerTest {
         val next: () -> Long = { queue.removeFirst() }
     }
 
-    private fun FeedbackSessionService.captureFakeScreenForTest(sessionId: String): SnapshotDto =
-        runBlocking { captureScreen(sessionId) }
+    private fun FeedbackSessionService.captureFakeScreenForTest(sessionId: String): SnapshotDto = runBlocking { captureScreen(sessionId) }
 
-    private fun FeedbackSessionService.addCapturedScreenForTest(sessionId: String, screen: SnapshotDto): SnapshotDto =
-        javaClass.getDeclaredField("store").let { field ->
-            field.isAccessible = true
-            (field.get(this) as FeedbackSessionStore).addScreen(sessionId, screen)
-        }
+    private fun FeedbackSessionService.addCapturedScreenForTest(sessionId: String, screen: SnapshotDto): SnapshotDto = javaClass.getDeclaredField("store").let { field ->
+        field.isAccessible = true
+        (field.get(this) as FeedbackSessionStore).addScreen(sessionId, screen)
+    }
 
     private class DeviceListBridge(private val devices: List<AdbDevice>) : FixThisBridge {
         var selectedDeviceSerial: String? = null
             private set
 
-        override fun resolvePackageName(packageOverride: String?): String =
-            packageOverride ?: "io.beyondwin.fixthis.sample"
+        override fun resolvePackageName(packageOverride: String?): String = packageOverride ?: "io.beyondwin.fixthis.sample"
 
         override fun devices(): List<AdbDevice> = devices
 
@@ -3453,8 +3467,7 @@ class FeedbackConsoleServerTest {
 
         override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
 
-        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
-            JsonObject(emptyMap())
+        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject = JsonObject(emptyMap())
 
         override suspend fun captureScreenSnapshot(
             packageName: String,
@@ -3465,15 +3478,13 @@ class FeedbackConsoleServerTest {
     }
 
     private class SessionScreenshotBridge(private val pngBytes: ByteArray) : FixThisBridge {
-        override fun resolvePackageName(packageOverride: String?): String =
-            packageOverride ?: "io.beyondwin.fixthis.sample"
+        override fun resolvePackageName(packageOverride: String?): String = packageOverride ?: "io.beyondwin.fixthis.sample"
 
         override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
 
         override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
 
-        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
-            JsonObject(emptyMap())
+        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject = JsonObject(emptyMap())
 
         override suspend fun captureScreenSnapshot(
             packageName: String,
@@ -3487,29 +3498,33 @@ class FeedbackConsoleServerTest {
             artifact.writeBytes(pngBytes)
             put("activity", "MainActivity")
             put("sourceIndexAvailable", true)
-            put("inspection", buildJsonObject {
-                put("activity", "MainActivity")
-                put("roots", JsonArray(emptyList()))
-                put("errors", JsonArray(emptyList()))
-            })
-            put("screenshot", buildJsonObject {
-                put("desktopFullPath", artifact.absolutePath)
-            })
+            put(
+                "inspection",
+                buildJsonObject {
+                    put("activity", "MainActivity")
+                    put("roots", JsonArray(emptyList()))
+                    put("errors", JsonArray(emptyList()))
+                },
+            )
+            put(
+                "screenshot",
+                buildJsonObject {
+                    put("desktopFullPath", artifact.absolutePath)
+                },
+            )
         }
     }
 
     private class SequencedSessionScreenshotBridge(vararg pngBytes: ByteArray) : FixThisBridge {
         private val queue = ArrayDeque(pngBytes.toList())
 
-        override fun resolvePackageName(packageOverride: String?): String =
-            packageOverride ?: "io.beyondwin.fixthis.sample"
+        override fun resolvePackageName(packageOverride: String?): String = packageOverride ?: "io.beyondwin.fixthis.sample"
 
         override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
 
         override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
 
-        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
-            JsonObject(emptyMap())
+        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject = JsonObject(emptyMap())
 
         override suspend fun captureScreenSnapshot(
             packageName: String,
@@ -3523,14 +3538,20 @@ class FeedbackConsoleServerTest {
             artifact.writeBytes(queue.removeFirst())
             put("activity", "MainActivity")
             put("sourceIndexAvailable", true)
-            put("inspection", buildJsonObject {
-                put("activity", "MainActivity")
-                put("roots", JsonArray(emptyList()))
-                put("errors", JsonArray(emptyList()))
-            })
-            put("screenshot", buildJsonObject {
-                put("desktopFullPath", artifact.absolutePath)
-            })
+            put(
+                "inspection",
+                buildJsonObject {
+                    put("activity", "MainActivity")
+                    put("roots", JsonArray(emptyList()))
+                    put("errors", JsonArray(emptyList()))
+                },
+            )
+            put(
+                "screenshot",
+                buildJsonObject {
+                    put("desktopFullPath", artifact.absolutePath)
+                },
+            )
         }
     }
 
@@ -3538,15 +3559,13 @@ class FeedbackConsoleServerTest {
         private val previewStarted: CountDownLatch,
         private val releasePreview: CountDownLatch,
     ) : FixThisBridge {
-        override fun resolvePackageName(packageOverride: String?): String =
-            packageOverride ?: "io.beyondwin.fixthis.sample"
+        override fun resolvePackageName(packageOverride: String?): String = packageOverride ?: "io.beyondwin.fixthis.sample"
 
         override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
 
         override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
 
-        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
-            JsonObject(emptyMap())
+        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject = JsonObject(emptyMap())
 
         override suspend fun captureScreenSnapshot(
             packageName: String,
@@ -3558,28 +3577,32 @@ class FeedbackConsoleServerTest {
             releasePreview.await(5, TimeUnit.SECONDS)
             put("activity", "MainActivity")
             put("sourceIndexAvailable", true)
-            put("inspection", buildJsonObject {
-                put("activity", "MainActivity")
-                put("roots", JsonArray(emptyList()))
-                put("errors", JsonArray(emptyList()))
-            })
-            put("screenshot", buildJsonObject {
-                put("width", 720)
-                put("height", 1600)
-            })
+            put(
+                "inspection",
+                buildJsonObject {
+                    put("activity", "MainActivity")
+                    put("roots", JsonArray(emptyList()))
+                    put("errors", JsonArray(emptyList()))
+                },
+            )
+            put(
+                "screenshot",
+                buildJsonObject {
+                    put("width", 720)
+                    put("height", 1600)
+                },
+            )
         }
     }
 
     private class LegacyScreenshotBridge(private val artifact: File) : FixThisBridge {
-        override fun resolvePackageName(packageOverride: String?): String =
-            packageOverride ?: "io.beyondwin.fixthis.sample"
+        override fun resolvePackageName(packageOverride: String?): String = packageOverride ?: "io.beyondwin.fixthis.sample"
 
         override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
 
         override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
 
-        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
-            JsonObject(emptyMap())
+        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject = JsonObject(emptyMap())
 
         override suspend fun captureScreenSnapshot(
             packageName: String,
@@ -3589,14 +3612,20 @@ class FeedbackConsoleServerTest {
         ): JsonObject = buildJsonObject {
             put("activity", "MainActivity")
             put("sourceIndexAvailable", true)
-            put("inspection", buildJsonObject {
-                put("activity", "MainActivity")
-                put("roots", JsonArray(emptyList()))
-                put("errors", JsonArray(emptyList()))
-            })
-            put("screenshot", buildJsonObject {
-                put("desktopFullPath", artifact.absolutePath)
-            })
+            put(
+                "inspection",
+                buildJsonObject {
+                    put("activity", "MainActivity")
+                    put("roots", JsonArray(emptyList()))
+                    put("errors", JsonArray(emptyList()))
+                },
+            )
+            put(
+                "screenshot",
+                buildJsonObject {
+                    put("desktopFullPath", artifact.absolutePath)
+                },
+            )
         }
     }
 
@@ -3612,8 +3641,7 @@ class FeedbackConsoleServerTest {
                 ?.get(1)
         }
 
-        fun get(path: String = "/"): String =
-            java.net.URI(baseUrl + path).toURL().readText()
+        fun get(path: String = "/"): String = java.net.URI(baseUrl + path).toURL().readText()
 
         fun getResponse(path: String, headers: Map<String, String> = emptyMap()): ConsoleHttpResponse {
             val connection = java.net.URI(baseUrl + path).toURL().openConnection() as java.net.HttpURLConnection
@@ -3675,14 +3703,12 @@ class FeedbackConsoleServerTest {
         val body: String,
         val headers: Map<String, List<String>>,
     ) {
-        fun header(name: String): String? =
-            headers.entries
-                .firstOrNull { it.key.equals(name, ignoreCase = true) }
-                ?.value
-                ?.firstOrNull()
+        fun header(name: String): String? = headers.entries
+            .firstOrNull { it.key.equals(name, ignoreCase = true) }
+            ?.value
+            ?.firstOrNull()
 
-        fun contentTypeStartsWith(prefix: String): Boolean =
-            header("Content-Type")?.startsWith(prefix) == true
+        fun contentTypeStartsWith(prefix: String): Boolean = header("Content-Type")?.startsWith(prefix) == true
     }
 
     @Test
@@ -3727,7 +3753,7 @@ class FeedbackConsoleServerTest {
         val body = javascriptFunctionBody(html, "mergeSessionIntoState")
         assertTrue(
             body.contains("BULK_CHANGE_HIGHLIGHT_THRESHOLD") || body.contains(">= 6") || body.contains("> 5"),
-            "mergeSessionIntoState must guard against bulk highlight cascade"
+            "mergeSessionIntoState must guard against bulk highlight cascade",
         )
     }
 
@@ -3741,9 +3767,9 @@ class FeedbackConsoleServerTest {
                 "                startHeartbeatPolling();\n" +
                     "                startLivePreviewPolling();\n" +
                     "                startSessionsPolling();\n" +
-                    "              })"
+                    "              })",
             ),
-            "main.js boot chain must call startSessionsPolling() after startLivePreviewPolling()"
+            "main.js boot chain must call startSessionsPolling() after startLivePreviewPolling()",
         )
         // Visibility-change handler (14-space indent inside arrow body): must restart sessions polling
         // alongside the live-preview polling restart when the tab becomes visible again.
@@ -3751,9 +3777,9 @@ class FeedbackConsoleServerTest {
             html.contains(
                 "              startLivePreviewPolling();\n" +
                     "              startSessionsPolling();\n" +
-                    "            });"
+                    "            });",
             ),
-            "visibilitychange handler must restart startSessionsPolling() when tab becomes visible"
+            "visibilitychange handler must restart startSessionsPolling() when tab becomes visible",
         )
     }
 
@@ -3761,32 +3787,40 @@ class FeedbackConsoleServerTest {
     fun sessionsPollingDeclaresFailureBackoffConstants() {
         val html = FeedbackConsoleAssets.indexHtml
         assertTrue(html.contains("let consecutivePollFailures"), "must declare failure counter")
-        assertTrue(html.contains("MaxConsecutivePollFailures") || html.contains("= 5"),
-            "must declare threshold (named const or literal 5)")
+        assertTrue(
+            html.contains("MaxConsecutivePollFailures") || html.contains("= 5"),
+            "must declare threshold (named const or literal 5)",
+        )
     }
 
     @Test
     fun pollSessionsTickResetsFailureCounterOnSuccess() {
         val html = FeedbackConsoleAssets.indexHtml
         val body = javascriptFunctionBody(html, "pollSessionsTick")
-        assertTrue(body.contains("consecutivePollFailures = 0") || body.contains("consecutivePollFailures=0"),
-            "tick must reset counter on success")
+        assertTrue(
+            body.contains("consecutivePollFailures = 0") || body.contains("consecutivePollFailures=0"),
+            "tick must reset counter on success",
+        )
     }
 
     @Test
     fun pollSessionsTickIncrementsFailureCounterOnError() {
         val html = FeedbackConsoleAssets.indexHtml
         val body = javascriptFunctionBody(html, "pollSessionsTick")
-        assertTrue(body.contains("consecutivePollFailures++") || body.contains("consecutivePollFailures += 1"),
-            "tick must increment counter on failure")
+        assertTrue(
+            body.contains("consecutivePollFailures++") || body.contains("consecutivePollFailures += 1"),
+            "tick must increment counter on failure",
+        )
     }
 
     @Test
     fun pollSessionsTickPausesAfterThreshold() {
         val html = FeedbackConsoleAssets.indexHtml
         val body = javascriptFunctionBody(html, "pollSessionsTick")
-        assertTrue(body.contains("setSessionsPollingPaused(true)") || body.contains("stopSessionsPolling()"),
-            "tick must pause polling once threshold reached")
+        assertTrue(
+            body.contains("setSessionsPollingPaused(true)") || body.contains("stopSessionsPolling()"),
+            "tick must pause polling once threshold reached",
+        )
     }
 
     @Test
@@ -3795,11 +3829,11 @@ class FeedbackConsoleServerTest {
         // The flag must be declared on state.connection (or a sibling module-level let).
         assertTrue(
             html.contains("sessionsPollingPaused"),
-            "must declare sessionsPollingPaused flag on state.connection"
+            "must declare sessionsPollingPaused flag on state.connection",
         )
         assertTrue(
             html.contains("function setSessionsPollingPaused"),
-            "must declare setSessionsPollingPaused helper"
+            "must declare setSessionsPollingPaused helper",
         )
     }
 
@@ -3809,7 +3843,7 @@ class FeedbackConsoleServerTest {
         val body = javascriptFunctionBody(html, "renderConnection")
         assertTrue(
             body.contains("sessionsPollingPaused") || body.contains("Reconnecting feedback updates"),
-            "renderConnection must consult the paused flag and surface a Reconnecting message"
+            "renderConnection must consult the paused flag and surface a Reconnecting message",
         )
     }
 
@@ -3819,7 +3853,7 @@ class FeedbackConsoleServerTest {
         // The visibilitychange handler must restart polling when paused.
         assertTrue(
             html.contains("sessionsPollingPaused") && html.contains("startSessionsPolling"),
-            "visibility handler must consult sessionsPollingPaused and call startSessionsPolling"
+            "visibility handler must consult sessionsPollingPaused and call startSessionsPolling",
         )
     }
 
@@ -3829,7 +3863,7 @@ class FeedbackConsoleServerTest {
         val body = javascriptFunctionBody(html, "withMutationLock")
         assertTrue(
             body.contains("sessionsPollingPaused") || body.contains("startSessionsPolling"),
-            "withMutationLock finally-block must restart polling if paused"
+            "withMutationLock finally-block must restart polling if paused",
         )
     }
 

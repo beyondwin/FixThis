@@ -35,7 +35,7 @@ class SemanticsInspectorTest {
                         .semantics {
                             editableText = AnnotatedString("card 4242")
                             password()
-                        }
+                        },
                 )
             }
         }
@@ -54,7 +54,7 @@ class SemanticsInspectorTest {
                     node.isSensitive &&
                     node.editableText == "<redacted-password>" &&
                     node.text == listOf("<redacted-password>")
-            }
+            },
         )
     }
 }

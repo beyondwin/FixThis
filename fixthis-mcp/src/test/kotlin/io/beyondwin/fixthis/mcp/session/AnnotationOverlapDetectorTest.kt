@@ -1,10 +1,9 @@
 package io.beyondwin.fixthis.mcp.session
 
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertTrue
-import org.junit.Test
 
 class AnnotationOverlapDetectorTest {
     @Test

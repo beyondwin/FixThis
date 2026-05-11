@@ -3,7 +3,6 @@ package io.beyondwin.fixthis.mcp.session
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class FormatterExtensionsTest {
 

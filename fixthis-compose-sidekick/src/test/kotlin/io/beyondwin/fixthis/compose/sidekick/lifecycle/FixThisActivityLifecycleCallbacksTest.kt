@@ -14,8 +14,7 @@ import org.robolectric.RobolectricTestRunner
 class FixThisActivityLifecycleCallbacksTest {
     private val callbacks = FixThisActivityLifecycleCallbacks()
 
-    private fun newActivity(): Activity =
-        Robolectric.buildActivity(Activity::class.java).get()
+    private fun newActivity(): Activity = Robolectric.buildActivity(Activity::class.java).get()
 
     @Test
     fun `app is not foreground until activity resumed`() {

@@ -44,7 +44,8 @@ enum class AnnotationStatus(val group: Group) {
     IN_PROGRESS(Group.IN_PROGRESS),
     RESOLVED(Group.RESOLVED),
     WONT_FIX(Group.RESOLVED),
-    NEEDS_CLARIFICATION(Group.OPEN);
+    NEEDS_CLARIFICATION(Group.OPEN),
+    ;
 
     enum class Group {
         OPEN,

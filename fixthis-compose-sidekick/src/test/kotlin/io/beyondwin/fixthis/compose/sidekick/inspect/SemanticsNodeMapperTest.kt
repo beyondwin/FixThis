@@ -27,23 +27,23 @@ class SemanticsNodeMapperTest {
         assertEquals("Editing", mapped.stateDescription)
         assertEquals(
             "[Search]",
-            mapped.rawProperties.getValue(SemanticsProperties.Text.name)
+            mapped.rawProperties.getValue(SemanticsProperties.Text.name),
         )
         assertEquals(
             "<redacted-editable-text>",
-            mapped.rawProperties.getValue(SemanticsProperties.EditableText.name)
+            mapped.rawProperties.getValue(SemanticsProperties.EditableText.name),
         )
         assertEquals(
             "<redacted-editable-text>",
-            mapped.rawProperties.getValue(SemanticsProperties.InputText.name)
+            mapped.rawProperties.getValue(SemanticsProperties.InputText.name),
         )
         assertEquals(
             "[Search query]",
-            mapped.rawProperties.getValue(SemanticsProperties.ContentDescription.name)
+            mapped.rawProperties.getValue(SemanticsProperties.ContentDescription.name),
         )
         assertEquals(
             "Editing",
-            mapped.rawProperties.getValue(SemanticsProperties.StateDescription.name)
+            mapped.rawProperties.getValue(SemanticsProperties.StateDescription.name),
         )
     }
 

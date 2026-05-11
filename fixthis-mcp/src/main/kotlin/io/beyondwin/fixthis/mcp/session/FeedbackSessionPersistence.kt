@@ -1,11 +1,11 @@
 package io.beyondwin.fixthis.mcp.session
 
 import io.beyondwin.fixthis.cli.fixThisJson
+import kotlinx.serialization.Serializable
 import java.io.File
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
-import kotlinx.serialization.Serializable
 
 class FeedbackSessionPersistence(
     private val paths: FeedbackSessionPaths,
@@ -98,14 +98,13 @@ class FeedbackSessionPersistence(
         )
     }
 
-    private fun backupFile(target: File, prefix: String, directory: File): FileBackup =
-        if (target.isFile) {
-            val tempFile = File.createTempFile(prefix, ".json.tmp", directory)
-            Files.copy(target.toPath(), tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
-            FileBackup.Present(tempFile)
-        } else {
-            FileBackup.Absent
-        }
+    private fun backupFile(target: File, prefix: String, directory: File): FileBackup = if (target.isFile) {
+        val tempFile = File.createTempFile(prefix, ".json.tmp", directory)
+        Files.copy(target.toPath(), tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        FileBackup.Present(tempFile)
+    } else {
+        FileBackup.Absent
+    }
 
     private fun restoreFile(target: File, backup: FileBackup?) {
         when (backup) {
@@ -168,8 +167,7 @@ class FeedbackSessionPersistence(
         val sessions: List<SessionDto>,
         val skipped: List<SkippedFeedbackSession>,
     ) {
-        fun withCandidate(candidate: SessionDto): LoadedSessions =
-            copy(sessions = sessions.filterNot { it.sessionId == candidate.sessionId } + candidate)
+        fun withCandidate(candidate: SessionDto): LoadedSessions = copy(sessions = sessions.filterNot { it.sessionId == candidate.sessionId } + candidate)
     }
 }
 

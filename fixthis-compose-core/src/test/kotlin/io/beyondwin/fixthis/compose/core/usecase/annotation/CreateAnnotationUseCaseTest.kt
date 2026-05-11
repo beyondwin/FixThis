@@ -97,8 +97,7 @@ class CreateAnnotationUseCaseTest {
 }
 
 private class FakeSessionRepository(private val session: Session) : SessionRepository {
-    override suspend fun find(id: SessionId): Session? =
-        session.takeIf { it.id == id }
+    override suspend fun find(id: SessionId): Session? = session.takeIf { it.id == id }
 
     override suspend fun save(session: Session): Session = session
 }

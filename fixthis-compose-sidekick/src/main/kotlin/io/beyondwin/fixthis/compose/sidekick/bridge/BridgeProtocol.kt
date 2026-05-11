@@ -1,12 +1,12 @@
 package io.beyondwin.fixthis.compose.sidekick.bridge
 
-import java.io.EOFException
-import java.io.InputStream
-import java.io.OutputStream
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import java.io.EOFException
+import java.io.InputStream
+import java.io.OutputStream
 
 object BridgeProtocol {
     const val VERSION: String = "1.2"
@@ -49,21 +49,19 @@ object BridgeProtocol {
         return bytes.toString(Charsets.UTF_8)
     }
 
-    fun success(id: String?, result: kotlinx.serialization.json.JsonElement): String =
-        json.encodeToString(
-            BridgeResponse.serializer(),
-            BridgeResponse(id = id, ok = true, result = result),
-        )
+    fun success(id: String?, result: kotlinx.serialization.json.JsonElement): String = json.encodeToString(
+        BridgeResponse.serializer(),
+        BridgeResponse(id = id, ok = true, result = result),
+    )
 
-    fun error(id: String?, code: String, message: String): String =
-        json.encodeToString(
-            BridgeResponse.serializer(),
-            BridgeResponse(
-                id = id,
-                ok = false,
-                error = BridgeError(code = code, message = message),
-            ),
-        )
+    fun error(id: String?, code: String, message: String): String = json.encodeToString(
+        BridgeResponse.serializer(),
+        BridgeResponse(
+            id = id,
+            ok = false,
+            error = BridgeError(code = code, message = message),
+        ),
+    )
 
     private fun InputStream.readRequiredByte(): Int {
         val value = read()

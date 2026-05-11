@@ -1,15 +1,12 @@
 package io.beyondwin.fixthis.compose.sidekick.bridge
 
-import io.beyondwin.fixthis.compose.sidekick.BuildInfo
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.ScreenshotInfo
 import io.beyondwin.fixthis.compose.core.model.TreeKind
 import io.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
-import java.io.File
-import java.io.RandomAccessFile
-import kotlin.io.path.createTempDirectory
+import io.beyondwin.fixthis.compose.sidekick.BuildInfo
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.encodeToJsonElement
@@ -24,6 +21,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
+import java.io.RandomAccessFile
+import kotlin.io.path.createTempDirectory
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -396,21 +396,20 @@ class BridgeServerTest {
     private fun server(
         environment: BridgeEnvironment = RecordingBridgeEnvironment(),
         connectionState: BridgeConnectionState = BridgeConnectionState(),
-    ): BridgeServer =
-        BridgeServer(
-            session = SidekickSession(
-                packageName = "io.beyondwin.fixthis.sample",
-                socketName = "fixthis_io.beyondwin.fixthis.sample",
-                socketAddress = "localabstract:fixthis_io.beyondwin.fixthis.sample",
-                token = "token",
-                sidekickVersion = "0.1.0-test",
-                bridgeProtocolVersion = BridgeProtocol.VERSION,
-                createdAtEpochMillis = 1234L,
-                processStartEpochMillis = 1234L,
-            ),
-            environment = environment,
-            connectionState = connectionState,
-        )
+    ): BridgeServer = BridgeServer(
+        session = SidekickSession(
+            packageName = "io.beyondwin.fixthis.sample",
+            socketName = "fixthis_io.beyondwin.fixthis.sample",
+            socketAddress = "localabstract:fixthis_io.beyondwin.fixthis.sample",
+            token = "token",
+            sidekickVersion = "0.1.0-test",
+            bridgeProtocolVersion = BridgeProtocol.VERSION,
+            createdAtEpochMillis = 1234L,
+            processStartEpochMillis = 1234L,
+        ),
+        environment = environment,
+        connectionState = connectionState,
+    )
 
     private class RecordingBridgeEnvironment(
         private val screenshotCacheDirectory: File = tempDirectory(prefix = "fixthis-cache"),
@@ -422,31 +421,28 @@ class BridgeServerTest {
         private var lastScreenSnapshot: BridgeScreenSnapshot? = screenSnapshot
         val navigationRequests: MutableList<BridgeNavigationRequest> = mutableListOf()
 
-        override suspend fun status(): BridgeStatus =
-            BridgeStatus(
-                activity = "MainActivity",
-                rootsCount = 1,
-                sidekickVersion = "0.1.0-test",
-                bridgeProtocolVersion = BridgeProtocol.VERSION,
-                sourceIndexAvailable = true,
-                sidekickBuildEpochMs = BuildInfo.BUILD_EPOCH_MS,
-            )
+        override suspend fun status(): BridgeStatus = BridgeStatus(
+            activity = "MainActivity",
+            rootsCount = 1,
+            sidekickVersion = "0.1.0-test",
+            bridgeProtocolVersion = BridgeProtocol.VERSION,
+            sourceIndexAvailable = true,
+            sidekickBuildEpochMs = BuildInfo.BUILD_EPOCH_MS,
+        )
 
-        override suspend fun inspectCurrentScreen(): BridgeScreenInspection =
-            BridgeScreenInspection(
-                activity = "MainActivity",
-                roots = listOf(
-                    BridgeInspectedRoot(
-                        rootIndex = 0,
-                        boundsInWindow = FixThisRect(0f, 0f, 200f, 100f),
-                        mergedNodes = listOf(node()),
-                        unmergedNodes = emptyList(),
-                    ),
+        override suspend fun inspectCurrentScreen(): BridgeScreenInspection = BridgeScreenInspection(
+            activity = "MainActivity",
+            roots = listOf(
+                BridgeInspectedRoot(
+                    rootIndex = 0,
+                    boundsInWindow = FixThisRect(0f, 0f, 200f, 100f),
+                    mergedNodes = listOf(node()),
+                    unmergedNodes = emptyList(),
                 ),
-            )
+            ),
+        )
 
-        override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot =
-            screenSnapshot.also { lastScreenSnapshot = it }
+        override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot = screenSnapshot.also { lastScreenSnapshot = it }
 
         override suspend fun readSourceIndex(): BridgeSourceIndexResult = sourceIndexResult
 
@@ -486,16 +482,14 @@ private fun screenshotFile(cacheDirectory: File, name: String, bytes: ByteArray)
     }
 }
 
-private fun tempDirectory(prefix: String): File =
-    createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
+private fun tempDirectory(prefix: String): File = createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
 
-private fun node(): FixThisNode =
-    FixThisNode(
-        uid = "pay-button",
-        composeNodeId = 1,
-        rootIndex = 0,
-        treeKind = TreeKind.MERGED,
-        boundsInWindow = FixThisRect(10f, 10f, 100f, 44f),
-        text = listOf("Pay now"),
-        role = "Button",
-    )
+private fun node(): FixThisNode = FixThisNode(
+    uid = "pay-button",
+    composeNodeId = 1,
+    rootIndex = 0,
+    treeKind = TreeKind.MERGED,
+    boundsInWindow = FixThisRect(10f, 10f, 100f, 44f),
+    text = listOf("Pay now"),
+    role = "Button",
+)

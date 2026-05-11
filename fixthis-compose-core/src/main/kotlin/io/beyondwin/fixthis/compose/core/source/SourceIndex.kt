@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class SourceIndex(
     val schemaVersion: String = "1.0",
-    val entries: List<SourceIndexEntry> = emptyList()
+    val entries: List<SourceIndexEntry> = emptyList(),
 )
 
 @Serializable
@@ -22,14 +22,14 @@ data class SourceIndexEntry(
     val excerpt: String? = null,
     val signals: List<SourceSignal> = emptyList(),
     val packageName: String? = null,
-    val className: String? = null
+    val className: String? = null,
 )
 
 @Serializable
 data class SourceSignal(
     val kind: SourceSignalKind,
     val value: String,
-    val confidenceWeight: Double = 1.0
+    val confidenceWeight: Double = 1.0,
 )
 
 @Serializable
@@ -42,5 +42,5 @@ enum class SourceSignalKind {
     CONTENT_DESCRIPTION,
     ROLE,
     ACTIVITY_NAME,
-    ARBITRARY_STRING_LITERAL
+    ARBITRARY_STRING_LITERAL,
 }

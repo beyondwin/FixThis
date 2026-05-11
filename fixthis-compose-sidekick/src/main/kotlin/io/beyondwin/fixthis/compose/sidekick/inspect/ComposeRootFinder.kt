@@ -42,12 +42,11 @@ object ComposeRootFinder {
     }
 }
 
-private fun View.isDiscoverableRoot(): Boolean =
-    isAttachedToWindow &&
-        visibility == View.VISIBLE &&
-        isShown &&
-        width > 0 &&
-        height > 0
+private fun View.isDiscoverableRoot(): Boolean = isAttachedToWindow &&
+    visibility == View.VISIBLE &&
+    isShown &&
+    width > 0 &&
+    height > 0
 
 private fun View.boundsInWindow(): Rect {
     val location = IntArray(2)

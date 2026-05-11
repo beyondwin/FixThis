@@ -1,5 +1,39 @@
 # Contributing
 
+## Formatting
+
+Kotlin sources and Gradle Kotlin DSL scripts are formatted by [Spotless](https://github.com/diffplug/spotless)
+with the [ktlint](https://github.com/pinterest/ktlint) formatter.
+
+```bash
+./gradlew spotlessApply   # format the codebase locally
+./gradlew spotlessCheck   # verify formatting (this is what CI runs)
+```
+
+CI runs `./gradlew spotlessCheck` before unit tests and fails on unformatted files.
+The historical bulk reformatting commit is recorded in
+[`.git-blame-ignore-revs`](.git-blame-ignore-revs); configure git to ignore it for
+`git blame` with:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+## Required PR checks
+
+The following table is the canonical contract for which workflows are (or will become) required status checks on pull requests targeting `main`. The actual GitHub branch-protection flip is a maintainer admin action and is deferred until each "Pending" row meets its observation window; readiness is tracked in [`docs/contributing/required-checks.md`](docs/contributing/required-checks.md).
+
+| Check | Workflow | Source task | Status |
+|---|---|---|---|
+| Build + unit tests | `.github/workflows/ci.yml` (baseline job) | pre-existing | Required (already enforced) |
+| Kotlin formatting | `./gradlew spotlessCheck` in ci.yml | CI-1 | Pending — promote after 7 days green |
+| Static analysis | `./gradlew detekt` in ci.yml | CI-2 | Pending — promote after 7 days green |
+| CodeQL | `.github/workflows/codeql.yml` | CI-3 | Pending — promote after first analysis lands |
+| Nightly connected tests | `.github/workflows/connected-tests.yml` | CI-4 | Informational only — promote after 14 consecutive green |
+| Compatibility matrix nightly | `.github/workflows/nightly-compat.yml` | BR-4 | Informational only — promote after 1 week stable |
+
+The branch-protection flip itself is gated on the "Pending" rows above turning green for the stated observation window. Maintainers update the readiness tracker as windows complete.
+
 ## Required Local Checks
 
 Run these before opening a pull request:

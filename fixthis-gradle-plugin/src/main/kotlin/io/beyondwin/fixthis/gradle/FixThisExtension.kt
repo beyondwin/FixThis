@@ -1,8 +1,8 @@
 package io.beyondwin.fixthis.gradle
 
-import javax.inject.Inject
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
+import javax.inject.Inject
 
 abstract class FixThisExtension @Inject constructor(
     objects: ObjectFactory,

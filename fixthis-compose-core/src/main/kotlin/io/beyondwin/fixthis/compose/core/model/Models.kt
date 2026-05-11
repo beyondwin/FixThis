@@ -21,7 +21,7 @@ data class FixThisAnnotation(
     val screenshot: ScreenshotInfo? = null,
     val userComment: String,
     val errors: List<FixThisError> = emptyList(),
-    val targetEvidence: TargetEvidence? = null
+    val targetEvidence: TargetEvidence? = null,
 )
 
 @Serializable
@@ -59,7 +59,7 @@ data class SelectionInfo(
     val confidence: SelectionConfidence,
     val selectedUid: String? = null,
     val areaBoundsInWindow: FixThisRect? = null,
-    val source: SelectionSource
+    val source: SelectionSource,
 )
 
 @Serializable
@@ -81,11 +81,15 @@ data class FixThisNode(
     val isPassword: Boolean = false,
     val isSensitive: Boolean = false,
     val path: List<String> = emptyList(),
-    val rawProperties: Map<String, String> = emptyMap()
+    val rawProperties: Map<String, String> = emptyMap(),
 ) {
-    fun hasMeaningfulSemantic(): Boolean =
-        text.isNotEmpty() || editableText != null || contentDescription.isNotEmpty() ||
-            role != null || testTag != null || actions.isNotEmpty() || stateDescription != null
+    fun hasMeaningfulSemantic(): Boolean = text.isNotEmpty() ||
+        editableText != null ||
+        contentDescription.isNotEmpty() ||
+        role != null ||
+        testTag != null ||
+        actions.isNotEmpty() ||
+        stateDescription != null
 }
 
 @Serializable
@@ -119,7 +123,7 @@ data class ScreenshotInfo(
     val desktopCropPath: String? = null,
     val width: Int? = null,
     val height: Int? = null,
-    val captureFailedReason: String? = null
+    val captureFailedReason: String? = null,
 )
 
 @Serializable

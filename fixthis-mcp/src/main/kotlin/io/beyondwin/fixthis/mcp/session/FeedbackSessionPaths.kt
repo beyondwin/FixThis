@@ -7,20 +7,15 @@ class FeedbackSessionPaths(projectRoot: File) {
     val rootDirectory: File = File(this.projectRoot, ".fixthis/feedback-sessions").canonicalFile
     val indexFile: File = File(rootDirectory, "index.json").canonicalFile
 
-    fun sessionDirectory(sessionId: String): File =
-        child(rootDirectory, safeId(sessionId))
+    fun sessionDirectory(sessionId: String): File = child(rootDirectory, safeId(sessionId))
 
-    fun sessionFile(sessionId: String): File =
-        child(sessionDirectory(sessionId), "session.json")
+    fun sessionFile(sessionId: String): File = child(sessionDirectory(sessionId), "session.json")
 
-    fun screenArtifactDirectory(sessionId: String, screenId: String): File =
-        child(child(child(sessionDirectory(sessionId), "artifacts"), "screens"), safeId(screenId))
+    fun screenArtifactDirectory(sessionId: String, screenId: String): File = child(child(child(sessionDirectory(sessionId), "artifacts"), "screens"), safeId(screenId))
 
-    fun fullScreenshotFile(sessionId: String, screenId: String): File =
-        child(screenArtifactDirectory(sessionId, screenId), "${safeId(screenId)}-full.png")
+    fun fullScreenshotFile(sessionId: String, screenId: String): File = child(screenArtifactDirectory(sessionId, screenId), "${safeId(screenId)}-full.png")
 
-    fun isUnderFeedbackStorage(file: File): Boolean =
-        file.canonicalFile.toPath().startsWith(rootDirectory.toPath())
+    fun isUnderFeedbackStorage(file: File): Boolean = file.canonicalFile.toPath().startsWith(rootDirectory.toPath())
 
     private fun child(parent: File, segment: String): File {
         val child = File(parent, segment).canonicalFile

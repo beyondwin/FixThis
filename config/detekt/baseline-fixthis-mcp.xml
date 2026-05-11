@@ -1,0 +1,419 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:CompactHandoffRenderer.kt$CompactHandoffRenderer$fun render(session: SessionDto, itemIds: List&lt;String&gt;? = null): String</ID>
+    <ID>CyclomaticComplexMethod:CompactHandoffRenderer.kt$CompactHandoffRenderer$private fun reasonTokenFor(reason: String): String?</ID>
+    <ID>CyclomaticComplexMethod:ConsoleConnectionService.kt$ConsoleConnectionService$suspend fun connectionStatus(session: SessionDto): ConsoleConnectionStatus</ID>
+    <ID>CyclomaticComplexMethod:FeedbackItemRoutes.kt$FeedbackItemRoutes$override fun handle(exchange: HttpExchange)</ID>
+    <ID>CyclomaticComplexMethod:FixThisTools.kt$FixThisTools$suspend fun call(name: String, arguments: JsonObject): JsonObject</ID>
+    <ID>CyclomaticComplexMethod:McpProtocol.kt$McpProtocol$internal suspend fun handleRequest(request: McpRequest): String?</ID>
+    <ID>CyclomaticComplexMethod:McpServer.kt$McpServer$suspend fun run(input: InputStream, output: OutputStream, diagnostics: OutputStream)</ID>
+    <ID>LargeClass:CompactHandoffRendererTest.kt$CompactHandoffRendererTest</ID>
+    <ID>LargeClass:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest</ID>
+    <ID>LargeClass:FeedbackQueueFormatterTest.kt$FeedbackQueueFormatterTest</ID>
+    <ID>LargeClass:FeedbackSessionServiceTest.kt$FeedbackSessionServiceTest</ID>
+    <ID>LargeClass:FeedbackSessionStoreTest.kt$FeedbackSessionStoreTest</ID>
+    <ID>LargeClass:McpProtocolTest.kt$McpProtocolTest</ID>
+    <ID>LongMethod:CompactHandoffRenderer.kt$CompactHandoffRenderer$fun render(session: SessionDto, itemIds: List&lt;String&gt;? = null): String</ID>
+    <ID>LongMethod:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$@Test fun renderEmitsCollisionNoteOnGroupLeader()</ID>
+    <ID>LongMethod:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$@Test fun renderEmitsInstanceLabelsOnGroupedUiLines()</ID>
+    <ID>LongMethod:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$@Test fun renderOmitsViewportLineWhenDimensionsMissing()</ID>
+    <ID>LongMethod:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$private fun makeDuplicateSession(): SessionDto</ID>
+    <ID>LongMethod:ConsoleConnectionService.kt$ConsoleConnectionService$suspend fun connectionStatus(session: SessionDto): ConsoleConnectionStatus</ID>
+    <ID>LongMethod:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$@Test fun consoleHtmlIncludesSelectionHandoffWorkspace()</ID>
+    <ID>LongMethod:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$@Test fun consoleHtmlRendersStudioSessionHistoryWithoutInternalIds()</ID>
+    <ID>LongMethod:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$@Test fun savingDraftItemsAppendsOneScreenAndTwoItems()</ID>
+    <ID>LongMethod:FeedbackItemRoutes.kt$FeedbackItemRoutes$override fun handle(exchange: HttpExchange)</ID>
+    <ID>LongMethod:FeedbackQueueFormatterTest.kt$FeedbackQueueFormatterTest$@Test fun markdownFocusesOnRequestTargetEvidenceAndLikelySource()</ID>
+    <ID>LongMethod:FeedbackQueueFormatterTest.kt$FeedbackQueueFormatterTest$@Test fun markdownIncludesAreaEvidenceNoteAndNearbyUiLabels()</ID>
+    <ID>LongMethod:FeedbackQueueFormatterTest.kt$FeedbackQueueFormatterTest$@Test fun markdownOmitsInternalIdsWhileKeepingActionableContext()</ID>
+    <ID>LongMethod:FeedbackQueueFormatterTest.kt$FeedbackQueueFormatterTest$private fun sessionWithTargetEvidenceAndSources(): SessionDto</ID>
+    <ID>LongMethod:FeedbackSessionServiceTest.kt$FeedbackSessionServiceTest$@Test fun addSelectedNodeFeedbackStoresSelectedNode()</ID>
+    <ID>LongMethod:FeedbackSessionServiceTest.kt$FeedbackSessionServiceTest$@Test fun savingAreaPreviewFeedbackUsesNearestMeaningfulNodesWhenNothingOverlaps()</ID>
+    <ID>LongMethod:FeedbackSessionServiceTest.kt$FeedbackSessionServiceTest$@Test fun savingAreaPreviewFeedbackUsesOnlyOverlappingEvidenceWhenAnyNodeOverlaps()</ID>
+    <ID>LongMethod:FeedbackSessionServiceTest.kt$FeedbackSessionServiceTest$@Test fun savingNodePreviewFeedbackBuildsStableTargetEvidenceFromCapturedMergedNodes()</ID>
+    <ID>LongMethod:FeedbackSessionServiceTest.kt$FeedbackSessionServiceTest$@Test fun savingNodePreviewFeedbackUsesSelectedNodeAndSameRootNearbyEvidence()</ID>
+    <ID>LongMethod:FeedbackSessionServiceTest.kt$FeedbackSessionServiceTest$@Test fun savingPreviewDoesNotInventSourceCandidatesWhenSourceIndexIsUnavailableMissingEmptyOrUnreadable()</ID>
+    <ID>LongMethod:FixThisTools.kt$FixThisTools$suspend fun call(name: String, arguments: JsonObject): JsonObject</ID>
+    <ID>LongMethod:McpProtocolTest.kt$McpProtocolTest$@Test fun listFeedbackIncludesDraftAndSentCounts()</ID>
+    <ID>LongParameterList:AnnotationRepository.kt$AnnotationRepository$( sessionId: String, itemId: String, label: String?, severity: AnnotationSeverityDto?, comment: String?, status: AnnotationStatusDto?, )</ID>
+    <ID>LongParameterList:AnnotationRepository.kt$AnnotationRepository$( sessionId: String, screenId: String, targetType: FeedbackTargetType, bounds: FixThisRect, nodeUid: String?, comment: String, )</ID>
+    <ID>LongParameterList:CompactHandoffRenderer.kt$CompactHandoffRenderer$( number: Int, item: AnnotationDto, isOverlap: Boolean, instanceLabel: InstanceLabel? = null, isInstanceLeader: Boolean = false, groupSize: Int = 0, dupRefMarker: Int? = null, sourceRoot: String? = null, )</ID>
+    <ID>LongParameterList:FakeFixThisBridge.kt$FakeFixThisBridge$( private val packageName: String = "io.beyondwin.fixthis.sample", private val captureError: Throwable? = null, private val captureRoots: List&lt;SnapshotRootDto&gt; = defaultCaptureRoots(), private val sourceIndexAvailable: Boolean = true, private val sourceIndex: SourceIndex? = defaultSourceIndex(), private val sourceIndexReadError: String? = null, private val devicesOverride: List&lt;AdbDevice&gt;? = null, private val devicesError: Throwable? = null, private val heartbeatError: Throwable? = null, private val statusProvider: (() -&gt; JsonObject)? = null, )</ID>
+    <ID>LongParameterList:FeedbackDraftService.kt$FeedbackDraftService$( sessionId: String, screenId: String, targetType: FeedbackTargetType, bounds: FixThisRect, nodeUid: String?, comment: String, )</ID>
+    <ID>LongParameterList:FeedbackSessionService.kt$FeedbackSessionService$( sessionId: String, itemId: String, label: String?, severity: AnnotationSeverityDto?, comment: String?, status: AnnotationStatusDto?, )</ID>
+    <ID>LongParameterList:FeedbackSessionService.kt$FeedbackSessionService$( sessionId: String, screenId: String, targetType: FeedbackTargetType, bounds: FixThisRect, nodeUid: String?, comment: String, )</ID>
+    <ID>LongParameterList:FeedbackSessionStore.kt$FeedbackSessionStore$( sessionId: String, itemId: String, label: String?, severity: AnnotationSeverityDto?, comment: String?, status: AnnotationStatusDto?, )</ID>
+    <ID>LongParameterList:FixThisTools.kt$FixThisTools$( private val bridge: FixThisBridge = CliFixThisBridge(BridgeClient()), private val defaultPackageName: String? = null, private val projectRoot: File = File(".").canonicalFile, private val feedbackService: FeedbackSessionService = FeedbackSessionService( bridge = bridge, store = FeedbackSessionStore( persistence = FeedbackSessionPersistence(FeedbackSessionPaths(projectRoot)), ), projectRoot = projectRoot.absolutePath, defaultPackageName = defaultPackageName, ), private val consoleAssetsDir: File? = null, private val consolePort: Int = 0, private val freshnessProbe: HostSourceFreshnessProbe = HostSourceFreshnessProbe(projectRoot), )</ID>
+    <ID>LongParameterList:TargetEvidenceService.kt$TargetEvidenceService$( screen: SnapshotDto, sourceIndex: SourceIndex?, targetType: FeedbackTargetType, bounds: FixThisRect, nodeUid: String?, comment: String, allowBlankComment: Boolean, writtenStatus: AnnotationStatusDto, missingNodeContext: String = "screen", )</ID>
+    <ID>LongParameterList:TargetEvidenceService.kt$TargetEvidenceService$( screen: SnapshotDto, targetType: FeedbackTargetType, bounds: FixThisRect, nodeUid: String?, comment: String, allowBlankComment: Boolean, missingNodeContext: String = "screen", )</ID>
+    <ID>LoopWithTooManyJumpStatements:McpServer.kt$McpServer$while</ID>
+    <ID>MagicNumber:ArtifactRoutes.kt$3</ID>
+    <ID>MagicNumber:ArtifactRoutes.kt$4</ID>
+    <ID>MagicNumber:ArtifactRoutes.kt$6</ID>
+    <ID>MagicNumber:ArtifactRoutes.kt$ArtifactRoutes$200</ID>
+    <ID>MagicNumber:ArtifactRoutes.kt$ArtifactRoutes$404</ID>
+    <ID>MagicNumber:CompactHandoffRenderer.kt$CompactHandoffRenderer$4</ID>
+    <ID>MagicNumber:CompactHandoffRenderer.kt$CompactHandoffRenderer$8</ID>
+    <ID>MagicNumber:ConnectionRoutes.kt$ConnectionRoutes$200</ID>
+    <ID>MagicNumber:ConsoleHttp.kt$204</ID>
+    <ID>MagicNumber:ConsoleHttp.kt$304</ID>
+    <ID>MagicNumber:ConsoleHttp.kt$400</ID>
+    <ID>MagicNumber:ConsoleHttp.kt$405</ID>
+    <ID>MagicNumber:DeviceRoutes.kt$DeviceRoutes$200</ID>
+    <ID>MagicNumber:DeviceRoutes.kt$DeviceRoutes$400</ID>
+    <ID>MagicNumber:FeedbackConsoleServer.kt$400</ID>
+    <ID>MagicNumber:FeedbackConsoleServer.kt$403</ID>
+    <ID>MagicNumber:FeedbackConsoleServer.kt$404</ID>
+    <ID>MagicNumber:FeedbackConsoleServer.kt$409</ID>
+    <ID>MagicNumber:FeedbackConsoleServer.kt$500</ID>
+    <ID>MagicNumber:FeedbackConsoleServer.kt$FeedbackConsoleServer$404</ID>
+    <ID>MagicNumber:FeedbackConsoleServer.kt$FeedbackConsoleServer$500</ID>
+    <ID>MagicNumber:FeedbackItemRoutes.kt$FeedbackItemRoutes$200</ID>
+    <ID>MagicNumber:FeedbackItemRoutes.kt$FeedbackItemRoutes$400</ID>
+    <ID>MagicNumber:FeedbackItemRoutes.kt$FeedbackItemRoutes$404</ID>
+    <ID>MagicNumber:FeedbackQueueFormatter.kt$FeedbackQueueFormatter$3</ID>
+    <ID>MagicNumber:FeedbackQueueFormatter.kt$FeedbackQueueFormatter$6</ID>
+    <ID>MagicNumber:HandoffPreviewRoutes.kt$HandoffPreviewRoutes$200</ID>
+    <ID>MagicNumber:HandoffPreviewRoutes.kt$HandoffPreviewRoutes$400</ID>
+    <ID>MagicNumber:HandoffPreviewRoutes.kt$HandoffPreviewRoutes$404</ID>
+    <ID>MagicNumber:MarkHandedOffRoutes.kt$MarkHandedOffRoutes$200</ID>
+    <ID>MagicNumber:MarkHandedOffRoutes.kt$MarkHandedOffRoutes$400</ID>
+    <ID>MagicNumber:MarkHandedOffRoutes.kt$MarkHandedOffRoutes$404</ID>
+    <ID>MagicNumber:McpProtocol.kt$McpProtocol$32600</ID>
+    <ID>MagicNumber:McpProtocol.kt$McpProtocol$32601</ID>
+    <ID>MagicNumber:McpProtocol.kt$McpProtocol$32602</ID>
+    <ID>MagicNumber:McpProtocol.kt$McpProtocol$32603</ID>
+    <ID>MagicNumber:McpProtocol.kt$McpProtocol$32700</ID>
+    <ID>MagicNumber:McpServer.kt$McpOptions.Companion$65535</ID>
+    <ID>MagicNumber:PreviewRoutes.kt$3</ID>
+    <ID>MagicNumber:PreviewRoutes.kt$6</ID>
+    <ID>MagicNumber:PreviewRoutes.kt$PreviewRoutes$200</ID>
+    <ID>MagicNumber:PreviewRoutes.kt$PreviewRoutes$400</ID>
+    <ID>MagicNumber:PreviewRoutes.kt$PreviewRoutes$404</ID>
+    <ID>MagicNumber:PreviewSnapshotCache.kt$PreviewSnapshotCache$0.75f</ID>
+    <ID>MagicNumber:ServerVersionRoutes.kt$ServerVersionRoutes$200</ID>
+    <ID>MagicNumber:SessionRoutes.kt$SessionRoutes$200</ID>
+    <ID>MaxLineLength:AnnotationOverlapDetectorTest.kt$AnnotationOverlapDetectorTest$val a = AnnotationOverlapDetector.Item("a", FixThisRect(0f, 0f, 10f, 10f), isAreaSelection = false, hasWeakLabels = true)</ID>
+    <ID>MaxLineLength:AnnotationOverlapDetectorTest.kt$AnnotationOverlapDetectorTest$val a = AnnotationOverlapDetector.Item(id = "a", bounds = FixThisRect(0f, 0f, 10f, 10f), isAreaSelection = false)</ID>
+    <ID>MaxLineLength:AnnotationOverlapDetectorTest.kt$AnnotationOverlapDetectorTest$val b = AnnotationOverlapDetector.Item("b", FixThisRect(20f, 0f, 30f, 10f), isAreaSelection = false, hasWeakLabels = true)</ID>
+    <ID>MaxLineLength:AnnotationOverlapDetectorTest.kt$AnnotationOverlapDetectorTest$val b = AnnotationOverlapDetector.Item(id = "b", bounds = FixThisRect(50f, 50f, 60f, 60f), isAreaSelection = false)</ID>
+    <ID>MaxLineLength:AnnotationRepository.kt$AnnotationRepository$fun claimFeedback(sessionId: String, itemId: String, agentNote: String?): AnnotationDto</ID>
+    <ID>MaxLineLength:AnnotationRepository.kt$AnnotationRepository$fun markItemsHandedOff(sessionId: String, itemIds: List&lt;String&gt;): SessionDto</ID>
+    <ID>MaxLineLength:AnnotationRepositoryTest.kt$AnnotationRepositoryTest.Fixture$fun openSession(): SessionDto</ID>
+    <ID>MaxLineLength:ArtifactRoutes.kt$private fun String.isFullScreenshotPath(): Boolean</ID>
+    <ID>MaxLineLength:BridgeProtocolVersionSyncTest.kt$BridgeProtocolVersionSyncTest$"fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt"</ID>
+    <ID>MaxLineLength:CompactHandoffRenderer.kt$CompactHandoffRenderer$appendCompactItem(globalCounter, annotation, isOverlapGroup, label, isLeader, groupSize, dupRefMarker, sourceRoot)</ID>
+    <ID>MaxLineLength:CompactHandoffRenderer.kt$CompactHandoffRenderer$appendLine(" note: $groupSize markers map to same call site — likely list-rendered; disambiguate by instance index")</ID>
+    <ID>MaxLineLength:CompactHandoffRenderer.kt$CompactHandoffRenderer$appendLine(" on_complete: fixthis_resolve_feedback({sessionId, itemId, status: resolved|wont_fix|needs_clarification, summary})")</ID>
+    <ID>MaxLineLength:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$"Expected ' note: treat as low-confidence' immediately after candidate line but got: '$noteLine'\nFull output:\n$markdown"</ID>
+    <ID>MaxLineLength:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$"Expected canonical item's ui line to NOT have duplicate-of-marker suffix but got: '$canonicalUiLine'\nFull output:\n$markdown"</ID>
+    <ID>MaxLineLength:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$"Expected duplicate item's ui line to NOT contain 'instance ' (duplicate suppresses instance label) but got: '$dupUiLine'\nFull output:\n$markdown"</ID>
+    <ID>MaxLineLength:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$"Expected duplicate item's ui line to end with '; targetRisk=duplicate-of-marker-1' but got: '$dupUiLine'\nFull output:\n$markdown"</ID>
+    <ID>MaxLineLength:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$// 3 items sharing (file:line, testTag), distinct path leaves — leader is item-a (path "root/a" &lt; "root/b" &lt; "root/c")</ID>
+    <ID>MaxLineLength:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$// InstanceGroupingHelper.compute orders by path.joinToString("/"); paths: "root/a", "root/b", "root/c" -&gt; a &lt; b &lt; c</ID>
+    <ID>MaxLineLength:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$assertTrue(lines[viewportIdx].contains("720×1480"), "Expected 'viewport: 720×1480' but got: '${lines[viewportIdx]}'")</ID>
+    <ID>MaxLineLength:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$if</ID>
+    <ID>MaxLineLength:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$screenshot = SnapshotScreenshotDto(desktopFullPath = "/some/path/screen.png", width = 720, height = null)</ID>
+    <ID>MaxLineLength:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$screenshot = SnapshotScreenshotDto(desktopFullPath = "/some/path/screen.png", width = null, height = 1480)</ID>
+    <ID>MaxLineLength:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$screenshot = SnapshotScreenshotDto(desktopFullPath = "/some/path/screen.png", width = null, height = null)</ID>
+    <ID>MaxLineLength:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$target = AnnotationTargetDto.Node(nodeUid = "uid-2", boundsInWindow = FixThisRect(0f, 500f, 100f, 600f))</ID>
+    <ID>MaxLineLength:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$target = AnnotationTargetDto.Node(nodeUid = "uid-3", boundsInWindow = FixThisRect(0f, 700f, 100f, 800f))</ID>
+    <ID>MaxLineLength:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$target = AnnotationTargetDto.Node(nodeUid = "uid-a", boundsInWindow = FixThisRect(0f, 0f, 100f, 50f))</ID>
+    <ID>MaxLineLength:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$target = AnnotationTargetDto.Node(nodeUid = "uid-b", boundsInWindow = FixThisRect(0f, 200f, 100f, 250f))</ID>
+    <ID>MaxLineLength:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$target = AnnotationTargetDto.Node(nodeUid = "uid-c", boundsInWindow = FixThisRect(0f, 400f, 100f, 450f))</ID>
+    <ID>MaxLineLength:CompactHandoffRendererTest.kt$CompactHandoffRendererTest$val collisionNoteLine = " note: 3 markers map to same call site — likely list-rendered; disambiguate by instance index"</ID>
+    <ID>MaxLineLength:ConsoleConnectionService.kt$ConsoleConnectionService$details = ConsoleConnectionDetails(deviceState = selectedDevice?.state ?: "missing", bridgeState = "not checked")</ID>
+    <ID>MaxLineLength:ConsoleConnectionService.kt$ConsoleConnectionService$primaryAction = if (unsupported) ConsoleConnectionAction.TRY_AGAIN else ConsoleConnectionAction.OPEN_APP</ID>
+    <ID>MaxLineLength:ConsoleConnectionService.kt$ConsoleConnectionService$throw FeedbackSessionException("DEVICE_NOT_AVAILABLE: Android device is not ready: $selectedSerial (${device.state})")</ID>
+    <ID>MaxLineLength:ConsoleHttp.kt$internal fun HttpExchange.requestBodyText(): String</ID>
+    <ID>MaxLineLength:ConsoleHttp.kt$sendText(status, fixThisJson.encodeToString(ConsoleErrorBody.serializer(), ConsoleErrorBody(message)), "application/json; charset=utf-8")</ID>
+    <ID>MaxLineLength:ConsoleHttp.kt$sendText(statusCode, fixThisJson.encodeToString(AnnotationDto.serializer(), value), "application/json; charset=utf-8")</ID>
+    <ID>MaxLineLength:ConsoleHttp.kt$sendText(statusCode, fixThisJson.encodeToString(ConsoleConnectionStatus.serializer(), value), "application/json; charset=utf-8")</ID>
+    <ID>MaxLineLength:ConsoleHttp.kt$sendText(statusCode, fixThisJson.encodeToString(ConsoleDeviceList.serializer(), value), "application/json; charset=utf-8")</ID>
+    <ID>MaxLineLength:ConsoleHttp.kt$sendText(statusCode, fixThisJson.encodeToString(FeedbackNavigationResult.serializer(), value), "application/json; charset=utf-8")</ID>
+    <ID>MaxLineLength:ConsoleHttp.kt$sendText(statusCode, fixThisJson.encodeToString(FeedbackPreviewSnapshot.serializer(), value), "application/json; charset=utf-8")</ID>
+    <ID>MaxLineLength:ConsoleHttp.kt$sendText(statusCode, fixThisJson.encodeToString(FeedbackSessionList.serializer(), value), "application/json; charset=utf-8")</ID>
+    <ID>MaxLineLength:ConsoleHttp.kt$sendText(statusCode, fixThisJson.encodeToString(JsonObject.serializer(), enriched), "application/json; charset=utf-8")</ID>
+    <ID>MaxLineLength:DeviceRoutes.kt$DeviceRoutes$private fun HttpExchange.decodeSelectDeviceBody(): SelectDeviceRequest</ID>
+    <ID>MaxLineLength:DuplicateMarkerDetectorTest.kt$DuplicateMarkerDetectorTest$val key = makeKey(fileLine = "Button.kt:42", testTag = "btn", pathLeaves = listOf("root", "node"), bounds = FixThisRect(0f, 0f, 100f, 50f))</ID>
+    <ID>MaxLineLength:DuplicateMarkerDetectorTest.kt$DuplicateMarkerDetectorTest$val key = makeKey(fileLine = "Card.kt:30", testTag = "card", pathLeaves = listOf("root", "card"), bounds = FixThisRect(5f, 5f, 95f, 95f))</ID>
+    <ID>MaxLineLength:DuplicateMarkerDetectorTest.kt$DuplicateMarkerDetectorTest$val key1 = makeKey(fileLine = "Foo.kt:10", testTag = "foo", pathLeaves = listOf("root", "leaf"), bounds = FixThisRect(0f, 0f, 100f, 100f))</ID>
+    <ID>MaxLineLength:DuplicateMarkerDetectorTest.kt$DuplicateMarkerDetectorTest$val key1 = makeKey(fileLine = "Foo.kt:10", testTag = "foo", pathLeaves = listOf("root", "leaf-A"), bounds = FixThisRect(0f, 0f, 100f, 100f))</ID>
+    <ID>MaxLineLength:DuplicateMarkerDetectorTest.kt$DuplicateMarkerDetectorTest$val key2 = makeKey(fileLine = "Foo.kt:10", testTag = "foo", pathLeaves = listOf("root", "leaf"), bounds = FixThisRect(0f, 0f, 200f, 200f))</ID>
+    <ID>MaxLineLength:DuplicateMarkerDetectorTest.kt$DuplicateMarkerDetectorTest$val key2 = makeKey(fileLine = "Foo.kt:10", testTag = "foo", pathLeaves = listOf("root", "leaf-B"), bounds = FixThisRect(0f, 0f, 100f, 100f))</ID>
+    <ID>MaxLineLength:DuplicateMarkerDetectorTest.kt$DuplicateMarkerDetectorTest$val keyA = makeKey(fileLine = "Text.kt:99", testTag = "txt", pathLeaves = listOf("root", "text-node"), bounds = FixThisRect(10f, 20f, 110f, 60f))</ID>
+    <ID>MaxLineLength:DuplicateMarkerDetectorTest.kt$DuplicateMarkerDetectorTest$val keyB = makeKey(fileLine = "Other.kt:5", testTag = "other", pathLeaves = listOf("root", "other-node"), bounds = FixThisRect(0f, 0f, 50f, 50f))</ID>
+    <ID>MaxLineLength:EvidenceCoordinator.kt$EvidenceCoordinator$fun previewScreenshotFile(sessionId: String, previewId: String): File</ID>
+    <ID>MaxLineLength:EvidenceCoordinator.kt$EvidenceCoordinator$suspend fun capturePreview(sessionId: String): FeedbackPreviewSnapshot</ID>
+    <ID>MaxLineLength:EvidenceCoordinatorTest.kt$EvidenceCoordinatorTest$private fun tempDir(prefix: String): File</ID>
+    <ID>MaxLineLength:EvidenceCoordinatorTest.kt$EvidenceCoordinatorTest.Fixture$fun openSession(): SessionDto</ID>
+    <ID>MaxLineLength:FakeFixThisBridge.kt$FakeFixThisBridge$override suspend</ID>
+    <ID>MaxLineLength:FakeFixThisBridge.kt$FakeFixThisBridge$override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject</ID>
+    <ID>MaxLineLength:FeedbackConsoleAssets.kt$FeedbackConsoleAssets$fun html(consoleAssetsDir: File?): String</ID>
+    <ID>MaxLineLength:FeedbackConsoleAssets.kt$FeedbackConsoleAssets$private</ID>
+    <ID>MaxLineLength:FeedbackConsoleAssets.kt$FeedbackConsoleAssets$private fun readText(path: String, consoleAssetsDir: File?): String</ID>
+    <ID>MaxLineLength:FeedbackConsoleServer.kt$private fun HttpExchange.requiresConsoleMutationGuard(): Boolean</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$"device.label || device.model || device.deviceName || device.product || shortenDeviceSerial(device.serial) || 'Unknown device'"</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$// The header entry has the form: // build-header\nconst ConsoleBuildEpochMs = N;\nconst ConsoleBuildGitSha = 'X';\n</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertEquals("sent", sessionObj["items"]?.jsonArray?.single()?.jsonObject?.get("delivery")?.jsonPrimitive?.content)</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertEquals(listOf("Change headline", "Add margin"), items.map { it.getValue("comment").jsonPrimitive.content })</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertFalse(Regex("\\.snapshot-stage\\[data-tool-mode=\"annotate\"\\] \\{[\\s\\S]*(justify-content|padding-top)").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertFalse(html.contains("class=\"hi-pip working\""), "History pips must not render a separate working/WIP pip")</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertFalse(html.contains("const textValue = (node.text || [])[0] || (node.contentDescription || [])[0] || node.uid;"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertFalse(html.contains("state.preview = null;\n state.session = await requestJson('/api/session/open'"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertFalse(renderConnectionBody.contains("connectionPrimaryAction.disabled = state.connection.launchInFlight || viewState === 'starting';"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("\\.annotation-back \\{[\\s\\S]*min-height: 32px;[\\s\\S]*padding: 0 14px;").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("\\.annotation-danger,[\\s\\S]*\\.annotation-done \\{[\\s\\S]*padding: 0 14px;").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("\\.snapshot-stage \\{[\\s\\S]*justify-content: flex-start;[\\s\\S]*padding: 12px 24px 24px;").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("async function closeSession\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);[\\s\\S]*/api/session/close").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("async function closeSession\\(\\)[\\s\\S]*resetAnnotationComposerState\\(\\);[\\s\\S]*/api/session/close").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("async function deleteHistorySession\\(sessionId\\)[\\s\\S]*const isDisplayedSession = \\(\\) =&gt; state\\.session\\?\\.sessionId === sessionId;[\\s\\S]*if \\(isDisplayedSession\\(\\)\\) \\{\\s+resetAnnotationComposerState\\(\\);").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("async function deleteHistorySession\\(sessionId\\)[\\s\\S]*if \\(isDisplayedSession\\(\\)\\) \\{[\\s\\S]*state\\.session = null;[\\s\\S]*await refreshSessions\\(\\);\\s+render\\(\\);\\s+await refreshDevices\\(\\);").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("async function disconnectDevice\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);[\\s\\S]*/api/device/disconnect").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("async function enterAnnotateMode\\(\\) \\{\\s+await ensureSessionForAnnotating\\(\\);\\s+toolMode = 'annotate';\\s+renderCurrentSessionList\\(\\);\\s+if \\(!addItemsFlow\\) \\{\\s+await startAddItemsFlow\\(\\);").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("async function newSession\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);[\\s\\S]*/api/session/open").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("async function newSession\\(\\)[\\s\\S]*resetAnnotationComposerState\\(\\);[\\s\\S]*/api/session/open").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("async function openSession\\(sessionId\\)[\\s\\S]*await refresh\\(\\);[\\s\\S]*if \\(!latestPersistedScreen\\(\\) &amp;&amp; shouldAutoFetchPreview\\(\\)\\) \\{[\\s\\S]*await refreshPreview\\(\\);[\\s\\S]*\\}[\\s\\S]*startLivePreviewPolling\\(\\);").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("async function openSession\\(sessionId\\)[\\s\\S]*invalidatePreviewContext\\(\\);[\\s\\S]*/api/session/open").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("async function openSession\\(sessionId\\)[\\s\\S]*resetAnnotationComposerState\\(\\);[\\s\\S]*/api/session/open").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("async function openSession\\(sessionId\\)[\\s\\S]*stopLivePreviewPolling\\(\\);[\\s\\S]*await refresh\\(\\);").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("async function selectDevice\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);[\\s\\S]*/api/device/select").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("finally \\{\\s+addItemsFlowStarting = false;\\s+updateComposerState\\(\\);\\s+if \\(!addItemsFlow\\) startLivePreviewPolling\\(\\);\\s+\\}").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("function cancelAddItemsFlow\\(\\)[\\s\\S]*resetAnnotationComposerState\\(\\);[\\s\\S]*render\\(\\);").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("function deletePendingFeedbackItem\\(index\\)[\\s\\S]*focusedPendingItemIndex = null;[\\s\\S]*currentSelection = null;[\\s\\S]*comment.value = '';").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("function latestScreen\\(\\) \\{\\s+if \\(addItemsFlow\\) return addItemsFlow\\.screen;").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("if \\(focusedSavedItemId\\) \\{[\\s\\S]*?const focusedItem = savedEvidenceItems\\(\\)\\.find\\(item =&gt; item\\.itemId === focusedSavedItemId\\);").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("item\\.status = button\\.dataset\\.setStatus;[\\s\\S]*renderCurrentSessionList\\(\\);").containsMatchIn(renderAnnotationDetail))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(Regex("sessions\\.innerHTML = renderedSessions\\s+\\? renderedSessions \\+ historyStartAnnotatingItemHtml\\(\\)\\s+: historyStartAnnotatingItemHtml\\(\\) \\+ emptySessionsHtml\\(\\);").containsMatchIn(html))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(applyConnectionBody.contains("if (!connectionOptions.preservePreviewStale) markPreviewStale(false);"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(connection.errorStream.bufferedReader().readText().contains("At least one feedback item is required"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(historyOpenCount.contains("(session.unresolvedItemsCount || 0) + (session.inProgressItemsCount || 0) + pending.filter(item =&gt; annotationStatus(item) !== 'resolved').length"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("annotateToolButton.addEventListener('click', () =&gt; enterAnnotateMode().catch(showError));"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("button.addEventListener('click', () =&gt; enterNewHistoryAnnotateMode().catch(showError));"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("const label = firstMeaningful([...(node.text || []), node.editableText, ...(node.contentDescription || [])]);"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("const label = formatSessionLabel(session, ordinalBySessionId.get(session.sessionId) || index + 1);"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("const selectedSerial = selected &amp;&amp; selected.state === 'device' ? selected.serial : null;"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("if (!document.hidden &amp;&amp; shouldAutoFetchPreview()) refreshPreview().catch(showError);"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("if (bounds) return 'Component ' + Math.round(bounds.right - bounds.left) + 'x' + Math.round(bounds.bottom - bounds.top);"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("if (screenSavedItems.length) renderSavedEvidenceOverlay(overlay, image, screenSavedItems);"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("if (withoutServiceSuffix.startsWith('adb-')) return withoutServiceSuffix.substring(4);"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("items: pendingPayloadItems({ allowFallbackComments: allowFallbackComments, onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments })"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("renderOverlayBox(overlay, image, item.bounds, String(index + 1), false, index === focusedPendingItemIndex, index, '', severityColor(annotationSeverity(item)))"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("setDeviceUiState(DeviceUiState.CONNECTING, deviceBySerial(state.devices, option.value));"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("setDeviceUiState(DeviceUiState.UNAVAILABLE, deviceBySerial(state.devices, option.value) || { serial: option.value });"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(refreshDevices.contains("const connectedDevices = (payload.devices || []).filter(device =&gt; device.state === 'device');"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(refreshDevices.contains("if (!payload.selectedSerial &amp;&amp; devices.length === 1 &amp;&amp; connectedDevices.length === 1) {"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(renderSavedAnnotationDetail.contains("const editSessionId = focusedSavedSessionId || state.session?.sessionId || null;"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(response.body.contains("itemIds must not be empty"), "expected reason in body, got:\n${response.body}")</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(selectDevice.contains("if (state.session &amp;&amp; userConnectionState(state.connection.current) === 'ready')"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$private</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$private fun FeedbackSessionService.captureFakeScreenForTest(sessionId: String): SnapshotDto</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$renderComposerInspector.contains("inspectorCount.textContent = String(pendingFeedbackItems.length + savedItems.length);")</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$renderSelectionOverlay.contains("savedEvidenceItems().filter(item =&gt; item.screenId === visibleScreen.screenId)")</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$select.outputStream.use { it.write("""{"serial":"adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp"}""".toByteArray()) }</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1").next)</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1", "item-1", "batch-1").next)</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1", "item-1", "batch-1", "item-2").next)</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$store = FeedbackSessionStore(clock = { 100L }, idGenerator = { "session-1" }, persistence = persistence)</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val before = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/session")).jsonObject</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val connection = ConsoleHttpTestClient(server.url).connection("/api/preview/$firstPreviewId/screenshot/full")</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val connection = ConsoleHttpTestClient(server.url, includeConsoleToken = false).connection("/api/items/draft")</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val firstConnection = ConsoleHttpTestClient(server.url).connection("/api/preview/$firstPreviewId/screenshot/full")</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val firstPreview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val item = fixThisJson.decodeFromString(AnnotationDto.serializer(), connection.inputStream.bufferedReader().readText())</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val preview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val secondConnection = ConsoleHttpTestClient(server.url).connection("/api/preview/$secondPreviewId/screenshot/full")</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val secondPreview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val session = fixThisJson.parseToJsonElement(connection.inputStream.bufferedReader().readText()).jsonObject</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val sessions = ConsoleHttpTestClient(server.url).get("/api/sessions?packageName=io.beyondwin.fixthis.sample")</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest.BlockingCaptureBridge$override fun resolvePackageName(packageOverride: String?): String</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest.BlockingCaptureBridge$override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest.DeviceListBridge$override fun resolvePackageName(packageOverride: String?): String</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest.DeviceListBridge$override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest.LegacyScreenshotBridge$override fun resolvePackageName(packageOverride: String?): String</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest.LegacyScreenshotBridge$override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest.SequencedSessionScreenshotBridge$override fun resolvePackageName(packageOverride: String?): String</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest.SequencedSessionScreenshotBridge$override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest.SessionScreenshotBridge$override fun resolvePackageName(packageOverride: String?): String</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest.SessionScreenshotBridge$override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject</ID>
+    <ID>MaxLineLength:FeedbackDraftService.kt$FeedbackDraftService$markdownSnapshot = prompt?.takeIf { it.isNotBlank() } ?: FeedbackQueueFormatter.toMarkdown(store.getSession(sessionId))</ID>
+    <ID>MaxLineLength:FeedbackDraftService.kt$FeedbackDraftService$snapshot = io.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot(previewId = previewId, screen = sanitizedScreen)</ID>
+    <ID>MaxLineLength:FeedbackDraftService.kt$FeedbackDraftService$val sourceIndex = runBlocking { targetEvidenceService.readSourceIndexOrNull(session.packageName, sanitizedScreen) }</ID>
+    <ID>MaxLineLength:FeedbackDraftServiceTest.kt$FeedbackDraftServiceTest$assertTrue(updated.screens.single().screenshot?.desktopFullPath.orEmpty().contains("artifacts/screens/screen-1"))</ID>
+    <ID>MaxLineLength:FeedbackDraftServiceTest.kt$FeedbackDraftServiceTest$private fun tempDir(prefix: String): File</ID>
+    <ID>MaxLineLength:FeedbackItemRoutes.kt$FeedbackItemRoutes$private fun HttpExchange.decodeAgentHandoffBody(): AgentHandoffRequest</ID>
+    <ID>MaxLineLength:FeedbackItemRoutes.kt$FeedbackItemRoutes$private fun HttpExchange.decodeSavePreviewFeedbackItemsBody(): SaveSnapshotRequest</ID>
+    <ID>MaxLineLength:FeedbackItemRoutes.kt$FeedbackItemRoutes$private fun HttpExchange.decodeUpdateFeedbackItemBody(): UpdateAnnotationRequest</ID>
+    <ID>MaxLineLength:FeedbackItemRoutes.kt$FeedbackItemRoutes$throw FeedbackConsoleHttpException(400, "itemIds must not be empty (legacy {prompt} body is no longer accepted; use {itemIds:[...]})")</ID>
+    <ID>MaxLineLength:FeedbackQueueFormatter.kt$FeedbackQueueFormatter$DetailMode.COMPACT -&gt; error("COMPACT dispatches to CompactHandoffRenderer before sourceCandidateLimit is called")</ID>
+    <ID>MaxLineLength:FeedbackQueueFormatter.kt$FeedbackQueueFormatter$appendLine("${index + 1}. `${candidate.fileWithLine()}` ${candidate.markdownConfidence(target)} confidence$staleSuffix")</ID>
+    <ID>MaxLineLength:FeedbackQueueFormatter.kt$FeedbackQueueFormatter$fun toJson(session: SessionDto): String</ID>
+    <ID>MaxLineLength:FeedbackQueueFormatter.kt$FeedbackQueueFormatter$private fun FixThisNode.semanticLabels(): List&lt;String&gt;</ID>
+    <ID>MaxLineLength:FeedbackQueueFormatterTest.kt$FeedbackQueueFormatterTest$"Expected a candidate line for AppPrimaryButton.kt:42 with conf=high in COMPACT markdown but got:\n$markdown"</ID>
+    <ID>MaxLineLength:FeedbackQueueFormatterTest.kt$FeedbackQueueFormatterTest$desktopFullPath = "/repo/.fixthis/feedback-sessions/session-1/artifacts/screens/screen-1/screen-1-full.png"</ID>
+    <ID>MaxLineLength:FeedbackQueueFormatterTest.kt$FeedbackQueueFormatterTest$desktopFullPath = "/repo/.fixthis/feedback-sessions/session-abcdef123456/artifacts/screens/screen-abcdef123456/screen-abcdef123456-full.png"</ID>
+    <ID>MaxLineLength:FeedbackSessionPaths.kt$FeedbackSessionPaths$fun fullScreenshotFile(sessionId: String, screenId: String): File</ID>
+    <ID>MaxLineLength:FeedbackSessionPaths.kt$FeedbackSessionPaths$fun screenArtifactDirectory(sessionId: String, screenId: String): File</ID>
+    <ID>MaxLineLength:FeedbackSessionPersistence.kt$FeedbackSessionPersistence$"SESSION_LOAD_FAILED: Could not load feedback session $sessionId from ${sessionFile.absolutePath}: ${error.message}"</ID>
+    <ID>MaxLineLength:FeedbackSessionPersistence.kt$FeedbackSessionPersistence.LoadedSessions$fun withCandidate(candidate: SessionDto): LoadedSessions</ID>
+    <ID>MaxLineLength:FeedbackSessionPersistenceTest.kt$FeedbackSessionPersistenceTest$assertEquals(File(root, ".fixthis/feedback-sessions/session-1/artifacts/screens/screen-1").canonicalFile, screenDir)</ID>
+    <ID>MaxLineLength:FeedbackSessionPersistenceTest.kt$private fun tempDir(prefix: String): File</ID>
+    <ID>MaxLineLength:FeedbackSessionRegistryTest.kt$FeedbackSessionRegistryTest$private</ID>
+    <ID>MaxLineLength:FeedbackSessionService.kt$FeedbackSessionService$fun claimFeedback(sessionId: String, itemId: String, agentNote: String?): AnnotationDto</ID>
+    <ID>MaxLineLength:FeedbackSessionService.kt$FeedbackSessionService$fun deleteDraftFeedback(sessionId: String, itemId: String): SessionDto</ID>
+    <ID>MaxLineLength:FeedbackSessionService.kt$FeedbackSessionService$fun listSessions(packageNameOverride: String? = null, includeClosed: Boolean = false): FeedbackSessionList</ID>
+    <ID>MaxLineLength:FeedbackSessionService.kt$FeedbackSessionService$fun markItemsHandedOff(sessionId: String, itemIds: List&lt;String&gt;): SessionDto</ID>
+    <ID>MaxLineLength:FeedbackSessionService.kt$FeedbackSessionService$fun previewScreenshotFile(sessionId: String, previewId: String): File</ID>
+    <ID>MaxLineLength:FeedbackSessionService.kt$FeedbackSessionService$suspend fun connectionStatus(): ConsoleConnectionStatus</ID>
+    <ID>MaxLineLength:FeedbackSessionService.kt$FeedbackSessionService$suspend fun launchAppForCurrentSession(): ConsoleConnectionStatus</ID>
+    <ID>MaxLineLength:FeedbackSessionService.kt$FeedbackSessionService$suspend fun navigate(sessionId: String, request: FeedbackNavigationRequest): FeedbackNavigationResult</ID>
+    <ID>MaxLineLength:FeedbackSessionServiceTest.kt$FeedbackSessionServiceTest$assertEquals("sample/src/main/java/io/github/fixthis/sample/screens/FormScreen.kt", item.sourceCandidates.first().file)</ID>
+    <ID>MaxLineLength:FeedbackSessionServiceTest.kt$FeedbackSessionServiceTest$assertEquals("sample/src/main/java/io/github/fixthis/sample/screens/NearCard.kt", item.sourceCandidates.first().file)</ID>
+    <ID>MaxLineLength:FeedbackSessionServiceTest.kt$FeedbackSessionServiceTest$assertEquals(listOf("sample/src/main/java/io/github/fixthis/sample/screens/OverlapCard.kt"), item.sourceCandidates.map { it.file })</ID>
+    <ID>MaxLineLength:FeedbackSessionServiceTest.kt$FeedbackSessionServiceTest$assertTrue(screenshotFile.absolutePath.contains(".fixthis/preview-cache/${session.sessionId}/${preview.previewId}"))</ID>
+    <ID>MaxLineLength:FeedbackSessionServiceTest.kt$FeedbackSessionServiceTest$idGenerator = sequenceIds("session-${index + 1}", "preview-${index + 1}", "screen-${index + 1}", "item-${index + 1}")</ID>
+    <ID>MaxLineLength:FeedbackSessionServiceTest.kt$FeedbackSessionServiceTest$private</ID>
+    <ID>MaxLineLength:FeedbackSessionServiceTest.kt$FeedbackSessionServiceTest$private fun tempDir(prefix: String): File</ID>
+    <ID>MaxLineLength:FeedbackSessionServiceTest.kt$FeedbackSessionServiceTest$store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1", "item-1").next)</ID>
+    <ID>MaxLineLength:FeedbackSessionServiceTest.kt$FeedbackSessionServiceTest$val bridge = FakeFixThisBridge(heartbeatError = RuntimeException("run-as: package not debuggable: permission denied"))</ID>
+    <ID>MaxLineLength:FeedbackSessionServiceTest.kt$FeedbackSessionServiceTest$val store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1", "item-1").next)</ID>
+    <ID>MaxLineLength:FeedbackSessionStore.kt$FeedbackSessionStore$fun</ID>
+    <ID>MaxLineLength:FeedbackSessionStore.kt$FeedbackSessionStore$private</ID>
+    <ID>MaxLineLength:FeedbackSessionStore.kt$FeedbackSessionStore$require</ID>
+    <ID>MaxLineLength:FeedbackSessionStoreTest.kt$FeedbackSessionStoreTest$private fun tempDir(prefix: String): File</ID>
+    <ID>MaxLineLength:FixThisTools.kt$"includeAll" to booleanProperty("When true, return every item in the session instead of only SENT and unfinished items. Defaults to false.")</ID>
+    <ID>MaxLineLength:FixThisTools.kt$"includeScreenshot" to booleanProperty("Whether to include the latest screenshot resource URI when available.")</ID>
+    <ID>MaxLineLength:FixThisTools.kt$"includeSemantics" to booleanProperty("Whether the caller wants semantics data. V1 bridge inspection returns semantics nodes.")</ID>
+    <ID>MaxLineLength:FixThisTools.kt$"maxNodes" to integerProperty("Maximum nodes requested by the caller. V1 bridge may return fewer or ignore this hint.")</ID>
+    <ID>MaxLineLength:FixThisTools.kt$"newSession" to booleanProperty("Create a new session instead of resuming the current or latest persisted session.")</ID>
+    <ID>MaxLineLength:FixThisTools.kt$"packageName" to stringProperty("Android application id. If omitted, .fixthis/project.json or server --package is used.")</ID>
+    <ID>MaxLineLength:FixThisTools.kt$CliFixThisBridge$override suspend</ID>
+    <ID>MaxLineLength:FixThisTools.kt$CliFixThisBridge$override suspend fun inspectCurrentScreen(packageName: String): JsonObject</ID>
+    <ID>MaxLineLength:FixThisTools.kt$FixThisBridge$suspend fun performNavigation(packageName: String, request: FeedbackNavigationRequest): JsonObject</ID>
+    <ID>MaxLineLength:FixThisTools.kt$FixThisTools$private fun jsonToolResult(payload: JsonObject): JsonObject</ID>
+    <ID>MaxLineLength:FixThisTools.kt$FixThisTools$private fun resolveDefaultPackageName(): String</ID>
+    <ID>MaxLineLength:FixThisTools.kt$FixThisTools$private suspend fun bridgeResource(uri: String, block: suspend () -&gt; JsonObject): JsonObject</ID>
+    <ID>MaxLineLength:FixThisTools.kt$FixThisTools$put("installStaleHint", JsonPrimitive("Run ./gradlew :app:installDebug then cold-launch the app"))</ID>
+    <ID>MaxLineLength:FixThisTools.kt$FixThisTools$put("newerSourceFiles", buildJsonArray { freshness.sampleNewerFiles.forEach { add(JsonPrimitive(it)) } })</ID>
+    <ID>MaxLineLength:FixThisTools.kt$ResourceDefinition("fixthis://screenshot/latest/crop.png", "Latest crop screenshot", "Desktop-readable latest crop screenshot artifact path.")</ID>
+    <ID>MaxLineLength:FixThisTools.kt$ResourceDefinition("fixthis://screenshot/latest/full.png", "Latest full screenshot", "Desktop-readable latest full screenshot artifact path.")</ID>
+    <ID>MaxLineLength:FixThisTools.kt$ResourceDefinition("fixthis://session/current", "Current FixThis session", "Current bridge session and sidekick status.")</ID>
+    <ID>MaxLineLength:FixThisTools.kt$ResourceDefinition("fixthis://source-index", "FixThis source index", "Source index availability reported by the sidekick bridge.")</ID>
+    <ID>MaxLineLength:FixThisTools.kt$description = "List feedback queue summaries for the active FixThis feedback session. By default the items array contains only SENT feedback that is not resolved or wont_fix; pass includeAll=true to include drafts and finished items."</ID>
+    <ID>MaxLineLength:FixThisTools.kt$description = "Mark a feedback item as in-progress before starting work. Call this AFTER reading the item and BEFORE making code changes. Returns the updated item. The user's browser console reflects the change within 2 seconds. After this call you must eventually call fixthis_resolve_feedback for the same itemId."</ID>
+    <ID>MaxLineLength:FixThisTools.kt$description = "Mark a feedback item as resolved, needing clarification, or not fixed. Call this after claiming an item with fixthis_claim_feedback and finishing the work. Status must be one of resolved, needs_clarification, wont_fix."</ID>
+    <ID>MaxLineLength:FixThisTools.kt$description = "Perform one debug-only navigation action against the app and optionally capture the resulting screen."</ID>
+    <ID>MaxLineLength:FixThisTools.kt$description = "Read the feedback queue as annotation JSON and Markdown. By default returns only SENT items that are not yet resolved. Pass includeAll=true to receive everything; passing itemId always returns that item regardless of state."</ID>
+    <ID>MaxLineLength:FixThisTools.kt$description = "Verify that expected UI text is present on the current screen through the FixThis sidekick bridge."</ID>
+    <ID>MaxLineLength:FixThisToolsStatusTest.kt$FixThisToolsStatusTest$private fun tempDir(): File</ID>
+    <ID>MaxLineLength:HostSourceFreshnessProbeTest.kt$HostSourceFreshnessProbeTest$private fun tempDir(): File</ID>
+    <ID>MaxLineLength:InFlightRegistry.kt$InFlightRegistry$suspend</ID>
+    <ID>MaxLineLength:InstanceGroupingHelperTest.kt$InstanceGroupingHelperTest$assertTrue(result.labels.isEmpty(), "Items missing selectedNode must be excluded; remaining singletons excluded too")</ID>
+    <ID>MaxLineLength:InstanceGroupingHelperTest.kt$InstanceGroupingHelperTest$assertTrue(result.labels.isEmpty(), "Items missing source candidates must be excluded; remaining singletons excluded too")</ID>
+    <ID>MaxLineLength:McpProtocol.kt$McpProtocol$fun invalid(message: String): McpIncoming</ID>
+    <ID>MaxLineLength:McpProtocol.kt$McpProtocol$private</ID>
+    <ID>MaxLineLength:McpProtocol.kt$McpProtocol$private fun JsonElement.jsonObjectOrInvalid(name: String): JsonObject</ID>
+    <ID>MaxLineLength:McpProtocol.kt$McpProtocol$return McpIncoming.ImmediateResponse(response(id = null, error = errorObject(-32700, "Parse error: ${it.message}")))</ID>
+    <ID>MaxLineLength:McpProtocol.kt$internal</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$"""{"jsonrpc":"2.0","id":"init","method":"initialize","params":{"protocolVersion":"2025-06-18","clientInfo":{"name":"fixture","version":"1"}}}"""</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$"""{"jsonrpc":"2.0","id":"status","method":"tools/call","params":{"name":"fixthis_status","arguments":{"packageName":"io.beyondwin.fixthis.sample"}}}"""</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$"""{"jsonrpc":"2.0","id":"tool","method":"tools/call","params":{"name":"$name","arguments":$argumentsJson}}"""</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$"""{"jsonrpc":"2.0","id":"tool","method":"tools/call","params":{"name":"fixthis_get_current_screen","arguments":{"packageName":"com.explicit"}}}"""</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$"""{"jsonrpc":"2.0","id":"tool","method":"tools/call","params":{"name":"fixthis_open_feedback_console","arguments":{"packageName":"com.explicit"}}}"""</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$"""{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","clientInfo":{"name":"test","version":"1"}}}"""</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$"""{"sessionId":"${sessionA.sessionId}","itemId":"${itemA.itemId}","status":"resolved","summary":"Fixed"}"""</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$)</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$assertEquals("com.explicit", payload.getValue("screen").jsonObject.getValue("packageName").jsonPrimitive.content)</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$assertEquals("io.beyondwin.fixthis.sample.MainActivity", payload.getValue("currentActivity").jsonPrimitive.content)</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$assertEquals(listOf("ping-after-cancel"), lines.map { parse(it).jsonObject.getValue("id").jsonPrimitive.content })</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$assertEquals(listOf("ping-after-resource-cancel"), lines.map { parse(it).jsonObject.getValue("id").jsonPrimitive.content })</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$assertEquals(readyItem.itemId, result.getValue("items").jsonArray[0].jsonObject.getValue("itemId").jsonPrimitive.content)</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$assertTrue(error.getValue("message").jsonPrimitive.content.contains("Unsupported feedback resolution status: open"))</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$inputWriter.write("""{"jsonrpc":"2.0","id":"screen","method":"resources/read","params":{"uri":"fixthis://screen/current"}}""")</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$inputWriter.write("""{"jsonrpc":"2.0","id":"screen","method":"tools/call","params":{"name":"fixthis_get_current_screen","arguments":{}}}""")</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$inputWriter.write("""{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":"screen","reason":"fixture cancellation"}}""")</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$inputWriter.write("""{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":"screen","reason":"test cancellation"}}""")</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$private</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$private fun runToolCall(server: McpServer, name: String, argumentsJson: String): JsonObject</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$private fun tempDir(prefix: String): File</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$service.resolveFeedback(session.sessionId, needsClarificationItem.itemId, AnnotationStatusDto.NEEDS_CLARIFICATION, null)</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$val payload = parse(result.getValue("content").jsonArray[0].jsonObject.getValue("text").jsonPrimitive.content).jsonObject</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$val reopened = tools.call("fixthis_open_feedback_console", jsonObject("sessionId" to sessionId)).firstJsonContent()</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$val response = runSingleRequest("""{"jsonrpc":"2.0","id":"bad","method":"tools/call","params":{"arguments":{}}}""")</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest.BlockingResourceBridge$override fun resolvePackageName(packageOverride: String?): String</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest.BlockingResourceBridge$override suspend fun performNavigation(packageName: String, request: FeedbackNavigationRequest): JsonObject</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest.BlockingResourceBridge$override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest.BlockingScreenToolBridge$override fun resolvePackageName(packageOverride: String?): String</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest.BlockingScreenToolBridge$override suspend fun performNavigation(packageName: String, request: FeedbackNavigationRequest): JsonObject</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest.BlockingScreenToolBridge$override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject</ID>
+    <ID>MaxLineLength:PreviewCaptureService.kt$PreviewCaptureService$?:</ID>
+    <ID>MaxLineLength:PreviewCaptureServiceTest.kt$PreviewCaptureServiceTest$private fun tempDir(prefix: String): File</ID>
+    <ID>MaxLineLength:PreviewRoutes.kt$internal fun String.isPreviewFullScreenshotPath(): Boolean</ID>
+    <ID>MaxLineLength:ScreenshotArtifactPromoterTest.kt$ScreenshotArtifactPromoterTest$assertTrue(screenshot.desktopCropPath!!.contains(".fixthis/feedback-sessions/session-1/artifacts/screens/screen-1"))</ID>
+    <ID>MaxLineLength:ScreenshotArtifactPromoterTest.kt$ScreenshotArtifactPromoterTest$assertTrue(screenshot.desktopFullPath!!.contains(".fixthis/feedback-sessions/session-1/artifacts/screens/screen-1"))</ID>
+    <ID>MaxLineLength:ServerVersionRoutes.kt$ServerVersionRoutes$val payload = """{"serverBuildEpochMs":${BuildInfo.BUILD_EPOCH_MS},"serverGitSha":"${BuildInfo.GIT_SHA}","bridgeProtocolVersion":"$BridgeProtocolVersion"}"""</ID>
+    <ID>MaxLineLength:SessionResponseEnrichment.kt$internal</ID>
+    <ID>MaxLineLength:SessionRoutes.kt$SessionRoutes$exchange.sendText(200, FeedbackConsoleAssets.html(consoleAssetsDir, consoleToken), "text/html; charset=utf-8")</ID>
+    <ID>MaxLineLength:SessionRoutes.kt$SessionRoutes$exchange.sendText(200, FeedbackQueueFormatter.toMarkdown(service.requireCurrentSession()), "text/markdown; charset=utf-8")</ID>
+    <ID>MaxLineLength:SessionRoutes.kt$SessionRoutes$private fun HttpExchange.decodeOpenSessionBody(): OpenSessionRequest</ID>
+    <ID>MaxLineLength:SourceCandidateStalenessCheckerTest.kt$SourceCandidateStalenessCheckerTest$private fun tempDir(prefix: String = "fixthis-staleness-"): File</ID>
+    <ID>MaxLineLength:TargetEvidenceService.kt$TargetEvidenceService$private fun FixThisRect.intersects(other: FixThisRect): Boolean</ID>
+    <ID>MaxLineLength:TargetEvidenceService.kt$TargetEvidenceService$private fun SnapshotDto.allNodes(): List&lt;FixThisNode&gt;</ID>
+    <ID>MaxLineLength:TargetEvidenceService.kt$TargetEvidenceService$val sourceCandidates = sourceCandidatesFor(sourceIndex, sourceSelectedNode, sourceNearbyNodes, screen.activityName)</ID>
+    <ID>MaxLineLength:TargetEvidenceServiceTest.kt$TargetEvidenceServiceTest$private</ID>
+    <ID>ReturnCount:AnnotationOverlapDetector.kt$AnnotationOverlapDetector$private fun overlaps(a: Item, b: Item, density: Float): Boolean</ID>
+    <ID>ReturnCount:ConsoleConnectionService.kt$ConsoleConnectionService$suspend fun connectionStatus(session: SessionDto): ConsoleConnectionStatus</ID>
+    <ID>ReturnCount:FixThisTools.kt$FixThisTools$private suspend fun evaluateFreshness( packageName: String, status: JsonObject, ): HostSourceFreshnessResult</ID>
+    <ID>ReturnCount:FormatterExtensions.kt$internal fun computeSourceRoot(session: SessionDto): String?</ID>
+    <ID>ReturnCount:HostSourceFreshnessProbe.kt$HostSourceFreshnessProbe$fun evaluate(sourceIndex: SourceIndex, installEpochMillis: Long?): HostSourceFreshnessResult</ID>
+    <ID>ReturnCount:McpProtocol.kt$McpProtocol$internal fun decodeLine(line: String): McpIncoming</ID>
+    <ID>ReturnCount:McpProtocol.kt$internal fun JsonElement?.validRequestIdOrNull(): JsonPrimitive?</ID>
+    <ID>ReturnCount:McpServer.kt$McpServer$private suspend fun handleNotification( notification: McpIncoming.Notification, registry: InFlightRegistry, )</ID>
+    <ID>ReturnCount:SourceCandidateStalenessChecker.kt$SourceCandidateStalenessChecker$private fun annotate(candidate: SourceCandidate, entry: SourceIndexEntry?, canonicalRoot: File): SourceCandidate</ID>
+    <ID>ReturnCount:SourceCandidateStalenessChecker.kt$SourceCandidateStalenessChecker$private fun readLine(file: File, lineNumber: Int): String?</ID>
+    <ID>ReturnCount:TargetEvidenceService.kt$TargetEvidenceService$suspend fun readSourceIndexOrNull(packageName: String, screen: SnapshotDto): SourceIndex?</ID>
+    <ID>SwallowedException:DeviceRoutes.kt$DeviceRoutes$error: IllegalArgumentException</ID>
+    <ID>SwallowedException:FeedbackItemRoutes.kt$FeedbackItemRoutes$error: IllegalArgumentException</ID>
+    <ID>SwallowedException:FixThisTools.kt$FixThisTools$error: IllegalArgumentException</ID>
+    <ID>SwallowedException:MarkHandedOffRoutes.kt$MarkHandedOffRoutes$error: FeedbackSessionException</ID>
+    <ID>SwallowedException:McpServer.kt$McpServer$error: CancellationException</ID>
+    <ID>SwallowedException:PreviewRoutes.kt$PreviewRoutes$error: IllegalArgumentException</ID>
+    <ID>ThrowsCount:ArtifactRoutes.kt$ArtifactRoutes$private fun HttpExchange.sendScreenshot(screenId: String)</ID>
+    <ID>ThrowsCount:FeedbackDraftService.kt$FeedbackDraftService$fun savePreviewFeedbackItems( sessionId: String, previewId: String, items: List&lt;AnnotationDraftDto&gt;, fallbackScreen: SnapshotDto? = null, allowBlankComments: Boolean = true, ): SessionDto</ID>
+    <ID>ThrowsCount:FeedbackItemRoutes.kt$FeedbackItemRoutes$private fun HttpExchange.decodeAddFeedbackItemBody(): AddAnnotationRequest</ID>
+    <ID>ThrowsCount:McpProtocol.kt$McpProtocol$internal suspend fun handleRequest(request: McpRequest): String?</ID>
+    <ID>ThrowsCount:McpServer.kt$McpOptions.Companion$fun parse(args: Array&lt;String&gt;): McpOptions</ID>
+    <ID>ThrowsCount:PreviewRoutes.kt$PreviewRoutes$private fun HttpExchange.decodeNavigationBody(): FeedbackNavigationRequest</ID>
+    <ID>TooGenericExceptionCaught:ConsoleConnectionService.kt$ConsoleConnectionService$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:EvidenceCoordinator.kt$EvidenceCoordinator$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:FeedbackConsoleServer.kt$FeedbackConsoleServer$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:FeedbackDraftService.kt$FeedbackDraftService$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:FixThisTools.kt$FixThisTools$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:McpProtocol.kt$McpProtocol$error: Throwable</ID>
+    <ID>TooManyFunctions:ConsoleHttp.kt$io.beyondwin.fixthis.mcp.console.ConsoleHttp.kt</ID>
+    <ID>TooManyFunctions:FeedbackQueueFormatter.kt$FeedbackQueueFormatter</ID>
+    <ID>TooManyFunctions:FeedbackSessionService.kt$FeedbackSessionService</ID>
+    <ID>TooManyFunctions:FeedbackSessionStore.kt$FeedbackSessionStore</ID>
+    <ID>TooManyFunctions:FixThisTools.kt$CliFixThisBridge : FixThisBridge</ID>
+    <ID>TooManyFunctions:FixThisTools.kt$FixThisBridge</ID>
+    <ID>TooManyFunctions:FixThisTools.kt$FixThisTools</ID>
+    <ID>TooManyFunctions:SessionDomainMappers.kt$io.beyondwin.fixthis.mcp.session.SessionDomainMappers.kt</ID>
+    <ID>TooManyFunctions:TargetEvidenceService.kt$TargetEvidenceService</ID>
+    <ID>TopLevelPropertyNaming:FeedbackConsoleServer.kt$internal const val ConsoleTokenHeader = "X-FixThis-Console-Token"</ID>
+    <ID>TopLevelPropertyNaming:FixThisTools.kt$private const val MaxRecentOverridePackages = 8</ID>
+    <ID>TopLevelPropertyNaming:McpProtocol.kt$private const val JsonRpcVersion = "2.0"</ID>
+    <ID>TopLevelPropertyNaming:McpProtocol.kt$private const val McpProtocolVersion = "2025-06-18"</ID>
+    <ID>TopLevelPropertyNaming:ServerVersionRoutes.kt$// Mirrors the protocol version constant defined in BridgeProtocol.VERSION (fixthis-compose-sidekick) // and BridgeClient (fixthis-cli). Keep in sync if the protocol version ever changes. private const val BridgeProtocolVersion = "1.2"</ID>
+    <ID>UnusedParameter:ConsoleHttp.kt$statusCode: Int</ID>
+    <ID>UnusedPrivateMember:FixThisTools.kt$FixThisTools$private fun JsonObject.longParam(name: String): Long?</ID>
+    <ID>UnusedPrivateProperty:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val pendingPayload = javascriptFunctionBody(html, "pendingPayloadItems")</ID>
+    <ID>UnusedPrivateProperty:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val persistPending = javascriptFunctionBody(html, "persistPendingFeedbackItems")</ID>
+    <ID>UseCheckOrError:FeedbackConsoleServer.kt$FeedbackConsoleServer$throw IllegalStateException("Feedback console server is not running")</ID>
+    <ID>UseRequire:FeedbackItemRoutes.kt$FeedbackItemRoutes$throw IllegalArgumentException("Unsupported feedback item field: $unsupportedKey")</ID>
+    <ID>UseRequire:PreviewRoutes.kt$PreviewRoutes$throw IllegalArgumentException("Unsupported navigation field: $unsupportedKey")</ID>
+  </CurrentIssues>
+</SmellBaseline>

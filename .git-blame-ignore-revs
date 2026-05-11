@@ -1,0 +1,11 @@
+# SHAs to ignore when running `git blame`.
+#
+# These commits are bulk reformatting passes that should not show up as the
+# "blame" author for the surrounding lines. Configure your local checkout once:
+#
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# GitHub honours this file automatically in the web UI.
+
+# style: spotlessApply over codebase (no logic change) — CI-1
+cf8bb0502a42bd0b2e4ee5ff5255879f992009ed

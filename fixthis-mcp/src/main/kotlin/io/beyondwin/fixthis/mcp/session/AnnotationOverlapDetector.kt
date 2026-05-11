@@ -27,7 +27,8 @@ object AnnotationOverlapDetector {
             return x
         }
         fun union(a: Int, b: Int) {
-            val ra = root(a); val rb = root(b)
+            val ra = root(a)
+            val rb = root(b)
             if (ra != rb) groupOf[rb] = ra
         }
 

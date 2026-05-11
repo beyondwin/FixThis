@@ -10,7 +10,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
     fun match(
         selectedNode: FixThisNode?,
         nearbyNodes: List<FixThisNode>,
-        activityName: String?
+        activityName: String?,
     ): List<SourceCandidate> {
         if (selectedNode == null || sourceIndex.entries.isEmpty()) return emptyList()
 
@@ -20,7 +20,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             .sortedWith(
                 compareByDescending<MatchScore> { it.rawScore }
                     .thenBy { it.entry.file }
-                    .thenBy { it.entry.line ?: Int.MAX_VALUE }
+                    .thenBy { it.entry.line ?: Int.MAX_VALUE },
             )
             .take(MAX_CANDIDATES)
             .toList()
@@ -36,9 +36,8 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             sourceIndex: SourceIndex,
             selectedNode: FixThisNode?,
             nearbyNodes: List<FixThisNode>,
-            activityName: String?
-        ): List<SourceCandidate> =
-            SourceMatcher(sourceIndex).match(selectedNode, nearbyNodes, activityName)
+            activityName: String?,
+        ): List<SourceCandidate> = SourceMatcher(sourceIndex).match(selectedNode, nearbyNodes, activityName)
     }
 
     // Tracks which origin kinds fired during scoring for a candidate, used to
@@ -56,7 +55,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         entry: SourceIndexEntry,
         selectedNode: FixThisNode,
         nearbyNodes: List<FixThisNode>,
-        activityName: String?
+        activityName: String?,
     ): MatchScore {
         val matchedTerms = linkedSetOf<String>()
         val matchReasons = linkedSetOf<String>()
@@ -211,7 +210,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             entry = entry,
             rawScore = rawScore,
             matchedTerms = matchedTerms.toList(),
-            matchReasons = matchReasons.toList()
+            matchReasons = matchReasons.toList(),
         )
     }
 
@@ -303,54 +302,49 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         val viaLegacy: Boolean,
     )
 
-    private fun SourceIndexEntry.textLikeWeightHit(term: String): WeightHit =
-        signalOrLegacyWeightHit(
-            term = term,
-            kinds = setOf(
-                SourceSignalKind.UI_TEXT,
-                SourceSignalKind.STRING_RESOURCE,
-                SourceSignalKind.ARBITRARY_STRING_LITERAL
-            ),
-            legacyCandidates = text + stringResources + symbols + listOfNotNull(excerpt)
-        )
+    private fun SourceIndexEntry.textLikeWeightHit(term: String): WeightHit = signalOrLegacyWeightHit(
+        term = term,
+        kinds = setOf(
+            SourceSignalKind.UI_TEXT,
+            SourceSignalKind.STRING_RESOURCE,
+            SourceSignalKind.ARBITRARY_STRING_LITERAL,
+        ),
+        legacyCandidates = text + stringResources + symbols + listOfNotNull(excerpt),
+    )
 
-    private fun SourceIndexEntry.contentDescriptionWeightHit(term: String): WeightHit =
-        signalOrLegacyWeightHit(
-            term = term,
-            kinds = setOf(
-                SourceSignalKind.CONTENT_DESCRIPTION,
-                SourceSignalKind.STRING_RESOURCE,
-                SourceSignalKind.ARBITRARY_STRING_LITERAL
-            ),
-            legacyCandidates = contentDescriptions + stringResources + symbols + listOfNotNull(excerpt)
-        )
+    private fun SourceIndexEntry.contentDescriptionWeightHit(term: String): WeightHit = signalOrLegacyWeightHit(
+        term = term,
+        kinds = setOf(
+            SourceSignalKind.CONTENT_DESCRIPTION,
+            SourceSignalKind.STRING_RESOURCE,
+            SourceSignalKind.ARBITRARY_STRING_LITERAL,
+        ),
+        legacyCandidates = contentDescriptions + stringResources + symbols + listOfNotNull(excerpt),
+    )
 
-    private fun SourceIndexEntry.testTagWeightHit(term: String): WeightHit =
-        signalOrLegacyWeightHit(
-            term = term,
-            kinds = setOf(SourceSignalKind.TEST_TAG, SourceSignalKind.STRICT_COMP_TEST_TAG),
-            legacyCandidates = testTags + symbols + listOfNotNull(excerpt)
-        )
+    private fun SourceIndexEntry.testTagWeightHit(term: String): WeightHit = signalOrLegacyWeightHit(
+        term = term,
+        kinds = setOf(SourceSignalKind.TEST_TAG, SourceSignalKind.STRICT_COMP_TEST_TAG),
+        legacyCandidates = testTags + symbols + listOfNotNull(excerpt),
+    )
 
-    private fun SourceIndexEntry.conventionComposableWeightHit(composableName: String): WeightHit =
-        signalOrLegacyWeightHit(
-            term = composableName,
-            kinds = setOf(SourceSignalKind.COMPOSABLE_SYMBOL, SourceSignalKind.STRICT_COMP_TEST_TAG),
-            legacyCandidates = symbols + listOf(file) + listOfNotNull(excerpt)
-        )
+    private fun SourceIndexEntry.conventionComposableWeightHit(composableName: String): WeightHit = signalOrLegacyWeightHit(
+        term = composableName,
+        kinds = setOf(SourceSignalKind.COMPOSABLE_SYMBOL, SourceSignalKind.STRICT_COMP_TEST_TAG),
+        legacyCandidates = symbols + listOf(file) + listOfNotNull(excerpt),
+    )
 
-    private fun SourceIndexEntry.roleWeightHit(term: String): WeightHit =
-        signalOrLegacyWeightHit(
-            term = term,
-            kinds = setOf(SourceSignalKind.ROLE),
-            legacyCandidates = roles + symbols + listOfNotNull(excerpt)
-        )
+    private fun SourceIndexEntry.roleWeightHit(term: String): WeightHit = signalOrLegacyWeightHit(
+        term = term,
+        kinds = setOf(SourceSignalKind.ROLE),
+        legacyCandidates = roles + symbols + listOfNotNull(excerpt),
+    )
 
     private fun SourceIndexEntry.activityWeightHit(activityName: String): WeightHit {
         val simpleName = activityName.substringAfterLast('.')
         val (signalMatchWeight, signalKind) = bestSignalHit(
             listOf(activityName, simpleName),
-            setOf(SourceSignalKind.ACTIVITY_NAME)
+            setOf(SourceSignalKind.ACTIVITY_NAME),
         )
         if (signalMatchWeight > 0.0) return WeightHit(signalMatchWeight, signalKind, viaLegacy = false)
 
@@ -362,7 +356,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
     private fun SourceIndexEntry.signalOrLegacyWeightHit(
         term: String,
         kinds: Set<SourceSignalKind>,
-        legacyCandidates: List<String>
+        legacyCandidates: List<String>,
     ): WeightHit {
         val (signalMatchWeight, signalKind) = bestSignalHit(listOf(term), kinds)
         return if (signalMatchWeight > 0.0) {
@@ -403,10 +397,12 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             SourceSignalKind.UI_TEXT,
             SourceSignalKind.TEST_TAG,
             SourceSignalKind.CONTENT_DESCRIPTION,
-            SourceSignalKind.COMPOSABLE_SYMBOL -> 1.0
+            SourceSignalKind.COMPOSABLE_SYMBOL,
+            -> 1.0
             SourceSignalKind.STRING_RESOURCE,
             SourceSignalKind.ROLE,
-            SourceSignalKind.ACTIVITY_NAME -> 0.85
+            SourceSignalKind.ACTIVITY_NAME,
+            -> 0.85
             SourceSignalKind.ARBITRARY_STRING_LITERAL -> 0.35
         }
 
@@ -420,14 +416,13 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         }
     }
 
-    private fun String.normalizedForMatch(): String =
-        trim().lowercase().replace(Regex("\\s+"), " ")
+    private fun String.normalizedForMatch(): String = trim().lowercase().replace(Regex("\\s+"), " ")
 
     private data class MatchScore(
         val entry: SourceIndexEntry,
         val rawScore: Double,
         val matchedTerms: List<String>,
-        val matchReasons: List<String>
+        val matchReasons: List<String>,
     )
 
     private fun MatchScore.toCandidate(
@@ -542,8 +537,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
 
     // SelectionConfidence ordinal: HIGH=0, MEDIUM=1, LOW=2, NONE=3 (smaller = higher confidence)
     // capAt returns ceiling when current is "above" (smaller ordinal than) ceiling.
-    private fun capAt(current: SelectionConfidence, ceiling: SelectionConfidence): SelectionConfidence =
-        if (current.ordinal < ceiling.ordinal) ceiling else current
+    private fun capAt(current: SelectionConfidence, ceiling: SelectionConfidence): SelectionConfidence = if (current.ordinal < ceiling.ordinal) ceiling else current
 
     private fun cautionFor(
         confidence: SelectionConfidence,
@@ -578,6 +572,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
 
 private const val MAX_CANDIDATES = 5
 private const val HIGH_CONFIDENCE_SCORE = 100.0
+
 @Suppress("unused")
 private const val MEDIUM_CONFIDENCE_SCORE = 55.0
 private const val MIN_PARTIAL_MATCH_LENGTH = 3

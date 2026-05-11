@@ -24,12 +24,11 @@ data class SelectDeviceRequest(
     val serial: String,
 )
 
-fun AdbDevice.toConsoleDevice(selectedSerial: String?): ConsoleDevice =
-    ConsoleDevice(
-        serial = serial,
-        state = state,
-        model = model,
-        product = product,
-        deviceName = deviceName,
-        selected = serial == selectedSerial,
-    )
+fun AdbDevice.toConsoleDevice(selectedSerial: String?): ConsoleDevice = ConsoleDevice(
+    serial = serial,
+    state = state,
+    model = model,
+    product = product,
+    deviceName = deviceName,
+    selected = serial == selectedSerial,
+)

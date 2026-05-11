@@ -2,8 +2,8 @@ package io.beyondwin.fixthis.compose.core.selection
 
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.beyondwin.fixthis.compose.core.model.ScoredFixThisNode
 import io.beyondwin.fixthis.compose.core.model.ScopeCandidate
+import io.beyondwin.fixthis.compose.core.model.ScoredFixThisNode
 import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.beyondwin.fixthis.compose.core.model.SelectionInfo
 import io.beyondwin.fixthis.compose.core.model.SelectionKind
@@ -15,7 +15,7 @@ import kotlin.math.roundToInt
 data class SelectionOptions(
     val maxCandidates: Int = 5,
     val maxNearbyNodes: Int = 12,
-    val nearbyRadiusPx: Float = 480f
+    val nearbyRadiusPx: Float = 480f,
 )
 
 data class SelectionResult(
@@ -23,14 +23,14 @@ data class SelectionResult(
     val candidatesAtPoint: List<ScoredFixThisNode>,
     val scopeCandidates: List<ScopeCandidate>,
     val nearbyNodes: List<FixThisNode>,
-    val selection: SelectionInfo
+    val selection: SelectionInfo,
 )
 
 object NodeSelector {
     fun select(
         nodes: List<FixThisNode>,
         tap: TapPoint,
-        options: SelectionOptions = SelectionOptions()
+        options: SelectionOptions = SelectionOptions(),
     ): SelectionResult {
         val atPoint = nodes.filter {
             it.boundsInWindow.area > 0f && it.boundsInWindow.contains(tap.xInWindow, tap.yInWindow)
@@ -44,8 +44,8 @@ object NodeSelector {
                 selection = SelectionInfo(
                     kind = SelectionKind.TAP_POINT,
                     confidence = SelectionConfidence.NONE,
-                    source = SelectionSource.FALLBACK
-                )
+                    source = SelectionSource.FALLBACK,
+                ),
             )
         }
 
@@ -55,7 +55,7 @@ object NodeSelector {
             .sortedWith(
                 compareByDescending<ScoredFixThisNode> { it.score }
                     .thenBy { it.node.boundsInWindow.area }
-                    .thenBy { it.node.uid }
+                    .thenBy { it.node.uid },
             )
         val candidates = scored.take(options.maxCandidates.coerceAtLeast(0))
 
@@ -70,7 +70,7 @@ object NodeSelector {
                 nodes = nodes,
                 anchor = it,
                 maxNodes = options.maxNearbyNodes,
-                radiusPx = options.nearbyRadiusPx
+                radiusPx = options.nearbyRadiusPx,
             )
         }.orEmpty()
 
@@ -83,8 +83,8 @@ object NodeSelector {
                 kind = SelectionKind.SEMANTICS_NODE,
                 confidence = confidenceFor(scored.firstOrNull()?.score ?: 0.0),
                 selectedUid = selected?.uid,
-                source = SelectionSource.TAP_SELECT
-            )
+                source = SelectionSource.TAP_SELECT,
+            ),
         )
     }
 
@@ -121,7 +121,7 @@ object NodeSelector {
         return ScoredFixThisNode(
             node = node,
             score = breakdown.values.sum(),
-            breakdown = breakdown
+            breakdown = breakdown,
         )
     }
 
@@ -175,8 +175,7 @@ object NodeSelector {
         return parts.distinct().joinToString(" | ")
     }
 
-    private fun FixThisNode.primaryText(): String? =
-        text.firstOrNull()?.takeUnlessBlank() ?: editableText?.takeUnlessBlank()
+    private fun FixThisNode.primaryText(): String? = text.firstOrNull()?.takeUnlessBlank() ?: editableText?.takeUnlessBlank()
 
     private fun String.takeUnlessBlank(): String? = takeUnless { it.isBlank() }?.trim()
 

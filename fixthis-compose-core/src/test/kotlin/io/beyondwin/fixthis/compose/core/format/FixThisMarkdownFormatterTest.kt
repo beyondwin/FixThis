@@ -42,9 +42,9 @@ class FixThisMarkdownFormatterTest {
                     uid = "pay-button",
                     text = listOf("Pay now"),
                     role = "Button",
-                    actions = listOf("OnClick")
-                )
-            )
+                    actions = listOf("OnClick"),
+                ),
+            ),
         )
 
         assertTrue(markdown.contains("FixThis Compose Feedback"))
@@ -78,17 +78,17 @@ class FixThisMarkdownFormatterTest {
                         score = 0.91,
                         matchedTerms = listOf("Pay"),
                         matchReasons = listOf("text match", "role match"),
-                        confidence = SelectionConfidence.HIGH
-                    )
+                        confidence = SelectionConfidence.HIGH,
+                    ),
                 ),
                 searchHints = listOf("Pay now Button"),
                 screenshot = ScreenshotInfo(
                     fullPath = "/sdcard/fixthis/full.png",
                     cropPath = "/sdcard/fixthis/crop.png",
                     desktopFullPath = "/tmp/fixthis/full.png",
-                    desktopCropPath = "/tmp/fixthis/crop.png"
-                )
-            )
+                    desktopCropPath = "/tmp/fixthis/crop.png",
+                ),
+            ),
         )
 
         assertTrue(markdown.contains("`sample/src/main/java/CheckoutScreen.kt:42`"))
@@ -111,7 +111,7 @@ class FixThisMarkdownFormatterTest {
                     contentDescription = listOf(injected),
                     role = "Button\n- injected",
                     testTag = "cta`tag",
-                    actions = listOf("OnClick\n- injected")
+                    actions = listOf("OnClick\n- injected"),
                 ),
                 sourceCandidates = listOf(
                     SourceCandidate(
@@ -120,8 +120,8 @@ class FixThisMarkdownFormatterTest {
                         score = 0.91,
                         matchedTerms = listOf(injected),
                         matchReasons = listOf(injected),
-                        confidence = SelectionConfidence.HIGH
-                    )
+                        confidence = SelectionConfidence.HIGH,
+                    ),
                 ),
                 searchHints = listOf(injected),
                 screenshot = ScreenshotInfo(captureFailedReason = injected),
@@ -129,10 +129,10 @@ class FixThisMarkdownFormatterTest {
                     FixThisError(
                         code = "capture\n- injected",
                         message = injected,
-                        details = mapOf("path`key" to injected)
-                    )
-                )
-            )
+                        details = mapOf("path`key" to injected),
+                    ),
+                ),
+            ),
         )
 
         val outsideFences = linesOutsideCodeFences(markdown)
@@ -159,7 +159,7 @@ class FixThisMarkdownFormatterTest {
         assertTrue(root.containsKey("errors"))
 
         val rootWithRect = Json.parseToJsonElement(
-            FixThisJsonFormatter.format(annotation(selectedNode = node(uid = "node-1")))
+            FixThisJsonFormatter.format(annotation(selectedNode = node(uid = "node-1"))),
         ).jsonObject
         val bounds = rootWithRect.getValue("selectedNode")
             .jsonObject
@@ -217,7 +217,7 @@ class FixThisMarkdownFormatterTest {
 
         assertEquals(
             FixThisMarkdownFormatter.format(annotation, DetailMode.FULL),
-            FixThisMarkdownFormatter.format(annotation)
+            FixThisMarkdownFormatter.format(annotation),
         )
     }
 
@@ -239,10 +239,10 @@ class FixThisMarkdownFormatterTest {
                     uid = "pay-button",
                     text = listOf("Pay now"),
                     role = "Button",
-                    testTag = "checkout:pay"
-                )
+                    testTag = "checkout:pay",
+                ),
             ),
-            DetailMode.COMPACT
+            DetailMode.COMPACT,
         )
 
         assertTrue(markdown.contains("Target:"))
@@ -313,7 +313,7 @@ class FixThisMarkdownFormatterTest {
             text = listOf("Sign In"),
             role = "Button",
             testTag = "comp:AppPrimaryButton:primary",
-            actions = listOf("OnClick")
+            actions = listOf("OnClick"),
         )
         return annotation(
             userComment = "Button color is too muted",
@@ -325,7 +325,7 @@ class FixThisMarkdownFormatterTest {
                     score = 1.0,
                     matchedTerms = listOf("AppPrimaryButton"),
                     matchReasons = listOf("selected testTag convention composable"),
-                    confidence = SelectionConfidence.HIGH
+                    confidence = SelectionConfidence.HIGH,
                 ),
                 SourceCandidate(
                     file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/SecondaryButton.kt",
@@ -333,7 +333,7 @@ class FixThisMarkdownFormatterTest {
                     score = 0.72,
                     matchedTerms = listOf("Button"),
                     matchReasons = listOf("role match"),
-                    confidence = SelectionConfidence.MEDIUM
+                    confidence = SelectionConfidence.MEDIUM,
                 ),
                 SourceCandidate(
                     file = "sample/src/main/java/io/beyondwin/fixthis/sample/LoginScreen.kt",
@@ -341,7 +341,7 @@ class FixThisMarkdownFormatterTest {
                     score = 0.61,
                     matchedTerms = listOf("Sign In"),
                     matchReasons = listOf("text match"),
-                    confidence = SelectionConfidence.MEDIUM
+                    confidence = SelectionConfidence.MEDIUM,
                 ),
                 SourceCandidate(
                     file = "sample/src/main/java/io/beyondwin/fixthis/sample/UnusedButton.kt",
@@ -349,9 +349,9 @@ class FixThisMarkdownFormatterTest {
                     score = 0.1,
                     matchedTerms = listOf("Button"),
                     matchReasons = listOf("low confidence fallback"),
-                    confidence = SelectionConfidence.LOW
-                )
-            )
+                    confidence = SelectionConfidence.LOW,
+                ),
+            ),
         ).copy(
             targetEvidence = TargetEvidence(
                 identityHint = IdentityHint(
@@ -359,77 +359,76 @@ class FixThisMarkdownFormatterTest {
                     variantHint = "primary",
                     stableLabel = "Button Sign In",
                     source = IdentityHintSource.TEST_TAG_CONVENTION,
-                    confidence = IdentityHintConfidence.HIGH
+                    confidence = IdentityHintConfidence.HIGH,
                 ),
                 occurrence = Occurrence(
                     signature = OccurrenceSignature(
                         type = OccurrenceSignatureType.IDENTITY_HINT,
-                        value = "AppPrimaryButton:primary"
+                        value = "AppPrimaryButton:primary",
                     ),
                     count = 2,
-                    selectedOrdinal = 1
+                    selectedOrdinal = 1,
                 ),
                 sourceInterpretation = SourceInterpretation(
                     topCandidate = SourceCandidateSummary(
                         file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
                         line = 42,
-                        confidence = SelectionConfidence.HIGH
+                        confidence = SelectionConfidence.HIGH,
                     ),
                     reasonSummary = listOf("selected testTag convention composable"),
-                    caution = "Multiple matching primary buttons were captured"
+                    caution = "Multiple matching primary buttons were captured",
                 ),
-                warnings = listOf("verify repeated target ordinal before editing")
-            )
+                warnings = listOf("verify repeated target ordinal before editing"),
+            ),
         )
     }
 
-    private fun annotationWithEscapedTargetEvidence(): FixThisAnnotation =
-        annotation(
-            userComment = "Escape target evidence",
-            selectedNode = node(
-                uid = "target-node",
-                text = listOf("Submit"),
-                role = "Button"
+    private fun annotationWithEscapedTargetEvidence(): FixThisAnnotation = annotation(
+        userComment = "Escape target evidence",
+        selectedNode = node(
+            uid = "target-node",
+            text = listOf("Submit"),
+            role = "Button",
+        ),
+        sourceCandidates = listOf(
+            SourceCandidate(
+                file = "sample/src/main/`Danger.kt\n- injected",
+                line = 27,
+                score = 0.82,
+                matchedTerms = listOf("Submit"),
+                matchReasons = listOf("target evidence source"),
+                confidence = SelectionConfidence.MEDIUM,
             ),
-            sourceCandidates = listOf(
-                SourceCandidate(
+        ),
+    ).copy(
+        targetEvidence = TargetEvidence(
+            identityHint = IdentityHint(
+                composableNameHint = "DangerButton",
+                stableLabel = "# Stable label\n- injected",
+                source = IdentityHintSource.SEMANTICS,
+                confidence = IdentityHintConfidence.MEDIUM,
+            ),
+            occurrence = Occurrence(
+                signature = OccurrenceSignature(
+                    type = OccurrenceSignatureType.ROLE_PLUS_TEXT,
+                    value = "Button:Submit",
+                ),
+                count = 1,
+                selectedOrdinal = 1,
+            ),
+            sourceInterpretation = SourceInterpretation(
+                topCandidate = SourceCandidateSummary(
                     file = "sample/src/main/`Danger.kt\n- injected",
                     line = 27,
-                    score = 0.82,
-                    matchedTerms = listOf("Submit"),
-                    matchReasons = listOf("target evidence source"),
-                    confidence = SelectionConfidence.MEDIUM
-                )
-            )
-        ).copy(
-            targetEvidence = TargetEvidence(
-                identityHint = IdentityHint(
-                    composableNameHint = "DangerButton",
-                    stableLabel = "# Stable label\n- injected",
-                    source = IdentityHintSource.SEMANTICS,
-                    confidence = IdentityHintConfidence.MEDIUM
+                    confidence = SelectionConfidence.MEDIUM,
                 ),
-                occurrence = Occurrence(
-                    signature = OccurrenceSignature(
-                        type = OccurrenceSignatureType.ROLE_PLUS_TEXT,
-                        value = "Button:Submit"
-                    ),
-                    count = 1,
-                    selectedOrdinal = 1
-                ),
-                sourceInterpretation = SourceInterpretation(
-                    topCandidate = SourceCandidateSummary(
-                        file = "sample/src/main/`Danger.kt\n- injected",
-                        line = 27,
-                        confidence = SelectionConfidence.MEDIUM
-                    ),
-                    reasonSummary = listOf("# reason", "- second reason"),
-                    caution = "> caution\n1. ordered"
-                ),
-                screenshotKinds = listOf("full`shot", "> crop"),
-                warnings = listOf("+ warning", "# second warning")
-            )
-        )
+                reasonSummary = listOf("# reason", "- second reason"),
+                caution = "> caution\n1. ordered",
+            ),
+            screenshotKinds = listOf("full`shot", "> crop"),
+            warnings = listOf("+ warning", "# second warning"),
+        ),
+    )
 
     private fun annotation(
         userComment: String = "Please inspect this",
@@ -437,7 +436,7 @@ class FixThisMarkdownFormatterTest {
         sourceCandidates: List<SourceCandidate> = emptyList(),
         searchHints: List<String> = emptyList(),
         screenshot: ScreenshotInfo? = null,
-        errors: List<FixThisError> = emptyList()
+        errors: List<FixThisError> = emptyList(),
     ): FixThisAnnotation = FixThisAnnotation(
         id = "annotation-1",
         createdAtEpochMillis = 1_714_000_000_000,
@@ -448,14 +447,14 @@ class FixThisMarkdownFormatterTest {
             kind = SelectionKind.SEMANTICS_NODE,
             confidence = SelectionConfidence.HIGH,
             selectedUid = selectedNode?.uid,
-            source = SelectionSource.TAP_SELECT
+            source = SelectionSource.TAP_SELECT,
         ),
         selectedNode = selectedNode,
         sourceCandidates = sourceCandidates,
         searchHints = searchHints,
         screenshot = screenshot,
         userComment = userComment,
-        errors = errors
+        errors = errors,
     )
 
     private fun node(
@@ -464,7 +463,7 @@ class FixThisMarkdownFormatterTest {
         contentDescription: List<String> = emptyList(),
         role: String? = null,
         testTag: String? = null,
-        actions: List<String> = emptyList()
+        actions: List<String> = emptyList(),
     ): FixThisNode = FixThisNode(
         uid = uid,
         composeNodeId = 7,
@@ -475,7 +474,7 @@ class FixThisMarkdownFormatterTest {
         contentDescription = contentDescription,
         role = role,
         testTag = testTag,
-        actions = actions
+        actions = actions,
     )
 
     @Test

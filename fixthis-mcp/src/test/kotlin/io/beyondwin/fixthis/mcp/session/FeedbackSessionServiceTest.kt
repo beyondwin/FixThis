@@ -10,12 +10,12 @@ import io.beyondwin.fixthis.compose.core.model.OccurrenceSignatureType
 import io.beyondwin.fixthis.compose.core.model.TreeKind
 import io.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
-import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import io.beyondwin.fixthis.mcp.console.AnnotationDraftDto
 import io.beyondwin.fixthis.mcp.console.ConsoleConnectionState
-import java.io.File
+import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
+import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -1313,22 +1313,19 @@ class FeedbackSessionServiceTest {
         assertTrue(error.message.orEmpty().contains("Selection bounds must be inside the screenshot"))
     }
 
-    private fun FeedbackSessionService.addCapturedScreenForTest(sessionId: String, screen: SnapshotDto): SnapshotDto =
-        javaClass.getDeclaredField("store").let { field ->
-            field.isAccessible = true
-            (field.get(this) as FeedbackSessionStore).addScreen(sessionId, screen)
-        }
+    private fun FeedbackSessionService.addCapturedScreenForTest(sessionId: String, screen: SnapshotDto): SnapshotDto = javaClass.getDeclaredField("store").let { field ->
+        field.isAccessible = true
+        (field.get(this) as FeedbackSessionStore).addScreen(sessionId, screen)
+    }
 
-    private fun serviceWithBridge(bridge: FakeFixThisBridge): FeedbackSessionService =
-        FeedbackSessionService(
-            bridge = bridge,
-            store = FeedbackSessionStore(),
-            projectRoot = tempDir(prefix = "fixthis-connection-service-").absolutePath,
-            defaultPackageName = "io.beyondwin.fixthis.sample",
-        )
+    private fun serviceWithBridge(bridge: FakeFixThisBridge): FeedbackSessionService = FeedbackSessionService(
+        bridge = bridge,
+        store = FeedbackSessionStore(),
+        projectRoot = tempDir(prefix = "fixthis-connection-service-").absolutePath,
+        defaultPackageName = "io.beyondwin.fixthis.sample",
+    )
 
-    private fun tempDir(prefix: String): File =
-        kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
+    private fun tempDir(prefix: String): File = kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
 
     private class FakeIds(vararg values: String) {
         private val queue = ArrayDeque(values.toList())

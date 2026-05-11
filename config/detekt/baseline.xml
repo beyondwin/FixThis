@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  This file is a placeholder pointer for the Detekt baseline.
+
+  Detekt does not natively merge baselines across multi-module Gradle builds:
+  each module owns its own baseline file written by `./gradlew detektBaseline`.
+  We keep all of them in this directory under `baseline-<module>.xml` and
+  reference them from each module's `detekt { baseline = ... }` block.
+
+  See:
+    - build.gradle.kts (root)               -> subprojects { detekt { baseline = .../baseline-$name.xml } }
+    - fixthis-gradle-plugin/build.gradle.kts -> detekt { baseline = .../baseline-fixthis-gradle-plugin.xml }
+
+  To regenerate all baselines after intentional refactors:
+    ./gradlew detektBaseline --no-daemon
+    ./gradlew :fixthis-gradle-plugin:detektBaseline --no-daemon
+
+  CI runs `./gradlew detekt --no-daemon` and fails on NEW violations only.
+-->
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues/>
+</SmellBaseline>

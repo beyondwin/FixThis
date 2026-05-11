@@ -102,10 +102,13 @@ private fun View.measureAndLayout(width: Int, height: Int) {
     layout(0, 0, width, height)
 }
 
-private class FakeRootForTestView(context: Context) : View(context), RootForTest {
+private class FakeRootForTestView(context: Context) :
+    View(context),
+    RootForTest {
     override val density: Density = Density(1f)
     override val semanticsOwner: SemanticsOwner
         get() = error("Semantics inspection is out of scope for these tests")
+
     @Deprecated("Use PlatformTextInputModifierNode instead.")
     override val textInputService: TextInputService
         get() = error("Text input is out of scope for these tests")

@@ -57,12 +57,11 @@ class ScreenshotStore(
         )
     }
 
-    fun screenshotDirectory(): File =
-        File(context.cacheDir, "fixthis/${dateProvider()}").also { directory ->
-            check(directory.exists() || directory.mkdirs()) {
-                "Could not create screenshot directory: ${directory.absolutePath}"
-            }
+    fun screenshotDirectory(): File = File(context.cacheDir, "fixthis/${dateProvider()}").also { directory ->
+        check(directory.exists() || directory.mkdirs()) {
+            "Could not create screenshot directory: ${directory.absolutePath}"
         }
+    }
 
     private fun writePng(bitmap: Bitmap, file: File) {
         file.outputStream().use { output ->
@@ -91,8 +90,6 @@ private fun FixThisRect.toCropRect(width: Int, height: Int): IntCropRect {
     return IntCropRect(left = left, top = top, right = right, bottom = bottom)
 }
 
-private fun String.safeFileStem(): String =
-    replace(Regex("""[^\w.-]"""), "_").ifBlank { "annotation" }
+private fun String.safeFileStem(): String = replace(Regex("""[^\w.-]"""), "_").ifBlank { "annotation" }
 
-private fun currentDateString(): String =
-    SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+private fun currentDateString(): String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())

@@ -66,10 +66,9 @@ data class ConsoleConnectionDetails(
     val rawError: String? = null,
 )
 
-fun AdbDevice.toConnectionDevice(selectedSerial: String?): ConsoleConnectionDevice =
-    ConsoleConnectionDevice(
-        serial = serial,
-        state = state,
-        label = model ?: deviceName ?: product ?: serial,
-        selected = serial == selectedSerial,
-    )
+fun AdbDevice.toConnectionDevice(selectedSerial: String?): ConsoleConnectionDevice = ConsoleConnectionDevice(
+    serial = serial,
+    state = state,
+    label = model ?: deviceName ?: product ?: serial,
+    selected = serial == selectedSerial,
+)

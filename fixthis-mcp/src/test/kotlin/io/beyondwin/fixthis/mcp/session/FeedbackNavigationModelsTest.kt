@@ -1,10 +1,10 @@
 package io.beyondwin.fixthis.mcp.session
 
 import io.beyondwin.fixthis.cli.fixThisJson
+import kotlinx.serialization.encodeToString
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlinx.serialization.encodeToString
 
 class FeedbackNavigationModelsTest {
     @Test

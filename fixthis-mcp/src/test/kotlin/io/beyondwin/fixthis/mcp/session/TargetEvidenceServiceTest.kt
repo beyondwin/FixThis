@@ -14,7 +14,6 @@ import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class TargetEvidenceServiceTest {
@@ -124,36 +123,33 @@ class TargetEvidenceServiceTest {
         assertEquals("excerpt mismatch", candidate.staleReason)
     }
 
-    private fun targetEvidenceService(projectRoot: File = File(".").canonicalFile): TargetEvidenceService =
-        TargetEvidenceService(
-            bridge = FakeFixThisBridge(),
-            sourceIndexRegistry = SourceIndexRegistry(),
-            projectRoot = projectRoot,
-        )
+    private fun targetEvidenceService(projectRoot: File = File(".").canonicalFile): TargetEvidenceService = TargetEvidenceService(
+        bridge = FakeFixThisBridge(),
+        sourceIndexRegistry = SourceIndexRegistry(),
+        projectRoot = projectRoot,
+    )
 
-    private fun screenWith(vararg nodes: FixThisNode): SnapshotDto =
-        SnapshotDto(
-            screenId = "screen-1",
-            capturedAtEpochMillis = 100L,
-            displayName = "Checkout",
-            screenshot = SnapshotScreenshotDto(width = 720, height = 1600, desktopFullPath = "/tmp/screen.png"),
-            roots = listOf(SnapshotRootDto(0, FixThisRect(0f, 0f, 720f, 1600f), mergedNodes = nodes.toList())),
-        )
+    private fun screenWith(vararg nodes: FixThisNode): SnapshotDto = SnapshotDto(
+        screenId = "screen-1",
+        capturedAtEpochMillis = 100L,
+        displayName = "Checkout",
+        screenshot = SnapshotScreenshotDto(width = 720, height = 1600, desktopFullPath = "/tmp/screen.png"),
+        roots = listOf(SnapshotRootDto(0, FixThisRect(0f, 0f, 720f, 1600f), mergedNodes = nodes.toList())),
+    )
 
     private fun node(
         uid: String,
         text: List<String> = emptyList(),
         role: String? = null,
         testTag: String? = null,
-    ): FixThisNode =
-        FixThisNode(
-            uid = uid,
-            composeNodeId = 42,
-            rootIndex = 0,
-            treeKind = TreeKind.MERGED,
-            boundsInWindow = FixThisRect(10f, 20f, 110f, 70f),
-            text = text,
-            role = role,
-            testTag = testTag,
-        )
+    ): FixThisNode = FixThisNode(
+        uid = uid,
+        composeNodeId = 42,
+        rootIndex = 0,
+        treeKind = TreeKind.MERGED,
+        boundsInWindow = FixThisRect(10f, 20f, 110f, 70f),
+        text = text,
+        role = role,
+        testTag = testTag,
+    )
 }

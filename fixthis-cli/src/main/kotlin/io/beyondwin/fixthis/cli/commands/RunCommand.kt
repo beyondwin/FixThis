@@ -6,10 +6,10 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.long
 import io.beyondwin.fixthis.cli.Adb
 import io.beyondwin.fixthis.cli.BridgeClient
-import java.io.File
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import java.io.File
 
 class RunCommand : CoreCliktCommand(name = "run") {
     private val packageName by option("--package", help = "Android application id to launch")
