@@ -9,7 +9,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 
 object BridgeProtocol {
-    const val VERSION: String = "1.1"
+    const val VERSION: String = "1.2"
     private const val MAX_FRAME_BYTES: Int = 16 * 1024 * 1024
 
     @OptIn(ExperimentalSerializationApi::class)

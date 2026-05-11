@@ -68,7 +68,7 @@ is a stable machine-readable string; `error.message` is human-readable.
 ## Version constant
 
 A single `VERSION` string identifies the protocol surface. **Current value:
-`"1.1"`** (defined in
+`"1.2"`** (defined in
 `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt`).
 
 The same value is **mirrored** in three other places that must stay in sync.

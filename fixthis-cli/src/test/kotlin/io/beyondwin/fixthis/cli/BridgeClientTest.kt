@@ -61,7 +61,7 @@ class BridgeClientTest {
     @Test
     fun parsesDeviceMetadataFromAdbDevicesLongOutput() {
         val adb = FakeAdbFacade(
-            sessionJson = sessionJson(protocol = "1.1"),
+            sessionJson = sessionJson(protocol = "1.2"),
             devices = listOf(
                 AdbDevice(
                     serial = "adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp",
@@ -91,7 +91,7 @@ class BridgeClientTest {
     @Test
     fun selectedDeviceSerialScopesBridgeAdbCommands() = runBlocking {
         val adb = FakeAdbFacade(
-            sessionJson = sessionJson(protocol = "1.1"),
+            sessionJson = sessionJson(protocol = "1.2"),
             devices = listOf(
                 AdbDevice("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp", "device"),
             ),
@@ -102,7 +102,7 @@ class BridgeClientTest {
                   "id": "req_1",
                   "ok": true,
                   "result": {
-                    "bridgeProtocolVersion": "1.1",
+                    "bridgeProtocolVersion": "1.2",
                     "activity": "MainActivity"
                   }
                 }
@@ -127,7 +127,7 @@ class BridgeClientTest {
     @Test
     fun launchAppScopesAdbCommandToSelectedDevice() {
         val adb = FakeAdbFacade(
-            sessionJson = sessionJson(protocol = "1.1"),
+            sessionJson = sessionJson(protocol = "1.2"),
             devices = listOf(AdbDevice("device-1", "device")),
         )
         val client = BridgeClient(adb = adb, projectRoot = temporaryFolder.newFolder())
@@ -141,7 +141,7 @@ class BridgeClientTest {
     @Test
     fun launchAppRejectsUnavailableSelectedDevice() {
         val adb = FakeAdbFacade(
-            sessionJson = sessionJson(protocol = "1.1"),
+            sessionJson = sessionJson(protocol = "1.2"),
             devices = listOf(AdbDevice("device-1", "offline")),
         )
         val client = BridgeClient(adb = adb, projectRoot = temporaryFolder.newFolder())
@@ -158,7 +158,7 @@ class BridgeClientTest {
     @Test
     fun selectedDeviceSerialMustBeConnected() = runBlocking {
         val adb = FakeAdbFacade(
-            sessionJson = sessionJson(protocol = "1.1"),
+            sessionJson = sessionJson(protocol = "1.2"),
             devices = listOf(AdbDevice("device-1", "device")),
         )
         val client = BridgeClient(
@@ -181,7 +181,7 @@ class BridgeClientTest {
     @Test
     fun selectedDeviceSerialMustBeReady() = runBlocking {
         val adb = FakeAdbFacade(
-            sessionJson = sessionJson(protocol = "1.1"),
+            sessionJson = sessionJson(protocol = "1.2"),
             devices = listOf(AdbDevice("device-1", "offline")),
         )
         val client = BridgeClient(
@@ -204,7 +204,7 @@ class BridgeClientTest {
     @Test
     fun disconnectDeviceClearsOnlyClientSelection() {
         val client = BridgeClient(
-            adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.1")),
+            adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.2")),
             projectRoot = temporaryFolder.newFolder(),
         )
 
@@ -217,7 +217,7 @@ class BridgeClientTest {
     @Test
     fun framesStatusRequestAndValidatesProtocolVersion() = runBlocking {
         val adb = FakeAdbFacade(
-            sessionJson = sessionJson(protocol = "1.1"),
+            sessionJson = sessionJson(protocol = "1.2"),
         )
         val socket = CapturingBridgeSocket(
             responsePayload = """
@@ -228,7 +228,7 @@ class BridgeClientTest {
                     "activity": "MainActivity",
                     "rootsCount": 2,
                     "sidekickVersion": "0.1.0",
-                    "bridgeProtocolVersion": "1.1",
+                    "bridgeProtocolVersion": "1.2",
                     "sourceIndexAvailable": true
                   }
                 }
@@ -260,14 +260,14 @@ class BridgeClientTest {
 
     @Test
     fun readSourceIndexFramesDedicatedBridgeMethod() = runBlocking {
-        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.1"))
+        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.2"))
         val socket = CapturingBridgeSocket(
             responsePayload = """
                 {
                   "id": "req_1",
                   "ok": true,
                   "result": {
-                    "bridgeProtocolVersion": "1.1",
+                    "bridgeProtocolVersion": "1.2",
                     "sourceIndexAvailable": true,
                     "sourceIndex": {
                       "schemaVersion": "1.0",
@@ -296,14 +296,14 @@ class BridgeClientTest {
 
     @Test
     fun performNavigationFramesBridgeMethodAndParams() = runBlocking {
-        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.1"))
+        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.2"))
         val socket = CapturingBridgeSocket(
             responsePayload = """
                 {
                   "id": "req_1",
                   "ok": true,
                   "result": {
-                    "bridgeProtocolVersion": "1.1",
+                    "bridgeProtocolVersion": "1.2",
                     "performed": true,
                     "activity": "MainActivity"
                   }
@@ -348,7 +348,7 @@ class BridgeClientTest {
         }.exceptionOrNull()
 
         assertTrue(error is BridgeProtocolException)
-        assertEquals("FixThis bridge protocol 2.0 is incompatible with CLI protocol 1.1", error?.message)
+        assertEquals("FixThis bridge protocol 2.0 is incompatible with CLI protocol 1.2", error?.message)
         assertEquals(emptyList<Pair<Int, String>>(), adb.forwarded)
         assertEquals(emptyList<Int>(), adb.removedForwards)
     }
@@ -381,7 +381,7 @@ class BridgeClientTest {
 
     @Test
     fun removesForwardWhenBridgeRequestFailsAfterForwarding() = runBlocking {
-        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.1"))
+        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.2"))
         val client = BridgeClient(
             adb = adb,
             projectRoot = temporaryFolder.newFolder(),
@@ -394,8 +394,15 @@ class BridgeClientTest {
         }.exceptionOrNull()
 
         assertTrue(error is BridgeConnectionException)
+        // On connect failure the CLI mirrors the sidekick's
+        // BridgeSocketNameNegotiator by re-trying against the `-1` / `-2`
+        // suffixed names before giving up.
         assertEquals(
-            listOf(34567 to "localabstract:fixthis_io.beyondwin.fixthis.sample"),
+            listOf(
+                34567 to "localabstract:fixthis_io.beyondwin.fixthis.sample",
+                34567 to "localabstract:fixthis_io.beyondwin.fixthis.sample-1",
+                34567 to "localabstract:fixthis_io.beyondwin.fixthis.sample-2",
+            ),
             adb.forwarded,
         )
         assertEquals(listOf(34567), adb.removedForwards)
@@ -403,7 +410,7 @@ class BridgeClientTest {
 
     @Test
     fun mapsSocketReadTimeoutToBridgeConnectionException() = runBlocking {
-        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.1"))
+        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.2"))
         val client = BridgeClient(
             adb = adb,
             projectRoot = temporaryFolder.newFolder(),
@@ -422,7 +429,7 @@ class BridgeClientTest {
 
     @Test
     fun cancellationClosesActiveSocketAndRemovesForward() = runBlocking {
-        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.1"))
+        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.2"))
         val socket = BlockingBridgeSocket()
         val client = BridgeClient(
             adb = adb,
@@ -450,7 +457,7 @@ class BridgeClientTest {
     @Test
     fun captureScreenSnapshotPullsFullScreenshotArtifact() = runBlocking {
         val root = temporaryFolder.newFolder()
-        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.1"))
+        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.2"))
         val bridgeSockets =
             listOf(
                 CapturingBridgeSocket(
@@ -459,7 +466,7 @@ class BridgeClientTest {
                           "id": "req_1",
                           "ok": true,
                           "result": {
-                            "bridgeProtocolVersion": "1.1",
+                            "bridgeProtocolVersion": "1.2",
                             "activity": "MainActivity",
                             "inspection": {
                               "activity": "MainActivity",
@@ -480,7 +487,7 @@ class BridgeClientTest {
                           "id": "req_2",
                           "ok": true,
                           "result": {
-                            "bridgeProtocolVersion": "1.1",
+                            "bridgeProtocolVersion": "1.2",
                             "path": "/data/user/0/pkg/cache/fixthis/full.png",
                             "kind": "full",
                             "mimeType": "image/png",
@@ -522,7 +529,7 @@ class BridgeClientTest {
     fun captureScreenSnapshotUsesProvidedDestinationDirectory() = runBlocking {
         val root = temporaryFolder.newFolder()
         val destinationDirectory = root.resolve(".fixthis/feedback-sessions/session-1/artifacts/screens/screen-1")
-        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.1"))
+        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.2"))
         val bridgeSockets =
             listOf(
                 CapturingBridgeSocket(
@@ -531,7 +538,7 @@ class BridgeClientTest {
                           "id": "req_1",
                           "ok": true,
                           "result": {
-                            "bridgeProtocolVersion": "1.1",
+                            "bridgeProtocolVersion": "1.2",
                             "activity": "MainActivity",
                             "inspection": {
                               "activity": "MainActivity",
@@ -552,7 +559,7 @@ class BridgeClientTest {
                           "id": "req_2",
                           "ok": true,
                           "result": {
-                            "bridgeProtocolVersion": "1.1",
+                            "bridgeProtocolVersion": "1.2",
                             "path": "/data/user/0/pkg/cache/fixthis/full.png",
                             "kind": "full",
                             "mimeType": "image/png",

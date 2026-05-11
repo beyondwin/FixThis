@@ -9,6 +9,7 @@ import android.net.LocalServerSocket
 import android.net.LocalSocket
 import android.os.PowerManager
 import android.util.Base64
+import android.util.Log
 import io.beyondwin.fixthis.compose.core.model.FixThisError
 import io.beyondwin.fixthis.compose.sidekick.BuildInfo
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
@@ -21,6 +22,7 @@ import io.beyondwin.fixthis.compose.sidekick.screenshot.ScreenshotCapturer
 import io.beyondwin.fixthis.compose.sidekick.screenshot.ScreenshotStore
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.IOException
 import java.lang.ref.WeakReference
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
@@ -48,20 +50,50 @@ class BridgeServer(
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
     @Volatile
     private var serverSocket: LocalServerSocket? = null
+    @Volatile
+    private var resolvedName: String? = null
+
+    /**
+     * The actual socket name [start] bound to (may differ from the session's
+     * configured name if a stale prior binding forced a suffix fallback;
+     * see [BridgeSocketNameNegotiator]). `null` before [start] succeeds or
+     * after [stop].
+     */
+    fun resolvedSocketName(): String? = resolvedName
 
     fun start(): Boolean {
         if (serverSocket != null) return false
-        val socket = runCatching { socketFactory(session.socketName) }.getOrElse { return false }
-        serverSocket = socket
-        scope.launch {
-            acceptLoop(socket)
+        val attempted = mutableListOf<String>()
+        var lastError: Throwable? = null
+        for (attempt in 0 until BridgeSocketNameNegotiator.MaxAttempts) {
+            val candidate = BridgeSocketNameNegotiator.nextCandidate(session.socketName, attempt)
+            attempted += candidate
+            val socket = try {
+                socketFactory(candidate)
+            } catch (error: IOException) {
+                lastError = error
+                continue
+            }
+            serverSocket = socket
+            resolvedName = candidate
+            scope.launch {
+                acceptLoop(socket)
+            }
+            return true
         }
-        return true
+        Log.w(
+            BridgeServerLogTag,
+            "BridgeServer.start() failed after ${attempted.size} attempts: " +
+                "tried ${attempted.joinToString(", ")}",
+            lastError,
+        )
+        return false
     }
 
     fun stop() {
         runCatching { serverSocket?.close() }
         serverSocket = null
+        resolvedName = null
         scope.cancel()
     }
 
@@ -114,7 +146,9 @@ class BridgeServer(
                     connectionState.markAuthorizedRequest()
                     BridgeProtocol.json.encodeToJsonElement(BridgeHeartbeatResult())
                 }
-                "status" -> BridgeProtocol.json.encodeToJsonElement(environment.status())
+                "status" -> BridgeProtocol.json.encodeToJsonElement(
+                    environment.status().copy(socketName = resolvedName ?: session.socketName),
+                )
                 "inspectCurrentScreen" -> BridgeProtocol.json.encodeToJsonElement(environment.inspectCurrentScreen())
                 "captureScreenSnapshot" -> BridgeProtocol.json.encodeToJsonElement(environment.captureScreenSnapshot())
                 "readSourceIndex" -> BridgeProtocol.json.encodeToJsonElement(environment.readSourceIndex())
@@ -196,6 +230,7 @@ class BridgeServer(
 
     private companion object {
         const val MaxScreenshotReadBytes = 16L * 1024L * 1024L
+        const val BridgeServerLogTag = "FixThisBridge"
     }
 }
 
@@ -236,6 +271,14 @@ data class BridgeStatus(
      * staleness banner. NOT the install time — for that, see [installEpochMillis].
      */
     val sidekickBuildEpochMs: Long? = null,
+    /**
+     * The actual abstract-namespace socket name `BridgeServer` is bound to.
+     * Equals `SessionTokenStore.socketNameForPackage(packageName)` in the happy
+     * path, but may carry a `-1` / `-2` suffix if a stale prior binding forced
+     * [BridgeSocketNameNegotiator] to retry. Hosts (CLI / MCP) should prefer
+     * this field over the value baked into `session.json` when the two differ.
+     */
+    val socketName: String? = null,
 ) {
     constructor(
         activity: String?,
@@ -342,8 +385,17 @@ internal object FixThisBridgeRuntime {
                 environment = bridgeEnvironment,
                 connectionState = connectionState,
             )
-            store.write(session)
             if (!bridgeServer.start()) return false
+            // Write the session AFTER bind succeeds so session.json reflects the
+            // actual name BridgeServer is listening on (the bind retry may have
+            // promoted us to a -1 / -2 suffix to dodge a stale prior binding).
+            val resolved = bridgeServer.resolvedSocketName() ?: session.socketName
+            val resolvedSession = if (resolved == session.socketName) {
+                session
+            } else {
+                session.copy(socketName = resolved, socketAddress = "localabstract:$resolved")
+            }
+            store.write(resolvedSession)
             environment = bridgeEnvironment
             server = bridgeServer
             return true

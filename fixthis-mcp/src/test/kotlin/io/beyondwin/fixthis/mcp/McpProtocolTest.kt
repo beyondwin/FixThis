@@ -1459,7 +1459,7 @@ class McpProtocolTest {
                 put("activity", "$packageName.MainActivity")
                 put("rootsCount", 1)
                 put("sidekickVersion", "1.0")
-                put("bridgeProtocolVersion", "1.1")
+                put("bridgeProtocolVersion", "1.2")
                 put("sourceIndexAvailable", true)
             }
         }

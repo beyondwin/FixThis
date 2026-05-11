@@ -28,7 +28,13 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
-private const val BridgeProtocolVersion = "1.1"
+// Mirrors BridgeProtocol.VERSION (fixthis-compose-sidekick), the constant in
+// ServerVersionRoutes.kt (fixthis-mcp), and MinimumSupportedProtocolVersion in
+// staleness.js. BridgeProtocolVersionSyncTest (`:fixthis-mcp:test`) fails if any
+// of the 4 sites lag — bump them all together. See docs/reference/bridge-protocol.md.
+private const val BridgeProtocolVersion = "1.2"
+// Mirrors BridgeSocketNameNegotiator.MaxAttempts (fixthis-compose-sidekick).
+private const val BridgeSocketNameMaxAttempts = 3
 private const val SessionPath = "files/fixthis/session.json"
 private const val MaxFrameBytes = 16 * 1024 * 1024
 private const val DefaultSocketTimeoutMillis = 30_000
@@ -137,12 +143,20 @@ class BridgeClient(
         validateProtocol(session.bridgeProtocolVersion)
         val localPort = portAllocator()
         activeRequest.registerForwardPort(localPort)
-        scope.adb.forward(localPort, session.socketAddress)
-        activeRequest.markForwardEstablished()
-        activeRequest.throwIfCancelled()
 
         return try {
-            val socket = socketConnector(localPort)
+            // Try the socket address baked into session.json first, then fall through
+            // `<name>-1` / `<name>-2` to mirror BridgeSocketNameNegotiator on the
+            // sidekick. FixThisBridgeRuntime rewrites session.json post-bind so the
+            // primary address is usually correct; the suffixed fallbacks cover the
+            // race where the CLI read session.json before the sidekick refreshed it.
+            val socket = openSocketWithSocketNameFallback(
+                adb = scope.adb,
+                localPort = localPort,
+                sessionSocketName = session.socketName,
+                activeRequest = activeRequest,
+            )
+            activeRequest.throwIfCancelled()
             activeRequest.registerSocket(socket)
             activeRequest.throwIfCancelled()
             socket.use {
@@ -183,6 +197,48 @@ class BridgeClient(
         } finally {
             activeRequest.cleanup()
         }
+    }
+
+    /**
+     * Forward [localPort] to `localabstract:<sessionSocketName>` and open a
+     * [BridgeSocket]; on [IOException] retry against `<name>-1` and `<name>-2`
+     * to mirror the suffix retry on the sidekick side
+     * (`BridgeSocketNameNegotiator`). [activeRequest] is marked established
+     * once any candidate succeeds. Throws [BridgeConnectionException] if all
+     * three candidates fail.
+     */
+    private fun openSocketWithSocketNameFallback(
+        adb: AdbFacade,
+        localPort: Int,
+        sessionSocketName: String,
+        activeRequest: ActiveBridgeRequest,
+    ): BridgeSocket {
+        var lastError: Throwable? = null
+        for (attempt in 0 until BridgeSocketNameMaxAttempts) {
+            val candidate = if (attempt == 0) sessionSocketName else "$sessionSocketName-$attempt"
+            val address = "localabstract:$candidate"
+            try {
+                adb.forward(localPort, address)
+            } catch (error: IOException) {
+                lastError = error
+                continue
+            }
+            // Any successful `adb forward` registers a forward we must clean up
+            // even if the subsequent connect fails on this candidate.
+            activeRequest.markForwardEstablished()
+            val socket = try {
+                socketConnector(localPort)
+            } catch (error: IOException) {
+                lastError = error
+                continue
+            }
+            return socket
+        }
+        throw BridgeConnectionException(
+            "Could not connect to FixThis bridge socket $sessionSocketName " +
+                "(also tried $sessionSocketName-1, $sessionSocketName-2): " +
+                (lastError?.message ?: "unknown error"),
+        )
     }
 
     fun resolvePackageName(packageOverride: String?): String =

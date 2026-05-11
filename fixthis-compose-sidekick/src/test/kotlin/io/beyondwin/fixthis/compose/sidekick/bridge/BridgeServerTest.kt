@@ -128,6 +128,7 @@ class BridgeServerTest {
                     Boolean::class.javaObjectType,
                     Long::class.javaObjectType,
                     Long::class.javaObjectType,
+                    String::class.java,
                 ),
             ),
         )

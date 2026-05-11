@@ -48,6 +48,6 @@ class BridgeProtocolTest {
 
     @Test
     fun bridgeProtocolVersionBumpedFor1_1() {
-        assertEquals("1.1", BridgeProtocol.VERSION)
+        assertEquals("1.2", BridgeProtocol.VERSION)
     }
 }
