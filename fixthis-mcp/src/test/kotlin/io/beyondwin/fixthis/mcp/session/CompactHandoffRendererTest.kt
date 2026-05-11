@@ -6,8 +6,8 @@ import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.beyondwin.fixthis.compose.core.model.TreeKind
-import kotlin.test.assertTrue
 import org.junit.Test
+import kotlin.test.assertTrue
 
 class CompactHandoffRendererTest {
     @Test
@@ -82,8 +82,10 @@ class CompactHandoffRendererTest {
             ),
             items = listOf(baseAnnotation),
         )
-        assertTrue(!CompactHandoffRenderer.render(sessionWidthNull).lines().any { it.startsWith("viewport:") },
-            "Expected no viewport: line when width is null")
+        assertTrue(
+            !CompactHandoffRenderer.render(sessionWidthNull).lines().any { it.startsWith("viewport:") },
+            "Expected no viewport: line when width is null",
+        )
 
         // height null → no viewport line
         val sessionHeightNull = SessionDto(
@@ -102,8 +104,10 @@ class CompactHandoffRendererTest {
             ),
             items = listOf(baseAnnotation),
         )
-        assertTrue(!CompactHandoffRenderer.render(sessionHeightNull).lines().any { it.startsWith("viewport:") },
-            "Expected no viewport: line when height is null")
+        assertTrue(
+            !CompactHandoffRenderer.render(sessionHeightNull).lines().any { it.startsWith("viewport:") },
+            "Expected no viewport: line when height is null",
+        )
 
         // both null → no viewport line
         val sessionBothNull = SessionDto(
@@ -122,8 +126,10 @@ class CompactHandoffRendererTest {
             ),
             items = listOf(baseAnnotation),
         )
-        assertTrue(!CompactHandoffRenderer.render(sessionBothNull).lines().any { it.startsWith("viewport:") },
-            "Expected no viewport: line when both width and height are null")
+        assertTrue(
+            !CompactHandoffRenderer.render(sessionBothNull).lines().any { it.startsWith("viewport:") },
+            "Expected no viewport: line when both width and height are null",
+        )
     }
 
     @Test
@@ -159,8 +165,10 @@ class CompactHandoffRendererTest {
         val lines = markdown.lines()
         val activityIdx = lines.indexOfFirst { it.startsWith("activity:") }
         assertTrue(activityIdx >= 0, "Expected an activity: line but got:\n$markdown")
-        assertTrue(lines[activityIdx].contains("MainActivity"),
-            "Expected 'activity: MainActivity' but got: '${lines[activityIdx]}'")
+        assertTrue(
+            lines[activityIdx].contains("MainActivity"),
+            "Expected 'activity: MainActivity' but got: '${lines[activityIdx]}'",
+        )
     }
 
     @Test
@@ -193,8 +201,10 @@ class CompactHandoffRendererTest {
         )
 
         val markdown = CompactHandoffRenderer.render(session)
-        assertTrue(!markdown.lines().any { it.startsWith("activity:") },
-            "Expected no activity: line when activityName == displayName but got:\n$markdown")
+        assertTrue(
+            !markdown.lines().any { it.startsWith("activity:") },
+            "Expected no activity: line when activityName == displayName but got:\n$markdown",
+        )
     }
 
     @Test
@@ -227,8 +237,10 @@ class CompactHandoffRendererTest {
         )
 
         val markdown = CompactHandoffRenderer.render(session)
-        assertTrue(!markdown.lines().any { it.startsWith("activity:") },
-            "Expected no activity: line when activityName is null but got:\n$markdown")
+        assertTrue(
+            !markdown.lines().any { it.startsWith("activity:") },
+            "Expected no activity: line when activityName is null but got:\n$markdown",
+        )
     }
 
     @Test
@@ -543,7 +555,6 @@ class CompactHandoffRendererTest {
 
     // ---- Task 2.1: candidates block tests ----
 
-
     // ---- Task 2.2: rank-1 enrichment (margin + matched) ----
 
     private fun makeSessionWith2Candidates(
@@ -794,12 +805,12 @@ class CompactHandoffRendererTest {
                             matchedTerms = emptyList(),
                             matchReasons = emptyList(),
                             confidence = SelectionConfidence.HIGH,
-                            scoreMargin = 0.42,  // wire value present
+                            scoreMargin = 0.42, // wire value present
                         ),
                         SourceCandidate(
                             file = "OtherScreen.kt",
                             line = 20,
-                            score = 0.50,  // difference would be 0.49, not 0.42
+                            score = 0.50, // difference would be 0.49, not 0.42
                             matchedTerms = emptyList(),
                             matchReasons = emptyList(),
                             confidence = SelectionConfidence.LOW,
@@ -848,7 +859,7 @@ class CompactHandoffRendererTest {
                             matchedTerms = emptyList(),
                             matchReasons = emptyList(),
                             confidence = SelectionConfidence.HIGH,
-                            scoreMargin = null,  // wire field is null -> must compute
+                            scoreMargin = null, // wire field is null -> must compute
                         ),
                         SourceCandidate(
                             file = "OtherScreen.kt",
@@ -897,7 +908,7 @@ class CompactHandoffRendererTest {
                             matchedTerms = emptyList(),
                             matchReasons = emptyList(),
                             confidence = SelectionConfidence.MEDIUM,
-                            scoreMargin = null,  // no runner-up, no wire margin
+                            scoreMargin = null, // no runner-up, no wire margin
                         ),
                     ),
                 ),
@@ -1667,38 +1678,37 @@ class CompactHandoffRendererTest {
 
     // ---- Task 3 (C6): stale marker rendering ----
 
-    private fun sessionWithStaleCandidate(stale: Boolean?, staleReason: String?): SessionDto =
-        SessionDto(
-            sessionId = "session-stale",
-            packageName = "io.beyondwin.fixthis.sample",
-            projectRoot = "/repo",
-            createdAtEpochMillis = 1L,
-            updatedAtEpochMillis = 1L,
-            screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
-            items = listOf(
-                AnnotationDto(
-                    itemId = "item-stale",
-                    screenId = "screen-1",
-                    createdAtEpochMillis = 1L,
-                    updatedAtEpochMillis = 1L,
-                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
-                    comment = "fix",
-                    sequenceNumber = 1,
-                    sourceCandidates = listOf(
-                        SourceCandidate(
-                            file = "HomeScreen.kt",
-                            line = 10,
-                            score = 0.9,
-                            matchedTerms = emptyList(),
-                            matchReasons = emptyList(),
-                            confidence = SelectionConfidence.HIGH,
-                            stale = stale,
-                            staleReason = staleReason,
-                        ),
+    private fun sessionWithStaleCandidate(stale: Boolean?, staleReason: String?): SessionDto = SessionDto(
+        sessionId = "session-stale",
+        packageName = "io.beyondwin.fixthis.sample",
+        projectRoot = "/repo",
+        createdAtEpochMillis = 1L,
+        updatedAtEpochMillis = 1L,
+        screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
+        items = listOf(
+            AnnotationDto(
+                itemId = "item-stale",
+                screenId = "screen-1",
+                createdAtEpochMillis = 1L,
+                updatedAtEpochMillis = 1L,
+                target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                comment = "fix",
+                sequenceNumber = 1,
+                sourceCandidates = listOf(
+                    SourceCandidate(
+                        file = "HomeScreen.kt",
+                        line = 10,
+                        score = 0.9,
+                        matchedTerms = emptyList(),
+                        matchReasons = emptyList(),
+                        confidence = SelectionConfidence.HIGH,
+                        stale = stale,
+                        staleReason = staleReason,
                     ),
                 ),
             ),
-        )
+        ),
+    )
 
     @Test
     fun `render emits stale marker on rank 1 when candidate is stale`() {
@@ -1784,7 +1794,8 @@ class CompactHandoffRendererTest {
                     displayName = "Home",
                     screenshot = SnapshotScreenshotDto(
                         desktopFullPath = "/p.png",
-                        width = 1, height = 1,
+                        width = 1,
+                        height = 1,
                     ),
                 ),
             ),
@@ -1832,7 +1843,8 @@ class CompactHandoffRendererTest {
                     screenshot = SnapshotScreenshotDto(
                         desktopFullPath = null,
                         fullPath = "/device/path/s.png",
-                        width = 1, height = 1,
+                        width = 1,
+                        height = 1,
                     ),
                 ),
             ),

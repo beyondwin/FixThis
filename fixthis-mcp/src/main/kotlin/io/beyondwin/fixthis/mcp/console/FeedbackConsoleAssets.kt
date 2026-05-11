@@ -9,15 +9,11 @@ internal object FeedbackConsoleAssets {
 
     val indexHtml: String by lazy { buildIndexHtml(consoleAssetsDir = null) }
 
-    fun html(consoleAssetsDir: File?): String =
-        if (consoleAssetsDir == null) indexHtml else buildIndexHtml(consoleAssetsDir)
+    fun html(consoleAssetsDir: File?): String = if (consoleAssetsDir == null) indexHtml else buildIndexHtml(consoleAssetsDir)
 
-    fun html(consoleAssetsDir: File?, consoleToken: String): String =
-        buildIndexHtml(consoleAssetsDir, consoleToken)
+    fun html(consoleAssetsDir: File?, consoleToken: String): String = buildIndexHtml(consoleAssetsDir, consoleToken)
 
-    fun resource(path: String): ByteArray {
-        return resource(path, consoleAssetsDir = null)
-    }
+    fun resource(path: String): ByteArray = resource(path, consoleAssetsDir = null)
 
     private fun resource(path: String, consoleAssetsDir: File?): ByteArray {
         validateResourcePath(path)
@@ -36,23 +32,21 @@ internal object FeedbackConsoleAssets {
         }.use { input -> input.readAllBytes() }
     }
 
-    private fun buildIndexHtml(consoleAssetsDir: File?, consoleToken: String = ""): String =
-        readText("index.html", consoleAssetsDir)
-            .replace(StylesPlaceholder, "<style>\n${readText("styles.css", consoleAssetsDir)}\n</style>")
-            .replace(
-                ScriptPlaceholder,
-                """
+    private fun buildIndexHtml(consoleAssetsDir: File?, consoleToken: String = ""): String = readText("index.html", consoleAssetsDir)
+        .replace(StylesPlaceholder, "<style>\n${readText("styles.css", consoleAssetsDir)}\n</style>")
+        .replace(
+            ScriptPlaceholder,
+            """
                 <script>
                 window.FixThisConsoleConfig = { consoleToken: "${consoleToken.escapeJavaScriptString()}" };
                 </script>
                 <script>
                 ${readText("app.js", consoleAssetsDir)}
                 </script>
-                """.trimIndent(),
-            )
+            """.trimIndent(),
+        )
 
-    private fun readText(path: String, consoleAssetsDir: File?): String =
-        resource(path, consoleAssetsDir).toString(Charsets.UTF_8)
+    private fun readText(path: String, consoleAssetsDir: File?): String = resource(path, consoleAssetsDir).toString(Charsets.UTF_8)
 
     private fun validateResourcePath(path: String) {
         require(path.isNotBlank()) { "console asset path must not be blank" }
@@ -61,15 +55,14 @@ internal object FeedbackConsoleAssets {
     }
 }
 
-private fun String.escapeJavaScriptString(): String =
-    buildString {
-        this@escapeJavaScriptString.forEach { character ->
-            when (character) {
-                '\\' -> append("\\\\")
-                '"' -> append("\\\"")
-                '\n' -> append("\\n")
-                '\r' -> append("\\r")
-                else -> append(character)
-            }
+private fun String.escapeJavaScriptString(): String = buildString {
+    this@escapeJavaScriptString.forEach { character ->
+        when (character) {
+            '\\' -> append("\\\\")
+            '"' -> append("\\\"")
+            '\n' -> append("\\n")
+            '\r' -> append("\\r")
+            else -> append(character)
         }
     }
+}

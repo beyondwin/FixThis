@@ -146,17 +146,16 @@ class OccurrenceCalculatorTest {
         top: Float = 0f,
         left: Float = 0f,
         isSensitive: Boolean = false,
-    ): FixThisNode =
-        FixThisNode(
-            uid = uid,
-            composeNodeId = uid.hashCode(),
-            rootIndex = 0,
-            treeKind = TreeKind.MERGED,
-            boundsInWindow = FixThisRect(left, top, left + 100f, top + 48f),
-            text = text,
-            contentDescription = contentDescription,
-            role = role,
-            testTag = testTag,
-            isSensitive = isSensitive,
-        )
+    ): FixThisNode = FixThisNode(
+        uid = uid,
+        composeNodeId = uid.hashCode(),
+        rootIndex = 0,
+        treeKind = TreeKind.MERGED,
+        boundsInWindow = FixThisRect(left, top, left + 100f, top + 48f),
+        text = text,
+        contentDescription = contentDescription,
+        role = role,
+        testTag = testTag,
+        isSensitive = isSensitive,
+    )
 }

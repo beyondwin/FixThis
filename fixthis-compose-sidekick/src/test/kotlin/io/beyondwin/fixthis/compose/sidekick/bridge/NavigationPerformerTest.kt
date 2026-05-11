@@ -106,11 +106,10 @@ class NavigationPerformerTest {
         return activity
     }
 
-    private fun recordingTouchDispatcher(touches: MutableList<RecordedTouch>): (View, MotionEvent) -> Boolean =
-        { _, event ->
-            touches += RecordedTouch(event.actionMasked, event.x, event.y)
-            true
-        }
+    private fun recordingTouchDispatcher(touches: MutableList<RecordedTouch>): (View, MotionEvent) -> Boolean = { _, event ->
+        touches += RecordedTouch(event.actionMasked, event.x, event.y)
+        true
+    }
 
     private data class RecordedTouch(
         val action: Int,

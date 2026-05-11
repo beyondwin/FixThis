@@ -1,5 +1,17 @@
 package io.beyondwin.fixthis.cli
 
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import java.io.Closeable
 import java.io.EOFException
 import java.io.File
@@ -15,24 +27,13 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
 
 // Mirrors BridgeProtocol.VERSION (fixthis-compose-sidekick), the constant in
 // ServerVersionRoutes.kt (fixthis-mcp), and MinimumSupportedProtocolVersion in
 // staleness.js. BridgeProtocolVersionSyncTest (`:fixthis-mcp:test`) fails if any
 // of the 4 sites lag — bump them all together. See docs/reference/bridge-protocol.md.
 private const val BridgeProtocolVersion = "1.2"
+
 // Mirrors BridgeSocketNameNegotiator.MaxAttempts (fixthis-compose-sidekick).
 private const val BridgeSocketNameMaxAttempts = 3
 private const val SessionPath = "files/fixthis/session.json"
@@ -69,6 +70,7 @@ class BridgeClient(
 ) {
     private val requestIds = AtomicInteger(0)
     private val resolvedAdb: AdbFacade by lazy { adb ?: Adb.forProject(projectRoot) }
+
     @Volatile
     private var selectedDeviceSerial: String? = null
 
@@ -95,8 +97,7 @@ class BridgeClient(
         method: String,
         params: JsonObject = JsonObject(emptyMap()),
         readTimeoutMillis: Long = socketTimeoutMillis.toLong(),
-    ): JsonObject =
-        requestInScope(requestScope(), packageName, method, params, readTimeoutMillis)
+    ): JsonObject = requestInScope(requestScope(), packageName, method, params, readTimeoutMillis)
 
     private suspend fun requestInScope(
         scope: BridgeRequestScope,
@@ -241,14 +242,11 @@ class BridgeClient(
         )
     }
 
-    fun resolvePackageName(packageOverride: String?): String =
-        ProjectConfig.resolvePackageName(projectRoot, packageOverride)
+    fun resolvePackageName(packageOverride: String?): String = ProjectConfig.resolvePackageName(projectRoot, packageOverride)
 
-    suspend fun performNavigation(packageName: String, request: JsonObject): JsonObject =
-        request(packageName = packageName, method = "performNavigation", params = request)
+    suspend fun performNavigation(packageName: String, request: JsonObject): JsonObject = request(packageName = packageName, method = "performNavigation", params = request)
 
-    suspend fun readSourceIndex(packageName: String): JsonObject =
-        request(packageName = packageName, method = "readSourceIndex")
+    suspend fun readSourceIndex(packageName: String): JsonObject = request(packageName = packageName, method = "readSourceIndex")
 
     fun launchApp(packageName: String) {
         val scope = requestScope()
@@ -305,17 +303,16 @@ class BridgeClient(
         }
     }
 
-    private fun readSidekickSession(adb: AdbFacade, packageName: String): SidekickSession =
-        runCatching {
-            fixThisJson.decodeFromString(
-                SidekickSession.serializer(),
-                adb.runAsCat(packageName, SessionPath),
-            )
-        }.getOrElse { error ->
-            throw BridgeConnectionException(
-                "Could not read FixThis bridge session via adb shell run-as $packageName cat $SessionPath: ${error.message}",
-            )
-        }
+    private fun readSidekickSession(adb: AdbFacade, packageName: String): SidekickSession = runCatching {
+        fixThisJson.decodeFromString(
+            SidekickSession.serializer(),
+            adb.runAsCat(packageName, SessionPath),
+        )
+    }.getOrElse { error ->
+        throw BridgeConnectionException(
+            "Could not read FixThis bridge session via adb shell run-as $packageName cat $SessionPath: ${error.message}",
+        )
+    }
 
     private fun validateProtocol(protocolVersion: String) {
         if (protocolVersion != BridgeProtocolVersion) {
@@ -488,11 +485,9 @@ private class TcpBridgeSocket(port: Int, timeoutMillis: Int) : BridgeSocket {
     }
 }
 
-private fun allocateLocalPort(): Int =
-    ServerSocket(0).use { socket -> socket.localPort }
+private fun allocateLocalPort(): Int = ServerSocket(0).use { socket -> socket.localPort }
 
-private fun String.sanitizedPathSegment(): String =
-    replace(Regex("[^A-Za-z0-9._-]"), "_")
+private fun String.sanitizedPathSegment(): String = replace(Regex("[^A-Za-z0-9._-]"), "_")
 
 @Serializable
 private data class ProjectMetadata(

@@ -23,24 +23,21 @@ internal class InFlightRegistry {
      * behaviour in `McpServer`). The replaced request is returned so callers
      * may decide how to terminate it; the previous code silently dropped it.
      */
-    suspend fun register(key: String, request: InFlightRequest): InFlightRequest? =
-        mutex.withLock { requests.put(key, request) }
+    suspend fun register(key: String, request: InFlightRequest): InFlightRequest? = mutex.withLock { requests.put(key, request) }
 
     /** Atomically remove and return the request associated with [key], if any. */
-    suspend fun remove(key: String): InFlightRequest? =
-        mutex.withLock { requests.remove(key) }
+    suspend fun remove(key: String): InFlightRequest? = mutex.withLock { requests.remove(key) }
 
     /**
      * Atomically snapshot every registered request and clear the registry in
      * a single critical section. The caller cancels/joins the returned jobs
      * outside the lock.
      */
-    suspend fun consumeAll(): List<InFlightRequest> =
-        mutex.withLock {
-            val snapshot = requests.values.toList()
-            requests.clear()
-            snapshot
-        }
+    suspend fun consumeAll(): List<InFlightRequest> = mutex.withLock {
+        val snapshot = requests.values.toList()
+        requests.clear()
+        snapshot
+    }
 
     /** Current number of registered requests. Exposed for tests. */
     suspend fun size(): Int = mutex.withLock { requests.size }

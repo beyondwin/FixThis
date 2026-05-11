@@ -1114,36 +1114,34 @@ class FeedbackSessionStoreTest {
         fun next(): String = queue.removeFirst()
     }
 
-    private fun tempDir(prefix: String): File =
-        kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
+    private fun tempDir(prefix: String): File = kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
 
-    private fun targetEvidenceForTest(): TargetEvidence =
-        TargetEvidence(
-            identityHint = IdentityHint(
-                composableNameHint = "AppPrimaryButton",
-                variantHint = "primary",
-                stableLabel = "Button Sign In",
-                source = IdentityHintSource.TEST_TAG_CONVENTION,
-                confidence = IdentityHintConfidence.HIGH,
+    private fun targetEvidenceForTest(): TargetEvidence = TargetEvidence(
+        identityHint = IdentityHint(
+            composableNameHint = "AppPrimaryButton",
+            variantHint = "primary",
+            stableLabel = "Button Sign In",
+            source = IdentityHintSource.TEST_TAG_CONVENTION,
+            confidence = IdentityHintConfidence.HIGH,
+        ),
+        occurrence = Occurrence(
+            signature = OccurrenceSignature(
+                type = OccurrenceSignatureType.IDENTITY_HINT,
+                value = "AppPrimaryButton:primary",
             ),
-            occurrence = Occurrence(
-                signature = OccurrenceSignature(
-                    type = OccurrenceSignatureType.IDENTITY_HINT,
-                    value = "AppPrimaryButton:primary",
-                ),
-                count = 2,
-                selectedOrdinal = 1,
+            count = 2,
+            selectedOrdinal = 1,
+        ),
+        sourceInterpretation = SourceInterpretation(
+            topCandidate = SourceCandidateSummary(
+                file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
+                line = 42,
+                confidence = SelectionConfidence.HIGH,
             ),
-            sourceInterpretation = SourceInterpretation(
-                topCandidate = SourceCandidateSummary(
-                    file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
-                    line = 42,
-                    confidence = SelectionConfidence.HIGH,
-                ),
-                reasonSummary = listOf("selected testTag convention composable"),
-            ),
-            evidenceQuality = EvidenceQuality.STRUCTURED,
-            screenshotKinds = listOf("full", "crop"),
-            warnings = listOf("fallback source candidate was ignored"),
-        )
+            reasonSummary = listOf("selected testTag convention composable"),
+        ),
+        evidenceQuality = EvidenceQuality.STRUCTURED,
+        screenshotKinds = listOf("full", "crop"),
+        warnings = listOf("fallback source candidate was ignored"),
+    )
 }

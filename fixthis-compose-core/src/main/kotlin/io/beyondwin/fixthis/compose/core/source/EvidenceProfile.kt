@@ -16,8 +16,12 @@ internal data class EvidenceProfile(
     val hasLegacyFallback: Boolean = "legacy fallback" in reasons
     val hasActivity: Boolean = "activity" in reasons
     val hasAnySelected: Boolean =
-        hasSelectedTestTag || hasStrictCompTag || hasSelectedUiText ||
-            hasSelectedContentDescription || hasSelectedRole || hasSelectedStringResource
+        hasSelectedTestTag ||
+            hasStrictCompTag ||
+            hasSelectedUiText ||
+            hasSelectedContentDescription ||
+            hasSelectedRole ||
+            hasSelectedStringResource
     val hasAnyNearby: Boolean = reasons.any { it.startsWith("nearby ") }
 
     val isTextOnly: Boolean = reasons == setOf("selected text")
@@ -26,13 +30,19 @@ internal data class EvidenceProfile(
     val isArbitraryLiteralOnly: Boolean =
         "arbitrary literal" in reasons &&
             reasons.all { it in BUCKET_AND_ORIGIN_REASONS } &&
-            !hasSelectedTestTag && !hasStrictCompTag && !hasSelectedStringResource &&
-            !hasAnyNearby && !hasActivity
+            !hasSelectedTestTag &&
+            !hasStrictCompTag &&
+            !hasSelectedStringResource &&
+            !hasAnyNearby &&
+            !hasActivity
     val isLegacyFallbackOnly: Boolean =
         "legacy fallback" in reasons &&
             reasons.all { it in BUCKET_AND_ORIGIN_REASONS } &&
-            !hasSelectedTestTag && !hasStrictCompTag && !hasSelectedStringResource &&
-            !hasAnyNearby && !hasActivity
+            !hasSelectedTestTag &&
+            !hasStrictCompTag &&
+            !hasSelectedStringResource &&
+            !hasAnyNearby &&
+            !hasActivity
 
     val selectedStrongCount: Int = if (hasStrictCompTag || hasSelectedTestTag) 1 else 0
     val distinctSelectedMediumKinds: Int =
@@ -49,11 +59,13 @@ internal data class EvidenceProfile(
 
     companion object {
         private val BUCKET_AND_ORIGIN_REASONS: Set<String> = setOf(
-            "selected text", "selected contentDescription", "selected role",
-            "arbitrary literal", "legacy fallback",
+            "selected text",
+            "selected contentDescription",
+            "selected role",
+            "arbitrary literal",
+            "legacy fallback",
         )
 
-        fun fromReasons(reasons: Collection<String>, rawScore: Double): EvidenceProfile =
-            EvidenceProfile(rawScore = rawScore, reasons = reasons.toSet())
+        fun fromReasons(reasons: Collection<String>, rawScore: Double): EvidenceProfile = EvidenceProfile(rawScore = rawScore, reasons = reasons.toSet())
     }
 }

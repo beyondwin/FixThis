@@ -1,8 +1,8 @@
 package io.beyondwin.fixthis.compose.sidekick.overlay
 
+import android.app.Activity
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
-import android.app.Activity
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -14,9 +14,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.Shadows
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowWindowManagerImpl
 
@@ -218,22 +218,18 @@ class FixThisConnectionStatusHostLayoutTest {
     }
 }
 
-private fun FixThisConnectionStatusHostLayout.statusText(): String =
-    statusTextView().text.toString()
+private fun FixThisConnectionStatusHostLayout.statusText(): String = statusTextView().text.toString()
 
-private fun FixThisConnectionStatusHostLayout.statusPill(): LinearLayout =
-    getChildAt(0) as LinearLayout
+private fun FixThisConnectionStatusHostLayout.statusPill(): LinearLayout = getChildAt(0) as LinearLayout
 
 private fun FixThisConnectionStatusHostLayout.statusPillBackgroundAlpha(): Int {
     val background = statusPill().background as GradientDrawable
     return Color.alpha(requireNotNull(background.color).defaultColor)
 }
 
-private fun FixThisConnectionStatusHostLayout.statusIcon(): View =
-    (getChildAt(0) as LinearLayout).getChildAt(0)
+private fun FixThisConnectionStatusHostLayout.statusIcon(): View = (getChildAt(0) as LinearLayout).getChildAt(0)
 
-private fun FixThisConnectionStatusHostLayout.statusTextView(): TextView =
-    (getChildAt(0) as LinearLayout).getChildAt(1) as TextView
+private fun FixThisConnectionStatusHostLayout.statusTextView(): TextView = (getChildAt(0) as LinearLayout).getChildAt(1) as TextView
 
 private fun FixThisConnectionStatusHostLayout.forceStatusRefreshForTest() {
     val method = javaClass.getDeclaredMethod("updateStatus")
@@ -254,8 +250,7 @@ private fun Activity.statusWindowHosts(): List<View> {
         .filter { it.isFixThisOverlayHost() }
 }
 
-private fun Activity.dp(value: Int): Int =
-    resources.displayMetrics.density.times(value).toInt()
+private fun Activity.dp(value: Int): Int = resources.displayMetrics.density.times(value).toInt()
 
 private const val TranslucentPillAlpha = 170
 private const val CompactHorizontalPaddingDp = 10

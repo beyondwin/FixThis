@@ -8,8 +8,7 @@ internal object AndroidSdkLocator {
     fun find(
         env: Map<String, String> = System.getenv(),
         userHome: File = File(System.getProperty("user.home")),
-    ): SdkLocation? =
-        candidates(env, userHome).firstOrNull { it.adb.isFile && it.adb.canExecute() }
+    ): SdkLocation? = candidates(env, userHome).firstOrNull { it.adb.isFile && it.adb.canExecute() }
 
     private fun candidates(env: Map<String, String>, userHome: File): Sequence<SdkLocation> = sequence {
         sdkLocation(env["ANDROID_HOME"], "ANDROID_HOME")?.let { yield(it) }
@@ -25,10 +24,9 @@ internal object AndroidSdkLocator {
         return SdkLocation(home = home, adb = home.resolve(adbRelativePath()), source = source)
     }
 
-    private fun adbRelativePath(): String =
-        if (System.getProperty("os.name").contains("Windows", ignoreCase = true)) {
-            "platform-tools/adb.exe"
-        } else {
-            "platform-tools/adb"
-        }
+    private fun adbRelativePath(): String = if (System.getProperty("os.name").contains("Windows", ignoreCase = true)) {
+        "platform-tools/adb.exe"
+    } else {
+        "platform-tools/adb"
+    }
 }

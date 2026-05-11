@@ -8,17 +8,14 @@ import io.beyondwin.fixthis.mcp.console.enrichSessionWithStaleness
 import kotlinx.serialization.json.JsonObject
 
 object FeedbackQueueFormatter {
-    fun toJson(session: SessionDto): String =
-        fixThisJson.encodeToString(JsonObject.serializer(), enrichSessionWithStaleness(session))
+    fun toJson(session: SessionDto): String = fixThisJson.encodeToString(JsonObject.serializer(), enrichSessionWithStaleness(session))
 
-    fun toMarkdown(session: SessionDto): String =
-        toMarkdown(session, DetailMode.PRECISE)
+    fun toMarkdown(session: SessionDto): String = toMarkdown(session, DetailMode.PRECISE)
 
-    fun toMarkdown(session: SessionDto, detailMode: DetailMode): String =
-        when (detailMode) {
-            DetailMode.COMPACT -> toCompactMarkdown(session)
-            DetailMode.PRECISE, DetailMode.FULL -> toLegacyMarkdown(session, detailMode)
-        }
+    fun toMarkdown(session: SessionDto, detailMode: DetailMode): String = when (detailMode) {
+        DetailMode.COMPACT -> toCompactMarkdown(session)
+        DetailMode.PRECISE, DetailMode.FULL -> toLegacyMarkdown(session, detailMode)
+    }
 
     private fun toLegacyMarkdown(session: SessionDto, detailMode: DetailMode): String = buildString {
         appendLine("# FixThis Feedback Handoff")
@@ -43,8 +40,7 @@ object FeedbackQueueFormatter {
         }
     }
 
-    private fun toCompactMarkdown(session: SessionDto): String =
-        CompactHandoffRenderer.render(session)
+    private fun toCompactMarkdown(session: SessionDto): String = CompactHandoffRenderer.render(session)
 
     private fun StringBuilder.appendFeedbackItem(number: Int, item: AnnotationDto, detailMode: DetailMode) {
         appendLine("## Item $number")
@@ -111,7 +107,9 @@ object FeedbackQueueFormatter {
         sourceCandidates.take(maxCandidates).forEachIndexed { index, candidate ->
             val staleSuffix = if (candidate.stale == true) {
                 " ⚠ stale: ${candidate.staleReason ?: "unspecified"}"
-            } else ""
+            } else {
+                ""
+            }
             appendLine("${index + 1}. `${candidate.fileWithLine()}` ${candidate.markdownConfidence(target)} confidence$staleSuffix")
             if (candidate.matchedTerms.isNotEmpty()) {
                 appendLine("   - matched: ${candidate.matchedTerms.joinToString(", ") { "`${it.inlineSafe()}`" }}")
@@ -122,27 +120,22 @@ object FeedbackQueueFormatter {
         }
     }
 
-    private fun DetailMode.sourceCandidateLimit(): Int =
-        when (this) {
-            DetailMode.PRECISE -> 3
-            DetailMode.FULL -> Int.MAX_VALUE
-            DetailMode.COMPACT -> error("COMPACT dispatches to CompactHandoffRenderer before sourceCandidateLimit is called")
-        }
+    private fun DetailMode.sourceCandidateLimit(): Int = when (this) {
+        DetailMode.PRECISE -> 3
+        DetailMode.FULL -> Int.MAX_VALUE
+        DetailMode.COMPACT -> error("COMPACT dispatches to CompactHandoffRenderer before sourceCandidateLimit is called")
+    }
 
-    private fun SourceCandidate.markdownConfidence(target: AnnotationTargetDto): String =
-        when (target) {
-            is AnnotationTargetDto.Area -> "low"
-            is AnnotationTargetDto.Node -> confidence.name.lowercase()
-        }
+    private fun SourceCandidate.markdownConfidence(target: AnnotationTargetDto): String = when (target) {
+        is AnnotationTargetDto.Area -> "low"
+        is AnnotationTargetDto.Node -> confidence.name.lowercase()
+    }
 
-    private fun List<FixThisNode>.nearbyUiLabel(): String =
-        flatMap { node -> node.semanticLabels() }
-            .distinct()
-            .take(6)
-            .joinToString("`, `") { it.inlineSafe() }
-            .ifBlank { "none captured" }
+    private fun List<FixThisNode>.nearbyUiLabel(): String = flatMap { node -> node.semanticLabels() }
+        .distinct()
+        .take(6)
+        .joinToString("`, `") { it.inlineSafe() }
+        .ifBlank { "none captured" }
 
-    private fun FixThisNode.semanticLabels(): List<String> =
-        text + listOfNotNull(editableText) + contentDescription + listOfNotNull(testTag, role)
-
+    private fun FixThisNode.semanticLabels(): List<String> = text + listOfNotNull(editableText) + contentDescription + listOfNotNull(testTag, role)
 }

@@ -6,11 +6,10 @@ import com.github.ajalt.clikt.parameters.options.option
 import io.beyondwin.fixthis.cli.Adb
 import io.beyondwin.fixthis.cli.AdbDevice
 import io.beyondwin.fixthis.cli.BridgeClient
-import java.io.File
 import kotlinx.coroutines.runBlocking
+import java.io.File
 
-internal fun hasConnectedAndroidDevice(devices: List<AdbDevice>): Boolean =
-    devices.any { it.state == "device" }
+internal fun hasConnectedAndroidDevice(devices: List<AdbDevice>): Boolean = devices.any { it.state == "device" }
 
 class DoctorCommand : CoreCliktCommand(name = "doctor") {
     private val packageName by option("--package", help = "Android application id to diagnose")

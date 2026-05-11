@@ -158,22 +158,19 @@ class FeedbackDraftService(
         }
     }
 
-    fun clearDraftItems(sessionId: String): SessionDto =
-        store.clearDraftItems(sessionId)
+    fun clearDraftItems(sessionId: String): SessionDto = store.clearDraftItems(sessionId)
 
     fun sendDraftToAgent(
         sessionId: String,
         prompt: String? = null,
         targetItemIds: List<String>? = null,
-    ): SessionDto =
-        store.sendDraftToAgent(
-            sessionId,
-            markdownSnapshot = prompt?.takeIf { it.isNotBlank() } ?: FeedbackQueueFormatter.toMarkdown(store.getSession(sessionId)),
-            targetItemIds = targetItemIds,
-        )
+    ): SessionDto = store.sendDraftToAgent(
+        sessionId,
+        markdownSnapshot = prompt?.takeIf { it.isNotBlank() } ?: FeedbackQueueFormatter.toMarkdown(store.getSession(sessionId)),
+        targetItemIds = targetItemIds,
+    )
 
-    fun markReadyForAgent(sessionId: String): SessionDto =
-        store.markReadyForAgent(sessionId)
+    fun markReadyForAgent(sessionId: String): SessionDto = store.markReadyForAgent(sessionId)
 
     private fun fallbackPreviewRecord(sessionId: String, previewId: String, screen: SnapshotDto): PreviewRecord {
         val session = store.getSession(sessionId)
@@ -197,8 +194,7 @@ class FeedbackDraftService(
 
     private fun SnapshotDto.withExistingScreenshotArtifactsOnly(): SnapshotDto {
         val screenshot = screenshot ?: return this
-        fun existingPath(path: String?): String? =
-            path?.takeIf { it.isNotBlank() }?.takeIf { java.io.File(it).isFile }
+        fun existingPath(path: String?): String? = path?.takeIf { it.isNotBlank() }?.takeIf { java.io.File(it).isFile }
         return copy(
             screenshot = screenshot.copy(
                 desktopFullPath = existingPath(screenshot.desktopFullPath),

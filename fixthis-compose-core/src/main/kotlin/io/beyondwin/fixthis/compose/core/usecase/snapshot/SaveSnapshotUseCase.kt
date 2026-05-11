@@ -6,6 +6,5 @@ import io.beyondwin.fixthis.compose.core.domain.snapshot.SnapshotRepository
 class SaveSnapshotUseCase(
     private val snapshots: SnapshotRepository,
 ) {
-    suspend operator fun invoke(snapshot: Snapshot): Snapshot =
-        snapshots.save(snapshot)
+    suspend operator fun invoke(snapshot: Snapshot): Snapshot = snapshots.save(snapshot)
 }

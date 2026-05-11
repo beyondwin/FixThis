@@ -42,10 +42,11 @@ gradlePlugin {
     }
 }
 
-val functionalTestSourceSet = sourceSets.create("functionalTest") {
-    compileClasspath += sourceSets["main"].output
-    runtimeClasspath += output + compileClasspath
-}
+val functionalTestSourceSet =
+    sourceSets.create("functionalTest") {
+        compileClasspath += sourceSets["main"].output
+        runtimeClasspath += output + compileClasspath
+    }
 
 configurations["functionalTestImplementation"].extendsFrom(configurations["testImplementation"])
 configurations["functionalTestRuntimeOnly"].extendsFrom(configurations["testRuntimeOnly"])
@@ -57,25 +58,27 @@ val sidekickDir = rootProject.projectDir.resolve("../fixthis-compose-sidekick")
 val consumerRulesFile = sidekickDir.resolve("consumer-rules.pro")
 val sidekickDebugManifestFile = sidekickDir.resolve("src/debug/AndroidManifest.xml")
 val sidekickMainManifestFile = sidekickDir.resolve("src/main/AndroidManifest.xml")
-val sidekickInitializerSourceFile = sidekickDir.resolve(
-    "src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/init/FixThisInitializer.kt",
-)
+val sidekickInitializerSourceFile =
+    sidekickDir.resolve(
+        "src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/init/FixThisInitializer.kt",
+    )
 
-val functionalTest = tasks.register<Test>("functionalTest") {
-    description = "Runs functional tests for the FixThis Gradle plugin."
-    group = "verification"
-    testClassesDirs = functionalTestSourceSet.output.classesDirs
-    classpath = functionalTestSourceSet.runtimeClasspath
-    useJUnit()
-    systemProperty("fixthis.consumerRules.path", consumerRulesFile.absolutePath)
-    systemProperty("fixthis.sidekick.debugManifest.path", sidekickDebugManifestFile.absolutePath)
-    systemProperty("fixthis.sidekick.mainManifest.path", sidekickMainManifestFile.absolutePath)
-    systemProperty("fixthis.sidekick.initializerSource.path", sidekickInitializerSourceFile.absolutePath)
-    inputs.file(consumerRulesFile).withPropertyName("consumerRules")
-    inputs.file(sidekickDebugManifestFile).withPropertyName("sidekickDebugManifest")
-    inputs.file(sidekickMainManifestFile).withPropertyName("sidekickMainManifest")
-    inputs.file(sidekickInitializerSourceFile).withPropertyName("sidekickInitializerSource")
-}
+val functionalTest =
+    tasks.register<Test>("functionalTest") {
+        description = "Runs functional tests for the FixThis Gradle plugin."
+        group = "verification"
+        testClassesDirs = functionalTestSourceSet.output.classesDirs
+        classpath = functionalTestSourceSet.runtimeClasspath
+        useJUnit()
+        systemProperty("fixthis.consumerRules.path", consumerRulesFile.absolutePath)
+        systemProperty("fixthis.sidekick.debugManifest.path", sidekickDebugManifestFile.absolutePath)
+        systemProperty("fixthis.sidekick.mainManifest.path", sidekickMainManifestFile.absolutePath)
+        systemProperty("fixthis.sidekick.initializerSource.path", sidekickInitializerSourceFile.absolutePath)
+        inputs.file(consumerRulesFile).withPropertyName("consumerRules")
+        inputs.file(sidekickDebugManifestFile).withPropertyName("sidekickDebugManifest")
+        inputs.file(sidekickMainManifestFile).withPropertyName("sidekickMainManifest")
+        inputs.file(sidekickInitializerSourceFile).withPropertyName("sidekickInitializerSource")
+    }
 
 tasks.named("check") {
     dependsOn(functionalTest)

@@ -41,20 +41,19 @@ class FeedbackConsoleServer(
     val url: String
         get() = "http://${host.toUrlHost()}:${runningServer().address.port}"
 
-    fun start(): String =
-        synchronized(lock) {
-            server?.let { return@synchronized url }
-            val requestExecutor = consoleHttpExecutor()
-            HttpServer.create(InetSocketAddress(InetAddress.getByName(host), port), 0)
-                .also { httpServer ->
-                    httpServer.createContext("/") { exchange -> handle(exchange) }
-                    httpServer.executor = requestExecutor
-                    httpServer.start()
-                    executor = requestExecutor
-                    server = httpServer
-                }
-            url
-        }
+    fun start(): String = synchronized(lock) {
+        server?.let { return@synchronized url }
+        val requestExecutor = consoleHttpExecutor()
+        HttpServer.create(InetSocketAddress(InetAddress.getByName(host), port), 0)
+            .also { httpServer ->
+                httpServer.createContext("/") { exchange -> handle(exchange) }
+                httpServer.executor = requestExecutor
+                httpServer.start()
+                executor = requestExecutor
+                server = httpServer
+            }
+        url
+    }
 
     fun stop() {
         synchronized(lock) {
@@ -65,10 +64,9 @@ class FeedbackConsoleServer(
         }
     }
 
-    private fun runningServer(): HttpServer =
-        synchronized(lock) {
-            server ?: throw IllegalStateException("Feedback console server is not running")
-        }
+    private fun runningServer(): HttpServer = synchronized(lock) {
+        server ?: throw IllegalStateException("Feedback console server is not running")
+    }
 
     private fun handle(exchange: HttpExchange) {
         try {
@@ -91,8 +89,7 @@ class FeedbackConsoleServer(
 
 private val ConsoleMutatingMethods = setOf("POST", "PUT", "PATCH", "DELETE")
 
-private fun HttpExchange.requiresConsoleMutationGuard(): Boolean =
-    requestURI.path.startsWith("/api/") && requestMethod.uppercase() in ConsoleMutatingMethods
+private fun HttpExchange.requiresConsoleMutationGuard(): Boolean = requestURI.path.startsWith("/api/") && requestMethod.uppercase() in ConsoleMutatingMethods
 
 private fun HttpExchange.requireConsoleMutationAllowed(token: String) {
     val origin = requestHeaders.getFirst("Origin")
@@ -105,13 +102,11 @@ private fun HttpExchange.requireConsoleMutationAllowed(token: String) {
     }
 }
 
-private fun String.isLocalConsoleOrigin(): Boolean =
-    startsWith("http://127.0.0.1:") ||
-        startsWith("http://localhost:") ||
-        startsWith("http://[::1]:")
+private fun String.isLocalConsoleOrigin(): Boolean = startsWith("http://127.0.0.1:") ||
+    startsWith("http://localhost:") ||
+    startsWith("http://[::1]:")
 
-private fun String.toUrlHost(): String =
-    if (contains(':') && !startsWith("[")) "[$this]" else this
+private fun String.toUrlHost(): String = if (contains(':') && !startsWith("[")) "[$this]" else this
 
 private fun consoleHttpExecutor(): ExecutorService {
     val requestIds = AtomicInteger(0)

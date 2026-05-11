@@ -6,18 +6,17 @@ import io.beyondwin.fixthis.mcp.session.FeedbackNavigationRequest
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionPaths
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.beyondwin.fixthis.mcp.session.SessionDto
-import java.io.File
-import java.net.URLDecoder
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
+import java.io.File
+import java.net.URLDecoder
 
 internal class PreviewRoutes(private val service: FeedbackSessionService) : ConsoleRoute {
-    override fun matches(path: String): Boolean =
-        path == "/api/capture" ||
-            path == "/api/preview" ||
-            path == "/api/preview/screenshot/full" ||
-            path == "/api/navigation" ||
-            path.isPreviewFullScreenshotPath()
+    override fun matches(path: String): Boolean = path == "/api/capture" ||
+        path == "/api/preview" ||
+        path == "/api/preview/screenshot/full" ||
+        path == "/api/navigation" ||
+        path.isPreviewFullScreenshotPath()
 
     override fun handle(exchange: HttpExchange) {
         when (exchange.requestURI.path) {
@@ -83,13 +82,12 @@ internal class PreviewRoutes(private val service: FeedbackSessionService) : Cons
             .maxWithOrNull(compareBy<File> { it.lastModified() }.thenBy { it.absolutePath })
     }
 
-    private fun latestPersistedScreenshot(session: SessionDto, allowedRoots: List<File>): File? =
-        session.screens
-            .asReversed()
-            .asSequence()
-            .mapNotNull { screen -> screen.screenshot?.desktopFullPath?.let(::File) }
-            .map { file -> file.canonicalFile }
-            .firstOrNull { file -> file.isAllowedPngArtifact(allowedRoots) }
+    private fun latestPersistedScreenshot(session: SessionDto, allowedRoots: List<File>): File? = session.screens
+        .asReversed()
+        .asSequence()
+        .mapNotNull { screen -> screen.screenshot?.desktopFullPath?.let(::File) }
+        .map { file -> file.canonicalFile }
+        .firstOrNull { file -> file.isAllowedPngArtifact(allowedRoots) }
 
     private fun HttpExchange.decodeNavigationBody(): FeedbackNavigationRequest {
         val body = requestBodyText()
@@ -107,15 +105,12 @@ internal class PreviewRoutes(private val service: FeedbackSessionService) : Cons
     }
 }
 
-internal fun File.isAllowedPngArtifact(allowedRoots: List<File>): Boolean =
-    isFile &&
-        extension.lowercase() == "png" &&
-        allowedRoots.any { root -> toPath().startsWith(root.toPath()) }
+internal fun File.isAllowedPngArtifact(allowedRoots: List<File>): Boolean = isFile &&
+    extension.lowercase() == "png" &&
+    allowedRoots.any { root -> toPath().startsWith(root.toPath()) }
 
-internal fun String.isPreviewFullScreenshotPath(): Boolean =
-    split('/').size == 6 && startsWith("/api/preview/") && endsWith("/screenshot/full")
+internal fun String.isPreviewFullScreenshotPath(): Boolean = split('/').size == 6 && startsWith("/api/preview/") && endsWith("/screenshot/full")
 
-internal fun String.previewIdFromScreenshotPath(): String =
-    URLDecoder.decode(split('/')[3], Charsets.UTF_8.name())
+internal fun String.previewIdFromScreenshotPath(): String = URLDecoder.decode(split('/')[3], Charsets.UTF_8.name())
 
 private val allowedNavigationRequestKeys = setOf("action", "x", "y", "direction", "distance", "captureAfter")

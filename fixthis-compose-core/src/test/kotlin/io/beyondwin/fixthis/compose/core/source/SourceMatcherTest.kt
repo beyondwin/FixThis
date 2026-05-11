@@ -24,7 +24,7 @@ class SourceMatcherTest {
                     testTags = listOf("submitRequestButton"),
                     roles = listOf("Button"),
                     activityNames = listOf("MainActivity"),
-                    excerpt = "Button(onClick = ...) { Text(\"Submit request\") }"
+                    excerpt = "Button(onClick = ...) { Text(\"Submit request\") }",
                 ),
                 SourceIndexEntry(
                     file = "sample/src/main/java/io/beyondwin/fixthis/sample/screens/QueueScreen.kt",
@@ -32,9 +32,9 @@ class SourceMatcherTest {
                     symbols = listOf("QueueCard"),
                     text = listOf("Submit request"),
                     activityNames = listOf("MainActivity"),
-                    excerpt = "Text(\"Submit request\")"
-                )
-            )
+                    excerpt = "Text(\"Submit request\")",
+                ),
+            ),
         )
 
         val matches = SourceMatcher(index).match(
@@ -43,10 +43,10 @@ class SourceMatcherTest {
                 text = listOf("Submit request"),
                 role = "Button",
                 testTag = "submitRequestButton",
-                actions = listOf("OnClick")
+                actions = listOf("OnClick"),
             ),
             nearbyNodes = emptyList(),
-            activityName = "io.beyondwin.fixthis.sample.MainActivity"
+            activityName = "io.beyondwin.fixthis.sample.MainActivity",
         )
 
         assertEquals("sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt", matches.first().file)
@@ -70,25 +70,25 @@ class SourceMatcherTest {
                     symbols = listOf("PaymentErrorCard"),
                     text = listOf("Retry", "Payment failed"),
                     contentDescriptions = listOf("Payment failed"),
-                    excerpt = "PaymentErrorCard { Text(\"Payment failed\"); Button { Text(\"Retry\") } }"
+                    excerpt = "PaymentErrorCard { Text(\"Payment failed\"); Button { Text(\"Retry\") } }",
                 ),
                 SourceIndexEntry(
                     file = "sample/src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt",
                     line = 25,
                     symbols = listOf("RetryButton"),
                     text = listOf("Retry"),
-                    excerpt = "Button { Text(\"Retry\") }"
-                )
-            )
+                    excerpt = "Button { Text(\"Retry\") }",
+                ),
+            ),
         )
 
         val matches = SourceMatcher(index).match(
             selectedNode = node(uid = "retry", text = listOf("Retry"), role = "Button", actions = listOf("OnClick")),
             nearbyNodes = listOf(
                 node(uid = "error-label", text = listOf("Payment failed")),
-                node(uid = "error-icon", contentDescription = listOf("Payment failed"))
+                node(uid = "error-icon", contentDescription = listOf("Payment failed")),
             ),
-            activityName = null
+            activityName = null,
         )
 
         assertEquals("sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt", matches.first().file)
@@ -106,15 +106,15 @@ class SourceMatcherTest {
                     line = number,
                     symbols = listOf("SaveButton$number"),
                     text = listOf("Save"),
-                    testTags = listOf("saveButton")
+                    testTags = listOf("saveButton"),
                 )
-            }
+            },
         )
 
         val matches = SourceMatcher(index).match(
             selectedNode = node(uid = "save", text = listOf("Save"), testTag = "saveButton"),
             nearbyNodes = emptyList(),
-            activityName = null
+            activityName = null,
         )
 
         assertEquals(5, matches.size)
@@ -129,24 +129,24 @@ class SourceMatcherTest {
                     file = "RetryScreen.kt",
                     line = 12,
                     text = listOf("Retry", "Payment failed"),
-                    excerpt = "Text(\"Payment failed\"); Button { Text(\"Retry\") }"
-                )
-            )
+                    excerpt = "Text(\"Payment failed\"); Button { Text(\"Retry\") }",
+                ),
+            ),
         )
 
         val unique = SourceMatcher(index).match(
             selectedNode = node(uid = "retry", text = listOf("Retry")),
             nearbyNodes = listOf(node(uid = "error", text = listOf("Payment failed"))),
-            activityName = null
+            activityName = null,
         ).single()
 
         val duplicated = SourceMatcher(index).match(
             selectedNode = node(uid = "retry", text = listOf("Retry", "Retry")),
             nearbyNodes = listOf(
                 node(uid = "error-1", text = listOf("Payment failed")),
-                node(uid = "error-2", text = listOf("Payment failed"))
+                node(uid = "error-2", text = listOf("Payment failed")),
             ),
-            activityName = null
+            activityName = null,
         ).single()
 
         assertEquals(unique.score, duplicated.score, 0.0)
@@ -164,20 +164,20 @@ class SourceMatcherTest {
                         file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
                         line = 12,
                         symbols = listOf("AppPrimaryButton"),
-                        excerpt = "@Composable fun AppPrimaryButton(...)"
-                    )
-                )
-            )
+                        excerpt = "@Composable fun AppPrimaryButton(...)",
+                    ),
+                ),
+            ),
         )
 
         val matches = matcher.match(
             selectedNode = node(
                 uid = "button",
                 text = listOf("Sign In"),
-                testTag = "comp:AppPrimaryButton:primary"
+                testTag = "comp:AppPrimaryButton:primary",
             ),
             nearbyNodes = emptyList(),
-            activityName = "io.beyondwin.fixthis.sample.MainActivity"
+            activityName = "io.beyondwin.fixthis.sample.MainActivity",
         )
 
         assertEquals("sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt", matches.first().file)
@@ -193,19 +193,19 @@ class SourceMatcherTest {
                         file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
                         line = 12,
                         symbols = listOf("AppPrimaryButton"),
-                        testTags = listOf("comp:AppPrimaryButton:primary")
-                    )
-                )
-            )
+                        testTags = listOf("comp:AppPrimaryButton:primary"),
+                    ),
+                ),
+            ),
         )
 
         val match = matcher.match(
             selectedNode = node(
                 uid = "button",
-                testTag = "comp:AppPrimaryButton:primary"
+                testTag = "comp:AppPrimaryButton:primary",
             ),
             nearbyNodes = emptyList(),
-            activityName = null
+            activityName = null,
         ).single()
 
         assertEquals(SelectionConfidence.HIGH, match.confidence)
@@ -232,9 +232,9 @@ class SourceMatcherTest {
                             SourceSignal(
                                 kind = SourceSignalKind.ARBITRARY_STRING_LITERAL,
                                 value = "Pay now",
-                                confidenceWeight = 0.35
-                            )
-                        )
+                                confidenceWeight = 0.35,
+                            ),
+                        ),
                     ),
                     SourceIndexEntry(
                         file = "CheckoutScreen.kt",
@@ -243,18 +243,18 @@ class SourceMatcherTest {
                             SourceSignal(
                                 kind = SourceSignalKind.UI_TEXT,
                                 value = "Pay now",
-                                confidenceWeight = 1.0
-                            )
-                        )
-                    )
-                )
-            )
+                                confidenceWeight = 1.0,
+                            ),
+                        ),
+                    ),
+                ),
+            ),
         )
 
         val matches = matcher.match(
             selectedNode = node(uid = "pay", text = listOf("Pay now")),
             nearbyNodes = emptyList(),
-            activityName = null
+            activityName = null,
         )
 
         assertEquals("CheckoutScreen.kt", matches.first().file)
@@ -271,16 +271,16 @@ class SourceMatcherTest {
                     SourceIndexEntry(
                         file = "LegacyCheckoutScreen.kt",
                         line = 21,
-                        text = listOf("Pay now")
-                    )
-                )
-            )
+                        text = listOf("Pay now"),
+                    ),
+                ),
+            ),
         )
 
         val matches = matcher.match(
             selectedNode = node(uid = "pay", text = listOf("Pay now")),
             nearbyNodes = emptyList(),
-            activityName = null
+            activityName = null,
         )
 
         assertEquals("LegacyCheckoutScreen.kt", matches.single().file)
@@ -301,18 +301,18 @@ class SourceMatcherTest {
                             SourceSignal(
                                 kind = SourceSignalKind.UI_TEXT,
                                 value = "Pay now",
-                                confidenceWeight = 1.0
-                            )
-                        )
-                    )
-                )
-            )
+                                confidenceWeight = 1.0,
+                            ),
+                        ),
+                    ),
+                ),
+            ),
         )
 
         val match = matcher.match(
             selectedNode = node(uid = "pay", text = listOf("Pay now"), role = "Button"),
             nearbyNodes = emptyList(),
-            activityName = "io.beyondwin.fixthis.sample.MainActivity"
+            activityName = "io.beyondwin.fixthis.sample.MainActivity",
         ).single()
 
         assertEquals("CheckoutScreen.kt", match.file)
@@ -629,7 +629,7 @@ class SourceMatcherTest {
         contentDescription: List<String> = emptyList(),
         role: String? = null,
         testTag: String? = null,
-        actions: List<String> = emptyList()
+        actions: List<String> = emptyList(),
     ): FixThisNode = FixThisNode(
         uid = uid,
         composeNodeId = uid.hashCode(),
@@ -640,6 +640,6 @@ class SourceMatcherTest {
         contentDescription = contentDescription,
         role = role,
         testTag = testTag,
-        actions = actions
+        actions = actions,
     )
 }

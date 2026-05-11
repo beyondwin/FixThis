@@ -7,15 +7,13 @@ import io.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.beyondwin.fixthis.compose.core.model.SourceCandidateSummary
 
 object FixThisMarkdownFormatter {
-    fun format(annotation: FixThisAnnotation): String =
-        format(annotation, DetailMode.FULL)
+    fun format(annotation: FixThisAnnotation): String = format(annotation, DetailMode.FULL)
 
-    fun format(annotation: FixThisAnnotation, detailMode: DetailMode): String =
-        when (detailMode) {
-            DetailMode.COMPACT -> formatCompact(annotation)
-            DetailMode.PRECISE -> formatPrecise(annotation)
-            DetailMode.FULL -> formatFull(annotation)
-        }
+    fun format(annotation: FixThisAnnotation, detailMode: DetailMode): String = when (detailMode) {
+        DetailMode.COMPACT -> formatCompact(annotation)
+        DetailMode.PRECISE -> formatPrecise(annotation)
+        DetailMode.FULL -> formatFull(annotation)
+    }
 
     private fun formatCompact(annotation: FixThisAnnotation): String = buildString {
         appendLine("# FixThis Feedback")
@@ -145,7 +143,7 @@ object FixThisMarkdownFormatter {
         evidence.occurrence?.let { occurrence ->
             appendLine(
                 "- Occurrence: ${occurrence.selectedOrdinal}/${occurrence.count} " +
-                    "(${occurrence.signature.type}, ${occurrence.basis.markdownInline()})"
+                    "(${occurrence.signature.type}, ${occurrence.basis.markdownInline()})",
             )
         } ?: appendLine("- Occurrence: not available")
         evidence.sourceInterpretation?.topCandidate?.let { candidate ->
@@ -270,16 +268,13 @@ object FixThisMarkdownFormatter {
         return "${role?.markdownInline() ?: "Node"} \"${label.markdownInline()}\""
     }
 
-    private fun SourceCandidate.location(): String =
-        file + (line?.let { ":$it" } ?: "")
+    private fun SourceCandidate.location(): String = file + (line?.let { ":$it" } ?: "")
 
-    private fun SourceCandidateSummary.location(): String =
-        file + (line?.let { ":$it" } ?: "")
+    private fun SourceCandidateSummary.location(): String = file + (line?.let { ":$it" } ?: "")
 
     private fun FixThisRect.format(): String = "$left,$top,$right,$bottom"
 
-    private fun List<String>.markdownListValue(): String =
-        if (isEmpty()) "none" else joinToString { it.markdownInline() }
+    private fun List<String>.markdownListValue(): String = if (isEmpty()) "none" else joinToString { it.markdownInline() }
 
     private fun String.markdownInline(): String {
         val normalized = replace("\\", "\\\\")
@@ -296,8 +291,7 @@ object FixThisMarkdownFormatter {
     }
 
     private fun String.escapeMarkdownLineStarts(): String {
-        fun String.escapePrefix(prefix: String): String =
-            if (startsWith(prefix)) "\\$this" else this
+        fun String.escapePrefix(prefix: String): String = if (startsWith(prefix)) "\\$this" else this
 
         return escapePrefix("-")
             .escapePrefix("+")
@@ -345,6 +339,6 @@ object FixThisMarkdownFormatter {
         '+',
         '!',
         '|',
-        '>'
+        '>',
     )
 }

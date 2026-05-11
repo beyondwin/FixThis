@@ -11,8 +11,8 @@ import android.view.PixelCopy
 import android.view.View
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.ScreenshotInfo
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -143,14 +143,13 @@ class ScreenshotCapturer(
         }
     }
 
-    private suspend fun tryDrawDecorView(decorView: View): Result<Bitmap> =
-        runCatchingCancellable {
-            withContext(mainDispatcher) {
-                Bitmap.createBitmap(decorView.width, decorView.height, Bitmap.Config.ARGB_8888).also { bitmap ->
-                    decorView.draw(Canvas(bitmap))
-                }
+    private suspend fun tryDrawDecorView(decorView: View): Result<Bitmap> = runCatchingCancellable {
+        withContext(mainDispatcher) {
+            Bitmap.createBitmap(decorView.width, decorView.height, Bitmap.Config.ARGB_8888).also { bitmap ->
+                decorView.draw(Canvas(bitmap))
             }
         }
+    }
 }
 
 private val DefaultPixelCopyRequester = PixelCopyRequester { activity, destination, onFinished, handler ->
@@ -167,14 +166,12 @@ private fun requestPixelCopy(
     PixelCopy.request(activity.window, destination, { result -> onFinished(result) }, handler)
 }
 
-private class PixelCopyTimedOutException(timeoutMillis: Long) :
-    RuntimeException("PixelCopy timed out after ${timeoutMillis}ms")
+private class PixelCopyTimedOutException(timeoutMillis: Long) : RuntimeException("PixelCopy timed out after ${timeoutMillis}ms")
 
-private inline fun <T> runCatchingCancellable(block: () -> T): Result<T> =
-    try {
-        Result.success(block())
-    } catch (error: CancellationException) {
-        throw error
-    } catch (error: Throwable) {
-        Result.failure(error)
-    }
+private inline fun <T> runCatchingCancellable(block: () -> T): Result<T> = try {
+    Result.success(block())
+} catch (error: CancellationException) {
+    throw error
+} catch (error: Throwable) {
+    Result.failure(error)
+}

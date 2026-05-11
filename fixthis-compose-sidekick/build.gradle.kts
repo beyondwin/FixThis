@@ -65,43 +65,53 @@ abstract class GenerateSidekickBuildInfoTask : org.gradle.api.DefaultTask() {
                 const val BUILD_EPOCH_MS: Long = ${buildEpoch.get()}L
                 const val GIT_SHA: String = "${gitSha.get()}"
             }
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 }
 
-val gitStatusProvider = providers.exec {
-    commandLine("git", "status", "--porcelain")
-    isIgnoreExitValue = true
-}.standardOutput.asText.map { it.trim() }
+val gitStatusProvider =
+    providers
+        .exec {
+            commandLine("git", "status", "--porcelain")
+            isIgnoreExitValue = true
+        }.standardOutput.asText
+        .map { it.trim() }
 
-val gitShortShaProvider = providers.exec {
-    commandLine("git", "rev-parse", "--short", "HEAD")
-    isIgnoreExitValue = true
-}.standardOutput.asText.map { it.trim().ifBlank { "unknown" } }
+val gitShortShaProvider =
+    providers
+        .exec {
+            commandLine("git", "rev-parse", "--short", "HEAD")
+            isIgnoreExitValue = true
+        }.standardOutput.asText
+        .map { it.trim().ifBlank { "unknown" } }
 
-val gitCommitEpochProvider = providers.exec {
-    commandLine("git", "log", "-1", "--format=%ct")
-    isIgnoreExitValue = true
-}.standardOutput.asText.map { it.trim() }
+val gitCommitEpochProvider =
+    providers
+        .exec {
+            commandLine("git", "log", "-1", "--format=%ct")
+            isIgnoreExitValue = true
+        }.standardOutput.asText
+        .map { it.trim() }
 
-val generateBuildInfo = tasks.register<GenerateSidekickBuildInfoTask>("generateBuildInfo") {
-    outputDir.set(layout.buildDirectory.dir("generated/source/buildinfo/main/kotlin"))
-    gitSha.set(
-        gitShortShaProvider.zip(gitStatusProvider) { sha, status ->
-            if (status.isEmpty()) sha else "$sha-dirty"
-        },
-    )
-    buildEpoch.set(
-        gitCommitEpochProvider.zip(gitStatusProvider) { commitEpochSeconds, status ->
-            if (status.isEmpty() && commitEpochSeconds.isNotBlank()) {
-                commitEpochSeconds.toLong() * 1000L
-            } else {
-                System.currentTimeMillis()
-            }
-        },
-    )
-}
+val generateBuildInfo =
+    tasks.register<GenerateSidekickBuildInfoTask>("generateBuildInfo") {
+        outputDir.set(layout.buildDirectory.dir("generated/source/buildinfo/main/kotlin"))
+        gitSha.set(
+            gitShortShaProvider.zip(gitStatusProvider) { sha, status ->
+                if (status.isEmpty()) sha else "$sha-dirty"
+            },
+        )
+        buildEpoch.set(
+            gitCommitEpochProvider.zip(gitStatusProvider) { commitEpochSeconds, status ->
+                if (status.isEmpty() && commitEpochSeconds.isNotBlank()) {
+                    commitEpochSeconds.toLong() * 1000L
+                } else {
+                    System.currentTimeMillis()
+                }
+            },
+        )
+    }
 
 androidComponents {
     onVariants { variant ->

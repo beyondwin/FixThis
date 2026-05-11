@@ -20,8 +20,7 @@ import kotlinx.serialization.json.longOrNull
  *
  * The flag is derived only — it is never persisted on disk (see spec §4.3 / §10 Q4).
  */
-internal fun enrichSessionWithStaleness(session: SessionDto): JsonObject =
-    enrichSessionJson(fixThisJson.encodeToJsonElement(SessionDto.serializer(), session).jsonObject)
+internal fun enrichSessionWithStaleness(session: SessionDto): JsonObject = enrichSessionJson(fixThisJson.encodeToJsonElement(SessionDto.serializer(), session).jsonObject)
 
 /**
  * Mutates an already-encoded [SessionDto] JSON object in place by attaching `staleAfterHandoff`

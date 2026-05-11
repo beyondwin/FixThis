@@ -145,13 +145,12 @@ class FeedbackSessionRegistryTest {
         bridge: FakeFixThisBridge,
         store: FeedbackSessionStore,
         projectRoot: String,
-    ): FeedbackSessionRegistry =
-        FeedbackSessionRegistry(
-            bridge = bridge,
-            store = store,
-            projectRoot = projectRoot,
-            defaultPackageName = "io.beyondwin.fixthis.sample",
-        )
+    ): FeedbackSessionRegistry = FeedbackSessionRegistry(
+        bridge = bridge,
+        store = store,
+        projectRoot = projectRoot,
+        defaultPackageName = "io.beyondwin.fixthis.sample",
+    )
 
     private class FakeIds(vararg values: String) {
         private val queue = ArrayDeque(values.toList())
@@ -159,6 +158,5 @@ class FeedbackSessionRegistryTest {
     }
 
     @Suppress("unused")
-    private fun tempDir(prefix: String): File =
-        kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
+    private fun tempDir(prefix: String): File = kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
 }

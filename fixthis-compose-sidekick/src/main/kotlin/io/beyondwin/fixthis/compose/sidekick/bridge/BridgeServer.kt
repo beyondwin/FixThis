@@ -11,20 +11,15 @@ import android.os.PowerManager
 import android.util.Base64
 import android.util.Log
 import io.beyondwin.fixthis.compose.core.model.FixThisError
-import io.beyondwin.fixthis.compose.sidekick.BuildInfo
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.ScreenshotInfo
 import io.beyondwin.fixthis.compose.core.source.SourceIndex
+import io.beyondwin.fixthis.compose.sidekick.BuildInfo
 import io.beyondwin.fixthis.compose.sidekick.inspect.SemanticsInspector
 import io.beyondwin.fixthis.compose.sidekick.lifecycle.FixThisActivityLifecycleCallbacks
 import io.beyondwin.fixthis.compose.sidekick.screenshot.ScreenshotCapturer
 import io.beyondwin.fixthis.compose.sidekick.screenshot.ScreenshotStore
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.IOException
-import java.lang.ref.WeakReference
-import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -39,6 +34,11 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonPrimitive
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.IOException
+import java.lang.ref.WeakReference
+import java.util.UUID
 
 class BridgeServer(
     private val session: SidekickSession,
@@ -48,8 +48,10 @@ class BridgeServer(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
+
     @Volatile
     private var serverSocket: LocalServerSocket? = null
+
     @Volatile
     private var resolvedName: String? = null
 
@@ -432,6 +434,7 @@ internal class AndroidBridgeEnvironment(
 ) : BridgeEnvironment {
     var currentActivity: WeakReference<Activity>? = null
     private var lastScreenSnapshot: BridgeScreenSnapshot? = null
+
     @Volatile
     private var cachedSourceIndexResult: BridgeSourceIndexResult? = null
     private val navigationPerformer = AndroidNavigationPerformer(
@@ -464,65 +467,63 @@ internal class AndroidBridgeEnvironment(
         context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime
     }.getOrNull()
 
-    override suspend fun inspectCurrentScreen(): BridgeScreenInspection =
+    override suspend fun inspectCurrentScreen(): BridgeScreenInspection = withContext(mainDispatcher) {
+        val activity = currentActivity?.get()
+            ?: return@withContext BridgeScreenInspection(
+                errors = listOf(FixThisError("NO_ACTIVITY", "No resumed Activity is available")),
+            )
+        val decorView = activity.window?.decorView
+            ?: return@withContext BridgeScreenInspection(
+                activity = activity::class.java.name,
+                errors = listOf(FixThisError("NO_DECOR_VIEW", "Current Activity has no decorView")),
+            )
+        val result = inspector.inspect(decorView)
+        BridgeScreenInspection(
+            activity = activity::class.java.name,
+            roots = result.roots.map { root ->
+                BridgeInspectedRoot(
+                    rootIndex = root.rootIndex,
+                    boundsInWindow = root.boundsInWindow,
+                    mergedNodes = root.mergedNodes,
+                    unmergedNodes = root.unmergedNodes,
+                )
+            },
+            errors = result.errors,
+        )
+    }
+
+    override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot = readSourceIndex().let { sourceIndexResult ->
         withContext(mainDispatcher) {
+            val sourceIndexAvailable = sourceIndexResult.sourceIndexAvailable
             val activity = currentActivity?.get()
-                ?: return@withContext BridgeScreenInspection(
+            if (activity == null) {
+                val inspection = BridgeScreenInspection(
                     errors = listOf(FixThisError("NO_ACTIVITY", "No resumed Activity is available")),
                 )
-            val decorView = activity.window?.decorView
-                ?: return@withContext BridgeScreenInspection(
-                    activity = activity::class.java.name,
-                    errors = listOf(FixThisError("NO_DECOR_VIEW", "Current Activity has no decorView")),
-                )
-            val result = inspector.inspect(decorView)
-            BridgeScreenInspection(
-                activity = activity::class.java.name,
-                roots = result.roots.map { root ->
-                    BridgeInspectedRoot(
-                        rootIndex = root.rootIndex,
-                        boundsInWindow = root.boundsInWindow,
-                        mergedNodes = root.mergedNodes,
-                        unmergedNodes = root.unmergedNodes,
-                    )
-                },
-                errors = result.errors,
-            )
-        }
-
-    override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot =
-        readSourceIndex().let { sourceIndexResult ->
-            withContext(mainDispatcher) {
-                val sourceIndexAvailable = sourceIndexResult.sourceIndexAvailable
-                val activity = currentActivity?.get()
-                if (activity == null) {
-                    val inspection = BridgeScreenInspection(
-                        errors = listOf(FixThisError("NO_ACTIVITY", "No resumed Activity is available")),
-                    )
-                    val snapshot = BridgeScreenSnapshot(
-                        inspection = inspection,
-                        sourceIndexAvailable = sourceIndexAvailable,
-                    )
-                    lastScreenSnapshot = snapshot
-                    return@withContext snapshot
-                }
-
-                val inspection = inspectCurrentScreen()
-                val screenshot = screenshotCapturer.capture(
-                    activity = activity,
-                    annotationId = "screen-${UUID.randomUUID()}",
-                    selectedBounds = null,
-                )
                 val snapshot = BridgeScreenSnapshot(
-                    activity = activity::class.java.name,
                     inspection = inspection,
-                    screenshot = screenshot,
                     sourceIndexAvailable = sourceIndexAvailable,
                 )
                 lastScreenSnapshot = snapshot
-                snapshot
+                return@withContext snapshot
             }
+
+            val inspection = inspectCurrentScreen()
+            val screenshot = screenshotCapturer.capture(
+                activity = activity,
+                annotationId = "screen-${UUID.randomUUID()}",
+                selectedBounds = null,
+            )
+            val snapshot = BridgeScreenSnapshot(
+                activity = activity::class.java.name,
+                inspection = inspection,
+                screenshot = screenshot,
+                sourceIndexAvailable = sourceIndexAvailable,
+            )
+            lastScreenSnapshot = snapshot
+            snapshot
         }
+    }
 
     override suspend fun readSourceIndex(): BridgeSourceIndexResult {
         cachedSourceIndexResult?.let { return it }
@@ -533,21 +534,18 @@ internal class AndroidBridgeEnvironment(
         return result
     }
 
-    override suspend fun getLastScreenSnapshot(): BridgeScreenSnapshot? =
-        withContext(mainDispatcher) {
-            lastScreenSnapshot
-        }
+    override suspend fun getLastScreenSnapshot(): BridgeScreenSnapshot? = withContext(mainDispatcher) {
+        lastScreenSnapshot
+    }
 
-    override suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult =
-        navigationPerformer.perform(request)
+    override suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult = navigationPerformer.perform(request)
 
     override fun screenshotCacheDirectory(): File = File(context.cacheDir, "fixthis")
 }
 
-private fun Context.hasAsset(path: String): Boolean =
-    runCatching {
-        assets.open(path).use { true }
-    }.getOrDefault(false)
+private fun Context.hasAsset(path: String): Boolean = runCatching {
+    assets.open(path).use { true }
+}.getOrDefault(false)
 
 private fun Context.readSourceIndexResult(path: String): BridgeSourceIndexResult {
     if (!hasAsset(path)) {
@@ -565,7 +563,7 @@ private fun Context.readSourceIndexResult(path: String): BridgeSourceIndexResult
                 if (total > MaxSourceIndexAssetBytes) {
                     return BridgeSourceIndexResult(
                         sourceIndexAvailable = false,
-                        sourceIndexError = "Source index asset exceeds ${MaxSourceIndexAssetBytes} bytes",
+                        sourceIndexError = "Source index asset exceeds $MaxSourceIndexAssetBytes bytes",
                     )
                 }
                 output.write(buffer, 0, read)
@@ -593,10 +591,9 @@ private fun Context.readSourceIndexResult(path: String): BridgeSourceIndexResult
 
 private const val MaxSourceIndexAssetBytes = 4 * 1024 * 1024
 
-private fun Application.isDebuggable(): Boolean =
-    runCatching {
-        applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
-    }.getOrDefault(false)
+private fun Application.isDebuggable(): Boolean = runCatching {
+    applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
+}.getOrDefault(false)
 
 private val BridgePngHeader: ByteArray = byteArrayOf(
     0x89.toByte(),
@@ -617,5 +614,4 @@ private fun File.hasPngHeader(): Boolean {
     }
 }
 
-private fun JsonObject.stringParam(name: String): String? =
-    get(name)?.jsonPrimitive?.content
+private fun JsonObject.stringParam(name: String): String? = get(name)?.jsonPrimitive?.content

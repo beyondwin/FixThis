@@ -26,5 +26,4 @@ internal fun validateMcpServerName(serverName: String): String {
     return serverName
 }
 
-private fun isValidMcpServerName(serverName: String): Boolean =
-    McpServerNamePattern.matches(serverName)
+private fun isValidMcpServerName(serverName: String): Boolean = McpServerNamePattern.matches(serverName)

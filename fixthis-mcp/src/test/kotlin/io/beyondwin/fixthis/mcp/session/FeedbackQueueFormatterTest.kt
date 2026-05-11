@@ -18,7 +18,6 @@ import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class FeedbackQueueFormatterTest {
@@ -484,7 +483,7 @@ class FeedbackQueueFormatterTest {
 
         assertTrue(
             markdown.contains(
-                "Rule: source hints are candidates; verify screenshot, target, and code before editing."
+                "Rule: source hints are candidates; verify screenshot, target, and code before editing.",
             ),
         )
     }
@@ -494,10 +493,14 @@ class FeedbackQueueFormatterTest {
         val markdown = FeedbackQueueFormatter.toMarkdown(sessionWithTargetEvidenceAndSources(), DetailMode.COMPACT)
 
         val lines = markdown.lines()
-        assertTrue(lines.any { it.startsWith("  ") && it.contains("AppPrimaryButton.kt:42") && it.contains("conf=high") },
-            "Expected a candidate line for AppPrimaryButton.kt:42 with conf=high in COMPACT markdown but got:\n$markdown")
-        assertFalse(lines.any { it.trim().startsWith("src?") },
-            "Expected no 'src?' line in v2 COMPACT markdown but got:\n$markdown")
+        assertTrue(
+            lines.any { it.startsWith("  ") && it.contains("AppPrimaryButton.kt:42") && it.contains("conf=high") },
+            "Expected a candidate line for AppPrimaryButton.kt:42 with conf=high in COMPACT markdown but got:\n$markdown",
+        )
+        assertFalse(
+            lines.any { it.trim().startsWith("src?") },
+            "Expected no 'src?' line in v2 COMPACT markdown but got:\n$markdown",
+        )
         assertFalse(markdown.contains("matched:"))
         assertFalse(markdown.contains("reasons:"))
     }
@@ -521,7 +524,7 @@ class FeedbackQueueFormatterTest {
         assertFalse(markdown.contains("src?"))
         assertFalse(
             markdown.contains(
-                "Rule: source hints are candidates; verify screenshot, target, and code before editing."
+                "Rule: source hints are candidates; verify screenshot, target, and code before editing.",
             ),
         )
     }
@@ -541,8 +544,10 @@ class FeedbackQueueFormatterTest {
         val markdown = FeedbackQueueFormatter.toMarkdown(session, DetailMode.COMPACT)
 
         val lines = markdown.lines()
-        assertTrue(lines.any { it == "  unknown" },
-            "Expected '  unknown' when item has no source candidates but got:\n$markdown")
+        assertTrue(
+            lines.any { it == "  unknown" },
+            "Expected '  unknown' when item has no source candidates but got:\n$markdown",
+        )
     }
 
     @Test

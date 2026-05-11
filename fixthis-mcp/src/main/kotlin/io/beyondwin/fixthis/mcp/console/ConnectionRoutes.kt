@@ -5,10 +5,9 @@ import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import kotlinx.coroutines.runBlocking
 
 internal class ConnectionRoutes(private val service: FeedbackSessionService) : ConsoleRoute {
-    override fun matches(path: String): Boolean =
-        path == "/api/connection" ||
-            path == "/api/app/launch" ||
-            path == "/api/heartbeat"
+    override fun matches(path: String): Boolean = path == "/api/connection" ||
+        path == "/api/app/launch" ||
+        path == "/api/heartbeat"
 
     override fun handle(exchange: HttpExchange) {
         when (exchange.requestURI.path) {

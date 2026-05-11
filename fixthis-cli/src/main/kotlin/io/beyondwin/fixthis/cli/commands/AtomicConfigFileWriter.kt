@@ -2,8 +2,8 @@ package io.beyondwin.fixthis.cli.commands
 
 import java.io.File
 import java.io.IOException
-import java.nio.charset.StandardCharsets
 import java.nio.channels.FileChannel
+import java.nio.charset.StandardCharsets
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.CopyOption
 import java.nio.file.Files

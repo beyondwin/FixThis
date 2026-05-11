@@ -1,7 +1,6 @@
 package io.beyondwin.fixthis.gradle
 
 import io.beyondwin.fixthis.gradle.task.GenerateFixThisSourceIndexTask
-import java.io.File
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
@@ -13,6 +12,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.File
 
 class GenerateFixThisSourceIndexTaskTest {
     @get:Rule
@@ -73,12 +73,14 @@ class GenerateFixThisSourceIndexTaskTest {
         assertTrue(stringResources.contains("checkout_total"))
         assertTrue(testTags.contains("pay_button"))
         assertTrue(symbols.contains("CheckoutScreen"))
-        assertTrue(entries.any { entry ->
-            val json = entry.jsonObject
-            json.getValue("file").jsonPrimitive.content.endsWith("SampleApp.kt") &&
-                json.getValue("line").jsonPrimitive.content.toInt() == 12 &&
-                json.getValue("excerpt").jsonPrimitive.content.contains("Text(\"Pay now\"")
-        })
+        assertTrue(
+            entries.any { entry ->
+                val json = entry.jsonObject
+                json.getValue("file").jsonPrimitive.content.endsWith("SampleApp.kt") &&
+                    json.getValue("line").jsonPrimitive.content.toInt() == 12 &&
+                    json.getValue("excerpt").jsonPrimitive.content.contains("Text(\"Pay now\"")
+            },
+        )
     }
 
     @Test
@@ -218,22 +220,26 @@ class GenerateFixThisSourceIndexTaskTest {
         assertTrue(signals.contains("TEST_TAG" to "plain_tag"))
         assertTrue(signals.contains("CONTENT_DESCRIPTION" to "Payment options"))
         assertTrue(signals.contains("ARBITRARY_STRING_LITERAL" to "checkout_debug"))
-        assertTrue(entries.any { entry ->
-            val json = entry.jsonObject
-            json.getValue("signals").jsonArray.any { signal ->
-                signal.jsonObject.getValue("value").jsonPrimitive.content == "Pay now"
-            } &&
-                json.getValue("packageName").jsonPrimitive.content == "io.beyondwin.fixthis.sample" &&
-                json.getValue("className").jsonPrimitive.content == "CheckoutFeature"
-        })
-        assertTrue(entries.any { entry ->
-            val json = entry.jsonObject
-            json.getValue("signals").jsonArray.any { signal ->
-                signal.jsonObject.getValue("value").jsonPrimitive.content == "Total due"
-            } &&
-                json.getValue("packageName").jsonPrimitive.contentOrNull == null &&
-                json.getValue("className").jsonPrimitive.contentOrNull == null
-        })
+        assertTrue(
+            entries.any { entry ->
+                val json = entry.jsonObject
+                json.getValue("signals").jsonArray.any { signal ->
+                    signal.jsonObject.getValue("value").jsonPrimitive.content == "Pay now"
+                } &&
+                    json.getValue("packageName").jsonPrimitive.content == "io.beyondwin.fixthis.sample" &&
+                    json.getValue("className").jsonPrimitive.content == "CheckoutFeature"
+            },
+        )
+        assertTrue(
+            entries.any { entry ->
+                val json = entry.jsonObject
+                json.getValue("signals").jsonArray.any { signal ->
+                    signal.jsonObject.getValue("value").jsonPrimitive.content == "Total due"
+                } &&
+                    json.getValue("packageName").jsonPrimitive.contentOrNull == null &&
+                    json.getValue("className").jsonPrimitive.contentOrNull == null
+            },
+        )
     }
 
     @Test

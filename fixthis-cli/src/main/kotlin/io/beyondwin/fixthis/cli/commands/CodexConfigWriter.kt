@@ -6,8 +6,7 @@ internal class CodexConfigWriter : AgentConfigWriter {
     override val name: String = "codex"
     override val scope: String = "global"
 
-    override fun configFile(projectRoot: File, userHome: File): File =
-        userHome.resolve(".codex/config.toml")
+    override fun configFile(projectRoot: File, userHome: File): File = userHome.resolve(".codex/config.toml")
 
     override fun merge(current: String?, entry: McpConfigEntry): String {
         val rendered = render(entry)
@@ -73,16 +72,14 @@ internal class CodexConfigWriter : AgentConfigWriter {
         return updated
     }
 
-    private fun tableName(line: String): String? =
-        Regex("""\s*\[([^\]]+)]\s*(?:#.*)?""")
-            .matchEntire(line)
-            ?.groupValues
-            ?.get(1)
-            ?.let(::normalizeDottedKey)
+    private fun tableName(line: String): String? = Regex("""\s*\[([^\]]+)]\s*(?:#.*)?""")
+        .matchEntire(line)
+        ?.groupValues
+        ?.get(1)
+        ?.let(::normalizeDottedKey)
 
-    private fun normalizeDottedKey(key: String): String =
-        key.split(".")
-            .joinToString(".") { segment -> normalizeDottedKeySegment(segment) }
+    private fun normalizeDottedKey(key: String): String = key.split(".")
+        .joinToString(".") { segment -> normalizeDottedKeySegment(segment) }
 
     private fun normalizeDottedKeySegment(segment: String): String {
         val trimmed = segment.trim()
@@ -95,20 +92,18 @@ internal class CodexConfigWriter : AgentConfigWriter {
             .replace("\\\\", "\\")
     }
 
-    private fun render(entry: McpConfigEntry): String =
-        buildString {
-            appendLine("[mcp_servers.${entry.serverName}]")
-            appendLine("command = ${entry.command.tomlString()}")
-            appendLine("args = [${entry.args.joinToString(", ") { it.tomlString() }}]")
-            if (entry.env.isNotEmpty()) {
-                appendLine()
-                appendLine("[mcp_servers.${entry.serverName}.env]")
-                entry.env.toSortedMap().forEach { (key, value) ->
-                    appendLine("$key = ${value.tomlString()}")
-                }
+    private fun render(entry: McpConfigEntry): String = buildString {
+        appendLine("[mcp_servers.${entry.serverName}]")
+        appendLine("command = ${entry.command.tomlString()}")
+        appendLine("args = [${entry.args.joinToString(", ") { it.tomlString() }}]")
+        if (entry.env.isNotEmpty()) {
+            appendLine()
+            appendLine("[mcp_servers.${entry.serverName}.env]")
+            entry.env.toSortedMap().forEach { (key, value) ->
+                appendLine("$key = ${value.tomlString()}")
             }
-        }.trimEnd() + "\n"
+        }
+    }.trimEnd() + "\n"
 
-    private fun String.tomlString(): String =
-        "\"" + replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+    private fun String.tomlString(): String = "\"" + replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 }

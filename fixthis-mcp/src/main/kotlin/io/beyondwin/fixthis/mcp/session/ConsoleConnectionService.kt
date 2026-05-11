@@ -186,29 +186,25 @@ internal class ConsoleConnectionService(
         }
     }
 
-    private suspend fun readAvailabilitySignals(packageName: String): ConsoleAvailabilitySignals? =
-        try {
-            val payload = bridge.status(packageName)
-            ConsoleAvailabilitySignals(
-                screenInteractive = payload.bool("screenInteractive"),
-                keyguardLocked = payload.bool("keyguardLocked"),
-                appForeground = payload.bool("appForeground"),
-                pictureInPicture = payload.bool("pictureInPicture"),
-                rootsCount = payload.int("rootsCount"),
-                activity = payload.string("activity"),
-            )
-        } catch (error: CancellationException) {
-            throw error
-        } catch (_: Throwable) {
-            null
-        }
+    private suspend fun readAvailabilitySignals(packageName: String): ConsoleAvailabilitySignals? = try {
+        val payload = bridge.status(packageName)
+        ConsoleAvailabilitySignals(
+            screenInteractive = payload.bool("screenInteractive"),
+            keyguardLocked = payload.bool("keyguardLocked"),
+            appForeground = payload.bool("appForeground"),
+            pictureInPicture = payload.bool("pictureInPicture"),
+            rootsCount = payload.int("rootsCount"),
+            activity = payload.string("activity"),
+        )
+    } catch (error: CancellationException) {
+        throw error
+    } catch (_: Throwable) {
+        null
+    }
 
-    private fun JsonObject.bool(key: String): Boolean? =
-        (this[key] as? JsonPrimitive)?.booleanOrNull
+    private fun JsonObject.bool(key: String): Boolean? = (this[key] as? JsonPrimitive)?.booleanOrNull
 
-    private fun JsonObject.int(key: String): Int? =
-        (this[key] as? JsonPrimitive)?.intOrNull
+    private fun JsonObject.int(key: String): Int? = (this[key] as? JsonPrimitive)?.intOrNull
 
-    private fun JsonObject.string(key: String): String? =
-        (this[key] as? JsonPrimitive)?.contentOrNull
+    private fun JsonObject.string(key: String): String? = (this[key] as? JsonPrimitive)?.contentOrNull
 }

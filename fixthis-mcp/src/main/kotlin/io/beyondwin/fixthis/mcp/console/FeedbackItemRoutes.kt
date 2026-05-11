@@ -7,12 +7,11 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
 
 internal class FeedbackItemRoutes(private val service: FeedbackSessionService) : ConsoleRoute {
-    override fun matches(path: String): Boolean =
-        path == "/api/items" ||
-            path == "/api/items/batch" ||
-            path == "/api/items/draft" ||
-            path.startsWith("/api/items/") ||
-            path == "/api/agent-handoffs"
+    override fun matches(path: String): Boolean = path == "/api/items" ||
+        path == "/api/items/batch" ||
+        path == "/api/items/draft" ||
+        path.startsWith("/api/items/") ||
+        path == "/api/agent-handoffs"
 
     override fun handle(exchange: HttpExchange) {
         when (exchange.requestURI.path) {
@@ -111,14 +110,11 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
         }
     }
 
-    private fun HttpExchange.decodeSavePreviewFeedbackItemsBody(): SaveSnapshotRequest =
-        decodeJsonBody(SaveSnapshotRequest.serializer())
+    private fun HttpExchange.decodeSavePreviewFeedbackItemsBody(): SaveSnapshotRequest = decodeJsonBody(SaveSnapshotRequest.serializer())
 
-    private fun HttpExchange.decodeUpdateFeedbackItemBody(): UpdateAnnotationRequest =
-        decodeJsonBody(UpdateAnnotationRequest.serializer())
+    private fun HttpExchange.decodeUpdateFeedbackItemBody(): UpdateAnnotationRequest = decodeJsonBody(UpdateAnnotationRequest.serializer())
 
-    private fun HttpExchange.decodeAgentHandoffBody(): AgentHandoffRequest =
-        decodeJsonBody(AgentHandoffRequest.serializer(), blankValue = AgentHandoffRequest())
+    private fun HttpExchange.decodeAgentHandoffBody(): AgentHandoffRequest = decodeJsonBody(AgentHandoffRequest.serializer(), blankValue = AgentHandoffRequest())
 }
 
 private val allowedAddFeedbackItemRequestKeys = setOf("screenId", "comment", "targetType", "bounds", "nodeUid")

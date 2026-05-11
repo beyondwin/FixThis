@@ -87,32 +87,31 @@ class SemanticsInspector(
         treeKind: TreeKind,
         mergingEnabled: Boolean,
         errors: MutableList<FixThisError>,
-    ): List<FixThisNode> =
-        try {
-            root.rootForTest.semanticsOwner
-                .getAllSemanticsNodes(
-                    mergingEnabled = mergingEnabled,
-                    skipDeactivatedNodes = true,
-                )
-                .map { node ->
-                    SemanticsNodeMapper(
-                        redactEditableText = options.redactEditableText,
-                    ).map(
-                        root = root,
-                        treeKind = treeKind,
-                        node = node,
-                    ).let { mapped ->
-                        if (options.includeRawProperties) mapped else mapped.copy(rawProperties = emptyMap())
-                    }
-                }
-        } catch (throwable: Throwable) {
-            errors += throwable.toFixThisError(
-                code = "SEMANTICS_${treeKind.name}_INSPECTION_FAILED",
-                fallbackMessage = "Failed to inspect ${treeKind.name.lowercase()} semantics tree",
-                details = mapOf("rootIndex" to root.index.toString()),
+    ): List<FixThisNode> = try {
+        root.rootForTest.semanticsOwner
+            .getAllSemanticsNodes(
+                mergingEnabled = mergingEnabled,
+                skipDeactivatedNodes = true,
             )
-            emptyList()
-        }
+            .map { node ->
+                SemanticsNodeMapper(
+                    redactEditableText = options.redactEditableText,
+                ).map(
+                    root = root,
+                    treeKind = treeKind,
+                    node = node,
+                ).let { mapped ->
+                    if (options.includeRawProperties) mapped else mapped.copy(rawProperties = emptyMap())
+                }
+            }
+    } catch (throwable: Throwable) {
+        errors += throwable.toFixThisError(
+            code = "SEMANTICS_${treeKind.name}_INSPECTION_FAILED",
+            fallbackMessage = "Failed to inspect ${treeKind.name.lowercase()} semantics tree",
+            details = mapOf("rootIndex" to root.index.toString()),
+        )
+        emptyList()
+    }
 
     private data class RootInspection(
         val root: InspectedComposeRoot,
@@ -124,12 +123,10 @@ private fun Throwable.toFixThisError(
     code: String,
     fallbackMessage: String,
     details: Map<String, String> = emptyMap(),
-): FixThisError =
-    FixThisError(
-        code = code,
-        message = message?.takeUnless { it.isBlank() } ?: fallbackMessage,
-        details = details + mapOf("exception" to this::class.java.name),
-    )
+): FixThisError = FixThisError(
+    code = code,
+    message = message?.takeUnless { it.isBlank() } ?: fallbackMessage,
+    details = details + mapOf("exception" to this::class.java.name),
+)
 
-private fun Rect.toFixThisRect(): FixThisRect =
-    FixThisRect(left = left.toFloat(), top = top.toFloat(), right = right.toFloat(), bottom = bottom.toFloat())
+private fun Rect.toFixThisRect(): FixThisRect = FixThisRect(left = left.toFloat(), top = top.toFloat(), right = right.toFloat(), bottom = bottom.toFloat())

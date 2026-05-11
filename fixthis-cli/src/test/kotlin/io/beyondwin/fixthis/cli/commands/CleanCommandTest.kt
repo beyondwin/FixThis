@@ -1,9 +1,5 @@
 package io.beyondwin.fixthis.cli.commands
 
-import java.io.File
-import java.io.IOException
-import java.nio.file.Files
-import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -11,6 +7,10 @@ import org.junit.Assume.assumeNoException
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.File
+import java.io.IOException
+import java.nio.file.Files
+import java.util.concurrent.TimeUnit
 
 class CleanCommandTest {
     @get:Rule
@@ -110,13 +110,12 @@ class CleanCommandTest {
         assertTrue("artifact symlink should remain untouched", Files.isSymbolicLink(symlink.toPath()))
     }
 
-    private fun knownArtifactDirectories(root: File): List<File> =
-        listOf(
-            root.resolve(".fixthis/feedback-sessions"),
-            root.resolve(".fixthis/preview-cache"),
-            root.resolve(".fixthis/artifacts"),
-            root.resolve(".fixthis/smoke-reports"),
-        )
+    private fun knownArtifactDirectories(root: File): List<File> = listOf(
+        root.resolve(".fixthis/feedback-sessions"),
+        root.resolve(".fixthis/preview-cache"),
+        root.resolve(".fixthis/artifacts"),
+        root.resolve(".fixthis/smoke-reports"),
+    )
 
     private fun createSymbolicLinkOrSkip(link: File, target: File) {
         try {

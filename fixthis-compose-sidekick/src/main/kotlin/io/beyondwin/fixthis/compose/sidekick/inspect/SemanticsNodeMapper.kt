@@ -44,8 +44,7 @@ class SemanticsNodeMapper(
         )
     }
 
-    private fun uidFor(rootIndex: Int, treeKind: TreeKind, node: SemanticsNode): String =
-        "compose:$rootIndex:${treeKind.name.lowercase()}:${node.id}"
+    private fun uidFor(rootIndex: Int, treeKind: TreeKind, node: SemanticsNode): String = "compose:$rootIndex:${treeKind.name.lowercase()}:${node.id}"
 
     private fun SemanticsNode.boundsInWindow(root: ComposeRootInfo): FixThisRect {
         val bounds = boundsInRoot
@@ -57,30 +56,26 @@ class SemanticsNodeMapper(
         )
     }
 
-    private fun SemanticsNode.path(): List<String> =
-        runCatching {
-            generateSequence(this) { it.parent }
-                .toList()
-                .asReversed()
-                .map { ancestor ->
-                    if (ancestor.isRoot) {
-                        "root"
-                    } else {
-                        "node:${ancestor.id}"
-                    }
+    private fun SemanticsNode.path(): List<String> = runCatching {
+        generateSequence(this) { it.parent }
+            .toList()
+            .asReversed()
+            .map { ancestor ->
+                if (ancestor.isRoot) {
+                    "root"
+                } else {
+                    "node:${ancestor.id}"
                 }
-        }.getOrElse {
-            listOf("node:$id")
-        }
+            }
+    }.getOrElse {
+        listOf("node:$id")
+    }
 
-    private fun SemanticsConfiguration.actionNames(): List<String> =
-        actionKeys.mapNotNull { (name, key) -> name.takeIf { has(key) } }
+    private fun SemanticsConfiguration.actionNames(): List<String> = actionKeys.mapNotNull { (name, key) -> name.takeIf { has(key) } }
 
-    private fun <T> SemanticsConfiguration.safeGet(key: SemanticsPropertyKey<T>): T? =
-        runCatching { getOrNull(key) }.getOrNull()
+    private fun <T> SemanticsConfiguration.safeGet(key: SemanticsPropertyKey<T>): T? = runCatching { getOrNull(key) }.getOrNull()
 
-    private fun SemanticsConfiguration.has(key: SemanticsPropertyKey<*>): Boolean =
-        any { it.key == key }
+    private fun SemanticsConfiguration.has(key: SemanticsPropertyKey<*>): Boolean = any { it.key == key }
 
     private companion object {
         val actionKeys = listOf(
@@ -177,34 +172,29 @@ private fun SemanticsConfiguration.rawProperties(
     redactEditableText: Boolean,
     redactTextLikeProperties: Boolean,
     isPassword: Boolean,
-): Map<String, String> =
-    associate { entry ->
-        val keyName = entry.key.name
-        keyName to entry.value.safeRawValue(keyName, redactEditableText, redactTextLikeProperties, isPassword)
-    }
+): Map<String, String> = associate { entry ->
+    val keyName = entry.key.name
+    keyName to entry.value.safeRawValue(keyName, redactEditableText, redactTextLikeProperties, isPassword)
+}
 
 private fun Any?.safeRawValue(
     keyName: String,
     redactEditableText: Boolean,
     redactTextLikeProperties: Boolean,
     isPassword: Boolean,
-): String =
-    when {
-        isPassword && keyName.isRedactableTextProperty() -> REDACTED_PASSWORD_TEXT
-        redactEditableText && keyName == SemanticsProperties.EditableText.name -> "<redacted-editable-text>"
-        redactEditableText && keyName == SemanticsProperties.InputText.name -> "<redacted-editable-text>"
-        redactTextLikeProperties && keyName.isRedactableTextProperty() -> REDACTED_TEXT
-        else -> toString()
-    }
+): String = when {
+    isPassword && keyName.isRedactableTextProperty() -> REDACTED_PASSWORD_TEXT
+    redactEditableText && keyName == SemanticsProperties.EditableText.name -> "<redacted-editable-text>"
+    redactEditableText && keyName == SemanticsProperties.InputText.name -> "<redacted-editable-text>"
+    redactTextLikeProperties && keyName.isRedactableTextProperty() -> REDACTED_TEXT
+    else -> toString()
+}
 
-private fun String.isRedactableTextProperty(): Boolean =
-    contains("Text", ignoreCase = true) ||
-        contains("Input", ignoreCase = true) ||
-        this == SemanticsProperties.ContentDescription.name ||
-        this == SemanticsProperties.StateDescription.name
+private fun String.isRedactableTextProperty(): Boolean = contains("Text", ignoreCase = true) ||
+    contains("Input", ignoreCase = true) ||
+    this == SemanticsProperties.ContentDescription.name ||
+    this == SemanticsProperties.StateDescription.name
 
-private fun <T> SemanticsConfiguration.safeGet(key: SemanticsPropertyKey<T>): T? =
-    runCatching { getOrNull(key) }.getOrNull()
+private fun <T> SemanticsConfiguration.safeGet(key: SemanticsPropertyKey<T>): T? = runCatching { getOrNull(key) }.getOrNull()
 
-private fun SemanticsConfiguration.has(key: SemanticsPropertyKey<*>): Boolean =
-    any { it.key == key }
+private fun SemanticsConfiguration.has(key: SemanticsPropertyKey<*>): Boolean = any { it.key == key }

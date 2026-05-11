@@ -22,13 +22,12 @@ class AnnotationRepository(
         screenId: String,
         bounds: FixThisRect,
         comment: String,
-    ): AnnotationDto =
-        draftService.addAreaFeedback(
-            sessionId = sessionId,
-            screenId = screenId,
-            bounds = bounds,
-            comment = comment,
-        )
+    ): AnnotationDto = draftService.addAreaFeedback(
+        sessionId = sessionId,
+        screenId = screenId,
+        bounds = bounds,
+        comment = comment,
+    )
 
     suspend fun addFeedbackItem(
         sessionId: String,
@@ -37,35 +36,31 @@ class AnnotationRepository(
         bounds: FixThisRect,
         nodeUid: String?,
         comment: String,
-    ): AnnotationDto =
-        draftService.addFeedbackItem(
-            sessionId = sessionId,
-            screenId = screenId,
-            targetType = targetType,
-            bounds = bounds,
-            nodeUid = nodeUid,
-            comment = comment,
-        )
+    ): AnnotationDto = draftService.addFeedbackItem(
+        sessionId = sessionId,
+        screenId = screenId,
+        targetType = targetType,
+        bounds = bounds,
+        nodeUid = nodeUid,
+        comment = comment,
+    )
 
     fun savePreviewFeedbackItems(
         sessionId: String,
         previewId: String,
         items: List<AnnotationDraftDto>,
         fallbackScreen: SnapshotDto? = null,
-    ): SessionDto =
-        draftService.savePreviewFeedbackItems(
-            sessionId = sessionId,
-            previewId = previewId,
-            items = items,
-            fallbackScreen = fallbackScreen,
-            allowBlankComments = true,
-        )
+    ): SessionDto = draftService.savePreviewFeedbackItems(
+        sessionId = sessionId,
+        previewId = previewId,
+        items = items,
+        fallbackScreen = fallbackScreen,
+        allowBlankComments = true,
+    )
 
-    fun clearDraftItems(sessionId: String): SessionDto =
-        draftService.clearDraftItems(sessionId)
+    fun clearDraftItems(sessionId: String): SessionDto = draftService.clearDraftItems(sessionId)
 
-    fun deleteScreen(sessionId: String, screenId: String): SessionDto =
-        store.deleteScreen(sessionId, screenId)
+    fun deleteScreen(sessionId: String, screenId: String): SessionDto = store.deleteScreen(sessionId, screenId)
 
     fun resolveFeedback(
         sessionId: String,
@@ -74,8 +69,7 @@ class AnnotationRepository(
         summary: String?,
     ): AnnotationDto = store.updateItemStatus(sessionId, itemId, status, summary)
 
-    fun claimFeedback(sessionId: String, itemId: String, agentNote: String?): AnnotationDto =
-        store.claimFeedback(sessionId, itemId, agentNote)
+    fun claimFeedback(sessionId: String, itemId: String, agentNote: String?): AnnotationDto = store.claimFeedback(sessionId, itemId, agentNote)
 
     fun updateDraftFeedback(
         sessionId: String,
@@ -84,19 +78,16 @@ class AnnotationRepository(
         severity: AnnotationSeverityDto?,
         comment: String?,
         status: AnnotationStatusDto?,
-    ): SessionDto =
-        store.updateDraftItem(
-            sessionId = sessionId,
-            itemId = itemId,
-            label = label,
-            severity = severity,
-            comment = comment,
-            status = status,
-        )
+    ): SessionDto = store.updateDraftItem(
+        sessionId = sessionId,
+        itemId = itemId,
+        label = label,
+        severity = severity,
+        comment = comment,
+        status = status,
+    )
 
-    fun deleteDraftFeedback(sessionId: String, itemId: String): SessionDto =
-        store.deleteDraftItem(sessionId, itemId)
+    fun deleteDraftFeedback(sessionId: String, itemId: String): SessionDto = store.deleteDraftItem(sessionId, itemId)
 
-    fun markItemsHandedOff(sessionId: String, itemIds: List<String>): SessionDto =
-        store.markItemsHandedOff(sessionId, itemIds)
+    fun markItemsHandedOff(sessionId: String, itemIds: List<String>): SessionDto = store.markItemsHandedOff(sessionId, itemIds)
 }

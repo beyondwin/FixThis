@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 class FixThisActivityLifecycleCallbacks : Application.ActivityLifecycleCallbacks {
     private val resumedCounter = AtomicInteger(0)
+
     @Volatile private var lastResumed: WeakReference<Activity>? = null
 
     fun isAppForeground(): Boolean = resumedCounter.get() > 0

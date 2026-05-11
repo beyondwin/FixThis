@@ -1,7 +1,6 @@
 package io.beyondwin.fixthis.cli.commands
 
 import io.beyondwin.fixthis.cli.fixThisJson
-import java.io.File
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -9,13 +8,13 @@ import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
+import java.io.File
 
 internal class ClaudeConfigWriter : AgentConfigWriter {
     override val name: String = "claude"
     override val scope: String = "project-local"
 
-    override fun configFile(projectRoot: File, userHome: File): File =
-        projectRoot.resolve(".claude/settings.json")
+    override fun configFile(projectRoot: File, userHome: File): File = projectRoot.resolve(".claude/settings.json")
 
     override fun merge(current: String?, entry: McpConfigEntry): String {
         val root = current
@@ -36,17 +35,16 @@ internal class ClaudeConfigWriter : AgentConfigWriter {
         return fixThisJson.encodeToString(JsonObject.serializer(), mergedRoot) + "\n"
     }
 
-    private fun McpConfigEntry.toClaudeJson(): JsonElement =
-        buildJsonObject {
-            put("command", JsonPrimitive(command))
-            put("args", buildJsonArray { args.forEach { add(JsonPrimitive(it)) } })
-            if (env.isNotEmpty()) {
-                put(
-                    "env",
-                    buildJsonObject {
-                        env.toSortedMap().forEach { (key, value) -> put(key, JsonPrimitive(value)) }
-                    },
-                )
-            }
+    private fun McpConfigEntry.toClaudeJson(): JsonElement = buildJsonObject {
+        put("command", JsonPrimitive(command))
+        put("args", buildJsonArray { args.forEach { add(JsonPrimitive(it)) } })
+        if (env.isNotEmpty()) {
+            put(
+                "env",
+                buildJsonObject {
+                    env.toSortedMap().forEach { (key, value) -> put(key, JsonPrimitive(value)) }
+                },
+            )
         }
+    }
 }

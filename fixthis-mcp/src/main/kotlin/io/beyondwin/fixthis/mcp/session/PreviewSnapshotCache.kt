@@ -20,26 +20,23 @@ class PreviewSnapshotCache(
         require(maxEntries > 0) { "Preview cache size must be positive" }
     }
 
-    fun put(record: PreviewRecord): List<PreviewRecord> =
-        synchronized(lock) {
-            entries[PreviewCacheKey(record.sessionId, record.snapshot.previewId)] = record
-            buildList {
-                while (entries.size > maxEntries) {
-                    val eldestKey = entries.keys.first()
-                    entries.remove(eldestKey)?.let(::add)
-                }
+    fun put(record: PreviewRecord): List<PreviewRecord> = synchronized(lock) {
+        entries[PreviewCacheKey(record.sessionId, record.snapshot.previewId)] = record
+        buildList {
+            while (entries.size > maxEntries) {
+                val eldestKey = entries.keys.first()
+                entries.remove(eldestKey)?.let(::add)
             }
         }
+    }
 
-    fun get(sessionId: String, previewId: String): PreviewRecord? =
-        synchronized(lock) {
-            entries[PreviewCacheKey(sessionId, previewId)]
-        }
+    fun get(sessionId: String, previewId: String): PreviewRecord? = synchronized(lock) {
+        entries[PreviewCacheKey(sessionId, previewId)]
+    }
 
-    fun remove(sessionId: String, previewId: String): PreviewRecord? =
-        synchronized(lock) {
-            entries.remove(PreviewCacheKey(sessionId, previewId))
-        }
+    fun remove(sessionId: String, previewId: String): PreviewRecord? = synchronized(lock) {
+        entries.remove(PreviewCacheKey(sessionId, previewId))
+    }
 }
 
 private data class PreviewCacheKey(

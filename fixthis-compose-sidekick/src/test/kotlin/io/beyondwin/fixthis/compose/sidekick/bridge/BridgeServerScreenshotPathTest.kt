@@ -1,9 +1,6 @@
 package io.beyondwin.fixthis.compose.sidekick.bridge
 
 import io.beyondwin.fixthis.compose.core.model.ScreenshotInfo
-import java.io.File
-import java.nio.file.Files
-import kotlin.io.path.createTempDirectory
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -11,6 +8,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
+import java.nio.file.Files
+import kotlin.io.path.createTempDirectory
 
 /**
  * Higher-level tests covering the screenshot path validation contract in
@@ -100,27 +100,23 @@ class BridgeServerScreenshotPathTest {
         private val screenshotCacheDirectory: File,
         private val screenSnapshot: BridgeScreenSnapshot,
     ) : BridgeEnvironment {
-        override suspend fun status(): BridgeStatus =
-            BridgeStatus(
-                activity = "MainActivity",
-                rootsCount = 0,
-                sidekickVersion = "0.1.0-test",
-                bridgeProtocolVersion = BridgeProtocol.VERSION,
-                sourceIndexAvailable = false,
-            )
+        override suspend fun status(): BridgeStatus = BridgeStatus(
+            activity = "MainActivity",
+            rootsCount = 0,
+            sidekickVersion = "0.1.0-test",
+            bridgeProtocolVersion = BridgeProtocol.VERSION,
+            sourceIndexAvailable = false,
+        )
 
-        override suspend fun inspectCurrentScreen(): BridgeScreenInspection =
-            BridgeScreenInspection(activity = "MainActivity")
+        override suspend fun inspectCurrentScreen(): BridgeScreenInspection = BridgeScreenInspection(activity = "MainActivity")
 
         override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot = screenSnapshot
 
-        override suspend fun readSourceIndex(): BridgeSourceIndexResult =
-            BridgeSourceIndexResult(sourceIndexAvailable = false)
+        override suspend fun readSourceIndex(): BridgeSourceIndexResult = BridgeSourceIndexResult(sourceIndexAvailable = false)
 
         override suspend fun getLastScreenSnapshot(): BridgeScreenSnapshot? = screenSnapshot
 
-        override suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult =
-            BridgeNavigationResult(performed = false, action = request.action)
+        override suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult = BridgeNavigationResult(performed = false, action = request.action)
 
         override fun screenshotCacheDirectory(): File = screenshotCacheDirectory
     }
@@ -147,5 +143,4 @@ private fun screenshotFile(cacheDirectory: File, name: String, bytes: ByteArray)
     }
 }
 
-private fun tempDirectory(prefix: String): File =
-    createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
+private fun tempDirectory(prefix: String): File = createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }

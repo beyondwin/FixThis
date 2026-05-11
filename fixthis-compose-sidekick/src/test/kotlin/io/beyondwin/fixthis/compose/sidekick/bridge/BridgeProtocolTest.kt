@@ -1,12 +1,12 @@
 package io.beyondwin.fixthis.compose.sidekick.bridge
 
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 
 class BridgeProtocolTest {
     @Test

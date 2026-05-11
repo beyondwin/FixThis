@@ -146,14 +146,12 @@ class SourceCandidateStalenessCheckerTest {
         assertEquals(false, result.stale)
     }
 
-    private fun candidate(file: String, line: Int?): SourceCandidate =
-        SourceCandidate(
-            file = file,
-            line = line,
-            score = 1.0,
-            confidence = SelectionConfidence.HIGH,
-        )
+    private fun candidate(file: String, line: Int?): SourceCandidate = SourceCandidate(
+        file = file,
+        line = line,
+        score = 1.0,
+        confidence = SelectionConfidence.HIGH,
+    )
 
-    private fun tempDir(prefix: String = "fixthis-staleness-"): File =
-        kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
+    private fun tempDir(prefix: String = "fixthis-staleness-"): File = kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
 }

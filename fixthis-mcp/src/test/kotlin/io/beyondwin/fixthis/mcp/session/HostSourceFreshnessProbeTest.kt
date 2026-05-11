@@ -18,10 +18,12 @@ class HostSourceFreshnessProbeTest {
         newer.setLastModified(installed + 60_000)
         val older = File(tmp, "Old.kt").also { it.writeText("b") }
         older.setLastModified(installed - 60_000)
-        val index = SourceIndex(entries = listOf(
-            SourceIndexEntry(file = "New.kt", line = 1, excerpt = "a"),
-            SourceIndexEntry(file = "Old.kt", line = 1, excerpt = "b"),
-        ))
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(file = "New.kt", line = 1, excerpt = "a"),
+                SourceIndexEntry(file = "Old.kt", line = 1, excerpt = "b"),
+            ),
+        )
         val probe = HostSourceFreshnessProbe(tmp)
 
         val result = probe.evaluate(index, installEpochMillis = installed)
@@ -38,9 +40,11 @@ class HostSourceFreshnessProbeTest {
         val installed = 1_700_000_000_000L
         val file = File(tmp, "X.kt").also { it.writeText("x") }
         file.setLastModified(installed - 60_000)
-        val index = SourceIndex(entries = listOf(
-            SourceIndexEntry(file = "X.kt", line = 1, excerpt = "x"),
-        ))
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(file = "X.kt", line = 1, excerpt = "x"),
+            ),
+        )
         val probe = HostSourceFreshnessProbe(tmp)
 
         val result = probe.evaluate(index, installEpochMillis = installed)
@@ -52,9 +56,11 @@ class HostSourceFreshnessProbeTest {
     @Test
     fun `inconclusive when install epoch is null`() {
         val tmp = tempDir()
-        val index = SourceIndex(entries = listOf(
-            SourceIndexEntry(file = "X.kt", line = 1, excerpt = "x"),
-        ))
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(file = "X.kt", line = 1, excerpt = "x"),
+            ),
+        )
         val probe = HostSourceFreshnessProbe(tmp)
 
         val result = probe.evaluate(index, installEpochMillis = null)
@@ -69,10 +75,12 @@ class HostSourceFreshnessProbeTest {
         val installed = 1_700_000_000_000L
         val file = File(tmp, "Dup.kt").also { it.writeText("a") }
         file.setLastModified(installed + 60_000)
-        val index = SourceIndex(entries = listOf(
-            SourceIndexEntry(file = "Dup.kt", line = 1, excerpt = "a"),
-            SourceIndexEntry(file = "Dup.kt", line = 5, excerpt = "b"),
-        ))
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(file = "Dup.kt", line = 1, excerpt = "a"),
+                SourceIndexEntry(file = "Dup.kt", line = 5, excerpt = "b"),
+            ),
+        )
         val probe = HostSourceFreshnessProbe(tmp)
 
         val result = probe.evaluate(index, installEpochMillis = installed)
@@ -86,11 +94,13 @@ class HostSourceFreshnessProbeTest {
         val tmp = tempDir()
         // tmp는 비어있음 — 인덱스가 가리키는 파일은 하나도 존재하지 않는다.
         val installed = 1_700_000_000_000L
-        val index = SourceIndex(entries = listOf(
-            SourceIndexEntry(file = "missing/A.kt", line = 1, excerpt = "a"),
-            SourceIndexEntry(file = "missing/B.kt", line = 1, excerpt = "b"),
-            SourceIndexEntry(file = "missing/C.kt", line = 1, excerpt = "c"),
-        ))
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(file = "missing/A.kt", line = 1, excerpt = "a"),
+                SourceIndexEntry(file = "missing/B.kt", line = 1, excerpt = "b"),
+                SourceIndexEntry(file = "missing/C.kt", line = 1, excerpt = "c"),
+            ),
+        )
         val probe = HostSourceFreshnessProbe(tmp)
 
         val result = probe.evaluate(index, installEpochMillis = installed)
@@ -111,10 +121,12 @@ class HostSourceFreshnessProbeTest {
         // 한 파일만 존재 — 부분 dirty라 misconfig 아님
         val one = File(tmp, "Exists.kt").also { it.writeText("a") }
         one.setLastModified(installed - 60_000)
-        val index = SourceIndex(entries = listOf(
-            SourceIndexEntry(file = "Exists.kt", line = 1, excerpt = "a"),
-            SourceIndexEntry(file = "Missing.kt", line = 1, excerpt = "b"),
-        ))
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(file = "Exists.kt", line = 1, excerpt = "a"),
+                SourceIndexEntry(file = "Missing.kt", line = 1, excerpt = "b"),
+            ),
+        )
         val probe = HostSourceFreshnessProbe(tmp)
 
         val result = probe.evaluate(index, installEpochMillis = installed)
@@ -123,6 +135,5 @@ class HostSourceFreshnessProbeTest {
         assertFalse(result.reason?.startsWith("projectRoot may be misconfigured") == true)
     }
 
-    private fun tempDir(): File =
-        kotlin.io.path.createTempDirectory(prefix = "fixthis-freshness-").toFile().also { it.deleteOnExit() }
+    private fun tempDir(): File = kotlin.io.path.createTempDirectory(prefix = "fixthis-freshness-").toFile().also { it.deleteOnExit() }
 }

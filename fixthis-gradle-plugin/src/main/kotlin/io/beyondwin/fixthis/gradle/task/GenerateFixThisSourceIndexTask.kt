@@ -1,8 +1,5 @@
 package io.beyondwin.fixthis.gradle.task
 
-import java.io.File
-import javax.xml.XMLConstants
-import javax.xml.parsers.DocumentBuilderFactory
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -18,6 +15,9 @@ import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.w3c.dom.Element
+import java.io.File
+import javax.xml.XMLConstants
+import javax.xml.parsers.DocumentBuilderFactory
 
 abstract class GenerateFixThisSourceIndexTask : DefaultTask() {
     @get:Internal
@@ -250,14 +250,11 @@ abstract class GenerateFixThisSourceIndexTask : DefaultTask() {
         return match.groups[1]?.value.orEmpty()
     }
 
-    private fun File.relativePath(): String =
-        relativeToOrSelf(projectDirectory.get().asFile).invariantSeparatorsPath
+    private fun File.relativePath(): String = relativeToOrSelf(projectDirectory.get().asFile).invariantSeparatorsPath
 
-    private fun File.kotlinFiles(): List<File> =
-        matchingFiles("kt", "kts")
+    private fun File.kotlinFiles(): List<File> = matchingFiles("kt", "kts")
 
-    private fun File.xmlFiles(): List<File> =
-        matchingFiles("xml")
+    private fun File.xmlFiles(): List<File> = matchingFiles("xml")
 
     private fun File.matchingFiles(vararg extensions: String): List<File> {
         val extensionSet = extensions.toSet()
@@ -276,16 +273,15 @@ abstract class GenerateFixThisSourceIndexTask : DefaultTask() {
         line: String,
         packageName: String? = null,
         className: String? = null,
-    ): SourceIndexEntryBuilder =
-        getOrPut(lineNumber) {
-            SourceIndexEntryBuilder(
-                file = file.relativePath(),
-                line = lineNumber,
-                excerpt = line.trim(),
-                packageName = packageName,
-                className = className,
-            )
-        }
+    ): SourceIndexEntryBuilder = getOrPut(lineNumber) {
+        SourceIndexEntryBuilder(
+            file = file.relativePath(),
+            line = lineNumber,
+            excerpt = line.trim(),
+            packageName = packageName,
+            className = className,
+        )
+    }
 
     private fun MutableMap<Int, SourceIndexEntryBuilder>.entryFor(
         file: File,
@@ -293,28 +289,23 @@ abstract class GenerateFixThisSourceIndexTask : DefaultTask() {
         lines: List<String>,
         packageName: String? = null,
         className: String? = null,
-    ): SourceIndexEntryBuilder =
-        entryFor(
-            file = file,
-            lineNumber = lineNumber,
-            line = lines.getOrNull(lineNumber - 1).orEmpty(),
-            packageName = packageName,
-            className = className,
-        )
+    ): SourceIndexEntryBuilder = entryFor(
+        file = file,
+        lineNumber = lineNumber,
+        line = lines.getOrNull(lineNumber - 1).orEmpty(),
+        packageName = packageName,
+        className = className,
+    )
 
-    private fun classNameAt(offset: Int, classDeclarations: List<Pair<Int, String>>): String? =
-        classDeclarations.lastOrNull { (classOffset, _) -> classOffset <= offset }?.second
+    private fun classNameAt(offset: Int, classDeclarations: List<Pair<Int, String>>): String? = classDeclarations.lastOrNull { (classOffset, _) -> classOffset <= offset }?.second
 
-    private fun recognizedUiStringRanges(source: String): List<IntRange> =
-        (textCallRegex.findAll(source) + testTagRegex.findAll(source) + contentDescriptionRegex.findAll(source))
-            .map { it.range }
-            .toList()
+    private fun recognizedUiStringRanges(source: String): List<IntRange> = (textCallRegex.findAll(source) + testTagRegex.findAll(source) + contentDescriptionRegex.findAll(source))
+        .map { it.range }
+        .toList()
 
-    private fun IntRange.contains(other: IntRange): Boolean =
-        first <= other.first && last >= other.last
+    private fun IntRange.contains(other: IntRange): Boolean = first <= other.first && last >= other.last
 
-    private fun String.isStrictCompTestTag(): Boolean =
-        strictCompTestTagRegex.matches(this)
+    private fun String.isStrictCompTestTag(): Boolean = strictCompTestTagRegex.matches(this)
 
     private fun String.lineStartOffsets(): IntArray {
         val offsets = mutableListOf(0)
@@ -336,12 +327,11 @@ abstract class GenerateFixThisSourceIndexTask : DefaultTask() {
         }
     }
 
-    private fun newDocumentBuilderFactory(): DocumentBuilderFactory =
-        DocumentBuilderFactory.newInstance().apply {
-            setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
-            setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
-            isExpandEntityReferences = false
-        }
+    private fun newDocumentBuilderFactory(): DocumentBuilderFactory = DocumentBuilderFactory.newInstance().apply {
+        setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
+        setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+        isExpandEntityReferences = false
+    }
 
     private companion object {
         val json: Json = Json {
@@ -381,20 +371,19 @@ private data class SourceIndexEntryBuilder(
         }
     }
 
-    fun toAsset(): SourceIndexEntryAsset =
-        SourceIndexEntryAsset(
-            file = file,
-            line = line,
-            symbols = symbols.toList(),
-            text = text.toList(),
-            contentDescriptions = contentDescriptions.toList(),
-            testTags = testTags.toList(),
-            stringResources = stringResources.toList(),
-            signals = signals.toList(),
-            excerpt = excerpt,
-            packageName = packageName,
-            className = className,
-        )
+    fun toAsset(): SourceIndexEntryAsset = SourceIndexEntryAsset(
+        file = file,
+        line = line,
+        symbols = symbols.toList(),
+        text = text.toList(),
+        contentDescriptions = contentDescriptions.toList(),
+        testTags = testTags.toList(),
+        stringResources = stringResources.toList(),
+        signals = signals.toList(),
+        excerpt = excerpt,
+        packageName = packageName,
+        className = className,
+    )
 }
 
 @Serializable

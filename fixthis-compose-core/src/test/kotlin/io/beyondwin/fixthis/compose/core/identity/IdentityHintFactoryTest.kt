@@ -52,15 +52,14 @@ class IdentityHintFactoryTest {
         testTag: String? = null,
         text: List<String> = emptyList(),
         role: String? = null,
-    ): FixThisNode =
-        FixThisNode(
-            uid = "compose:0:merged:1",
-            composeNodeId = 1,
-            rootIndex = 0,
-            treeKind = TreeKind.MERGED,
-            boundsInWindow = FixThisRect(0f, 0f, 100f, 48f),
-            text = text,
-            role = role,
-            testTag = testTag,
-        )
+    ): FixThisNode = FixThisNode(
+        uid = "compose:0:merged:1",
+        composeNodeId = 1,
+        rootIndex = 0,
+        treeKind = TreeKind.MERGED,
+        boundsInWindow = FixThisRect(0f, 0f, 100f, 48f),
+        text = text,
+        role = role,
+        testTag = testTag,
+    )
 }

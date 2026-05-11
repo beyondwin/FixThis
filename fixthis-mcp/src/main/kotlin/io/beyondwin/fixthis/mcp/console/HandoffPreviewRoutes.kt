@@ -8,9 +8,9 @@ internal class HandoffPreviewRoutes(private val service: FeedbackSessionService)
     private val pathPrefix = "/api/sessions/"
     private val pathSuffix = "/handoff-preview"
 
-    override fun matches(path: String): Boolean =
-        path.startsWith(pathPrefix) && path.endsWith(pathSuffix) &&
-            path.length > pathPrefix.length + pathSuffix.length
+    override fun matches(path: String): Boolean = path.startsWith(pathPrefix) &&
+        path.endsWith(pathSuffix) &&
+        path.length > pathPrefix.length + pathSuffix.length
 
     override fun handle(exchange: HttpExchange) {
         val raw = exchange.requestURI.path

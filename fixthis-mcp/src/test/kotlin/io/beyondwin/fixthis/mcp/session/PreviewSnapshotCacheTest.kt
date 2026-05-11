@@ -68,17 +68,16 @@ class PreviewSnapshotCacheTest {
     }
 }
 
-private fun previewRecord(previewId: String): PreviewRecord =
-    PreviewRecord(
-        sessionId = "session-1",
-        projectRoot = "/repo",
-        snapshot = FeedbackPreviewSnapshot(
-            previewId = previewId,
-            screen = SnapshotDto(
-                screenId = "screen-$previewId",
-                capturedAtEpochMillis = 10L,
-                displayName = "Draft screen",
-            ),
+private fun previewRecord(previewId: String): PreviewRecord = PreviewRecord(
+    sessionId = "session-1",
+    projectRoot = "/repo",
+    snapshot = FeedbackPreviewSnapshot(
+        previewId = previewId,
+        screen = SnapshotDto(
+            screenId = "screen-$previewId",
+            capturedAtEpochMillis = 10L,
+            displayName = "Draft screen",
         ),
-        sourceIndex = null,
-    )
+    ),
+    sourceIndex = null,
+)

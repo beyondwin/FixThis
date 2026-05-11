@@ -3,8 +3,11 @@ package io.beyondwin.fixthis.mcp.session
 object CompactHandoffRenderer {
     private const val MAX_CANDIDATES_RENDERED = 3
     fun render(session: SessionDto, itemIds: List<String>? = null): String = buildString {
-        val effectiveSession = if (itemIds == null) session
-            else session.copy(items = session.items.filter { it.itemId in itemIds })
+        val effectiveSession = if (itemIds == null) {
+            session
+        } else {
+            session.copy(items = session.items.filter { it.itemId in itemIds })
+        }
         appendLine("# FixThis Feedback Handoff")
         appendLine()
         appendLine("Rule: source hints are candidates; verify screenshot, target, and code before editing.")
@@ -39,7 +42,7 @@ object CompactHandoffRenderer {
             val w = screen?.screenshot?.width
             val h = screen?.screenshot?.height
             if (w != null && h != null) {
-                appendLine("viewport: ${w}×${h}")
+                appendLine("viewport: $w×$h")
             }
             val activityName = screen?.activityName
             if (activityName != null && activityName != displayName) {
@@ -137,7 +140,7 @@ object CompactHandoffRenderer {
     ) {
         val title = item.comment.lineSequence().firstOrNull()?.takeIf { it.isNotBlank() } ?: "(No request provided)"
         val prefix = if (item.severity == AnnotationSeverityDto.HIGH) "[!] " else ""
-        appendLine("[${number}] ${prefix}${title.inlineSafe()}")
+        appendLine("[$number] ${prefix}${title.inlineSafe()}")
         appendLine("  id: ${item.itemId}")
         appendLine(compactUiLine(item, isOverlap, instanceLabel, dupRefMarker))
         item.screenshotCrop?.desktopCropPath?.let { appendLine("crop: ${it.inlineSafe()}") }
@@ -157,7 +160,9 @@ object CompactHandoffRenderer {
         val rank2 = item.sourceCandidates.getOrNull(1)
         val computedMargin = if (rank1 != null && rank2 != null) {
             (rank1.score - rank2.score).takeIf { it > 0 }
-        } else null
+        } else {
+            null
+        }
         item.sourceCandidates.take(MAX_CANDIDATES_RENDERED).forEachIndexed { idx, candidate ->
             appendLine("  ${formatCandidateLine(candidate, idx + 1, computedMargin, sourceRoot)}")
         }
@@ -234,5 +239,4 @@ object CompactHandoffRenderer {
             else -> sb.toString()
         }
     }
-
 }

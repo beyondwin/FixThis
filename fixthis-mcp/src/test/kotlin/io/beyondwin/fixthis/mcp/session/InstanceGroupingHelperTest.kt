@@ -5,10 +5,10 @@ import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.beyondwin.fixthis.compose.core.model.TreeKind
+import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import org.junit.Test
 
 class InstanceGroupingHelperTest {
 
@@ -40,7 +40,7 @@ class InstanceGroupingHelperTest {
                 line = line,
                 score = 1.0,
                 confidence = SelectionConfidence.HIGH,
-            )
+            ),
         ),
         comment = "test comment",
     )
@@ -63,7 +63,7 @@ class InstanceGroupingHelperTest {
                 line = line,
                 score = 1.0,
                 confidence = SelectionConfidence.HIGH,
-            )
+            ),
         ),
         comment = "test comment",
     )

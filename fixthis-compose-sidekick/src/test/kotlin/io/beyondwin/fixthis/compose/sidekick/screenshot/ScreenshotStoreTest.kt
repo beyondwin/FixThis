@@ -81,10 +81,9 @@ class ScreenshotStoreTest {
         assertFalse(File(context.cacheDir, "fixthis/2026-05-04/annotation-3-crop.png").exists())
     }
 
-    private fun bitmap(width: Int, height: Int): Bitmap =
-        Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply {
-            eraseColor(Color.MAGENTA)
-        }
+    private fun bitmap(width: Int, height: Int): Bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply {
+        eraseColor(Color.MAGENTA)
+    }
 
     private fun assertPathEndsWith(expectedSuffix: String, actualPath: String?) {
         assertNotNull(actualPath)

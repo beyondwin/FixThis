@@ -70,15 +70,13 @@ class ConsoleConnectionServiceTest {
 
     private fun connectionService(
         devices: List<AdbDevice> = listOf(AdbDevice("device-1", "device")),
-    ): ConsoleConnectionService =
-        ConsoleConnectionService(FakeFixThisBridge(devicesOverride = devices))
+    ): ConsoleConnectionService = ConsoleConnectionService(FakeFixThisBridge(devicesOverride = devices))
 
-    private fun session(): SessionDto =
-        SessionDto(
-            sessionId = "session-1",
-            packageName = "io.beyondwin.fixthis.sample",
-            projectRoot = "/repo",
-            createdAtEpochMillis = 100L,
-            updatedAtEpochMillis = 100L,
-        )
+    private fun session(): SessionDto = SessionDto(
+        sessionId = "session-1",
+        packageName = "io.beyondwin.fixthis.sample",
+        projectRoot = "/repo",
+        createdAtEpochMillis = 100L,
+        updatedAtEpochMillis = 100L,
+    )
 }

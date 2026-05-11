@@ -13,10 +13,10 @@ import io.beyondwin.fixthis.compose.core.source.SourceMatcher
 import io.beyondwin.fixthis.mcp.McpProtocol
 import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import io.beyondwin.fixthis.mcp.tools.FixThisBridge
-import java.io.File
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonPrimitive
+import java.io.File
 
 class TargetEvidenceService(
     private val bridge: FixThisBridge,
@@ -182,32 +182,30 @@ class TargetEvidenceService(
         targetType: FeedbackTargetType,
         nodeUid: String?,
         missingNodeContext: String,
-    ): FixThisNode? =
-        when (targetType) {
-            FeedbackTargetType.AREA -> null
-            FeedbackTargetType.NODE -> {
-                val uid = nodeUid?.takeIf { it.isNotBlank() }
-                    ?: throw IllegalArgumentException("Node feedback requires nodeUid")
-                screen.allNodes().firstOrNull { node -> node.uid == uid }
-                    ?: throw IllegalArgumentException("Selected node does not exist on $missingNodeContext: $uid")
-            }
+    ): FixThisNode? = when (targetType) {
+        FeedbackTargetType.AREA -> null
+        FeedbackTargetType.NODE -> {
+            val uid = nodeUid?.takeIf { it.isNotBlank() }
+                ?: throw IllegalArgumentException("Node feedback requires nodeUid")
+            screen.allNodes().firstOrNull { node -> node.uid == uid }
+                ?: throw IllegalArgumentException("Selected node does not exist on $missingNodeContext: $uid")
         }
+    }
 
     private fun evidenceNodesFor(
         screen: SnapshotDto,
         targetType: FeedbackTargetType,
         storedBounds: FixThisRect,
         selectedNode: FixThisNode?,
-    ): List<FixThisNode> =
-        when (targetType) {
-            FeedbackTargetType.AREA -> areaEvidenceNodes(screen, storedBounds)
-            FeedbackTargetType.NODE -> {
-                val node = requireNotNull(selectedNode) {
-                    "evidenceNodesFor(NODE) requires a non-null selectedNode resolved upstream"
-                }
-                nodeEvidenceNodes(screen, node)
+    ): List<FixThisNode> = when (targetType) {
+        FeedbackTargetType.AREA -> areaEvidenceNodes(screen, storedBounds)
+        FeedbackTargetType.NODE -> {
+            val node = requireNotNull(selectedNode) {
+                "evidenceNodesFor(NODE) requires a non-null selectedNode resolved upstream"
             }
+            nodeEvidenceNodes(screen, node)
         }
+    }
 
     private fun validateFinitePositiveBounds(bounds: FixThisRect) {
         val values = listOf(bounds.left, bounds.top, bounds.right, bounds.bottom)
@@ -259,20 +257,19 @@ class TargetEvidenceService(
             .toList()
     }
 
-    private fun nodeEvidenceNodes(screen: SnapshotDto, selectedNode: FixThisNode): List<FixThisNode> =
-        screen.allNodes()
-            .asSequence()
-            .filter { it.uid != selectedNode.uid }
-            .filter { it.rootIndex == selectedNode.rootIndex }
-            .filter { it.hasMeaningfulSemantic() }
-            .sortedWith(
-                compareBy<FixThisNode> { it.boundsInWindow.centerDistanceTo(selectedNode.boundsInWindow) }
-                    .thenBy { it.boundsInWindow.area }
-                    .thenBy { it.uid },
-            )
-            .distinctBy { it.uid }
-            .take(MaxEvidenceNodes)
-            .toList()
+    private fun nodeEvidenceNodes(screen: SnapshotDto, selectedNode: FixThisNode): List<FixThisNode> = screen.allNodes()
+        .asSequence()
+        .filter { it.uid != selectedNode.uid }
+        .filter { it.rootIndex == selectedNode.rootIndex }
+        .filter { it.hasMeaningfulSemantic() }
+        .sortedWith(
+            compareBy<FixThisNode> { it.boundsInWindow.centerDistanceTo(selectedNode.boundsInWindow) }
+                .thenBy { it.boundsInWindow.area }
+                .thenBy { it.uid },
+        )
+        .distinctBy { it.uid }
+        .take(MaxEvidenceNodes)
+        .toList()
 
     private fun sourceCandidatesFor(
         sourceIndex: SourceIndex?,
@@ -296,11 +293,9 @@ class TargetEvidenceService(
         }
     }
 
-    private fun SnapshotDto.allNodes(): List<FixThisNode> =
-        roots.flatMap { root -> root.mergedNodes + root.unmergedNodes }
+    private fun SnapshotDto.allNodes(): List<FixThisNode> = roots.flatMap { root -> root.mergedNodes + root.unmergedNodes }
 
-    private fun FixThisRect.intersects(other: FixThisRect): Boolean =
-        left < other.right && right > other.left && top < other.bottom && bottom > other.top
+    private fun FixThisRect.intersects(other: FixThisRect): Boolean = left < other.right && right > other.left && top < other.bottom && bottom > other.top
 
     private fun FixThisRect.intersectionArea(other: FixThisRect): Float {
         val width = (minOf(right, other.right) - maxOf(left, other.left)).coerceAtLeast(0f)

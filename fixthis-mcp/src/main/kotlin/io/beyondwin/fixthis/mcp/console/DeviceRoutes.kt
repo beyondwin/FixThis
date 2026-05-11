@@ -4,10 +4,9 @@ import com.sun.net.httpserver.HttpExchange
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 
 internal class DeviceRoutes(private val service: FeedbackSessionService) : ConsoleRoute {
-    override fun matches(path: String): Boolean =
-        path == "/api/devices" ||
-            path == "/api/device/select" ||
-            path == "/api/device/disconnect"
+    override fun matches(path: String): Boolean = path == "/api/devices" ||
+        path == "/api/device/select" ||
+        path == "/api/device/disconnect"
 
     override fun handle(exchange: HttpExchange) {
         when (exchange.requestURI.path) {
@@ -47,6 +46,5 @@ internal class DeviceRoutes(private val service: FeedbackSessionService) : Conso
         }
     }
 
-    private fun HttpExchange.decodeSelectDeviceBody(): SelectDeviceRequest =
-        decodeJsonBody(SelectDeviceRequest.serializer())
+    private fun HttpExchange.decodeSelectDeviceBody(): SelectDeviceRequest = decodeJsonBody(SelectDeviceRequest.serializer())
 }

@@ -1,20 +1,15 @@
 package io.beyondwin.fixthis.mcp
 
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.beyondwin.fixthis.mcp.session.FakeFixThisBridge
 import io.beyondwin.fixthis.mcp.session.AnnotationStatusDto
+import io.beyondwin.fixthis.mcp.session.FakeFixThisBridge
 import io.beyondwin.fixthis.mcp.session.FeedbackNavigationRequest
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 import io.beyondwin.fixthis.mcp.tools.FixThisBridge
 import io.beyondwin.fixthis.mcp.tools.FixThisTools
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.PipedInputStream
-import java.io.PipedOutputStream
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
@@ -24,7 +19,6 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
@@ -38,6 +32,11 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.PipedInputStream
+import java.io.PipedOutputStream
 
 class McpProtocolTest {
     @Test
@@ -492,9 +491,12 @@ class McpProtocolTest {
             jsonObject("sessionId" to sessionId),
         ).firstJsonContent()
 
-        assertEquals(listOf(sessionId), listPayload.getValue("sessions").jsonArray.map {
-            it.jsonObject.getValue("sessionId").jsonPrimitive.content
-        })
+        assertEquals(
+            listOf(sessionId),
+            listPayload.getValue("sessions").jsonArray.map {
+                it.jsonObject.getValue("sessionId").jsonPrimitive.content
+            },
+        )
         assertEquals(sessionId, reopened.getValue("sessionId").jsonPrimitive.content)
         assertEquals(true, reopened.getValue("resumed").jsonPrimitive.boolean)
     }
@@ -1335,15 +1337,12 @@ class McpProtocolTest {
         assertEquals(-32700, error.getValue("code").jsonPrimitive.int)
     }
 
-    private fun runToolCall(server: McpServer, name: String, argumentsJson: String): JsonObject {
-        return parse(runToolCallContentTexts(server, name, argumentsJson)[0]).jsonObject
-    }
+    private fun runToolCall(server: McpServer, name: String, argumentsJson: String): JsonObject = parse(runToolCallContentTexts(server, name, argumentsJson)[0]).jsonObject
 
-    private fun JsonObject.firstJsonContent(): JsonObject =
-        parse(
-            getValue("content").jsonArray[0].jsonObject
-                .getValue("text").jsonPrimitive.content,
-        ).jsonObject
+    private fun JsonObject.firstJsonContent(): JsonObject = parse(
+        getValue("content").jsonArray[0].jsonObject
+            .getValue("text").jsonPrimitive.content,
+    ).jsonObject
 
     private fun jsonObject(vararg pairs: Pair<String, Any?>): JsonObject = buildJsonObject {
         pairs.forEach { (key, value) ->
@@ -1424,18 +1423,16 @@ class McpProtocolTest {
             projectRoot = projectRoot.absolutePath,
             defaultPackageName = defaultPackageName,
         ),
-    ): McpServer =
-        McpServer(protocol = McpProtocol(tools = FixThisTools(bridge, defaultPackageName, projectRoot, feedbackService)))
+    ): McpServer = McpServer(protocol = McpProtocol(tools = FixThisTools(bridge, defaultPackageName, projectRoot, feedbackService)))
 
     private fun parse(value: String) = McpProtocol.json.parseToJsonElement(value)
 
-    private fun feedbackService(bridge: FixThisBridge, vararg ids: String): FeedbackSessionService =
-        FeedbackSessionService(
-            bridge = bridge,
-            store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds(*ids).next),
-            projectRoot = "/repo",
-            defaultPackageName = "com.default",
-        )
+    private fun feedbackService(bridge: FixThisBridge, vararg ids: String): FeedbackSessionService = FeedbackSessionService(
+        bridge = bridge,
+        store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds(*ids).next),
+        projectRoot = "/repo",
+        defaultPackageName = "com.default",
+    )
 
     private class FakeIds(vararg values: String) {
         private val queue = ArrayDeque(values.toList())
@@ -1448,10 +1445,9 @@ class McpProtocolTest {
     ) : FixThisBridge {
         val calls = mutableListOf<String>()
 
-        override fun resolvePackageName(packageOverride: String?): String =
-            packageOverride?.takeIf { it.isNotBlank() }
-                ?: defaultPackageName
-                ?: error("No default package metadata is available")
+        override fun resolvePackageName(packageOverride: String?): String = packageOverride?.takeIf { it.isNotBlank() }
+            ?: defaultPackageName
+            ?: error("No default package metadata is available")
 
         override suspend fun status(packageName: String): JsonObject {
             calls += "status:$packageName"
@@ -1500,15 +1496,13 @@ class McpProtocolTest {
             screenId: String?,
             destinationDirectory: File?,
         ): JsonObject = JsonObject(emptyMap())
-
     }
 
     private class BlockingScreenToolBridge : FixThisBridge {
         val started = CompletableDeferred<Unit>()
         val cancelled = CompletableDeferred<Unit>()
 
-        override fun resolvePackageName(packageOverride: String?): String =
-            packageOverride?.takeIf { it.isNotBlank() } ?: "io.beyondwin.fixthis.sample"
+        override fun resolvePackageName(packageOverride: String?): String = packageOverride?.takeIf { it.isNotBlank() } ?: "io.beyondwin.fixthis.sample"
 
         override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
 
@@ -1523,11 +1517,9 @@ class McpProtocolTest {
             }
         }
 
-        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
-            JsonObject(emptyMap())
+        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject = JsonObject(emptyMap())
 
-        override suspend fun performNavigation(packageName: String, request: FeedbackNavigationRequest): JsonObject =
-            JsonObject(emptyMap())
+        override suspend fun performNavigation(packageName: String, request: FeedbackNavigationRequest): JsonObject = JsonObject(emptyMap())
 
         override suspend fun captureScreenSnapshot(
             packageName: String,
@@ -1541,8 +1533,7 @@ class McpProtocolTest {
         val started = CompletableDeferred<Unit>()
         val cancelled = CompletableDeferred<Unit>()
 
-        override fun resolvePackageName(packageOverride: String?): String =
-            packageOverride?.takeIf { it.isNotBlank() } ?: "io.beyondwin.fixthis.sample"
+        override fun resolvePackageName(packageOverride: String?): String = packageOverride?.takeIf { it.isNotBlank() } ?: "io.beyondwin.fixthis.sample"
 
         override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
 
@@ -1557,11 +1548,9 @@ class McpProtocolTest {
             }
         }
 
-        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject =
-            JsonObject(emptyMap())
+        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject = JsonObject(emptyMap())
 
-        override suspend fun performNavigation(packageName: String, request: FeedbackNavigationRequest): JsonObject =
-            JsonObject(emptyMap())
+        override suspend fun performNavigation(packageName: String, request: FeedbackNavigationRequest): JsonObject = JsonObject(emptyMap())
 
         override suspend fun captureScreenSnapshot(
             packageName: String,
@@ -1571,6 +1560,5 @@ class McpProtocolTest {
         ): JsonObject = JsonObject(emptyMap())
     }
 
-    private fun tempDir(prefix: String): File =
-        kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
+    private fun tempDir(prefix: String): File = kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
 }

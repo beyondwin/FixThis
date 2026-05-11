@@ -7,8 +7,7 @@ import java.io.File
 import java.net.URLDecoder
 
 internal class ArtifactRoutes(private val service: FeedbackSessionService) : ConsoleRoute {
-    override fun matches(path: String): Boolean =
-        path.isFullScreenshotPath() || path.isScreenPath()
+    override fun matches(path: String): Boolean = path.isFullScreenshotPath() || path.isScreenPath()
 
     override fun handle(exchange: HttpExchange) {
         if (exchange.requestURI.path.isFullScreenshotPath()) {
@@ -50,14 +49,10 @@ internal class ArtifactRoutes(private val service: FeedbackSessionService) : Con
     }
 }
 
-private fun String.isFullScreenshotPath(): Boolean =
-    split('/').size == 6 && startsWith("/api/screens/") && endsWith("/screenshot/full")
+private fun String.isFullScreenshotPath(): Boolean = split('/').size == 6 && startsWith("/api/screens/") && endsWith("/screenshot/full")
 
-private fun String.screenIdFromScreenshotPath(): String =
-    split('/')[3]
+private fun String.screenIdFromScreenshotPath(): String = split('/')[3]
 
-private fun String.isScreenPath(): Boolean =
-    split('/').size == 4 && startsWith("/api/screens/")
+private fun String.isScreenPath(): Boolean = split('/').size == 4 && startsWith("/api/screens/")
 
-private fun String.screenIdFromScreenPath(): String =
-    URLDecoder.decode(split('/')[3], Charsets.UTF_8.name())
+private fun String.screenIdFromScreenPath(): String = URLDecoder.decode(split('/')[3], Charsets.UTF_8.name())

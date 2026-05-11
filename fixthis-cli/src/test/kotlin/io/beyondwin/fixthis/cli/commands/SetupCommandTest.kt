@@ -97,9 +97,11 @@ class SetupCommandTest {
         }
 
         assertEquals("original", configFile.readText())
-        assertFalse(Files.list(configFile.parentFile.toPath()).use { paths ->
-            paths.anyMatch { it.fileName.toString().startsWith(".config.toml") }
-        })
+        assertFalse(
+            Files.list(configFile.parentFile.toPath()).use { paths ->
+                paths.anyMatch { it.fileName.toString().startsWith(".config.toml") }
+            },
+        )
     }
 
     @Test
@@ -167,16 +169,19 @@ class SetupCommandTest {
         val userHome = temporaryFolder.newFolder("home")
         val claudeSettings = projectRoot.resolve(".claude/settings.json")
         claudeSettings.parentFile.mkdirs()
-        claudeSettings.writeText("""{"mcpServers":""")   // truncated JSON
+        claudeSettings.writeText("""{"mcpServers":""") // truncated JSON
 
         val error = withUserHome(userHome) {
             assertThrows(CliktError::class.java) {
                 SetupCommand().parse(
                     listOf(
-                        "--package", "io.beyondwin.fixthis.sample",
-                        "--project-dir", projectRoot.absolutePath,
+                        "--package",
+                        "io.beyondwin.fixthis.sample",
+                        "--project-dir",
+                        projectRoot.absolutePath,
                         "--write",
-                        "--target", "claude",
+                        "--target",
+                        "claude",
                     ),
                 )
             }

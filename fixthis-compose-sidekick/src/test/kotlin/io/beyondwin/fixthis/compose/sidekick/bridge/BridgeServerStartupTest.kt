@@ -1,9 +1,6 @@
 package io.beyondwin.fixthis.compose.sidekick.bridge
 
 import android.net.LocalServerSocket
-import java.io.File
-import java.io.IOException
-import kotlin.io.path.createTempDirectory
 import io.beyondwin.fixthis.compose.core.model.FixThisError
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -14,6 +11,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import sun.misc.Unsafe
+import java.io.File
+import java.io.IOException
+import kotlin.io.path.createTempDirectory
 
 /**
  * Robolectric tests that exercise BridgeServer's retry loop via the injectable
@@ -130,53 +130,46 @@ class BridgeServerStartupTest {
         baseSocketName: String,
         environment: BridgeEnvironment = StubEnvironment(),
         factory: (String) -> LocalServerSocket,
-    ): BridgeServer =
-        BridgeServer(
-            session = SidekickSession(
-                packageName = "io.beyondwin.fixthis.sample",
-                socketName = baseSocketName,
-                socketAddress = "localabstract:$baseSocketName",
-                token = "token",
-                sidekickVersion = "0.1.0-test",
-                bridgeProtocolVersion = BridgeProtocol.VERSION,
-                createdAtEpochMillis = 1L,
-                processStartEpochMillis = 1L,
-            ),
-            environment = environment,
-            socketFactory = factory,
-        )
+    ): BridgeServer = BridgeServer(
+        session = SidekickSession(
+            packageName = "io.beyondwin.fixthis.sample",
+            socketName = baseSocketName,
+            socketAddress = "localabstract:$baseSocketName",
+            token = "token",
+            sidekickVersion = "0.1.0-test",
+            bridgeProtocolVersion = BridgeProtocol.VERSION,
+            createdAtEpochMillis = 1L,
+            processStartEpochMillis = 1L,
+        ),
+        environment = environment,
+        socketFactory = factory,
+    )
 
-    private fun fakeServerSocket(): LocalServerSocket =
-        unsafe.allocateInstance(LocalServerSocket::class.java) as LocalServerSocket
+    private fun fakeServerSocket(): LocalServerSocket = unsafe.allocateInstance(LocalServerSocket::class.java) as LocalServerSocket
 
     private class StubEnvironment(
         private val cacheDirectory: File =
             createTempDirectory(prefix = "fixthis-startup").toFile().also { it.deleteOnExit() },
     ) : BridgeEnvironment {
-        override suspend fun status(): BridgeStatus =
-            BridgeStatus(
-                activity = null,
-                rootsCount = 0,
-                sidekickVersion = "0.1.0-test",
-                bridgeProtocolVersion = BridgeProtocol.VERSION,
-                sourceIndexAvailable = false,
-            )
+        override suspend fun status(): BridgeStatus = BridgeStatus(
+            activity = null,
+            rootsCount = 0,
+            sidekickVersion = "0.1.0-test",
+            bridgeProtocolVersion = BridgeProtocol.VERSION,
+            sourceIndexAvailable = false,
+        )
 
-        override suspend fun inspectCurrentScreen(): BridgeScreenInspection =
-            BridgeScreenInspection(
-                errors = listOf(FixThisError("NO_ACTIVITY", "stub")),
-            )
+        override suspend fun inspectCurrentScreen(): BridgeScreenInspection = BridgeScreenInspection(
+            errors = listOf(FixThisError("NO_ACTIVITY", "stub")),
+        )
 
-        override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot =
-            BridgeScreenSnapshot(inspection = BridgeScreenInspection())
+        override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot = BridgeScreenSnapshot(inspection = BridgeScreenInspection())
 
-        override suspend fun readSourceIndex(): BridgeSourceIndexResult =
-            BridgeSourceIndexResult(sourceIndexAvailable = false)
+        override suspend fun readSourceIndex(): BridgeSourceIndexResult = BridgeSourceIndexResult(sourceIndexAvailable = false)
 
         override suspend fun getLastScreenSnapshot(): BridgeScreenSnapshot? = null
 
-        override suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult =
-            BridgeNavigationResult(performed = false, action = request.action)
+        override suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult = BridgeNavigationResult(performed = false, action = request.action)
 
         override fun screenshotCacheDirectory(): File = cacheDirectory
     }
