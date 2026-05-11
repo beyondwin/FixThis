@@ -7,6 +7,19 @@ plugins {
     alias(libs.plugins.gradle.plugin.publish) apply false
     alias(libs.plugins.spotless)
     alias(libs.plugins.detekt) apply false
+    alias(libs.plugins.versions)
+}
+
+// Filter unstable releases (alpha/beta/RC/snapshot/milestone) out of the
+// `dependencyUpdates` report so we only see candidates we'd actually adopt.
+tasks.named<com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask>(
+    "dependencyUpdates",
+) {
+    rejectVersionIf {
+        val candidate = candidate.version.lowercase()
+        val unstableMarkers = listOf("alpha", "beta", "rc", "m", "snapshot", "dev", "pr")
+        unstableMarkers.any { marker -> candidate.contains("-$marker") || candidate.endsWith("-$marker") }
+    }
 }
 
 val ktlintVersion = libs.versions.ktlint.get()
