@@ -69,15 +69,37 @@ abstract class GenerateSidekickBuildInfoTask : org.gradle.api.DefaultTask() {
     }
 }
 
+val gitStatusProvider = providers.exec {
+    commandLine("git", "status", "--porcelain")
+    isIgnoreExitValue = true
+}.standardOutput.asText.map { it.trim() }
+
+val gitShortShaProvider = providers.exec {
+    commandLine("git", "rev-parse", "--short", "HEAD")
+    isIgnoreExitValue = true
+}.standardOutput.asText.map { it.trim().ifBlank { "unknown" } }
+
+val gitCommitEpochProvider = providers.exec {
+    commandLine("git", "log", "-1", "--format=%ct")
+    isIgnoreExitValue = true
+}.standardOutput.asText.map { it.trim() }
+
 val generateBuildInfo = tasks.register<GenerateSidekickBuildInfoTask>("generateBuildInfo") {
     outputDir.set(layout.buildDirectory.dir("generated/source/buildinfo/main/kotlin"))
     gitSha.set(
-        providers.exec {
-            commandLine("git", "rev-parse", "--short", "HEAD")
-            isIgnoreExitValue = true
-        }.standardOutput.asText.map { it.trim().ifBlank { "unknown" } },
+        gitShortShaProvider.zip(gitStatusProvider) { sha, status ->
+            if (status.isEmpty()) sha else "$sha-dirty"
+        },
     )
-    buildEpoch.set(providers.provider { (System.currentTimeMillis() / 60_000L) * 60_000L })
+    buildEpoch.set(
+        gitCommitEpochProvider.zip(gitStatusProvider) { commitEpochSeconds, status ->
+            if (status.isEmpty() && commitEpochSeconds.isNotBlank()) {
+                commitEpochSeconds.toLong() * 1000L
+            } else {
+                System.currentTimeMillis()
+            }
+        },
+    )
 }
 
 androidComponents {
