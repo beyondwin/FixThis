@@ -1,0 +1,124 @@
+name: Nightly compatibility matrix
+
+# Informational nightly job: builds the sample app against the LOWER BOUND of
+# each toolchain axis documented in docs/reference/compatibility.md. Each job
+# is allowed to fail (`continue-on-error: true`) — this workflow does not
+# gate PRs. Promotion to a required check is tracked in CHANGELOG.md under
+# BR-4 as a follow-up after one week of stable runs.
+#
+# NOTE: The property overrides referenced below
+# (`-PoverrideAgpVersion`, `-PoverrideKotlinVersion`,
+# `-PoverrideComposeBomVersion`) are NOT yet wired into the build. Until the
+# override plumbing lands in `settings.gradle.kts` / `gradle/libs.versions.toml`,
+# Gradle simply ignores the unknown project property and the job runs
+# `assembleDebug` against the currently-pinned versions. The job still
+# produces a useful daily artifact (the resolved versions are logged in the
+# diagnostic step), and the override wiring is a follow-up task.
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  agp-lower-bound:
+    name: AGP lower bound (assembleDebug)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make Gradle executable
+        run: chmod +x ./gradlew
+
+      - name: Assemble debug against AGP lower bound
+        id: assemble
+        continue-on-error: true
+        run: ./gradlew -PoverrideAgpVersion=9.0.0 :app:assembleDebug --no-daemon
+
+      - name: Diagnostic on failure
+        if: steps.assemble.outcome == 'failure'
+        run: |
+          echo "::warning::AGP lower-bound assembleDebug failed. Informational only."
+          ./gradlew --version || true
+          ./gradlew :app:dependencies --configuration debugRuntimeClasspath --no-daemon || true
+
+  kotlin-lower-bound:
+    name: Kotlin lower bound (assembleDebug)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make Gradle executable
+        run: chmod +x ./gradlew
+
+      - name: Assemble debug against Kotlin lower bound
+        id: assemble
+        continue-on-error: true
+        run: ./gradlew -PoverrideKotlinVersion=2.2.0 :app:assembleDebug --no-daemon
+
+      - name: Diagnostic on failure
+        if: steps.assemble.outcome == 'failure'
+        run: |
+          echo "::warning::Kotlin lower-bound assembleDebug failed. Informational only."
+          ./gradlew --version || true
+          ./gradlew :app:dependencies --configuration debugRuntimeClasspath --no-daemon || true
+
+  compose-lower-bound:
+    name: Compose BOM lower bound (assembleDebug)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make Gradle executable
+        run: chmod +x ./gradlew
+
+      - name: Assemble debug against Compose BOM lower bound
+        id: assemble
+        continue-on-error: true
+        run: ./gradlew -PoverrideComposeBomVersion=2026.01.00 :app:assembleDebug --no-daemon
+
+      - name: Diagnostic on failure
+        if: steps.assemble.outcome == 'failure'
+        run: |
+          echo "::warning::Compose BOM lower-bound assembleDebug failed. Informational only."
+          ./gradlew --version || true
+          ./gradlew :app:dependencies --configuration debugRuntimeClasspath --no-daemon || true

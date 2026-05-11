@@ -11,7 +11,9 @@
 
 Same as the sample: JDK 21 toolchain, AGP 9.1.1, Kotlin 2.2.21, Compose BOM
 2026.04.01, `minSdk` 24, ADB on PATH. See
-[try-the-sample.md](try-the-sample.md#prerequisites) for the full table.
+[try-the-sample.md](try-the-sample.md#prerequisites) for the full table, and
+[`docs/reference/compatibility.md`](../reference/compatibility.md) for the
+full supported / minimum-that-compiles version axes.
 
 ## 1. Apply the Gradle plugin
 
