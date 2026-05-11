@@ -30,6 +30,9 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x ./gradlew
 
+      - name: Verify Kotlin formatting (spotlessCheck)
+        run: ./gradlew spotlessCheck --no-daemon
+
       - name: Run unit tests
         run: ./gradlew :fixthis-compose-core:test :fixthis-cli:test :fixthis-mcp:test :fixthis-compose-sidekick:testDebugUnitTest :fixthis-gradle-plugin:test
 

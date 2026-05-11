@@ -2,10 +2,31 @@ plugins {
     `java-gradle-plugin`
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.spotless)
 }
 
 kotlin {
     jvmToolchain(21)
+}
+
+val ktlintVersion = libs.versions.ktlint.get()
+
+spotless {
+    kotlin {
+        target("**/*.kt")
+        targetExclude("**/build/**", "**/generated/**")
+        ktlint(ktlintVersion).editorConfigOverride(
+            mapOf(
+                "ktlint_standard_no-wildcard-imports" to "enabled",
+                "ktlint_standard_function-naming" to "disabled",
+            ),
+        )
+    }
+    kotlinGradle {
+        target("**/*.gradle.kts")
+        targetExclude("**/build/**")
+        ktlint(ktlintVersion)
+    }
 }
 
 gradlePlugin {

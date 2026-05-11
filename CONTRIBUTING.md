@@ -1,5 +1,24 @@
 # Contributing
 
+## Formatting
+
+Kotlin sources and Gradle Kotlin DSL scripts are formatted by [Spotless](https://github.com/diffplug/spotless)
+with the [ktlint](https://github.com/pinterest/ktlint) formatter.
+
+```bash
+./gradlew spotlessApply   # format the codebase locally
+./gradlew spotlessCheck   # verify formatting (this is what CI runs)
+```
+
+CI runs `./gradlew spotlessCheck` before unit tests and fails on unformatted files.
+The historical bulk reformatting commit is recorded in
+[`.git-blame-ignore-revs`](.git-blame-ignore-revs); configure git to ignore it for
+`git blame` with:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
 ## Required Local Checks
 
 Run these before opening a pull request:
