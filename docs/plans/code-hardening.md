@@ -37,6 +37,7 @@ test -z "$(git grep -nE 'Thread\.sleep' fixthis-cli/src/main)"
 **Files:**
 - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt`
 - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/InstanceGroupingHelper.kt`
+- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt` (single site at line 101: `fallbackScreen!!`)
 
 **Steps**
 1. `git grep -n '!!' fixthis-mcp/src/main` → produce the inventory.
