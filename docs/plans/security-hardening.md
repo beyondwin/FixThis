@@ -71,10 +71,13 @@ test -f fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/si
 **Files:**
 - `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
 - `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeSocketNameNegotiator.kt` (new)
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/bridge/BridgeClient.kt` (accept negotiated suffix)
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/bridge/BridgeProtocol.kt` (bump VERSION if handshake changed)
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt` (mirrored constant)
+- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt` (bump VERSION; source of truth)
+- `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt` (accept negotiated suffix; mirror VERSION constant)
+- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt` (mirror VERSION constant)
+- `fixthis-mcp/src/main/console/staleness.js` (mirror VERSION constant — JS-side)
 - `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerStartupTest.kt` (new)
+
+Note: the protocol-version sync test (`fixthis-mcp/src/test/.../BridgeProtocolVersionSyncTest.kt`) enforces equality across all 4 mirror sites (BridgeProtocol.kt, BridgeClient.kt, ServerVersionRoutes.kt, staleness.js). All 4 must bump together. `BridgeClient.kt` lives under `:fixthis-cli`, not `:fixthis-mcp`.
 
 **Steps**
 1. Introduce `BridgeSocketNameNegotiator` with `nextCandidate(base, attempt)`.
