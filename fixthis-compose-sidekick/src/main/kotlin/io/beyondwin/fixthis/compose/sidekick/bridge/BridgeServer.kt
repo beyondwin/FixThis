@@ -178,7 +178,9 @@ class BridgeServer(
         return withContext(ioDispatcher) {
             val file = File(path).canonicalFile
             val cacheDirectory = environment.screenshotCacheDirectory().canonicalFile
-            require(file.isUnder(cacheDirectory)) { "Screenshot path is outside the FixThis screenshot cache" }
+            require(PathSafety.isUnder(file, cacheDirectory)) {
+                "Screenshot path is outside the FixThis screenshot cache"
+            }
             require(file.extension.equals("png", ignoreCase = true)) { "Screenshot must be a PNG file" }
             require(file.exists() && file.isFile) { "Screenshot does not exist: $path" }
             require(file.length() <= MaxScreenshotReadBytes) { "Screenshot is too large to read" }
@@ -554,9 +556,6 @@ private val BridgePngHeader: ByteArray = byteArrayOf(
     0x1A,
     0x0A,
 )
-
-private fun File.isUnder(directory: File): Boolean =
-    path == directory.path || path.startsWith(directory.path + File.separator)
 
 private fun File.hasPngHeader(): Boolean {
     if (length() < BridgePngHeader.size) return false
