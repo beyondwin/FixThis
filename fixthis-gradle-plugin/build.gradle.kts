@@ -26,10 +26,15 @@ configurations["functionalTestImplementation"].extendsFrom(configurations["testI
 configurations["functionalTestRuntimeOnly"].extendsFrom(configurations["testRuntimeOnly"])
 
 // The gradle-plugin is consumed via `pluginManagement { includeBuild(...) }`
-// so it cannot resolve sibling subprojects. Instead, locate the sidekick's
-// consumer-rules.pro relative to the root included build's projectDir.
-val consumerRulesFile = rootProject.projectDir
-    .resolve("../fixthis-compose-sidekick/consumer-rules.pro")
+// so it cannot resolve sibling subprojects. Instead, locate sidekick artefacts
+// relative to the root included build's projectDir.
+val sidekickDir = rootProject.projectDir.resolve("../fixthis-compose-sidekick")
+val consumerRulesFile = sidekickDir.resolve("consumer-rules.pro")
+val sidekickDebugManifestFile = sidekickDir.resolve("src/debug/AndroidManifest.xml")
+val sidekickMainManifestFile = sidekickDir.resolve("src/main/AndroidManifest.xml")
+val sidekickInitializerSourceFile = sidekickDir.resolve(
+    "src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/init/FixThisInitializer.kt",
+)
 
 val functionalTest = tasks.register<Test>("functionalTest") {
     description = "Runs functional tests for the FixThis Gradle plugin."
@@ -38,7 +43,13 @@ val functionalTest = tasks.register<Test>("functionalTest") {
     classpath = functionalTestSourceSet.runtimeClasspath
     useJUnit()
     systemProperty("fixthis.consumerRules.path", consumerRulesFile.absolutePath)
+    systemProperty("fixthis.sidekick.debugManifest.path", sidekickDebugManifestFile.absolutePath)
+    systemProperty("fixthis.sidekick.mainManifest.path", sidekickMainManifestFile.absolutePath)
+    systemProperty("fixthis.sidekick.initializerSource.path", sidekickInitializerSourceFile.absolutePath)
     inputs.file(consumerRulesFile).withPropertyName("consumerRules")
+    inputs.file(sidekickDebugManifestFile).withPropertyName("sidekickDebugManifest")
+    inputs.file(sidekickMainManifestFile).withPropertyName("sidekickMainManifest")
+    inputs.file(sidekickInitializerSourceFile).withPropertyName("sidekickInitializerSource")
 }
 
 tasks.named("check") {
