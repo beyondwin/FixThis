@@ -6,6 +6,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   baseline:
     name: Baseline verification
@@ -24,23 +28,29 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
       - name: Make Gradle executable
         run: chmod +x ./gradlew
 
-      - name: Verify Kotlin formatting (spotlessCheck)
-        run: ./gradlew spotlessCheck --no-daemon
-
-      - name: Static analysis (detekt)
-        run: ./gradlew detekt --no-daemon
-
-      - name: Run unit tests
-        run: ./gradlew :fixthis-compose-core:test :fixthis-cli:test :fixthis-mcp:test :fixthis-compose-sidekick:testDebugUnitTest :fixthis-gradle-plugin:test
-
-      - name: Build sample and distributions
-        run: ./gradlew :app:assembleDebug :fixthis-cli:installDist :fixthis-mcp:installDist
+      - name: Run Gradle verification
+        run: |
+          ./gradlew \
+            spotlessCheck \
+            detekt \
+            :fixthis-compose-core:test \
+            :fixthis-cli:test \
+            :fixthis-mcp:test \
+            :fixthis-compose-sidekick:testDebugUnitTest \
+            :fixthis-gradle-plugin:test \
+            :app:assembleDebug \
+            :fixthis-cli:installDist \
+            :fixthis-mcp:installDist \
+            --no-daemon
 
       - name: Check console JavaScript syntax
         run: node --check fixthis-mcp/src/main/resources/console/app.js

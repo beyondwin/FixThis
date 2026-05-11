@@ -18,6 +18,10 @@ on:
     - cron: "0 4 * * *"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   connected-tests:
     name: connectedDebugAndroidTest (emulator)
@@ -35,6 +39,9 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
@@ -60,7 +67,7 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: ./gradlew connectedDebugAndroidTest --no-daemon
+          script: ./gradlew :app:connectedDebugAndroidTest :fixthis-compose-sidekick:connectedDebugAndroidTest --no-daemon
 
       - name: Upload test reports
         if: always()

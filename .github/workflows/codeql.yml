@@ -11,6 +11,10 @@ on:
     # Monday 06:00 UTC — weekly scan
     - cron: "0 6 * * 1"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -44,6 +48,10 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+
+      - name: Set up Gradle
+        if: matrix.language == 'java-kotlin'
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Set up Android SDK
         if: matrix.language == 'java-kotlin'

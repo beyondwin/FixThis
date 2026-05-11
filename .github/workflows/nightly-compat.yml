@@ -1,6 +1,6 @@
-name: Nightly compatibility matrix
+name: Scheduled compatibility matrix
 
-# Informational nightly job: builds the sample app against the LOWER BOUND of
+# Informational scheduled job: builds the sample app against the LOWER BOUND of
 # each toolchain axis documented in docs/reference/compatibility.md. Each job
 # is allowed to fail (`continue-on-error: true`) — this workflow does not
 # gate PRs. Promotion to a required check is tracked in CHANGELOG.md under
@@ -12,13 +12,18 @@ name: Nightly compatibility matrix
 # override plumbing lands in `settings.gradle.kts` / `gradle/libs.versions.toml`,
 # Gradle simply ignores the unknown project property and the job runs
 # `assembleDebug` against the currently-pinned versions. The job still
-# produces a useful daily artifact (the resolved versions are logged in the
+# produces a useful weekly artifact (the resolved versions are logged in the
 # diagnostic step), and the override wiring is a follow-up task.
 
 on:
   schedule:
-    - cron: "0 3 * * *"
+    # Tuesday 03:00 UTC — weekly until version override plumbing is wired.
+    - cron: "0 3 * * 2"
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   agp-lower-bound:
@@ -36,6 +41,9 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
@@ -71,6 +79,9 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
@@ -104,6 +115,9 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3

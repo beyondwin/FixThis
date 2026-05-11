@@ -30,7 +30,7 @@ The following table is the canonical contract for which workflows are (or will b
 | Static analysis | `./gradlew detekt` in ci.yml | CI-2 | Pending — promote after 7 days green |
 | CodeQL | `.github/workflows/codeql.yml` | CI-3 | Pending — promote after first analysis lands |
 | Nightly connected tests | `.github/workflows/connected-tests.yml` | CI-4 | Informational only — promote after 14 consecutive green |
-| Compatibility matrix nightly | `.github/workflows/nightly-compat.yml` | BR-4 | Informational only — promote after 1 week stable |
+| Compatibility matrix scheduled | `.github/workflows/nightly-compat.yml` | BR-4 | Informational only — promote after 1 week stable |
 
 The branch-protection flip itself is gated on the "Pending" rows above turning green for the stated observation window. Maintainers update the readiness tracker as windows complete.
 

@@ -3,13 +3,13 @@
 FixThis is built and exercised against a single, pinned set of toolchain
 versions (the "Tested" axis below). The "Minimum that compiles" axis records
 the lower bound that the project still expects to assemble against — those
-lower bounds are validated by an informational [nightly workflow](#nightly-validation)
+lower bounds are validated by an informational [scheduled workflow](#scheduled-validation)
 and are not (yet) gated by required CI.
 
 If you consume FixThis from your own project, the **Tested** column is the
 safe choice. The **Minimum that compiles** column documents intent for
 downstream users on older toolchains; treat it as best-effort until the
-nightly is promoted to a required check (see
+scheduled workflow is promoted to a required check (see
 [CHANGELOG.md](../../CHANGELOG.md) for the promotion follow-up).
 
 ## Axes
@@ -25,8 +25,8 @@ nightly is promoted to a required check (see
 
 The "Tested" column matches what CI builds on every PR and push to `main`
 ([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)). The "Minimum
-that compiles" column is checked nightly (informational only — see
-[Nightly validation](#nightly-validation)).
+that compiles" column is checked weekly (informational only — see
+[Scheduled validation](#scheduled-validation)).
 
 ## Rationale per axis
 
@@ -38,7 +38,7 @@ that compiles" column is checked nightly (informational only — see
   `AndroidComponentsExtension` shape stabilised in AGP 9.
 - **Minimum 9.0.0.** TODO(maintainer): expand once we know the precise lower
   bound. Empirically AGP 9.0.x should compile against today's sources; the
-  nightly job is what will catch regressions in that claim. AGP 8.x is
+  scheduled job is what will catch regressions in that claim. AGP 8.x is
   explicitly out of scope — variant API and namespace handling differ enough
   that the sidekick's auto-wiring no longer applies.
 
@@ -77,12 +77,12 @@ that compiles" column is checked nightly (informational only — see
   `androidx.startup` (debug-only) which requires API 21+, but the sample app
   and tests assume 24.
 
-## Nightly validation
+## Scheduled validation
 
-A nightly workflow runs the lower bounds informationally:
+A scheduled workflow runs the lower bounds informationally:
 
 - File: [`.github/workflows/nightly-compat.yml`](../../.github/workflows/nightly-compat.yml)
-- Schedule: 03:00 UTC daily plus manual `workflow_dispatch`.
+- Schedule: 03:00 UTC Tuesdays plus manual `workflow_dispatch`.
 - Each axis (AGP, Kotlin, Compose) is exercised by one
   `./gradlew :app:assembleDebug` invocation with a property override
   pointing at the axis's lower bound.
@@ -94,7 +94,7 @@ A nightly workflow runs the lower bounds informationally:
 > NOTE: the property override mechanism (`-PoverrideAgpVersion`,
 > `-PoverrideKotlinVersion`, `-PoverrideComposeBomVersion`) is not yet wired
 > through `settings.gradle.kts` / `gradle/libs.versions.toml`. The workflow
-> still runs `assembleDebug` and reports the resolved versions, so the daily
+> still runs `assembleDebug` and reports the resolved versions, so the weekly
 > log captures whatever the current pinned bounds produce until the override
 > plumbing lands as a follow-up.
 
