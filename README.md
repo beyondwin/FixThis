@@ -1,6 +1,6 @@
 # FixThis for Android Compose
 
-[![CI](https://github.com/kws/FixThis/actions/workflows/ci.yml/badge.svg)](https://github.com/kws/FixThis/actions/workflows/ci.yml)
+[![CI](https://github.com/beyondwin/FixThis/actions/workflows/ci.yml/badge.svg)](https://github.com/beyondwin/FixThis/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![JDK 21](https://img.shields.io/badge/JDK-21-orange.svg)](https://adoptium.net/)
 [![Compose](https://img.shields.io/badge/Jetpack_Compose-2026.04.01-4285F4.svg)](https://developer.android.com/jetpack/compose)
