@@ -3,13 +3,16 @@
 Status: Draft
 Spec: [`../specs/code-hardening.md`](../specs/code-hardening.md)
 
-Each item is independently mergeable. Order is by risk-to-reward: CH-2 is the
-smallest and most observable; CH-4 is the largest and last.
+Each task is independently mergeable. Order is by risk-to-reward: Task 0 is
+the smallest and most observable; Task 3 is the largest and last.
 
-## CH-2 — `Thread.sleep` → `delay`
+## Tasks
 
-**Files**
+### Task 0: CH-2 — `Thread.sleep` → `delay`
+
+**Files:**
 - `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/RunCommand.kt`
+- `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/RunCommandTest.kt` (new or extend)
 
 **Steps**
 1. Replace `Thread.sleep(500)` inside `waitForStatus` with
@@ -20,17 +23,18 @@ smallest and most observable; CH-4 is the largest and last.
    the remaining time.
 3. Confirm `waitForStatus` is called from a coroutine scope; if any non-suspend
    caller remains, wrap with `runBlocking` at the boundary and document why.
+4. Add unit test asserting that cancelling the outer scope while `waitForStatus`
+   is mid-backoff returns within 50 ms.
 
-**Validation**
-- `./gradlew :fixthis-cli:test`
-- New unit test in `fixthis-cli/src/test/.../RunCommandTest.kt` that asserts
-  cancelling the outer scope while `waitForStatus` is mid-backoff returns
-  within 50 ms.
-- `git grep -nE 'Thread\.sleep' fixthis-cli/src/main` → empty.
+#### Acceptance Criteria
+```bash
+./gradlew :fixthis-cli:test
+test -z "$(git grep -nE 'Thread\.sleep' fixthis-cli/src/main)"
+```
 
-## CH-1 — Eliminate `!!` in `:fixthis-mcp`
+### Task 1: CH-1 — Eliminate `!!` in `:fixthis-mcp`
 
-**Files**
+**Files:**
 - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt`
 - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/InstanceGroupingHelper.kt`
 
@@ -47,17 +51,20 @@ smallest and most observable; CH-4 is the largest and last.
    pattern-matched the variant in the same statement (e.g., immediately after
    a `require(target is Node)`).
 
-**Validation**
-- `./gradlew :fixthis-mcp:test`
-- `git grep -nE '\\!\\!' fixthis-mcp/src/main` returns only annotated
-  exceptions.
+#### Acceptance Criteria
+```bash
+./gradlew :fixthis-mcp:test
+# Any remaining !! must be on the same line as a require/check that proves non-null;
+# count of unannotated !! occurrences must be zero
+git grep -nE '!!' fixthis-mcp/src/main | grep -vE '(require|check|//\s*ok:)' | wc -l | grep -qE '^\s*0\s*$'
+```
 
-## CH-3 — `InFlightRegistry` in `McpServer`
+### Task 2: CH-3 — `InFlightRegistry` in `McpServer`
 
-**Files**
+**Files:**
 - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/McpServer.kt`
-- New: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/InFlightRegistry.kt`
-- New: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/InFlightRegistryTest.kt`
+- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/InFlightRegistry.kt` (new)
+- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/InFlightRegistryTest.kt` (new)
 
 **Steps**
 1. Add `InFlightRegistry` with a private `Mutex` and the API:
@@ -69,21 +76,27 @@ smallest and most observable; CH-4 is the largest and last.
    section.
 3. Move the existing `cancelInFlightRequests` body into
    `registry.consumeAll().forEach { it.job.cancelAndJoin() }`.
+4. Add a new unit test fanning out 32 cancellable requests on a test
+   dispatcher, cancelling every other one via `notifications/cancelled`, and
+   asserting `registry.size() == 0` after `cancelInFlightRequests` and no
+   `Job` is left active.
 
-**Validation**
-- New unit test: fan out 32 cancellable requests on a test dispatcher, cancel
-  every other one via `notifications/cancelled`, assert
-  `registry.size() == 0` after `cancelInFlightRequests` and no `Job` is left
-  active.
-- Existing `:fixthis-mcp:test` suite must remain green.
+#### Acceptance Criteria
+```bash
+./gradlew :fixthis-mcp:test
+test -z "$(git grep -nE 'synchronized\(inFlight' fixthis-mcp/src/main)"
+```
 
-## CH-4 — Split `FeedbackSessionService`
+### Task 3: CH-4 — Split `FeedbackSessionService`
 
-**Files**
+**Files:**
 - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
-- New: `…/session/FeedbackSessionRegistry.kt`
-- New: `…/session/AnnotationRepository.kt`
-- New: `…/session/EvidenceCoordinator.kt`
+- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionRegistry.kt` (new)
+- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationRepository.kt` (new)
+- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EvidenceCoordinator.kt` (new)
+- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionRegistryTest.kt` (new)
+- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationRepositoryTest.kt` (new)
+- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/EvidenceCoordinatorTest.kt` (new)
 
 **Steps**
 1. Extract method clusters in three commits:
@@ -97,14 +110,21 @@ smallest and most observable; CH-4 is the largest and last.
    service-locator lookups).
 3. `FeedbackSessionService` either disappears or remains as a thin façade
    (≤ 60 lines) for backwards-compatible call sites.
+4. New focused unit tests per class — each ≤ 200 lines, no HTTP fixtures.
 
-**Validation**
-- All existing tests pass without modification (callers go through the façade
-  or are updated in-commit).
-- New focused unit tests per class — each ≤ 200 lines, no HTTP fixtures.
+#### Acceptance Criteria
+```bash
+./gradlew :fixthis-mcp:test
+# Each new class file is under 200 lines
+for f in fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionRegistry.kt \
+         fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationRepository.kt \
+         fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EvidenceCoordinator.kt; do
+  test -f "$f" && [ "$(wc -l < "$f")" -le 200 ]
+done
+```
 
 ## Rollout
 
-- One PR per item (CH-2, CH-1, CH-3, CH-4 in that order).
+- One PR per task (Task 0 → Task 3 in that order).
 - No flags; each PR is a pure refactor with behaviour-preserving tests.
 - Squash-merge; CHANGELOG entry under "Internal / refactor".

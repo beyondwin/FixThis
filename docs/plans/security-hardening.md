@@ -3,14 +3,23 @@
 Status: Draft
 Spec: [`../specs/security-hardening.md`](../specs/security-hardening.md)
 
-Order is documentation → low-risk hardening → user-visible behaviour change.
+Order is documentation → low-risk hardening → behavioural change.
 
-## SEC-1 — Threat model document
+Note: SEC-4 (Token + origin gate) is deferred. The current
+`FeedbackConsoleServer` already binds to `127.0.0.1`, performs
+`X-FixThis-Token` and Origin checks. The remaining SEC-4 delta (Host-header
+check, constant-time comparison, `ConsoleAuth.kt` extraction, contract
+doc) is tracked as a follow-up.
 
-**Files**
-- New: `docs/reference/threat-model.md`
+## Tasks
+
+### Task 0: SEC-1 — Threat model document
+
+**Files:**
+- `docs/reference/threat-model.md` (new)
 - `README.md` (link from Privacy & security row)
 - `docs/index.md` (add entry)
+- `SECURITY.md` (cross-link to threat model)
 
 **Steps**
 1. Use the template:
@@ -18,43 +27,54 @@ Order is documentation → low-risk hardening → user-visible behaviour change.
    - **Trust boundaries** (numbered diagram in ASCII)
    - **In-scope / out-of-scope adversaries** (2 bullet lists)
    - **Mitigations today** (table: control → file:line)
-   - **Open gaps** (links to SEC-2/3/4 once merged)
+   - **Open gaps** (links to SEC-2/3 once merged; SEC-4 marked as deferred follow-up)
 2. Cross-link from `SECURITY.md` for vulnerability reporting flow.
 
-**Validation**
-- Manual review.
-- All file-line citations resolve (`xargs -n1 ... -- test -f`).
+#### Acceptance Criteria
+```bash
+test -f docs/reference/threat-model.md
+grep -q 'threat-model' README.md
+grep -q 'threat-model' docs/index.md
+grep -q 'threat-model' SECURITY.md
+# All file:line citations in the threat model must resolve to existing files
+grep -oE '[a-zA-Z0-9_/.-]+\.(kt|kts|xml|md|js|toml)(:[0-9]+)?' docs/reference/threat-model.md | \
+  sed 's/:[0-9]*$//' | sort -u | while read -r f; do test -f "$f" || (echo "missing: $f"; false); done
+```
 
-## SEC-2 — Path validation hardening
+### Task 1: SEC-2 — Path validation hardening
 
-**Files**
+**Files:**
 - `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
-- `fixthis-compose-sidekick/src/main/kotlin/.../PathSafety.kt` (extract
-  `isUnder` here with a kdoc explaining what it does and does not protect
-  against — TOCTOU explicitly called out)
-- New: `fixthis-compose-sidekick/src/test/kotlin/.../PathSafetyTest.kt`
-- New: `fixthis-compose-sidekick/src/test/kotlin/.../BridgeServerScreenshotPathTest.kt`
+- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/PathSafety.kt` (new — extract `isUnder`)
+- `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/PathSafetyTest.kt` (new)
+- `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerScreenshotPathTest.kt` (new)
 
 **Steps**
 1. Extract `isUnder` into `PathSafety.isUnder(child: File, parent: File): Boolean`
-   with canonical-path semantics; document TOCTOU caveat.
+   with canonical-path semantics; document TOCTOU caveat in a single-line kdoc.
 2. Move the cache-dir resolution inside the same `withContext(ioDispatcher)`
    block; verify the path immediately before `readBytes`.
 3. Write parameterised tests for:
    `../../etc/passwd`, `./../foo`, symlink that resolves outside, trailing
    slash, repeated separators, and an absolute path equal to the cache root.
 
-**Validation**
-- `./gradlew :fixthis-compose-sidekick:testDebugUnitTest`
-- New tests cover the listed inputs.
+#### Acceptance Criteria
+```bash
+./gradlew :fixthis-compose-sidekick:testDebugUnitTest --no-daemon
+test -f fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/PathSafety.kt
+test -f fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/PathSafetyTest.kt
+test -f fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerScreenshotPathTest.kt
+```
 
-## SEC-3 — `LocalServerSocket` resilience
+### Task 2: SEC-3 — `LocalServerSocket` resilience
 
-**Files**
-- `fixthis-compose-sidekick/.../bridge/BridgeServer.kt`
-- `fixthis-compose-sidekick/.../bridge/BridgeSocketNameNegotiator.kt` (new)
-- `fixthis-mcp/.../bridge/BridgeClient.kt` — accept negotiated suffix
-- New: `fixthis-compose-sidekick/src/test/kotlin/.../BridgeServerStartupTest.kt`
+**Files:**
+- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
+- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeSocketNameNegotiator.kt` (new)
+- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/bridge/BridgeClient.kt` (accept negotiated suffix)
+- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/bridge/BridgeProtocol.kt` (bump VERSION if handshake changed)
+- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt` (mirrored constant)
+- `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerStartupTest.kt` (new)
 
 **Steps**
 1. Introduce `BridgeSocketNameNegotiator` with `nextCandidate(base, attempt)`.
@@ -67,44 +87,16 @@ Order is documentation → low-risk hardening → user-visible behaviour change.
    `docs/reference/bridge-protocol.md`; update the mirrored constants and
    ensure `BridgeProtocolVersionSyncTest` catches it.
 
-**Validation**
-- Unit test simulating an `IOException` on attempt 0 and success on attempt 1.
-- Manual: kill `fixthis-mcp`, immediately restart, sidekick still attaches.
-- `:fixthis-mcp:test` includes `BridgeProtocolVersionSyncTest` green.
-
-## SEC-4 — Token + origin gate
-
-**Files**
-- `fixthis-mcp/.../console/FeedbackConsoleServer.kt`
-- `fixthis-mcp/.../console/ConsoleAuth.kt` (new — token storage, accessor)
-- `fixthis-mcp/src/main/resources/console/app.js` — read token from URL once,
-  send via `X-FixThis-Token` header on every state-changing fetch
-- `docs/reference/feedback-console-contract.md` — document the auth contract
-- New: `fixthis-mcp/src/test/kotlin/.../ConsoleAuthTest.kt`
-
-**Steps**
-1. Generate the session token in `FeedbackConsoleServer.start()`
-   (`SecureRandom.nextBytes(16)` → base64url, 22 chars).
-2. Print the full URL (with `?t=...`) to stdout; this is what
-   `fixthis_open_feedback_console` shows.
-3. Add a filter wrapping every state-changing route:
-   - Verify `Host` is `127.0.0.1`, `localhost`, or the equivalent IPv6.
-   - Verify the token is present and equal (constant-time comparison).
-4. Update `app.js` to lift the token from `location.search` on first load
-   and store it in memory; attach it as an `X-FixThis-Token` header on every
-   subsequent fetch. Strip the token from the URL after loading.
-
-**Validation**
-- Unit test: state-changing endpoint with bad token → 401, with bad Host
-  → 403, with valid both → 200.
-- Manual: open the console URL, copy without the `?t=...`, paste in a new
-  tab → console is read-only and shows a "session token required" banner.
-- End-to-end smoke (`scripts/console-availability-test.mjs`) updated to
-  carry the token.
+#### Acceptance Criteria
+```bash
+./gradlew :fixthis-compose-sidekick:testDebugUnitTest --no-daemon
+./gradlew :fixthis-mcp:test --tests '*BridgeProtocolVersionSync*' --no-daemon
+test -f fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeSocketNameNegotiator.kt
+test -f fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerStartupTest.kt
+```
 
 ## Rollout
 
-- SEC-1 first (documentation, no code).
-- SEC-2, SEC-3 are additive and behind unit tests.
-- SEC-4 is the one user-visible change — note in CHANGELOG under "Security"
-  with a migration note: copy the full URL including `?t=...`.
+- Task 0: SEC-1 first (documentation, no code).
+- Task 1, Task 2: additive and behind unit tests.
+- SEC-4 (token + origin gate) deferred — see note at top of file.
