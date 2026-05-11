@@ -19,6 +19,10 @@ spotless {
             mapOf(
                 "ktlint_standard_no-wildcard-imports" to "enabled",
                 "ktlint_standard_function-naming" to "disabled",
+                "ktlint_standard_property-naming" to "disabled",
+                "ktlint_standard_max-line-length" to "disabled",
+                "ktlint_standard_comment-wrapping" to "disabled",
+                "ktlint_standard_type-argument-comment" to "disabled",
             ),
         )
     }

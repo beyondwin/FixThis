@@ -21,6 +21,14 @@ allprojects {
                     "ktlint_standard_no-wildcard-imports" to "enabled",
                     // existing tests use backtick-quoted method names with descriptive identifiers
                     "ktlint_standard_function-naming" to "disabled",
+                    // codebase uses camelCase for private/internal `val` constants intentionally
+                    "ktlint_standard_property-naming" to "disabled",
+                    // not auto-fixable; codebase has long descriptive strings/URLs
+                    "ktlint_standard_max-line-length" to "disabled",
+                    // not auto-fixable; one inline block comment we keep as-is
+                    "ktlint_standard_comment-wrapping" to "disabled",
+                    // inline `/* name */` comments inside generic argument lists are kept
+                    "ktlint_standard_type-argument-comment" to "disabled",
                 ),
             )
         }
