@@ -29,7 +29,17 @@ allprojects {
     extensions.configure<com.diffplug.gradle.spotless.SpotlessExtension> {
         kotlin {
             target("**/*.kt")
-            targetExclude("**/build/**", "**/generated/**")
+            // Exclude build outputs, generated sources, and on-disk git worktrees from
+            // sibling executor runs (.worktrees/* and .claude/worktrees/* are gitignored
+            // but the root project's Spotless target glob would otherwise walk them and
+            // fail on stale formatting in those checkouts).
+            targetExclude(
+                "**/build/**",
+                "**/generated/**",
+                "**/.worktrees/**",
+                "**/.claude/worktrees/**",
+                "**/worktrees/**",
+            )
             ktlint(ktlintVersion).editorConfigOverride(
                 mapOf(
                     "ktlint_standard_no-wildcard-imports" to "enabled",
@@ -48,7 +58,12 @@ allprojects {
         }
         kotlinGradle {
             target("**/*.gradle.kts")
-            targetExclude("**/build/**")
+            targetExclude(
+                "**/build/**",
+                "**/.worktrees/**",
+                "**/.claude/worktrees/**",
+                "**/worktrees/**",
+            )
             ktlint(ktlintVersion)
         }
     }

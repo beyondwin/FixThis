@@ -15,7 +15,13 @@ val ktlintVersion = libs.versions.ktlint.get()
 spotless {
     kotlin {
         target("**/*.kt")
-        targetExclude("**/build/**", "**/generated/**")
+        targetExclude(
+            "**/build/**",
+            "**/generated/**",
+            "**/.worktrees/**",
+            "**/.claude/worktrees/**",
+            "**/worktrees/**",
+        )
         ktlint(ktlintVersion).editorConfigOverride(
             mapOf(
                 "ktlint_standard_no-wildcard-imports" to "enabled",
@@ -29,7 +35,12 @@ spotless {
     }
     kotlinGradle {
         target("**/*.gradle.kts")
-        targetExclude("**/build/**")
+        targetExclude(
+            "**/build/**",
+            "**/.worktrees/**",
+            "**/.claude/worktrees/**",
+            "**/worktrees/**",
+        )
         ktlint(ktlintVersion)
     }
 }
