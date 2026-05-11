@@ -21,14 +21,22 @@ object InstanceGroupingHelper {
 
         eligible
             .groupBy { item ->
+                val node = checkNotNull(item.selectedNode) {
+                    "eligible filter must exclude items without selectedNode"
+                }
                 InstanceKey(
                     fileLine = item.sourceCandidates.first().fileWithLine(),
-                    testTag = item.selectedNode!!.testTag,
+                    testTag = node.testTag,
                 )
             }
             .filter { (_, group) -> group.size >= 2 }
             .forEach { (_, group) ->
-                val ordered = group.sortedBy { it.selectedNode!!.path.joinToString("/") }
+                val ordered = group.sortedBy { item ->
+                    val node = checkNotNull(item.selectedNode) {
+                        "eligible filter must exclude items without selectedNode"
+                    }
+                    node.path.joinToString("/")
+                }
                 ordered.forEachIndexed { idx, item ->
                     labels[item.itemId] = InstanceLabel(index = idx + 1, total = ordered.size)
                 }

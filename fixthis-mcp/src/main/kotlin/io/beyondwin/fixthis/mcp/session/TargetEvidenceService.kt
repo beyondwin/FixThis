@@ -114,10 +114,15 @@ class TargetEvidenceService(
         val sourceCandidates = sourceCandidatesFor(sourceIndex, sourceSelectedNode, sourceNearbyNodes, screen.activityName)
         val target = when (validatedTarget.targetType) {
             FeedbackTargetType.AREA -> AnnotationTargetDto.Area(validatedTarget.storedBounds)
-            FeedbackTargetType.NODE -> AnnotationTargetDto.Node(
-                nodeUid = validatedTarget.selectedNode!!.uid,
-                boundsInWindow = validatedTarget.storedBounds,
-            )
+            FeedbackTargetType.NODE -> {
+                val nodeForTarget = requireNotNull(validatedTarget.selectedNode) {
+                    "ValidatedFeedbackTarget(targetType=NODE) must carry a non-null selectedNode"
+                }
+                AnnotationTargetDto.Node(
+                    nodeUid = nodeForTarget.uid,
+                    boundsInWindow = validatedTarget.storedBounds,
+                )
+            }
         }
         return AnnotationDto(
             itemId = "pending",
@@ -196,7 +201,12 @@ class TargetEvidenceService(
     ): List<FixThisNode> =
         when (targetType) {
             FeedbackTargetType.AREA -> areaEvidenceNodes(screen, storedBounds)
-            FeedbackTargetType.NODE -> nodeEvidenceNodes(screen, selectedNode!!)
+            FeedbackTargetType.NODE -> {
+                val node = requireNotNull(selectedNode) {
+                    "evidenceNodesFor(NODE) requires a non-null selectedNode resolved upstream"
+                }
+                nodeEvidenceNodes(screen, node)
+            }
         }
 
     private fun validateFinitePositiveBounds(bounds: FixThisRect) {

@@ -98,7 +98,9 @@ class FeedbackDraftService(
 
         return try {
             val preview = cachedPreview ?: run {
-                val fallback = fallbackScreen!!
+                val fallback = checkNotNull(fallbackScreen) {
+                    "PREVIEW_NOT_FOUND guard above must have rejected a null fallbackScreen"
+                }
                 validatePreviewPendingItems(fallback, items, allowBlankComments)
                 fallbackPreviewRecord(sessionId, previewId, fallback)
             }
