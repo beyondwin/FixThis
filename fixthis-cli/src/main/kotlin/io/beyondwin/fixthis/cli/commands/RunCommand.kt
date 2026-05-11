@@ -7,6 +7,8 @@ import com.github.ajalt.clikt.parameters.types.long
 import io.beyondwin.fixthis.cli.Adb
 import io.beyondwin.fixthis.cli.BridgeClient
 import java.io.File
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 
 class RunCommand : CoreCliktCommand(name = "run") {
@@ -28,7 +30,9 @@ class RunCommand : CoreCliktCommand(name = "run") {
         echo("Checking FixThis sidekick")
         failAsCliError {
             runBlocking {
-                waitForStatus(client, resolvedPackage, timeoutMillis)
+                waitForStatus(timeoutMillis) { remaining ->
+                    client.request(resolvedPackage, "status", readTimeoutMillis = remaining)
+                }
             }
         }
         echo("sidekick: connected")
@@ -44,20 +48,49 @@ class RunCommand : CoreCliktCommand(name = "run") {
         val exitCode = process.waitFor()
         if (exitCode != 0) error("Gradle install failed with exit code $exitCode")
     }
+}
 
-    private suspend fun waitForStatus(client: BridgeClient, packageName: String, timeoutMillis: Long) {
-        val deadline = System.currentTimeMillis() + timeoutMillis
-        var lastError: Throwable? = null
-        while (System.currentTimeMillis() <= deadline) {
-            try {
-                val remainingMillis = (deadline - System.currentTimeMillis()).coerceAtLeast(1L)
-                client.request(packageName, "status", readTimeoutMillis = remainingMillis)
-                return
-            } catch (error: Throwable) {
-                lastError = error
-                Thread.sleep(500)
-            }
+/**
+ * Polls [probe] until it succeeds or [timeoutMillis] elapses, backing off between attempts.
+ *
+ * Backoff schedule (milliseconds): 200, 400, 800, 1500, then capped at 1500. Each sleep is
+ * clamped to the time remaining before the deadline, so we never overshoot. Uses [delay] so
+ * that cancellation of the enclosing coroutine returns within one scheduler tick instead of
+ * blocking the calling thread.
+ *
+ * [probe] receives the remaining time before the deadline (millis), suitable for use as a
+ * per-attempt I/O timeout.
+ */
+internal suspend fun waitForStatus(
+    timeoutMillis: Long,
+    probe: suspend (remainingMillis: Long) -> Unit,
+) {
+    val deadline = System.currentTimeMillis() + timeoutMillis
+    val backoff = backoffSequence()
+    var lastError: Throwable? = null
+    while (true) {
+        val remaining = deadline - System.currentTimeMillis()
+        if (remaining <= 0L) break
+        try {
+            probe(remaining.coerceAtLeast(1L))
+            return
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (error: Throwable) {
+            lastError = error
         }
-        throw IllegalStateException("FixThis sidekick did not connect before timeout", lastError)
+        val afterAttempt = deadline - System.currentTimeMillis()
+        if (afterAttempt <= 0L) break
+        val sleep = minOf(backoff.next(), afterAttempt)
+        delay(sleep)
+    }
+    throw IllegalStateException("FixThis sidekick did not connect before timeout", lastError)
+}
+
+private fun backoffSequence(): Iterator<Long> = iterator {
+    var current = 200L
+    while (true) {
+        yield(current)
+        current = (current * 2).coerceAtMost(1_500L)
     }
 }
