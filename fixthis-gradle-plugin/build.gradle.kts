@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.spotless)
+    alias(libs.plugins.detekt)
 }
 
 kotlin {
@@ -31,6 +32,14 @@ spotless {
         targetExclude("**/build/**")
         ktlint(ktlintVersion)
     }
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom(files("${rootProject.projectDir}/../config/detekt/detekt.yml"))
+    // See note in root build.gradle.kts about per-module baseline files.
+    baseline = file("${rootProject.projectDir}/../config/detekt/baseline-fixthis-gradle-plugin.xml")
+    parallel = true
 }
 
 gradlePlugin {
