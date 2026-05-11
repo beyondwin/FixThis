@@ -1,3 +1,19 @@
+# Dependabot configuration.
+#
+# Version-update PRs are disabled (`open-pull-requests-limit: 0`) so
+# Dependabot only opens PRs for **security advisories** affecting our
+# dependencies — never for routine version bumps. The ecosystem entries
+# stay configured so security alerts can still find them.
+#
+# To re-enable routine version bumps later, raise the per-ecosystem
+# `open-pull-requests-limit` (e.g. back to 5 or 10) and re-add the
+# `groups:` block to batch minor+patch updates.
+#
+# Reference: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file#open-pull-requests-limit
+#   > "If you set the limit to 0, Dependabot won't open any pull requests
+# >    for version updates. Security update pull requests have a separate,
+# >    internal limit of ten that can't be changed."
+
 version: 2
 updates:
   - package-ecosystem: gradle
@@ -7,13 +23,8 @@ updates:
       day: monday
       time: "06:00"
       timezone: Etc/UTC
-    open-pull-requests-limit: 10
-    groups:
-      gradle-minor-patch:
-        applies-to: version-updates
-        update-types:
-          - minor
-          - patch
+    # Security updates only — no routine version-bump PRs.
+    open-pull-requests-limit: 0
 
   - package-ecosystem: github-actions
     directory: "/"
@@ -22,13 +33,7 @@ updates:
       day: monday
       time: "06:00"
       timezone: Etc/UTC
-    open-pull-requests-limit: 5
-    groups:
-      actions-minor-patch:
-        applies-to: version-updates
-        update-types:
-          - minor
-          - patch
+    open-pull-requests-limit: 0
 
   - package-ecosystem: npm
     directory: "/"
@@ -37,10 +42,4 @@ updates:
       day: monday
       time: "06:00"
       timezone: Etc/UTC
-    open-pull-requests-limit: 5
-    groups:
-      npm-minor-patch:
-        applies-to: version-updates
-        update-types:
-          - minor
-          - patch
+    open-pull-requests-limit: 0
