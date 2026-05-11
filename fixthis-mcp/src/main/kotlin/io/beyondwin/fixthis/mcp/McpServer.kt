@@ -9,7 +9,6 @@ import java.io.OutputStream
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -31,7 +30,7 @@ class McpServer(private val protocol: McpProtocol = McpProtocol()) {
         val reader = input.bufferedReader(Charsets.UTF_8)
         val writer = output.bufferedWriter(Charsets.UTF_8)
         val writeMutex = Mutex()
-        val inFlight = mutableMapOf<String, InFlightRequest>()
+        val registry = InFlightRegistry()
 
         suspend fun writeResponse(response: String) {
             writeMutex.withLock {
@@ -48,7 +47,7 @@ class McpServer(private val protocol: McpProtocol = McpProtocol()) {
 
                 when (val message = protocol.decodeLine(line)) {
                     is McpIncoming.ImmediateResponse -> writeResponse(message.response)
-                    is McpIncoming.Notification -> handleNotification(message, inFlight)
+                    is McpIncoming.Notification -> handleNotification(message, registry)
                     is McpRequest -> {
                         if (!message.method.isCancellableRequest()) {
                             protocol.handleRequest(message)?.let { response -> writeResponse(response) }
@@ -61,23 +60,19 @@ class McpServer(private val protocol: McpProtocol = McpProtocol()) {
                             } catch (error: CancellationException) {
                                 diagnostics.writeDiagnostic("Cancelled MCP request ${message.idKey}")
                             } finally {
-                                synchronized(inFlight) {
-                                    inFlight.remove(message.idKey)
-                                }
+                                registry.remove(message.idKey)
                             }
                         }
                         if (requestJob.isActive) {
-                            synchronized(inFlight) {
-                                inFlight[message.idKey] = InFlightRequest(message.method, requestJob)
-                                if (!requestJob.isActive) {
-                                    inFlight.remove(message.idKey)
-                                }
+                            registry.register(message.idKey, InFlightRequest(message.method, requestJob))
+                            if (!requestJob.isActive) {
+                                registry.remove(message.idKey)
                             }
                         }
                     }
                 }
             }
-            cancelInFlightRequests(inFlight)
+            cancelInFlightRequests(registry)
         }
     }
 
@@ -86,22 +81,20 @@ class McpServer(private val protocol: McpProtocol = McpProtocol()) {
         flush()
     }
 
-    private fun handleNotification(
+    private suspend fun handleNotification(
         notification: McpIncoming.Notification,
-        inFlight: MutableMap<String, InFlightRequest>,
+        registry: InFlightRegistry,
     ) {
         if (notification.method != "notifications/cancelled") return
         val requestId = (notification.params["requestId"] as? JsonPrimitive).validRequestIdOrNull() ?: return
         val requestKey = requestId.requestIdKey()
-        val request = synchronized(inFlight) { inFlight.remove(requestKey) } ?: return
+        val request = registry.remove(requestKey) ?: return
         if (request.method == "initialize") return
         request.job.cancel(CancellationException("MCP request cancelled"))
     }
 
-    private suspend fun cancelInFlightRequests(inFlight: MutableMap<String, InFlightRequest>) {
-        val requests = synchronized(inFlight) {
-            inFlight.values.toList().also { inFlight.clear() }
-        }
+    private suspend fun cancelInFlightRequests(registry: InFlightRegistry) {
+        val requests = registry.consumeAll()
         requests.forEach { request ->
             request.job.cancelAndJoin()
         }
@@ -109,8 +102,6 @@ class McpServer(private val protocol: McpProtocol = McpProtocol()) {
 
     private fun String.isCancellableRequest(): Boolean =
         this == "tools/call" || this == "resources/read"
-
-    private data class InFlightRequest(val method: String, val job: Job)
 }
 
 fun main(args: Array<String>) {
