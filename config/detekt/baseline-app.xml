@@ -1,0 +1,60 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>FunctionNaming:DiagnosticsScreen.kt$@Composable fun DiagnosticsScreen(padding: PaddingValues)</ID>
+    <ID>FunctionNaming:FeedbackCard.kt$@Composable fun FeedbackCard( item: FeedbackItem, modifier: Modifier = Modifier, showDisabledAction: Boolean = false, )</ID>
+    <ID>FunctionNaming:FixThisStudioApp.kt$@Composable fun FixThisStudioApp()</ID>
+    <ID>FunctionNaming:FixThisStudioApp.kt$@Composable private fun FixThisTabContent(tab: FixThisTab, padding: PaddingValues)</ID>
+    <ID>FunctionNaming:FixThisTheme.kt$@Composable fun FixThisTheme(content: @Composable () -&gt; Unit)</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable fun HomeScreen(padding: PaddingValues)</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable private fun HomePrimaryAction()</ID>
+    <ID>FunctionNaming:InfoRow.kt$@Composable fun InfoRow( title: String, detail: String, meta: String, modifier: Modifier = Modifier, clickable: Boolean = false, trailing: @Composable (() -&gt; Unit)? = null, )</ID>
+    <ID>FunctionNaming:MetricCard.kt$@Composable fun MetricCard(metric: ProjectMetric, modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:PreviewPanel.kt$@Composable fun PreviewPanel( title: String, subtitle: String, modifier: Modifier = Modifier, height: Dp = 132.dp, contentDescription: String? = null, )</ID>
+    <ID>FunctionNaming:PreviewPanel.kt$@Composable fun SparklineSurface( modifier: Modifier = Modifier, height: Dp = 72.dp, )</ID>
+    <ID>FunctionNaming:ProjectScreen.kt$@Composable fun ProjectScreen(padding: PaddingValues)</ID>
+    <ID>FunctionNaming:QueueScreen.kt$@Composable fun QueueScreen(padding: PaddingValues)</ID>
+    <ID>FunctionNaming:ReviewScreen.kt$@Composable fun ReviewScreen(padding: PaddingValues)</ID>
+    <ID>FunctionNaming:SectionHeader.kt$@Composable fun SectionHeader( title: String, action: String? = null, modifier: Modifier = Modifier, actionModifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:StatusChip.kt$@Composable fun SeverityChip(severity: FeedbackSeverity, modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:StatusChip.kt$@Composable fun StateChip(state: FeedbackState, modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:StatusChip.kt$@Composable fun StatusChip( label: String, background: Color, contentColor: Color, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:StudioHeader.kt$@Composable fun StudioHeader( title: String, subtitle: String, status: String, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:FeedbackCard.kt$@Composable fun FeedbackCard( item: FeedbackItem, modifier: Modifier = Modifier, showDisabledAction: Boolean = false, )</ID>
+    <ID>LongMethod:ProjectScreen.kt$@Composable fun ProjectScreen(padding: PaddingValues)</ID>
+    <ID>LongMethod:ReviewScreen.kt$@Composable fun ReviewScreen(padding: PaddingValues)</ID>
+    <ID>LongParameterList:InfoRow.kt$( title: String, detail: String, meta: String, modifier: Modifier = Modifier, clickable: Boolean = false, trailing: @Composable (() -&gt; Unit)? = null, )</ID>
+    <ID>MagicNumber:FixThisTheme.kt$0xff48625a</ID>
+    <ID>MagicNumber:FixThisTheme.kt$0xffedf4f1</ID>
+    <ID>MagicNumber:FixThisTheme.kt$FixThisColors$0xff005f55</ID>
+    <ID>MagicNumber:FixThisTheme.kt$FixThisColors$0xff007c70</ID>
+    <ID>MagicNumber:FixThisTheme.kt$FixThisColors$0xff15231f</ID>
+    <ID>MagicNumber:FixThisTheme.kt$FixThisColors$0xff1b7f3a</ID>
+    <ID>MagicNumber:FixThisTheme.kt$FixThisColors$0xff5d7069</ID>
+    <ID>MagicNumber:FixThisTheme.kt$FixThisColors$0xff626970</ID>
+    <ID>MagicNumber:FixThisTheme.kt$FixThisColors$0xff9a5c00</ID>
+    <ID>MagicNumber:FixThisTheme.kt$FixThisColors$0xffa8291f</ID>
+    <ID>MagicNumber:FixThisTheme.kt$FixThisColors$0xffdfe8e4</ID>
+    <ID>MagicNumber:FixThisTheme.kt$FixThisColors$0xffdff4ef</ID>
+    <ID>MagicNumber:FixThisTheme.kt$FixThisColors$0xffdff6e7</ID>
+    <ID>MagicNumber:FixThisTheme.kt$FixThisColors$0xffeceff1</ID>
+    <ID>MagicNumber:FixThisTheme.kt$FixThisColors$0xfff5f8f6</ID>
+    <ID>MagicNumber:FixThisTheme.kt$FixThisColors$0xfffbfdfc</ID>
+    <ID>MagicNumber:FixThisTheme.kt$FixThisColors$0xffffe3df</ID>
+    <ID>MagicNumber:FixThisTheme.kt$FixThisColors$0xfffff0d4</ID>
+    <ID>MagicNumber:FixThisTheme.kt$FixThisColors$0xffffffff</ID>
+    <ID>MagicNumber:PreviewPanel.kt$0.25f</ID>
+    <ID>MagicNumber:PreviewPanel.kt$0.32f</ID>
+    <ID>MagicNumber:PreviewPanel.kt$0.38f</ID>
+    <ID>MagicNumber:PreviewPanel.kt$0.45f</ID>
+    <ID>MagicNumber:PreviewPanel.kt$0.58f</ID>
+    <ID>MagicNumber:PreviewPanel.kt$0.5f</ID>
+    <ID>MagicNumber:PreviewPanel.kt$0.72f</ID>
+    <ID>MatchingDeclarationName:FixThisStudioApp.kt$FixThisTab</ID>
+    <ID>MatchingDeclarationName:FixThisTheme.kt$FixThisColors</ID>
+    <ID>MaxLineLength:FixThisDemoData.kt$FixThisDemoData$ActivityEvent("Agent draft prepared", "Review request includes screenshot context and source hints.", "18 min", "Handoff")</ID>
+    <ID>MaxLineLength:ProjectScreen.kt$detail = "Open payment summary from a saved cart, increase system font scale, then compare the primary action against the summary panel. The target remains tappable, but the visual weight makes it easy to miss during review and handoff."</ID>
+    <ID>TopLevelPropertyNaming:HomeScreen.kt$private const val SummaryMetricCardCount = 3</ID>
+  </CurrentIssues>
+</SmellBaseline>

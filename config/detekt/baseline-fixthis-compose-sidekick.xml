@@ -1,0 +1,92 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:BridgeServer.kt$BridgeServer$private suspend fun handleRequest(payload: String): String</ID>
+    <ID>CyclomaticComplexMethod:NavigationPerformer.kt$AndroidNavigationPerformer$override suspend fun perform(request: BridgeNavigationRequest): BridgeNavigationResult</ID>
+    <ID>CyclomaticComplexMethod:SemanticsNodeMapper.kt$internal fun SemanticsConfiguration.toFixThisTextProperties(redactEditableText: Boolean): FixThisTextProperties</ID>
+    <ID>MagicNumber:BridgeProtocol.kt$BridgeProtocol$0xff</ID>
+    <ID>MagicNumber:BridgeProtocol.kt$BridgeProtocol$16</ID>
+    <ID>MagicNumber:BridgeProtocol.kt$BridgeProtocol$24</ID>
+    <ID>MagicNumber:BridgeProtocol.kt$BridgeProtocol$8</ID>
+    <ID>MagicNumber:BridgeServer.kt$0x0A</ID>
+    <ID>MagicNumber:BridgeServer.kt$0x1A</ID>
+    <ID>MagicNumber:BridgeServer.kt$0x47</ID>
+    <ID>MagicNumber:BridgeServer.kt$0x4E</ID>
+    <ID>MagicNumber:BridgeServer.kt$0x50</ID>
+    <ID>MagicNumber:FixThisConnectionStatusHostLayout.kt$FixThisConnectionStatusHostLayout$10</ID>
+    <ID>MagicNumber:FixThisConnectionStatusHostLayout.kt$FixThisConnectionStatusHostLayout$104</ID>
+    <ID>MagicNumber:FixThisConnectionStatusHostLayout.kt$FixThisConnectionStatusHostLayout$14f</ID>
+    <ID>MagicNumber:FixThisConnectionStatusHostLayout.kt$FixThisConnectionStatusHostLayout$16</ID>
+    <ID>MagicNumber:FixThisConnectionStatusHostLayout.kt$FixThisConnectionStatusHostLayout$18</ID>
+    <ID>MagicNumber:FixThisConnectionStatusHostLayout.kt$FixThisConnectionStatusHostLayout$196</ID>
+    <ID>MagicNumber:FixThisConnectionStatusHostLayout.kt$FixThisConnectionStatusHostLayout$228</ID>
+    <ID>MagicNumber:FixThisConnectionStatusHostLayout.kt$FixThisConnectionStatusHostLayout$229</ID>
+    <ID>MagicNumber:FixThisConnectionStatusHostLayout.kt$FixThisConnectionStatusHostLayout$231</ID>
+    <ID>MagicNumber:FixThisConnectionStatusHostLayout.kt$FixThisConnectionStatusHostLayout$6</ID>
+    <ID>MagicNumber:FixThisConnectionStatusHostLayout.kt$FixThisConnectionStatusHostLayout$8</ID>
+    <ID>MagicNumber:FixThisConnectionStatusHostLayout.kt$FixThisConnectionStatusHostLayout$999</ID>
+    <ID>MagicNumber:FixThisConnectionStatusHostLayout.kt$StatusIndicatorView$0.28f</ID>
+    <ID>MagicNumber:FixThisConnectionStatusHostLayout.kt$StatusIndicatorView$0.62f</ID>
+    <ID>MagicNumber:FixThisConnectionStatusHostLayout.kt$StatusIndicatorView$0.72f</ID>
+    <ID>MagicNumber:FixThisConnectionStatusHostLayout.kt$StatusIndicatorView$113</ID>
+    <ID>MagicNumber:FixThisConnectionStatusHostLayout.kt$StatusIndicatorView$122</ID>
+    <ID>MagicNumber:FixThisConnectionStatusHostLayout.kt$StatusIndicatorView$46</ID>
+    <ID>MagicNumber:FixThisConnectionStatusHostLayout.kt$StatusIndicatorView$82</ID>
+    <ID>MagicNumber:FixThisConnectionStatusHostLayout.kt$StatusIndicatorView$98</ID>
+    <ID>MagicNumber:ScreenshotStore.kt$ScreenshotStore$100</ID>
+    <ID>MagicNumber:SessionTokenStore.kt$SessionTokenStore.Companion$32</ID>
+    <ID>MaxLineLength:BridgeServer.kt$AndroidBridgeEnvironment$override suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult</ID>
+    <ID>MaxLineLength:BridgeServer.kt$BridgeServer$else -&gt; return BridgeProtocol.error(request.id, "UNKNOWN_METHOD", "Unknown bridge method: ${request.method}")</ID>
+    <ID>MaxLineLength:BridgeServerScreenshotPathTest.kt$BridgeServerScreenshotPathTest.FakeBridgeEnvironment$override suspend fun inspectCurrentScreen(): BridgeScreenInspection</ID>
+    <ID>MaxLineLength:BridgeServerScreenshotPathTest.kt$BridgeServerScreenshotPathTest.FakeBridgeEnvironment$override suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult</ID>
+    <ID>MaxLineLength:BridgeServerScreenshotPathTest.kt$BridgeServerScreenshotPathTest.FakeBridgeEnvironment$override suspend fun readSourceIndex(): BridgeSourceIndexResult</ID>
+    <ID>MaxLineLength:BridgeServerScreenshotPathTest.kt$private fun tempDirectory(prefix: String): File</ID>
+    <ID>MaxLineLength:BridgeServerStartupTest.kt$BridgeServerStartupTest$private fun fakeServerSocket(): LocalServerSocket</ID>
+    <ID>MaxLineLength:BridgeServerStartupTest.kt$BridgeServerStartupTest.StubEnvironment$override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot</ID>
+    <ID>MaxLineLength:BridgeServerStartupTest.kt$BridgeServerStartupTest.StubEnvironment$override suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult</ID>
+    <ID>MaxLineLength:BridgeServerStartupTest.kt$BridgeServerStartupTest.StubEnvironment$override suspend fun readSourceIndex(): BridgeSourceIndexResult</ID>
+    <ID>MaxLineLength:BridgeServerTest.kt$BridgeServerTest$"""{"id":"2","token":"token","method":"readScreenshot","params":{"source":"screenSnapshot","kind":"full"}}"""</ID>
+    <ID>MaxLineLength:BridgeServerTest.kt$BridgeServerTest.RecordingBridgeEnvironment$override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot</ID>
+    <ID>MaxLineLength:BridgeServerTest.kt$private fun tempDirectory(prefix: String): File</ID>
+    <ID>MaxLineLength:BridgeStatusInstallEpochTest.kt$BridgeStatusInstallEpochTest$val legacy = """{"rootsCount":1,"sidekickVersion":"1.0.0","bridgeProtocolVersion":"1.0.0","sourceIndexAvailable":true}"""</ID>
+    <ID>MaxLineLength:FixThisConnectionStatusHostLayout.kt$FixThisConnectionStatusHostLayout$private fun translucentColor(red: Int, green: Int, blue: Int): Int</ID>
+    <ID>MaxLineLength:FixThisConnectionStatusHostLayout.kt$internal fun View.isFixThisOverlayHost(): Boolean</ID>
+    <ID>MaxLineLength:FixThisConnectionStatusHostLayout.kt$private fun View.attachedStatusWindowHandle(): StatusWindowHandle?</ID>
+    <ID>MaxLineLength:FixThisConnectionStatusHostLayoutTest.kt$private fun FixThisConnectionStatusHostLayout.statusTextView(): TextView</ID>
+    <ID>MaxLineLength:NavigationPerformer.kt$AndroidNavigationPerformer$dispatchTouchEvent(view, MotionEvent.obtain(downTime, downTime + SwipeMoveMillis, MotionEvent.ACTION_MOVE, endX, endY, 0))</ID>
+    <ID>MaxLineLength:NavigationPerformer.kt$AndroidNavigationPerformer$dispatchTouchEvent(view, MotionEvent.obtain(downTime, downTime + SwipeUpMillis, MotionEvent.ACTION_UP, endX, endY, 0))</ID>
+    <ID>MaxLineLength:NavigationPerformer.kt$AndroidNavigationPerformer$dispatchTouchEvent(view, MotionEvent.obtain(downTime, downTime + TapDurationMillis, MotionEvent.ACTION_UP, x, y, 0))</ID>
+    <ID>MaxLineLength:NavigationPerformer.kt$AndroidNavigationPerformer$override suspend</ID>
+    <ID>MaxLineLength:NavigationPerformer.kt$AndroidNavigationPerformer$private val touchEventDispatcher: (View, MotionEvent) -&gt; Boolean = { view, event -&gt; view.dispatchTouchEvent(event) }</ID>
+    <ID>MaxLineLength:NavigationPerformerTest.kt$NavigationPerformerTest$private</ID>
+    <ID>MaxLineLength:PathSafetyTest.kt$PathSafetyTest$private fun tempDirectory(prefix: String): File</ID>
+    <ID>MaxLineLength:ScreenshotCapturer.kt$PixelCopyTimedOutException : RuntimeException</ID>
+    <ID>MaxLineLength:ScreenshotCapturer.kt$ScreenshotCapturer$ScreenshotInfo(captureFailedReason = "Screenshot storage failed: ${error.message ?: error::class.java.simpleName}")</ID>
+    <ID>MaxLineLength:ScreenshotStoreTest.kt$ScreenshotStoreTest$private</ID>
+    <ID>MaxLineLength:SemanticsInspector.kt$private fun Rect.toFixThisRect(): FixThisRect</ID>
+    <ID>MaxLineLength:SemanticsNodeMapper.kt$SemanticsNodeMapper$private fun &lt;T&gt; SemanticsConfiguration.safeGet(key: SemanticsPropertyKey&lt;T&gt;): T?</ID>
+    <ID>MaxLineLength:SemanticsNodeMapper.kt$SemanticsNodeMapper$private fun SemanticsConfiguration.actionNames(): List&lt;String&gt;</ID>
+    <ID>MaxLineLength:SemanticsNodeMapper.kt$SemanticsNodeMapper$private fun uidFor(rootIndex: Int, treeKind: TreeKind, node: SemanticsNode): String</ID>
+    <ID>MaxLineLength:SemanticsNodeMapper.kt$private fun &lt;T&gt; SemanticsConfiguration.safeGet(key: SemanticsPropertyKey&lt;T&gt;): T?</ID>
+    <ID>ReturnCount:BridgeServer.kt$BridgeServer$fun start(): Boolean</ID>
+    <ID>ReturnCount:BridgeServer.kt$BridgeServer$private suspend fun handleRequest(payload: String): String</ID>
+    <ID>ReturnCount:BridgeServer.kt$FixThisBridgeRuntime$fun start( application: Application, lifecycleCallbacks: FixThisActivityLifecycleCallbacks, ): Boolean</ID>
+    <ID>ReturnCount:BridgeServer.kt$private fun Context.readSourceIndexResult(path: String): BridgeSourceIndexResult</ID>
+    <ID>ReturnCount:FixThisConnectionStatusHostLayout.kt$FixThisConnectionStatusHostLayout.Companion$fun attachTo(activity: Activity)</ID>
+    <ID>ReturnCount:ScreenshotCapturer.kt$ScreenshotCapturer$suspend fun capture( activity: Activity, annotationId: String, selectedBounds: FixThisRect? = null, ): ScreenshotInfo</ID>
+    <ID>ThrowsCount:ScreenshotCapturer.kt$ScreenshotCapturer$private suspend fun tryPixelCopy( activity: Activity, width: Int, height: Int, ): Result&lt;Bitmap&gt;</ID>
+    <ID>TooGenericExceptionCaught:BridgeServer.kt$BridgeServer$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:ScreenshotCapturer.kt$ScreenshotCapturer$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:ScreenshotCapturer.kt$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:SemanticsInspector.kt$SemanticsInspector$throwable: Throwable</ID>
+    <ID>TopLevelPropertyNaming:BridgeServer.kt$private const val MaxSourceIndexAssetBytes = 4 * 1024 * 1024</ID>
+    <ID>TopLevelPropertyNaming:FixThisConnectionStatusHostLayout.kt$private const val DefaultStatusBarHeightDp = 24</ID>
+    <ID>TopLevelPropertyNaming:FixThisConnectionStatusHostLayout.kt$private const val TopStatusBarGapDp = 8</ID>
+    <ID>TopLevelPropertyNaming:FixThisConnectionStatusHostLayoutTest.kt$private const val CompactHorizontalPaddingDp = 10</ID>
+    <ID>TopLevelPropertyNaming:FixThisConnectionStatusHostLayoutTest.kt$private const val CompactIconTextGapDp = 8</ID>
+    <ID>TopLevelPropertyNaming:FixThisConnectionStatusHostLayoutTest.kt$private const val CompactVerticalPaddingDp = 6</ID>
+    <ID>TopLevelPropertyNaming:FixThisConnectionStatusHostLayoutTest.kt$private const val TranslucentPillAlpha = 170</ID>
+    <ID>TopLevelPropertyNaming:SessionTokenStore.kt$const val FixThisSidekickVersion: String = "0.1.0"</ID>
+  </CurrentIssues>
+</SmellBaseline>
