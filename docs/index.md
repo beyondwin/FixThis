@@ -70,9 +70,11 @@ This page is a directory. Pick the path that matches what you're trying to do.
 - [`archive/`](archive/README.md) — original Korean PRD, decisions log, and
   technical design (2026-05-03 era). Preserved for the design-trail history;
   no longer reflects current behavior.
-- [`internal/`](internal/README.md) — implementation plans and design specs
-  produced by the maintainers' AI-assisted workflow. Not part of the public
-  docs surface; kept for transparency.
+- [`superpowers/`](superpowers/) — implementation plans and design specs
+  produced by the maintainers' AI-assisted workflow. Companion specs and
+  plans for current hardening tracks live under [`specs/`](specs/) and
+  [`plans/`](plans/). Not part of the public docs surface; kept for
+  transparency.
 
 ---
 

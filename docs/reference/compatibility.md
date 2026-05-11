@@ -21,7 +21,7 @@ scheduled workflow is promoted to a required check (see
 | Compose BOM                | **2026.04.01**        | 2026.01.00            | `gradle/libs.versions.toml` → `composeBom` |
 | Compose UI test artifacts  | **1.10.0**            | 1.9.0                 | `gradle/libs.versions.toml` → `composeUiTest` |
 | JDK toolchain              | **21 (Temurin)**      | 21                    | `.github/workflows/ci.yml`             |
-| Android `minSdk`           | **24**                | 24                    | `app/build.gradle.kts`                 |
+| Android `minSdk`           | **24**                | 24                    | `sample/build.gradle.kts`              |
 
 The "Tested" column matches what CI builds on every PR and push to `main`
 ([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)). The "Minimum

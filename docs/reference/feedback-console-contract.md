@@ -8,7 +8,7 @@
 | Surface | DOM id | Label |
 | --- | --- | --- |
 | Prompt copy | `copyPromptButton` | `Copy Prompt` |
-| Agent handoff | `sendAgentButton` | `Send Agent` |
+| Agent handoff | `sendAgentButton` | `Save to MCP` |
 | Canvas select tool | `selectToolButton` | `Select` |
 | Canvas annotate tool | `annotateToolButton` | `Annotate` |
 | Add pending annotation | `addItemButton` | `Add annotation` |
@@ -30,7 +30,7 @@
 - `Annotate` starts targeting and freezes the latest available preview. It does not write a session item by itself.
 - `Add annotation` creates a browser-side pending annotation.
 - `Copy Prompt` persists written pending annotations when needed, then copies compact agent-facing prompt text.
-- `Send Agent` persists written pending annotations when needed, then creates a local handoff batch for MCP tools.
+- `Save to MCP` persists written pending annotations when needed, then creates a local handoff batch for MCP tools.
 - `Clear Draft` deletes unsent draft feedback after confirmation.
 - Live preview frames are transient. Persisted `screens` are evidence snapshots, not every preview frame.
 
@@ -41,7 +41,7 @@
 
 ## Privacy Semantics
 
-- `Send Agent` stores a local handoff batch.
+- `Save to MCP` stores a local handoff batch.
 - FixThis does not upload screenshots, comments, prompt text, source hints, or target evidence by default.
 
 ## Compact handoff schema
