@@ -1,9 +1,12 @@
 # Release Process
 
-How to cut a FixThis release. Until the first `1.0.0` external publish, this
-document also serves as the working draft for the eventual public-release
-playbook — see [`release-readiness.md`](release-readiness.md) for what's
-still blocking that publish.
+How to cut a FixThis release. Until Maven Central / Gradle Plugin Portal
+publication is enabled, releases are GitHub source releases: a commit on
+`main`, an annotated `vX.Y.Z` tag, and a GitHub Release whose notes point to
+the matching CHANGELOG section. This document also serves as the working draft
+for the eventual artifact-publication playbook — see
+[`release-readiness.md`](release-readiness.md) for what's still blocking that
+publish.
 
 ## Versioning
 
@@ -16,8 +19,9 @@ independent of the package version — bumped per the checklist in
 
 ## Where the version lives
 
-When publishing is enabled, the package version will be set in the root
-build configuration:
+For source-only GitHub releases, the annotated tag and CHANGELOG heading are
+the public version source of truth. When Gradle artifact publishing is enabled,
+the package version will also be set in the root build configuration:
 
 | Location | Bumped on | Notes |
 |----------|-----------|-------|
@@ -26,8 +30,9 @@ build configuration:
 | `CHANGELOG.md` | every release | Move "Unreleased" entries under a new dated heading. |
 
 > The `gradle.properties` `version` line is added as part of the publish-to-Maven
-> work. Until then, the repo carries no externally-visible package version
-> string and consumers wire FixThis via composite build.
+> work. Until then, the repo carries no externally-visible Gradle package
+> version string and consumers wire FixThis via composite build. GitHub source
+> releases are still versioned by annotated tags.
 
 ## Pre-release checklist
 
@@ -57,34 +62,45 @@ Before tagging:
 
    Leave a fresh empty `## Unreleased` block at the top.
 
-2. (Once publishing is enabled) bump `version=` in `gradle.properties`.
+2. Create or update the matching human release note under `docs/releases/`.
 
-3. Commit:
+3. (Once publishing is enabled) bump `version=` in `gradle.properties`.
+
+4. Commit:
 
    ```bash
-   git add CHANGELOG.md gradle.properties
+   git add CHANGELOG.md docs/releases
    git commit -m "release: 0.2.0"
    ```
 
-4. Tag:
+   Include `gradle.properties` in the staged files once artifact publishing is
+   enabled.
+
+5. Tag:
 
    ```bash
    git tag -a v0.2.0 -m "FixThis 0.2.0"
    git push origin main v0.2.0
    ```
 
-5. (Once publishing is enabled) publish artifacts:
+6. Create the GitHub Release from the tag using the new CHANGELOG section as
+   the release body:
+
+   ```bash
+   gh release create v0.2.0 --title "FixThis v0.2.0" --notes-file docs/releases/v0.2.0.md
+   ```
+
+7. (Once publishing is enabled) publish artifacts:
 
    ```bash
    ./gradlew :fixthis-compose-sidekick:publish :fixthis-gradle-plugin:publishPlugins
    ```
 
-6. Create a GitHub release from the tag, pasting the new CHANGELOG section
-   into the release notes.
-
 ## Post-release
 
-- Verify Maven Central / Plugin Portal listings appear and are installable.
+- Verify the GitHub Release appears on the repository Releases page.
+- If artifact publishing is enabled, verify Maven Central / Plugin Portal
+  listings appear and are installable.
 - Bump README compatibility matrix if needed for the next development cycle.
 - File follow-up issues for anything deferred from this release.
 

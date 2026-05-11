@@ -2,7 +2,9 @@
 
 ## Current Status
 
-FixThis is ready for local debug use in this repository. External release requires the items below to be completed first.
+FixThis has a GitHub source release (`v0.1.0`) for local debug use and
+evaluation from this repository. External Gradle artifact publication still
+requires the items below to be completed first.
 
 ## Required Before External Release
 
@@ -11,6 +13,7 @@ FixThis is ready for local debug use in this repository. External release requir
 - [x] `CONTRIBUTING.md` documents local verification.
 - [x] `CHANGELOG.md` records user-visible changes and known limitations.
 - [x] `SECURITY.md` documents the local-first debug security model.
+- [x] GitHub source release is published (`v0.1.0`, 2026-05-11).
 - [ ] Maven Central / Gradle Plugin Portal coordinates are published (still placeholder).
 
 ## Compatibility Matrix
@@ -24,6 +27,7 @@ FixThis is ready for local debug use in this repository. External release requir
 | Console host | Loopback localhost by default |
 | Screenshots | Local artifacts only |
 | External AI API calls | Not made by FixThis |
+| GitHub source releases | Published from repository tags |
 | External Gradle artifacts | Not published yet |
 
 ## Known Release Blockers

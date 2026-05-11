@@ -212,6 +212,35 @@ record_command_output() {
   return "${command_exit}"
 }
 
+record_doctor_with_retry() {
+  local attempts=5
+  local delay_seconds=1
+  local attempt=1
+  local command_exit=1
+
+  record ""
+  record "## fixthis doctor"
+  record '```text'
+  while [[ "${attempt}" -le "${attempts}" ]]; do
+    printf 'Attempt %s/%s\n' "${attempt}" "${attempts}" | tee -a "${REPORT_MD}"
+    env ANDROID_SERIAL="${ACTIVE_SERIAL}" \
+      fixthis-cli/build/install/fixthis/bin/fixthis doctor \
+      --package "${PACKAGE_NAME}" \
+      --project-dir "${ROOT_DIR}" 2>&1 | tee -a "${REPORT_MD}"
+    command_exit=${PIPESTATUS[0]}
+    if [[ "${command_exit}" -eq 0 ]]; then
+      break
+    fi
+    if [[ "${attempt}" -lt "${attempts}" ]]; then
+      printf 'Retrying in %ss...\n' "${delay_seconds}" | tee -a "${REPORT_MD}"
+      sleep "${delay_seconds}"
+    fi
+    attempt=$((attempt + 1))
+  done
+  record '```'
+  return "${command_exit}"
+}
+
 staleness_target_file() {
   printf '%s\n' "${ROOT_DIR}/sample/src/main/java/io/beyondwin/fixthis/sample/MainActivity.kt"
 }
@@ -463,6 +492,10 @@ if printf '%s\n' "${LOCK_LINES}" | grep -Eq 'mDreamingLockscreen=true|mShowingLo
   finish "SKIPPED_LOCKED_DEVICE" 0
 fi
 
+if ! record_command_output "Stop existing sample app" adb_cmd shell am force-stop "${PACKAGE_NAME}"; then
+  record "Continuing despite force-stop failure; install may still replace the app."
+fi
+
 if ! record_command_output "Install sample app" env ANDROID_SERIAL="${ACTIVE_SERIAL}" ./gradlew :app:installDebug; then
   finish "FAILED_INSTALL" 1
 fi
@@ -471,7 +504,7 @@ if ! record_command_output "Launch sample app" adb_cmd shell monkey -p "${PACKAG
   finish "FAILED_LAUNCH" 1
 fi
 
-if ! record_command_output "fixthis doctor" env ANDROID_SERIAL="${ACTIVE_SERIAL}" fixthis-cli/build/install/fixthis/bin/fixthis doctor --package "${PACKAGE_NAME}" --project-dir "${ROOT_DIR}"; then
+if ! record_doctor_with_retry; then
   finish "FAILED_DOCTOR" 1
 fi
 

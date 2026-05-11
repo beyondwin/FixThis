@@ -73,14 +73,17 @@ FixThis is intentionally narrow today:
 | Compatibility (AGP / Kotlin / Compose) | [`docs/reference/compatibility.md`](docs/reference/compatibility.md) |
 | Privacy & security                | [`docs/reference/privacy.md`](docs/reference/privacy.md), [`docs/reference/threat-model.md`](docs/reference/threat-model.md), [`SECURITY.md`](SECURITY.md) |
 | Architecture                      | [`docs/architecture/overview.md`](docs/architecture/overview.md), [`docs/architecture/adr/`](docs/architecture/adr/) |
+| Release notes                     | [`docs/releases/`](docs/releases/)                              |
 | Contribute                        | [`CONTRIBUTING.md`](CONTRIBUTING.md), [`docs/contributing/release-process.md`](docs/contributing/release-process.md) |
 | Troubleshoot                      | [`docs/guides/troubleshooting.md`](docs/guides/troubleshooting.md)   |
 
 ## Status
 
-> ⚠️ **Pre-publication.** Not yet on Maven Central or the Gradle Plugin Portal.
-> External projects must wire this repository via Gradle composite build
-> (`includeBuild`) until artifacts are released. See
+> ⚠️ **Source release available.** FixThis has GitHub Releases for source
+> snapshots, starting with [v0.1.0](docs/releases/v0.1.0.md), but it is not yet
+> on Maven Central or the Gradle Plugin Portal. External projects must wire this
+> repository via Gradle composite build (`includeBuild`) until artifacts are
+> released. See
 > [Release readiness](docs/contributing/release-readiness.md) for the publishing
 > checklist.
 

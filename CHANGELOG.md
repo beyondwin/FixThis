@@ -29,6 +29,16 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ### Added
 
+### Changed
+
+### Removed
+
+### Fixed
+
+## [0.1.0] - 2026-05-11
+
+### Added
+
 - CI hardening: documented the required PR checks contract in `CONTRIBUTING.md` (table mapping each check → workflow → source task → status) and added `docs/contributing/required-checks.md` as a readiness tracker with one row per workflow and a "green for 7 days?" column. **Follow-up (deferred):** the actual branch-protection flip in GitHub repo settings is a maintainer admin action and is gated on each "Pending" row meeting its observation window (7 consecutive green for PR-time checks, 14 consecutive green for the nightly connected-tests workflow, 1 week stable for the nightly compatibility matrix). (CI-5 from ci-cd-hardening.)
 - CI hardening: nightly connected (instrumented) Android-tests workflow lands at `.github/workflows/connected-tests.yml`. It runs on `schedule: '0 4 * * *'` and `workflow_dispatch` only — intentionally **not** on `pull_request` — and uses `reactivecircus/android-emulator-runner@v2` to boot an emulator and execute `./gradlew connectedDebugAndroidTest --no-daemon`. The test step is `continue-on-error: true` so a red nightly is informational and does not gate other workflows. Flake-triage process and the (currently empty) table of temporarily-disabled tests are documented in `docs/contributing/connected-tests.md`. **Follow-up (deferred):** promotion of the nightly to a required PR check once 14 consecutive green runs are observed and the flake-triage process has stabilised the suite. (CI-4 from ci-cd-hardening.)
 - CI hardening: Dependabot config (`.github/dependabot.yml`) covering `gradle`, `github-actions`, and `npm` ecosystems on a weekly cadence with minor+patch update grouping; CodeQL analysis workflow (`.github/workflows/codeql.yml`) for `java-kotlin` and `javascript-typescript` running on push/PR + weekly cron; gradle-version-check workflow (`.github/workflows/gradle-version-check.yml`) running the `com.github.ben-manes.versions` plugin (`dependencyUpdates` task) weekly and uploading the report as an artifact. **Follow-ups (deferred):** (a) observe Dependabot opens its first PR within 7 days, (b) observe CodeQL results land in the GitHub Security tab, (c) wire `gradle-version-check` to auto-open an issue or fail on a non-test dependency ≥ 1 minor version behind (today the report is artifact-only). (CI-3 from ci-cd-hardening.)
@@ -75,6 +85,10 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ### Fixed
 
+- Connected smoke now force-stops an existing sample app process before install
+  and retries `fixthis doctor` briefly after launch, avoiding a false failure
+  when a stale bridge process or startup race reports an older protocol during
+  release validation.
 - Fixed: "Copy Prompt" / "Save to MCP" output now includes `id:` / `session_id:` / `agent_protocol:` / `crop:` / `⚠ stale:`, restoring agent-side `fixthis_claim_feedback` and `fixthis_resolve_feedback` after a handoff. The browser no longer renders the prompt itself — both buttons route through the new server endpoint `POST /api/sessions/{sid}/handoff-preview` (or, for Save to MCP, `POST /api/agent-handoffs` with `{itemIds:[...]}`). Eliminates ~500 LoC of duplicated rendering.
 - Canvas `blocked-reason` overlay now renders even before the first screenshot arrives, so screen-off / locked / backgrounded states are communicated during initial connection instead of staying invisible until the first preview lands.
 - Connection-status changes now re-render the preview region, so the canvas overlay and input gating refresh immediately when blocked-reason transitions occur (previously the overlay could lag behind the chip until the next preview frame).
