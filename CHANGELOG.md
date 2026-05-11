@@ -52,6 +52,10 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 - `fixthis_list_feedback` and `fixthis_read_feedback` now default to returning only `delivery: sent` items that are not resolved. Pass `includeAll: true` to restore the previous behavior.
 - `fixthis_resolve_feedback` description now mentions the claim/resolve pairing.
 - "Save to MCP" toast now reads `Saved to MCP ✓ — agent will pick up`.
+- Internal / refactor: `:fixthis-cli` `RunCommand.waitForStatus` now uses `delay` with a `200/400/800/1500` ms capped backoff instead of `Thread.sleep(500)`. Cancellation of the parent coroutine returns within one scheduler tick instead of up to 500 ms. (Code hardening CH-2.)
+- Internal / refactor: removed `!!` operators from `:fixthis-mcp` session sources (`TargetEvidenceService`, `InstanceGroupingHelper`, `FeedbackDraftService`); replaced with `requireNotNull` / `checkNotNull` carrying upstream-contract messages, so unmet invariants surface as `IllegalStateException` with diagnostics instead of `NullPointerException`. (Code hardening CH-1.)
+- Internal / refactor: extracted MCP in-flight request bookkeeping from `McpServer` raw `synchronized` blocks into a dedicated `InFlightRegistry` backed by a single `kotlinx.coroutines.sync.Mutex`. `consumeAll()` snapshots + clears in one critical section; `cancelAndJoin` runs outside the lock. (Code hardening CH-3.)
+- Internal / refactor: split `FeedbackSessionService` (~304 lines) into three single-responsibility collaborators: `FeedbackSessionRegistry` (lifecycle), `AnnotationRepository` (annotation CRUD + status), and `EvidenceCoordinator` (screenshot / preview / navigate). The original class is now a thin façade preserving its public API for the 10 production callers. Each new class has dedicated unit tests independent of HTTP / MCP plumbing. (Code hardening CH-4.)
 
 ### Removed
 
