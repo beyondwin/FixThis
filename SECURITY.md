@@ -27,6 +27,14 @@ These guards reduce accidental local cross-origin mutation risk. They are not a 
 - Sharing `.fixthis/feedback-sessions/` artifacts without reviewing their screenshots and comments.
 - Uploading screenshots, source hints, feedback, or handoff data by default.
 
+## Threat Model
+
+For the full picture — assets, trust boundaries, in-scope and out-of-scope
+adversaries, current mitigations, and known open gaps — see
+[`docs/reference/threat-model.md`](docs/reference/threat-model.md).
+
 ## Reporting
 
 Report security issues privately to the project owner before publishing details.
+The [threat model](docs/reference/threat-model.md) is a useful reference when
+deciding whether a finding is in scope.

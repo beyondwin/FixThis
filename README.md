@@ -71,7 +71,7 @@ FixThis is intentionally narrow today:
 | Output JSON shape                 | [`docs/reference/output-schema.md`](docs/reference/output-schema.md) |
 | Bridge protocol                   | [`docs/reference/bridge-protocol.md`](docs/reference/bridge-protocol.md) |
 | Compatibility (AGP / Kotlin / Compose) | [`docs/reference/compatibility.md`](docs/reference/compatibility.md) |
-| Privacy & security                | [`docs/reference/privacy.md`](docs/reference/privacy.md), [`SECURITY.md`](SECURITY.md) |
+| Privacy & security                | [`docs/reference/privacy.md`](docs/reference/privacy.md), [`docs/reference/threat-model.md`](docs/reference/threat-model.md), [`SECURITY.md`](SECURITY.md) |
 | Architecture                      | [`docs/architecture/overview.md`](docs/architecture/overview.md), [`docs/architecture/adr/`](docs/architecture/adr/) |
 | Contribute                        | [`CONTRIBUTING.md`](CONTRIBUTING.md), [`docs/contributing/release-process.md`](docs/contributing/release-process.md) |
 | Troubleshoot                      | [`docs/guides/troubleshooting.md`](docs/guides/troubleshooting.md)   |

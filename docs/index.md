@@ -44,6 +44,8 @@ This page is a directory. Pick the path that matches what you're trying to do.
 - [Privacy](reference/privacy.md) — what stays local, what's redacted, what to
   review before sharing
 - [Security model](../SECURITY.md) — local-first debug threat model
+- [Threat model](reference/threat-model.md) — assets, trust boundaries,
+  in-scope and out-of-scope adversaries, current mitigations, and open gaps
 
 ## I want to understand the design
 
