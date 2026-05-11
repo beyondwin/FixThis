@@ -1,0 +1,78 @@
+name: Nightly connected tests
+
+# Nightly Android instrumented (connected) tests against an emulator.
+#
+# NOTE: This workflow is intentionally NOT triggered on `pull_request`. It runs
+# on `schedule` (4am UTC) and `workflow_dispatch` only. Connected tests are
+# emulator-bound and historically flaky, so they are kept out of the PR signal
+# until they stabilize.
+#
+# NOTE: The test step uses `continue-on-error: true` — this workflow is
+# informational today. Promotion to a required PR check is a follow-up,
+# gated on 14 consecutive green nightly runs and the flake triage process
+# documented in docs/contributing/connected-tests.md. (CI-4 from
+# docs/plans/ci-cd-hardening.md.)
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+jobs:
+  connected-tests:
+    name: connectedDebugAndroidTest (emulator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Enable KVM (hardware acceleration)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Make Gradle executable
+        run: chmod +x ./gradlew
+
+      - name: Run connectedDebugAndroidTest on emulator
+        id: connected-tests
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: ./gradlew connectedDebugAndroidTest --no-daemon
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: connected-test-reports
+          path: |
+            **/build/reports/androidTests/connected/**
+            **/build/outputs/androidTest-results/connected/**
+          if-no-files-found: ignore
+
+      - name: Diagnostic on failure
+        if: steps.connected-tests.outcome == 'failure'
+        run: |
+          echo "::warning::Nightly connected tests failed. Informational only — see docs/contributing/connected-tests.md for flake triage process."
