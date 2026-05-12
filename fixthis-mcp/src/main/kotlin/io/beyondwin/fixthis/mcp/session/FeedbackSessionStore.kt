@@ -33,6 +33,8 @@ private val eventLogJson = Json {
  * When both are null, the store behaves identically to the pre-A.4 baseline,
  * preserving backward compatibility for the ~482 existing tests.
  */
+// TODO: split into smaller responsibilities once the event-log API stabilises — see #ALH-followup
+@Suppress("LargeClass")
 class FeedbackSessionStore(
     private val clock: () -> Long = { System.currentTimeMillis() },
     private val idGenerator: () -> String = { UUID.randomUUID().toString() },
@@ -198,7 +200,13 @@ class FeedbackSessionStore(
             payload = buildJsonObject {
                 put("sessionId", sessionId)
                 put("screen", eventLogJson.encodeToJsonElement(SnapshotDto.serializer(), captured))
-                put("items", eventLogJson.encodeToJsonElement(kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()), createdItems))
+                put(
+                    "items",
+                    eventLogJson.encodeToJsonElement(
+                        kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
+                        createdItems,
+                    ),
+                )
             },
         ) {
             commitSessionMutation(session, updated)
@@ -346,7 +354,13 @@ class FeedbackSessionStore(
             payload = buildJsonObject {
                 put("sessionId", sessionId)
                 put("batch", eventLogJson.encodeToJsonElement(FeedbackHandoffBatch.serializer(), batch))
-                put("items", eventLogJson.encodeToJsonElement(kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()), updatedItems))
+                put(
+                    "items",
+                    eventLogJson.encodeToJsonElement(
+                        kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
+                        updatedItems,
+                    ),
+                )
             },
         ) {
             commitSessionMutation(session, updated)
@@ -482,7 +496,13 @@ class FeedbackSessionStore(
             type = "updateDraftItem",
             payload = buildJsonObject {
                 put("sessionId", sessionId)
-                put("items", eventLogJson.encodeToJsonElement(kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()), updatedItems))
+                put(
+                    "items",
+                    eventLogJson.encodeToJsonElement(
+                        kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
+                        updatedItems,
+                    ),
+                )
             },
         ) {
             save(updated)

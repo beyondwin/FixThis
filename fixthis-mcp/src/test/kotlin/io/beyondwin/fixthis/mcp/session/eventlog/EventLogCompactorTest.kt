@@ -36,11 +36,17 @@ class EventLogCompactorTest {
             val archiveDir = File(eventsDir, "archive")
             assertTrue(archiveDir.exists(), "archive/ directory should exist after compaction")
             val archiveFiles = archiveDir.listFiles { f -> f.extension == "jsonl" } ?: emptyArray()
-            assertTrue(archiveFiles.size >= 100, "archive/ should contain at least 100 files, found ${archiveFiles.size}")
+            assertTrue(
+                archiveFiles.size >= 100,
+                "archive/ should contain at least 100 files, found ${archiveFiles.size}",
+            )
 
             // Main events dir (excluding archive/) should have at most 1000 jsonl files
             val remainingFiles = eventsDir.listFiles { f -> f.isFile && f.extension == "jsonl" } ?: emptyArray()
-            assertTrue(remainingFiles.size <= 1000, "events/ should have at most 1000 files after compaction, found ${remainingFiles.size}")
+            assertTrue(
+                remainingFiles.size <= 1000,
+                "events/ should have at most 1000 files after compaction, found ${remainingFiles.size}",
+            )
 
             // state.json must exist with snapshot content
             val stateJson = File(dir, "state.json")
@@ -117,10 +123,17 @@ class EventLogCompactorTest {
             assertEquals(2, mainFiles.size, "2 newest files should remain in events/")
 
             // Verify the names contain the expected sequence numbers
-            val archiveSeqs = archiveFiles.map { it.substringAfter("-").trimStart('0').substringBefore(".").toLongOrNull() ?: 0L }.sorted()
-            val mainSeqs = mainFiles.map { it.substringAfter("-").trimStart('0').substringBefore(".").toLongOrNull() ?: 0L }.sorted()
+            val archiveSeqs = archiveFiles
+                .map { it.substringAfter("-").trimStart('0').substringBefore(".").toLongOrNull() ?: 0L }
+                .sorted()
+            val mainSeqs = mainFiles
+                .map { it.substringAfter("-").trimStart('0').substringBefore(".").toLongOrNull() ?: 0L }
+                .sorted()
 
-            assertTrue(archiveSeqs.max() < mainSeqs.min(), "All archived files should be older than all retained files")
+            assertTrue(
+                archiveSeqs.max() < mainSeqs.min(),
+                "All archived files should be older than all retained files",
+            )
         } finally {
             dir.deleteRecursively()
         }

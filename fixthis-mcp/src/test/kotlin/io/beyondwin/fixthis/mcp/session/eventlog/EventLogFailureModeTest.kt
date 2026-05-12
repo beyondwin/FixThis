@@ -38,8 +38,14 @@ class EventLogFailureModeTest {
             val allFiles = dir.listFiles() ?: emptyArray()
             val jsonlFiles = allFiles.filter { it.extension == "jsonl" }
             val tmpFiles = allFiles.filter { it.name.endsWith(".tmp") }
-            assertTrue(jsonlFiles.isEmpty(), "No .jsonl files should remain after write failure, found: ${jsonlFiles.map { it.name }}")
-            assertTrue(tmpFiles.isEmpty(), "No .tmp files should remain after write failure, found: ${tmpFiles.map { it.name }}")
+            assertTrue(
+                jsonlFiles.isEmpty(),
+                "No .jsonl files should remain after write failure, found: ${jsonlFiles.map { it.name }}",
+            )
+            assertTrue(
+                tmpFiles.isEmpty(),
+                "No .tmp files should remain after write failure, found: ${tmpFiles.map { it.name }}",
+            )
         } finally {
             dir.deleteRecursively()
         }
@@ -67,7 +73,10 @@ class EventLogFailureModeTest {
             )
 
             val tmpFiles = dir.listFiles { f -> f.name.endsWith(".tmp") } ?: emptyArray()
-            assertTrue(tmpFiles.isEmpty(), "No .tmp orphan should remain after rename failure, found: ${tmpFiles.map { it.name }}")
+            assertTrue(
+                tmpFiles.isEmpty(),
+                "No .tmp orphan should remain after rename failure, found: ${tmpFiles.map { it.name }}",
+            )
         } finally {
             dir.deleteRecursively()
         }

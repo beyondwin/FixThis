@@ -91,9 +91,13 @@ class SigkillReplayTest {
     // Helpers
     // -------------------------------------------------------------------------
 
-    private fun writerFor(base: File): (String) -> EventLogWriter = { sessionId -> EventLogWriter(eventsDir(base, sessionId)) }
+    private fun writerFor(base: File): (String) -> EventLogWriter = { sessionId ->
+        EventLogWriter(eventsDir(base, sessionId))
+    }
 
-    private fun readerFor(base: File): (String) -> EventLogReader = { sessionId -> EventLogReader(eventsDir(base, sessionId)) }
+    private fun readerFor(base: File): (String) -> EventLogReader = { sessionId ->
+        EventLogReader(eventsDir(base, sessionId))
+    }
 
     private fun eventsDir(base: File, sessionId: String): File = File(base, "$sessionId/events")
 
@@ -250,11 +254,11 @@ class SigkillReplayTest {
             opCount++
         }
 
-        private fun applyAddScreen(session: SessionDto) {
+        private fun applyAddScreen(@Suppress("UnusedParameter") session: SessionDto) {
             store.addScreen(sid, makeScreen("screen-${++screenCounter}"))
         }
 
-        private fun applyAddScreenWithItems(session: SessionDto) {
+        private fun applyAddScreenWithItems(@Suppress("UnusedParameter") session: SessionDto) {
             val screenName = "screen-${++screenCounter}"
             val itemCount = 1 + rng.nextInt(3) // 1..3 items
             val items = (1..itemCount).map { makeDraftItem("pending", "item-${++itemCounter}") }

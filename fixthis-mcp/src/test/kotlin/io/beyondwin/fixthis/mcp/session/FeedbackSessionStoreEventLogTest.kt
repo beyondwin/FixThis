@@ -59,9 +59,16 @@ class FeedbackSessionStoreEventLogTest {
 
     private fun eventsDir(base: File, sessionId: String): File = File(base, "$sessionId/events")
 
-    private fun writerFor(base: File, onWriteHook: (java.nio.file.Path) -> Unit = {}): (String) -> EventLogWriter = { sessionId -> EventLogWriter(eventsDir(base, sessionId), onWriteHook) }
+    private fun writerFor(
+        base: File,
+        onWriteHook: (java.nio.file.Path) -> Unit = {},
+    ): (String) -> EventLogWriter = { sessionId ->
+        EventLogWriter(eventsDir(base, sessionId), onWriteHook)
+    }
 
-    private fun readerFor(base: File): (String) -> EventLogReader = { sessionId -> EventLogReader(eventsDir(base, sessionId)) }
+    private fun readerFor(base: File): (String) -> EventLogReader = { sessionId ->
+        EventLogReader(eventsDir(base, sessionId))
+    }
 
     private fun sequentialIdGenerator(): () -> String {
         var counter = 0
