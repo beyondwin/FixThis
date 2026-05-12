@@ -18,6 +18,9 @@ class EventLogWriter(
     }
 
     @Synchronized
+    // ThrowsCount: write, sync, and rename are three distinct durable-write failure modes
+    // that each must surface as a unique EventLogException — suppression is intentional.
+    @Suppress("ThrowsCount")
     fun append(event: SessionEvent) {
         val name = "%013d-%010d.jsonl".format(event.epochMillis, event.sequenceNumber)
         val tmp = File(directory, "$name.tmp")
@@ -29,13 +32,16 @@ class EventLogWriter(
                 raf.write(line.toByteArray(Charsets.UTF_8))
                 raf.channel.force(true)
             }
-            if (!tmp.renameTo(finalFile)) {
-                throw EventLogException("Atomic rename failed for ${tmp.name}")
-            }
+        } catch (e: EventLogException) {
+            tmp.delete()
+            throw e
         } catch (e: Exception) {
             tmp.delete()
-            if (e is EventLogException) throw e
             throw EventLogException("Failed to append event ${event.eventId}: ${e.message}", e)
+        }
+        if (!tmp.renameTo(finalFile)) {
+            tmp.delete()
+            throw EventLogException("Atomic rename failed for ${tmp.name}")
         }
     }
 }

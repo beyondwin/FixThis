@@ -595,23 +595,24 @@ class FeedbackSessionStore(
      * [lock] is not held yet at construction time.
      */
     private fun replaySessionEvents(sessionId: String) {
-        val reader = eventLogReaderProvider?.invoke(sessionId) ?: return
+        val reader = eventLogReaderProvider?.invoke(sessionId)
+        val shell = sessions[sessionId]
+        if (reader == null || shell == null) return
+
+        // Boot replay errors degrade gracefully — see ALH-3 spec.
+        // The catch is intentional: replay failure must not crash the store at startup.
+        @Suppress("TooGenericExceptionCaught", "SwallowedException")
         val events = try {
             reader.readAll()
         } catch (e: Exception) {
-            // If the event log is unreadable, leave the snapshot as-is.
             return
         }
-        if (events.isEmpty()) return
-
         // Reset mutable session state; keep shell fields.
-        val shell = sessions[sessionId] ?: return
         var current = shell.copy(
             screens = emptyList(),
             items = emptyList(),
             handoffBatches = emptyList(),
         )
-
         var maxSeq = lastReplayedSeq.getOrDefault(sessionId, -1L)
 
         for (event in events) {
@@ -620,13 +621,15 @@ class FeedbackSessionStore(
             maxSeq = event.sequenceNumber
         }
 
-        sessions[sessionId] = current
-        // Fix A: sync the snapshot so loadPersistedSessionIfAvailable returns replayed state.
-        // Without this, the read-through to persistence.load() overwrites replay on first getSession().
-        persistence?.save(current)
-        lastReplayedSeq[sessionId] = maxSeq
-        // Seed sequence counter at (maxSeq + 1) so new events don't collide.
-        nextSeqMap[sessionId] = maxSeq + 1L
+        if (events.isNotEmpty()) {
+            sessions[sessionId] = current
+            // Fix A: sync the snapshot so loadPersistedSessionIfAvailable returns replayed state.
+            // Without this, the read-through to persistence.load() overwrites replay on first getSession().
+            persistence?.save(current)
+            lastReplayedSeq[sessionId] = maxSeq
+            // Seed sequence counter at (maxSeq + 1) so new events don't collide.
+            nextSeqMap[sessionId] = maxSeq + 1L
+        }
     }
 
     /**
