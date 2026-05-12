@@ -24,6 +24,15 @@ tasks.named<com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask>(
 
 val ktlintVersion = libs.versions.ktlint.get()
 
+fun requestedDetektTask(taskName: String): Boolean {
+    val task = taskName.substringAfterLast(":")
+    return task == "build" ||
+        task == "check" ||
+        task.startsWith("detekt", ignoreCase = true)
+}
+
+val requestedDetekt = gradle.startParameter.taskNames.any(::requestedDetektTask)
+
 allprojects {
     apply(plugin = "com.diffplug.spotless")
     extensions.configure<com.diffplug.gradle.spotless.SpotlessExtension> {
@@ -70,15 +79,17 @@ allprojects {
 }
 
 subprojects {
-    apply(plugin = "io.gitlab.arturbosch.detekt")
-    extensions.configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
-        buildUponDefaultConfig = true
-        config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
-        // Per-module baseline files share the same directory. Detekt does not
-        // merge baselines across modules, so each subproject owns its own
-        // file. config/detekt/baseline.xml is a placeholder that points to
-        // the per-module files (see README at the top of that file).
-        baseline = file("$rootDir/config/detekt/baseline-$name.xml")
-        parallel = true
+    if (requestedDetekt) {
+        apply(plugin = "io.gitlab.arturbosch.detekt")
+        extensions.configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
+            buildUponDefaultConfig = true
+            config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+            // Per-module baseline files share the same directory. Detekt does not
+            // merge baselines across modules, so each subproject owns its own
+            // file. config/detekt/baseline.xml is a placeholder that points to
+            // the per-module files (see README at the top of that file).
+            baseline = file("$rootDir/config/detekt/baseline-$name.xml")
+            parallel = true
+        }
     }
 }

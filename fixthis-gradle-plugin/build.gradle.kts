@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.spotless)
-    alias(libs.plugins.detekt)
+    alias(libs.plugins.detekt) apply false
 }
 
 kotlin {
@@ -45,12 +45,22 @@ spotless {
     }
 }
 
-detekt {
-    buildUponDefaultConfig = true
-    config.setFrom(files("${rootProject.projectDir}/../config/detekt/detekt.yml"))
-    // See note in root build.gradle.kts about per-module baseline files.
-    baseline = file("${rootProject.projectDir}/../config/detekt/baseline-fixthis-gradle-plugin.xml")
-    parallel = true
+fun requestedDetektTask(taskName: String): Boolean {
+    val task = taskName.substringAfterLast(":")
+    return task == "build" ||
+        task == "check" ||
+        task.startsWith("detekt", ignoreCase = true)
+}
+
+if (gradle.startParameter.taskNames.any(::requestedDetektTask)) {
+    apply(plugin = "io.gitlab.arturbosch.detekt")
+    extensions.configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
+        buildUponDefaultConfig = true
+        config.setFrom(files("${rootProject.projectDir}/../config/detekt/detekt.yml"))
+        // See note in root build.gradle.kts about per-module baseline files.
+        baseline = file("${rootProject.projectDir}/../config/detekt/baseline-fixthis-gradle-plugin.xml")
+        parallel = true
+    }
 }
 
 gradlePlugin {
