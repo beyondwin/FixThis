@@ -13,6 +13,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
+import java.util.UUID
 
 class PreviewCaptureService(
     private val bridge: FixThisBridge,
@@ -47,6 +48,25 @@ class PreviewCaptureService(
             ),
         )
         return preview
+    }
+
+    suspend fun captureCurrentScreenForFingerprint(session: SessionDto): SnapshotDto {
+        val probeId = UUID.randomUUID().toString()
+        val artifactDirectory = File(
+            session.projectRoot,
+            ".fixthis/preview-cache/${session.sessionId}/fingerprint-$probeId",
+        )
+        return try {
+            val payload = bridge.captureScreenSnapshot(
+                packageName = session.packageName,
+                sessionId = session.sessionId,
+                screenId = probeId,
+                destinationDirectory = artifactDirectory,
+            )
+            payload.toCapturedScreen(screenId = probeId, fallbackDisplayName = "Current screen")
+        } finally {
+            artifactDirectory.deleteRecursively()
+        }
     }
 
     fun previewScreenshotFile(sessionId: String, previewId: String): File {
@@ -92,10 +112,19 @@ class PreviewCaptureService(
 }
 
 internal fun JsonObject.toCapturedScreen(screenId: String, fallbackDisplayName: String): SnapshotDto {
+    val snapshot = toCapturedScreenWithoutFallbackFingerprint(screenId, fallbackDisplayName)
+    if (snapshot.fingerprint != null) return snapshot
+    return snapshot.copy(fingerprint = snapshot.fallbackFingerprintOrNull())
+}
+
+private fun JsonObject.toCapturedScreenWithoutFallbackFingerprint(
+    screenId: String,
+    fallbackDisplayName: String,
+): SnapshotDto {
     val inspection = this["inspection"]?.jsonObject
     val activityName = this["activity"]?.jsonPrimitive?.contentOrNull
         ?: inspection?.get("activity")?.jsonPrimitive?.contentOrNull
-    val snapshot = SnapshotDto(
+    return SnapshotDto(
         screenId = screenId,
         capturedAtEpochMillis = longOrNull("capturedAtEpochMillis") ?: System.currentTimeMillis(),
         activityName = activityName,
@@ -121,21 +150,19 @@ internal fun JsonObject.toCapturedScreen(screenId: String, fallbackDisplayName: 
         systemUiKind = stringOrNull("systemUiKind"),
         fingerprint = stringOrNull("fingerprint")?.takeIf { it.isNotBlank() },
     )
-    if (snapshot.fingerprint != null) return snapshot
-    val domainSnapshot = snapshot.toDomainSnapshot()
-    val fallbackFingerprint = if (
-        domainSnapshot.orientation != null &&
-        domainSnapshot.widthPx != null &&
-        domainSnapshot.heightPx != null &&
-        domainSnapshot.densityDpi != null &&
-        domainSnapshot.windowMode != null
-    ) {
+}
+
+private fun SnapshotDto.fallbackFingerprintOrNull(): String? {
+    val domainSnapshot = toDomainSnapshot()
+    return if (domainSnapshot.hasFingerprintInputs()) {
         SnapshotFingerprint.compute(domainSnapshot)
     } else {
         null
     }
-    return snapshot.copy(fingerprint = fallbackFingerprint)
 }
+
+private fun io.beyondwin.fixthis.compose.core.domain.snapshot.Snapshot.hasFingerprintInputs(): Boolean =
+    listOf(orientation, widthPx, heightPx, densityDpi, windowMode).all { it != null }
 
 private fun JsonObject.stringOrNull(name: String): String? = this[name]?.jsonPrimitive?.contentOrNull
 

@@ -2219,6 +2219,183 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun batchItemsApiReturnsConflictWhenLiveScreenFingerprintDiffersFromFrozenPreview() {
+        val projectRoot = Files.createTempDirectory("fixthis-console-mismatch").toFile()
+        try {
+            val service = FeedbackSessionService(
+                bridge = SequencedFingerprintBridge("frozen", "current"),
+                store = FeedbackSessionStore(
+                    clock = { 100L },
+                    idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1", "item-1").next,
+                ),
+                projectRoot = projectRoot.absolutePath,
+                defaultPackageName = "io.beyondwin.fixthis.sample",
+            )
+            val server = FeedbackConsoleServer(service = service, port = 0)
+            server.start()
+            try {
+                service.openSession(null, newSession = true)
+                val preview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject
+                val previewId = preview.getValue("previewId").jsonPrimitive.content
+                val frozenScreen = preview.getValue("screen").jsonObject
+
+                val connection = ConsoleHttpTestClient(server.url).connection("/api/items/batch")
+                connection.requestMethod = "POST"
+                connection.doOutput = true
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.outputStream.use {
+                    it.write(
+                        """
+                        {
+                          "previewId": "$previewId",
+                          "frozenFingerprint": "frozen",
+                          "screen": $frozenScreen,
+                          "items": [
+                            {
+                              "targetType": "area",
+                              "bounds": {"left":10.0,"top":20.0,"right":110.0,"bottom":80.0},
+                              "comment": "Change headline"
+                            }
+                          ]
+                        }
+                        """.trimIndent().toByteArray(),
+                    )
+                }
+
+                assertEquals(409, connection.responseCode)
+                val payload = fixThisJson
+                    .parseToJsonElement(connection.errorStream.bufferedReader().readText())
+                    .jsonObject
+                assertEquals("screen_fingerprint_mismatch", payload.getValue("error").jsonPrimitive.content)
+                assertEquals("frozen", payload.getValue("frozenFingerprint").jsonPrimitive.content)
+                assertEquals("current", payload.getValue("currentFingerprint").jsonPrimitive.content)
+            } finally {
+                server.stop()
+            }
+        } finally {
+            projectRoot.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun batchItemsApiReturnsFingerprintUnavailableHeaderWhenCurrentFingerprintIsMissing() {
+        val projectRoot = Files.createTempDirectory("fixthis-console-null-fingerprint").toFile()
+        try {
+            val service = FeedbackSessionService(
+                bridge = NullableSequencedFingerprintBridge("frozen", null),
+                store = FeedbackSessionStore(
+                    clock = { 100L },
+                    idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1", "item-1").next,
+                ),
+                projectRoot = projectRoot.absolutePath,
+                defaultPackageName = "io.beyondwin.fixthis.sample",
+            )
+            val server = FeedbackConsoleServer(service = service, port = 0)
+            server.start()
+            try {
+                service.openSession(null, newSession = true)
+                val preview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject
+                val previewId = preview.getValue("previewId").jsonPrimitive.content
+                val frozenScreen = preview.getValue("screen").jsonObject
+
+                val connection = ConsoleHttpTestClient(server.url).connection("/api/items/batch")
+                connection.requestMethod = "POST"
+                connection.doOutput = true
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.outputStream.use {
+                    it.write(
+                        """
+                        {
+                          "previewId": "$previewId",
+                          "frozenFingerprint": "frozen",
+                          "screen": $frozenScreen,
+                          "items": [
+                            {
+                              "targetType": "area",
+                              "bounds": {"left":10.0,"top":20.0,"right":110.0,"bottom":80.0},
+                              "comment": "Change headline"
+                            }
+                          ]
+                        }
+                        """.trimIndent().toByteArray(),
+                    )
+                }
+
+                assertEquals(200, connection.responseCode)
+                assertEquals(
+                    "current_fingerprint_unavailable",
+                    connection.getHeaderField("X-FixThis-Fingerprint-Unavailable-Reason"),
+                )
+                val session = fixThisJson.parseToJsonElement(connection.inputStream.bufferedReader().readText()).jsonObject
+                assertFalse(session.containsKey("fingerprintUnavailableReason"))
+                assertEquals(1, session.getValue("screens").jsonArray.size)
+                assertEquals(1, session.getValue("items").jsonArray.size)
+            } finally {
+                server.stop()
+            }
+        } finally {
+            projectRoot.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun batchItemsApiReturnsServerErrorWhenLiveRecaptureThrowsIllegalArgumentException() {
+        val projectRoot = Files.createTempDirectory("fixthis-console-recapture-error").toFile()
+        try {
+            val service = FeedbackSessionService(
+                bridge = SecondCaptureIllegalArgumentBridge(),
+                store = FeedbackSessionStore(
+                    clock = { 100L },
+                    idGenerator = FakeIds(
+                        "session-1",
+                        "preview-1",
+                        "preview-screen-1",
+                        "recapture-screen-1",
+                        "item-1",
+                    ).next,
+                ),
+                projectRoot = projectRoot.absolutePath,
+                defaultPackageName = "io.beyondwin.fixthis.sample",
+            )
+            val server = FeedbackConsoleServer(service = service, port = 0)
+            server.start()
+            try {
+                service.openSession(null, newSession = true)
+                val preview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject
+                val previewId = preview.getValue("previewId").jsonPrimitive.content
+
+                val connection = ConsoleHttpTestClient(server.url).connection("/api/items/batch")
+                connection.requestMethod = "POST"
+                connection.doOutput = true
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.outputStream.use {
+                    it.write(
+                        """
+                        {
+                          "previewId": "$previewId",
+                          "items": [
+                            {
+                              "targetType": "area",
+                              "bounds": {"left":10.0,"top":20.0,"right":110.0,"bottom":80.0},
+                              "comment": "Change headline"
+                            }
+                          ]
+                        }
+                        """.trimIndent().toByteArray(),
+                    )
+                }
+
+                assertEquals(500, connection.responseCode)
+                assertTrue(connection.errorStream.bufferedReader().readText().contains("recapture failed"))
+            } finally {
+                server.stop()
+            }
+        } finally {
+            projectRoot.deleteRecursively()
+        }
+    }
+
+    @Test
     fun savingDraftItemsAllowsBlankCommentsForUnwrittenAnnotations() {
         val projectRoot = Files.createTempDirectory("fixthis-console-blank-batch").toFile()
         try {
@@ -2274,8 +2451,9 @@ class FeedbackConsoleServerTest {
 
     @Test
     fun batchItemsApiReturnsBadRequestForEmptyItemList() {
+        val bridge = FakeFixThisBridge()
         val service = FeedbackSessionService(
-            bridge = FakeFixThisBridge(),
+            bridge = bridge,
             store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1").next),
             projectRoot = "/repo",
             defaultPackageName = "io.beyondwin.fixthis.sample",
@@ -2292,6 +2470,7 @@ class FeedbackConsoleServerTest {
 
             assertEquals(400, connection.responseCode)
             assertTrue(connection.errorStream.bufferedReader().readText().contains("At least one feedback item is required"))
+            assertEquals(0, bridge.captureCount)
         } finally {
             server.stop()
         }
@@ -2299,8 +2478,9 @@ class FeedbackConsoleServerTest {
 
     @Test
     fun batchItemsApiReturnsNotFoundForUnknownPreviewId() {
+        val bridge = FakeFixThisBridge()
         val service = FeedbackSessionService(
-            bridge = FakeFixThisBridge(),
+            bridge = bridge,
             store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1").next),
             projectRoot = "/repo",
             defaultPackageName = "io.beyondwin.fixthis.sample",
@@ -2332,8 +2512,62 @@ class FeedbackConsoleServerTest {
 
             assertEquals(404, connection.responseCode)
             assertTrue(connection.errorStream.bufferedReader().readText().contains("PREVIEW_NOT_FOUND"))
+            assertEquals(0, bridge.captureCount)
         } finally {
             server.stop()
+        }
+    }
+
+    @Test
+    fun batchItemsApiReturnsBadRequestForInvalidPreviewTarget() {
+        val bridge = FakeFixThisBridge()
+        val projectRoot = Files.createTempDirectory("fixthis-console-invalid-target").toFile()
+        try {
+            val service = FeedbackSessionService(
+                bridge = bridge,
+                store = FeedbackSessionStore(
+                    clock = { 100L },
+                    idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1").next,
+                ),
+                projectRoot = projectRoot.absolutePath,
+                defaultPackageName = "io.beyondwin.fixthis.sample",
+            )
+            val server = FeedbackConsoleServer(service = service, port = 0)
+            server.start()
+            try {
+                service.openSession(null, newSession = true)
+                val preview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject
+                val previewId = preview.getValue("previewId").jsonPrimitive.content
+
+                val connection = ConsoleHttpTestClient(server.url).connection("/api/items/batch")
+                connection.requestMethod = "POST"
+                connection.doOutput = true
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.outputStream.use {
+                    it.write(
+                        """
+                        {
+                          "previewId": "$previewId",
+                          "items": [
+                            {
+                              "targetType": "area",
+                              "bounds": {"left":-1.0,"top":20.0,"right":110.0,"bottom":80.0},
+                              "comment": "Change headline"
+                            }
+                          ]
+                        }
+                        """.trimIndent().toByteArray(),
+                    )
+                }
+
+                assertEquals(400, connection.responseCode)
+                assertTrue(connection.errorStream.bufferedReader().readText().contains("Selection bounds"))
+                assertEquals(1, bridge.captureCount)
+            } finally {
+                server.stop()
+            }
+        } finally {
+            projectRoot.deleteRecursively()
         }
     }
 
@@ -3460,7 +3694,8 @@ class FeedbackConsoleServerTest {
         var selectedDeviceSerial: String? = null
             private set
 
-        override fun resolvePackageName(packageOverride: String?): String = packageOverride ?: "io.beyondwin.fixthis.sample"
+        override fun resolvePackageName(packageOverride: String?): String =
+            packageOverride ?: "io.beyondwin.fixthis.sample"
 
         override fun devices(): List<AdbDevice> = devices
 
@@ -3474,7 +3709,11 @@ class FeedbackConsoleServerTest {
 
         override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
 
-        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject = JsonObject(emptyMap())
+        override suspend fun verifyUiChange(
+            packageName: String,
+            expectedText: String,
+            role: String?,
+        ): JsonObject = JsonObject(emptyMap())
 
         override suspend fun captureScreenSnapshot(
             packageName: String,
@@ -3485,13 +3724,18 @@ class FeedbackConsoleServerTest {
     }
 
     private class SessionScreenshotBridge(private val pngBytes: ByteArray) : FixThisBridge {
-        override fun resolvePackageName(packageOverride: String?): String = packageOverride ?: "io.beyondwin.fixthis.sample"
+        override fun resolvePackageName(packageOverride: String?): String =
+            packageOverride ?: "io.beyondwin.fixthis.sample"
 
         override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
 
         override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
 
-        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject = JsonObject(emptyMap())
+        override suspend fun verifyUiChange(
+            packageName: String,
+            expectedText: String,
+            role: String?,
+        ): JsonObject = JsonObject(emptyMap())
 
         override suspend fun captureScreenSnapshot(
             packageName: String,
@@ -3525,13 +3769,18 @@ class FeedbackConsoleServerTest {
     private class SequencedSessionScreenshotBridge(vararg pngBytes: ByteArray) : FixThisBridge {
         private val queue = ArrayDeque(pngBytes.toList())
 
-        override fun resolvePackageName(packageOverride: String?): String = packageOverride ?: "io.beyondwin.fixthis.sample"
+        override fun resolvePackageName(packageOverride: String?): String =
+            packageOverride ?: "io.beyondwin.fixthis.sample"
 
         override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
 
         override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
 
-        override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject = JsonObject(emptyMap())
+        override suspend fun verifyUiChange(
+            packageName: String,
+            expectedText: String,
+            role: String?,
+        ): JsonObject = JsonObject(emptyMap())
 
         override suspend fun captureScreenSnapshot(
             packageName: String,
@@ -3559,6 +3808,148 @@ class FeedbackConsoleServerTest {
                     put("desktopFullPath", artifact.absolutePath)
                 },
             )
+        }
+    }
+
+    private class SequencedFingerprintBridge(vararg fingerprints: String) : FixThisBridge {
+        private val queue = ArrayDeque(fingerprints.toList())
+
+        override fun resolvePackageName(packageOverride: String?): String =
+            packageOverride ?: "io.beyondwin.fixthis.sample"
+
+        override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun verifyUiChange(
+            packageName: String,
+            expectedText: String,
+            role: String?,
+        ): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun captureScreenSnapshot(
+            packageName: String,
+            sessionId: String?,
+            screenId: String?,
+            destinationDirectory: File?,
+        ): JsonObject = buildJsonObject {
+            val artifact = requireNotNull(destinationDirectory)
+                .resolve("${requireNotNull(screenId)}-full.png")
+            artifact.parentFile.mkdirs()
+            artifact.writeBytes(byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47))
+            put("activity", "MainActivity")
+            put("fingerprint", queue.removeFirst())
+            put("sourceIndexAvailable", true)
+            put(
+                "inspection",
+                buildJsonObject {
+                    put("activity", "MainActivity")
+                    put("roots", JsonArray(emptyList()))
+                    put("errors", JsonArray(emptyList()))
+                },
+            )
+            put(
+                "screenshot",
+                buildJsonObject {
+                    put("desktopFullPath", artifact.absolutePath)
+                },
+            )
+        }
+    }
+
+    private class NullableSequencedFingerprintBridge(vararg fingerprints: String?) : FixThisBridge {
+        private val queue = ArrayDeque(fingerprints.toList())
+
+        override fun resolvePackageName(packageOverride: String?): String =
+            packageOverride ?: "io.beyondwin.fixthis.sample"
+
+        override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun verifyUiChange(
+            packageName: String,
+            expectedText: String,
+            role: String?,
+        ): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun captureScreenSnapshot(
+            packageName: String,
+            sessionId: String?,
+            screenId: String?,
+            destinationDirectory: File?,
+        ): JsonObject = buildJsonObject {
+            val artifact = requireNotNull(destinationDirectory)
+                .resolve("${requireNotNull(screenId)}-full.png")
+            artifact.parentFile.mkdirs()
+            artifact.writeBytes(byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47))
+            put("activity", "MainActivity")
+            queue.removeFirst()?.let { put("fingerprint", it) }
+            put("sourceIndexAvailable", true)
+            put(
+                "inspection",
+                buildJsonObject {
+                    put("activity", "MainActivity")
+                    put("roots", JsonArray(emptyList()))
+                    put("errors", JsonArray(emptyList()))
+                },
+            )
+            put(
+                "screenshot",
+                buildJsonObject {
+                    put("desktopFullPath", artifact.absolutePath)
+                },
+            )
+        }
+    }
+
+    private class SecondCaptureIllegalArgumentBridge : FixThisBridge {
+        private var captureCount = 0
+
+        override fun resolvePackageName(packageOverride: String?): String =
+            packageOverride ?: "io.beyondwin.fixthis.sample"
+
+        override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun verifyUiChange(
+            packageName: String,
+            expectedText: String,
+            role: String?,
+        ): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun captureScreenSnapshot(
+            packageName: String,
+            sessionId: String?,
+            screenId: String?,
+            destinationDirectory: File?,
+        ): JsonObject {
+            captureCount += 1
+            require(captureCount != 2) { "recapture failed" }
+            return buildJsonObject {
+                val artifact = requireNotNull(destinationDirectory)
+                    .resolve("${requireNotNull(screenId)}-full.png")
+                artifact.parentFile.mkdirs()
+                artifact.writeBytes(byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47))
+                put("activity", "MainActivity")
+                put("fingerprint", "frozen")
+                put("sourceIndexAvailable", true)
+                put(
+                    "inspection",
+                    buildJsonObject {
+                        put("activity", "MainActivity")
+                        put("roots", JsonArray(emptyList()))
+                        put("errors", JsonArray(emptyList()))
+                    },
+                )
+                put(
+                    "screenshot",
+                    buildJsonObject {
+                        put("desktopFullPath", artifact.absolutePath)
+                    },
+                )
+            }
         }
     }
 

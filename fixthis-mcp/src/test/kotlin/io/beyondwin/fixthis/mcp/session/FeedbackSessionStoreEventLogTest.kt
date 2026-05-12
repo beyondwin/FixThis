@@ -317,7 +317,9 @@ class FeedbackSessionStoreEventLogTest {
                 .single { event ->
                     event.type == "addItem" &&
                         event.payload["item"]
-                            ?.let { testJson.decodeFromJsonElement(AnnotationDto.serializer(), it).comment == "zeta" } == true
+                            ?.let {
+                                testJson.decodeFromJsonElement(AnnotationDto.serializer(), it).comment == "zeta"
+                            } == true
                 }
             assertTrue(newEvent.sequenceNumber > maxSequenceBeforeBoot)
             assertEquals(1, store2.listSessions(includeClosed = true).skippedSessions.size)
@@ -402,6 +404,69 @@ class FeedbackSessionStoreEventLogTest {
             val skipped = store2.listSessions(includeClosed = true).skippedSessions.single()
             assertEquals(File(eventsDir(evtBase, sid), "checkpoint.json").absolutePath, skipped.path)
             assertTrue(skipped.message.contains("schemaVersion"))
+        } finally {
+            tmp.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun bootReplayPreservesPostHandoffItemStateMutations() {
+        val tmp = Files.createTempDirectory("alh-test-state-mutations").toFile()
+        try {
+            val projectBase = File(tmp, "project")
+            val paths = FeedbackSessionPaths(projectBase)
+            val persistence = FeedbackSessionPersistence(paths)
+            val evtBase = File(tmp, "events")
+            var idSeq = 0
+            var now = 1_000L
+
+            val store1 = FeedbackSessionStore(
+                clock = { now },
+                idGenerator = { "id-${++idSeq}" },
+                persistence = persistence,
+                eventLogWriterProvider = writerFor(evtBase),
+                eventLogReaderProvider = readerFor(evtBase),
+            )
+            val session = store1.openSession("com.test", "/project")
+            val screen = store1.addScreen(session.sessionId, makeScreen())
+            val alpha = store1.addItem(session.sessionId, makeDraftItem(screen.screenId, "alpha"))
+            val beta = store1.addItem(session.sessionId, makeDraftItem(screen.screenId, "beta"))
+            store1.addItem(session.sessionId, makeDraftItem(screen.screenId, "gamma"))
+
+            now = 1_100L
+            store1.sendDraftToAgent(session.sessionId, "handoff", targetItemIds = listOf(alpha.itemId, beta.itemId))
+            now = 1_200L
+            store1.markItemsHandedOff(session.sessionId, listOf(alpha.itemId))
+            now = 1_300L
+            store1.claimFeedback(session.sessionId, alpha.itemId, agentNote = "working alpha")
+            now = 1_400L
+            store1.updateItemStatus(
+                sessionId = session.sessionId,
+                itemId = beta.itemId,
+                status = AnnotationStatusDto.NEEDS_CLARIFICATION,
+                agentSummary = "needs beta details",
+            )
+            now = 1_500L
+            store1.clearDraftItems(session.sessionId)
+
+            val store2 = FeedbackSessionStore(
+                clock = { 2_000L },
+                idGenerator = { "new-${++idSeq}" },
+                persistence = persistence,
+                eventLogWriterProvider = writerFor(evtBase),
+                eventLogReaderProvider = readerFor(evtBase),
+            )
+
+            val replayed = store2.getSession(session.sessionId)
+            assertEquals(listOf("alpha", "beta"), replayed.items.map { it.comment })
+            val replayedAlpha = replayed.items.single { it.itemId == alpha.itemId }
+            val replayedBeta = replayed.items.single { it.itemId == beta.itemId }
+            assertEquals(AnnotationStatusDto.IN_PROGRESS, replayedAlpha.status)
+            assertEquals("working alpha", replayedAlpha.agentSummary)
+            assertEquals(1_200L, replayedAlpha.lastHandedOffAtEpochMillis)
+            assertEquals(AnnotationStatusDto.NEEDS_CLARIFICATION, replayedBeta.status)
+            assertEquals("needs beta details", replayedBeta.agentSummary)
+            assertEquals(1, replayed.handoffBatches.size)
         } finally {
             tmp.deleteRecursively()
         }

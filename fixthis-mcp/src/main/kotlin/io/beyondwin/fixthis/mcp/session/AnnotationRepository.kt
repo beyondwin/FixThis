@@ -12,6 +12,8 @@ import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
  * binding) is still done by `FeedbackDraftService`; this class is the narrow
  * interface seen by the façade and HTTP routes.
  */
+// Thin facade over store/draft operations; keep signatures explicit for callers.
+@Suppress("TooManyFunctions")
 class AnnotationRepository(
     private val store: FeedbackSessionStore,
     private val draftService: FeedbackDraftService,
@@ -63,6 +65,66 @@ class AnnotationRepository(
         currentFingerprint = currentFingerprint,
         forceMismatchOverride = forceMismatchOverride,
     )
+
+    internal fun savePreviewFeedbackItemsWithMetadata(
+        sessionId: String,
+        previewId: String,
+        items: List<AnnotationDraftDto>,
+        fallbackScreen: SnapshotDto? = null,
+        frozenFingerprint: String? = null,
+        currentFingerprint: String? = null,
+        forceMismatchOverride: Boolean = false,
+    ): PreviewFeedbackSaveResult = draftService.savePreviewFeedbackItemsWithMetadata(
+        sessionId = sessionId,
+        previewId = previewId,
+        items = items,
+        fallbackScreen = fallbackScreen,
+        allowBlankComments = true,
+        frozenFingerprint = frozenFingerprint,
+        currentFingerprint = currentFingerprint,
+        forceMismatchOverride = forceMismatchOverride,
+    )
+
+    internal fun preparePreviewFeedbackSave(
+        sessionId: String,
+        previewId: String,
+        items: List<AnnotationDraftDto>,
+        fallbackScreen: SnapshotDto? = null,
+    ): PreviewFeedbackSaveReservation = draftService.preparePreviewFeedbackSave(
+        sessionId = sessionId,
+        previewId = previewId,
+        items = items,
+        fallbackScreen = fallbackScreen,
+        allowBlankComments = true,
+    )
+
+    internal fun commitPreviewFeedbackSave(
+        reservation: PreviewFeedbackSaveReservation,
+        frozenFingerprint: String? = null,
+        currentFingerprint: String? = null,
+        forceMismatchOverride: Boolean = false,
+    ): SessionDto = draftService.commitPreviewFeedbackSave(
+        reservation = reservation,
+        frozenFingerprint = frozenFingerprint,
+        currentFingerprint = currentFingerprint,
+        forceMismatchOverride = forceMismatchOverride,
+    )
+
+    internal fun commitPreviewFeedbackSaveWithMetadata(
+        reservation: PreviewFeedbackSaveReservation,
+        frozenFingerprint: String? = null,
+        currentFingerprint: String? = null,
+        forceMismatchOverride: Boolean = false,
+    ): PreviewFeedbackSaveResult = draftService.commitPreviewFeedbackSaveWithMetadata(
+        reservation = reservation,
+        frozenFingerprint = frozenFingerprint,
+        currentFingerprint = currentFingerprint,
+        forceMismatchOverride = forceMismatchOverride,
+    )
+
+    internal fun cancelPreviewFeedbackSave(reservation: PreviewFeedbackSaveReservation) {
+        draftService.cancelPreviewFeedbackSave(reservation)
+    }
 
     fun clearDraftItems(sessionId: String): SessionDto = draftService.clearDraftItems(sessionId)
 

@@ -3,6 +3,9 @@ package io.beyondwin.fixthis.mcp.console
 import com.sun.net.httpserver.HttpExchange
 import io.beyondwin.fixthis.cli.fixThisJson
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
+import io.beyondwin.fixthis.mcp.session.PreviewFeedbackFingerprintCheck
+import io.beyondwin.fixthis.mcp.session.PreviewFeedbackLiveSaveRequest
+import io.beyondwin.fixthis.mcp.session.PreviewFeedbackRequestValidationException
 import io.beyondwin.fixthis.mcp.session.ScreenFingerprintMismatch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
@@ -39,18 +42,28 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
             }
             "/api/items/batch" -> exchange.requireMethod("POST") {
                 val request = exchange.decodeSavePreviewFeedbackItemsBody()
-                val session = try {
-                    service.savePreviewFeedbackItems(
-                        sessionId = service.requireCurrentSession().sessionId,
-                        previewId = request.previewId,
-                        items = request.items,
-                        fallbackScreen = request.screen,
-                        frozenFingerprint = request.frozenFingerprint,
-                        currentFingerprint = request.screen?.fingerprint,
-                        forceMismatchOverride = request.forceMismatchOverride,
+                val result = try {
+                    val sessionId = service.requireCurrentSession().sessionId
+                    runBlocking {
+                        service.savePreviewFeedbackItemsWithLiveFingerprintMetadata(
+                            PreviewFeedbackLiveSaveRequest(
+                                sessionId = sessionId,
+                                previewId = request.previewId,
+                                items = request.items,
+                                fallbackScreen = request.screen,
+                                fingerprintCheck = PreviewFeedbackFingerprintCheck(
+                                    frozenFingerprint = request.frozenFingerprint,
+                                    forceMismatchOverride = request.forceMismatchOverride,
+                                ),
+                            ),
+                        )
+                    }
+                } catch (error: PreviewFeedbackRequestValidationException) {
+                    throw FeedbackConsoleHttpException(
+                        400,
+                        error.message ?: "Invalid feedback item request",
+                        error,
                     )
-                } catch (error: IllegalArgumentException) {
-                    throw FeedbackConsoleHttpException(400, error.message ?: "Invalid feedback item request")
                 } catch (error: ScreenFingerprintMismatch) {
                     exchange.sendJson(
                         HTTP_STATUS_CONFLICT,
@@ -62,7 +75,10 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
                     )
                     return@requireMethod
                 }
-                exchange.sendJson(200, session)
+                result.fingerprintUnavailableReason?.let { reason ->
+                    exchange.responseHeaders.set("X-FixThis-Fingerprint-Unavailable-Reason", reason)
+                }
+                exchange.sendJson(200, result.session)
             }
             "/api/items/draft" -> exchange.requireMethod("DELETE") {
                 exchange.sendJson(200, service.clearDraftItems(service.requireCurrentSession().sessionId))

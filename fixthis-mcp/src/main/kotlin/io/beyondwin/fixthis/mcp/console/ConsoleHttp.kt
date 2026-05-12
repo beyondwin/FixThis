@@ -128,7 +128,8 @@ internal fun <T> HttpExchange.decodeJsonBody(
 internal class FeedbackConsoleHttpException(
     val statusCode: Int,
     override val message: String,
-) : RuntimeException(message)
+    cause: Throwable? = null,
+) : RuntimeException(message, cause)
 
 internal fun etagOf(prefix: String, version: Long): String = "\"$prefix:$version\""
 

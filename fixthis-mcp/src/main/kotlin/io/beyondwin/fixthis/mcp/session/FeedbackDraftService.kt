@@ -4,6 +4,33 @@ import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.mcp.console.AnnotationDraftDto
 import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+
+internal data class PreviewFeedbackSaveReservation(
+    val sessionId: String,
+    val previewId: String,
+    val items: List<AnnotationDraftDto>,
+    val allowBlankComments: Boolean,
+    val inFlightKey: String,
+    val preview: PreviewRecord,
+)
+
+private data class PreviewSaveSlot(
+    val inFlightKey: String,
+    val cachedPreview: PreviewRecord?,
+)
+
+internal data class PreviewFeedbackSaveResult(
+    val session: SessionDto,
+    val fingerprintUnavailableReason: String?,
+)
+
+internal class PreviewFeedbackRequestValidationException(
+    message: String,
+    cause: Throwable? = null,
+) : IllegalArgumentException(message, cause)
 
 class FeedbackDraftService(
     private val store: FeedbackSessionStore,
@@ -82,14 +109,87 @@ class FeedbackDraftService(
         frozenFingerprint: String? = null,
         currentFingerprint: String? = null,
         forceMismatchOverride: Boolean = false,
-    ): SessionDto {
-        require(items.isNotEmpty()) { "At least one feedback item is required" }
+    ): SessionDto = savePreviewFeedbackItemsWithMetadata(
+        sessionId = sessionId,
+        previewId = previewId,
+        items = items,
+        fallbackScreen = fallbackScreen,
+        allowBlankComments = allowBlankComments,
+        frozenFingerprint = frozenFingerprint,
+        currentFingerprint = currentFingerprint,
+        forceMismatchOverride = forceMismatchOverride,
+    ).session
+
+    internal fun savePreviewFeedbackItemsWithMetadata(
+        sessionId: String,
+        previewId: String,
+        items: List<AnnotationDraftDto>,
+        fallbackScreen: SnapshotDto? = null,
+        allowBlankComments: Boolean = true,
+        frozenFingerprint: String? = null,
+        currentFingerprint: String? = null,
+        forceMismatchOverride: Boolean = false,
+    ): PreviewFeedbackSaveResult {
+        val reservation = preparePreviewFeedbackSave(
+            sessionId = sessionId,
+            previewId = previewId,
+            items = items,
+            fallbackScreen = fallbackScreen,
+            allowBlankComments = allowBlankComments,
+        )
+        return commitPreviewFeedbackSaveWithMetadata(
+            reservation = reservation,
+            frozenFingerprint = frozenFingerprint,
+            currentFingerprint = currentFingerprint,
+            forceMismatchOverride = forceMismatchOverride,
+        )
+    }
+
+    internal fun preparePreviewFeedbackSave(
+        sessionId: String,
+        previewId: String,
+        items: List<AnnotationDraftDto>,
+        fallbackScreen: SnapshotDto? = null,
+        allowBlankComments: Boolean = true,
+    ): PreviewFeedbackSaveReservation {
+        requirePreviewFeedbackRequest(items.isNotEmpty()) { "At least one feedback item is required" }
         if (!allowBlankComments) {
-            require(items.none { it.comment.isBlank() }) { "Feedback comment must not be blank" }
+            requirePreviewFeedbackRequest(items.none { it.comment.isBlank() }) { "Feedback comment must not be blank" }
         }
-        enforceFingerprintMatch(frozenFingerprint, currentFingerprint, forceMismatchOverride)
+        val slot = reservePreviewSave(sessionId, previewId, fallbackScreen)
+
+        return try {
+            val preview = slot.cachedPreview ?: run {
+                val fallback = checkNotNull(fallbackScreen) {
+                    "PREVIEW_NOT_FOUND guard above must have rejected a null fallbackScreen"
+                }
+                validatePreviewPendingItems(fallback, items, allowBlankComments)
+                fallbackPreviewRecord(sessionId, previewId, fallback)
+            }
+            if (slot.cachedPreview != null) {
+                validatePreviewPendingItems(preview.snapshot.screen, items, allowBlankComments)
+            }
+            PreviewFeedbackSaveReservation(
+                sessionId = sessionId,
+                previewId = previewId,
+                items = items,
+                allowBlankComments = allowBlankComments,
+                inFlightKey = slot.inFlightKey,
+                preview = preview,
+            )
+        } catch (error: Throwable) {
+            releasePreviewSaveReservation(slot.inFlightKey)
+            throw error
+        }
+    }
+
+    private fun reservePreviewSave(
+        sessionId: String,
+        previewId: String,
+        fallbackScreen: SnapshotDto?,
+    ): PreviewSaveSlot {
         val inFlightKey = "$sessionId:$previewId"
-        val cachedPreview = synchronized(lock) {
+        return synchronized(lock) {
             val record = previewCache.get(sessionId, previewId)
             if (record == null && fallbackScreen == null) {
                 throw FeedbackSessionException("PREVIEW_NOT_FOUND: Unknown preview: $previewId")
@@ -97,18 +197,34 @@ class FeedbackDraftService(
             if (!previewSavesInFlight.add(inFlightKey)) {
                 throw FeedbackSessionException("PREVIEW_SAVE_IN_PROGRESS: Preview is already being saved: $previewId")
             }
-            record
+            PreviewSaveSlot(inFlightKey = inFlightKey, cachedPreview = record)
         }
+    }
 
+    internal fun commitPreviewFeedbackSave(
+        reservation: PreviewFeedbackSaveReservation,
+        frozenFingerprint: String? = null,
+        currentFingerprint: String? = null,
+        forceMismatchOverride: Boolean = false,
+    ): SessionDto = commitPreviewFeedbackSaveWithMetadata(
+        reservation = reservation,
+        frozenFingerprint = frozenFingerprint,
+        currentFingerprint = currentFingerprint,
+        forceMismatchOverride = forceMismatchOverride,
+    ).session
+
+    internal fun commitPreviewFeedbackSaveWithMetadata(
+        reservation: PreviewFeedbackSaveReservation,
+        frozenFingerprint: String? = null,
+        currentFingerprint: String? = null,
+        forceMismatchOverride: Boolean = false,
+    ): PreviewFeedbackSaveResult {
         return try {
-            val preview = cachedPreview ?: run {
-                val fallback = checkNotNull(fallbackScreen) {
-                    "PREVIEW_NOT_FOUND guard above must have rejected a null fallbackScreen"
-                }
-                validatePreviewPendingItems(fallback, items, allowBlankComments)
-                fallbackPreviewRecord(sessionId, previewId, fallback)
-            }
-            val feedbackItems = items.map { pending ->
+            enforceFingerprintMatch(frozenFingerprint, currentFingerprint, forceMismatchOverride)
+            val fingerprintUnavailableReason = fingerprintUnavailableReason(frozenFingerprint, currentFingerprint)
+            val eventMetadata = previewSaveEventMetadata(forceMismatchOverride, fingerprintUnavailableReason)
+            val preview = reservation.preview
+            val feedbackItems = reservation.items.map { pending ->
                 targetEvidenceService.buildFeedbackItem(
                     screen = preview.snapshot.screen,
                     sourceIndex = preview.sourceIndex,
@@ -116,7 +232,7 @@ class FeedbackDraftService(
                     bounds = pending.bounds,
                     nodeUid = pending.nodeUid,
                     comment = pending.comment,
-                    allowBlankComment = allowBlankComments,
+                    allowBlankComment = reservation.allowBlankComments,
                     writtenStatus = pending.status,
                     missingNodeContext = "preview",
                 ).copy(
@@ -126,21 +242,34 @@ class FeedbackDraftService(
             }
             val persistedScreen = screenshotArtifactPromoter.promote(
                 projectRoot = preview.projectRoot,
-                sessionId = sessionId,
+                sessionId = reservation.sessionId,
                 screen = preview.snapshot.screen,
             )
-            val updated = store.addScreenWithItems(sessionId, persistedScreen, feedbackItems)
+            val updated = store.addScreenWithItems(
+                reservation.sessionId,
+                persistedScreen,
+                feedbackItems,
+                eventMetadata = eventMetadata,
+            )
             val removedPreview = synchronized(lock) {
-                previewSavesInFlight.remove(inFlightKey)
-                previewCache.remove(sessionId, previewId)
+                previewSavesInFlight.remove(reservation.inFlightKey)
+                previewCache.remove(reservation.sessionId, reservation.previewId)
             }
             removedPreview?.deletePreviewCacheDirectory()
-            updated
+            PreviewFeedbackSaveResult(updated, fingerprintUnavailableReason)
         } catch (error: Throwable) {
-            synchronized(lock) {
-                previewSavesInFlight.remove(inFlightKey)
-            }
+            cancelPreviewFeedbackSave(reservation)
             throw error
+        }
+    }
+
+    internal fun cancelPreviewFeedbackSave(reservation: PreviewFeedbackSaveReservation) {
+        releasePreviewSaveReservation(reservation.inFlightKey)
+    }
+
+    private fun releasePreviewSaveReservation(inFlightKey: String) {
+        synchronized(lock) {
+            previewSavesInFlight.remove(inFlightKey)
         }
     }
 
@@ -155,23 +284,56 @@ class FeedbackDraftService(
         }
     }
 
+    private fun fingerprintUnavailableReason(frozenFingerprint: String?, currentFingerprint: String?): String? = when {
+        frozenFingerprint == null && currentFingerprint == null -> "frozen_and_current_fingerprint_unavailable"
+        frozenFingerprint == null -> "frozen_fingerprint_unavailable"
+        currentFingerprint == null -> "current_fingerprint_unavailable"
+        else -> null
+    }
+
+    private fun previewSaveEventMetadata(
+        forceMismatchOverride: Boolean,
+        fingerprintUnavailableReason: String?,
+    ): JsonObject = buildJsonObject {
+        if (forceMismatchOverride) put("forceMismatchOverride", true)
+        if (fingerprintUnavailableReason != null) {
+            put("fingerprintUnavailableReason", fingerprintUnavailableReason)
+        }
+    }
+
     private fun validatePreviewPendingItems(
         screen: SnapshotDto,
         items: List<AnnotationDraftDto>,
         allowBlankComments: Boolean,
     ) {
-        items.forEach { pending ->
-            targetEvidenceService.validateFeedbackTarget(
-                screen = screen,
-                targetType = pending.targetType,
-                bounds = pending.bounds,
-                nodeUid = pending.nodeUid,
-                comment = pending.comment,
-                allowBlankComment = allowBlankComments,
-                missingNodeContext = "preview",
-            )
+        try {
+            items.forEach { pending ->
+                targetEvidenceService.validateFeedbackTarget(
+                    screen = screen,
+                    targetType = pending.targetType,
+                    bounds = pending.bounds,
+                    nodeUid = pending.nodeUid,
+                    comment = pending.comment,
+                    allowBlankComment = allowBlankComments,
+                    missingNodeContext = "preview",
+                )
+            }
+        } catch (error: IllegalArgumentException) {
+            throw error.asPreviewFeedbackRequestValidationException()
         }
     }
+
+    private inline fun requirePreviewFeedbackRequest(value: Boolean, lazyMessage: () -> String) {
+        if (!value) {
+            throw PreviewFeedbackRequestValidationException(lazyMessage())
+        }
+    }
+
+    private fun IllegalArgumentException.asPreviewFeedbackRequestValidationException():
+        PreviewFeedbackRequestValidationException =
+        if (this is PreviewFeedbackRequestValidationException) this else {
+            PreviewFeedbackRequestValidationException(message ?: "Invalid feedback item request", this)
+        }
 
     fun clearDraftItems(sessionId: String): SessionDto = store.clearDraftItems(sessionId)
 

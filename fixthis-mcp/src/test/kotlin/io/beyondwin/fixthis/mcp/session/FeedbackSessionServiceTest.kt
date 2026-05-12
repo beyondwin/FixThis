@@ -13,9 +13,18 @@ import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
 import io.beyondwin.fixthis.mcp.console.AnnotationDraftDto
 import io.beyondwin.fixthis.mcp.console.ConsoleConnectionState
 import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
+import io.beyondwin.fixthis.mcp.tools.FixThisBridge
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -418,6 +427,8 @@ class FeedbackSessionServiceTest {
                     comment = "Change this visual area",
                 ),
             ),
+            frozenFingerprint = "preview-fingerprint",
+            currentFingerprint = "preview-fingerprint",
         )
 
         assertEquals(1, updated.screens.size)
@@ -806,7 +817,12 @@ class FeedbackSessionServiceTest {
             val root = tempDir(prefix = "fixthis-v2-no-source-index-${sourceIndexCase.label}-")
             val store = FeedbackSessionStore(
                 clock = sequenceClock(1_000L, 2_000L),
-                idGenerator = sequenceIds("session-${index + 1}", "preview-${index + 1}", "screen-${index + 1}", "item-${index + 1}"),
+                idGenerator = sequenceIds(
+                    "session-${index + 1}",
+                    "preview-${index + 1}",
+                    "screen-${index + 1}",
+                    "item-${index + 1}",
+                ),
             )
             val service = FeedbackSessionService(
                 bridge = FakeFixThisBridge(
@@ -995,6 +1011,106 @@ class FeedbackSessionServiceTest {
         val stored = store.getSession(session.sessionId)
         assertEquals(1, stored.screens.size)
         assertEquals(1, stored.items.size)
+    }
+
+    @Test
+    fun invalidCachedPreviewFeedbackTargetFailsBeforeLiveFingerprintRecapture() = runBlocking {
+        val root = tempDir(prefix = "fixthis-v2-preview-invalid-preflight-")
+        val bridge = FakeFixThisBridge()
+        val store = FeedbackSessionStore(
+            clock = sequenceClock(1_000L, 2_000L),
+            idGenerator = sequenceIds("session-1", "preview-1", "screen-1"),
+        )
+        val service = FeedbackSessionService(
+            bridge = bridge,
+            store = store,
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val preview = service.capturePreview(session.sessionId)
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            runBlocking {
+                service.savePreviewFeedbackItemsWithLiveFingerprintMetadata(
+                    PreviewFeedbackLiveSaveRequest(
+                        sessionId = session.sessionId,
+                        previewId = preview.previewId,
+                        items = listOf(
+                            AnnotationDraftDto(
+                                targetType = FeedbackTargetType.NODE,
+                                bounds = FixThisRect(10f, 10f, 40f, 40f),
+                                nodeUid = "missing-node",
+                                comment = "Missing node",
+                            ),
+                        ),
+                    ),
+                )
+            }
+        }
+
+        assertTrue(error.message.orEmpty().contains("Selected node does not exist on preview: missing-node"))
+        assertEquals(1, bridge.captureCount)
+    }
+
+    @Test
+    fun concurrentPreviewSaveReservesBeforeLiveFingerprintRecapture() = runBlocking {
+        val root = tempDir(prefix = "fixthis-v2-preview-concurrent-reserve-")
+        val bridge = SecondCaptureBlockingBridge()
+        val store = FeedbackSessionStore(
+            clock = sequenceClock(1_000L, 2_000L),
+            idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1"),
+        )
+        val service = FeedbackSessionService(
+            bridge = bridge,
+            store = store,
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val preview = service.capturePreview(session.sessionId)
+        val item = AnnotationDraftDto(
+            targetType = FeedbackTargetType.AREA,
+            bounds = FixThisRect(112f, 426f, 351f, 588f),
+            comment = "Change this visual area",
+        )
+        val firstSaveError = AtomicReference<Throwable?>()
+
+        val firstSave = thread {
+            try {
+                runBlocking {
+                    service.savePreviewFeedbackItemsWithLiveFingerprintMetadata(
+                        PreviewFeedbackLiveSaveRequest(
+                            sessionId = session.sessionId,
+                            previewId = preview.previewId,
+                            items = listOf(item),
+                        ),
+                    )
+                }
+            } catch (error: Throwable) {
+                firstSaveError.set(error)
+            }
+        }
+        assertTrue(bridge.recaptureStarted.await(5, TimeUnit.SECONDS))
+
+        val secondSaveError = assertFailsWith<FeedbackSessionException> {
+            runBlocking {
+                service.savePreviewFeedbackItemsWithLiveFingerprintMetadata(
+                    PreviewFeedbackLiveSaveRequest(
+                        sessionId = session.sessionId,
+                        previewId = preview.previewId,
+                        items = listOf(item),
+                    ),
+                )
+            }
+        }
+
+        assertTrue(secondSaveError.message.orEmpty().contains("PREVIEW_SAVE_IN_PROGRESS"))
+        assertEquals(2, bridge.captureCount)
+        bridge.releaseRecapture.countDown()
+        firstSave.join(5_000L)
+        firstSaveError.get()?.let { throw it }
+        assertEquals(1, store.getSession(session.sessionId).items.size)
     }
 
     @Test
@@ -1324,6 +1440,59 @@ class FeedbackSessionServiceTest {
         projectRoot = tempDir(prefix = "fixthis-connection-service-").absolutePath,
         defaultPackageName = "io.beyondwin.fixthis.sample",
     )
+
+    private class SecondCaptureBlockingBridge : FixThisBridge {
+        val recaptureStarted = CountDownLatch(1)
+        val releaseRecapture = CountDownLatch(1)
+        var captureCount: Int = 0
+            private set
+
+        override fun resolvePackageName(packageOverride: String?): String =
+            packageOverride ?: "io.beyondwin.fixthis.sample"
+
+        override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun verifyUiChange(
+            packageName: String,
+            expectedText: String,
+            role: String?,
+        ): JsonObject = JsonObject(emptyMap())
+
+        override suspend fun captureScreenSnapshot(
+            packageName: String,
+            sessionId: String?,
+            screenId: String?,
+            destinationDirectory: File?,
+        ): JsonObject = buildJsonObject {
+            captureCount += 1
+            if (captureCount > 1) {
+                recaptureStarted.countDown()
+                releaseRecapture.await(5, TimeUnit.SECONDS)
+            }
+            val artifact = requireNotNull(destinationDirectory)
+                .resolve("${requireNotNull(screenId)}-full.png")
+            artifact.parentFile.mkdirs()
+            artifact.writeBytes(byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47))
+            put("activity", "MainActivity")
+            put("sourceIndexAvailable", true)
+            put(
+                "inspection",
+                buildJsonObject {
+                    put("activity", "MainActivity")
+                    put("roots", JsonArray(emptyList()))
+                    put("errors", JsonArray(emptyList()))
+                },
+            )
+            put(
+                "screenshot",
+                buildJsonObject {
+                    put("desktopFullPath", artifact.absolutePath)
+                },
+            )
+        }
+    }
 
     private fun tempDir(prefix: String): File = kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
 

@@ -54,6 +54,8 @@ class EventLogWriter(
     }
 
     @Synchronized
+    // Checkpoint writes wrap any filesystem/serialization failure in the event-log domain error.
+    @Suppress("TooGenericExceptionCaught")
     fun writeCheckpoint(checkpoint: EventLogCheckpoint) {
         if (!directory.exists()) {
             directory.mkdirs()

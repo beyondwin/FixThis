@@ -13,6 +13,19 @@ import java.io.File
 
 data class SendDraftToAgentResult(val session: SessionDto, val prompt: String)
 
+internal data class PreviewFeedbackLiveSaveRequest(
+    val sessionId: String,
+    val previewId: String,
+    val items: List<AnnotationDraftDto>,
+    val fallbackScreen: SnapshotDto? = null,
+    val fingerprintCheck: PreviewFeedbackFingerprintCheck = PreviewFeedbackFingerprintCheck(),
+)
+
+internal data class PreviewFeedbackFingerprintCheck(
+    val frozenFingerprint: String? = null,
+    val forceMismatchOverride: Boolean = false,
+)
+
 /**
  * Thin façade over [FeedbackSessionRegistry], [AnnotationRepository], and
  * [EvidenceCoordinator]. Preserves the existing public API used by ~10 caller
@@ -154,6 +167,51 @@ class FeedbackSessionService(
         currentFingerprint = currentFingerprint,
         forceMismatchOverride = forceMismatchOverride,
     )
+
+    internal fun savePreviewFeedbackItemsWithMetadata(
+        sessionId: String,
+        previewId: String,
+        items: List<AnnotationDraftDto>,
+        fallbackScreen: SnapshotDto? = null,
+        frozenFingerprint: String? = null,
+        currentFingerprint: String? = null,
+        forceMismatchOverride: Boolean = false,
+    ): PreviewFeedbackSaveResult = annotations.savePreviewFeedbackItemsWithMetadata(
+        sessionId = sessionId,
+        previewId = previewId,
+        items = items,
+        fallbackScreen = fallbackScreen,
+        frozenFingerprint = frozenFingerprint,
+        currentFingerprint = currentFingerprint,
+        forceMismatchOverride = forceMismatchOverride,
+    )
+
+    internal suspend fun savePreviewFeedbackItemsWithLiveFingerprintMetadata(
+        request: PreviewFeedbackLiveSaveRequest,
+    ): PreviewFeedbackSaveResult {
+        val session = registry.getSession(request.sessionId)
+        val reservation = annotations.preparePreviewFeedbackSave(
+            sessionId = request.sessionId,
+            previewId = request.previewId,
+            items = request.items,
+            fallbackScreen = request.fallbackScreen,
+        )
+        var recaptureCompleted = false
+        val currentScreen = try {
+            previewCaptureService.captureCurrentScreenForFingerprint(session)
+                .also { recaptureCompleted = true }
+        } finally {
+            if (!recaptureCompleted) {
+                annotations.cancelPreviewFeedbackSave(reservation)
+            }
+        }
+        return annotations.commitPreviewFeedbackSaveWithMetadata(
+            reservation = reservation,
+            frozenFingerprint = request.fingerprintCheck.frozenFingerprint,
+            currentFingerprint = currentScreen.fingerprint,
+            forceMismatchOverride = request.fingerprintCheck.forceMismatchOverride,
+        )
+    }
 
     fun clearDraftItems(sessionId: String): SessionDto = annotations.clearDraftItems(sessionId)
 

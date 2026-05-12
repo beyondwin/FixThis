@@ -3,7 +3,12 @@ package io.beyondwin.fixthis.mcp.session
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.mcp.console.AnnotationDraftDto
 import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
+import io.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
+import io.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -75,6 +80,29 @@ class FeedbackDraftServiceMismatchTest {
     }
 
     @Test
+    fun savePreviewFeedbackItemsForceOverridePersistsEventMetadata() = runBlocking {
+        val fixture = draftFixture(
+            ids = arrayOf("session-1", "preview-1", "screen-1", "item-1", "item-2"),
+            prefix = "fixthis-draft-mismatch-force-event-",
+            withEventLog = true,
+        )
+        val session = fixture.store.openSession("io.beyondwin.fixthis.sample", fixture.root.absolutePath)
+        val preview = fixture.previewCaptureService.capturePreview(session)
+
+        fixture.draftService.savePreviewFeedbackItems(
+            sessionId = session.sessionId,
+            previewId = preview.previewId,
+            items = listOf(validItem()),
+            frozenFingerprint = "frozen-abc",
+            currentFingerprint = "current-xyz",
+            forceMismatchOverride = true,
+        )
+
+        val event = fixture.addScreenWithItemsEvents(session.sessionId).single()
+        assertEquals(true, event.payload["forceMismatchOverride"]?.jsonPrimitive?.boolean)
+    }
+
+    @Test
     fun savePreviewFeedbackItemsSkipsMismatchCheckWhenEitherFingerprintIsNull() = runBlocking {
         val fixture = draftFixture(
             ids = arrayOf(
@@ -115,18 +143,49 @@ class FeedbackDraftServiceMismatchTest {
         assertEquals(1, updated2.items.size)
     }
 
+    @Test
+    fun savePreviewFeedbackItemsPersistsReasonWhenFingerprintsAreUnavailable() = runBlocking {
+        val fixture = draftFixture(
+            ids = arrayOf("session-1", "preview-1", "screen-1", "item-1", "item-2"),
+            prefix = "fixthis-draft-mismatch-null-event-",
+            withEventLog = true,
+        )
+        val session = fixture.store.openSession("io.beyondwin.fixthis.sample", fixture.root.absolutePath)
+        val preview = fixture.previewCaptureService.capturePreview(session)
+
+        fixture.draftService.savePreviewFeedbackItems(
+            sessionId = session.sessionId,
+            previewId = preview.previewId,
+            items = listOf(validItem()),
+            frozenFingerprint = null,
+            currentFingerprint = null,
+        )
+
+        val event = fixture.addScreenWithItemsEvents(session.sessionId).single()
+        assertEquals(
+            "frozen_and_current_fingerprint_unavailable",
+            event.payload["fingerprintUnavailableReason"]?.jsonPrimitive?.contentOrNull,
+        )
+    }
+
     private fun validItem(): AnnotationDraftDto = AnnotationDraftDto(
         targetType = FeedbackTargetType.AREA,
         bounds = FixThisRect(112f, 426f, 351f, 588f),
         comment = "Mismatch test annotation",
     )
 
-    private fun draftFixture(ids: Array<String>, prefix: String): DraftFixture {
+    private fun draftFixture(ids: Array<String>, prefix: String, withEventLog: Boolean = false): DraftFixture {
         val root = tempDir(prefix)
+        val eventRoot = File(root, "events")
         val bridge = FakeFixThisBridge()
         val store = FeedbackSessionStore(
             clock = sequenceClock(1_000L, 2_000L),
             idGenerator = sequenceIds(*ids),
+            eventLogWriterProvider = if (withEventLog) {
+                { sessionId -> EventLogWriter(File(eventRoot, "$sessionId/events")) }
+            } else {
+                null
+            },
         )
         val previewCache = PreviewSnapshotCache(3)
         val targetEvidenceService = TargetEvidenceService(
@@ -145,16 +204,20 @@ class FeedbackDraftServiceMismatchTest {
             targetEvidenceService = targetEvidenceService,
             screenshotArtifactPromoter = ScreenshotArtifactPromoter(),
         )
-        return DraftFixture(root, bridge, store, previewCaptureService, draftService)
+        return DraftFixture(root, eventRoot, bridge, store, previewCaptureService, draftService)
     }
 
     private data class DraftFixture(
         val root: File,
+        val eventRoot: File,
         val bridge: FakeFixThisBridge,
         val store: FeedbackSessionStore,
         val previewCaptureService: PreviewCaptureService,
         val draftService: FeedbackDraftService,
-    )
+    ) {
+        fun addScreenWithItemsEvents(sessionId: String) =
+            EventLogReader(File(eventRoot, "$sessionId/events")).readAll().filter { it.type == "addScreenWithItems" }
+    }
 
     private fun tempDir(prefix: String): File = kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }
 

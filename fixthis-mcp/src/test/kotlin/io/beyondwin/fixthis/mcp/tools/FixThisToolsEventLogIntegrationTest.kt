@@ -62,7 +62,10 @@ class FixThisToolsEventLogIntegrationTest {
                 .walkTopDown()
                 .filter { it.isFile && it.extension == "jsonl" }
                 .toList()
-            assertTrue(eventLogs.isNotEmpty(), "Expected at least one event log JSONL file under default feedback session storage")
+            assertTrue(
+                eventLogs.isNotEmpty(),
+                "Expected at least one event log JSONL file under default feedback session storage",
+            )
         } finally {
             tools.close()
             projectRoot.deleteRecursively()

@@ -72,6 +72,9 @@ private fun defaultFeedbackSessionService(
     )
 }
 
+// Public construction surface is intentionally broad: CLI, MCP tests, and console
+// startup inject different seams without requiring a separate container.
+@Suppress("LongParameterList")
 class FixThisTools(
     private val bridge: FixThisBridge = CliFixThisBridge(BridgeClient()),
     private val defaultPackageName: String? = null,

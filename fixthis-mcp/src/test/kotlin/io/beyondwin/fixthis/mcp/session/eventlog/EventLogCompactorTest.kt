@@ -195,7 +195,11 @@ class EventLogCompactorTest {
 
             // state.json must NOT be written
             assertFalse(File(dir, "state.json").exists(), "state.json should NOT be written when below threshold")
-            assertEquals(null, EventLogReader(eventsDir).readCheckpointOrNull(), "checkpoint should NOT be written when below threshold")
+            assertEquals(
+                null,
+                EventLogReader(eventsDir).readCheckpointOrNull(),
+                "checkpoint should NOT be written when below threshold",
+            )
 
             // All 50 original files still present
             val remaining = eventsDir.listFiles { f -> f.isFile && f.extension == "jsonl" } ?: emptyArray()
