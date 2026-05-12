@@ -12,6 +12,7 @@ const sources = [
   'beforeunloadGuard.js',
   'undoRedo.js',
   'undoKeymatch.js',
+  'previewStaleness.js',
   'api.js',
   'connection.js',
   'availability.js',

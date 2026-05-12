@@ -199,8 +199,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778571600000;
-const ConsoleBuildGitSha = 'b5a3349';
+const ConsoleBuildEpochMs = 1778571900000;
+const ConsoleBuildGitSha = 'd37f6f2';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -470,6 +470,30 @@ function shouldGuardUnload(pendingItemsCount) {
               return meta && key === 'z' && event.shiftKey === true;
             }
 
+// previewStaleness.js
+// previewStaleness.js — SIF-5: pure decision helper for time-based and
+// disconnect-based preview staleness. A frozen preview becomes stale when
+// either (a) it is older than MAX_PREVIEW_AGE_MS, or (b) the bridge is not
+// in the "connected" state. The status-tick site in main.js / connection.js
+// is responsible for calling evaluateStale on each refresh and writing the
+// result back into state.preview.stale.
+//
+// NOTE: This file is intentionally separate from staleness.js, which handles
+// build-epoch / protocol-version drift between the server JAR and the bundled
+// console assets — an unrelated concern.
+
+const MAX_PREVIEW_AGE_MS = 30000;
+
+function evaluateStale(state, now) {
+  const frozenAt = state && state.preview && state.preview.frozenAtEpochMillis;
+  if (!frozenAt) return false;
+  const age = now - frozenAt;
+  if (age > MAX_PREVIEW_AGE_MS) return true;
+  const connection = state && state.bridgeStatus && state.bridgeStatus.connection;
+  if (connection !== 'connected') return true;
+  return false;
+}
+
 // api.js
             async function requestJson(path, options = {}) {
               const method = (options.method || 'GET').toUpperCase();
@@ -605,6 +629,17 @@ function shouldGuardUnload(pendingItemsCount) {
                 state.preview.stale = restoredActivity !== currentActivity;
               } else if (state.preview) {
                 state.preview.stale = false;
+              }
+              // SIF-5: also evaluate time-based + disconnect-based staleness on every
+              // status tick. OR'd with the activity-drift result above so existing
+              // semantics are preserved.
+              if (state.preview) {
+                const bridgeConnection = userConnectionState(status) === 'ready' ? 'connected' : 'disconnected';
+                const stalenessInput = {
+                  preview: state.preview,
+                  bridgeStatus: { connection: bridgeConnection },
+                };
+                state.preview.stale = state.preview.stale || evaluateStale(stalenessInput, Date.now());
               }
 
               // Detect blocked → unblocked transitions for select-mode auto-resume.
