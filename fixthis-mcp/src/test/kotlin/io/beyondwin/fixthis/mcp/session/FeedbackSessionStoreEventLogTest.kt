@@ -4,6 +4,11 @@ import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogException
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
+import io.beyondwin.fixthis.mcp.session.eventlog.SessionEvent
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.put
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -14,7 +19,7 @@ import kotlin.test.assertFailsWith
 /**
  * Tests for the event-log integration on [FeedbackSessionStore].
  *
- * Constructor shape assumed:
+ * Constructor shape:
  *   FeedbackSessionStore(
  *       clock, idGenerator, persistence,
  *       eventLogWriterProvider: ((sessionId: String) -> EventLogWriter)? = null,
@@ -27,6 +32,11 @@ import kotlin.test.assertFailsWith
  * non-null, the init block replays events to reconstruct sessions on boot.
  */
 class FeedbackSessionStoreEventLogTest {
+
+    private val testJson = Json {
+        encodeDefaults = true
+        ignoreUnknownKeys = true
+    }
 
     // -------------------------------------------------------------------------
     // Helpers
@@ -144,6 +154,11 @@ class FeedbackSessionStoreEventLogTest {
 
     // -------------------------------------------------------------------------
     // Test 3: Boot replay reconstructs items from event log after simulated crash
+    //
+    // This test is DISCRIMINATING: it injects an "orphan" addItem event directly
+    // into the event log (bypassing the store) — simulating a crash that happened
+    // AFTER the event was written but BEFORE persistence.save() completed.
+    // Only replay can recover this item; the snapshot alone cannot.
     // -------------------------------------------------------------------------
 
     @Test
@@ -158,7 +173,7 @@ class FeedbackSessionStoreEventLogTest {
             var idSeq = 0
             val sharedIdGen: () -> String = { "id-${++idSeq}" }
 
-            // --- Store 1: open session, add screen, add 3 items, then "crash" ---
+            // --- Store 1: open session, add screen, add 3 items ---
             val store1 = FeedbackSessionStore(
                 clock = { 1_000L },
                 idGenerator = sharedIdGen,
@@ -176,7 +191,40 @@ class FeedbackSessionStoreEventLogTest {
 
             assertEquals(3, store1.getSession(sid).items.size)
 
-            // --- Store 2: boots from same persistence + event log (simulates restart after crash) ---
+            // Snapshot now has 3 items. Determine the max sequence number written so far.
+            val eventsAfterStore1 = EventLogReader(eventsDir(evtBase, sid)).readAll()
+            val maxSeq = eventsAfterStore1.maxOf { it.sequenceNumber }
+
+            // Inject a 4th item DIRECTLY into the event log (bypassing the store).
+            // This simulates: event appended, then crash before persistence.save().
+            // The snapshot on disk still has 3 items; only replay can see this 4th item.
+            val orphanItem = AnnotationDto(
+                itemId = "orphan-item-id",
+                screenId = screen.screenId,
+                createdAtEpochMillis = 1_500L,
+                updatedAtEpochMillis = 1_500L,
+                target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+                comment = "delta",
+                delivery = FeedbackDelivery.DRAFT,
+            )
+            val orphanEvent = SessionEvent(
+                eventId = "orphan-evt-id",
+                sequenceNumber = maxSeq + 1L,
+                epochMillis = 1_500L,
+                actor = "mcp",
+                type = "addItem",
+                payload = buildJsonObject {
+                    put("sessionId", sid)
+                    put("item", testJson.encodeToJsonElement(AnnotationDto.serializer(), orphanItem))
+                },
+            )
+            EventLogWriter(eventsDir(evtBase, sid)).append(orphanEvent)
+
+            // Verify snapshot alone only has 3 items (confirming orphan is NOT in snapshot)
+            val snapshotOnly = persistence.load(sid)
+            assertEquals(3, snapshotOnly.items.size, "Snapshot must have only 3 items (orphan not persisted)")
+
+            // --- Store 2: boots from same paths, triggers boot replay ---
             val store2 = FeedbackSessionStore(
                 clock = { 2_000L },
                 idGenerator = { "new-${++idSeq}" },
@@ -185,12 +233,12 @@ class FeedbackSessionStoreEventLogTest {
                 eventLogReaderProvider = readerFor(evtBase),
             )
 
-            // Replay should reconstruct all 3 items
+            // Replay must reconstruct all 4 items (3 snapshot-synced + 1 orphan)
             val replayed = store2.getSession(sid)
-            assertEquals(3, replayed.items.size, "Boot replay must reconstruct 3 items")
+            assertEquals(4, replayed.items.size, "Boot replay must reconstruct all 4 items including orphan")
 
             val replayedComments = replayed.items.map { it.comment }.toSet()
-            assertEquals(setOf("alpha", "beta", "gamma"), replayedComments)
+            assertEquals(setOf("alpha", "beta", "gamma", "delta"), replayedComments)
         } finally {
             tmp.deleteRecursively()
         }

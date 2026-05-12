@@ -601,6 +601,9 @@ class FeedbackSessionStore(
         }
 
         sessions[sessionId] = current
+        // Fix A: sync the snapshot so loadPersistedSessionIfAvailable returns replayed state.
+        // Without this, the read-through to persistence.load() overwrites replay on first getSession().
+        persistence?.save(current)
         lastReplayedSeq[sessionId] = maxSeq
         // Seed sequence counter at (maxSeq + 1) so new events don't collide.
         nextSeqMap[sessionId] = maxSeq + 1L
