@@ -199,8 +199,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778562240000;
-const ConsoleBuildGitSha = '31e629f';
+const ConsoleBuildEpochMs = 1778572260000;
+const ConsoleBuildGitSha = '0fb0f43';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -259,7 +259,7 @@ const ConsoleBuildGitSha = '31e629f';
                 banner.hidden = true;
               });
 
-            const MinimumSupportedProtocolVersion = '1.2';
+            const MinimumSupportedProtocolVersion = '1.3';
 
             // Parse "1.1" -> [1, 1]; "1" -> [1]; non-numeric / null / undefined -> null.
             function parseProtocolVersion(s) {
@@ -470,6 +470,53 @@ function shouldGuardUnload(pendingItemsCount) {
               return meta && key === 'z' && event.shiftKey === true;
             }
 
+// previewStaleness.js
+// previewStaleness.js — SIF-5: pure decision helper for time-based and
+// disconnect-based preview staleness. A frozen preview becomes stale when
+// either (a) it is older than MAX_PREVIEW_AGE_MS, or (b) the bridge is not
+// in the "connected" state. The status-tick site in main.js / connection.js
+// is responsible for calling evaluateStale on each refresh and writing the
+// result back into state.preview.stale.
+//
+// NOTE: This file is intentionally separate from staleness.js, which handles
+// build-epoch / protocol-version drift between the server JAR and the bundled
+// console assets — an unrelated concern.
+
+const MAX_PREVIEW_AGE_MS = 30000;
+
+function evaluateStale(state, now) {
+  const frozenAt = state && state.preview && state.preview.frozenAtEpochMillis;
+  if (!frozenAt) return false;
+  const age = now - frozenAt;
+  if (age > MAX_PREVIEW_AGE_MS) return true;
+  const connection = state && state.bridgeStatus && state.bridgeStatus.connection;
+  if (connection !== 'connected') return true;
+  return false;
+}
+
+// activityDrift.js
+// activityDrift.js — SIF-6: pure decision helper that decides whether the
+// currently foregrounded activity differs from the activity captured when
+// the addItemsFlow freeze was taken. Returning drift=true tells the caller
+// to surface the inline warning + "분리 (새 freeze 시작)" button on the
+// next pin form.
+//
+// Bare-function module — concatenated into resources/console/app.js by
+// scripts/build-console-assets.mjs. Must be registered BEFORE annotations.js
+// (its sole caller) in the sources array.
+
+function checkActivityDrift(flow, current) {
+  const expected = flow && flow.activity ? flow.activity : null;
+  const actual = current && current.activity ? current.activity : null;
+  if (!expected || !actual) {
+    return { drift: false };
+  }
+  if (expected === actual) {
+    return { drift: false };
+  }
+  return { drift: true, expected: expected, actual: actual };
+}
+
 // api.js
             async function requestJson(path, options = {}) {
               const method = (options.method || 'GET').toUpperCase();
@@ -605,6 +652,17 @@ function shouldGuardUnload(pendingItemsCount) {
                 state.preview.stale = restoredActivity !== currentActivity;
               } else if (state.preview) {
                 state.preview.stale = false;
+              }
+              // SIF-5: also evaluate time-based + disconnect-based staleness on every
+              // status tick. OR'd with the activity-drift result above so existing
+              // semantics are preserved.
+              if (state.preview) {
+                const bridgeConnection = userConnectionState(status) === 'ready' ? 'connected' : 'disconnected';
+                const stalenessInput = {
+                  preview: state.preview,
+                  bridgeStatus: { connection: bridgeConnection },
+                };
+                state.preview.stale = state.preview.stale || evaluateStale(stalenessInput, Date.now());
               }
 
               // Detect blocked → unblocked transitions for select-mode auto-resume.
@@ -1615,7 +1673,12 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 addItemsFlow = {
                   previewId: state.preview.previewId,
                   screen: state.preview.screen,
-                  screenshotUrl: previewScreenshotUrl(state.preview.previewId)
+                  screenshotUrl: previewScreenshotUrl(state.preview.previewId),
+                  // SIF-6: capture the foreground activity at freeze time so
+                  // checkActivityDrift() can detect when the device has since
+                  // navigated away during a multi-pin pending flow.
+                  activity: state.preview.activity ?? state.connection?.availability?.activity ?? null,
+                  activityDriftWarning: null
                 };
                 toolMode = 'annotate';
                 focusedPendingItemIndex = null;
@@ -1651,6 +1714,15 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               };
               pendingFeedbackItems.push(annotation);
               persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
+              // SIF-6: re-check activity drift after each pending item is
+              // appended. Uses the existing status-poll-derived availability
+              // — no extra fetch is issued.
+              if (addItemsFlow) {
+                const currentActivitySnapshot = {
+                  activity: state.connection?.availability?.activity ?? null
+                };
+                addItemsFlow.activityDriftWarning = checkActivityDrift(addItemsFlow, currentActivitySnapshot);
+              }
               currentSelection = null;
               hoveredAnnotationTarget = null;
               focusedPendingItemIndex = pendingFeedbackItems.length - 1;
@@ -1787,20 +1859,85 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               const allowFallbackComments = Boolean(options.allowFallbackComments);
               const onlyWrittenComments = Boolean(options.onlyWrittenComments);
               const allowBlankComments = Boolean(options.allowBlankComments);
+              const forceMismatchOverride = Boolean(options.forceMismatchOverride);
               if (!allowFallbackComments && !onlyWrittenComments && !allowBlankComments && pendingFeedbackItems.some(item => !String(item.comment || '').trim())) throw new Error('Add a comment to every annotation before saving.');
               if (onlyWrittenComments && !pendingFeedbackItems.some(hasWrittenAnnotationComment)) throw new Error('Add a comment to at least one annotation before sending.');
-              state.session = await withMutationLock(() => requestJson('/api/items/batch', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+              const payloadItems = pendingPayloadItems({ allowFallbackComments: allowFallbackComments, onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments });
+              const frozenFingerprint = addItemsFlow.screen?.fingerprint ?? null;
+              const sendBatch = async (overrideMismatch) => {
+                return await withMutationLock(() => savePreviewBatchOrConflict({
                   previewId: addItemsFlow.previewId,
                   screen: addItemsFlow.screen,
-                  items: pendingPayloadItems({ allowFallbackComments: allowFallbackComments, onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments })
-                })
-              }));
+                  items: payloadItems,
+                  frozenFingerprint: frozenFingerprint,
+                  forceMismatchOverride: Boolean(overrideMismatch)
+                }));
+              };
+              let result = await sendBatch(forceMismatchOverride);
+              if (result && result.conflict === 'screen_fingerprint_mismatch') {
+                const choice = await promptScreenFingerprintMismatch(result.frozenFingerprint, result.currentFingerprint);
+                if (choice === 'force') {
+                  result = await sendBatch(true);
+                  if (result && result.conflict === 'screen_fingerprint_mismatch') {
+                    throw new Error('Save was rejected after force override. Re-capture and try again.');
+                  }
+                } else if (choice === 'recapture') {
+                  // Drop the stale preview so the next Annotate-mode entry re-freezes.
+                  resetAnnotationComposerState();
+                  state.preview = null;
+                  startLivePreviewPolling();
+                  return null;
+                } else {
+                  // Cancelled.
+                  return null;
+                }
+              }
+              state.session = result.session;
               resetAnnotationComposerState();
               state.preview = null;
               return state.session;
+            }
+
+            async function savePreviewBatchOrConflict(body) {
+              const headers = new Headers({ 'Content-Type': 'application/json' });
+              const token = window.FixThisConsoleConfig?.consoleToken;
+              if (token) headers.set('X-FixThis-Console-Token', token);
+              const response = await fetch('/api/items/batch', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(body)
+              });
+              if (response.status === 409) {
+                const conflict = await response.json().catch(() => ({}));
+                if (conflict && conflict.error === 'screen_fingerprint_mismatch') {
+                  return {
+                    conflict: 'screen_fingerprint_mismatch',
+                    frozenFingerprint: conflict.frozenFingerprint || null,
+                    currentFingerprint: conflict.currentFingerprint || null
+                  };
+                }
+                throw new Error('Save conflict: ' + JSON.stringify(conflict));
+              }
+              if (!response.ok) {
+                throw new Error(await response.text() || 'HTTP ' + response.status);
+              }
+              return { session: await response.json() };
+            }
+
+            function promptScreenFingerprintMismatch(frozenFingerprint, currentFingerprint) {
+              if (typeof window !== 'undefined' && typeof window.fixThisPromptFingerprintMismatch === 'function') {
+                return Promise.resolve(window.fixThisPromptFingerprintMismatch({ frozenFingerprint: frozenFingerprint, currentFingerprint: currentFingerprint }));
+              }
+              const message = '화면이 캡처 이후 변경되었을 수 있습니다.\n\n' +
+                '확인 = 현재 화면 다시 캡처\n' +
+                '취소 = 다음 단계로 (강제 저장 여부 묻기)';
+              if (typeof window === 'undefined' || typeof window.confirm !== 'function') {
+                return Promise.resolve('cancel');
+              }
+              const recapture = window.confirm(message);
+              if (recapture) return Promise.resolve('recapture');
+              const force = window.confirm('강제로 저장하시겠습니까?\n확인 = 강제 저장\n취소 = 취소');
+              return Promise.resolve(force ? 'force' : 'cancel');
             }
 
             async function flushPendingAnnotationsBeforeSessionChange() {
@@ -2407,7 +2544,19 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 renderAnnotationDetail(selectedAnnotation(), focusedPendingItemIndex);
                 return;
               }
-              pendingItems.innerHTML = pendingFeedbackItems.length
+              // SIF-6: inline activity-drift warning + "분리" button. Visible
+              // only while an addItemsFlow is active and the most recent
+              // checkActivityDrift() result reported drift=true.
+              const driftWarningHtml = (addItemsFlow && addItemsFlow.activityDriftWarning && addItemsFlow.activityDriftWarning.drift)
+                ? '<div class="activity-drift-warning" role="status" aria-live="polite" data-activity-drift>' +
+                    '<div class="activity-drift-warning-body">' +
+                      '<div class="activity-drift-warning-title">Activity changed during freeze</div>' +
+                      '<div class="activity-drift-warning-detail">Frozen: ' + escapeHtml(String(addItemsFlow.activityDriftWarning.expected)) + ' · Now: ' + escapeHtml(String(addItemsFlow.activityDriftWarning.actual)) + '</div>' +
+                    '</div>' +
+                    '<button type="button" class="activity-drift-warning-button" data-activity-drift-restart>분리 (새 freeze 시작)</button>' +
+                  '</div>'
+                : '';
+              pendingItems.innerHTML = driftWarningHtml + (pendingFeedbackItems.length
                 ? '<div class="ann-list">' + pendingFeedbackItems.map((item, index) => {
                   const commentText = firstLine(item.comment || 'No comment');
                   const hasComment = Boolean(String(item.comment || '').trim());
@@ -2423,10 +2572,18 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                     '<span class="ann-row-status ' + statusClass(item) + '">' + escapeHtml(statusLabel(item)) + '</span>' +
                   '</button>';
                 }).join('') + '</div>'
-                : '<div class="empty-state"><div class="empty-title">No annotations yet.</div><div class="empty-body">Switch to <b>Annotate</b>, then click or drag on the preview.</div>' + startAnnotatingButtonHtml() + '</div>';
+                : '<div class="empty-state"><div class="empty-title">No annotations yet.</div><div class="empty-body">Switch to <b>Annotate</b>, then click or drag on the preview.</div>' + startAnnotatingButtonHtml() + '</div>');
               pendingItems.querySelectorAll('[data-focus-pending]').forEach(button => {
                 button.addEventListener('click', () => focusPendingFeedbackItem(Number(button.dataset.focusPending)));
               });
+              const driftRestartButton = pendingItems.querySelector('[data-activity-drift-restart]');
+              if (driftRestartButton) {
+                driftRestartButton.addEventListener('click', () => {
+                  // SIF-6: discard the stale freeze and start a fresh one.
+                  resetAnnotationComposerState(true);
+                  startAddItemsFlow().catch(showError);
+                });
+              }
               bindStartAnnotatingButtons(pendingItems);
             }
 

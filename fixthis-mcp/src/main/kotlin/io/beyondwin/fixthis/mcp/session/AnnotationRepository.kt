@@ -50,12 +50,18 @@ class AnnotationRepository(
         previewId: String,
         items: List<AnnotationDraftDto>,
         fallbackScreen: SnapshotDto? = null,
+        frozenFingerprint: String? = null,
+        currentFingerprint: String? = null,
+        forceMismatchOverride: Boolean = false,
     ): SessionDto = draftService.savePreviewFeedbackItems(
         sessionId = sessionId,
         previewId = previewId,
         items = items,
         fallbackScreen = fallbackScreen,
         allowBlankComments = true,
+        frozenFingerprint = frozenFingerprint,
+        currentFingerprint = currentFingerprint,
+        forceMismatchOverride = forceMismatchOverride,
     )
 
     fun clearDraftItems(sessionId: String): SessionDto = draftService.clearDraftItems(sessionId)

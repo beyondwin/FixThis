@@ -489,6 +489,8 @@ class FeedbackConsoleServerTest {
             "beforeunloadGuard.js",
             "undoRedo.js",
             "undoKeymatch.js",
+            "previewStaleness.js",
+            "activityDrift.js",
             "api.js",
             "connection.js",
             "availability.js",
@@ -2096,7 +2098,8 @@ class FeedbackConsoleServerTest {
         val createAnnotationFromSelection = javascriptFunctionBody(html, "createAnnotationFromSelection")
 
         assertTrue(html.contains("previewId: addItemsFlow.previewId"))
-        assertTrue(html.contains("items: pendingPayloadItems({ allowFallbackComments: allowFallbackComments, onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments })"))
+        assertTrue(html.contains("const payloadItems = pendingPayloadItems({ allowFallbackComments: allowFallbackComments, onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments })"))
+        assertTrue(html.contains("items: payloadItems"))
         assertTrue(html.contains("targetType: selection.targetType"))
         assertTrue(html.contains("nodeUid: selection.nodeUid"))
         assertTrue(html.contains("bounds: selection.bounds"))

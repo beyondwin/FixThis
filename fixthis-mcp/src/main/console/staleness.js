@@ -54,7 +54,7 @@
                 banner.hidden = true;
               });
 
-            const MinimumSupportedProtocolVersion = '1.2';
+            const MinimumSupportedProtocolVersion = '1.3';
 
             // Parse "1.1" -> [1, 1]; "1" -> [1]; non-numeric / null / undefined -> null.
             function parseProtocolVersion(s) {

@@ -24,6 +24,7 @@
     <ID>LongMethod:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$@Test fun consoleHtmlIncludesSelectionHandoffWorkspace()</ID>
     <ID>LongMethod:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$@Test fun consoleHtmlRendersStudioSessionHistoryWithoutInternalIds()</ID>
     <ID>LongMethod:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$@Test fun savingDraftItemsAppendsOneScreenAndTwoItems()</ID>
+    <ID>LongMethod:FeedbackDraftService.kt$FeedbackDraftService$fun savePreviewFeedbackItems( sessionId: String, previewId: String, items: List&lt;AnnotationDraftDto&gt;, fallbackScreen: SnapshotDto? = null, allowBlankComments: Boolean = true, frozenFingerprint: String? = null, currentFingerprint: String? = null, forceMismatchOverride: Boolean = false, ): SessionDto</ID>
     <ID>LongMethod:FeedbackItemRoutes.kt$FeedbackItemRoutes$override fun handle(exchange: HttpExchange)</ID>
     <ID>LongMethod:FeedbackQueueFormatterTest.kt$FeedbackQueueFormatterTest$@Test fun markdownFocusesOnRequestTargetEvidenceAndLikelySource()</ID>
     <ID>LongMethod:FeedbackQueueFormatterTest.kt$FeedbackQueueFormatterTest$@Test fun markdownIncludesAreaEvidenceNoteAndNearbyUiLabels()</ID>
@@ -38,11 +39,14 @@
     <ID>LongMethod:FixThisTools.kt$FixThisTools$suspend fun call(name: String, arguments: JsonObject): JsonObject</ID>
     <ID>LongMethod:McpProtocolTest.kt$McpProtocolTest$@Test fun listFeedbackIncludesDraftAndSentCounts()</ID>
     <ID>LongParameterList:AnnotationRepository.kt$AnnotationRepository$( sessionId: String, itemId: String, label: String?, severity: AnnotationSeverityDto?, comment: String?, status: AnnotationStatusDto?, )</ID>
+    <ID>LongParameterList:AnnotationRepository.kt$AnnotationRepository$( sessionId: String, previewId: String, items: List&lt;AnnotationDraftDto&gt;, fallbackScreen: SnapshotDto? = null, frozenFingerprint: String? = null, currentFingerprint: String? = null, forceMismatchOverride: Boolean = false, )</ID>
     <ID>LongParameterList:AnnotationRepository.kt$AnnotationRepository$( sessionId: String, screenId: String, targetType: FeedbackTargetType, bounds: FixThisRect, nodeUid: String?, comment: String, )</ID>
     <ID>LongParameterList:CompactHandoffRenderer.kt$CompactHandoffRenderer$( number: Int, item: AnnotationDto, isOverlap: Boolean, instanceLabel: InstanceLabel? = null, isInstanceLeader: Boolean = false, groupSize: Int = 0, dupRefMarker: Int? = null, sourceRoot: String? = null, )</ID>
     <ID>LongParameterList:FakeFixThisBridge.kt$FakeFixThisBridge$( private val packageName: String = "io.beyondwin.fixthis.sample", private val captureError: Throwable? = null, private val captureRoots: List&lt;SnapshotRootDto&gt; = defaultCaptureRoots(), private val sourceIndexAvailable: Boolean = true, private val sourceIndex: SourceIndex? = defaultSourceIndex(), private val sourceIndexReadError: String? = null, private val devicesOverride: List&lt;AdbDevice&gt;? = null, private val devicesError: Throwable? = null, private val heartbeatError: Throwable? = null, private val statusProvider: (() -&gt; JsonObject)? = null, )</ID>
+    <ID>LongParameterList:FeedbackDraftService.kt$FeedbackDraftService$( sessionId: String, previewId: String, items: List&lt;AnnotationDraftDto&gt;, fallbackScreen: SnapshotDto? = null, allowBlankComments: Boolean = true, frozenFingerprint: String? = null, currentFingerprint: String? = null, forceMismatchOverride: Boolean = false, )</ID>
     <ID>LongParameterList:FeedbackDraftService.kt$FeedbackDraftService$( sessionId: String, screenId: String, targetType: FeedbackTargetType, bounds: FixThisRect, nodeUid: String?, comment: String, )</ID>
     <ID>LongParameterList:FeedbackSessionService.kt$FeedbackSessionService$( sessionId: String, itemId: String, label: String?, severity: AnnotationSeverityDto?, comment: String?, status: AnnotationStatusDto?, )</ID>
+    <ID>LongParameterList:FeedbackSessionService.kt$FeedbackSessionService$( sessionId: String, previewId: String, items: List&lt;AnnotationDraftDto&gt;, fallbackScreen: SnapshotDto? = null, frozenFingerprint: String? = null, currentFingerprint: String? = null, forceMismatchOverride: Boolean = false, )</ID>
     <ID>LongParameterList:FeedbackSessionService.kt$FeedbackSessionService$( sessionId: String, screenId: String, targetType: FeedbackTargetType, bounds: FixThisRect, nodeUid: String?, comment: String, )</ID>
     <ID>LongParameterList:FeedbackSessionStore.kt$FeedbackSessionStore$( sessionId: String, itemId: String, label: String?, severity: AnnotationSeverityDto?, comment: String?, status: AnnotationStatusDto?, )</ID>
     <ID>LongParameterList:FixThisTools.kt$FixThisTools$( private val bridge: FixThisBridge = CliFixThisBridge(BridgeClient()), private val defaultPackageName: String? = null, private val projectRoot: File = File(".").canonicalFile, private val feedbackService: FeedbackSessionService = FeedbackSessionService( bridge = bridge, store = FeedbackSessionStore( persistence = FeedbackSessionPersistence(FeedbackSessionPaths(projectRoot)), ), projectRoot = projectRoot.absolutePath, defaultPackageName = defaultPackageName, ), private val consoleAssetsDir: File? = null, private val consolePort: Int = 0, private val freshnessProbe: HostSourceFreshnessProbe = HostSourceFreshnessProbe(projectRoot), )</ID>
@@ -199,7 +203,7 @@
     <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("if (bounds) return 'Component ' + Math.round(bounds.right - bounds.left) + 'x' + Math.round(bounds.bottom - bounds.top);"))</ID>
     <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("if (screenSavedItems.length) renderSavedEvidenceOverlay(overlay, image, screenSavedItems);"))</ID>
     <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("if (withoutServiceSuffix.startsWith('adb-')) return withoutServiceSuffix.substring(4);"))</ID>
-    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("items: pendingPayloadItems({ allowFallbackComments: allowFallbackComments, onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments })"))</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("const payloadItems = pendingPayloadItems({ allowFallbackComments: allowFallbackComments, onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments })"))</ID>
     <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("renderOverlayBox(overlay, image, item.bounds, String(index + 1), false, index === focusedPendingItemIndex, index, '', severityColor(annotationSeverity(item)))"))</ID>
     <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("setDeviceUiState(DeviceUiState.CONNECTING, deviceBySerial(state.devices, option.value));"))</ID>
     <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$assertTrue(html.contains("setDeviceUiState(DeviceUiState.UNAVAILABLE, deviceBySerial(state.devices, option.value) || { serial: option.value });"))</ID>
@@ -244,6 +248,7 @@
     <ID>MaxLineLength:FeedbackDraftService.kt$FeedbackDraftService$snapshot = io.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot(previewId = previewId, screen = sanitizedScreen)</ID>
     <ID>MaxLineLength:FeedbackDraftService.kt$FeedbackDraftService$val sourceIndex = runBlocking { targetEvidenceService.readSourceIndexOrNull(session.packageName, sanitizedScreen) }</ID>
     <ID>MaxLineLength:FeedbackDraftServiceTest.kt$FeedbackDraftServiceTest$assertTrue(updated.screens.single().screenshot?.desktopFullPath.orEmpty().contains("artifacts/screens/screen-1"))</ID>
+    <ID>MaxLineLength:FeedbackDraftServiceMismatchTest.kt$FeedbackDraftServiceMismatchTest$private fun tempDir(prefix: String): File</ID>
     <ID>MaxLineLength:FeedbackDraftServiceTest.kt$FeedbackDraftServiceTest$private fun tempDir(prefix: String): File</ID>
     <ID>MaxLineLength:FeedbackItemRoutes.kt$FeedbackItemRoutes$private fun HttpExchange.decodeAgentHandoffBody(): AgentHandoffRequest</ID>
     <ID>MaxLineLength:FeedbackItemRoutes.kt$FeedbackItemRoutes$private fun HttpExchange.decodeSavePreviewFeedbackItemsBody(): SaveSnapshotRequest</ID>
@@ -383,7 +388,7 @@
     <ID>SwallowedException:McpServer.kt$McpServer$error: CancellationException</ID>
     <ID>SwallowedException:PreviewRoutes.kt$PreviewRoutes$error: IllegalArgumentException</ID>
     <ID>ThrowsCount:ArtifactRoutes.kt$ArtifactRoutes$private fun HttpExchange.sendScreenshot(screenId: String)</ID>
-    <ID>ThrowsCount:FeedbackDraftService.kt$FeedbackDraftService$fun savePreviewFeedbackItems( sessionId: String, previewId: String, items: List&lt;AnnotationDraftDto&gt;, fallbackScreen: SnapshotDto? = null, allowBlankComments: Boolean = true, ): SessionDto</ID>
+    <ID>ThrowsCount:FeedbackDraftService.kt$FeedbackDraftService$fun savePreviewFeedbackItems( sessionId: String, previewId: String, items: List&lt;AnnotationDraftDto&gt;, fallbackScreen: SnapshotDto? = null, allowBlankComments: Boolean = true, frozenFingerprint: String? = null, currentFingerprint: String? = null, forceMismatchOverride: Boolean = false, ): SessionDto</ID>
     <ID>ThrowsCount:FeedbackItemRoutes.kt$FeedbackItemRoutes$private fun HttpExchange.decodeAddFeedbackItemBody(): AddAnnotationRequest</ID>
     <ID>ThrowsCount:McpProtocol.kt$McpProtocol$internal suspend fun handleRequest(request: McpRequest): String?</ID>
     <ID>ThrowsCount:McpServer.kt$McpOptions.Companion$fun parse(args: Array&lt;String&gt;): McpOptions</ID>
@@ -395,6 +400,7 @@
     <ID>TooGenericExceptionCaught:FixThisTools.kt$FixThisTools$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:McpProtocol.kt$McpProtocol$error: Throwable</ID>
     <ID>TooManyFunctions:ConsoleHttp.kt$io.beyondwin.fixthis.mcp.console.ConsoleHttp.kt</ID>
+    <ID>TooManyFunctions:FeedbackDraftService.kt$FeedbackDraftService</ID>
     <ID>TooManyFunctions:FeedbackQueueFormatter.kt$FeedbackQueueFormatter</ID>
     <ID>TooManyFunctions:FeedbackSessionService.kt$FeedbackSessionService</ID>
     <ID>TooManyFunctions:FeedbackSessionStore.kt$FeedbackSessionStore</ID>
@@ -407,7 +413,7 @@
     <ID>TopLevelPropertyNaming:FixThisTools.kt$private const val MaxRecentOverridePackages = 8</ID>
     <ID>TopLevelPropertyNaming:McpProtocol.kt$private const val JsonRpcVersion = "2.0"</ID>
     <ID>TopLevelPropertyNaming:McpProtocol.kt$private const val McpProtocolVersion = "2025-06-18"</ID>
-    <ID>TopLevelPropertyNaming:ServerVersionRoutes.kt$// Mirrors the protocol version constant defined in BridgeProtocol.VERSION (fixthis-compose-sidekick) // and BridgeClient (fixthis-cli). Keep in sync if the protocol version ever changes. private const val BridgeProtocolVersion = "1.2"</ID>
+    <ID>TopLevelPropertyNaming:ServerVersionRoutes.kt$// Mirrors the protocol version constant defined in BridgeProtocol.VERSION (fixthis-compose-sidekick) // and BridgeClient (fixthis-cli). Keep in sync if the protocol version ever changes. private const val BridgeProtocolVersion = "1.3"</ID>
     <ID>UnusedParameter:ConsoleHttp.kt$statusCode: Int</ID>
     <ID>UnusedPrivateMember:FixThisTools.kt$FixThisTools$private fun JsonObject.longParam(name: String): Long?</ID>
     <ID>UnusedPrivateProperty:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val pendingPayload = javascriptFunctionBody(html, "pendingPayloadItems")</ID>

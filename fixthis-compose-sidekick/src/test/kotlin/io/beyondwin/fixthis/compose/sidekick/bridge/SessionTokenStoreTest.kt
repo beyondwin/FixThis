@@ -31,7 +31,7 @@ class SessionTokenStoreTest {
         assertEquals("fixthis_io.beyondwin.fixthis.sample", session.socketName)
         assertEquals("localabstract:fixthis_io.beyondwin.fixthis.sample", session.socketAddress)
         assertEquals("token-256-bit-base64", session.token)
-        assertEquals("1.2", session.bridgeProtocolVersion)
+        assertEquals("1.3", session.bridgeProtocolVersion)
         assertEquals(1777786212000L, session.createdAtEpochMillis)
         assertTrue(file.readText().contains(""""createdAtEpochMillis": 1777786212000"""))
         assertTrue(file.readText().contains(""""processStartEpochMillis": 1777786212000"""))

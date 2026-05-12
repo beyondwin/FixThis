@@ -94,6 +94,17 @@
               } else if (state.preview) {
                 state.preview.stale = false;
               }
+              // SIF-5: also evaluate time-based + disconnect-based staleness on every
+              // status tick. OR'd with the activity-drift result above so existing
+              // semantics are preserved.
+              if (state.preview) {
+                const bridgeConnection = userConnectionState(status) === 'ready' ? 'connected' : 'disconnected';
+                const stalenessInput = {
+                  preview: state.preview,
+                  bridgeStatus: { connection: bridgeConnection },
+                };
+                state.preview.stale = state.preview.stale || evaluateStale(stalenessInput, Date.now());
+              }
 
               // Detect blocked → unblocked transitions for select-mode auto-resume.
               if (

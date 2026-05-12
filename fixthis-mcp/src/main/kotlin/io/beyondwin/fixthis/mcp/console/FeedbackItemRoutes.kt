@@ -3,8 +3,11 @@ package io.beyondwin.fixthis.mcp.console
 import com.sun.net.httpserver.HttpExchange
 import io.beyondwin.fixthis.cli.fixThisJson
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
+import io.beyondwin.fixthis.mcp.session.ScreenFingerprintMismatch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 internal class FeedbackItemRoutes(private val service: FeedbackSessionService) : ConsoleRoute {
     override fun matches(path: String): Boolean = path == "/api/items" ||
@@ -42,9 +45,22 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
                         previewId = request.previewId,
                         items = request.items,
                         fallbackScreen = request.screen,
+                        frozenFingerprint = request.frozenFingerprint,
+                        currentFingerprint = request.screen?.fingerprint,
+                        forceMismatchOverride = request.forceMismatchOverride,
                     )
                 } catch (error: IllegalArgumentException) {
                     throw FeedbackConsoleHttpException(400, error.message ?: "Invalid feedback item request")
+                } catch (error: ScreenFingerprintMismatch) {
+                    exchange.sendJson(
+                        HTTP_STATUS_CONFLICT,
+                        buildJsonObject {
+                            put("error", "screen_fingerprint_mismatch")
+                            put("frozenFingerprint", error.frozenFingerprint)
+                            put("currentFingerprint", error.currentFingerprint)
+                        },
+                    )
+                    return@requireMethod
                 }
                 exchange.sendJson(200, session)
             }
@@ -118,3 +134,5 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
 }
 
 private val allowedAddFeedbackItemRequestKeys = setOf("screenId", "comment", "targetType", "bounds", "nodeUid")
+
+private const val HTTP_STATUS_CONFLICT = 409
