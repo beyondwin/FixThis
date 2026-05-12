@@ -26,6 +26,8 @@ import io.beyondwin.fixthis.mcp.session.HostSourceFreshnessProbe
 import io.beyondwin.fixthis.mcp.session.HostSourceFreshnessResult
 import io.beyondwin.fixthis.mcp.session.SessionDto
 import io.beyondwin.fixthis.mcp.session.SnapshotDto
+import io.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
+import io.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
 import io.beyondwin.fixthis.mcp.textContent
 import io.beyondwin.fixthis.mcp.toolResult
 import kotlinx.coroutines.CancellationException
@@ -48,17 +50,36 @@ import java.io.File
 private const val MaxRecentOverridePackages = 8
 private val resolvedStatuses = setOf(AnnotationStatusDto.RESOLVED, AnnotationStatusDto.WONT_FIX)
 
+private fun defaultFeedbackSessionService(
+    bridge: FixThisBridge,
+    defaultPackageName: String?,
+    projectRoot: File,
+): FeedbackSessionService {
+    val feedbackSessionPaths = FeedbackSessionPaths(projectRoot)
+    return FeedbackSessionService(
+        bridge = bridge,
+        store = FeedbackSessionStore(
+            persistence = FeedbackSessionPersistence(feedbackSessionPaths),
+            eventLogWriterProvider = { sessionId ->
+                EventLogWriter(feedbackSessionPaths.eventLogDirectory(sessionId))
+            },
+            eventLogReaderProvider = { sessionId ->
+                EventLogReader(feedbackSessionPaths.eventLogDirectory(sessionId))
+            },
+        ),
+        projectRoot = projectRoot.absolutePath,
+        defaultPackageName = defaultPackageName,
+    )
+}
+
 class FixThisTools(
     private val bridge: FixThisBridge = CliFixThisBridge(BridgeClient()),
     private val defaultPackageName: String? = null,
     private val projectRoot: File = File(".").canonicalFile,
-    private val feedbackService: FeedbackSessionService = FeedbackSessionService(
+    private val feedbackService: FeedbackSessionService = defaultFeedbackSessionService(
         bridge = bridge,
-        store = FeedbackSessionStore(
-            persistence = FeedbackSessionPersistence(FeedbackSessionPaths(projectRoot)),
-        ),
-        projectRoot = projectRoot.absolutePath,
         defaultPackageName = defaultPackageName,
+        projectRoot = projectRoot,
     ),
     private val consoleAssetsDir: File? = null,
     private val consolePort: Int = 0,
@@ -86,6 +107,13 @@ class FixThisTools(
                     put("description", resource.description)
                 },
             )
+        }
+    }
+
+    fun close() {
+        synchronized(consoleLock) {
+            consoleServer?.stop()
+            consoleServer = null
         }
     }
 

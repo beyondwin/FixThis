@@ -11,6 +11,10 @@ class FeedbackSessionPaths(projectRoot: File) {
 
     fun sessionFile(sessionId: String): File = child(sessionDirectory(sessionId), "session.json")
 
+    fun eventLogDirectory(sessionId: String): File = child(sessionDirectory(sessionId), "events")
+
+    fun eventLogCheckpointFile(sessionId: String): File = child(eventLogDirectory(sessionId), "checkpoint.json")
+
     fun screenArtifactDirectory(sessionId: String, screenId: String): File = child(child(child(sessionDirectory(sessionId), "artifacts"), "screens"), safeId(screenId))
 
     fun fullScreenshotFile(sessionId: String, screenId: String): File = child(screenArtifactDirectory(sessionId, screenId), "${safeId(screenId)}-full.png")
