@@ -1,8 +1,8 @@
 package io.beyondwin.fixthis.mcp.session
 
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.beyondwin.fixthis.mcp.session.eventlog.EventLogException
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogCheckpoint
+import io.beyondwin.fixthis.mcp.session.eventlog.EventLogException
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
 import io.beyondwin.fixthis.mcp.session.eventlog.SessionEvent

@@ -31,6 +31,8 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+private const val PACKAGE_NAME = "io.beyondwin.fixthis.sample"
+
 class FeedbackSessionServiceTest {
     @Test
     fun connectionStatusIsReadyWhenDeviceAndHeartbeatSucceed() = runBlocking {
@@ -1447,8 +1449,7 @@ class FeedbackSessionServiceTest {
         var captureCount: Int = 0
             private set
 
-        override fun resolvePackageName(packageOverride: String?): String =
-            packageOverride ?: "io.beyondwin.fixthis.sample"
+        override fun resolvePackageName(packageOverride: String?): String = packageOverride ?: PACKAGE_NAME
 
         override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
 

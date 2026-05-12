@@ -97,11 +97,10 @@ class EventLogReader(private val directory: File) {
         return files.mapNotNull { file -> sequenceNumberFromFileName(file.name) }.maxOrNull()
     }
 
-    private fun sequenceNumberFromFileName(name: String): Long? =
-        name.substringAfter("-", missingDelimiterValue = "")
-            .substringBefore(".jsonl")
-            .takeIf { it.isNotBlank() }
-            ?.toLongOrNull()
+    private fun sequenceNumberFromFileName(name: String): Long? = name.substringAfter("-", missingDelimiterValue = "")
+        .substringBefore(".jsonl")
+        .takeIf { it.isNotBlank() }
+        ?.toLongOrNull()
 }
 
 class EventLogException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)

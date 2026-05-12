@@ -32,4 +32,5 @@ local.properties
 .playwright-mcp
 .claude
 .orchestrator
+.codex-orchestrator
 .worktrees

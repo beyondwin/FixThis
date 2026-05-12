@@ -218,49 +218,47 @@ class FeedbackDraftService(
         frozenFingerprint: String? = null,
         currentFingerprint: String? = null,
         forceMismatchOverride: Boolean = false,
-    ): PreviewFeedbackSaveResult {
-        return try {
-            enforceFingerprintMatch(frozenFingerprint, currentFingerprint, forceMismatchOverride)
-            val fingerprintUnavailableReason = fingerprintUnavailableReason(frozenFingerprint, currentFingerprint)
-            val eventMetadata = previewSaveEventMetadata(forceMismatchOverride, fingerprintUnavailableReason)
-            val preview = reservation.preview
-            val feedbackItems = reservation.items.map { pending ->
-                targetEvidenceService.buildFeedbackItem(
-                    screen = preview.snapshot.screen,
-                    sourceIndex = preview.sourceIndex,
-                    targetType = pending.targetType,
-                    bounds = pending.bounds,
-                    nodeUid = pending.nodeUid,
-                    comment = pending.comment,
-                    allowBlankComment = reservation.allowBlankComments,
-                    writtenStatus = pending.status,
-                    missingNodeContext = "preview",
-                ).copy(
-                    label = pending.label?.takeIf { it.isNotBlank() },
-                    severity = pending.severity,
-                )
-            }
-            val persistedScreen = screenshotArtifactPromoter.promote(
-                projectRoot = preview.projectRoot,
-                sessionId = reservation.sessionId,
+    ): PreviewFeedbackSaveResult = try {
+        enforceFingerprintMatch(frozenFingerprint, currentFingerprint, forceMismatchOverride)
+        val fingerprintUnavailableReason = fingerprintUnavailableReason(frozenFingerprint, currentFingerprint)
+        val eventMetadata = previewSaveEventMetadata(forceMismatchOverride, fingerprintUnavailableReason)
+        val preview = reservation.preview
+        val feedbackItems = reservation.items.map { pending ->
+            targetEvidenceService.buildFeedbackItem(
                 screen = preview.snapshot.screen,
+                sourceIndex = preview.sourceIndex,
+                targetType = pending.targetType,
+                bounds = pending.bounds,
+                nodeUid = pending.nodeUid,
+                comment = pending.comment,
+                allowBlankComment = reservation.allowBlankComments,
+                writtenStatus = pending.status,
+                missingNodeContext = "preview",
+            ).copy(
+                label = pending.label?.takeIf { it.isNotBlank() },
+                severity = pending.severity,
             )
-            val updated = store.addScreenWithItems(
-                reservation.sessionId,
-                persistedScreen,
-                feedbackItems,
-                eventMetadata = eventMetadata,
-            )
-            val removedPreview = synchronized(lock) {
-                previewSavesInFlight.remove(reservation.inFlightKey)
-                previewCache.remove(reservation.sessionId, reservation.previewId)
-            }
-            removedPreview?.deletePreviewCacheDirectory()
-            PreviewFeedbackSaveResult(updated, fingerprintUnavailableReason)
-        } catch (error: Throwable) {
-            cancelPreviewFeedbackSave(reservation)
-            throw error
         }
+        val persistedScreen = screenshotArtifactPromoter.promote(
+            projectRoot = preview.projectRoot,
+            sessionId = reservation.sessionId,
+            screen = preview.snapshot.screen,
+        )
+        val updated = store.addScreenWithItems(
+            reservation.sessionId,
+            persistedScreen,
+            feedbackItems,
+            eventMetadata = eventMetadata,
+        )
+        val removedPreview = synchronized(lock) {
+            previewSavesInFlight.remove(reservation.inFlightKey)
+            previewCache.remove(reservation.sessionId, reservation.previewId)
+        }
+        removedPreview?.deletePreviewCacheDirectory()
+        PreviewFeedbackSaveResult(updated, fingerprintUnavailableReason)
+    } catch (error: Throwable) {
+        cancelPreviewFeedbackSave(reservation)
+        throw error
     }
 
     internal fun cancelPreviewFeedbackSave(reservation: PreviewFeedbackSaveReservation) {
@@ -319,7 +317,7 @@ class FeedbackDraftService(
                 )
             }
         } catch (error: IllegalArgumentException) {
-            throw error.asPreviewFeedbackRequestValidationException()
+            throw error.asValidationException()
         }
     }
 
@@ -329,11 +327,13 @@ class FeedbackDraftService(
         }
     }
 
-    private fun IllegalArgumentException.asPreviewFeedbackRequestValidationException():
-        PreviewFeedbackRequestValidationException =
-        if (this is PreviewFeedbackRequestValidationException) this else {
-            PreviewFeedbackRequestValidationException(message ?: "Invalid feedback item request", this)
-        }
+    private fun IllegalArgumentException.asValidationException(): PreviewFeedbackRequestValidationException = if (
+        this is PreviewFeedbackRequestValidationException
+    ) {
+        this
+    } else {
+        PreviewFeedbackRequestValidationException(message ?: "Invalid feedback item request", this)
+    }
 
     fun clearDraftItems(sessionId: String): SessionDto = store.clearDraftItems(sessionId)
 

@@ -215,8 +215,9 @@ class FeedbackDraftServiceMismatchTest {
         val previewCaptureService: PreviewCaptureService,
         val draftService: FeedbackDraftService,
     ) {
-        fun addScreenWithItemsEvents(sessionId: String) =
-            EventLogReader(File(eventRoot, "$sessionId/events")).readAll().filter { it.type == "addScreenWithItems" }
+        fun addScreenWithItemsEvents(sessionId: String) = EventLogReader(File(eventRoot, "$sessionId/events"))
+            .readAll()
+            .filter { it.type == "addScreenWithItems" }
     }
 
     private fun tempDir(prefix: String): File = kotlin.io.path.createTempDirectory(prefix = prefix).toFile().also { it.deleteOnExit() }

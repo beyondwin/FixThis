@@ -1,5 +1,6 @@
 package io.beyondwin.fixthis.mcp.session
 
+import io.beyondwin.fixthis.compose.core.domain.snapshot.Snapshot
 import io.beyondwin.fixthis.compose.core.domain.snapshot.SnapshotFingerprint
 import io.beyondwin.fixthis.compose.core.model.FixThisError
 import io.beyondwin.fixthis.mcp.McpProtocol
@@ -161,8 +162,11 @@ private fun SnapshotDto.fallbackFingerprintOrNull(): String? {
     }
 }
 
-private fun io.beyondwin.fixthis.compose.core.domain.snapshot.Snapshot.hasFingerprintInputs(): Boolean =
-    listOf(orientation, widthPx, heightPx, densityDpi, windowMode).all { it != null }
+private fun Snapshot.hasFingerprintInputs(): Boolean = orientation != null &&
+    widthPx != null &&
+    heightPx != null &&
+    densityDpi != null &&
+    windowMode != null
 
 private fun JsonObject.stringOrNull(name: String): String? = this[name]?.jsonPrimitive?.contentOrNull
 

@@ -55,6 +55,8 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+private const val PACKAGE_NAME = "io.beyondwin.fixthis.sample"
+
 class FeedbackConsoleServerTest {
     @Test
     fun routeTableDispatchesFirstMatchingRoute() {
@@ -1678,7 +1680,17 @@ class FeedbackConsoleServerTest {
         assertTrue(html.contains("let toolMode = 'select'"))
         assertTrue(html.contains("function enterAnnotateMode"))
         assertTrue(html.contains("function enterSelectMode"))
-        assertTrue(Regex("async function enterAnnotateMode\\(\\) \\{\\s+await ensureSessionForAnnotating\\(\\);\\s+toolMode = 'annotate';\\s+renderCurrentSessionList\\(\\);\\s+if \\(!addItemsFlow\\) \\{\\s+await startAddItemsFlow\\(\\);").containsMatchIn(html))
+        assertTrue(
+            Regex(
+                "async function enterAnnotateMode\\(\\) \\{\\s+" +
+                    "if \\(!requirePendingRecoveryChoiceBeforeSessionChange\\(\\)\\) return;\\s+" +
+                    "await ensureSessionForAnnotating\\(\\);\\s+" +
+                    "toolMode = 'annotate';\\s+" +
+                    "renderCurrentSessionList\\(\\);\\s+" +
+                    "if \\(!addItemsFlow\\) \\{\\s+" +
+                    "await startAddItemsFlow\\(\\);",
+            ).containsMatchIn(html),
+        )
         assertTrue(html.contains("inspectorTitle.textContent = item ? 'Annotation' : 'Annotations'"))
         assertTrue(html.contains("pendingItems.hidden = false"))
         assertTrue(html.contains("renderPendingItems"))
@@ -3694,8 +3706,7 @@ class FeedbackConsoleServerTest {
         var selectedDeviceSerial: String? = null
             private set
 
-        override fun resolvePackageName(packageOverride: String?): String =
-            packageOverride ?: "io.beyondwin.fixthis.sample"
+        override fun resolvePackageName(packageOverride: String?): String = packageOverride ?: PACKAGE_NAME
 
         override fun devices(): List<AdbDevice> = devices
 
@@ -3724,8 +3735,7 @@ class FeedbackConsoleServerTest {
     }
 
     private class SessionScreenshotBridge(private val pngBytes: ByteArray) : FixThisBridge {
-        override fun resolvePackageName(packageOverride: String?): String =
-            packageOverride ?: "io.beyondwin.fixthis.sample"
+        override fun resolvePackageName(packageOverride: String?): String = packageOverride ?: PACKAGE_NAME
 
         override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
 
@@ -3769,8 +3779,7 @@ class FeedbackConsoleServerTest {
     private class SequencedSessionScreenshotBridge(vararg pngBytes: ByteArray) : FixThisBridge {
         private val queue = ArrayDeque(pngBytes.toList())
 
-        override fun resolvePackageName(packageOverride: String?): String =
-            packageOverride ?: "io.beyondwin.fixthis.sample"
+        override fun resolvePackageName(packageOverride: String?): String = packageOverride ?: PACKAGE_NAME
 
         override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
 
@@ -3814,8 +3823,7 @@ class FeedbackConsoleServerTest {
     private class SequencedFingerprintBridge(vararg fingerprints: String) : FixThisBridge {
         private val queue = ArrayDeque(fingerprints.toList())
 
-        override fun resolvePackageName(packageOverride: String?): String =
-            packageOverride ?: "io.beyondwin.fixthis.sample"
+        override fun resolvePackageName(packageOverride: String?): String = packageOverride ?: PACKAGE_NAME
 
         override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
 
@@ -3860,8 +3868,7 @@ class FeedbackConsoleServerTest {
     private class NullableSequencedFingerprintBridge(vararg fingerprints: String?) : FixThisBridge {
         private val queue = ArrayDeque(fingerprints.toList())
 
-        override fun resolvePackageName(packageOverride: String?): String =
-            packageOverride ?: "io.beyondwin.fixthis.sample"
+        override fun resolvePackageName(packageOverride: String?): String = packageOverride ?: PACKAGE_NAME
 
         override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
 
@@ -3906,8 +3913,7 @@ class FeedbackConsoleServerTest {
     private class SecondCaptureIllegalArgumentBridge : FixThisBridge {
         private var captureCount = 0
 
-        override fun resolvePackageName(packageOverride: String?): String =
-            packageOverride ?: "io.beyondwin.fixthis.sample"
+        override fun resolvePackageName(packageOverride: String?): String = packageOverride ?: PACKAGE_NAME
 
         override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
 
@@ -3957,7 +3963,7 @@ class FeedbackConsoleServerTest {
         private val previewStarted: CountDownLatch,
         private val releasePreview: CountDownLatch,
     ) : FixThisBridge {
-        override fun resolvePackageName(packageOverride: String?): String = packageOverride ?: "io.beyondwin.fixthis.sample"
+        override fun resolvePackageName(packageOverride: String?): String = packageOverride ?: PACKAGE_NAME
 
         override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
 
@@ -3994,7 +4000,7 @@ class FeedbackConsoleServerTest {
     }
 
     private class LegacyScreenshotBridge(private val artifact: File) : FixThisBridge {
-        override fun resolvePackageName(packageOverride: String?): String = packageOverride ?: "io.beyondwin.fixthis.sample"
+        override fun resolvePackageName(packageOverride: String?): String = packageOverride ?: PACKAGE_NAME
 
         override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
 

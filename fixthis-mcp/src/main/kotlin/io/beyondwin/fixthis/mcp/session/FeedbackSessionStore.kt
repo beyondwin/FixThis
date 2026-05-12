@@ -1,7 +1,7 @@
 package io.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogCheckpoint
+import io.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
 import io.beyondwin.fixthis.mcp.session.eventlog.SessionEvent
 import kotlinx.serialization.json.Json
@@ -769,18 +769,17 @@ class FeedbackSessionStore(
         )
     }
 
-    private fun replayStartingSession(shell: SessionDto, checkpoint: EventLogCheckpoint?): SessionDto =
-        if (checkpoint == null) {
-            // Legacy/full-log replay: mutable session state comes entirely from events.
-            shell.copy(
-                screens = emptyList(),
-                items = emptyList(),
-                handoffBatches = emptyList(),
-            )
-        } else {
-            // Checkpoint replay: session.json is already the compacted-through snapshot.
-            shell
-        }
+    private fun replayStartingSession(shell: SessionDto, checkpoint: EventLogCheckpoint?): SessionDto = if (checkpoint == null) {
+        // Legacy/full-log replay: mutable session state comes entirely from events.
+        shell.copy(
+            screens = emptyList(),
+            items = emptyList(),
+            handoffBatches = emptyList(),
+        )
+    } else {
+        // Checkpoint replay: session.json is already the compacted-through snapshot.
+        shell
+    }
 
     private fun applyReplayedSession(sessionId: String, replayed: ReplayedSessionState) {
         sessions[sessionId] = replayed.session
@@ -805,16 +804,15 @@ class FeedbackSessionStore(
         nextSeqMap[sessionId] = maxSeq + 1L
     }
 
-    private fun replaySkippedSessionList(packageName: String?, includeClosed: Boolean): List<SkippedFeedbackSession> =
-        replaySkippedSessions
-            .filter { (sessionId, _) ->
-                val session = sessions[sessionId]
-                session != null &&
-                    (packageName == null || session.packageName == packageName) &&
-                    (includeClosed || session.status != SessionStatusDto.CLOSED)
-            }
-            .values
-            .toList()
+    private fun replaySkippedSessionList(packageName: String?, includeClosed: Boolean): List<SkippedFeedbackSession> = replaySkippedSessions
+        .filter { (sessionId, _) ->
+            val session = sessions[sessionId]
+            session != null &&
+                (packageName == null || session.packageName == packageName) &&
+                (includeClosed || session.status != SessionStatusDto.CLOSED)
+        }
+        .values
+        .toList()
 
     /**
      * Applies a single [SessionEvent] to [session] and returns the resulting [SessionDto].
