@@ -11,8 +11,10 @@ import io.beyondwin.fixthis.compose.core.domain.common.SnapshotId
 import io.beyondwin.fixthis.compose.core.domain.session.Session
 import io.beyondwin.fixthis.compose.core.domain.session.SessionHandoffBatch
 import io.beyondwin.fixthis.compose.core.domain.session.SessionStatus
+import io.beyondwin.fixthis.compose.core.domain.snapshot.ScreenOrientation
 import io.beyondwin.fixthis.compose.core.domain.snapshot.Snapshot
 import io.beyondwin.fixthis.compose.core.domain.snapshot.SnapshotRoot
+import io.beyondwin.fixthis.compose.core.domain.snapshot.WindowMode
 
 fun SessionDto.toDomainSession(): Session = Session(
     id = SessionId(sessionId),
@@ -70,6 +72,14 @@ fun SnapshotDto.toDomainSnapshot(): Snapshot = Snapshot(
     },
     sourceIndexAvailable = sourceIndexAvailable,
     errors = errors,
+    orientation = orientation.toScreenOrientationOrNull(),
+    widthPx = widthPx,
+    heightPx = heightPx,
+    densityDpi = densityDpi,
+    windowMode = windowMode.toWindowModeOrNull(),
+    systemUiVisible = systemUiVisible,
+    systemUiKind = systemUiKind,
+    fingerprint = fingerprint,
 )
 
 fun Snapshot.toSnapshotDto(): SnapshotDto = SnapshotDto(
@@ -88,6 +98,14 @@ fun Snapshot.toSnapshotDto(): SnapshotDto = SnapshotDto(
     },
     sourceIndexAvailable = sourceIndexAvailable,
     errors = errors,
+    orientation = orientation?.name,
+    widthPx = widthPx,
+    heightPx = heightPx,
+    densityDpi = densityDpi,
+    windowMode = windowMode?.name,
+    systemUiVisible = systemUiVisible,
+    systemUiKind = systemUiKind,
+    fingerprint = fingerprint,
 )
 
 fun AnnotationDto.toDomainAnnotation(sessionId: String): Annotation = Annotation(
@@ -200,3 +218,11 @@ private fun SnapshotScreenshot.toSnapshotScreenshotDto(): SnapshotScreenshotDto 
     height = height,
     captureFailedReason = captureFailedReason,
 )
+
+private fun String?.toScreenOrientationOrNull(): ScreenOrientation? = this?.let { value ->
+    runCatching { ScreenOrientation.valueOf(value) }.getOrNull()
+}
+
+private fun String?.toWindowModeOrNull(): WindowMode? = this?.let { value ->
+    runCatching { WindowMode.valueOf(value) }.getOrNull()
+}

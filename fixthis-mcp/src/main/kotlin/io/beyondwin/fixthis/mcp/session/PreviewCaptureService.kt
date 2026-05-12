@@ -1,5 +1,6 @@
 package io.beyondwin.fixthis.mcp.session
 
+import io.beyondwin.fixthis.compose.core.domain.snapshot.SnapshotFingerprint
 import io.beyondwin.fixthis.compose.core.model.FixThisError
 import io.beyondwin.fixthis.mcp.McpProtocol
 import io.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot
@@ -94,9 +95,9 @@ internal fun JsonObject.toCapturedScreen(screenId: String, fallbackDisplayName: 
     val inspection = this["inspection"]?.jsonObject
     val activityName = this["activity"]?.jsonPrimitive?.contentOrNull
         ?: inspection?.get("activity")?.jsonPrimitive?.contentOrNull
-    return SnapshotDto(
+    val snapshot = SnapshotDto(
         screenId = screenId,
-        capturedAtEpochMillis = 0L,
+        capturedAtEpochMillis = longOrNull("capturedAtEpochMillis") ?: System.currentTimeMillis(),
         activityName = activityName,
         displayName = activityName?.substringAfterLast('.') ?: fallbackDisplayName,
         screenshot = this["screenshot"]?.jsonObject?.let {
@@ -111,5 +112,33 @@ internal fun JsonObject.toCapturedScreen(screenId: String, fallbackDisplayName: 
         errors = (inspection?.get("errors") ?: this["errors"])?.jsonArray?.map { element ->
             McpProtocol.json.decodeFromJsonElement<FixThisError>(element)
         }.orEmpty(),
+        orientation = stringOrNull("orientation"),
+        widthPx = intOrNull("widthPx"),
+        heightPx = intOrNull("heightPx"),
+        densityDpi = intOrNull("densityDpi"),
+        windowMode = stringOrNull("windowMode"),
+        systemUiVisible = this["systemUiVisible"]?.jsonPrimitive?.booleanOrNull,
+        systemUiKind = stringOrNull("systemUiKind"),
+        fingerprint = stringOrNull("fingerprint")?.takeIf { it.isNotBlank() },
     )
+    if (snapshot.fingerprint != null) return snapshot
+    val domainSnapshot = snapshot.toDomainSnapshot()
+    val fallbackFingerprint = if (
+        domainSnapshot.orientation != null &&
+        domainSnapshot.widthPx != null &&
+        domainSnapshot.heightPx != null &&
+        domainSnapshot.densityDpi != null &&
+        domainSnapshot.windowMode != null
+    ) {
+        SnapshotFingerprint.compute(domainSnapshot)
+    } else {
+        null
+    }
+    return snapshot.copy(fingerprint = fallbackFingerprint)
 }
+
+private fun JsonObject.stringOrNull(name: String): String? = this[name]?.jsonPrimitive?.contentOrNull
+
+private fun JsonObject.longOrNull(name: String): Long? = stringOrNull(name)?.toLongOrNull()
+
+private fun JsonObject.intOrNull(name: String): Int? = stringOrNull(name)?.toIntOrNull()

@@ -1,10 +1,13 @@
 package io.beyondwin.fixthis.mcp.session
 
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class PreviewCaptureServiceTest {
@@ -83,6 +86,41 @@ class PreviewCaptureServiceTest {
         }
 
         assertTrue(error.message.orEmpty().contains("PREVIEW_NOT_FOUND"))
+    }
+
+    @Test
+    fun toCapturedScreenPreservesBridgeSnapshotIntegrityFieldsAndComputesFallbackFingerprint() {
+        val screen = buildJsonObject {
+            put("activity", "io.beyondwin.fixthis.MainActivity")
+            put("capturedAtEpochMillis", 1_700_000_000_123L)
+            put("orientation", "LANDSCAPE")
+            put("widthPx", 2400)
+            put("heightPx", 1080)
+            put("densityDpi", 420)
+            put("windowMode", "FREEFORM")
+            put("systemUiVisible", true)
+            put("systemUiKind", "THREE_BUTTON_NAV")
+        }.toCapturedScreen(screenId = "screen-1", fallbackDisplayName = "Draft screen")
+
+        assertEquals(1_700_000_000_123L, screen.capturedAtEpochMillis)
+        assertEquals("LANDSCAPE", screen.orientation)
+        assertEquals(2400, screen.widthPx)
+        assertEquals(1080, screen.heightPx)
+        assertEquals(420, screen.densityDpi)
+        assertEquals("FREEFORM", screen.windowMode)
+        assertEquals(true, screen.systemUiVisible)
+        assertEquals("THREE_BUTTON_NAV", screen.systemUiKind)
+        assertEquals("def2267534ccf633", screen.fingerprint)
+    }
+
+    @Test
+    fun toCapturedScreenKeepsLegacyActivityOnlyFingerprintUnavailable() {
+        val screen = buildJsonObject {
+            put("activity", "io.beyondwin.fixthis.MainActivity")
+        }.toCapturedScreen(screenId = "screen-1", fallbackDisplayName = "Draft screen")
+
+        assertEquals("io.beyondwin.fixthis.MainActivity", screen.activityName)
+        assertNull(screen.fingerprint)
     }
 
     private fun previewCaptureService(

@@ -75,4 +75,33 @@ class SnapshotDtoSerializationTest {
         assertEquals("STATUS_BAR", decoded.systemUiKind)
         assertEquals("abc123", decoded.fingerprint)
     }
+
+    @Test
+    fun `domain mapper round-trips snapshot integrity fields`() {
+        val original = SnapshotDto(
+            screenId = "screen-3",
+            capturedAtEpochMillis = 3333L,
+            activityName = "io.beyondwin.fixthis.DetailActivity",
+            displayName = "DetailActivity",
+            orientation = "REVERSE_LANDSCAPE",
+            widthPx = 2400,
+            heightPx = 1080,
+            densityDpi = 440,
+            windowMode = "SPLIT_SCREEN",
+            systemUiVisible = false,
+            systemUiKind = "GESTURAL_NAV",
+            fingerprint = "fingerprint-123",
+        )
+
+        val roundTripped = original.toDomainSnapshot().toSnapshotDto()
+
+        assertEquals("REVERSE_LANDSCAPE", roundTripped.orientation)
+        assertEquals(2400, roundTripped.widthPx)
+        assertEquals(1080, roundTripped.heightPx)
+        assertEquals(440, roundTripped.densityDpi)
+        assertEquals("SPLIT_SCREEN", roundTripped.windowMode)
+        assertEquals(false, roundTripped.systemUiVisible)
+        assertEquals("GESTURAL_NAV", roundTripped.systemUiKind)
+        assertEquals("fingerprint-123", roundTripped.fingerprint)
+    }
 }
