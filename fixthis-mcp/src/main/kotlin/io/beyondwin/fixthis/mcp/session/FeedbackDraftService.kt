@@ -79,11 +79,15 @@ class FeedbackDraftService(
         items: List<AnnotationDraftDto>,
         fallbackScreen: SnapshotDto? = null,
         allowBlankComments: Boolean = true,
+        frozenFingerprint: String? = null,
+        currentFingerprint: String? = null,
+        forceMismatchOverride: Boolean = false,
     ): SessionDto {
         require(items.isNotEmpty()) { "At least one feedback item is required" }
         if (!allowBlankComments) {
             require(items.none { it.comment.isBlank() }) { "Feedback comment must not be blank" }
         }
+        enforceFingerprintMatch(frozenFingerprint, currentFingerprint, forceMismatchOverride)
         val inFlightKey = "$sessionId:$previewId"
         val cachedPreview = synchronized(lock) {
             val record = previewCache.get(sessionId, previewId)
@@ -137,6 +141,17 @@ class FeedbackDraftService(
                 previewSavesInFlight.remove(inFlightKey)
             }
             throw error
+        }
+    }
+
+    private fun enforceFingerprintMatch(
+        frozenFingerprint: String?,
+        currentFingerprint: String?,
+        forceMismatchOverride: Boolean,
+    ) {
+        if (forceMismatchOverride || frozenFingerprint == null || currentFingerprint == null) return
+        if (frozenFingerprint != currentFingerprint) {
+            throw ScreenFingerprintMismatch(frozenFingerprint, currentFingerprint)
         }
     }
 

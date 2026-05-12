@@ -537,20 +537,85 @@
               const allowFallbackComments = Boolean(options.allowFallbackComments);
               const onlyWrittenComments = Boolean(options.onlyWrittenComments);
               const allowBlankComments = Boolean(options.allowBlankComments);
+              const forceMismatchOverride = Boolean(options.forceMismatchOverride);
               if (!allowFallbackComments && !onlyWrittenComments && !allowBlankComments && pendingFeedbackItems.some(item => !String(item.comment || '').trim())) throw new Error('Add a comment to every annotation before saving.');
               if (onlyWrittenComments && !pendingFeedbackItems.some(hasWrittenAnnotationComment)) throw new Error('Add a comment to at least one annotation before sending.');
-              state.session = await withMutationLock(() => requestJson('/api/items/batch', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+              const payloadItems = pendingPayloadItems({ allowFallbackComments: allowFallbackComments, onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments });
+              const frozenFingerprint = addItemsFlow.screen?.fingerprint ?? null;
+              const sendBatch = async (overrideMismatch) => {
+                return await withMutationLock(() => savePreviewBatchOrConflict({
                   previewId: addItemsFlow.previewId,
                   screen: addItemsFlow.screen,
-                  items: pendingPayloadItems({ allowFallbackComments: allowFallbackComments, onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments })
-                })
-              }));
+                  items: payloadItems,
+                  frozenFingerprint: frozenFingerprint,
+                  forceMismatchOverride: Boolean(overrideMismatch)
+                }));
+              };
+              let result = await sendBatch(forceMismatchOverride);
+              if (result && result.conflict === 'screen_fingerprint_mismatch') {
+                const choice = await promptScreenFingerprintMismatch(result.frozenFingerprint, result.currentFingerprint);
+                if (choice === 'force') {
+                  result = await sendBatch(true);
+                  if (result && result.conflict === 'screen_fingerprint_mismatch') {
+                    throw new Error('Save was rejected after force override. Re-capture and try again.');
+                  }
+                } else if (choice === 'recapture') {
+                  // Drop the stale preview so the next Annotate-mode entry re-freezes.
+                  resetAnnotationComposerState();
+                  state.preview = null;
+                  startLivePreviewPolling();
+                  return null;
+                } else {
+                  // Cancelled.
+                  return null;
+                }
+              }
+              state.session = result.session;
               resetAnnotationComposerState();
               state.preview = null;
               return state.session;
+            }
+
+            async function savePreviewBatchOrConflict(body) {
+              const headers = new Headers({ 'Content-Type': 'application/json' });
+              const token = window.FixThisConsoleConfig?.consoleToken;
+              if (token) headers.set('X-FixThis-Console-Token', token);
+              const response = await fetch('/api/items/batch', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(body)
+              });
+              if (response.status === 409) {
+                const conflict = await response.json().catch(() => ({}));
+                if (conflict && conflict.error === 'screen_fingerprint_mismatch') {
+                  return {
+                    conflict: 'screen_fingerprint_mismatch',
+                    frozenFingerprint: conflict.frozenFingerprint || null,
+                    currentFingerprint: conflict.currentFingerprint || null
+                  };
+                }
+                throw new Error('Save conflict: ' + JSON.stringify(conflict));
+              }
+              if (!response.ok) {
+                throw new Error(await response.text() || 'HTTP ' + response.status);
+              }
+              return { session: await response.json() };
+            }
+
+            function promptScreenFingerprintMismatch(frozenFingerprint, currentFingerprint) {
+              if (typeof window !== 'undefined' && typeof window.fixThisPromptFingerprintMismatch === 'function') {
+                return Promise.resolve(window.fixThisPromptFingerprintMismatch({ frozenFingerprint: frozenFingerprint, currentFingerprint: currentFingerprint }));
+              }
+              const message = '화면이 캡처 이후 변경되었을 수 있습니다.\n\n' +
+                '확인 = 현재 화면 다시 캡처\n' +
+                '취소 = 다음 단계로 (강제 저장 여부 묻기)';
+              if (typeof window === 'undefined' || typeof window.confirm !== 'function') {
+                return Promise.resolve('cancel');
+              }
+              const recapture = window.confirm(message);
+              if (recapture) return Promise.resolve('recapture');
+              const force = window.confirm('강제로 저장하시겠습니까?\n확인 = 강제 저장\n취소 = 취소');
+              return Promise.resolve(force ? 'force' : 'cancel');
             }
 
             async function flushPendingAnnotationsBeforeSessionChange() {

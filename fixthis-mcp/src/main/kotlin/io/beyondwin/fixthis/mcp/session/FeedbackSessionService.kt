@@ -142,7 +142,18 @@ class FeedbackSessionService(
         previewId: String,
         items: List<AnnotationDraftDto>,
         fallbackScreen: SnapshotDto? = null,
-    ): SessionDto = annotations.savePreviewFeedbackItems(sessionId, previewId, items, fallbackScreen)
+        frozenFingerprint: String? = null,
+        currentFingerprint: String? = null,
+        forceMismatchOverride: Boolean = false,
+    ): SessionDto = annotations.savePreviewFeedbackItems(
+        sessionId = sessionId,
+        previewId = previewId,
+        items = items,
+        fallbackScreen = fallbackScreen,
+        frozenFingerprint = frozenFingerprint,
+        currentFingerprint = currentFingerprint,
+        forceMismatchOverride = forceMismatchOverride,
+    )
 
     fun clearDraftItems(sessionId: String): SessionDto = annotations.clearDraftItems(sessionId)
 

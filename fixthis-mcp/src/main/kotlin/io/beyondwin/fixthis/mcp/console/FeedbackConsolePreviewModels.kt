@@ -18,6 +18,8 @@ data class SaveSnapshotRequest(
     val previewId: String,
     val items: List<AnnotationDraftDto>,
     val screen: SnapshotDto? = null,
+    val frozenFingerprint: String? = null,
+    val forceMismatchOverride: Boolean = false,
 )
 
 @Serializable
