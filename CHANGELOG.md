@@ -52,6 +52,43 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
     `Cmd+Shift+Z` redoes (depth 50; ignored inside `<input>`/`<textarea>`/
     contenteditable). A 5-second toast with a 되돌리기 button appears after
     each delete.
+- **Screen integrity fingerprinting — Phase B (SIF-1..SIF-6):**
+  - `Snapshot` (core) and `SnapshotDto` (wire) gain nullable
+    `orientation`, `widthPx`, `heightPx`, `densityDpi`, `windowMode`,
+    `systemUiVisible`, `systemUiKind`, and `fingerprint` fields. Legacy
+    payloads remain decodable — all new fields default `null`.
+  - Bridge protocol bumps `1.2` → `1.3`, kept in lockstep across the four
+    sync sites (`BridgeProtocol.VERSION`, console `MinimumSupportedProtocolVersion`,
+    CLI `BridgeProtocolVersion`, MCP `ServerVersionRoutes`).
+    `BridgeProtocolVersionSyncTest` enforces equality at CI time.
+  - `SnapshotFingerprint.compute(snapshot)` derives a 16-char SHA-256
+    prefix over `activityName|orientation|widthPx×heightPx@densityDpi|windowMode|systemUiKind`;
+    null inputs short-circuit to `null` so empty captures do not produce
+    a meaningless hash.
+  - Sidekick `captureScreenSnapshot()` now records `orientation`,
+    display metrics, `windowMode` (`PIP`/`SPLIT_SCREEN`/`FULLSCREEN`),
+    and `systemUiKind` (`ime`/`permission_dialog`/`notification_shade`)
+    on every capture. `SystemUiDetector` exposes pure
+    `detectImeKind` / `detectFocusKind` helpers so the branch logic is
+    unit-testable without Robolectric; the ADB sideband that supplies
+    `currentFocusOutput` is wired in a later phase.
+  - `FeedbackDraftService.savePreviewFeedbackItems()` accepts
+    `frozenFingerprint`, `currentFingerprint`, and
+    `forceMismatchOverride` (all default null/false). When both
+    fingerprints are present and differ without override, the service
+    throws `ScreenFingerprintMismatch` which the HTTP layer maps to
+    **409 Conflict** with body `{"error":"screen_fingerprint_mismatch",
+    "frozenFingerprint":"…","currentFingerprint":"…"}`. The console
+    shows a three-way prompt (re-capture / force-save / cancel) and
+    retries with `forceMismatchOverride: true` on force-save.
+  - Preview staleness now reflects time and connection state: the new
+    `previewStaleness.js` helper marks `state.preview.stale = true`
+    when the freeze is >30s old or the bridge is not in the `connected`
+    state. The existing stale banner picks this up automatically.
+  - Activity drift detection: while a multi-pin pending flow is open,
+    each new pin re-checks the foreground activity and surfaces an
+    inline 한국어 warning + "분리 (새 freeze 시작)" button when the
+    user has navigated away from the freeze's activity.
 
 ### Changed
 
