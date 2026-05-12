@@ -316,6 +316,20 @@
               clearDragState();
             }
 
+            function currentPendingStateEnvelope(items = pendingFeedbackItems) {
+              return {
+                previewId: addItemsFlow?.previewId ?? null,
+                screen: addItemsFlow?.screen ?? null,
+                screenshotUrl: addItemsFlow?.screenshotUrl ?? null,
+                frozenAtEpochMillis: addItemsFlow?.frozenAtEpochMillis ?? null,
+                items: items,
+              };
+            }
+
+            function persistCurrentPendingState() {
+              persistPendingState(state.session?.sessionId, currentPendingStateEnvelope());
+            }
+
             function releaseSnapshotPointerCapture(image, event) {
               try {
                 if (image.hasPointerCapture?.(event.pointerId)) {
@@ -355,6 +369,7 @@
                   preview = {
                     ...preview,
                     activity: state.connection?.availability?.activity ?? null,
+                    frozenAtEpochMillis: Date.now(),
                     stale: false,
                   };
                   state.preview = preview;
@@ -366,6 +381,7 @@
                   previewId: state.preview.previewId,
                   screen: state.preview.screen,
                   screenshotUrl: previewScreenshotUrl(state.preview.previewId),
+                  frozenAtEpochMillis: state.preview.frozenAtEpochMillis ?? Date.now(),
                   // SIF-6: capture the foreground activity at freeze time so
                   // checkActivityDrift() can detect when the device has since
                   // navigated away during a multi-pin pending flow.
@@ -405,7 +421,7 @@
                 comment: ''
               };
               pendingFeedbackItems.push(annotation);
-              persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
+              recordAdd(undoRedoHistory, annotation);
               // SIF-6: re-check activity drift after each pending item is
               // appended. Uses the existing status-poll-derived availability
               // — no extra fetch is issued.
@@ -415,6 +431,7 @@
                 };
                 addItemsFlow.activityDriftWarning = checkActivityDrift(addItemsFlow, currentActivitySnapshot);
               }
+              persistCurrentPendingState();
               currentSelection = null;
               hoveredAnnotationTarget = null;
               focusedPendingItemIndex = pendingFeedbackItems.length - 1;
@@ -429,9 +446,9 @@
 
             function deletePendingFeedbackItem(index) {
               const removed = pendingFeedbackItems[index];
-              recordDelete(undoRedoHistory, removed);
+              recordDelete(undoRedoHistory, removed, index);
               pendingFeedbackItems.splice(index, 1);
-              persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
+              persistCurrentPendingState();
               showUndoToast(removed?.itemId);
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;
@@ -523,6 +540,7 @@
               const item = selectedAnnotation();
               if (!item) return;
               item.comment = comment.value;
+              if (addItemsFlow) persistCurrentPendingState();
               renderPendingItems();
               updateComposerState();
             }

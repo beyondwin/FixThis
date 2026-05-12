@@ -1,3 +1,5 @@
+            let pendingRecovery = null;
+
             selectToolButton.addEventListener('click', enterSelectMode);
             annotateToolButton.addEventListener('click', () => enterAnnotateMode().catch(showError));
             zoomOutButton.addEventListener('click', () => setPreviewZoom(previewZoom - PreviewZoomStep));
@@ -30,7 +32,7 @@
               if (matchesUndo(e, active)) {
                 if (undo(undoRedoHistory, { pendingFeedbackItems })) {
                   e.preventDefault();
-                  persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
+                  persistCurrentPendingState();
                   renderPreviewOnly();
                   renderInspectorRegion();
                   renderCurrentSessionList();
@@ -38,7 +40,7 @@
               } else if (matchesRedo(e, active)) {
                 if (redo(undoRedoHistory, { pendingFeedbackItems })) {
                   e.preventDefault();
-                  persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
+                  persistCurrentPendingState();
                   renderPreviewOnly();
                   renderInspectorRegion();
                   renderCurrentSessionList();
@@ -98,7 +100,7 @@
               btn.style.cssText = 'background:none;border:none;color:#bb86fc;cursor:pointer;font-size:14px;padding:0;font-weight:500;';
               btn.addEventListener('click', () => {
                 undo(undoRedoHistory, { pendingFeedbackItems });
-                persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
+                persistCurrentPendingState();
                 renderPreviewOnly();
                 renderInspectorRegion();
                 renderCurrentSessionList();
@@ -110,19 +112,169 @@
               setTimeout(() => { if (toast.parentNode) toast.remove(); }, 5000);
             }
 
+            function pendingRecoveryItems(recovery) {
+              return Array.isArray(recovery?.items) ? recovery.items : [];
+            }
+
+            function hasPendingRecoveryItems() {
+              return pendingRecoveryItems(pendingRecovery).length > 0;
+            }
+
+            function requirePendingRecoveryChoiceBeforeSessionChange() {
+              if (!hasPendingRecoveryItems()) return true;
+              renderPendingRecoveryBanner();
+              showError('Recover, recapture, or discard unsaved annotations before changing sessions.');
+              return false;
+            }
+
+            function hasRecoverablePreviewContext(recovery) {
+              return recovery?.schemaVersion === 1 &&
+                Boolean(recovery.previewId) &&
+                Boolean(recovery.screen) &&
+                Boolean(recovery.screenshotUrl) &&
+                Boolean(recovery.frozenAtEpochMillis);
+            }
+
+            function updateAnnotationSequenceFromPendingItems(items) {
+              const next = (items || [])
+                .map(item => String(item?.annotationId || '').match(/^local-(\d+)$/))
+                .filter(Boolean)
+                .map(match => Number(match[1]))
+                .filter(Number.isFinite)
+                .reduce((max, value) => Math.max(max, value + 1), annotationSequence);
+              annotationSequence = Math.max(annotationSequence, next);
+            }
+
+            function restorePendingRecoveryContext(recovery) {
+              const items = pendingRecoveryItems(recovery).slice();
+              addItemsFlow = {
+                previewId: recovery.previewId,
+                screen: recovery.screen,
+                screenshotUrl: recovery.screenshotUrl,
+                frozenAtEpochMillis: recovery.frozenAtEpochMillis,
+                activity: recovery.activity ?? recovery.screen?.activityName ?? null,
+                activityDriftWarning: null
+              };
+              state.preview = {
+                previewId: recovery.previewId,
+                screen: recovery.screen,
+                activity: addItemsFlow.activity,
+                frozenAtEpochMillis: recovery.frozenAtEpochMillis,
+                stale: false
+              };
+              pendingFeedbackItems = items;
+              updateAnnotationSequenceFromPendingItems(items);
+              focusedPendingItemIndex = null;
+              focusedSavedItemId = null;
+              focusedSavedSessionId = null;
+              currentSelection = null;
+              hoveredAnnotationTarget = null;
+              toolMode = 'select';
+              stopLivePreviewPolling();
+              persistCurrentPendingState();
+            }
+
+            function ensurePendingRecoveryBanner() {
+              let banner = document.getElementById('pendingRecoveryBanner');
+              if (banner) return banner;
+              banner = document.createElement('div');
+              banner.id = 'pendingRecoveryBanner';
+              banner.className = 'annotation-banner annotation-banner-warn';
+              banner.setAttribute('role', 'status');
+              banner.setAttribute('aria-live', 'polite');
+              const parent = pendingItems?.parentElement || inspectorBody || document.body;
+              if (pendingItems && pendingItems.parentElement === parent) {
+                parent.insertBefore(banner, pendingItems);
+              } else {
+                parent.prepend(banner);
+              }
+              return banner;
+            }
+
+            function renderPendingRecoveryBanner() {
+              const banner = ensurePendingRecoveryBanner();
+              const recoveryItems = pendingRecoveryItems(pendingRecovery);
+              if (!pendingRecovery || !recoveryItems.length || addItemsFlow || pendingFeedbackItems.length) {
+                banner.hidden = true;
+                return;
+              }
+              const canRecover = hasRecoverablePreviewContext(pendingRecovery);
+              const itemLabel = countLabel(recoveryItems.length, 'annotation', 'annotations');
+              const detail = canRecover
+                ? 'Recover restores the frozen preview and pins from this session.'
+                : 'This older saved draft has pins only. Recapture to attach them to a new frozen preview, or discard it.';
+              banner.hidden = false;
+              banner.innerHTML =
+                '<div>' +
+                  '<strong>Unsaved ' + escapeHtml(itemLabel) + ' found</strong>' +
+                  '<div>' + escapeHtml(detail) + '</div>' +
+                '</div>' +
+                '<div class="annotation-actions">' +
+                  (canRecover ? '<button type="button" class="annotation-done" data-recover-pending>Recover</button>' : '') +
+                  '<button type="button" class="annotation-done" data-recapture-pending>Recapture</button>' +
+                  '<button type="button" class="annotation-danger" data-discard-pending>Discard</button>' +
+                '</div>';
+              banner.querySelector('[data-recover-pending]')?.addEventListener('click', () => {
+                if (!hasRecoverablePreviewContext(pendingRecovery)) return;
+                restorePendingRecoveryContext(pendingRecovery);
+                pendingRecovery = null;
+                renderPendingRecoveryBanner();
+                render();
+              });
+              banner.querySelector('[data-recapture-pending]')?.addEventListener('click', () => {
+                recapturePendingRecovery().catch(showError);
+              });
+              banner.querySelector('[data-discard-pending]')?.addEventListener('click', () => {
+                clearPendingMirror(state.session?.sessionId);
+                pendingRecovery = null;
+                renderPendingRecoveryBanner();
+              });
+            }
+
+            function loadPendingRecoveryForCurrentSession() {
+              if (!state.session?.sessionId) {
+                pendingRecovery = null;
+                renderPendingRecoveryBanner();
+                return;
+              }
+              if (addItemsFlow || pendingFeedbackItems.length) {
+                renderPendingRecoveryBanner();
+                return;
+              }
+              const restored = restorePendingState(state.session.sessionId);
+              pendingRecovery = pendingRecoveryItems(restored).length ? restored : null;
+              renderPendingRecoveryBanner();
+            }
+
+            async function recapturePendingRecovery() {
+              const recovery = pendingRecovery;
+              const items = pendingRecoveryItems(recovery).slice();
+              if (!recovery || !items.length) return;
+              if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+                const accepted = window.confirm('Recapture the current app screen and remap recovered pins to the new frozen preview?');
+                if (!accepted) return;
+              }
+              invalidatePreviewContext();
+              await startAddItemsFlow();
+              if (!addItemsFlow) return;
+              pendingFeedbackItems = items;
+              updateAnnotationSequenceFromPendingItems(items);
+              pendingRecovery = null;
+              focusedPendingItemIndex = null;
+              focusedSavedItemId = null;
+              focusedSavedSessionId = null;
+              currentSelection = null;
+              hoveredAnnotationTarget = null;
+              persistCurrentPendingState();
+              renderPendingRecoveryBanner();
+              render();
+            }
+
             initializePreviewIntervalSelect();
             applyPreviewZoom();
             refresh()
               .then(() => {
-                // ALH-1: Auto-restore pending items from localStorage after session attach.
-                // TODO(A.6 follow-up): show recovery banner / explicit user accept before exposing
-                // restored items in the UI. Banner UX deferred — current behavior auto-restores.
-                if (state.session?.sessionId) {
-                  const restored = restorePendingItems(state.session.sessionId);
-                  if (restored.length > 0) {
-                    pendingFeedbackItems = restored;
-                  }
-                }
+                loadPendingRecoveryForCurrentSession();
                 if (shouldAutoFetchPreview()) return refreshPreview();
                 return null;
               })

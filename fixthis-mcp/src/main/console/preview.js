@@ -134,6 +134,7 @@
                 state.preview = {
                   ...preview,
                   activity: state.connection?.availability?.activity ?? null,
+                  frozenAtEpochMillis: Date.now(),
                   stale: false,
                 };
                 if (userConnectionState(state.connection.current) === 'ready') markPreviewStale(false);
@@ -219,6 +220,7 @@
               state.preview = null;
               pendingFeedbackItems.length = 0;
               addItemsFlow = null;
+              clearPendingMirror(state.session?.sessionId);
               if (wasAnnotating) {
                 startAddItemsFlow().catch(showError);
               } else {

@@ -24,6 +24,15 @@ test('marks preview stale if frozenAt > 30s ago when connected', () => {
   assert.equal(evaluateStale(state, 32000), true);
 });
 
+test('marks preview stale when frozen age is older than MAX_PREVIEW_AGE_MS', () => {
+  const now = 60000;
+  const state = {
+    preview: { frozenAtEpochMillis: now - MAX_PREVIEW_AGE_MS - 1 },
+    bridgeStatus: { connection: 'connected' },
+  };
+  assert.equal(evaluateStale(state, now), true);
+});
+
 test('marks preview stale on disconnect even if frozen recently', () => {
   const state = {
     preview: { frozenAtEpochMillis: 31000 },

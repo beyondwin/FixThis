@@ -199,8 +199,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778572260000;
-const ConsoleBuildGitSha = '0fb0f43';
+const ConsoleBuildEpochMs = 1778616360000;
+const ConsoleBuildGitSha = '4f067f4';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -320,7 +320,7 @@ const ConsoleBuildGitSha = '0fb0f43';
 
 // pendingPersistence.js
             // pendingPersistence.js — write-through mirror to localStorage
-            // for pendingFeedbackItems (ALH-1). Functions are bare so the
+            // for pending feedback state (ALH-1/STAB-5). Functions are bare so the
             // concat bundle exposes them in shared closure scope.
 
             const PENDING_KEY_PREFIX = 'fixthis.pending.';
@@ -329,25 +329,64 @@ const ConsoleBuildGitSha = '0fb0f43';
               return PENDING_KEY_PREFIX + sessionId;
             }
 
-            function persistPendingItems(sessionId, items) {
+            function persistPendingState(sessionId, value) {
               if (!sessionId || typeof localStorage === 'undefined') return;
               try {
-                localStorage.setItem(pendingKey(sessionId), JSON.stringify(items || []));
+                const envelope = {
+                  schemaVersion: 1,
+                  sessionId: sessionId,
+                  previewId: value?.previewId ?? null,
+                  screen: value?.screen ?? null,
+                  screenshotUrl: value?.screenshotUrl ?? null,
+                  frozenAtEpochMillis: value?.frozenAtEpochMillis ?? Date.now(),
+                  items: Array.isArray(value?.items) ? value.items : [],
+                };
+                localStorage.setItem(pendingKey(sessionId), JSON.stringify(envelope));
               } catch (e) {
                 // Quota exceeded or storage disabled — best-effort, don't block UX
               }
             }
 
-            function restorePendingItems(sessionId) {
-              if (!sessionId || typeof localStorage === 'undefined') return [];
+            function restorePendingState(sessionId) {
+              if (!sessionId || typeof localStorage === 'undefined') return null;
               const raw = localStorage.getItem(pendingKey(sessionId));
-              if (!raw) return [];
+              if (!raw) return null;
               try {
                 const parsed = JSON.parse(raw);
-                return Array.isArray(parsed) ? parsed : [];
+                if (Array.isArray(parsed)) {
+                  return {
+                    schemaVersion: 0,
+                    sessionId: sessionId,
+                    previewId: null,
+                    screen: null,
+                    screenshotUrl: null,
+                    frozenAtEpochMillis: null,
+                    items: parsed
+                  };
+                }
+                if (parsed && Array.isArray(parsed.items)) {
+                  return {
+                    schemaVersion: parsed.schemaVersion === 1 ? 1 : parsed.schemaVersion,
+                    sessionId: parsed.sessionId ?? sessionId,
+                    previewId: parsed.previewId ?? null,
+                    screen: parsed.screen ?? null,
+                    screenshotUrl: parsed.screenshotUrl ?? null,
+                    frozenAtEpochMillis: parsed.frozenAtEpochMillis ?? null,
+                    items: parsed.items
+                  };
+                }
+                return null;
               } catch (e) {
-                return [];
+                return null;
               }
+            }
+
+            function persistPendingItems(sessionId, items) {
+              persistPendingState(sessionId, { items: items || [] });
+            }
+
+            function restorePendingItems(sessionId) {
+              return restorePendingState(sessionId)?.items || [];
             }
 
             function clearPendingMirror(sessionId) {
@@ -382,14 +421,28 @@ function shouldGuardUnload(pendingItemsCount) {
               if (stack.length > UNDO_MAX_DEPTH) stack.shift();
             }
 
+            function itemStableId(item) {
+              return item?.itemId ?? item?.annotationId ?? null;
+            }
+
+            function sameHistoryItem(left, right) {
+              const leftId = itemStableId(left);
+              const rightId = itemStableId(right);
+              return leftId != null && rightId != null && leftId === rightId;
+            }
+
             function recordAdd(history, item) {
               pushOp(history.undoStack, { kind: 'add', after: { ...item } });
               history.redoStack.length = 0;
             }
 
-            function recordDelete(history, before) {
+            function recordDelete(history, before, index = null) {
               if (!before) return;
-              pushOp(history.undoStack, { kind: 'delete', before: { ...before } });
+              pushOp(history.undoStack, {
+                kind: 'delete',
+                before: { ...before },
+                index: Number.isInteger(index) ? index : null
+              });
               history.redoStack.length = 0;
             }
 
@@ -402,13 +455,19 @@ function shouldGuardUnload(pendingItemsCount) {
             function applyInverse(op, state) {
               const items = state.pendingFeedbackItems;
               if (op.kind === 'add') {
-                const idx = items.findIndex((i) => i.itemId === op.after.itemId);
+                const idx = items.findIndex((item) => sameHistoryItem(item, op.after));
                 if (idx >= 0) items.splice(idx, 1);
               } else if (op.kind === 'delete') {
-                items.push({ ...op.before });
-                items.sort((a, b) => (a.sequenceNumber || 0) - (b.sequenceNumber || 0));
+                const restored = { ...op.before };
+                if (Number.isInteger(op.index)) {
+                  const index = Math.max(0, Math.min(op.index, items.length));
+                  items.splice(index, 0, restored);
+                } else {
+                  items.push(restored);
+                  items.sort((a, b) => (a.sequenceNumber || 0) - (b.sequenceNumber || 0));
+                }
               } else if (op.kind === 'update') {
-                const target = items.find((i) => i.itemId === op.before.itemId);
+                const target = items.find((item) => sameHistoryItem(item, op.before));
                 if (target) Object.assign(target, op.before);
               }
             }
@@ -418,10 +477,10 @@ function shouldGuardUnload(pendingItemsCount) {
               if (op.kind === 'add') {
                 items.push({ ...op.after });
               } else if (op.kind === 'delete') {
-                const idx = items.findIndex((i) => i.itemId === op.before.itemId);
+                const idx = items.findIndex((item) => sameHistoryItem(item, op.before));
                 if (idx >= 0) items.splice(idx, 1);
               } else if (op.kind === 'update') {
-                const target = items.find((i) => i.itemId === op.after.itemId);
+                const target = items.find((item) => sameHistoryItem(item, op.after));
                 if (target) Object.assign(target, op.after);
               }
             }
@@ -1212,6 +1271,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 state.preview = {
                   ...preview,
                   activity: state.connection?.availability?.activity ?? null,
+                  frozenAtEpochMillis: Date.now(),
                   stale: false,
                 };
                 if (userConnectionState(state.connection.current) === 'ready') markPreviewStale(false);
@@ -1297,6 +1357,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               state.preview = null;
               pendingFeedbackItems.length = 0;
               addItemsFlow = null;
+              clearPendingMirror(state.session?.sessionId);
               if (wasAnnotating) {
                 startAddItemsFlow().catch(showError);
               } else {
@@ -1624,6 +1685,20 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               clearDragState();
             }
 
+            function currentPendingStateEnvelope(items = pendingFeedbackItems) {
+              return {
+                previewId: addItemsFlow?.previewId ?? null,
+                screen: addItemsFlow?.screen ?? null,
+                screenshotUrl: addItemsFlow?.screenshotUrl ?? null,
+                frozenAtEpochMillis: addItemsFlow?.frozenAtEpochMillis ?? null,
+                items: items,
+              };
+            }
+
+            function persistCurrentPendingState() {
+              persistPendingState(state.session?.sessionId, currentPendingStateEnvelope());
+            }
+
             function releaseSnapshotPointerCapture(image, event) {
               try {
                 if (image.hasPointerCapture?.(event.pointerId)) {
@@ -1663,6 +1738,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   preview = {
                     ...preview,
                     activity: state.connection?.availability?.activity ?? null,
+                    frozenAtEpochMillis: Date.now(),
                     stale: false,
                   };
                   state.preview = preview;
@@ -1674,6 +1750,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   previewId: state.preview.previewId,
                   screen: state.preview.screen,
                   screenshotUrl: previewScreenshotUrl(state.preview.previewId),
+                  frozenAtEpochMillis: state.preview.frozenAtEpochMillis ?? Date.now(),
                   // SIF-6: capture the foreground activity at freeze time so
                   // checkActivityDrift() can detect when the device has since
                   // navigated away during a multi-pin pending flow.
@@ -1713,7 +1790,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 comment: ''
               };
               pendingFeedbackItems.push(annotation);
-              persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
+              recordAdd(undoRedoHistory, annotation);
               // SIF-6: re-check activity drift after each pending item is
               // appended. Uses the existing status-poll-derived availability
               // — no extra fetch is issued.
@@ -1723,6 +1800,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 };
                 addItemsFlow.activityDriftWarning = checkActivityDrift(addItemsFlow, currentActivitySnapshot);
               }
+              persistCurrentPendingState();
               currentSelection = null;
               hoveredAnnotationTarget = null;
               focusedPendingItemIndex = pendingFeedbackItems.length - 1;
@@ -1737,9 +1815,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function deletePendingFeedbackItem(index) {
               const removed = pendingFeedbackItems[index];
-              recordDelete(undoRedoHistory, removed);
+              recordDelete(undoRedoHistory, removed, index);
               pendingFeedbackItems.splice(index, 1);
-              persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
+              persistCurrentPendingState();
               showUndoToast(removed?.itemId);
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;
@@ -1831,6 +1909,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               const item = selectedAnnotation();
               if (!item) return;
               item.comment = comment.value;
+              if (addItemsFlow) persistCurrentPendingState();
               renderPendingItems();
               updateComposerState();
             }
@@ -2091,6 +2170,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             async function ensureSessionForAnnotating() {
               if (hasActiveHistorySessionForAnnotating()) return;
+              if (!requirePendingRecoveryChoiceBeforeSessionChange()) {
+                throw new Error('Recover, recapture, or discard unsaved annotations before changing sessions.');
+              }
               resetAnnotationComposerState();
               invalidatePreviewContext();
               state.session = await withMutationLock(() => requestJson('/api/session/open', {
@@ -2102,6 +2184,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             async function enterAnnotateMode() {
+              if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
               await ensureSessionForAnnotating();
               toolMode = 'annotate';
               renderCurrentSessionList();
@@ -2223,11 +2306,13 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               await refreshSessions();
               await refreshDevices();
               await refreshConnection();
+              loadPendingRecoveryForCurrentSession();
               render();
             }
 
             async function openSession(sessionId) {
               error.textContent = '';
+              if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
               stopLivePreviewPolling();
               await flushPendingAnnotationsBeforeSessionChange();
               resetAnnotationComposerState();
@@ -2246,6 +2331,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             async function newSession() {
               error.textContent = '';
+              if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
               await flushPendingAnnotationsBeforeSessionChange();
               resetAnnotationComposerState();
               invalidatePreviewContext();
@@ -2261,6 +2347,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             async function closeSession() {
               error.textContent = '';
               if (!state.session) return;
+              if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
               resetAnnotationComposerState();
               invalidatePreviewContext();
               await withMutationLock(() => requestJson('/api/session/close', {
@@ -2277,6 +2364,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             async function deleteHistorySession(sessionId) {
               error.textContent = '';
               if (!sessionId) return;
+              if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
               const isDisplayedSession = () => state.session?.sessionId === sessionId;
               if (isDisplayedSession()) {
                 resetAnnotationComposerState();
@@ -2639,22 +2727,26 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               const commentInput = document.getElementById('annotationCommentInput');
               labelInput.addEventListener('input', event => {
                 item.label = event.target.value;
+                persistCurrentPendingState();
                 updateComposerState();
                 renderPreviewOnly();
               });
               commentInput.addEventListener('input', event => {
                 item.comment = event.target.value;
+                persistCurrentPendingState();
                 updateComposerState();
               });
               pendingItems.querySelectorAll('[data-set-severity]').forEach(button => {
                 button.addEventListener('click', () => {
                   item.severity = button.dataset.setSeverity;
+                  persistCurrentPendingState();
                   renderInspectorRegion();
                 });
               });
               pendingItems.querySelectorAll('[data-set-status]').forEach(button => {
                 button.addEventListener('click', () => {
                   item.status = button.dataset.setStatus;
+                  persistCurrentPendingState();
                   renderPreviewOnly();
                   renderInspectorRegion();
                   renderCurrentSessionList();
@@ -3299,6 +3391,8 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
 // main.js
+            let pendingRecovery = null;
+
             selectToolButton.addEventListener('click', enterSelectMode);
             annotateToolButton.addEventListener('click', () => enterAnnotateMode().catch(showError));
             zoomOutButton.addEventListener('click', () => setPreviewZoom(previewZoom - PreviewZoomStep));
@@ -3331,7 +3425,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (matchesUndo(e, active)) {
                 if (undo(undoRedoHistory, { pendingFeedbackItems })) {
                   e.preventDefault();
-                  persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
+                  persistCurrentPendingState();
                   renderPreviewOnly();
                   renderInspectorRegion();
                   renderCurrentSessionList();
@@ -3339,7 +3433,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               } else if (matchesRedo(e, active)) {
                 if (redo(undoRedoHistory, { pendingFeedbackItems })) {
                   e.preventDefault();
-                  persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
+                  persistCurrentPendingState();
                   renderPreviewOnly();
                   renderInspectorRegion();
                   renderCurrentSessionList();
@@ -3399,7 +3493,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               btn.style.cssText = 'background:none;border:none;color:#bb86fc;cursor:pointer;font-size:14px;padding:0;font-weight:500;';
               btn.addEventListener('click', () => {
                 undo(undoRedoHistory, { pendingFeedbackItems });
-                persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
+                persistCurrentPendingState();
                 renderPreviewOnly();
                 renderInspectorRegion();
                 renderCurrentSessionList();
@@ -3411,19 +3505,169 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               setTimeout(() => { if (toast.parentNode) toast.remove(); }, 5000);
             }
 
+            function pendingRecoveryItems(recovery) {
+              return Array.isArray(recovery?.items) ? recovery.items : [];
+            }
+
+            function hasPendingRecoveryItems() {
+              return pendingRecoveryItems(pendingRecovery).length > 0;
+            }
+
+            function requirePendingRecoveryChoiceBeforeSessionChange() {
+              if (!hasPendingRecoveryItems()) return true;
+              renderPendingRecoveryBanner();
+              showError('Recover, recapture, or discard unsaved annotations before changing sessions.');
+              return false;
+            }
+
+            function hasRecoverablePreviewContext(recovery) {
+              return recovery?.schemaVersion === 1 &&
+                Boolean(recovery.previewId) &&
+                Boolean(recovery.screen) &&
+                Boolean(recovery.screenshotUrl) &&
+                Boolean(recovery.frozenAtEpochMillis);
+            }
+
+            function updateAnnotationSequenceFromPendingItems(items) {
+              const next = (items || [])
+                .map(item => String(item?.annotationId || '').match(/^local-(\d+)$/))
+                .filter(Boolean)
+                .map(match => Number(match[1]))
+                .filter(Number.isFinite)
+                .reduce((max, value) => Math.max(max, value + 1), annotationSequence);
+              annotationSequence = Math.max(annotationSequence, next);
+            }
+
+            function restorePendingRecoveryContext(recovery) {
+              const items = pendingRecoveryItems(recovery).slice();
+              addItemsFlow = {
+                previewId: recovery.previewId,
+                screen: recovery.screen,
+                screenshotUrl: recovery.screenshotUrl,
+                frozenAtEpochMillis: recovery.frozenAtEpochMillis,
+                activity: recovery.activity ?? recovery.screen?.activityName ?? null,
+                activityDriftWarning: null
+              };
+              state.preview = {
+                previewId: recovery.previewId,
+                screen: recovery.screen,
+                activity: addItemsFlow.activity,
+                frozenAtEpochMillis: recovery.frozenAtEpochMillis,
+                stale: false
+              };
+              pendingFeedbackItems = items;
+              updateAnnotationSequenceFromPendingItems(items);
+              focusedPendingItemIndex = null;
+              focusedSavedItemId = null;
+              focusedSavedSessionId = null;
+              currentSelection = null;
+              hoveredAnnotationTarget = null;
+              toolMode = 'select';
+              stopLivePreviewPolling();
+              persistCurrentPendingState();
+            }
+
+            function ensurePendingRecoveryBanner() {
+              let banner = document.getElementById('pendingRecoveryBanner');
+              if (banner) return banner;
+              banner = document.createElement('div');
+              banner.id = 'pendingRecoveryBanner';
+              banner.className = 'annotation-banner annotation-banner-warn';
+              banner.setAttribute('role', 'status');
+              banner.setAttribute('aria-live', 'polite');
+              const parent = pendingItems?.parentElement || inspectorBody || document.body;
+              if (pendingItems && pendingItems.parentElement === parent) {
+                parent.insertBefore(banner, pendingItems);
+              } else {
+                parent.prepend(banner);
+              }
+              return banner;
+            }
+
+            function renderPendingRecoveryBanner() {
+              const banner = ensurePendingRecoveryBanner();
+              const recoveryItems = pendingRecoveryItems(pendingRecovery);
+              if (!pendingRecovery || !recoveryItems.length || addItemsFlow || pendingFeedbackItems.length) {
+                banner.hidden = true;
+                return;
+              }
+              const canRecover = hasRecoverablePreviewContext(pendingRecovery);
+              const itemLabel = countLabel(recoveryItems.length, 'annotation', 'annotations');
+              const detail = canRecover
+                ? 'Recover restores the frozen preview and pins from this session.'
+                : 'This older saved draft has pins only. Recapture to attach them to a new frozen preview, or discard it.';
+              banner.hidden = false;
+              banner.innerHTML =
+                '<div>' +
+                  '<strong>Unsaved ' + escapeHtml(itemLabel) + ' found</strong>' +
+                  '<div>' + escapeHtml(detail) + '</div>' +
+                '</div>' +
+                '<div class="annotation-actions">' +
+                  (canRecover ? '<button type="button" class="annotation-done" data-recover-pending>Recover</button>' : '') +
+                  '<button type="button" class="annotation-done" data-recapture-pending>Recapture</button>' +
+                  '<button type="button" class="annotation-danger" data-discard-pending>Discard</button>' +
+                '</div>';
+              banner.querySelector('[data-recover-pending]')?.addEventListener('click', () => {
+                if (!hasRecoverablePreviewContext(pendingRecovery)) return;
+                restorePendingRecoveryContext(pendingRecovery);
+                pendingRecovery = null;
+                renderPendingRecoveryBanner();
+                render();
+              });
+              banner.querySelector('[data-recapture-pending]')?.addEventListener('click', () => {
+                recapturePendingRecovery().catch(showError);
+              });
+              banner.querySelector('[data-discard-pending]')?.addEventListener('click', () => {
+                clearPendingMirror(state.session?.sessionId);
+                pendingRecovery = null;
+                renderPendingRecoveryBanner();
+              });
+            }
+
+            function loadPendingRecoveryForCurrentSession() {
+              if (!state.session?.sessionId) {
+                pendingRecovery = null;
+                renderPendingRecoveryBanner();
+                return;
+              }
+              if (addItemsFlow || pendingFeedbackItems.length) {
+                renderPendingRecoveryBanner();
+                return;
+              }
+              const restored = restorePendingState(state.session.sessionId);
+              pendingRecovery = pendingRecoveryItems(restored).length ? restored : null;
+              renderPendingRecoveryBanner();
+            }
+
+            async function recapturePendingRecovery() {
+              const recovery = pendingRecovery;
+              const items = pendingRecoveryItems(recovery).slice();
+              if (!recovery || !items.length) return;
+              if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+                const accepted = window.confirm('Recapture the current app screen and remap recovered pins to the new frozen preview?');
+                if (!accepted) return;
+              }
+              invalidatePreviewContext();
+              await startAddItemsFlow();
+              if (!addItemsFlow) return;
+              pendingFeedbackItems = items;
+              updateAnnotationSequenceFromPendingItems(items);
+              pendingRecovery = null;
+              focusedPendingItemIndex = null;
+              focusedSavedItemId = null;
+              focusedSavedSessionId = null;
+              currentSelection = null;
+              hoveredAnnotationTarget = null;
+              persistCurrentPendingState();
+              renderPendingRecoveryBanner();
+              render();
+            }
+
             initializePreviewIntervalSelect();
             applyPreviewZoom();
             refresh()
               .then(() => {
-                // ALH-1: Auto-restore pending items from localStorage after session attach.
-                // TODO(A.6 follow-up): show recovery banner / explicit user accept before exposing
-                // restored items in the UI. Banner UX deferred — current behavior auto-restores.
-                if (state.session?.sessionId) {
-                  const restored = restorePendingItems(state.session.sessionId);
-                  if (restored.length > 0) {
-                    pendingFeedbackItems = restored;
-                  }
-                }
+                loadPendingRecoveryForCurrentSession();
                 if (shouldAutoFetchPreview()) return refreshPreview();
                 return null;
               })

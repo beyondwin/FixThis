@@ -204,22 +204,26 @@
               const commentInput = document.getElementById('annotationCommentInput');
               labelInput.addEventListener('input', event => {
                 item.label = event.target.value;
+                persistCurrentPendingState();
                 updateComposerState();
                 renderPreviewOnly();
               });
               commentInput.addEventListener('input', event => {
                 item.comment = event.target.value;
+                persistCurrentPendingState();
                 updateComposerState();
               });
               pendingItems.querySelectorAll('[data-set-severity]').forEach(button => {
                 button.addEventListener('click', () => {
                   item.severity = button.dataset.setSeverity;
+                  persistCurrentPendingState();
                   renderInspectorRegion();
                 });
               });
               pendingItems.querySelectorAll('[data-set-status]').forEach(button => {
                 button.addEventListener('click', () => {
                   item.status = button.dataset.setStatus;
+                  persistCurrentPendingState();
                   renderPreviewOnly();
                   renderInspectorRegion();
                   renderCurrentSessionList();

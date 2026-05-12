@@ -29,6 +29,22 @@ test('redo a delete reapplies the deletion', () => {
   assert.equal(state.pendingFeedbackItems.length, 0);
 });
 
+test('redo a local annotationId delete removes the same local item', () => {
+  const state = {
+    pendingFeedbackItems: [
+      { annotationId: 'local-1', comment: 'first' },
+      { annotationId: 'local-2', comment: 'second' },
+    ],
+  };
+  const h = m.createHistory();
+  m.recordDelete(h, state.pendingFeedbackItems[1], 1);
+  state.pendingFeedbackItems.splice(1, 1);
+  m.undo(h, state);
+  assert.deepEqual(state.pendingFeedbackItems.map((item) => item.annotationId), ['local-1', 'local-2']);
+  m.redo(h, state);
+  assert.deepEqual(state.pendingFeedbackItems.map((item) => item.annotationId), ['local-1']);
+});
+
 test('history capped at MAX_DEPTH=50', () => {
   const h = m.createHistory();
   for (let i = 0; i < 100; i++) m.recordAdd(h, { itemId: `i${i}` });

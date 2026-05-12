@@ -121,6 +121,9 @@
 
             async function ensureSessionForAnnotating() {
               if (hasActiveHistorySessionForAnnotating()) return;
+              if (!requirePendingRecoveryChoiceBeforeSessionChange()) {
+                throw new Error('Recover, recapture, or discard unsaved annotations before changing sessions.');
+              }
               resetAnnotationComposerState();
               invalidatePreviewContext();
               state.session = await withMutationLock(() => requestJson('/api/session/open', {
@@ -132,6 +135,7 @@
             }
 
             async function enterAnnotateMode() {
+              if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
               await ensureSessionForAnnotating();
               toolMode = 'annotate';
               renderCurrentSessionList();
@@ -253,11 +257,13 @@
               await refreshSessions();
               await refreshDevices();
               await refreshConnection();
+              loadPendingRecoveryForCurrentSession();
               render();
             }
 
             async function openSession(sessionId) {
               error.textContent = '';
+              if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
               stopLivePreviewPolling();
               await flushPendingAnnotationsBeforeSessionChange();
               resetAnnotationComposerState();
@@ -276,6 +282,7 @@
 
             async function newSession() {
               error.textContent = '';
+              if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
               await flushPendingAnnotationsBeforeSessionChange();
               resetAnnotationComposerState();
               invalidatePreviewContext();
@@ -291,6 +298,7 @@
             async function closeSession() {
               error.textContent = '';
               if (!state.session) return;
+              if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
               resetAnnotationComposerState();
               invalidatePreviewContext();
               await withMutationLock(() => requestJson('/api/session/close', {
@@ -307,6 +315,7 @@
             async function deleteHistorySession(sessionId) {
               error.textContent = '';
               if (!sessionId) return;
+              if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
               const isDisplayedSession = () => state.session?.sessionId === sessionId;
               if (isDisplayedSession()) {
                 resetAnnotationComposerState();
