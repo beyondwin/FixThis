@@ -176,56 +176,15 @@ class FeedbackSessionStoreEventLogTest {
             val paths = FeedbackSessionPaths(projectBase)
             val persistence = FeedbackSessionPersistence(paths)
             val evtBase = File(tmp, "events")
-
             var idSeq = 0
             val sharedIdGen: () -> String = { "id-${++idSeq}" }
 
-            // --- Store 1: open session, add screen, add 3 items ---
-            val store1 = FeedbackSessionStore(
-                clock = { 1_000L },
-                idGenerator = sharedIdGen,
-                persistence = persistence,
-                eventLogWriterProvider = writerFor(evtBase),
-                eventLogReaderProvider = readerFor(evtBase),
-            )
-
-            val session1 = store1.openSession("com.test", "/project")
-            val sid = session1.sessionId
-            val screen = store1.addScreen(sid, makeScreen())
-            store1.addItem(sid, makeDraftItem(screen.screenId, "alpha"))
-            store1.addItem(sid, makeDraftItem(screen.screenId, "beta"))
-            store1.addItem(sid, makeDraftItem(screen.screenId, "gamma"))
-
-            assertEquals(3, store1.getSession(sid).items.size)
-
-            // Snapshot now has 3 items. Determine the max sequence number written so far.
-            val eventsAfterStore1 = EventLogReader(eventsDir(evtBase, sid)).readAll()
-            val maxSeq = eventsAfterStore1.maxOf { it.sequenceNumber }
+            val (sid, screenId) = setupStore1WithThreeItems(evtBase, persistence, sharedIdGen)
 
             // Inject a 4th item DIRECTLY into the event log (bypassing the store).
             // This simulates: event appended, then crash before persistence.save().
             // The snapshot on disk still has 3 items; only replay can see this 4th item.
-            val orphanItem = AnnotationDto(
-                itemId = "orphan-item-id",
-                screenId = screen.screenId,
-                createdAtEpochMillis = 1_500L,
-                updatedAtEpochMillis = 1_500L,
-                target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
-                comment = "delta",
-                delivery = FeedbackDelivery.DRAFT,
-            )
-            val orphanEvent = SessionEvent(
-                eventId = "orphan-evt-id",
-                sequenceNumber = maxSeq + 1L,
-                epochMillis = 1_500L,
-                actor = "mcp",
-                type = "addItem",
-                payload = buildJsonObject {
-                    put("sessionId", sid)
-                    put("item", testJson.encodeToJsonElement(AnnotationDto.serializer(), orphanItem))
-                },
-            )
-            EventLogWriter(eventsDir(evtBase, sid)).append(orphanEvent)
+            injectOrphanAddItemEvent(evtBase, sid, screenId)
 
             // Verify snapshot alone only has 3 items (confirming orphan is NOT in snapshot)
             val snapshotOnly = persistence.load(sid)
@@ -243,11 +202,62 @@ class FeedbackSessionStoreEventLogTest {
             // Replay must reconstruct all 4 items (3 snapshot-synced + 1 orphan)
             val replayed = store2.getSession(sid)
             assertEquals(4, replayed.items.size, "Boot replay must reconstruct all 4 items including orphan")
-
-            val replayedComments = replayed.items.map { it.comment }.toSet()
-            assertEquals(setOf("alpha", "beta", "gamma", "delta"), replayedComments)
+            assertEquals(setOf("alpha", "beta", "gamma", "delta"), replayed.items.map { it.comment }.toSet())
         } finally {
             tmp.deleteRecursively()
         }
+    }
+
+    /** Sets up store1, opens a session, adds a screen, adds 3 items. Returns sessionId + screenId. */
+    private fun setupStore1WithThreeItems(
+        evtBase: File,
+        persistence: FeedbackSessionPersistence,
+        idGen: () -> String,
+    ): Pair<String, String> {
+        val store1 = FeedbackSessionStore(
+            clock = { 1_000L },
+            idGenerator = idGen,
+            persistence = persistence,
+            eventLogWriterProvider = writerFor(evtBase),
+            eventLogReaderProvider = readerFor(evtBase),
+        )
+        val session1 = store1.openSession("com.test", "/project")
+        val sid = session1.sessionId
+        val screen = store1.addScreen(sid, makeScreen())
+        store1.addItem(sid, makeDraftItem(screen.screenId, "alpha"))
+        store1.addItem(sid, makeDraftItem(screen.screenId, "beta"))
+        store1.addItem(sid, makeDraftItem(screen.screenId, "gamma"))
+        assertEquals(3, store1.getSession(sid).items.size)
+        return Pair(sid, screen.screenId)
+    }
+
+    /**
+     * Injects an orphan "addItem" event into the event log for [sid]/[screenId].
+     * Simulates a crash that happened after the event was written but before
+     * persistence.save() completed — only boot replay can recover this item.
+     */
+    private fun injectOrphanAddItemEvent(evtBase: File, sid: String, screenId: String) {
+        val maxSeq = EventLogReader(eventsDir(evtBase, sid)).readAll().maxOf { it.sequenceNumber }
+        val orphanItem = AnnotationDto(
+            itemId = "orphan-item-id",
+            screenId = screenId,
+            createdAtEpochMillis = 1_500L,
+            updatedAtEpochMillis = 1_500L,
+            target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+            comment = "delta",
+            delivery = FeedbackDelivery.DRAFT,
+        )
+        val orphanEvent = SessionEvent(
+            eventId = "orphan-evt-id",
+            sequenceNumber = maxSeq + 1L,
+            epochMillis = 1_500L,
+            actor = "mcp",
+            type = "addItem",
+            payload = buildJsonObject {
+                put("sessionId", sid)
+                put("item", testJson.encodeToJsonElement(AnnotationDto.serializer(), orphanItem))
+            },
+        )
+        EventLogWriter(eventsDir(evtBase, sid)).append(orphanEvent)
     }
 }

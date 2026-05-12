@@ -33,7 +33,7 @@ private val eventLogJson = Json {
  * When both are null, the store behaves identically to the pre-A.4 baseline,
  * preserving backward compatibility for the ~482 existing tests.
  */
-// TODO: split into smaller responsibilities once the event-log API stabilises — see #ALH-followup
+// LargeClass suppressed: split into smaller responsibilities once the event-log API stabilises — see #ALH-followup
 @Suppress("LargeClass")
 class FeedbackSessionStore(
     private val clock: () -> Long = { System.currentTimeMillis() },
@@ -309,39 +309,8 @@ class FeedbackSessionStore(
             throw FeedbackSessionException("NO_DRAFT_FEEDBACK: No draft feedback items to send")
         }
         val now = clock()
-        val batch = FeedbackHandoffBatch(
-            batchId = idGenerator(),
-            sequenceNumber = session.handoffBatches.size + 1,
-            createdAtEpochMillis = now,
-            itemIds = candidates.map { it.itemId },
-            markdownSnapshot = markdownSnapshot,
-        )
-        val updatedItems = session.items.map { item ->
-            val matchesTarget = targetSet == null || item.itemId in targetSet
-            when {
-                item.delivery == FeedbackDelivery.DRAFT && matchesTarget -> {
-                    item.copy(
-                        delivery = FeedbackDelivery.SENT,
-                        handoffBatchId = batch.batchId,
-                        sentAtEpochMillis = now,
-                        lastHandedOffAtEpochMillis = now,
-                        status = AnnotationStatusDto.READY,
-                        updatedAtEpochMillis = now,
-                    )
-                }
-                item.delivery == FeedbackDelivery.SENT &&
-                    item.status == AnnotationStatusDto.READY &&
-                    matchesTarget -> {
-                    // Re-save: preserve sentAt; refresh lastHandedOffAt + handoffBatchId.
-                    item.copy(
-                        handoffBatchId = batch.batchId,
-                        lastHandedOffAtEpochMillis = now,
-                        updatedAtEpochMillis = now,
-                    )
-                }
-                else -> item
-            }
-        }
+        val batch = buildHandoffBatch(session, candidates, markdownSnapshot, now)
+        val updatedItems = buildUpdatedItemsForHandoff(session.items, targetSet, batch, now)
         val updated = session.copy(
             items = updatedItems,
             handoffBatches = session.handoffBatches + batch,
@@ -366,6 +335,49 @@ class FeedbackSessionStore(
             commitSessionMutation(session, updated)
         }
         updated
+    }
+
+    private fun buildHandoffBatch(
+        session: SessionDto,
+        candidates: List<AnnotationDto>,
+        markdownSnapshot: String?,
+        now: Long,
+    ): FeedbackHandoffBatch = FeedbackHandoffBatch(
+        batchId = idGenerator(),
+        sequenceNumber = session.handoffBatches.size + 1,
+        createdAtEpochMillis = now,
+        itemIds = candidates.map { it.itemId },
+        markdownSnapshot = markdownSnapshot,
+    )
+
+    private fun buildUpdatedItemsForHandoff(
+        items: List<AnnotationDto>,
+        targetSet: Set<String>?,
+        batch: FeedbackHandoffBatch,
+        now: Long,
+    ): List<AnnotationDto> = items.map { item ->
+        val matchesTarget = targetSet == null || item.itemId in targetSet
+        when {
+            item.delivery == FeedbackDelivery.DRAFT && matchesTarget -> item.copy(
+                delivery = FeedbackDelivery.SENT,
+                handoffBatchId = batch.batchId,
+                sentAtEpochMillis = now,
+                lastHandedOffAtEpochMillis = now,
+                status = AnnotationStatusDto.READY,
+                updatedAtEpochMillis = now,
+            )
+            item.delivery == FeedbackDelivery.SENT &&
+                item.status == AnnotationStatusDto.READY &&
+                matchesTarget -> {
+                // Re-save: preserve sentAt; refresh lastHandedOffAt + handoffBatchId.
+                item.copy(
+                    handoffBatchId = batch.batchId,
+                    lastHandedOffAtEpochMillis = now,
+                    updatedAtEpochMillis = now,
+                )
+            }
+            else -> item
+        }
     }
 
     fun markItemsHandedOff(sessionId: String, itemIds: List<String>): SessionDto = synchronized(lock) {
@@ -634,106 +646,114 @@ class FeedbackSessionStore(
 
     /**
      * Applies a single [SessionEvent] to [session] and returns the resulting [SessionDto].
-     * Returns null if the event type is unknown (event is skipped).
+     * Returns null if the event type is unknown or payload is malformed (event is skipped).
      *
      * IMPORTANT: IDs in the payload are the already-minted IDs from the original
      * write path; we do NOT call idGenerator here. This ensures replay produces
      * identical IDs to the original operation.
      */
-    private fun applyEvent(session: SessionDto, event: SessionEvent): SessionDto? {
-        val payload = event.payload
-        return when (event.type) {
-            "addScreen" -> {
-                val screen = eventLogJson.decodeFromJsonElement(
-                    SnapshotDto.serializer(),
-                    payload["screen"] ?: return null,
-                )
-                session.copy(
-                    screens = session.screens + screen,
-                    updatedAtEpochMillis = event.epochMillis,
-                )
-            }
-            "addScreenWithItems" -> {
-                val screen = eventLogJson.decodeFromJsonElement(
-                    SnapshotDto.serializer(),
-                    payload["screen"] ?: return null,
-                )
-                val items = eventLogJson.decodeFromJsonElement(
-                    kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
-                    payload["items"] ?: return null,
-                )
-                session.copy(
-                    screens = session.screens + screen,
-                    items = session.items + items,
-                    updatedAtEpochMillis = event.epochMillis,
-                )
-            }
-            "deleteScreen" -> {
-                val screenId = payload["screenId"]?.jsonPrimitive?.content ?: return null
-                val removedItemIds = session.items
-                    .filter { it.screenId == screenId }
-                    .map { it.itemId }
-                    .toSet()
-                val updatedBatches = session.handoffBatches
-                    .map { batch -> batch.copy(itemIds = batch.itemIds.filterNot { it in removedItemIds }) }
-                    .filter { it.itemIds.isNotEmpty() }
-                session.copy(
-                    screens = session.screens.filterNot { it.screenId == screenId },
-                    items = session.items.filterNot { it.screenId == screenId },
-                    handoffBatches = updatedBatches,
-                    updatedAtEpochMillis = event.epochMillis,
-                )
-                // Disk artifact deletion is NOT replayed.
-            }
-            "addItem" -> {
-                val item = eventLogJson.decodeFromJsonElement(
-                    AnnotationDto.serializer(),
-                    payload["item"] ?: return null,
-                )
-                session.copy(
-                    items = session.items + item,
-                    updatedAtEpochMillis = event.epochMillis,
-                )
-            }
-            "updateDraftItem" -> {
-                val updatedItems = eventLogJson.decodeFromJsonElement(
-                    kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
-                    payload["items"] ?: return null,
-                )
-                session.copy(
-                    items = updatedItems,
-                    updatedAtEpochMillis = event.epochMillis,
-                )
-            }
-            "deleteDraftItem" -> {
-                val itemId = payload["itemId"]?.jsonPrimitive?.content ?: return null
-                val updatedBatches = session.handoffBatches
-                    .map { batch -> batch.copy(itemIds = batch.itemIds.filterNot { it == itemId }) }
-                    .filter { it.itemIds.isNotEmpty() }
-                session.copy(
-                    items = session.items.filterNot { it.itemId == itemId },
-                    handoffBatches = updatedBatches,
-                    updatedAtEpochMillis = event.epochMillis,
-                )
-            }
-            "markSent" -> {
-                val updatedItems = eventLogJson.decodeFromJsonElement(
-                    kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
-                    payload["items"] ?: return null,
-                )
-                val batch = eventLogJson.decodeFromJsonElement(
-                    FeedbackHandoffBatch.serializer(),
-                    payload["batch"] ?: return null,
-                )
-                session.copy(
-                    items = updatedItems,
-                    handoffBatches = session.handoffBatches + batch,
-                    status = SessionStatusDto.READY_FOR_AGENT,
-                    updatedAtEpochMillis = event.epochMillis,
-                )
-            }
-            else -> null // Unknown event type — skip
-        }
+    private fun applyEvent(session: SessionDto, event: SessionEvent): SessionDto? = when (event.type) {
+        "addScreen" -> applyAddScreen(session, event)
+        "addScreenWithItems" -> applyAddScreenWithItems(session, event)
+        "deleteScreen" -> applyDeleteScreen(session, event)
+        "addItem" -> applyAddItem(session, event)
+        "updateDraftItem" -> applyUpdateDraftItem(session, event)
+        "deleteDraftItem" -> applyDeleteDraftItem(session, event)
+        "markSent" -> applyMarkSent(session, event)
+        else -> null // Unknown event type — skip
+    }
+
+    private fun applyAddScreen(session: SessionDto, event: SessionEvent): SessionDto? {
+        val screenJson = event.payload["screen"] ?: return null
+        val screen = eventLogJson.decodeFromJsonElement(SnapshotDto.serializer(), screenJson)
+        return session.copy(
+            screens = session.screens + screen,
+            updatedAtEpochMillis = event.epochMillis,
+        )
+    }
+
+    private fun applyAddScreenWithItems(session: SessionDto, event: SessionEvent): SessionDto? {
+        val screenJson = event.payload["screen"]
+        val itemsJson = event.payload["items"]
+        if (screenJson == null || itemsJson == null) return null
+        val screen = eventLogJson.decodeFromJsonElement(SnapshotDto.serializer(), screenJson)
+        val items = eventLogJson.decodeFromJsonElement(
+            kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
+            itemsJson,
+        )
+        return session.copy(
+            screens = session.screens + screen,
+            items = session.items + items,
+            updatedAtEpochMillis = event.epochMillis,
+        )
+    }
+
+    private fun applyDeleteScreen(session: SessionDto, event: SessionEvent): SessionDto? {
+        val screenId = event.payload["screenId"]?.jsonPrimitive?.content ?: return null
+        val removedItemIds = session.items
+            .filter { it.screenId == screenId }
+            .map { it.itemId }
+            .toSet()
+        val updatedBatches = session.handoffBatches
+            .map { batch -> batch.copy(itemIds = batch.itemIds.filterNot { it in removedItemIds }) }
+            .filter { it.itemIds.isNotEmpty() }
+        // Disk artifact deletion is NOT replayed.
+        return session.copy(
+            screens = session.screens.filterNot { it.screenId == screenId },
+            items = session.items.filterNot { it.screenId == screenId },
+            handoffBatches = updatedBatches,
+            updatedAtEpochMillis = event.epochMillis,
+        )
+    }
+
+    private fun applyAddItem(session: SessionDto, event: SessionEvent): SessionDto? {
+        val itemJson = event.payload["item"] ?: return null
+        val item = eventLogJson.decodeFromJsonElement(AnnotationDto.serializer(), itemJson)
+        return session.copy(
+            items = session.items + item,
+            updatedAtEpochMillis = event.epochMillis,
+        )
+    }
+
+    private fun applyUpdateDraftItem(session: SessionDto, event: SessionEvent): SessionDto? {
+        val itemsJson = event.payload["items"] ?: return null
+        val updatedItems = eventLogJson.decodeFromJsonElement(
+            kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
+            itemsJson,
+        )
+        return session.copy(
+            items = updatedItems,
+            updatedAtEpochMillis = event.epochMillis,
+        )
+    }
+
+    private fun applyDeleteDraftItem(session: SessionDto, event: SessionEvent): SessionDto? {
+        val itemId = event.payload["itemId"]?.jsonPrimitive?.content ?: return null
+        val updatedBatches = session.handoffBatches
+            .map { batch -> batch.copy(itemIds = batch.itemIds.filterNot { it == itemId }) }
+            .filter { it.itemIds.isNotEmpty() }
+        return session.copy(
+            items = session.items.filterNot { it.itemId == itemId },
+            handoffBatches = updatedBatches,
+            updatedAtEpochMillis = event.epochMillis,
+        )
+    }
+
+    private fun applyMarkSent(session: SessionDto, event: SessionEvent): SessionDto? {
+        val itemsJson = event.payload["items"]
+        val batchJson = event.payload["batch"]
+        if (itemsJson == null || batchJson == null) return null
+        val updatedItems = eventLogJson.decodeFromJsonElement(
+            kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
+            itemsJson,
+        )
+        val batch = eventLogJson.decodeFromJsonElement(FeedbackHandoffBatch.serializer(), batchJson)
+        return session.copy(
+            items = updatedItems,
+            handoffBatches = session.handoffBatches + batch,
+            status = SessionStatusDto.READY_FOR_AGENT,
+            updatedAtEpochMillis = event.epochMillis,
+        )
     }
 
     // ------------------------------------------------------------------

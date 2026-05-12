@@ -18,9 +18,11 @@ class EventLogWriter(
     }
 
     @Synchronized
-    // ThrowsCount: write, sync, and rename are three distinct durable-write failure modes
-    // that each must surface as a unique EventLogException — suppression is intentional.
-    @Suppress("ThrowsCount")
+    // ThrowsCount: write, sync, and rename are three distinct durable-write failure modes,
+    // each surfacing as a unique EventLogException — suppression is intentional.
+    // TooGenericExceptionCaught: the generic catch intentionally wraps any IO/runtime error
+    // from RandomAccessFile (e.g. IOException, OutOfMemoryError) as EventLogException.
+    @Suppress("ThrowsCount", "TooGenericExceptionCaught")
     fun append(event: SessionEvent) {
         val name = "%013d-%010d.jsonl".format(event.epochMillis, event.sequenceNumber)
         val tmp = File(directory, "$name.tmp")

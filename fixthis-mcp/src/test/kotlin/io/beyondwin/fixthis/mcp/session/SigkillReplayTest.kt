@@ -214,44 +214,63 @@ class SigkillReplayTest {
             val screens = session.screens
             val draftItems = session.items.filter { it.delivery == FeedbackDelivery.DRAFT }
 
-            when (rng.nextInt(7)) {
-                0 -> applyAddScreen(session)
-                1 -> applyAddScreenWithItems(session)
-                2 -> { // addItem — skip if no screens
-                    if (screens.isEmpty()) return
-                    val screen = screens[rng.nextInt(screens.size)]
-                    store.addItem(sid, makeDraftItem(screen.screenId, "item-${++itemCounter}"))
+            val mutated = when (rng.nextInt(7)) {
+                0 -> {
+                    applyAddScreen(session)
+                    true
                 }
-                3 -> { // deleteScreen — skip if no screens
-                    if (screens.isEmpty()) return
-                    val screen = screens[rng.nextInt(screens.size)]
-                    store.deleteScreen(sid, screen.screenId)
+                1 -> {
+                    applyAddScreenWithItems(session)
+                    true
                 }
-                4 -> { // updateDraftItem — skip if no draft items
-                    if (draftItems.isEmpty()) return
-                    val item = draftItems[rng.nextInt(draftItems.size)]
-                    store.updateDraftItem(
-                        sessionId = sid,
-                        itemId = item.itemId,
-                        label = "label-${opCount++}",
-                        severity = null,
-                        comment = "updated-comment-$opCount",
-                        status = null,
-                    )
-                }
-                5 -> { // deleteDraftItem — skip if no draft items
-                    if (draftItems.isEmpty()) return
-                    val item = draftItems[rng.nextInt(draftItems.size)]
-                    store.deleteDraftItem(sid, item.itemId)
-                }
-                6 -> { // sendDraftToAgent — skip if no draft items with a screen
-                    val sendableDrafts = session.items.filter { it.delivery == FeedbackDelivery.DRAFT }
-                    if (sendableDrafts.isEmpty()) return
-                    store.sendDraftToAgent(sid, markdownSnapshot = null, targetItemIds = null)
-                }
-                else -> Unit // unreachable
+                2 -> applyAddItemOp(screens)
+                3 -> applyDeleteScreenOp(screens)
+                4 -> applyUpdateDraftItemOp(draftItems)
+                5 -> applyDeleteDraftItemOp(draftItems)
+                6 -> applySendDraftToAgentOp(draftItems)
+                else -> false // unreachable
             }
-            opCount++
+            if (mutated) opCount++
+        }
+
+        private fun applyAddItemOp(screens: List<SnapshotDto>): Boolean {
+            if (screens.isEmpty()) return false
+            val screen = screens[rng.nextInt(screens.size)]
+            store.addItem(sid, makeDraftItem(screen.screenId, "item-${++itemCounter}"))
+            return true
+        }
+
+        private fun applyDeleteScreenOp(screens: List<SnapshotDto>): Boolean {
+            if (screens.isEmpty()) return false
+            val screen = screens[rng.nextInt(screens.size)]
+            store.deleteScreen(sid, screen.screenId)
+            return true
+        }
+
+        private fun applyUpdateDraftItemOp(draftItems: List<AnnotationDto>): Boolean {
+            if (draftItems.isEmpty()) return false
+            val item = draftItems[rng.nextInt(draftItems.size)]
+            store.updateDraftItem(
+                sessionId = sid,
+                itemId = item.itemId,
+                label = "label-$opCount",
+                severity = null,
+                comment = "updated-comment-${opCount + 1}",
+                status = null,
+            )
+            return true
+        }
+
+        private fun applyDeleteDraftItemOp(draftItems: List<AnnotationDto>): Boolean {
+            if (draftItems.isEmpty()) return false
+            store.deleteDraftItem(sid, draftItems[rng.nextInt(draftItems.size)].itemId)
+            return true
+        }
+
+        private fun applySendDraftToAgentOp(draftItems: List<AnnotationDto>): Boolean {
+            if (draftItems.isEmpty()) return false
+            store.sendDraftToAgent(sid, markdownSnapshot = null, targetItemIds = null)
+            return true
         }
 
         private fun applyAddScreen(@Suppress("UnusedParameter") session: SessionDto) {
