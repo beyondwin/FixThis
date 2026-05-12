@@ -5,10 +5,12 @@ import android.app.Application
 import android.app.KeyguardManager
 import android.content.Context
 import android.content.pm.ApplicationInfo
+import android.content.res.Configuration
 import android.net.LocalServerSocket
 import android.net.LocalSocket
 import android.os.PowerManager
 import android.util.Base64
+import android.util.DisplayMetrics
 import android.util.Log
 import io.beyondwin.fixthis.compose.core.model.FixThisError
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
@@ -324,6 +326,66 @@ data class BridgeScreenSnapshot(
     val inspection: BridgeScreenInspection,
     val screenshot: ScreenshotInfo? = null,
     val sourceIndexAvailable: Boolean = false,
+    /**
+     * Logical orientation reported by `Activity.resources.configuration.orientation`
+     * at capture time. `"PORTRAIT"` or `"LANDSCAPE"`, or null when the platform
+     * reports `ORIENTATION_UNDEFINED` (e.g. capture failed before an activity was
+     * resumed). Encoded as a String on the wire to keep DTO serialization simple.
+     */
+    val orientation: String? = null,
+    val widthPx: Int? = null,
+    val heightPx: Int? = null,
+    val densityDpi: Int? = null,
+    /**
+     * High-level windowing mode active at capture time: `"PIP"`, `"SPLIT_SCREEN"`,
+     * or `"FULLSCREEN"` (default). Null only when no activity was available to
+     * inspect. PIP takes precedence over multi-window.
+     */
+    val windowMode: String? = null,
+    /** Reserved for SIF-4 (Task B.5); always null in this build. */
+    val systemUiVisible: Boolean? = null,
+    /** Reserved for SIF-4 (Task B.5); always null in this build. */
+    val systemUiKind: String? = null,
+    /**
+     * 16-hex-char fingerprint computed from orientation / display metrics /
+     * window mode / systemUiKind via core `SnapshotFingerprint.compute(...)`.
+     * Left null in the sidekick today; downstream (`fixthis-mcp`) can compute it
+     * from these populated fields when promoting the DTO into a core `Snapshot`.
+     */
+    val fingerprint: String? = null,
+)
+
+/**
+ * Maps the integer constant from `Configuration.orientation` to the wire-DTO
+ * string used by `BridgeScreenSnapshot.orientation`. Returns null for
+ * `ORIENTATION_UNDEFINED` so downstream consumers can distinguish "unknown"
+ * from "definitely portrait/landscape".
+ */
+internal fun mapOrientation(configurationOrientation: Int): String? = when (configurationOrientation) {
+    Configuration.ORIENTATION_PORTRAIT -> "PORTRAIT"
+    Configuration.ORIENTATION_LANDSCAPE -> "LANDSCAPE"
+    else -> null
+}
+
+/**
+ * Pure-function form of [inferWindowMode]. PIP wins over multi-window so a
+ * picture-in-picture window that is technically also in multi-window mode is
+ * still classified as `"PIP"`. Default is `"FULLSCREEN"`.
+ */
+internal fun mapWindowMode(isPip: Boolean, isMultiWindow: Boolean): String = when {
+    isPip -> "PIP"
+    isMultiWindow -> "SPLIT_SCREEN"
+    else -> "FULLSCREEN"
+}
+
+/**
+ * Inspects the activity for picture-in-picture / multi-window state and returns
+ * the wire-DTO window mode string. Delegates the precedence logic to
+ * [mapWindowMode] so the branch logic is unit-testable without an Activity.
+ */
+internal fun inferWindowMode(activity: Activity): String = mapWindowMode(
+    isPip = activity.isInPictureInPictureMode,
+    isMultiWindow = activity.isInMultiWindowMode,
 )
 
 @Serializable
@@ -514,11 +576,17 @@ internal class AndroidBridgeEnvironment(
                 annotationId = "screen-${UUID.randomUUID()}",
                 selectedBounds = null,
             )
+            val displayMetrics: DisplayMetrics = activity.resources.displayMetrics
             val snapshot = BridgeScreenSnapshot(
                 activity = activity::class.java.name,
                 inspection = inspection,
                 screenshot = screenshot,
                 sourceIndexAvailable = sourceIndexAvailable,
+                orientation = mapOrientation(activity.resources.configuration.orientation),
+                widthPx = displayMetrics.widthPixels,
+                heightPx = displayMetrics.heightPixels,
+                densityDpi = displayMetrics.densityDpi,
+                windowMode = inferWindowMode(activity),
             )
             lastScreenSnapshot = snapshot
             snapshot
