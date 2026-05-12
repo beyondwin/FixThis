@@ -55,6 +55,20 @@ jobs:
       - name: Check console JavaScript syntax
         run: node --check fixthis-mcp/src/main/resources/console/app.js
 
+      - name: Check console asset bundle
+        run: node scripts/build-console-assets.mjs --check
+
+      - name: Run console JavaScript tests
+        run: |
+          node --test \
+            scripts/console-availability-test.mjs \
+            scripts/pendingItemRecovery-test.mjs \
+            scripts/beforeunloadGuard-test.mjs \
+            scripts/undoRedo-test.mjs \
+            scripts/undoKeymatch-test.mjs \
+            scripts/activityDrift-test.mjs \
+            scripts/previewStaleness-test.mjs
+
       - name: Check whitespace
         shell: bash
         env:

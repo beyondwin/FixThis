@@ -59,6 +59,11 @@ try {
 }
 
 const buildHeader = `// build-header\nconst ConsoleBuildEpochMs = ${epochMs};\nconst ConsoleBuildGitSha = '${gitSha}';\n`;
+const buildHeaderRegex = /\/\/ build-header\nconst ConsoleBuildEpochMs = \d+;\nconst ConsoleBuildGitSha = '[^']+';\n/g;
+const normalizedBuildHeader = "// build-header\nconst ConsoleBuildEpochMs = 0;\nconst ConsoleBuildGitSha = 'normalized';\n";
+function normalizeBuildHeader(text) {
+  return text.replace(buildHeaderRegex, normalizedBuildHeader);
+}
 
 const entries = sources.map((name) => {
   const path = resolve(root, 'fixthis-mcp/src/main/console', name);
@@ -78,7 +83,7 @@ if (process.argv.includes('--check')) {
     process.exit(1);
   }
   const current = readFileSync(target, 'utf8');
-  if (current !== output) {
+  if (normalizeBuildHeader(current) !== normalizeBuildHeader(output)) {
     console.error('Generated console app.js is out of date. Run node scripts/build-console-assets.mjs.');
     process.exit(1);
   }
