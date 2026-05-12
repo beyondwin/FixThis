@@ -29,6 +29,30 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ### Added
 
+- **Annotation lifecycle hardening — Phase A (ALH-1..ALH-4):**
+  - Per-session append-only event log at `.fixthis/feedback-sessions/<sessionId>/events/`.
+    Every spec'd mutation (`addItem`, `addScreen`, `addScreenWithItems`,
+    `deleteScreen`, `updateDraftItem`, `deleteDraftItem`, `sendDraftToAgent`)
+    is fsync'd to disk **before** the in-memory store is updated (write-ahead).
+    On boot the events are replayed to reconstruct state — a SIGKILL between
+    fsync and the snapshot save no longer loses work.
+  - Event-log writes use atomic rename (`<name>.tmp` → `<name>.jsonl`) and
+    `EventLogException` fail-stop semantics; partial writes never reach the
+    final filename.
+  - Background `EventLogCompactor` archives the oldest events to
+    `events/archive/` once the per-session log exceeds 1000 entries, while
+    refreshing the snapshot in `state.json`.
+  - Console `pendingFeedbackItems` are now mirrored to
+    `localStorage["fixthis.pending.<sessionId>"]` on every append/update/delete
+    and auto-restored when the same session is re-attached after an adb USB
+    disconnect, browser refresh, or tab close.
+  - `beforeunload` confirm prompt fires when the user tries to close the tab
+    while pending annotations are unsaved.
+  - Undo/redo for pending annotation deletes: `Cmd+Z` / `Ctrl+Z` undoes,
+    `Cmd+Shift+Z` redoes (depth 50; ignored inside `<input>`/`<textarea>`/
+    contenteditable). A 5-second toast with a 되돌리기 button appears after
+    each delete.
+
 ### Changed
 
 ### Removed

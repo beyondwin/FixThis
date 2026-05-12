@@ -4,7 +4,10 @@
   "type": "module",
   "scripts": {
     "console:smoke": "node scripts/console-browser-smoke.mjs",
-    "console:availability:test": "node --test scripts/console-availability-test.mjs"
+    "console:availability:test": "node --test scripts/console-availability-test.mjs",
+    "console:pending:test": "node --test scripts/pendingItemRecovery-test.mjs",
+    "console:beforeunload:test": "node --test scripts/beforeunloadGuard-test.mjs",
+    "console:undo:test": "node --test scripts/undoRedo-test.mjs scripts/undoKeymatch-test.mjs"
   },
   "devDependencies": {
     "playwright": "^1.59.1"

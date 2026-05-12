@@ -304,6 +304,7 @@
 
             function resetAnnotationComposerState(clearFlow = true) {
               if (clearFlow) addItemsFlow = null;
+              clearPendingMirror(state.session?.sessionId);
               pendingFeedbackItems = [];
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;
@@ -399,6 +400,7 @@
                 comment: ''
               };
               pendingFeedbackItems.push(annotation);
+              persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
               currentSelection = null;
               hoveredAnnotationTarget = null;
               focusedPendingItemIndex = pendingFeedbackItems.length - 1;
@@ -412,7 +414,11 @@
             }
 
             function deletePendingFeedbackItem(index) {
+              const removed = pendingFeedbackItems[index];
+              recordDelete(undoRedoHistory, removed);
               pendingFeedbackItems.splice(index, 1);
+              persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
+              showUndoToast(removed?.itemId);
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;
               focusedSavedSessionId = null;

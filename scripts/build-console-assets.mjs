@@ -8,6 +8,10 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sources = [
   'state.js',
   'staleness.js',
+  'pendingPersistence.js',
+  'beforeunloadGuard.js',
+  'undoRedo.js',
+  'undoKeymatch.js',
   'api.js',
   'connection.js',
   'availability.js',

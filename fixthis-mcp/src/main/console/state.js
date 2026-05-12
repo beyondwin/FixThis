@@ -86,6 +86,8 @@
             let pendingMutationCount = 0;
             let consecutivePollFailures = 0;
             const MaxConsecutivePollFailures = 5;
+            // ALH-2: Undo/redo history singleton for pending feedback items.
+            let undoRedoHistory = createHistory();
 
             async function withMutationLock(fn) {
               pendingMutationCount++;
