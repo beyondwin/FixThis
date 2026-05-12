@@ -58,6 +58,15 @@
             applyPreviewZoom();
             refresh()
               .then(() => {
+                // ALH-1: Auto-restore pending items from localStorage after session attach.
+                // TODO(A.6 follow-up): show recovery banner / explicit user accept before exposing
+                // restored items in the UI. Banner UX deferred — current behavior auto-restores.
+                if (state.session?.sessionId) {
+                  const restored = restorePendingItems(state.session.sessionId);
+                  if (restored.length > 0) {
+                    pendingFeedbackItems = restored;
+                  }
+                }
                 if (shouldAutoFetchPreview()) return refreshPreview();
                 return null;
               })

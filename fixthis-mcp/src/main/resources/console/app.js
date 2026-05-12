@@ -197,8 +197,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778480580000;
-const ConsoleBuildGitSha = 'f500a29';
+const ConsoleBuildEpochMs = 1778561580000;
+const ConsoleBuildGitSha = 'a2947db';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -314,6 +314,45 @@ const ConsoleBuildGitSha = 'f500a29';
                   hash: `sidekick-${sidekickEpoch}`,
                 });
               }
+            }
+
+// pendingPersistence.js
+            // pendingPersistence.js — write-through mirror to localStorage
+            // for pendingFeedbackItems (ALH-1). Functions are bare so the
+            // concat bundle exposes them in shared closure scope.
+
+            const PENDING_KEY_PREFIX = 'fixthis.pending.';
+
+            function pendingKey(sessionId) {
+              return PENDING_KEY_PREFIX + sessionId;
+            }
+
+            function persistPendingItems(sessionId, items) {
+              if (!sessionId || typeof localStorage === 'undefined') return;
+              try {
+                localStorage.setItem(pendingKey(sessionId), JSON.stringify(items || []));
+              } catch (e) {
+                // Quota exceeded or storage disabled — best-effort, don't block UX
+              }
+            }
+
+            function restorePendingItems(sessionId) {
+              if (!sessionId || typeof localStorage === 'undefined') return [];
+              const raw = localStorage.getItem(pendingKey(sessionId));
+              if (!raw) return [];
+              try {
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : [];
+              } catch (e) {
+                return [];
+              }
+            }
+
+            function clearPendingMirror(sessionId) {
+              if (!sessionId || typeof localStorage === 'undefined') return;
+              try {
+                localStorage.removeItem(pendingKey(sessionId));
+              } catch (e) { /* ignore */ }
             }
 
 // api.js
@@ -1400,6 +1439,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function resetAnnotationComposerState(clearFlow = true) {
               if (clearFlow) addItemsFlow = null;
+              clearPendingMirror(state.session?.sessionId);
               pendingFeedbackItems = [];
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;
@@ -1495,6 +1535,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 comment: ''
               };
               pendingFeedbackItems.push(annotation);
+              persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
               currentSelection = null;
               hoveredAnnotationTarget = null;
               focusedPendingItemIndex = pendingFeedbackItems.length - 1;
@@ -1509,6 +1550,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function deletePendingFeedbackItem(index) {
               pendingFeedbackItems.splice(index, 1);
+              persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;
               focusedSavedSessionId = null;
@@ -3042,6 +3084,15 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             applyPreviewZoom();
             refresh()
               .then(() => {
+                // ALH-1: Auto-restore pending items from localStorage after session attach.
+                // TODO(A.6 follow-up): show recovery banner / explicit user accept before exposing
+                // restored items in the UI. Banner UX deferred — current behavior auto-restores.
+                if (state.session?.sessionId) {
+                  const restored = restorePendingItems(state.session.sessionId);
+                  if (restored.length > 0) {
+                    pendingFeedbackItems = restored;
+                  }
+                }
                 if (shouldAutoFetchPreview()) return refreshPreview();
                 return null;
               })

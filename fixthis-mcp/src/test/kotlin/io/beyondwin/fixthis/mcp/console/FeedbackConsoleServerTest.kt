@@ -485,6 +485,7 @@ class FeedbackConsoleServerTest {
         val modules = listOf(
             "state.js",
             "staleness.js",
+            "pendingPersistence.js",
             "api.js",
             "connection.js",
             "availability.js",
