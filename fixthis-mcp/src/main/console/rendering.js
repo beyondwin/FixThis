@@ -109,7 +109,19 @@
                 renderAnnotationDetail(selectedAnnotation(), focusedPendingItemIndex);
                 return;
               }
-              pendingItems.innerHTML = pendingFeedbackItems.length
+              // SIF-6: inline activity-drift warning + "분리" button. Visible
+              // only while an addItemsFlow is active and the most recent
+              // checkActivityDrift() result reported drift=true.
+              const driftWarningHtml = (addItemsFlow && addItemsFlow.activityDriftWarning && addItemsFlow.activityDriftWarning.drift)
+                ? '<div class="activity-drift-warning" role="status" aria-live="polite" data-activity-drift>' +
+                    '<div class="activity-drift-warning-body">' +
+                      '<div class="activity-drift-warning-title">Activity changed during freeze</div>' +
+                      '<div class="activity-drift-warning-detail">Frozen: ' + escapeHtml(String(addItemsFlow.activityDriftWarning.expected)) + ' · Now: ' + escapeHtml(String(addItemsFlow.activityDriftWarning.actual)) + '</div>' +
+                    '</div>' +
+                    '<button type="button" class="activity-drift-warning-button" data-activity-drift-restart>분리 (새 freeze 시작)</button>' +
+                  '</div>'
+                : '';
+              pendingItems.innerHTML = driftWarningHtml + (pendingFeedbackItems.length
                 ? '<div class="ann-list">' + pendingFeedbackItems.map((item, index) => {
                   const commentText = firstLine(item.comment || 'No comment');
                   const hasComment = Boolean(String(item.comment || '').trim());
@@ -125,10 +137,18 @@
                     '<span class="ann-row-status ' + statusClass(item) + '">' + escapeHtml(statusLabel(item)) + '</span>' +
                   '</button>';
                 }).join('') + '</div>'
-                : '<div class="empty-state"><div class="empty-title">No annotations yet.</div><div class="empty-body">Switch to <b>Annotate</b>, then click or drag on the preview.</div>' + startAnnotatingButtonHtml() + '</div>';
+                : '<div class="empty-state"><div class="empty-title">No annotations yet.</div><div class="empty-body">Switch to <b>Annotate</b>, then click or drag on the preview.</div>' + startAnnotatingButtonHtml() + '</div>');
               pendingItems.querySelectorAll('[data-focus-pending]').forEach(button => {
                 button.addEventListener('click', () => focusPendingFeedbackItem(Number(button.dataset.focusPending)));
               });
+              const driftRestartButton = pendingItems.querySelector('[data-activity-drift-restart]');
+              if (driftRestartButton) {
+                driftRestartButton.addEventListener('click', () => {
+                  // SIF-6: discard the stale freeze and start a fresh one.
+                  resetAnnotationComposerState(true);
+                  startAddItemsFlow().catch(showError);
+                });
+              }
               bindStartAnnotatingButtons(pendingItems);
             }
 

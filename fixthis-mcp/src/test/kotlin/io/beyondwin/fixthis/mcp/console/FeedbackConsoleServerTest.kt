@@ -490,6 +490,7 @@ class FeedbackConsoleServerTest {
             "undoRedo.js",
             "undoKeymatch.js",
             "previewStaleness.js",
+            "activityDrift.js",
             "api.js",
             "connection.js",
             "availability.js",

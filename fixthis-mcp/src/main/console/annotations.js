@@ -365,7 +365,12 @@
                 addItemsFlow = {
                   previewId: state.preview.previewId,
                   screen: state.preview.screen,
-                  screenshotUrl: previewScreenshotUrl(state.preview.previewId)
+                  screenshotUrl: previewScreenshotUrl(state.preview.previewId),
+                  // SIF-6: capture the foreground activity at freeze time so
+                  // checkActivityDrift() can detect when the device has since
+                  // navigated away during a multi-pin pending flow.
+                  activity: state.preview.activity ?? state.connection?.availability?.activity ?? null,
+                  activityDriftWarning: null
                 };
                 toolMode = 'annotate';
                 focusedPendingItemIndex = null;
@@ -401,6 +406,15 @@
               };
               pendingFeedbackItems.push(annotation);
               persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
+              // SIF-6: re-check activity drift after each pending item is
+              // appended. Uses the existing status-poll-derived availability
+              // — no extra fetch is issued.
+              if (addItemsFlow) {
+                const currentActivitySnapshot = {
+                  activity: state.connection?.availability?.activity ?? null
+                };
+                addItemsFlow.activityDriftWarning = checkActivityDrift(addItemsFlow, currentActivitySnapshot);
+              }
               currentSelection = null;
               hoveredAnnotationTarget = null;
               focusedPendingItemIndex = pendingFeedbackItems.length - 1;

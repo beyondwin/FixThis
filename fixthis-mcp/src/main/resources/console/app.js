@@ -199,8 +199,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778571900000;
-const ConsoleBuildGitSha = 'd37f6f2';
+const ConsoleBuildEpochMs = 1778572260000;
+const ConsoleBuildGitSha = '0fb0f43';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -492,6 +492,29 @@ function evaluateStale(state, now) {
   const connection = state && state.bridgeStatus && state.bridgeStatus.connection;
   if (connection !== 'connected') return true;
   return false;
+}
+
+// activityDrift.js
+// activityDrift.js — SIF-6: pure decision helper that decides whether the
+// currently foregrounded activity differs from the activity captured when
+// the addItemsFlow freeze was taken. Returning drift=true tells the caller
+// to surface the inline warning + "분리 (새 freeze 시작)" button on the
+// next pin form.
+//
+// Bare-function module — concatenated into resources/console/app.js by
+// scripts/build-console-assets.mjs. Must be registered BEFORE annotations.js
+// (its sole caller) in the sources array.
+
+function checkActivityDrift(flow, current) {
+  const expected = flow && flow.activity ? flow.activity : null;
+  const actual = current && current.activity ? current.activity : null;
+  if (!expected || !actual) {
+    return { drift: false };
+  }
+  if (expected === actual) {
+    return { drift: false };
+  }
+  return { drift: true, expected: expected, actual: actual };
 }
 
 // api.js
@@ -1650,7 +1673,12 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 addItemsFlow = {
                   previewId: state.preview.previewId,
                   screen: state.preview.screen,
-                  screenshotUrl: previewScreenshotUrl(state.preview.previewId)
+                  screenshotUrl: previewScreenshotUrl(state.preview.previewId),
+                  // SIF-6: capture the foreground activity at freeze time so
+                  // checkActivityDrift() can detect when the device has since
+                  // navigated away during a multi-pin pending flow.
+                  activity: state.preview.activity ?? state.connection?.availability?.activity ?? null,
+                  activityDriftWarning: null
                 };
                 toolMode = 'annotate';
                 focusedPendingItemIndex = null;
@@ -1686,6 +1714,15 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               };
               pendingFeedbackItems.push(annotation);
               persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
+              // SIF-6: re-check activity drift after each pending item is
+              // appended. Uses the existing status-poll-derived availability
+              // — no extra fetch is issued.
+              if (addItemsFlow) {
+                const currentActivitySnapshot = {
+                  activity: state.connection?.availability?.activity ?? null
+                };
+                addItemsFlow.activityDriftWarning = checkActivityDrift(addItemsFlow, currentActivitySnapshot);
+              }
               currentSelection = null;
               hoveredAnnotationTarget = null;
               focusedPendingItemIndex = pendingFeedbackItems.length - 1;
@@ -2507,7 +2544,19 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 renderAnnotationDetail(selectedAnnotation(), focusedPendingItemIndex);
                 return;
               }
-              pendingItems.innerHTML = pendingFeedbackItems.length
+              // SIF-6: inline activity-drift warning + "분리" button. Visible
+              // only while an addItemsFlow is active and the most recent
+              // checkActivityDrift() result reported drift=true.
+              const driftWarningHtml = (addItemsFlow && addItemsFlow.activityDriftWarning && addItemsFlow.activityDriftWarning.drift)
+                ? '<div class="activity-drift-warning" role="status" aria-live="polite" data-activity-drift>' +
+                    '<div class="activity-drift-warning-body">' +
+                      '<div class="activity-drift-warning-title">Activity changed during freeze</div>' +
+                      '<div class="activity-drift-warning-detail">Frozen: ' + escapeHtml(String(addItemsFlow.activityDriftWarning.expected)) + ' · Now: ' + escapeHtml(String(addItemsFlow.activityDriftWarning.actual)) + '</div>' +
+                    '</div>' +
+                    '<button type="button" class="activity-drift-warning-button" data-activity-drift-restart>분리 (새 freeze 시작)</button>' +
+                  '</div>'
+                : '';
+              pendingItems.innerHTML = driftWarningHtml + (pendingFeedbackItems.length
                 ? '<div class="ann-list">' + pendingFeedbackItems.map((item, index) => {
                   const commentText = firstLine(item.comment || 'No comment');
                   const hasComment = Boolean(String(item.comment || '').trim());
@@ -2523,10 +2572,18 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                     '<span class="ann-row-status ' + statusClass(item) + '">' + escapeHtml(statusLabel(item)) + '</span>' +
                   '</button>';
                 }).join('') + '</div>'
-                : '<div class="empty-state"><div class="empty-title">No annotations yet.</div><div class="empty-body">Switch to <b>Annotate</b>, then click or drag on the preview.</div>' + startAnnotatingButtonHtml() + '</div>';
+                : '<div class="empty-state"><div class="empty-title">No annotations yet.</div><div class="empty-body">Switch to <b>Annotate</b>, then click or drag on the preview.</div>' + startAnnotatingButtonHtml() + '</div>');
               pendingItems.querySelectorAll('[data-focus-pending]').forEach(button => {
                 button.addEventListener('click', () => focusPendingFeedbackItem(Number(button.dataset.focusPending)));
               });
+              const driftRestartButton = pendingItems.querySelector('[data-activity-drift-restart]');
+              if (driftRestartButton) {
+                driftRestartButton.addEventListener('click', () => {
+                  // SIF-6: discard the stale freeze and start a fresh one.
+                  resetAnnotationComposerState(true);
+                  startAddItemsFlow().catch(showError);
+                });
+              }
               bindStartAnnotatingButtons(pendingItems);
             }
 
