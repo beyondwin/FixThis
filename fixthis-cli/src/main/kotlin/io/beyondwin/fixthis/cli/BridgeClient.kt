@@ -32,7 +32,7 @@ import kotlin.coroutines.resumeWithException
 // ServerVersionRoutes.kt (fixthis-mcp), and MinimumSupportedProtocolVersion in
 // staleness.js. BridgeProtocolVersionSyncTest (`:fixthis-mcp:test`) fails if any
 // of the 4 sites lag — bump them all together. See docs/reference/bridge-protocol.md.
-private const val BridgeProtocolVersion = "1.2"
+private const val BridgeProtocolVersion = "1.3"
 
 // Mirrors BridgeSocketNameNegotiator.MaxAttempts (fixthis-compose-sidekick).
 private const val BridgeSocketNameMaxAttempts = 3

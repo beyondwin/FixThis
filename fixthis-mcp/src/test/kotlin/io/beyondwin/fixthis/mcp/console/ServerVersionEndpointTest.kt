@@ -35,7 +35,7 @@ class ServerVersionEndpointTest {
 
             assertEquals(BuildInfo.BUILD_EPOCH_MS, json.getValue("serverBuildEpochMs").jsonPrimitive.long)
             assertEquals(BuildInfo.GIT_SHA, json.getValue("serverGitSha").jsonPrimitive.content)
-            assertEquals("1.2", json.getValue("bridgeProtocolVersion").jsonPrimitive.content)
+            assertEquals("1.3", json.getValue("bridgeProtocolVersion").jsonPrimitive.content)
         } finally {
             server.stop()
         }

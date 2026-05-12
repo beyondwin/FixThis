@@ -199,8 +199,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778562240000;
-const ConsoleBuildGitSha = '31e629f';
+const ConsoleBuildEpochMs = 1778564940000;
+const ConsoleBuildGitSha = '99fe09a';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -259,7 +259,7 @@ const ConsoleBuildGitSha = '31e629f';
                 banner.hidden = true;
               });
 
-            const MinimumSupportedProtocolVersion = '1.2';
+            const MinimumSupportedProtocolVersion = '1.3';
 
             // Parse "1.1" -> [1, 1]; "1" -> [1]; non-numeric / null / undefined -> null.
             function parseProtocolVersion(s) {

@@ -5,7 +5,7 @@ import io.beyondwin.fixthis.mcp.BuildInfo
 
 // Mirrors the protocol version constant defined in BridgeProtocol.VERSION (fixthis-compose-sidekick)
 // and BridgeClient (fixthis-cli). Keep in sync if the protocol version ever changes.
-private const val BridgeProtocolVersion = "1.2"
+private const val BridgeProtocolVersion = "1.3"
 
 internal class ServerVersionRoutes : ConsoleRoute {
     override fun matches(path: String): Boolean = path == "/api/server-version"

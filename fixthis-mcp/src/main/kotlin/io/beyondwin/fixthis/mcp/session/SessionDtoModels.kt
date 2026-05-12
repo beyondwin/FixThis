@@ -44,6 +44,14 @@ data class SnapshotDto(
     val roots: List<SnapshotRootDto> = emptyList(),
     val sourceIndexAvailable: Boolean = false,
     val errors: List<FixThisError> = emptyList(),
+    val orientation: String? = null,
+    val widthPx: Int? = null,
+    val heightPx: Int? = null,
+    val densityDpi: Int? = null,
+    val windowMode: String? = null,
+    val systemUiVisible: Boolean? = null,
+    val systemUiKind: String? = null,
+    val fingerprint: String? = null,
 )
 
 @Serializable

@@ -9,7 +9,7 @@ import java.io.InputStream
 import java.io.OutputStream
 
 object BridgeProtocol {
-    const val VERSION: String = "1.2"
+    const val VERSION: String = "1.3"
     private const val MAX_FRAME_BYTES: Int = 16 * 1024 * 1024
 
     @OptIn(ExperimentalSerializationApi::class)
