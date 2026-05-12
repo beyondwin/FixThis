@@ -24,6 +24,14 @@
               startLivePreviewPolling();
             });
             document.addEventListener('keydown', handleGlobalShortcut);
+            // ALH-1: warn user if they try to leave with unsaved pending items.
+            window.addEventListener('beforeunload', (e) => {
+              if (shouldGuardUnload(pendingFeedbackItems.length)) {
+                e.preventDefault();
+                e.returnValue = '저장하지 않은 어노테이션이 있습니다. 정말 떠나시겠습니까?';
+                return e.returnValue;
+              }
+            });
             document.addEventListener('visibilitychange', () => {
               if (!document.hidden && shouldAutoFetchPreview()) refreshPreview().catch(showError);
               if (!document.hidden && state.selectedDeviceSerial) sendBridgeHeartbeat().catch(handleHeartbeatError);

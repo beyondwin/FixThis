@@ -9,6 +9,7 @@ const sources = [
   'state.js',
   'staleness.js',
   'pendingPersistence.js',
+  'beforeunloadGuard.js',
   'api.js',
   'connection.js',
   'availability.js',

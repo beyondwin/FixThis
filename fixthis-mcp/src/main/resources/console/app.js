@@ -197,8 +197,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778561580000;
-const ConsoleBuildGitSha = 'a2947db';
+const ConsoleBuildEpochMs = 1778561880000;
+const ConsoleBuildGitSha = '6e05c21';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -354,6 +354,15 @@ const ConsoleBuildGitSha = 'a2947db';
                 localStorage.removeItem(pendingKey(sessionId));
               } catch (e) { /* ignore */ }
             }
+
+// beforeunloadGuard.js
+// beforeunloadGuard.js — ALH-1: pure decision helper for the
+// beforeunload prompt. The window.addEventListener call lives in
+// main.js and delegates here.
+
+function shouldGuardUnload(pendingItemsCount) {
+  return Number(pendingItemsCount) > 0;
+}
 
 // api.js
             async function requestJson(path, options = {}) {
@@ -3050,6 +3059,14 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               startLivePreviewPolling();
             });
             document.addEventListener('keydown', handleGlobalShortcut);
+            // ALH-1: warn user if they try to leave with unsaved pending items.
+            window.addEventListener('beforeunload', (e) => {
+              if (shouldGuardUnload(pendingFeedbackItems.length)) {
+                e.preventDefault();
+                e.returnValue = '저장하지 않은 어노테이션이 있습니다. 정말 떠나시겠습니까?';
+                return e.returnValue;
+              }
+            });
             document.addEventListener('visibilitychange', () => {
               if (!document.hidden && shouldAutoFetchPreview()) refreshPreview().catch(showError);
               if (!document.hidden && state.selectedDeviceSerial) sendBridgeHeartbeat().catch(handleHeartbeatError);
