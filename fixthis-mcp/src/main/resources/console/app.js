@@ -87,6 +87,8 @@
             let pendingMutationCount = 0;
             let consecutivePollFailures = 0;
             const MaxConsecutivePollFailures = 5;
+            // ALH-2: Undo/redo history singleton for pending feedback items.
+            let undoRedoHistory = createHistory();
 
             async function withMutationLock(fn) {
               pendingMutationCount++;
@@ -197,8 +199,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778561880000;
-const ConsoleBuildGitSha = '6e05c21';
+const ConsoleBuildEpochMs = 1778562240000;
+const ConsoleBuildGitSha = '31e629f';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -363,6 +365,110 @@ const ConsoleBuildGitSha = '6e05c21';
 function shouldGuardUnload(pendingItemsCount) {
   return Number(pendingItemsCount) > 0;
 }
+
+// undoRedo.js
+            // undoRedo.js — ALH-2 pure undo/redo for pending feedback items.
+            // Caller passes a state shape { pendingFeedbackItems: [...] }; no
+            // closure reference needed.
+
+            const UNDO_MAX_DEPTH = 50;
+
+            function createHistory() {
+              return { undoStack: [], redoStack: [] };
+            }
+
+            function pushOp(stack, op) {
+              stack.push(op);
+              if (stack.length > UNDO_MAX_DEPTH) stack.shift();
+            }
+
+            function recordAdd(history, item) {
+              pushOp(history.undoStack, { kind: 'add', after: { ...item } });
+              history.redoStack.length = 0;
+            }
+
+            function recordDelete(history, before) {
+              if (!before) return;
+              pushOp(history.undoStack, { kind: 'delete', before: { ...before } });
+              history.redoStack.length = 0;
+            }
+
+            function recordUpdate(history, before, after) {
+              if (!before || !after) return;
+              pushOp(history.undoStack, { kind: 'update', before: { ...before }, after: { ...after } });
+              history.redoStack.length = 0;
+            }
+
+            function applyInverse(op, state) {
+              const items = state.pendingFeedbackItems;
+              if (op.kind === 'add') {
+                const idx = items.findIndex((i) => i.itemId === op.after.itemId);
+                if (idx >= 0) items.splice(idx, 1);
+              } else if (op.kind === 'delete') {
+                items.push({ ...op.before });
+                items.sort((a, b) => (a.sequenceNumber || 0) - (b.sequenceNumber || 0));
+              } else if (op.kind === 'update') {
+                const target = items.find((i) => i.itemId === op.before.itemId);
+                if (target) Object.assign(target, op.before);
+              }
+            }
+
+            function applyForward(op, state) {
+              const items = state.pendingFeedbackItems;
+              if (op.kind === 'add') {
+                items.push({ ...op.after });
+              } else if (op.kind === 'delete') {
+                const idx = items.findIndex((i) => i.itemId === op.before.itemId);
+                if (idx >= 0) items.splice(idx, 1);
+              } else if (op.kind === 'update') {
+                const target = items.find((i) => i.itemId === op.after.itemId);
+                if (target) Object.assign(target, op.after);
+              }
+            }
+
+            function undo(history, state) {
+              const op = history.undoStack.pop();
+              if (!op) return false;
+              applyInverse(op, state);
+              pushOp(history.redoStack, op);
+              return true;
+            }
+
+            function redo(history, state) {
+              const op = history.redoStack.pop();
+              if (!op) return false;
+              applyForward(op, state);
+              pushOp(history.undoStack, op);
+              return true;
+            }
+
+// undoKeymatch.js
+            // undoKeymatch.js — ALH-2 pure undo/redo keyboard match helpers.
+            // The actual addEventListener('keydown', ...) wraps in main.js.
+
+            function isInEditableField(activeElement) {
+              if (!activeElement) return false;
+              const tag = activeElement.tagName || '';
+              if (tag === 'INPUT' || tag === 'TEXTAREA') return true;
+              if (activeElement.isContentEditable) return true;
+              return false;
+            }
+
+            function matchesUndo(event, activeElement) {
+              if (!event) return false;
+              if (isInEditableField(activeElement)) return false;
+              const meta = !!(event.metaKey || event.ctrlKey);
+              const key = (event.key || '').toLowerCase();
+              return meta && key === 'z' && !event.shiftKey;
+            }
+
+            function matchesRedo(event, activeElement) {
+              if (!event) return false;
+              if (isInEditableField(activeElement)) return false;
+              const meta = !!(event.metaKey || event.ctrlKey);
+              const key = (event.key || '').toLowerCase();
+              return meta && key === 'z' && event.shiftKey === true;
+            }
 
 // api.js
             async function requestJson(path, options = {}) {
@@ -1558,8 +1664,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function deletePendingFeedbackItem(index) {
+              const removed = pendingFeedbackItems[index];
+              recordDelete(undoRedoHistory, removed);
               pendingFeedbackItems.splice(index, 1);
               persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
+              showUndoToast(removed?.itemId);
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;
               focusedSavedSessionId = null;
@@ -3059,6 +3168,27 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               startLivePreviewPolling();
             });
             document.addEventListener('keydown', handleGlobalShortcut);
+            // ALH-2: Undo/redo via Cmd+Z / Cmd+Shift+Z.
+            window.addEventListener('keydown', (e) => {
+              const active = document.activeElement;
+              if (matchesUndo(e, active)) {
+                if (undo(undoRedoHistory, { pendingFeedbackItems })) {
+                  e.preventDefault();
+                  persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
+                  renderPreviewOnly();
+                  renderInspectorRegion();
+                  renderCurrentSessionList();
+                }
+              } else if (matchesRedo(e, active)) {
+                if (redo(undoRedoHistory, { pendingFeedbackItems })) {
+                  e.preventDefault();
+                  persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
+                  renderPreviewOnly();
+                  renderInspectorRegion();
+                  renderCurrentSessionList();
+                }
+              }
+            });
             // ALH-1: warn user if they try to leave with unsaved pending items.
             window.addEventListener('beforeunload', (e) => {
               if (shouldGuardUnload(pendingFeedbackItems.length)) {
@@ -3095,6 +3225,33 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             function showError(cause) {
               clearSuccessStatus();
               error.textContent = friendlyErrorMessage(cause && cause.message ? cause.message : cause);
+            }
+
+            // ALH-2: 5-second undo toast shown after a pending item is deleted.
+            function showUndoToast(itemId) {
+              if (typeof document === 'undefined') return;
+              const existing = document.querySelector('.fixthis-undo-toast');
+              if (existing) existing.remove();
+              const toast = document.createElement('div');
+              toast.className = 'fixthis-undo-toast';
+              toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#323232;color:#fff;padding:12px 16px;border-radius:4px;display:flex;align-items:center;gap:12px;z-index:9999;font-size:14px;';
+              const msg = document.createElement('span');
+              msg.textContent = '어노테이션 삭제됨';
+              const btn = document.createElement('button');
+              btn.textContent = '되돌리기';
+              btn.style.cssText = 'background:none;border:none;color:#bb86fc;cursor:pointer;font-size:14px;padding:0;font-weight:500;';
+              btn.addEventListener('click', () => {
+                undo(undoRedoHistory, { pendingFeedbackItems });
+                persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
+                renderPreviewOnly();
+                renderInspectorRegion();
+                renderCurrentSessionList();
+                toast.remove();
+              });
+              toast.appendChild(msg);
+              toast.appendChild(btn);
+              document.body.appendChild(toast);
+              setTimeout(() => { if (toast.parentNode) toast.remove(); }, 5000);
             }
 
             initializePreviewIntervalSelect();

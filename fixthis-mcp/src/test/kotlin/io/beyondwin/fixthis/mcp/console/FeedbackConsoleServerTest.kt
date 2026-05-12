@@ -487,6 +487,8 @@ class FeedbackConsoleServerTest {
             "staleness.js",
             "pendingPersistence.js",
             "beforeunloadGuard.js",
+            "undoRedo.js",
+            "undoKeymatch.js",
             "api.js",
             "connection.js",
             "availability.js",

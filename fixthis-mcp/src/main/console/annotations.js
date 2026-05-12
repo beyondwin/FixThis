@@ -414,8 +414,11 @@
             }
 
             function deletePendingFeedbackItem(index) {
+              const removed = pendingFeedbackItems[index];
+              recordDelete(undoRedoHistory, removed);
               pendingFeedbackItems.splice(index, 1);
               persistPendingItems(state.session?.sessionId, pendingFeedbackItems);
+              showUndoToast(removed?.itemId);
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;
               focusedSavedSessionId = null;
