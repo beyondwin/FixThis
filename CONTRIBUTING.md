@@ -28,6 +28,8 @@ The following table is the canonical contract for which workflows are (or will b
 | Build + unit tests | `.github/workflows/ci.yml` (baseline job) | pre-existing | Required (already enforced) |
 | Kotlin formatting | `./gradlew spotlessCheck` in ci.yml | CI-1 | Pending — promote after 7 days green |
 | Static analysis | `./gradlew detekt` in ci.yml | CI-2 | Pending — promote after 7 days green |
+| Console asset bundle | `node scripts/build-console-assets.mjs --check` in ci.yml | post-v0.1 stabilization | Pending — promote with baseline job |
+| Console JS harnesses | `node --test scripts/*-test.mjs` subset in ci.yml | post-v0.1 stabilization | Pending — promote with baseline job |
 | CodeQL | `.github/workflows/codeql.yml` | CI-3 | Pending — promote after first analysis lands |
 | Nightly connected tests | `.github/workflows/connected-tests.yml` | CI-4 | Informational only — promote after 14 consecutive green |
 | Compatibility matrix scheduled | `.github/workflows/nightly-compat.yml` | BR-4 | Informational only — promote after 1 week stable |
@@ -39,9 +41,28 @@ The branch-protection flip itself is gated on the "Pending" rows above turning g
 Run these before opening a pull request:
 
 ```bash
-./gradlew :fixthis-compose-core:test :fixthis-cli:test :fixthis-mcp:test :fixthis-compose-sidekick:testDebugUnitTest :fixthis-gradle-plugin:test
-./gradlew :app:assembleDebug :fixthis-cli:installDist :fixthis-mcp:installDist
+./gradlew \
+  spotlessCheck \
+  detekt \
+  :fixthis-compose-core:test \
+  :fixthis-cli:test \
+  :fixthis-mcp:test \
+  :fixthis-compose-sidekick:testDebugUnitTest \
+  :fixthis-gradle-plugin:test \
+  :app:assembleDebug \
+  :fixthis-cli:installDist \
+  :fixthis-mcp:installDist \
+  --no-daemon
+node scripts/build-console-assets.mjs --check
 node --check fixthis-mcp/src/main/resources/console/app.js
+node --test \
+  scripts/console-availability-test.mjs \
+  scripts/pendingItemRecovery-test.mjs \
+  scripts/beforeunloadGuard-test.mjs \
+  scripts/undoRedo-test.mjs \
+  scripts/undoKeymatch-test.mjs \
+  scripts/activityDrift-test.mjs \
+  scripts/previewStaleness-test.mjs
 git diff --check
 ```
 
@@ -50,6 +71,16 @@ If you edited any console JS module under `fixthis-mcp/src/main/console/`, rebun
 ```bash
 node scripts/build-console-assets.mjs
 ```
+
+If you changed Gradle build logic, also run:
+
+```bash
+./gradlew help --warning-mode all --no-daemon
+```
+
+The help task should not print Gradle deprecation warnings. Detekt still runs
+for `detekt`, `check`, and build tasks; it is intentionally skipped for
+configuration-only help invocations.
 
 Optional console smoke harnesses (require Node + a recent Chromium via Playwright) live under `scripts/`:
 

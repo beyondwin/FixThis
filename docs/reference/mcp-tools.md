@@ -79,6 +79,19 @@ Top bar actions are short session-level controls: device selection, connection s
 
 `Copy Prompt` and `Save to MCP` persist written pending annotations when needed, promote the frozen preview into one persisted evidence snapshot, and connect those items to the same `screenId`. The item's `screenId` field points to the evidence snapshot saved with that item batch, so multiple saved items can share one `screenId`. During persistence, FixThis derives optional `targetEvidence` for each item from the frozen preview's captured merged semantics nodes and source-index candidates. Later `Annotate` work on the same visible app screen can create another evidence snapshot when pending annotations are persisted. Live preview frames are not session history: `FeedbackSession.screens` contains persisted evidence snapshots, not every preview frame.
 
+Before persistence, the server compares the frozen preview fingerprint with a
+lightweight live capture when both fingerprints exist. If they differ,
+`/api/items/batch` returns HTTP 409 with `screen_fingerprint_mismatch`, and the
+browser prompts the user to re-capture, force-save, or cancel. If either
+fingerprint is unavailable, saving continues and the response includes
+`X-FixThis-Fingerprint-Unavailable-Reason` for diagnostics.
+
+Pending annotations also have a browser-local recovery mirror. The console
+stores a schema-v1 `localStorage["fixthis.pending.<sessionId>"]` envelope with
+the frozen preview id, screen metadata, screenshot URL, frozen timestamp, and
+items. On reload or reattach, it asks the user to Recover, Recapture, or
+Discard before exposing those pending rows again.
+
 Saved evidence groups can be expanded to review the persisted screenshot, numbered overlay, and saved comments. `Save to MCP` is local persistence, not an external AI API call. FixThis marks the affected items with `delivery: sent` so MCP clients can list them through `fixthis_list_feedback`, claim one with `fixthis_claim_feedback`, and resolve it with `fixthis_resolve_feedback`. Sessions that contain sent items remain in the main History list; while an agent is actively working on an item the row shows a `working` pip that is driven by the item's `in_progress` status.
 
 ### Connection Recovery API

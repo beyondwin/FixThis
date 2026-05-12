@@ -34,6 +34,15 @@ opens the browser console. After saving feedback, ask the agent to pick it up:
 The agent calls `fixthis_read_feedback`, gets the compact Markdown prompt and
 JSON evidence, and edits the right call sites.
 
+For queue work, the agent should claim the item before editing:
+
+```
+fixthis_claim_feedback
+```
+
+This marks the item `in_progress` so the console shows a working state and
+other agents avoid duplicate work.
+
 When you've made the change, ask the agent to mark it resolved:
 
 > Mark all FixThis items in that batch as resolved.
@@ -50,7 +59,8 @@ Codex reads MCP servers from user-global `~/.codex/config.toml`. Bootstrap:
 
 Restart Codex so it picks up the new MCP server. After that, the workflow is
 identical to Claude Code — `fixthis_open_feedback_console` to open the console,
-`fixthis_read_feedback` / `fixthis_resolve_feedback` for the queue.
+`fixthis_read_feedback` / `fixthis_claim_feedback` /
+`fixthis_resolve_feedback` for the queue.
 
 Codex also reads `AGENTS.md` at the repository root. The shipped `AGENTS.md`
 points Codex at the same MCP setup so a fresh clone is wired up out of the box.
@@ -82,6 +92,9 @@ tools.
 - **Multiple annotations batch into one handoff.** Whether you Copy Prompt or
   Save to MCP, every pending annotation on the frozen preview lands in the same
   batch.
+- **Screen mismatch is guarded.** If the frozen preview fingerprint differs
+  from the current app screen when you save, the console asks whether to
+  re-capture, force-save, or cancel.
 
 ## What's next
 

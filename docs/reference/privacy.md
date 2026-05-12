@@ -12,9 +12,15 @@ The feedback console is served from localhost by the desktop MCP process. The An
 
 The localhost console adds a per-server browser token to served HTML and requires `X-FixThis-Console-Token` on mutating `/api/*` requests. Mutating console requests with a non-localhost `Origin` are rejected. Read-only console pages and `GET` APIs remain available from localhost without that token.
 
-Feedback workspace files are local project artifacts under `.fixthis/feedback-sessions/`. They include feedback session metadata, saved evidence screenshots, source hints, optional target evidence, comments, and handoff batches used to resume the console after MCP or console restarts. Live preview frames are transient and are not appended to the feedback session history.
+Feedback workspace files are local project artifacts under `.fixthis/feedback-sessions/`. They include feedback session metadata, saved evidence screenshots, source hints, optional target evidence, comments, handoff batches, and append-only event logs used to resume the console after MCP or console restarts. Live preview frames are transient and are not appended to the feedback session history.
 
-`Send Agent` stores a local handoff batch in the feedback session so MCP tools can read it. It does not upload feedback or screenshots and does not call an external AI API.
+`Save to MCP` stores a local handoff batch in the feedback session so MCP tools can read it. It does not upload feedback or screenshots and does not call an external AI API.
+
+Unsaved pending annotations are mirrored in browser `localStorage` under
+`fixthis.pending.<sessionId>`. The mirror may contain comments, target bounds,
+the frozen screen metadata, the preview id, a local screenshot URL, and a
+frozen timestamp. It stays in the browser until you recover, recapture,
+discard, or persist the batch.
 
 ## Debug Scope
 
@@ -49,6 +55,7 @@ CLI/MCP flows may copy screenshot artifacts into the project:
 ```text
 .fixthis/artifacts/<annotation-id>/
 .fixthis/feedback-sessions/<session-id>/
+.fixthis/feedback-sessions/<session-id>/events/
 .fixthis/preview-cache/<session-id>/
 ```
 

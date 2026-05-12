@@ -112,12 +112,23 @@ MCP stdio server and local feedback console server.
 
 - `McpProtocol`: handles JSON-RPC initialize/tools/resources/ping/cancellation.
 - `tools/FixThisTools.kt`: MCP tool/resource registry and CLI bridge adapter.
-- `session/FeedbackSessionService.kt`: session workflow orchestration. Coordinates session open/resume, connection diagnosis, app launch recovery, preview capture, persisted evidence capture, navigation, annotation save, target evidence derivation, handoff, and resolve.
+- `session/FeedbackSessionService.kt`: thin session workflow façade. It
+  coordinates session open/resume, connection diagnosis, app launch recovery,
+  preview capture, persisted evidence capture, navigation, annotation save,
+  target evidence derivation, handoff, and resolve through focused
+  collaborators.
+- `session/AnnotationRepository.kt`: annotation and draft CRUD boundary,
+  including frozen-preview save, live fingerprint comparison, handoff, claim,
+  and resolve operations.
 - `session/SessionDtoModels.kt`, `console/AnnotationRequestModels.kt`: MCP/local-console DTOs and persisted JSON field names. Existing field names such as `items`, `screens`, `itemId`, and `screenId` are compatibility contracts.
 - `session/SessionDomainMappers.kt`: explicit mapper between DTOs and `compose-core` domain models. Legacy `"ready"` item status is normalized to `AnnotationStatus.OPEN` in the domain.
 - `console/ConsoleConnectionModels.kt`: browser console recovery card contract. Serializes `WELCOME`, `READY`, `OPEN_APP`, `STARTING`, `RECONNECT`, `CHOOSE_DEVICE`, `CHECK_PHONE`, `UNSUPPORTED_BUILD` states and primary actions.
 - `session/PreviewSnapshotCache.kt`, `SourceIndexRegistry.kt`, `ScreenshotArtifactPromoter.kt`: separates transient preview cache, source-index caching, and frozen preview screenshot promotion from the service.
-- `session/FeedbackSessionStore.kt`, `FeedbackSessionPersistence.kt`: `.fixthis/feedback-sessions/<session-id>/session.json` persistence.
+- `session/FeedbackSessionStore.kt`, `FeedbackSessionPersistence.kt`,
+  `session/eventlog/*`: `.fixthis/feedback-sessions/<session-id>/session.json`
+  snapshot persistence plus append-only event logs under `events/`. Event-log
+  replay is checkpoint-aware; compaction archives old events only after writing
+  `events/checkpoint.json`.
 - `console/FeedbackConsoleServer.kt`: `127.0.0.1` HTTP console and `/api/*` endpoints.
 - `console/FeedbackConsoleAssets.kt`: loader that validates and assembles `src/main/resources/console/index.html`, `styles.css`, `app.js` classpath resources.
 
@@ -132,13 +143,16 @@ MCP tools:
 - `fixthis_navigate_app`
 - `fixthis_list_feedback`
 - `fixthis_read_feedback`
+- `fixthis_claim_feedback`
 - `fixthis_resolve_feedback`
 
 Stable Target Evidence v1:
 
 - Saved feedback items may include nullable `targetEvidence`.
 - Evidence is derived from captured merged semantics nodes, strict `comp:<ComposableName>:<variant>` tags when present, occurrence over the captured merged node set, existing source candidates, and available screenshot artifacts.
-- `BridgeProtocol.VERSION` remains `1.0`; the bridge advertises additive capabilities (`targetEvidence`, `detailModes`, `composableIdentity=false`).
+- `BridgeProtocol.VERSION` is `1.3`; the bridge advertises additive
+  capabilities (`targetEvidence`, `detailModes`, `composableIdentity=false`)
+  and screen-integrity metadata used to compute nullable fingerprints.
 - The default implementation does not depend on Compose tooling internals such as `ui-tooling-data`, `LocalInspectionTables`, `parseSourceInformation`, or `CompositionData.mapTree`.
 
 Resources:
@@ -179,9 +193,9 @@ flowchart TD
     E --> F["User clicks Annotate to freeze latest preview"]
     F --> G["User selects semantics node or visual area and writes comments"]
     G --> H["Add annotation creates pending rows"]
-    H --> I["Copy Prompt or Send Agent persists one screen evidence snapshot when needed"]
+    H --> I["Copy Prompt or Save to MCP persists one screen evidence snapshot when needed"]
     I --> J["Feedback items share that screenId"]
-    J --> K["Send Agent creates local handoff batch"]
+    J --> K["Save to MCP creates local handoff batch"]
     K --> L["Agent reads queue with fixthis_read_feedback"]
     L --> M["Agent resolves items with fixthis_resolve_feedback"]
 ```
@@ -190,10 +204,18 @@ Important distinction:
 
 - Preview frames are temporary and stored under `.fixthis/preview-cache/`.
 - Saved evidence lives under `.fixthis/feedback-sessions/<session-id>/`.
-- `Send Agent` is local persistence for MCP handoff. It does not call an external AI API.
+- `Save to MCP` is local persistence for MCP handoff. It does not call an external AI API.
 - Connection recovery is console-local UI state. `GET /api/connection` diagnoses ADB device and sidekick bridge state, while `POST /api/app/launch` launches the selected or only ready app when that is a valid recovery action. These calls do not persist feedback data.
-- When a device or bridge drops, pending browser draft work and the last preview remain visible. The preview is marked stale until the card returns to `Ready`.
+- When a device or bridge drops, pending browser draft work is mirrored to
+  `localStorage["fixthis.pending.<sessionId>"]` with frozen preview context.
+  On reload or session reattach, the user explicitly chooses Recover,
+  Recapture, or Discard before the pending rows are exposed again. The last
+  preview remains visible and is marked stale until the card returns to `Ready`.
 - When the device is `Connected` but not interactable (screen off, lock screen, app backgrounded, PiP, unresponsive, no Compose UI), the console renders a cause-specific overlay on the canvas and gates selection input. When the cause clears, the prior tool mode, frozen preview, and pending pins are auto-resumed.
+- Before `Copy Prompt` or `Save to MCP` persists pending annotations, the
+  server compares the frozen preview fingerprint with a lightweight current
+  capture when both values exist. A mismatch is returned as a recoverable
+  console conflict so the user can re-capture, force-save, or cancel.
 
 ## Local Files And Artifacts
 
@@ -211,6 +233,8 @@ Project-local desktop files:
 .fixthis/project.json
 .fixthis/artifacts/<annotation-id>/
 .fixthis/feedback-sessions/<session-id>/
+.fixthis/feedback-sessions/<session-id>/events/
+.fixthis/feedback-sessions/<session-id>/events/checkpoint.json
 .fixthis/preview-cache/<session-id>/<preview-id>/
 ```
 
@@ -280,7 +304,7 @@ Recommended order for a developer seeing this project for the first time:
 - Selection and submission do not happen inside the app. Selection and submission happen exclusively in the MCP browser console.
 - Source candidates are text/symbol-based ranking from a source index — not exact compiler mappings.
 - Semantics redaction is not screenshot pixel redaction.
-- The feedback console's `Annotate` mode freezes the preview but does not save. `Add annotation` creates a browser-side pending item. Only `Copy Prompt` or `Send Agent` creates a persisted evidence snapshot.
+- The feedback console's `Annotate` mode freezes the preview but does not save. `Add annotation` creates a browser-side pending item. Only `Copy Prompt` or `Save to MCP` creates a persisted evidence snapshot.
 - Persisted MCP JSON field names are a compatibility contract. They may differ from domain model names; check the mapper boundary.
 - A `Connected` chip does not always mean the device is interactable. Screen off / locked / backgrounded / PiP / unresponsive / no-Compose-UI all stay `Connected` but report a blocked sub-state.
 - Compact handoff output uses the v2 format. Instead of a single `src?` line, it emits a `candidates:` block (rank-1 by default, capped at 3) and `viewport:`, `activity:`, `instance i/N`, and collision/duplicate-marker note lines. PRECISE/FULL detail modes and the JSON wire format are unchanged.

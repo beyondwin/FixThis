@@ -44,7 +44,7 @@ These fields can be absent or empty depending on runtime context:
 
 ### `targetEvidence`
 
-`targetEvidence` is optional additive evidence for agent handoff. In the current MCP console flow, it is generated when `Copy Prompt` or `Send Agent` persists written pending annotations and promotes a frozen preview into persisted feedback items. It may be absent when the captured screen, selected target, or source index does not provide enough structured evidence.
+`targetEvidence` is optional additive evidence for agent handoff. In the current MCP console flow, it is generated when `Copy Prompt` or `Save to MCP` persists written pending annotations and promotes a frozen preview into persisted feedback items. It may be absent when the captured screen, selected target, or source index does not provide enough structured evidence.
 
 - `identityHint`: optional target identity derived from strict `comp:<ComposableName>:<variant>` test tags or stable semantics labels.
 - `occurrence`: optional ordinal/count for the selected target, based on captured merged semantics nodes.
@@ -82,6 +82,7 @@ Feedback session summaries are returned by `fixthis_list_feedback_sessions` and 
 - `itemsCount`: number of feedback items in the session.
 - `unresolvedItemsCount`: number of feedback items not resolved or marked won't fix.
 - `draftItemsCount`: number of feedback items whose delivery is `draft`.
+- `inProgressItemsCount`: number of feedback items currently claimed by an agent.
 - `sentBatchesCount`: number of persisted handoff batches.
 
 `fixthis_list_feedback` returns the same session context plus `unresolvedSentItemsCount`, the number of sent feedback items not resolved or marked won't fix.
@@ -115,7 +116,7 @@ Device summaries include:
 
 ## Captured Screen Schema
 
-Captured screens represent persisted evidence snapshots in a feedback session. The feedback console creates them when `Copy Prompt` or `Send Agent` persists pending annotations and promotes a frozen preview; MCP tools can also create them through explicit capture or navigation with `captureAfter`. Live preview frames are not captured screens:
+Captured screens represent persisted evidence snapshots in a feedback session. The feedback console creates them when `Copy Prompt` or `Save to MCP` persists pending annotations and promotes a frozen preview; MCP tools can also create them through explicit capture or navigation with `captureAfter`. Live preview frames are not captured screens:
 
 - `screenId`: persisted evidence snapshot id.
 - `capturedAtEpochMillis`: capture timestamp.
@@ -125,6 +126,19 @@ Captured screens represent persisted evidence snapshots in a feedback session. T
 - `roots`: Compose root snapshots with merged and unmerged nodes.
 - `sourceIndexAvailable`: whether source matching data was available.
 - `errors`: non-fatal capture or inspection errors.
+- `orientation`: optional orientation string captured by the bridge.
+- `widthPx`, `heightPx`, `densityDpi`: optional display metrics used for
+  screen-integrity fingerprinting.
+- `windowMode`: optional window mode such as fullscreen, split-screen, or
+  picture-in-picture.
+- `systemUiVisible`, `systemUiKind`: optional system UI state observed during
+  capture.
+- `fingerprint`: optional 16-character screen fingerprint derived from
+  activity, orientation, dimensions, density, window mode, and system UI kind.
+
+The fingerprint is additive. Legacy captures and old sidekick builds may omit
+it; in that case save-time mismatch checks are skipped and the feedback item
+can still be persisted.
 
 ## Feedback Navigation Result
 
@@ -162,11 +176,17 @@ Feedback items represent human comments on a persisted evidence snapshot. When a
 
 ## Feedback Delivery
 
-The feedback console defaults to navigation. `Annotate` freezes the latest preview so the user can select a target or drag a visual area, write a comment, and create one or more pending UI-only items with `Add annotation`. Pending items are numbered in the Studio UI and support Focus and Delete until `Copy Prompt` or `Send Agent` persists written pending annotations when needed. That persistence promotes the frozen preview once into one persisted evidence snapshot, stores all pending items, and connects them to the same `screenId`. Later `Annotate` work on the same visible app screen creates a new evidence snapshot when pending annotations are persisted.
+The feedback console defaults to navigation. `Annotate` freezes the latest preview so the user can select a target or drag a visual area, write a comment, and create one or more pending UI-only items with `Add annotation`. Pending items are numbered in the Studio UI and support Focus and Delete until `Copy Prompt` or `Save to MCP` persists written pending annotations when needed. That persistence promotes the frozen preview once into one persisted evidence snapshot, stores all pending items, and connects them to the same `screenId`. Later `Annotate` work on the same visible app screen creates a new evidence snapshot when pending annotations are persisted.
 
-`Send Agent` creates a persisted handoff batch, changes saved items to `delivery: "sent"`, sets `handoffBatchId` and `sentAtEpochMillis`, and records those items in `handoffBatches`. It does not create a new external AI API payload; MCP tools read the persisted session data.
+`Save to MCP` creates a persisted handoff batch, changes saved items to `delivery: "sent"`, sets `handoffBatchId` and `sentAtEpochMillis`, and records those items in `handoffBatches`. It does not create a new external AI API payload; MCP tools read the persisted session data.
 
-Connection loss does not change feedback delivery fields. Browser-only pending items and the last preview stay visible as cached work, the preview is marked stale, and new bridge actions resume only after the connection status returns to `READY`.
+Connection loss does not change feedback delivery fields. Browser-only pending
+items are mirrored separately in `localStorage["fixthis.pending.<sessionId>"]`
+with the frozen `previewId`, screen metadata, screenshot URL, frozen timestamp,
+and item list. On reload or session reattach, the console asks the user to
+Recover, Recapture, or Discard before exposing those browser-only pending rows.
+The last preview stays visible as cached work, the preview is marked stale, and
+new bridge actions resume only after the connection status returns to `READY`.
 
 Delivery values:
 
@@ -181,7 +201,7 @@ Handoff batches are stored on the feedback session in `handoffBatches`:
 - `sequenceNumber`: stable human-readable batch number within the session.
 - `createdAtEpochMillis`: time the batch was created.
 - `itemIds`: feedback item ids included in the batch.
-- `markdownSnapshot`: Markdown handoff snapshot captured when `Send Agent` created the batch, when available.
+- `markdownSnapshot`: Markdown handoff snapshot captured when `Save to MCP` created the batch, when available.
 
 The item's `screenId` field points to the evidence snapshot saved with the item batch. Multiple items can share one `screenId` when saved together from one frozen preview.
 
@@ -223,7 +243,7 @@ The item's `screenId` field points to the evidence snapshot saved with the item 
 - `confidence`: `HIGH`, `MEDIUM`, `LOW`, or `NONE`.
 - `ranking`: optional 1-based rank within the item's ordered candidate list.
 - `scoreMargin`: optional score gap between this candidate and the next-ranked candidate. Populated for the rank-1 candidate; serialized into compact handoff as `margin=`.
-- `evidenceStrength`: optional `STRONG`, `MODERATE`, `WEAK`, or `NONE` describing how reliable the underlying evidence is. Used to reserve `confidence=HIGH` for strong evidence with a clear top-vs-next margin.
+- `evidenceStrength`: optional `STRONG`, `MEDIUM`, or `WEAK` describing how reliable the underlying evidence is. Used to reserve `confidence=HIGH` for strong evidence with a clear top-vs-next margin.
 - `riskFlags`: optional list of confidence-capping risk tokens (for example `VISUAL_AREA_ONLY`, `TEXT_ONLY`, `NEARBY_ONLY`, `ACTIVITY_ONLY`, `ARBITRARY_LITERAL`, `LEGACY_FALLBACK`).
 - `caution`: optional human-readable caveat. Surfaced on the rank-1 candidate as a `note:` line in compact handoff.
 - `stale`: optional `true`, `false`, or `null`. `true` means the host source line no longer matches the index excerpt (do not edit by file:line); `false` means the line-accurate match was verified; `null` means the candidate could not be verified (no excerpt, no line, or an XML resource entry).
@@ -295,3 +315,32 @@ legacy single-annotation capture failures:
 - `CAPTURE_IN_FLIGHT`: legacy feedback capture is already active.
 
 Bridge and MCP failures may be returned as tool errors or JSON-RPC errors instead of annotation `errors`. See [Troubleshooting](../guides/troubleshooting.md).
+
+Feedback-console save conflicts can also be returned as local HTTP API
+responses before an item is persisted:
+
+- `screen_fingerprint_mismatch`: `POST /api/items/batch` compared the frozen
+  preview fingerprint with a current lightweight capture and they differed.
+  The response is HTTP 409 and includes `frozenFingerprint` and
+  `currentFingerprint`; the browser asks whether to re-capture, force-save, or
+  cancel.
+
+## Event Log And Checkpoints
+
+Feedback sessions are stored as a snapshot plus an append-only mutation log:
+
+```text
+.fixthis/feedback-sessions/<session-id>/session.json
+.fixthis/feedback-sessions/<session-id>/events/*.jsonl
+.fixthis/feedback-sessions/<session-id>/events/checkpoint.json
+.fixthis/feedback-sessions/<session-id>/events/archive/
+```
+
+Each event is fsync'd to a temporary file and renamed to a numbered `.jsonl`
+file before the in-memory session is updated. On restart, FixThis replays the
+active events over the snapshot. Compaction writes `checkpoint.json` with
+`schemaVersion`, `sessionId`, `compactedThroughSequenceNumber`,
+`snapshotUpdatedAtEpochMillis`, and `createdAtEpochMillis`, then archives the
+events covered by that checkpoint. Corrupt or incompatible checkpoints are
+treated as skipped replay input rather than a reason to apply archived events
+twice.

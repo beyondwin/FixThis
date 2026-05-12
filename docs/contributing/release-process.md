@@ -38,11 +38,12 @@ the package version will also be set in the root build configuration:
 
 Before tagging:
 
-- [ ] All unit tests pass: `./gradlew :fixthis-compose-core:test :fixthis-cli:test :fixthis-mcp:test :fixthis-compose-sidekick:testDebugUnitTest :fixthis-gradle-plugin:test`
-- [ ] Sample app builds: `./gradlew :app:assembleDebug`
-- [ ] CLI + MCP distributions build: `./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist`
-- [ ] Console JS syntax check: `node --check fixthis-mcp/src/main/resources/console/app.js`
+- [ ] Full Gradle matrix passes: `./gradlew spotlessCheck detekt :fixthis-compose-core:test :fixthis-cli:test :fixthis-mcp:test :fixthis-compose-sidekick:testDebugUnitTest :fixthis-gradle-plugin:test :app:assembleDebug :fixthis-cli:installDist :fixthis-mcp:installDist --no-daemon`
+- [ ] Console asset bundle is current: `node scripts/build-console-assets.mjs --check`
+- [ ] Console JS syntax check passes: `node --check fixthis-mcp/src/main/resources/console/app.js`
+- [ ] Console JS harnesses pass: `node --test scripts/console-availability-test.mjs scripts/pendingItemRecovery-test.mjs scripts/beforeunloadGuard-test.mjs scripts/undoRedo-test.mjs scripts/undoKeymatch-test.mjs scripts/activityDrift-test.mjs scripts/previewStaleness-test.mjs`
 - [ ] Whitespace clean: `git diff --check`
+- [ ] Gradle help has no deprecation warnings when build logic changed: `./gradlew help --warning-mode all --no-daemon`
 - [ ] Connected smoke harness on a real device or unlocked emulator: `scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample`
 - [ ] CI green on `main` for the commit you're about to tag: see `.github/workflows/ci.yml`
 - [ ] `CHANGELOG.md` "Unreleased" section reviewed for accuracy

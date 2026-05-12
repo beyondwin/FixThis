@@ -68,7 +68,7 @@ is a stable machine-readable string; `error.message` is human-readable.
 ## Version constant
 
 A single `VERSION` string identifies the protocol surface. **Current value:
-`"1.2"`** (defined in
+`"1.3"`** (defined in
 `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt`).
 
 The same value is **mirrored** in three other places that must stay in sync.
@@ -82,6 +82,12 @@ on failure:
 | `fixthis-mcp/src/main/console/staleness.js` | Console-side minimum acceptable version. | `MinimumSupportedProtocolVersion` |
 | `fixthis-cli/.../BridgeClient.kt` | Desktop CLI's expected version (used to refuse incompatible bridges with a clear error). | `BridgeProtocolVersion` |
 | `fixthis-mcp/.../console/ServerVersionRoutes.kt` | Server-side reflection of the version, returned to the console for staleness comparison. | `BridgeProtocolVersion` |
+
+Version `1.3` is the screen-integrity update. It adds nullable snapshot fields
+for orientation, dimensions, density, window mode, system UI state, and
+fingerprint data. Older persisted JSON remains readable because the new fields
+are additive and nullable; the console skips fingerprint comparison when either
+side lacks a fingerprint.
 
 ## Staleness banner
 
@@ -125,8 +131,8 @@ Any PR that changes `BridgeStatus`, `BridgeRequest`, `BridgeResponse`, or any
 method signature on the bridge:
 
 1. Bump `BridgeProtocol.VERSION` in
-   `fixthis-compose-sidekick/.../bridge/BridgeProtocol.kt` (e.g. `"1.1"` →
-   `"1.2"`).
+   `fixthis-compose-sidekick/.../bridge/BridgeProtocol.kt` (e.g. `"1.2"` →
+   `"1.3"`).
 2. Bump `MinimumSupportedProtocolVersion` in
    `fixthis-mcp/src/main/console/staleness.js` to the same value.
 3. Bump `BridgeProtocolVersion` in

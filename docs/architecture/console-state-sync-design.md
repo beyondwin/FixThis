@@ -13,7 +13,7 @@ The console keeps two pieces of session state on the client:
 | Piece | Source | Drives |
 | --- | --- | --- |
 | `state.sessionSummaries` | `GET /api/sessions` (server-aggregated `FeedbackSessionSummary` list) | Sidebar HISTORY rows, "Sent history", session ordinals |
-| `state.session` | `GET /api/session`, `POST /api/session/open`, `POST /api/agent-handoffs`, `POST /api/items/...` | Top-toolbar counter, right ANNOTATIONS panel, preview overlay, Copy Prompt / Send Agent payload |
+| `state.session` | `GET /api/session`, `POST /api/session/open`, `POST /api/agent-handoffs`, `POST /api/items/...` | Top-toolbar counter, right ANNOTATIONS panel, preview overlay, Copy Prompt / Save to MCP payload |
 
 These two are written by separate code paths and historically went out of sync.
 

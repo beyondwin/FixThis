@@ -9,6 +9,8 @@ Maintainers update this doc as observation windows complete. Once a row's "Ready
 | `.github/workflows/ci.yml` — Build + unit tests (baseline) | pre-existing | yes (pre-existing) | already enforced |
 | `./gradlew spotlessCheck` in ci.yml (CI-1) | — | pending | no |
 | `./gradlew detekt` in ci.yml (CI-2) | — | pending | no |
+| `node scripts/build-console-assets.mjs --check` in ci.yml | — | pending | no |
+| `node --test` console harness subset in ci.yml | — | pending | no |
 | `.github/workflows/codeql.yml` (CI-3) | — | pending | no |
 | `.github/workflows/connected-tests.yml` (CI-4, nightly) | — | pending (14 consecutive green required) | no |
 | `.github/workflows/nightly-compat.yml` (BR-4, weekly scheduled) | — | pending (1 week stable required) | no |
@@ -16,6 +18,8 @@ Maintainers update this doc as observation windows complete. Once a row's "Ready
 ## Notes
 
 - "First green run" should record the first observed all-green run of the workflow on `main` after the workflow was merged.
-- "7 consecutive green runs" is the default observation window for PR-time checks (CI-1, CI-2, CI-3). Replace the value with the date the streak was confirmed.
+- "7 consecutive green runs" is the default observation window for PR-time checks
+  (CI-1, CI-2, console asset check, console JS harnesses, CI-3). Replace the
+  value with the date the streak was confirmed.
 - Scheduled device and compatibility workflows (CI-4, BR-4) have longer windows reflecting their lower cadence; do not promote them to PR-required checks without a separate discussion (they currently run on `schedule:` only).
 - The CodeQL row is also gated on the first analysis successfully landing in the GitHub Security tab.

@@ -33,6 +33,19 @@
 - `Save to MCP` persists written pending annotations when needed, then creates a local handoff batch for MCP tools.
 - `Clear Draft` deletes unsent draft feedback after confirmation.
 - Live preview frames are transient. Persisted `screens` are evidence snapshots, not every preview frame.
+- Browser-only pending work is mirrored to
+  `localStorage["fixthis.pending.<sessionId>"]` as a schema-v1 envelope with
+  `sessionId`, `previewId`, `screen`, `screenshotUrl`, `frozenAtEpochMillis`,
+  and `items`. Legacy item-only arrays are treated as schema v0 and must route
+  through Recapture or Discard before direct handoff.
+- On browser reload or session reattach, recovered pending work is not exposed
+  automatically. The console shows an explicit Recover / Recapture / Discard
+  banner; Recover is available only when the frozen preview context is present.
+- Before persisting a pending batch, the console sends the frozen screen
+  fingerprint to `/api/items/batch`. The server compares it with a lightweight
+  current capture when both fingerprints exist. HTTP 409 with
+  `error: "screen_fingerprint_mismatch"` is recoverable UI state: prompt for
+  re-capture, force-save, or cancel.
 
 ## Device Semantics
 
@@ -42,6 +55,8 @@
 ## Privacy Semantics
 
 - `Save to MCP` stores a local handoff batch.
+- Pending recovery envelopes remain browser-local until `Copy Prompt` or
+  `Save to MCP` persists the items into `.fixthis/feedback-sessions/`.
 - FixThis does not upload screenshots, comments, prompt text, source hints, or target evidence by default.
 
 ## Compact handoff schema

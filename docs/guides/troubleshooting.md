@@ -140,6 +140,31 @@ Select a device in the compact console device control. If the control shows `No 
 
 Deleting a pending item renumbers the pending list and overlay markers so they keep matching. This is expected before `Copy Prompt` or `Save to MCP` persists pending annotations.
 
+### Reopened console shows a pending recovery banner
+
+The browser found unsaved pending annotations in
+`localStorage["fixthis.pending.<sessionId>"]`. Choose:
+
+- **Recover** to restore the frozen preview, screenshot, and comments when the
+  saved preview context is complete.
+- **Recapture** to start from a fresh preview before saving.
+- **Discard** to remove the browser-local mirror.
+
+Schema-v0 legacy mirrors contain only item rows, so direct recovery is not
+available; use Recapture or Discard.
+
+### Save warns that the screen changed
+
+FixThis compared the frozen preview fingerprint with a lightweight current
+capture and received `screen_fingerprint_mismatch`. This usually means the app
+rotated, changed window mode, showed a system UI surface, or navigated away
+after you clicked **Annotate**.
+
+Pick **re-capture** when you want the saved evidence to match the current
+screen. Pick **force-save** only when you intentionally want to keep the frozen
+preview even though the live screen fingerprint differs. Pick **cancel** to
+return to the pending annotations without writing.
+
 ### I sent feedback but want to add more
 
 After `Save to MCP`, the saved items are recorded in a local handoff batch for MCP tools. It is not an external AI API call. The session stays visible in the main History list with a `working` pip while the agent claims and resolves items. Click `Annotate` again to freeze the current visible screen and create another saved evidence snapshot when pending annotations are persisted, even if the app has not visibly changed.

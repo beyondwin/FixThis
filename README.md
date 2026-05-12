@@ -24,6 +24,7 @@ Modern coding agents already accept screenshots and accessibility trees. FixThis
 
 - **Pin to source, not pixels.** Top-3 ranked source-file candidates with line numbers, match reasons, and a margin score — the agent edits the right call site instead of guessing which composable rendered which pixel.
 - **Stable target identity.** Instance grouping (`instance i/N`), duplicate-marker detection, and overlap-group hints keep N visually identical cards distinguishable.
+- **Screen integrity checks.** Frozen previews carry a screen fingerprint; if the app rotates, changes window mode, or otherwise moves to a different screen before saving, FixThis asks you to re-capture, force-save, or cancel.
 - **Batched, structured handoff.** One prompt can carry many annotations across many screens, each with its own bounds, severity, and source pin.
 
 If your screen has a single obvious target with clear text, a plain screenshot may already be enough. FixThis pays off when the UI is dense, list-rendered, or labeled mostly by composable name.

@@ -70,6 +70,11 @@ Once you're on the screen you want to leave feedback on, click **Annotate**.
 The current preview freezes — subsequent navigation in the running app does
 not change what you're annotating, so you can take your time.
 
+The frozen preview carries a screen fingerprint when the bridge can compute
+one. If the app rotates, changes window mode, or otherwise moves to a different
+screen before you hand off the batch, FixThis asks whether to re-capture,
+force-save, or cancel.
+
 ![TODO: capture — top bar mode toggle showing Annotate active, frozen preview with subtle "frozen" indicator](../assets/console-tour-04-annotate-mode.png)
 
 ## Make a selection
@@ -156,6 +161,12 @@ session list under "Resolved", so you can audit history.
 Feedback console sessions are resumable. FixThis saves workspace metadata and
 screenshot artifacts under `.fixthis/feedback-sessions/`, so an MCP or console
 restart does not discard queued feedback.
+
+Unsaved browser-only pending annotations are mirrored locally per session. When
+the console reloads and finds a recoverable frozen preview, it shows a
+Recover / Recapture / Discard banner before exposing the pending rows again.
+Recover keeps the frozen screenshot and pending comments; Recapture maps the
+comments onto a fresh preview; Discard clears the local mirror.
 
 ![TODO: capture — left pane session list with two prior sessions, one expanded showing saved evidence groups](../assets/console-tour-09-resume.png)
 

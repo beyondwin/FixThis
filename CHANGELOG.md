@@ -92,9 +92,38 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ### Changed
 
+- CI now treats the generated feedback-console bundle and pure JavaScript
+  harnesses as first-class checks. `scripts/build-console-assets.mjs --check`
+  normalizes the dynamic build header before comparing `app.js`, so CI catches
+  real stale bundles without failing only because the timestamp or git SHA
+  changed.
+- Detekt is applied only for build/check/detekt task requests. This keeps
+  `./gradlew help --warning-mode all` free of the Gradle 10
+  `ReportingExtension.file(String)` warning while preserving normal
+  `detekt`, `check`, and build-time static analysis.
+
 ### Removed
 
 ### Fixed
+
+- MCP production sessions now use the same append-only event log path that the
+  annotation lifecycle design introduced. Feedback session replay is
+  checkpoint-aware, compaction archives old events only after a durable
+  checkpoint is written, and corrupt checkpoint state is skipped instead of
+  silently replaying stale archived mutations.
+- Snapshot integrity metadata now survives the full MCP boundary. Captured
+  screens preserve orientation, dimensions, density, window mode, system UI
+  state, and fingerprint fields through bridge payload parsing, DTO/domain
+  mapping, persisted sessions, and feedback handoff reads.
+- Saving a frozen preview now compares the frozen screen fingerprint with a
+  lightweight live capture. If both fingerprints exist and differ, the console
+  receives `409 screen_fingerprint_mismatch` and asks the user to re-capture,
+  force-save, or cancel before persisted evidence is written.
+- Browser recovery for unsaved pending annotations now stores a schema-v1
+  envelope with `previewId`, frozen screen metadata, screenshot URL, frozen
+  timestamp, and items. On reload or session reattach, the console shows an
+  explicit Recover / Recapture / Discard choice instead of silently exposing
+  stale pending rows.
 
 ## [0.1.0] - 2026-05-11
 

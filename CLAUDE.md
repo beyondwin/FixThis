@@ -7,6 +7,9 @@ constraints — those apply equally to Claude Code.
 ## Pointers
 
 - **Build, test, console rebundle, lint commands** → [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- **Final verification before PRs** → run the full Gradle matrix, console
+  asset check, console JS syntax check, console JS harnesses, and
+  `git diff --check` from [`CONTRIBUTING.md`](CONTRIBUTING.md#required-local-checks).
 - **Restart loop after Kotlin changes** → run `bash scripts/restart-console.sh`
   (add `--with-app` to also reinstall the sample APK). Kotlin server code is
   pinned in the JAR; the console JS is live-reloaded under
@@ -22,7 +25,8 @@ constraints — those apply equally to Claude Code.
   [`docs/architecture/adr/`](docs/architecture/adr/).
 - **Console UI iteration** — pass `--console-assets-dir` to read HTML/CSS/JS
   from source instead of the packaged JAR; rebundle JS via
-  `node scripts/build-console-assets.mjs` after edits. Details in
+  `node scripts/build-console-assets.mjs` after edits, then verify with
+  `node scripts/build-console-assets.mjs --check`. Details in
   [`docs/reference/feedback-console-contract.md`](docs/reference/feedback-console-contract.md).
 - **Connected tests** — require an unlocked interactive emulator or device.
   Locked physical devices can still report `device` in `adb` while failing
