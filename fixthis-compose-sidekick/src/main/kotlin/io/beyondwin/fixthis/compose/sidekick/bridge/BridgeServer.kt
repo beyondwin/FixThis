@@ -342,9 +342,18 @@ data class BridgeScreenSnapshot(
      * inspect. PIP takes precedence over multi-window.
      */
     val windowMode: String? = null,
-    /** Reserved for SIF-4 (Task B.5); always null in this build. */
+    /**
+     * SIF-4 (Task B.5): true when [systemUiKind] is non-null, i.e. an obstructing
+     * system surface (IME, permission dialog, notification shade) was detected at
+     * capture time. Derived field — equals `systemUiKind != null`.
+     */
     val systemUiVisible: Boolean? = null,
-    /** Reserved for SIF-4 (Task B.5); always null in this build. */
+    /**
+     * SIF-4 (Task B.5): classification of the obstructing system surface, one of
+     * `"ime"`, `"permission_dialog"`, `"notification_shade"`, or null when no
+     * obstruction was detected. The adb-derived focus sideband is wired in a later
+     * phase; today only IME insets feed this field.
+     */
     val systemUiKind: String? = null,
     /**
      * 16-hex-char fingerprint computed from orientation / display metrics /
@@ -577,6 +586,8 @@ internal class AndroidBridgeEnvironment(
                 selectedBounds = null,
             )
             val displayMetrics: DisplayMetrics = activity.resources.displayMetrics
+            // SIF-4 wiring: adb sideband for focus output is fed in a later phase; pass null for now.
+            val systemUiKind = SystemUiDetector.detect(activity, currentFocusOutput = null)
             val snapshot = BridgeScreenSnapshot(
                 activity = activity::class.java.name,
                 inspection = inspection,
@@ -587,6 +598,8 @@ internal class AndroidBridgeEnvironment(
                 heightPx = displayMetrics.heightPixels,
                 densityDpi = displayMetrics.densityDpi,
                 windowMode = inferWindowMode(activity),
+                systemUiVisible = systemUiKind != null,
+                systemUiKind = systemUiKind,
             )
             lastScreenSnapshot = snapshot
             snapshot
