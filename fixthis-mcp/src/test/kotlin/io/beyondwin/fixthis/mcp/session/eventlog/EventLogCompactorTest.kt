@@ -1,5 +1,14 @@
 package io.beyondwin.fixthis.mcp.session.eventlog
 
+import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.mcp.session.AnnotationDto
+import io.beyondwin.fixthis.mcp.session.AnnotationTargetDto
+import io.beyondwin.fixthis.mcp.session.FeedbackDelivery
+import io.beyondwin.fixthis.mcp.session.FeedbackSessionPaths
+import io.beyondwin.fixthis.mcp.session.FeedbackSessionPersistence
+import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.beyondwin.fixthis.mcp.session.SessionDto
+import io.beyondwin.fixthis.mcp.session.SnapshotDto
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.io.File
@@ -20,6 +29,93 @@ class EventLogCompactorTest {
         payload = buildJsonObject { put("itemId", itemId) },
     )
 
+    private fun makeSession(
+        sessionId: String = "session-1",
+        updatedAtEpochMillis: Long = 1_715_500_000_000L,
+    ) = SessionDto(
+        sessionId = sessionId,
+        packageName = "com.test",
+        projectRoot = "/project",
+        createdAtEpochMillis = 1_715_400_000_000L,
+        updatedAtEpochMillis = updatedAtEpochMillis,
+    )
+
+    private fun makeScreen() = SnapshotDto(
+        screenId = "pending",
+        capturedAtEpochMillis = 0L,
+        displayName = "CompactionScreen",
+    )
+
+    private fun makeDraftItem(screenId: String, index: Int) = AnnotationDto(
+        itemId = "pending",
+        screenId = screenId,
+        createdAtEpochMillis = 0L,
+        updatedAtEpochMillis = 0L,
+        target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+        comment = "item-$index",
+        delivery = FeedbackDelivery.DRAFT,
+    )
+
+    private fun idGenerator(): () -> String {
+        var counter = 0
+        return { "id-${++counter}" }
+    }
+
+    private fun eventWriterFor(paths: FeedbackSessionPaths): (String) -> EventLogWriter = { sessionId ->
+        EventLogWriter(paths.eventLogDirectory(sessionId))
+    }
+
+    private fun eventReaderFor(paths: FeedbackSessionPaths): (String) -> EventLogReader = { sessionId ->
+        EventLogReader(paths.eventLogDirectory(sessionId))
+    }
+
+    @Test
+    fun compactedSessionReplaysFromSnapshotPlusActiveEvents() {
+        val projectRoot = Files.createTempDirectory("compactor-replay").toFile()
+        try {
+            val paths = FeedbackSessionPaths(projectRoot)
+            val persistence = FeedbackSessionPersistence(paths)
+            var now = 1_715_500_000_000L
+            val store = FeedbackSessionStore(
+                clock = { ++now },
+                idGenerator = idGenerator(),
+                persistence = persistence,
+                eventLogWriterProvider = eventWriterFor(paths),
+                eventLogReaderProvider = eventReaderFor(paths),
+            )
+            val session = store.openSession("com.test", projectRoot.absolutePath)
+            val screen = store.addScreen(session.sessionId, makeScreen())
+            repeat(1200) { index ->
+                store.addItem(session.sessionId, makeDraftItem(screen.screenId, index + 1))
+            }
+            val sent = store.sendDraftToAgent(session.sessionId, markdownSnapshot = "handoff")
+            val expected = sent
+
+            EventLogCompactor(
+                paths.eventLogDirectory(session.sessionId),
+                snapshotProvider = { store.getSession(session.sessionId) },
+                snapshotWriter = { persistence.save(it) },
+                clock = { ++now },
+            ).runOnce(threshold = 1000)
+
+            val replayedStore = FeedbackSessionStore(
+                clock = { ++now },
+                idGenerator = idGenerator(),
+                persistence = persistence,
+                eventLogWriterProvider = eventWriterFor(paths),
+                eventLogReaderProvider = eventReaderFor(paths),
+            )
+            val replayed = replayedStore.getSession(session.sessionId)
+
+            assertEquals(expected.screens, replayed.screens)
+            assertEquals(expected.items, replayed.items)
+            assertEquals(expected.handoffBatches, replayed.handoffBatches)
+            assertEquals(expected.status, replayed.status)
+        } finally {
+            projectRoot.deleteRecursively()
+        }
+    }
+
     @Test
     fun compactionMovesOldestFilesWhenAboveThreshold() {
         val dir = Files.createTempDirectory("compactor-primary").toFile()
@@ -29,8 +125,14 @@ class EventLogCompactorTest {
             // Append 1100 events so each event becomes one .jsonl file
             repeat(1100) { i -> writer.append(makeEvent((i + 1).toLong())) }
 
-            val snapshotJson = "{\"items\":[]}"
-            EventLogCompactor(eventsDir, snapshotProvider = { snapshotJson }).runOnce(threshold = 1000)
+            val snapshot = makeSession(updatedAtEpochMillis = 1_715_500_001_100L)
+            var writtenSnapshot: SessionDto? = null
+            EventLogCompactor(
+                eventsDir,
+                snapshotProvider = { snapshot },
+                snapshotWriter = { writtenSnapshot = it },
+                clock = { 1_715_500_002_000L },
+            ).runOnce(threshold = 1000)
 
             // Archive dir must exist and contain at least 100 files
             val archiveDir = File(eventsDir, "archive")
@@ -48,10 +150,18 @@ class EventLogCompactorTest {
                 "events/ should have at most 1000 files after compaction, found ${remainingFiles.size}",
             )
 
-            // state.json must exist with snapshot content
-            val stateJson = File(dir, "state.json")
-            assertTrue(stateJson.exists(), "state.json should be written after compaction")
-            assertEquals(snapshotJson, stateJson.readText())
+            assertEquals(snapshot, writtenSnapshot)
+            val checkpoint = EventLogReader(eventsDir).readCheckpointOrNull()
+            assertEquals(
+                EventLogCheckpoint(
+                    sessionId = snapshot.sessionId,
+                    compactedThroughSequenceNumber = 100L,
+                    snapshotUpdatedAtEpochMillis = snapshot.updatedAtEpochMillis,
+                    createdAtEpochMillis = 1_715_500_002_000L,
+                ),
+                checkpoint,
+            )
+            assertFalse(File(dir, "state.json").exists(), "state.json should not be written after compaction")
         } finally {
             dir.deleteRecursively()
         }
@@ -69,7 +179,9 @@ class EventLogCompactorTest {
             var snapshotCalled = false
             EventLogCompactor(eventsDir, snapshotProvider = {
                 snapshotCalled = true
-                "{}"
+                makeSession()
+            }, snapshotWriter = {
+                snapshotCalled = true
             }).runOnce(threshold = 1000)
 
             // Archive dir should NOT exist (or be empty)
@@ -83,6 +195,7 @@ class EventLogCompactorTest {
 
             // state.json must NOT be written
             assertFalse(File(dir, "state.json").exists(), "state.json should NOT be written when below threshold")
+            assertEquals(null, EventLogReader(eventsDir).readCheckpointOrNull(), "checkpoint should NOT be written when below threshold")
 
             // All 50 original files still present
             val remaining = eventsDir.listFiles { f -> f.isFile && f.extension == "jsonl" } ?: emptyArray()
@@ -103,7 +216,13 @@ class EventLogCompactorTest {
             // Append 5 events with sequence numbers 1..5
             repeat(5) { i -> writer.append(makeEvent((i + 1).toLong())) }
 
-            EventLogCompactor(eventsDir, snapshotProvider = { "{}" }).runOnce(threshold = 2)
+            val snapshot = makeSession(updatedAtEpochMillis = 1_715_500_000_005L)
+            EventLogCompactor(
+                eventsDir,
+                snapshotProvider = { snapshot },
+                snapshotWriter = {},
+                clock = { 1_715_500_000_006L },
+            ).runOnce(threshold = 2)
 
             val archiveDir = File(eventsDir, "archive")
             assertTrue(archiveDir.exists(), "archive/ dir should exist")
@@ -134,6 +253,7 @@ class EventLogCompactorTest {
                 archiveSeqs.max() < mainSeqs.min(),
                 "All archived files should be older than all retained files",
             )
+            assertEquals(3L, EventLogReader(eventsDir).readCheckpointOrNull()?.compactedThroughSequenceNumber)
         } finally {
             dir.deleteRecursively()
         }

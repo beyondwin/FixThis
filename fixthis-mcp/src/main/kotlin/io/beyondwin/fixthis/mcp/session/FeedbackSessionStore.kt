@@ -52,6 +52,7 @@ class FeedbackSessionStore(
     // Per-session sequence counter for new events. Initialized lazily to
     // (maxReplayedSeq + 1) after boot replay, then monotonically incremented.
     private val nextSeqMap = mutableMapOf<String, Long>()
+    private val replaySkippedSessions = mutableMapOf<String, SkippedFeedbackSession>()
 
     init {
         persistence?.let { p ->
@@ -112,13 +113,16 @@ class FeedbackSessionStore(
     fun nextId(): String = synchronized(lock) { idGenerator() }
 
     fun listSessions(packageName: String? = null, includeClosed: Boolean = false): FeedbackSessionList = synchronized(lock) {
+        val replaySkipped = replaySkippedSessionList(packageName, includeClosed)
         persistence?.list(packageName, includeClosed)
+            ?.let { list -> list.copy(skippedSessions = list.skippedSessions + replaySkipped) }
             ?: FeedbackSessionList(
                 sessions = sessions.values
                     .filter { packageName == null || it.packageName == packageName }
                     .filter { includeClosed || it.status != SessionStatusDto.CLOSED }
                     .map(FeedbackSessionSummary.Companion::from)
                     .sortedByDescending { it.updatedAtEpochMillis },
+                skippedSessions = replaySkipped,
             )
     }
 
@@ -614,35 +618,97 @@ class FeedbackSessionStore(
         // Boot replay errors degrade gracefully — see ALH-3 spec.
         // The catch is intentional: replay failure must not crash the store at startup.
         @Suppress("TooGenericExceptionCaught", "SwallowedException")
+        val checkpoint = try {
+            reader.readCheckpointOrNull()
+        } catch (e: Exception) {
+            recordReplaySkippedSession(
+                sessionId = sessionId,
+                path = reader.checkpointFile.absolutePath,
+                message = "Invalid event log checkpoint: ${e.message ?: e::class.java.simpleName}",
+            )
+            seedNextEventSequenceFromActiveLog(sessionId, reader)
+            return
+        }
+        if (checkpoint != null && checkpoint.schemaVersion != 1) {
+            recordReplaySkippedSession(
+                sessionId = sessionId,
+                path = reader.checkpointFile.absolutePath,
+                message = "Invalid event log checkpoint: unsupported schemaVersion ${checkpoint.schemaVersion}",
+            )
+            seedNextEventSequenceFromActiveLog(sessionId, reader)
+            return
+        }
+        if (checkpoint != null && checkpoint.sessionId != sessionId) {
+            recordReplaySkippedSession(
+                sessionId = sessionId,
+                path = reader.checkpointFile.absolutePath,
+                message = "Invalid event log checkpoint: sessionId ${checkpoint.sessionId} does not match $sessionId",
+            )
+            seedNextEventSequenceFromActiveLog(sessionId, reader)
+            return
+        }
+        @Suppress("TooGenericExceptionCaught", "SwallowedException")
         val events = try {
             reader.readAll()
         } catch (e: Exception) {
             return
         }
-        // Reset mutable session state; keep shell fields.
-        var current = shell.copy(
-            screens = emptyList(),
-            items = emptyList(),
-            handoffBatches = emptyList(),
-        )
-        var maxSeq = lastReplayedSeq.getOrDefault(sessionId, -1L)
+        var current = if (checkpoint == null) {
+            // Legacy/full-log replay: mutable session state comes entirely from events.
+            shell.copy(
+                screens = emptyList(),
+                items = emptyList(),
+                handoffBatches = emptyList(),
+            )
+        } else {
+            // Checkpoint replay: session.json is already the compacted-through snapshot.
+            shell
+        }
+        val startingSeq = checkpoint?.compactedThroughSequenceNumber ?: -1L
+        var maxSeq = maxOf(lastReplayedSeq.getOrDefault(sessionId, -1L), startingSeq)
+        var replayedAny = false
 
         for (event in events) {
             if (event.sequenceNumber <= maxSeq) continue // idempotent guard
             current = applyEvent(current, event) ?: current
             maxSeq = event.sequenceNumber
+            replayedAny = true
         }
 
-        if (events.isNotEmpty()) {
+        if (checkpoint != null || events.isNotEmpty()) {
             sessions[sessionId] = current
-            // Fix A: sync the snapshot so loadPersistedSessionIfAvailable returns replayed state.
-            // Without this, the read-through to persistence.load() overwrites replay on first getSession().
-            persistence?.save(current)
+            if (replayedAny) {
+                // Sync the snapshot so loadPersistedSessionIfAvailable returns replayed state.
+                // Without this, read-through to persistence.load() overwrites replay on first getSession().
+                persistence?.save(current)
+            }
             lastReplayedSeq[sessionId] = maxSeq
             // Seed sequence counter at (maxSeq + 1) so new events don't collide.
             nextSeqMap[sessionId] = maxSeq + 1L
         }
     }
+
+    private fun recordReplaySkippedSession(sessionId: String, path: String, message: String) {
+        replaySkippedSessions[sessionId] = SkippedFeedbackSession(path = path, message = message)
+    }
+
+    private fun seedNextEventSequenceFromActiveLog(sessionId: String, reader: EventLogReader) {
+        val maxActiveSeq = reader.maxActiveSequenceNumberOrNull() ?: return
+        val maxSeq = maxOf(lastReplayedSeq.getOrDefault(sessionId, -1L), maxActiveSeq)
+        lastReplayedSeq[sessionId] = maxSeq
+        nextSeqMap[sessionId] = maxSeq + 1L
+    }
+
+    private fun replaySkippedSessionList(packageName: String?, includeClosed: Boolean): List<SkippedFeedbackSession> =
+        replaySkippedSessions
+            .filter { (sessionId, _) ->
+                val session = sessions[sessionId]
+                session != null &&
+                    (packageName == null || session.packageName == packageName) &&
+                    (includeClosed || session.status != SessionStatusDto.CLOSED)
+            }
+            .values
+            .toList()
 
     /**
      * Applies a single [SessionEvent] to [session] and returns the resulting [SessionDto].
@@ -666,6 +732,9 @@ class FeedbackSessionStore(
     private fun applyAddScreen(session: SessionDto, event: SessionEvent): SessionDto? {
         val screenJson = event.payload["screen"] ?: return null
         val screen = eventLogJson.decodeFromJsonElement(SnapshotDto.serializer(), screenJson)
+        if (session.screens.any { it.screenId == screen.screenId }) {
+            return session.copy(updatedAtEpochMillis = event.epochMillis)
+        }
         return session.copy(
             screens = session.screens + screen,
             updatedAtEpochMillis = event.epochMillis,
@@ -681,9 +750,11 @@ class FeedbackSessionStore(
             kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
             itemsJson,
         )
+        val existingScreenIds = session.screens.map { it.screenId }.toSet()
+        val existingItemIds = session.items.map { it.itemId }.toSet()
         return session.copy(
-            screens = session.screens + screen,
-            items = session.items + items,
+            screens = if (screen.screenId in existingScreenIds) session.screens else session.screens + screen,
+            items = session.items + items.filterNot { it.itemId in existingItemIds },
             updatedAtEpochMillis = event.epochMillis,
         )
     }
@@ -709,6 +780,9 @@ class FeedbackSessionStore(
     private fun applyAddItem(session: SessionDto, event: SessionEvent): SessionDto? {
         val itemJson = event.payload["item"] ?: return null
         val item = eventLogJson.decodeFromJsonElement(AnnotationDto.serializer(), itemJson)
+        if (session.items.any { it.itemId == item.itemId }) {
+            return session.copy(updatedAtEpochMillis = event.epochMillis)
+        }
         return session.copy(
             items = session.items + item,
             updatedAtEpochMillis = event.epochMillis,
@@ -748,9 +822,14 @@ class FeedbackSessionStore(
             itemsJson,
         )
         val batch = eventLogJson.decodeFromJsonElement(FeedbackHandoffBatch.serializer(), batchJson)
+        val updatedBatches = if (session.handoffBatches.any { it.batchId == batch.batchId }) {
+            session.handoffBatches.map { existing -> if (existing.batchId == batch.batchId) batch else existing }
+        } else {
+            session.handoffBatches + batch
+        }
         return session.copy(
             items = updatedItems,
-            handoffBatches = session.handoffBatches + batch,
+            handoffBatches = updatedBatches,
             status = SessionStatusDto.READY_FOR_AGENT,
             updatedAtEpochMillis = event.epochMillis,
         )

@@ -3,8 +3,14 @@ package io.beyondwin.fixthis.mcp.session.eventlog
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.RandomAccessFile
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
-private val eventLogJson = Json { encodeDefaults = true }
+private val eventLogJson = Json {
+    encodeDefaults = true
+    ignoreUnknownKeys = true
+}
 
 class EventLogWriter(
     private val directory: File,
@@ -46,9 +52,27 @@ class EventLogWriter(
             throw EventLogException("Atomic rename failed for ${tmp.name}")
         }
     }
+
+    @Synchronized
+    fun writeCheckpoint(checkpoint: EventLogCheckpoint) {
+        if (!directory.exists()) {
+            directory.mkdirs()
+        }
+        val tmp = File.createTempFile("checkpoint-", ".json.tmp", directory)
+        val finalFile = File(directory, "checkpoint.json")
+        try {
+            tmp.writeText(eventLogJson.encodeToString(EventLogCheckpoint.serializer(), checkpoint))
+            replaceFile(tmp, finalFile)
+        } catch (e: Exception) {
+            tmp.delete()
+            throw EventLogException("Failed to write event log checkpoint for ${checkpoint.sessionId}: ${e.message}", e)
+        }
+    }
 }
 
 class EventLogReader(private val directory: File) {
+    val checkpointFile: File
+        get() = File(directory, "checkpoint.json")
 
     fun readAll(): List<SessionEvent> {
         val files = directory.listFiles { f -> f.extension == "jsonl" } ?: return emptyList()
@@ -59,6 +83,37 @@ class EventLogReader(private val directory: File) {
                 eventLogJson.decodeFromString(SessionEvent.serializer(), line)
             }
     }
+
+    fun readCheckpointOrNull(): EventLogCheckpoint? {
+        val file = checkpointFile
+        if (!file.isFile) return null
+        return eventLogJson.decodeFromString(EventLogCheckpoint.serializer(), file.readText(Charsets.UTF_8))
+    }
+
+    fun maxActiveSequenceNumberOrNull(): Long? {
+        val files = directory.listFiles { f -> f.isFile && f.extension == "jsonl" } ?: return null
+        return files.mapNotNull { file -> sequenceNumberFromFileName(file.name) }.maxOrNull()
+    }
+
+    private fun sequenceNumberFromFileName(name: String): Long? =
+        name.substringAfter("-", missingDelimiterValue = "")
+            .substringBefore(".jsonl")
+            .takeIf { it.isNotBlank() }
+            ?.toLongOrNull()
 }
 
 class EventLogException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
+
+private fun replaceFile(source: File, target: File) {
+    runCatching {
+        Files.move(
+            source.toPath(),
+            target.toPath(),
+            StandardCopyOption.ATOMIC_MOVE,
+            StandardCopyOption.REPLACE_EXISTING,
+        )
+    }.getOrElse { error ->
+        if (error !is AtomicMoveNotSupportedException) throw error
+        Files.move(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+    }
+}

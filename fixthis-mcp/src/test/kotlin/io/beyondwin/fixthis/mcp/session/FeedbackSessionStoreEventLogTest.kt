@@ -2,6 +2,7 @@ package io.beyondwin.fixthis.mcp.session
 
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogException
+import io.beyondwin.fixthis.mcp.session.eventlog.EventLogCheckpoint
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
 import io.beyondwin.fixthis.mcp.session.eventlog.SessionEvent
@@ -15,6 +16,7 @@ import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 /**
  * Tests for the event-log integration on [FeedbackSessionStore].
@@ -208,6 +210,203 @@ class FeedbackSessionStoreEventLogTest {
         }
     }
 
+    @Test
+    fun bootReplayStartsFromCheckpointSnapshotAndAppliesOnlyNewerEvents() {
+        val tmp = Files.createTempDirectory("alh-test-checkpoint").toFile()
+        try {
+            val projectBase = File(tmp, "project")
+            val paths = FeedbackSessionPaths(projectBase)
+            val persistence = FeedbackSessionPersistence(paths)
+            val evtBase = File(tmp, "events")
+            var idSeq = 0
+            val sharedIdGen: () -> String = { "id-${++idSeq}" }
+
+            val (sid, screenId) = setupStore1WithThreeItems(evtBase, persistence, sharedIdGen)
+            val checkpointSnapshot = persistence.load(sid)
+            assertEquals(3, checkpointSnapshot.items.size)
+            EventLogWriter(eventsDir(evtBase, sid)).writeCheckpoint(
+                EventLogCheckpoint(
+                    sessionId = sid,
+                    compactedThroughSequenceNumber = 4L,
+                    snapshotUpdatedAtEpochMillis = checkpointSnapshot.updatedAtEpochMillis,
+                    createdAtEpochMillis = 1_600L,
+                ),
+            )
+            injectAddItemEvent(evtBase, sid, screenId, sequenceNumber = 4L, comment = "too-old")
+            injectAddItemEvent(evtBase, sid, screenId, sequenceNumber = 5L, comment = "epsilon")
+
+            val store2 = FeedbackSessionStore(
+                clock = { 2_000L },
+                idGenerator = { "new-${++idSeq}" },
+                persistence = persistence,
+                eventLogWriterProvider = writerFor(evtBase),
+                eventLogReaderProvider = readerFor(evtBase),
+            )
+
+            val replayed = store2.getSession(sid)
+            assertEquals(4, replayed.items.size)
+            assertEquals(setOf("alpha", "beta", "gamma", "epsilon"), replayed.items.map { it.comment }.toSet())
+            assertEquals(checkpointSnapshot.screens, replayed.screens)
+        } finally {
+            tmp.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun bootReplaySkipsReplayAndReportsSkippedSessionWhenCheckpointIsCorrupt() {
+        val tmp = Files.createTempDirectory("alh-test-corrupt-checkpoint").toFile()
+        try {
+            val projectBase = File(tmp, "project")
+            val paths = FeedbackSessionPaths(projectBase)
+            val persistence = FeedbackSessionPersistence(paths)
+            val evtBase = File(tmp, "events")
+            var idSeq = 0
+            val sharedIdGen: () -> String = { "id-${++idSeq}" }
+
+            val (sid, screenId) = setupStore1WithThreeItems(evtBase, persistence, sharedIdGen)
+            File(eventsDir(evtBase, sid), "checkpoint.json").writeText("{not-json")
+            injectAddItemEvent(evtBase, sid, screenId, sequenceNumber = 5L, comment = "epsilon")
+
+            val store2 = FeedbackSessionStore(
+                clock = { 2_000L },
+                idGenerator = { "new-${++idSeq}" },
+                persistence = persistence,
+                eventLogWriterProvider = writerFor(evtBase),
+                eventLogReaderProvider = readerFor(evtBase),
+            )
+
+            val replayed = store2.getSession(sid)
+            assertEquals(3, replayed.items.size)
+            assertEquals(setOf("alpha", "beta", "gamma"), replayed.items.map { it.comment }.toSet())
+            val skipped = store2.listSessions(includeClosed = true).skippedSessions.single()
+            assertEquals(File(eventsDir(evtBase, sid), "checkpoint.json").absolutePath, skipped.path)
+            assertTrue(skipped.message.contains("Invalid event log checkpoint"))
+        } finally {
+            tmp.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun degradedBootWithCorruptCheckpointSeedsNextEventSequenceFromActiveLog() {
+        val tmp = Files.createTempDirectory("alh-test-corrupt-checkpoint-sequence").toFile()
+        try {
+            val projectBase = File(tmp, "project")
+            val paths = FeedbackSessionPaths(projectBase)
+            val persistence = FeedbackSessionPersistence(paths)
+            val evtBase = File(tmp, "events")
+            var idSeq = 0
+            val sharedIdGen: () -> String = { "id-${++idSeq}" }
+
+            val (sid, screenId) = setupStore1WithThreeItems(evtBase, persistence, sharedIdGen)
+            File(eventsDir(evtBase, sid), "checkpoint.json").writeText("{not-json")
+            injectAddItemEvent(evtBase, sid, screenId, sequenceNumber = 5L, comment = "epsilon")
+            val maxSequenceBeforeBoot = EventLogReader(eventsDir(evtBase, sid)).readAll().maxOf { it.sequenceNumber }
+
+            val store2 = FeedbackSessionStore(
+                clock = { 2_000L },
+                idGenerator = { "new-${++idSeq}" },
+                persistence = persistence,
+                eventLogWriterProvider = writerFor(evtBase),
+                eventLogReaderProvider = readerFor(evtBase),
+            )
+
+            store2.addItem(sid, makeDraftItem(screenId, "zeta"))
+
+            val newEvent = EventLogReader(eventsDir(evtBase, sid))
+                .readAll()
+                .single { event ->
+                    event.type == "addItem" &&
+                        event.payload["item"]
+                            ?.let { testJson.decodeFromJsonElement(AnnotationDto.serializer(), it).comment == "zeta" } == true
+                }
+            assertTrue(newEvent.sequenceNumber > maxSequenceBeforeBoot)
+            assertEquals(1, store2.listSessions(includeClosed = true).skippedSessions.size)
+        } finally {
+            tmp.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun bootReplaySkipsReplayAndReportsSkippedSessionWhenCheckpointSessionIdIsWrong() {
+        val tmp = Files.createTempDirectory("alh-test-wrong-checkpoint-session").toFile()
+        try {
+            val projectBase = File(tmp, "project")
+            val paths = FeedbackSessionPaths(projectBase)
+            val persistence = FeedbackSessionPersistence(paths)
+            val evtBase = File(tmp, "events")
+            var idSeq = 0
+            val sharedIdGen: () -> String = { "id-${++idSeq}" }
+
+            val (sid, screenId) = setupStore1WithThreeItems(evtBase, persistence, sharedIdGen)
+            EventLogWriter(eventsDir(evtBase, sid)).writeCheckpoint(
+                EventLogCheckpoint(
+                    sessionId = "wrong-session",
+                    compactedThroughSequenceNumber = 10L,
+                    snapshotUpdatedAtEpochMillis = 1_500L,
+                    createdAtEpochMillis = 1_600L,
+                ),
+            )
+            injectAddItemEvent(evtBase, sid, screenId, sequenceNumber = 11L, comment = "epsilon")
+
+            val store2 = FeedbackSessionStore(
+                clock = { 2_000L },
+                idGenerator = { "new-${++idSeq}" },
+                persistence = persistence,
+                eventLogWriterProvider = writerFor(evtBase),
+                eventLogReaderProvider = readerFor(evtBase),
+            )
+
+            val replayed = store2.getSession(sid)
+            assertEquals(3, replayed.items.size)
+            val skipped = store2.listSessions(includeClosed = true).skippedSessions.single()
+            assertEquals(File(eventsDir(evtBase, sid), "checkpoint.json").absolutePath, skipped.path)
+            assertTrue(skipped.message.contains("sessionId"))
+        } finally {
+            tmp.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun bootReplaySkipsReplayAndReportsSkippedSessionWhenCheckpointSchemaIsUnsupported() {
+        val tmp = Files.createTempDirectory("alh-test-unsupported-checkpoint-schema").toFile()
+        try {
+            val projectBase = File(tmp, "project")
+            val paths = FeedbackSessionPaths(projectBase)
+            val persistence = FeedbackSessionPersistence(paths)
+            val evtBase = File(tmp, "events")
+            var idSeq = 0
+            val sharedIdGen: () -> String = { "id-${++idSeq}" }
+
+            val (sid, screenId) = setupStore1WithThreeItems(evtBase, persistence, sharedIdGen)
+            EventLogWriter(eventsDir(evtBase, sid)).writeCheckpoint(
+                EventLogCheckpoint(
+                    schemaVersion = 2,
+                    sessionId = sid,
+                    compactedThroughSequenceNumber = 10L,
+                    snapshotUpdatedAtEpochMillis = 1_500L,
+                    createdAtEpochMillis = 1_600L,
+                ),
+            )
+            injectAddItemEvent(evtBase, sid, screenId, sequenceNumber = 11L, comment = "epsilon")
+
+            val store2 = FeedbackSessionStore(
+                clock = { 2_000L },
+                idGenerator = { "new-${++idSeq}" },
+                persistence = persistence,
+                eventLogWriterProvider = writerFor(evtBase),
+                eventLogReaderProvider = readerFor(evtBase),
+            )
+
+            val replayed = store2.getSession(sid)
+            assertEquals(3, replayed.items.size)
+            val skipped = store2.listSessions(includeClosed = true).skippedSessions.single()
+            assertEquals(File(eventsDir(evtBase, sid), "checkpoint.json").absolutePath, skipped.path)
+            assertTrue(skipped.message.contains("schemaVersion"))
+        } finally {
+            tmp.deleteRecursively()
+        }
+    }
+
     /** Sets up store1, opens a session, adds a screen, adds 3 items. Returns sessionId + screenId. */
     private fun setupStore1WithThreeItems(
         evtBase: File,
@@ -238,18 +437,28 @@ class FeedbackSessionStoreEventLogTest {
      */
     private fun injectOrphanAddItemEvent(evtBase: File, sid: String, screenId: String) {
         val maxSeq = EventLogReader(eventsDir(evtBase, sid)).readAll().maxOf { it.sequenceNumber }
+        injectAddItemEvent(evtBase, sid, screenId, sequenceNumber = maxSeq + 1L, comment = "delta")
+    }
+
+    private fun injectAddItemEvent(
+        evtBase: File,
+        sid: String,
+        screenId: String,
+        sequenceNumber: Long,
+        comment: String,
+    ) {
         val orphanItem = AnnotationDto(
-            itemId = "orphan-item-id",
+            itemId = "orphan-item-id-$sequenceNumber",
             screenId = screenId,
             createdAtEpochMillis = 1_500L,
             updatedAtEpochMillis = 1_500L,
             target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
-            comment = "delta",
+            comment = comment,
             delivery = FeedbackDelivery.DRAFT,
         )
         val orphanEvent = SessionEvent(
-            eventId = "orphan-evt-id",
-            sequenceNumber = maxSeq + 1L,
+            eventId = "orphan-evt-id-$sequenceNumber",
+            sequenceNumber = sequenceNumber,
             epochMillis = 1_500L,
             actor = "mcp",
             type = "addItem",
