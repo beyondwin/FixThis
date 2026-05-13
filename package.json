@@ -1,6 +1,7 @@
 {
   "name": "fixthis",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "console:smoke": "node scripts/console-browser-smoke.mjs",

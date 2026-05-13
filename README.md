@@ -1,7 +1,7 @@
 # FixThis for Android Compose
 
 [![CI](https://github.com/beyondwin/FixThis/actions/workflows/ci.yml/badge.svg)](https://github.com/beyondwin/FixThis/actions/workflows/ci.yml)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![JDK 21](https://img.shields.io/badge/JDK-21-orange.svg)](https://adoptium.net/)
 [![Compose](https://img.shields.io/badge/Jetpack_Compose-2026.04.01-4285F4.svg)](https://developer.android.com/jetpack/compose)
 
@@ -102,4 +102,4 @@ Vote items up or contribute via [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## License
 
-[Apache License 2.0](LICENSE). See also [`NOTICE`](NOTICE) for attribution.
+[MIT License](LICENSE). See also [`NOTICE`](NOTICE) for third-party attribution.

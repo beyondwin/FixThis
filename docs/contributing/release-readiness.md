@@ -8,7 +8,7 @@ requires the items below to be completed first.
 
 ## Required Before External Release
 
-- [x] Project owner selects and adds a root `LICENSE` (Apache-2.0, added 2026-05-10).
+- [x] Project owner selects and adds a root `LICENSE` (MIT, updated 2026-05-13).
 - [x] CI baseline runs on pull requests (`.github/workflows/ci.yml`).
 - [x] `CONTRIBUTING.md` documents local verification.
 - [x] `CHANGELOG.md` records user-visible changes and known limitations.

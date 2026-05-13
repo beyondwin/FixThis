@@ -11,7 +11,7 @@ APK + CLI/MCP distributions, checks JavaScript syntax via `node --check`,
 and runs `git diff --check` for whitespace. There is no formatting/lint gate,
 no static analysis, no dependency scanning, and no automated instrumented
 tests. This is acceptable for a pre-release internal tool; it is not
-acceptable for a public Apache 2.0 project once external contributions start
+acceptable for a public MIT-licensed project once external contributions start
 arriving.
 
 ## Goals

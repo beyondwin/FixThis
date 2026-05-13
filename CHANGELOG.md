@@ -92,6 +92,8 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ### Changed
 
+- Project license changed to MIT; README, NOTICE, package metadata, and
+  release-readiness docs now reflect the MIT license.
 - CI now treats the generated feedback-console bundle and pure JavaScript
   harnesses as first-class checks. `scripts/build-console-assets.mjs --check`
   normalizes the dynamic build header before comparing `app.js`, so CI catches
