@@ -26,10 +26,10 @@ internal class AndroidBridgeEnvironment(
     private val mainDispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
     private val inspector: SemanticsInspector = SemanticsInspector(),
     private val screenshotCapturer: ScreenshotCapturer = ScreenshotCapturer(ScreenshotStore(context)),
-    private val buildInfoProvider: SidekickBuildInfoProvider = AndroidResourceSidekickBuildInfoProvider(context),
 ) : BridgeEnvironment {
     var currentActivity: WeakReference<Activity>? = null
     private var lastScreenSnapshot: BridgeScreenSnapshot? = null
+    private val buildInfoProvider: SidekickBuildInfoProvider = AndroidResourceSidekickBuildInfoProvider(context)
 
     @Volatile
     private var cachedSourceIndexResult: BridgeSourceIndexResult? = null

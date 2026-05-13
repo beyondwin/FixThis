@@ -801,7 +801,9 @@ class ConsoleFeedbackItemWorkspaceRoutesTest {
         val newSession = javascriptFunctionBody(html, "newSession")
 
         assertTrue(html.contains("async function resolvePendingBeforeBoundary(action, sessionId = null)"))
-        assertTrue(html.contains("resolveDraftBoundary(workspace, { kind: action, sessionId }, createBrowserDraftPorts())"))
+        assertTrue(
+            html.contains("resolveDraftBoundary(workspace, { kind: action, sessionId }, createBrowserDraftPorts())"),
+        )
         assertTrue(html.contains("ensureDraftCommandQueue().enqueue"))
         assertTrue(openSession.contains("await resolvePendingBeforeBoundary('open-session', sessionId)"))
         assertTrue(newSession.contains("await resolvePendingBeforeBoundary('new-session')"))

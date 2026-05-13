@@ -10,11 +10,13 @@ pluginManagement {
         eachPlugin {
             when (requested.id.id) {
                 "com.android.application",
-                "com.android.library" -> overrideAgpVersion.orNull?.let { useVersion(it) }
+                "com.android.library",
+                -> overrideAgpVersion.orNull?.let { useVersion(it) }
                 "org.jetbrains.kotlin.android",
                 "org.jetbrains.kotlin.jvm",
                 "org.jetbrains.kotlin.plugin.compose",
-                "org.jetbrains.kotlin.plugin.serialization" -> overrideKotlinVersion.orNull?.let { useVersion(it) }
+                "org.jetbrains.kotlin.plugin.serialization",
+                -> overrideKotlinVersion.orNull?.let { useVersion(it) }
             }
         }
     }

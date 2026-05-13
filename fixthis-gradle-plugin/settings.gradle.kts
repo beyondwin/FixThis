@@ -5,7 +5,8 @@ pluginManagement {
         eachPlugin {
             when (requested.id.id) {
                 "org.jetbrains.kotlin.jvm",
-                "org.jetbrains.kotlin.plugin.serialization" -> overrideKotlinVersion.orNull?.let { useVersion(it) }
+                "org.jetbrains.kotlin.plugin.serialization",
+                -> overrideKotlinVersion.orNull?.let { useVersion(it) }
             }
         }
     }
