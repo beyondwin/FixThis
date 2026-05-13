@@ -482,40 +482,21 @@ class ConsoleFeedbackItemRoutesTest {
     }
 
     @Test
-    fun consoleHtmlRendersSavedAnnotationPinsForVisibleScreenWithoutFocus() {
+    fun consoleHtmlDoesNotRenderSavedAnnotationPinsOnLivePreviewWithoutFocus() {
         val html = FeedbackConsoleAssets.indexHtml
         val renderSelectionOverlay = javascriptFunctionBody(html, "renderSelectionOverlay")
 
-        // Saved-evidence pins must render whenever a persisted screen is visible — not only
-        // after the user clicks an annotation. The legacy gate (`focusedSavedItemId`) hid
-        // every pin until focus was set, so users with multiple saved items saw an empty
-        // preview by default. Renderer should derive items from `latestScreen()` and filter
-        // by `screenId`.
-        assertFalse(
+        assertTrue(
             renderSelectionOverlay.contains("if (!addItemsFlow && focusedSavedItemId)"),
-            "renderSelectionOverlay should not gate saved pins on focusedSavedItemId",
-        )
-        assertTrue(
-            renderSelectionOverlay.contains("const visibleScreen = latestScreen();"),
-            "renderSelectionOverlay should resolve the visible screen via latestScreen()",
-        )
-        assertTrue(
-            renderSelectionOverlay.contains("const visibleUids = visibleScreenNodeUids(visibleScreen);"),
-            "renderSelectionOverlay should compute the visible-screen node-uid set once per call",
-        )
-        assertTrue(
-            renderSelectionOverlay.contains("if (nodeUid) return visibleUids.has(nodeUid);"),
-            "renderSelectionOverlay should match node-anchored saved items by nodeUid presence on the visible screen",
-        )
-        assertTrue(
-            renderSelectionOverlay.contains("return item.screenId === visibleScreen.screenId;"),
-            "renderSelectionOverlay should fall back to screenId equality for area-anchored items without nodeUid",
+            "saved overlays should be gated by focusedSavedItemId",
         )
         assertFalse(
-            renderSelectionOverlay.contains(
-                "savedEvidenceItems().filter(item => item.screenId === visibleScreen.screenId)",
-            ),
-            "renderSelectionOverlay should no longer use the legacy single-line screenId-only filter",
+            renderSelectionOverlay.contains("if (nodeUid) return visibleUids.has(nodeUid);"),
+            "saved overlays must not infer screen identity from nodeUid on live preview",
+        )
+        assertTrue(
+            renderSelectionOverlay.contains("item.screenId === focusedItem.screenId"),
+            "focused saved overlay should include only items from the focused screen",
         )
     }
 

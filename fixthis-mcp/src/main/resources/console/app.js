@@ -239,8 +239,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778691120000;
-const ConsoleBuildGitSha = 'ce89212';
+const ConsoleBuildEpochMs = 1778691240000;
+const ConsoleBuildGitSha = 'bb07af8';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -2756,16 +2756,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               }
 
               renderNumberedFeedbackOverlay(overlay, image);
-              if (!addItemsFlow) {
-                const visibleScreen = latestScreen();
-                if (visibleScreen?.screenId) {
-                  const visibleUids = visibleScreenNodeUids(visibleScreen);
-                  const screenSavedItems = savedEvidenceItems().filter(item => {
-                    const nodeUid = item?.target?.nodeUid;
-                    if (nodeUid) return visibleUids.has(nodeUid);
-                    return item.screenId === visibleScreen.screenId;
-                  });
-                  if (screenSavedItems.length) renderSavedEvidenceOverlay(overlay, image, screenSavedItems);
+              if (!addItemsFlow && focusedSavedItemId) {
+                const focusedItem = savedEvidenceItems().find(item => item.itemId === focusedSavedItemId);
+                if (focusedItem) {
+                  const sameScreenItems = savedEvidenceItems().filter(item => item.screenId === focusedItem.screenId);
+                  if (sameScreenItems.length) renderSavedEvidenceOverlay(overlay, image, sameScreenItems);
                 }
               }
               if (currentSelection) {

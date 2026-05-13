@@ -70,16 +70,11 @@
               }
 
               renderNumberedFeedbackOverlay(overlay, image);
-              if (!addItemsFlow) {
-                const visibleScreen = latestScreen();
-                if (visibleScreen?.screenId) {
-                  const visibleUids = visibleScreenNodeUids(visibleScreen);
-                  const screenSavedItems = savedEvidenceItems().filter(item => {
-                    const nodeUid = item?.target?.nodeUid;
-                    if (nodeUid) return visibleUids.has(nodeUid);
-                    return item.screenId === visibleScreen.screenId;
-                  });
-                  if (screenSavedItems.length) renderSavedEvidenceOverlay(overlay, image, screenSavedItems);
+              if (!addItemsFlow && focusedSavedItemId) {
+                const focusedItem = savedEvidenceItems().find(item => item.itemId === focusedSavedItemId);
+                if (focusedItem) {
+                  const sameScreenItems = savedEvidenceItems().filter(item => item.screenId === focusedItem.screenId);
+                  if (sameScreenItems.length) renderSavedEvidenceOverlay(overlay, image, sameScreenItems);
                 }
               }
               if (currentSelection) {
