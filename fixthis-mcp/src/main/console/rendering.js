@@ -46,7 +46,7 @@
             }
 
             function renderNumberedFeedbackOverlay(overlay, image) {
-              pendingFeedbackItems.forEach((item, index) => {
+              draftWorkspaceItems(draftWorkspace).forEach((item, index) => {
                 const displayNumber = index + 1;
                 renderOverlayBox(overlay, image, item.bounds, String(displayNumber), false, index === focusedPendingItemIndex, index, '', severityColor(annotationSeverity(item)));
               });

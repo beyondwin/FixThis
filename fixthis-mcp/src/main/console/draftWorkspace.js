@@ -15,7 +15,7 @@ function createEmptyDraftWorkspace() {
   return {
     workspaceId: null,
     revision: 0,
-    lifecycle: DraftLifecycle.EMPTY,
+    lifecycle: 'empty',
     context: null,
     screen: null,
     screenshotUrl: null,

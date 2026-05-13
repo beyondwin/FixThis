@@ -89,6 +89,95 @@
             const MaxConsecutivePollFailures = 5;
             // ALH-2: Undo/redo history singleton for pending feedback items.
             let undoRedoHistory = createHistory();
+            let draftWorkspace = createEmptyDraftWorkspace();
+            let draftCommandQueue = null;
+
+            function currentDraftWorkspace() {
+              return draftWorkspace;
+            }
+
+            function setDraftWorkspace(nextWorkspace) {
+              draftWorkspace = nextWorkspace || createEmptyDraftWorkspace();
+              syncDraftWorkspaceCompatibility();
+              persistCurrentDraftWorkspaceIfNeeded();
+            }
+
+            function syncDraftWorkspaceCompatibility() {
+              if (draftWorkspace.lifecycle === DraftLifecycle.EMPTY) {
+                addItemsFlow = null;
+                pendingFeedbackItems = [];
+                focusedPendingItemIndex = null;
+                currentSelection = null;
+                undoRedoHistory = createHistory();
+                return;
+              }
+              addItemsFlow = {
+                context: draftWorkspace.context,
+                previewId: draftWorkspace.context?.previewId || null,
+                screen: draftWorkspace.screen,
+                screenshotUrl: draftWorkspace.screenshotUrl,
+                frozenAtEpochMillis: draftWorkspace.context?.frozenAtEpochMillis || null,
+                activity: draftWorkspace.context?.activityName || null,
+                activityDriftWarning: draftWorkspace.activityDriftWarning || null,
+              };
+              pendingFeedbackItems = draftWorkspace.items;
+              focusedPendingItemIndex = draftWorkspace.focusedItemId
+                ? draftWorkspace.items.findIndex((item) => item.draftItemId === draftWorkspace.focusedItemId)
+                : null;
+              if (focusedPendingItemIndex < 0) focusedPendingItemIndex = null;
+              currentSelection = draftWorkspace.currentSelection;
+              undoRedoHistory = draftWorkspace.history || createHistory(draftWorkspace.context);
+            }
+
+            function persistCurrentDraftWorkspaceIfNeeded() {
+              if (!draftWorkspace?.workspaceId || !(draftWorkspace.items || []).length) return;
+              const sessionId = draftWorkspace.context?.sessionId || state.session?.sessionId;
+              const envelope = currentPendingStateEnvelope(draftWorkspace.items || []);
+              persistPendingState(sessionId, envelope);
+              if (sessionId && pendingRecoveryItems(envelope).length) {
+                activePendingMirrorSessions.add(sessionId);
+              } else {
+                activePendingMirrorSessions.delete(sessionId);
+              }
+            }
+
+            function createBrowserDraftPorts() {
+              return createFakeDraftPorts({
+                ids: {
+                  nextWorkspaceId: () => 'workspace-' + Date.now() + '-' + Math.random().toString(36).slice(2),
+                  nextDraftItemId: () => 'draft-' + annotationSequence++,
+                },
+                clock: { now: () => Date.now() },
+                preview: {
+                  capture: requestLivePreview,
+                  screenshotUrl: previewScreenshotUrl,
+                },
+                feedbackApi: createDraftApiAdapter({
+                  fetchImpl: fetch.bind(window),
+                  consoleToken: window.FixThisConsoleConfig?.consoleToken || null,
+                }),
+                storage: createDraftStorageAdapter(localStorage, {
+                  nextWorkspaceId: () => 'workspace-' + Date.now() + '-' + Math.random().toString(36).slice(2),
+                }),
+                clipboard: { writeText: copyTextToClipboard },
+                boundaryPrompt: {
+                  choose: (workspace, boundaryAction) =>
+                    promptPendingBoundaryChoice(boundaryAction?.kind || boundaryAction, draftWorkspaceItems(workspace).length),
+                },
+                refresh: { sessions: refreshSessions },
+              });
+            }
+
+            function ensureDraftCommandQueue() {
+              if (draftCommandQueue) return draftCommandQueue;
+              draftCommandQueue = createDraftCommandQueue({
+                getWorkspace: currentDraftWorkspace,
+                setWorkspace: setDraftWorkspace,
+                onStaleResponse: () => refreshSessions().catch(showError),
+                onError: showError,
+              });
+              return draftCommandQueue;
+            }
 
             function bumpSessionMutationGeneration() {
               sessionMutationGeneration += 1;

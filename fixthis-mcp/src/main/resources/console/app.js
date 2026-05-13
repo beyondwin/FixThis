@@ -90,6 +90,95 @@
             const MaxConsecutivePollFailures = 5;
             // ALH-2: Undo/redo history singleton for pending feedback items.
             let undoRedoHistory = createHistory();
+            let draftWorkspace = createEmptyDraftWorkspace();
+            let draftCommandQueue = null;
+
+            function currentDraftWorkspace() {
+              return draftWorkspace;
+            }
+
+            function setDraftWorkspace(nextWorkspace) {
+              draftWorkspace = nextWorkspace || createEmptyDraftWorkspace();
+              syncDraftWorkspaceCompatibility();
+              persistCurrentDraftWorkspaceIfNeeded();
+            }
+
+            function syncDraftWorkspaceCompatibility() {
+              if (draftWorkspace.lifecycle === DraftLifecycle.EMPTY) {
+                addItemsFlow = null;
+                pendingFeedbackItems = [];
+                focusedPendingItemIndex = null;
+                currentSelection = null;
+                undoRedoHistory = createHistory();
+                return;
+              }
+              addItemsFlow = {
+                context: draftWorkspace.context,
+                previewId: draftWorkspace.context?.previewId || null,
+                screen: draftWorkspace.screen,
+                screenshotUrl: draftWorkspace.screenshotUrl,
+                frozenAtEpochMillis: draftWorkspace.context?.frozenAtEpochMillis || null,
+                activity: draftWorkspace.context?.activityName || null,
+                activityDriftWarning: draftWorkspace.activityDriftWarning || null,
+              };
+              pendingFeedbackItems = draftWorkspace.items;
+              focusedPendingItemIndex = draftWorkspace.focusedItemId
+                ? draftWorkspace.items.findIndex((item) => item.draftItemId === draftWorkspace.focusedItemId)
+                : null;
+              if (focusedPendingItemIndex < 0) focusedPendingItemIndex = null;
+              currentSelection = draftWorkspace.currentSelection;
+              undoRedoHistory = draftWorkspace.history || createHistory(draftWorkspace.context);
+            }
+
+            function persistCurrentDraftWorkspaceIfNeeded() {
+              if (!draftWorkspace?.workspaceId || !(draftWorkspace.items || []).length) return;
+              const sessionId = draftWorkspace.context?.sessionId || state.session?.sessionId;
+              const envelope = currentPendingStateEnvelope(draftWorkspace.items || []);
+              persistPendingState(sessionId, envelope);
+              if (sessionId && pendingRecoveryItems(envelope).length) {
+                activePendingMirrorSessions.add(sessionId);
+              } else {
+                activePendingMirrorSessions.delete(sessionId);
+              }
+            }
+
+            function createBrowserDraftPorts() {
+              return createFakeDraftPorts({
+                ids: {
+                  nextWorkspaceId: () => 'workspace-' + Date.now() + '-' + Math.random().toString(36).slice(2),
+                  nextDraftItemId: () => 'draft-' + annotationSequence++,
+                },
+                clock: { now: () => Date.now() },
+                preview: {
+                  capture: requestLivePreview,
+                  screenshotUrl: previewScreenshotUrl,
+                },
+                feedbackApi: createDraftApiAdapter({
+                  fetchImpl: fetch.bind(window),
+                  consoleToken: window.FixThisConsoleConfig?.consoleToken || null,
+                }),
+                storage: createDraftStorageAdapter(localStorage, {
+                  nextWorkspaceId: () => 'workspace-' + Date.now() + '-' + Math.random().toString(36).slice(2),
+                }),
+                clipboard: { writeText: copyTextToClipboard },
+                boundaryPrompt: {
+                  choose: (workspace, boundaryAction) =>
+                    promptPendingBoundaryChoice(boundaryAction?.kind || boundaryAction, draftWorkspaceItems(workspace).length),
+                },
+                refresh: { sessions: refreshSessions },
+              });
+            }
+
+            function ensureDraftCommandQueue() {
+              if (draftCommandQueue) return draftCommandQueue;
+              draftCommandQueue = createDraftCommandQueue({
+                getWorkspace: currentDraftWorkspace,
+                setWorkspace: setDraftWorkspace,
+                onStaleResponse: () => refreshSessions().catch(showError),
+                onError: showError,
+              });
+              return draftCommandQueue;
+            }
 
             function bumpSessionMutationGeneration() {
               sessionMutationGeneration += 1;
@@ -239,8 +328,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778697780000;
-const ConsoleBuildGitSha = 'a82bb0b';
+const ConsoleBuildEpochMs = 1778697960000;
+const ConsoleBuildGitSha = 'faf2179';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -457,7 +546,7 @@ function createEmptyDraftWorkspace() {
   return {
     workspaceId: null,
     revision: 0,
-    lifecycle: DraftLifecycle.EMPTY,
+    lifecycle: 'empty',
     context: null,
     screen: null,
     screenshotUrl: null,
@@ -2537,30 +2626,22 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 if (!state.preview) {
                   return;
                 }
-                addItemsFlow = {
-                  context: {
-                    sessionId: state.session?.sessionId || null,
-                    previewId: state.preview.previewId,
-                    screenId: state.preview.screen?.screenId || null,
-                    screenFingerprint: state.preview.screen?.fingerprint ?? null,
-                    deviceSerial: state.selectedDeviceSerial || null,
-                    frozenAtEpochMillis: state.preview.frozenAtEpochMillis ?? Date.now(),
-                    activityName: state.preview.activity ?? state.connection?.availability?.activity ?? null
+                const ports = createBrowserDraftPorts();
+                const nextWorkspace = await startDraftFreeze(draftWorkspace, {
+                  sessionId: state.session?.sessionId || null,
+                  selectedDeviceSerial: state.selectedDeviceSerial || null,
+                  activityName: state.connection?.availability?.activity ?? null,
+                }, {
+                  ...ports,
+                  preview: {
+                    ...ports.preview,
+                    capture: async () => state.preview,
                   },
-                  previewId: state.preview.previewId,
-                  screen: state.preview.screen,
-                  screenshotUrl: previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null),
-                  frozenAtEpochMillis: state.preview.frozenAtEpochMillis ?? Date.now(),
-                  // SIF-6: capture the foreground activity at freeze time so
-                  // checkActivityDrift() can detect when the device has since
-                  // navigated away during a multi-pin pending flow.
-                  activity: state.preview.activity ?? state.connection?.availability?.activity ?? null,
-                  activityDriftWarning: null
-                };
-                undoRedoHistory = createHistory(addItemsFlow.context);
+                });
+                setDraftWorkspace(nextWorkspace);
                 toolMode = 'annotate';
-                focusedPendingItemIndex = null;
-                currentSelection = null;
+                focusedSavedItemId = null;
+                focusedSavedSessionId = null;
                 render();
               } finally {
                 addItemsFlowStarting = false;
@@ -2581,31 +2662,23 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (!addItemsFlow) throw new Error('Switch to Annotate before selecting feedback.');
               if (!selection) throw new Error('Select a component or area first.');
               flushFocusedPendingComment();
-              const annotation = {
-                annotationId: 'local-' + annotationSequence++,
-                targetType: selection.targetType,
-                nodeUid: selection.nodeUid,
-                bounds: selection.bounds,
-                label: selection.label,
-                severity: 'med',
-                status: 'open',
-                comment: ''
-              };
-              pendingFeedbackItems.push(annotation);
-              recordAdd(undoRedoHistory, annotation, addItemsFlow.context);
+              const ports = createBrowserDraftPorts();
+              let nextWorkspace = addDraftItem(draftWorkspace, selection, ports);
               // SIF-6: re-check activity drift after each pending item is
               // appended. Uses the existing status-poll-derived availability
               // — no extra fetch is issued.
-              if (addItemsFlow) {
+              if (nextWorkspace.context) {
                 const currentActivitySnapshot = {
                   activity: state.connection?.availability?.activity ?? null
                 };
-                addItemsFlow.activityDriftWarning = checkActivityDrift(addItemsFlow, currentActivitySnapshot);
+                nextWorkspace = {
+                  ...nextWorkspace,
+                  activityDriftWarning: checkActivityDrift({ activity: nextWorkspace.context.activityName }, currentActivitySnapshot),
+                };
               }
-              persistCurrentPendingState();
-              currentSelection = null;
+              setDraftWorkspace(nextWorkspace);
+              const createdItem = nextWorkspace.items[nextWorkspace.items.length - 1];
               hoveredAnnotationTarget = null;
-              focusedPendingItemIndex = pendingFeedbackItems.length - 1;
               focusedSavedItemId = null;
               focusedSavedSessionId = null;
               toolMode = 'annotate';
@@ -2613,14 +2686,14 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               renderPreviewOnly();
               renderInspectorRegion();
               renderCurrentSessionList();
+              return createdItem;
             }
 
             function deletePendingFeedbackItem(index) {
-              const removed = pendingFeedbackItems[index];
-              recordDelete(undoRedoHistory, removed, index, addItemsFlow?.context ?? null);
-              pendingFeedbackItems.splice(index, 1);
-              persistCurrentPendingState();
-              showUndoToast(removed?.itemId);
+              const removed = draftWorkspace.items[index];
+              if (!removed) return;
+              setDraftWorkspace(deleteDraftItem(draftWorkspace, removed.draftItemId));
+              showUndoToast(removed.draftItemId);
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;
               focusedSavedSessionId = null;
@@ -3392,7 +3465,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function renderNumberedFeedbackOverlay(overlay, image) {
-              pendingFeedbackItems.forEach((item, index) => {
+              draftWorkspaceItems(draftWorkspace).forEach((item, index) => {
                 const displayNumber = index + 1;
                 renderOverlayBox(overlay, image, item.bounds, String(displayNumber), false, index === focusedPendingItemIndex, index, '', severityColor(annotationSeverity(item)));
               });

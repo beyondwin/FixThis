@@ -395,30 +395,22 @@
                 if (!state.preview) {
                   return;
                 }
-                addItemsFlow = {
-                  context: {
-                    sessionId: state.session?.sessionId || null,
-                    previewId: state.preview.previewId,
-                    screenId: state.preview.screen?.screenId || null,
-                    screenFingerprint: state.preview.screen?.fingerprint ?? null,
-                    deviceSerial: state.selectedDeviceSerial || null,
-                    frozenAtEpochMillis: state.preview.frozenAtEpochMillis ?? Date.now(),
-                    activityName: state.preview.activity ?? state.connection?.availability?.activity ?? null
+                const ports = createBrowserDraftPorts();
+                const nextWorkspace = await startDraftFreeze(draftWorkspace, {
+                  sessionId: state.session?.sessionId || null,
+                  selectedDeviceSerial: state.selectedDeviceSerial || null,
+                  activityName: state.connection?.availability?.activity ?? null,
+                }, {
+                  ...ports,
+                  preview: {
+                    ...ports.preview,
+                    capture: async () => state.preview,
                   },
-                  previewId: state.preview.previewId,
-                  screen: state.preview.screen,
-                  screenshotUrl: previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null),
-                  frozenAtEpochMillis: state.preview.frozenAtEpochMillis ?? Date.now(),
-                  // SIF-6: capture the foreground activity at freeze time so
-                  // checkActivityDrift() can detect when the device has since
-                  // navigated away during a multi-pin pending flow.
-                  activity: state.preview.activity ?? state.connection?.availability?.activity ?? null,
-                  activityDriftWarning: null
-                };
-                undoRedoHistory = createHistory(addItemsFlow.context);
+                });
+                setDraftWorkspace(nextWorkspace);
                 toolMode = 'annotate';
-                focusedPendingItemIndex = null;
-                currentSelection = null;
+                focusedSavedItemId = null;
+                focusedSavedSessionId = null;
                 render();
               } finally {
                 addItemsFlowStarting = false;
@@ -439,31 +431,23 @@
               if (!addItemsFlow) throw new Error('Switch to Annotate before selecting feedback.');
               if (!selection) throw new Error('Select a component or area first.');
               flushFocusedPendingComment();
-              const annotation = {
-                annotationId: 'local-' + annotationSequence++,
-                targetType: selection.targetType,
-                nodeUid: selection.nodeUid,
-                bounds: selection.bounds,
-                label: selection.label,
-                severity: 'med',
-                status: 'open',
-                comment: ''
-              };
-              pendingFeedbackItems.push(annotation);
-              recordAdd(undoRedoHistory, annotation, addItemsFlow.context);
+              const ports = createBrowserDraftPorts();
+              let nextWorkspace = addDraftItem(draftWorkspace, selection, ports);
               // SIF-6: re-check activity drift after each pending item is
               // appended. Uses the existing status-poll-derived availability
               // — no extra fetch is issued.
-              if (addItemsFlow) {
+              if (nextWorkspace.context) {
                 const currentActivitySnapshot = {
                   activity: state.connection?.availability?.activity ?? null
                 };
-                addItemsFlow.activityDriftWarning = checkActivityDrift(addItemsFlow, currentActivitySnapshot);
+                nextWorkspace = {
+                  ...nextWorkspace,
+                  activityDriftWarning: checkActivityDrift({ activity: nextWorkspace.context.activityName }, currentActivitySnapshot),
+                };
               }
-              persistCurrentPendingState();
-              currentSelection = null;
+              setDraftWorkspace(nextWorkspace);
+              const createdItem = nextWorkspace.items[nextWorkspace.items.length - 1];
               hoveredAnnotationTarget = null;
-              focusedPendingItemIndex = pendingFeedbackItems.length - 1;
               focusedSavedItemId = null;
               focusedSavedSessionId = null;
               toolMode = 'annotate';
@@ -471,14 +455,14 @@
               renderPreviewOnly();
               renderInspectorRegion();
               renderCurrentSessionList();
+              return createdItem;
             }
 
             function deletePendingFeedbackItem(index) {
-              const removed = pendingFeedbackItems[index];
-              recordDelete(undoRedoHistory, removed, index, addItemsFlow?.context ?? null);
-              pendingFeedbackItems.splice(index, 1);
-              persistCurrentPendingState();
-              showUndoToast(removed?.itemId);
+              const removed = draftWorkspace.items[index];
+              if (!removed) return;
+              setDraftWorkspace(deleteDraftItem(draftWorkspace, removed.draftItemId));
+              showUndoToast(removed.draftItemId);
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;
               focusedSavedSessionId = null;
