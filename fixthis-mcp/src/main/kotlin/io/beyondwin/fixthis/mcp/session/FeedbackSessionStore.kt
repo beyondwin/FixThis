@@ -110,14 +110,15 @@ class FeedbackSessionStore(
     }
 
     fun replaceSessionForDomain(session: SessionDto): SessionDto = synchronized(lock) {
-        save(session)
-        sessions[session.sessionId] = session
-        if (session.status != SessionStatusDto.CLOSED) {
-            currentSessionId = session.sessionId
-        } else if (currentSessionId == session.sessionId) {
+        val migrated = session.withMigratedItemSequenceCounter()
+        save(migrated)
+        sessions[migrated.sessionId] = migrated
+        if (migrated.status != SessionStatusDto.CLOSED) {
+            currentSessionId = migrated.sessionId
+        } else if (currentSessionId == migrated.sessionId) {
             currentSessionId = null
         }
-        session
+        migrated
     }
 
     fun addOrReplaceScreenForDomain(sessionId: String, screen: SnapshotDto): SessionDto = synchronized(lock) {
@@ -134,8 +135,10 @@ class FeedbackSessionStore(
         require(session.screens.any { it.screenId == annotation.screenId }) {
             "Cannot save annotation for unknown screen: ${annotation.screenId}"
         }
+        val nextSequence = annotation.sequenceNumber?.plus(1) ?: session.nextItemSequenceNumber
         val updated = session.copy(
             items = session.items.filterNot { it.itemId == annotation.itemId } + annotation,
+            nextItemSequenceNumber = maxOf(session.nextItemSequenceNumber, nextSequence),
             updatedAtEpochMillis = clock(),
         )
         commitSessionMutation(session, updated)
@@ -215,7 +218,7 @@ class FeedbackSessionStore(
             screenId = if (screen.screenId == "pending") idGenerator() else screen.screenId,
             capturedAtEpochMillis = now,
         )
-        val firstSequence = nextItemSequenceNumber(session)
+        val firstSequence = session.migratedNextItemSequenceNumber()
         val createdItems = items.mapIndexed { index, item ->
             item.copy(
                 itemId = if (item.itemId == "pending") idGenerator() else item.itemId,
@@ -226,9 +229,11 @@ class FeedbackSessionStore(
                 delivery = FeedbackDelivery.DRAFT,
             )
         }
+        val nextSequence = createdItems.mapNotNull { it.sequenceNumber }.maxOrNull()?.plus(1) ?: firstSequence
         val updated = session.copy(
             screens = session.screens + captured,
             items = session.items + createdItems,
+            nextItemSequenceNumber = maxOf(firstSequence, nextSequence),
             updatedAtEpochMillis = now,
         )
         appendEventThenMutate(
@@ -294,15 +299,18 @@ class FeedbackSessionStore(
             "Cannot add feedback for unknown screen: ${item.screenId}"
         }
         val now = clock()
+        val sequence = session.migratedNextItemSequenceNumber()
+        val createdSequence = item.sequenceNumber ?: sequence
         val created = item.copy(
             itemId = idGenerator(),
             createdAtEpochMillis = now,
             updatedAtEpochMillis = now,
-            sequenceNumber = item.sequenceNumber ?: nextItemSequenceNumber(session),
+            sequenceNumber = createdSequence,
             delivery = item.delivery,
         )
         val updated = session.copy(
             items = session.items + created,
+            nextItemSequenceNumber = maxOf(sequence + 1, createdSequence + 1),
             updatedAtEpochMillis = now,
         )
         appendEventThenMutate(
@@ -709,9 +717,14 @@ class FeedbackSessionStore(
             AnnotationStatusDto.WONT_FIX,
         )
 
-    private fun getSessionLocked(sessionId: String): SessionDto = loadPersistedSessionIfAvailable(sessionId)
-        ?: sessions[sessionId]
-        ?: throw FeedbackSessionException("Unknown feedback session: $sessionId")
+    private fun getSessionLocked(sessionId: String): SessionDto {
+        val session = loadPersistedSessionIfAvailable(sessionId)
+            ?: sessions[sessionId]
+            ?: throw FeedbackSessionException("Unknown feedback session: $sessionId")
+        val migrated = session.withMigratedItemSequenceCounter()
+        sessions[migrated.sessionId] = migrated
+        return migrated
+    }
 
     private fun loadPersistedSessionIfAvailable(sessionId: String): SessionDto? {
         val loaded = persistence?.let { p ->
@@ -720,9 +733,6 @@ class FeedbackSessionStore(
         sessions[loaded.sessionId] = loaded
         return loaded
     }
-
-    private fun nextItemSequenceNumber(session: SessionDto): Int = session.items.mapNotNull { it.sequenceNumber }.maxOrNull()?.plus(1)
-        ?: session.items.size + 1
 
     private fun commitSessionMutation(previous: SessionDto, updated: SessionDto): SessionDto {
         save(updated)

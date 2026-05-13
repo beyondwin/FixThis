@@ -212,7 +212,7 @@ class SessionReplayEngine(
             screens = if (screen.screenId in existingScreenIds) session.screens else session.screens + screen,
             items = session.items + items.filterNot { it.itemId in existingItemIds },
             updatedAtEpochMillis = event.epochMillis,
-        )
+        ).withMigratedItemSequenceCounter()
     }
 
     private fun applyDeleteScreen(session: SessionDto, event: SessionEvent): SessionDto? {
@@ -237,12 +237,12 @@ class SessionReplayEngine(
         val itemJson = event.payload["item"] ?: return null
         val item = eventLogJson.decodeFromJsonElement(AnnotationDto.serializer(), itemJson)
         return if (session.items.any { it.itemId == item.itemId }) {
-            session.copy(updatedAtEpochMillis = event.epochMillis)
+            session.copy(updatedAtEpochMillis = event.epochMillis).withMigratedItemSequenceCounter()
         } else {
             session.copy(
                 items = session.items + item,
                 updatedAtEpochMillis = event.epochMillis,
-            )
+            ).withMigratedItemSequenceCounter()
         }
     }
 
@@ -255,7 +255,7 @@ class SessionReplayEngine(
         return session.copy(
             items = updatedItems,
             updatedAtEpochMillis = event.epochMillis,
-        )
+        ).withMigratedItemSequenceCounter()
     }
 
     private fun applyDeleteDraftItem(session: SessionDto, event: SessionEvent): SessionDto? {
@@ -289,7 +289,7 @@ class SessionReplayEngine(
             handoffBatches = updatedBatches,
             status = SessionStatusDto.READY_FOR_AGENT,
             updatedAtEpochMillis = event.epochMillis,
-        )
+        ).withMigratedItemSequenceCounter()
     }
 
     private fun applyReplaceItems(session: SessionDto, event: SessionEvent): SessionDto? {
@@ -301,6 +301,6 @@ class SessionReplayEngine(
         return session.copy(
             items = updatedItems,
             updatedAtEpochMillis = event.epochMillis,
-        )
+        ).withMigratedItemSequenceCounter()
     }
 }

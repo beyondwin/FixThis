@@ -20,7 +20,18 @@ data class SessionDto(
     val items: List<AnnotationDto> = emptyList(),
     val handoffBatches: List<FeedbackHandoffBatch> = emptyList(),
     val status: SessionStatusDto = SessionStatusDto.ACTIVE,
+    val nextItemSequenceNumber: Int = 1,
 )
+
+internal fun SessionDto.migratedNextItemSequenceNumber(): Int {
+    val nextFromItems = items.mapNotNull { it.sequenceNumber }.maxOrNull()?.plus(1) ?: 1
+    return maxOf(nextItemSequenceNumber, nextFromItems)
+}
+
+internal fun SessionDto.withMigratedItemSequenceCounter(): SessionDto {
+    val migrated = migratedNextItemSequenceNumber()
+    return if (nextItemSequenceNumber == migrated) this else copy(nextItemSequenceNumber = migrated)
+}
 
 @Serializable
 enum class SessionStatusDto {

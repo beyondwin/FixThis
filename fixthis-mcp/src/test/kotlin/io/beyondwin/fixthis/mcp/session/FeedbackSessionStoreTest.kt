@@ -422,6 +422,35 @@ class FeedbackSessionStoreTest {
     }
 
     @Test
+    fun itemSequenceCounterDoesNotReuseNumbersAfterDelete() {
+        val clock = FakeClock(100L)
+        val ids = FakeIds("session-1", "screen-1", "item-1", "item-2", "item-3", "item-4")
+        val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
+        val session = store.openSession(packageName = "io.beyondwin.fixthis.sample", projectRoot = "/repo")
+        val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
+        fun draft(comment: String) = AnnotationDto(
+            itemId = "pending",
+            screenId = screen.screenId,
+            createdAtEpochMillis = 0L,
+            updatedAtEpochMillis = 0L,
+            target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+            comment = comment,
+        )
+
+        val first = store.addItem(session.sessionId, draft("first"))
+        val second = store.addItem(session.sessionId, draft("second"))
+        val third = store.addItem(session.sessionId, draft("third"))
+
+        store.deleteDraftItem(session.sessionId, second.itemId)
+        val fourth = store.addItem(session.sessionId, draft("fourth"))
+
+        val current = store.getSession(session.sessionId)
+        assertEquals(listOf(1, 3, 4), current.items.map { it.sequenceNumber })
+        assertEquals(5, current.nextItemSequenceNumber)
+        assertEquals(listOf(1, 2, 3, 4), listOf(first, second, third, fourth).map { it.sequenceNumber })
+    }
+
+    @Test
     fun clearDraftItemsKeepsSentHistory() {
         val clock = FakeClock(100L)
         val ids = FakeIds("session-1", "screen-1", "item-1", "batch-1", "item-2")
