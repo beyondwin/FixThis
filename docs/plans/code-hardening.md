@@ -1,6 +1,6 @@
 # Plan — Code Hardening
 
-Status: Draft
+Status: Implemented; retained as a design record for traceability.
 Spec: [`../specs/code-hardening.md`](../specs/code-hardening.md)
 
 Each task is independently mergeable. Order is by risk-to-reward: Task 0 is

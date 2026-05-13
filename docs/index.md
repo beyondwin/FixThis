@@ -45,7 +45,8 @@ This page is a directory. Pick the path that matches what you're trying to do.
   review before sharing
 - [Security model](../SECURITY.md) — local-first debug threat model
 - [Threat model](reference/threat-model.md) — assets, trust boundaries,
-  in-scope and out-of-scope adversaries, current mitigations, and open gaps
+  in-scope and out-of-scope adversaries, current mitigations, and deferred
+  follow-ups
 
 ## I want to understand the design
 
@@ -53,8 +54,8 @@ This page is a directory. Pick the path that matches what you're trying to do.
   flow, source-matching pipeline
 - [Architecture Decision Records](architecture/adr/README.md) — durable
   decisions and their rationale
-- [Console state sync (forward-looking design)](architecture/console-state-sync-design.md) —
-  SSE migration plan; not yet shipped
+- [Console state sync](architecture/console-state-sync-design.md) — shipped
+  lockstep refresh + ETag polling design, plus deferred SSE migration plan
 
 ## I want to contribute
 
@@ -73,9 +74,9 @@ This page is a directory. Pick the path that matches what you're trying to do.
   no longer reflects current behavior.
 - [`superpowers/`](superpowers/) — implementation plans and design specs
   produced by the maintainers' AI-assisted workflow. Companion specs and
-  plans for current hardening tracks live under [`specs/`](specs/) and
-  [`plans/`](plans/). Not part of the public docs surface; kept for
-  transparency.
+  plans for hardening tracks live under [`specs/`](specs/) and
+  [`plans/`](plans/). These are design records, not current API contracts;
+  reference docs, release notes, and tests take precedence when they differ.
 
 ---
 

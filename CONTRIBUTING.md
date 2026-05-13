@@ -74,6 +74,17 @@ node --test \
 git diff --check
 ```
 
+When touching feedback-session switching, saved overlays, pending recovery, or
+undo/redo context, also run the focused session-scope harnesses:
+
+```bash
+node --test \
+  scripts/pendingBoundaryGuard-test.mjs \
+  scripts/sessionScopedRequests-test.mjs \
+  scripts/savedOverlayScope-test.mjs \
+  scripts/undoRedoContext-test.mjs
+```
+
 If you edited any console JS module under `fixthis-mcp/src/main/console/`, rebundle the served asset before running `installDist` and the syntax check:
 
 ```bash

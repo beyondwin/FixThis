@@ -20,6 +20,10 @@ remains the chronological source of truth.
 - The console now treats agent states as first-class UI. Claimed items show an
   in-progress state and agent note; `needs_clarification`, `wont_fix`, and
   `resolved` render as distinct terminal states with the agent summary.
+- Saved annotations are now session-scoped end to end. Preview artifact URLs,
+  saved overlay edits, pending recovery, and undo/redo history carry the
+  session context that created them, and persisted item numbers remain stable
+  across deletes and session reopens.
 - The browser console has been hardened for narrow screens and long diagnostics.
   Global status messages, connection details, activity-drift warnings, stale
   binary banners, and agent summaries wrap without forcing horizontal scroll.
@@ -38,6 +42,9 @@ remains the chronological source of truth.
 - Persisted MCP JSON field names remain compatibility contracts:
   `items`, `screens`, `itemId`, `screenId`, `targetEvidence`, and
   `sourceCandidates`.
+- Session JSON now also carries additive `nextItemSequenceNumber` state for
+  stable saved annotation numbering. Older sessions are migrated from existing
+  item `sequenceNumber` values when they are reopened.
 - Bridge protocol `1.3` is additive at the persisted JSON layer. Older saved
   sessions remain readable; fingerprint comparison is skipped when either side
   lacks a fingerprint.
@@ -69,7 +76,11 @@ node --test \
   scripts/undoRedo-test.mjs \
   scripts/undoKeymatch-test.mjs \
   scripts/activityDrift-test.mjs \
-  scripts/previewStaleness-test.mjs
+  scripts/previewStaleness-test.mjs \
+  scripts/pendingBoundaryGuard-test.mjs \
+  scripts/sessionScopedRequests-test.mjs \
+  scripts/savedOverlayScope-test.mjs \
+  scripts/undoRedoContext-test.mjs
 git diff --check
 ```
 

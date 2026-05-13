@@ -3,9 +3,9 @@
 A visual walkthrough of the FixThis Studio console — from launching it against
 a connected device to handing a batch of annotations off to your AI agent.
 
-> 📸 **Screenshots / GIFs are placeholders** in this revision. Captures will be
-> added as we cut a release. If you'd like to contribute captures, see the
-> ![TODO: capture] markers and the [contribution guide](../../CONTRIBUTING.md).
+> **Screenshot capture notes:** the tour below records the frames that should be
+> captured for release screenshots. The image files are intentionally not linked
+> until those captures exist in `docs/assets/`.
 
 ## Open the console
 
@@ -25,7 +25,8 @@ The console opens in your default browser at `http://127.0.0.1:<port>`. The
 URL is loopback-only — see [Privacy](../reference/privacy.md) and
 [Security](../../SECURITY.md).
 
-![TODO: capture — full console window on first open, "Start" connection card visible](../assets/console-tour-01-open.png)
+> Capture needed: full console window on first open, with the `Start`
+> connection card visible.
 
 *Caption:* Three-pane layout. Left: persisted feedback sessions. Center: live
 or frozen Android preview. Right: mode-aware Inspector. Top bar: device
@@ -41,7 +42,8 @@ selection, Copy Prompt, Save to MCP).
 3. Click **Start** on the connection card. FixThis launches your debug app and
    attaches the sidekick bridge.
 
-![TODO: capture — top bar with device selector showing "Connected", Inspector showing "Ready"](../assets/console-tour-02-connect.png)
+> Capture needed: top bar with the device selector showing `Connected`, and
+> the Inspector showing `Ready`.
 
 If the connection fails, the recovery card surfaces actionable options:
 **Choose device** (multiple ready devices), **Open app** (debug app is not in
@@ -62,7 +64,8 @@ when the tab is hidden or the device becomes unavailable).
 
 Navigation is debug-only and limited to one-step `back`, `tap`, and `swipe`.
 
-![TODO: capture — preview showing the sample app's Home screen, Select mode chip highlighted](../assets/console-tour-03-select.png)
+> Capture needed: sample app Home screen in the preview, with the `Select`
+> mode chip highlighted.
 
 ## Switch to Annotate mode
 
@@ -75,7 +78,8 @@ one. If the app rotates, changes window mode, or otherwise moves to a different
 screen before you hand off the batch, FixThis asks whether to re-capture,
 force-save, or cancel.
 
-![TODO: capture — top bar mode toggle showing Annotate active, frozen preview with subtle "frozen" indicator](../assets/console-tour-04-annotate-mode.png)
+> Capture needed: top bar mode toggle with `Annotate` active, plus a frozen
+> preview indicator.
 
 ## Make a selection
 
@@ -92,7 +96,8 @@ overlay shows the merged-tree bounds; the Inspector shows:
 - top-3 source-file candidates with line numbers, match reasons, and a margin
   score
 
-![TODO: capture — preview with one Smart Select pin on a card, Inspector right pane showing semantic info + source candidates](../assets/console-tour-05-smart-select.png)
+> Capture needed: one Smart Select pin on a card, with the Inspector showing
+> semantic info and source candidates.
 
 ### Area selection (drag a rectangle)
 
@@ -103,16 +108,19 @@ semantics are not detected.
 Area selections still attach activity / screen metadata, just no source
 candidates.
 
-![TODO: capture — preview with area-rectangle around a margin, Inspector showing area mode (no source candidates)](../assets/console-tour-06-area-select.png)
+> Capture needed: area rectangle around a margin, with the Inspector showing
+> area mode and no source candidates.
 
 ## Write a comment and pin it
 
 Type a comment in the Inspector, then click **Add annotation**. A numbered
 overlay marker appears on the preview, and a row appears in the pending list.
-Pending annotations support **Focus** (re-pan to the marker) and **Delete**
-(renumber the rest so pin numbers and list numbers stay in sync).
+Pending annotations support **Focus** (re-pan to the marker) and **Delete**.
+Draft pin numbers stay in sync while editing; once persisted, item sequence
+numbers remain stable for the session.
 
-![TODO: capture — frozen preview with two numbered pins, pending list on the right showing comments 1 and 2](../assets/console-tour-07-pin.png)
+> Capture needed: frozen preview with two numbered pins, plus pending comments
+> 1 and 2 in the right pane.
 
 You can pin **multiple annotations on the same frozen preview** — they share
 one screenshot and one source-candidate context.
@@ -142,7 +150,8 @@ Both paths share the same compact prompt format and the same JSON evidence;
 **Save to MCP** just removes the manual paste step. See
 [Working with AI agents](agents.md) for per-agent specifics.
 
-![TODO: capture — Inspector "Draft view" showing screenshot + numbered overlay + comments, with Copy Prompt and Save to MCP buttons highlighted](../assets/console-tour-08-handoff.png)
+> Capture needed: Inspector Draft view with screenshot, numbered overlay,
+> comments, and the `Copy Prompt` / `Save to MCP` buttons visible.
 
 ## After the agent makes the change
 
@@ -170,7 +179,8 @@ Recover / Recapture / Discard banner before exposing the pending rows again.
 Recover keeps the frozen screenshot and pending comments; Recapture maps the
 comments onto a fresh preview; Discard clears the local mirror.
 
-![TODO: capture — left pane session list with two prior sessions, one expanded showing saved evidence groups](../assets/console-tour-09-resume.png)
+> Capture needed: left session list with two prior sessions, one expanded to
+> show saved evidence groups.
 
 ## What's next
 

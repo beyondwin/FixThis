@@ -24,7 +24,7 @@ FixThis attaches a sidekick runtime to a Jetpack Compose debug app, captures the
 :app                         sample/ validation app
 :fixthis-compose-core     pure Kotlin domain contracts, use cases, models, selection, formatter, source matching
 :fixthis-compose-sidekick debug runtime and MCP status indicator installed into target app
-:fixthis-gradle-plugin    debug dependency injection and source-index asset generation
+fixthis-gradle-plugin/    included Gradle build; debug dependency injection and source-index asset generation
 :fixthis-cli              desktop CLI and ADB bridge client
 :fixthis-mcp              stdio MCP server, feedback session store, local console server
 ```
@@ -73,7 +73,7 @@ Runtime that executes inside the target Android debug app.
 - `BridgeStatus` availability fields: also reports nullable `screenInteractive`, `keyguardLocked`, `appForeground`, `pictureInPicture`, and `installEpochMillis` (APK last-install timestamp used by `fixthis_status` to detect source staleness). The desktop console uses the availability signals to drive the `Connected` chip's blocked sub-state (screen off, locked, backgrounded, PiP, unresponsive, no Compose UI) and the canvas overlay/input gating.
 - `lifecycle/FixThisActivityLifecycleCallbacks.kt` tracks a resumed-activity counter and last-resumed weak reference to stabilize backgrounded/foregrounded detection.
 
-### `:fixthis-gradle-plugin`
+### `fixthis-gradle-plugin/` included build
 
 Gradle plugin applied to the Android application project.
 
@@ -154,8 +154,10 @@ MCP stdio server and local feedback console server.
   `.fixthis/feedback-sessions/<session-id>/session.json` snapshot persistence
   plus append-only event logs under `events/`. Event-log replay is
   checkpoint-aware; compaction archives old events only after writing
-  `events/checkpoint.json`. The store coordinates locking and persistence while
-  pure reducers and replay helpers own state transitions and event-log recovery.
+  `events/checkpoint.json`. The session DTO also stores
+  `nextItemSequenceNumber`, a monotonic counter for stable saved annotation
+  numbers. The store coordinates locking and persistence while pure reducers
+  and replay helpers own state transitions and event-log recovery.
 - `console/FeedbackConsoleServer.kt`: `127.0.0.1` HTTP console and `/api/*` endpoints.
 - `console/FeedbackConsoleAssets.kt`: loader that validates and assembles `src/main/resources/console/index.html`, `styles.css`, `app.js` classpath resources.
 
@@ -224,13 +226,17 @@ flowchart TD
     I --> J["Feedback items share that screenId"]
     J --> K["Save to MCP creates local handoff batch"]
     K --> L["Agent reads queue with fixthis_read_feedback"]
-    L --> M["Agent resolves items with fixthis_resolve_feedback"]
+    L --> M["Agent claims and resolves items with fixthis_claim_feedback / fixthis_resolve_feedback"]
 ```
 
 Important distinction:
 
 - Preview frames are temporary and stored under `.fixthis/preview-cache/`.
 - Saved evidence lives under `.fixthis/feedback-sessions/<session-id>/`.
+- Preview/screen artifact URLs and saved item mutations carry the originating
+  `sessionId`. Route handlers resolve them against that session instead of the
+  current active session, so switching sessions during an in-flight request
+  cannot leak saved overlays or screenshot URLs across workspaces.
 - `Save to MCP` is local persistence for MCP handoff. It does not call an external AI API.
 - Connection recovery is console-local UI state. `GET /api/connection` diagnoses ADB device and sidekick bridge state, while `POST /api/app/launch` launches the selected or only ready app when that is a valid recovery action. These calls do not persist feedback data.
 - When a device or bridge drops, pending browser draft work is mirrored to
@@ -297,15 +303,19 @@ fixthis-cli/build/install/fixthis/bin/fixthis console --package io.beyondwin.fix
 Run local unit tests:
 
 ```bash
-./gradlew test
-./gradlew :fixthis-gradle-plugin:test
-./gradlew :fixthis-compose-sidekick:testDebugUnitTest
+./gradlew \
+  :fixthis-compose-core:test \
+  :fixthis-cli:test \
+  :fixthis-mcp:test \
+  :fixthis-compose-sidekick:testDebugUnitTest \
+  :fixthis-gradle-plugin:test \
+  --no-daemon
 ```
 
 Android instrumentation tests require an unlocked interactive emulator or device. A physical device can still report `device` in ADB while a secure lockscreen prevents Compose hierarchy inspection; see [Troubleshooting](../guides/troubleshooting.md#connected-test-says-no-compose-hierarchies-found).
 
 ```bash
-./gradlew connectedAndroidTest
+./gradlew :app:connectedDebugAndroidTest :fixthis-compose-sidekick:connectedDebugAndroidTest --no-daemon
 ```
 
 ## Recommended Reading Order
@@ -321,7 +331,11 @@ Recommended order for a developer seeing this project for the first time:
 7. [Technical design (archived, Korean)](../archive/technical-design-v1-2026-05-03.md): longer design rationale and module-by-module design.
 8. [Architecture Decision Records](adr/README.md): durable architecture decisions that the current code upholds.
 
-`docs/superpowers/plans/` and `docs/superpowers/specs/` contain implementation history and work-order records. For current architecture, the above documents and ADRs take precedence.
+`docs/superpowers/plans/` and `docs/superpowers/specs/` contain
+implementation history and work-order records. Companion design records under
+`docs/plans/` and `docs/specs/` are retained for traceability. For current
+architecture, the above documents, reference docs, CHANGELOG entries, tests,
+and ADRs take precedence.
 
 ## Common Confusions
 
@@ -332,6 +346,11 @@ Recommended order for a developer seeing this project for the first time:
 - Source candidates are text/symbol-based ranking from a source index — not exact compiler mappings.
 - Semantics redaction is not screenshot pixel redaction.
 - The feedback console's `Annotate` mode freezes the preview but does not save. `Add annotation` creates a browser-side pending item. Only `Copy Prompt` or `Save to MCP` creates a persisted evidence snapshot.
+- Saved item numbers are stable after persistence. Pending draft rows may
+  renumber while editing, but persisted overlays and handoff numbers do not
+  renumber after deletes or session reopens.
+- Preview and screen artifact URLs are session-scoped. Do not resolve them
+  against the current active session after a user switches workspaces.
 - Persisted MCP JSON field names are a compatibility contract. They may differ from domain model names; check the mapper boundary.
 - A `Connected` chip does not always mean the device is interactable. Screen off / locked / backgrounded / PiP / unresponsive / no-Compose-UI all stay `Connected` but report a blocked sub-state.
 - Compact handoff output uses the v2 format. Instead of a single `src?` line, it emits a `candidates:` block (rank-1 by default, capped at 3) and `viewport:`, `activity:`, `instance i/N`, and collision/duplicate-marker note lines. PRECISE/FULL detail modes and the JSON wire format are unchanged.

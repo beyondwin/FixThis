@@ -34,7 +34,7 @@ If your screen has a single obvious target with clear text, a plain screenshot m
 ```bash
 git clone <this-repo> && cd FixThis
 ./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
-fixthis-cli/build/install/fixthis/bin/fixthis doctor
+fixthis-cli/build/install/fixthis/bin/fixthis doctor --package io.beyondwin.fixthis.sample
 fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
 ```
 

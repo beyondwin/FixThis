@@ -29,7 +29,7 @@ git clone <this-repo> && cd FixThis
 ./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
 
 # 3. Verify your environment (ADB on PATH, JDK 21, device reachable)
-fixthis-cli/build/install/fixthis/bin/fixthis doctor
+fixthis-cli/build/install/fixthis/bin/fixthis doctor --package io.beyondwin.fixthis.sample
 
 # 4. With a device or emulator connected, install + run sample + open the browser console
 fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample

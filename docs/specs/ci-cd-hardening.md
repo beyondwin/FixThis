@@ -1,6 +1,7 @@
 # Spec — CI/CD Hardening
 
-Status: Draft
+Status: Largely implemented; retained as a design record. Required-check
+promotion still depends on the observation windows in the contributing docs.
 Scope: `.github/workflows/`, repo automation
 Related plan: [`../plans/ci-cd-hardening.md`](../plans/ci-cd-hardening.md)
 

@@ -1,6 +1,7 @@
 # Spec — Build & Release Hardening
 
-Status: Draft
+Status: Largely implemented; retained as a design record. External artifact
+publishing remains tracked in `docs/contributing/release-readiness.md`.
 Scope: Gradle build, `:fixthis-compose-sidekick`, `:fixthis-gradle-plugin`,
 sample app variants
 Related plan: [`../plans/build-release-hardening.md`](../plans/build-release-hardening.md)

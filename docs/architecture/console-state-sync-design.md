@@ -1,8 +1,11 @@
-# Console State Sync — Current Design + SSE Migration Plan
+# Console State Sync - Current Design + SSE Migration Plan
 
-**Status:** Option 1 shipped 2026-05-10. SSE migration deferred to follow-up.
+**Status:** Lockstep refresh plus ETag-conditional session polling shipped.
+SSE migration remains deferred.
 **Owners:** `fixthis-mcp` (FeedbackConsoleServer + console JS)
-**Related code:** `fixthis-mcp/src/main/console/history.js` (`refreshSessions`, `refresh`), `state.js`, `livePreviewPolling`
+**Related code:** `fixthis-mcp/src/main/console/history.js`
+(`refreshSessions`, `refresh`), `sessions-polling.js`, `state.js`,
+`livePreviewPolling`, and `fixthis-mcp/src/main/kotlin/.../console/SessionRoutes.kt`
 
 ---
 
@@ -12,7 +15,7 @@ The console keeps two pieces of session state on the client:
 
 | Piece | Source | Drives |
 | --- | --- | --- |
-| `state.sessionSummaries` | `GET /api/sessions` (server-aggregated `FeedbackSessionSummary` list) | Sidebar HISTORY rows, "Sent history", session ordinals |
+| `state.sessionSummaries` | `GET /api/sessions` (server-aggregated `FeedbackSessionSummary` list) | Sidebar History rows, working pips, session ordinals |
 | `state.session` | `GET /api/session`, `POST /api/session/open`, `POST /api/agent-handoffs`, `POST /api/items/...` | Top-toolbar counter, right ANNOTATIONS panel, preview overlay, Copy Prompt / Save to MCP payload |
 
 These two are written by separate code paths and historically went out of sync.
@@ -31,9 +34,11 @@ Root cause: `refreshSessions()` only refreshed `state.sessionSummaries`. It was 
 
 ---
 
-## Option 1 — Lockstep refresh (shipped)
+## Current design - lockstep refresh plus conditional polling
 
-**Change:** `refreshSessions()` now fetches `/api/sessions` and `/api/session` in parallel and writes both `state.sessionSummaries` and `state.session` before re-rendering the sidebar.
+**Change 1:** `refreshSessions()` fetches `/api/sessions` and `/api/session`
+in parallel and writes both `state.sessionSummaries` and `state.session`
+before re-rendering session-owned UI.
 
 ```js
 async function refreshSessions() {
@@ -49,7 +54,19 @@ async function refreshSessions() {
 
 `refresh()` no longer fetches `/api/session` itself — `refreshSessions()` owns that responsibility.
 
-### Coverage — what Option 1 fixes
+**Change 2:** `sessions-polling.js` keeps the same two resources current while
+the console is idle. `SessionRoutes.kt` returns ETags for `/api/sessions` and
+`/api/session`; the browser sends `If-None-Match`, treats 304 as "no change",
+and only re-renders when the server state changed.
+
+Polling runs every 2 seconds while the page is visible. It pauses while the
+tab is hidden, while a local mutation is in flight, and while saved-item text
+is being edited so the server refresh cannot clobber user input. After five
+consecutive polling failures it pauses and surfaces a "Reconnecting feedback
+updates..." state on the connection card. Any successful mutating action or
+tab visibility restore restarts the loop.
+
+### Coverage - what the current design fixes
 
 Every existing call site already invoked `refreshSessions()` after a server mutation:
 
@@ -59,18 +76,31 @@ Every existing call site already invoked `refreshSessions()` after a server muta
 - `openSession`, `newSession`, `closeSession`, `deleteHistorySession` — `history.js`
 - `refresh()` (initial load + manual refresh button)
 
-After Option 1, all of these now keep the panel/toolbar in lockstep with the sidebar. The user-facing symptom (panel showing stale 10 while sidebar shows fresh 3) cannot persist past the next sidebar refresh, which happens after literally any meaningful interaction.
+Lockstep refresh keeps the panel/toolbar in sync with the sidebar after
+mutations. Conditional polling covers passive updates such as another tab or
+agent claiming/resolving an item, and it does that without re-render churn when
+the ETag is unchanged.
 
-### Residual gap — what Option 1 does NOT fix
+### Residual gap - what the current design does NOT fix
 
-Option 1 is still **pull-based**: `state.session` only re-syncs when the client decides to call `refreshSessions()`. The remaining drift sources:
+The design is still **pull-based**. It is much harder to drift than the
+original Option 1, but the client still learns about server changes on a timer
+or after a local action rather than through authoritative push.
 
-1. **Passive viewing during server-side async work.** If the server processes a handoff or migration **after** sending its HTTP response (e.g., a background close/migrate that mutates the session a few seconds later), the client never learns about it until the user clicks something.
-2. **External state changes.** Another browser tab, another `fixthis-cli` invocation, a developer editing `session.json` by hand, or a server restart with a different active session. The client has no signal.
-3. **Long idle.** Console open in a background tab. State fossilizes for hours.
-4. **Multi-tab.** Two tabs of the same console. One tab's mutation does not trigger the other's `refreshSessions()`.
+1. **Up-to-poll-interval lag.** Another tab or agent mutation can take up to
+   the polling interval to appear.
+2. **Paused or failed polling.** A hidden tab, an active edit, an in-flight
+   mutation, or five consecutive polling failures intentionally stops refresh.
+3. **Manual disk edits.** A developer editing `session.json` by hand can still
+   produce state the browser only learns about after the next successful
+   refresh.
+4. **Multi-tab ordering.** Two tabs can still observe changes in different
+   orders. The server remains authoritative, but the client does not have an
+   event ordering contract.
 
-For a single-user local dev tool with one active console, (1)–(4) are uncommon and recoverable by F5 or any UI interaction. Option 1 covers ~95% of the practical drift surface. The 5% gap is what motivates SSE.
+For a single-user local dev tool, these are acceptable and recoverable by any
+successful interaction or manual refresh. The remaining event-ordering and
+latency gaps are what motivate SSE.
 
 ---
 
@@ -80,8 +110,9 @@ For a single-user local dev tool with one active console, (1)–(4) are uncommon
 
 | Approach | Verdict | Reason |
 | --- | --- | --- |
-| **Pull on every interaction** (Option 1, current) | shipped | Simple, but inherently lags server-side async work and external mutations. |
-| **Periodic polling** (e.g. 5 s tick) | rejected | Constant idle load + visible refresh churn + still has up-to-poll-interval lag + race conditions with in-flight user mutations. UX feels twitchy. |
+| **Pull on every interaction** (Option 1 foundation) | shipped | Simple and robust for local mutations, but insufficient alone for passive updates. |
+| **ETag-conditional polling** (current) | shipped | Low churn, simple fallback for passive updates, pauses around edits/mutations, but still has timer lag and no event ordering contract. |
+| **Blind periodic polling** | rejected | Constant idle load + visible refresh churn + races with in-flight user mutations. UX feels twitchy. |
 | **WebSocket** | rejected | Bidirectional; we only need server→client. Adds connection upgrade and framing complexity for no benefit over SSE. |
 | **Server-Sent Events (SSE)** | recommended | One-way server-push over plain HTTP/1.1. Browser `EventSource` auto-reconnects with `Last-Event-ID`. Trivial to multiplex per-connection on the existing console HTTP server. Works through corporate proxies that block WebSocket upgrade. |
 
@@ -151,13 +182,17 @@ eventsSource.addEventListener('session-updated', (e) => {
 eventsSource.addEventListener('sessions-updated', (e) => {
   state.sessionSummaries = JSON.parse(e.data);
   renderCurrentSessionList();
-  renderSentHistory();
+  renderSessionRegions();
 });
 
 // devices-updated, connection-updated, preview-ready ...
 ```
 
-`refresh()` and `refreshSessions()` become **fallback-only**: they remain for the manual refresh button and for the brief window after a mutation when the client wants the response synchronously (e.g. `sendAgentPrompt` needs `state.session` to update before it shows the success toast). Option 1's lockstep behavior stays — it just becomes redundant defense-in-depth.
+`refresh()`, `refreshSessions()`, and ETag polling become **fallback-only**:
+they remain for the manual refresh button, SSE failure recovery, and the brief
+window after a mutation when the client wants the response synchronously (e.g.
+`sendAgentPrompt` needs `state.session` to update before it shows the success
+toast). Lockstep refresh stays as redundant defense-in-depth.
 
 `EventSource` handles reconnection automatically, but we should:
 - Show a small "Reconnecting…" indicator if `eventsSource.readyState === CONNECTING` for >2 s.
@@ -172,7 +207,10 @@ eventsSource.addEventListener('sessions-updated', (e) => {
 **Phase 1 — server emit, client subscribe (parallel pull retained)**
 - Wire emit calls into `FeedbackSessionStore`, `DeviceService`, `ConnectionService`, `LivePreviewService`.
 - Client opens `EventSource` on init; handlers update `state.*` and re-render.
-- Pull paths (Option 1's `refreshSessions`) stay. If both fire, last-writer-wins; ordering is ensured because mutations always wait for the server response (which has already emitted) before calling the local `refreshSessions`.
+- Pull paths (`refreshSessions` and ETag polling) stay. If both fire,
+  last-writer-wins; ordering is ensured because mutations always wait for the
+  server response (which has already emitted) before calling the local
+  `refreshSessions`.
 - Acceptance: the original 2026-05-10 bug stays fixed; manual `Cmd-R` no longer required after server-side async closes; multi-tab consoles stay in sync.
 
 **Phase 2 — fold `livePreviewPolling` into SSE**
@@ -217,5 +255,6 @@ eventsSource.addEventListener('sessions-updated', (e) => {
 
 | Date | Decision | Rationale |
 | --- | --- | --- |
-| 2026-05-10 | Ship Option 1 | Fixes 95% of observed drift with ~10 LOC. SSE infra not yet warranted for single-user local tool. |
+| 2026-05-10 | Ship lockstep refresh foundation | Fixes the observed sidebar/panel drift after local mutations with a small, low-risk change. |
+| 2026-05-11 | Add ETag-conditional session polling | Covers passive agent/tab updates without blind polling churn; pauses around edits and mutations. |
 | TBD | Open SSE Phase 1 | Trigger conditions: passive-viewing stale reports recur; or `livePreviewPolling` becomes painful; or first multi-tab use case. |
