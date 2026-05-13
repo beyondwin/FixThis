@@ -792,13 +792,13 @@ class ConsoleFeedbackItemWorkspaceRoutesTest {
         val html = FeedbackConsoleAssets.indexHtml
         val openSession = javascriptFunctionBody(html, "openSession")
         val newSession = javascriptFunctionBody(html, "newSession")
-        val flushPending = javascriptFunctionBody(html, "flushPendingAnnotationsBeforeSessionChange")
 
-        assertTrue(html.contains("async function flushPendingAnnotationsBeforeSessionChange()"))
-        assertTrue(flushPending.contains("if (!addItemsFlow || !pendingFeedbackItems.length) return;"))
-        assertTrue(flushPending.contains("await persistPendingFeedbackItems({ allowBlankComments: true });"))
-        assertTrue(openSession.contains("await flushPendingAnnotationsBeforeSessionChange();"))
-        assertTrue(newSession.contains("await flushPendingAnnotationsBeforeSessionChange();"))
+        assertTrue(html.contains("async function resolvePendingBeforeBoundary(action, sessionId = null)"))
+        assertTrue(html.contains("await persistPendingFeedbackItems({ allowBlankComments: true });"))
+        assertTrue(openSession.contains("await resolvePendingBeforeBoundary('open-session', sessionId)"))
+        assertTrue(newSession.contains("await resolvePendingBeforeBoundary('new-session')"))
+        assertFalse(openSession.contains("flushPendingAnnotationsBeforeSessionChange"))
+        assertFalse(newSession.contains("flushPendingAnnotationsBeforeSessionChange"))
         assertTrue(html.contains("const allowBlankComments = Boolean(options.allowBlankComments);"))
         assertTrue(html.contains("!allowBlankComments"))
         assertTrue(html.contains("allowBlankComments: allowBlankComments"))
@@ -984,7 +984,7 @@ class ConsoleFeedbackItemCanvasRoutesTest {
         assertFalse(html.contains(".snapshot-frame::before"))
         assertTrue(html.contains("0 12px 24px -8px rgba(0, 0, 0, .4)"))
         assertTrue(html.contains("renderNumberedFeedbackOverlay"))
-        assertTrue(html.contains("'#' + (index + 1)"))
+        assertTrue(html.contains("renderOverlayBox(overlay, image, item.bounds, String(displayNumber), false"))
     }
 
     @Test
@@ -1108,7 +1108,7 @@ class ConsoleFeedbackItemBatchRoutesTest {
         val html = FeedbackConsoleAssets.indexHtml
         val createAnnotationFromSelection = javascriptFunctionBody(html, "createAnnotationFromSelection")
 
-        assertTrue(html.contains("previewId: addItemsFlow.previewId"))
+        assertTrue(html.contains("previewId: addItemsFlow.context.previewId"))
         assertTrue(
             html.contains(
                 "const payloadItems = pendingPayloadItems({ allowFallbackComments: allowFallbackComments, " +

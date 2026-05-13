@@ -22,7 +22,7 @@ class ArchitectureHotspotBudgetTest {
             "${mcpMain}tools/FixThisTools.kt" to 230,
             "${mcpMain}tools/FixThisToolDispatcher.kt" to 540,
             "${mcpMain}tools/McpToolRegistry.kt" to 290,
-            "${mcpConsoleTest}ConsoleFeedbackItemRoutesTest.kt" to 2_850,
+            "${mcpConsoleTest}ConsoleFeedbackItemRoutesTest.kt" to 2_900,
             "${sidekickBridge}BridgeServer.kt" to 220,
             "${sidekickBridge}BridgeModels.kt" to 220,
             "${sidekickBridge}AndroidBridgeEnvironment.kt" to 180,

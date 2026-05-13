@@ -441,12 +441,12 @@ class ConsoleDeviceSelectionRoutesTest {
         val renderDeviceList = javascriptFunctionBody(html, "renderDeviceList")
         val noDevicesSelectionChange = Regex(
             "if \\(!devices\\.length\\) \\{[\\s\\S]*?if \\(previousSelectedDeviceSerial !== selectedSerial\\) \\{" +
-                "\\s*invalidatePreviewContext\\(\\);\\s*renderPreviewOnly\\(\\);\\s*\\}",
+                "\\s*bumpSessionMutationGeneration\\(\\);\\s*invalidatePreviewContext\\(\\);\\s*renderPreviewOnly\\(\\);\\s*\\}",
         )
         val selectedSerialChange = Regex(
             "const selectedSerial = selected && selected\\.state === 'device' \\? selected\\.serial : null;" +
                 "[\\s\\S]*?if \\(previousSelectedDeviceSerial !== selectedSerial\\) \\{" +
-                "\\s*invalidatePreviewContext\\(\\);\\s*renderPreviewOnly\\(\\);\\s*\\}",
+                "\\s*bumpSessionMutationGeneration\\(\\);\\s*invalidatePreviewContext\\(\\);\\s*renderPreviewOnly\\(\\);\\s*\\}",
         )
 
         assertTrue(

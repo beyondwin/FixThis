@@ -140,7 +140,7 @@ class ConsolePreviewRoutesTest {
         assertTrue(html.contains("const preview = await requestLivePreview();"))
         assertTrue(html.contains("const requestGeneration = ++previewRequestGeneration"))
         assertTrue(html.contains("if (addItemsFlow || requestGeneration !== previewRequestGeneration) return;"))
-        assertTrue(html.contains("screenshotUrl: previewScreenshotUrl(state.preview.previewId)"))
+        assertTrue(html.contains("screenshotUrl: previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null)"))
         assertTrue(html.contains("function latestPersistedScreen()"))
         assertTrue(html.contains("const persistedScreenIds = new Set("))
         assertTrue(html.contains(".filter(screen => persistedScreenIds.has(screen.screenId))"))
@@ -150,15 +150,15 @@ class ConsolePreviewRoutesTest {
         assertTrue(html.contains("if (focusedSavedItemId) {"))
         assertTrue(html.contains("return state.preview?.screen || latestPersistedScreen();"))
         assertFalse(html.contains("return addItemsFlow?.screen || latestPersistedScreen() || state.preview?.screen;"))
-        assertTrue(html.contains("'/api/screens/' + encodeURIComponent(screen.screenId) + '/screenshot/full'"))
+        assertTrue(html.contains("'/api/screens/' + encodeURIComponent(screenId) + '/screenshot/full'"))
         assertTrue(html.contains("if (!addItemsFlow) {"))
-        assertTrue(html.contains("const visibleScreen = latestScreen();"))
-        assertTrue(html.contains("const visibleUids = visibleScreenNodeUids(visibleScreen);"))
-        assertTrue(html.contains("if (nodeUid) return visibleUids.has(nodeUid);"))
-        assertTrue(html.contains("return item.screenId === visibleScreen.screenId;"))
+        assertTrue(html.contains("const focusedItem = savedEvidenceItems().find(item => item.itemId === focusedSavedItemId);"))
+        assertTrue(html.contains("const sameScreenItems = savedEvidenceItems().filter(item => item.screenId === focusedItem.screenId);"))
+        assertFalse(html.contains("const visibleScreen = latestScreen();"))
+        assertFalse(html.contains("if (nodeUid) return visibleUids.has(nodeUid);"))
         assertFalse(html.contains("savedEvidenceItems().filter(item => item.screenId === visibleScreen.screenId)"))
         assertTrue(
-            html.contains("if (screenSavedItems.length) renderSavedEvidenceOverlay(overlay, image, screenSavedItems);"),
+            html.contains("if (sameScreenItems.length) renderSavedEvidenceOverlay(overlay, image, sameScreenItems);"),
         )
         assertFalse(html.contains("renderSavedEvidenceOverlay(overlay, image, persistedItems);"))
         assertFalse(html.contains("if (!addItemsFlow && !state.preview && persistedItems.length)"))
@@ -177,8 +177,12 @@ class ConsolePreviewRoutesTest {
     fun consoleHtmlLivePreviewImageUsesPreviewIdScopedScreenshotRoute() {
         val html = FeedbackConsoleAssets.indexHtml
 
-        assertTrue(html.contains("function previewScreenshotUrl(previewId)"))
-        assertTrue(html.contains("return '/api/preview/' + encodeURIComponent(previewId) + '/screenshot/full';"))
+        assertTrue(html.contains("function previewScreenshotUrl(previewId, sessionId = state.session?.sessionId || null)"))
+        assertTrue(
+            html.contains(
+                "return '/api/preview/' + encodeURIComponent(previewId) + '/screenshot/full' + scopedQuery(sessionId);",
+            ),
+        )
         assertTrue(html.contains("const src = screenImageUrl(screen);"))
         assertFalse(html.contains("const src = addItemsFlow?.screenshotUrl || '/api/preview/screenshot/full'"))
     }
@@ -221,7 +225,7 @@ class ConsolePreviewRoutesTest {
         assertTrue(html.contains("state.preview = preview;"))
         assertTrue(html.contains("if (!state.preview) {"))
         assertTrue(html.contains("previewId: state.preview.previewId"))
-        assertTrue(html.contains("screenshotUrl: previewScreenshotUrl(state.preview.previewId)"))
+        assertTrue(html.contains("screenshotUrl: previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null)"))
         assertTrue(
             Regex(
                 "finally \\{\\s+addItemsFlowStarting = false;\\s+updateComposerState\\(\\);" +
