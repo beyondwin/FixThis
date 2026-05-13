@@ -177,6 +177,14 @@
             }
 
             function hasRecoverablePreviewContext(recovery) {
+              if (recovery?.schemaVersion === 2) {
+                return Boolean(
+                  recovery.context?.previewId &&
+                  recovery.screen &&
+                  recovery.screenshotUrl &&
+                  recovery.context?.frozenAtEpochMillis
+                );
+              }
               return recovery?.schemaVersion === 1 &&
                 Boolean(recovery.previewId) &&
                 Boolean(recovery.screen) &&
@@ -195,34 +203,16 @@
             }
 
             function restorePendingRecoveryContext(recovery) {
-              const items = pendingRecoveryItems(recovery).slice();
-              addItemsFlow = {
-                context: recovery.context ?? {
-                  sessionId: recovery.sessionId ?? state.session?.sessionId ?? null,
-                  previewId: recovery.previewId,
-                  screenId: recovery.screen?.screenId ?? null,
-                  screenFingerprint: recovery.screen?.fingerprint ?? null,
-                  deviceSerial: state.selectedDeviceSerial || null,
-                  frozenAtEpochMillis: recovery.frozenAtEpochMillis,
-                  activityName: recovery.activity ?? recovery.screen?.activityName ?? null
-                },
-                previewId: recovery.previewId,
-                screen: recovery.screen,
-                screenshotUrl: recovery.screenshotUrl,
-                frozenAtEpochMillis: recovery.frozenAtEpochMillis,
-                activity: recovery.activity ?? recovery.screen?.activityName ?? null,
-                activityDriftWarning: null
-              };
-              undoRedoHistory = createHistory(addItemsFlow.context);
+              const workspace = recoverDraftWorkspaceFromEnvelope(recovery);
+              setDraftWorkspace(workspace);
               state.preview = {
-                previewId: recovery.previewId,
-                screen: recovery.screen,
-                activity: addItemsFlow.activity,
-                frozenAtEpochMillis: recovery.frozenAtEpochMillis,
+                previewId: workspace.context.previewId,
+                screen: workspace.screen,
+                activity: workspace.context.activityName,
+                frozenAtEpochMillis: workspace.context.frozenAtEpochMillis,
                 stale: false
               };
-              pendingFeedbackItems = items;
-              updateAnnotationSequenceFromPendingItems(items);
+              updateAnnotationSequenceFromPendingItems(workspace.items);
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;
               focusedSavedSessionId = null;
@@ -231,6 +221,20 @@
               toolMode = 'select';
               stopLivePreviewPolling();
               persistCurrentPendingState();
+            }
+
+            function newestDraftRecovery(workspaces) {
+              return [...(workspaces || [])]
+                .filter((workspace) => pendingRecoveryItems(workspace).length)
+                .sort((left, right) => (left.updatedAtEpochMillis || 0) - (right.updatedAtEpochMillis || 0))
+                .at(-1) || null;
+            }
+
+            function loadDraftRecoveryForSession(sessionId) {
+              const storage = createBrowserDraftPorts().storage;
+              const stored = storage.loadWorkspacesForSession(sessionId);
+              const migrated = storage.migrateLegacyPending(sessionId);
+              return newestDraftRecovery(stored.concat(migrated));
             }
 
             function ensurePendingRecoveryBanner() {
@@ -284,6 +288,9 @@
                 recapturePendingRecovery().catch(showError);
               });
               banner.querySelector('[data-discard-pending]')?.addEventListener('click', () => {
+                if (pendingRecovery?.schemaVersion === 2) {
+                  createBrowserDraftPorts().storage.deleteWorkspace(pendingRecovery.sessionId || pendingRecovery.context?.sessionId, pendingRecovery.workspaceId);
+                }
                 clearPendingMirror(state.session?.sessionId);
                 activePendingMirrorSessions.delete(state.session?.sessionId);
                 pendingRecovery = null;
@@ -302,17 +309,7 @@
                 renderPendingRecoveryBanner();
                 return;
               }
-              const restored = restorePendingState(sessionId);
-              if (
-                pendingRecoveryItems(restored).length &&
-                activePendingMirrorSessions.has(sessionId) &&
-                hasRecoverablePreviewContext(restored)
-              ) {
-                restorePendingRecoveryContext(restored);
-                pendingRecovery = null;
-                renderPendingRecoveryBanner();
-                return;
-              }
+              const restored = loadDraftRecoveryForSession(sessionId) || restorePendingState(sessionId);
               pendingRecovery = pendingRecoveryItems(restored).length ? restored : null;
               renderPendingRecoveryBanner();
             }
@@ -328,8 +325,17 @@
               invalidatePreviewContext();
               await startAddItemsFlow();
               if (!addItemsFlow) return;
-              pendingFeedbackItems = items;
-              updateAnnotationSequenceFromPendingItems(items);
+              const recoveredItems = items.map((item, index) => ({
+                ...item,
+                draftItemId: item?.draftItemId || item?.annotationId || ('recovered-' + (index + 1)),
+              }));
+              setDraftWorkspace({
+                ...draftWorkspace,
+                revision: draftWorkspace.revision + 1,
+                items: recoveredItems,
+                history: { undoStack: [], redoStack: [] },
+              });
+              updateAnnotationSequenceFromPendingItems(recoveredItems);
               pendingRecovery = null;
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;

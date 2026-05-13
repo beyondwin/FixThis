@@ -322,8 +322,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778698140000;
-const ConsoleBuildGitSha = '746fbe2';
+const ConsoleBuildEpochMs = 1778698440000;
+const ConsoleBuildGitSha = 'af4c4d8';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -1374,6 +1374,21 @@ function draftWorkspaceRecoveryEnvelope(workspace) {
   };
 }
 
+function recoverDraftWorkspaceFromEnvelope(envelope) {
+  if (envelope?.schemaVersion !== 2) throw new Error('Draft recovery requires schema v2 workspace envelope.');
+  return {
+    ...createFrozenDraftWorkspace({
+      workspaceId: envelope.workspaceId,
+      context: envelope.context,
+      screen: envelope.screen,
+      screenshotUrl: envelope.screenshotUrl,
+      history: envelope.history || { undoStack: [], redoStack: [] },
+    }),
+    revision: envelope.revision || 1,
+    items: envelope.items || [],
+  };
+}
+
 async function resolveDraftBoundary(workspace, boundaryAction, ports) {
   if (!workspace?.workspaceId || !(workspace.items || []).length) return { choice: 'continue', workspace };
   const choice = await ports.boundaryPrompt.choose(workspace, boundaryAction);
@@ -2183,30 +2198,33 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             async function useLatestStaleFrame() {
               const wasAnnotating = toolMode === 'annotate' || Boolean(addItemsFlow);
               flushFocusedPendingComment();
-              const pendingItems = pendingFeedbackItems.slice();
-              const previousFlow = addItemsFlow;
+              const pendingItems = draftWorkspaceItems(draftWorkspace).slice();
+              const previousWorkspace = draftWorkspace;
               const previousPreview = state.preview;
               invalidatePreviewContext();
               if (wasAnnotating) {
-                addItemsFlow = null;
+                setDraftWorkspace(createEmptyDraftWorkspace());
                 try {
                   await startAddItemsFlow();
                 } catch (cause) {
-                  addItemsFlow = previousFlow;
+                  setDraftWorkspace(previousWorkspace);
                   state.preview = previousPreview;
-                  pendingFeedbackItems = pendingItems;
                   if (addItemsFlow) persistCurrentPendingState();
                   render();
                   throw cause;
                 }
                 if (!addItemsFlow) {
-                  addItemsFlow = previousFlow;
+                  setDraftWorkspace(previousWorkspace);
                   state.preview = previousPreview;
-                  pendingFeedbackItems = pendingItems;
                   render();
                   return;
                 }
-                pendingFeedbackItems = pendingItems;
+                setDraftWorkspace({
+                  ...draftWorkspace,
+                  revision: draftWorkspace.revision + 1,
+                  items: pendingItems,
+                  history: { undoStack: [], redoStack: [] },
+                });
                 updateAnnotationSequenceFromPendingItems(pendingItems);
                 focusedPendingItemIndex = null;
                 focusedSavedItemId = null;
@@ -2537,12 +2555,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function resetAnnotationComposerState(clearFlow = true, clearMirror = true) {
-              if (clearFlow) addItemsFlow = null;
+              if (clearFlow) setDraftWorkspace(createEmptyDraftWorkspace());
               if (clearMirror) {
                 clearPendingMirror(state.session?.sessionId);
                 activePendingMirrorSessions.delete(state.session?.sessionId);
               }
-              pendingFeedbackItems = [];
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;
               focusedSavedSessionId = null;
@@ -4475,6 +4492,14 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function hasRecoverablePreviewContext(recovery) {
+              if (recovery?.schemaVersion === 2) {
+                return Boolean(
+                  recovery.context?.previewId &&
+                  recovery.screen &&
+                  recovery.screenshotUrl &&
+                  recovery.context?.frozenAtEpochMillis
+                );
+              }
               return recovery?.schemaVersion === 1 &&
                 Boolean(recovery.previewId) &&
                 Boolean(recovery.screen) &&
@@ -4493,34 +4518,16 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function restorePendingRecoveryContext(recovery) {
-              const items = pendingRecoveryItems(recovery).slice();
-              addItemsFlow = {
-                context: recovery.context ?? {
-                  sessionId: recovery.sessionId ?? state.session?.sessionId ?? null,
-                  previewId: recovery.previewId,
-                  screenId: recovery.screen?.screenId ?? null,
-                  screenFingerprint: recovery.screen?.fingerprint ?? null,
-                  deviceSerial: state.selectedDeviceSerial || null,
-                  frozenAtEpochMillis: recovery.frozenAtEpochMillis,
-                  activityName: recovery.activity ?? recovery.screen?.activityName ?? null
-                },
-                previewId: recovery.previewId,
-                screen: recovery.screen,
-                screenshotUrl: recovery.screenshotUrl,
-                frozenAtEpochMillis: recovery.frozenAtEpochMillis,
-                activity: recovery.activity ?? recovery.screen?.activityName ?? null,
-                activityDriftWarning: null
-              };
-              undoRedoHistory = createHistory(addItemsFlow.context);
+              const workspace = recoverDraftWorkspaceFromEnvelope(recovery);
+              setDraftWorkspace(workspace);
               state.preview = {
-                previewId: recovery.previewId,
-                screen: recovery.screen,
-                activity: addItemsFlow.activity,
-                frozenAtEpochMillis: recovery.frozenAtEpochMillis,
+                previewId: workspace.context.previewId,
+                screen: workspace.screen,
+                activity: workspace.context.activityName,
+                frozenAtEpochMillis: workspace.context.frozenAtEpochMillis,
                 stale: false
               };
-              pendingFeedbackItems = items;
-              updateAnnotationSequenceFromPendingItems(items);
+              updateAnnotationSequenceFromPendingItems(workspace.items);
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;
               focusedSavedSessionId = null;
@@ -4529,6 +4536,20 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               toolMode = 'select';
               stopLivePreviewPolling();
               persistCurrentPendingState();
+            }
+
+            function newestDraftRecovery(workspaces) {
+              return [...(workspaces || [])]
+                .filter((workspace) => pendingRecoveryItems(workspace).length)
+                .sort((left, right) => (left.updatedAtEpochMillis || 0) - (right.updatedAtEpochMillis || 0))
+                .at(-1) || null;
+            }
+
+            function loadDraftRecoveryForSession(sessionId) {
+              const storage = createBrowserDraftPorts().storage;
+              const stored = storage.loadWorkspacesForSession(sessionId);
+              const migrated = storage.migrateLegacyPending(sessionId);
+              return newestDraftRecovery(stored.concat(migrated));
             }
 
             function ensurePendingRecoveryBanner() {
@@ -4582,6 +4603,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 recapturePendingRecovery().catch(showError);
               });
               banner.querySelector('[data-discard-pending]')?.addEventListener('click', () => {
+                if (pendingRecovery?.schemaVersion === 2) {
+                  createBrowserDraftPorts().storage.deleteWorkspace(pendingRecovery.sessionId || pendingRecovery.context?.sessionId, pendingRecovery.workspaceId);
+                }
                 clearPendingMirror(state.session?.sessionId);
                 activePendingMirrorSessions.delete(state.session?.sessionId);
                 pendingRecovery = null;
@@ -4600,17 +4624,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 renderPendingRecoveryBanner();
                 return;
               }
-              const restored = restorePendingState(sessionId);
-              if (
-                pendingRecoveryItems(restored).length &&
-                activePendingMirrorSessions.has(sessionId) &&
-                hasRecoverablePreviewContext(restored)
-              ) {
-                restorePendingRecoveryContext(restored);
-                pendingRecovery = null;
-                renderPendingRecoveryBanner();
-                return;
-              }
+              const restored = loadDraftRecoveryForSession(sessionId) || restorePendingState(sessionId);
               pendingRecovery = pendingRecoveryItems(restored).length ? restored : null;
               renderPendingRecoveryBanner();
             }
@@ -4626,8 +4640,17 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               invalidatePreviewContext();
               await startAddItemsFlow();
               if (!addItemsFlow) return;
-              pendingFeedbackItems = items;
-              updateAnnotationSequenceFromPendingItems(items);
+              const recoveredItems = items.map((item, index) => ({
+                ...item,
+                draftItemId: item?.draftItemId || item?.annotationId || ('recovered-' + (index + 1)),
+              }));
+              setDraftWorkspace({
+                ...draftWorkspace,
+                revision: draftWorkspace.revision + 1,
+                items: recoveredItems,
+                history: { undoStack: [], redoStack: [] },
+              });
+              updateAnnotationSequenceFromPendingItems(recoveredItems);
               pendingRecovery = null;
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;

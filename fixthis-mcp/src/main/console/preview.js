@@ -223,30 +223,33 @@
             async function useLatestStaleFrame() {
               const wasAnnotating = toolMode === 'annotate' || Boolean(addItemsFlow);
               flushFocusedPendingComment();
-              const pendingItems = pendingFeedbackItems.slice();
-              const previousFlow = addItemsFlow;
+              const pendingItems = draftWorkspaceItems(draftWorkspace).slice();
+              const previousWorkspace = draftWorkspace;
               const previousPreview = state.preview;
               invalidatePreviewContext();
               if (wasAnnotating) {
-                addItemsFlow = null;
+                setDraftWorkspace(createEmptyDraftWorkspace());
                 try {
                   await startAddItemsFlow();
                 } catch (cause) {
-                  addItemsFlow = previousFlow;
+                  setDraftWorkspace(previousWorkspace);
                   state.preview = previousPreview;
-                  pendingFeedbackItems = pendingItems;
                   if (addItemsFlow) persistCurrentPendingState();
                   render();
                   throw cause;
                 }
                 if (!addItemsFlow) {
-                  addItemsFlow = previousFlow;
+                  setDraftWorkspace(previousWorkspace);
                   state.preview = previousPreview;
-                  pendingFeedbackItems = pendingItems;
                   render();
                   return;
                 }
-                pendingFeedbackItems = pendingItems;
+                setDraftWorkspace({
+                  ...draftWorkspace,
+                  revision: draftWorkspace.revision + 1,
+                  items: pendingItems,
+                  history: { undoStack: [], redoStack: [] },
+                });
                 updateAnnotationSequenceFromPendingItems(pendingItems);
                 focusedPendingItemIndex = null;
                 focusedSavedItemId = null;

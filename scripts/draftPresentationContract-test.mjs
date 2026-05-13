@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/state.js'), 'utf8');
 const annotationsSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/annotations.js'), 'utf8');
+const mainSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/main.js'), 'utf8');
+const previewSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/preview.js'), 'utf8');
 const renderingSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/rendering.js'), 'utf8');
 
 function body(source, signature) {
@@ -45,4 +47,13 @@ test('pending delete uses deleteDraftItem use case instead of direct splice', ()
 
 test('pending overlay renders from draft workspace selector', () => {
   assert.match(renderingSource, /draftWorkspaceItems\(draftWorkspace\)/);
+});
+
+test('annotation presentation no longer mutates pending array directly', () => {
+  assert.doesNotMatch(annotationsSource, /pendingFeedbackItems\.push\(/);
+  assert.doesNotMatch(annotationsSource, /pendingFeedbackItems\.splice\(/);
+  assert.doesNotMatch(annotationsSource, /pendingFeedbackItems\s*=\s*\[\]/);
+  assert.doesNotMatch(annotationsSource, /pendingFeedbackItems\s*=\s*items/);
+  assert.doesNotMatch(mainSource, /pendingFeedbackItems\s*=\s*items/);
+  assert.doesNotMatch(previewSource, /pendingFeedbackItems\s*=\s*pendingItems/);
 });

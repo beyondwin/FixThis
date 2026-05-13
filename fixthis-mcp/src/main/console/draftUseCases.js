@@ -101,6 +101,21 @@ function draftWorkspaceRecoveryEnvelope(workspace) {
   };
 }
 
+function recoverDraftWorkspaceFromEnvelope(envelope) {
+  if (envelope?.schemaVersion !== 2) throw new Error('Draft recovery requires schema v2 workspace envelope.');
+  return {
+    ...createFrozenDraftWorkspace({
+      workspaceId: envelope.workspaceId,
+      context: envelope.context,
+      screen: envelope.screen,
+      screenshotUrl: envelope.screenshotUrl,
+      history: envelope.history || { undoStack: [], redoStack: [] },
+    }),
+    revision: envelope.revision || 1,
+    items: envelope.items || [],
+  };
+}
+
 async function resolveDraftBoundary(workspace, boundaryAction, ports) {
   if (!workspace?.workspaceId || !(workspace.items || []).length) return { choice: 'continue', workspace };
   const choice = await ports.boundaryPrompt.choose(workspace, boundaryAction);

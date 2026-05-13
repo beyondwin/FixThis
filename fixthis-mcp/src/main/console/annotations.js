@@ -310,12 +310,11 @@
             }
 
             function resetAnnotationComposerState(clearFlow = true, clearMirror = true) {
-              if (clearFlow) addItemsFlow = null;
+              if (clearFlow) setDraftWorkspace(createEmptyDraftWorkspace());
               if (clearMirror) {
                 clearPendingMirror(state.session?.sessionId);
                 activePendingMirrorSessions.delete(state.session?.sessionId);
               }
-              pendingFeedbackItems = [];
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;
               focusedSavedSessionId = null;
