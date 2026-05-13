@@ -2845,6 +2845,12 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               });
             }
 
+            function focusCommentInputAtEnd(commentInput) {
+              commentInput.focus();
+              const end = commentInput.value.length;
+              commentInput.setSelectionRange(end, end);
+            }
+
             function renderAnnotationDetail(item, index) {
               const severity = annotationSeverity(item);
               const status = annotationStatus(item);
@@ -2926,7 +2932,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               pendingItems.querySelector('[data-delete-current]').addEventListener('click', () => {
                 deletePendingFeedbackItem(index);
               });
-              commentInput.focus();
+              focusCommentInputAtEnd(commentInput);
             }
 
             function savedEvidenceGroups() {
@@ -3219,7 +3225,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   deleteSavedEvidenceItem(item.itemId, editSessionId).catch(showError);
                 });
               }
-              if (editable) commentInput.focus();
+              if (editable) focusCommentInputAtEnd(commentInput);
             }
 
 

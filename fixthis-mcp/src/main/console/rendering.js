@@ -158,6 +158,12 @@
               });
             }
 
+            function focusCommentInputAtEnd(commentInput) {
+              commentInput.focus();
+              const end = commentInput.value.length;
+              commentInput.setSelectionRange(end, end);
+            }
+
             function renderAnnotationDetail(item, index) {
               const severity = annotationSeverity(item);
               const status = annotationStatus(item);
@@ -239,7 +245,7 @@
               pendingItems.querySelector('[data-delete-current]').addEventListener('click', () => {
                 deletePendingFeedbackItem(index);
               });
-              commentInput.focus();
+              focusCommentInputAtEnd(commentInput);
             }
 
             function savedEvidenceGroups() {
@@ -532,7 +538,7 @@
                   deleteSavedEvidenceItem(item.itemId, editSessionId).catch(showError);
                 });
               }
-              if (editable) commentInput.focus();
+              if (editable) focusCommentInputAtEnd(commentInput);
             }
 
 

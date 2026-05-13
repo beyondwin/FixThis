@@ -622,6 +622,19 @@ async function runSmoke(baseUrl) {
         .join(',') === '1,2,3,4'
     );
     await page.waitForFunction(() => document.activeElement?.id === 'annotationCommentInput');
+    assert.deepEqual(
+      await page.$eval('#annotationCommentInput', input => ({
+        selectionStart: input.selectionStart,
+        selectionEnd: input.selectionEnd,
+        length: input.value.length,
+      })),
+      {
+        selectionStart: 'Existing history annotation'.length,
+        selectionEnd: 'Existing history annotation'.length,
+        length: 'Existing history annotation'.length,
+      },
+      'Focused saved annotation comment should place the caret at the end',
+    );
     const editedHistoryComment = 'Edited history annotation';
     await page.fill('#annotationCommentInput', editedHistoryComment);
     const historyUpdateResponse = page.waitForResponse(response =>
