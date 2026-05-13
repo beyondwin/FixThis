@@ -8,7 +8,6 @@ import android.content.pm.ApplicationInfo
 import android.os.PowerManager
 import android.util.DisplayMetrics
 import io.beyondwin.fixthis.compose.core.model.FixThisError
-import io.beyondwin.fixthis.compose.sidekick.BuildInfo
 import io.beyondwin.fixthis.compose.sidekick.inspect.SemanticsInspector
 import io.beyondwin.fixthis.compose.sidekick.lifecycle.FixThisActivityLifecycleCallbacks
 import io.beyondwin.fixthis.compose.sidekick.screenshot.ScreenshotCapturer
@@ -27,6 +26,7 @@ internal class AndroidBridgeEnvironment(
     private val mainDispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
     private val inspector: SemanticsInspector = SemanticsInspector(),
     private val screenshotCapturer: ScreenshotCapturer = ScreenshotCapturer(ScreenshotStore(context)),
+    private val buildInfoProvider: SidekickBuildInfoProvider = AndroidResourceSidekickBuildInfoProvider(context),
 ) : BridgeEnvironment {
     var currentActivity: WeakReference<Activity>? = null
     private var lastScreenSnapshot: BridgeScreenSnapshot? = null
@@ -41,6 +41,7 @@ internal class AndroidBridgeEnvironment(
     override suspend fun status(): BridgeStatus {
         val inspection = inspectCurrentScreen()
         val sourceIndexResult = readSourceIndex()
+        val buildInfo = buildInfoProvider.current()
         val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
         val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
         val resumedActivity = lifecycleCallbacks.lastResumedActivity()
@@ -55,7 +56,7 @@ internal class AndroidBridgeEnvironment(
             appForeground = lifecycleCallbacks.isAppForeground(),
             pictureInPicture = resumedActivity?.isInPictureInPictureMode,
             installEpochMillis = readInstallEpochMillis(),
-            sidekickBuildEpochMs = BuildInfo.BUILD_EPOCH_MS,
+            sidekickBuildEpochMs = buildInfo.buildEpochMs,
         )
     }
 
