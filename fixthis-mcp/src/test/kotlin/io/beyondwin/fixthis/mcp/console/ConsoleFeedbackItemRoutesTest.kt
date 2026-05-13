@@ -357,13 +357,15 @@ class ConsoleFeedbackItemRoutesTest {
     fun consoleHtmlEditsSelectedAnnotationsAndFocusesComment() {
         val html = FeedbackConsoleAssets.indexHtml
         val toolbarAnnotationCounts = javascriptFunctionBody(html, "toolbarAnnotationCounts")
+        val focusCommentInputAtEnd = javascriptFunctionBody(html, "focusCommentInputAtEnd")
         val renderAnnotationDetail = javascriptFunctionBody(html, "renderAnnotationDetail")
         val renderSavedAnnotationDetail = javascriptFunctionBody(html, "renderSavedAnnotationDetail")
         val persistSavedEvidenceItem = javascriptFunctionBody(html, "persistSavedEvidenceItem")
 
         assertTrue(toolbarAnnotationCounts.contains("const annotations = toolbarAnnotations();"))
         assertFalse(toolbarAnnotationCounts.contains("const summary = selectedHistorySummary();"))
-        assertTrue(renderAnnotationDetail.contains("commentInput.focus();"))
+        assertTrue(focusCommentInputAtEnd.contains("commentInput.focus();"))
+        assertTrue(renderAnnotationDetail.contains("focusCommentInputAtEnd(commentInput);"))
         assertTrue(renderSavedAnnotationDetail.contains("id=\"annotationCommentInput\""))
         assertFalse(renderSavedAnnotationDetail.contains("readonly"))
         assertTrue(
@@ -375,17 +377,21 @@ class ConsoleFeedbackItemRoutesTest {
         assertTrue(persistSavedEvidenceItem.contains("requestJson('/api/items/' + encodeURIComponent(item.itemId)"))
         assertTrue(persistSavedEvidenceItem.contains("method: 'PUT'"))
         assertTrue(persistSavedEvidenceItem.contains("sessionId: sessionId"))
-        assertTrue(renderSavedAnnotationDetail.contains("commentInput.focus();"))
+        assertTrue(renderSavedAnnotationDetail.contains("if (editable) focusCommentInputAtEnd(commentInput);"))
     }
 
     @Test
     fun consoleHtmlResetsAnnotationComposerStateAcrossSessionActions() {
         val html = FeedbackConsoleAssets.indexHtml
 
-        assertTrue(html.contains("function resetAnnotationComposerState(clearFlow = true)"))
+        assertTrue(html.contains("function resetAnnotationComposerState(clearFlow = true, clearMirror = true)"))
+        assertTrue(
+            Regex("if \\(clearMirror\\) \\{[\\s\\S]*clearPendingMirror\\(state\\.session\\?\\.sessionId\\);")
+                .containsMatchIn(html),
+        )
         assertTrue(
             Regex(
-                "async function openSession\\(sessionId\\)[\\s\\S]*resetAnnotationComposerState\\(\\);" +
+                "async function openSession\\(sessionId\\)[\\s\\S]*resetAnnotationComposerState\\(true, false\\);" +
                     "[\\s\\S]*/api/session/open",
             ).containsMatchIn(html),
         )

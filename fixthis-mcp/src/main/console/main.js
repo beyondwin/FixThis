@@ -1,4 +1,5 @@
             let pendingRecovery = null;
+            const activePendingMirrorSessions = new Set();
 
             selectToolButton.addEventListener('click', enterSelectMode);
             annotateToolButton.addEventListener('click', () => enterAnnotateMode().catch(showError));
@@ -278,6 +279,7 @@
               });
               banner.querySelector('[data-discard-pending]')?.addEventListener('click', () => {
                 clearPendingMirror(state.session?.sessionId);
+                activePendingMirrorSessions.delete(state.session?.sessionId);
                 pendingRecovery = null;
                 renderPendingRecoveryBanner();
               });
@@ -289,11 +291,22 @@
                 renderPendingRecoveryBanner();
                 return;
               }
+              const sessionId = state.session.sessionId;
               if (addItemsFlow || pendingFeedbackItems.length) {
                 renderPendingRecoveryBanner();
                 return;
               }
-              const restored = restorePendingState(state.session.sessionId);
+              const restored = restorePendingState(sessionId);
+              if (
+                pendingRecoveryItems(restored).length &&
+                activePendingMirrorSessions.has(sessionId) &&
+                hasRecoverablePreviewContext(restored)
+              ) {
+                restorePendingRecoveryContext(restored);
+                pendingRecovery = null;
+                renderPendingRecoveryBanner();
+                return;
+              }
               pendingRecovery = pendingRecoveryItems(restored).length ? restored : null;
               renderPendingRecoveryBanner();
             }

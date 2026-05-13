@@ -309,9 +309,12 @@
               renderSelectionOverlay();
             }
 
-            function resetAnnotationComposerState(clearFlow = true) {
+            function resetAnnotationComposerState(clearFlow = true, clearMirror = true) {
               if (clearFlow) addItemsFlow = null;
-              clearPendingMirror(state.session?.sessionId);
+              if (clearMirror) {
+                clearPendingMirror(state.session?.sessionId);
+                activePendingMirrorSessions.delete(state.session?.sessionId);
+              }
               pendingFeedbackItems = [];
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;
@@ -335,7 +338,14 @@
             }
 
             function persistCurrentPendingState() {
-              persistPendingState(state.session?.sessionId, currentPendingStateEnvelope());
+              const sessionId = state.session?.sessionId;
+              const envelope = currentPendingStateEnvelope();
+              persistPendingState(sessionId, envelope);
+              if (sessionId && pendingRecoveryItems(envelope).length) {
+                activePendingMirrorSessions.add(sessionId);
+              } else {
+                activePendingMirrorSessions.delete(sessionId);
+              }
             }
 
             function releaseSnapshotPointerCapture(image, event) {

@@ -239,8 +239,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778691780000;
-const ConsoleBuildGitSha = '86071ea';
+const ConsoleBuildEpochMs = 1778695800000;
+const ConsoleBuildGitSha = '2387f88';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -1802,9 +1802,12 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               renderSelectionOverlay();
             }
 
-            function resetAnnotationComposerState(clearFlow = true) {
+            function resetAnnotationComposerState(clearFlow = true, clearMirror = true) {
               if (clearFlow) addItemsFlow = null;
-              clearPendingMirror(state.session?.sessionId);
+              if (clearMirror) {
+                clearPendingMirror(state.session?.sessionId);
+                activePendingMirrorSessions.delete(state.session?.sessionId);
+              }
               pendingFeedbackItems = [];
               focusedPendingItemIndex = null;
               focusedSavedItemId = null;
@@ -1828,7 +1831,14 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function persistCurrentPendingState() {
-              persistPendingState(state.session?.sessionId, currentPendingStateEnvelope());
+              const sessionId = state.session?.sessionId;
+              const envelope = currentPendingStateEnvelope();
+              persistPendingState(sessionId, envelope);
+              if (sessionId && pendingRecoveryItems(envelope).length) {
+                activePendingMirrorSessions.add(sessionId);
+              } else {
+                activePendingMirrorSessions.delete(sessionId);
+              }
             }
 
             function releaseSnapshotPointerCapture(image, event) {
@@ -2472,7 +2482,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (await resolvePendingBeforeBoundary('open-session', sessionId) !== 'continue') return;
               bumpSessionMutationGeneration();
               stopLivePreviewPolling();
-              resetAnnotationComposerState();
+              resetAnnotationComposerState(true, false);
               invalidatePreviewContext();
               state.session = await withMutationLock(() => requestJson('/api/session/open', {
                 method: 'POST',
@@ -3581,6 +3591,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
 // main.js
             let pendingRecovery = null;
+            const activePendingMirrorSessions = new Set();
 
             selectToolButton.addEventListener('click', enterSelectMode);
             annotateToolButton.addEventListener('click', () => enterAnnotateMode().catch(showError));
@@ -3860,6 +3871,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               });
               banner.querySelector('[data-discard-pending]')?.addEventListener('click', () => {
                 clearPendingMirror(state.session?.sessionId);
+                activePendingMirrorSessions.delete(state.session?.sessionId);
                 pendingRecovery = null;
                 renderPendingRecoveryBanner();
               });
@@ -3871,11 +3883,22 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 renderPendingRecoveryBanner();
                 return;
               }
+              const sessionId = state.session.sessionId;
               if (addItemsFlow || pendingFeedbackItems.length) {
                 renderPendingRecoveryBanner();
                 return;
               }
-              const restored = restorePendingState(state.session.sessionId);
+              const restored = restorePendingState(sessionId);
+              if (
+                pendingRecoveryItems(restored).length &&
+                activePendingMirrorSessions.has(sessionId) &&
+                hasRecoverablePreviewContext(restored)
+              ) {
+                restorePendingRecoveryContext(restored);
+                pendingRecovery = null;
+                renderPendingRecoveryBanner();
+                return;
+              }
               pendingRecovery = pendingRecoveryItems(restored).length ? restored : null;
               renderPendingRecoveryBanner();
             }

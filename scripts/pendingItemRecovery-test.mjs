@@ -172,6 +172,27 @@ test('session refresh reloads pending recovery and session switches require a re
   assert.match(annotateBody, /requirePendingRecoveryChoiceBeforeSessionChange\(\)/);
 });
 
+test('switching sessions keeps the previous session pending recovery mirror', () => {
+  const resetBody = extractFunctionBody(annotationsSource, 'function resetAnnotationComposerState');
+  const openBody = extractFunctionBody(historySource, 'async function openSession(sessionId)');
+  assert.match(annotationsSource, /function resetAnnotationComposerState\(clearFlow\s*=\s*true,\s*clearMirror\s*=\s*true\)/);
+  assert.match(resetBody, /if\s*\(clearMirror\)\s*\{[\s\S]*?clearPendingMirror\(state\.session\?\.sessionId\);/);
+  assert.match(openBody, /resetAnnotationComposerState\(true,\s*false\);/);
+  assert.doesNotMatch(openBody, /resetAnnotationComposerState\(\);/);
+});
+
+test('returning to a session with an active pending mirror restores without showing recovery again', () => {
+  const persistBody = extractFunctionBody(annotationsSource, 'function persistCurrentPendingState()');
+  const loadBody = extractFunctionBody(mainSource, 'function loadPendingRecoveryForCurrentSession()');
+  const resetBody = extractFunctionBody(annotationsSource, 'function resetAnnotationComposerState');
+  assert.match(mainSource, /const activePendingMirrorSessions = new Set\(\);/);
+  assert.match(persistBody, /activePendingMirrorSessions\.add\(sessionId\);/);
+  assert.match(persistBody, /activePendingMirrorSessions\.delete\(sessionId\);/);
+  assert.match(resetBody, /activePendingMirrorSessions\.delete\(state\.session\?\.sessionId\);/);
+  assert.match(loadBody, /activePendingMirrorSessions\.has\(sessionId\)[\s\S]*?hasRecoverablePreviewContext\(restored\)/);
+  assert.match(loadBody, /restorePendingRecoveryContext\(restored\);[\s\S]*?pendingRecovery\s*=\s*null;[\s\S]*?return;/);
+});
+
 test('pending annotation detail edits write through to recovery envelope', () => {
   const detailBody = extractFunctionBody(renderingSource, 'function renderAnnotationDetail(item, index)');
   assert.match(detailBody, /item\.label\s*=\s*event\.target\.value;[\s\S]*?persistCurrentPendingState\(\);/);

@@ -267,7 +267,7 @@
               if (await resolvePendingBeforeBoundary('open-session', sessionId) !== 'continue') return;
               bumpSessionMutationGeneration();
               stopLivePreviewPolling();
-              resetAnnotationComposerState();
+              resetAnnotationComposerState(true, false);
               invalidatePreviewContext();
               state.session = await withMutationLock(() => requestJson('/api/session/open', {
                 method: 'POST',
