@@ -9,6 +9,7 @@ const sources = [
   'state.js',
   'staleness.js',
   'pendingPersistence.js',
+  'draftWorkspace.js',
   'beforeunloadGuard.js',
   'undoRedo.js',
   'undoKeymatch.js',
