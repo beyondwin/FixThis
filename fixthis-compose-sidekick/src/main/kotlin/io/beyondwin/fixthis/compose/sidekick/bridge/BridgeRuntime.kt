@@ -1,4 +1,4 @@
-@file:Suppress("MatchingDeclarationName")
+@file:Suppress("MatchingDeclarationName", "ktlint:standard:filename")
 
 package io.beyondwin.fixthis.compose.sidekick.bridge
 

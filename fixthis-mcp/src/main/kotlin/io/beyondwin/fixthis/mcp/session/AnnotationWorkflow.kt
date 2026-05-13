@@ -11,7 +11,7 @@ import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
  * draft preview saves, target evidence, and status transitions at the MCP
  * boundary.
  */
-@Suppress("TooManyFunctions")
+@Suppress("LongParameterList", "TooManyFunctions")
 class AnnotationWorkflow(
     private val store: FeedbackSessionStore,
     private val draftService: FeedbackDraftService,
@@ -135,7 +135,11 @@ class AnnotationWorkflow(
         summary: String?,
     ): AnnotationDto = store.updateItemStatus(sessionId, itemId, status, summary)
 
-    fun claimFeedback(sessionId: String, itemId: String, agentNote: String?): AnnotationDto = store.claimFeedback(sessionId, itemId, agentNote)
+    fun claimFeedback(
+        sessionId: String,
+        itemId: String,
+        agentNote: String?,
+    ): AnnotationDto = store.claimFeedback(sessionId, itemId, agentNote)
 
     fun updateDraftFeedback(
         sessionId: String,
@@ -153,7 +157,13 @@ class AnnotationWorkflow(
         status = status,
     )
 
-    fun deleteDraftFeedback(sessionId: String, itemId: String): SessionDto = store.deleteDraftItem(sessionId, itemId)
+    fun deleteDraftFeedback(
+        sessionId: String,
+        itemId: String,
+    ): SessionDto = store.deleteDraftItem(sessionId, itemId)
 
-    fun markItemsHandedOff(sessionId: String, itemIds: List<String>): SessionDto = store.markItemsHandedOff(sessionId, itemIds)
+    fun markItemsHandedOff(
+        sessionId: String,
+        itemIds: List<String>,
+    ): SessionDto = store.markItemsHandedOff(sessionId, itemIds)
 }

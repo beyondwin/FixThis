@@ -40,9 +40,11 @@ The branch-protection flip itself is gated on the "Pending" rows above turning g
 
 Architecture guardrails are part of `:fixthis-mcp:test`. They assert that
 `:fixthis-compose-core` stays free of Android/MCP/CLI imports and that known
-large handwritten files cannot grow while they are being split. If a legitimate
-architecture change needs a new dependency direction, record the decision in
-`docs/architecture/adr/` before changing the guard.
+large handwritten files stay within their hotspot budgets while they are being
+split. If a legitimate architecture change needs a new dependency direction,
+record the decision in `docs/architecture/adr/` before changing the guard.
+Prefer fixing new detekt findings over expanding a baseline; remove stale
+baseline entries when a refactor makes them disappear.
 
 Run these before opening a pull request:
 

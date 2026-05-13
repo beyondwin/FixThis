@@ -10,7 +10,9 @@ class ModuleBoundaryTest {
 
     @Test
     fun composeCoreDoesNotImportOuterModulesOrAndroid() {
-        val forbidden = Regex("""^import (android|androidx|io\.beyondwin\.fixthis\.(mcp|cli|gradle|compose\.sidekick))""")
+        val forbidden = Regex(
+            """^import (android|androidx|io\.beyondwin\.fixthis\.(mcp|cli|gradle|compose\.sidekick))""",
+        )
         val offenders = kotlinFiles("fixthis-compose-core/src/main")
             .flatMap { file ->
                 file.readLines().mapIndexedNotNull { index, line ->

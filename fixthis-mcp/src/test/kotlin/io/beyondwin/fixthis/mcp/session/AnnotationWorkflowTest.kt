@@ -195,7 +195,10 @@ class AnnotationWorkflowTest {
         val repository: AnnotationWorkflow,
         val store: FeedbackSessionStore,
     ) {
-        fun openSession(): SessionDto = store.openSession(packageName = "io.beyondwin.fixthis.sample", projectRoot = "/repo")
+        fun openSession(): SessionDto = store.openSession(
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+        )
 
         suspend fun captureScreen(sessionId: String): SnapshotDto = store.addScreen(
             sessionId,

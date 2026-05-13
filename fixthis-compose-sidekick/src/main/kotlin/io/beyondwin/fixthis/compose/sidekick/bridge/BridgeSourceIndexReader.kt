@@ -8,24 +8,23 @@ private fun Context.hasAsset(path: String): Boolean = runCatching {
     assets.open(path).use { true }
 }.getOrDefault(false)
 
-internal fun Context.readSourceIndexResult(path: String): BridgeSourceIndexResult =
-    if (!hasAsset(path)) {
-        BridgeSourceIndexResult(sourceIndexAvailable = false)
-    } else {
-        readSourceIndexAsset(path).fold(
-            onSuccess = ::decodeSourceIndex,
-            onFailure = ::sourceIndexUnavailable,
-        )
-    }
+internal fun Context.readSourceIndexResult(path: String): BridgeSourceIndexResult = if (!hasAsset(path)) {
+    BridgeSourceIndexResult(sourceIndexAvailable = false)
+} else {
+    readSourceIndexAsset(path).fold(
+        onSuccess = ::decodeSourceIndex,
+        onFailure = ::sourceIndexUnavailable,
+    )
+}
 
 private fun decodeSourceIndex(json: String): BridgeSourceIndexResult = runCatching {
-        BridgeSourceIndexResult(
-            sourceIndexAvailable = true,
-            sourceIndex = BridgeProtocol.json.decodeFromString(SourceIndex.serializer(), json),
-        )
-    }.getOrElse { error ->
-        sourceIndexUnavailable(error)
-    }
+    BridgeSourceIndexResult(
+        sourceIndexAvailable = true,
+        sourceIndex = BridgeProtocol.json.decodeFromString(SourceIndex.serializer(), json),
+    )
+}.getOrElse { error ->
+    sourceIndexUnavailable(error)
+}
 
 private fun sourceIndexUnavailable(error: Throwable): BridgeSourceIndexResult = BridgeSourceIndexResult(
     sourceIndexAvailable = false,
@@ -48,8 +47,9 @@ private fun Context.readSourceIndexAsset(path: String): Result<String> = runCatc
     }
 }
 
-private class SourceIndexAssetTooLargeException : IllegalStateException(
-    "Source index asset exceeds $MAX_SOURCE_INDEX_ASSET_BYTES bytes",
-)
+private class SourceIndexAssetTooLargeException :
+    IllegalStateException(
+        "Source index asset exceeds $MAX_SOURCE_INDEX_ASSET_BYTES bytes",
+    )
 
 private const val MAX_SOURCE_INDEX_ASSET_BYTES = 4 * 1024 * 1024
