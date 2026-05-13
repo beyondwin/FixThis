@@ -347,6 +347,11 @@
               render();
             }
 
+            window.FixThisConsoleDebug = Object.freeze({
+              getDraftWorkspace: () => draftWorkspace,
+              getState: () => state,
+            });
+
             initializePreviewIntervalSelect();
             applyPreviewZoom();
             refresh()

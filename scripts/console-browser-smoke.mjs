@@ -749,6 +749,19 @@ async function runSmoke(baseUrl) {
     await page.evaluate(() => {
       delete window.fixThisPromptPendingBoundary;
     });
+    await page.evaluate(() => {
+      const debug = window.FixThisConsoleDebug;
+      const draftWorkspace = debug.getDraftWorkspace();
+      const state = debug.getState();
+      window.__fixthisDraftRaceResult = {
+        activeWorkspaceSession: draftWorkspace?.context?.sessionId || null,
+        activeWorkspaceItems: draftWorkspace?.items?.length || 0,
+        visibleSession: state?.session?.sessionId || null,
+      };
+    });
+    const draftWorkspaceSessionSwitchRace = await page.evaluate(() => window.__fixthisDraftRaceResult);
+    assert.equal(draftWorkspaceSessionSwitchRace.activeWorkspaceSession, draftWorkspaceSessionSwitchRace.visibleSession);
+    assert.ok(draftWorkspaceSessionSwitchRace.activeWorkspaceItems >= 0);
     await page.mouse.move(imageBox.x + 40, imageBox.y + 40);
     await page.mouse.down();
     await page.mouse.move(imageBox.x + 120, imageBox.y + 90);

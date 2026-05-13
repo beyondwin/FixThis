@@ -141,10 +141,7 @@ class ConsolePreviewRoutesTest {
         assertTrue(html.contains("const requestGeneration = ++previewRequestGeneration"))
         assertTrue(html.contains("if (addItemsFlow || requestGeneration !== previewRequestGeneration) return;"))
         assertTrue(
-            html.contains(
-                "screenshotUrl: previewScreenshotUrl(" +
-                    "state.preview.previewId, state.session?.sessionId || null)",
-            ),
+            html.contains("screenshotUrl: ports.preview.screenshotUrl(preview.previewId, sessionId)"),
         )
         assertTrue(html.contains("function latestPersistedScreen()"))
         assertTrue(html.contains("const persistedScreenIds = new Set("))
@@ -244,12 +241,11 @@ class ConsolePreviewRoutesTest {
         assertTrue(html.contains("if (addFlowContextGeneration !== previewRequestContextGeneration) return;"))
         assertTrue(html.contains("state.preview = preview;"))
         assertTrue(html.contains("if (!state.preview) {"))
-        assertTrue(html.contains("previewId: state.preview.previewId"))
+        assertTrue(html.contains("startDraftFreeze(draftWorkspace"))
+        assertTrue(html.contains("capture: async () => state.preview"))
+        assertTrue(html.contains("sessionId: state.session?.sessionId || null"))
         assertTrue(
-            html.contains(
-                "screenshotUrl: previewScreenshotUrl(" +
-                    "state.preview.previewId, state.session?.sessionId || null)",
-            ),
+            html.contains("screenshotUrl: ports.preview.screenshotUrl(preview.previewId, sessionId)"),
         )
         assertTrue(
             Regex(

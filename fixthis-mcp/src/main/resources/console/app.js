@@ -322,8 +322,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778698440000;
-const ConsoleBuildGitSha = 'af4c4d8';
+const ConsoleBuildEpochMs = 1778698560000;
+const ConsoleBuildGitSha = 'd84add1';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -4661,6 +4661,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               renderPendingRecoveryBanner();
               render();
             }
+
+            window.FixThisConsoleDebug = Object.freeze({
+              getDraftWorkspace: () => draftWorkspace,
+              getState: () => state,
+            });
 
             initializePreviewIntervalSelect();
             applyPreviewZoom();

@@ -41,14 +41,13 @@
 - `Save to MCP` persists written pending annotations when needed, then creates a local handoff batch for MCP tools.
 - `Clear Draft` deletes unsent draft feedback after confirmation.
 - Live preview frames are transient. Persisted `screens` are evidence snapshots, not every preview frame.
-- Browser-only pending work is mirrored to
-  `localStorage["fixthis.pending.<sessionId>"]` as a schema-v1 envelope with
-  `sessionId`, `previewId`, `screen`, `screenshotUrl`, `frozenAtEpochMillis`,
-  `context`, and `items`. The `context` carries the frozen session, preview,
-  screen fingerprint, device serial, and activity so recovered drafts cannot
-  be saved into a different session by accident. Legacy item-only arrays or
-  envelopes without context are treated as schema v0 and must route through
-  Recapture or Discard before direct handoff.
+- Browser-only pending work is stored as a schema-v2 DraftWorkspace envelope
+  under `localStorage["fixthis.workspace.<sessionId>.<workspaceId>"]`, with a
+  per-session index at `localStorage["fixthis.workspace.index.<sessionId>"]`.
+  The envelope carries `workspaceId`, `revision`, `lifecycle`, immutable
+  `context`, frozen `screen`, `screenshotUrl`, `items`, and `history`.
+- Legacy schema-v1 `localStorage["fixthis.pending.<sessionId>"]` envelopes are
+  migrated into schema-v2 recovery workspaces after explicit user choice.
 - On browser reload or session reattach, recovered pending work is not exposed
   automatically. The console shows an explicit Recover / Recapture / Discard
   banner; Recover is available only when the frozen preview context is present.

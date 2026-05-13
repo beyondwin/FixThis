@@ -322,7 +322,8 @@ class ConsoleFeedbackItemRoutesTest {
         assertTrue(pendingRenderer.contains("ann-row-status"))
         assertTrue(pendingRenderer.contains("startAnnotatingButtonHtml()"))
         assertTrue(pendingRenderer.contains("data-focus-pending"))
-        assertTrue(createAnnotationFromSelection.contains("focusedPendingItemIndex = pendingFeedbackItems.length - 1;"))
+        assertTrue(createAnnotationFromSelection.contains("addDraftItem(draftWorkspace, selection, ports)"))
+        assertTrue(createAnnotationFromSelection.contains("setDraftWorkspace(nextWorkspace);"))
         assertFalse(pendingRenderer.contains("data-delete-pending"))
         assertTrue(renderSavedEvidenceGroups.contains("data-focus-saved"))
         assertTrue(html.contains("grid-template-columns: 28px minmax(0, 1fr) auto;"))
@@ -733,7 +734,7 @@ class ConsoleFeedbackItemWorkspaceRoutesTest {
         assertTrue(html.contains("event.stopPropagation();"))
         assertTrue(html.contains("row.addEventListener('keydown'"))
         assertTrue(html.contains("row.classList.toggle('is-active'"))
-        assertTrue(html.contains(".history-list { align-content: start; }"))
+        assertTrue(Regex("\\.history-list \\{\\s+align-content: start;").containsMatchIn(html))
         assertFalse(html.contains("class=\"sent-history-drawer\""))
         assertTrue(html.contains("formatSessionSummary(session)"))
         assertTrue(html.contains("function sessionOrdinalLookup(sessions)"))
@@ -800,14 +801,15 @@ class ConsoleFeedbackItemWorkspaceRoutesTest {
         val newSession = javascriptFunctionBody(html, "newSession")
 
         assertTrue(html.contains("async function resolvePendingBeforeBoundary(action, sessionId = null)"))
-        assertTrue(html.contains("await persistPendingFeedbackItems({ allowBlankComments: true });"))
+        assertTrue(html.contains("resolveDraftBoundary(workspace, { kind: action, sessionId }, createBrowserDraftPorts())"))
+        assertTrue(html.contains("ensureDraftCommandQueue().enqueue"))
         assertTrue(openSession.contains("await resolvePendingBeforeBoundary('open-session', sessionId)"))
         assertTrue(newSession.contains("await resolvePendingBeforeBoundary('new-session')"))
         assertFalse(openSession.contains("flushPendingAnnotationsBeforeSessionChange"))
         assertFalse(newSession.contains("flushPendingAnnotationsBeforeSessionChange"))
         assertTrue(html.contains("const allowBlankComments = Boolean(options.allowBlankComments);"))
         assertTrue(html.contains("!allowBlankComments"))
-        assertTrue(html.contains("allowBlankComments: allowBlankComments"))
+        assertTrue(html.contains("allowBlankComments,"))
     }
 
     @Test
@@ -1114,22 +1116,18 @@ class ConsoleFeedbackItemBatchRoutesTest {
         val html = FeedbackConsoleAssets.indexHtml
         val createAnnotationFromSelection = javascriptFunctionBody(html, "createAnnotationFromSelection")
 
-        assertTrue(html.contains("previewId: addItemsFlow.context.previewId"))
-        assertTrue(
-            html.contains(
-                "const payloadItems = pendingPayloadItems({ allowFallbackComments: allowFallbackComments, " +
-                    "onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments })",
-            ),
-        )
-        assertTrue(html.contains("items: payloadItems"))
+        assertTrue(html.contains("function buildDraftWorkspaceSaveRequest"))
+        assertTrue(html.contains("const result = await ensureDraftCommandQueue().enqueue"))
+        assertTrue(html.contains("persistDraftWorkspace(saveWorkspace, createBrowserDraftPorts()"))
         assertTrue(html.contains("targetType: selection.targetType"))
         assertTrue(html.contains("nodeUid: selection.nodeUid"))
         assertTrue(html.contains("bounds: selection.bounds"))
-        assertTrue(html.contains("function pendingPayloadItems"))
+        assertTrue(html.contains("function draftSelectionToItem"))
         assertTrue(html.contains("function persistPendingFeedbackItems"))
         assertTrue(createAnnotationFromSelection.contains("toolMode = 'annotate';"))
         assertFalse(createAnnotationFromSelection.contains("toolMode = 'select';"))
-        assertTrue(createAnnotationFromSelection.contains("focusedPendingItemIndex = pendingFeedbackItems.length - 1;"))
+        assertTrue(createAnnotationFromSelection.contains("addDraftItem(draftWorkspace, selection, ports)"))
+        assertTrue(createAnnotationFromSelection.contains("setDraftWorkspace(nextWorkspace);"))
         assertTrue(html.contains("suppressNextClick = true;"))
         assertTrue(html.contains("function updateSelectedAnnotationComment"))
         assertTrue(html.contains("item.comment = comment.value;"))

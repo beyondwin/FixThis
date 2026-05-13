@@ -186,16 +186,16 @@ The feedback console defaults to navigation. `Annotate` freezes the latest previ
 `Save to MCP` creates a persisted handoff batch, changes saved items to `delivery: "sent"`, sets `handoffBatchId` and `sentAtEpochMillis`, and records those items in `handoffBatches`. It does not create a new external AI API payload; MCP tools read the persisted session data.
 
 Connection loss does not change feedback delivery fields. Browser-only pending
-items are mirrored separately in `localStorage["fixthis.pending.<sessionId>"]`
-as a schema-v1 envelope with the frozen `context` (`sessionId`, `previewId`,
+items are mirrored separately as DraftWorkspace schema-v2 envelopes under
+`localStorage["fixthis.workspace.<sessionId>.<workspaceId>"]`, with
+`localStorage["fixthis.workspace.index.<sessionId>"]` storing the recoverable
+workspace ids for that session. Each envelope carries `workspaceId`,
+`revision`, `lifecycle`, immutable frozen `context` (`sessionId`, `previewId`,
 `screenId`, `screenFingerprint`, `deviceSerial`, `frozenAtEpochMillis`, and
-`activityName` when available), screen metadata, screenshot URL, frozen
-timestamp, and item list. On reload or session reattach, the console asks the
-user to Recover, Recapture, or Discard before exposing those browser-only
-pending rows. Missing context is treated as legacy data and must route through
-Recapture or Discard before direct handoff. The last preview stays visible as
-cached work, the preview is marked stale, and new bridge actions resume only
-after the connection status returns to `READY`.
+`activityName`), frozen `screen`, `screenshotUrl`, browser-local `items`, and
+undo/redo `history`. The persisted MCP `FeedbackSession` JSON remains
+unchanged; workspaces are only a browser recovery mirror until Copy Prompt or
+Save to MCP persists items into `.fixthis/feedback-sessions/`.
 
 Delivery values:
 
