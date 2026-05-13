@@ -38,6 +38,12 @@ The branch-protection flip itself is gated on the "Pending" rows above turning g
 
 ## Required Local Checks
 
+The root build enables the local Gradle build cache by default. Configuration
+cache is intentionally still opt-in because `spotlessCheck` does not reliably
+reuse it yet; use `--configuration-cache` on focused loops such as
+`:app:assembleDebug` or `:fixthis-mcp:installDist` after verifying the command
+stores and reuses a cache entry.
+
 Architecture guardrails are part of `:fixthis-mcp:test`. They assert that
 `:fixthis-compose-core` stays free of Android/MCP/CLI imports and that known
 large handwritten files stay within their hotspot budgets while they are being
