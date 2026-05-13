@@ -696,6 +696,9 @@ async function runSmoke(baseUrl) {
       imageBox.y + imageBox.height * 150 / 800,
     );
     await waitForPendingPins(page, 1, 'Node annotation was not added');
+    await page.waitForSelector('#annotationCommentInput');
+    const firstAnnotationComment = 'Make the checkout heading clearer';
+    await page.fill('#annotationCommentInput', firstAnnotationComment);
     await page.mouse.move(imageBox.x + 40, imageBox.y + 40);
     await page.mouse.down();
     await page.mouse.move(imageBox.x + 120, imageBox.y + 90);
@@ -708,6 +711,7 @@ async function runSmoke(baseUrl) {
     await page.click('#copyPromptButton');
     await page.waitForFunction(() => window.__fixthisCopiedText?.includes('Make the checkout button clearer'));
     const copiedText = await page.evaluate(() => window.__fixthisCopiedText);
+    assert.match(copiedText, /Make the checkout heading clearer/);
     assert.match(copiedText, /Make the checkout button clearer/);
 
     await page.click('#annotateToolButton');

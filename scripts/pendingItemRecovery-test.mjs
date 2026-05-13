@@ -180,6 +180,12 @@ test('pending annotation detail edits write through to recovery envelope', () =>
   assert.match(detailBody, /item\.status\s*=\s*button\.dataset\.setStatus;[\s\S]*?persistCurrentPendingState\(\);/);
 });
 
+test('pending detail comments are not overwritten by the hidden composer before persistence', () => {
+  const flushBody = extractFunctionBody(annotationsSource, 'function flushFocusedPendingComment()');
+  assert.match(flushBody, /pendingItems\.querySelector\('#annotationCommentInput'\)/);
+  assert.match(flushBody, /item\.comment\s*=\s*commentInput\s*\?\s*commentInput\.value\s*:\s*comment\.value;/);
+});
+
 test('new pending annotations record undo history before persistence', () => {
   const createBody = extractFunctionBody(annotationsSource, 'function createAnnotationFromSelection(selection)');
   assert.match(createBody, /pendingFeedbackItems\.push\(annotation\);[\s\S]*?recordAdd\(undoRedoHistory,\s*annotation\);[\s\S]*?persistCurrentPendingState\(\);/);

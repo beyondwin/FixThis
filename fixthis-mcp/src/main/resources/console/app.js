@@ -233,8 +233,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778672400000;
-const ConsoleBuildGitSha = 'ff73dfe';
+const ConsoleBuildEpochMs = 1778672940000;
+const ConsoleBuildGitSha = '5ffbbda';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -1832,7 +1832,8 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (focusedPendingItemIndex == null) return;
               const item = pendingFeedbackItems[focusedPendingItemIndex];
               if (!item) return;
-              item.comment = comment.value;
+              const commentInput = pendingItems.querySelector('#annotationCommentInput');
+              item.comment = commentInput ? commentInput.value : comment.value;
             }
 
             function createAnnotationFromSelection(selection) {

@@ -410,7 +410,8 @@
               if (focusedPendingItemIndex == null) return;
               const item = pendingFeedbackItems[focusedPendingItemIndex];
               if (!item) return;
-              item.comment = comment.value;
+              const commentInput = pendingItems.querySelector('#annotationCommentInput');
+              item.comment = commentInput ? commentInput.value : comment.value;
             }
 
             function createAnnotationFromSelection(selection) {
