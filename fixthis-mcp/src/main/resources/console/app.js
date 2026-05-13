@@ -239,8 +239,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778691000000;
-const ConsoleBuildGitSha = '2038a25';
+const ConsoleBuildEpochMs = 1778691120000;
+const ConsoleBuildGitSha = 'ce89212';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -455,13 +455,41 @@ function shouldGuardUnload(pendingItemsCount) {
 
             const UNDO_MAX_DEPTH = 50;
 
-            function createHistory() {
-              return { undoStack: [], redoStack: [] };
+            function createHistory(context = null) {
+              return { context: cloneHistoryContext(context), undoStack: [], redoStack: [] };
             }
 
             function pushOp(stack, op) {
               stack.push(op);
               if (stack.length > UNDO_MAX_DEPTH) stack.shift();
+            }
+
+            function cloneHistoryContext(context) {
+              if (!context) return null;
+              return {
+                sessionId: context.sessionId || null,
+                previewId: context.previewId || null,
+                screenId: context.screenId || null,
+                screenFingerprint: context.screenFingerprint || null,
+                deviceSerial: context.deviceSerial || null
+              };
+            }
+
+            function sameHistoryContext(left, right) {
+              const a = cloneHistoryContext(left);
+              const b = cloneHistoryContext(right);
+              if (!a && !b) return true;
+              return Boolean(a && b) &&
+                a.sessionId === b.sessionId &&
+                a.previewId === b.previewId &&
+                a.screenId === b.screenId &&
+                a.screenFingerprint === b.screenFingerprint &&
+                a.deviceSerial === b.deviceSerial;
+            }
+
+            function clearHistory(history) {
+              history.undoStack.length = 0;
+              history.redoStack.length = 0;
             }
 
             function itemStableId(item) {
@@ -474,24 +502,37 @@ function shouldGuardUnload(pendingItemsCount) {
               return leftId != null && rightId != null && leftId === rightId;
             }
 
-            function recordAdd(history, item) {
-              pushOp(history.undoStack, { kind: 'add', after: { ...item } });
-              history.redoStack.length = 0;
-            }
-
-            function recordDelete(history, before, index = null) {
-              if (!before) return;
+            function recordAdd(history, item, context = history.context) {
               pushOp(history.undoStack, {
-                kind: 'delete',
-                before: { ...before },
-                index: Number.isInteger(index) ? index : null
+                kind: 'add',
+                after: { ...item },
+                context: cloneHistoryContext(context),
+                createdAtEpochMillis: Date.now()
               });
               history.redoStack.length = 0;
             }
 
-            function recordUpdate(history, before, after) {
+            function recordDelete(history, before, index = null, context = history.context) {
+              if (!before) return;
+              pushOp(history.undoStack, {
+                kind: 'delete',
+                before: { ...before },
+                index: Number.isInteger(index) ? index : null,
+                context: cloneHistoryContext(context),
+                createdAtEpochMillis: Date.now()
+              });
+              history.redoStack.length = 0;
+            }
+
+            function recordUpdate(history, before, after, context = history.context) {
               if (!before || !after) return;
-              pushOp(history.undoStack, { kind: 'update', before: { ...before }, after: { ...after } });
+              pushOp(history.undoStack, {
+                kind: 'update',
+                before: { ...before },
+                after: { ...after },
+                context: cloneHistoryContext(context),
+                createdAtEpochMillis: Date.now()
+              });
               history.redoStack.length = 0;
             }
 
@@ -528,20 +569,28 @@ function shouldGuardUnload(pendingItemsCount) {
               }
             }
 
-            function undo(history, state) {
+            function undo(history, state, context = history.context) {
               const op = history.undoStack.pop();
-              if (!op) return false;
+              if (!op) return { applied: false, reason: 'empty' };
+              if (!sameHistoryContext(op.context, context)) {
+                clearHistory(history);
+                return { applied: false, reason: 'context_mismatch' };
+              }
               applyInverse(op, state);
               pushOp(history.redoStack, op);
-              return true;
+              return { applied: true };
             }
 
-            function redo(history, state) {
+            function redo(history, state, context = history.context) {
               const op = history.redoStack.pop();
-              if (!op) return false;
+              if (!op) return { applied: false, reason: 'empty' };
+              if (!sameHistoryContext(op.context, context)) {
+                clearHistory(history);
+                return { applied: false, reason: 'context_mismatch' };
+              }
               applyForward(op, state);
               pushOp(history.undoStack, op);
-              return true;
+              return { applied: true };
             }
 
 // undoKeymatch.js
@@ -1849,6 +1898,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   activity: state.preview.activity ?? state.connection?.availability?.activity ?? null,
                   activityDriftWarning: null
                 };
+                undoRedoHistory = createHistory(addItemsFlow.context);
                 toolMode = 'annotate';
                 focusedPendingItemIndex = null;
                 currentSelection = null;
@@ -1883,7 +1933,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 comment: ''
               };
               pendingFeedbackItems.push(annotation);
-              recordAdd(undoRedoHistory, annotation);
+              recordAdd(undoRedoHistory, annotation, addItemsFlow.context);
               // SIF-6: re-check activity drift after each pending item is
               // appended. Uses the existing status-poll-derived availability
               // — no extra fetch is issued.
@@ -1908,7 +1958,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function deletePendingFeedbackItem(index) {
               const removed = pendingFeedbackItems[index];
-              recordDelete(undoRedoHistory, removed, index);
+              recordDelete(undoRedoHistory, removed, index, addItemsFlow?.context ?? null);
               pendingFeedbackItems.splice(index, 1);
               persistCurrentPendingState();
               showUndoToast(removed?.itemId);
@@ -3553,7 +3603,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             window.addEventListener('keydown', (e) => {
               const active = document.activeElement;
               if (matchesUndo(e, active)) {
-                if (undo(undoRedoHistory, { pendingFeedbackItems })) {
+                const result = undo(undoRedoHistory, { pendingFeedbackItems }, addItemsFlow?.context ?? null);
+                if (result.reason === 'context_mismatch') showError('Undo history was cleared because the annotation session changed.');
+                if (result.applied) {
                   e.preventDefault();
                   persistCurrentPendingState();
                   renderPreviewOnly();
@@ -3561,7 +3613,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   renderCurrentSessionList();
                 }
               } else if (matchesRedo(e, active)) {
-                if (redo(undoRedoHistory, { pendingFeedbackItems })) {
+                const result = redo(undoRedoHistory, { pendingFeedbackItems }, addItemsFlow?.context ?? null);
+                if (result.reason === 'context_mismatch') showError('Undo history was cleared because the annotation session changed.');
+                if (result.applied) {
                   e.preventDefault();
                   persistCurrentPendingState();
                   renderPreviewOnly();
@@ -3624,11 +3678,14 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               btn.textContent = '되돌리기';
               btn.style.cssText = 'background:none;border:none;color:#bb86fc;cursor:pointer;font-size:14px;padding:0;font-weight:500;';
               btn.addEventListener('click', () => {
-                undo(undoRedoHistory, { pendingFeedbackItems });
-                persistCurrentPendingState();
-                renderPreviewOnly();
-                renderInspectorRegion();
-                renderCurrentSessionList();
+                const result = undo(undoRedoHistory, { pendingFeedbackItems }, addItemsFlow?.context ?? null);
+                if (result.reason === 'context_mismatch') showError('Undo history was cleared because the annotation session changed.');
+                if (result.applied) {
+                  persistCurrentPendingState();
+                  renderPreviewOnly();
+                  renderInspectorRegion();
+                  renderCurrentSessionList();
+                }
                 toast.remove();
               });
               toast.appendChild(msg);
@@ -3722,6 +3779,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 activity: recovery.activity ?? recovery.screen?.activityName ?? null,
                 activityDriftWarning: null
               };
+              undoRedoHistory = createHistory(addItemsFlow.context);
               state.preview = {
                 previewId: recovery.previewId,
                 screen: recovery.screen,

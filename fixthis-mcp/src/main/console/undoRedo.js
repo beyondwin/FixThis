@@ -4,13 +4,41 @@
 
             const UNDO_MAX_DEPTH = 50;
 
-            function createHistory() {
-              return { undoStack: [], redoStack: [] };
+            function createHistory(context = null) {
+              return { context: cloneHistoryContext(context), undoStack: [], redoStack: [] };
             }
 
             function pushOp(stack, op) {
               stack.push(op);
               if (stack.length > UNDO_MAX_DEPTH) stack.shift();
+            }
+
+            function cloneHistoryContext(context) {
+              if (!context) return null;
+              return {
+                sessionId: context.sessionId || null,
+                previewId: context.previewId || null,
+                screenId: context.screenId || null,
+                screenFingerprint: context.screenFingerprint || null,
+                deviceSerial: context.deviceSerial || null
+              };
+            }
+
+            function sameHistoryContext(left, right) {
+              const a = cloneHistoryContext(left);
+              const b = cloneHistoryContext(right);
+              if (!a && !b) return true;
+              return Boolean(a && b) &&
+                a.sessionId === b.sessionId &&
+                a.previewId === b.previewId &&
+                a.screenId === b.screenId &&
+                a.screenFingerprint === b.screenFingerprint &&
+                a.deviceSerial === b.deviceSerial;
+            }
+
+            function clearHistory(history) {
+              history.undoStack.length = 0;
+              history.redoStack.length = 0;
             }
 
             function itemStableId(item) {
@@ -23,24 +51,37 @@
               return leftId != null && rightId != null && leftId === rightId;
             }
 
-            function recordAdd(history, item) {
-              pushOp(history.undoStack, { kind: 'add', after: { ...item } });
-              history.redoStack.length = 0;
-            }
-
-            function recordDelete(history, before, index = null) {
-              if (!before) return;
+            function recordAdd(history, item, context = history.context) {
               pushOp(history.undoStack, {
-                kind: 'delete',
-                before: { ...before },
-                index: Number.isInteger(index) ? index : null
+                kind: 'add',
+                after: { ...item },
+                context: cloneHistoryContext(context),
+                createdAtEpochMillis: Date.now()
               });
               history.redoStack.length = 0;
             }
 
-            function recordUpdate(history, before, after) {
+            function recordDelete(history, before, index = null, context = history.context) {
+              if (!before) return;
+              pushOp(history.undoStack, {
+                kind: 'delete',
+                before: { ...before },
+                index: Number.isInteger(index) ? index : null,
+                context: cloneHistoryContext(context),
+                createdAtEpochMillis: Date.now()
+              });
+              history.redoStack.length = 0;
+            }
+
+            function recordUpdate(history, before, after, context = history.context) {
               if (!before || !after) return;
-              pushOp(history.undoStack, { kind: 'update', before: { ...before }, after: { ...after } });
+              pushOp(history.undoStack, {
+                kind: 'update',
+                before: { ...before },
+                after: { ...after },
+                context: cloneHistoryContext(context),
+                createdAtEpochMillis: Date.now()
+              });
               history.redoStack.length = 0;
             }
 
@@ -77,18 +118,26 @@
               }
             }
 
-            function undo(history, state) {
+            function undo(history, state, context = history.context) {
               const op = history.undoStack.pop();
-              if (!op) return false;
+              if (!op) return { applied: false, reason: 'empty' };
+              if (!sameHistoryContext(op.context, context)) {
+                clearHistory(history);
+                return { applied: false, reason: 'context_mismatch' };
+              }
               applyInverse(op, state);
               pushOp(history.redoStack, op);
-              return true;
+              return { applied: true };
             }
 
-            function redo(history, state) {
+            function redo(history, state, context = history.context) {
               const op = history.redoStack.pop();
-              if (!op) return false;
+              if (!op) return { applied: false, reason: 'empty' };
+              if (!sameHistoryContext(op.context, context)) {
+                clearHistory(history);
+                return { applied: false, reason: 'context_mismatch' };
+              }
               applyForward(op, state);
               pushOp(history.undoStack, op);
-              return true;
+              return { applied: true };
             }

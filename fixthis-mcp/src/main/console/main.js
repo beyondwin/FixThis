@@ -30,7 +30,9 @@
             window.addEventListener('keydown', (e) => {
               const active = document.activeElement;
               if (matchesUndo(e, active)) {
-                if (undo(undoRedoHistory, { pendingFeedbackItems })) {
+                const result = undo(undoRedoHistory, { pendingFeedbackItems }, addItemsFlow?.context ?? null);
+                if (result.reason === 'context_mismatch') showError('Undo history was cleared because the annotation session changed.');
+                if (result.applied) {
                   e.preventDefault();
                   persistCurrentPendingState();
                   renderPreviewOnly();
@@ -38,7 +40,9 @@
                   renderCurrentSessionList();
                 }
               } else if (matchesRedo(e, active)) {
-                if (redo(undoRedoHistory, { pendingFeedbackItems })) {
+                const result = redo(undoRedoHistory, { pendingFeedbackItems }, addItemsFlow?.context ?? null);
+                if (result.reason === 'context_mismatch') showError('Undo history was cleared because the annotation session changed.');
+                if (result.applied) {
                   e.preventDefault();
                   persistCurrentPendingState();
                   renderPreviewOnly();
@@ -101,11 +105,14 @@
               btn.textContent = '되돌리기';
               btn.style.cssText = 'background:none;border:none;color:#bb86fc;cursor:pointer;font-size:14px;padding:0;font-weight:500;';
               btn.addEventListener('click', () => {
-                undo(undoRedoHistory, { pendingFeedbackItems });
-                persistCurrentPendingState();
-                renderPreviewOnly();
-                renderInspectorRegion();
-                renderCurrentSessionList();
+                const result = undo(undoRedoHistory, { pendingFeedbackItems }, addItemsFlow?.context ?? null);
+                if (result.reason === 'context_mismatch') showError('Undo history was cleared because the annotation session changed.');
+                if (result.applied) {
+                  persistCurrentPendingState();
+                  renderPreviewOnly();
+                  renderInspectorRegion();
+                  renderCurrentSessionList();
+                }
                 toast.remove();
               });
               toast.appendChild(msg);
@@ -199,6 +206,7 @@
                 activity: recovery.activity ?? recovery.screen?.activityName ?? null,
                 activityDriftWarning: null
               };
+              undoRedoHistory = createHistory(addItemsFlow.context);
               state.preview = {
                 previewId: recovery.previewId,
                 screen: recovery.screen,

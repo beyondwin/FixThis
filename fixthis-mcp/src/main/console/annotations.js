@@ -405,6 +405,7 @@
                   activity: state.preview.activity ?? state.connection?.availability?.activity ?? null,
                   activityDriftWarning: null
                 };
+                undoRedoHistory = createHistory(addItemsFlow.context);
                 toolMode = 'annotate';
                 focusedPendingItemIndex = null;
                 currentSelection = null;
@@ -439,7 +440,7 @@
                 comment: ''
               };
               pendingFeedbackItems.push(annotation);
-              recordAdd(undoRedoHistory, annotation);
+              recordAdd(undoRedoHistory, annotation, addItemsFlow.context);
               // SIF-6: re-check activity drift after each pending item is
               // appended. Uses the existing status-poll-derived availability
               // — no extra fetch is issued.
@@ -464,7 +465,7 @@
 
             function deletePendingFeedbackItem(index) {
               const removed = pendingFeedbackItems[index];
-              recordDelete(undoRedoHistory, removed, index);
+              recordDelete(undoRedoHistory, removed, index, addItemsFlow?.context ?? null);
               pendingFeedbackItems.splice(index, 1);
               persistCurrentPendingState();
               showUndoToast(removed?.itemId);

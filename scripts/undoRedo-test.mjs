@@ -54,7 +54,7 @@ test('history capped at MAX_DEPTH=50', () => {
 test('undo on empty stack returns false (no throw)', () => {
   const state = { pendingFeedbackItems: [] };
   const h = m.createHistory();
-  assert.equal(m.undo(h, state), false);
+  assert.equal(m.undo(h, state).applied, false);
 });
 
 test('update undo restores previous comment', () => {
