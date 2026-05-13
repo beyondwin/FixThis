@@ -1,15 +1,17 @@
 # Plan — Security Hardening
 
-Status: Draft
+Status: SEC-1 through SEC-3 implemented; SEC-4 partially implemented and
+partially deferred. Retained as a design record.
 Spec: [`../specs/security-hardening.md`](../specs/security-hardening.md)
 
 Order is documentation → low-risk hardening → behavioural change.
 
 Note: SEC-4 (Token + origin gate) is deferred. The current
 `FeedbackConsoleServer` already binds to `127.0.0.1`, performs
-`X-FixThis-Token` and Origin checks. The remaining SEC-4 delta (Host-header
-check, constant-time comparison, `ConsoleAuth.kt` extraction, contract
-doc) is tracked as a follow-up.
+`X-FixThis-Console-Token` and Origin checks. The remaining SEC-4 delta
+(Host-header check, constant-time comparison, `ConsoleAuth.kt` extraction) is
+tracked as a follow-up; the current console contract is documented in
+`docs/reference/feedback-console-contract.md`.
 
 ## Tasks
 

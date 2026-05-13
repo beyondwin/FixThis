@@ -1,6 +1,7 @@
 # Plan — Build & Release Hardening
 
-Status: Draft
+Status: Largely implemented; retained as a design record. External artifact
+publishing remains tracked in `docs/contributing/release-readiness.md`.
 Spec: [`../specs/build-release-hardening.md`](../specs/build-release-hardening.md)
 
 ## Tasks

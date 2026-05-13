@@ -1,6 +1,7 @@
 # Plan — CI/CD Hardening
 
-Status: Draft
+Status: Largely implemented; retained as a design record. Required-check
+promotion still depends on the observation windows documented below.
 Spec: [`../specs/ci-cd-hardening.md`](../specs/ci-cd-hardening.md)
 
 Ordering: format first (so subsequent diffs don't pull in style changes),

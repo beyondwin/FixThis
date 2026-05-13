@@ -3,6 +3,7 @@ package io.beyondwin.fixthis.mcp.console
 import com.sun.net.httpserver.HttpExchange
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionPaths
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
+import io.beyondwin.fixthis.mcp.session.SessionDto
 import java.io.File
 import java.net.URLDecoder
 
@@ -19,7 +20,7 @@ internal class ArtifactRoutes(private val service: FeedbackSessionService) : Con
                 exchange.sendJson(
                     200,
                     service.deleteScreen(
-                        exchange.requestedSession().sessionId,
+                        exchange.session().sessionId,
                         exchange.requestURI.path.screenIdFromScreenPath(),
                     ),
                 )
@@ -28,7 +29,7 @@ internal class ArtifactRoutes(private val service: FeedbackSessionService) : Con
     }
 
     private fun HttpExchange.sendScreenshot(screenId: String) {
-        val session = requestedSession()
+        val session = session()
         val screen = session.screens.firstOrNull { it.screenId == screenId }
             ?: throw FeedbackConsoleHttpException(404, "Screenshot not found")
         val screenshotPath = screen.screenshot?.desktopFullPath
@@ -48,9 +49,11 @@ internal class ArtifactRoutes(private val service: FeedbackSessionService) : Con
         sendBytes(200, screenshotFile.readBytes(), "image/png")
     }
 
-    private fun HttpExchange.requestedSession() =
-        queryParameter("sessionId")?.takeIf { it.isNotBlank() }?.let { service.getSession(it) }
-            ?: service.requireCurrentSession()
+    private fun HttpExchange.session(): SessionDto = sessionId()?.let { service.getSession(it) } ?: current()
+
+    private fun HttpExchange.sessionId(): String? = queryParameter("sessionId")?.takeIf { it.isNotBlank() }
+
+    private fun current(): SessionDto = service.requireCurrentSession()
 }
 
 private fun String.isFullScreenshotPath(): Boolean = split('/').size == 6 && startsWith("/api/screens/") && endsWith("/screenshot/full")

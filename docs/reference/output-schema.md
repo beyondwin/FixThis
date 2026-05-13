@@ -65,6 +65,9 @@ Feedback console sessions are returned by `fixthis_open_feedback_console` and se
 - `screens`: persisted evidence snapshots saved from frozen previews.
 - `items`: feedback queue items.
 - `handoffBatches`: persisted sent handoff batches.
+- `nextItemSequenceNumber`: next monotonic human-readable feedback item
+  number for this session. Legacy sessions that do not contain this field are
+  migrated from the highest existing item `sequenceNumber`.
 - `status`: `active`, `ready_for_agent`, or `closed`.
 
 `FeedbackSession.screens` contains persisted evidence snapshots, not every preview frame.
@@ -164,7 +167,9 @@ Feedback items represent human comments on a persisted evidence snapshot. When a
 - `sourceCandidates`: best-effort source hints.
 - `screenshotCrop`: crop artifact metadata when available.
 - `comment`: human feedback text.
-- `sequenceNumber`: stable human-readable item number within the session.
+- `sequenceNumber`: monotonic, stable human-readable item number within the
+  session. Saved items are not renumbered after deletes, session switches, or
+  MCP/console restarts.
 - `delivery`: `draft` before handoff or `sent` after a handoff batch records the item for agent reading.
 - `handoffBatchId`: batch id that sent the item, present for sent items when available.
 - `sentAtEpochMillis`: time the item was sent to a handoff batch, present for sent items.
@@ -182,11 +187,15 @@ The feedback console defaults to navigation. `Annotate` freezes the latest previ
 
 Connection loss does not change feedback delivery fields. Browser-only pending
 items are mirrored separately in `localStorage["fixthis.pending.<sessionId>"]`
-with the frozen `previewId`, screen metadata, screenshot URL, frozen timestamp,
-and item list. On reload or session reattach, the console asks the user to
-Recover, Recapture, or Discard before exposing those browser-only pending rows.
-The last preview stays visible as cached work, the preview is marked stale, and
-new bridge actions resume only after the connection status returns to `READY`.
+as a schema-v1 envelope with the frozen `context` (`sessionId`, `previewId`,
+`screenId`, `screenFingerprint`, `deviceSerial`, `frozenAtEpochMillis`, and
+`activityName` when available), screen metadata, screenshot URL, frozen
+timestamp, and item list. On reload or session reattach, the console asks the
+user to Recover, Recapture, or Discard before exposing those browser-only
+pending rows. Missing context is treated as legacy data and must route through
+Recapture or Discard before direct handoff. The last preview stays visible as
+cached work, the preview is marked stale, and new bridge actions resume only
+after the connection status returns to `READY`.
 
 Delivery values:
 
@@ -287,7 +296,15 @@ Feedback console evidence snapshots are session-owned workspace artifacts and us
 .fixthis/feedback-sessions/<session-id>/artifacts/screens/<screen-id>/<screen-id>-full.png
 ```
 
-When available, annotation paths appear as `desktopFullPath` and `desktopCropPath`. Feedback console screen paths appear on the screen entry. `.fixthis/artifacts/` and `.fixthis/feedback-sessions/` are ignored by git because these files are local debug screenshots and session metadata. If capture or storage fails, `screenshot.captureFailedReason` or `captureError` records the failure and the annotation or navigation result remains valid.
+When available, annotation paths appear as `desktopFullPath` and
+`desktopCropPath`. Feedback console screen paths appear on the screen entry.
+Console preview and screen artifact HTTP URLs include the originating
+`sessionId`; routes must resolve the artifact against that session rather than
+whatever session is currently active. `.fixthis/artifacts/` and
+`.fixthis/feedback-sessions/` are ignored by git because these files are local
+debug screenshots and session metadata. If capture or storage fails,
+`screenshot.captureFailedReason` or `captureError` records the failure and the
+annotation or navigation result remains valid.
 
 ## Error Codes
 

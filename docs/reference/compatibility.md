@@ -36,11 +36,11 @@ that compiles" column is checked weekly (informational only — see
   Kotlin-multiplatform-friendly variant API surface that the sidekick build
   scripts rely on. The Gradle plugin (`:fixthis-gradle-plugin`) targets the
   `AndroidComponentsExtension` shape stabilised in AGP 9.
-- **Minimum 9.0.0.** TODO(maintainer): expand once we know the precise lower
-  bound. Empirically AGP 9.0.x should compile against today's sources; the
-  scheduled job is what will catch regressions in that claim. AGP 8.x is
-  explicitly out of scope — variant API and namespace handling differ enough
-  that the sidekick's auto-wiring no longer applies.
+- **Minimum 9.0.0.** AGP 9.0.x is the intended lower bound for today's
+  sources. The scheduled job is what will catch regressions in that claim once
+  the version-override plumbing is wired. AGP 8.x is explicitly out of scope
+  because variant API and namespace handling differ enough that the sidekick's
+  auto-wiring no longer applies.
 
 ### Kotlin Gradle Plugin
 
@@ -48,20 +48,19 @@ that compiles" column is checked weekly (informational only — see
   language features pinned to Kotlin 2.2. The composite-build setup applies
   the same Kotlin version across `:fixthis-compose-core`, `:fixthis-cli`,
   `:fixthis-mcp`, `:fixthis-compose-sidekick`, and `:fixthis-gradle-plugin`.
-- **Minimum 2.2.0.** TODO(maintainer): expand. Kotlin 2.2 unblocks compose
-  compiler 1.10+ wiring; older 2.1.x runs into compose-compiler / AGP
-  matching constraints. See Compose-internal API surface changes for the
-  exact tipping point.
+- **Minimum 2.2.0.** Kotlin 2.2 is the intended lower bound for Compose
+  compiler 1.10+ wiring with AGP 9. Older 2.1.x toolchains run into
+  compose-compiler / AGP matching constraints and are not part of the current
+  support window.
 
 ### Compose BOM
 
 - **Tested: 2026.04.01.** Matches the BOM the sample app and `fixthis-compose-core`
   resolve at build time.
-- **Minimum 2026.01.00.** TODO(maintainer): expand. The console-bound
-  semantics that Smart Select reads (`SemanticsProperties`) have churned
-  across Compose 1.7 → 1.10; the lower bound here reflects the first Compose
-  release whose semantics surface matches what `:fixthis-compose-sidekick`
-  consumes.
+- **Minimum 2026.01.00.** This is the intended lower bound for the
+  console-bound semantics surface that Smart Select reads
+  (`SemanticsProperties`). Older Compose releases have enough semantics API
+  churn that they remain outside the documented support window.
 
 ### JDK toolchain
 

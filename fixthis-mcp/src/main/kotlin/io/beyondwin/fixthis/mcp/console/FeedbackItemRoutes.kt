@@ -150,10 +150,18 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
 
     private fun HttpExchange.decodeAgentHandoffBody(): AgentHandoffRequest = decodeJsonBody(AgentHandoffRequest.serializer(), blankValue = AgentHandoffRequest())
 
-    private fun requestSessionId(explicit: String?): String =
-        explicit?.takeIf { it.isNotBlank() } ?: service.requireCurrentSession().sessionId
+    private fun requestSessionId(explicit: String?): String = explicit?.takeIf { it.isNotBlank() } ?: currentId()
+
+    private fun currentId(): String = service.requireCurrentSession().sessionId
 }
 
-private val allowedAddFeedbackItemRequestKeys = setOf("sessionId", "screenId", "comment", "targetType", "bounds", "nodeUid")
+private val allowedAddFeedbackItemRequestKeys = setOf(
+    "sessionId",
+    "screenId",
+    "comment",
+    "targetType",
+    "bounds",
+    "nodeUid",
+)
 
 private const val HTTP_STATUS_CONFLICT = 409

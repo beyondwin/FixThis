@@ -1,6 +1,7 @@
 # Spec — Security Hardening
 
-Status: Draft
+Status: SEC-1 through SEC-3 implemented; SEC-4 partially implemented and
+partially deferred. Retained as a design record.
 Scope: `:fixthis-compose-sidekick` bridge, `:fixthis-mcp` HTTP console
 Related plan: [`../plans/security-hardening.md`](../plans/security-hardening.md)
 
@@ -104,6 +105,12 @@ sidekick logs and stays unreachable until the process restarts cleanly.
 **Site:** `fixthis-mcp` HTTP console (`FeedbackConsoleServer.kt` and bridge
 endpoints).
 
+Current implementation note: the shipped console uses a per-server token
+injected into served HTML and sent as `X-FixThis-Console-Token` on mutating
+`/api/*` requests, plus a localhost `Origin` check. The token-in-URL and Host
+header requirements below remain design intent for the deferred SEC-4
+follow-up, not current behavior.
+
 `127.0.0.1` binding alone does not protect against:
 - DNS rebinding: a malicious page resolves an attacker-controlled hostname
   to `127.0.0.1` on the second request.
@@ -114,7 +121,7 @@ endpoints).
 - On startup, generate a 128-bit random session token; print it in the
   console URL (`http://127.0.0.1:<port>/?t=<token>`). The token is also
   required on every bridge-action endpoint as either a query parameter or
-  `X-FixThis-Token` header.
+  `X-FixThis-Console-Token` header.
 - Validate the `Host` header is `127.0.0.1` or `localhost`; reject otherwise.
 - All state-changing endpoints (those that drive the device) must validate
   the token; read-only static asset routes may remain open.

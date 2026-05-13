@@ -103,23 +103,20 @@ Paths are repository-root relative.
 | Browser ↔ console | `Origin` header allow-list (`127.0.0.1` / `localhost`) for mutating routes | `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` |
 | Browser ↔ console | Per-server `X-FixThis-Console-Token` required on mutating `/api/*` requests, injected into the served local HTML | `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` |
 | App ↔ bridge | Shared session token; bridge rejects requests with a missing or mismatched token (`UNAUTHORIZED`) | `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` |
-| App ↔ bridge | Screenshot path validation — canonicalize and require the file is under the FixThis screenshot cache, with explicit client-supplied paths rejected | `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` |
+| App ↔ bridge | Screenshot path validation — canonicalize and require the file is under the FixThis screenshot cache, with explicit client-supplied paths rejected | `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/PathSafety.kt`, `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeScreenshotReader.kt` |
 | App ↔ bridge | Transport is an abstract-namespace `LocalSocket` (app-sandbox scoped, reachable via `adb run-as`) | `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` |
 | Build-time | Debug-only manifest: sidekick startup provider is only merged into debug builds | `fixthis-compose-sidekick/src/debug/AndroidManifest.xml` |
 | Runtime | `FLAG_DEBUGGABLE` runtime guard — the initializer returns early if the host app is not a debuggable build | `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/init/FixThisInitializer.kt` |
 
-## Open gaps
+## Closed hardening tracked from the security plan
 
-Tracked under the security-hardening plan (`docs/plans/security-hardening.md`):
+The original security-hardening plan (`docs/plans/security-hardening.md`)
+tracked these as gaps; they are now implemented and covered by tests.
 
-- **SEC-2 — Path-traversal hardening.** Consolidate the screenshot-cache
-  containment check into a reusable `PathSafety` helper and apply it to every
-  bridge call that resolves a file path from the wire. Addressed in Task 1 of
-  the security-hardening plan.
-- **SEC-3 — Stale-socket recovery.** A crashed previous sidekick can leave the
-  abstract-namespace `LocalSocket` name owned, causing the next launch to fail
-  to bind. Add detection + retry. Addressed in Task 2 of the
-  security-hardening plan.
+- **SEC-2 — Path-traversal hardening.** Screenshot-cache containment is
+  centralized in `PathSafety` and applied at screenshot read time.
+- **SEC-3 — Stale-socket recovery.** Bridge startup retries bounded suffix
+  candidates and reports the resolved socket name to the host.
 
 ### Deferred follow-up
 

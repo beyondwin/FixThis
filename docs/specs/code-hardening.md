@@ -1,6 +1,6 @@
 # Spec — Code Hardening
 
-Status: Draft
+Status: Implemented; retained as a design record for traceability.
 Scope: `:fixthis-cli`, `:fixthis-mcp`
 Related plan: [`../plans/code-hardening.md`](../plans/code-hardening.md)
 

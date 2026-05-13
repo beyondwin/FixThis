@@ -44,11 +44,24 @@
 - Browser-only pending work is mirrored to
   `localStorage["fixthis.pending.<sessionId>"]` as a schema-v1 envelope with
   `sessionId`, `previewId`, `screen`, `screenshotUrl`, `frozenAtEpochMillis`,
-  and `items`. Legacy item-only arrays are treated as schema v0 and must route
-  through Recapture or Discard before direct handoff.
+  `context`, and `items`. The `context` carries the frozen session, preview,
+  screen fingerprint, device serial, and activity so recovered drafts cannot
+  be saved into a different session by accident. Legacy item-only arrays or
+  envelopes without context are treated as schema v0 and must route through
+  Recapture or Discard before direct handoff.
 - On browser reload or session reattach, recovered pending work is not exposed
   automatically. The console shows an explicit Recover / Recapture / Discard
   banner; Recover is available only when the frozen preview context is present.
+- Mutating saved/draft item APIs and preview/screen artifact URLs must carry
+  the session that created the item, preview, or screen. They must not fall
+  back to "current active session" when an explicit session id is available.
+- Async save, update, delete, undo/redo, and session refresh responses are
+  fenced by the annotation context that issued them. If the user switches
+  sessions while a mutation is in flight, stale responses are discarded or
+  followed by a fresh session refresh before rendering.
+- Persisted feedback item `sequenceNumber` values are stable and monotonic
+  within a session. Deleting or resolving a saved item does not renumber
+  existing saved overlays or compact handoff item numbers.
 - Before persisting a pending batch, the console sends the frozen screen
   fingerprint to `/api/items/batch`. The server compares it with a lightweight
   current capture when both fingerprints exist. HTTP 409 with

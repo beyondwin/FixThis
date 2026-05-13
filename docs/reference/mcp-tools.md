@@ -42,6 +42,12 @@ The console UI and local API can list, reopen, and close persisted sessions. Clo
 
 The local console serves a per-server browser token and requires `X-FixThis-Console-Token` on mutating `/api/*` requests. Mutating requests with a non-localhost `Origin` are rejected. This protects local mutation endpoints such as app launch, navigation, capture, draft writes, and handoff creation from ordinary cross-origin web pages while keeping the console localhost-only.
 
+Saved annotations, preview screenshots, screen artifacts, and pending recovery
+drafts are scoped to the feedback session that created them. Console routes use
+explicit session ids for artifact lookup and item mutation, and saved item
+numbers remain monotonic rather than being renumbered after deletes or session
+reopens.
+
 The current console contract is documented in [`docs/reference/feedback-console-contract.md`](feedback-console-contract.md); the shipped workflow uses `Annotate`, `Add annotation`, `Copy Prompt`, and `Save to MCP`.
 
 Typical flow:
@@ -88,9 +94,9 @@ fingerprint is unavailable, saving continues and the response includes
 
 Pending annotations also have a browser-local recovery mirror. The console
 stores a schema-v1 `localStorage["fixthis.pending.<sessionId>"]` envelope with
-the frozen preview id, screen metadata, screenshot URL, frozen timestamp, and
-items. On reload or reattach, it asks the user to Recover, Recapture, or
-Discard before exposing those pending rows again.
+the frozen annotation context, preview id, screen metadata, screenshot URL,
+frozen timestamp, and items. On reload or reattach, it asks the user to
+Recover, Recapture, or Discard before exposing those pending rows again.
 
 Saved evidence groups can be expanded to review the persisted screenshot, numbered overlay, and saved comments. `Save to MCP` is local persistence, not an external AI API call. FixThis marks the affected items with `delivery: sent` so MCP clients can list them through `fixthis_list_feedback`, claim one with `fixthis_claim_feedback`, and resolve it with `fixthis_resolve_feedback`. Sessions that contain sent items remain in the main History list; while an agent is actively working on an item the row shows a `working` pip that is driven by the item's `in_progress` status.
 

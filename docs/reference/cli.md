@@ -19,8 +19,8 @@ Subcommands:
 
 `--package` is the Android applicationId of the debug app you are running
 FixThis against. If omitted, every subcommand reads
-`<projectDir>/.fixthis/project.json` to discover the package — fail with a
-clear error if neither is provided.
+`<projectDir>/.fixthis/project.json` field `applicationId` to discover the
+package, and fails with a clear error if neither is provided.
 
 `--project-dir` defaults to `.` (the current working directory).
 
@@ -185,11 +185,20 @@ into CI as a smoke test.
 Every subcommand resolves the package and project root in this order:
 
 1. `--package` flag, if given.
-2. `<projectDir>/.fixthis/project.json` field `packageName`.
+2. `<projectDir>/.fixthis/project.json` field `applicationId`.
 3. Fail with a usage error.
 
 `<projectDir>` is `--project-dir` (default `.`) or whatever the agent invoked
 the command with.
+
+Minimal local metadata example:
+
+```json
+{
+  "schemaVersion": "1.0",
+  "applicationId": "io.beyondwin.fixthis.sample"
+}
+```
 
 ## See also
 
