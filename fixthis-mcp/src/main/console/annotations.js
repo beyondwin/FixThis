@@ -594,9 +594,11 @@
               if (!addItemsFlow.context?.sessionId || !addItemsFlow.context?.previewId) {
                 throw new Error('Annotation context is missing. Re-capture the screen and try again.');
               }
+              const requestGeneration = sessionMutationGeneration;
+              const expectedSessionId = addItemsFlow.context.sessionId;
               const sendBatch = async (overrideMismatch) => {
                 return await withMutationLock(() => savePreviewBatchOrConflict({
-                  sessionId: addItemsFlow.context.sessionId,
+                  sessionId: expectedSessionId,
                   previewId: addItemsFlow.context.previewId,
                   screen: addItemsFlow.screen,
                   items: payloadItems,
@@ -623,8 +625,13 @@
                   return null;
                 }
               }
-              if (result?.session?.sessionId !== addItemsFlow.context.sessionId) {
-                throw new Error('Save returned a different session than the captured annotation context.');
+              if (requestGeneration !== sessionMutationGeneration) {
+                await refreshSessions();
+                return null;
+              }
+              if (result.session?.sessionId !== expectedSessionId) {
+                await refreshSessions();
+                throw new Error('Save returned a different feedback session. Refresh and try again.');
               }
               state.session = result.session;
               resetAnnotationComposerState();

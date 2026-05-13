@@ -264,6 +264,7 @@
             async function openSession(sessionId) {
               error.textContent = '';
               if (await resolvePendingBeforeBoundary('open-session', sessionId) !== 'continue') return;
+              bumpSessionMutationGeneration();
               stopLivePreviewPolling();
               resetAnnotationComposerState();
               invalidatePreviewContext();
@@ -282,6 +283,7 @@
             async function newSession() {
               error.textContent = '';
               if (await resolvePendingBeforeBoundary('new-session') !== 'continue') return;
+              bumpSessionMutationGeneration();
               resetAnnotationComposerState();
               invalidatePreviewContext();
               state.session = await withMutationLock(() => requestJson('/api/session/open', {
@@ -298,6 +300,7 @@
               if (!state.session) return;
               if (await resolvePendingBeforeBoundary('close-session', state.session.sessionId) !== 'continue') return;
               const sessionId = state.session.sessionId;
+              bumpSessionMutationGeneration();
               await withMutationLock(() => requestJson('/api/session/close', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -317,6 +320,7 @@
               if (await resolvePendingBeforeBoundary('delete-session', sessionId) !== 'continue') return;
               const isDisplayedSession = () => state.session?.sessionId === sessionId;
               const wasDisplayedSession = isDisplayedSession();
+              bumpSessionMutationGeneration();
               await withMutationLock(() => requestJson('/api/session/close', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

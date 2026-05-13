@@ -9,6 +9,7 @@ const annotationsSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/conso
 const previewSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/preview.js'), 'utf8');
 const promptSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/prompt.js'), 'utf8');
 const persistenceSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/pendingPersistence.js'), 'utf8');
+const stateSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/state.js'), 'utf8');
 
 function body(source, signature) {
   const start = source.indexOf(signature);
@@ -37,7 +38,7 @@ test('annotate flow captures immutable session preview context', () => {
 
 test('batch save sends captured sessionId and fingerprint from addItemsFlow context', () => {
   const persist = body(annotationsSource, 'async function persistPendingFeedbackItems(options = {})');
-  assert.match(persist, /sessionId:\s*addItemsFlow\.context\.sessionId/);
+  assert.match(persist, /sessionId:\s*(addItemsFlow\.context\.sessionId|expectedSessionId)/);
   assert.match(persist, /previewId:\s*addItemsFlow\.context\.previewId/);
   assert.match(persist, /frozenFingerprint:\s*addItemsFlow\.context\.screenFingerprint/);
 });
@@ -54,4 +55,10 @@ test('pending persistence envelope stores captured context', () => {
 
 test('agent handoff includes sessionId in request body', () => {
   assert.match(promptSource, /sessionId:\s*state\.session\?\.sessionId\s*\|\|\s*null/);
+});
+
+test('session mutation generation fences stale async responses', () => {
+  assert.match(stateSource, /let sessionMutationGeneration = 0;/);
+  assert.match(annotationsSource, /const requestGeneration = sessionMutationGeneration;/);
+  assert.match(annotationsSource, /if \(requestGeneration !== sessionMutationGeneration\)/);
 });

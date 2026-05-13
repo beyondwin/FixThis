@@ -63,6 +63,7 @@
             let heartbeatPolling = false;
             let previewRequestGeneration = 0;
             let previewRequestContextGeneration = 0;
+            let sessionMutationGeneration = 0;
             let previewRequestInFlight = null;
             let previewRequestInFlightContextGeneration = null;
             let addItemsFlow = null;
@@ -89,6 +90,11 @@
             const MaxConsecutivePollFailures = 5;
             // ALH-2: Undo/redo history singleton for pending feedback items.
             let undoRedoHistory = createHistory();
+
+            function bumpSessionMutationGeneration() {
+              sessionMutationGeneration += 1;
+              return sessionMutationGeneration;
+            }
 
             async function withMutationLock(fn) {
               pendingMutationCount++;
@@ -233,8 +239,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778690880000;
-const ConsoleBuildGitSha = '20c3dee';
+const ConsoleBuildEpochMs = 1778691000000;
+const ConsoleBuildGitSha = '2038a25';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -1059,6 +1065,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (!devices.length) {
                 const selectedSerial = null;
                 if (previousSelectedDeviceSerial !== selectedSerial) {
+                  bumpSessionMutationGeneration();
                   invalidatePreviewContext();
                   renderPreviewOnly();
                 }
@@ -1096,6 +1103,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
               const selectedSerial = selected && selected.state === 'device' ? selected.serial : null;
               if (previousSelectedDeviceSerial !== selectedSerial) {
+                bumpSessionMutationGeneration();
                 invalidatePreviewContext();
                 renderPreviewOnly();
               }
@@ -1119,6 +1127,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               const connectedDevices = (payload.devices || []).filter(device => device.state === 'device');
               if (!payload.selectedSerial && devices.length === 1 && connectedDevices.length === 1) {
                 setDeviceUiState(DeviceUiState.CONNECTING, connectedDevices[0]);
+                bumpSessionMutationGeneration();
                 payload = await requestJson('/api/device/select', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -1132,6 +1141,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               const option = devicePicker.selectedOptions[0];
               if (!option || !option.value || option.disabled) return;
               setDeviceUiState(DeviceUiState.CONNECTING, deviceBySerial(state.devices, option.value));
+              bumpSessionMutationGeneration();
               invalidatePreviewContext();
               try {
                 renderDeviceList(await requestJson('/api/device/select', {
@@ -1155,6 +1165,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             async function disconnectDevice() {
+              bumpSessionMutationGeneration();
               invalidatePreviewContext();
               renderDeviceList(await requestJson('/api/device/disconnect', { method: 'POST' }));
               setDeviceUiState(DeviceUiState.NONE);
@@ -2027,9 +2038,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (!addItemsFlow.context?.sessionId || !addItemsFlow.context?.previewId) {
                 throw new Error('Annotation context is missing. Re-capture the screen and try again.');
               }
+              const requestGeneration = sessionMutationGeneration;
+              const expectedSessionId = addItemsFlow.context.sessionId;
               const sendBatch = async (overrideMismatch) => {
                 return await withMutationLock(() => savePreviewBatchOrConflict({
-                  sessionId: addItemsFlow.context.sessionId,
+                  sessionId: expectedSessionId,
                   previewId: addItemsFlow.context.previewId,
                   screen: addItemsFlow.screen,
                   items: payloadItems,
@@ -2056,8 +2069,13 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   return null;
                 }
               }
-              if (result?.session?.sessionId !== addItemsFlow.context.sessionId) {
-                throw new Error('Save returned a different session than the captured annotation context.');
+              if (requestGeneration !== sessionMutationGeneration) {
+                await refreshSessions();
+                return null;
+              }
+              if (result.session?.sessionId !== expectedSessionId) {
+                await refreshSessions();
+                throw new Error('Save returned a different feedback session. Refresh and try again.');
               }
               state.session = result.session;
               resetAnnotationComposerState();
@@ -2401,6 +2419,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             async function openSession(sessionId) {
               error.textContent = '';
               if (await resolvePendingBeforeBoundary('open-session', sessionId) !== 'continue') return;
+              bumpSessionMutationGeneration();
               stopLivePreviewPolling();
               resetAnnotationComposerState();
               invalidatePreviewContext();
@@ -2419,6 +2438,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             async function newSession() {
               error.textContent = '';
               if (await resolvePendingBeforeBoundary('new-session') !== 'continue') return;
+              bumpSessionMutationGeneration();
               resetAnnotationComposerState();
               invalidatePreviewContext();
               state.session = await withMutationLock(() => requestJson('/api/session/open', {
@@ -2435,6 +2455,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (!state.session) return;
               if (await resolvePendingBeforeBoundary('close-session', state.session.sessionId) !== 'continue') return;
               const sessionId = state.session.sessionId;
+              bumpSessionMutationGeneration();
               await withMutationLock(() => requestJson('/api/session/close', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2454,6 +2475,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (await resolvePendingBeforeBoundary('delete-session', sessionId) !== 'continue') return;
               const isDisplayedSession = () => state.session?.sessionId === sessionId;
               const wasDisplayedSession = isDisplayedSession();
+              bumpSessionMutationGeneration();
               await withMutationLock(() => requestJson('/api/session/close', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

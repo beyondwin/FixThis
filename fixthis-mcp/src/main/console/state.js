@@ -62,6 +62,7 @@
             let heartbeatPolling = false;
             let previewRequestGeneration = 0;
             let previewRequestContextGeneration = 0;
+            let sessionMutationGeneration = 0;
             let previewRequestInFlight = null;
             let previewRequestInFlightContextGeneration = null;
             let addItemsFlow = null;
@@ -88,6 +89,11 @@
             const MaxConsecutivePollFailures = 5;
             // ALH-2: Undo/redo history singleton for pending feedback items.
             let undoRedoHistory = createHistory();
+
+            function bumpSessionMutationGeneration() {
+              sessionMutationGeneration += 1;
+              return sessionMutationGeneration;
+            }
 
             async function withMutationLock(fn) {
               pendingMutationCount++;
