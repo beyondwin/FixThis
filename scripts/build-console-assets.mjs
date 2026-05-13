@@ -20,6 +20,8 @@ const sources = [
   'activityDrift.js',
   'api.js',
   'draftApiAdapter.js',
+  'draftUseCases.js',
+  'draftCommandQueue.js',
   'connection.js',
   'availability.js',
   'devices.js',
