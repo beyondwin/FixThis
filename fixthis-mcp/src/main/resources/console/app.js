@@ -239,8 +239,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778697360000;
-const ConsoleBuildGitSha = 'a5ece94';
+const ConsoleBuildEpochMs = 1778697420000;
+const ConsoleBuildGitSha = '04ba11c';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -593,6 +593,157 @@ function reduceDraftWorkspace(workspace = createEmptyDraftWorkspace(), action = 
     default:
       return workspace;
   }
+}
+
+// draftWorkspaceHistory.js
+// draftWorkspaceHistory.js - pure undo/redo helpers for DraftWorkspace items.
+
+const DraftHistoryMaxDepth = 50;
+
+function createEmptyDraftHistory() {
+  return { undoStack: [], redoStack: [] };
+}
+
+function cloneDraftHistoryValue(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
+function pushDraftHistoryOp(stack, op) {
+  const next = stack.concat(cloneDraftHistoryValue(op));
+  while (next.length > DraftHistoryMaxDepth) next.shift();
+  return next;
+}
+
+function recordDraftAdd(history, item) {
+  return {
+    undoStack: pushDraftHistoryOp(history?.undoStack || [], { kind: 'add', after: item }),
+    redoStack: [],
+  };
+}
+
+function recordDraftDelete(history, item, index) {
+  return {
+    undoStack: pushDraftHistoryOp(history?.undoStack || [], { kind: 'delete', before: item, index }),
+    redoStack: [],
+  };
+}
+
+function recordDraftUpdate(history, before, after) {
+  return {
+    undoStack: pushDraftHistoryOp(history?.undoStack || [], { kind: 'update', before, after }),
+    redoStack: [],
+  };
+}
+
+function sameDraftHistoryItem(left, right) {
+  return Boolean(left?.draftItemId && right?.draftItemId && left.draftItemId === right.draftItemId);
+}
+
+function applyDraftInverse(op, items) {
+  const next = items.map(cloneDraftHistoryValue);
+  if (op.kind === 'add') {
+    return next.filter((item) => !sameDraftHistoryItem(item, op.after));
+  }
+  if (op.kind === 'delete') {
+    const restored = cloneDraftHistoryValue(op.before);
+    const index = Number.isInteger(op.index) ? Math.max(0, Math.min(op.index, next.length)) : next.length;
+    next.splice(index, 0, restored);
+    return next;
+  }
+  if (op.kind === 'update') {
+    return next.map((item) => sameDraftHistoryItem(item, op.before) ? cloneDraftHistoryValue(op.before) : item);
+  }
+  return next;
+}
+
+function applyDraftForward(op, items) {
+  const next = items.map(cloneDraftHistoryValue);
+  if (op.kind === 'add') return next.concat(cloneDraftHistoryValue(op.after));
+  if (op.kind === 'delete') return next.filter((item) => !sameDraftHistoryItem(item, op.before));
+  if (op.kind === 'update') {
+    return next.map((item) => sameDraftHistoryItem(item, op.after) ? cloneDraftHistoryValue(op.after) : item);
+  }
+  return next;
+}
+
+function undoDraftHistory(history, items) {
+  const undoStack = (history?.undoStack || []).slice();
+  const op = undoStack.pop();
+  if (!op) return { applied: false, reason: 'empty', history: history || createEmptyDraftHistory(), items };
+  return {
+    applied: true,
+    history: {
+      undoStack,
+      redoStack: pushDraftHistoryOp(history?.redoStack || [], op),
+    },
+    items: applyDraftInverse(op, items || []),
+  };
+}
+
+function redoDraftHistory(history, items) {
+  const redoStack = (history?.redoStack || []).slice();
+  const op = redoStack.pop();
+  if (!op) return { applied: false, reason: 'empty', history: history || createEmptyDraftHistory(), items };
+  return {
+    applied: true,
+    history: {
+      undoStack: pushDraftHistoryOp(history?.undoStack || [], op),
+      redoStack,
+    },
+    items: applyDraftForward(op, items || []),
+  };
+}
+
+// draftPorts.js
+// draftPorts.js - narrow port helpers for DraftWorkspace use cases.
+// Port shape:
+// {
+//   ids: { nextWorkspaceId(): string, nextDraftItemId(): string },
+//   clock: { now(): number },
+//   preview: { capture(): Promise<FeedbackPreviewSnapshot>, screenshotUrl(previewId, sessionId): string },
+//   feedbackApi: { saveDraftWorkspace(request): Promise<object>, saveToMcp(sessionId, itemIds): Promise<object>, handoffPreview(sessionId, itemIds): Promise<string>, markHandedOff(sessionId, itemIds): Promise<object> },
+//   storage: { saveWorkspace(envelope): void, deleteWorkspace(sessionId, workspaceId): void, loadWorkspacesForSession(sessionId): object[], migrateLegacyPending(sessionId): object[] },
+//   clipboard: { writeText(text): Promise<void> },
+//   boundaryPrompt: { choose(workspace, boundaryAction): Promise<'save'|'keep'|'discard'|'cancel'> },
+//   refresh: { sessions(): Promise<void> }
+// }
+
+function requireDraftPort(ports, name) {
+  const value = ports?.[name];
+  if (!value) throw new Error('Missing draft port: ' + name);
+  return value;
+}
+
+function createFakeDraftPorts(overrides = {}) {
+  let id = 0;
+  return {
+    ids: {
+      nextWorkspaceId: () => 'workspace-' + (++id),
+      nextDraftItemId: () => 'draft-' + (++id),
+    },
+    clock: { now: () => 1000 },
+    preview: {
+      capture: async () => { throw new Error('preview.capture fake not configured'); },
+      screenshotUrl: (previewId, sessionId) => '/api/preview/' + encodeURIComponent(previewId) + '/screenshot/full?sessionId=' + encodeURIComponent(sessionId),
+    },
+    feedbackApi: {
+      saveDraftWorkspace: async () => { throw new Error('feedbackApi.saveDraftWorkspace fake not configured'); },
+      saveToMcp: async () => { throw new Error('feedbackApi.saveToMcp fake not configured'); },
+      handoffPreview: async () => { throw new Error('feedbackApi.handoffPreview fake not configured'); },
+      markHandedOff: async () => { throw new Error('feedbackApi.markHandedOff fake not configured'); },
+    },
+    storage: {
+      saveWorkspace: () => {},
+      deleteWorkspace: () => {},
+      loadWorkspacesForSession: () => [],
+      migrateLegacyPending: () => [],
+    },
+    clipboard: { writeText: async () => {} },
+    boundaryPrompt: { choose: async () => 'cancel' },
+    refresh: { sessions: async () => {} },
+    ...overrides,
+  };
 }
 
 // beforeunloadGuard.js
