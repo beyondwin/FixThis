@@ -180,10 +180,7 @@ class FeedbackSessionStore(
     fun closeSession(sessionId: String): SessionDto = synchronized(lock) {
         val session = getSessionLocked(sessionId)
         val now = clock()
-        val closed = session.copy(
-            status = SessionStatusDto.CLOSED,
-            updatedAtEpochMillis = now,
-        )
+        val closed = SessionReducer.reduce(session, SessionMutation.Close(now))
         save(closed)
         sessions[sessionId] = closed
         if (currentSessionId == sessionId) currentSessionId = null
@@ -482,10 +479,7 @@ class FeedbackSessionStore(
     fun markReadyForAgent(sessionId: String): SessionDto = synchronized(lock) {
         val session = getSessionLocked(sessionId)
         val now = clock()
-        val updated = session.copy(
-            status = SessionStatusDto.READY_FOR_AGENT,
-            updatedAtEpochMillis = now,
-        )
+        val updated = SessionReducer.reduce(session, SessionMutation.MarkReadyForAgent(now))
         save(updated)
         sessions[sessionId] = updated
         updated
