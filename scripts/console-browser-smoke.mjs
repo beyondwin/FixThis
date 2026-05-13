@@ -38,7 +38,7 @@ const fake = {
 
 fake.sessions.set('session-1', makeSession('session-1', 0, []));
 fake.sessions.set('session-2', makeSession('session-2', -10_000, [
-  makePersistedItem('item-older', 'Earlier screen annotation', 'screen-session-2-old', { left: 120, top: 260, right: 320, bottom: 360 }),
+  makePersistedItem('item-older', 'Earlier screen annotation', 'screen-session-2', { left: 120, top: 260, right: 320, bottom: 360 }),
   makePersistedItem('item-old', 'Existing history annotation', 'screen-session-2', { left: 40, top: 40, right: 160, bottom: 120 }),
 ]));
 
@@ -231,6 +231,12 @@ function screenshotSvg() {
 
 async function handleApi(request, response, url) {
   if (request.method === 'GET' && url.pathname === '/api/session') return jsonResponse(response, currentSession());
+  if (request.method === 'GET' && url.pathname === '/api/server-version') {
+    return jsonResponse(response, {
+      serverBuildEpochMs: 1_778_639_340_000,
+      serverGitSha: 'f51f1a7',
+    });
+  }
   if (request.method === 'GET' && url.pathname === '/api/sessions') {
     return jsonResponse(response, {
       sessions: Array.from(fake.sessions.values())
@@ -340,17 +346,45 @@ async function handleApi(request, response, url) {
   }
   if (request.method === 'POST' && url.pathname === '/api/agent-handoffs') {
     const body = await readJsonBody(request);
-    fake.handoffPrompts.push(body.prompt);
     const session = currentSession();
+    const ids = new Set(Array.isArray(body.itemIds) ? body.itemIds : []);
+    const selectedItems = session.items.filter(item => ids.has(item.itemId));
+    const prompt = body.prompt || selectedItems.map(item => '- ' + item.comment).join('\n');
+    fake.handoffPrompts.push(prompt);
     const batchId = 'batch-' + (session.handoffBatches.length + 1);
-    session.items = session.items.map(item => ({ ...item, delivery: 'sent', handoffBatchId: batchId }));
+    session.items = session.items.map(item => ids.has(item.itemId) ? { ...item, delivery: 'sent', handoffBatchId: batchId } : item);
     session.handoffBatches = [{
       batchId,
       sequenceNumber: session.handoffBatches.length + 1,
-      itemIds: session.items.map(item => item.itemId),
+      itemIds: Array.from(ids),
       createdAtEpochMillis: now + 30_000,
     }];
     session.updatedAtEpochMillis = now + 30_000;
+    return jsonResponse(response, { session });
+  }
+  if (request.method === 'POST' && url.pathname.match(/^\/api\/sessions\/[^/]+\/handoff-preview$/)) {
+    const body = await readJsonBody(request);
+    const sessionId = decodeURIComponent(url.pathname.split('/')[3]);
+    const session = fake.sessions.get(sessionId) || currentSession();
+    const ids = new Set(Array.isArray(body.itemIds) ? body.itemIds : []);
+    const selectedItems = session.items.filter(item => ids.has(item.itemId));
+    const markdown = selectedItems.map(item => '- ' + item.comment).join('\n') || '- No annotations selected';
+    return textResponse(response, markdown, 200, 'text/markdown; charset=utf-8');
+  }
+  if (request.method === 'POST' && url.pathname.match(/^\/api\/sessions\/[^/]+\/items\/mark-handed-off$/)) {
+    const body = await readJsonBody(request);
+    const sessionId = decodeURIComponent(url.pathname.split('/')[3]);
+    const session = fake.sessions.get(sessionId) || currentSession();
+    const ids = new Set(Array.isArray(body.itemIds) ? body.itemIds : []);
+    session.items = session.items.map(item => ids.has(item.itemId)
+      ? {
+          ...item,
+          delivery: 'sent',
+          lastHandedOffAtEpochMillis: now + 31_000,
+          updatedAtEpochMillis: now + 31_000,
+        }
+      : item);
+    session.updatedAtEpochMillis = now + 31_000;
     return jsonResponse(response, session);
   }
   if (request.method === 'POST' && url.pathname === '/api/session/open') {
@@ -418,13 +452,79 @@ function browserBlocker(error) {
   return 'BROWSER_SMOKE_FAILED';
 }
 
-async function waitForReady(page) {
-  await page.waitForFunction(() => document.getElementById('connectionCard')?.dataset.connectionState === 'ready');
-  await page.waitForSelector('#snapshotImage');
-  await page.waitForFunction(() => {
+async function readyDiagnostics(page) {
+  return await page.evaluate(() => {
+    const card = document.getElementById('connectionCard');
     const image = document.getElementById('snapshotImage');
-    return image && image.complete && image.naturalWidth > 0 && image.naturalHeight > 0;
+    return {
+      connectionState: card?.dataset.connectionState || null,
+      connectionText: card?.textContent?.replace(/\s+/g, ' ').trim() || null,
+      imagePresent: Boolean(image),
+      imageComplete: Boolean(image?.complete),
+      naturalWidth: image?.naturalWidth || 0,
+      naturalHeight: image?.naturalHeight || 0,
+      deviceName: document.getElementById('deviceName')?.textContent || null,
+      error: document.getElementById('error')?.textContent || null,
+    };
   });
+}
+
+async function waitForReady(page) {
+  try {
+    await page.waitForFunction(() => {
+      const card = document.getElementById('connectionCard');
+      const image = document.getElementById('snapshotImage');
+      return card?.dataset.connectionState === 'ready' &&
+        image &&
+        image.complete &&
+        image.naturalWidth > 0 &&
+        image.naturalHeight > 0;
+    }, { timeout: 15_000 });
+  } catch (error) {
+    const diagnostics = await readyDiagnostics(page);
+    throw new Error('Console did not reach ready preview state: ' + JSON.stringify(diagnostics));
+  }
+}
+
+async function pendingDiagnostics(page) {
+  return await page.evaluate(() => ({
+    pendingRows: document.querySelectorAll('.pending-item-row').length,
+    pins: document.querySelectorAll('.selection-box.annotation-pin').length,
+    toolMode: document.getElementById('snapshot')?.dataset.toolMode || null,
+    hint: document.getElementById('annotateHint')?.textContent || null,
+    summary: document.getElementById('selectionSummary')?.textContent || null,
+    error: document.getElementById('error')?.textContent || null,
+    blocked: !document.getElementById('canvasBlockedOverlay')?.hidden,
+  }));
+}
+
+async function waitForPendingPins(page, expected, context) {
+  try {
+    await page.waitForFunction(
+      count => document.querySelectorAll('.selection-box.annotation-pin').length === count,
+      expected,
+      { timeout: 10_000 },
+    );
+  } catch (error) {
+    const diagnostics = await pendingDiagnostics(page);
+    throw new Error(context + ': ' + JSON.stringify(diagnostics));
+  }
+}
+
+async function waitForSnapshotImageReady(page, context) {
+  try {
+    await page.waitForFunction(() => {
+      const image = document.getElementById('snapshotImage');
+      return image &&
+        image.complete &&
+        image.naturalWidth > 0 &&
+        image.naturalHeight > 0 &&
+        document.getElementById('annotateToolButton')?.disabled === false;
+    }, { timeout: 10_000 });
+  } catch (error) {
+    const diagnostics = await readyDiagnostics(page);
+    throw new Error(context + ': ' + JSON.stringify(diagnostics));
+  }
 }
 
 async function runSmoke(baseUrl) {
@@ -565,14 +665,17 @@ async function runSmoke(baseUrl) {
     await page.click('#annotateToolButton');
     await page.waitForSelector('#snapshot[data-tool-mode="annotate"]');
     await page.waitForSelector('#annotateHint');
-    await page.locator('#snapshotImage').click({ position: { x: 160, y: 120 } });
+    await waitForSnapshotImageReady(page, 'Annotate snapshot image was not ready');
+    await page.mouse.click(
+      imageBox.x + imageBox.width * 200 / 400,
+      imageBox.y + imageBox.height * 150 / 800,
+    );
+    await waitForPendingPins(page, 1, 'Node annotation was not added');
     await page.mouse.move(imageBox.x + 40, imageBox.y + 40);
     await page.mouse.down();
     await page.mouse.move(imageBox.x + 120, imageBox.y + 90);
     await page.mouse.up();
-    await page.waitForFunction(() => document.querySelectorAll('.pending-item-row').length === 2);
-    await page.waitForFunction(() => document.querySelectorAll('.selection-box.annotation-pin').length === 2);
-    await page.locator('.pending-item-row').first().click();
+    await waitForPendingPins(page, 2, 'Area annotation was not added');
     await page.waitForSelector('#annotationCommentInput');
     const annotationComment = 'Make the checkout button clearer';
     await page.fill('#annotationCommentInput', annotationComment);
@@ -581,11 +684,29 @@ async function runSmoke(baseUrl) {
     await page.waitForFunction(() => window.__fixthisCopiedText?.includes('Make the checkout button clearer'));
     const copiedText = await page.evaluate(() => window.__fixthisCopiedText);
     assert.match(copiedText, /Make the checkout button clearer/);
+
+    await page.click('#annotateToolButton');
+    await page.waitForSelector('#snapshot[data-tool-mode="annotate"]');
+    await waitForSnapshotImageReady(page, 'Send-agent snapshot image was not ready');
+    const sendImageBox = await page.locator('#snapshotImage').boundingBox();
+    assert.ok(sendImageBox, 'Expected preview image to be visible before send-agent annotation');
+    await page.mouse.move(sendImageBox.x + 60, sendImageBox.y + 220);
+    await page.mouse.down();
+    await page.mouse.move(sendImageBox.x + 160, sendImageBox.y + 290);
+    await page.mouse.up();
+    await waitForPendingPins(page, 1, 'Send-agent annotation was not added');
+    await page.waitForSelector('#annotationCommentInput');
+    const sendComment = 'Send this annotation to the agent';
+    await page.fill('#annotationCommentInput', sendComment);
     await page.waitForFunction(() => !document.getElementById('sendAgentButton').disabled);
+    const agentHandoffResponse = page.waitForResponse(response =>
+      response.url().includes('/api/agent-handoffs') && response.request().method() === 'POST'
+    );
     await page.click('#sendAgentButton');
-    await page.waitForFunction(() => document.querySelector('#sentHistory')?.textContent.includes('Batch #1'));
+    assert.ok((await agentHandoffResponse).ok(), 'Agent handoff should persist');
+    await page.waitForFunction(() => document.getElementById('error')?.textContent.includes('Saved to MCP'));
     assert.equal(fake.handoffPrompts.length, 1, 'Expected one agent handoff prompt');
-    assert.match(fake.handoffPrompts[0], /Make the checkout button clearer/);
+    assert.match(fake.handoffPrompts[0], /Send this annotation to the agent/);
 
     // Scenario: device interaction availability — screen-off blocks annotation, auto-resumes.
     // Toggles `availability.screenInteractive` between false and true while in Annotate mode.
