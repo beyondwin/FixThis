@@ -8,9 +8,12 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -83,7 +86,10 @@ fun FeedbackCard(
                     },
                     onClick = {},
                 ) {
-                    Text("S", style = MaterialTheme.typography.labelMedium)
+                    Icon(
+                        imageVector = Icons.Outlined.Save,
+                        contentDescription = null,
+                    )
                 }
                 Button(
                     enabled = !showDisabledAction,

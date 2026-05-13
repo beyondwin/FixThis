@@ -20,11 +20,17 @@ class SampleAppSmokeTest {
     fun fixThisShowsProductScenesAndNavigatesTabs() {
         rule.onNodeWithText("FixThis Studio").assertExists()
         rule.onNodeWithText("Review work, at a glance").assertExists()
+        rule.onNodeWithContentDescription("Home tab").assertExists()
+        rule.onNodeWithContentDescription("Queue tab").assertExists()
+        rule.onNodeWithContentDescription("Project tab").assertExists()
+        rule.onNodeWithContentDescription("Review tab").assertExists()
+        rule.onNodeWithContentDescription("Diagnostics tab").assertExists()
 
         rule.onNodeWithText("Queue").performClick()
         rule.onNodeWithText("Feedback queue").assertExists()
         rule.onNodeWithText("Search feedback").assertExists()
         rule.onNodeWithText("Needs screenshot").assertExists()
+        rule.onNodeWithContentDescription("Save FX-1042").assertExists()
 
         rule.onNodeWithText("Project").performClick()
         rule.onNodeWithText("Affected preview").assertExists()
