@@ -123,6 +123,38 @@ class FeedbackSessionStore(
         getSessionLocked(sessionId)
     }
 
+    fun replaceSessionForDomain(session: SessionDto): SessionDto = synchronized(lock) {
+        save(session)
+        sessions[session.sessionId] = session
+        if (session.status != SessionStatusDto.CLOSED) {
+            currentSessionId = session.sessionId
+        } else if (currentSessionId == session.sessionId) {
+            currentSessionId = null
+        }
+        session
+    }
+
+    fun addOrReplaceScreenForDomain(sessionId: String, screen: SnapshotDto): SessionDto = synchronized(lock) {
+        val session = getSessionLocked(sessionId)
+        val updated = session.copy(
+            screens = session.screens.filterNot { it.screenId == screen.screenId } + screen,
+            updatedAtEpochMillis = clock(),
+        )
+        commitSessionMutation(session, updated)
+    }
+
+    fun addOrReplaceAnnotationForDomain(sessionId: String, annotation: AnnotationDto): SessionDto = synchronized(lock) {
+        val session = getSessionLocked(sessionId)
+        require(session.screens.any { it.screenId == annotation.screenId }) {
+            "Cannot save annotation for unknown screen: ${annotation.screenId}"
+        }
+        val updated = session.copy(
+            items = session.items.filterNot { it.itemId == annotation.itemId } + annotation,
+            updatedAtEpochMillis = clock(),
+        )
+        commitSessionMutation(session, updated)
+    }
+
     fun nextId(): String = synchronized(lock) { idGenerator() }
 
     fun listSessions(packageName: String? = null, includeClosed: Boolean = false): FeedbackSessionList = synchronized(lock) {
