@@ -12,6 +12,7 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.text.TextUtils
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -60,6 +61,12 @@ internal class FixThisConnectionStatusHostLayout(
         statusView.setTextColor(Color.rgb(18, 18, 18))
         statusView.typeface = Typeface.DEFAULT_BOLD
         statusView.textSize = 14f
+        statusView.maxLines = 1
+        statusView.ellipsize = TextUtils.TruncateAt.END
+        statusView.maxWidth = resources.displayMetrics.widthPixels
+            .times(MaxPillWidthFraction)
+            .toInt()
+            .coerceAtLeast(context.dp(MinPillTextWidthDp))
         pillView.addView(
             statusView,
             LinearLayout.LayoutParams(
@@ -128,6 +135,8 @@ internal class FixThisConnectionStatusHostLayout(
         private const val RefreshIntervalMillis = 1_000L
         private const val HorizontalMarginDp = 16
         private const val PillBackgroundAlpha = 170
+        private const val MaxPillWidthFraction = 0.55f
+        private const val MinPillTextWidthDp = 96
 
         fun attachTo(activity: Activity) {
             val decor = activity.window.decorView as? ViewGroup ?: return

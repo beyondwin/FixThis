@@ -3,6 +3,7 @@ package io.beyondwin.fixthis.compose.sidekick.overlay
 import android.app.Activity
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.text.TextUtils
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -128,6 +129,16 @@ class FixThisConnectionStatusHostLayoutTest {
         assertEquals(activity.dp(CompactVerticalPaddingDp), pill.paddingTop)
         assertEquals(activity.dp(CompactVerticalPaddingDp), pill.paddingBottom)
         assertEquals(activity.dp(CompactIconTextGapDp), iconParams.marginEnd)
+    }
+
+    @Test
+    fun statusTextIsSingleLineAndEllipsized() {
+        val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
+        val host = FixThisConnectionStatusHostLayout(activity)
+        val textView = host.statusTextView()
+
+        assertEquals(1, textView.maxLines)
+        assertEquals(TextUtils.TruncateAt.END, textView.ellipsize)
     }
 
     @Test
