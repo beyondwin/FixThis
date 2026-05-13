@@ -38,7 +38,11 @@ fixthis-cli/build/install/fixthis/bin/fixthis doctor --package io.beyondwin.fixt
 fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
 ```
 
-`fixthis run` installs the sample debug APK, attaches the sidekick bridge, and opens the FixThis Studio console at `http://127.0.0.1:<port>`. Click **Annotate**, point at any UI element, write a comment, and hit **Copy Prompt** — paste straight into Claude or Codex.
+`fixthis run` installs the sample debug APK, attaches the sidekick bridge, and
+opens the FixThis Studio console at `http://127.0.0.1:<port>`. Follow the
+Connect → Preview → Annotate → Handoff progress, watch the readiness summary
+near **Copy Prompt** / **Save to MCP**, then copy Markdown or save the local
+MCP handoff for Claude Code or Codex.
 
 → Full walkthrough: [Quick Start with the sample](docs/getting-started/try-the-sample.md)
 → Add to your own app: [Add FixThis to your app](docs/getting-started/add-to-your-app.md)

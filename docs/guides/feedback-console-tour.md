@@ -26,12 +26,15 @@ URL is loopback-only — see [Privacy](../reference/privacy.md) and
 [Security](../../SECURITY.md).
 
 > Capture needed: full console window on first open, with the `Start`
-> connection card visible.
+> connection card visible and the workflow progress showing Connect, Preview,
+> Annotate, and Handoff.
 
 *Caption:* Three-pane layout. Left: persisted feedback sessions. Center: live
 or frozen Android preview. Right: mode-aware Inspector. Top bar: device
 selector + connection state + session-level actions (Refresh devices, Clear
-selection, Copy Prompt, Save to MCP).
+selection, Copy Prompt, Save to MCP). The workflow progress row marks the
+current Connect → Preview → Annotate → Handoff step, and the prompt readiness
+summary explains whether a batch is ready to copy or save.
 
 ## Connect a device
 
@@ -53,7 +56,9 @@ error). Drafts and the last preview remain visible while reconnecting.
 When the device is *blocked* — screen off, locked, app in background, in
 Picture-in-Picture, sample app unresponsive, or no Compose UI on the current
 screen — the canvas shows a per-cause overlay and suppresses input until the
-cause clears, then auto-resumes the prior tool mode.
+cause clears, then auto-resumes the prior tool mode. The workflow progress row
+keeps the blocked connection visible instead of making the user infer it from
+the canvas alone.
 
 ## Navigate in Select mode
 
@@ -72,6 +77,12 @@ Navigation is debug-only and limited to one-step `back`, `tap`, and `swipe`.
 Once you're on the screen you want to leave feedback on, click **Annotate**.
 The current preview freezes — subsequent navigation in the running app does
 not change what you're annotating, so you can take your time.
+
+The preview frame status badge names the current frame state: `Live preview`,
+`Frozen for annotation`, `Saved screen`, `Stale frame`, `No screenshot`, or
+`Interaction blocked`. Stale and blocked states keep their existing overlays,
+but the badge stays visible so screenshots and videos still explain why the
+preview is not interactive.
 
 The frozen preview carries a screen fingerprint when the bridge can compute
 one. If the app rotates, changes window mode, or otherwise moves to a different
@@ -129,6 +140,11 @@ one screenshot and one source-candidate context.
 
 You have two ways to hand off the pending batch:
 
+The prompt readiness summary sits near **Copy Prompt** and **Save to MCP**. It
+shows `No annotations ready` before any written comments exist, then counts the
+ready annotations and distinguishes clipboard-only copy from the local MCP
+queue. Disabled handoff buttons always have a visible reason in this summary.
+
 ### Copy Prompt — for any chat-style agent
 
 Click **Copy Prompt**. A compact Markdown prompt lands in the clipboard. Paste
@@ -147,7 +163,8 @@ The agent calls `fixthis_read_feedback`, gets the same JSON + Markdown, and
 edits.
 
 Both paths share the same compact prompt format and the same JSON evidence;
-**Save to MCP** just removes the manual paste step. See
+**Save to MCP** just removes the manual paste step and never uploads the
+handoff. See
 [Working with AI agents](agents.md) for per-agent specifics.
 
 > Capture needed: Inspector Draft view with screenshot, numbered overlay,
@@ -172,6 +189,10 @@ and re-save.
 Feedback console sessions are resumable. FixThis saves workspace metadata and
 screenshot artifacts under `.fixthis/feedback-sessions/`, so an MCP or console
 restart does not discard queued feedback.
+
+On compact layouts, the prior-session list moves behind the **History** button
+in the top bar. The drawer exposes the same saved evidence groups as the
+desktop left pane without covering the current preview until opened.
 
 Unsaved browser-only pending annotations are mirrored locally per session. When
 the console reloads and finds a recoverable frozen preview, it shows a

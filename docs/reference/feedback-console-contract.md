@@ -17,13 +17,33 @@
 | Clear draft feedback | `clearDraftButton` | `Clear Draft` |
 | Refresh devices | `refreshDevicesButton` | `Refresh devices` |
 | Clear FixThis device selection | `disconnectDeviceButton` | `Clear selection` |
+| Workflow progress | `workflowProgress` | `FixThis feedback workflow` |
+| Prompt readiness | `promptReadiness` | `Prompt readiness` |
+| Compact history drawer | `historyToggleButton` | `History` |
+| Preview frame state | `previewFrameStatus` | `Live preview` / `Frozen for annotation` / `Saved screen` / `Stale frame` / `No screenshot` / `Interaction blocked` |
 
 ## Mode Semantics
 
 - Select mode is the normal preview mode. Preview clicks navigate the debug app when the bridge is ready.
 - Annotate mode freezes the latest preview so the user can select Compose nodes or draw visual areas.
 - Stale preview state keeps the last preview visible while live bridge actions are disabled.
+- The workflow progress surface uses `data-workflow-step` values `connect`,
+  `preview`, `annotate`, and `handoff`, with `data-state` values `complete`,
+  `active`, and `upcoming`. It must remain visible whenever the console shell
+  is visible.
+- The prompt readiness surface stays visible near the handoff controls even
+  when `Copy Prompt` and `Save to MCP` are disabled. It must explain the empty,
+  draft-only, ready-to-copy, and ready-to-save states without requiring a toast
+  or failed click.
+- The preview frame state badge stays attached to the preview stage and must
+  use one of the canonical labels above. `Interaction blocked` takes precedence
+  over stale or frozen labels; `Stale frame` takes precedence over a live frame
+  when bridge actions are disabled but the last image remains visible.
 - Draft/history view shows persisted local feedback groups and sent handoff history.
+- On compact layouts below the desktop history breakpoint, history remains
+  reachable from the top-bar `History` control. Opening the drawer must expose
+  the same saved evidence groups as the desktop history pane and support
+  dismissal without changing the active session.
 - The global status surface (`#error.global-status`) displays console-level
   error, warning, success, and info messages. Long bridge errors, partial
   handoff failures, and recovery diagnostics must wrap inside the viewport.
