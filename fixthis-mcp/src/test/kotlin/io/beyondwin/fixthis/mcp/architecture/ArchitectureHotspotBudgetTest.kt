@@ -7,18 +7,29 @@ import kotlin.test.assertTrue
 class ArchitectureHotspotBudgetTest {
     private val root: File = generateSequence(File("").absoluteFile) { it.parentFile }
         .first { File(it, "settings.gradle.kts").isFile || File(it, "settings.gradle").isFile }
+    private val mcpMain = "fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/"
+    private val mcpConsoleTest = "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/"
+    private val sidekickBridge =
+        "fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/"
+    private val gradlePlugin =
+        "fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/"
 
     @Test
     fun handwrittenKotlinFilesStayUnderBudgetUnlessExplicitlyAllowed() {
         val budgets = mapOf(
-            "fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt" to 1_050,
-            "fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt" to 920,
-            "fixthis-compose-sidekick/src/main/kotlin/" +
-                "io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt" to 740,
-            "fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt" to 620,
+            "${mcpMain}session/FeedbackSessionStore.kt" to 780,
+            "${mcpMain}session/SessionReplayEngine.kt" to 340,
+            "${mcpMain}tools/FixThisTools.kt" to 230,
+            "${mcpMain}tools/FixThisToolDispatcher.kt" to 540,
+            "${mcpMain}tools/McpToolRegistry.kt" to 290,
+            "${mcpConsoleTest}ConsoleFeedbackItemRoutesTest.kt" to 2_850,
+            "${sidekickBridge}BridgeServer.kt" to 220,
+            "${sidekickBridge}BridgeModels.kt" to 220,
+            "${sidekickBridge}AndroidBridgeEnvironment.kt" to 180,
+            "fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt" to 560,
             "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt" to 560,
-            "fixthis-gradle-plugin/src/main/kotlin/" +
-                "io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt" to 470,
+            "${gradlePlugin}task/GenerateFixThisSourceIndexTask.kt" to 130,
+            "${gradlePlugin}source/KotlinSourceScanner.kt" to 330,
         )
         val offenders = budgets.mapNotNull { (path, maxLines) ->
             val file = File(root, path)
