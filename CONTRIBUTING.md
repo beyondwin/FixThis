@@ -46,6 +46,32 @@ record the decision in `docs/architecture/adr/` before changing the guard.
 Prefer fixing new detekt findings over expanding a baseline; remove stale
 baseline entries when a refactor makes them disappear.
 
+### Focused Test Loops
+
+Use focused loops while iterating, then run the full local checklist before
+opening or updating a pull request.
+
+```bash
+# MCP event-log changes
+./gradlew :fixthis-mcp:test --tests '*eventlog*' --no-daemon
+
+# MCP console/server route changes
+./gradlew :fixthis-mcp:test --tests '*console*' --no-daemon
+
+# Sidekick Android unit changes
+./gradlew :fixthis-compose-sidekick:testDebugUnitTest --no-daemon
+
+# Pure console JavaScript changes
+node --test \
+  scripts/console-availability-test.mjs \
+  scripts/pendingItemRecovery-test.mjs \
+  scripts/beforeunloadGuard-test.mjs \
+  scripts/undoRedo-test.mjs \
+  scripts/undoKeymatch-test.mjs \
+  scripts/activityDrift-test.mjs \
+  scripts/previewStaleness-test.mjs
+```
+
 Run these before opening a pull request:
 
 ```bash
