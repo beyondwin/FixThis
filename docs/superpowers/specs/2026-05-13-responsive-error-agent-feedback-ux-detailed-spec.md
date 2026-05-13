@@ -1,9 +1,10 @@
 # Spec — Responsive Error and Agent Feedback UX Hardening
 
-Status: Draft
+Status: Implemented
 Date: 2026-05-13
 Owner: Console / FixThis MCP
 Scope: `:fixthis-mcp` browser feedback console, sample Compose app, sidekick status overlay
+Implementation plan: `docs/superpowers/plans/2026-05-13-responsive-error-agent-feedback-ux-implementation.md`
 Related audit artifacts:
 
 - `output/playwright/fixthis-desktop-1280-error-agent.png`
