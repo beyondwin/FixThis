@@ -285,7 +285,11 @@ class ConsoleFeedbackItemRoutesTest {
 
         assertTrue(html.contains("@media (max-width: 900px)"))
         assertTrue(Regex("\\.studio-body \\{\\s+grid-template-columns: 1fr;").containsMatchIn(html))
-        assertTrue(Regex("\\.studio-history \\{\\s+display: none;").containsMatchIn(html))
+        assertTrue(html.contains("id=\"historyToggleButton\""))
+        assertTrue(html.contains("id=\"historyDrawerScrim\""))
+        assertTrue(html.contains("aria-controls=\"historyPanel\""))
+        assertTrue(Regex("\\.studio-history \\{\\s+position: fixed;").containsMatchIn(html))
+        assertTrue(html.contains("body[data-history-drawer-open=\"true\"] .studio-history"))
         assertTrue(Regex("\\.studio-inspector \\{\\s+min-height: 280px;").containsMatchIn(html))
         assertTrue(Regex("\\.snapshot-stage \\{\\s+min-height: 360px;").containsMatchIn(html))
         assertFalse(html.contains("Resize to >= 900px wide"))
