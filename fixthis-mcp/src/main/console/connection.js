@@ -153,16 +153,8 @@
               connectionPrimaryAction.disabled = state.connection.launchInFlight;
               connectionPrimaryAction.dataset.connectionAction = action || 'START';
               if (state.connection.sessionsPollingPaused) {
-                // Surface a sub-line indicating sessions polling is paused after consecutive failures.
-                // Uses connectionDetailsBody as the secondary message channel so it does NOT
-                // replace the bridge/device headline above.
-                //
-                // Layout dependency (do NOT remove without updating both files together):
-                //   - index.html: connectionDetailsBody must be <pre>
-                //   - styles.css: .connection-details pre { white-space: pre-wrap; }
-                // The \n below renders as a visible line break only under those two conditions.
-                // If either changes, the sub-line collapses inline (silent visual regression
-                // — JS tests still pass because they assert string contents, not layout).
+                // Surface a sub-line indicating sessions polling is paused. The details panel
+                // preserves line breaks and wraps long tokens through .connection-details pre.
                 const baseDetails = connectionDetailsText(status);
                 connectionDetailsBody.textContent = baseDetails
                   ? baseDetails + '\nReconnecting feedback updates…'

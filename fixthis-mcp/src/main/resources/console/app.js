@@ -233,8 +233,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778670900000;
-const ConsoleBuildGitSha = '77cbd70';
+const ConsoleBuildEpochMs = 1778671080000;
+const ConsoleBuildGitSha = '1aefce7';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -805,16 +805,8 @@ function checkActivityDrift(flow, current) {
               connectionPrimaryAction.disabled = state.connection.launchInFlight;
               connectionPrimaryAction.dataset.connectionAction = action || 'START';
               if (state.connection.sessionsPollingPaused) {
-                // Surface a sub-line indicating sessions polling is paused after consecutive failures.
-                // Uses connectionDetailsBody as the secondary message channel so it does NOT
-                // replace the bridge/device headline above.
-                //
-                // Layout dependency (do NOT remove without updating both files together):
-                //   - index.html: connectionDetailsBody must be <pre>
-                //   - styles.css: .connection-details pre { white-space: pre-wrap; }
-                // The \n below renders as a visible line break only under those two conditions.
-                // If either changes, the sub-line collapses inline (silent visual regression
-                // — JS tests still pass because they assert string contents, not layout).
+                // Surface a sub-line indicating sessions polling is paused. The details panel
+                // preserves line breaks and wraps long tokens through .connection-details pre.
                 const baseDetails = connectionDetailsText(status);
                 connectionDetailsBody.textContent = baseDetails
                   ? baseDetails + '\nReconnecting feedback updates…'
@@ -2700,7 +2692,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 renderAnnotationDetail(selectedAnnotation(), focusedPendingItemIndex);
                 return;
               }
-              // SIF-6: inline activity-drift warning + "분리" button. Visible
+              // SIF-6: inline activity-drift warning + restart button. Visible
               // only while an addItemsFlow is active and the most recent
               // checkActivityDrift() result reported drift=true.
               const driftWarningHtml = (addItemsFlow && addItemsFlow.activityDriftWarning && addItemsFlow.activityDriftWarning.drift)
@@ -2709,7 +2701,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                       '<div class="activity-drift-warning-title">Activity changed during freeze</div>' +
                       '<div class="activity-drift-warning-detail">Frozen: ' + escapeHtml(String(addItemsFlow.activityDriftWarning.expected)) + ' · Now: ' + escapeHtml(String(addItemsFlow.activityDriftWarning.actual)) + '</div>' +
                     '</div>' +
-                    '<button type="button" class="activity-drift-warning-button" data-activity-drift-restart>분리 (새 freeze 시작)</button>' +
+                    '<button type="button" class="activity-drift-warning-button" data-activity-drift-restart>Start new freeze</button>' +
                   '</div>'
                 : '';
               pendingItems.innerHTML = driftWarningHtml + (pendingFeedbackItems.length

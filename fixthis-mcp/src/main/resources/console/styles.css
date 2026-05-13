@@ -1162,15 +1162,40 @@
               border-bottom-color: rgba(91, 180, 232, .35);
             }
             .activity-drift-warning {
+              display: flex;
+              align-items: flex-start;
+              justify-content: space-between;
+              gap: 10px;
               max-width: 100%;
+              margin: 0 0 10px;
+              padding: 10px 12px;
+              border: 1px solid rgba(230, 180, 90, .38);
+              border-radius: 8px;
+              background: rgba(230, 180, 90, .12);
+              color: #fde68a;
               overflow-wrap: anywhere;
             }
             .activity-drift-warning-body {
               min-width: 0;
+              display: grid;
+              gap: 4px;
+            }
+            .activity-drift-warning-title {
+              color: #fff7d6;
+              font-weight: 800;
+              font-size: 13px;
             }
             .activity-drift-warning-detail {
+              color: #f8e8b0;
+              font-size: 12px;
+              line-height: 1.4;
               overflow-wrap: anywhere;
               word-break: break-word;
+            }
+            .activity-drift-warning-button {
+              flex: 0 0 auto;
+              border-color: rgba(230, 180, 90, .45);
+              color: #fff7d6;
             }
             @media (max-width: 1099px) {
               .studio-topbar {
@@ -1298,15 +1323,27 @@
               .connection-actions {
                 width: 100%;
                 justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 8px;
+              }
+              .connection-details {
+                flex: 1 1 100%;
               }
               .connection-details pre {
-                max-width: calc(100vw - 32px);
+                max-width: 100%;
               }
               .activity-drift-warning {
                 flex-direction: column;
               }
               .activity-drift-warning-button {
                 width: 100%;
+              }
+              .staleness-banner {
+                align-items: flex-start;
+                gap: 6px 10px;
+              }
+              .staleness-banner [data-detail] {
+                flex: 1 1 100%;
               }
               .studio-body {
                 grid-template-columns: 1fr;
@@ -1461,4 +1498,13 @@
               font-size: 18px;
               cursor: pointer;
               color: inherit;
+            }
+            @media (max-width: 900px) {
+              .staleness-banner {
+                align-items: flex-start;
+                gap: 6px 10px;
+              }
+              .staleness-banner [data-detail] {
+                flex: 1 1 100%;
+              }
             }

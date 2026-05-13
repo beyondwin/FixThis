@@ -109,7 +109,7 @@
                 renderAnnotationDetail(selectedAnnotation(), focusedPendingItemIndex);
                 return;
               }
-              // SIF-6: inline activity-drift warning + "분리" button. Visible
+              // SIF-6: inline activity-drift warning + restart button. Visible
               // only while an addItemsFlow is active and the most recent
               // checkActivityDrift() result reported drift=true.
               const driftWarningHtml = (addItemsFlow && addItemsFlow.activityDriftWarning && addItemsFlow.activityDriftWarning.drift)
@@ -118,7 +118,7 @@
                       '<div class="activity-drift-warning-title">Activity changed during freeze</div>' +
                       '<div class="activity-drift-warning-detail">Frozen: ' + escapeHtml(String(addItemsFlow.activityDriftWarning.expected)) + ' · Now: ' + escapeHtml(String(addItemsFlow.activityDriftWarning.actual)) + '</div>' +
                     '</div>' +
-                    '<button type="button" class="activity-drift-warning-button" data-activity-drift-restart>분리 (새 freeze 시작)</button>' +
+                    '<button type="button" class="activity-drift-warning-button" data-activity-drift-restart>Start new freeze</button>' +
                   '</div>'
                 : '';
               pendingItems.innerHTML = driftWarningHtml + (pendingFeedbackItems.length
