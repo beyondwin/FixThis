@@ -100,12 +100,8 @@ internal class FixThisConnectionStatusHostLayout(
         if (lastConnected == connected) return
         lastConnected = connected
 
-        statusView.text = if (connected) "MCP connected" else "MCP waiting"
-        statusView.contentDescription = if (connected) {
-            "FixThis MCP browser connected"
-        } else {
-            "FixThis MCP browser waiting"
-        }
+        statusView.text = if (connected) "FixThis console connected" else "FixThis console waiting"
+        statusView.contentDescription = statusView.text
         pillView.background = pillBackground(
             if (connected) translucentColor(196, 229, 104) else translucentColor(228, 228, 231),
         )

@@ -89,17 +89,20 @@ class FixThisConnectionStatusHostLayoutTest {
 
         val host = FixThisConnectionStatusHostLayout(activity, state)
 
-        assertEquals("MCP waiting", host.statusText())
+        assertEquals("FixThis console waiting", host.statusText())
+        assertEquals("FixThis console waiting", host.statusTextView().contentDescription)
 
         state.markAuthorizedRequest()
         host.forceStatusRefreshForTest()
 
-        assertEquals("MCP connected", host.statusText())
+        assertEquals("FixThis console connected", host.statusText())
+        assertEquals("FixThis console connected", host.statusTextView().contentDescription)
 
         now += 501L
         host.forceStatusRefreshForTest()
 
-        assertEquals("MCP waiting", host.statusText())
+        assertEquals("FixThis console waiting", host.statusText())
+        assertEquals("FixThis console waiting", host.statusTextView().contentDescription)
     }
 
     @Test
@@ -149,25 +152,25 @@ class FixThisConnectionStatusHostLayoutTest {
         val host = FixThisConnectionStatusHostLayout(activity, state)
         val textView = host.statusTextView()
 
-        assertEquals("MCP waiting", textView.text.toString())
+        assertEquals("FixThis console waiting", textView.text.toString())
         assertEquals(false, host.statusIcon().hasTransientState())
 
         state.markAuthorizedRequest()
         host.forceStatusRefreshForTest()
 
-        assertEquals("MCP connected", textView.text.toString())
+        assertEquals("FixThis console connected", textView.text.toString())
         assertEquals(false, host.statusIcon().hasTransientState())
         assertSame(textView, host.statusTextView())
 
         host.forceStatusRefreshForTest()
 
-        assertEquals("MCP connected", textView.text.toString())
+        assertEquals("FixThis console connected", textView.text.toString())
         assertSame(textView, host.statusTextView())
 
         now += 501L
         host.forceStatusRefreshForTest()
 
-        assertEquals("MCP waiting", textView.text.toString())
+        assertEquals("FixThis console waiting", textView.text.toString())
         assertEquals(false, host.statusIcon().hasTransientState())
         assertSame(textView, host.statusTextView())
     }
