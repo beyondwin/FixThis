@@ -93,10 +93,14 @@ configuration-only help invocations.
 Optional console smoke harnesses (require Node + a recent Chromium via Playwright) live under `scripts/`:
 
 ```bash
-node scripts/console-browser-smoke.mjs       # end-to-end console smoke
-node scripts/console-availability-test.mjs   # availability/blocked-state harness
-node scripts/console-blocked-harness.mjs     # blocked-overlay rendering harness
+npm run console:smoke                  # end-to-end console smoke
+npm run console:responsive:stress      # narrow-width error/agent-state stress test
+npm run console:availability:test      # availability/blocked-state harness
+node scripts/console-blocked-harness.mjs # blocked-overlay rendering harness
 ```
+
+Run the responsive stress harness whenever you touch console layout, global
+status messages, activity-drift warnings, or agent-state rendering.
 
 ## Connected Device Checks
 

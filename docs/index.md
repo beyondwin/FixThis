@@ -59,7 +59,8 @@ This page is a directory. Pick the path that matches what you're trying to do.
 ## I want to contribute
 
 - [Contributing guide](../CONTRIBUTING.md) — local checks before opening a PR
-- [Release notes](releases/README.md) — GitHub Release summaries
+- [Release notes](releases/README.md) — GitHub Release summaries, including
+  unreleased changes since v0.1.0
 - [Release readiness checklist](contributing/release-readiness.md) — what's
   blocking external publish
 - [Release process](contributing/release-process.md) — SemVer policy,

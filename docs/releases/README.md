@@ -11,4 +11,6 @@ checklist marks artifact publication complete.
 
 ## Releases
 
+- [Unreleased changes since v0.1.0](unreleased.md) — current `main`, not yet
+  tagged.
 - [v0.1.0](v0.1.0.md) — first GitHub source release.

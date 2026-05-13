@@ -18,7 +18,11 @@
                 const before = (state.session && Array.isArray(state.session.items)) ? state.session.items : [];
                 const beforeIds = new Set(before.map(item => item.itemId));
                 if (addItemsFlow) {
-                    await persistPendingFeedbackItems({ onlyWrittenComments: true });
+                    flushFocusedPendingComment();
+                    if (pendingFeedbackItems.some(item => !hasWrittenAnnotationComment(item))) {
+                        throw new Error('Add a comment to every annotation before saving.');
+                    }
+                    await persistPendingFeedbackItems();
                 }
                 const after = (state.session && Array.isArray(state.session.items)) ? state.session.items : [];
                 const newlyPersisted = after.filter(item => !beforeIds.has(item.itemId)).map(item => item.itemId);

@@ -151,10 +151,12 @@ Resolve the items so they don't appear in the next queue:
 > Mark all FixThis items in that batch as resolved.
 
 The agent calls `fixthis_resolve_feedback` per item, with a status of
-`resolved`, `needs-clarification`, or `not-fixed`.
+`resolved`, `needs_clarification`, or `wont_fix`.
 
-Resolved annotations move out of the active queue but stay browsable in the
-session list under "Resolved", so you can audit history.
+The console renders Resolved, Needs Clarification, and Won't Fix as distinct
+states. Resolved and Won't Fix items move out of the default agent work queue;
+Needs Clarification stays visible and editable so you can update the comment
+and re-save.
 
 ## Resuming after a restart
 

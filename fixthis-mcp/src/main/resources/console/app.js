@@ -233,8 +233,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778671080000;
-const ConsoleBuildGitSha = '1aefce7';
+const ConsoleBuildEpochMs = 1778672400000;
+const ConsoleBuildGitSha = 'ff73dfe';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -2474,7 +2474,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 const before = (state.session && Array.isArray(state.session.items)) ? state.session.items : [];
                 const beforeIds = new Set(before.map(item => item.itemId));
                 if (addItemsFlow) {
-                    await persistPendingFeedbackItems({ onlyWrittenComments: true });
+                    flushFocusedPendingComment();
+                    if (pendingFeedbackItems.some(item => !hasWrittenAnnotationComment(item))) {
+                        throw new Error('Add a comment to every annotation before saving.');
+                    }
+                    await persistPendingFeedbackItems();
                 }
                 const after = (state.session && Array.isArray(state.session.items)) ? state.session.items : [];
                 const newlyPersisted = after.filter(item => !beforeIds.has(item.itemId)).map(item => item.itemId);

@@ -41,13 +41,17 @@ fixthis_claim_feedback
 ```
 
 This marks the item `in_progress` so the console shows a working state and
-other agents avoid duplicate work.
+other agents avoid duplicate work. Pass `agentNote` when useful; the console
+shows it in the item detail while the item is locked for editing.
 
 When you've made the change, ask the agent to mark it resolved:
 
 > Mark all FixThis items in that batch as resolved.
 
-The agent calls `fixthis_resolve_feedback` per item.
+The agent calls `fixthis_resolve_feedback` per item with `status` set to
+`resolved`, `needs_clarification`, or `wont_fix`. The console renders those as
+Resolved, Needs Clarification, or Won't Fix, with the agent summary visible in
+the saved annotation detail.
 
 ## Codex CLI
 
@@ -95,6 +99,9 @@ tools.
 - **Screen mismatch is guarded.** If the frozen preview fingerprint differs
   from the current app screen when you save, the console asks whether to
   re-capture, force-save, or cancel.
+- **Agent outcomes stay visible.** Claimed, clarification-needed, won't-fix,
+  and resolved items render as separate states in the browser console instead
+  of collapsing into a generic sent row.
 
 ## What's next
 

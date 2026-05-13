@@ -87,6 +87,10 @@ FixThis is intentionally narrow today:
 > released. See
 > [Release readiness](docs/contributing/release-readiness.md) for the publishing
 > checklist.
+>
+> Current `main` also contains unreleased hardening after v0.1.0. See
+> [Unreleased changes since v0.1.0](docs/releases/unreleased.md) and
+> [`CHANGELOG.md`](CHANGELOG.md#unreleased) before cutting the next tag.
 
 ## Roadmap
 
@@ -95,7 +99,7 @@ V1 is intentionally narrow. High-priority items beyond V1:
 - **Maven Central / Gradle Plugin Portal release** — single-line install for external projects.
 - **`AndroidView` / interop awareness** — at minimum a "View-based subtree" badge so the agent stops guessing at non-Compose pixels.
 - **SSE-driven console state sync** — replace polling with server-pushed events. Design in [console-state-sync-design.md](docs/architecture/console-state-sync-design.md).
-- **Smarter source matching** — populate `scoreMargin` end-to-end, lift detection on `Layout` / `SubcomposeLayout` wrappers, recognize more composable-name conventions.
+- **Smarter source matching** — lift detection on `Layout` / `SubcomposeLayout` wrappers, recognize more composable-name conventions, and keep source confidence explainable as the matcher evolves.
 - **More agents out of the box** — Cursor, Aider, and others currently work via Copy Prompt; first-class MCP / config writers can follow the Claude Code + Codex pattern.
 
 Vote items up or contribute via [`CONTRIBUTING.md`](CONTRIBUTING.md).

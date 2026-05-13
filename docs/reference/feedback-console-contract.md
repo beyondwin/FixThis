@@ -24,6 +24,14 @@
 - Annotate mode freezes the latest preview so the user can select Compose nodes or draw visual areas.
 - Stale preview state keeps the last preview visible while live bridge actions are disabled.
 - Draft/history view shows persisted local feedback groups and sent handoff history.
+- The global status surface (`#error.global-status`) displays console-level
+  error, warning, success, and info messages. Long bridge errors, partial
+  handoff failures, and recovery diagnostics must wrap inside the viewport.
+- Saved annotation rows render `draft`, `sent`, `sent_modified`,
+  `in_progress`, `needs_clarification`, `wont_fix`, and `resolved` as distinct
+  lifecycle phases. `needs_clarification` remains editable; `wont_fix` and
+  `resolved` are terminal agent outcomes. Agent notes and summaries appear in
+  the saved annotation detail.
 
 ## Persistence Semantics
 

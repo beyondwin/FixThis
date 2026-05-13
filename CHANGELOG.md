@@ -87,13 +87,31 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
     state. The existing stale banner picks this up automatically.
   - Activity drift detection: while a multi-pin pending flow is open,
     each new pin re-checks the foreground activity and surfaces an
-    inline 한국어 warning + "분리 (새 freeze 시작)" button when the
-    user has navigated away from the freeze's activity.
+    inline "Activity changed during freeze" warning with a "Start new
+    freeze" action when the user has navigated away from the freeze's
+    activity.
+- **Responsive error and agent feedback UX:**
+  - The console now has a dedicated global status surface for error,
+    warning, success, and info messages instead of relying on a narrow
+    inspector footer paragraph.
+  - Agent-driven item states render distinctly in the browser console:
+    `in_progress` shows the agent note, `needs_clarification` remains
+    editable and asks the user to update/re-save, `wont_fix` shows the
+    agent's reason, and `resolved` shows the completion summary.
+  - A Playwright responsive stress harness covers long errors, staleness
+    banners, activity-drift warnings, agent summaries, and 390px-wide
+    layout regression cases.
 
 ### Changed
 
 - Project license changed to MIT; README, NOTICE, package metadata, and
   release-readiness docs now reflect the MIT license.
+- Architecture cleanup split large orchestration paths into smaller, tested
+  boundaries. MCP tools now route through explicit registry/dispatcher/resource
+  collaborators; feedback session replay, event journaling, reducers, and
+  store persistence are separated; sidekick bridge runtime, screenshot reads,
+  source-index reads, and Gradle source scanners are isolated behind focused
+  files; architecture hotspot tests enforce those boundaries.
 - CI now treats the generated feedback-console bundle and pure JavaScript
   harnesses as first-class checks. `scripts/build-console-assets.mjs --check`
   normalizes the dynamic build header before comparing `app.js`, so CI catches
@@ -126,6 +144,10 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   timestamp, and items. On reload or session reattach, the console shows an
   explicit Recover / Recapture / Discard choice instead of silently exposing
   stale pending rows.
+- The Studio console no longer forces horizontal overflow at narrow widths.
+  Long connection details, stale-binary diagnostics, activity-drift messages,
+  and agent summaries wrap inside their containers; the sample app rows and
+  sidekick status pill also constrain text on small screens.
 
 ## [0.1.0] - 2026-05-11
 

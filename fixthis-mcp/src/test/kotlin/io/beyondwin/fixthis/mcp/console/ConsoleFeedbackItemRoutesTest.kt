@@ -2268,6 +2268,25 @@ class ConsoleFeedbackItemHistoryRoutesTest {
     }
 
     @Test
+    fun promptActionsDoNotSilentlyDropUncommentedPendingAnnotations() {
+        val html = FeedbackConsoleAssets.indexHtml
+        val persistAndCollect = javascriptFunctionBody(html, "persistAndCollectItemIds")
+
+        assertTrue(
+            persistAndCollect.contains("pendingFeedbackItems.some(item => !hasWrittenAnnotationComment(item))"),
+            "Prompt actions must detect partially-commented pending batches before persistence",
+        )
+        assertTrue(
+            persistAndCollect.contains("Add a comment to every annotation before saving."),
+            "Prompt actions must keep all pending annotations visible instead of saving a partial batch",
+        )
+        assertFalse(
+            persistAndCollect.contains("persistPendingFeedbackItems({ onlyWrittenComments: true })"),
+            "Persisting only written comments clears the entire pending flow and silently drops uncommented pins",
+        )
+    }
+
+    @Test
     fun mutationsAreWrappedInLock() {
         val html = FeedbackConsoleAssets.indexHtml
         val sendAgent = javascriptFunctionBody(html, "sendAgentPrompt")

@@ -259,6 +259,13 @@ The server rejects claims on already-resolved items.
 
 Marks a feedback item as resolved, needing clarification, or not fixed and stores the agent summary. Pair this with `fixthis_claim_feedback`: claim before editing code, resolve after the change is complete or the agent has decided not to fix the item.
 
+Arguments:
+
+- `sessionId`: optional feedback session id. If omitted, the active session is used.
+- `itemId`: required feedback item id to resolve.
+- `status`: required status. Must be one of `resolved`, `needs_clarification`, or `wont_fix`.
+- `summary`: optional agent-facing summary or reason. The browser console shows this on the saved annotation detail.
+
 ### Optional SourceCandidate fields
 
 `SourceCandidate` objects appear in the JSON payload returned by `fixthis_read_feedback` under each feedback item's `sourceCandidates` list. The following fields are optional and were added to carry confidence and risk metadata. Older persisted sessions (written before this feature was introduced) deserialize correctly because all new fields are optional; the formatter emits them only when they are present.

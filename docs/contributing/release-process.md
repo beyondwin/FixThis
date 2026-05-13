@@ -42,6 +42,8 @@ Before tagging:
 - [ ] Console asset bundle is current: `node scripts/build-console-assets.mjs --check`
 - [ ] Console JS syntax check passes: `node --check fixthis-mcp/src/main/resources/console/app.js`
 - [ ] Console JS harnesses pass: `node --test scripts/console-availability-test.mjs scripts/pendingItemRecovery-test.mjs scripts/beforeunloadGuard-test.mjs scripts/undoRedo-test.mjs scripts/undoKeymatch-test.mjs scripts/activityDrift-test.mjs scripts/previewStaleness-test.mjs`
+- [ ] Console browser smoke passes when console layout, connection, or handoff UI changed: `npm run console:smoke`
+- [ ] Console responsive stress passes when layout, global status, activity-drift, or agent-state UI changed: `npm run console:responsive:stress`
 - [ ] Whitespace clean: `git diff --check`
 - [ ] Gradle help has no deprecation warnings when build logic changed: `./gradlew help --warning-mode all --no-daemon`
 - [ ] Connected smoke harness on a real device or unlocked emulator: `scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample`
