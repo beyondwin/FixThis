@@ -17,6 +17,7 @@ enum class FeedbackTargetType {
 
 @Serializable
 data class AddAnnotationRequest(
+    val sessionId: String? = null,
     val screenId: String,
     val comment: String,
     val targetType: FeedbackTargetType = FeedbackTargetType.AREA,

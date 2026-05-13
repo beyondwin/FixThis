@@ -28,6 +28,7 @@ import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 import io.beyondwin.fixthis.mcp.session.SnapshotDto
 import io.beyondwin.fixthis.mcp.session.SnapshotRootDto
 import io.beyondwin.fixthis.mcp.session.SnapshotScreenshotDto
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonArray
@@ -150,6 +151,88 @@ class ConsoleFeedbackItemRoutesTest {
 
             assertEquals(200, connection.responseCode)
             assertEquals("After", service.getSession("session-1").items.single().comment)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun batchSaveUsesRequestedSessionWhenCurrentSessionChanged() {
+        val store = FeedbackSessionStore(
+            clock = FakeLongs(100L, 200L, 300L, 400L, 500L, 600L, 700L, 800L, 900L).next,
+            idGenerator = FakeIds("session-a", "preview-a", "preview-screen-a", "session-b", "item-a").next,
+        )
+        val service = FeedbackSessionService(
+            bridge = SequencedFingerprintBridge("fp-a", "fp-a"),
+            store = store,
+            projectRoot = Files.createTempDirectory("fixthis-session-scope").toString(),
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val sessionA = service.openSession(null, newSession = true)
+        val preview = runBlocking { service.capturePreview(sessionA.sessionId) }
+        service.openSession(null, newSession = true)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val body = """
+                {
+                  "sessionId": "${sessionA.sessionId}",
+                  "previewId": "${preview.previewId}",
+                  "frozenFingerprint": "fp-a",
+                  "items": [{
+                    "targetType": "area",
+                    "bounds": {"left":1.0,"top":2.0,"right":30.0,"bottom":40.0},
+                    "comment": "save into session A"
+                  }]
+                }
+            """.trimIndent()
+            val response = ConsoleHttpTestClient(server.url).postJson("/api/items/batch", body)
+
+            assertEquals(200, response.statusCode)
+            assertEquals(1, service.getSession(sessionA.sessionId).items.size)
+            assertEquals("save into session A", service.getSession(sessionA.sessionId).items.single().comment)
+            assertTrue(service.requireCurrentSession().sessionId != sessionA.sessionId)
+            assertTrue(service.requireCurrentSession().items.isEmpty())
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun agentHandoffUsesRequestedSessionWhenCurrentSessionChanged() {
+        val store = FeedbackSessionStore(
+            clock = FakeLongs(100L, 200L, 300L, 400L, 500L, 600L, 700L).next,
+            idGenerator = FakeIds("session-a", "screen-a", "item-a", "session-b", "handoff-a").next,
+        )
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val sessionA = service.openSession(null, newSession = true)
+        store.addScreen(sessionA.sessionId, SnapshotDto("screen-a", 100L, displayName = "A"))
+        val item = store.addItem(
+            sessionA.sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = "screen-a",
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(1f, 2f, 3f, 4f)),
+                comment = "handoff A",
+            ),
+        )
+        service.openSession(null, newSession = true)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val body = """{"sessionId":"${sessionA.sessionId}","itemIds":["${item.itemId}"]}"""
+            val response = ConsoleHttpTestClient(server.url).postJson("/api/agent-handoffs", body)
+
+            assertEquals(200, response.statusCode)
+            assertEquals(FeedbackDelivery.SENT, service.getSession(sessionA.sessionId).items.single().delivery)
+            assertTrue(service.requireCurrentSession().items.isEmpty())
         } finally {
             server.stop()
         }

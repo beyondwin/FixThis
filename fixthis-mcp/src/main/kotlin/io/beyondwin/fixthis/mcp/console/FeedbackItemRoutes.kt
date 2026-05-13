@@ -23,11 +23,11 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
         when (exchange.requestURI.path) {
             "/api/items" -> exchange.requireMethod("POST") {
                 val request = exchange.decodeAddFeedbackItemBody()
-                val session = service.requireCurrentSession()
+                val sessionId = requestSessionId(request.sessionId)
                 val item = try {
                     runBlocking {
                         service.addFeedbackItem(
-                            sessionId = session.sessionId,
+                            sessionId = sessionId,
                             screenId = request.screenId,
                             targetType = request.targetType,
                             bounds = request.bounds,
@@ -43,7 +43,7 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
             "/api/items/batch" -> exchange.requireMethod("POST") {
                 val request = exchange.decodeSavePreviewFeedbackItemsBody()
                 val result = try {
-                    val sessionId = service.requireCurrentSession().sessionId
+                    val sessionId = requestSessionId(request.sessionId)
                     runBlocking {
                         service.savePreviewFeedbackItemsWithLiveFingerprintMetadata(
                             PreviewFeedbackLiveSaveRequest(
@@ -81,14 +81,16 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
                 exchange.sendJson(200, result.session)
             }
             "/api/items/draft" -> exchange.requireMethod("DELETE") {
-                exchange.sendJson(200, service.clearDraftItems(service.requireCurrentSession().sessionId))
+                val sessionId = exchange.queryParameter("sessionId")?.takeIf { it.isNotBlank() }
+                    ?: service.requireCurrentSession().sessionId
+                exchange.sendJson(200, service.clearDraftItems(sessionId))
             }
             "/api/agent-handoffs" -> exchange.requireMethod("POST") {
                 val request = exchange.decodeAgentHandoffBody()
                 if (request.itemIds.isEmpty()) {
                     throw FeedbackConsoleHttpException(400, "itemIds must not be empty (legacy {prompt} body is no longer accepted; use {itemIds:[...]})")
                 }
-                val sessionId = service.requireCurrentSession().sessionId
+                val sessionId = requestSessionId(request.sessionId)
                 val result = service.sendDraftToAgent(sessionId, request.itemIds)
                 exchange.sendJson(200, AgentHandoffResponse(session = result.session, prompt = result.prompt))
             }
@@ -147,8 +149,11 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
     private fun HttpExchange.decodeUpdateFeedbackItemBody(): UpdateAnnotationRequest = decodeJsonBody(UpdateAnnotationRequest.serializer())
 
     private fun HttpExchange.decodeAgentHandoffBody(): AgentHandoffRequest = decodeJsonBody(AgentHandoffRequest.serializer(), blankValue = AgentHandoffRequest())
+
+    private fun requestSessionId(explicit: String?): String =
+        explicit?.takeIf { it.isNotBlank() } ?: service.requireCurrentSession().sessionId
 }
 
-private val allowedAddFeedbackItemRequestKeys = setOf("screenId", "comment", "targetType", "bounds", "nodeUid")
+private val allowedAddFeedbackItemRequestKeys = setOf("sessionId", "screenId", "comment", "targetType", "bounds", "nodeUid")
 
 private const val HTTP_STATUS_CONFLICT = 409

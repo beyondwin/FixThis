@@ -15,6 +15,7 @@ data class FeedbackPreviewSnapshot(
 
 @Serializable
 data class SaveSnapshotRequest(
+    val sessionId: String? = null,
     val previewId: String,
     val items: List<AnnotationDraftDto>,
     val screen: SnapshotDto? = null,
@@ -24,6 +25,7 @@ data class SaveSnapshotRequest(
 
 @Serializable
 data class AgentHandoffRequest(
+    val sessionId: String? = null,
     val itemIds: List<String> = emptyList(),
 )
 
