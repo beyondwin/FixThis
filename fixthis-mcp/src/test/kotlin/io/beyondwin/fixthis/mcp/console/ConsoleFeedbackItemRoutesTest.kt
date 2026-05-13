@@ -283,7 +283,7 @@ class ConsoleFeedbackItemRoutesTest {
     fun consoleHtmlKeepsStudioUsableInNarrowBrowser() {
         val html = FeedbackConsoleAssets.indexHtml
 
-        assertTrue(html.contains("@media (max-width: 899px)"))
+        assertTrue(html.contains("@media (max-width: 900px)"))
         assertTrue(Regex("\\.studio-body \\{\\s+grid-template-columns: 1fr;").containsMatchIn(html))
         assertTrue(Regex("\\.studio-history \\{\\s+max-height: 180px;").containsMatchIn(html))
         assertTrue(Regex("\\.studio-inspector \\{\\s+min-height: 280px;").containsMatchIn(html))
@@ -332,7 +332,7 @@ class ConsoleFeedbackItemRoutesTest {
         assertTrue(pendingRenderer.contains("style=\"--annotation-color:"))
         assertTrue(
             html.contains(
-                "renderOverlayBox(overlay, image, item.bounds, String(index + 1), false, " +
+                "renderOverlayBox(overlay, image, item.bounds, String(displayNumber), false, " +
                     "index === focusedPendingItemIndex, index, '', severityColor(annotationSeverity(item)))",
             ),
         )
@@ -404,14 +404,15 @@ class ConsoleFeedbackItemRoutesTest {
         assertTrue(
             Regex(
                 "async function deleteHistorySession\\(sessionId\\)[\\s\\S]*const isDisplayedSession = " +
-                    "\\(\\) => state\\.session\\?\\.sessionId === sessionId;[\\s\\S]*if " +
-                    "\\(isDisplayedSession\\(\\)\\) \\{\\s+resetAnnotationComposerState\\(\\);",
+                    "\\(\\) => state\\.session\\?\\.sessionId === sessionId;[\\s\\S]*const wasDisplayedSession = " +
+                    "isDisplayedSession\\(\\);[\\s\\S]*if \\(wasDisplayedSession\\) \\{\\s+" +
+                    "resetAnnotationComposerState\\(\\);",
             ).containsMatchIn(html),
         )
         assertTrue(
             Regex(
                 "async function deleteHistorySession\\(sessionId\\)[\\s\\S]*if " +
-                    "\\(isDisplayedSession\\(\\)\\) \\{[\\s\\S]*state\\.session = null;[\\s\\S]*" +
+                    "\\(wasDisplayedSession\\) \\{[\\s\\S]*state\\.session = null;[\\s\\S]*" +
                     "await refreshSessions\\(\\);\\s+render\\(\\);\\s+await refreshDevices\\(\\);",
             ).containsMatchIn(html),
         )
