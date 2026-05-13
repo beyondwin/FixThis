@@ -74,11 +74,13 @@
                     let copied = false;
                     try {
                         const itemIds = await persistAndCollectItemIds();
-                        const markdown = await fetchHandoffPreview(state.session.sessionId, itemIds);
+                        const sessionId = draftWorkspace?.context?.sessionId || state.session?.sessionId;
+                        if (!sessionId) throw new Error('Feedback session context is missing. Re-capture and try again.');
+                        const markdown = await fetchHandoffPreview(sessionId, itemIds);
                         await copyTextToClipboard(markdown);
                         copied = true;
                         try {
-                            const updated = await markItemsHandedOff(state.session.sessionId, itemIds);
+                            const updated = await markItemsHandedOff(sessionId, itemIds);
                             state.session = updated;
                             renderInspectorRegion();
                         } catch (markError) {
@@ -107,11 +109,13 @@
                     let sent = false;
                     try {
                         const itemIds = await persistAndCollectItemIds();
+                        const sessionId = draftWorkspace?.context?.sessionId || state.session?.sessionId;
+                        if (!sessionId) throw new Error('Feedback session context is missing. Re-capture and try again.');
                         const result = await requestJson('/api/agent-handoffs', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                sessionId: state.session?.sessionId || null,
+                                sessionId,
                                 itemIds
                             }),
                         });

@@ -132,14 +132,8 @@
 
             function persistCurrentDraftWorkspaceIfNeeded() {
               if (!draftWorkspace?.workspaceId || !(draftWorkspace.items || []).length) return;
-              const sessionId = draftWorkspace.context?.sessionId || state.session?.sessionId;
-              const envelope = currentPendingStateEnvelope(draftWorkspace.items || []);
-              persistPendingState(sessionId, envelope);
-              if (sessionId && pendingRecoveryItems(envelope).length) {
-                activePendingMirrorSessions.add(sessionId);
-              } else {
-                activePendingMirrorSessions.delete(sessionId);
-              }
+              const storage = createBrowserDraftPorts().storage;
+              storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(draftWorkspace));
             }
 
             function createBrowserDraftPorts() {
@@ -328,8 +322,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778697960000;
-const ConsoleBuildGitSha = 'faf2179';
+const ConsoleBuildEpochMs = 1778698140000;
+const ConsoleBuildGitSha = '746fbe2';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -1205,7 +1199,9 @@ function checkActivityDrift(flow, current) {
 // draftApiAdapter.js
 // draftApiAdapter.js - explicit-session HTTP adapter for DraftWorkspace use cases.
 
-function draftItemToAnnotationDraftDto(item) {
+function draftItemToAnnotationDraftDto(item, options = {}) {
+  const rawComment = String(item.comment || '');
+  const fallbackComment = String(item.label || '').trim() || (item.targetType === 'node' ? 'Component target' : 'Custom area');
   return {
     targetType: item.targetType,
     bounds: item.bounds,
@@ -1213,7 +1209,7 @@ function draftItemToAnnotationDraftDto(item) {
     label: String(item.label || '').trim() || null,
     severity: item.severity || 'med',
     status: String(item.status || 'open').replace('-', '_'),
-    comment: String(item.comment || ''),
+    comment: options.allowFallbackComments ? (rawComment.trim() || fallbackComment) : rawComment,
   };
 }
 
@@ -1227,8 +1223,8 @@ function buildDraftWorkspaceSaveRequest(workspace, options = {}) {
     previewId: context.previewId,
     screen: workspace.screen || null,
     items: (workspace.items || [])
-      .filter((item) => options.allowBlankComments || String(item.comment || '').trim())
-      .map(draftItemToAnnotationDraftDto),
+      .filter((item) => options.allowBlankComments || options.allowFallbackComments || String(item.comment || '').trim())
+      .map((item) => draftItemToAnnotationDraftDto(item, options)),
     frozenFingerprint: context.screenFingerprint,
     forceMismatchOverride: Boolean(options.forceMismatchOverride),
   };
@@ -2569,14 +2565,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function persistCurrentPendingState() {
-              const sessionId = state.session?.sessionId;
-              const envelope = currentPendingStateEnvelope();
-              persistPendingState(sessionId, envelope);
-              if (sessionId && pendingRecoveryItems(envelope).length) {
-                activePendingMirrorSessions.add(sessionId);
-              } else {
-                activePendingMirrorSessions.delete(sessionId);
-              }
+              persistCurrentDraftWorkspaceIfNeeded();
             }
 
             function releaseSnapshotPointerCapture(image, event) {
@@ -2808,60 +2797,51 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             async function persistPendingFeedbackItems(options = {}) {
-              if (!addItemsFlow) return;
-              if (!pendingFeedbackItems.length) throw new Error('Add at least one pending feedback item.');
+              if (!draftWorkspace?.workspaceId) return;
+              if (!draftWorkspaceItems(draftWorkspace).length) throw new Error('Add at least one pending feedback item.');
               const allowFallbackComments = Boolean(options.allowFallbackComments);
               const onlyWrittenComments = Boolean(options.onlyWrittenComments);
               const allowBlankComments = Boolean(options.allowBlankComments);
               const forceMismatchOverride = Boolean(options.forceMismatchOverride);
-              if (!allowFallbackComments && !onlyWrittenComments && !allowBlankComments && pendingFeedbackItems.some(item => !String(item.comment || '').trim())) throw new Error('Add a comment to every annotation before saving.');
-              if (onlyWrittenComments && !pendingFeedbackItems.some(hasWrittenAnnotationComment)) throw new Error('Add a comment to at least one annotation before sending.');
-              const payloadItems = pendingPayloadItems({ allowFallbackComments: allowFallbackComments, onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments });
-              if (!addItemsFlow.context?.sessionId || !addItemsFlow.context?.previewId) {
-                throw new Error('Annotation context is missing. Re-capture the screen and try again.');
-              }
-              const requestGeneration = sessionMutationGeneration;
-              const expectedSessionId = addItemsFlow.context.sessionId;
-              const sendBatch = async (overrideMismatch) => {
-                return await withMutationLock(() => savePreviewBatchOrConflict({
-                  sessionId: expectedSessionId,
-                  previewId: addItemsFlow.context.previewId,
-                  screen: addItemsFlow.screen,
-                  items: payloadItems,
-                  frozenFingerprint: addItemsFlow.context.screenFingerprint,
-                  forceMismatchOverride: Boolean(overrideMismatch)
-                }));
+              const items = draftWorkspaceItems(draftWorkspace);
+              if (!allowFallbackComments && !onlyWrittenComments && !allowBlankComments && items.some(item => !String(item.comment || '').trim())) throw new Error('Add a comment to every annotation before saving.');
+              if (onlyWrittenComments && !items.some(hasWrittenAnnotationComment)) throw new Error('Add a comment to at least one annotation before sending.');
+              const meta = {
+                kind: 'persist-draft-workspace',
+                workspaceId: draftWorkspace.workspaceId,
+                expectedRevision: draftWorkspace.revision,
               };
-              let result = await sendBatch(forceMismatchOverride);
-              if (result && result.conflict === 'screen_fingerprint_mismatch') {
-                const choice = await promptScreenFingerprintMismatch(result.frozenFingerprint, result.currentFingerprint);
+              const result = await ensureDraftCommandQueue().enqueue(meta, async (workspace) => {
+                const saveWorkspace = onlyWrittenComments
+                  ? { ...workspace, items: draftWorkspaceItems(workspace).filter(hasWrittenAnnotationComment) }
+                  : workspace;
+                return await persistDraftWorkspace(saveWorkspace, createBrowserDraftPorts(), {
+                  allowBlankComments,
+                  onlyWrittenComments,
+                  allowFallbackComments,
+                  forceMismatchOverride,
+                });
+              });
+              if (result?.result?.conflict?.error === 'screen_fingerprint_mismatch') {
+                const conflict = result.result.conflict;
+                const choice = await promptScreenFingerprintMismatch(conflict.frozenFingerprint, conflict.currentFingerprint);
                 if (choice === 'force') {
-                  result = await sendBatch(true);
-                  if (result && result.conflict === 'screen_fingerprint_mismatch') {
-                    throw new Error('Save was rejected after force override. Re-capture and try again.');
-                  }
-                } else if (choice === 'recapture') {
-                  // Drop the stale preview so the next Annotate-mode entry re-freezes.
-                  resetAnnotationComposerState();
+                  return await persistPendingFeedbackItems({ ...options, forceMismatchOverride: true });
+                }
+                if (choice === 'recapture') {
+                  setDraftWorkspace(createEmptyDraftWorkspace());
                   state.preview = null;
                   startLivePreviewPolling();
                   return null;
-                } else {
-                  // Cancelled.
-                  return null;
                 }
-              }
-              if (requestGeneration !== sessionMutationGeneration) {
-                await refreshSessions();
                 return null;
               }
-              if (result.session?.sessionId !== expectedSessionId) {
-                await refreshSessions();
-                throw new Error('Save returned a different feedback session. Refresh and try again.');
+              if (result?.result?.session) {
+                state.session = result.result.session;
+                state.preview = null;
+                return state.session;
               }
-              state.session = result.session;
-              resetAnnotationComposerState();
-              state.preview = null;
+              await refreshSessions();
               return state.session;
             }
 
@@ -3359,11 +3339,13 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                     let copied = false;
                     try {
                         const itemIds = await persistAndCollectItemIds();
-                        const markdown = await fetchHandoffPreview(state.session.sessionId, itemIds);
+                        const sessionId = draftWorkspace?.context?.sessionId || state.session?.sessionId;
+                        if (!sessionId) throw new Error('Feedback session context is missing. Re-capture and try again.');
+                        const markdown = await fetchHandoffPreview(sessionId, itemIds);
                         await copyTextToClipboard(markdown);
                         copied = true;
                         try {
-                            const updated = await markItemsHandedOff(state.session.sessionId, itemIds);
+                            const updated = await markItemsHandedOff(sessionId, itemIds);
                             state.session = updated;
                             renderInspectorRegion();
                         } catch (markError) {
@@ -3392,11 +3374,13 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                     let sent = false;
                     try {
                         const itemIds = await persistAndCollectItemIds();
+                        const sessionId = draftWorkspace?.context?.sessionId || state.session?.sessionId;
+                        if (!sessionId) throw new Error('Feedback session context is missing. Re-capture and try again.');
                         const result = await requestJson('/api/agent-handoffs', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                sessionId: state.session?.sessionId || null,
+                                sessionId,
                                 itemIds
                             }),
                         });
@@ -4452,25 +4436,31 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             async function resolvePendingBeforeBoundary(action, sessionId = null) {
-              const hasActivePending = Boolean(addItemsFlow && pendingFeedbackItems.length);
+              const hasActivePending = Boolean(draftWorkspace?.workspaceId && draftWorkspaceItems(draftWorkspace).length);
               if (!hasActivePending && !hasPendingRecoveryItems()) return 'continue';
               if (hasPendingRecoveryItems() && !hasActivePending) {
                 renderPendingRecoveryBanner();
                 showError('Recover, recapture, or discard unsaved annotations before changing sessions.');
                 return 'cancel';
               }
-              const pendingSessionId = addItemsFlow?.context?.sessionId || state.session?.sessionId || null;
-              if (sessionId && pendingSessionId && sessionId !== pendingSessionId) return 'continue';
-              const choice = await promptPendingBoundaryChoice(action, pendingFeedbackItems.length);
-              if (choice === 'save') {
-                await persistPendingFeedbackItems({ allowBlankComments: true });
+              const pendingSessionId = draftWorkspace?.context?.sessionId || null;
+              if (sessionId && pendingSessionId && sessionId !== pendingSessionId) {
+                createBrowserDraftPorts().storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(draftWorkspace));
+                setDraftWorkspace(createEmptyDraftWorkspace());
                 return 'continue';
               }
-              if (choice === 'discard') {
-                resetAnnotationComposerState();
-                return 'continue';
+              const result = await ensureDraftCommandQueue().enqueue({
+                kind: 'session-boundary',
+                workspaceId: draftWorkspace.workspaceId,
+                expectedRevision: draftWorkspace.revision,
+              }, async (workspace) => {
+                return await resolveDraftBoundary(workspace, { kind: action, sessionId }, createBrowserDraftPorts());
+              });
+              if (result?.result?.conflict) {
+                showError('Resolve the draft save conflict before changing sessions.');
+                return 'cancel';
               }
-              return 'cancel';
+              return result?.result?.choice === 'cancel' ? 'cancel' : 'continue';
             }
 
             function promptPendingBoundaryChoice(action, count) {

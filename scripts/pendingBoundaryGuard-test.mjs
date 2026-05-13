@@ -31,6 +31,12 @@ test('shared pending boundary resolver exists', () => {
   assert.match(mainSource, /Discard/);
 });
 
+test('shared pending boundary resolver delegates to draft boundary use case', () => {
+  assert.match(mainSource, /async function resolvePendingBeforeBoundary\(action,\s*sessionId = null\)/);
+  assert.match(mainSource, /resolveDraftBoundary\(/);
+  assert.match(mainSource, /ensureDraftCommandQueue\(\)\.enqueue/);
+});
+
 test('openSession and newSession use boundary resolver instead of immediate flush', () => {
   const openBody = body(historySource, 'async function openSession(sessionId)');
   const newBody = body(historySource, 'async function newSession()');

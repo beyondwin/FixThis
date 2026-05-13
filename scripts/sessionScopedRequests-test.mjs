@@ -29,18 +29,18 @@ function body(source, signature) {
 
 test('annotate flow captures immutable session preview context', () => {
   const start = body(annotationsSource, 'async function startAddItemsFlow()');
-  assert.match(start, /context:\s*\{/);
+  assert.match(start, /startDraftFreeze\(/);
   assert.match(start, /sessionId:\s*state\.session\?\.sessionId\s*\|\|\s*null/);
-  assert.match(start, /previewId:\s*state\.preview\.previewId/);
-  assert.match(start, /screenId:\s*state\.preview\.screen\?\.screenId\s*\|\|\s*null/);
-  assert.match(start, /screenFingerprint:\s*state\.preview\.screen\?\.fingerprint\s*\?\?\s*null/);
+  assert.match(start, /selectedDeviceSerial:\s*state\.selectedDeviceSerial\s*\|\|\s*null/);
+  assert.match(start, /capture:\s*async \(\) => state\.preview/);
 });
 
-test('batch save sends captured sessionId and fingerprint from addItemsFlow context', () => {
+test('batch save uses draft workspace use case with explicit context', () => {
   const persist = body(annotationsSource, 'async function persistPendingFeedbackItems(options = {})');
-  assert.match(persist, /sessionId:\s*(addItemsFlow\.context\.sessionId|expectedSessionId)/);
-  assert.match(persist, /previewId:\s*addItemsFlow\.context\.previewId/);
-  assert.match(persist, /frozenFingerprint:\s*addItemsFlow\.context\.screenFingerprint/);
+  assert.match(persist, /ensureDraftCommandQueue\(\)\.enqueue/);
+  assert.match(persist, /persistDraftWorkspace\(/);
+  assert.match(persist, /draftWorkspace\.workspaceId/);
+  assert.match(persist, /draftWorkspace\.revision/);
 });
 
 test('preview and screen URLs include explicit sessionId query', () => {
@@ -54,11 +54,12 @@ test('pending persistence envelope stores captured context', () => {
 });
 
 test('agent handoff includes sessionId in request body', () => {
-  assert.match(promptSource, /sessionId:\s*state\.session\?\.sessionId\s*\|\|\s*null/);
+  assert.match(promptSource, /const sessionId = draftWorkspace\?\.context\?\.sessionId \|\| state\.session\?\.sessionId;/);
+  assert.match(promptSource, /sessionId,\s*\n\s*itemIds/);
 });
 
-test('session mutation generation fences stale async responses', () => {
+test('draft command queue fences stale pending save responses', () => {
   assert.match(stateSource, /let sessionMutationGeneration = 0;/);
-  assert.match(annotationsSource, /const requestGeneration = sessionMutationGeneration;/);
-  assert.match(annotationsSource, /if \(requestGeneration !== sessionMutationGeneration\)/);
+  assert.match(stateSource, /let draftCommandQueue = null;/);
+  assert.match(annotationsSource, /expectedRevision:\s*draftWorkspace\.revision/);
 });

@@ -338,14 +338,7 @@
             }
 
             function persistCurrentPendingState() {
-              const sessionId = state.session?.sessionId;
-              const envelope = currentPendingStateEnvelope();
-              persistPendingState(sessionId, envelope);
-              if (sessionId && pendingRecoveryItems(envelope).length) {
-                activePendingMirrorSessions.add(sessionId);
-              } else {
-                activePendingMirrorSessions.delete(sessionId);
-              }
+              persistCurrentDraftWorkspaceIfNeeded();
             }
 
             function releaseSnapshotPointerCapture(image, event) {
@@ -577,60 +570,51 @@
             }
 
             async function persistPendingFeedbackItems(options = {}) {
-              if (!addItemsFlow) return;
-              if (!pendingFeedbackItems.length) throw new Error('Add at least one pending feedback item.');
+              if (!draftWorkspace?.workspaceId) return;
+              if (!draftWorkspaceItems(draftWorkspace).length) throw new Error('Add at least one pending feedback item.');
               const allowFallbackComments = Boolean(options.allowFallbackComments);
               const onlyWrittenComments = Boolean(options.onlyWrittenComments);
               const allowBlankComments = Boolean(options.allowBlankComments);
               const forceMismatchOverride = Boolean(options.forceMismatchOverride);
-              if (!allowFallbackComments && !onlyWrittenComments && !allowBlankComments && pendingFeedbackItems.some(item => !String(item.comment || '').trim())) throw new Error('Add a comment to every annotation before saving.');
-              if (onlyWrittenComments && !pendingFeedbackItems.some(hasWrittenAnnotationComment)) throw new Error('Add a comment to at least one annotation before sending.');
-              const payloadItems = pendingPayloadItems({ allowFallbackComments: allowFallbackComments, onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments });
-              if (!addItemsFlow.context?.sessionId || !addItemsFlow.context?.previewId) {
-                throw new Error('Annotation context is missing. Re-capture the screen and try again.');
-              }
-              const requestGeneration = sessionMutationGeneration;
-              const expectedSessionId = addItemsFlow.context.sessionId;
-              const sendBatch = async (overrideMismatch) => {
-                return await withMutationLock(() => savePreviewBatchOrConflict({
-                  sessionId: expectedSessionId,
-                  previewId: addItemsFlow.context.previewId,
-                  screen: addItemsFlow.screen,
-                  items: payloadItems,
-                  frozenFingerprint: addItemsFlow.context.screenFingerprint,
-                  forceMismatchOverride: Boolean(overrideMismatch)
-                }));
+              const items = draftWorkspaceItems(draftWorkspace);
+              if (!allowFallbackComments && !onlyWrittenComments && !allowBlankComments && items.some(item => !String(item.comment || '').trim())) throw new Error('Add a comment to every annotation before saving.');
+              if (onlyWrittenComments && !items.some(hasWrittenAnnotationComment)) throw new Error('Add a comment to at least one annotation before sending.');
+              const meta = {
+                kind: 'persist-draft-workspace',
+                workspaceId: draftWorkspace.workspaceId,
+                expectedRevision: draftWorkspace.revision,
               };
-              let result = await sendBatch(forceMismatchOverride);
-              if (result && result.conflict === 'screen_fingerprint_mismatch') {
-                const choice = await promptScreenFingerprintMismatch(result.frozenFingerprint, result.currentFingerprint);
+              const result = await ensureDraftCommandQueue().enqueue(meta, async (workspace) => {
+                const saveWorkspace = onlyWrittenComments
+                  ? { ...workspace, items: draftWorkspaceItems(workspace).filter(hasWrittenAnnotationComment) }
+                  : workspace;
+                return await persistDraftWorkspace(saveWorkspace, createBrowserDraftPorts(), {
+                  allowBlankComments,
+                  onlyWrittenComments,
+                  allowFallbackComments,
+                  forceMismatchOverride,
+                });
+              });
+              if (result?.result?.conflict?.error === 'screen_fingerprint_mismatch') {
+                const conflict = result.result.conflict;
+                const choice = await promptScreenFingerprintMismatch(conflict.frozenFingerprint, conflict.currentFingerprint);
                 if (choice === 'force') {
-                  result = await sendBatch(true);
-                  if (result && result.conflict === 'screen_fingerprint_mismatch') {
-                    throw new Error('Save was rejected after force override. Re-capture and try again.');
-                  }
-                } else if (choice === 'recapture') {
-                  // Drop the stale preview so the next Annotate-mode entry re-freezes.
-                  resetAnnotationComposerState();
+                  return await persistPendingFeedbackItems({ ...options, forceMismatchOverride: true });
+                }
+                if (choice === 'recapture') {
+                  setDraftWorkspace(createEmptyDraftWorkspace());
                   state.preview = null;
                   startLivePreviewPolling();
                   return null;
-                } else {
-                  // Cancelled.
-                  return null;
                 }
-              }
-              if (requestGeneration !== sessionMutationGeneration) {
-                await refreshSessions();
                 return null;
               }
-              if (result.session?.sessionId !== expectedSessionId) {
-                await refreshSessions();
-                throw new Error('Save returned a different feedback session. Refresh and try again.');
+              if (result?.result?.session) {
+                state.session = result.result.session;
+                state.preview = null;
+                return state.session;
               }
-              state.session = result.session;
-              resetAnnotationComposerState();
-              state.preview = null;
+              await refreshSessions();
               return state.session;
             }
 

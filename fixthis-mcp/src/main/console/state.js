@@ -131,14 +131,8 @@
 
             function persistCurrentDraftWorkspaceIfNeeded() {
               if (!draftWorkspace?.workspaceId || !(draftWorkspace.items || []).length) return;
-              const sessionId = draftWorkspace.context?.sessionId || state.session?.sessionId;
-              const envelope = currentPendingStateEnvelope(draftWorkspace.items || []);
-              persistPendingState(sessionId, envelope);
-              if (sessionId && pendingRecoveryItems(envelope).length) {
-                activePendingMirrorSessions.add(sessionId);
-              } else {
-                activePendingMirrorSessions.delete(sessionId);
-              }
+              const storage = createBrowserDraftPorts().storage;
+              storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(draftWorkspace));
             }
 
             function createBrowserDraftPorts() {

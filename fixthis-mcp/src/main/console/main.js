@@ -138,25 +138,31 @@
             }
 
             async function resolvePendingBeforeBoundary(action, sessionId = null) {
-              const hasActivePending = Boolean(addItemsFlow && pendingFeedbackItems.length);
+              const hasActivePending = Boolean(draftWorkspace?.workspaceId && draftWorkspaceItems(draftWorkspace).length);
               if (!hasActivePending && !hasPendingRecoveryItems()) return 'continue';
               if (hasPendingRecoveryItems() && !hasActivePending) {
                 renderPendingRecoveryBanner();
                 showError('Recover, recapture, or discard unsaved annotations before changing sessions.');
                 return 'cancel';
               }
-              const pendingSessionId = addItemsFlow?.context?.sessionId || state.session?.sessionId || null;
-              if (sessionId && pendingSessionId && sessionId !== pendingSessionId) return 'continue';
-              const choice = await promptPendingBoundaryChoice(action, pendingFeedbackItems.length);
-              if (choice === 'save') {
-                await persistPendingFeedbackItems({ allowBlankComments: true });
+              const pendingSessionId = draftWorkspace?.context?.sessionId || null;
+              if (sessionId && pendingSessionId && sessionId !== pendingSessionId) {
+                createBrowserDraftPorts().storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(draftWorkspace));
+                setDraftWorkspace(createEmptyDraftWorkspace());
                 return 'continue';
               }
-              if (choice === 'discard') {
-                resetAnnotationComposerState();
-                return 'continue';
+              const result = await ensureDraftCommandQueue().enqueue({
+                kind: 'session-boundary',
+                workspaceId: draftWorkspace.workspaceId,
+                expectedRevision: draftWorkspace.revision,
+              }, async (workspace) => {
+                return await resolveDraftBoundary(workspace, { kind: action, sessionId }, createBrowserDraftPorts());
+              });
+              if (result?.result?.conflict) {
+                showError('Resolve the draft save conflict before changing sessions.');
+                return 'cancel';
               }
-              return 'cancel';
+              return result?.result?.choice === 'cancel' ? 'cancel' : 'continue';
             }
 
             function promptPendingBoundaryChoice(action, count) {

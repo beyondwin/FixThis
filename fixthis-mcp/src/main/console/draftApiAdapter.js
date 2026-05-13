@@ -1,6 +1,8 @@
 // draftApiAdapter.js - explicit-session HTTP adapter for DraftWorkspace use cases.
 
-function draftItemToAnnotationDraftDto(item) {
+function draftItemToAnnotationDraftDto(item, options = {}) {
+  const rawComment = String(item.comment || '');
+  const fallbackComment = String(item.label || '').trim() || (item.targetType === 'node' ? 'Component target' : 'Custom area');
   return {
     targetType: item.targetType,
     bounds: item.bounds,
@@ -8,7 +10,7 @@ function draftItemToAnnotationDraftDto(item) {
     label: String(item.label || '').trim() || null,
     severity: item.severity || 'med',
     status: String(item.status || 'open').replace('-', '_'),
-    comment: String(item.comment || ''),
+    comment: options.allowFallbackComments ? (rawComment.trim() || fallbackComment) : rawComment,
   };
 }
 
@@ -22,8 +24,8 @@ function buildDraftWorkspaceSaveRequest(workspace, options = {}) {
     previewId: context.previewId,
     screen: workspace.screen || null,
     items: (workspace.items || [])
-      .filter((item) => options.allowBlankComments || String(item.comment || '').trim())
-      .map(draftItemToAnnotationDraftDto),
+      .filter((item) => options.allowBlankComments || options.allowFallbackComments || String(item.comment || '').trim())
+      .map((item) => draftItemToAnnotationDraftDto(item, options)),
     frozenFingerprint: context.screenFingerprint,
     forceMismatchOverride: Boolean(options.forceMismatchOverride),
   };
