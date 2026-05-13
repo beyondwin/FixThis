@@ -40,6 +40,11 @@ Pure Kotlin module. Houses common contracts not directly tied to the Android run
 - `selection/NodeSelector.kt`: scores the semantics node under a tap coordinate. Accounts for click action, meaningful text/contentDescription/role/testTag, merged tree membership, center proximity, and root-like penalty.
 - `selection/NearbyNodeCollector.kt`: collects meaningful nodes around the selected node as context, with deduplication.
 - `source/SourceIndex.kt`, `source/SourceMatcher.kt`: matches the source index produced by the Gradle plugin against semantics evidence.
+- `source/SourceMatchReason.kt`, `SourceScoringPolicy.kt`,
+  `SourceConfidencePolicy.kt`, `EvidenceProfile.kt`, and
+  `MarginContext.kt`: keep source-match reasons, scoring weights, candidate
+  caution text, evidence profiling, and score-margin context separate from the
+  matcher orchestration.
 - `format/FixThisMarkdownFormatter.kt`, `format/FixThisJsonFormatter.kt`, `format/DetailMode.kt`: converts annotations to agent-facing Markdown or JSON. `detailMode` only changes Markdown output density; JSON evidence remains complete.
 - `redaction/RedactionPolicy.kt`: default policy for redacting editable/password semantics text.
 
@@ -56,7 +61,15 @@ Runtime that executes inside the target Android debug app.
 - `inspect/ComposeRootFinder.kt`: finds the Compose `RootForTest` under the current decor view.
 - `inspect/SemanticsInspector.kt`: reads the merged/unmerged semantics tree and converts it to `FixThisNode`.
 - `screenshot/*`: saves screenshot PNGs under the app cache.
-- `bridge/BridgeServer.kt`: Android local socket bridge. Executes `status`, `inspectCurrentScreen`, `captureScreenSnapshot`, `readSourceIndex`, `verifyUiChange`, `readScreenshot`, `performNavigation` after token validation.
+- `bridge/BridgeServer.kt`: Android local socket bridge and request router.
+  Executes `status`, `inspectCurrentScreen`, `captureScreenSnapshot`,
+  `readSourceIndex`, `verifyUiChange`, `readScreenshot`, and
+  `performNavigation` after token validation.
+- `bridge/BridgeModels.kt`, `BridgeRuntime.kt`, `AndroidBridgeEnvironment.kt`,
+  `BridgeScreenshotReader.kt`, `BridgeSourceIndexReader.kt`, and
+  `NavigationPerformer.kt`: separate bridge DTOs, runtime singleton, Android
+  inspection environment, screenshot reads, source-index asset reads, and
+  debug-only navigation input.
 - `BridgeStatus` availability fields: also reports nullable `screenInteractive`, `keyguardLocked`, `appForeground`, `pictureInPicture`, and `installEpochMillis` (APK last-install timestamp used by `fixthis_status` to detect source staleness). The desktop console uses the availability signals to drive the `Connected` chip's blocked sub-state (screen off, locked, backgrounded, PiP, unresponsive, no Compose UI) and the canvas overlay/input gating.
 - `lifecycle/FixThisActivityLifecycleCallbacks.kt` tracks a resumed-activity counter and last-resumed weak reference to stabilize backgrounded/foregrounded detection.
 
@@ -68,6 +81,10 @@ Gradle plugin applied to the Android application project.
 - Active on debug variants only.
 - Attaches a project dependency if `:fixthis-compose-sidekick` is in the same multi-project build; otherwise attaches the `io.beyondwin.fixthis:fixthis-compose-sidekick:<runtimeVersion>` coordinate for external projects.
 - The `generate<Variant>FixThisSourceIndex` task scans Kotlin/XML sources and produces the generated asset.
+- `source/KotlinSourceScanner.kt`, `XmlStringResourceScanner.kt`,
+  `SourceIndexGenerator.kt`, and `SourceIndexAssets.kt`: keep source scanning,
+  XML string-resource extraction, generated asset DTOs, and Gradle task wiring
+  separated.
 
 Generated asset:
 
@@ -111,24 +128,34 @@ Package name resolution order:
 MCP stdio server and local feedback console server.
 
 - `McpProtocol`: handles JSON-RPC initialize/tools/resources/ping/cancellation.
-- `tools/FixThisTools.kt`: MCP tool/resource registry and CLI bridge adapter.
+- `tools/FixThisTools.kt`: public MCP tool facade and CLI bridge adapter.
+- `tools/McpToolRegistry.kt`, `FixThisToolDispatcher.kt`,
+  `FixThisResourceDispatcher.kt`, `BridgeResultCache.kt`, and
+  `ConsoleServerManager.kt`: separate MCP tool/resource metadata, tool
+  dispatch, resource reads, cached bridge results, and local console lifecycle.
 - `session/FeedbackSessionService.kt`: thin session workflow façade. It
   coordinates session open/resume, connection diagnosis, app launch recovery,
   preview capture, persisted evidence capture, navigation, annotation save,
   target evidence derivation, handoff, and resolve through focused
   collaborators.
-- `session/AnnotationRepository.kt`: annotation and draft CRUD boundary,
-  including frozen-preview save, live fingerprint comparison, handoff, claim,
-  and resolve operations.
+- `session/AnnotationWorkflow.kt`: annotation workflow boundary, including
+  frozen-preview save, live fingerprint comparison, handoff, claim, and resolve
+  operations.
+- `session/domain/McpSessionRepository.kt`, `McpSnapshotRepository.kt`, and
+  `McpAnnotationRepository.kt`: MCP adapters for the pure
+  `compose-core` session, snapshot, and annotation repository ports.
 - `session/SessionDtoModels.kt`, `console/AnnotationRequestModels.kt`: MCP/local-console DTOs and persisted JSON field names. Existing field names such as `items`, `screens`, `itemId`, and `screenId` are compatibility contracts.
 - `session/SessionDomainMappers.kt`: explicit mapper between DTOs and `compose-core` domain models. Legacy `"ready"` item status is normalized to `AnnotationStatus.OPEN` in the domain.
 - `console/ConsoleConnectionModels.kt`: browser console recovery card contract. Serializes `WELCOME`, `READY`, `OPEN_APP`, `STARTING`, `RECONNECT`, `CHOOSE_DEVICE`, `CHECK_PHONE`, `UNSUPPORTED_BUILD` states and primary actions.
 - `session/PreviewSnapshotCache.kt`, `SourceIndexRegistry.kt`, `ScreenshotArtifactPromoter.kt`: separates transient preview cache, source-index caching, and frozen preview screenshot promotion from the service.
 - `session/FeedbackSessionStore.kt`, `FeedbackSessionPersistence.kt`,
-  `session/eventlog/*`: `.fixthis/feedback-sessions/<session-id>/session.json`
-  snapshot persistence plus append-only event logs under `events/`. Event-log
-  replay is checkpoint-aware; compaction archives old events only after writing
-  `events/checkpoint.json`.
+  `SessionMutation.kt`, `SessionReducer.kt`, `SessionEventJournal.kt`,
+  `SessionReplayEngine.kt`, and `session/eventlog/*`:
+  `.fixthis/feedback-sessions/<session-id>/session.json` snapshot persistence
+  plus append-only event logs under `events/`. Event-log replay is
+  checkpoint-aware; compaction archives old events only after writing
+  `events/checkpoint.json`. The store coordinates locking and persistence while
+  pure reducers and replay helpers own state transitions and event-log recovery.
 - `console/FeedbackConsoleServer.kt`: `127.0.0.1` HTTP console and `/api/*` endpoints.
 - `console/FeedbackConsoleAssets.kt`: loader that validates and assembles `src/main/resources/console/index.html`, `styles.css`, `app.js` classpath resources.
 

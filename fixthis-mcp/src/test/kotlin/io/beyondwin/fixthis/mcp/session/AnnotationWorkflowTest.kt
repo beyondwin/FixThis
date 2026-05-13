@@ -9,7 +9,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-class AnnotationRepositoryTest {
+class AnnotationWorkflowTest {
 
     @Test
     fun addAreaFeedbackPersistsItem() = runBlocking {
@@ -192,10 +192,13 @@ class AnnotationRepositoryTest {
     }
 
     private class Fixture(
-        val repository: AnnotationRepository,
+        val repository: AnnotationWorkflow,
         val store: FeedbackSessionStore,
     ) {
-        fun openSession(): SessionDto = store.openSession(packageName = "io.beyondwin.fixthis.sample", projectRoot = "/repo")
+        fun openSession(): SessionDto = store.openSession(
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+        )
 
         suspend fun captureScreen(sessionId: String): SnapshotDto = store.addScreen(
             sessionId,
@@ -232,7 +235,7 @@ class AnnotationRepositoryTest {
             targetEvidenceService = targetEvidenceService,
             screenshotArtifactPromoter = ScreenshotArtifactPromoter(),
         )
-        val repository = AnnotationRepository(store = store, draftService = draftService)
+        val repository = AnnotationWorkflow(store = store, draftService = draftService)
         return Fixture(repository, store)
     }
 }

@@ -4,17 +4,17 @@ import io.beyondwin.fixthis.compose.core.model.SourceEvidenceStrength
 
 internal data class EvidenceProfile(
     val rawScore: Double,
-    val reasons: Set<String>,
+    val reasons: Set<SourceMatchReason>,
 ) {
-    val hasStrictCompTag: Boolean = "selected testTag convention composable" in reasons
-    val hasSelectedTestTag: Boolean = "selected testTag" in reasons
-    val hasSelectedUiText: Boolean = "selected text" in reasons
-    val hasSelectedContentDescription: Boolean = "selected contentDescription" in reasons
-    val hasSelectedRole: Boolean = "selected role" in reasons
-    val hasSelectedStringResource: Boolean = "selected stringResource" in reasons
-    val hasArbitraryLiteral: Boolean = "arbitrary literal" in reasons
-    val hasLegacyFallback: Boolean = "legacy fallback" in reasons
-    val hasActivity: Boolean = "activity" in reasons
+    val hasStrictCompTag: Boolean = SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE in reasons
+    val hasSelectedTestTag: Boolean = SourceMatchReason.SELECTED_TEST_TAG in reasons
+    val hasSelectedUiText: Boolean = SourceMatchReason.SELECTED_TEXT in reasons
+    val hasSelectedContentDescription: Boolean = SourceMatchReason.SELECTED_CONTENT_DESCRIPTION in reasons
+    val hasSelectedRole: Boolean = SourceMatchReason.SELECTED_ROLE in reasons
+    val hasSelectedStringResource: Boolean = SourceMatchReason.SELECTED_STRING_RESOURCE in reasons
+    val hasArbitraryLiteral: Boolean = SourceMatchReason.ARBITRARY_LITERAL in reasons
+    val hasLegacyFallback: Boolean = SourceMatchReason.LEGACY_FALLBACK in reasons
+    val hasActivity: Boolean = SourceMatchReason.ACTIVITY in reasons
     val hasAnySelected: Boolean =
         hasSelectedTestTag ||
             hasStrictCompTag ||
@@ -22,13 +22,13 @@ internal data class EvidenceProfile(
             hasSelectedContentDescription ||
             hasSelectedRole ||
             hasSelectedStringResource
-    val hasAnyNearby: Boolean = reasons.any { it.startsWith("nearby ") }
+    val hasAnyNearby: Boolean = reasons.any { it in NEARBY_REASONS }
 
-    val isTextOnly: Boolean = reasons == setOf("selected text")
-    val isNearbyOnly: Boolean = reasons.isNotEmpty() && reasons.all { it.startsWith("nearby ") }
-    val isActivityOnly: Boolean = reasons == setOf("activity")
+    val isTextOnly: Boolean = reasons == setOf(SourceMatchReason.SELECTED_TEXT)
+    val isNearbyOnly: Boolean = reasons.isNotEmpty() && reasons.all { it in NEARBY_REASONS }
+    val isActivityOnly: Boolean = reasons == setOf(SourceMatchReason.ACTIVITY)
     val isArbitraryLiteralOnly: Boolean =
-        "arbitrary literal" in reasons &&
+        SourceMatchReason.ARBITRARY_LITERAL in reasons &&
             reasons.all { it in BUCKET_AND_ORIGIN_REASONS } &&
             !hasSelectedTestTag &&
             !hasStrictCompTag &&
@@ -36,7 +36,7 @@ internal data class EvidenceProfile(
             !hasAnyNearby &&
             !hasActivity
     val isLegacyFallbackOnly: Boolean =
-        "legacy fallback" in reasons &&
+        SourceMatchReason.LEGACY_FALLBACK in reasons &&
             reasons.all { it in BUCKET_AND_ORIGIN_REASONS } &&
             !hasSelectedTestTag &&
             !hasStrictCompTag &&
@@ -49,7 +49,7 @@ internal data class EvidenceProfile(
         (if (hasSelectedUiText) 1 else 0) +
             (if (hasSelectedContentDescription) 1 else 0) +
             (if (hasSelectedStringResource) 1 else 0) +
-            (if (hasSelectedRole && hasAnySelected && reasons != setOf("selected role")) 1 else 0)
+            (if (hasSelectedRole && hasAnySelected && reasons != setOf(SourceMatchReason.SELECTED_ROLE)) 1 else 0)
 
     fun strength(): SourceEvidenceStrength = when {
         selectedStrongCount > 0 -> SourceEvidenceStrength.STRONG
@@ -58,14 +58,29 @@ internal data class EvidenceProfile(
     }
 
     companion object {
-        private val BUCKET_AND_ORIGIN_REASONS: Set<String> = setOf(
-            "selected text",
-            "selected contentDescription",
-            "selected role",
-            "arbitrary literal",
-            "legacy fallback",
+        private val NEARBY_REASONS: Set<SourceMatchReason> = setOf(
+            SourceMatchReason.NEARBY_TEXT,
+            SourceMatchReason.NEARBY_CONTENT_DESCRIPTION,
+            SourceMatchReason.NEARBY_TEST_TAG,
+            SourceMatchReason.NEARBY_ROLE,
         )
 
-        fun fromReasons(reasons: Collection<String>, rawScore: Double): EvidenceProfile = EvidenceProfile(rawScore = rawScore, reasons = reasons.toSet())
+        private val BUCKET_AND_ORIGIN_REASONS: Set<SourceMatchReason> = setOf(
+            SourceMatchReason.SELECTED_TEXT,
+            SourceMatchReason.SELECTED_CONTENT_DESCRIPTION,
+            SourceMatchReason.SELECTED_ROLE,
+            SourceMatchReason.ARBITRARY_LITERAL,
+            SourceMatchReason.LEGACY_FALLBACK,
+        )
+
+        fun fromMatchReasons(
+            reasons: Collection<SourceMatchReason>,
+            rawScore: Double,
+        ): EvidenceProfile = EvidenceProfile(rawScore = rawScore, reasons = reasons.toSet())
+
+        fun fromReasons(reasons: Collection<String>, rawScore: Double): EvidenceProfile {
+            val matchReasons = reasons.map(SourceMatchReason::fromWireLabel)
+            return fromMatchReasons(matchReasons, rawScore)
+        }
     }
 }

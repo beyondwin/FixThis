@@ -5,16 +5,14 @@ import io.beyondwin.fixthis.mcp.console.AnnotationDraftDto
 import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
 
 /**
- * Owns annotation CRUD and status changes.
+ * Owns MCP annotation workflow operations over DTO-backed sessions.
  *
- * Split out of `FeedbackSessionService` (CH-4): add/update/delete/resolve/claim of
- * `AnnotationDto` rows go through this class. Heavy lifting (preview save, evidence
- * binding) is still done by `FeedbackDraftService`; this class is the narrow
- * interface seen by the façade and HTTP routes.
+ * This is intentionally not the core `AnnotationRepository` port. It coordinates
+ * draft preview saves, target evidence, and status transitions at the MCP
+ * boundary.
  */
-// Thin facade over store/draft operations; keep signatures explicit for callers.
-@Suppress("TooManyFunctions")
-class AnnotationRepository(
+@Suppress("LongParameterList", "TooManyFunctions")
+class AnnotationWorkflow(
     private val store: FeedbackSessionStore,
     private val draftService: FeedbackDraftService,
 ) {
@@ -137,7 +135,11 @@ class AnnotationRepository(
         summary: String?,
     ): AnnotationDto = store.updateItemStatus(sessionId, itemId, status, summary)
 
-    fun claimFeedback(sessionId: String, itemId: String, agentNote: String?): AnnotationDto = store.claimFeedback(sessionId, itemId, agentNote)
+    fun claimFeedback(
+        sessionId: String,
+        itemId: String,
+        agentNote: String?,
+    ): AnnotationDto = store.claimFeedback(sessionId, itemId, agentNote)
 
     fun updateDraftFeedback(
         sessionId: String,
@@ -155,7 +157,13 @@ class AnnotationRepository(
         status = status,
     )
 
-    fun deleteDraftFeedback(sessionId: String, itemId: String): SessionDto = store.deleteDraftItem(sessionId, itemId)
+    fun deleteDraftFeedback(
+        sessionId: String,
+        itemId: String,
+    ): SessionDto = store.deleteDraftItem(sessionId, itemId)
 
-    fun markItemsHandedOff(sessionId: String, itemIds: List<String>): SessionDto = store.markItemsHandedOff(sessionId, itemIds)
+    fun markItemsHandedOff(
+        sessionId: String,
+        itemIds: List<String>,
+    ): SessionDto = store.markItemsHandedOff(sessionId, itemIds)
 }
