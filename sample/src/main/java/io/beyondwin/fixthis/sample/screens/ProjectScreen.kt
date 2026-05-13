@@ -1,9 +1,10 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package io.beyondwin.fixthis.sample.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,7 +33,6 @@ import io.beyondwin.fixthis.sample.components.StateChip
 import io.beyondwin.fixthis.sample.components.StudioHeader
 import io.beyondwin.fixthis.sample.model.FixThisDemoData
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ProjectScreen(padding: PaddingValues) {
     var menuOpen by rememberSaveable { mutableStateOf(false) }

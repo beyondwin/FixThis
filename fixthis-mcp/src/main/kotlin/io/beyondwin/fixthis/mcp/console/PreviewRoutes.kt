@@ -3,6 +3,7 @@ package io.beyondwin.fixthis.mcp.console
 import com.sun.net.httpserver.HttpExchange
 import io.beyondwin.fixthis.cli.fixThisJson
 import io.beyondwin.fixthis.mcp.session.FeedbackNavigationRequest
+import io.beyondwin.fixthis.mcp.session.FeedbackSessionException
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionPaths
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.beyondwin.fixthis.mcp.session.SessionDto
@@ -57,7 +58,7 @@ internal class PreviewRoutes(private val service: FeedbackSessionService) : Cons
         val session = explicitSessionId?.let { service.getSession(it) } ?: service.requireCurrentSession()
         val screenshotFile = try {
             service.previewScreenshotFile(session.sessionId, previewId)
-        } catch (error: RuntimeException) {
+        } catch (error: FeedbackSessionException) {
             throw FeedbackConsoleHttpException(404, "Screenshot not found", error)
         }
         sendBytes(200, screenshotFile.readBytes(), "image/png")

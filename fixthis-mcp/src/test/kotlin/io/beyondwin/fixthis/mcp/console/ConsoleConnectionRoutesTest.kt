@@ -439,14 +439,17 @@ class ConsoleDeviceSelectionRoutesTest {
     fun consoleHtmlRerendersPreviewWhenDeviceSelectionInvalidatesPreview() {
         val html = FeedbackConsoleAssets.indexHtml
         val renderDeviceList = javascriptFunctionBody(html, "renderDeviceList")
+        val invalidatesPreview = "\\s*bumpSessionMutationGeneration\\(\\);" +
+            "\\s*invalidatePreviewContext\\(\\);\\s*renderPreviewOnly\\(\\);\\s*\\}"
         val noDevicesSelectionChange = Regex(
-            "if \\(!devices\\.length\\) \\{[\\s\\S]*?if \\(previousSelectedDeviceSerial !== selectedSerial\\) \\{" +
-                "\\s*bumpSessionMutationGeneration\\(\\);\\s*invalidatePreviewContext\\(\\);\\s*renderPreviewOnly\\(\\);\\s*\\}",
+            "if \\(!devices\\.length\\) \\{[\\s\\S]*?" +
+                "if \\(previousSelectedDeviceSerial !== selectedSerial\\) \\{$invalidatesPreview",
         )
         val selectedSerialChange = Regex(
-            "const selectedSerial = selected && selected\\.state === 'device' \\? selected\\.serial : null;" +
+            "const selectedSerial = selected && selected\\.state === 'device' \\? " +
+                "selected\\.serial : null;" +
                 "[\\s\\S]*?if \\(previousSelectedDeviceSerial !== selectedSerial\\) \\{" +
-                "\\s*bumpSessionMutationGeneration\\(\\);\\s*invalidatePreviewContext\\(\\);\\s*renderPreviewOnly\\(\\);\\s*\\}",
+                invalidatesPreview,
         )
 
         assertTrue(

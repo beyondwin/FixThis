@@ -140,7 +140,12 @@ class ConsolePreviewRoutesTest {
         assertTrue(html.contains("const preview = await requestLivePreview();"))
         assertTrue(html.contains("const requestGeneration = ++previewRequestGeneration"))
         assertTrue(html.contains("if (addItemsFlow || requestGeneration !== previewRequestGeneration) return;"))
-        assertTrue(html.contains("screenshotUrl: previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null)"))
+        assertTrue(
+            html.contains(
+                "screenshotUrl: previewScreenshotUrl(" +
+                    "state.preview.previewId, state.session?.sessionId || null)",
+            ),
+        )
         assertTrue(html.contains("function latestPersistedScreen()"))
         assertTrue(html.contains("const persistedScreenIds = new Set("))
         assertTrue(html.contains(".filter(screen => persistedScreenIds.has(screen.screenId))"))
@@ -152,8 +157,18 @@ class ConsolePreviewRoutesTest {
         assertFalse(html.contains("return addItemsFlow?.screen || latestPersistedScreen() || state.preview?.screen;"))
         assertTrue(html.contains("'/api/screens/' + encodeURIComponent(screenId) + '/screenshot/full'"))
         assertTrue(html.contains("if (!addItemsFlow) {"))
-        assertTrue(html.contains("const focusedItem = savedEvidenceItems().find(item => item.itemId === focusedSavedItemId);"))
-        assertTrue(html.contains("const sameScreenItems = savedEvidenceItems().filter(item => item.screenId === focusedItem.screenId);"))
+        assertTrue(
+            html.contains(
+                "const focusedItem = savedEvidenceItems().find(" +
+                    "item => item.itemId === focusedSavedItemId);",
+            ),
+        )
+        assertTrue(
+            html.contains(
+                "const sameScreenItems = savedEvidenceItems().filter(" +
+                    "item => item.screenId === focusedItem.screenId);",
+            ),
+        )
         assertFalse(html.contains("const visibleScreen = latestScreen();"))
         assertFalse(html.contains("if (nodeUid) return visibleUids.has(nodeUid);"))
         assertFalse(html.contains("savedEvidenceItems().filter(item => item.screenId === visibleScreen.screenId)"))
@@ -177,7 +192,12 @@ class ConsolePreviewRoutesTest {
     fun consoleHtmlLivePreviewImageUsesPreviewIdScopedScreenshotRoute() {
         val html = FeedbackConsoleAssets.indexHtml
 
-        assertTrue(html.contains("function previewScreenshotUrl(previewId, sessionId = state.session?.sessionId || null)"))
+        assertTrue(
+            html.contains(
+                "function previewScreenshotUrl(" +
+                    "previewId, sessionId = state.session?.sessionId || null)",
+            ),
+        )
         assertTrue(
             html.contains(
                 "return '/api/preview/' + encodeURIComponent(previewId) + '/screenshot/full' + scopedQuery(sessionId);",
@@ -225,7 +245,12 @@ class ConsolePreviewRoutesTest {
         assertTrue(html.contains("state.preview = preview;"))
         assertTrue(html.contains("if (!state.preview) {"))
         assertTrue(html.contains("previewId: state.preview.previewId"))
-        assertTrue(html.contains("screenshotUrl: previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null)"))
+        assertTrue(
+            html.contains(
+                "screenshotUrl: previewScreenshotUrl(" +
+                    "state.preview.previewId, state.session?.sessionId || null)",
+            ),
+        )
         assertTrue(
             Regex(
                 "finally \\{\\s+addItemsFlowStarting = false;\\s+updateComposerState\\(\\);" +

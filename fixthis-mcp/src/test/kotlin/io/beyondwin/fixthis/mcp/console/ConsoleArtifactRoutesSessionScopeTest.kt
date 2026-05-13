@@ -32,7 +32,8 @@ class ConsoleArtifactRoutesSessionScopeTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val path = "/api/preview/${encode(preview.previewId)}/screenshot/full?sessionId=${encode(sessionA.sessionId)}"
+            val path = "/api/preview/${encode(preview.previewId)}/screenshot/full" +
+                "?sessionId=${encode(sessionA.sessionId)}"
             val response = ConsoleHttpTestClient(server.url).getResponse(path)
 
             assertEquals(200, response.statusCode)
@@ -62,7 +63,8 @@ class ConsoleArtifactRoutesSessionScopeTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val path = "/api/preview/${encode(preview.previewId)}/screenshot/full?sessionId=${encode(sessionB.sessionId)}"
+            val path = "/api/preview/${encode(preview.previewId)}/screenshot/full" +
+                "?sessionId=${encode(sessionB.sessionId)}"
             val response = ConsoleHttpTestClient(server.url).getResponse(path)
 
             assertEquals(404, response.statusCode)
