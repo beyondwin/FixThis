@@ -199,8 +199,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778616360000;
-const ConsoleBuildGitSha = '4f067f4';
+const ConsoleBuildEpochMs = 1778639340000;
+const ConsoleBuildGitSha = 'f51f1a7';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -1349,21 +1349,48 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               }
             }
 
-            document.getElementById('canvasStaleNotice')?.querySelector('[data-use-latest]')?.addEventListener('click', () => {
-              // Drop the stale frozen preview and any pins anchored to it, then
-              // re-freeze the latest frame via the existing Annotate primer when
-              // appropriate, or fall through to a fresh live preview otherwise.
+            async function useLatestStaleFrame() {
               const wasAnnotating = toolMode === 'annotate' || Boolean(addItemsFlow);
-              state.preview = null;
-              pendingFeedbackItems.length = 0;
-              addItemsFlow = null;
-              clearPendingMirror(state.session?.sessionId);
+              flushFocusedPendingComment();
+              const pendingItems = pendingFeedbackItems.slice();
+              const previousFlow = addItemsFlow;
+              const previousPreview = state.preview;
+              invalidatePreviewContext();
               if (wasAnnotating) {
-                startAddItemsFlow().catch(showError);
+                addItemsFlow = null;
+                try {
+                  await startAddItemsFlow();
+                } catch (cause) {
+                  addItemsFlow = previousFlow;
+                  state.preview = previousPreview;
+                  pendingFeedbackItems = pendingItems;
+                  if (addItemsFlow) persistCurrentPendingState();
+                  render();
+                  throw cause;
+                }
+                if (!addItemsFlow) {
+                  addItemsFlow = previousFlow;
+                  state.preview = previousPreview;
+                  pendingFeedbackItems = pendingItems;
+                  render();
+                  return;
+                }
+                pendingFeedbackItems = pendingItems;
+                updateAnnotationSequenceFromPendingItems(pendingItems);
+                focusedPendingItemIndex = null;
+                focusedSavedItemId = null;
+                focusedSavedSessionId = null;
+                currentSelection = null;
+                hoveredAnnotationTarget = null;
+                persistCurrentPendingState();
               } else {
-                refreshPreview().catch(showError);
+                await refreshPreview();
               }
               render();
+            }
+
+            document.getElementById('canvasStaleNotice')?.querySelector('[data-use-latest]')?.addEventListener('click', () => {
+              useLatestStaleFrame().catch(showError);
             });
 
 // annotations.js

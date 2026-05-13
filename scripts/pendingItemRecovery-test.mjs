@@ -185,6 +185,8 @@ test('new pending annotations record undo history before persistence', () => {
   assert.match(createBody, /pendingFeedbackItems\.push\(annotation\);[\s\S]*?recordAdd\(undoRedoHistory,\s*annotation\);[\s\S]*?persistCurrentPendingState\(\);/);
 });
 
-test('discarding a stale frozen frame clears the recovery mirror', () => {
-  assert.match(previewSource, /data-use-latest[\s\S]*?pendingFeedbackItems\.length\s*=\s*0;[\s\S]*?addItemsFlow\s*=\s*null;[\s\S]*?clearPendingMirror\(state\.session\?\.sessionId\);/);
+test('using latest stale frame preserves pending annotations while recapturing', () => {
+  assert.match(previewSource, /const pendingItems = pendingFeedbackItems\.slice\(\);[\s\S]*?invalidatePreviewContext\(\);[\s\S]*?await startAddItemsFlow\(\);[\s\S]*?pendingFeedbackItems = pendingItems;[\s\S]*?persistCurrentPendingState\(\);/);
+  assert.doesNotMatch(previewSource, /data-use-latest[\s\S]*?pendingFeedbackItems\.length\s*=\s*0;/);
+  assert.doesNotMatch(previewSource, /data-use-latest[\s\S]*?clearPendingMirror\(state\.session\?\.sessionId\);/);
 });
