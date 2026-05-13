@@ -3,8 +3,9 @@ package io.beyondwin.fixthis.sample.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import io.beyondwin.fixthis.sample.components.InfoRow
 import io.beyondwin.fixthis.sample.components.PreviewPanel
@@ -30,6 +32,7 @@ import io.beyondwin.fixthis.sample.components.StateChip
 import io.beyondwin.fixthis.sample.components.StudioHeader
 import io.beyondwin.fixthis.sample.model.FixThisDemoData
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ProjectScreen(padding: PaddingValues) {
     var menuOpen by rememberSaveable { mutableStateOf(false) }
@@ -39,7 +42,8 @@ fun ProjectScreen(padding: PaddingValues) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(padding),
+            .padding(padding)
+            .testTag("screen:Project:list"),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -50,7 +54,10 @@ fun ProjectScreen(padding: PaddingValues) {
                     subtitle = item.title,
                     status = item.state.label,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     SeverityChip(item.severity)
                     StateChip(item.state)
                 }
@@ -93,7 +100,10 @@ fun ProjectScreen(padding: PaddingValues) {
             )
         }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 OutlinedButton(onClick = { closeDialogOpen = true }) {
                     Text("Close issue")
                 }

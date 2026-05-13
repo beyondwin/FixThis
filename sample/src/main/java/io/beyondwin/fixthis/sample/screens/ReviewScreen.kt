@@ -117,7 +117,11 @@ fun ReviewScreen(padding: PaddingValues) {
                 checked = screenshot,
                 onCheckedChange = { screenshot = it },
             )
-            Text("Include screenshot context", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "Include screenshot context",
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyMedium,
+            )
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -126,6 +130,7 @@ fun ReviewScreen(padding: PaddingValues) {
         ) {
             Text(
                 text = if (sendToAgent) "Send to agent queue" else "Keep as draft",
+                modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyMedium,
             )
             Switch(

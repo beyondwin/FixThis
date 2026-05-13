@@ -2,6 +2,8 @@ package io.beyondwin.fixthis.sample.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -21,6 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.beyondwin.fixthis.sample.model.FeedbackItem
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun FeedbackCard(
     item: FeedbackItem,
@@ -52,7 +55,10 @@ fun FeedbackCard(
                 SeverityChip(item.severity)
             }
             Text(item.summary, style = MaterialTheme.typography.bodyMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 StateChip(item.state)
                 StatusChip(
                     label = item.screenName,
@@ -65,10 +71,10 @@ fun FeedbackCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
             )
-            Row(
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 OutlinedButton(onClick = {}) { Text("Assign") }
                 IconButton(
