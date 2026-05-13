@@ -72,6 +72,80 @@ session-preview-screen context."
 - Replacing the existing feedback session event log.
 - Renaming persisted MCP session JSON fields.
 
+## Architecture Boundaries
+
+The implementation follows a small Clean Architecture slice inside
+`:fixthis-mcp` console code. The goal is not ceremony; the goal is to stop DOM,
+fetch, localStorage, polling, and draft business rules from mutating the same
+state directly.
+
+Layer order:
+
+1. **Domain policy**: pure workspace model, draft items, context, actions,
+   reducer, and invariant helpers.
+2. **Application use cases**: freeze, add/update/delete, undo/redo, save, copy,
+   handoff, recovery, and session-boundary orchestration.
+3. **Ports**: small interfaces for preview capture, feedback API calls,
+   workspace storage, clock/id generation, clipboard writes, and session
+   refresh.
+4. **Adapters**: browser `fetch`, `localStorage`, `navigator.clipboard`,
+   existing console endpoints, and current render/refresh functions.
+5. **Presentation**: DOM event handlers and rendering modules. They translate
+   user events into use case calls and render view models from domain state.
+
+Dependency rule:
+
+- Domain policy imports nothing from application, adapters, DOM, storage, or
+  network code.
+- Application use cases depend only on domain policy and ports.
+- Adapters depend outward on browser APIs and existing console modules.
+- Presentation depends on application use cases and read-only view models, not
+  on storage keys or HTTP payload construction.
+
+This prevents a repeat of the current failure mode where `state.session`,
+`addItemsFlow`, `pendingFeedbackItems`, localStorage, and HTTP responses each
+act as partial sources of truth.
+
+## SOLID Mapping
+
+- **Single Responsibility**: `draftWorkspace.js` owns pure state transitions;
+  `draftUseCases.js` owns workflows; `draftCommandQueue.js` owns ordering;
+  `draftStorageAdapter.js` owns localStorage; `draftApiAdapter.js` owns HTTP
+  shapes; rendering modules only render.
+- **Open/Closed**: new workspace behavior is added as a new action or use case
+  without letting UI modules mutate workspace internals directly.
+- **Liskov Substitution**: each port has fake and browser implementations with
+  the same behavior contract, so reducer/use case tests can replace adapters
+  without changing application code.
+- **Interface Segregation**: ports stay narrow. For example, a save use case
+  receives `feedbackApi.saveDraftWorkspace`, not a broad console service object
+  with unrelated session, device, and rendering methods.
+- **Dependency Inversion**: use cases depend on abstract ports. Browser `fetch`,
+  localStorage, clipboard, and session refresh are injected adapters.
+
+## File Ownership
+
+Planned console modules:
+
+- `draftWorkspace.js`: pure domain state, action constants, reducer, selectors,
+  and invariant helpers.
+- `draftWorkspaceHistory.js`: pure undo/redo stack operations if history becomes
+  large enough to split from `draftWorkspace.js`.
+- `draftUseCases.js`: application workflows such as `startDraftFreeze`,
+  `addDraftItem`, `updateDraftItem`, `deleteDraftItem`, `persistDraftWorkspace`,
+  `copyDraftHandoff`, `saveDraftToMcp`, and `resolveDraftBoundary`.
+- `draftCommandQueue.js`: one-at-a-time command serialization and stale
+  workspace/revision response fencing. It must not contain annotation business
+  rules.
+- `draftPorts.js`: documented port shapes using JSDoc comments.
+- `draftStorageAdapter.js`: schema-v2 localStorage read/write plus schema-v1
+  migration.
+- `draftApiAdapter.js`: explicit-session HTTP payload construction for
+  annotation-owned routes.
+- Existing `annotations.js`, `prompt.js`, `history.js`, `preview.js`, and
+  `rendering.js`: presentation and compatibility glue during migration. Direct
+  writes to workspace internals are removed before the migration is complete.
+
 ## Core Model
 
 Add a small client-side state module, `draftWorkspace.js`, that owns this shape:
@@ -156,13 +230,32 @@ Reducer rules:
 - `SAVE_CONFLICT` keeps the workspace intact and exposes recapture, force-save,
   or cancel choices.
 
-## Command Queue
+## Application Use Cases and Command Queue
+
+The command queue is only an ordering primitive. It must not become a new
+god-object that knows annotation rules, storage schema, HTTP payloads, and DOM
+rendering. Business behavior lives in application use cases that receive ports.
+
+Use case examples:
+
+```js
+async function persistDraftWorkspace(workspace, ports) {
+  const request = buildPersistRequest(workspace);
+  const result = await ports.feedbackApi.saveDraftWorkspace(request);
+  return result;
+}
+
+async function resolveDraftBoundary(workspace, boundaryAction, ports) {
+  const choice = await ports.boundaryPrompt.choose(workspace, boundaryAction);
+  return applyBoundaryChoice(workspace, choice, ports);
+}
+```
 
 Introduce a single console command runner:
 
 ```js
 enqueueCommand({ kind, workspaceId, expectedRevision }, async () => {
-  // perform network request or session boundary operation
+  // invoke one application use case
 });
 ```
 
@@ -182,9 +275,23 @@ This replaces scattered uses of `pendingMutationCount`,
 flows. Those variables may remain for unrelated connection/polling behavior
 during migration, but workspace commands do not depend on them.
 
+Use cases should return data, not mutate DOM. Presentation code decides which
+regions to re-render after a successful command.
+
 ## Persistence
 
-Pending recovery storage becomes workspace-keyed:
+Pending recovery is handled by a storage port:
+
+```js
+const draftStoragePort = {
+  saveWorkspace(envelope) {},
+  loadWorkspacesForSession(sessionId) {},
+  deleteWorkspace(sessionId, workspaceId) {},
+  migrateLegacyPending(sessionId) {}
+};
+```
+
+The browser adapter stores workspaces under workspace-keyed localStorage keys:
 
 ```text
 localStorage["fixthis.workspace.<sessionId>.<workspaceId>"]
@@ -220,8 +327,9 @@ Migration:
 
 ## Server Contract
 
-The browser console must send explicit session ids for all annotation-owned
-mutations:
+The application layer must reject annotation-owned server commands without an
+explicit `sessionId`. The browser console must send explicit session ids for
+all annotation-owned mutations:
 
 - `POST /api/items/batch`
 - `POST /api/items`
@@ -267,6 +375,8 @@ being silently cleared.
 
 Rendering is derived from either an active workspace or a persisted session.
 
+- Presentation receives a view model from selectors; it does not inspect
+  localStorage, build HTTP payloads, or mutate `workspace.items` directly.
 - Pending overlays render from `workspace.items`.
 - Saved overlays render only for the focused saved item and its persisted
   screen, never from live-preview node UID coincidence.
@@ -294,18 +404,29 @@ Add focused reducer tests:
 - stale async action with old revision is ignored.
 - save conflict preserves workspace and items.
 - session boundary keep/discard/save affects only the matching workspace.
+- domain tests run without DOM, fetch, localStorage, timers, or global
+  `state.session`.
 
 Add command queue tests:
 
 - save and session switch are serialized.
 - stale save response after session switch cannot clear the new workspace.
 - delete followed by undo during save is blocked or queued deterministically.
+- queue tests use fake use cases and prove the queue contains no business
+  branching beyond ordering and stale-response rejection.
 
 Add storage tests:
 
 - schema-v1 pending recovery migrates into schema-v2 workspace.
 - schema-v0 item-only recovery requires recapture.
 - workspaces are keyed by captured session, not active session.
+
+Add port/adapter tests:
+
+- `draftApiAdapter` emits explicit `sessionId` on every annotation-owned route.
+- fake ports can replace browser adapters for all use case tests.
+- presentation smoke tests assert DOM handlers call use cases instead of
+  mutating workspace arrays directly.
 
 Add property-style workflow tests with a deterministic pseudo-random runner:
 
@@ -330,15 +451,22 @@ Add a browser smoke scenario:
 ## Migration Plan
 
 1. Add pure `draftWorkspace.js` reducer and tests without wiring UI.
-2. Add command queue and route all pending item add/update/delete through the
-   reducer while keeping compatibility shims.
-3. Move localStorage recovery to schema v2 and migrate schema v1.
-4. Route save/copy/handoff through workspace commands and explicit session ids.
-5. Route session boundary actions through `resolveDraftBoundary`.
-6. Remove direct writes to `pendingFeedbackItems`, `focusedPendingItemIndex`,
+2. Add `draftPorts.js` with narrow port contracts and fake test
+   implementations.
+3. Add `draftUseCases.js` for freeze, edit, save, handoff, recovery, and
+   boundary workflows.
+4. Add `draftCommandQueue.js` and prove it only serializes use cases and fences
+   stale workspace revisions.
+5. Move localStorage recovery to `draftStorageAdapter.js` schema v2 and migrate
+   schema v1.
+6. Route pending item add/update/delete through use cases while keeping
+   compatibility shims.
+7. Route save/copy/handoff through workspace commands and explicit session ids.
+8. Route session boundary actions through `resolveDraftBoundary`.
+9. Remove direct writes to `pendingFeedbackItems`, `focusedPendingItemIndex`,
    and `addItemsFlow` from console modules.
-7. Add randomized invariant tests and browser smoke.
-8. Regenerate `fixthis-mcp/src/main/resources/console/app.js`.
+10. Add randomized invariant tests and browser smoke.
+11. Regenerate `fixthis-mcp/src/main/resources/console/app.js`.
 
 ## Decisions
 
@@ -348,5 +476,8 @@ Add a browser smoke scenario:
 - Server-side `workspaceId` metadata is deferred for the first implementation
   pass. Client-side command fencing plus explicit `sessionId` is the correctness
   boundary; server metadata can be added later for diagnostics.
+- Clean Architecture boundaries are required for implementation acceptance:
+  reducer tests must run without browser APIs, use case tests must use fake
+  ports, and presentation modules must not directly mutate workspace arrays.
 - SSE remains a later state-sync improvement. The workspace model is required
   regardless of polling or SSE.
