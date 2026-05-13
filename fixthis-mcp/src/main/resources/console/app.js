@@ -327,8 +327,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778701920000;
-const ConsoleBuildGitSha = 'dae6a87';
+const ConsoleBuildEpochMs = 1778702100000;
+const ConsoleBuildGitSha = 'ac3c7b5';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -4242,12 +4242,31 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               snapshot.innerHTML =
 	                '<div id="annotateHintSlot" class="annotate-hint-slot" aria-live="polite"></div>' +
 	                '<div id="snapshotFrame" class="snapshot-frame">' +
+                    '<span id="previewFrameStatus" class="preview-frame-status" data-state="unavailable">No screenshot</span>' +
 	                  '<img id="snapshotImage" alt="FixThis preview" aria-label="FixThis preview">' +
 	                  '<div id="selectionOverlay" class="selection-overlay"></div>' +
 	                '</div>';
               attachSnapshotHandlers();
               applyPreviewZoom();
               return document.getElementById('snapshotFrame');
+            }
+
+            function previewFrameStatus(screen, hasScreenshot) {
+              if (state.connection?.interactionBlockedReason) return { state: 'blocked', label: 'Interaction blocked' };
+              if (!hasScreenshot) return { state: 'unavailable', label: 'No screenshot' };
+              if (state.preview?.stale) return { state: 'stale', label: 'Stale frame' };
+              if (addItemsFlow) return { state: 'frozen', label: 'Frozen for annotation' };
+              if (focusedSavedItemId || (!state.preview && screen?.screenId)) return { state: 'saved', label: 'Saved screen' };
+              if (state.preview) return { state: 'live', label: 'Live preview' };
+              return { state: 'unavailable', label: 'No screenshot' };
+            }
+
+            function renderPreviewFrameStatus(screen, hasScreenshot) {
+              const status = previewFrameStatus(screen, hasScreenshot);
+              let badge = document.getElementById('previewFrameStatus');
+              if (!badge) return;
+              badge.dataset.state = status.state;
+              badge.textContent = status.label;
             }
 
             function renderPreviewRegion() {
@@ -4261,7 +4280,8 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   : (state.session
                     ? 'Waiting for first capture from device…'
                     : 'Connect a device to get started.');
-                snapshot.innerHTML = '<div class="empty-stage">' + emptyMessage + '</div>';
+                snapshot.innerHTML = '<div class="empty-stage"><span id="previewFrameStatus" class="preview-frame-status empty" data-state="unavailable">No screenshot</span><span>' + emptyMessage + '</span></div>';
+                renderPreviewFrameStatus(screen, hasScreenshot);
                 updateComposerState();
                 // Even with no screenshot, surface the blocked-reason overlay and
                 // stale-frame notice so users see WHY there's no capture yet.
@@ -4271,6 +4291,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               }
               const frame = ensurePreviewFrame();
               frame.dataset.mode = mode;
+              renderPreviewFrameStatus(screen, hasScreenshot);
               const image = document.getElementById('snapshotImage');
               const src = screenImageUrl(screen);
               if (image.getAttribute('src') !== src) {

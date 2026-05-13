@@ -116,6 +116,7 @@ async function injectStressState(page) {
       '</svg>';
     document.getElementById('snapshot').innerHTML =
       '<div id="snapshotFrame" class="snapshot-frame" data-mode="frozen">' +
+        '<span id="previewFrameStatus" class="preview-frame-status" data-state="frozen">Frozen for annotation</span>' +
         '<img id="snapshotImage" alt="FixThis preview" aria-label="FixThis preview" src="data:image/svg+xml,' + encodeURIComponent(previewSvg) + '">' +
         '<div id="selectionOverlay" class="selection-overlay"></div>' +
       '</div>';
@@ -188,6 +189,7 @@ async function assertNoHorizontalOverflow(page, viewportName) {
       '.activity-drift-warning',
       '.evidence-details',
       '.evidence-grid',
+      '#previewFrameStatus',
     ];
     return selectors.flatMap(selector => Array.from(document.querySelectorAll(selector)).map(element => {
       const overflow = element.scrollWidth - element.clientWidth;
@@ -253,6 +255,31 @@ async function assertPreviewFrameMatchesImage(page, viewportName) {
     Object.fromEntries(Object.entries(mismatch).filter(([, value]) => value > 1 || value === true)),
     {},
     `${viewportName} preview frame does not match image bounds`,
+  );
+}
+
+async function assertPreviewFrameStatusBadge(page, viewportName) {
+  const failure = await page.evaluate(() => {
+    const badge = document.getElementById('previewFrameStatus');
+    if (!badge) return { missing: true };
+    const box = badge.getBoundingClientRect();
+    const frame = document.getElementById('snapshotFrame')?.getBoundingClientRect();
+    return {
+      text: badge.textContent?.trim() || '',
+      outsideFrame: frame ? (box.left < frame.left - 1 || box.right > frame.right + 1 || box.top < frame.top - 1) : true,
+      overflow: badge.scrollWidth - badge.clientWidth,
+    };
+  });
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(failure).filter(([key, value]) => {
+      if (key === 'missing') return value === true;
+      if (key === 'text') return value !== 'Frozen for annotation';
+      if (typeof value === 'number') return value > 1;
+      if (typeof value === 'boolean') return value === true;
+      return true;
+    })),
+    {},
+    `${viewportName} preview frame status badge is invalid`,
   );
 }
 
@@ -339,6 +366,7 @@ async function run(baseUrl) {
       await assertNoHorizontalOverflow(page, viewport.name);
       await assertHistoryRowsAreStacked(page, viewport.name);
       await assertPreviewFrameMatchesImage(page, viewport.name);
+      await assertPreviewFrameStatusBadge(page, viewport.name);
       await assertPendingRecoveryBannerIsReadable(page, viewport.name);
       await assertCompactHistoryReachable(page, viewport.name);
       await page.close();
