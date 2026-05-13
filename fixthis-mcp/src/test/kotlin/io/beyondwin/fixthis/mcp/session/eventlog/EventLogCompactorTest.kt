@@ -65,6 +65,13 @@ class EventLogCompactorTest {
         EventLogWriter(paths.eventLogDirectory(sessionId))
     }
 
+    private fun fastEventWriterFor(paths: FeedbackSessionPaths): (String) -> EventLogWriter = { sessionId ->
+        EventLogWriter(
+            directory = paths.eventLogDirectory(sessionId),
+            durability = EventLogDurability.Fast,
+        )
+    }
+
     private fun eventReaderFor(paths: FeedbackSessionPaths): (String) -> EventLogReader = { sessionId ->
         EventLogReader(paths.eventLogDirectory(sessionId))
     }
@@ -80,12 +87,12 @@ class EventLogCompactorTest {
                 clock = { ++now },
                 idGenerator = idGenerator(),
                 persistence = persistence,
-                eventLogWriterProvider = eventWriterFor(paths),
+                eventLogWriterProvider = fastEventWriterFor(paths),
                 eventLogReaderProvider = eventReaderFor(paths),
             )
             val session = store.openSession("com.test", projectRoot.absolutePath)
             val screen = store.addScreen(session.sessionId, makeScreen())
-            repeat(1200) { index ->
+            repeat(24) { index ->
                 store.addItem(session.sessionId, makeDraftItem(screen.screenId, index + 1))
             }
             val sent = store.sendDraftToAgent(session.sessionId, markdownSnapshot = "handoff")
@@ -96,7 +103,7 @@ class EventLogCompactorTest {
                 snapshotProvider = { store.getSession(session.sessionId) },
                 snapshotWriter = { persistence.save(it) },
                 clock = { ++now },
-            ).runOnce(threshold = 1000)
+            ).runOnce(threshold = 10)
 
             val replayedStore = FeedbackSessionStore(
                 clock = { ++now },
@@ -121,41 +128,33 @@ class EventLogCompactorTest {
         val dir = Files.createTempDirectory("compactor-primary").toFile()
         try {
             val eventsDir = File(dir, "events")
-            val writer = EventLogWriter(eventsDir)
-            // Append 1100 events so each event becomes one .jsonl file
-            repeat(1100) { i -> writer.append(makeEvent((i + 1).toLong())) }
+            val writer = EventLogWriter(eventsDir, durability = EventLogDurability.Fast)
+            // Append 12 events so each event becomes one .jsonl file.
+            repeat(12) { i -> writer.append(makeEvent((i + 1).toLong())) }
 
-            val snapshot = makeSession(updatedAtEpochMillis = 1_715_500_001_100L)
+            val snapshot = makeSession(updatedAtEpochMillis = 1_715_500_000_012L)
             var writtenSnapshot: SessionDto? = null
             EventLogCompactor(
                 eventsDir,
                 snapshotProvider = { snapshot },
                 snapshotWriter = { writtenSnapshot = it },
                 clock = { 1_715_500_002_000L },
-            ).runOnce(threshold = 1000)
+            ).runOnce(threshold = 10)
 
-            // Archive dir must exist and contain at least 100 files
             val archiveDir = File(eventsDir, "archive")
             assertTrue(archiveDir.exists(), "archive/ directory should exist after compaction")
             val archiveFiles = archiveDir.listFiles { f -> f.extension == "jsonl" } ?: emptyArray()
-            assertTrue(
-                archiveFiles.size >= 100,
-                "archive/ should contain at least 100 files, found ${archiveFiles.size}",
-            )
+            assertEquals(2, archiveFiles.size, "archive/ should contain the 2 oldest files")
 
-            // Main events dir (excluding archive/) should have at most 1000 jsonl files
             val remainingFiles = eventsDir.listFiles { f -> f.isFile && f.extension == "jsonl" } ?: emptyArray()
-            assertTrue(
-                remainingFiles.size <= 1000,
-                "events/ should have at most 1000 files after compaction, found ${remainingFiles.size}",
-            )
+            assertEquals(10, remainingFiles.size, "events/ should retain the newest 10 files")
 
             assertEquals(snapshot, writtenSnapshot)
             val checkpoint = EventLogReader(eventsDir).readCheckpointOrNull()
             assertEquals(
                 EventLogCheckpoint(
                     sessionId = snapshot.sessionId,
-                    compactedThroughSequenceNumber = 100L,
+                    compactedThroughSequenceNumber = 2L,
                     snapshotUpdatedAtEpochMillis = snapshot.updatedAtEpochMillis,
                     createdAtEpochMillis = 1_715_500_002_000L,
                 ),
@@ -172,9 +171,9 @@ class EventLogCompactorTest {
         val dir = Files.createTempDirectory("compactor-noop").toFile()
         try {
             val eventsDir = File(dir, "events")
-            val writer = EventLogWriter(eventsDir)
-            // Append only 50 events — well below threshold of 1000
-            repeat(50) { i -> writer.append(makeEvent((i + 1).toLong())) }
+            val writer = EventLogWriter(eventsDir, durability = EventLogDurability.Fast)
+            // Append only 5 events, below the threshold of 10.
+            repeat(5) { i -> writer.append(makeEvent((i + 1).toLong())) }
 
             var snapshotCalled = false
             EventLogCompactor(eventsDir, snapshotProvider = {
@@ -182,7 +181,7 @@ class EventLogCompactorTest {
                 makeSession()
             }, snapshotWriter = {
                 snapshotCalled = true
-            }).runOnce(threshold = 1000)
+            }).runOnce(threshold = 10)
 
             // Archive dir should NOT exist (or be empty)
             val archiveDir = File(eventsDir, "archive")
@@ -201,9 +200,8 @@ class EventLogCompactorTest {
                 "checkpoint should NOT be written when below threshold",
             )
 
-            // All 50 original files still present
             val remaining = eventsDir.listFiles { f -> f.isFile && f.extension == "jsonl" } ?: emptyArray()
-            assertEquals(50, remaining.size, "All 50 original files should remain")
+            assertEquals(5, remaining.size, "All 5 original files should remain")
 
             assertFalse(snapshotCalled, "snapshotProvider should not be called when below threshold")
         } finally {
@@ -216,7 +214,7 @@ class EventLogCompactorTest {
         val dir = Files.createTempDirectory("compactor-order").toFile()
         try {
             val eventsDir = File(dir, "events")
-            val writer = EventLogWriter(eventsDir)
+            val writer = EventLogWriter(eventsDir, durability = EventLogDurability.Fast)
             // Append 5 events with sequence numbers 1..5
             repeat(5) { i -> writer.append(makeEvent((i + 1).toLong())) }
 
