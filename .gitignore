@@ -34,3 +34,4 @@ local.properties
 .orchestrator
 .codex-orchestrator
 .worktrees
+output/playwright
