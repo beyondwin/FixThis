@@ -53,13 +53,19 @@ internal class PreviewRoutes(private val service: FeedbackSessionService) : Cons
     }
 
     private fun HttpExchange.sendPreviewScreenshot(previewId: String) {
-        val session = service.requireCurrentSession()
-        val screenshotFile = service.previewScreenshotFile(session.sessionId, previewId)
+        val explicitSessionId = queryParameter("sessionId")?.takeIf { it.isNotBlank() }
+        val session = explicitSessionId?.let { service.getSession(it) } ?: service.requireCurrentSession()
+        val screenshotFile = try {
+            service.previewScreenshotFile(session.sessionId, previewId)
+        } catch (error: RuntimeException) {
+            throw FeedbackConsoleHttpException(404, "Screenshot not found", error)
+        }
         sendBytes(200, screenshotFile.readBytes(), "image/png")
     }
 
     private fun HttpExchange.sendPreviewScreenshot() {
-        val session = service.requireCurrentSession()
+        val session = queryParameter("sessionId")?.takeIf { it.isNotBlank() }?.let { service.getSession(it) }
+            ?: service.requireCurrentSession()
         val projectRoot = File(session.projectRoot).canonicalFile
         val previewRoot = File(projectRoot, ".fixthis/preview-cache/${session.sessionId}").canonicalFile
         val persistedRoot = FeedbackSessionPaths(projectRoot).rootDirectory

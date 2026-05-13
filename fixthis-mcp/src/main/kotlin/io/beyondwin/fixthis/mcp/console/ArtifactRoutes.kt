@@ -19,7 +19,7 @@ internal class ArtifactRoutes(private val service: FeedbackSessionService) : Con
                 exchange.sendJson(
                     200,
                     service.deleteScreen(
-                        service.requireCurrentSession().sessionId,
+                        exchange.requestedSession().sessionId,
                         exchange.requestURI.path.screenIdFromScreenPath(),
                     ),
                 )
@@ -28,7 +28,7 @@ internal class ArtifactRoutes(private val service: FeedbackSessionService) : Con
     }
 
     private fun HttpExchange.sendScreenshot(screenId: String) {
-        val session = service.requireCurrentSession()
+        val session = requestedSession()
         val screen = session.screens.firstOrNull { it.screenId == screenId }
             ?: throw FeedbackConsoleHttpException(404, "Screenshot not found")
         val screenshotPath = screen.screenshot?.desktopFullPath
@@ -47,11 +47,15 @@ internal class ArtifactRoutes(private val service: FeedbackSessionService) : Con
         }
         sendBytes(200, screenshotFile.readBytes(), "image/png")
     }
+
+    private fun HttpExchange.requestedSession() =
+        queryParameter("sessionId")?.takeIf { it.isNotBlank() }?.let { service.getSession(it) }
+            ?: service.requireCurrentSession()
 }
 
 private fun String.isFullScreenshotPath(): Boolean = split('/').size == 6 && startsWith("/api/screens/") && endsWith("/screenshot/full")
 
-private fun String.screenIdFromScreenshotPath(): String = split('/')[3]
+private fun String.screenIdFromScreenshotPath(): String = URLDecoder.decode(split('/')[3], Charsets.UTF_8.name())
 
 private fun String.isScreenPath(): Boolean = split('/').size == 4 && startsWith("/api/screens/")
 
