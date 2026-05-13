@@ -21,6 +21,7 @@ const fake = {
   openedSessionId: 'session-1',
   navigationCalls: 0,
   handoffPrompts: [],
+  requestedPaths: [],
   devices: [
     { serial: 'device-1', model: 'Pixel Smoke', state: 'device' },
     { serial: 'device-2', model: 'Fold Offline', state: 'offline' },
@@ -38,14 +39,27 @@ const fake = {
 
 fake.sessions.set('session-1', makeSession('session-1', 0, []));
 fake.sessions.set('session-2', makeSession('session-2', -10_000, [
-  makePersistedItem('item-older', 'Earlier screen annotation', 'screen-session-2', { left: 120, top: 260, right: 320, bottom: 360 }),
-  makePersistedItem('item-old', 'Existing history annotation', 'screen-session-2', { left: 40, top: 40, right: 160, bottom: 120 }),
+  makePersistedItem(
+    'item-older',
+    'Earlier screen annotation',
+    'screen-session-2',
+    { left: 120, top: 260, right: 320, bottom: 360 },
+    { sequenceNumber: 1 },
+  ),
+  makePersistedItem(
+    'item-old',
+    'Existing history annotation',
+    'screen-session-2',
+    { left: 40, top: 40, right: 160, bottom: 120 },
+    { sequenceNumber: 2 },
+  ),
   makePersistedItem(
     'item-question',
     'Agent needs more detail',
     'screen-session-2',
     { left: 180, top: 160, right: 320, bottom: 250 },
     {
+      sequenceNumber: 3,
       delivery: 'sent',
       status: 'needs_clarification',
       agentSummary: 'Which checkout variant should this apply to?',
@@ -57,6 +71,7 @@ fake.sessions.set('session-2', makeSession('session-2', -10_000, [
     'screen-session-2',
     { left: 200, top: 300, right: 360, bottom: 380 },
     {
+      sequenceNumber: 4,
       delivery: 'sent',
       status: 'wont_fix',
       agentSummary: 'This is intentionally not fixed in the sample screen.',
@@ -433,6 +448,7 @@ function createServer() {
   return http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url || '/', 'http://127.0.0.1');
+      fake.requestedPaths.push(url.pathname + url.search);
       if (request.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
         return textResponse(response, pageHtml, 200, 'text/html; charset=utf-8');
       }
@@ -584,15 +600,27 @@ async function runSmoke(baseUrl) {
     await page.locator('#sessions .session-row[data-session-id="session-2"]').click();
     await page.waitForFunction(() => document.querySelector('#sessions .session-row.is-active')?.dataset.sessionId === 'session-2');
     await page.waitForFunction(() => document.querySelectorAll('.saved-item-row').length === 4);
+    await page.waitForFunction(() => document.querySelectorAll('#selectionOverlay .selection-label').length === 0);
+    assert.match(await page.locator('#draftItems').textContent(), /Needs Clarification/);
+    assert.match(await page.locator('#draftItems').textContent(), /Won't Fix/);
+    await page.locator('.saved-item-row').nth(1).click();
+    await page.waitForFunction(() => {
+      const image = document.getElementById('snapshotImage');
+      return image?.src?.includes('/api/screens/') && image.src.includes('sessionId=');
+    });
+    assert.ok(
+      fake.requestedPaths.some(path =>
+        path.startsWith('/api/screens/screen-session-2/screenshot/full?') &&
+          path.includes('sessionId=session-2')
+      ),
+      'Focused saved annotation should request its screen screenshot with an explicit sessionId',
+    );
     await page.waitForFunction(() =>
       Array.from(document.querySelectorAll('#selectionOverlay .selection-label'))
         .map(label => label.textContent)
         .filter(Boolean)
         .join(',') === '1,2,3,4'
     );
-    assert.match(await page.locator('#draftItems').textContent(), /Needs Clarification/);
-    assert.match(await page.locator('#draftItems').textContent(), /Won't Fix/);
-    await page.locator('.saved-item-row').nth(1).click();
     await page.waitForFunction(() => document.activeElement?.id === 'annotationCommentInput');
     const editedHistoryComment = 'Edited history annotation';
     await page.fill('#annotationCommentInput', editedHistoryComment);
@@ -699,6 +727,15 @@ async function runSmoke(baseUrl) {
     await page.waitForSelector('#annotationCommentInput');
     const firstAnnotationComment = 'Make the checkout heading clearer';
     await page.fill('#annotationCommentInput', firstAnnotationComment);
+    await page.evaluate(() => {
+      window.fixThisPromptPendingBoundary = () => 'cancel';
+    });
+    await page.click('#sessions .session-row.is-active [data-delete-session-id]');
+    await waitForPendingPins(page, 1, 'Pending annotation should remain after Keep editing');
+    await page.waitForFunction(() => document.querySelector('#sessions .session-row.is-active')?.dataset.sessionId === 'session-1');
+    await page.evaluate(() => {
+      delete window.fixThisPromptPendingBoundary;
+    });
     await page.mouse.move(imageBox.x + 40, imageBox.y + 40);
     await page.mouse.down();
     await page.mouse.move(imageBox.x + 120, imageBox.y + 90);
