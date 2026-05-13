@@ -1,0 +1,35 @@
+package io.beyondwin.fixthis.compose.core.source
+
+internal object SourceScoringPolicy {
+    const val maxCandidates: Int = 5
+    const val highConfidenceScore: Double = 100.0
+    const val minPartialMatchLength: Int = 3
+
+    fun bucketScore(reason: SourceMatchReason): Double = when (reason) {
+        SourceMatchReason.SELECTED_TEXT -> SELECTED_TEXT_SCORE
+        SourceMatchReason.SELECTED_CONTENT_DESCRIPTION -> SELECTED_CONTENT_DESCRIPTION_SCORE
+        SourceMatchReason.SELECTED_TEST_TAG -> SELECTED_TEST_TAG_SCORE
+        SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE -> SELECTED_TEST_TAG_CONVENTION_SCORE
+        SourceMatchReason.SELECTED_ROLE -> SELECTED_ROLE_SCORE
+        SourceMatchReason.NEARBY_TEXT -> NEARBY_TEXT_SCORE
+        SourceMatchReason.NEARBY_CONTENT_DESCRIPTION -> NEARBY_CONTENT_DESCRIPTION_SCORE
+        SourceMatchReason.NEARBY_TEST_TAG -> NEARBY_TEST_TAG_SCORE
+        SourceMatchReason.NEARBY_ROLE -> NEARBY_ROLE_SCORE
+        SourceMatchReason.ACTIVITY -> ACTIVITY_SCORE
+        SourceMatchReason.SELECTED_STRING_RESOURCE,
+        SourceMatchReason.ARBITRARY_LITERAL,
+        SourceMatchReason.LEGACY_FALLBACK,
+        -> 0.0
+    }
+
+    private const val SELECTED_TEXT_SCORE: Double = 45.0
+    private const val SELECTED_CONTENT_DESCRIPTION_SCORE: Double = 40.0
+    private const val SELECTED_TEST_TAG_SCORE: Double = 55.0
+    private const val SELECTED_TEST_TAG_CONVENTION_SCORE: Double = 65.0
+    private const val SELECTED_ROLE_SCORE: Double = 25.0
+    private const val NEARBY_TEXT_SCORE: Double = 24.0
+    private const val NEARBY_CONTENT_DESCRIPTION_SCORE: Double = 22.0
+    private const val NEARBY_TEST_TAG_SCORE: Double = 18.0
+    private const val NEARBY_ROLE_SCORE: Double = 8.0
+    private const val ACTIVITY_SCORE: Double = 15.0
+}

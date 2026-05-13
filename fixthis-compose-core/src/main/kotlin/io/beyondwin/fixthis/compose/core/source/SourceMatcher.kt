@@ -22,11 +22,11 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
                     .thenBy { it.entry.file }
                     .thenBy { it.entry.line ?: Int.MAX_VALUE },
             )
-            .take(MAX_CANDIDATES)
+            .take(SourceScoringPolicy.maxCandidates)
             .toList()
 
         val normalizedScores = matchScores.map {
-            (it.rawScore / HIGH_CONFIDENCE_SCORE).coerceIn(0.0, 1.0)
+            (it.rawScore / SourceScoringPolicy.highConfidenceScore).coerceIn(0.0, 1.0)
         }
         return matchScores.mapIndexed { index, score -> score.toCandidate(index, normalizedScores) }
     }
@@ -58,60 +58,45 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         activityName: String?,
     ): MatchScore {
         val matchedTerms = linkedSetOf<String>()
-        val matchReasons = linkedSetOf<String>()
+        val matchReasons = linkedSetOf<SourceMatchReason>()
         val scoredEvidence = mutableSetOf<String>()
         val ctx = ScoreContext()
+        val accumulator = MatchAccumulator(matchedTerms, matchReasons, scoredEvidence, ctx)
         var rawScore = 0.0
 
         selectedNode.text.forEach { term ->
             rawScore += addIfMatches(
                 hit = entry.textLikeWeightHit(term),
                 term = term,
-                reason = "selected text",
-                score = 45.0,
-                matchedTerms = matchedTerms,
-                matchReasons = matchReasons,
-                scoredEvidence = scoredEvidence,
-                ctx = ctx,
+                reason = SourceMatchReason.SELECTED_TEXT,
+                accumulator = accumulator,
             )
         }
         selectedNode.editableText?.let { term ->
             rawScore += addIfMatches(
                 hit = entry.textLikeWeightHit(term),
                 term = term,
-                reason = "selected text",
-                score = 45.0,
-                matchedTerms = matchedTerms,
-                matchReasons = matchReasons,
-                scoredEvidence = scoredEvidence,
-                ctx = ctx,
+                reason = SourceMatchReason.SELECTED_TEXT,
+                accumulator = accumulator,
             )
         }
         selectedNode.contentDescription.forEach { term ->
             rawScore += addIfMatches(
                 hit = entry.contentDescriptionWeightHit(term),
                 term = term,
-                reason = "selected contentDescription",
-                score = 40.0,
-                matchedTerms = matchedTerms,
-                matchReasons = matchReasons,
-                scoredEvidence = scoredEvidence,
-                ctx = ctx,
+                reason = SourceMatchReason.SELECTED_CONTENT_DESCRIPTION,
+                accumulator = accumulator,
             )
         }
         selectedNode.testTag?.let { term ->
-            rawScore += addSelectedTestTagScore(entry, term, matchedTerms, matchReasons, scoredEvidence, ctx)
+            rawScore += addSelectedTestTagScore(entry, term, accumulator)
         }
         selectedNode.role?.let { term ->
             rawScore += addIfMatches(
                 hit = entry.roleWeightHit(term),
                 term = term,
-                reason = "selected role",
-                score = 25.0,
-                matchedTerms = matchedTerms,
-                matchReasons = matchReasons,
-                scoredEvidence = scoredEvidence,
-                ctx = ctx,
+                reason = SourceMatchReason.SELECTED_ROLE,
+                accumulator = accumulator,
             )
         }
 
@@ -120,12 +105,8 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
                 rawScore += addIfMatches(
                     hit = entry.textLikeWeightHit(term),
                     term = term,
-                    reason = "nearby text",
-                    score = 24.0,
-                    matchedTerms = matchedTerms,
-                    matchReasons = matchReasons,
-                    scoredEvidence = scoredEvidence,
-                    ctx = ctx,
+                    reason = SourceMatchReason.NEARBY_TEXT,
+                    accumulator = accumulator,
                     isNearby = true,
                 )
             }
@@ -133,12 +114,8 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
                 rawScore += addIfMatches(
                     hit = entry.textLikeWeightHit(term),
                     term = term,
-                    reason = "nearby text",
-                    score = 24.0,
-                    matchedTerms = matchedTerms,
-                    matchReasons = matchReasons,
-                    scoredEvidence = scoredEvidence,
-                    ctx = ctx,
+                    reason = SourceMatchReason.NEARBY_TEXT,
+                    accumulator = accumulator,
                     isNearby = true,
                 )
             }
@@ -146,12 +123,8 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
                 rawScore += addIfMatches(
                     hit = entry.contentDescriptionWeightHit(term),
                     term = term,
-                    reason = "nearby contentDescription",
-                    score = 22.0,
-                    matchedTerms = matchedTerms,
-                    matchReasons = matchReasons,
-                    scoredEvidence = scoredEvidence,
-                    ctx = ctx,
+                    reason = SourceMatchReason.NEARBY_CONTENT_DESCRIPTION,
+                    accumulator = accumulator,
                     isNearby = true,
                 )
             }
@@ -159,12 +132,8 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
                 rawScore += addIfMatches(
                     hit = entry.testTagWeightHit(term),
                     term = term,
-                    reason = "nearby testTag",
-                    score = 18.0,
-                    matchedTerms = matchedTerms,
-                    matchReasons = matchReasons,
-                    scoredEvidence = scoredEvidence,
-                    ctx = ctx,
+                    reason = SourceMatchReason.NEARBY_TEST_TAG,
+                    accumulator = accumulator,
                     isNearby = true,
                 )
             }
@@ -172,12 +141,8 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
                 rawScore += addIfMatches(
                     hit = entry.roleWeightHit(term),
                     term = term,
-                    reason = "nearby role",
-                    score = 8.0,
-                    matchedTerms = matchedTerms,
-                    matchReasons = matchReasons,
-                    scoredEvidence = scoredEvidence,
-                    ctx = ctx,
+                    reason = SourceMatchReason.NEARBY_ROLE,
+                    accumulator = accumulator,
                     isNearby = true,
                 )
             }
@@ -187,22 +152,18 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             rawScore += addIfMatches(
                 hit = entry.activityWeightHit(name),
                 term = name.substringAfterLast('.'),
-                reason = "activity",
-                score = 15.0,
-                matchedTerms = matchedTerms,
-                matchReasons = matchReasons,
-                scoredEvidence = scoredEvidence,
-                ctx = ctx,
+                reason = SourceMatchReason.ACTIVITY,
+                accumulator = accumulator,
             )
         }
 
         // Post-processing: emit "arbitrary literal" or "legacy fallback" origin markers
         if (ctx.anyTermMatched) {
             if (!ctx.anyTypedSignalNonLiteral && !ctx.anyLegacyOnly && ctx.anyArbitraryLiteralSignal) {
-                matchReasons.add("arbitrary literal")
+                matchReasons.add(SourceMatchReason.ARBITRARY_LITERAL)
             }
             if (!ctx.anyTypedSignalNonLiteral && !ctx.anyArbitraryLiteralSignal && ctx.anyLegacyOnly) {
-                matchReasons.add("legacy fallback")
+                matchReasons.add(SourceMatchReason.LEGACY_FALLBACK)
             }
         }
 
@@ -217,32 +178,21 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
     private fun addSelectedTestTagScore(
         entry: SourceIndexEntry,
         testTag: String,
-        matchedTerms: MutableSet<String>,
-        matchReasons: MutableSet<String>,
-        scoredEvidence: MutableSet<String>,
-        ctx: ScoreContext,
+        accumulator: MatchAccumulator,
     ): Double {
         var score = addIfMatches(
             hit = entry.testTagWeightHit(testTag),
             term = testTag,
-            reason = "selected testTag",
-            score = 55.0,
-            matchedTerms = matchedTerms,
-            matchReasons = matchReasons,
-            scoredEvidence = scoredEvidence,
-            ctx = ctx,
+            reason = SourceMatchReason.SELECTED_TEST_TAG,
+            accumulator = accumulator,
         )
 
         TestTagConvention.parse(testTag)?.let { parsed ->
             val conventionScore = addIfMatches(
                 hit = entry.conventionComposableWeightHit(parsed.composableName),
                 term = parsed.composableName,
-                reason = "selected testTag convention composable",
-                score = 65.0,
-                matchedTerms = matchedTerms,
-                matchReasons = matchReasons,
-                scoredEvidence = scoredEvidence,
-                ctx = ctx,
+                reason = SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE,
+                accumulator = accumulator,
             )
             score = maxOf(score, conventionScore)
         }
@@ -253,24 +203,49 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
     private fun addIfMatches(
         hit: WeightHit,
         term: String,
-        reason: String,
-        score: Double,
-        matchedTerms: MutableSet<String>,
-        matchReasons: MutableSet<String>,
-        scoredEvidence: MutableSet<String>,
-        ctx: ScoreContext,
+        reason: SourceMatchReason,
+        accumulator: MatchAccumulator,
         isNearby: Boolean = false,
     ): Double {
         val cleaned = term.trim()
-        if (hit.weight <= 0.0 || cleaned.isEmpty()) return 0.0
+        return if (hit.weight <= 0.0 || cleaned.isEmpty()) {
+            0.0
+        } else {
+            accumulator.recordMatch(hit, reason, cleaned, isNearby)
+        }
+    }
+
+    private fun MatchAccumulator.recordMatch(
+        hit: WeightHit,
+        reason: SourceMatchReason,
+        cleaned: String,
+        isNearby: Boolean,
+    ): Double {
         matchedTerms.add(cleaned)
         matchReasons.add(reason)
+        trackOrigin(hit, reason, isNearby)
+        if (hit.signalKind == SourceSignalKind.STRING_RESOURCE &&
+            (
+                reason == SourceMatchReason.SELECTED_TEXT ||
+                    reason == SourceMatchReason.SELECTED_CONTENT_DESCRIPTION
+                )
+        ) {
+            matchReasons.add(SourceMatchReason.SELECTED_STRING_RESOURCE)
+        }
+        val evidenceKey = "${reason.wireLabel}${cleaned.normalizedForMatch()}"
+        return if (scoredEvidence.add(evidenceKey)) {
+            SourceScoringPolicy.bucketScore(reason) * hit.weight
+        } else {
+            0.0
+        }
+    }
 
-        // Track origin for "arbitrary literal" / "legacy fallback" reason emission.
-        // Only applies to selected (non-nearby) text/contentDescription/role bucket reasons.
-        // Activity-only matches are handled separately by the ACTIVITY_ONLY cap and
-        // are NOT tracked here so they don't pollute the legacy-fallback marker.
-        val isSelectedBucket = !isNearby && reason != "activity"
+    private fun MatchAccumulator.trackOrigin(
+        hit: WeightHit,
+        reason: SourceMatchReason,
+        isNearby: Boolean,
+    ) {
+        val isSelectedBucket = !isNearby && reason != SourceMatchReason.ACTIVITY
         if (isSelectedBucket) {
             ctx.anyTermMatched = true
             when {
@@ -282,18 +257,14 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
                     ctx.anyTypedSignalNonLiteral = true
             }
         }
-
-        // Emit "selected stringResource" reason when a STRING_RESOURCE signal matched
-        // a text or contentDescription bucket
-        if (hit.signalKind == SourceSignalKind.STRING_RESOURCE &&
-            (reason == "selected text" || reason == "selected contentDescription")
-        ) {
-            matchReasons.add("selected stringResource")
-        }
-
-        if (!scoredEvidence.add("$reason${cleaned.normalizedForMatch()}")) return 0.0
-        return score * hit.weight
     }
+
+    private data class MatchAccumulator(
+        val matchedTerms: MutableSet<String>,
+        val matchReasons: MutableSet<SourceMatchReason>,
+        val scoredEvidence: MutableSet<String>,
+        val ctx: ScoreContext,
+    )
 
     // Weight-hit carrier: weight from the winning signal, its kind (null = legacy), and whether it came from legacy path
     private data class WeightHit(
@@ -412,7 +383,10 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         return candidates.any { candidate ->
             val normalizedCandidate = candidate.normalizedForMatch()
             normalizedCandidate == normalizedTerm ||
-                (normalizedTerm.length >= MIN_PARTIAL_MATCH_LENGTH && normalizedCandidate.contains(normalizedTerm))
+                (
+                    normalizedTerm.length >= SourceScoringPolicy.minPartialMatchLength &&
+                        normalizedCandidate.contains(normalizedTerm)
+                    )
         }
     }
 
@@ -422,14 +396,15 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         val entry: SourceIndexEntry,
         val rawScore: Double,
         val matchedTerms: List<String>,
-        val matchReasons: List<String>,
+        val matchReasons: List<SourceMatchReason>,
     )
 
     private fun MatchScore.toCandidate(
         index: Int,
         normalizedScores: List<Double>,
     ): SourceCandidate {
-        val profile = EvidenceProfile.fromReasons(matchReasons, rawScore)
+        val profile = EvidenceProfile.fromMatchReasons(matchReasons, rawScore)
+        val wireReasons = matchReasons.map { it.wireLabel }
         val margin = MarginContext.of(normalizedScores, index)
         val baseConfidence = baseConfidenceFor(profile, margin)
         val capInfo = applyCaps(profile, baseConfidence)
@@ -453,9 +428,9 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         return SourceCandidate(
             file = entry.file,
             line = entry.line,
-            score = (rawScore / HIGH_CONFIDENCE_SCORE).coerceIn(0.0, 1.0),
+            score = (rawScore / SourceScoringPolicy.highConfidenceScore).coerceIn(0.0, 1.0),
             matchedTerms = matchedTerms,
-            matchReasons = matchReasons,
+            matchReasons = wireReasons,
             confidence = afterAmbiguity,
             ranking = margin.ranking,
             scoreMargin = scoreMargin,
@@ -542,37 +517,5 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
     private fun cautionFor(
         confidence: SelectionConfidence,
         flags: List<SourceCandidateRisk>,
-    ): String? {
-        val highest = SourceCandidateRiskPrecedence.highest(flags)
-        if (highest != null) {
-            return when (highest) {
-                SourceCandidateRisk.AMBIGUOUS ->
-                    "Verify this source candidate before editing; top candidates are close."
-                SourceCandidateRisk.AREA_SELECTION ->
-                    "Visual-area selection; use screenshot and bounds before editing."
-                SourceCandidateRisk.TEXT_ONLY ->
-                    "Text-only match; confirm against screenshot and code."
-                SourceCandidateRisk.NEARBY_ONLY ->
-                    "Nearby-only match; confirm against screenshot and code."
-                SourceCandidateRisk.ARBITRARY_LITERAL ->
-                    "Match relied on a generic string literal; confirm against screenshot and code."
-                SourceCandidateRisk.ACTIVITY_ONLY ->
-                    "Activity-only match; confirm against screenshot and code."
-                SourceCandidateRisk.LEGACY_FALLBACK ->
-                    "Legacy-fallback match; confirm against screenshot and code."
-            }
-        }
-        return when (confidence) {
-            SelectionConfidence.LOW -> "Top source candidate has low confidence; verify before editing."
-            SelectionConfidence.NONE -> "No source candidate was available from current evidence."
-            else -> null
-        }
-    }
+    ): String? = SourceConfidencePolicy.cautionFor(confidence, flags)
 }
-
-private const val MAX_CANDIDATES = 5
-private const val HIGH_CONFIDENCE_SCORE = 100.0
-
-@Suppress("unused")
-private const val MEDIUM_CONFIDENCE_SCORE = 55.0
-private const val MIN_PARTIAL_MATCH_LENGTH = 3
