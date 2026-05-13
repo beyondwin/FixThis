@@ -233,8 +233,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778690700000;
-const ConsoleBuildGitSha = '2e64c11';
+const ConsoleBuildEpochMs = 1778690880000;
+const ConsoleBuildGitSha = '20c3dee';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -2400,9 +2400,8 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             async function openSession(sessionId) {
               error.textContent = '';
-              if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
+              if (await resolvePendingBeforeBoundary('open-session', sessionId) !== 'continue') return;
               stopLivePreviewPolling();
-              await flushPendingAnnotationsBeforeSessionChange();
               resetAnnotationComposerState();
               invalidatePreviewContext();
               state.session = await withMutationLock(() => requestJson('/api/session/open', {
@@ -2419,8 +2418,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             async function newSession() {
               error.textContent = '';
-              if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
-              await flushPendingAnnotationsBeforeSessionChange();
+              if (await resolvePendingBeforeBoundary('new-session') !== 'continue') return;
               resetAnnotationComposerState();
               invalidatePreviewContext();
               state.session = await withMutationLock(() => requestJson('/api/session/open', {
@@ -2435,14 +2433,15 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             async function closeSession() {
               error.textContent = '';
               if (!state.session) return;
-              if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
-              resetAnnotationComposerState();
-              invalidatePreviewContext();
+              if (await resolvePendingBeforeBoundary('close-session', state.session.sessionId) !== 'continue') return;
+              const sessionId = state.session.sessionId;
               await withMutationLock(() => requestJson('/api/session/close', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionId: state.session.sessionId })
+                body: JSON.stringify({ sessionId: sessionId })
               }));
+              resetAnnotationComposerState();
+              invalidatePreviewContext();
               state.session = null;
               await refreshSessions();
               render();
@@ -2452,18 +2451,15 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             async function deleteHistorySession(sessionId) {
               error.textContent = '';
               if (!sessionId) return;
-              if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
+              if (await resolvePendingBeforeBoundary('delete-session', sessionId) !== 'continue') return;
               const isDisplayedSession = () => state.session?.sessionId === sessionId;
-              if (isDisplayedSession()) {
-                resetAnnotationComposerState();
-                invalidatePreviewContext();
-              }
+              const wasDisplayedSession = isDisplayedSession();
               await withMutationLock(() => requestJson('/api/session/close', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: sessionId })
               }));
-              if (isDisplayedSession()) {
+              if (wasDisplayedSession) {
                 resetAnnotationComposerState();
                 invalidatePreviewContext();
                 state.session = null;
@@ -3634,6 +3630,39 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               return false;
             }
 
+            async function resolvePendingBeforeBoundary(action, sessionId = null) {
+              const hasActivePending = Boolean(addItemsFlow && pendingFeedbackItems.length);
+              if (!hasActivePending && !hasPendingRecoveryItems()) return 'continue';
+              if (hasPendingRecoveryItems() && !hasActivePending) {
+                renderPendingRecoveryBanner();
+                showError('Recover, recapture, or discard unsaved annotations before changing sessions.');
+                return 'cancel';
+              }
+              const pendingSessionId = addItemsFlow?.context?.sessionId || state.session?.sessionId || null;
+              if (sessionId && pendingSessionId && sessionId !== pendingSessionId) return 'continue';
+              const choice = await promptPendingBoundaryChoice(action, pendingFeedbackItems.length);
+              if (choice === 'save') {
+                await persistPendingFeedbackItems({ allowBlankComments: true });
+                return 'continue';
+              }
+              if (choice === 'discard') {
+                resetAnnotationComposerState();
+                return 'continue';
+              }
+              return 'cancel';
+            }
+
+            function promptPendingBoundaryChoice(action, count) {
+              if (typeof window !== 'undefined' && typeof window.fixThisPromptPendingBoundary === 'function') {
+                return Promise.resolve(window.fixThisPromptPendingBoundary({ action, count }));
+              }
+              if (typeof window === 'undefined' || typeof window.confirm !== 'function') return Promise.resolve('cancel');
+              const save = window.confirm('Save draft before changing sessions?\n확인 = Save draft\n취소 = Keep editing or discard');
+              if (save) return Promise.resolve('save');
+              const discard = window.confirm('Discard unsaved annotations?\n확인 = Discard\n취소 = Keep editing');
+              return Promise.resolve(discard ? 'discard' : 'cancel');
+            }
+
             function hasRecoverablePreviewContext(recovery) {
               return recovery?.schemaVersion === 1 &&
                 Boolean(recovery.previewId) &&
@@ -3655,6 +3684,15 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             function restorePendingRecoveryContext(recovery) {
               const items = pendingRecoveryItems(recovery).slice();
               addItemsFlow = {
+                context: recovery.context ?? {
+                  sessionId: recovery.sessionId ?? state.session?.sessionId ?? null,
+                  previewId: recovery.previewId,
+                  screenId: recovery.screen?.screenId ?? null,
+                  screenFingerprint: recovery.screen?.fingerprint ?? null,
+                  deviceSerial: state.selectedDeviceSerial || null,
+                  frozenAtEpochMillis: recovery.frozenAtEpochMillis,
+                  activityName: recovery.activity ?? recovery.screen?.activityName ?? null
+                },
                 previewId: recovery.previewId,
                 screen: recovery.screen,
                 screenshotUrl: recovery.screenshotUrl,

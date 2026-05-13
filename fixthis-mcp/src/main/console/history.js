@@ -263,9 +263,8 @@
 
             async function openSession(sessionId) {
               error.textContent = '';
-              if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
+              if (await resolvePendingBeforeBoundary('open-session', sessionId) !== 'continue') return;
               stopLivePreviewPolling();
-              await flushPendingAnnotationsBeforeSessionChange();
               resetAnnotationComposerState();
               invalidatePreviewContext();
               state.session = await withMutationLock(() => requestJson('/api/session/open', {
@@ -282,8 +281,7 @@
 
             async function newSession() {
               error.textContent = '';
-              if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
-              await flushPendingAnnotationsBeforeSessionChange();
+              if (await resolvePendingBeforeBoundary('new-session') !== 'continue') return;
               resetAnnotationComposerState();
               invalidatePreviewContext();
               state.session = await withMutationLock(() => requestJson('/api/session/open', {
@@ -298,14 +296,15 @@
             async function closeSession() {
               error.textContent = '';
               if (!state.session) return;
-              if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
-              resetAnnotationComposerState();
-              invalidatePreviewContext();
+              if (await resolvePendingBeforeBoundary('close-session', state.session.sessionId) !== 'continue') return;
+              const sessionId = state.session.sessionId;
               await withMutationLock(() => requestJson('/api/session/close', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionId: state.session.sessionId })
+                body: JSON.stringify({ sessionId: sessionId })
               }));
+              resetAnnotationComposerState();
+              invalidatePreviewContext();
               state.session = null;
               await refreshSessions();
               render();
@@ -315,18 +314,15 @@
             async function deleteHistorySession(sessionId) {
               error.textContent = '';
               if (!sessionId) return;
-              if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
+              if (await resolvePendingBeforeBoundary('delete-session', sessionId) !== 'continue') return;
               const isDisplayedSession = () => state.session?.sessionId === sessionId;
-              if (isDisplayedSession()) {
-                resetAnnotationComposerState();
-                invalidatePreviewContext();
-              }
+              const wasDisplayedSession = isDisplayedSession();
               await withMutationLock(() => requestJson('/api/session/close', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: sessionId })
               }));
-              if (isDisplayedSession()) {
+              if (wasDisplayedSession) {
                 resetAnnotationComposerState();
                 invalidatePreviewContext();
                 state.session = null;

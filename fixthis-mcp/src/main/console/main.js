@@ -129,6 +129,39 @@
               return false;
             }
 
+            async function resolvePendingBeforeBoundary(action, sessionId = null) {
+              const hasActivePending = Boolean(addItemsFlow && pendingFeedbackItems.length);
+              if (!hasActivePending && !hasPendingRecoveryItems()) return 'continue';
+              if (hasPendingRecoveryItems() && !hasActivePending) {
+                renderPendingRecoveryBanner();
+                showError('Recover, recapture, or discard unsaved annotations before changing sessions.');
+                return 'cancel';
+              }
+              const pendingSessionId = addItemsFlow?.context?.sessionId || state.session?.sessionId || null;
+              if (sessionId && pendingSessionId && sessionId !== pendingSessionId) return 'continue';
+              const choice = await promptPendingBoundaryChoice(action, pendingFeedbackItems.length);
+              if (choice === 'save') {
+                await persistPendingFeedbackItems({ allowBlankComments: true });
+                return 'continue';
+              }
+              if (choice === 'discard') {
+                resetAnnotationComposerState();
+                return 'continue';
+              }
+              return 'cancel';
+            }
+
+            function promptPendingBoundaryChoice(action, count) {
+              if (typeof window !== 'undefined' && typeof window.fixThisPromptPendingBoundary === 'function') {
+                return Promise.resolve(window.fixThisPromptPendingBoundary({ action, count }));
+              }
+              if (typeof window === 'undefined' || typeof window.confirm !== 'function') return Promise.resolve('cancel');
+              const save = window.confirm('Save draft before changing sessions?\n확인 = Save draft\n취소 = Keep editing or discard');
+              if (save) return Promise.resolve('save');
+              const discard = window.confirm('Discard unsaved annotations?\n확인 = Discard\n취소 = Keep editing');
+              return Promise.resolve(discard ? 'discard' : 'cancel');
+            }
+
             function hasRecoverablePreviewContext(recovery) {
               return recovery?.schemaVersion === 1 &&
                 Boolean(recovery.previewId) &&
@@ -150,6 +183,15 @@
             function restorePendingRecoveryContext(recovery) {
               const items = pendingRecoveryItems(recovery).slice();
               addItemsFlow = {
+                context: recovery.context ?? {
+                  sessionId: recovery.sessionId ?? state.session?.sessionId ?? null,
+                  previewId: recovery.previewId,
+                  screenId: recovery.screen?.screenId ?? null,
+                  screenFingerprint: recovery.screen?.fingerprint ?? null,
+                  deviceSerial: state.selectedDeviceSerial || null,
+                  frozenAtEpochMillis: recovery.frozenAtEpochMillis,
+                  activityName: recovery.activity ?? recovery.screen?.activityName ?? null
+                },
                 previewId: recovery.previewId,
                 screen: recovery.screen,
                 screenshotUrl: recovery.screenshotUrl,

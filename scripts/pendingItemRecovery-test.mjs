@@ -167,8 +167,8 @@ test('session refresh reloads pending recovery and session switches require a re
   const openBody = extractFunctionBody(historySource, 'async function openSession(sessionId)');
   const newBody = extractFunctionBody(historySource, 'async function newSession()');
   const annotateBody = extractFunctionBody(historySource, 'async function enterAnnotateMode()');
-  assert.match(openBody, /requirePendingRecoveryChoiceBeforeSessionChange\(\)/);
-  assert.match(newBody, /requirePendingRecoveryChoiceBeforeSessionChange\(\)/);
+  assert.match(openBody, /resolvePendingBeforeBoundary\('open-session',\s*sessionId\)/);
+  assert.match(newBody, /resolvePendingBeforeBoundary\('new-session'\)/);
   assert.match(annotateBody, /requirePendingRecoveryChoiceBeforeSessionChange\(\)/);
 });
 
