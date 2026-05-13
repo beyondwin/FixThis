@@ -3813,7 +3813,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (banner) return banner;
               banner = document.createElement('div');
               banner.id = 'pendingRecoveryBanner';
-              banner.className = 'annotation-banner annotation-banner-warn';
+              banner.className = 'annotation-banner annotation-banner-warn pending-recovery-banner';
               banner.setAttribute('role', 'status');
               banner.setAttribute('aria-live', 'polite');
               const parent = pendingItems?.parentElement || inspectorBody || document.body;
@@ -3839,11 +3839,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 : 'This older saved draft has pins only. Recapture to attach them to a new frozen preview, or discard it.';
               banner.hidden = false;
               banner.innerHTML =
-                '<div>' +
+                '<div class="pending-recovery-copy" data-pending-recovery-copy>' +
                   '<strong>Unsaved ' + escapeHtml(itemLabel) + ' found</strong>' +
                   '<div>' + escapeHtml(detail) + '</div>' +
                 '</div>' +
-                '<div class="annotation-actions">' +
+                '<div class="annotation-actions pending-recovery-actions">' +
                   (canRecover ? '<button type="button" class="annotation-done" data-recover-pending>Recover</button>' : '') +
                   '<button type="button" class="annotation-done" data-recapture-pending>Recapture</button>' +
                   '<button type="button" class="annotation-danger" data-discard-pending>Discard</button>' +

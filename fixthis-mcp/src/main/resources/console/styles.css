@@ -1081,6 +1081,30 @@
             .annotation-banner { margin: 8px 0; padding: 10px 12px; border-radius: 6px; font-size: 13px; }
             .annotation-banner-info { background: rgba(245, 158, 11, .14); color: #fcd34d; }
             .annotation-banner-warn { background: rgba(245, 158, 11, .24); color: #fde68a; border: 1px solid #f59e0b; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+            .pending-recovery-banner {
+              align-items: stretch;
+              flex-direction: column;
+              justify-content: flex-start;
+              line-height: 1.25;
+            }
+            .pending-recovery-copy {
+              min-width: 0;
+              overflow-wrap: anywhere;
+            }
+            .pending-recovery-actions {
+              flex-wrap: wrap;
+              justify-content: flex-start;
+              gap: 8px;
+              margin-top: 0;
+              padding-top: 8px;
+            }
+            .pending-recovery-actions button {
+              flex: 1 1 86px;
+              min-width: 0;
+            }
+            .pending-recovery-actions .annotation-danger {
+              margin-left: 0;
+            }
             .annotation-banner-locked { background: rgba(59, 130, 246, .14); color: #93c5fd; }
             .annotation-banner-question { background: rgba(14, 165, 233, .14); color: #7dd3fc; }
             .annotation-banner-wont-fix { background: rgba(148, 163, 184, .14); color: #cbd5e1; }
