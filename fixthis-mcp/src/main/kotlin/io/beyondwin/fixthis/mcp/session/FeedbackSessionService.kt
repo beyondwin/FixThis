@@ -27,7 +27,7 @@ internal data class PreviewFeedbackFingerprintCheck(
 )
 
 /**
- * Thin façade over [FeedbackSessionRegistry], [AnnotationRepository], and
+ * Thin façade over [FeedbackSessionRegistry], [AnnotationWorkflow], and
  * [EvidenceCoordinator]. Preserves the existing public API used by ~10 caller
  * files (HTTP routes, MCP tools) so the CH-4 split doesn't ripple into them.
  *
@@ -66,7 +66,7 @@ class FeedbackSessionService(
         projectRoot = projectRoot,
         defaultPackageName = defaultPackageName,
     )
-    private val annotations = AnnotationRepository(
+    private val annotations = AnnotationWorkflow(
         store = store,
         draftService = feedbackDraftService,
     )
@@ -132,7 +132,7 @@ class FeedbackSessionService(
 
     suspend fun navigate(sessionId: String, request: FeedbackNavigationRequest): FeedbackNavigationResult = evidence.navigate(sessionId, request)
 
-    // --- Annotation CRUD (delegates to AnnotationRepository) ---
+    // --- Annotation CRUD (delegates to AnnotationWorkflow) ---
 
     fun addAreaFeedback(
         sessionId: String,
