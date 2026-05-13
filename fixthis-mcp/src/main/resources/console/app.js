@@ -239,8 +239,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778697420000;
-const ConsoleBuildGitSha = '04ba11c';
+const ConsoleBuildEpochMs = 1778697660000;
+const ConsoleBuildGitSha = 'd6c9766';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -746,6 +746,105 @@ function createFakeDraftPorts(overrides = {}) {
   };
 }
 
+// draftStorageAdapter.js
+// draftStorageAdapter.js - browser storage adapter for DraftWorkspace recovery.
+
+const DraftWorkspaceKeyPrefix = 'fixthis.workspace.';
+const LegacyPendingKeyPrefix = 'fixthis.pending.';
+
+function draftWorkspaceKey(sessionId, workspaceId) {
+  return DraftWorkspaceKeyPrefix + sessionId + '.' + workspaceId;
+}
+
+function draftWorkspaceIndexKey(sessionId) {
+  return DraftWorkspaceKeyPrefix + 'index.' + sessionId;
+}
+
+function parseDraftStorageJson(raw) {
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch (_) { return null; }
+}
+
+function normalizeLegacyDraftItem(item, index) {
+  return {
+    ...item,
+    draftItemId: item?.draftItemId || item?.annotationId || ('legacy-' + (index + 1)),
+  };
+}
+
+function createDraftStorageAdapter(localStorageLike, ids = {}) {
+  const nextWorkspaceId = ids.nextWorkspaceId || (() => 'workspace-' + Date.now());
+
+  function readIndex(sessionId) {
+    const parsed = parseDraftStorageJson(localStorageLike.getItem(draftWorkspaceIndexKey(sessionId)));
+    return Array.isArray(parsed) ? parsed : [];
+  }
+
+  function writeIndex(sessionId, workspaceIds) {
+    localStorageLike.setItem(draftWorkspaceIndexKey(sessionId), JSON.stringify(Array.from(new Set(workspaceIds))));
+  }
+
+  function saveWorkspace(envelope) {
+    const sessionId = envelope?.sessionId || envelope?.context?.sessionId;
+    const workspaceId = envelope?.workspaceId;
+    if (!sessionId || !workspaceId) throw new Error('Workspace storage requires sessionId and workspaceId');
+    const normalized = { ...envelope, schemaVersion: 2, sessionId, workspaceId };
+    localStorageLike.setItem(draftWorkspaceKey(sessionId, workspaceId), JSON.stringify(normalized));
+    writeIndex(sessionId, readIndex(sessionId).concat(workspaceId));
+  }
+
+  function loadWorkspacesForSession(sessionId) {
+    return readIndex(sessionId)
+      .map((workspaceId) => parseDraftStorageJson(localStorageLike.getItem(draftWorkspaceKey(sessionId, workspaceId))))
+      .filter((value) => value?.schemaVersion === 2 && value?.context?.sessionId === sessionId);
+  }
+
+  function deleteWorkspace(sessionId, workspaceId) {
+    localStorageLike.removeItem(draftWorkspaceKey(sessionId, workspaceId));
+    writeIndex(sessionId, readIndex(sessionId).filter((id) => id !== workspaceId));
+  }
+
+  function migrateLegacyPending(sessionId) {
+    const raw = localStorageLike.getItem(LegacyPendingKeyPrefix + sessionId);
+    const legacy = parseDraftStorageJson(raw);
+    if (!legacy || !Array.isArray(legacy.items) || !legacy.items.length) return [];
+    if (legacy.schemaVersion === 0 || (!legacy.context && !legacy.previewId)) {
+      return [{
+        schemaVersion: 0,
+        sessionId,
+        requiresRecapture: true,
+        items: legacy.items.map(normalizeLegacyDraftItem),
+      }];
+    }
+    const workspaceId = nextWorkspaceId();
+    const envelope = {
+      schemaVersion: 2,
+      sessionId,
+      workspaceId,
+      revision: 1,
+      lifecycle: 'editing',
+      context: legacy.context || {
+        sessionId,
+        previewId: legacy.previewId,
+        screenId: legacy.screen?.screenId || null,
+        screenFingerprint: legacy.screen?.fingerprint ?? null,
+        deviceSerial: null,
+        frozenAtEpochMillis: legacy.frozenAtEpochMillis || null,
+        activityName: legacy.activity || legacy.screen?.activityName || null,
+      },
+      screen: legacy.screen || null,
+      screenshotUrl: legacy.screenshotUrl || null,
+      items: legacy.items.map(normalizeLegacyDraftItem),
+      history: { undoStack: [], redoStack: [] },
+      updatedAtEpochMillis: Date.now(),
+    };
+    saveWorkspace(envelope);
+    return [envelope];
+  }
+
+  return { saveWorkspace, loadWorkspacesForSession, deleteWorkspace, migrateLegacyPending };
+}
+
 // beforeunloadGuard.js
 // beforeunloadGuard.js — ALH-1: pure decision helper for the
 // beforeunload prompt. The window.addEventListener call lives in
@@ -1013,6 +1112,78 @@ function checkActivityDrift(flow, current) {
               fallback.remove();
               if (!copied) throw new Error('Copy failed. Select the prompt and copy it manually.');
             }
+
+// draftApiAdapter.js
+// draftApiAdapter.js - explicit-session HTTP adapter for DraftWorkspace use cases.
+
+function draftItemToAnnotationDraftDto(item) {
+  return {
+    targetType: item.targetType,
+    bounds: item.bounds,
+    nodeUid: item.nodeUid,
+    label: String(item.label || '').trim() || null,
+    severity: item.severity || 'med',
+    status: String(item.status || 'open').replace('-', '_'),
+    comment: String(item.comment || ''),
+  };
+}
+
+function buildDraftWorkspaceSaveRequest(workspace, options = {}) {
+  const context = workspace?.context || {};
+  if (!context.sessionId) throw new Error('Draft save requires sessionId');
+  if (!context.previewId) throw new Error('Draft save requires previewId');
+  requireDraftContext(workspace);
+  return {
+    sessionId: context.sessionId,
+    previewId: context.previewId,
+    screen: workspace.screen || null,
+    items: (workspace.items || [])
+      .filter((item) => options.allowBlankComments || String(item.comment || '').trim())
+      .map(draftItemToAnnotationDraftDto),
+    frozenFingerprint: context.screenFingerprint,
+    forceMismatchOverride: Boolean(options.forceMismatchOverride),
+  };
+}
+
+function createDraftApiHeaders(consoleToken) {
+  const headers = new Headers({ 'Content-Type': 'application/json' });
+  if (consoleToken) headers.set('X-FixThis-Console-Token', consoleToken);
+  return headers;
+}
+
+function createDraftApiAdapter({ fetchImpl = fetch, consoleToken = null } = {}) {
+  async function requestJson(path, body) {
+    const response = await fetchImpl(path, {
+      method: 'POST',
+      headers: createDraftApiHeaders(consoleToken),
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      if (response.status === 409) {
+        const conflict = await response.json().catch(() => ({}));
+        return { conflict };
+      }
+      throw new Error(await response.text?.() || 'HTTP ' + response.status);
+    }
+    return await response.json();
+  }
+
+  return {
+    saveDraftWorkspace: (request) => requestJson('/api/items/batch', request),
+    saveToMcp: (sessionId, itemIds) => requestJson('/api/agent-handoffs', { sessionId, itemIds }),
+    handoffPreview: async (sessionId, itemIds) => {
+      const response = await fetchImpl('/api/sessions/' + encodeURIComponent(sessionId) + '/handoff-preview', {
+        method: 'POST',
+        headers: createDraftApiHeaders(consoleToken),
+        body: JSON.stringify({ itemIds }),
+      });
+      if (!response.ok) throw new Error(await response.text?.() || 'HTTP ' + response.status);
+      return await response.text();
+    },
+    markHandedOff: (sessionId, itemIds) =>
+      requestJson('/api/sessions/' + encodeURIComponent(sessionId) + '/items/mark-handed-off', { itemIds }),
+  };
+}
 
 // connection.js
             function connectionActionLabel(action) {
