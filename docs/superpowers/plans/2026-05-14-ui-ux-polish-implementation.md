@@ -8,6 +8,8 @@
 
 **Tech Stack:** Vanilla JS, vanilla CSS, Node.js, Playwright, Kotlin, Jetpack Compose Material3, Robolectric, Android Compose UI tests
 
+**Source Spec:** `docs/superpowers/specs/2026-05-14-ui-ux-polish-detailed-spec.md`
+
 ---
 
 ## Scope
