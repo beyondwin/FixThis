@@ -290,6 +290,40 @@ async function assertPendingRecoveryBannerIsReadable(page, viewportName) {
   );
 }
 
+async function assertCompactHistoryReachable(page, viewportName) {
+  const failure = await page.evaluate(() => {
+    const toggle = document.getElementById('historyToggleButton');
+    const history = document.querySelector('.studio-history');
+    const scrim = document.getElementById('historyDrawerScrim');
+    const compact = window.innerWidth <= 900;
+    if (!compact) {
+      return { desktopToggleVisible: toggle ? getComputedStyle(toggle).display !== 'none' : false };
+    }
+    if (!toggle || !history || !scrim) return { missing: true };
+    const closedToggleVisible = getComputedStyle(toggle).display !== 'none';
+    const closedHistoryOffCanvas = getComputedStyle(history).position === 'fixed';
+    document.body.dataset.historyDrawerOpen = 'true';
+    const openHistoryVisible = getComputedStyle(history).display !== 'none';
+    const openScrimVisible = getComputedStyle(scrim).display !== 'none';
+    delete document.body.dataset.historyDrawerOpen;
+    return {
+      closedToggleVisible,
+      closedHistoryOffCanvas,
+      openHistoryVisible,
+      openScrimVisible,
+    };
+  });
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(failure).filter(([key, value]) => {
+      if (key === 'desktopToggleVisible') return value === true;
+      if (key === 'missing') return value === true;
+      return value === false;
+    })),
+    {},
+    `${viewportName} compact history is not reachable`,
+  );
+}
+
 async function run(baseUrl) {
   const { chromium } = await loadPlaywright();
   const browser = await chromium.launch({ headless: true });
@@ -306,6 +340,7 @@ async function run(baseUrl) {
       await assertHistoryRowsAreStacked(page, viewport.name);
       await assertPreviewFrameMatchesImage(page, viewport.name);
       await assertPendingRecoveryBannerIsReadable(page, viewport.name);
+      await assertCompactHistoryReachable(page, viewport.name);
       await page.close();
     }
   } finally {

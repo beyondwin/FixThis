@@ -42,6 +42,8 @@
             const deviceControl = document.getElementById('deviceControl');
             const deviceName = document.getElementById('deviceName');
             const deviceConnectionState = document.getElementById('deviceConnectionState');
+            const historyToggleButton = document.getElementById('historyToggleButton');
+            const historyDrawerScrim = document.getElementById('historyDrawerScrim');
             const previewIntervalSelect = document.getElementById('previewIntervalSelect');
             const selectionSummary = document.getElementById('selectionSummary');
             const clearSelectionButton = document.getElementById('clearSelectionButton');
@@ -83,6 +85,7 @@
             let dragPreview = null;
             let suppressNextClick = false;
             let previewZoom = 1;
+            let historyDrawerOpen = false;
             let sessionsPollingTimer = null;
             let lastSessionsEtag = null;
             let lastSessionEtag = null;

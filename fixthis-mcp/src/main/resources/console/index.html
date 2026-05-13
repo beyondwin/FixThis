@@ -40,6 +40,7 @@
                 <button id="refreshDevicesButton" class="icon-button" type="button" title="Refresh devices" aria-label="Refresh devices">↻</button>
                 <button id="disconnectDeviceButton" class="clear-device-button" type="button" title="Clear FixThis device selection" aria-label="Clear FixThis device selection">Clear selection</button>
                 <span id="deviceStatus" class="status-pill" hidden>No device</span>
+                <button id="historyToggleButton" class="history-toggle-button" type="button" aria-controls="historyPanel" aria-expanded="false">History</button>
               </div>
               <div class="studio-actions">
                 <span id="promptReadiness" class="prompt-readiness" aria-live="polite">No annotations ready</span>
@@ -102,8 +103,9 @@
           </li>
         </ol>
       </nav>
+      <button id="historyDrawerScrim" class="history-drawer-scrim" type="button" aria-label="Close history"></button>
       <main class="studio-body">
-            <aside class="studio-history">
+            <aside id="historyPanel" class="studio-history" tabindex="-1">
                 <div class="panel-head">
                   <div class="panel-title">History</div>
                   <div id="sessionCount" class="panel-count">0</div>

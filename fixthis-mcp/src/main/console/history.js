@@ -169,6 +169,39 @@
               activeRow?.scrollIntoView({ block: 'nearest' });
             }
 
+            function syncHistoryDrawerState() {
+              if (!historyToggleButton || !historyDrawerScrim) return;
+              if (historyDrawerOpen) {
+                document.body.dataset.historyDrawerOpen = 'true';
+              } else {
+                delete document.body.dataset.historyDrawerOpen;
+              }
+              historyToggleButton.setAttribute('aria-expanded', String(historyDrawerOpen));
+            }
+
+            function openHistoryDrawer() {
+              historyDrawerOpen = true;
+              syncHistoryDrawerState();
+              document.getElementById('historyPanel')?.focus({ preventScroll: true });
+            }
+
+            function closeHistoryDrawer(options = {}) {
+              const wasOpen = historyDrawerOpen;
+              historyDrawerOpen = false;
+              syncHistoryDrawerState();
+              if (wasOpen && options.returnFocus !== false) historyToggleButton?.focus({ preventScroll: true });
+            }
+
+            historyToggleButton?.addEventListener('click', openHistoryDrawer);
+            historyDrawerScrim?.addEventListener('click', () => closeHistoryDrawer());
+            document.addEventListener('keydown', event => {
+              if (event.key === 'Escape' && historyDrawerOpen) {
+                event.preventDefault();
+                closeHistoryDrawer();
+              }
+            });
+            syncHistoryDrawerState();
+
             function historyStartAnnotatingItemHtml() {
               if (newHistoryAnnotateModeStarting) return '';
               return '<button type="button" class="history-item history-add-row" data-start-new-history-annotating aria-label="Start annotating">' +
@@ -208,13 +241,17 @@
               document.querySelectorAll('.session-row').forEach(row => {
                 row.addEventListener('click', event => {
                   if (event.target.closest('[data-delete-session-id]')) return;
-                  openSession(row.dataset.sessionId).catch(showError);
+                  openSession(row.dataset.sessionId)
+                    .then(() => closeHistoryDrawer({ returnFocus: false }))
+                    .catch(showError);
                 });
                 row.addEventListener('keydown', event => {
                   if (event.target.closest('[data-delete-session-id]')) return;
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
-                    openSession(row.dataset.sessionId).catch(showError);
+                    openSession(row.dataset.sessionId)
+                      .then(() => closeHistoryDrawer({ returnFocus: false }))
+                      .catch(showError);
                   }
                 });
               });
