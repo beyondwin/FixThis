@@ -188,7 +188,7 @@ test('pending detail comments are not overwritten by the hidden composer before 
 
 test('new pending annotations record undo history before persistence', () => {
   const createBody = extractFunctionBody(annotationsSource, 'function createAnnotationFromSelection(selection)');
-  assert.match(createBody, /pendingFeedbackItems\.push\(annotation\);[\s\S]*?recordAdd\(undoRedoHistory,\s*annotation\);[\s\S]*?persistCurrentPendingState\(\);/);
+  assert.match(createBody, /pendingFeedbackItems\.push\(annotation\);[\s\S]*?recordAdd\(undoRedoHistory,\s*annotation,\s*addItemsFlow\.context\);[\s\S]*?persistCurrentPendingState\(\);/);
 });
 
 test('using latest stale frame preserves pending annotations while recapturing', () => {
