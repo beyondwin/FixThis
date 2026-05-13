@@ -21,14 +21,22 @@
               previewRequestInFlightContextGeneration = null;
             }
 
-            function previewScreenshotUrl(previewId) {
-              return '/api/preview/' + encodeURIComponent(previewId) + '/screenshot/full';
+            function scopedQuery(sessionId) {
+              return sessionId ? '?sessionId=' + encodeURIComponent(sessionId) : '';
+            }
+
+            function previewScreenshotUrl(previewId, sessionId = state.session?.sessionId || null) {
+              return '/api/preview/' + encodeURIComponent(previewId) + '/screenshot/full' + scopedQuery(sessionId);
+            }
+
+            function screenScreenshotUrl(screenId, sessionId = state.session?.sessionId || null) {
+              return '/api/screens/' + encodeURIComponent(screenId) + '/screenshot/full' + scopedQuery(sessionId);
             }
 
             function screenImageUrl(screen) {
               if (addItemsFlow) return addItemsFlow.screenshotUrl;
-              if (state.preview?.screen === screen && state.preview?.previewId) return previewScreenshotUrl(state.preview.previewId);
-              if (screen?.screenId) return '/api/screens/' + encodeURIComponent(screen.screenId) + '/screenshot/full';
+              if (state.preview?.screen === screen && state.preview?.previewId) return previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null);
+              if (screen?.screenId) return screenScreenshotUrl(screen.screenId, state.session?.sessionId || focusedSavedSessionId || null);
               return '';
             }
 

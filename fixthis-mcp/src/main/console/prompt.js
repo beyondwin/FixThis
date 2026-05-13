@@ -110,7 +110,10 @@
                         const result = await requestJson('/api/agent-handoffs', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ itemIds }),
+                            body: JSON.stringify({
+                                sessionId: state.session?.sessionId || null,
+                                itemIds
+                            }),
                         });
                         state.session = result.session;
                         comment.value = '';

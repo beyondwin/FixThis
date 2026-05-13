@@ -325,10 +325,11 @@
 
             function currentPendingStateEnvelope(items = pendingFeedbackItems) {
               return {
-                previewId: addItemsFlow?.previewId ?? null,
+                context: addItemsFlow?.context ?? null,
+                previewId: addItemsFlow?.previewId ?? addItemsFlow?.context?.previewId ?? null,
                 screen: addItemsFlow?.screen ?? null,
                 screenshotUrl: addItemsFlow?.screenshotUrl ?? null,
-                frozenAtEpochMillis: addItemsFlow?.frozenAtEpochMillis ?? null,
+                frozenAtEpochMillis: addItemsFlow?.frozenAtEpochMillis ?? addItemsFlow?.context?.frozenAtEpochMillis ?? null,
                 items: items,
               };
             }
@@ -385,9 +386,18 @@
                   return;
                 }
                 addItemsFlow = {
+                  context: {
+                    sessionId: state.session?.sessionId || null,
+                    previewId: state.preview.previewId,
+                    screenId: state.preview.screen?.screenId || null,
+                    screenFingerprint: state.preview.screen?.fingerprint ?? null,
+                    deviceSerial: state.selectedDeviceSerial || null,
+                    frozenAtEpochMillis: state.preview.frozenAtEpochMillis ?? Date.now(),
+                    activityName: state.preview.activity ?? state.connection?.availability?.activity ?? null
+                  },
                   previewId: state.preview.previewId,
                   screen: state.preview.screen,
-                  screenshotUrl: previewScreenshotUrl(state.preview.previewId),
+                  screenshotUrl: previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null),
                   frozenAtEpochMillis: state.preview.frozenAtEpochMillis ?? Date.now(),
                   // SIF-6: capture the foreground activity at freeze time so
                   // checkActivityDrift() can detect when the device has since
@@ -581,13 +591,16 @@
               if (!allowFallbackComments && !onlyWrittenComments && !allowBlankComments && pendingFeedbackItems.some(item => !String(item.comment || '').trim())) throw new Error('Add a comment to every annotation before saving.');
               if (onlyWrittenComments && !pendingFeedbackItems.some(hasWrittenAnnotationComment)) throw new Error('Add a comment to at least one annotation before sending.');
               const payloadItems = pendingPayloadItems({ allowFallbackComments: allowFallbackComments, onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments });
-              const frozenFingerprint = addItemsFlow.screen?.fingerprint ?? null;
+              if (!addItemsFlow.context?.sessionId || !addItemsFlow.context?.previewId) {
+                throw new Error('Annotation context is missing. Re-capture the screen and try again.');
+              }
               const sendBatch = async (overrideMismatch) => {
                 return await withMutationLock(() => savePreviewBatchOrConflict({
-                  previewId: addItemsFlow.previewId,
+                  sessionId: addItemsFlow.context.sessionId,
+                  previewId: addItemsFlow.context.previewId,
                   screen: addItemsFlow.screen,
                   items: payloadItems,
-                  frozenFingerprint: frozenFingerprint,
+                  frozenFingerprint: addItemsFlow.context.screenFingerprint,
                   forceMismatchOverride: Boolean(overrideMismatch)
                 }));
               };
@@ -609,6 +622,9 @@
                   // Cancelled.
                   return null;
                 }
+              }
+              if (result?.session?.sessionId !== addItemsFlow.context.sessionId) {
+                throw new Error('Save returned a different session than the captured annotation context.');
               }
               state.session = result.session;
               resetAnnotationComposerState();

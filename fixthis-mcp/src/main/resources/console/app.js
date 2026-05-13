@@ -233,8 +233,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778672940000;
-const ConsoleBuildGitSha = '5ffbbda';
+const ConsoleBuildEpochMs = 1778690700000;
+const ConsoleBuildGitSha = '2e64c11';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -369,6 +369,7 @@ const ConsoleBuildGitSha = '5ffbbda';
                 const envelope = {
                   schemaVersion: 1,
                   sessionId: sessionId,
+                  context: value?.context ?? null,
                   previewId: value?.previewId ?? null,
                   screen: value?.screen ?? null,
                   screenshotUrl: value?.screenshotUrl ?? null,
@@ -391,6 +392,7 @@ const ConsoleBuildGitSha = '5ffbbda';
                   return {
                     schemaVersion: 0,
                     sessionId: sessionId,
+                    context: null,
                     previewId: null,
                     screen: null,
                     screenshotUrl: null,
@@ -402,6 +404,7 @@ const ConsoleBuildGitSha = '5ffbbda';
                   return {
                     schemaVersion: parsed.schemaVersion === 1 ? 1 : parsed.schemaVersion,
                     sessionId: parsed.sessionId ?? sessionId,
+                    context: parsed.context ?? null,
                     previewId: parsed.previewId ?? null,
                     screen: parsed.screen ?? null,
                     screenshotUrl: parsed.screenshotUrl ?? null,
@@ -1184,14 +1187,22 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               previewRequestInFlightContextGeneration = null;
             }
 
-            function previewScreenshotUrl(previewId) {
-              return '/api/preview/' + encodeURIComponent(previewId) + '/screenshot/full';
+            function scopedQuery(sessionId) {
+              return sessionId ? '?sessionId=' + encodeURIComponent(sessionId) : '';
+            }
+
+            function previewScreenshotUrl(previewId, sessionId = state.session?.sessionId || null) {
+              return '/api/preview/' + encodeURIComponent(previewId) + '/screenshot/full' + scopedQuery(sessionId);
+            }
+
+            function screenScreenshotUrl(screenId, sessionId = state.session?.sessionId || null) {
+              return '/api/screens/' + encodeURIComponent(screenId) + '/screenshot/full' + scopedQuery(sessionId);
             }
 
             function screenImageUrl(screen) {
               if (addItemsFlow) return addItemsFlow.screenshotUrl;
-              if (state.preview?.screen === screen && state.preview?.previewId) return previewScreenshotUrl(state.preview.previewId);
-              if (screen?.screenId) return '/api/screens/' + encodeURIComponent(screen.screenId) + '/screenshot/full';
+              if (state.preview?.screen === screen && state.preview?.previewId) return previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null);
+              if (screen?.screenId) return screenScreenshotUrl(screen.screenId, state.session?.sessionId || focusedSavedSessionId || null);
               return '';
             }
 
@@ -1747,10 +1758,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function currentPendingStateEnvelope(items = pendingFeedbackItems) {
               return {
-                previewId: addItemsFlow?.previewId ?? null,
+                context: addItemsFlow?.context ?? null,
+                previewId: addItemsFlow?.previewId ?? addItemsFlow?.context?.previewId ?? null,
                 screen: addItemsFlow?.screen ?? null,
                 screenshotUrl: addItemsFlow?.screenshotUrl ?? null,
-                frozenAtEpochMillis: addItemsFlow?.frozenAtEpochMillis ?? null,
+                frozenAtEpochMillis: addItemsFlow?.frozenAtEpochMillis ?? addItemsFlow?.context?.frozenAtEpochMillis ?? null,
                 items: items,
               };
             }
@@ -1807,9 +1819,18 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   return;
                 }
                 addItemsFlow = {
+                  context: {
+                    sessionId: state.session?.sessionId || null,
+                    previewId: state.preview.previewId,
+                    screenId: state.preview.screen?.screenId || null,
+                    screenFingerprint: state.preview.screen?.fingerprint ?? null,
+                    deviceSerial: state.selectedDeviceSerial || null,
+                    frozenAtEpochMillis: state.preview.frozenAtEpochMillis ?? Date.now(),
+                    activityName: state.preview.activity ?? state.connection?.availability?.activity ?? null
+                  },
                   previewId: state.preview.previewId,
                   screen: state.preview.screen,
-                  screenshotUrl: previewScreenshotUrl(state.preview.previewId),
+                  screenshotUrl: previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null),
                   frozenAtEpochMillis: state.preview.frozenAtEpochMillis ?? Date.now(),
                   // SIF-6: capture the foreground activity at freeze time so
                   // checkActivityDrift() can detect when the device has since
@@ -2003,13 +2024,16 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (!allowFallbackComments && !onlyWrittenComments && !allowBlankComments && pendingFeedbackItems.some(item => !String(item.comment || '').trim())) throw new Error('Add a comment to every annotation before saving.');
               if (onlyWrittenComments && !pendingFeedbackItems.some(hasWrittenAnnotationComment)) throw new Error('Add a comment to at least one annotation before sending.');
               const payloadItems = pendingPayloadItems({ allowFallbackComments: allowFallbackComments, onlyWrittenComments: onlyWrittenComments, allowBlankComments: allowBlankComments });
-              const frozenFingerprint = addItemsFlow.screen?.fingerprint ?? null;
+              if (!addItemsFlow.context?.sessionId || !addItemsFlow.context?.previewId) {
+                throw new Error('Annotation context is missing. Re-capture the screen and try again.');
+              }
               const sendBatch = async (overrideMismatch) => {
                 return await withMutationLock(() => savePreviewBatchOrConflict({
-                  previewId: addItemsFlow.previewId,
+                  sessionId: addItemsFlow.context.sessionId,
+                  previewId: addItemsFlow.context.previewId,
                   screen: addItemsFlow.screen,
                   items: payloadItems,
-                  frozenFingerprint: frozenFingerprint,
+                  frozenFingerprint: addItemsFlow.context.screenFingerprint,
                   forceMismatchOverride: Boolean(overrideMismatch)
                 }));
               };
@@ -2031,6 +2055,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   // Cancelled.
                   return null;
                 }
+              }
+              if (result?.session?.sessionId !== addItemsFlow.context.sessionId) {
+                throw new Error('Save returned a different session than the captured annotation context.');
               }
               state.session = result.session;
               resetAnnotationComposerState();
@@ -2567,7 +2594,10 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                         const result = await requestJson('/api/agent-handoffs', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ itemIds }),
+                            body: JSON.stringify({
+                                sessionId: state.session?.sessionId || null,
+                                itemIds
+                            }),
                         });
                         state.session = result.session;
                         comment.value = '';

@@ -14,6 +14,7 @@
                 const envelope = {
                   schemaVersion: 1,
                   sessionId: sessionId,
+                  context: value?.context ?? null,
                   previewId: value?.previewId ?? null,
                   screen: value?.screen ?? null,
                   screenshotUrl: value?.screenshotUrl ?? null,
@@ -36,6 +37,7 @@
                   return {
                     schemaVersion: 0,
                     sessionId: sessionId,
+                    context: null,
                     previewId: null,
                     screen: null,
                     screenshotUrl: null,
@@ -47,6 +49,7 @@
                   return {
                     schemaVersion: parsed.schemaVersion === 1 ? 1 : parsed.schemaVersion,
                     sessionId: parsed.sessionId ?? sessionId,
+                    context: parsed.context ?? null,
                     previewId: parsed.previewId ?? null,
                     screen: parsed.screen ?? null,
                     screenshotUrl: parsed.screenshotUrl ?? null,
