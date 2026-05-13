@@ -947,6 +947,10 @@
             .ann-row-status.st-sent-modified::before { content: '⚠ '; }
             .ann-row-status.st-in-progress { background: rgba(59, 130, 246, .18); color: #93c5fd; }
             .ann-row-status.st-in-progress::before { content: '🔒 '; }
+            .ann-row-status.st-needs-clarification { background: rgba(14, 165, 233, .18); color: #7dd3fc; }
+            .ann-row-status.st-needs-clarification::before { content: '? '; }
+            .ann-row-status.st-wont-fix { background: rgba(148, 163, 184, .18); color: #cbd5e1; }
+            .ann-row-status.st-wont-fix::before { content: '× '; }
             .ann-row-status.st-resolved { background: rgba(34, 197, 94, .18); color: #86efac; }
             .ann-row-status.st-resolved::before { content: '✓ '; }
 
@@ -954,6 +958,8 @@
             .ann-row[data-phase="sent"] { border-left: 4px solid #f59e0b; }
             .ann-row[data-phase="sent_modified"] { border-left: 4px solid #b45309; }
             .ann-row[data-phase="in_progress"] { border-left: 4px solid #3b82f6; }
+            .ann-row[data-phase="needs_clarification"] { border-left: 4px solid #0ea5e9; }
+            .ann-row[data-phase="wont_fix"] { border-left: 4px solid #94a3b8; opacity: 0.85; }
             .ann-row[data-phase="resolved"] { border-left: 4px solid #22c55e; opacity: 0.85; }
             .annotation-detail {
               flex: 1 1 auto;
@@ -1074,7 +1080,10 @@
             .annotation-banner-info { background: rgba(245, 158, 11, .14); color: #fcd34d; }
             .annotation-banner-warn { background: rgba(245, 158, 11, .24); color: #fde68a; border: 1px solid #f59e0b; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
             .annotation-banner-locked { background: rgba(59, 130, 246, .14); color: #93c5fd; }
+            .annotation-banner-question { background: rgba(14, 165, 233, .14); color: #7dd3fc; }
+            .annotation-banner-wont-fix { background: rgba(148, 163, 184, .14); color: #cbd5e1; }
             .annotation-banner-done { background: rgba(34, 197, 94, .14); color: #86efac; }
+            .annotation-banner-subtle { margin-top: 6px; color: var(--txt-1); font-size: 12px; }
             .annotation-summary { white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; max-width: 100%; max-height: 240px; overflow-x: hidden; overflow-y: auto; margin-top: 8px; padding: 8px; background: rgba(0, 0, 0, .25); border-radius: 4px; }
             .annotation-resave { padding: 4px 12px; cursor: pointer; }
             img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); }

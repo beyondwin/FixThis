@@ -703,7 +703,11 @@ class FeedbackSessionStore(
     // ------------------------------------------------------------------
 
     private fun isLockedForEdit(item: AnnotationDto): Boolean = item.delivery == FeedbackDelivery.SENT &&
-        item.status in setOf(AnnotationStatusDto.IN_PROGRESS, AnnotationStatusDto.RESOLVED)
+        item.status in setOf(
+            AnnotationStatusDto.IN_PROGRESS,
+            AnnotationStatusDto.RESOLVED,
+            AnnotationStatusDto.WONT_FIX,
+        )
 
     private fun getSessionLocked(sessionId: String): SessionDto = loadPersistedSessionIfAvailable(sessionId)
         ?: sessions[sessionId]

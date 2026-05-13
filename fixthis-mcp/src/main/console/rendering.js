@@ -349,9 +349,9 @@
               const status = annotationStatus(item);
               const editSessionId = focusedSavedSessionId || state.session?.sessionId || null;
               const phase = lifecyclePhase(item);
-              const editable = phase === 'draft' || phase === 'sent' || phase === 'sent_modified';
+              const editable = phase === 'draft' || phase === 'sent' || phase === 'sent_modified' || phase === 'needs_clarification';
               const dis = editable ? '' : ' disabled';
-              const deletable = phase !== 'in_progress' && phase !== 'resolved';
+              const deletable = phase !== 'in_progress' && phase !== 'resolved' && phase !== 'wont_fix';
               const deleteDis = deletable ? '' : ' disabled';
               const banner = (() => {
                 if (phase === 'sent_modified') {
@@ -368,8 +368,25 @@
                     '</div>';
                 }
                 if (phase === 'in_progress') {
+                  const note = item.agentSummary ? '<pre class="annotation-summary">' + escapeHtml(item.agentSummary) + '</pre>' : '';
                   return '<div class="annotation-banner annotation-banner-locked">' +
-                    '🔒 Agent working on this — edits locked.' +
+                    '<div>🔒 Agent working on this — edits locked.</div>' +
+                    note +
+                    '</div>';
+                }
+                if (phase === 'needs_clarification') {
+                  const summary = item.agentSummary ? escapeHtml(item.agentSummary) : '(no detail provided)';
+                  return '<div class="annotation-banner annotation-banner-question">' +
+                    '<div>? Agent needs clarification</div>' +
+                    '<pre class="annotation-summary">' + summary + '</pre>' +
+                    '<div class="annotation-banner-subtle">Edits remain enabled. Re-save after updating.</div>' +
+                    '</div>';
+                }
+                if (phase === 'wont_fix') {
+                  const summary = item.agentSummary ? escapeHtml(item.agentSummary) : '(no summary provided)';
+                  return '<div class="annotation-banner annotation-banner-wont-fix">' +
+                    '<div>× Agent marked won\'t fix</div>' +
+                    '<pre class="annotation-summary">' + summary + '</pre>' +
                     '</div>';
                 }
                 if (phase === 'resolved') {
@@ -487,8 +504,8 @@
               draftItems.querySelectorAll('[data-back-saved-annotations]').forEach(button => {
                 button.addEventListener('click', () => {
                   // Navigation must always succeed; persist is best-effort.
-                  // Editable phases (draft/sent/sent_modified) attempt persist; non-editable
-                  // phases (in_progress/resolved) skip persist entirely. The server would
+                  // Editable phases (draft/sent/sent_modified/needs_clarification) attempt persist;
+                  // non-editable phases (in_progress/resolved/wont_fix) skip persist. The server would
                   // reject a PATCH on non-editable items with ITEM_NOT_EDITABLE — we should
                   // still let the user leave the detail view.
                   const goBack = () => {

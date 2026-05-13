@@ -40,6 +40,28 @@ fake.sessions.set('session-1', makeSession('session-1', 0, []));
 fake.sessions.set('session-2', makeSession('session-2', -10_000, [
   makePersistedItem('item-older', 'Earlier screen annotation', 'screen-session-2', { left: 120, top: 260, right: 320, bottom: 360 }),
   makePersistedItem('item-old', 'Existing history annotation', 'screen-session-2', { left: 40, top: 40, right: 160, bottom: 120 }),
+  makePersistedItem(
+    'item-question',
+    'Agent needs more detail',
+    'screen-session-2',
+    { left: 180, top: 160, right: 320, bottom: 250 },
+    {
+      delivery: 'sent',
+      status: 'needs_clarification',
+      agentSummary: 'Which checkout variant should this apply to?',
+    },
+  ),
+  makePersistedItem(
+    'item-wont-fix',
+    'Outside scope',
+    'screen-session-2',
+    { left: 200, top: 300, right: 360, bottom: 380 },
+    {
+      delivery: 'sent',
+      status: 'wont_fix',
+      agentSummary: 'This is intentionally not fixed in the sample screen.',
+    },
+  ),
 ]));
 
 function makeSession(sessionId, timeOffset, items) {
@@ -55,7 +77,7 @@ function makeSession(sessionId, timeOffset, items) {
   };
 }
 
-function makePersistedItem(itemId, comment, screenId, bounds = { left: 40, top: 40, right: 160, bottom: 120 }) {
+function makePersistedItem(itemId, comment, screenId, bounds = { left: 40, top: 40, right: 160, bottom: 120 }, overrides = {}) {
   return {
     itemId,
     sequenceNumber: 1,
@@ -69,6 +91,7 @@ function makePersistedItem(itemId, comment, screenId, bounds = { left: 40, top: 
       boundsInWindow: bounds,
     },
     sourceCandidates: [],
+    ...overrides,
   };
 }
 
@@ -560,13 +583,15 @@ async function runSmoke(baseUrl) {
 
     await page.locator('#sessions .session-row[data-session-id="session-2"]').click();
     await page.waitForFunction(() => document.querySelector('#sessions .session-row.is-active')?.dataset.sessionId === 'session-2');
-    await page.waitForFunction(() => document.querySelectorAll('.saved-item-row').length === 2);
+    await page.waitForFunction(() => document.querySelectorAll('.saved-item-row').length === 4);
     await page.waitForFunction(() =>
       Array.from(document.querySelectorAll('#selectionOverlay .selection-label'))
         .map(label => label.textContent)
         .filter(Boolean)
-        .join(',') === '1,2'
+        .join(',') === '1,2,3,4'
     );
+    assert.match(await page.locator('#draftItems').textContent(), /Needs Clarification/);
+    assert.match(await page.locator('#draftItems').textContent(), /Won't Fix/);
     await page.locator('.saved-item-row').nth(1).click();
     await page.waitForFunction(() => document.activeElement?.id === 'annotationCommentInput');
     const editedHistoryComment = 'Edited history annotation';

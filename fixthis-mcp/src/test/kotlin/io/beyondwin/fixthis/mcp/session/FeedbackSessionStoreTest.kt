@@ -1040,6 +1040,84 @@ class FeedbackSessionStoreTest {
     }
 
     @Test
+    fun updateDraftItemAllowsSentNeedsClarification() {
+        val clock = MutableClock(1000L)
+        val ids = FakeIds("session-1", "screen-1", "item-1", "batch-1")
+        val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
+        val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+        val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
+        store.addItem(
+            session.sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = screen.screenId,
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+                comment = "original",
+            ),
+        )
+        store.sendDraftToAgent(session.sessionId, markdownSnapshot = "snap")
+        store.updateItemStatus(
+            sessionId = session.sessionId,
+            itemId = "item-1",
+            status = AnnotationStatusDto.NEEDS_CLARIFICATION,
+            agentSummary = "which variant?",
+        )
+
+        val updated = store.updateDraftItem(
+            sessionId = session.sessionId,
+            itemId = "item-1",
+            label = null,
+            severity = null,
+            comment = "clarified from console",
+            status = null,
+        )
+
+        assertEquals("clarified from console", updated.items.single().comment)
+        assertEquals(AnnotationStatusDto.NEEDS_CLARIFICATION, updated.items.single().status)
+    }
+
+    @Test
+    fun updateDraftItemRejectsSentWontFix() {
+        val clock = MutableClock(1000L)
+        val ids = FakeIds("session-1", "screen-1", "item-1", "batch-1")
+        val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
+        val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+        val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
+        store.addItem(
+            session.sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = screen.screenId,
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+                comment = "original",
+            ),
+        )
+        store.sendDraftToAgent(session.sessionId, markdownSnapshot = "snap")
+        store.updateItemStatus(
+            sessionId = session.sessionId,
+            itemId = "item-1",
+            status = AnnotationStatusDto.WONT_FIX,
+            agentSummary = "outside scope",
+        )
+
+        val ex = assertFailsWith<FeedbackSessionException> {
+            store.updateDraftItem(
+                sessionId = session.sessionId,
+                itemId = "item-1",
+                label = null,
+                severity = null,
+                comment = "should be blocked",
+                status = null,
+            )
+        }
+        assertTrue(ex.message!!.startsWith("ITEM_NOT_EDITABLE"))
+    }
+
+    @Test
     fun deleteDraftItemAllowsSentReady() {
         val clock = MutableClock(1000L)
         val ids = FakeIds("session-1", "screen-1", "item-1", "batch-1")

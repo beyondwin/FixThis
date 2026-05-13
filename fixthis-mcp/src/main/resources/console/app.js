@@ -233,8 +233,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778670540000;
-const ConsoleBuildGitSha = '4bc7c1a';
+const ConsoleBuildEpochMs = 1778670900000;
+const ConsoleBuildGitSha = '77cbd70';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -1479,9 +1479,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function lifecyclePhase(item) {
-              const status = String(item?.status || 'open');
+              const status = String(item?.status || 'open').replace('-', '_');
               if (status === 'resolved') return 'resolved';
-              if (status === 'in_progress' || status === 'in-progress') return 'in_progress';
+              if (status === 'wont_fix') return 'wont_fix';
+              if (status === 'needs_clarification') return 'needs_clarification';
+              if (status === 'in_progress') return 'in_progress';
               if (item?.delivery === 'sent') {
                 return item?.staleAfterHandoff ? 'sent_modified' : 'sent';
               }
@@ -1491,6 +1493,8 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             function statusLabel(item) {
               switch (lifecyclePhase(item)) {
                 case 'resolved': return 'Resolved';
+                case 'wont_fix': return 'Won\'t Fix';
+                case 'needs_clarification': return 'Needs Clarification';
                 case 'in_progress': return 'In Progress';
                 case 'sent_modified': return 'Sent · Modified';
                 case 'sent': return 'Sent';
@@ -1503,8 +1507,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function statusValueLabel(value) {
-              if (value === 'in-progress' || value === 'in_progress') return 'In Progress';
-              if (value === 'resolved') return 'Resolved';
+              const normalized = String(value || 'open').replace('-', '_');
+              if (normalized === 'in_progress') return 'In Progress';
+              if (normalized === 'needs_clarification') return 'Needs Clarification';
+              if (normalized === 'wont_fix') return 'Won\'t Fix';
+              if (normalized === 'resolved') return 'Resolved';
               return 'Open';
             }
 
@@ -2933,9 +2940,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               const status = annotationStatus(item);
               const editSessionId = focusedSavedSessionId || state.session?.sessionId || null;
               const phase = lifecyclePhase(item);
-              const editable = phase === 'draft' || phase === 'sent' || phase === 'sent_modified';
+              const editable = phase === 'draft' || phase === 'sent' || phase === 'sent_modified' || phase === 'needs_clarification';
               const dis = editable ? '' : ' disabled';
-              const deletable = phase !== 'in_progress' && phase !== 'resolved';
+              const deletable = phase !== 'in_progress' && phase !== 'resolved' && phase !== 'wont_fix';
               const deleteDis = deletable ? '' : ' disabled';
               const banner = (() => {
                 if (phase === 'sent_modified') {
@@ -2952,8 +2959,25 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                     '</div>';
                 }
                 if (phase === 'in_progress') {
+                  const note = item.agentSummary ? '<pre class="annotation-summary">' + escapeHtml(item.agentSummary) + '</pre>' : '';
                   return '<div class="annotation-banner annotation-banner-locked">' +
-                    '🔒 Agent working on this — edits locked.' +
+                    '<div>🔒 Agent working on this — edits locked.</div>' +
+                    note +
+                    '</div>';
+                }
+                if (phase === 'needs_clarification') {
+                  const summary = item.agentSummary ? escapeHtml(item.agentSummary) : '(no detail provided)';
+                  return '<div class="annotation-banner annotation-banner-question">' +
+                    '<div>? Agent needs clarification</div>' +
+                    '<pre class="annotation-summary">' + summary + '</pre>' +
+                    '<div class="annotation-banner-subtle">Edits remain enabled. Re-save after updating.</div>' +
+                    '</div>';
+                }
+                if (phase === 'wont_fix') {
+                  const summary = item.agentSummary ? escapeHtml(item.agentSummary) : '(no summary provided)';
+                  return '<div class="annotation-banner annotation-banner-wont-fix">' +
+                    '<div>× Agent marked won\'t fix</div>' +
+                    '<pre class="annotation-summary">' + summary + '</pre>' +
                     '</div>';
                 }
                 if (phase === 'resolved') {
@@ -3071,8 +3095,8 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               draftItems.querySelectorAll('[data-back-saved-annotations]').forEach(button => {
                 button.addEventListener('click', () => {
                   // Navigation must always succeed; persist is best-effort.
-                  // Editable phases (draft/sent/sent_modified) attempt persist; non-editable
-                  // phases (in_progress/resolved) skip persist entirely. The server would
+                  // Editable phases (draft/sent/sent_modified/needs_clarification) attempt persist;
+                  // non-editable phases (in_progress/resolved/wont_fix) skip persist. The server would
                   // reject a PATCH on non-editable items with ITEM_NOT_EDITABLE — we should
                   // still let the user leave the detail view.
                   const goBack = () => {
