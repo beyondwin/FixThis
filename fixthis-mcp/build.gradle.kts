@@ -17,6 +17,17 @@ application {
 // app.js share the exact same SHA/epoch within a single build. Otherwise the
 // console staleness banner fires on freshly built JARs (the committed bundle's
 // embedded SHA is always one commit behind the commit that contains it).
+fun requestedVerificationTask(taskName: String): Boolean {
+    val task = taskName.substringAfterLast(":")
+    return task == "test" ||
+        task == "check" ||
+        task == "build" ||
+        task.endsWith("Test") ||
+        task.endsWith("UnitTest")
+}
+
+val requestedStableBuildInfo = gradle.startParameter.taskNames.any(::requestedVerificationTask)
+
 val resolvedGitSha: String =
     providers
         .exec {
@@ -25,7 +36,26 @@ val resolvedGitSha: String =
         }.standardOutput.asText.orNull
         ?.trim()
         ?.ifBlank { "unknown" } ?: "unknown"
-val resolvedBuildEpochMs: Long = (System.currentTimeMillis() / 60_000L) * 60_000L
+val resolvedGitCommitEpochMs: Long =
+    providers
+        .exec {
+            commandLine("git", "log", "-1", "--format=%ct")
+            isIgnoreExitValue = true
+        }.standardOutput.asText.orNull
+        ?.trim()
+        ?.toLongOrNull()
+        ?.times(1000L)
+        ?: 1L
+
+// Test and verification tasks need stable generated sources so repeated local
+// runs can be UP-TO-DATE. Distribution tasks keep a rounded wall-clock epoch so
+// runtime stale-binary checks remain fresh.
+val resolvedBuildEpochMs: Long =
+    if (requestedStableBuildInfo) {
+        resolvedGitCommitEpochMs
+    } else {
+        (System.currentTimeMillis() / 60_000L) * 60_000L
+    }
 
 val generateBuildInfo by tasks.registering {
     val outputDir = layout.buildDirectory.dir("generated/source/buildinfo/main/kotlin")
