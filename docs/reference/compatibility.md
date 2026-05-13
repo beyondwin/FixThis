@@ -82,7 +82,7 @@ A scheduled workflow runs the lower bounds informationally:
 
 - File: [`.github/workflows/nightly-compat.yml`](../../.github/workflows/nightly-compat.yml)
 - Schedule: 03:00 UTC Tuesdays plus manual `workflow_dispatch`.
-- Each axis (AGP, Kotlin, Compose) is exercised by one
+- Each axis (AGP, Kotlin, Compose BOM / UI test artifacts) is exercised by one
   `./gradlew :app:assembleDebug` invocation with a property override
   pointing at the axis's lower bound.
 - The workflow is **informational** — `continue-on-error: true` on each
@@ -90,12 +90,11 @@ A scheduled workflow runs the lower bounds informationally:
 - Promotion of this workflow to a required check is tracked in
   [CHANGELOG.md](../../CHANGELOG.md) under the BR-4 Unreleased entry.
 
-> NOTE: the property override mechanism (`-PoverrideAgpVersion`,
-> `-PoverrideKotlinVersion`, `-PoverrideComposeBomVersion`) is not yet wired
-> through `settings.gradle.kts` / `gradle/libs.versions.toml`. The workflow
-> still runs `assembleDebug` and reports the resolved versions, so the weekly
-> log captures whatever the current pinned bounds produce until the override
-> plumbing lands as a follow-up.
+The property override mechanism is active. `overrideAgpVersion` and
+`overrideKotlinVersion` are applied through plugin resolution and the version
+catalog. `overrideComposeBomVersion` and `overrideComposeUiTestVersion` are
+applied through the root `libs` catalog before project build scripts resolve
+dependencies.
 
 ## Related
 

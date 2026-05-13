@@ -5,19 +5,10 @@ name: Scheduled compatibility matrix
 # is allowed to fail (`continue-on-error: true`) — this workflow does not
 # gate PRs. Promotion to a required check is tracked in CHANGELOG.md under
 # BR-4 as a follow-up after one week of stable runs.
-#
-# NOTE: The property overrides referenced below
-# (`-PoverrideAgpVersion`, `-PoverrideKotlinVersion`,
-# `-PoverrideComposeBomVersion`) are NOT yet wired into the build. Until the
-# override plumbing lands in `settings.gradle.kts` / `gradle/libs.versions.toml`,
-# Gradle simply ignores the unknown project property and the job runs
-# `assembleDebug` against the currently-pinned versions. The job still
-# produces a useful weekly artifact (the resolved versions are logged in the
-# diagnostic step), and the override wiring is a follow-up task.
 
 on:
   schedule:
-    # Tuesday 03:00 UTC — weekly until version override plumbing is wired.
+    # Tuesday 03:00 UTC.
     - cron: "0 3 * * 2"
   workflow_dispatch:
 
@@ -128,7 +119,7 @@ jobs:
       - name: Assemble debug against Compose BOM lower bound
         id: assemble
         continue-on-error: true
-        run: ./gradlew -PoverrideComposeBomVersion=2026.01.00 :app:assembleDebug --no-daemon
+        run: ./gradlew -PoverrideComposeBomVersion=2026.01.00 -PoverrideComposeUiTestVersion=1.9.0 :app:assembleDebug --no-daemon
 
       - name: Diagnostic on failure
         if: steps.assemble.outcome == 'failure'
