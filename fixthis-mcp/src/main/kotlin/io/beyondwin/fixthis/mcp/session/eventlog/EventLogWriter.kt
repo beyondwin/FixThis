@@ -12,9 +12,15 @@ private val eventLogJson = Json {
     ignoreUnknownKeys = true
 }
 
+enum class EventLogDurability {
+    Durable,
+    Fast,
+}
+
 class EventLogWriter(
     private val directory: File,
     private val onWriteHook: (java.nio.file.Path) -> Unit = {},
+    internal val durability: EventLogDurability = EventLogDurability.Durable,
 ) {
 
     init {
@@ -34,12 +40,8 @@ class EventLogWriter(
         val tmp = File(directory, "$name.tmp")
         val finalFile = File(directory, name)
         try {
-            RandomAccessFile(tmp, "rwd").use { raf ->
-                onWriteHook(tmp.toPath())
-                val line = eventLogJson.encodeToString(SessionEvent.serializer(), event) + "\n"
-                raf.write(line.toByteArray(Charsets.UTF_8))
-                raf.channel.force(true)
-            }
+            val line = eventLogJson.encodeToString(SessionEvent.serializer(), event) + "\n"
+            writeEventLine(tmp, line)
         } catch (e: EventLogException) {
             tmp.delete()
             throw e
@@ -50,6 +52,23 @@ class EventLogWriter(
         if (!tmp.renameTo(finalFile)) {
             tmp.delete()
             throw EventLogException("Atomic rename failed for ${tmp.name}")
+        }
+    }
+
+    private fun writeEventLine(tmp: File, line: String) {
+        when (durability) {
+            EventLogDurability.Durable -> {
+                RandomAccessFile(tmp, "rwd").use { raf ->
+                    onWriteHook(tmp.toPath())
+                    raf.write(line.toByteArray(Charsets.UTF_8))
+                    raf.channel.force(true)
+                }
+            }
+
+            EventLogDurability.Fast -> {
+                onWriteHook(tmp.toPath())
+                tmp.writeText(line, Charsets.UTF_8)
+            }
         }
     }
 
