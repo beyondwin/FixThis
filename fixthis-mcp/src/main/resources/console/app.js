@@ -324,8 +324,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778701560000;
-const ConsoleBuildGitSha = '6fea205';
+const ConsoleBuildEpochMs = 1778701800000;
+const ConsoleBuildGitSha = 'eb63330';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -3652,43 +3652,127 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               commentInput.setSelectionRange(end, end);
             }
 
+            function itemBounds(item) {
+              return boundsForTarget(item?.target) || item?.bounds || item?.target?.bounds || null;
+            }
+
+            function compactValue(value) {
+              if (Array.isArray(value)) return value.filter(Boolean).join(', ') || '-';
+              return text(value);
+            }
+
+            function sourceCandidateLine(candidate) {
+              if (!candidate) return '-';
+              const location = candidate.line == null ? candidate.file : candidate.file + ':' + candidate.line;
+              const reasons = candidate.reason || candidate.matchReason || (candidate.matchReasons || []).join(', ');
+              const confidence = candidate.confidence ? String(candidate.confidence).toLowerCase() : '';
+              return location + (confidence ? ' · ' + confidence : '') + (reasons ? ' · ' + reasons : '');
+            }
+
+            function targetKindLabel(item) {
+              const target = item?.target || {};
+              if (target.type === 'semantics_node' || target.nodeUid) return 'Semantics node';
+              if (target.type === 'visual_area' || target.boundsInWindow) return 'Visual region';
+              return 'Unknown target';
+            }
+
+            function detailMetaHtml(item, index) {
+              const time = item?.updatedAtEpochMillis || item?.createdAtEpochMillis || null;
+              return '<div class="detail-meta">' +
+                '<span>#' + escapeHtml(String(annotationDisplayNumber(item, index))) + '</span>' +
+                '<span>' + escapeHtml(statusLabel(item)) + '</span>' +
+                '<span>' + escapeHtml(time ? formatTime(time) : '-') + '</span>' +
+              '</div>';
+            }
+
+            function evidenceGridHtml(rows) {
+              return '<div class="evidence-grid">' +
+                rows.map(row => '<span>' + escapeHtml(row[0]) + '</span><strong>' + escapeHtml(row[1]) + '</strong>').join('') +
+              '</div>';
+            }
+
+            function targetDetailsHtml(item) {
+              const node = item?.selectedNode || {};
+              const bounds = itemBounds(item);
+              return evidenceGridHtml([
+                ['Target', targetLabel(item)],
+                ['Kind', targetKindLabel(item)],
+                ['Role', compactValue(node.role)],
+                ['Text', compactValue([...(node.text || []), node.editableText].filter(Boolean))],
+                ['Content description', compactValue(node.contentDescription)],
+                ['Test tag', compactValue(node.testTag)],
+                ['Bounds', bounds ? formatBounds(bounds) : '-'],
+              ]);
+            }
+
+            function evidenceDetailsHtml(item) {
+              const sourceCandidates = item?.sourceCandidates || [];
+              const targetEvidence = item?.targetEvidence || {};
+              const evidenceRows = [
+                ['Source', sourceCandidateLine(sourceCandidates[0])],
+                ['Identity', targetEvidence.identityHint?.stableLabel || targetEvidence.identityHint?.composableNameHint || '-'],
+                ['Occurrence', targetEvidence.occurrence ? targetEvidence.occurrence.selectedOrdinal + ' of ' + targetEvidence.occurrence.count : '-'],
+                ['Screenshots', compactValue(targetEvidence.screenshotKinds)],
+              ];
+              const candidates = sourceCandidates.slice(1, 3).map((candidate, index) => ['Source ' + (index + 2), sourceCandidateLine(candidate)]);
+              const warnings = (targetEvidence.warnings || []).map((warning, index) => ['Warning ' + (index + 1), warning]);
+              const bodyRows = evidenceRows.concat(candidates, warnings);
+              const empty = sourceCandidates.length === 0 && !targetEvidence.identityHint && !targetEvidence.occurrence && !targetEvidence.screenshotKinds?.length;
+              return '<details class="evidence-details" open>' +
+                '<summary>Evidence</summary>' +
+                (empty
+                  ? '<div class="empty-evidence">No source candidates or structured target evidence captured yet.</div>'
+                  : evidenceGridHtml(bodyRows)) +
+              '</details>';
+            }
+
             function renderAnnotationDetail(item, index) {
               const severity = annotationSeverity(item);
               const status = annotationStatus(item);
               pendingItems.innerHTML =
                 '<div class="annotation-detail">' +
                   '<button type="button" class="annotation-back" data-back-annotations>← All annotations</button>' +
-                  '<div class="annotation-field">' +
-                    '<label for="annotationLabelInput">Label</label>' +
-                    '<input id="annotationLabelInput" class="annotation-input" value="' + escapeHtml(annotationTitle(item, index)) + '">' +
-                  '</div>' +
-                  '<div class="annotation-field">' +
-                    '<label>Severity</label>' +
-                    '<div class="annotation-segmented" role="group" aria-label="Severity">' +
-                      ['high', 'med', 'low'].map(value =>
-                        '<button type="button" class="' + (severity === value ? 'active' : '') + '" data-set-severity="' + value + '"' +
-                          ' aria-pressed="' + (severity === value ? 'true' : 'false') + '"' +
-                          (severity === value ? ' style="background:' + severityColor(value) + '; color: var(--bg-0);"' : '') + '>' +
-                          escapeHtml(value === 'med' ? 'Med' : value) +
-                        '</button>'
-                      ).join('') +
+                  '<section class="annotation-section">' +
+                    '<h3>Target</h3>' +
+                    '<div class="annotation-field">' +
+                      '<label for="annotationLabelInput">Label</label>' +
+                      '<input id="annotationLabelInput" class="annotation-input" value="' + escapeHtml(annotationTitle(item, index)) + '">' +
                     '</div>' +
-                  '</div>' +
-                  '<div class="annotation-field">' +
-                    '<label for="annotationCommentInput">Comment</label>' +
-                    '<textarea id="annotationCommentInput" class="annotation-textarea">' + escapeHtmlValue(item.comment) + '</textarea>' +
-                  '</div>' +
-                  '<div class="annotation-field">' +
-                    '<label>Status</label>' +
-                    '<div class="annotation-segmented" role="group" aria-label="Status">' +
-                      ['open', 'in-progress', 'resolved'].map(value =>
-                        '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '"' +
-                          ' aria-pressed="' + (status === value ? 'true' : 'false') + '">' +
-                          escapeHtml(statusValueLabel(value)) +
-                        '</button>'
-                      ).join('') +
+                    evidenceGridHtml([['Bounds', item.bounds ? formatBounds(item.bounds) : '-']]) +
+                  '</section>' +
+                  '<section class="annotation-section">' +
+                    '<h3>Request</h3>' +
+                    '<div class="annotation-field">' +
+                      '<label for="annotationCommentInput">Comment</label>' +
+                      '<textarea id="annotationCommentInput" class="annotation-textarea">' + escapeHtmlValue(item.comment) + '</textarea>' +
                     '</div>' +
-                  '</div>' +
+                  '</section>' +
+                  '<section class="annotation-section">' +
+                    '<h3>Status</h3>' +
+                    '<div class="annotation-field">' +
+                      '<label>Severity</label>' +
+                      '<div class="annotation-segmented" role="group" aria-label="Severity">' +
+                        ['high', 'med', 'low'].map(value =>
+                          '<button type="button" class="' + (severity === value ? 'active' : '') + '" data-set-severity="' + value + '"' +
+                            ' aria-pressed="' + (severity === value ? 'true' : 'false') + '"' +
+                            (severity === value ? ' style="background:' + severityColor(value) + '; color: var(--bg-0);"' : '') + '>' +
+                            escapeHtml(value === 'med' ? 'Med' : value) +
+                          '</button>'
+                        ).join('') +
+                      '</div>' +
+                    '</div>' +
+                    '<div class="annotation-field">' +
+                      '<label>Status</label>' +
+                      '<div class="annotation-segmented" role="group" aria-label="Status">' +
+                        ['open', 'in-progress', 'resolved'].map(value =>
+                          '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '"' +
+                            ' aria-pressed="' + (status === value ? 'true' : 'false') + '">' +
+                            escapeHtml(statusValueLabel(value)) +
+                          '</button>'
+                        ).join('') +
+                      '</div>' +
+                    '</div>' +
+                  '</section>' +
                   '<div class="annotation-actions">' +
                     '<button type="button" class="annotation-danger" data-delete-current>Delete</button>' +
                     '<button type="button" class="annotation-done" data-back-annotations>Done</button>' +
@@ -3898,37 +3982,48 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 '<div class="annotation-detail" data-phase="' + escapeHtml(phase) + '">' +
                   '<button type="button" class="annotation-back" data-back-saved-annotations>← All annotations</button>' +
                   banner +
-                  '<div class="annotation-field">' +
-                    '<label for="annotationLabelInput">Label</label>' +
-                    '<input id="annotationLabelInput" class="annotation-input" value="' + escapeHtml(targetLabel(item)) + '"' + dis + '>' +
-                  '</div>' +
-                  '<div class="annotation-field">' +
-                    '<label>Severity</label>' +
-                    '<div class="annotation-segmented" role="group" aria-label="Severity">' +
-                      ['high', 'med', 'low'].map(value =>
-                        '<button type="button" class="' + (severity === value ? 'active' : '') + '" data-set-severity="' + value + '"' +
-                          ' aria-pressed="' + (severity === value ? 'true' : 'false') + '"' +
-                          (severity === value ? ' style="background:' + severityColor(value) + '; color: var(--bg-0);"' : '') + dis + '>' +
-                          escapeHtml(value === 'med' ? 'Med' : value) +
-                        '</button>'
-                      ).join('') +
+                  '<section class="annotation-section request-section">' +
+                    '<h3>Request</h3>' +
+                    detailMetaHtml(item, index) +
+                    '<div class="annotation-field">' +
+                      '<label for="annotationCommentInput">Comment</label>' +
+                      '<textarea id="annotationCommentInput" class="annotation-textarea"' + dis + '>' + escapeHtmlValue(item.comment) + '</textarea>' +
                     '</div>' +
-                  '</div>' +
-                  '<div class="annotation-field">' +
-                    '<label for="annotationCommentInput">Comment</label>' +
-                    '<textarea id="annotationCommentInput" class="annotation-textarea"' + dis + '>' + escapeHtmlValue(item.comment) + '</textarea>' +
-                  '</div>' +
-                  '<div class="annotation-field">' +
-                    '<label>Status</label>' +
-                    '<div class="annotation-segmented" role="group" aria-label="Status">' +
-                      ['open', 'in-progress', 'resolved'].map(value =>
-                        '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '"' +
-                          ' aria-pressed="' + (status === value ? 'true' : 'false') + '"' + dis + '>' +
-                          escapeHtml(statusValueLabel(value)) +
-                        '</button>'
-                      ).join('') +
+                    '<div class="annotation-field">' +
+                      '<label>Severity</label>' +
+                      '<div class="annotation-segmented" role="group" aria-label="Severity">' +
+                        ['high', 'med', 'low'].map(value =>
+                          '<button type="button" class="' + (severity === value ? 'active' : '') + '" data-set-severity="' + value + '"' +
+                            ' aria-pressed="' + (severity === value ? 'true' : 'false') + '"' +
+                            (severity === value ? ' style="background:' + severityColor(value) + '; color: var(--bg-0);"' : '') + dis + '>' +
+                            escapeHtml(value === 'med' ? 'Med' : value) +
+                          '</button>'
+                        ).join('') +
+                      '</div>' +
                     '</div>' +
-                  '</div>' +
+                    '<div class="annotation-field">' +
+                      '<label>Status</label>' +
+                      '<div class="annotation-segmented" role="group" aria-label="Status">' +
+                        ['open', 'in-progress', 'resolved'].map(value =>
+                          '<button type="button" class="' + (status === value ? 'active' : '') + '" data-set-status="' + value + '"' +
+                            ' aria-pressed="' + (status === value ? 'true' : 'false') + '"' + dis + '>' +
+                            escapeHtml(statusValueLabel(value)) +
+                          '</button>'
+                        ).join('') +
+                      '</div>' +
+                    '</div>' +
+                  '</section>' +
+                  '<section class="annotation-section target-section">' +
+                    '<h3>Target</h3>' +
+                    '<div class="annotation-field">' +
+                      '<label for="annotationLabelInput">Label</label>' +
+                      '<input id="annotationLabelInput" class="annotation-input" value="' + escapeHtml(targetLabel(item)) + '"' + dis + '>' +
+                    '</div>' +
+                    targetDetailsHtml(item) +
+                  '</section>' +
+                  '<section class="annotation-section evidence-section">' +
+                    evidenceDetailsHtml(item) +
+                  '</section>' +
                   '<div class="annotation-actions">' +
                     '<button type="button" class="annotation-danger" data-delete-current' + deleteDis + '>Delete</button>' +
                     '<button type="button" class="annotation-done" data-back-saved-annotations>Done</button>' +

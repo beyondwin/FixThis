@@ -158,6 +158,16 @@ async function injectStressState(page) {
           '<pre class="annotation-summary">' + longPath + '</pre>' +
         '</div>' +
       '</div>';
+    document.getElementById('draftItems').insertAdjacentHTML('beforeend',
+      '<details class="evidence-details" open>' +
+        '<summary>Evidence</summary>' +
+        '<div class="evidence-grid">' +
+          '<span>Target</span><strong>Button "Checkout"</strong>' +
+          '<span>Bounds</span><strong>70,110 - 330,190</strong>' +
+          '<span>Source</span><strong>' + longPath + '</strong>' +
+        '</div>' +
+      '</details>'
+    );
   });
 }
 
@@ -176,6 +186,8 @@ async function assertNoHorizontalOverflow(page, viewportName) {
       '#stalenessBanner',
       '.annotation-summary',
       '.activity-drift-warning',
+      '.evidence-details',
+      '.evidence-grid',
     ];
     return selectors.flatMap(selector => Array.from(document.querySelectorAll(selector)).map(element => {
       const overflow = element.scrollWidth - element.clientWidth;
