@@ -542,6 +542,28 @@
             }
 
 
+            function workflowActiveStep() {
+              if (!state.connection?.hasEverConnected && userConnectionState(state.connection?.current) !== 'ready') return 'connect';
+              if (addItemsFlow || toolMode === 'annotate') return 'annotate';
+              if (currentPromptAnnotations().length > 0) return 'handoff';
+              return 'preview';
+            }
+
+            function workflowStepOrder(step) {
+              return ['connect', 'preview', 'annotate', 'handoff'].indexOf(step);
+            }
+
+            function renderWorkflowProgress() {
+              if (!workflowProgress) return;
+              const active = workflowActiveStep();
+              const activeOrder = workflowStepOrder(active);
+              workflowProgress.querySelectorAll('[data-workflow-step]').forEach(node => {
+                const step = node.getAttribute('data-workflow-step');
+                const order = workflowStepOrder(step);
+                node.dataset.state = order < activeOrder ? 'complete' : (step === active ? 'active' : 'upcoming');
+              });
+            }
+
             function renderSessionRegions() {
               renderSessionsList();
             }
@@ -653,6 +675,7 @@
               renderPreviewRegion();
               renderSelectionOverlay();
               updateComposerState();
+              renderWorkflowProgress();
             }
 
             function render() {
@@ -660,6 +683,7 @@
               renderPreviewRegion();
               renderInspectorRegion();
               renderConnection(state.connection.current);
+              renderWorkflowProgress();
               updateComposerState();
             }
 

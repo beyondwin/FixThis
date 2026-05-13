@@ -58,6 +58,7 @@
             const zoomInButton = document.getElementById('zoomInButton');
             const zoomPercent = document.getElementById('zoomPercent');
             const previewStaleBadge = document.getElementById('previewStaleBadge');
+            const workflowProgress = document.getElementById('workflowProgress');
             let livePreviewTimer = null;
             let heartbeatTimer = null;
             let heartbeatPolling = false;
@@ -322,8 +323,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778698560000;
-const ConsoleBuildGitSha = 'd84add1';
+const ConsoleBuildEpochMs = 1778701380000;
+const ConsoleBuildGitSha = '49b3bb4';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -3962,6 +3963,28 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
 
+            function workflowActiveStep() {
+              if (!state.connection?.hasEverConnected && userConnectionState(state.connection?.current) !== 'ready') return 'connect';
+              if (addItemsFlow || toolMode === 'annotate') return 'annotate';
+              if (currentPromptAnnotations().length > 0) return 'handoff';
+              return 'preview';
+            }
+
+            function workflowStepOrder(step) {
+              return ['connect', 'preview', 'annotate', 'handoff'].indexOf(step);
+            }
+
+            function renderWorkflowProgress() {
+              if (!workflowProgress) return;
+              const active = workflowActiveStep();
+              const activeOrder = workflowStepOrder(active);
+              workflowProgress.querySelectorAll('[data-workflow-step]').forEach(node => {
+                const step = node.getAttribute('data-workflow-step');
+                const order = workflowStepOrder(step);
+                node.dataset.state = order < activeOrder ? 'complete' : (step === active ? 'active' : 'upcoming');
+              });
+            }
+
             function renderSessionRegions() {
               renderSessionsList();
             }
@@ -4073,6 +4096,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               renderPreviewRegion();
               renderSelectionOverlay();
               updateComposerState();
+              renderWorkflowProgress();
             }
 
             function render() {
@@ -4080,6 +4104,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               renderPreviewRegion();
               renderInspectorRegion();
               renderConnection(state.connection.current);
+              renderWorkflowProgress();
               updateComposerState();
             }
 

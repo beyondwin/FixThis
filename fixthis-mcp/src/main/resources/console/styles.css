@@ -36,7 +36,7 @@
             .studio-shell {
               grid-row: 2;
               display: grid;
-              grid-template-rows: 56px auto auto 1fr;
+              grid-template-rows: 56px auto auto auto 1fr;
               height: 100%;
               overflow: hidden;
             }
@@ -51,7 +51,7 @@
               border-bottom: 1px solid var(--line);
             }
             .studio-body {
-              grid-row: 4;
+              grid-row: 5;
               display: grid;
               grid-template-columns: 280px minmax(480px, 1fr) 340px;
               min-height: 0;
@@ -1187,6 +1187,78 @@
               color: #bfdbfe;
               border-bottom-color: rgba(91, 180, 232, .35);
             }
+            .workflow-progress {
+              grid-row: 4;
+              min-width: 0;
+              padding: 8px 16px;
+              border-bottom: 1px solid var(--line);
+              background: var(--bg-1);
+            }
+            .workflow-progress ol {
+              display: grid;
+              grid-template-columns: repeat(4, minmax(0, 1fr));
+              gap: 8px;
+              margin: 0;
+              padding: 0;
+              list-style: none;
+            }
+            .workflow-progress li {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              min-width: 0;
+              padding: 6px 8px;
+              border: 1px solid var(--line);
+              border-radius: 8px;
+              color: var(--txt-2);
+              background: var(--bg-0);
+            }
+            .workflow-progress li[data-state="complete"] {
+              color: var(--txt-1);
+              border-color: rgba(111, 207, 151, .30);
+            }
+            .workflow-progress li[data-state="active"] {
+              color: var(--txt-0);
+              border-color: rgba(184, 211, 106, .45);
+              background: rgba(184, 211, 106, .08);
+            }
+            .workflow-index {
+              width: 22px;
+              height: 22px;
+              display: inline-grid;
+              place-items: center;
+              flex: 0 0 auto;
+              border-radius: 999px;
+              background: var(--bg-3);
+              color: currentColor;
+              font-size: 11px;
+              font-weight: 800;
+            }
+            .workflow-progress li[data-state="active"] .workflow-index {
+              background: var(--accent);
+              color: var(--bg-0);
+            }
+            .workflow-copy {
+              min-width: 0;
+              display: grid;
+              gap: 1px;
+            }
+            .workflow-copy strong,
+            .workflow-copy em {
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+            .workflow-copy strong {
+              font-size: 12px;
+              line-height: 1.15;
+            }
+            .workflow-copy em {
+              color: var(--txt-2);
+              font-size: 10px;
+              font-style: normal;
+              line-height: 1.15;
+            }
             .activity-drift-warning {
               display: flex;
               align-items: flex-start;
@@ -1298,7 +1370,7 @@
                 min-height: 100vh;
                 height: auto;
                 overflow: visible;
-                grid-template-rows: auto auto auto 1fr;
+                grid-template-rows: auto auto auto auto 1fr;
               }
               .studio-topbar {
                 position: sticky;
@@ -1358,6 +1430,15 @@
               }
               .connection-details pre {
                 max-width: 100%;
+              }
+              .workflow-progress {
+                padding: 8px;
+              }
+              .workflow-progress ol {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+              }
+              .workflow-copy em {
+                display: none;
               }
               .activity-drift-warning {
                 flex-direction: column;

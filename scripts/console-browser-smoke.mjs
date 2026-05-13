@@ -525,6 +525,26 @@ async function waitForReady(page) {
   }
 }
 
+async function assertWorkflowProgress(page, expectedActiveStep) {
+  const workflowState = await page.evaluate(() => {
+    const root = document.getElementById('workflowProgress');
+    return {
+      visible: Boolean(root) && !root.hidden,
+      active: root?.querySelector('[data-state="active"]')?.getAttribute('data-workflow-step') || null,
+      labels: Array.from(root?.querySelectorAll('[data-workflow-step]') || []).map(node =>
+        node.querySelector('strong')?.textContent.replace(/\s+/g, ' ').trim() || ''
+      ),
+    };
+  });
+  assert.equal(workflowState.visible, true, 'workflow progress should be visible');
+  assert.equal(workflowState.active, expectedActiveStep, 'workflow active step');
+  assert.deepEqual(
+    workflowState.labels,
+    ['Connect', 'Preview', 'Annotate', 'Handoff'],
+    'workflow labels',
+  );
+}
+
 async function pendingDiagnostics(page) {
   return await page.evaluate(() => ({
     pendingRows: document.querySelectorAll('.pending-item-row').length,
@@ -725,11 +745,13 @@ async function runSmoke(baseUrl) {
     await page.waitForFunction(() => document.getElementById('previewStaleBadge')?.hidden === false);
     await page.click('#connectionPrimaryAction');
     await waitForReady(page);
+    await assertWorkflowProgress(page, 'preview');
     assert.equal(await page.locator('#deviceName').textContent(), 'Pixel Smoke');
     await page.waitForFunction(() => document.getElementById('previewStaleBadge')?.hidden === true);
 
     await page.click('#annotateToolButton');
     await page.waitForSelector('#snapshot[data-tool-mode="annotate"]');
+    await assertWorkflowProgress(page, 'annotate');
     await page.waitForSelector('#annotateHint');
     await waitForSnapshotImageReady(page, 'Annotate snapshot image was not ready');
     await page.mouse.click(

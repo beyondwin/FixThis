@@ -69,6 +69,38 @@
         </div>
       </section>
       <p id="error" class="global-status" role="status" aria-live="polite" hidden></p>
+      <nav id="workflowProgress" class="workflow-progress" aria-label="FixThis feedback workflow">
+        <ol>
+          <li data-workflow-step="connect" data-state="active">
+            <span class="workflow-index">1</span>
+            <span class="workflow-copy">
+              <strong>Connect</strong>
+              <em>Start the debug app</em>
+            </span>
+          </li>
+          <li data-workflow-step="preview" data-state="upcoming">
+            <span class="workflow-index">2</span>
+            <span class="workflow-copy">
+              <strong>Preview</strong>
+              <em>Navigate the screen</em>
+            </span>
+          </li>
+          <li data-workflow-step="annotate" data-state="upcoming">
+            <span class="workflow-index">3</span>
+            <span class="workflow-copy">
+              <strong>Annotate</strong>
+              <em>Pin UI feedback</em>
+            </span>
+          </li>
+          <li data-workflow-step="handoff" data-state="upcoming">
+            <span class="workflow-index">4</span>
+            <span class="workflow-copy">
+              <strong>Handoff</strong>
+              <em>Copy or save</em>
+            </span>
+          </li>
+        </ol>
+      </nav>
       <main class="studio-body">
             <aside class="studio-history">
                 <div class="panel-head">

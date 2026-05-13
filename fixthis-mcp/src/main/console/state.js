@@ -57,6 +57,7 @@
             const zoomInButton = document.getElementById('zoomInButton');
             const zoomPercent = document.getElementById('zoomPercent');
             const previewStaleBadge = document.getElementById('previewStaleBadge');
+            const workflowProgress = document.getElementById('workflowProgress');
             let livePreviewTimer = null;
             let heartbeatTimer = null;
             let heartbeatPolling = false;
