@@ -57,12 +57,13 @@
             }
 
             function formatItemLabel(item, index) {
-              const number = item.sequenceNumber ? item.sequenceNumber : index + 1;
+              const number = item.sequenceNumber ?? (index + 1);
               return '#' + number + ' ' + firstLine(item.comment || '(No comment)');
             }
 
             function formatSavedEvidenceItemLabel(item, index) {
-              return '#' + (index + 1) + ' ' + firstLine(item.comment || '(No comment)');
+              const number = item.sequenceNumber ?? (index + 1);
+              return '#' + number + ' ' + firstLine(item.comment || '(No comment)');
             }
 
             function findScreen(screenId) {

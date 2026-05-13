@@ -239,8 +239,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778691240000;
-const ConsoleBuildGitSha = 'bb07af8';
+const ConsoleBuildEpochMs = 1778691780000;
+const ConsoleBuildGitSha = '86071ea';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -2262,12 +2262,13 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function formatItemLabel(item, index) {
-              const number = item.sequenceNumber ? item.sequenceNumber : index + 1;
+              const number = item.sequenceNumber ?? (index + 1);
               return '#' + number + ' ' + firstLine(item.comment || '(No comment)');
             }
 
             function formatSavedEvidenceItemLabel(item, index) {
-              return '#' + (index + 1) + ' ' + firstLine(item.comment || '(No comment)');
+              const number = item.sequenceNumber ?? (index + 1);
+              return '#' + number + ' ' + firstLine(item.comment || '(No comment)');
             }
 
             function findScreen(screenId) {
@@ -2733,8 +2734,13 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function renderNumberedFeedbackOverlay(overlay, image) {
               pendingFeedbackItems.forEach((item, index) => {
-                renderOverlayBox(overlay, image, item.bounds, String(index + 1), false, index === focusedPendingItemIndex, index, '', severityColor(annotationSeverity(item)));
+                const displayNumber = index + 1;
+                renderOverlayBox(overlay, image, item.bounds, String(displayNumber), false, index === focusedPendingItemIndex, index, '', severityColor(annotationSeverity(item)));
               });
+            }
+
+            function annotationDisplayNumber(item, index) {
+              return item?.sequenceNumber ?? (index + 1);
             }
 
             function renderSelectionOverlay() {
@@ -2950,11 +2956,12 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               const allSavedItems = savedEvidenceItems();
               items.forEach((item, index) => {
                 const savedIndex = Math.max(0, allSavedItems.findIndex(savedItem => savedItem.itemId === item.itemId));
+                const displayNumber = annotationDisplayNumber(item, savedIndex);
                 renderOverlayBox(
                   overlay,
                   image,
                   boundsForTarget(item.target),
-                  String(savedIndex + 1),
+                  String(displayNumber),
                   false,
                   item.itemId === focusedSavedItemId,
                   savedIndex,
@@ -3000,6 +3007,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   const hasComment = Boolean(String(item.comment || '').trim());
                   const phase = lifecyclePhase(item);
                   const color = severityColor(annotationSeverity(item));
+                  const displayNumber = annotationDisplayNumber(item, index);
                   let header = '';
                   if (item.screenId !== prevScreenId) {
                     header = savedScreenHeaderHtml(item, ordinalByScreenId, prevScreenId === null);
@@ -3007,7 +3015,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   }
                   return header +
                     '<button type="button" class="ann-row saved-item-row ' + (item.itemId === focusedSavedItemId ? 'active' : '') + '" style="--annotation-color:' + color + '" data-phase="' + escapeHtml(phase) + '" data-item-id="' + escapeHtml(item.itemId) + '" data-focus-saved="' + escapeHtml(item.itemId) + '">' +
-                      '<span class="ann-row-num" style="background:' + color + '">' + (index + 1) + '</span>' +
+                      '<span class="ann-row-num" style="background:' + color + '">' + escapeHtml(String(displayNumber)) + '</span>' +
                       '<span class="ann-row-body">' +
                         '<span class="ann-row-title">' + escapeHtml(targetLabel(item)) + '</span>' +
                         '<span class="ann-row-comment ' + (hasComment ? '' : 'empty-comment') + '">' + escapeHtml(commentText) + '</span>' +

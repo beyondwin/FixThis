@@ -37,3 +37,10 @@ test('latestScreen uses focused saved screenshot before persisted fallback', () 
   assert.match(latest, /focusedItem\.screenId/);
   assert.match(latest, /return state\.preview\?\.screen \|\| latestPersistedScreen\(\);/);
 });
+
+test('saved rows and overlays prefer server sequenceNumber', () => {
+  assert.match(renderingSource, /function annotationDisplayNumber\(item,\s*index\)/);
+  assert.match(renderingSource, /item\?\.sequenceNumber\s*\?\?\s*\(index \+ 1\)/);
+  assert.doesNotMatch(renderingSource, /'#' \+ \(index \+ 1\)/);
+  assert.doesNotMatch(renderingSource, /String\(index \+ 1\), false,[\s\S]*focusedSavedItemId/);
+});
