@@ -420,7 +420,10 @@
               display: grid;
               gap: 6px;
             }
-            .history-list { align-content: start; }
+            .history-list {
+              align-content: start;
+              grid-auto-rows: max-content;
+            }
             .history-list,
             .inspector-body {
               overflow: auto;
@@ -556,7 +559,7 @@
               box-shadow: inset 2px 0 0 var(--accent);
             }
             .session-row {
-              display: block;
+              display: grid;
               width: 100%;
               min-height: 0;
               text-align: left;
@@ -716,10 +719,9 @@
               position: relative;
               display: inline-block;
               max-width: min(100%, 320px);
-              max-height: 100%;
-              padding: 8px;
-              border-radius: 44px;
-              background: linear-gradient(180deg, #2a2a2e 0%, #1a1a1d 100%);
+              padding: 0;
+              border-radius: 36px;
+              background: transparent;
               box-shadow:
                 0 0 0 2px #3a3a40,
                 0 30px 60px -20px rgba(0, 0, 0, .6),
@@ -744,12 +746,12 @@
               width: auto;
               height: auto;
               border: 0;
-              border-radius: 36px;
+              border-radius: inherit;
               cursor: pointer;
             }
             .selection-overlay {
               position: absolute;
-              inset: 8px;
+              inset: 0;
               pointer-events: none;
             }
             .selection-box {
@@ -1300,7 +1302,8 @@
                 max-width: none;
               }
               .clear-device-button {
-                width: auto;
+                justify-self: start;
+                width: max-content;
                 min-width: 0;
                 max-width: none;
               }
@@ -1347,14 +1350,11 @@
               }
               .studio-body {
                 grid-template-columns: 1fr;
-                grid-template-rows: auto minmax(420px, 72vh) auto;
+                grid-template-rows: minmax(420px, 72vh) auto;
                 overflow: visible;
               }
               .studio-history {
-                max-height: 180px;
-                border-right: 0;
-                border-bottom: 1px solid var(--line);
-                overflow: auto;
+                display: none;
               }
               .studio-canvas {
                 grid-template-rows: auto minmax(360px, 1fr);
@@ -1378,15 +1378,9 @@
               }
               .snapshot-frame {
                 max-width: min(100%, 320px);
-                padding: 6px;
-                border-radius: 38px;
               }
               .snapshot-frame img {
                 max-height: calc(100vh - 240px);
-                border-radius: 30px;
-              }
-              .selection-overlay {
-                inset: 6px;
               }
               .annotate-hint {
                 max-width: calc(100% - 24px);

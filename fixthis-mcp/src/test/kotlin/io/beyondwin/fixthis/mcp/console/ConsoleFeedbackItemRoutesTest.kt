@@ -285,7 +285,7 @@ class ConsoleFeedbackItemRoutesTest {
 
         assertTrue(html.contains("@media (max-width: 900px)"))
         assertTrue(Regex("\\.studio-body \\{\\s+grid-template-columns: 1fr;").containsMatchIn(html))
-        assertTrue(Regex("\\.studio-history \\{\\s+max-height: 180px;").containsMatchIn(html))
+        assertTrue(Regex("\\.studio-history \\{\\s+display: none;").containsMatchIn(html))
         assertTrue(Regex("\\.studio-inspector \\{\\s+min-height: 280px;").containsMatchIn(html))
         assertTrue(Regex("\\.snapshot-stage \\{\\s+min-height: 360px;").containsMatchIn(html))
         assertFalse(html.contains("Resize to >= 900px wide"))
