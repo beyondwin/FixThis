@@ -48,6 +48,7 @@
             const addItemButton = document.getElementById('addItemButton');
             const copyPromptButton = document.getElementById('copyPromptButton');
             const sendAgentButton = document.getElementById('sendAgentButton');
+            const promptReadiness = document.getElementById('promptReadiness');
             const cancelAddFlowButton = document.getElementById('cancelAddFlowButton');
             const clearDraftButton = document.getElementById('clearDraftButton');
             const selectToolButton = document.getElementById('selectToolButton');

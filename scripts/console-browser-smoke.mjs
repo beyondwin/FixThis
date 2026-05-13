@@ -545,6 +545,11 @@ async function assertWorkflowProgress(page, expectedActiveStep) {
   );
 }
 
+async function assertPromptReadiness(page, expectedText) {
+  const text = await page.locator('#promptReadiness').innerText();
+  assert.equal(text.replace(/\s+/g, ' ').trim(), expectedText);
+}
+
 async function pendingDiagnostics(page) {
   return await page.evaluate(() => ({
     pendingRows: document.querySelectorAll('.pending-item-row').length,
@@ -746,6 +751,7 @@ async function runSmoke(baseUrl) {
     await page.click('#connectionPrimaryAction');
     await waitForReady(page);
     await assertWorkflowProgress(page, 'preview');
+    await assertPromptReadiness(page, 'No annotations ready');
     assert.equal(await page.locator('#deviceName').textContent(), 'Pixel Smoke');
     await page.waitForFunction(() => document.getElementById('previewStaleBadge')?.hidden === true);
 
@@ -762,6 +768,7 @@ async function runSmoke(baseUrl) {
     await page.waitForSelector('#annotationCommentInput');
     const firstAnnotationComment = 'Make the checkout heading clearer';
     await page.fill('#annotationCommentInput', firstAnnotationComment);
+    await assertPromptReadiness(page, '1 ready');
     await page.evaluate(() => {
       window.fixThisPromptPendingBoundary = () => 'cancel';
     });

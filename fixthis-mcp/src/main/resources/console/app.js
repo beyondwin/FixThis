@@ -49,6 +49,7 @@
             const addItemButton = document.getElementById('addItemButton');
             const copyPromptButton = document.getElementById('copyPromptButton');
             const sendAgentButton = document.getElementById('sendAgentButton');
+            const promptReadiness = document.getElementById('promptReadiness');
             const cancelAddFlowButton = document.getElementById('cancelAddFlowButton');
             const clearDraftButton = document.getElementById('clearDraftButton');
             const selectToolButton = document.getElementById('selectToolButton');
@@ -323,8 +324,8 @@
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778701380000;
-const ConsoleBuildGitSha = '49b3bb4';
+const ConsoleBuildEpochMs = 1778701560000;
+const ConsoleBuildGitSha = '6fea205';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -2352,6 +2353,71 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 .filter(hasWrittenAnnotationComment);
             }
 
+            function promptReadinessState() {
+              if (promptActionInFlight) {
+                return {
+                  state: 'busy',
+                  label: 'Preparing handoff...',
+                  title: 'Preparing the local handoff. Buttons are disabled until this finishes.',
+                };
+              }
+              const annotations = toolbarAnnotations();
+              if (!state.session || annotations.length === 0) {
+                return {
+                  state: 'empty',
+                  label: 'No annotations ready',
+                  title: 'Add an annotation to prepare an agent handoff.',
+                };
+              }
+              const unsent = annotations.filter(item => item.delivery !== 'sent');
+              const ready = unsent.filter(hasWrittenAnnotationComment);
+              const missing = unsent.length - ready.length;
+              if (ready.length > 0) {
+                const itemKind = addItemsFlow ? 'draft' : 'saved';
+                return {
+                  state: missing > 0 ? 'blocked' : 'ready',
+                  label: countLabel(ready.length, 'ready', 'ready') + (missing > 0 ? ' · ' + countLabel(missing, 'missing comment', 'missing comments') : ''),
+                  title: 'Ready to hand off ' + countLabel(ready.length, itemKind + ' annotation', itemKind + ' annotations') + (missing > 0 ? '. ' + countLabel(missing, 'annotation needs', 'annotations need') + ' a comment.' : '.'),
+                };
+              }
+              if (missing > 0) {
+                return {
+                  state: 'blocked',
+                  label: countLabel(missing, 'missing comment', 'missing comments'),
+                  title: 'Add a comment before copying or saving feedback.',
+                };
+              }
+              if (annotations.some(item => lifecyclePhase(item) === 'sent_modified')) {
+                return {
+                  state: 'modified',
+                  label: 'Re-save needed',
+                  title: 'Edits changed after handoff. Re-save before agent work.',
+                };
+              }
+              if (annotations.some(item => item.delivery === 'sent')) {
+                return {
+                  state: 'sent',
+                  label: 'Saved to MCP',
+                  title: 'Saved to MCP. Agent can read this local queue.',
+                };
+              }
+              return {
+                state: 'empty',
+                label: 'No annotations ready',
+                title: 'Annotate a UI target and add a comment to enable handoff.',
+              };
+            }
+
+            function renderPromptReadiness() {
+              if (!promptReadiness) return;
+              const readiness = promptReadinessState();
+              promptReadiness.dataset.state = readiness.state;
+              promptReadiness.textContent = readiness.label;
+              promptReadiness.title = readiness.title;
+              copyPromptButton.title = readiness.title;
+              sendAgentButton.title = readiness.title;
+            }
+
 
             function naturalPointFromEvent(event, image) {
               const rect = image.getBoundingClientRect();
@@ -2440,6 +2506,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 : (item
                   ? 'Focused #' + (focusedPendingItemIndex + 1) + ' - ' + formatBounds(item.bounds)
                   : (toolMode === 'annotate' ? 'Click a component or drag a region to create an annotation.' : 'No annotation selected.'));
+              renderPromptReadiness();
             }
 
 
