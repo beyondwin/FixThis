@@ -173,26 +173,60 @@
               return String(count) + ' ' + (count === 1 ? singular : plural);
             }
 
-            let successClearTimeout = null;
+            let statusClearTimeout = null;
+
+            function syncStatusVisibility() {
+              error.hidden = !String(error.textContent || '').trim();
+            }
+
+            if (typeof MutationObserver !== 'undefined') {
+              new MutationObserver(syncStatusVisibility).observe(error, {
+                childList: true,
+                characterData: true,
+                subtree: true,
+              });
+            }
+            syncStatusVisibility();
+
+            function clearStatusTimer() {
+              if (statusClearTimeout) {
+                clearTimeout(statusClearTimeout);
+                statusClearTimeout = null;
+              }
+            }
+
+            function resetStatusSurface() {
+              error.textContent = '';
+              error.hidden = true;
+              error.className = 'global-status';
+              error.setAttribute('role', 'status');
+              error.setAttribute('aria-live', 'polite');
+            }
+
+            function showStatus(message, { variant = 'info', durationMs = 0, assertive = false } = {}) {
+              clearStatusTimer();
+              error.textContent = message;
+              error.hidden = !message;
+              error.className = 'global-status status-' + variant;
+              error.setAttribute('role', assertive ? 'alert' : 'status');
+              error.setAttribute('aria-live', assertive ? 'assertive' : 'polite');
+              if (durationMs > 0) {
+                statusClearTimeout = setTimeout(() => {
+                  resetStatusSurface();
+                  statusClearTimeout = null;
+                }, durationMs);
+              }
+            }
 
             function showSuccess(message, durationMs = 2000) {
-              if (successClearTimeout) {
-                clearTimeout(successClearTimeout);
-                successClearTimeout = null;
-              }
-              error.textContent = message;
-              error.classList.add('status-success');
-              successClearTimeout = setTimeout(() => {
-                error.textContent = '';
-                error.classList.remove('status-success');
-                successClearTimeout = null;
-              }, durationMs);
+              showStatus(message, { variant: 'success', durationMs });
+            }
+
+            function showWarning(message, durationMs = 0) {
+              showStatus(message, { variant: 'warning', durationMs });
             }
 
             function clearSuccessStatus() {
-              if (successClearTimeout) {
-                clearTimeout(successClearTimeout);
-                successClearTimeout = null;
-              }
-              error.classList.remove('status-success');
+              clearStatusTimer();
+              resetStatusSurface();
             }

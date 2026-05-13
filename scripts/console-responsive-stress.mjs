@@ -76,7 +76,10 @@ async function injectStressState(page) {
 
     document.getElementById('deviceName').textContent = 'Pixel Fold Extremely Long Device Name';
     document.getElementById('deviceConnectionState').textContent = 'Unavailable because bridge timed out';
-    document.getElementById('error').textContent =
+    const status = document.getElementById('error');
+    status.hidden = false;
+    status.className = 'global-status status-warning';
+    status.textContent =
       'Copied, but MCP handoff status was not updated. Copy again after the connection recovers to update item lifecycle metadata. ' + longPath;
 
     document.getElementById('pendingItems').innerHTML =

@@ -174,33 +174,67 @@
               return String(count) + ' ' + (count === 1 ? singular : plural);
             }
 
-            let successClearTimeout = null;
+            let statusClearTimeout = null;
+
+            function syncStatusVisibility() {
+              error.hidden = !String(error.textContent || '').trim();
+            }
+
+            if (typeof MutationObserver !== 'undefined') {
+              new MutationObserver(syncStatusVisibility).observe(error, {
+                childList: true,
+                characterData: true,
+                subtree: true,
+              });
+            }
+            syncStatusVisibility();
+
+            function clearStatusTimer() {
+              if (statusClearTimeout) {
+                clearTimeout(statusClearTimeout);
+                statusClearTimeout = null;
+              }
+            }
+
+            function resetStatusSurface() {
+              error.textContent = '';
+              error.hidden = true;
+              error.className = 'global-status';
+              error.setAttribute('role', 'status');
+              error.setAttribute('aria-live', 'polite');
+            }
+
+            function showStatus(message, { variant = 'info', durationMs = 0, assertive = false } = {}) {
+              clearStatusTimer();
+              error.textContent = message;
+              error.hidden = !message;
+              error.className = 'global-status status-' + variant;
+              error.setAttribute('role', assertive ? 'alert' : 'status');
+              error.setAttribute('aria-live', assertive ? 'assertive' : 'polite');
+              if (durationMs > 0) {
+                statusClearTimeout = setTimeout(() => {
+                  resetStatusSurface();
+                  statusClearTimeout = null;
+                }, durationMs);
+              }
+            }
 
             function showSuccess(message, durationMs = 2000) {
-              if (successClearTimeout) {
-                clearTimeout(successClearTimeout);
-                successClearTimeout = null;
-              }
-              error.textContent = message;
-              error.classList.add('status-success');
-              successClearTimeout = setTimeout(() => {
-                error.textContent = '';
-                error.classList.remove('status-success');
-                successClearTimeout = null;
-              }, durationMs);
+              showStatus(message, { variant: 'success', durationMs });
+            }
+
+            function showWarning(message, durationMs = 0) {
+              showStatus(message, { variant: 'warning', durationMs });
             }
 
             function clearSuccessStatus() {
-              if (successClearTimeout) {
-                clearTimeout(successClearTimeout);
-                successClearTimeout = null;
-              }
-              error.classList.remove('status-success');
+              clearStatusTimer();
+              resetStatusSurface();
             }
 
 // build-header
-const ConsoleBuildEpochMs = 1778639340000;
-const ConsoleBuildGitSha = 'f51f1a7';
+const ConsoleBuildEpochMs = 1778670540000;
+const ConsoleBuildGitSha = '4bc7c1a';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -2484,7 +2518,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             async function copyPrompt() {
                 if (promptActionInFlight) return;
                 await withMutationLock(async () => {
-                    error.textContent = '';
+                    clearSuccessStatus();
                     ensurePromptAnnotationsAvailable();
                     promptActionInFlight = true;
                     updateComposerState();
@@ -2501,7 +2535,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                             state.session = updated;
                             renderInspectorRegion();
                         } catch (markError) {
-                            // Clipboard write succeeded — silently ignore mark errors.
+                            showWarning('Copied, but MCP handoff status was not updated. Copy again after the connection recovers to update item state.');
                         }
                     } finally {
                         promptActionInFlight = false;
@@ -2519,7 +2553,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             async function sendAgentPrompt() {
                 if (promptActionInFlight) return;
                 await withMutationLock(async () => {
-                    error.textContent = '';
+                    clearSuccessStatus();
                     ensurePromptAnnotationsAvailable();
                     promptActionInFlight = true;
                     updateComposerState();
@@ -3501,8 +3535,10 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function showError(cause) {
-              clearSuccessStatus();
-              error.textContent = friendlyErrorMessage(cause && cause.message ? cause.message : cause);
+              showStatus(
+                friendlyErrorMessage(cause && cause.message ? cause.message : cause),
+                { variant: 'error', assertive: true },
+              );
             }
 
             // ALH-2: 5-second undo toast shown after a pending item is deleted.

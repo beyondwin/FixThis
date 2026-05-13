@@ -62,13 +62,14 @@
             </div>
             <div class="connection-actions">
               <button id="connectionPrimaryAction" class="primary-action" type="button">Start</button>
-              <details id="connectionDetails" class="connection-details">
-                <summary>Details</summary>
-                <pre id="connectionDetailsBody">Waiting for connection check.</pre>
-              </details>
-            </div>
-          </section>
-          <main class="studio-body">
+          <details id="connectionDetails" class="connection-details">
+            <summary>Details</summary>
+            <pre id="connectionDetailsBody">Waiting for connection check.</pre>
+          </details>
+        </div>
+      </section>
+      <p id="error" class="global-status" role="status" aria-live="polite" hidden></p>
+      <main class="studio-body">
             <aside class="studio-history">
                 <div class="panel-head">
                   <div class="panel-title">History</div>
@@ -128,7 +129,6 @@
                   <button id="addItemButton" class="primary" disabled hidden>Add annotation</button>
                   <button id="clearDraftButton">Clear Draft</button>
                 </div>
-                <p id="error" class="error" role="status" aria-live="polite"></p>
               </aside>
             </main>
           </div>

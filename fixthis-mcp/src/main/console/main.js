@@ -81,8 +81,10 @@
             }
 
             function showError(cause) {
-              clearSuccessStatus();
-              error.textContent = friendlyErrorMessage(cause && cause.message ? cause.message : cause);
+              showStatus(
+                friendlyErrorMessage(cause && cause.message ? cause.message : cause),
+                { variant: 'error', assertive: true },
+              );
             }
 
             // ALH-2: 5-second undo toast shown after a pending item is deleted.

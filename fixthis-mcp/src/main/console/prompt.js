@@ -61,7 +61,7 @@
             async function copyPrompt() {
                 if (promptActionInFlight) return;
                 await withMutationLock(async () => {
-                    error.textContent = '';
+                    clearSuccessStatus();
                     ensurePromptAnnotationsAvailable();
                     promptActionInFlight = true;
                     updateComposerState();
@@ -78,7 +78,7 @@
                             state.session = updated;
                             renderInspectorRegion();
                         } catch (markError) {
-                            // Clipboard write succeeded — silently ignore mark errors.
+                            showWarning('Copied, but MCP handoff status was not updated. Copy again after the connection recovers to update item state.');
                         }
                     } finally {
                         promptActionInFlight = false;
@@ -96,7 +96,7 @@
             async function sendAgentPrompt() {
                 if (promptActionInFlight) return;
                 await withMutationLock(async () => {
-                    error.textContent = '';
+                    clearSuccessStatus();
                     ensurePromptAnnotationsAvailable();
                     promptActionInFlight = true;
                     updateComposerState();

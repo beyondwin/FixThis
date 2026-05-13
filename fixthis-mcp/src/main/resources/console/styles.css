@@ -36,7 +36,7 @@
             .studio-shell {
               grid-row: 2;
               display: grid;
-              grid-template-rows: 56px auto 1fr;
+              grid-template-rows: 56px auto auto 1fr;
               height: 100%;
               overflow: hidden;
             }
@@ -51,7 +51,7 @@
               border-bottom: 1px solid var(--line);
             }
             .studio-body {
-              grid-row: 3;
+              grid-row: 4;
               display: grid;
               grid-template-columns: 280px minmax(480px, 1fr) 340px;
               min-height: 0;
@@ -1119,17 +1119,39 @@
               font-size: 12px;
               line-height: 1.5;
             }
-            .error {
-              color: var(--danger);
-              font-size: 13px;
-              min-height: 18px;
+            .global-status {
+              grid-row: 3;
+              min-width: 0;
               margin: 0;
-              padding: 0 10px 10px;
-              max-width: 100%;
+              padding: 10px 16px;
+              border-bottom: 1px solid var(--line);
+              font-size: 13px;
+              line-height: 1.45;
               overflow-wrap: anywhere;
               white-space: normal;
             }
-            .error.status-success { color: var(--accent); }
+            .global-status[hidden],
+            .global-status:empty { display: none; }
+            .global-status.status-error {
+              background: rgba(242, 109, 109, .12);
+              color: #fecaca;
+              border-bottom-color: rgba(242, 109, 109, .35);
+            }
+            .global-status.status-warning {
+              background: rgba(230, 180, 90, .14);
+              color: #fde68a;
+              border-bottom-color: rgba(230, 180, 90, .35);
+            }
+            .global-status.status-success {
+              background: rgba(184, 211, 106, .12);
+              color: var(--accent);
+              border-bottom-color: rgba(184, 211, 106, .35);
+            }
+            .global-status.status-info {
+              background: rgba(91, 180, 232, .12);
+              color: #bfdbfe;
+              border-bottom-color: rgba(91, 180, 232, .35);
+            }
             .activity-drift-warning {
               max-width: 100%;
               overflow-wrap: anywhere;
@@ -1216,7 +1238,7 @@
                 min-height: 100vh;
                 height: auto;
                 overflow: visible;
-                grid-template-rows: auto auto 1fr;
+                grid-template-rows: auto auto auto 1fr;
               }
               .studio-topbar {
                 position: sticky;
