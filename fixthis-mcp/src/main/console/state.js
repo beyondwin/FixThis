@@ -103,10 +103,10 @@
             // module scope (only used by sendBridgeHeartbeat /
             // scheduleNextHeartbeat / startHeartbeatPolling /
             // stopHeartbeatPolling). See connection.js.
-            let runtimeDraftFlow = null;
-            let runtimeDraftItems = [];
-            let runtimeDraftFocusIndex = null;
-            let runtimeDraftSelection = null;
+            let draftFlowState = null;
+            let draftPinsState = [];
+            let draftFocusIndexState = null;
+            let draftSelectionState = null;
             // Tool-mode-owned state (toolMode, annotationSequence,
             // hoveredAnnotationTarget, dragStart, dragPreview,
             // suppressNextClick, draftFlowStarting,
@@ -121,86 +121,86 @@
             // MaxConsecutivePollFailures is declared in pollingFsm.js.
             // ALH-2: Undo/redo history singleton for pending feedback items.
             let undoRedoHistory = createHistory();
-            let draftWorkspace = createEmptyDraftWorkspace();
+            let dw = createEmptyDraftWorkspace();
             let draftCommandQueue = null;
 
             function currentDraftWorkspace() {
-              return draftWorkspace;
+              return dw;
             }
 
-            function draftRuntimeFlow() {
-              return runtimeDraftFlow;
+            function dFlow() {
+              return draftFlowState;
             }
 
-            function draftRuntimeItems() {
-              return runtimeDraftItems;
+            function dPins() {
+              return draftPinsState;
             }
 
-            function draftRuntimeFocusIndex() {
-              return runtimeDraftFocusIndex;
+            function dFocus() {
+              return draftFocusIndexState;
             }
 
-            function setDraftRuntimeFocusIndex(index) {
-              runtimeDraftFocusIndex = index;
+            function setDFocus(index) {
+              draftFocusIndexState = index;
             }
 
-            function draftRuntimeSelection() {
-              return runtimeDraftSelection;
+            function dSel() {
+              return draftSelectionState;
             }
 
-            function setDraftRuntimeSelection(selection) {
-              runtimeDraftSelection = selection;
+            function setDSel(selection) {
+              draftSelectionState = selection;
             }
 
-            function setDraftWorkspaceState(nextWorkspace) {
-              draftWorkspace = nextWorkspace || createEmptyDraftWorkspace();
+            function setWs(nextWorkspace) {
+              dw = nextWorkspace || createEmptyDraftWorkspace();
               syncDraftWorkspaceCompatibility();
               persistCurrentDraftWorkspaceIfNeeded();
             }
 
             function syncDraftWorkspaceCompatibility() {
-              if (draftWorkspace.lifecycle === DraftLifecycle.EMPTY) {
-                runtimeDraftFlow = null;
-                runtimeDraftItems = [];
-                runtimeDraftFocusIndex = null;
-                runtimeDraftSelection = null;
+              if (dw.lifecycle === DraftLifecycle.EMPTY) {
+                draftFlowState = null;
+                draftPinsState = [];
+                draftFocusIndexState = null;
+                draftSelectionState = null;
                 undoRedoHistory = createHistory();
                 return;
               }
-              runtimeDraftFlow = {
-                context: draftWorkspace.context,
-                previewId: draftWorkspace.context?.previewId || null,
-                screen: draftWorkspace.screen,
-                screenshotUrl: draftWorkspace.screenshotUrl,
-                frozenAtEpochMillis: draftWorkspace.context?.frozenAtEpochMillis || null,
-                activity: draftWorkspace.context?.activityName || null,
-                activityDriftWarning: draftWorkspace.activityDriftWarning || null,
+              draftFlowState = {
+                context: dw.context,
+                previewId: dw.context?.previewId || null,
+                screen: dw.screen,
+                screenshotUrl: dw.screenshotUrl,
+                frozenAtEpochMillis: dw.context?.frozenAtEpochMillis || null,
+                activity: dw.context?.activityName || null,
+                activityDriftWarning: dw.activityDriftWarning || null,
               };
-              runtimeDraftItems = draftWorkspace.items;
-              runtimeDraftFocusIndex = draftWorkspace.focusedItemId
-                ? draftWorkspace.items.findIndex((item) => item.draftItemId === draftWorkspace.focusedItemId)
+              draftPinsState = dw.items;
+              draftFocusIndexState = dw.focusedItemId
+                ? dw.items.findIndex((item) => item.draftItemId === dw.focusedItemId)
                 : null;
-              if (runtimeDraftFocusIndex < 0) runtimeDraftFocusIndex = null;
-              runtimeDraftSelection = draftWorkspace.currentSelection;
-              undoRedoHistory = draftWorkspace.history || createHistory(draftWorkspace.context);
+              if (draftFocusIndexState < 0) draftFocusIndexState = null;
+              draftSelectionState = dw.currentSelection;
+              undoRedoHistory = dw.history || createHistory(dw.context);
             }
 
             function persistCurrentDraftWorkspaceIfNeeded() {
-              if (!draftWorkspace?.workspaceId) return;
-              if (!(draftWorkspace.items || []).length) {
+              if (!dw?.workspaceId) return;
+              if (!(dw.items || []).length) {
                 deleteCurrentDraftWorkspaceStorage();
                 return;
               }
               const storage = createBrowserDraftPorts().storage;
-              storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(draftWorkspace));
+              storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(dw));
             }
 
             function deleteCurrentDraftWorkspaceStorage() {
-              if (!draftWorkspace?.workspaceId) return;
-              const sessionId = draftWorkspace.context?.sessionId || state.session?.sessionId;
+              if (!dw?.workspaceId) return;
+              const sessionId = dw.context?.sessionId || state.session?.sessionId;
               if (!sessionId) return;
               const storage = createBrowserDraftPorts().storage;
-              storage.deleteWorkspace(sessionId, draftWorkspace.workspaceId);
+              storage.deleteWorkspace(sessionId, dw.workspaceId);
             }
 
             function createBrowserDraftPorts() {
@@ -234,7 +234,7 @@
               if (draftCommandQueue) return draftCommandQueue;
               draftCommandQueue = createDraftCommandQueue({
                 getWorkspace: currentDraftWorkspace,
-                setWorkspace: setDraftWorkspaceState,
+                setWorkspace: setWs,
                 onStaleResponse: () => refreshSessions().catch(showError),
                 onError: showError,
               });

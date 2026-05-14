@@ -107,7 +107,7 @@
             // The send/copy path uses currentPromptAnnotations(), which re-applies the delivery filter
             // so already-sent items are not re-sent.
             function toolbarAnnotations() {
-              if (draftRuntimeFlow()) return draftRuntimeItems();
+              if (dFlow()) return dPins();
               return state.session?.items || [];
             }
 
@@ -143,7 +143,7 @@
               const missing = unsent.length - ready.length;
               const warningCount = annotations.reduce((total, item) => total + reliabilityWarnings(item).length, 0);
               if (ready.length > 0) {
-                const itemKind = draftRuntimeFlow() ? 'draft' : 'saved';
+                const itemKind = dFlow() ? 'draft' : 'saved';
                 return {
                   state: missing > 0 ? 'blocked' : (warningCount > 0 ? 'warn' : 'ready'),
                   label: countLabel(ready.length, 'ready', 'ready') +
@@ -251,8 +251,8 @@
             }
 
             function focusedPendingSelectionSummary() {
-              if (draftRuntimeFocusIndex() != null) {
-                return draftRuntimeItems()[draftRuntimeFocusIndex()] || null;
+              if (dFocus() != null) {
+                return dPins()[dFocus()] || null;
               }
               return null;
             }
@@ -262,7 +262,7 @@
               const promptDisabled = !hasPromptAnnotations || pollingUseCases.getState().promptActionInFlight;
               copyPromptButton.disabled = promptDisabled;
               sendAgentButton.disabled = promptDisabled;
-              cancelAddFlowButton.disabled = !draftRuntimeFlow();
+              cancelAddFlowButton.disabled = !dFlow();
               addItemButton.hidden = true;
               addItemButton.disabled = true;
               annotateToolButton.disabled = toolModeUseCases.getState().draftFlowStarting;
@@ -275,10 +275,10 @@
                     '<span class="ts-dot-label"><span class="ts-dot resolved"></span>' + toolbarResolvedCount() + ' resolved</span>' +
                   '</span>';
               const item = focusedPendingSelectionSummary();
-              selectionSummary.textContent = draftRuntimeSelection()
-                ? draftRuntimeSelection().label + ' - ' + formatBounds(draftRuntimeSelection().bounds)
+              selectionSummary.textContent = dSel()
+                ? dSel().label + ' - ' + formatBounds(dSel().bounds)
                 : (item
-                  ? 'Focused #' + (draftRuntimeFocusIndex() + 1) + ' - ' + formatBounds(item.bounds)
+                  ? 'Focused #' + (dFocus() + 1) + ' - ' + formatBounds(item.bounds)
                   : (toolModeUseCases.isAnnotateMode() ? 'Click a component or drag a region to create an annotation.' : 'No annotation selected.'));
               renderPromptReadiness();
             }
@@ -341,7 +341,7 @@
                 }
                 return;
               }
-              setDraftRuntimeSelection(selection);
+              setDSel(selection);
               createAnnotationFromSelection(selection);
               error.textContent = '';
             }
@@ -379,7 +379,7 @@
                 bounds: bounds,
                 label: 'Custom area ' + Math.round(bounds.right - bounds.left) + 'x' + Math.round(bounds.bottom - bounds.top)
               };
-              setDraftRuntimeSelection(selection);
+              setDSel(selection);
               createAnnotationFromSelection(selection);
               error.textContent = '';
             }
@@ -397,29 +397,29 @@
               renderSelectionOverlay();
             }
 
-            function resetAnnotationComposerRuntime(clearFlow = true, clearMirror = true) {
+            function resetComposer(clearFlow = true, clearMirror = true) {
               if (clearFlow && clearMirror) deleteCurrentDraftWorkspaceStorage();
-              if (clearFlow) setDraftWorkspaceState(createEmptyDraftWorkspace());
+              if (clearFlow) setWs(createEmptyDraftWorkspace());
               if (clearMirror) {
                 clearPendingMirror(state.session?.sessionId);
                 activePendingMirrorSessions.delete(state.session?.sessionId);
               }
-              setDraftRuntimeFocusIndex(null);
+              setDFocus(null);
               toolModeUseCases.focusSavedItem(null, null);
-              setDraftRuntimeSelection(null);
+              setDSel(null);
               toolModeUseCases.setHoveredTarget(null);
               toolModeUseCases.enterSelect();
               comment.value = '';
               clearDragState();
             }
 
-            function currentPendingStateEnvelope(items = draftRuntimeItems()) {
+            function currentPendingStateEnvelope(items = dPins()) {
               return {
-                context: draftRuntimeFlow()?.context ?? null,
-                previewId: draftRuntimeFlow()?.previewId ?? draftRuntimeFlow()?.context?.previewId ?? null,
-                screen: draftRuntimeFlow()?.screen ?? null,
-                screenshotUrl: draftRuntimeFlow()?.screenshotUrl ?? null,
-                frozenAtEpochMillis: draftRuntimeFlow()?.frozenAtEpochMillis ?? draftRuntimeFlow()?.context?.frozenAtEpochMillis ?? null,
+                context: dFlow()?.context ?? null,
+                previewId: dFlow()?.previewId ?? dFlow()?.context?.previewId ?? null,
+                screen: dFlow()?.screen ?? null,
+                screenshotUrl: dFlow()?.screenshotUrl ?? null,
+                frozenAtEpochMillis: dFlow()?.frozenAtEpochMillis ?? dFlow()?.context?.frozenAtEpochMillis ?? null,
                 items: items,
               };
             }
@@ -438,8 +438,8 @@
             }
 
             function clearSelection() {
-              setDraftRuntimeSelection(null);
-              setDraftRuntimeFocusIndex(null);
+              setDSel(null);
+              setDFocus(null);
               toolModeUseCases.focusSavedItem(null, null);
               toolModeUseCases.setHoveredTarget(null);
               comment.value = '';
@@ -474,7 +474,7 @@
                   return;
                 }
                 const ports = createBrowserDraftPorts();
-                const nextWorkspace = await startDraftFreeze(draftWorkspace, {
+                const nextWorkspace = await startDraftFreeze(dw, {
                   sessionId: state.session?.sessionId || null,
                   selectedDeviceSerial: state.selectedDeviceSerial || null,
                   activityName: state.connection?.availability?.activity ?? null,
@@ -485,31 +485,31 @@
                     capture: async () => state.preview,
                   },
                 });
-                setDraftWorkspaceState(nextWorkspace);
+                setWs(nextWorkspace);
                 toolModeUseCases.enterAnnotate();
                 toolModeUseCases.focusSavedItem(null, null);
                 render();
               } finally {
                 toolModeUseCases.setAddItemsFlowStarting(false);
                 updateComposerState();
-                if (!draftRuntimeFlow()) startLivePreviewPolling();
+                if (!dFlow()) startLivePreviewPolling();
               }
             }
 
             function flushFocusedPendingComment() {
-              if (draftRuntimeFocusIndex() == null) return;
-              const item = draftRuntimeItems()[draftRuntimeFocusIndex()];
+              if (dFocus() == null) return;
+              const item = dPins()[dFocus()];
               if (!item) return;
               const commentInput = pendingItems.querySelector('#annotationCommentInput');
               item.comment = commentInput ? commentInput.value : comment.value;
             }
 
             function createAnnotationFromSelection(selection) {
-              if (!draftRuntimeFlow()) throw new Error('Switch to Annotate before selecting feedback.');
+              if (!dFlow()) throw new Error('Switch to Annotate before selecting feedback.');
               if (!selection) throw new Error('Select a component or area first.');
               flushFocusedPendingComment();
               const ports = createBrowserDraftPorts();
-              let nextWorkspace = addDraftItem(draftWorkspace, selection, ports);
+              let nextWorkspace = addDraftItem(dw, selection, ports);
               // SIF-6: re-check activity drift after each pending item is
               // appended. Uses the existing status-poll-derived availability
               // — no extra fetch is issued.
@@ -522,7 +522,7 @@
                   activityDriftWarning: checkActivityDrift({ activity: nextWorkspace.context.activityName }, currentActivitySnapshot),
                 };
               }
-              setDraftWorkspaceState(nextWorkspace);
+              setWs(nextWorkspace);
               const createdItem = nextWorkspace.items[nextWorkspace.items.length - 1];
               toolModeUseCases.setHoveredTarget(null);
               toolModeUseCases.focusSavedItem(null, null);
@@ -535,17 +535,17 @@
             }
 
             function deletePendingFeedbackItem(index) {
-              const removed = draftWorkspace.items[index];
+              const removed = dw.items[index];
               if (!removed) return;
-              const nextWorkspace = deleteDraftItem(draftWorkspace, removed.draftItemId);
+              const nextWorkspace = deleteDraftItem(dw, removed.draftItemId);
               if (nextWorkspace.items.length === 0) {
                 deleteCurrentDraftWorkspaceStorage();
               }
-              setDraftWorkspaceState(nextWorkspace);
+              setWs(nextWorkspace);
               showUndoToast(removed.draftItemId);
-              setDraftRuntimeFocusIndex(null);
+              setDFocus(null);
               toolModeUseCases.focusSavedItem(null, null);
-              setDraftRuntimeSelection(null);
+              setDSel(null);
               toolModeUseCases.setHoveredTarget(null);
               comment.value = '';
               renderPreviewOnly();
@@ -555,11 +555,11 @@
 
             function focusPendingFeedbackItem(index) {
               flushFocusedPendingComment();
-              setDraftRuntimeFocusIndex(index);
+              setDFocus(index);
               toolModeUseCases.focusSavedItem(null, null);
-              setDraftRuntimeSelection(null);
+              setDSel(null);
               toolModeUseCases.enterSelect();
-              comment.value = draftRuntimeItems()[index]?.comment || '';
+              comment.value = dPins()[index]?.comment || '';
               renderPreviewOnly();
               renderInspectorRegion();
             }
@@ -567,8 +567,8 @@
             function focusSavedEvidenceItem(itemId) {
               const item = savedEvidenceItems().find(savedItem => savedItem.itemId === itemId);
               toolModeUseCases.focusSavedItem(item ? itemId : null, item ? state.session?.sessionId || null : null, item?.screenId || null);
-              setDraftRuntimeFocusIndex(null);
-              setDraftRuntimeSelection(null);
+              setDFocus(null);
+              setDSel(null);
               toolModeUseCases.enterSelect();
               comment.value = '';
               renderPreviewOnly();
@@ -633,7 +633,7 @@
               const item = selectedAnnotation();
               if (!item) return;
               item.comment = comment.value;
-              if (draftRuntimeFlow()) persistCurrentPendingState();
+              if (dFlow()) persistCurrentPendingState();
               renderPendingItems();
               updateComposerState();
             }
@@ -642,7 +642,7 @@
               const allowFallbackComments = Boolean(options.allowFallbackComments);
               const onlyWrittenComments = Boolean(options.onlyWrittenComments);
               const allowBlankComments = Boolean(options.allowBlankComments);
-              const items = onlyWrittenComments ? draftRuntimeItems().filter(hasWrittenAnnotationComment) : draftRuntimeItems();
+              const items = onlyWrittenComments ? dPins().filter(hasWrittenAnnotationComment) : dPins();
               return items.map(item => ({
                 targetType: item.targetType,
                 bounds: item.bounds,
@@ -657,19 +657,19 @@
             }
 
             async function persistPendingFeedbackItems(options = {}) {
-              if (!draftWorkspace?.workspaceId) return;
-              if (!draftWorkspaceItems(draftWorkspace).length) throw new Error('Add at least one pending feedback item.');
+              if (!dw?.workspaceId) return;
+              if (!draftWorkspaceItems(dw).length) throw new Error('Add at least one pending feedback item.');
               const allowFallbackComments = Boolean(options.allowFallbackComments);
               const onlyWrittenComments = Boolean(options.onlyWrittenComments);
               const allowBlankComments = Boolean(options.allowBlankComments);
               const forceMismatchOverride = Boolean(options.forceMismatchOverride);
-              const items = draftWorkspaceItems(draftWorkspace);
+              const items = draftWorkspaceItems(dw);
               if (!allowFallbackComments && !onlyWrittenComments && !allowBlankComments && items.some(item => !String(item.comment || '').trim())) throw new Error('Add a comment to every annotation before saving.');
               if (onlyWrittenComments && !items.some(hasWrittenAnnotationComment)) throw new Error('Add a comment to at least one annotation before sending.');
               const meta = {
                 kind: 'persist-draft-workspace',
-                workspaceId: draftWorkspace.workspaceId,
-                expectedRevision: draftWorkspace.revision,
+                workspaceId: dw.workspaceId,
+                expectedRevision: dw.revision,
               };
               const result = await ensureDraftCommandQueue().enqueue(meta, async (workspace) => {
                 const saveWorkspace = onlyWrittenComments
@@ -689,7 +689,7 @@
                   return await persistPendingFeedbackItems({ ...options, forceMismatchOverride: true });
                 }
                 if (choice === 'recapture') {
-                  setDraftWorkspaceState(createEmptyDraftWorkspace());
+                  setWs(createEmptyDraftWorkspace());
                   setConsolePreview(null);
                   startLivePreviewPolling();
                   return null;
@@ -748,7 +748,7 @@
             }
 
             async function flushPendingAnnotationsBeforeSessionChange() {
-              if (!draftRuntimeFlow() || !draftRuntimeItems().length) return;
+              if (!dFlow() || !dPins().length) return;
               await persistPendingFeedbackItems({ allowBlankComments: true });
             }
 
@@ -760,14 +760,14 @@
             }
 
             function cancelAddItemsFlow() {
-              resetAnnotationComposerRuntime();
+              resetComposer();
               render();
               startLivePreviewPolling();
             }
 
             function enterSelectMode() {
               toolModeUseCases.enterSelect();
-              setDraftRuntimeSelection(null);
+              setDSel(null);
               clearHoverPreview();
               clearDragState();
               renderCurrentSessionList();

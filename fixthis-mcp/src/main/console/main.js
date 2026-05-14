@@ -34,7 +34,7 @@
             zoomInButton.addEventListener('click', () => setPreviewZoom(previewUseCases.getState().zoom + PreviewZoomStep));
             addItemButton.addEventListener('click', () => {
               try {
-                createAnnotationFromSelection(draftRuntimeSelection());
+                createAnnotationFromSelection(dSel());
               } catch (cause) {
                 showError(cause);
               }
@@ -67,7 +67,7 @@
             });
             // ALH-1: warn user if they try to leave with unsaved pending items.
             window.addEventListener('beforeunload', (e) => {
-              if (shouldGuardUnload(draftRuntimeItems().length)) {
+              if (shouldGuardUnload(dPins().length)) {
                 e.preventDefault();
                 e.returnValue = '저장하지 않은 어노테이션이 있습니다. 정말 떠나시겠습니까?';
                 return e.returnValue;
@@ -119,7 +119,7 @@
               btn.textContent = '되돌리기';
               btn.style.cssText = 'background:none;border:none;color:#bb86fc;cursor:pointer;font-size:14px;padding:0;font-weight:500;';
               btn.addEventListener('click', () => {
-                const result = undo(undoRedoHistory, { items: draftRuntimeItems() }, draftRuntimeFlow()?.context ?? null);
+                const result = undo(undoRedoHistory, { items: dPins() }, dFlow()?.context ?? null);
                 if (result.reason === 'context_mismatch') showError('Undo history was cleared because the annotation session changed.');
                 if (result.applied) {
                   persistCurrentPendingState();
@@ -151,24 +151,24 @@
             }
 
             async function resolvePendingBeforeBoundary(action, sessionId = null) {
-              const hasActivePending = Boolean(draftWorkspace?.workspaceId && draftWorkspaceItems(draftWorkspace).length);
+              const hasActivePending = Boolean(dw?.workspaceId && draftWorkspaceItems(dw).length);
               if (!hasActivePending && !hasPendingRecoveryItems()) return 'continue';
               if (hasPendingRecoveryItems() && !hasActivePending) {
                 renderPendingRecoveryBanner();
                 showError('Recover, recapture, or discard unsaved annotations before changing sessions.');
                 return 'cancel';
               }
-              const pendingSessionId = draftWorkspace?.context?.sessionId || null;
+              const pendingSessionId = dw?.context?.sessionId || null;
               if (sessionId && pendingSessionId && sessionId !== pendingSessionId) {
-                createBrowserDraftPorts().storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(draftWorkspace));
+                createBrowserDraftPorts().storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(dw));
                 activePendingMirrorSessions.add(pendingSessionId);
-                setDraftWorkspaceState(createEmptyDraftWorkspace());
+                setWs(createEmptyDraftWorkspace());
                 return 'continue';
               }
               const result = await ensureDraftCommandQueue().enqueue({
                 kind: 'session-boundary',
-                workspaceId: draftWorkspace.workspaceId,
-                expectedRevision: draftWorkspace.revision,
+                workspaceId: dw.workspaceId,
+                expectedRevision: dw.revision,
               }, async (workspace) => {
                 return await resolveDraftBoundary(workspace, { kind: action, sessionId }, createBrowserDraftPorts());
               });
@@ -219,7 +219,7 @@
 
 	            function restorePendingRecoveryContext(recovery) {
 	              const workspace = recoverDraftWorkspaceFromEnvelope(recovery);
-	              setDraftWorkspaceState(workspace);
+	              setWs(workspace);
 	              setConsolePreview({
 	                previewId: workspace.context.previewId,
 	                screen: workspace.screen,
@@ -228,9 +228,9 @@
 	                stale: false
 	              });
               updateAnnotationSequenceFromPendingItems(workspace.items);
-              setDraftRuntimeFocusIndex(null);
+              setDFocus(null);
               toolModeUseCases.focusSavedItem(null, null);
-              setDraftRuntimeSelection(null);
+              setDSel(null);
               toolModeUseCases.setHoveredTarget(null);
               toolModeUseCases.enterSelect();
               stopLivePreviewPolling();
@@ -271,7 +271,7 @@
             function renderPendingRecoveryBanner() {
               const banner = ensurePendingRecoveryBanner();
               const recoveryItems = pendingRecoveryItems(pendingRecovery);
-              if (!pendingRecovery || !recoveryItems.length || draftRuntimeFlow() || draftRuntimeItems().length) {
+              if (!pendingRecovery || !recoveryItems.length || dFlow() || dPins().length) {
                 banner.hidden = true;
                 return;
               }
@@ -321,7 +321,7 @@
                 return;
               }
               const sessionId = state.session.sessionId;
-              if (draftRuntimeFlow() || draftRuntimeItems().length) {
+              if (dFlow() || dPins().length) {
                 renderPendingRecoveryBanner();
                 return;
               }
@@ -344,24 +344,24 @@
                 const accepted = window.confirm('Recapture the current app screen and remap recovered pins to the new frozen preview?');
                 if (!accepted) return;
               }
-              clearPreviewRuntimeContext();
+              clearPreview();
               await startDraftAnnotationFlow();
-              if (!draftRuntimeFlow()) return;
+              if (!dFlow()) return;
               const recoveredItems = items.map((item, index) => ({
                 ...item,
                 draftItemId: item?.draftItemId || item?.annotationId || ('recovered-' + (index + 1)),
               }));
-              setDraftWorkspaceState({
-                ...draftWorkspace,
-                revision: draftWorkspace.revision + 1,
+              setWs({
+                ...dw,
+                revision: dw.revision + 1,
                 items: recoveredItems,
                 history: { undoStack: [], redoStack: [] },
               });
               updateAnnotationSequenceFromPendingItems(recoveredItems);
               pendingRecovery = null;
-              setDraftRuntimeFocusIndex(null);
+              setDFocus(null);
               toolModeUseCases.focusSavedItem(null, null);
-              setDraftRuntimeSelection(null);
+              setDSel(null);
               toolModeUseCases.setHoveredTarget(null);
               persistCurrentPendingState();
               renderPendingRecoveryBanner();
@@ -369,7 +369,7 @@
             }
 
             window.FixThisConsoleDebug = Object.freeze({
-              getDraftWorkspace: () => draftWorkspace,
+              getDraftWorkspace: () => dw,
               getState: () => state,
             });
 

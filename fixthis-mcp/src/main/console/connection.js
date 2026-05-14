@@ -35,7 +35,7 @@
             }
 
             function markPreviewStale(stale) {
-              const hasPreviewSurface = Boolean(state.preview || draftRuntimeFlow()?.screen || latestPersistedScreen());
+              const hasPreviewSurface = Boolean(state.preview || dFlow()?.screen || latestPersistedScreen());
               previewStaleBadge.hidden = !stale || !hasPreviewSurface;
             }
 
@@ -142,7 +142,7 @@
                 startLivePreviewPolling();
               } else {
                 stopLivePreviewPolling();
-                if (draftRuntimeItems().length || state.preview) markPreviewStale(true);
+                if (dPins().length || state.preview) markPreviewStale(true);
               }
               renderConnection(status);
               // Re-render the preview region so the canvas blocked-reason overlay and

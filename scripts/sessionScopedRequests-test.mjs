@@ -41,8 +41,8 @@ test('batch save uses draft workspace use case with explicit context', () => {
   const persist = body(annotationsSource, 'async function persistPendingFeedbackItems(options = {})');
   assert.match(persist, /ensureDraftCommandQueue\(\)\.enqueue/);
   assert.match(persist, /persistDraftWorkspace\(/);
-  assert.match(persist, /draftWorkspace\.workspaceId/);
-  assert.match(persist, /draftWorkspace\.revision/);
+  assert.match(persist, /dw\.workspaceId/);
+  assert.match(persist, /dw\.revision/);
 });
 
 test('preview and screen URLs include explicit sessionId query', () => {
@@ -56,7 +56,7 @@ test('pending persistence envelope stores captured context', () => {
 });
 
 test('agent handoff includes sessionId in request body', () => {
-  assert.match(promptSource, /const sessionId = draftWorkspace\?\.context\?\.sessionId \|\| state\.session\?\.sessionId;/);
+  assert.match(promptSource, /const sessionId = dw\?\.context\?\.sessionId \|\| state\.session\?\.sessionId;/);
   assert.match(promptSource, /sessionId,\s*\n\s*itemIds/);
 });
 
@@ -87,5 +87,5 @@ test('draft command queue fences stale pending save responses', () => {
   assert.match(stateSource, /function bumpSessionMutationGeneration\(\)/);
   assert.match(stateSource, /MUTATION_GENERATION_BUMP/);
   assert.match(stateSource, /let draftCommandQueue = null;/);
-  assert.match(annotationsSource, /expectedRevision:\s*draftWorkspace\.revision/);
+  assert.match(annotationsSource, /expectedRevision:\s*dw\.revision/);
 });

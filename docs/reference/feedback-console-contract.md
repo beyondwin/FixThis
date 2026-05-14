@@ -216,6 +216,8 @@ Tool-using agents that parsed the v1 compact prompt format must update the follo
 
 ## Console state model
 
+### Canonical Runtime State
+
 The browser console uses one canonical `ConsoleAppState`. DOM events and
 network responses dispatch commands/events into a reducer. The reducer returns
 the next state plus effect descriptions; browser adapters execute those effects
@@ -225,6 +227,12 @@ Renderers consume selector view models only. They do not mutate session,
 preview, draft, tool, polling, or prompt state. Draft work is represented by
 `workspace.kind = "draft"` and is locked to an immutable session/preview/screen
 context until saved, moved to recovery, or discarded.
+
+Browser-internal legacy state holders such as `activeDraftFlow`,
+`draftFeedbackItems`, `focusedPendingItemIndex`, and `currentSelection` are not
+supported. This does not change MCP tool contracts, HTTP route payloads,
+persisted feedback-session JSON, or local draft storage migration
+compatibility.
 
 Cross-session navigation with unsaved draft work creates `pendingBoundary`; the
 boundary sheet is the only UI path that can save, recover, discard, or cancel

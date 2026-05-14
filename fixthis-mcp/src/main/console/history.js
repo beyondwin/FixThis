@@ -27,8 +27,8 @@
             }
 
             function pendingHistoryItemsForSession(session) {
-              if (!draftRuntimeFlow() || state.session?.sessionId !== session?.sessionId) return [];
-              return draftRuntimeItems();
+              if (!dFlow() || state.session?.sessionId !== session?.sessionId) return [];
+              return dPins();
             }
 
             function historyOpenCount(session) {
@@ -86,8 +86,8 @@
             }
 
             function toolbarAnnotationCounts() {
-              if (draftRuntimeFlow()) {
-                const pending = draftRuntimeItems();
+              if (dFlow()) {
+                const pending = dPins();
                 return {
                   open: pending.filter(item => annotationStatus(item) !== 'resolved').length,
                   resolved: pending.filter(item => annotationStatus(item) === 'resolved').length
@@ -109,8 +109,8 @@
             }
 
             function selectedAnnotation() {
-              if (draftRuntimeFocusIndex() == null) return null;
-              return draftRuntimeItems()[draftRuntimeFocusIndex()] || null;
+              if (dFocus() == null) return null;
+              return dPins()[dFocus()] || null;
             }
 
             function sourceHintLabel(item) {
@@ -133,8 +133,8 @@
               if (!requirePendingRecoveryChoiceBeforeSessionChange()) {
                 throw new Error('Recover, recapture, or discard unsaved annotations before changing sessions.');
               }
-              resetAnnotationComposerRuntime();
-              clearPreviewRuntimeContext();
+              resetComposer();
+              clearPreview();
 	              setConsoleSession(await withMutationLock(() => requestJson('/api/session/open', {
 	                method: 'POST',
 	                headers: { 'Content-Type': 'application/json' },
@@ -148,7 +148,7 @@
               await ensureSessionForAnnotating();
               toolModeUseCases.enterAnnotate();
               renderCurrentSessionList();
-              if (!draftRuntimeFlow()) {
+              if (!dFlow()) {
                 requestCanonicalPreviewCapture();
                 await startDraftAnnotationFlow();
               } else {
@@ -335,8 +335,8 @@
                 if (await resolvePendingBeforeBoundary('open-session', sessionId) !== 'continue') return;
                 bumpSessionMutationGeneration();
                 stopLivePreviewPolling();
-                resetAnnotationComposerRuntime(true, false);
-                clearPreviewRuntimeContext();
+                resetComposer(true, false);
+                clearPreview();
 	                setConsoleSession(await withMutationLock(() => requestJson('/api/session/open', {
 	                  method: 'POST',
 	                  headers: { 'Content-Type': 'application/json' },
@@ -361,8 +361,8 @@
               if (sessionNavigationInFlight) return;
               if (await resolvePendingBeforeBoundary('new-session') !== 'continue') return;
               bumpSessionMutationGeneration();
-              resetAnnotationComposerRuntime();
-              clearPreviewRuntimeContext();
+              resetComposer();
+              clearPreview();
 	              setConsoleSession(await withMutationLock(() => requestJson('/api/session/open', {
 	                method: 'POST',
 	                headers: { 'Content-Type': 'application/json' },
@@ -383,8 +383,8 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: sessionId })
               }));
-              resetAnnotationComposerRuntime();
-              clearPreviewRuntimeContext();
+              resetComposer();
+              clearPreview();
               setConsoleSession(null);
               await refreshSessions();
               render();
@@ -405,8 +405,8 @@
                 body: JSON.stringify({ sessionId: sessionId })
               }));
               if (wasDisplayedSession) {
-                resetAnnotationComposerRuntime();
-                clearPreviewRuntimeContext();
+                resetComposer();
+                clearPreview();
                 setConsoleSession(null);
               }
               await refreshSessions();

@@ -63,17 +63,17 @@ test('session navigation exposes in-flight state instead of silently racing clic
 test('reopening the active history session does not reset pending annotation flow', () => {
   const openBody = body(historySource, 'async function openSession(sessionId)');
   assert.match(openBody, /if \(sessionId === state\.session\?\.sessionId\) \{/);
-  assert.match(openBody, /if \(sessionId === state\.session\?\.sessionId\) \{[\s\S]*?return;[\s\S]*?resetAnnotationComposerRuntime\(true,\s*false\);/);
+  assert.match(openBody, /if \(sessionId === state\.session\?\.sessionId\) \{[\s\S]*?return;[\s\S]*?resetComposer\(true,\s*false\);/);
 });
 
 test('closeSession uses boundary resolver before reset', () => {
   const closeBody = body(historySource, 'async function closeSession()');
   assert.match(closeBody, /await resolvePendingBeforeBoundary\('close-session'/);
-  assert.doesNotMatch(closeBody, /resetAnnotationComposerRuntime\(\);[\s\S]*requestJson\('\/api\/session\/close'/);
+  assert.doesNotMatch(closeBody, /resetComposer\(\);[\s\S]*requestJson\('\/api\/session\/close'/);
 });
 
 test('deleteHistorySession uses boundary resolver before reset', () => {
   const deleteBody = body(historySource, 'async function deleteHistorySession(sessionId)');
   assert.match(deleteBody, /await resolvePendingBeforeBoundary\('delete-session',\s*sessionId\)/);
-  assert.doesNotMatch(deleteBody, /if \(isDisplayedSession\(\)\) \{\s*resetAnnotationComposerRuntime\(\);/);
+  assert.doesNotMatch(deleteBody, /if \(isDisplayedSession\(\)\) \{\s*resetComposer\(\);/);
 });

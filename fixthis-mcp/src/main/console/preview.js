@@ -11,7 +11,7 @@
               store.dispatch({ type: 'ANNOTATE_CLICKED' });
             }
 
-            function clearPreviewRuntimeContext() {
+            function clearPreview() {
               previewUseCases.contextChanged();
               setConsolePreview(null);
             }
@@ -29,7 +29,7 @@
             }
 
             function screenImageUrl(screen) {
-              if (draftRuntimeFlow()) return draftRuntimeFlow().screenshotUrl;
+              if (dFlow()) return dFlow().screenshotUrl;
               if (state.preview?.screen === screen && state.preview?.previewId) return previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null);
               const savedContext = toolModeUseCases.getState();
               const savedSessionId = screen?.screenId === savedContext.focusedSavedScreenId ? savedContext.focusedSavedSessionId : null;
@@ -46,7 +46,7 @@
             }
 
             function shouldPollPreview() {
-              return !document.hidden && !draftRuntimeFlow() && Boolean(state.session) && Boolean(state.selectedDeviceSerial) && userConnectionState(state.connection.current) === 'ready';
+              return !document.hidden && !dFlow() && Boolean(state.session) && Boolean(state.selectedDeviceSerial) && userConnectionState(state.connection.current) === 'ready';
             }
 
             function shouldAutoFetchPreview() {
@@ -102,7 +102,7 @@
             }
 
             function latestScreen() {
-              if (draftRuntimeFlow()) return draftRuntimeFlow().screen;
+              if (dFlow()) return dFlow().screen;
               const toolModeState = toolModeUseCases.getState();
               const focusedSavedItemId = toolModeState.focusedSavedItemId;
               let savedScreen = null;
@@ -142,11 +142,11 @@
 
             async function refreshPreview() {
               error.textContent = '';
-              if (!state.session || draftRuntimeFlow()) return;
+              if (!state.session || dFlow()) return;
               const requestGeneration = previewUseCases.getState().requestGeneration + 1;
               try {
                 const preview = await previewUseCases.request();
-                if (draftRuntimeFlow() || requestGeneration !== previewUseCases.getState().requestGeneration) return;
+                if (dFlow() || requestGeneration !== previewUseCases.getState().requestGeneration) return;
 	                setConsolePreview({
 	                  ...preview,
 	                  activity: state.connection?.availability?.activity ?? null,
@@ -229,39 +229,39 @@
             }
 
             async function useLatestStaleFrame() {
-              const wasAnnotating = toolModeUseCases.isAnnotateMode() || Boolean(draftRuntimeFlow());
+              const wasAnnotating = toolModeUseCases.isAnnotateMode() || Boolean(dFlow());
               flushFocusedPendingComment();
-              const pendingItems = draftWorkspaceItems(draftWorkspace).slice();
-              const previousWorkspace = draftWorkspace;
+              const pendingItems = draftWorkspaceItems(dw).slice();
+              const previousWorkspace = dw;
               const previousPreview = state.preview;
-              clearPreviewRuntimeContext();
+              clearPreview();
               if (wasAnnotating) {
-                setDraftWorkspaceState(createEmptyDraftWorkspace());
+                setWs(createEmptyDraftWorkspace());
                 try {
                   await startDraftAnnotationFlow();
                 } catch (cause) {
-                  setDraftWorkspaceState(previousWorkspace);
+                  setWs(previousWorkspace);
                   setConsolePreview(previousPreview);
-                  if (draftRuntimeFlow()) persistCurrentPendingState();
+                  if (dFlow()) persistCurrentPendingState();
                   render();
                   throw cause;
                 }
-                if (!draftRuntimeFlow()) {
-                  setDraftWorkspaceState(previousWorkspace);
+                if (!dFlow()) {
+                  setWs(previousWorkspace);
                   setConsolePreview(previousPreview);
                   render();
                   return;
                 }
-                setDraftWorkspaceState({
-                  ...draftWorkspace,
-                  revision: draftWorkspace.revision + 1,
+                setWs({
+                  ...dw,
+                  revision: dw.revision + 1,
                   items: pendingItems,
                   history: { undoStack: [], redoStack: [] },
                 });
                 updateAnnotationSequenceFromPendingItems(pendingItems);
-                setDraftRuntimeFocusIndex(null);
+                setDFocus(null);
                 toolModeUseCases.focusSavedItem(null, null);
-                setDraftRuntimeSelection(null);
+                setDSel(null);
                 toolModeUseCases.setHoveredTarget(null);
                 persistCurrentPendingState();
               } else {

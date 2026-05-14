@@ -95,7 +95,7 @@ const CONTRACT_SYMBOLS = [
   'renderComposerInspector',
   'renderSavedAnnotationsInspector',
   'renderAnnotationDetail',
-  'resetCanonicalAnnotationComposerState',
+  'resetComposer',
   // Pending items (ConsoleFeedbackItemRoutesTest)
   'renderPendingItems',
   'renderNumberedFeedbackOverlay',

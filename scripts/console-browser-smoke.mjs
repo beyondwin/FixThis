@@ -807,11 +807,11 @@ async function runSmoke(baseUrl) {
     });
     await page.evaluate(() => {
       const debug = window.FixThisConsoleDebug;
-      const draftWorkspace = debug.getDraftWorkspace();
+      const dw = debug.getDraftWorkspace();
       const state = debug.getState();
       window.__fixthisDraftRaceResult = {
-        activeWorkspaceSession: draftWorkspace?.context?.sessionId || null,
-        activeWorkspaceItems: draftWorkspace?.items?.length || 0,
+        activeWorkspaceSession: dw?.context?.sessionId || null,
+        activeWorkspaceItems: dw?.items?.length || 0,
         visibleSession: state?.session?.sessionId || null,
       };
     });

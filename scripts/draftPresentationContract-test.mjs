@@ -28,32 +28,32 @@ function body(source, signature) {
 }
 
 test('state owns a draft workspace and command queue', () => {
-  assert.match(stateSource, /let draftWorkspace = createEmptyDraftWorkspace\(\);/);
+  assert.match(stateSource, /let dw = createEmptyDraftWorkspace\(\);/);
   assert.match(stateSource, /let draftCommandQueue = null;/);
-  assert.match(stateSource, /function setDraftWorkspaceState\(nextWorkspace\)/);
+  assert.match(stateSource, /function setWs\(nextWorkspace\)/);
 });
 
 test('annotation creation uses addDraftItem use case instead of direct push', () => {
   const createBody = body(annotationsSource, 'function createAnnotationFromSelection(selection)');
   assert.match(createBody, /addDraftItem\(/);
-  assert.doesNotMatch(createBody, /runtimeDraftItems\.push\(/);
+  assert.doesNotMatch(createBody, /draftPinsState\.push\(/);
 });
 
 test('pending delete uses deleteDraftItem use case instead of direct splice', () => {
   const deleteBody = body(annotationsSource, 'function deletePendingFeedbackItem(index)');
   assert.match(deleteBody, /deleteDraftItem\(/);
-  assert.doesNotMatch(deleteBody, /runtimeDraftItems\.splice\(/);
+  assert.doesNotMatch(deleteBody, /draftPinsState\.splice\(/);
 });
 
 test('pending overlay renders from draft workspace selector', () => {
-  assert.match(renderingSource, /draftWorkspaceItems\(draftWorkspace\)/);
+  assert.match(renderingSource, /draftWorkspaceItems\(dw\)/);
 });
 
 test('annotation presentation no longer mutates pending array directly', () => {
-  assert.doesNotMatch(annotationsSource, /runtimeDraftItems\.push\(/);
-  assert.doesNotMatch(annotationsSource, /runtimeDraftItems\.splice\(/);
-  assert.doesNotMatch(annotationsSource, /runtimeDraftItems\s*=\s*\[\]/);
-  assert.doesNotMatch(annotationsSource, /runtimeDraftItems\s*=\s*items/);
-  assert.doesNotMatch(mainSource, /runtimeDraftItems\s*=\s*items/);
-  assert.doesNotMatch(previewSource, /runtimeDraftItems\s*=\s*pendingItems/);
+  assert.doesNotMatch(annotationsSource, /draftPinsState\.push\(/);
+  assert.doesNotMatch(annotationsSource, /draftPinsState\.splice\(/);
+  assert.doesNotMatch(annotationsSource, /draftPinsState\s*=\s*\[\]/);
+  assert.doesNotMatch(annotationsSource, /draftPinsState\s*=\s*items/);
+  assert.doesNotMatch(mainSource, /draftPinsState\s*=\s*items/);
+  assert.doesNotMatch(previewSource, /draftPinsState\s*=\s*pendingItems/);
 });
