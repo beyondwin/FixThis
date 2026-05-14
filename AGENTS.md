@@ -22,19 +22,23 @@ points to canonical docs rather than restating them — update those, not this.
 ## Quick Start
 
 ```bash
-# Bootstrap MCP integration (build + register with Claude Code / Codex)
+# Try the bundled sample app first.
+./scripts/bootstrap-mcp.sh --sample
+
+# Or bootstrap MCP integration for your own debug app.
 ./scripts/bootstrap-mcp.sh --package <applicationId>
 ```
 
+`--sample` uses the bundled sample package (`io.beyondwin.fixthis.sample`).
 `--package` is the Android applicationId of the app you are running FixThis
-against (e.g. `io.beyondwin.fixthis.sample`). The script writes Claude Code
-config to project-local `.claude/settings.json` and Codex config to
-`~/.codex/config.toml`. Pass `--target claude` / `--target codex` to limit
-targets, or `--dry-run` to preview. Restart your agent after the script
-finishes.
+against. The script writes Claude Code config to project-local
+`.claude/settings.json` and Codex config to `~/.codex/config.toml`. Pass
+`--target claude` / `--target codex` to limit targets, or `--dry-run` to
+preview. Restart your agent after the script finishes.
 
 Manual setup, full CLI flags, and dry-run examples:
 [`docs/reference/cli.md`](docs/reference/cli.md).
+MCP bootstrap summary for agents: [`MCP.md`](MCP.md).
 
 **Trying FixThis from scratch on the sample app?** Start at the README's
 [Quick Start](README.md#quick-start-sample-app-to-agent-handoff) for the

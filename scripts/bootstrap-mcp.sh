@@ -6,12 +6,14 @@ set -euo pipefail
 
 print_usage() {
     cat <<'USAGE'
-Usage: ./scripts/bootstrap-mcp.sh --package <applicationId> [--target claude|codex|all] [--dry-run]
+Usage: ./scripts/bootstrap-mcp.sh --sample [--target claude|codex|all] [--dry-run]
+       ./scripts/bootstrap-mcp.sh --package <applicationId> [--target claude|codex|all] [--dry-run]
 
 Builds :fixthis-cli and :fixthis-mcp installDist, then registers the FixThis MCP server with Claude Code, Codex, or both.
 
 Required:
   --package <id>          Android applicationId of the project under test.
+  --sample                Use the bundled sample app package (io.beyondwin.fixthis.sample).
 
 Options:
   --target <name>         claude | codex | all (default: all)
@@ -23,11 +25,14 @@ USAGE
 # Move to repo root regardless of caller's cwd.
 cd "$(dirname "$0")/.."
 
+SAMPLE_PACKAGE="io.beyondwin.fixthis.sample"
 PACKAGE=""
 TARGET="all"
 EXTRA_FLAGS=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --sample)
+            PACKAGE="$SAMPLE_PACKAGE"; shift ;;
         --package)
             [[ $# -ge 2 ]] || { echo "[bootstrap] --package requires a value" >&2; exit 2; }
             PACKAGE="$2"; shift 2 ;;
@@ -46,7 +51,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$PACKAGE" ]]; then
-    echo "[bootstrap] --package is required" >&2
+    echo "[bootstrap] --package or --sample is required" >&2
     print_usage >&2
     exit 2
 fi
