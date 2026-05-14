@@ -60,6 +60,20 @@ test('session navigation exposes in-flight state instead of silently racing clic
   assert.match(historySource, /aria-busy/);
 });
 
+test('session navigation completion fully rerenders history controls', () => {
+  const openBody = body(historySource, 'async function openSession(sessionId)');
+  assert.match(
+    openBody,
+    /sessionNavigationInFlight = false;[\s\S]*?pendingSessionNavigationId = null;[\s\S]*?renderCurrentSessionList\(\);/,
+  );
+});
+
+test('session list render reenables delete controls when navigation settles', () => {
+  const renderBody = body(historySource, 'function renderSessionsList()');
+  assert.match(renderBody, /const navigationInFlight = isSessionNavigationInFlight\(\);/);
+  assert.match(renderBody, /button\.disabled = navigationInFlight;/);
+});
+
 test('reopening the active history session does not reset pending annotation flow', () => {
   const openBody = body(historySource, 'async function openSession(sessionId)');
   assert.match(openBody, /if \(sessionId === state\.session\?\.sessionId\) \{/);

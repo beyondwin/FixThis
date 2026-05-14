@@ -305,12 +305,16 @@
 
             function renderSessionsList() {
               const activeId = state.session?.sessionId;
+              const navigationInFlight = isSessionNavigationInFlight();
               document.querySelectorAll('.session-row').forEach(row => {
-                const busy = isSessionNavigationInFlight() && (row.dataset.sessionId === activeId || row.dataset.sessionId === pendingSessionNavigationId);
+                const busy = navigationInFlight && (row.dataset.sessionId === activeId || row.dataset.sessionId === pendingSessionNavigationId);
                 row.classList.toggle('is-active', row.dataset.sessionId === activeId);
                 row.classList.toggle('is-busy', busy);
                 row.setAttribute('aria-busy', busy ? 'true' : 'false');
-                row.setAttribute('aria-disabled', isSessionNavigationInFlight() ? 'true' : 'false');
+                row.setAttribute('aria-disabled', navigationInFlight ? 'true' : 'false');
+                row.querySelectorAll('[data-delete-session-id]').forEach(button => {
+                  button.disabled = navigationInFlight;
+                });
               });
             }
 
@@ -376,7 +380,7 @@
                 sessionNavigationInFlight = false;
                 const queuedSessionId = pendingSessionNavigationId;
                 pendingSessionNavigationId = null;
-                renderSessionsList();
+                renderCurrentSessionList();
                 if (queuedSessionId && queuedSessionId !== state.session?.sessionId) await openSession(queuedSessionId);
               }
             }
