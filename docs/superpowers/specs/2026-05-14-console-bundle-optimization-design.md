@@ -205,7 +205,11 @@ We adopt `esbuild` as a dev-dependency. Justification:
 
 - **Single tool, single binary, zero plugins.** Adding a `package.json`
   devDependency is the only delivery surface.
-- **Source maps for free** (`--sourcemap=external`).
+- **Source maps for free** (`sourcemap: 'linked'` in the JS API — emits the
+  `.map` file AND appends `//# sourceMappingURL=app.js.map` to the JS output
+  so DevTools/browsers auto-discover it. Note: both the CLI `--sourcemap=external`
+  flag and the JS-API value `sourcemap: 'external'` SUPPRESS the URL comment;
+  `'linked'` is the discoverable variant).
 - **No transformation** — esbuild preserves identifier names by default and
   only renames locals when `--minify` is given. We use `--minify-whitespace`
   + `--minify-syntax` but **not** `--minify-identifiers`, because the asset
@@ -407,7 +411,7 @@ await build({
   minifySyntax: true,
   minifyIdentifiers: false,
   target: ['es2020'],
-  sourcemap: 'external',
+  sourcemap: 'linked',
   sourcefile: 'app.js',
   outfile: target,
   legalComments: 'inline',
