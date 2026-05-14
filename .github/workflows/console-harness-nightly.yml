@@ -1,0 +1,75 @@
+name: Console harness (nightly)
+
+on:
+  schedule:
+    - cron: '17 9 * * *'
+  workflow_dispatch: {}
+
+# Intentionally NO pull_request trigger. G4 (PR latency unchanged) is non-
+# negotiable; PR runs would push latency from ~1.5 min to ~25 min. PRs that
+# touch console assets are validated by the existing console-js node --test
+# lane. Promotion to PR gating must be a separate, explicit design.
+
+concurrency:
+  group: console-harness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  console-harness:
+    name: Console harness
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Resolve Playwright version
+        id: pw-version
+        # Read the resolved playwright version from package-lock.json so the
+        # cache key invalidates the moment we bump Playwright (and therefore
+        # the Chromium build it pins).
+        run: |
+          PW_VERSION=$(node -e "const p=require('./package-lock.json');\
+            const pkg=p.packages && (p.packages['node_modules/playwright']||p.packages['node_modules/playwright-core']);\
+            if(!pkg)throw new Error('playwright not in lockfile');\
+            console.log(pkg.version)")
+          echo "version=$PW_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          # Include the Playwright version so a Chromium bump (which is pinned
+          # by Playwright) invalidates the cache automatically.
+          key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify bridge protocol version sync
+        # Re-uses the existing JVM test that enforces equality across all four
+        # mirrored sites (BridgeProtocol.kt, console MinimumSupportedProtocolVersion,
+        # BridgeClient.kt, ServerVersionRoutes.kt). Catches drift before the
+        # harness exercises the fixture against an already-stale console bundle.
+        run: ./gradlew :fixthis-mcp:test --tests "*BridgeProtocolVersionSyncTest"
+
+      - name: Run console harness matrix
+        run: node scripts/console-harness.mjs --matrix all --output output/playwright
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: console-harness-failure-${{ github.run_id }}
+          path: output/playwright/**
+          retention-days: 14

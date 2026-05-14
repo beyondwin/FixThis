@@ -155,7 +155,7 @@ export async function startFakeBridge(options) {
 }
 ```
 
-Per-scenario behavior lives in `scripts/console-fixture/scenarios/*.mjs`. The three existing harness scripts become thin wrappers that import `startFakeBridge` and the scenario module they need.
+Per-scenario behavior lives in `scripts/console-fixture/scenarios/*.mjs`. The two Playwright-driving harness scripts that only need the fixture's minimal route surface — `console-blocked-harness.mjs` and `console-responsive-stress.mjs` — become thin wrappers that import `startFakeBridge` and the scenario module they need. `console-browser-smoke.mjs` retains its private `http.createServer` + rich `handleApi` (covering `/api/connection`, `/api/devices`, `/api/sessions`, `/api/preview/...`, `/api/session/open`, `/api/items/...`, `/api/navigation`, `/api/agent-handoffs`, etc.) for Phase 1: §3.6 ("legacy entry points stay functional") forbids an end-to-end smoke regression, and the smoke's API contract is far richer than the harness driver scenarios need. Folding that surface into `startFakeBridge` is a Phase 2 follow-up.
 
 ### 3.4 CI integration
 

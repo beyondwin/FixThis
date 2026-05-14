@@ -35,7 +35,10 @@ jobs:
             scripts/undoRedo-test.mjs \
             scripts/undoKeymatch-test.mjs \
             scripts/activityDrift-test.mjs \
-            scripts/previewStaleness-test.mjs
+            scripts/previewStaleness-test.mjs \
+            scripts/console-fixture/fakeBridgeServer-test.mjs \
+            scripts/console-fixture/scenarios-test.mjs \
+            scripts/console-harness.test.mjs
 
   gradle-verification:
     name: Gradle verification

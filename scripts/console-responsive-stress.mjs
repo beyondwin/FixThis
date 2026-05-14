@@ -1,19 +1,13 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
-import { mkdirSync, readFileSync } from 'node:fs';
-import http from 'node:http';
+import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { startFakeBridge } from './console-fixture/fakeBridgeServer.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const outputDir = resolve(root, 'output/playwright');
 mkdirSync(outputDir, { recursive: true });
-
-const indexHtml = readFileSync(resolve(root, 'fixthis-mcp/src/main/resources/console/index.html'), 'utf8');
-const stylesCss = readFileSync(resolve(root, 'fixthis-mcp/src/main/resources/console/styles.css'), 'utf8');
-const pageHtml = indexHtml
-  .replace('<!-- FIXTHIS_STYLES -->', `<style>${stylesCss}</style>`)
-  .replace('<!-- FIXTHIS_SCRIPT -->', '<script>window.FixThisConsoleConfig = { consoleToken: "stress" };</script>');
 
 const viewports = [
   { name: 'mobile-390', width: 390, height: 844 },
@@ -21,24 +15,6 @@ const viewports = [
   { name: 'compact-1024', width: 1024, height: 768 },
   { name: 'desktop-1280', width: 1280, height: 800 },
 ];
-
-function textResponse(response, value, status = 200, contentType = 'text/html; charset=utf-8') {
-  response.writeHead(status, {
-    'content-type': contentType,
-    'cache-control': 'no-store',
-  });
-  response.end(value);
-}
-
-function createServer() {
-  return http.createServer((request, response) => {
-    const url = new URL(request.url || '/', 'http://127.0.0.1');
-    if (request.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
-      return textResponse(response, pageHtml);
-    }
-    return textResponse(response, 'Not found', 404, 'text/plain; charset=utf-8');
-  });
-}
 
 async function loadPlaywright() {
   try {
@@ -376,15 +352,14 @@ async function run(baseUrl) {
   }
 }
 
-const server = createServer();
-await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-const { port } = server.address();
+const fixture = await startFakeBridge({ scenario: 'happy-path' });
+const pageUrl = fixture.url;
 try {
-  await run(`http://127.0.0.1:${port}/`);
+  await run(`${pageUrl}/`);
   console.log('Console responsive stress passed.');
 } catch (error) {
   console.error(`CONSOLE_RESPONSIVE_STRESS_FAILED: ${error?.message || error}`);
   process.exitCode = 1;
 } finally {
-  await new Promise(resolve => server.close(resolve));
+  await fixture.close();
 }

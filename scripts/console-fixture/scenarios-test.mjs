@@ -1,0 +1,45 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { startFakeBridge } from './fakeBridgeServer.mjs';
+import { applyNetworkOutage } from './scenarios/networkOutage.mjs';
+import { applySlowHandoff } from './scenarios/slowHandoff.mjs';
+import { applyMultiTab } from './scenarios/multiTab.mjs';
+
+test('network outage scenario blocks /api/handoff with 503', async () => {
+  const fixture = await startFakeBridge({ scenario: 'happy-path' });
+  try {
+    await applyNetworkOutage(fixture);
+    const response = await fetch(`${fixture.url}/api/handoff`, { method: 'POST' });
+    assert.equal(response.status, 503);
+  } finally {
+    await fixture.close();
+  }
+});
+
+test('slow handoff scenario delays /api/handoff response', async () => {
+  const fixture = await startFakeBridge({ scenario: 'happy-path' });
+  try {
+    await applySlowHandoff(fixture, { delayMs: 250 });
+    const start = Date.now();
+    const response = await fetch(`${fixture.url}/api/handoff`, { method: 'POST' });
+    const elapsed = Date.now() - start;
+    assert.equal(response.status, 200);
+    assert.ok(elapsed >= 200, `expected >= 200 ms, got ${elapsed}`);
+  } finally {
+    await fixture.close();
+  }
+});
+
+test('multi-tab scenario records request log across two simulated tabs', async () => {
+  const fixture = await startFakeBridge({ scenario: 'happy-path' });
+  try {
+    await applyMultiTab(fixture);
+    await fetch(`${fixture.url}/api/session/A`);
+    await fetch(`${fixture.url}/api/session/B`);
+    const log = fixture.getRequestLog();
+    const sessionHits = log.filter((entry) => entry.path.startsWith('/api/session/'));
+    assert.equal(sessionHits.length, 2);
+  } finally {
+    await fixture.close();
+  }
+});

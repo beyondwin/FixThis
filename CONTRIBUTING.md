@@ -139,6 +139,34 @@ If you edited any console JS module under `fixthis-mcp/src/main/console/`, rebun
 node scripts/build-console-assets.mjs
 ```
 
+### Console Harness
+
+The nightly `Console harness` workflow runs the full Playwright matrix against a
+fake bridge fixture. Run it locally before pushing changes that touch
+`scripts/console-*` or `fixthis-mcp/src/main/resources/console/**`.
+
+```bash
+# Full matrix (all scenarios × all viewports):
+npm run console:harness
+
+# Single scenario across all viewports:
+node scripts/console-harness.mjs --matrix network-outage
+
+# Single scenario at one viewport (great for debugging):
+node scripts/console-harness.mjs --matrix slow-handoff --viewport mobile-390 --headed
+```
+
+Environment knobs:
+
+| Env var | Effect |
+| --- | --- |
+| `FIXTHIS_HARNESS_MATRIX` | CSV of scenario keys; default `all`. |
+| `FIXTHIS_HARNESS_VIEWPORTS` | CSV of viewport keys; default `all`. |
+| `FIXTHIS_HARNESS_HEADED` | `1` to launch headed Chromium for debugging. |
+
+Failure artifacts (screenshots, traces, console logs) land under
+`output/playwright/` and upload to GitHub Actions on nightly failures.
+
 ### Console bundle
 
 `node scripts/build-console-assets.mjs` produces three files under

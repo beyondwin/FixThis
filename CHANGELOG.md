@@ -35,6 +35,29 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ### Added
 
+- **Console harness automation — shared fake-bridge fixture, scenario matrix driver, nightly CI (console, 2026-05-14):**
+  - Extracted a shared `scripts/console-fixture/fakeBridgeServer.mjs` module
+    exposing `startFakeBridge({scenario})` plus a scenario map (happy-path,
+    network-outage, slow-handoff, multi-tab, blocked-welcome). Three new
+    scenario modules under `scripts/console-fixture/scenarios/` add a
+    first-class `runScenario({scenario, overrides})` config-injection API.
+    Blocked and responsive-stress harnesses now delegate to the shared
+    fixture; `scripts/console-blocked-harness.mjs` gains a
+    `--non-interactive` flag (and `FIXTHIS_BLOCKED_NON_INTERACTIVE=1` env).
+  - New `scripts/console-harness.mjs` matrix driver with pure
+    `parseArgs` / `selectScenarios` / `emitJunit` helpers, JUnit XML output
+    to `output/playwright/results.xml`, and a `console:harness` npm script.
+    Network-outage and slow-handoff scenarios are marked
+    `@blocked-pending-impl` (skipped pending the
+    `reconnect-banner` / `pending-recovery` / `send-button` testids in the
+    bundle) and are deferred to a follow-up phase.
+  - New `.github/workflows/console-harness-nightly.yml` runs the matrix on
+    `schedule` + `workflow_dispatch` only (no `pull_request` trigger, so
+    PR latency is unchanged). The existing `console-js` CI job now also
+    runs `fakeBridgeServer-test.mjs`, `scenarios-test.mjs`, and
+    `console-harness.test.mjs`. Documented in `CONTRIBUTING.md`
+    under "Console Harness".
+
 - **Setup error diagnostics — categorized merge failures + `--verbose` (cli, 2026-05-14):**
   - `fixthis setup --write` now classifies merge failures into five
     categories (`MALFORMED_JSON`, `MALFORMED_MCPSERVERS_SHAPE`,
