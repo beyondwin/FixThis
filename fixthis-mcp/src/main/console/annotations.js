@@ -33,6 +33,21 @@
               return String(item.status || 'open').replace('_', '-');
             }
 
+            function reliabilityWarnings(item) {
+              return item?.targetReliability?.warnings || [];
+            }
+
+            function reliabilityConfidence(item) {
+              return String(item?.targetReliability?.confidence || 'unknown').toLowerCase();
+            }
+
+            function reliabilityLabel(item) {
+              const confidence = reliabilityConfidence(item);
+              if (confidence === 'unknown') return '';
+              const warnings = reliabilityWarnings(item);
+              return warnings.length ? confidence + ' · ' + countLabel(warnings.length, 'warning', 'warnings') : confidence;
+            }
+
             function severityColor(severity) {
               if (severity === 'high') return '#f26d6d';
               if (severity === 'low') return '#5bb4e8';
@@ -126,12 +141,17 @@
               const unsent = annotations.filter(item => item.delivery !== 'sent');
               const ready = unsent.filter(hasWrittenAnnotationComment);
               const missing = unsent.length - ready.length;
+              const warningCount = annotations.reduce((total, item) => total + reliabilityWarnings(item).length, 0);
               if (ready.length > 0) {
                 const itemKind = addItemsFlow ? 'draft' : 'saved';
                 return {
-                  state: missing > 0 ? 'blocked' : 'ready',
-                  label: countLabel(ready.length, 'ready', 'ready') + (missing > 0 ? ' · ' + countLabel(missing, 'missing comment', 'missing comments') : ''),
-                  title: 'Ready to hand off ' + countLabel(ready.length, itemKind + ' annotation', itemKind + ' annotations') + (missing > 0 ? '. ' + countLabel(missing, 'annotation needs', 'annotations need') + ' a comment.' : '.'),
+                  state: missing > 0 ? 'blocked' : (warningCount > 0 ? 'warn' : 'ready'),
+                  label: countLabel(ready.length, 'ready', 'ready') +
+                    (missing > 0 ? ' · ' + countLabel(missing, 'missing comment', 'missing comments') : '') +
+                    (missing === 0 && warningCount > 0 ? ' · ' + countLabel(warningCount, 'target warning', 'target warnings') : ''),
+                  title: 'Ready to hand off ' + countLabel(ready.length, itemKind + ' annotation', itemKind + ' annotations') +
+                    (missing > 0 ? '. ' + countLabel(missing, 'annotation needs', 'annotations need') + ' a comment.' : '') +
+                    (missing === 0 && warningCount > 0 ? ' Reliability warnings will be included in the handoff.' : '.'),
                 };
               }
               if (missing > 0) {

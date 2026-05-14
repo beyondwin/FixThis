@@ -5,11 +5,54 @@ import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.beyondwin.fixthis.compose.core.model.TargetConfidence
+import io.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.beyondwin.fixthis.compose.core.model.TargetReliabilityReason
+import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import io.beyondwin.fixthis.compose.core.model.TreeKind
 import org.junit.Test
 import kotlin.test.assertTrue
 
 class CompactHandoffRendererTest {
+    @Test
+    fun compactHandoffRendersTargetReliabilityWarnings() {
+        val session = SessionDto(
+            sessionId = "session-1",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(
+                SnapshotDto(
+                    screenId = "screen-1",
+                    capturedAtEpochMillis = 1L,
+                    displayName = "Diagnostics",
+                ),
+            ),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(10f, 20f, 200f, 120f)),
+                    comment = "Fix the native chart spacing",
+                    sequenceNumber = 1,
+                    targetReliability = TargetReliability(
+                        confidence = TargetConfidence.LOW,
+                        reasons = listOf(TargetReliabilityReason.VISUAL_AREA_SELECTION),
+                        warnings = listOf(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP),
+                    ),
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+
+        assertTrue(markdown.contains("targetConfidence=low"))
+        assertTrue(markdown.contains("possible AndroidView/WebView area"))
+    }
+
     @Test
     fun renderEmitsViewportLineWhenScreenshotHasDimensions() {
         val session = SessionDto(

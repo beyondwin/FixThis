@@ -36,6 +36,10 @@ FixThis does not use AccessibilityService and does not inspect other apps.
 
 Editable text and password fields are redacted from semantics-derived data by default. Semantic metadata such as bounds, role, actions, labels, test tags, and nearby non-sensitive text may still be exported.
 
+Target reliability warnings do not reveal redacted text. When sensitive text
+reduces available evidence, FixThis reports `SENSITIVE_TEXT_REDACTED` rather
+than the original value.
+
 Redaction applies to structured semantics data. It does not guarantee that pixels in screenshots are redacted.
 
 ## Screenshot Limitations

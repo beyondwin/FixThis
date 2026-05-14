@@ -5,6 +5,9 @@ import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.beyondwin.fixthis.compose.core.model.SourceCandidateSummary
+import io.beyondwin.fixthis.compose.core.model.TargetConfidence
+import io.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.beyondwin.fixthis.compose.core.model.handoffMessage
 
 object FixThisMarkdownFormatter {
     fun format(annotation: FixThisAnnotation): String = format(annotation, DetailMode.FULL)
@@ -25,6 +28,7 @@ object FixThisMarkdownFormatter {
         appendLine()
         appendLine("Target:")
         appendCompactTarget(annotation)
+        appendTargetReliability(annotation.targetReliability, compact = true)
         appendLine()
         appendCompactSourceLine(annotation.sourceCandidates.firstOrNull())
     }
@@ -71,6 +75,7 @@ object FixThisMarkdownFormatter {
         appendLine()
         appendLine("## Target Evidence")
         appendTargetEvidence(annotation, includeEmpty = true)
+        appendTargetReliability(annotation.targetReliability, compact = false)
         appendLine()
         appendLine("## Selected UI")
         appendNode(annotation.selectedNode)
@@ -85,9 +90,10 @@ object FixThisMarkdownFormatter {
     private fun formatFull(annotation: FixThisAnnotation): String = buildString {
         appendLine("# FixThis Compose Feedback")
         appendLine()
-        if (annotation.targetEvidence != null) {
+        if (annotation.targetEvidence != null || annotation.targetReliability != null) {
             appendLine("## Target Evidence")
             appendTargetEvidence(annotation, includeEmpty = false)
+            appendTargetReliability(annotation.targetReliability, compact = false)
             appendLine()
         }
         appendLine("## User request")
@@ -160,6 +166,27 @@ object FixThisMarkdownFormatter {
             appendLine("- Screenshot evidence: ${evidence.screenshotKinds.markdownListValue()}")
         }
         appendLine("- Quality: ${evidence.evidenceQuality}")
+    }
+
+    private fun StringBuilder.appendTargetReliability(reliability: TargetReliability?, compact: Boolean) {
+        if (reliability == null) return
+        if (reliability.confidence == TargetConfidence.UNKNOWN && reliability.warnings.isEmpty()) return
+        appendLine("- Target confidence: ${reliability.confidence.name.lowercase()}${reliability.reasonSummary()}")
+        reliability.warnings.forEach { warning ->
+            appendLine("- Warning: ${warning.handoffMessage().markdownInline()}")
+        }
+        if (!compact && reliability.reasons.isNotEmpty()) {
+            appendLine(
+                "- Reliability reasons: ${
+                    reliability.reasons.map { it.name.lowercase().replace('_', '-') }.markdownListValue()
+                }",
+            )
+        }
+    }
+
+    private fun TargetReliability.reasonSummary(): String {
+        val labels = reasons.take(2).map { reason -> reason.name.lowercase().replace('_', '-') }
+        return if (labels.isEmpty()) "" else " - ${labels.joinToString(" + ")}"
     }
 
     private fun StringBuilder.appendCompactTarget(annotation: FixThisAnnotation) {

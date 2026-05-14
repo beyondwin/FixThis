@@ -22,6 +22,7 @@ data class FixThisAnnotation(
     val userComment: String,
     val errors: List<FixThisError> = emptyList(),
     val targetEvidence: TargetEvidence? = null,
+    val targetReliability: TargetReliability? = null,
 )
 
 @Serializable
@@ -128,3 +129,101 @@ data class ScreenshotInfo(
 
 @Serializable
 data class FixThisError(val code: String, val message: String, val details: Map<String, String> = emptyMap())
+
+@Serializable
+data class TargetReliability(
+    val confidence: TargetConfidence = TargetConfidence.UNKNOWN,
+    val reasons: List<TargetReliabilityReason> = emptyList(),
+    val warnings: List<TargetReliabilityWarning> = emptyList(),
+)
+
+@Serializable
+enum class TargetConfidence {
+    HIGH,
+    MEDIUM,
+    LOW,
+    UNKNOWN,
+}
+
+@Serializable
+enum class TargetKind {
+    NODE,
+    AREA,
+}
+
+@Serializable
+data class SemanticCoverage(
+    val rootBounds: FixThisRect? = null,
+    val overlappingMeaningfulNodeCount: Int = 0,
+    val nearestMeaningfulNodeDistancePx: Float? = null,
+)
+
+@Serializable
+data class TargetReliabilityInput(
+    val targetKind: TargetKind,
+    val selectedNode: FixThisNode? = null,
+    val nearbyNodes: List<FixThisNode> = emptyList(),
+    val sourceCandidates: List<SourceCandidate> = emptyList(),
+    val targetEvidence: TargetEvidence? = null,
+    val semanticCoverage: SemanticCoverage = SemanticCoverage(),
+    val screenFingerprintAvailable: Boolean = true,
+    val forcedFingerprintMismatch: Boolean = false,
+)
+
+@Serializable
+enum class TargetReliabilityReason {
+    STRICT_COMPOSABLE_IDENTITY,
+    MEANINGFUL_COMPOSE_NODE,
+    STRONG_SOURCE_CANDIDATE,
+    MEDIUM_SOURCE_CANDIDATE,
+    VISUAL_AREA_SELECTION,
+    LEGACY_OR_MISSING_EVIDENCE,
+    REDACTED_TEXT_REDUCED_EVIDENCE,
+}
+
+@Serializable
+enum class TargetReliabilityWarning {
+    VISUAL_AREA_ONLY,
+    NO_MEANINGFUL_COMPOSE_TARGET,
+    POSSIBLE_VIEW_INTEROP,
+    LOW_SOURCE_CANDIDATE_MARGIN,
+    SOURCE_INDEX_STALE,
+    SCREEN_FINGERPRINT_MISMATCH_FORCED,
+    SCREEN_FINGERPRINT_UNAVAILABLE,
+    SENSITIVE_TEXT_REDACTED,
+}
+
+fun TargetReliability.withWarnings(extra: Collection<TargetReliabilityWarning>): TargetReliability = copy(
+    confidence = if (extra.any { it.reducesConfidence() }) TargetConfidence.LOW else confidence,
+    warnings = (warnings + extra).distinct(),
+)
+
+fun TargetReliabilityWarning.reducesConfidence(): Boolean = when (this) {
+    TargetReliabilityWarning.SCREEN_FINGERPRINT_UNAVAILABLE,
+    TargetReliabilityWarning.SENSITIVE_TEXT_REDACTED,
+    -> false
+    TargetReliabilityWarning.VISUAL_AREA_ONLY,
+    TargetReliabilityWarning.NO_MEANINGFUL_COMPOSE_TARGET,
+    TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP,
+    TargetReliabilityWarning.LOW_SOURCE_CANDIDATE_MARGIN,
+    TargetReliabilityWarning.SOURCE_INDEX_STALE,
+    TargetReliabilityWarning.SCREEN_FINGERPRINT_MISMATCH_FORCED,
+    -> true
+}
+
+fun TargetReliabilityWarning.handoffMessage(): String = when (this) {
+    TargetReliabilityWarning.VISUAL_AREA_ONLY -> "visual area only; verify screenshot and bounds"
+    TargetReliabilityWarning.NO_MEANINGFUL_COMPOSE_TARGET ->
+        "no meaningful Compose semantics node covered this target"
+    TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP ->
+        "possible AndroidView/WebView area; source candidates may not explain rendered pixels"
+    TargetReliabilityWarning.LOW_SOURCE_CANDIDATE_MARGIN ->
+        "source candidates are close; verify before editing"
+    TargetReliabilityWarning.SOURCE_INDEX_STALE -> "source index may be stale"
+    TargetReliabilityWarning.SCREEN_FINGERPRINT_MISMATCH_FORCED ->
+        "screen changed after capture; user force-saved this item"
+    TargetReliabilityWarning.SCREEN_FINGERPRINT_UNAVAILABLE ->
+        "screen fingerprint unavailable; mismatch check was skipped"
+    TargetReliabilityWarning.SENSITIVE_TEXT_REDACTED ->
+        "sensitive text was redacted from target evidence"
+}

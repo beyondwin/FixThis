@@ -22,7 +22,11 @@ import io.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
 import io.beyondwin.fixthis.compose.core.model.SourceCandidateSummary
 import io.beyondwin.fixthis.compose.core.model.SourceInterpretation
 import io.beyondwin.fixthis.compose.core.model.TapPoint
+import io.beyondwin.fixthis.compose.core.model.TargetConfidence
 import io.beyondwin.fixthis.compose.core.model.TargetEvidence
+import io.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.beyondwin.fixthis.compose.core.model.TargetReliabilityReason
+import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import io.beyondwin.fixthis.compose.core.model.TreeKind
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -252,6 +256,23 @@ class FixThisMarkdownFormatterTest {
         assertTrue(markdown.contains("- Test tag: checkout:pay"))
         assertFalse(markdown.contains("- Identity:"))
         assertFalse(markdown.contains("- Occurrence:"))
+    }
+
+    @Test
+    fun compactModeIncludesTargetReliabilityWarning() {
+        val markdown = FixThisMarkdownFormatter.format(
+            annotation().copy(
+                targetReliability = TargetReliability(
+                    confidence = TargetConfidence.LOW,
+                    reasons = listOf(TargetReliabilityReason.VISUAL_AREA_SELECTION),
+                    warnings = listOf(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP),
+                ),
+            ),
+            DetailMode.COMPACT,
+        )
+
+        assertTrue(markdown.contains("Target confidence: low"))
+        assertTrue(markdown.contains("possible AndroidView/WebView area"))
     }
 
     @Test

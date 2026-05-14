@@ -142,6 +142,10 @@
               border-color: rgba(230, 180, 90, .35);
               background: rgba(230, 180, 90, .10);
             }
+            .prompt-readiness[data-state="warn"] {
+              border-color: rgba(230, 180, 90, .38);
+              color: #d8a84f;
+            }
             .prompt-readiness[data-state="busy"] {
               color: #bfdbfe;
               border-color: rgba(91, 180, 232, .35);
@@ -308,9 +312,9 @@
               align-items: center;
               gap: 8px;
               min-width: 210px;
-              max-width: 260px;
+              max-width: 294px;
               min-height: 32px;
-              padding: 0 10px;
+              padding: 0 0 0 10px;
               border: 1px solid var(--line);
               border-radius: 8px;
               background: var(--bg-2);
@@ -362,11 +366,12 @@
             }
             .device-control select {
               position: absolute;
-              inset: 0;
-              width: 100%;
+              inset: 0 32px 0 0;
+              width: auto;
               height: 100%;
               opacity: 0;
               cursor: pointer;
+              z-index: 1;
             }
             .device-control[data-connection-state="connected"] {
               border-color: rgba(111, 207, 151, .34);
@@ -411,8 +416,28 @@
               place-items: center;
               font-size: 15px;
             }
-            .clear-device-button {
-              white-space: nowrap;
+            .device-clear-button {
+              position: relative;
+              z-index: 2;
+              align-self: stretch;
+              width: 32px;
+              min-width: 32px;
+              min-height: 30px;
+              padding: 0;
+              display: inline-grid;
+              place-items: center;
+              border: 0;
+              border-left: 1px solid var(--line);
+              border-radius: 0;
+              background: transparent;
+              color: var(--txt-2);
+              font-size: 16px;
+              line-height: 1;
+            }
+            .device-clear-button:hover,
+            .device-clear-button:focus-visible {
+              background: rgba(242, 109, 109, .12);
+              color: #f26d6d;
             }
             textarea {
               width: 100%;
@@ -1014,6 +1039,32 @@
               color: #999;
               font-style: italic;
             }
+            .ann-row-reliability {
+              align-self: flex-start;
+              border: 1px solid var(--line);
+              border-radius: 999px;
+              color: var(--txt-2);
+              display: inline-flex;
+              font-size: 11px;
+              font-weight: 650;
+              line-height: 1;
+              margin-top: 4px;
+              max-width: 100%;
+              padding: 4px 7px;
+              white-space: normal;
+            }
+            .ann-row-reliability[data-confidence="low"] {
+              border-color: rgba(242, 109, 109, .42);
+              color: #f26d6d;
+            }
+            .ann-row-reliability[data-confidence="medium"] {
+              border-color: rgba(230, 180, 90, .38);
+              color: #d8a84f;
+            }
+            .ann-row-reliability[data-confidence="high"] {
+              border-color: rgba(91, 180, 142, .38);
+              color: #5bb48e;
+            }
             .ann-row-status {
               justify-self: end;
               border-radius: 999px;
@@ -1486,8 +1537,8 @@
               }
               .session-meta { min-width: 0; }
               .device-control {
-                min-width: 150px;
-                max-width: 190px;
+                min-width: 182px;
+                max-width: 226px;
               }
               .device-name {
                 font-size: 11px;
@@ -1495,12 +1546,8 @@
               .device-connection-state {
                 font-size: 9px;
               }
-              .clear-device-button {
-                width: 64px;
-                min-width: 64px;
-                max-width: 64px;
-                overflow: hidden;
-                text-overflow: ellipsis;
+              .studio-topbar .device-clear-button {
+                padding: 0;
               }
               #previewIntervalSelect {
                 width: 64px;
@@ -1554,12 +1601,6 @@
                 grid-column: 1 / -1;
               }
               .device-control {
-                min-width: 0;
-                max-width: none;
-              }
-              .clear-device-button {
-                justify-self: start;
-                width: max-content;
                 min-width: 0;
                 max-width: none;
               }

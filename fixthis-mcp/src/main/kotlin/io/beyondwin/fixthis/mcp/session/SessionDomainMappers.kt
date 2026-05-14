@@ -127,6 +127,7 @@ fun AnnotationDto.toDomainAnnotation(sessionId: String): Annotation = Annotation
     status = status.toDomainStatus(),
     agentSummary = agentSummary,
     targetEvidence = targetEvidence,
+    targetReliability = targetReliability,
 )
 
 fun Annotation.toAnnotationDto(): AnnotationDto = AnnotationDto(
@@ -147,6 +148,7 @@ fun Annotation.toAnnotationDto(): AnnotationDto = AnnotationDto(
     status = status.toAnnotationStatusDto(),
     agentSummary = agentSummary,
     targetEvidence = targetEvidence,
+    targetReliability = targetReliability,
 )
 
 private fun AnnotationStatusDto.toDomainStatus(): AnnotationStatus = when (this) {

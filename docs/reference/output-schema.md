@@ -39,6 +39,7 @@ These fields can be absent or empty depending on runtime context:
 - `nearbyNodes`
 - `sourceCandidates`
 - `targetEvidence`
+- `targetReliability`
 - `searchHints`
 - `screenshot`
 
@@ -52,6 +53,23 @@ These fields can be absent or empty depending on runtime context:
 - `evidenceQuality`: `BASIC` or `STRUCTURED`.
 - `screenshotKinds`: screenshot artifact kinds available for the annotation, such as `full` and `crop`.
 - `warnings`: human-readable caveats. Agents must treat these as confidence constraints.
+
+### `targetReliability`
+
+`targetReliability` is optional additive metadata that tells agents how much to
+trust the selected target before editing. It is not a task priority and does
+not replace `targetEvidence` or `sourceCandidates`.
+
+- `confidence`: `HIGH`, `MEDIUM`, `LOW`, or `UNKNOWN`.
+- `reasons`: machine-readable positive evidence tokens used to explain higher
+  confidence, such as `STRICT_COMPOSABLE_IDENTITY`,
+  `MEANINGFUL_COMPOSE_NODE`, `STRONG_SOURCE_CANDIDATE`, and
+  `MEDIUM_SOURCE_CANDIDATE`.
+- `warnings`: machine-readable caveat tokens. Current values include
+  `VISUAL_AREA_ONLY`, `NO_MEANINGFUL_COMPOSE_TARGET`,
+  `POSSIBLE_VIEW_INTEROP`, `LOW_SOURCE_CANDIDATE_MARGIN`,
+  `SOURCE_INDEX_STALE`, `SCREEN_FINGERPRINT_MISMATCH_FORCED`,
+  `SCREEN_FINGERPRINT_UNAVAILABLE`, and `SENSITIVE_TEXT_REDACTED`.
 
 ## Feedback Session Schema
 
@@ -176,6 +194,7 @@ Feedback items represent human comments on a persisted evidence snapshot. When a
 - `status`: `open`, `ready`, `in_progress`, `resolved`, `needs_clarification`, or `wont_fix`.
 - `agentSummary`: optional agent resolution summary.
 - `targetEvidence`: optional additive evidence for stable agent handoff. When present, it follows the annotation `targetEvidence` shape above.
+- `targetReliability`: optional target confidence and warning metadata. When present, it follows the annotation `targetReliability` shape above.
 
 `ready` is retained for persisted/session JSON compatibility. Domain mappers normalize legacy `ready` values to `AnnotationStatus.OPEN`; this is not a JSON field migration.
 

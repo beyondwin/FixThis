@@ -169,7 +169,10 @@ class FeedbackConsoleServerTest {
             assertButtonContainsContractLabel(index, "clearSelectionButton", "Clear Selection")
             assertButtonContainsContractLabel(index, "clearDraftButton", "Clear Draft")
             assertButtonContainsContractLabel(index, "refreshDevicesButton", "Refresh devices")
-            assertButtonContainsContractLabel(index, "disconnectDeviceButton", "Clear selection")
+            assertButtonContainsContractLabel(index, "disconnectDeviceButton", "&times;")
+            assertTrue(index.contains("class=\"device-clear-button\""))
+            assertTrue(index.contains("aria-label=\"Clear FixThis device selection\""))
+            assertFalse(index.contains(">Clear selection</button>"))
             assertFalse(index.contains("Save snapshot"))
             assertFalse(index.contains("Add to Pending"))
         } finally {

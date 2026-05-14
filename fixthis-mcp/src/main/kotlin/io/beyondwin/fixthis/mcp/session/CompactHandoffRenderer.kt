@@ -1,5 +1,8 @@
 package io.beyondwin.fixthis.mcp.session
 
+import io.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.beyondwin.fixthis.compose.core.model.handoffMessage
+
 object CompactHandoffRenderer {
     private const val MAX_CANDIDATES_RENDERED = 3
     fun render(session: SessionDto, itemIds: List<String>? = null): String = buildString {
@@ -145,10 +148,20 @@ object CompactHandoffRenderer {
         appendLine(compactUiLine(item, isOverlap, instanceLabel, dupRefMarker))
         item.screenshotCrop?.desktopCropPath?.let { appendLine("crop: ${it.inlineSafe()}") }
         appendCandidatesBlock(item, sourceRoot)
+        appendReliabilityBlock(item.targetReliability)
         if (isInstanceLeader && groupSize >= 2 && !isOverlap) {
             appendLine("  note: $groupSize markers map to same call site — likely list-rendered; disambiguate by instance index")
         }
         appendLine()
+    }
+
+    private fun StringBuilder.appendReliabilityBlock(reliability: TargetReliability?) {
+        if (reliability == null) return
+        val confidence = reliability.confidence.name.lowercase()
+        appendLine("  targetConfidence=$confidence")
+        reliability.warnings.forEach { warning ->
+            appendLine("  warning: ${warning.handoffMessage().inlineSafe()}")
+        }
     }
 
     private fun StringBuilder.appendCandidatesBlock(item: AnnotationDto, sourceRoot: String?) {

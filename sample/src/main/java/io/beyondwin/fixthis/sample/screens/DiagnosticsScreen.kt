@@ -1,9 +1,13 @@
 package io.beyondwin.fixthis.sample.screens
 
+import android.graphics.Color
+import android.widget.TextView
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -15,12 +19,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import io.beyondwin.fixthis.sample.components.InfoRow
 import io.beyondwin.fixthis.sample.components.PreviewPanel
 import io.beyondwin.fixthis.sample.components.SparklineSurface
 import io.beyondwin.fixthis.sample.components.StateChip
 import io.beyondwin.fixthis.sample.components.StudioHeader
 import io.beyondwin.fixthis.sample.model.FixThisDemoData
+
+private const val ANDROID_VIEW_BACKGROUND_RED = 49
+private const val ANDROID_VIEW_BACKGROUND_GREEN = 79
+private const val ANDROID_VIEW_BACKGROUND_BLUE = 124
+private const val ANDROID_VIEW_HORIZONTAL_PADDING = 24
+private const val ANDROID_VIEW_VERTICAL_PADDING = 18
 
 @Composable
 fun DiagnosticsScreen(padding: PaddingValues) {
@@ -45,6 +56,7 @@ fun DiagnosticsScreen(padding: PaddingValues) {
                 contentDescription = "Semantic signal timeline"
             },
         )
+        androidViewInteropFixture()
         FixThisDemoData.diagnostics.forEach { signal ->
             InfoRow(
                 title = signal.label,
@@ -70,4 +82,34 @@ fun DiagnosticsScreen(padding: PaddingValues) {
             }
         }
     }
+}
+
+@Composable
+private fun androidViewInteropFixture() {
+    Text("AndroidView interop preview", style = MaterialTheme.typography.titleSmall)
+    AndroidView(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(72.dp),
+        factory = { context ->
+            TextView(context).apply {
+                text = "Native AndroidView target"
+                contentDescription = "Native AndroidView target"
+                setTextColor(Color.WHITE)
+                setBackgroundColor(
+                    Color.rgb(
+                        ANDROID_VIEW_BACKGROUND_RED,
+                        ANDROID_VIEW_BACKGROUND_GREEN,
+                        ANDROID_VIEW_BACKGROUND_BLUE,
+                    ),
+                )
+                setPadding(
+                    ANDROID_VIEW_HORIZONTAL_PADDING,
+                    ANDROID_VIEW_VERTICAL_PADDING,
+                    ANDROID_VIEW_HORIZONTAL_PADDING,
+                    ANDROID_VIEW_VERTICAL_PADDING,
+                )
+            }
+        },
+    )
 }
