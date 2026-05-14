@@ -87,23 +87,6 @@ For agents without first-class MCP support, use **Copy Prompt** in the console:
 The agent can start editing immediately — no MCP setup, no restart, no extra
 tools.
 
-### Target reliability warnings
-
-Saved feedback items may include `targetReliability`. Treat it as the
-confidence level for the UI target, not as task priority.
-
-- `HIGH`: source candidates are strong starting points, but still verify the
-  screenshot and surrounding code before editing.
-- `MEDIUM`: inspect the listed candidates before editing; the right call site
-  may be nearby rather than the first candidate.
-- `LOW`: use the screenshot, bounds, comment, and nearby UI labels first. Treat
-  source candidates as hints.
-- `POSSIBLE_VIEW_INTEROP`: the selected pixels may come from AndroidView,
-  WebView, or another non-Compose boundary. Do not assume a Compose candidate
-  rendered those pixels.
-- `SCREEN_FINGERPRINT_MISMATCH_FORCED`: the user force-saved after the screen
-  changed. Confirm the current UI before applying edits.
-
 ## Behavior shared across modes
 
 - **Both modes are local.** No FixThis call goes to an external API. **Save to
@@ -125,7 +108,8 @@ confidence level for the UI target, not as task priority.
 
 ### Target reliability warnings
 
-Saved feedback items may include `targetReliability`. Treat it as the
+Saved feedback items may include `targetReliability` in JSON and
+`targetConfidence=` / `warning:` lines in compact Markdown. Treat this as the
 confidence level for the UI target, not as task priority.
 
 - `HIGH`: source candidates are strong starting points, but still verify the
@@ -134,11 +118,23 @@ confidence level for the UI target, not as task priority.
   may be nearby rather than the first candidate.
 - `LOW`: use the screenshot, bounds, comment, and nearby UI labels first. Treat
   source candidates as hints.
+- `VISUAL_AREA_ONLY`: the user selected an area instead of a Compose semantics
+  node; verify screenshot bounds before editing.
+- `NO_MEANINGFUL_COMPOSE_TARGET`: no useful Compose node covered the selected
+  pixels; search by nearby labels and layout context.
 - `POSSIBLE_VIEW_INTEROP`: the selected pixels may come from AndroidView,
   WebView, or another non-Compose boundary. Do not assume a Compose candidate
   rendered those pixels.
+- `LOW_SOURCE_CANDIDATE_MARGIN`: multiple source candidates are close; inspect
+  runner-up candidates before editing.
+- `SOURCE_INDEX_STALE`: reinstall the debug APK or refresh the source index
+  before trusting file/line coordinates.
 - `SCREEN_FINGERPRINT_MISMATCH_FORCED`: the user force-saved after the screen
   changed. Confirm the current UI before applying edits.
+- `SCREEN_FINGERPRINT_UNAVAILABLE`: mismatch checking was skipped; verify the
+  current screen manually.
+- `SENSITIVE_TEXT_REDACTED`: sensitive text was withheld from evidence; rely on
+  screenshot context and non-sensitive labels.
 
 ## What's next
 

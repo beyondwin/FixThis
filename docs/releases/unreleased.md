@@ -24,6 +24,10 @@ remains the chronological source of truth.
   saved overlay edits, pending recovery, and undo/redo history carry the
   session context that created them, and persisted item numbers remain stable
   across deletes and session reopens.
+- Target reliability is now part of saved handoffs. FixThis derives
+  high/medium/low target confidence from semantic coverage, source-candidate
+  quality, stale-index state, fingerprint checks, and redaction, then renders
+  the result in the console and in compact agent Markdown.
 - Browser-only pending annotations now run through a DraftWorkspace state
   machine. Drafts carry an immutable freeze context, revision, lifecycle, and
   undo/redo history; stale async responses and session switches can no longer
@@ -77,26 +81,8 @@ Before tagging the next release, run the current contributor checklist:
   --no-daemon
 node scripts/build-console-assets.mjs --check
 node --check fixthis-mcp/src/main/resources/console/app.js
-node --test \
-  scripts/console-availability-test.mjs \
-  scripts/pendingItemRecovery-test.mjs \
-  scripts/beforeunloadGuard-test.mjs \
-  scripts/undoRedo-test.mjs \
-  scripts/undoKeymatch-test.mjs \
-  scripts/activityDrift-test.mjs \
-  scripts/previewStaleness-test.mjs \
-  scripts/pendingBoundaryGuard-test.mjs \
-  scripts/sessionScopedRequests-test.mjs \
-  scripts/savedOverlayScope-test.mjs \
-  scripts/undoRedoContext-test.mjs \
-  scripts/draftWorkspace-test.mjs \
-  scripts/draftWorkspaceHistory-test.mjs \
-  scripts/draftStorageAdapter-test.mjs \
-  scripts/draftApiAdapter-test.mjs \
-  scripts/draftUseCases-test.mjs \
-  scripts/draftCommandQueue-test.mjs \
-  scripts/draftPresentationContract-test.mjs \
-  scripts/draftWorkflowInvariant-test.mjs
+node scripts/check-doc-consistency.mjs
+node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview draft session harness
 git diff --check
 ```
 

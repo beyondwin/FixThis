@@ -35,6 +35,27 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ### Added
 
+- **Target reliability handoffs — confidence + warning metadata for agents (core/mcp/console, 2026-05-15):**
+  - Persisted feedback items can now carry optional `targetReliability`
+    metadata alongside `targetEvidence`. The confidence level (`HIGH`,
+    `MEDIUM`, `LOW`, or `UNKNOWN`) is derived from semantic coverage,
+    source-candidate strength/margin, source-index staleness, save-time screen
+    fingerprint state, and redaction constraints.
+  - Compact Markdown handoffs now emit `targetConfidence=<level>` plus
+    `warning:` lines when reliability metadata is present. Warnings cover
+    visual-area-only selections, missing meaningful Compose targets, possible
+    AndroidView/WebView interop, close source-candidate margins, stale source
+    indexes, forced screen mismatches, missing fingerprints, and sensitive text
+    redaction.
+  - The browser console shows reliability badges on annotation rows and counts
+    warnings in prompt readiness without blocking `Copy Prompt` or
+    `Save to MCP`.
+  - Documented in
+    [`docs/guides/agents.md`](docs/guides/agents.md),
+    [`docs/reference/mcp-tools.md`](docs/reference/mcp-tools.md),
+    [`docs/reference/output-schema.md`](docs/reference/output-schema.md), and
+    [`docs/reference/feedback-console-contract.md`](docs/reference/feedback-console-contract.md).
+
 - **Console harness automation — shared fake-bridge fixture, scenario matrix driver, nightly CI (console, 2026-05-14):**
   - Extracted a shared `scripts/console-fixture/fakeBridgeServer.mjs` module
     exposing `startFakeBridge({scenario})` plus a scenario map (happy-path,

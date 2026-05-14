@@ -118,18 +118,22 @@ screenshot_line = "screenshot: " path
 viewport_line   = "viewport: " width "×" height          ; emitted iff screenshot has dims
 activity_line   = "activity: " activity_name             ; emitted iff != display_name
 overlap_block = "Overlap group " N " (resolve one marker at a time):" item_block+
-item_block    = item_header target_line crop_line? source_block ""
+item_block    = item_header id_line target_line crop_line? source_block reliability_block? ""
 item_header   = "[" N "] " title                         ; title may include severity prefix
+id_line       = "  id: " item_id
 target_line   = "  " [ "role=" role "  " ] [ "tag=" tag "  " ] "box=(" x1 "," y1 ")-(" x2 "," y2 ")"
                  [ "  instance " i "/" total ]
                  [ "; targetRisk=overlap" ]
                  [ "; targetRisk=duplicate-of-marker-" M ]
-crop_line     = "  crop: " path
+crop_line     = "crop: " path
 source_block  = candidate_line{1,3} caution_line?
 candidate_line= "  " file ":" line "  conf=" lvl "  margin=" margin "  matched=[" terms "]"
                                                                           ↑ first line only; runner-ups omit margin/matched
                                                                           ; file is stripped of source_root prefix when present
 caution_line  = "  note: " text                          ; emitted iff caution OR collision
+reliability_block = target_confidence_line warning_line*
+target_confidence_line = "  targetConfidence=" ("high" | "medium" | "low" | "unknown")
+warning_line   = "  warning: " text
 ```
 
 The `screenshot:` line is optional and omitted when no screenshot artifact is available for the screen.
@@ -145,12 +149,21 @@ When no source candidates are available for the item, the source block consists 
 - `Source root:` — directory-boundary common prefix of all candidate file paths in the session, with trailing `/`. Emitted only when at least two distinct candidate paths share a prefix of ≥10 chars; otherwise omitted and candidate paths are written verbatim. When emitted, the prefix is removed from every candidate line so each candidate appears as a relative path.
 - target line — emits only the tokens that have content. `role=` and `tag=` are dropped when the corresponding `selectedNode` field is blank; the line collapses to bare `box=` for area selections.
 - `[!]` severity prefix — prepended to the title when item severity is `HIGH`; absent for `MED` and `LOW`.
+- `id:` — feedback item id. Agents should use this with
+  `fixthis_claim_feedback` before editing and `fixthis_resolve_feedback` after
+  finishing.
 - `instance i/N` — emitted on the target line when multiple items on the same screen share the same `(top_candidate file:line, testTag)`; index assigned by `path`-leaf string sort order.
 - `targetRisk=overlap` — present when the target participates in an overlap group (see below).
 - `targetRisk=duplicate-of-marker-M` — present when this item is an exact duplicate of an earlier item (same source, testTag, path leaves, and bounds).
 - candidate lines — up to 3 in score order. Rank 1 includes `margin=` (score gap to rank 2, formatted to 2 decimal places) and `matched=[...]` (up to 4 reason tokens). Runner-up lines include only `conf=`.
 - `note:` — emitted when the rank-1 candidate has a `caution` field, or when multiple items in an instance group share the same call site (collision note on the first item only).
 - Confidence is lowercase: `high`, `medium`, `low`, or `none`.
+- `targetConfidence=` — optional target-level reliability. It describes how
+  much the selected UI target can be trusted before editing; it is not task
+  priority and is distinct from source-candidate `conf=`.
+- `warning:` — optional target-level caveats, such as visual-area-only,
+  possible AndroidView/WebView interop, stale source index, forced screen
+  mismatch, missing fingerprint, or sensitive text redaction.
 
 ### Reason-token mapping
 

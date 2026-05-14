@@ -109,7 +109,9 @@ FixThis is intentionally narrow today:
 V1 is intentionally narrow. High-priority items beyond V1:
 
 - **Maven Central / Gradle Plugin Portal release** — single-line install for external projects.
-- **`AndroidView` / interop awareness** — at minimum a "View-based subtree" badge so the agent stops guessing at non-Compose pixels.
+- **Deeper `AndroidView` / interop awareness** — FixThis now warns when a
+  target may cross a View/WebView boundary; future work should expose richer
+  subtree evidence instead of only lowering target confidence.
 - **SSE-driven console state sync** — replace polling with server-pushed events. Design in [console-state-sync-design.md](docs/architecture/console-state-sync-design.md).
 - **Smarter source matching** — lift detection on `Layout` / `SubcomposeLayout` wrappers, recognize more composable-name conventions, and keep source confidence explainable as the matcher evolves.
 - **More agents out of the box** — Cursor, Aider, and others currently work via Copy Prompt; first-class MCP / config writers can follow the Claude Code + Codex pattern.
