@@ -13,12 +13,23 @@ fixthis-compose-sidekick/build/generated/source/buildinfo/
 
 # Node
 node_modules/
+coverage/
+.nyc_output/
 
 # Android local/generated files
 local.properties
 /captures/
 .externalNativeBuild/
 .cxx/
+*.apk
+*.aab
+*.hprof
+
+# Local secrets / environment
+.env*
+!.env.example
+*.jks
+*.keystore
 
 # FixThis local capture artifacts
 .fixthis/artifacts/
@@ -26,12 +37,19 @@ local.properties
 
 # OS
 .DS_Store
-.superpowers/brainstorm
+
+# Logs / temporary files
+*.log
+*.tmp
+
+# Agent/local tool state
 .fixthis
-.playwright-cli
-.playwright-mcp
-.claude
-.orchestrator
-.codex-orchestrator
-.worktrees
+.claude/
+.orchestrator/
+.codex-orchestrator/
+.remember/
+.superpowers/
+.playwright-cli/
+.playwright-mcp/
+.worktrees/
 output/playwright
