@@ -41,6 +41,23 @@ test('workspace storage is keyed by captured session and workspace', () => {
   assert.deepEqual(adapter.loadWorkspacesForSession('session-b'), []);
 });
 
+test('deleteWorkspace removes stored workspace and index entry', () => {
+  const localStorage = fakeLocalStorage();
+  const adapter = m.createDraftStorageAdapter(localStorage);
+  adapter.saveWorkspace({
+    schemaVersion: 2,
+    sessionId: 'session-a',
+    workspaceId: 'ws-a',
+    context: { sessionId: 'session-a' },
+    items: [{ draftItemId: 'draft-1' }],
+  });
+
+  adapter.deleteWorkspace('session-a', 'ws-a');
+
+  assert.equal(localStorage.getItem(m.draftWorkspaceKey('session-a', 'ws-a')), null);
+  assert.deepEqual(adapter.loadWorkspacesForSession('session-a'), []);
+});
+
 test('schema v1 pending envelope migrates into schema v2 workspace recovery', () => {
   const legacy = {
     schemaVersion: 1,

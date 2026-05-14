@@ -151,9 +151,21 @@
             }
 
             function persistCurrentDraftWorkspaceIfNeeded() {
-              if (!draftWorkspace?.workspaceId || !(draftWorkspace.items || []).length) return;
+              if (!draftWorkspace?.workspaceId) return;
+              if (!(draftWorkspace.items || []).length) {
+                deleteCurrentDraftWorkspaceStorage();
+                return;
+              }
               const storage = createBrowserDraftPorts().storage;
               storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(draftWorkspace));
+            }
+
+            function deleteCurrentDraftWorkspaceStorage() {
+              if (!draftWorkspace?.workspaceId) return;
+              const sessionId = draftWorkspace.context?.sessionId || state.session?.sessionId;
+              if (!sessionId) return;
+              const storage = createBrowserDraftPorts().storage;
+              storage.deleteWorkspace(sessionId, draftWorkspace.workspaceId);
             }
 
             function createBrowserDraftPorts() {

@@ -378,6 +378,7 @@
             }
 
             function resetAnnotationComposerState(clearFlow = true, clearMirror = true) {
+              if (clearFlow && clearMirror) deleteCurrentDraftWorkspaceStorage();
               if (clearFlow) setDraftWorkspace(createEmptyDraftWorkspace());
               if (clearMirror) {
                 clearPendingMirror(state.session?.sessionId);
@@ -516,7 +517,11 @@
             function deletePendingFeedbackItem(index) {
               const removed = draftWorkspace.items[index];
               if (!removed) return;
-              setDraftWorkspace(deleteDraftItem(draftWorkspace, removed.draftItemId));
+              const nextWorkspace = deleteDraftItem(draftWorkspace, removed.draftItemId);
+              if (nextWorkspace.items.length === 0) {
+                deleteCurrentDraftWorkspaceStorage();
+              }
+              setDraftWorkspace(nextWorkspace);
               showUndoToast(removed.draftItemId);
               focusedPendingItemIndex = null;
               toolModeUseCases.focusSavedItem(null, null);

@@ -182,6 +182,18 @@ test('switching sessions keeps the previous session pending recovery mirror', ()
   assert.doesNotMatch(openBody, /resetAnnotationComposerState\(\);/);
 });
 
+test('resetAnnotationComposerState deletes schema v2 workspace when clearing flow and mirror', () => {
+  const resetBody = extractFunctionBody(annotationsSource, 'function resetAnnotationComposerState');
+  assert.match(resetBody, /deleteCurrentDraftWorkspaceStorage\(\);/);
+  assert.match(resetBody, /if \(clearFlow\) setDraftWorkspace\(createEmptyDraftWorkspace\(\)\);/);
+});
+
+test('deletePendingFeedbackItem deletes workspace storage when last draft item is removed', () => {
+  const deleteBody = extractFunctionBody(annotationsSource, 'function deletePendingFeedbackItem');
+  assert.match(deleteBody, /deleteCurrentDraftWorkspaceStorage\(\);/);
+  assert.match(deleteBody, /nextWorkspace\.items\.length === 0/);
+});
+
 test('returning to a session with pending mirror loads draft workspace recovery', () => {
   const persistBody = extractFunctionBody(annotationsSource, 'function persistCurrentPendingState()');
   const loadBody = extractFunctionBody(mainSource, 'function loadPendingRecoveryForCurrentSession()');
