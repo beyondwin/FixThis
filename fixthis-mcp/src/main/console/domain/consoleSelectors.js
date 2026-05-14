@@ -111,3 +111,27 @@ function selectPromptReadiness(state) {
   }
   return Object.freeze({ state: 'ready', label: workspace.items.length + ' drafts ready', disabled: false });
 }
+
+function selectDraftLockModel(state) {
+  if (!isDraftWorkspace(state.workspace)) return Object.freeze({ visible: false });
+  return Object.freeze({
+    visible: true,
+    sessionId: state.workspace.context.sessionId,
+    previewId: state.workspace.context.previewId,
+    screenId: state.workspace.context.screenId,
+    itemCount: state.workspace.items.length,
+    missingCommentCount: state.workspace.items.filter((item) => !String(item.comment || '').trim()).length,
+    frozenAtEpochMillis: state.workspace.context.frozenAtEpochMillis || null,
+  });
+}
+
+function selectToolbarModel(state) {
+  const draft = isDraftWorkspace(state.workspace);
+  return Object.freeze({
+    activeSessionId: state.activeSessionId,
+    previewLocked: draft,
+    canAnnotate: Boolean(state.activeSessionId) && !draft,
+    canSave: draft && state.workspace.items.length > 0 && !state.promptAction.inFlight,
+    canCopy: draft && state.workspace.items.length > 0 && !state.promptAction.inFlight,
+  });
+}

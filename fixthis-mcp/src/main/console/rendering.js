@@ -899,6 +899,20 @@
               renderBoundaryFromModel(model);
             }
 
+            function renderCanonicalDraftLockModel(model) {
+              renderDraftLockBar(model?.visible ? {
+                mode: 'frozenDraft',
+                lockLabel: 'Locked: Session ' + model.sessionId + ' · Preview ' + model.previewId + ' · Live preview paused',
+              } : { mode: 'livePreview' });
+            }
+
+            function renderCanonicalToolbarModel(model) {
+              if (!model) return;
+              annotateToolButton.disabled = !model.canAnnotate || toolModeUseCases.getState().draftFlowStarting;
+              copyPromptButton.disabled = !model.canCopy;
+              sendAgentButton.disabled = !model.canSave;
+            }
+
             function attachSnapshotHandlers() {
               const image = document.getElementById('snapshotImage');
               if (!image) return;

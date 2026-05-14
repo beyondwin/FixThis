@@ -20,7 +20,9 @@ const factory = new Function(`${sources}; return {
   selectCanvasModel,
   selectBoundarySheet,
   selectPromptReadiness,
-  selectHistoryModel
+  selectHistoryModel,
+  selectDraftLockModel,
+  selectToolbarModel
 };`);
 const m = factory();
 
@@ -59,4 +61,21 @@ test('pending boundary selects session switch sheet', () => {
     'BOUNDARY_DISCARD_CLICKED',
     'BOUNDARY_CANCEL_CLICKED',
   ]);
+});
+
+test('draft lock model describes canonical draft context', () => {
+  let state = m.createInitialConsoleAppState({ activeSessionId: 'session-a', sessions: [{ sessionId: 'session-a' }] });
+  state = m.reduceConsoleAppState(state, { type: 'DRAFT_STARTED_FROM_PREVIEW', sessionId: 'session-a', preview: preview() }).state;
+  const model = m.selectDraftLockModel(state);
+  assert.equal(model.visible, true);
+  assert.equal(model.sessionId, 'session-a');
+  assert.equal(model.previewId, 'preview-a');
+});
+
+test('toolbar model disables live preview actions while draft is locked', () => {
+  let state = m.createInitialConsoleAppState({ activeSessionId: 'session-a', sessions: [{ sessionId: 'session-a' }] });
+  state = m.reduceConsoleAppState(state, { type: 'DRAFT_STARTED_FROM_PREVIEW', sessionId: 'session-a', preview: preview() }).state;
+  const model = m.selectToolbarModel(state);
+  assert.equal(model.previewLocked, true);
+  assert.equal(model.canAnnotate, false);
 });

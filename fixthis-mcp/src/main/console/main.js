@@ -12,6 +12,8 @@
               renderInspector: renderCanonicalInspectorModel,
               renderPrompt: renderCanonicalPromptModel,
               renderBoundary: renderCanonicalBoundaryModel,
+              renderDraftLock: renderCanonicalDraftLockModel,
+              renderToolbar: renderCanonicalToolbarModel,
             });
             let store;
             let consoleStore;

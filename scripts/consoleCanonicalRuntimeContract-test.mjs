@@ -55,3 +55,16 @@ test('runtime modules do not mutate legacy draft globals', () => {
     assert.doesNotMatch(text, /invalidateCanonicalPreviewContext\(/, file);
   }
 });
+
+test('rendering bridge functions accept models and do not read legacy globals', () => {
+  const rendering = source('fixthis-mcp/src/main/console/rendering.js');
+  for (const fn of [
+    'renderCanonicalHistoryModel',
+    'renderCanonicalCanvasModel',
+    'renderCanonicalInspectorModel',
+    'renderCanonicalPromptModel',
+    'renderCanonicalBoundaryModel',
+  ]) {
+    assert.match(rendering, new RegExp('function ' + fn + '\\(model'));
+  }
+});
