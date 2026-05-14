@@ -43,6 +43,25 @@ private fun HttpURLConnection.inputJsonObject(): JsonObject = fixThisJson
     .parseToJsonElement(inputStream.bufferedReader().readText())
     .jsonObject
 
+private inline fun withTempProject(prefix: String, block: (java.io.File) -> Unit) {
+    val projectRoot = Files.createTempDirectory(prefix).toFile()
+    try {
+        block(projectRoot)
+    } finally {
+        projectRoot.deleteRecursively()
+    }
+}
+
+private inline fun withConsoleServer(service: FeedbackSessionService, block: (FeedbackConsoleServer) -> Unit) {
+    val server = FeedbackConsoleServer(service = service, port = 0)
+    server.start()
+    try {
+        block(server)
+    } finally {
+        server.stop()
+    }
+}
+
 class ConsoleFeedbackItemRoutesTest {
     @Test
     fun itemPatchUpdatesDraftAnnotation() {
@@ -120,9 +139,7 @@ class ConsoleFeedbackItemRoutesTest {
             ),
         )
         service.openSession(null, newSession = true)
-        val server = FeedbackConsoleServer(service = service, port = 0)
-        server.start()
-        try {
+        withConsoleServer(service) { server ->
             val connection = ConsoleHttpTestClient(server.url).connection(
                 "/api/items/item-1",
                 method = "PUT",
@@ -131,8 +148,6 @@ class ConsoleFeedbackItemRoutesTest {
 
             assertEquals(200, connection.responseCode)
             assertEquals("After", service.getSession("session-1").items.single().comment)
-        } finally {
-            server.stop()
         }
     }
 
@@ -151,9 +166,7 @@ class ConsoleFeedbackItemRoutesTest {
         val sessionA = service.openSession(null, newSession = true)
         val preview = runBlocking { service.capturePreview(sessionA.sessionId) }
         service.openSession(null, newSession = true)
-        val server = FeedbackConsoleServer(service = service, port = 0)
-        server.start()
-        try {
+        withConsoleServer(service) { server ->
             val body = """
                 {
                   "sessionId": "${sessionA.sessionId}",
@@ -173,17 +186,13 @@ class ConsoleFeedbackItemRoutesTest {
             assertEquals("save into session A", service.getSession(sessionA.sessionId).items.single().comment)
             assertTrue(service.requireCurrentSession().sessionId != sessionA.sessionId)
             assertTrue(service.requireCurrentSession().items.isEmpty())
-        } finally {
-            server.stop()
         }
     }
-}
-class ConsoleFeedbackItemBatchRoutesTest {
+
     @Test
     @Suppress("LongMethod")
     fun savingDraftItemsAppendsOneScreenAndTwoItems() {
-        val projectRoot = Files.createTempDirectory("fixthis-console-batch").toFile()
-        try {
+        withTempProject("fixthis-console-batch") { projectRoot ->
             val service = FeedbackSessionService(
                 bridge = FakeFixThisBridge(),
                 store = FeedbackSessionStore(
@@ -199,38 +208,32 @@ class ConsoleFeedbackItemBatchRoutesTest {
                 projectRoot = projectRoot.absolutePath,
                 defaultPackageName = "io.beyondwin.fixthis.sample",
             )
-            val server = FeedbackConsoleServer(service = service, port = 0)
-            server.start()
-            try {
+            withConsoleServer(service) { server ->
                 service.openSession(null, newSession = true)
                 val preview = ConsoleHttpTestClient(server.url).getJsonObject("/api/preview")
                 val previewId = preview.getValue("previewId").jsonPrimitive.content
 
-                val connection = ConsoleHttpTestClient(server.url).connection("/api/items/batch")
-                connection.requestMethod = "POST"
-                connection.doOutput = true
-                connection.setRequestProperty("Content-Type", "application/json")
-                connection.outputStream.use {
-                    it.write(
-                        """
+                val connection = ConsoleHttpTestClient(server.url).connection(
+                    "/api/items/batch",
+                    method = "POST",
+                    body = """
+                    {
+                      "previewId": "$previewId",
+                      "items": [
                         {
-                          "previewId": "$previewId",
-                          "items": [
-                            {
-                              "targetType": "area",
-                              "bounds": {"left":10.0,"top":20.0,"right":110.0,"bottom":80.0},
-                              "comment": "Change headline"
-                            },
-                            {
-                              "targetType": "area",
-                              "bounds": {"left":120.0,"top":200.0,"right":260.0,"bottom":280.0},
-                              "comment": "Add margin"
-                            }
-                          ]
+                          "targetType": "area",
+                          "bounds": {"left":10.0,"top":20.0,"right":110.0,"bottom":80.0},
+                          "comment": "Change headline"
+                        },
+                        {
+                          "targetType": "area",
+                          "bounds": {"left":120.0,"top":200.0,"right":260.0,"bottom":280.0},
+                          "comment": "Add margin"
                         }
-                        """.trimIndent().toByteArray(),
-                    )
-                }
+                      ]
+                    }
+                    """.trimIndent(),
+                )
 
                 assertEquals(200, connection.responseCode)
                 val session = connection.inputJsonObject()
@@ -245,18 +248,13 @@ class ConsoleFeedbackItemBatchRoutesTest {
                     listOf("preview-screen-1", "preview-screen-1"),
                     items.map { it.getValue("screenId").jsonPrimitive.content },
                 )
-            } finally {
-                server.stop()
             }
-        } finally {
-            projectRoot.deleteRecursively()
         }
     }
 
     @Test
     fun batchItemsApiReturnsConflictWhenLiveScreenFingerprintDiffersFromFrozenPreview() {
-        val projectRoot = Files.createTempDirectory("fixthis-console-mismatch").toFile()
-        try {
+        withTempProject("fixthis-console-mismatch") { projectRoot ->
             val service = FeedbackSessionService(
                 bridge = SequencedFingerprintBridge("frozen", "current"),
                 store = FeedbackSessionStore(
@@ -266,36 +264,30 @@ class ConsoleFeedbackItemBatchRoutesTest {
                 projectRoot = projectRoot.absolutePath,
                 defaultPackageName = "io.beyondwin.fixthis.sample",
             )
-            val server = FeedbackConsoleServer(service = service, port = 0)
-            server.start()
-            try {
+            withConsoleServer(service) { server ->
                 service.openSession(null, newSession = true)
                 val preview = ConsoleHttpTestClient(server.url).getJsonObject("/api/preview")
                 val previewId = preview.getValue("previewId").jsonPrimitive.content
                 val frozenScreen = preview.getValue("screen").jsonObject
 
-                val connection = ConsoleHttpTestClient(server.url).connection("/api/items/batch")
-                connection.requestMethod = "POST"
-                connection.doOutput = true
-                connection.setRequestProperty("Content-Type", "application/json")
-                connection.outputStream.use {
-                    it.write(
-                        """
+                val connection = ConsoleHttpTestClient(server.url).connection(
+                    "/api/items/batch",
+                    method = "POST",
+                    body = """
+                    {
+                      "previewId": "$previewId",
+                      "frozenFingerprint": "frozen",
+                      "screen": $frozenScreen,
+                      "items": [
                         {
-                          "previewId": "$previewId",
-                          "frozenFingerprint": "frozen",
-                          "screen": $frozenScreen,
-                          "items": [
-                            {
-                              "targetType": "area",
-                              "bounds": {"left":10.0,"top":20.0,"right":110.0,"bottom":80.0},
-                              "comment": "Change headline"
-                            }
-                          ]
+                          "targetType": "area",
+                          "bounds": {"left":10.0,"top":20.0,"right":110.0,"bottom":80.0},
+                          "comment": "Change headline"
                         }
-                        """.trimIndent().toByteArray(),
-                    )
-                }
+                      ]
+                    }
+                    """.trimIndent(),
+                )
 
                 assertEquals(409, connection.responseCode)
                 val payload = fixThisJson
@@ -304,18 +296,13 @@ class ConsoleFeedbackItemBatchRoutesTest {
                 assertEquals("screen_fingerprint_mismatch", payload.getValue("error").jsonPrimitive.content)
                 assertEquals("frozen", payload.getValue("frozenFingerprint").jsonPrimitive.content)
                 assertEquals("current", payload.getValue("currentFingerprint").jsonPrimitive.content)
-            } finally {
-                server.stop()
             }
-        } finally {
-            projectRoot.deleteRecursively()
         }
     }
 
     @Test
     fun batchItemsApiReturnsFingerprintUnavailableHeaderWhenCurrentFingerprintIsMissing() {
-        val projectRoot = Files.createTempDirectory("fixthis-console-null-fingerprint").toFile()
-        try {
+        withTempProject("fixthis-console-null-fingerprint") { projectRoot ->
             val service = FeedbackSessionService(
                 bridge = NullableSequencedFingerprintBridge("frozen", null),
                 store = FeedbackSessionStore(
@@ -325,36 +312,30 @@ class ConsoleFeedbackItemBatchRoutesTest {
                 projectRoot = projectRoot.absolutePath,
                 defaultPackageName = "io.beyondwin.fixthis.sample",
             )
-            val server = FeedbackConsoleServer(service = service, port = 0)
-            server.start()
-            try {
+            withConsoleServer(service) { server ->
                 service.openSession(null, newSession = true)
                 val preview = ConsoleHttpTestClient(server.url).getJsonObject("/api/preview")
                 val previewId = preview.getValue("previewId").jsonPrimitive.content
                 val frozenScreen = preview.getValue("screen").jsonObject
 
-                val connection = ConsoleHttpTestClient(server.url).connection("/api/items/batch")
-                connection.requestMethod = "POST"
-                connection.doOutput = true
-                connection.setRequestProperty("Content-Type", "application/json")
-                connection.outputStream.use {
-                    it.write(
-                        """
+                val connection = ConsoleHttpTestClient(server.url).connection(
+                    "/api/items/batch",
+                    method = "POST",
+                    body = """
+                    {
+                      "previewId": "$previewId",
+                      "frozenFingerprint": "frozen",
+                      "screen": $frozenScreen,
+                      "items": [
                         {
-                          "previewId": "$previewId",
-                          "frozenFingerprint": "frozen",
-                          "screen": $frozenScreen,
-                          "items": [
-                            {
-                              "targetType": "area",
-                              "bounds": {"left":10.0,"top":20.0,"right":110.0,"bottom":80.0},
-                              "comment": "Change headline"
-                            }
-                          ]
+                          "targetType": "area",
+                          "bounds": {"left":10.0,"top":20.0,"right":110.0,"bottom":80.0},
+                          "comment": "Change headline"
                         }
-                        """.trimIndent().toByteArray(),
-                    )
-                }
+                      ]
+                    }
+                    """.trimIndent(),
+                )
 
                 assertEquals(200, connection.responseCode)
                 assertEquals(
@@ -365,18 +346,13 @@ class ConsoleFeedbackItemBatchRoutesTest {
                 assertFalse(session.containsKey("fingerprintUnavailableReason"))
                 assertEquals(1, session.getValue("screens").jsonArray.size)
                 assertEquals(1, session.getValue("items").jsonArray.size)
-            } finally {
-                server.stop()
             }
-        } finally {
-            projectRoot.deleteRecursively()
         }
     }
 
     @Test
     fun batchItemsApiReturnsServerErrorWhenLiveRecaptureThrowsIllegalArgumentException() {
-        val projectRoot = Files.createTempDirectory("fixthis-console-recapture-error").toFile()
-        try {
+        withTempProject("fixthis-console-recapture-error") { projectRoot ->
             val service = FeedbackSessionService(
                 bridge = SecondCaptureIllegalArgumentBridge(),
                 store = FeedbackSessionStore(
@@ -392,48 +368,37 @@ class ConsoleFeedbackItemBatchRoutesTest {
                 projectRoot = projectRoot.absolutePath,
                 defaultPackageName = "io.beyondwin.fixthis.sample",
             )
-            val server = FeedbackConsoleServer(service = service, port = 0)
-            server.start()
-            try {
+            withConsoleServer(service) { server ->
                 service.openSession(null, newSession = true)
                 val preview = ConsoleHttpTestClient(server.url).getJsonObject("/api/preview")
                 val previewId = preview.getValue("previewId").jsonPrimitive.content
 
-                val connection = ConsoleHttpTestClient(server.url).connection("/api/items/batch")
-                connection.requestMethod = "POST"
-                connection.doOutput = true
-                connection.setRequestProperty("Content-Type", "application/json")
-                connection.outputStream.use {
-                    it.write(
-                        """
+                val connection = ConsoleHttpTestClient(server.url).connection(
+                    "/api/items/batch",
+                    method = "POST",
+                    body = """
+                    {
+                      "previewId": "$previewId",
+                      "items": [
                         {
-                          "previewId": "$previewId",
-                          "items": [
-                            {
-                              "targetType": "area",
-                              "bounds": {"left":10.0,"top":20.0,"right":110.0,"bottom":80.0},
-                              "comment": "Change headline"
-                            }
-                          ]
+                          "targetType": "area",
+                          "bounds": {"left":10.0,"top":20.0,"right":110.0,"bottom":80.0},
+                          "comment": "Change headline"
                         }
-                        """.trimIndent().toByteArray(),
-                    )
-                }
+                      ]
+                    }
+                    """.trimIndent(),
+                )
 
                 assertEquals(500, connection.responseCode)
                 assertTrue(connection.errorStream.bufferedReader().readText().contains("recapture failed"))
-            } finally {
-                server.stop()
             }
-        } finally {
-            projectRoot.deleteRecursively()
         }
     }
 
     @Test
     fun savingDraftItemsAllowsBlankCommentsForUnwrittenAnnotations() {
-        val projectRoot = Files.createTempDirectory("fixthis-console-blank-batch").toFile()
-        try {
+        withTempProject("fixthis-console-blank-batch") { projectRoot ->
             val service = FeedbackSessionService(
                 bridge = FakeFixThisBridge(),
                 store = FeedbackSessionStore(
@@ -443,44 +408,34 @@ class ConsoleFeedbackItemBatchRoutesTest {
                 projectRoot = projectRoot.absolutePath,
                 defaultPackageName = "io.beyondwin.fixthis.sample",
             )
-            val server = FeedbackConsoleServer(service = service, port = 0)
-            server.start()
-            try {
+            withConsoleServer(service) { server ->
                 service.openSession(null, newSession = true)
                 val preview = ConsoleHttpTestClient(server.url).getJsonObject("/api/preview")
                 val previewId = preview.getValue("previewId").jsonPrimitive.content
 
-                val connection = ConsoleHttpTestClient(server.url).connection("/api/items/batch")
-                connection.requestMethod = "POST"
-                connection.doOutput = true
-                connection.setRequestProperty("Content-Type", "application/json")
-                connection.outputStream.use {
-                    it.write(
-                        """
+                val connection = ConsoleHttpTestClient(server.url).connection(
+                    "/api/items/batch",
+                    method = "POST",
+                    body = """
+                    {
+                      "previewId": "$previewId",
+                      "items": [
                         {
-                          "previewId": "$previewId",
-                          "items": [
-                            {
-                              "targetType": "area",
-                              "bounds": {"left":10.0,"top":20.0,"right":110.0,"bottom":80.0},
-                              "comment": ""
-                            }
-                          ]
+                          "targetType": "area",
+                          "bounds": {"left":10.0,"top":20.0,"right":110.0,"bottom":80.0},
+                          "comment": ""
                         }
-                        """.trimIndent().toByteArray(),
-                    )
-                }
+                      ]
+                    }
+                    """.trimIndent(),
+                )
 
                 assertEquals(200, connection.responseCode)
                 val session = connection.inputJsonObject()
                 val item = session.getValue("items").jsonArray.single().jsonObject
                 assertEquals("", item.getValue("comment").jsonPrimitive.content)
                 assertEquals("open", item.getValue("status").jsonPrimitive.content)
-            } finally {
-                server.stop()
             }
-        } finally {
-            projectRoot.deleteRecursively()
         }
     }
 
@@ -493,23 +448,19 @@ class ConsoleFeedbackItemBatchRoutesTest {
             projectRoot = "/repo",
             defaultPackageName = "io.beyondwin.fixthis.sample",
         )
-        val server = FeedbackConsoleServer(service = service, port = 0)
-        server.start()
-        try {
+        withConsoleServer(service) { server ->
             service.openSession(null, newSession = true)
-            val connection = ConsoleHttpTestClient(server.url).connection("/api/items/batch")
-            connection.requestMethod = "POST"
-            connection.doOutput = true
-            connection.setRequestProperty("Content-Type", "application/json")
-            connection.outputStream.use { it.write("""{"previewId":"preview-1","items":[]}""".toByteArray()) }
+            val connection = ConsoleHttpTestClient(server.url).connection(
+                "/api/items/batch",
+                method = "POST",
+                body = """{"previewId":"preview-1","items":[]}""",
+            )
 
             assertEquals(400, connection.responseCode)
             assertTrue(
                 connection.errorStream.bufferedReader().readText().contains("At least one feedback item is required"),
             )
             assertEquals(0, bridge.captureCount)
-        } finally {
-            server.stop()
         }
     }
 
@@ -522,44 +473,35 @@ class ConsoleFeedbackItemBatchRoutesTest {
             projectRoot = "/repo",
             defaultPackageName = "io.beyondwin.fixthis.sample",
         )
-        val server = FeedbackConsoleServer(service = service, port = 0)
-        server.start()
-        try {
+        withConsoleServer(service) { server ->
             service.openSession(null, newSession = true)
-            val connection = ConsoleHttpTestClient(server.url).connection("/api/items/batch")
-            connection.requestMethod = "POST"
-            connection.doOutput = true
-            connection.setRequestProperty("Content-Type", "application/json")
-            connection.outputStream.use {
-                it.write(
-                    """
+            val connection = ConsoleHttpTestClient(server.url).connection(
+                "/api/items/batch",
+                method = "POST",
+                body = """
+                {
+                  "previewId": "missing-preview",
+                  "items": [
                     {
-                      "previewId": "missing-preview",
-                      "items": [
-                        {
-                          "targetType": "area",
-                          "bounds": {"left":10.0,"top":20.0,"right":110.0,"bottom":80.0},
-                          "comment": "Change headline"
-                        }
-                      ]
+                      "targetType": "area",
+                      "bounds": {"left":10.0,"top":20.0,"right":110.0,"bottom":80.0},
+                      "comment": "Change headline"
                     }
-                    """.trimIndent().toByteArray(),
-                )
-            }
+                  ]
+                }
+                """.trimIndent(),
+            )
 
             assertEquals(404, connection.responseCode)
             assertTrue(connection.errorStream.bufferedReader().readText().contains("PREVIEW_NOT_FOUND"))
             assertEquals(0, bridge.captureCount)
-        } finally {
-            server.stop()
         }
     }
 
     @Test
     fun batchItemsApiReturnsBadRequestForInvalidPreviewTarget() {
         val bridge = FakeFixThisBridge()
-        val projectRoot = Files.createTempDirectory("fixthis-console-invalid-target").toFile()
-        try {
+        withTempProject("fixthis-console-invalid-target") { projectRoot ->
             val service = FeedbackSessionService(
                 bridge = bridge,
                 store = FeedbackSessionStore(
@@ -569,42 +511,32 @@ class ConsoleFeedbackItemBatchRoutesTest {
                 projectRoot = projectRoot.absolutePath,
                 defaultPackageName = "io.beyondwin.fixthis.sample",
             )
-            val server = FeedbackConsoleServer(service = service, port = 0)
-            server.start()
-            try {
+            withConsoleServer(service) { server ->
                 service.openSession(null, newSession = true)
                 val preview = ConsoleHttpTestClient(server.url).getJsonObject("/api/preview")
                 val previewId = preview.getValue("previewId").jsonPrimitive.content
 
-                val connection = ConsoleHttpTestClient(server.url).connection("/api/items/batch")
-                connection.requestMethod = "POST"
-                connection.doOutput = true
-                connection.setRequestProperty("Content-Type", "application/json")
-                connection.outputStream.use {
-                    it.write(
-                        """
+                val connection = ConsoleHttpTestClient(server.url).connection(
+                    "/api/items/batch",
+                    method = "POST",
+                    body = """
+                    {
+                      "previewId": "$previewId",
+                      "items": [
                         {
-                          "previewId": "$previewId",
-                          "items": [
-                            {
-                              "targetType": "area",
-                              "bounds": {"left":-1.0,"top":20.0,"right":110.0,"bottom":80.0},
-                              "comment": "Change headline"
-                            }
-                          ]
+                          "targetType": "area",
+                          "bounds": {"left":-1.0,"top":20.0,"right":110.0,"bottom":80.0},
+                          "comment": "Change headline"
                         }
-                        """.trimIndent().toByteArray(),
-                    )
-                }
+                      ]
+                    }
+                    """.trimIndent(),
+                )
 
                 assertEquals(400, connection.responseCode)
                 assertTrue(connection.errorStream.bufferedReader().readText().contains("Selection bounds"))
                 assertEquals(1, bridge.captureCount)
-            } finally {
-                server.stop()
             }
-        } finally {
-            projectRoot.deleteRecursively()
         }
     }
 
@@ -624,9 +556,7 @@ class ConsoleFeedbackItemBatchRoutesTest {
         statusCode.isAccessible = true
         assertEquals(409, statusCode.get(httpError))
     }
-}
 
-class ConsoleFeedbackItemSessionRoutesTest {
     @Test
     fun clearDraftApiKeepsSentItems() {
         val service = FeedbackSessionService(
@@ -649,9 +579,7 @@ class ConsoleFeedbackItemSessionRoutesTest {
         service.addAreaFeedback(session.sessionId, screen.screenId, FixThisRect(0f, 0f, 10f, 10f), "Sent")
         service.sendDraftToAgent(session.sessionId)
         service.addAreaFeedback(session.sessionId, screen.screenId, FixThisRect(10f, 10f, 20f, 20f), "Draft")
-        val server = FeedbackConsoleServer(service = service, port = 0)
-        server.start()
-        try {
+        withConsoleServer(service) { server ->
             val clear = ConsoleHttpTestClient(server.url).connection("/api/items/draft")
             clear.requestMethod = "DELETE"
 
@@ -662,8 +590,6 @@ class ConsoleFeedbackItemSessionRoutesTest {
                 .jsonArray
                 .map { it.jsonObject.getValue("comment").jsonPrimitive.content }
             assertEquals(listOf("Sent"), comments)
-        } finally {
-            server.stop()
         }
     }
 
@@ -694,26 +620,20 @@ class ConsoleFeedbackItemSessionRoutesTest {
                 screenshot = SnapshotScreenshotDto(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
             ),
         )
-        val server = FeedbackConsoleServer(service = service, port = 0)
-        server.start()
-        try {
-            val connection = ConsoleHttpTestClient(server.url).connection("/api/items")
-            connection.requestMethod = "POST"
-            connection.doOutput = true
-            connection.setRequestProperty("Content-Type", "application/json")
-            connection.outputStream.use {
-                it.write(
-                    """
-                    {
-                      "screenId": "${screen.screenId}",
-                      "targetType": "node",
-                      "nodeUid": "${node.uid}",
-                      "bounds": {"left":200.0,"top":300.0,"right":260.0,"bottom":340.0},
-                      "comment": "Button copy is unclear"
-                    }
-                    """.trimIndent().toByteArray(),
-                )
-            }
+        withConsoleServer(service) { server ->
+            val connection = ConsoleHttpTestClient(server.url).connection(
+                "/api/items",
+                method = "POST",
+                body = """
+                {
+                  "screenId": "${screen.screenId}",
+                  "targetType": "node",
+                  "nodeUid": "${node.uid}",
+                  "bounds": {"left":200.0,"top":300.0,"right":260.0,"bottom":340.0},
+                  "comment": "Button copy is unclear"
+                }
+                """.trimIndent(),
+            )
 
             assertEquals(200, connection.responseCode)
             val item = fixThisJson.decodeFromString(
@@ -722,8 +642,6 @@ class ConsoleFeedbackItemSessionRoutesTest {
             )
             assertEquals(AnnotationTargetDto.Node(node.uid, node.boundsInWindow), item.target)
             assertEquals(node, item.selectedNode)
-        } finally {
-            server.stop()
         }
     }
 
@@ -736,30 +654,22 @@ class ConsoleFeedbackItemSessionRoutesTest {
             defaultPackageName = "io.beyondwin.fixthis.sample",
         )
         service.openSession(null, newSession = true)
-        val server = FeedbackConsoleServer(service = service, port = 0)
-        server.start()
-        try {
-            val connection = ConsoleHttpTestClient(server.url).connection("/api/items")
-            connection.requestMethod = "POST"
-            connection.doOutput = true
-            connection.setRequestProperty("Content-Type", "application/json")
-            connection.outputStream.use {
-                it.write(
-                    """
-                    {
-                      "screenId": "missing-screen",
-                      "targetType": "area",
-                      "bounds": {"left":0.0,"top":0.0,"right":10.0,"bottom":10.0},
-                      "comment": "Bad screen"
-                    }
-                    """.trimIndent().toByteArray(),
-                )
-            }
+        withConsoleServer(service) { server ->
+            val connection = ConsoleHttpTestClient(server.url).connection(
+                "/api/items",
+                method = "POST",
+                body = """
+                {
+                  "screenId": "missing-screen",
+                  "targetType": "area",
+                  "bounds": {"left":0.0,"top":0.0,"right":10.0,"bottom":10.0},
+                  "comment": "Bad screen"
+                }
+                """.trimIndent(),
+            )
 
             assertEquals(400, connection.responseCode)
             assertTrue(connection.errorStream.bufferedReader().readText().contains("SCREEN_NOT_FOUND"))
-        } finally {
-            server.stop()
         }
     }
 
@@ -781,31 +691,23 @@ class ConsoleFeedbackItemSessionRoutesTest {
                 screenshot = SnapshotScreenshotDto(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
             ),
         )
-        val server = FeedbackConsoleServer(service = service, port = 0)
-        server.start()
-        try {
-            val connection = ConsoleHttpTestClient(server.url).connection("/api/items")
-            connection.requestMethod = "POST"
-            connection.doOutput = true
-            connection.setRequestProperty("Content-Type", "application/json")
-            connection.outputStream.use {
-                it.write(
-                    """
-                    {
-                      "screenId": "${screen.screenId}",
-                      "targetType": "area",
-                      "bounds": {"left":0.0,"top":0.0,"right":10.0,"bottom":10.0},
-                      "comment": "Bad field",
-                      "screenID": "typo"
-                    }
-                    """.trimIndent().toByteArray(),
-                )
-            }
+        withConsoleServer(service) { server ->
+            val connection = ConsoleHttpTestClient(server.url).connection(
+                "/api/items",
+                method = "POST",
+                body = """
+                {
+                  "screenId": "${screen.screenId}",
+                  "targetType": "area",
+                  "bounds": {"left":0.0,"top":0.0,"right":10.0,"bottom":10.0},
+                  "comment": "Bad field",
+                  "screenID": "typo"
+                }
+                """.trimIndent(),
+            )
 
             assertEquals(400, connection.responseCode)
             assertTrue(connection.errorStream.bufferedReader().readText().contains("Unsupported feedback item field"))
-        } finally {
-            server.stop()
         }
     }
 
@@ -827,35 +729,25 @@ class ConsoleFeedbackItemSessionRoutesTest {
                 screenshot = SnapshotScreenshotDto(width = 720, height = 1600, desktopFullPath = "/repo/screen.png"),
             ),
         )
-        val server = FeedbackConsoleServer(service = service, port = 0)
-        server.start()
-        try {
-            val connection = ConsoleHttpTestClient(server.url).connection("/api/items")
-            connection.requestMethod = "POST"
-            connection.doOutput = true
-            connection.setRequestProperty("Content-Type", "application/json")
-            connection.outputStream.use {
-                it.write(
-                    """
-                    {
-                      "screenId": "${screen.screenId}",
-                      "targetType": "area",
-                      "bounds": {"left":-1.0,"top":0.0,"right":10.0,"bottom":10.0},
-                      "comment": "Bad bounds"
-                    }
-                    """.trimIndent().toByteArray(),
-                )
-            }
+        withConsoleServer(service) { server ->
+            val connection = ConsoleHttpTestClient(server.url).connection(
+                "/api/items",
+                method = "POST",
+                body = """
+                {
+                  "screenId": "${screen.screenId}",
+                  "targetType": "area",
+                  "bounds": {"left":-1.0,"top":0.0,"right":10.0,"bottom":10.0},
+                  "comment": "Bad bounds"
+                }
+                """.trimIndent(),
+            )
 
             assertEquals(400, connection.responseCode)
             assertTrue(connection.errorStream.bufferedReader().readText().contains("Selection bounds"))
-        } finally {
-            server.stop()
         }
     }
-}
 
-class ConsoleFeedbackItemHistoryRoutesTest {
     @Test
     fun deleteScreenApiDeletesScreenAndLinkedItems() {
         val service = FeedbackSessionService(
@@ -867,9 +759,7 @@ class ConsoleFeedbackItemHistoryRoutesTest {
         val session = service.openSession(null)
         service.addCapturedScreenForTest(session.sessionId, SnapshotDto("screen-1", 0L, displayName = "Main"))
         service.addAreaFeedback(session.sessionId, "screen-1", FixThisRect(0f, 0f, 10f, 10f), "Remove me")
-        val server = FeedbackConsoleServer(service = service, port = 0)
-        server.start()
-        try {
+        withConsoleServer(service) { server ->
             val connection = ConsoleHttpTestClient(server.url).connection("/api/screens/screen-1")
             connection.requestMethod = "DELETE"
 
@@ -877,8 +767,6 @@ class ConsoleFeedbackItemHistoryRoutesTest {
             val payload = fixThisJson.parseToJsonElement(connection.inputStream.bufferedReader().readText()).jsonObject
             assertTrue(payload.getValue("screens").jsonArray.isEmpty())
             assertTrue(payload.getValue("items").jsonArray.isEmpty())
-        } finally {
-            server.stop()
         }
     }
 }
