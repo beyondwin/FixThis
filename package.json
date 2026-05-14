@@ -18,10 +18,11 @@
     "console:activity:test": "node scripts/run-console-tests.mjs activity",
     "console:preview:test": "node scripts/run-console-tests.mjs preview",
     "console:session:test": "node scripts/run-console-tests.mjs session",
+    "console:harness:test": "node scripts/run-console-tests.mjs harness",
     "console:fsm:test": "node scripts/run-console-fsm-tests.mjs",
     "console:build:test": "node --test scripts/build-console-assets-test.mjs",
     "console:test:fast": "node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview",
-    "console:test:all": "node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview draft session"
+    "console:test:all": "node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview draft session harness"
   },
   "devDependencies": {
     "esbuild": "0.21.5",

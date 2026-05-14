@@ -20,5 +20,10 @@
     "scripts/sessionScopedRequests-test.mjs",
     "scripts/savedOverlayScope-test.mjs",
     "scripts/undoRedoContext-test.mjs"
+  ],
+  "harness": [
+    "scripts/console-fixture/fakeBridgeServer-test.mjs",
+    "scripts/console-fixture/scenarios-test.mjs",
+    "scripts/console-harness.test.mjs"
   ]
 }
