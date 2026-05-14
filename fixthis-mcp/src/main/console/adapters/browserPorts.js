@@ -24,6 +24,13 @@ function createBrowserConsolePorts(options = {}) {
       saveRecovery: async (sessionId, workspace) => {
         localStorage_.setItem('fixthis.recovery.' + sessionId, JSON.stringify(workspace));
       },
+      deleteRecovery: async (sessionId, workspaceId) => {
+        const prefix = 'fixthis.draftWorkspace.' + sessionId + '.';
+        if (workspaceId) {
+          localStorage_.removeItem(prefix + workspaceId);
+        }
+        localStorage_.removeItem('fixthis.recovery.' + sessionId);
+      },
     }),
     clipboard: Object.freeze({
       writeText: async (text) => navigator.clipboard.writeText(text),

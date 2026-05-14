@@ -55,3 +55,35 @@ test('openSession effect dispatches success event with request context', async (
     session: { sessionId: 'session-b', items: [], screens: [] },
   }]);
 });
+
+test('copyPrompt effect writes clipboard and dispatches success', async () => {
+  const dispatched = [];
+  await m.runConsoleEffect(
+    { kind: 'copyPrompt', requestId: 'copy-1', sessionId: 'session-a', workspaceId: 'ws-1', markdown: 'hello', generation: 3 },
+    {
+      dispatch: (event) => dispatched.push(event),
+      ports: { clipboard: { writeText: async (text) => assert.equal(text, 'hello') } },
+    },
+  );
+  assert.deepEqual(dispatched, [{
+    type: 'PROMPT_COPY_SUCCEEDED',
+    requestId: 'copy-1',
+    sessionId: 'session-a',
+    workspaceId: 'ws-1',
+    generation: 3,
+  }]);
+});
+
+test('deleteRecovery effect uses draft storage port', async () => {
+  const calls = [];
+  const dispatched = [];
+  await m.runConsoleEffect(
+    { kind: 'deleteRecovery', sessionId: 'session-a', workspaceId: 'ws-1' },
+    {
+      dispatch: (event) => dispatched.push(event),
+      ports: { draftStorage: { deleteRecovery: async (...args) => calls.push(args) } },
+    },
+  );
+  assert.deepEqual(calls, [['session-a', 'ws-1']]);
+  assert.deepEqual(dispatched, [{ type: 'RECOVERY_DELETED', sessionId: 'session-a', workspaceId: 'ws-1' }]);
+});

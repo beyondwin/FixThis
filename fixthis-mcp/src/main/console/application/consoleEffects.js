@@ -43,6 +43,23 @@ async function runConsoleEffect(effect, environment) {
         await ports.draftStorage.saveRecovery(effect.sessionId, effect.workspace);
         dispatch({ type: 'RECOVERY_PERSISTED', sessionId: effect.sessionId });
         return;
+      case 'copyPrompt':
+        await ports.clipboard.writeText(effect.markdown || '');
+        dispatch({
+          type: 'PROMPT_COPY_SUCCEEDED',
+          requestId: effect.requestId,
+          sessionId: effect.sessionId,
+          workspaceId: effect.workspaceId,
+          generation: effect.generation,
+        });
+        return;
+      case 'deleteRecovery':
+        await ports.draftStorage.deleteRecovery(effect.sessionId, effect.workspaceId);
+        dispatch({ type: 'RECOVERY_DELETED', sessionId: effect.sessionId, workspaceId: effect.workspaceId });
+        return;
+      case 'showStatus':
+        dispatch({ type: 'STATUS_SHOWN', message: effect.message, variant: effect.variant, assertive: effect.assertive === true });
+        return;
       default:
         dispatch({ type: 'CONSOLE_EFFECT_FAILED', effect, error: 'Unknown effect kind: ' + effect.kind });
     }
