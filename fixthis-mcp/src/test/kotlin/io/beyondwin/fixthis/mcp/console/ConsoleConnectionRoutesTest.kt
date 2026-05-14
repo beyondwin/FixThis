@@ -108,7 +108,7 @@ class ConsoleConnectionRoutesTest {
         val html = ConsoleSourceFixtures.readAll()
         val applyConnectionBody = javascriptFunctionBody(html, "applyConnectionStatus")
 
-        assertTrue(applyConnectionBody.contains("draftFeedbackItems"))
+        assertTrue(applyConnectionBody.contains("dPins()"))
         assertTrue(applyConnectionBody.contains("markPreviewStale"))
         assertTrue(applyConnectionBody.contains("stopLivePreviewPolling"))
         assertTrue(applyConnectionBody.contains("startLivePreviewPolling"))
@@ -158,7 +158,7 @@ class ConsoleConnectionRoutesTest {
         assertTrue(friendlyErrorMessageBody.contains("DEVICE_NOT_AVAILABLE"))
         assertTrue(friendlyErrorMessageBody.contains("Check your phone, then try again."))
         assertTrue(showErrorBody.contains("friendlyErrorMessage"))
-        assertTrue(html.contains("draftFeedbackItems = [];"))
+        assertTrue(html.contains("draftPinsState = [];"))
         assertDoesNotClearDraftOrPreview("refreshPreview", refreshPreviewBody)
         assertDoesNotClearDraftOrPreview("friendlyErrorMessage", friendlyErrorMessageBody)
         assertDoesNotClearDraftOrPreview("showError", showErrorBody)
@@ -444,7 +444,7 @@ class ConsoleDeviceSelectionRoutesTest {
         val html = ConsoleSourceFixtures.readAll()
         val renderDeviceList = javascriptFunctionBody(html, "renderDeviceList")
         val invalidatesPreview = "\\s*bumpSessionMutationGeneration\\(\\);" +
-            "\\s*invalidateCanonicalPreviewContext\\(\\);\\s*renderPreviewOnly\\(\\);\\s*\\}"
+            "\\s*clearPreview\\(\\);\\s*renderPreviewOnly\\(\\);\\s*\\}"
         val noDevicesSelectionChange = Regex(
             "if \\(!devices\\.length\\) \\{[\\s\\S]*?" +
                 "if \\(previousSelectedDeviceSerial !== selectedSerial\\) \\{$invalidatesPreview",
@@ -552,7 +552,7 @@ class ConsoleDeviceSelectionRoutesTest {
     fun consoleHtmlInvalidatesPreviewContextOnDeviceAndSessionBoundaries() {
         val html = ConsoleSourceFixtures.readAll()
 
-        assertTrue(html.contains("function invalidateCanonicalPreviewContext()"))
+        assertTrue(html.contains("function clearPreview()"))
         // Preview FSM single source of truth — invalidate dispatches
         // CONTEXT_CHANGED, which clears inFlight + current and bumps
         // requestGeneration/contextGeneration atomically.
@@ -560,19 +560,19 @@ class ConsoleDeviceSelectionRoutesTest {
         assertTrue(html.contains("setConsolePreview(null);"))
         assertTrue(
             Regex(
-                "async function selectDevice\\(\\)[\\s\\S]*invalidateCanonicalPreviewContext\\(\\);" +
+                "async function selectDevice\\(\\)[\\s\\S]*clearPreview\\(\\);" +
                     "[\\s\\S]*/api/device/select",
             ).containsMatchIn(html),
         )
         assertTrue(
             Regex(
-                "async function disconnectDevice\\(\\)[\\s\\S]*invalidateCanonicalPreviewContext\\(\\);" +
+                "async function disconnectDevice\\(\\)[\\s\\S]*clearPreview\\(\\);" +
                     "[\\s\\S]*/api/device/disconnect",
             ).containsMatchIn(html),
         )
         assertTrue(
             Regex(
-                "async function openSession\\(sessionId\\)[\\s\\S]*invalidateCanonicalPreviewContext\\(\\);" +
+                "async function openSession\\(sessionId\\)[\\s\\S]*clearPreview\\(\\);" +
                     "[\\s\\S]*/api/session/open",
             ).containsMatchIn(html),
         )
@@ -584,7 +584,7 @@ class ConsoleDeviceSelectionRoutesTest {
             ).containsMatchIn(html),
         )
         assertTrue(
-            Regex("function latestScreen\\(\\) \\{\\s+if \\(activeDraftFlow\\) return activeDraftFlow\\.screen;")
+            Regex("function latestScreen\\(\\) \\{\\s+if \\(dFlow\\(\\)\\) return dFlow\\(\\)\\.screen;")
                 .containsMatchIn(html),
         )
         assertTrue(
@@ -596,13 +596,13 @@ class ConsoleDeviceSelectionRoutesTest {
         assertTrue(html.contains("return savedScreen || state.preview?.screen || latestPersistedScreen();"))
         assertTrue(
             Regex(
-                "async function newSession\\(\\)[\\s\\S]*invalidateCanonicalPreviewContext\\(\\);" +
+                "async function newSession\\(\\)[\\s\\S]*clearPreview\\(\\);" +
                     "[\\s\\S]*/api/session/open",
             ).containsMatchIn(html),
         )
         assertTrue(
             Regex(
-                "async function closeSession\\(\\)[\\s\\S]*invalidateCanonicalPreviewContext\\(\\);" +
+                "async function closeSession\\(\\)[\\s\\S]*clearPreview\\(\\);" +
                     "[\\s\\S]*/api/session/close",
             ).containsMatchIn(html),
         )

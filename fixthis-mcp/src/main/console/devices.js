@@ -65,7 +65,7 @@
                 const selectedSerial = null;
                 if (previousSelectedDeviceSerial !== selectedSerial) {
                   bumpSessionMutationGeneration();
-                  invalidateCanonicalPreviewContext();
+                  clearPreview();
                   renderPreviewOnly();
                 }
                 state.selectedDeviceSerial = selectedSerial;
@@ -103,7 +103,7 @@
               const selectedSerial = selected && selected.state === 'device' ? selected.serial : null;
               if (previousSelectedDeviceSerial !== selectedSerial) {
                 bumpSessionMutationGeneration();
-                invalidateCanonicalPreviewContext();
+                clearPreview();
                 renderPreviewOnly();
               }
               state.selectedDeviceSerial = selectedSerial;
@@ -141,7 +141,7 @@
               if (!option || !option.value || option.disabled) return;
               setDeviceUiState(DeviceUiState.CONNECTING, deviceBySerial(state.devices, option.value));
               bumpSessionMutationGeneration();
-              invalidateCanonicalPreviewContext();
+              clearPreview();
               try {
                 renderDeviceList(await requestJson('/api/device/select', {
                   method: 'POST',
@@ -165,7 +165,7 @@
 
             async function disconnectDevice() {
               bumpSessionMutationGeneration();
-              invalidateCanonicalPreviewContext();
+              clearPreview();
               renderDeviceList(await requestJson('/api/device/disconnect', { method: 'POST' }));
               setDeviceUiState(DeviceUiState.NONE);
               render();

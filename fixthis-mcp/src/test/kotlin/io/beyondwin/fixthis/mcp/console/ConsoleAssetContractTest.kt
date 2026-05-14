@@ -139,8 +139,8 @@ class ConsoleAssetContractTest {
         assertTrue(pendingRenderer.contains("ann-row-status"))
         assertTrue(pendingRenderer.contains("startAnnotatingButtonHtml()"))
         assertTrue(pendingRenderer.contains("data-focus-pending"))
-        assertTrue(createAnnotationFromSelection.contains("addDraftItem(draftWorkspace, selection, ports)"))
-        assertTrue(createAnnotationFromSelection.contains("setDraftWorkspace(nextWorkspace);"))
+        assertTrue(createAnnotationFromSelection.contains("addDraftItem(dw, selection, ports)"))
+        assertTrue(createAnnotationFromSelection.contains("setWs(nextWorkspace);"))
         assertFalse(pendingRenderer.contains("data-delete-pending"))
         assertTrue(renderSavedEvidenceGroups.contains("data-focus-saved"))
         assertTrue(html.contains("grid-template-columns: 28px minmax(0, 1fr) auto;"))
@@ -151,7 +151,7 @@ class ConsoleAssetContractTest {
         assertTrue(
             html.contains(
                 "renderOverlayBox(overlay, image, item.bounds, String(displayNumber), false, " +
-                    "index === focusedPendingItemIndex, index, '', severityColor(annotationSeverity(item)))",
+                    "index === dFocus(), index, '', severityColor(annotationSeverity(item)))",
             ),
         )
         assertTrue(html.contains("focusSavedEvidenceItem(item.itemId)"))
@@ -205,7 +205,7 @@ class ConsoleAssetContractTest {
 
         assertTrue(
             html.contains(
-                "function resetCanonicalAnnotationComposerState(clearFlow = true, clearMirror = true)",
+                "function resetComposer(clearFlow = true, clearMirror = true)",
             ),
         )
         assertTrue(
@@ -215,19 +215,19 @@ class ConsoleAssetContractTest {
         assertTrue(
             Regex(
                 "async function openSession\\(sessionId\\)[\\s\\S]*" +
-                    "resetCanonicalAnnotationComposerState\\(true, false\\);" +
+                    "resetComposer\\(true, false\\);" +
                     "[\\s\\S]*/api/session/open",
             ).containsMatchIn(html),
         )
         assertTrue(
             Regex(
-                "async function newSession\\(\\)[\\s\\S]*resetCanonicalAnnotationComposerState\\(\\);" +
+                "async function newSession\\(\\)[\\s\\S]*resetComposer\\(\\);" +
                     "[\\s\\S]*/api/session/open",
             ).containsMatchIn(html),
         )
         assertTrue(
             Regex(
-                "async function closeSession\\(\\)[\\s\\S]*resetCanonicalAnnotationComposerState\\(\\);" +
+                "async function closeSession\\(\\)[\\s\\S]*resetComposer\\(\\);" +
                     "[\\s\\S]*/api/session/close",
             ).containsMatchIn(html),
         )
@@ -236,7 +236,7 @@ class ConsoleAssetContractTest {
                 "async function deleteHistorySession\\(sessionId\\)[\\s\\S]*const isDisplayedSession = " +
                     "\\(\\) => state\\.session\\?\\.sessionId === sessionId;[\\s\\S]*const wasDisplayedSession = " +
                     "isDisplayedSession\\(\\);[\\s\\S]*if \\(wasDisplayedSession\\) \\{\\s+" +
-                    "resetCanonicalAnnotationComposerState\\(\\);",
+                    "resetComposer\\(\\);",
             ).containsMatchIn(html),
         )
         assertTrue(
@@ -248,14 +248,14 @@ class ConsoleAssetContractTest {
         )
         assertTrue(
             Regex(
-                "function cancelAddItemsFlow\\(\\)[\\s\\S]*resetCanonicalAnnotationComposerState\\(\\);" +
+                "function cancelAddItemsFlow\\(\\)[\\s\\S]*resetComposer\\(\\);" +
                     "[\\s\\S]*render\\(\\);",
             ).containsMatchIn(html),
         )
         assertTrue(
             Regex(
-                "function deletePendingFeedbackItem\\(index\\)[\\s\\S]*focusedPendingItemIndex = null;" +
-                    "[\\s\\S]*currentSelection = null;[\\s\\S]*comment.value = '';",
+                "function deletePendingFeedbackItem\\(index\\)[\\s\\S]*setDFocus\\(null\\);" +
+                    "[\\s\\S]*setDSel\\(null\\);[\\s\\S]*comment.value = '';",
             ).containsMatchIn(html),
         )
     }
@@ -318,7 +318,7 @@ class ConsoleAssetContractTest {
         val renderSelectionOverlay = javascriptFunctionBody(html, "renderSelectionOverlay")
 
         assertTrue(
-            renderSelectionOverlay.contains("if (!activeDraftFlow)"),
+            renderSelectionOverlay.contains("if (!dFlow())"),
             "saved overlays should be gated outside the active add-items flow",
         )
         assertTrue(
@@ -432,7 +432,7 @@ class ConsoleAssetContractTest {
         val html = ConsoleSourceFixtures.readAll()
         val renderComposerInspector = javascriptFunctionBody(html, "renderComposerInspector")
 
-        // While `activeDraftFlow` is active the composer inspector previously hid every saved
+        // While `dFlow()` is active the composer inspector previously hid every saved
         // annotation, so users adding a new pin to a session that already had four saved
         // items only saw the single pending entry. The composer must surface saved
         // annotations as well so totals stay coherent across pending + saved.
@@ -442,7 +442,7 @@ class ConsoleAssetContractTest {
         )
         assertTrue(
             renderComposerInspector.contains(
-                "inspectorCount.textContent = String(draftFeedbackItems.length + savedItems.length);",
+                "inspectorCount.textContent = String(dPins().length + savedItems.length);",
             ),
             "renderComposerInspector inspector count should include saved items",
         )
@@ -518,7 +518,7 @@ class ConsoleAssetContractTest {
         assertTrue(html.contains("function clearSelection"))
         assertTrue(html.contains("function clearDraft"))
         assertTrue(html.contains("function sendAgentPrompt"))
-        assertTrue(html.contains("selectionSummary.textContent = currentSelection"))
+        assertTrue(html.contains("selectionSummary.textContent = dSel()"))
         assertTrue(html.contains("sendAgentButton.disabled = promptDisabled;"))
         assertTrue(html.contains("formatSessionLabel"))
         assertTrue(html.contains("formatSessionSummary"))
@@ -687,7 +687,8 @@ class ConsoleAssetContractTest {
                     "await ensureSessionForAnnotating\\(\\);\\s+" +
                     "toolModeUseCases\\.enterAnnotate\\(\\);\\s+" +
                     "renderCurrentSessionList\\(\\);\\s+" +
-                    "if \\(!activeDraftFlow\\) \\{\\s+" +
+                    "if \\(!dFlow\\(\\)\\) \\{\\s+" +
+                    "requestCanonicalPreviewCapture\\(\\);\\s+" +
                     "await startDraftAnnotationFlow\\(\\);",
             ).containsMatchIn(html),
         )
@@ -772,7 +773,7 @@ class ConsoleAssetContractTest {
         assertTrue(enterAnnotateMode.contains("await ensureSessionForAnnotating();"))
         assertTrue(enterAnnotateMode.contains("toolModeUseCases.enterAnnotate();"))
         assertTrue(enterAnnotateMode.contains("renderCurrentSessionList();"))
-        assertTrue(enterAnnotateMode.contains("if (!activeDraftFlow) {"))
+        assertTrue(enterAnnotateMode.contains("if (!dFlow()) {"))
         assertTrue(enterAnnotateMode.contains("await startDraftAnnotationFlow();"))
     }
 
@@ -874,11 +875,11 @@ class ConsoleAssetContractTest {
         val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(html.contains("function focusedPendingSelectionSummary()"))
-        assertTrue(html.contains("focusedPendingItemIndex != null"))
+        assertTrue(html.contains("dFocus() != null"))
         assertTrue(html.contains("const item = focusedPendingSelectionSummary();"))
-        assertTrue(html.contains("focusedPendingItemIndex = index;"))
-        assertTrue(html.contains("currentSelection = null;"))
-        assertFalse(html.contains("const item = draftFeedbackItems[index];\n              currentSelection = item ?"))
+        assertTrue(html.contains("setDFocus(index);"))
+        assertTrue(html.contains("setDSel(null);"))
+        assertFalse(html.contains("const item = dPins()[index];\n              setDSel(item ?"))
         assertFalse(html.contains("label: item.targetType === 'node' ? 'Selected component' : 'Custom area'"))
     }
 
@@ -887,9 +888,9 @@ class ConsoleAssetContractTest {
     fun consoleHtmlImplementsSnapshotSelectionModes() {
         val html = ConsoleSourceFixtures.readAll()
 
-        assertTrue(html.contains("let activeDraftFlow"))
-        assertTrue(html.contains("let draftFeedbackItems"))
-        assertTrue(html.contains("let currentSelection"))
+        assertTrue(html.contains("let draftFlowState"))
+        assertTrue(html.contains("let draftPinsState"))
+        assertTrue(html.contains("let draftSelectionState"))
         assertTrue(html.contains("finishAreaSelection"))
         assertTrue(html.contains("selectNodeAtPoint"))
         assertTrue(html.contains("nodesForHitTest"))
@@ -971,8 +972,8 @@ class ConsoleAssetContractTest {
         assertTrue(html.contains("function persistPendingFeedbackItems"))
         assertTrue(createAnnotationFromSelection.contains("toolModeUseCases.enterAnnotate();"))
         assertFalse(createAnnotationFromSelection.contains("toolModeUseCases.enterSelect();"))
-        assertTrue(createAnnotationFromSelection.contains("addDraftItem(draftWorkspace, selection, ports)"))
-        assertTrue(createAnnotationFromSelection.contains("setDraftWorkspace(nextWorkspace);"))
+        assertTrue(createAnnotationFromSelection.contains("addDraftItem(dw, selection, ports)"))
+        assertTrue(createAnnotationFromSelection.contains("setWs(nextWorkspace);"))
         assertTrue(html.contains("toolModeUseCases.setSuppressNextClick(true);"))
         assertTrue(html.contains("function updateSelectedAnnotationComment"))
         assertTrue(html.contains("item.comment = comment.value;"))
