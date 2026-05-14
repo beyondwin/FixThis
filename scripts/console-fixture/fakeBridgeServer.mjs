@@ -81,20 +81,22 @@ export async function startFakeBridge(options = {}) {
   const address = server.address();
   const url = `http://127.0.0.1:${address.port}`;
 
-  return {
+  const fixture = {
     url,
     getRequestLog: () => requestLog.slice(),
-    applyScenario: async (name) => {
-      if (!SCENARIOS[name]) {
-        throw new Error(`unknown scenario: ${name}`);
+    runScenario: async ({ scenario, overrides = {} } = {}) => {
+      if (!SCENARIOS[scenario]) {
+        throw new Error(`unknown scenario: ${scenario}`);
       }
-      activeScenario = name;
-      scenarioState = SCENARIOS[name]();
+      activeScenario = scenario;
+      scenarioState = { ...SCENARIOS[scenario](), ...overrides };
     },
+    applyScenario: async (name) => fixture.runScenario({ scenario: name }),
     close: async () => {
       await new Promise((resolveClose) => server.close(resolveClose));
     },
   };
+  return fixture;
 }
 
 export const FIXTURE_SCENARIO_KEYS = Object.keys(SCENARIOS);
