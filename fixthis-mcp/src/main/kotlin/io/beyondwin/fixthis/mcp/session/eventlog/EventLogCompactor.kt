@@ -9,6 +9,8 @@ private val compactorJson = Json {
     ignoreUnknownKeys = true
 }
 
+private data class EventLogFile(val file: File, val event: SessionEvent)
+
 class EventLogCompactor(
     private val directory: File,
     private val snapshotProvider: () -> SessionDto,
@@ -17,11 +19,12 @@ class EventLogCompactor(
 ) {
     fun runOnce(threshold: Int = 1000) {
         val files = directory.listFiles { f -> f.isFile && f.extension == "jsonl" }
-            ?.sortedBy { it.name }
+            ?.map { file -> EventLogFile(file, readEvent(file)) }
+            ?.sortedBy { it.event.sequenceNumber }
             .orEmpty()
         if (files.size <= threshold) return
         val toArchive = files.dropLast(threshold)
-        val compactedThroughSequenceNumber = readSequenceNumber(toArchive.last())
+        val compactedThroughSequenceNumber = toArchive.last().event.sequenceNumber
         val snapshot = snapshotProvider()
         snapshotWriter(snapshot)
         EventLogWriter(directory).writeCheckpoint(
@@ -33,13 +36,13 @@ class EventLogCompactor(
             ),
         )
         val archive = File(directory, "archive").apply { mkdirs() }
-        toArchive.forEach { file ->
-            file.renameTo(File(archive, file.name))
+        toArchive.forEach { entry ->
+            entry.file.renameTo(File(archive, entry.file.name))
         }
     }
 
-    private fun readSequenceNumber(file: File): Long {
+    private fun readEvent(file: File): SessionEvent {
         val line = file.readText(Charsets.UTF_8).trimEnd()
-        return compactorJson.decodeFromString(SessionEvent.serializer(), line).sequenceNumber
+        return compactorJson.decodeFromString(SessionEvent.serializer(), line)
     }
 }

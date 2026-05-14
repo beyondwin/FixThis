@@ -211,6 +211,70 @@ class FeedbackSessionStoreEventLogTest {
     }
 
     @Test
+    fun bootReplayOrdersEventsBySequenceNumberWhenClockMovesBackward() {
+        val tmp = Files.createTempDirectory("alh-test-clock-regression").toFile()
+        try {
+            val projectBase = File(tmp, "project")
+            val paths = FeedbackSessionPaths(projectBase)
+            val persistence = FeedbackSessionPersistence(paths)
+            val evtBase = File(tmp, "events")
+            var idSeq = 0
+            val sharedIdGen: () -> String = { "id-${++idSeq}" }
+            val (sid, screenId) = setupStore1WithThreeItems(evtBase, persistence, sharedIdGen)
+
+            val writer = EventLogWriter(eventsDir(evtBase, sid))
+            writer.append(
+                SessionEvent(
+                    eventId = "manual-late-wall-clock",
+                    sequenceNumber = 4L,
+                    epochMillis = 3_000L,
+                    actor = "test",
+                    type = "addItem",
+                    payload = buildJsonObject {
+                        put(
+                            "item",
+                            testJson.encodeToJsonElement(
+                                makeDraftItem(screenId, "delta").copy(itemId = "manual-delta"),
+                            ),
+                        )
+                    },
+                ),
+            )
+            writer.append(
+                SessionEvent(
+                    eventId = "manual-earlier-wall-clock",
+                    sequenceNumber = 5L,
+                    epochMillis = 1_000L,
+                    actor = "test",
+                    type = "addItem",
+                    payload = buildJsonObject {
+                        put(
+                            "item",
+                            testJson.encodeToJsonElement(
+                                makeDraftItem(screenId, "epsilon").copy(itemId = "manual-epsilon"),
+                            ),
+                        )
+                    },
+                ),
+            )
+
+            val store2 = FeedbackSessionStore(
+                clock = { 4_000L },
+                idGenerator = { "new-${++idSeq}" },
+                persistence = persistence,
+                eventLogWriterProvider = writerFor(evtBase),
+                eventLogReaderProvider = readerFor(evtBase),
+            )
+
+            val comments = store2.getSession(sid).items.map { it.comment }.toSet()
+            assertTrue("delta" in comments)
+            assertTrue("epsilon" in comments)
+        } finally {
+            tmp.deleteRecursively()
+        }
+    }
+
+    @Test
     fun bootReplayStartsFromCheckpointSnapshotAndAppliesOnlyNewerEvents() {
         val tmp = Files.createTempDirectory("alh-test-checkpoint").toFile()
         try {

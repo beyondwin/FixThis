@@ -98,11 +98,11 @@ class EventLogReader(private val directory: File) {
     fun readAll(): List<SessionEvent> {
         val files = directory.listFiles { f -> f.extension == "jsonl" } ?: return emptyList()
         return files
-            .sortedBy { it.name }
             .map { file ->
                 val line = file.readText(Charsets.UTF_8).trimEnd()
                 eventLogJson.decodeFromString(SessionEvent.serializer(), line)
             }
+            .sortedBy { it.sequenceNumber }
     }
 
     fun readCheckpointOrNull(): EventLogCheckpoint? {
@@ -111,15 +111,7 @@ class EventLogReader(private val directory: File) {
         return eventLogJson.decodeFromString(EventLogCheckpoint.serializer(), file.readText(Charsets.UTF_8))
     }
 
-    fun maxActiveSequenceNumberOrNull(): Long? {
-        val files = directory.listFiles { f -> f.isFile && f.extension == "jsonl" } ?: return null
-        return files.mapNotNull { file -> sequenceNumberFromFileName(file.name) }.maxOrNull()
-    }
-
-    private fun sequenceNumberFromFileName(name: String): Long? = name.substringAfter("-", missingDelimiterValue = "")
-        .substringBefore(".jsonl")
-        .takeIf { it.isNotBlank() }
-        ?.toLongOrNull()
+    fun maxActiveSequenceNumberOrNull(): Long? = readAll().maxOfOrNull { it.sequenceNumber }
 }
 
 class EventLogException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)

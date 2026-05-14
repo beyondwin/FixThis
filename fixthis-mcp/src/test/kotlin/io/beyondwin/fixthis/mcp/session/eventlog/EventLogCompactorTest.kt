@@ -167,6 +167,32 @@ class EventLogCompactorTest {
     }
 
     @Test
+    fun compactionArchivesLowestSequenceNumbersWhenWallClockOrderDiffers() {
+        val dir = Files.createTempDirectory("compactor-sequence-order").toFile()
+        try {
+            val eventsDir = File(dir, "events")
+            val writer = EventLogWriter(eventsDir, durability = EventLogDurability.Fast)
+            writer.append(makeEvent(seq = 1L).copy(epochMillis = 3_000L))
+            writer.append(makeEvent(seq = 2L).copy(epochMillis = 1_000L))
+            writer.append(makeEvent(seq = 3L).copy(epochMillis = 2_000L))
+
+            EventLogCompactor(
+                eventsDir,
+                snapshotProvider = { makeSession(updatedAtEpochMillis = 4_000L) },
+                snapshotWriter = {},
+                clock = { 5_000L },
+            ).runOnce(threshold = 1)
+
+            val checkpoint = EventLogReader(eventsDir).readCheckpointOrNull()
+            assertEquals(2L, checkpoint?.compactedThroughSequenceNumber)
+            val remaining = EventLogReader(eventsDir).readAll().map { it.sequenceNumber }
+            assertEquals(listOf(3L), remaining)
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
+    @Test
     fun noOpWhenBelowThreshold() {
         val dir = Files.createTempDirectory("compactor-noop").toFile()
         try {
