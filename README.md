@@ -3,6 +3,7 @@
 [![CI](https://github.com/beyondwin/FixThis/actions/workflows/ci.yml/badge.svg)](https://github.com/beyondwin/FixThis/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![JDK 21](https://img.shields.io/badge/JDK-21-orange.svg)](https://adoptium.net/)
+[![Node 20+](https://img.shields.io/badge/Node-20%2B-339933.svg)](https://nodejs.org/)
 [![Compose](https://img.shields.io/badge/Jetpack_Compose-2026.04.01-4285F4.svg)](https://developer.android.com/jetpack/compose)
 
 ![FixThis Studio — point at any Jetpack Compose UI element, annotate, hand off AI-ready context to your coding agent](docs/assets/fixthis-studio-hero.png)
@@ -43,6 +44,10 @@ opens the FixThis Studio console at `http://127.0.0.1:<port>`. Follow the
 Connect → Preview → Annotate → Handoff progress, watch the readiness summary
 near **Copy Prompt** / **Save to MCP**, then copy Markdown or save the local
 MCP handoff for Claude Code or Codex.
+
+**Using Claude Code, Codex, or another MCP-aware agent?** See
+[`AGENTS.md`](AGENTS.md) for the agent-first quick start
+(`./scripts/bootstrap-mcp.sh`) and the MCP tool index.
 
 → Full walkthrough: [Quick Start with the sample](docs/getting-started/try-the-sample.md)
 → Add to your own app: [Add FixThis to your app](docs/getting-started/add-to-your-app.md)

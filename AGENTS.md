@@ -1,5 +1,9 @@
 # FixThis — Agent Notes
 
+> **Agents:** read this file end-to-end. Sub-anchors may be skipped on a
+> first pass, but every top-level section is load-bearing for correct
+> tool use.
+
 FixThis adds a debug-only sidekick to Jetpack Compose Android apps and exposes
 captured UI context to AI coding agents over MCP. The Android app shows only a
 connection status pill; all annotation, selection, and handoff happen in a
@@ -12,6 +16,7 @@ points to canonical docs rather than restating them — update those, not this.
 
 - JDK 21+
 - Android SDK with ADB (`adb devices` shows a connected device or emulator)
+- Node.js 20.0+ LTS (for console JS harnesses; see `CONTRIBUTING.md` § Prerequisites)
 - Target app is a **debug build** (`debugImplementation` only; release is not supported)
 
 ## Quick Start
@@ -30,6 +35,10 @@ finishes.
 
 Manual setup, full CLI flags, and dry-run examples:
 [`docs/reference/cli.md`](docs/reference/cli.md).
+
+**Trying FixThis from scratch on the sample app?** Start at the README's
+[Quick Start](README.md#quick-start-sample-app-5-min) for the human-driven
+flow (build → doctor → run → console UI).
 
 ## Feedback Workflow
 
