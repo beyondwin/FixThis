@@ -26,7 +26,7 @@ function body(source, signature) {
 
 test('saved overlays require focused saved item', () => {
   const render = body(renderingSource, 'function renderSelectionOverlay()');
-  assert.match(render, /if \(!addItemsFlow && focusedSavedItemId\)/);
+  assert.match(render, /if \(!addItemsFlow && toolModeUseCases\.getState\(\)\.focusedSavedItemId\)/);
   assert.doesNotMatch(render, /visibleScreenNodeUids\(visibleScreen\)/);
   assert.doesNotMatch(render, /visibleUids\.has\(nodeUid\)/);
 });

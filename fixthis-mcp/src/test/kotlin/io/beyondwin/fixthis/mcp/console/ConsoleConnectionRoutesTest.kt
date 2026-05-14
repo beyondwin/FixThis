@@ -42,7 +42,8 @@ class ConsoleConnectionRoutesTest {
         assertTrue(html.contains("data-connection-state=\"none\""))
         assertTrue(html.contains("deviceControl.dataset.connectionState = uiState;"))
         assertTrue(html.contains("deviceConnectionState.textContent = decorateConnectionLabel(baseLabel, reason);"))
-        assertTrue(html.contains("connection: {"))
+        // Connection state initial shape lives in connectionFsm.js (createInitialConnectionState).
+        assertTrue(html.contains("createInitialConnectionState"))
         assertTrue(html.contains("hasEverConnected: false"))
         assertTrue(html.contains("lastReadyAt: null"))
         assertTrue(html.contains("launchInFlight: false"))
@@ -110,7 +111,9 @@ class ConsoleConnectionRoutesTest {
         assertTrue(applyConnectionBody.contains("markPreviewStale"))
         assertTrue(applyConnectionBody.contains("stopLivePreviewPolling"))
         assertTrue(applyConnectionBody.contains("startLivePreviewPolling"))
-        assertTrue(applyConnectionBody.contains("state.connection.hasEverConnected = true"))
+        // hasEverConnected is now written by the connection FSM's STATUS_RECEIVED action
+        // when the incoming status reports ready. Verify the dispatch path exists.
+        assertTrue(applyConnectionBody.contains("connectionUseCases.setStatus("))
         assertDoesNotClearDraftOrPreview("applyConnectionStatus", applyConnectionBody)
     }
 
@@ -511,7 +514,7 @@ class ConsoleDeviceSelectionRoutesTest {
         assertTrue(html.contains(".annotate-hint"))
         assertTrue(html.contains("position: static;"))
         assertTrue(html.contains("id=\"annotateHintSlot\""))
-        assertTrue(renderPreviewRegion.contains("snapshot.dataset.toolMode = toolMode;"))
+        assertTrue(renderPreviewRegion.contains("snapshot.dataset.toolMode = toolModeUseCases.isAnnotateMode() ? 'annotate' : 'select';"))
         assertTrue(renderPreviewRegion.contains("const hintSlot = document.getElementById('annotateHintSlot');"))
         assertTrue(renderPreviewRegion.contains("hintSlot.appendChild(hint);"))
         assertFalse(renderPreviewRegion.contains("snapshot.insertBefore(hint, frame);"))
@@ -526,7 +529,8 @@ class ConsoleDeviceSelectionRoutesTest {
         val renderOverlayBox = javascriptFunctionBody(html, "renderOverlayBox")
 
         assertTrue(html.contains("function renderSavedEvidenceOverlay(overlay, image, items)"))
-        assertTrue(html.contains("let focusedSavedItemId = null"))
+        // focusedSavedItemId is now owned by the toolModeFsm (no longer a module-level let).
+        assertTrue(html.contains("focusedSavedItemId: null"))
         assertTrue(html.contains("function focusSavedEvidenceItem(itemId)"))
         assertTrue(html.contains("function selectedSavedAnnotation()"))
         assertTrue(renderOverlayBox.contains("selectHandler"))
@@ -544,11 +548,11 @@ class ConsoleDeviceSelectionRoutesTest {
         val html = FeedbackConsoleAssets.indexHtml
 
         assertTrue(html.contains("function invalidatePreviewContext()"))
-        assertTrue(html.contains("previewRequestGeneration++;"))
-        assertTrue(html.contains("previewRequestContextGeneration++;"))
+        // Preview FSM single source of truth — invalidate dispatches
+        // CONTEXT_CHANGED, which clears inFlight + current and bumps
+        // requestGeneration/contextGeneration atomically.
+        assertTrue(html.contains("previewUseCases.contextChanged();"))
         assertTrue(html.contains("state.preview = null;"))
-        assertTrue(html.contains("previewRequestInFlight = null;"))
-        assertTrue(html.contains("previewRequestInFlightContextGeneration = null;"))
         assertTrue(
             Regex(
                 "async function selectDevice\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);" +

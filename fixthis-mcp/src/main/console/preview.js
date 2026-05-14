@@ -1,24 +1,14 @@
+            // Raw HTTP fetch — the previewUseCases layer provides dedup and
+            // race-fence via the FSM. Cross-caller dedup (across draft port
+            // and FSM) is achieved by routing all callers through
+            // previewUseCases.request().
             function requestLivePreview() {
-              if (previewRequestInFlight && previewRequestInFlightContextGeneration === previewRequestContextGeneration) return previewRequestInFlight;
-              const requestContextGeneration = previewRequestContextGeneration;
-              const request = requestJson('/api/preview')
-                .finally(() => {
-                  if (previewRequestInFlight === request) {
-                    previewRequestInFlight = null;
-                    previewRequestInFlightContextGeneration = null;
-                  }
-                });
-              previewRequestInFlight = request;
-              previewRequestInFlightContextGeneration = requestContextGeneration;
-              return previewRequestInFlight;
+              return requestJson('/api/preview');
             }
 
             function invalidatePreviewContext() {
-              previewRequestGeneration++;
-              previewRequestContextGeneration++;
+              previewUseCases.contextChanged();
               state.preview = null;
-              previewRequestInFlight = null;
-              previewRequestInFlightContextGeneration = null;
             }
 
             function scopedQuery(sessionId) {
@@ -36,7 +26,7 @@
             function screenImageUrl(screen) {
               if (addItemsFlow) return addItemsFlow.screenshotUrl;
               if (state.preview?.screen === screen && state.preview?.previewId) return previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null);
-              if (screen?.screenId) return screenScreenshotUrl(screen.screenId, state.session?.sessionId || focusedSavedSessionId || null);
+              if (screen?.screenId) return screenScreenshotUrl(screen.screenId, state.session?.sessionId || toolModeUseCases.getState().focusedSavedSessionId || null);
               return '';
             }
 
@@ -56,6 +46,10 @@
               return configuredPreviewIntervalMs() != null && shouldPollPreview();
             }
 
+            // livePreviewTimer is a closure-scoped browser timer handle.
+            // It is not reducer state (not pure), so it lives here rather
+            // than in previewFsm.js.
+            let livePreviewTimer = null;
             function startLivePreviewPolling() {
               stopLivePreviewPolling();
               const intervalMs = configuredPreviewIntervalMs();
@@ -102,6 +96,7 @@
 
             function latestScreen() {
               if (addItemsFlow) return addItemsFlow.screen;
+              const focusedSavedItemId = toolModeUseCases.getState().focusedSavedItemId;
               if (focusedSavedItemId) {
                 const focusedItem = savedEvidenceItems().find(item => item.itemId === focusedSavedItemId);
                 if (focusedItem) {
@@ -118,16 +113,17 @@
 
             function applyPreviewZoom() {
               const frame = document.getElementById('snapshotFrame');
-              zoomPercent.textContent = Math.round(previewZoom * 100) + '%';
-              zoomOutButton.disabled = previewZoom <= PreviewZoomMin;
-              zoomInButton.disabled = previewZoom >= PreviewZoomMax;
+              const zoom = previewUseCases.getState().zoom;
+              zoomPercent.textContent = Math.round(zoom * 100) + '%';
+              zoomOutButton.disabled = zoom <= PreviewZoomMin;
+              zoomInButton.disabled = zoom >= PreviewZoomMax;
               if (frame) {
-                frame.style.setProperty('--preview-zoom', String(previewZoom));
+                frame.style.setProperty('--preview-zoom', String(zoom));
               }
             }
 
             function setPreviewZoom(nextZoom) {
-              previewZoom = Math.round(clamp(nextZoom, PreviewZoomMin, PreviewZoomMax) * 10) / 10;
+              previewUseCases.setZoom(nextZoom);
               applyPreviewZoom();
             }
 
@@ -135,10 +131,10 @@
             async function refreshPreview() {
               error.textContent = '';
               if (!state.session || addItemsFlow) return;
-              const requestGeneration = ++previewRequestGeneration;
+              const requestGeneration = previewUseCases.getState().requestGeneration + 1;
               try {
-                const preview = await requestLivePreview();
-                if (addItemsFlow || requestGeneration !== previewRequestGeneration) return;
+                const preview = await previewUseCases.request();
+                if (addItemsFlow || requestGeneration !== previewUseCases.getState().requestGeneration) return;
                 state.preview = {
                   ...preview,
                   activity: state.connection?.availability?.activity ?? null,
@@ -221,7 +217,7 @@
             }
 
             async function useLatestStaleFrame() {
-              const wasAnnotating = toolMode === 'annotate' || Boolean(addItemsFlow);
+              const wasAnnotating = toolModeUseCases.isAnnotateMode() || Boolean(addItemsFlow);
               flushFocusedPendingComment();
               const pendingItems = draftWorkspaceItems(draftWorkspace).slice();
               const previousWorkspace = draftWorkspace;
@@ -252,10 +248,9 @@
                 });
                 updateAnnotationSequenceFromPendingItems(pendingItems);
                 focusedPendingItemIndex = null;
-                focusedSavedItemId = null;
-                focusedSavedSessionId = null;
+                toolModeUseCases.focusSavedItem(null, null);
                 currentSelection = null;
-                hoveredAnnotationTarget = null;
+                toolModeUseCases.setHoveredTarget(null);
                 persistCurrentPendingState();
               } else {
                 await refreshPreview();

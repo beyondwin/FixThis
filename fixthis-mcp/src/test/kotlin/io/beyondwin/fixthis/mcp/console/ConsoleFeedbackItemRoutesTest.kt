@@ -375,7 +375,7 @@ class ConsoleFeedbackItemRoutesTest {
         assertFalse(renderSavedAnnotationDetail.contains("readonly"))
         assertTrue(
             renderSavedAnnotationDetail.contains(
-                "const editSessionId = focusedSavedSessionId || state.session?.sessionId || null;",
+                "const editSessionId = toolModeUseCases.getState().focusedSavedSessionId || state.session?.sessionId || null;",
             ),
         )
         assertTrue(renderSavedAnnotationDetail.contains("persistSavedEvidenceItem(item, editSessionId)"))
@@ -499,7 +499,7 @@ class ConsoleFeedbackItemRoutesTest {
         val renderSelectionOverlay = javascriptFunctionBody(html, "renderSelectionOverlay")
 
         assertTrue(
-            renderSelectionOverlay.contains("if (!addItemsFlow && focusedSavedItemId)"),
+            renderSelectionOverlay.contains("if (!addItemsFlow && toolModeUseCases.getState().focusedSavedItemId)"),
             "saved overlays should be gated by focusedSavedItemId",
         )
         assertFalse(
@@ -777,17 +777,17 @@ class ConsoleFeedbackItemWorkspaceRoutesTest {
             html.contains("button.addEventListener('click', () => enterNewHistoryAnnotateMode().catch(showError));"),
         )
         assertTrue(html.contains("async function enterNewHistoryAnnotateMode()"))
-        assertTrue(html.contains("let newHistoryAnnotateModeStarting = false;"))
-        assertTrue(html.contains("if (newHistoryAnnotateModeStarting) return;"))
-        assertTrue(html.contains("newHistoryAnnotateModeStarting = true;"))
-        assertTrue(html.contains("newHistoryAnnotateModeStarting = false;"))
+        assertTrue(html.contains("newHistoryAnnotateModeStarting: false,"))
+        assertTrue(html.contains("if (toolModeUseCases.getState().newHistoryAnnotateModeStarting) return;"))
+        assertTrue(html.contains("toolModeUseCases.setNewHistoryAnnotateModeStarting(true);"))
+        assertTrue(html.contains("toolModeUseCases.setNewHistoryAnnotateModeStarting(false);"))
         assertTrue(html.contains("await newSession();"))
         assertTrue(html.contains("scrollActiveHistoryItemIntoView();"))
         assertTrue(html.contains("await enterAnnotateMode();"))
         assertTrue(html.contains("function scrollActiveHistoryItemIntoView()"))
         assertTrue(html.contains("sessions.querySelector('.session-row.is-active')"))
         assertTrue(html.contains("renderCurrentSessionList();"))
-        assertTrue(html.contains("if (newHistoryAnnotateModeStarting) return '';"))
+        assertTrue(html.contains("if (toolModeUseCases.getState().newHistoryAnnotateModeStarting) return '';"))
         assertFalse(html.contains("if (toolMode === 'annotate' || newHistoryAnnotateModeStarting) return '';"))
         assertFalse(html.contains("id=\"historyStartAnnotatingButton\""))
         assertFalse(html.contains(".panel-head-actions"))
@@ -835,7 +835,7 @@ class ConsoleFeedbackItemWorkspaceRoutesTest {
         assertTrue(html.contains("previewIntervalSelect"))
         assertTrue(html.contains("PreviewIntervalStorageKey"))
         assertTrue(html.contains("Math.max(1000"))
-        assertTrue(html.contains("let toolMode = 'select'"))
+        assertTrue(html.contains("mode: ToolMode.SELECT,"))
         assertTrue(html.contains("function enterAnnotateMode"))
         assertTrue(html.contains("function enterSelectMode"))
         assertTrue(
@@ -843,7 +843,7 @@ class ConsoleFeedbackItemWorkspaceRoutesTest {
                 "async function enterAnnotateMode\\(\\) \\{\\s+" +
                     "if \\(!requirePendingRecoveryChoiceBeforeSessionChange\\(\\)\\) return;\\s+" +
                     "await ensureSessionForAnnotating\\(\\);\\s+" +
-                    "toolMode = 'annotate';\\s+" +
+                    "toolModeUseCases\\.enterAnnotate\\(\\);\\s+" +
                     "renderCurrentSessionList\\(\\);\\s+" +
                     "if \\(!addItemsFlow\\) \\{\\s+" +
                     "await startAddItemsFlow\\(\\);",
@@ -895,7 +895,7 @@ class ConsoleFeedbackItemWorkspaceRoutesTest {
         assertTrue(html.contains("function bindStartAnnotatingButtons(container)"))
         assertTrue(renderSavedEvidenceGroups.contains("bindStartAnnotatingButtons(draftItems);"))
         assertTrue(html.contains("function startAnnotatingButtonHtml()"))
-        assertTrue(html.contains("if (toolMode === 'annotate') return '';"))
+        assertTrue(html.contains("if (toolModeUseCases.isAnnotateMode()) return '';"))
         assertTrue(html.contains("function historyStartAnnotatingItemHtml()"))
     }
 
@@ -928,7 +928,7 @@ class ConsoleFeedbackItemWorkspaceRoutesTest {
         assertTrue(ensureSessionForAnnotating.contains("body: JSON.stringify({ newSession: true })"))
         assertTrue(ensureSessionForAnnotating.contains("await refreshSessions();"))
         assertTrue(enterAnnotateMode.contains("await ensureSessionForAnnotating();"))
-        assertTrue(enterAnnotateMode.contains("toolMode = 'annotate';"))
+        assertTrue(enterAnnotateMode.contains("toolModeUseCases.enterAnnotate();"))
         assertTrue(enterAnnotateMode.contains("renderCurrentSessionList();"))
         assertTrue(enterAnnotateMode.contains("if (!addItemsFlow) {"))
         assertTrue(enterAnnotateMode.contains("await startAddItemsFlow();"))
@@ -989,7 +989,8 @@ class ConsoleFeedbackItemCanvasRoutesTest {
         assertTrue(html.contains("id=\"zoomOutButton\""))
         assertTrue(html.contains("id=\"zoomPercent\""))
         assertTrue(html.contains("id=\"zoomInButton\""))
-        assertTrue(html.contains("let previewZoom = 1"))
+        // Preview FSM owns the zoom level (zoom: 1 in createInitialPreviewState).
+        assertTrue(html.contains("zoom: 1,"))
         assertTrue(html.contains("function applyPreviewZoom()"))
         assertTrue(html.contains("function setPreviewZoom(nextZoom)"))
         assertTrue(html.contains("frame.style.setProperty('--preview-zoom'"))
@@ -1055,7 +1056,7 @@ class ConsoleFeedbackItemCanvasRoutesTest {
         assertTrue(html.contains("function nodesForHitTest(screen, nodesSelector)"))
         assertTrue(html.contains("function smallestContainingNode(nodes, point)"))
         assertTrue(html.contains("function hitTestNodes(screen)"))
-        assertTrue(html.contains("let hoveredAnnotationTarget = null"))
+        assertTrue(html.contains("hoveredTarget: null"))
         assertTrue(html.contains("function previewNodeAtPoint(event, image)"))
         assertTrue(html.contains("function confirmHoveredAnnotationTarget(event, image)"))
         assertTrue(html.contains("...(root?.mergedNodes || [])"))
@@ -1083,13 +1084,13 @@ class ConsoleFeedbackItemCanvasRoutesTest {
             html.contains("const textValue = (node.text || [])[0] || (node.contentDescription || [])[0] || node.uid;"),
         )
         assertTrue(html.contains("renderSelectionOverlay"))
-        assertTrue(html.contains("dragPreview"))
+        assertTrue(html.contains("toolModeState.drag?.preview"))
         assertTrue(html.contains("hover-preview"))
         assertTrue(html.contains("pointermove"))
         assertTrue(html.contains("image.addEventListener('pointerleave', clearHoverPreview)"))
         assertTrue(html.contains("function clearDragState()"))
         assertTrue(html.contains("function clearHoverPreview()"))
-        assertTrue(html.contains("if (!dragStart) {"))
+        assertTrue(html.contains("if (!dragState) {"))
         assertTrue(html.contains("previewNodeAtPoint(event, image);"))
         assertTrue(html.contains("confirmHoveredAnnotationTarget(event, image);"))
         assertTrue(html.contains("image.draggable = false"))
@@ -1130,11 +1131,11 @@ class ConsoleFeedbackItemBatchRoutesTest {
         assertTrue(html.contains("bounds: selection.bounds"))
         assertTrue(html.contains("function draftSelectionToItem"))
         assertTrue(html.contains("function persistPendingFeedbackItems"))
-        assertTrue(createAnnotationFromSelection.contains("toolMode = 'annotate';"))
-        assertFalse(createAnnotationFromSelection.contains("toolMode = 'select';"))
+        assertTrue(createAnnotationFromSelection.contains("toolModeUseCases.enterAnnotate();"))
+        assertFalse(createAnnotationFromSelection.contains("toolModeUseCases.enterSelect();"))
         assertTrue(createAnnotationFromSelection.contains("addDraftItem(draftWorkspace, selection, ports)"))
         assertTrue(createAnnotationFromSelection.contains("setDraftWorkspace(nextWorkspace);"))
-        assertTrue(html.contains("suppressNextClick = true;"))
+        assertTrue(html.contains("toolModeUseCases.setSuppressNextClick(true);"))
         assertTrue(html.contains("function updateSelectedAnnotationComment"))
         assertTrue(html.contains("item.comment = comment.value;"))
         assertTrue(html.contains("Add a comment to every annotation before saving."))
@@ -2327,12 +2328,22 @@ class ConsoleFeedbackItemHistoryRoutesTest {
 
     @Test
     fun consoleHtmlDeclaresPollingGlobals() {
+        // Per console-state-machine-expansion Task 4, the polling-owned state
+        // (lastSessionsEtag, lastSessionEtag, pendingMutationCount,
+        // consecutivePollFailures, promptActionInFlight, sessionMutationGeneration)
+        // moved from module-level lets in state.js into pollingFsm /
+        // pollingUseCases. The sessionsPollingTimer setInterval handle now
+        // lives in sessions-polling.js's closure but is still emitted in the
+        // bundled IIFE. The withMutationLock + pollingUseCases identifiers
+        // must survive for behavior contracts elsewhere.
         val html = FeedbackConsoleAssets.indexHtml
-        assertTrue(html.contains("let pendingMutationCount"))
         assertTrue(html.contains("let sessionsPollingTimer"))
-        assertTrue(html.contains("let lastSessionsEtag"))
-        assertTrue(html.contains("let lastSessionEtag"))
         assertTrue(html.contains("async function withMutationLock"))
+        assertTrue(html.contains("pollingUseCases"), "polling FSM must be wired in")
+        assertTrue(html.contains("createBrowserPollingUseCases"), "browser adapter must be wired")
+        assertTrue(html.contains("lastSessionsEtag"), "polling FSM owns lastSessionsEtag")
+        assertTrue(html.contains("lastSessionEtag"), "polling FSM owns lastSessionEtag")
+        assertTrue(html.contains("pendingMutationCount"), "polling FSM owns pendingMutationCount")
     }
 
     @Test
@@ -2418,31 +2429,38 @@ class ConsoleFeedbackItemHistoryRoutesTest {
 
     @Test
     fun sessionsPollingDeclaresFailureBackoffConstants() {
+        // Failure counter (consecutiveFailures) and threshold
+        // (MaxConsecutivePollFailures = 5) now live in pollingFsm.js. The
+        // counter no longer exists as a module-level let in state.js, but
+        // both identifiers must survive in the bundle as part of the FSM.
         val html = FeedbackConsoleAssets.indexHtml
-        assertTrue(html.contains("let consecutivePollFailures"), "must declare failure counter")
+        assertTrue(html.contains("consecutiveFailures"), "polling FSM must own the failure counter")
         assertTrue(
-            html.contains("MaxConsecutivePollFailures") || html.contains("= 5"),
-            "must declare threshold (named const or literal 5)",
+            html.contains("MaxConsecutivePollFailures = 5") || html.contains("MaxConsecutivePollFailures=5"),
+            "must declare threshold constant",
         )
     }
 
     @Test
     fun pollSessionsTickResetsFailureCounterOnSuccess() {
+        // The reset semantics now live in pollingFsm.js TICK_OK. The
+        // top-level pollSessionsTick wrapper still exists for the grep
+        // contract; the FSM-side behavior is verified by node tests.
         val html = FeedbackConsoleAssets.indexHtml
         val body = javascriptFunctionBody(html, "pollSessionsTick")
         assertTrue(
-            body.contains("consecutivePollFailures = 0") || body.contains("consecutivePollFailures=0"),
-            "tick must reset counter on success",
+            body.contains("pollingUseCases.pollSessionsTick"),
+            "tick must delegate to pollingUseCases.pollSessionsTick (FSM dispatches TICK_OK on success)",
         )
     }
 
     @Test
     fun pollSessionsTickIncrementsFailureCounterOnError() {
+        // Increment semantics live in pollingFsm.js TICK_FAILED.
         val html = FeedbackConsoleAssets.indexHtml
-        val body = javascriptFunctionBody(html, "pollSessionsTick")
         assertTrue(
-            body.contains("consecutivePollFailures++") || body.contains("consecutivePollFailures += 1"),
-            "tick must increment counter on failure",
+            html.contains("TICK_FAILED"),
+            "polling FSM must dispatch TICK_FAILED to increment the failure counter",
         )
     }
 

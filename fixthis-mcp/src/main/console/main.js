@@ -3,8 +3,8 @@
 
             selectToolButton.addEventListener('click', enterSelectMode);
             annotateToolButton.addEventListener('click', () => enterAnnotateMode().catch(showError));
-            zoomOutButton.addEventListener('click', () => setPreviewZoom(previewZoom - PreviewZoomStep));
-            zoomInButton.addEventListener('click', () => setPreviewZoom(previewZoom + PreviewZoomStep));
+            zoomOutButton.addEventListener('click', () => setPreviewZoom(previewUseCases.getState().zoom - PreviewZoomStep));
+            zoomInButton.addEventListener('click', () => setPreviewZoom(previewUseCases.getState().zoom + PreviewZoomStep));
             addItemButton.addEventListener('click', () => {
               try {
                 createAnnotationFromSelection(currentSelection);
@@ -193,13 +193,14 @@
             }
 
             function updateAnnotationSequenceFromPendingItems(items) {
+              const current = toolModeUseCases.getState().annotationSequence;
               const next = (items || [])
                 .map(item => String(item?.annotationId || '').match(/^local-(\d+)$/))
                 .filter(Boolean)
                 .map(match => Number(match[1]))
                 .filter(Number.isFinite)
-                .reduce((max, value) => Math.max(max, value + 1), annotationSequence);
-              annotationSequence = Math.max(annotationSequence, next);
+                .reduce((max, value) => Math.max(max, value + 1), current);
+              toolModeUseCases.setAnnotationSequenceAtLeast(next);
             }
 
             function restorePendingRecoveryContext(recovery) {
@@ -214,11 +215,10 @@
               };
               updateAnnotationSequenceFromPendingItems(workspace.items);
               focusedPendingItemIndex = null;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
+              toolModeUseCases.focusSavedItem(null, null);
               currentSelection = null;
-              hoveredAnnotationTarget = null;
-              toolMode = 'select';
+              toolModeUseCases.setHoveredTarget(null);
+              toolModeUseCases.enterSelect();
               stopLivePreviewPolling();
               persistCurrentPendingState();
             }
@@ -338,10 +338,9 @@
               updateAnnotationSequenceFromPendingItems(recoveredItems);
               pendingRecovery = null;
               focusedPendingItemIndex = null;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
+              toolModeUseCases.focusSavedItem(null, null);
               currentSelection = null;
-              hoveredAnnotationTarget = null;
+              toolModeUseCases.setHoveredTarget(null);
               persistCurrentPendingState();
               renderPendingRecoveryBanner();
               render();

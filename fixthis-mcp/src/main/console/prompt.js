@@ -63,11 +63,11 @@
             }
 
             async function copyPrompt() {
-                if (promptActionInFlight) return;
+                if (pollingUseCases.getState().promptActionInFlight) return;
                 await withMutationLock(async () => {
                     clearSuccessStatus();
                     ensurePromptAnnotationsAvailable();
-                    promptActionInFlight = true;
+                    pollingUseCases.setPromptActionInFlight(true);
                     updateComposerState();
                     const labelSpan = copyPromptButton.querySelector('span:not(.button-icon)');
                     const originalLabel = labelSpan ? labelSpan.textContent : null;
@@ -87,7 +87,7 @@
                             showWarning('Copied, but MCP handoff status was not updated. Copy again after the connection recovers to update item state.');
                         }
                     } finally {
-                        promptActionInFlight = false;
+                        pollingUseCases.setPromptActionInFlight(false);
                         updateComposerState();
                         if (copied && labelSpan) {
                             labelSpan.textContent = 'Copied ✓';
@@ -100,11 +100,11 @@
             }
 
             async function sendAgentPrompt() {
-                if (promptActionInFlight) return;
+                if (pollingUseCases.getState().promptActionInFlight) return;
                 await withMutationLock(async () => {
                     clearSuccessStatus();
                     ensurePromptAnnotationsAvailable();
-                    promptActionInFlight = true;
+                    pollingUseCases.setPromptActionInFlight(true);
                     updateComposerState();
                     let sent = false;
                     try {
@@ -128,7 +128,7 @@
                         startLivePreviewPolling();
                         sent = true;
                     } finally {
-                        promptActionInFlight = false;
+                        pollingUseCases.setPromptActionInFlight(false);
                         updateComposerState();
                         if (sent) showSuccess('Saved to MCP ✓ — agent will pick up', 3000);
                     }

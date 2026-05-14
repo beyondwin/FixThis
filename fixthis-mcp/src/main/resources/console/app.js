@@ -1,3 +1,1020 @@
+// connectionFsm.js
+// connectionFsm.js — pure reducer for the bridge connection lifecycle.
+//
+// Owns the entire state.connection.* object plus heartbeat-related fields
+// previously held as module-level lets in state.js. No DOM, fetch, timers,
+// or globals here.
+//
+// Action set (per console-state-machine-expansion §3.2):
+//   LAUNCH_REQUESTED       — user requested app launch
+//   LAUNCH_SUCCEEDED       — launch RPC returned a status
+//   LAUNCH_FAILED          — launch RPC failed
+//   HEARTBEAT_OK           — heartbeat ping succeeded
+//   HEARTBEAT_FAILED       — heartbeat ping failed (carries error message)
+//   INTERACTION_BLOCKED    — resolver decided interaction is blocked
+//   INTERACTION_UNBLOCKED  — resolver cleared the blocked reason
+//   AVAILABILITY_UPDATED   — availability snapshot arrived without a full status
+//   DISCONNECT_REQUESTED   — user/UI explicitly tore the connection down
+//
+// Plus two non-spec actions added during extraction so that **no** state.connection.*
+// mutation lives outside this reducer (R3 mitigation: FSM is the single source
+// of truth from creation):
+//   STATUS_RECEIVED         — a full /api/connection status payload arrived
+//   POLLING_PAUSED_CHANGED  — sessions polling backed off / resumed
+//
+// MaxHeartbeatFailures is exposed as a constant; consumers may import via the
+// IIFE-shared lexical scope (no module object exists at runtime).
+
+const MaxHeartbeatFailures = 3;
+
+const ConnectionLifecycle = Object.freeze({
+  WELCOME: 'welcome',
+  STARTING: 'starting',
+  READY: 'ready',
+  RECONNECT: 'reconnect',
+  ERROR: 'error',
+});
+
+function createInitialConnectionState() {
+  return Object.freeze({
+    current: null,
+    hasEverConnected: false,
+    lastReadyAt: null,
+    launchInFlight: false,
+    availability: null,
+    interactionBlockedReason: null,
+    previousBlockedReason: null,
+    sessionsPollingPaused: false,
+    heartbeatPolling: false,
+    lastHeartbeatError: null,
+  });
+}
+
+function statusIsReady(status) {
+  if (!status) return false;
+  const raw = String(status.state || '').toLowerCase();
+  return raw === 'ready';
+}
+
+function reduceConnection(state, action) {
+  if (!state) state = createInitialConnectionState();
+  if (!action || typeof action.type !== 'string') return state;
+  switch (action.type) {
+    case 'LAUNCH_REQUESTED':
+      return Object.freeze({ ...state, launchInFlight: true });
+    case 'LAUNCH_SUCCEEDED':
+    case 'LAUNCH_FAILED':
+      return Object.freeze({ ...state, launchInFlight: false });
+    case 'STATUS_RECEIVED': {
+      const status = action.status ?? null;
+      const next = {
+        ...state,
+        current: status,
+        availability: status?.availability ?? null,
+        previousBlockedReason: state.interactionBlockedReason,
+        interactionBlockedReason: action.blockedReason ?? null,
+      };
+      if (statusIsReady(status)) {
+        next.hasEverConnected = true;
+        next.lastReadyAt = typeof action.nowMs === 'number' ? action.nowMs : state.lastReadyAt;
+      }
+      return Object.freeze(next);
+    }
+    case 'AVAILABILITY_UPDATED':
+      return Object.freeze({ ...state, availability: action.availability ?? null });
+    case 'INTERACTION_BLOCKED':
+      return Object.freeze({
+        ...state,
+        previousBlockedReason: state.interactionBlockedReason,
+        interactionBlockedReason: action.reason ?? null,
+      });
+    case 'INTERACTION_UNBLOCKED':
+      return Object.freeze({
+        ...state,
+        previousBlockedReason: state.interactionBlockedReason,
+        interactionBlockedReason: null,
+      });
+    case 'HEARTBEAT_OK':
+      return Object.freeze({ ...state, lastHeartbeatError: null });
+    case 'HEARTBEAT_FAILED':
+      return Object.freeze({ ...state, lastHeartbeatError: action.error ?? null });
+    case 'POLLING_PAUSED_CHANGED':
+      return Object.freeze({ ...state, sessionsPollingPaused: !!action.paused });
+    case 'DISCONNECT_REQUESTED':
+      return Object.freeze({
+        ...state,
+        current: null,
+        availability: null,
+        heartbeatPolling: false,
+      });
+    default:
+      return state;
+  }
+}
+
+// build-header
+const ConsoleBuildEpochMs = 1778749020000;
+const ConsoleBuildGitSha = '05ed471';
+
+// connectionUseCases.js
+// connectionUseCases.js — action dispatchers for the connection FSM.
+//
+// Pure: no DOM, fetch, timers, localStorage. Takes the reducer and an
+// onChange observer (the compat shim in state.js projects the new state
+// into the legacy state.connection object so non-FSM readers keep working).
+//
+// Factory shape:
+//   createConnectionUseCases({ initialState, onChange })
+//     -> { getState, dispatch, launchRequested, launchSucceeded, launchFailed,
+//          setStatus, availabilityUpdated, interactionBlocked,
+//          interactionUnblocked, heartbeatOk, heartbeatFailed,
+//          setSessionsPollingPaused, disconnectRequested }
+
+function createConnectionUseCases(options = {}) {
+  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
+  let current = options.initialState ?? createInitialConnectionState();
+  if (!Object.isFrozen(current)) current = Object.freeze({ ...current });
+
+  function dispatch(action) {
+    const next = reduceConnection(current, action);
+    if (next !== current) {
+      current = next;
+      onChange(current);
+    }
+    return current;
+  }
+
+  function getState() {
+    return current;
+  }
+
+  return {
+    getState,
+    dispatch,
+    launchRequested: () => dispatch({ type: 'LAUNCH_REQUESTED' }),
+    launchSucceeded: () => dispatch({ type: 'LAUNCH_SUCCEEDED' }),
+    launchFailed: () => dispatch({ type: 'LAUNCH_FAILED' }),
+    setStatus: (status, blockedReason, extras = {}) => dispatch({
+      type: 'STATUS_RECEIVED',
+      status,
+      blockedReason: blockedReason ?? null,
+      nowMs: typeof extras.nowMs === 'number' ? extras.nowMs : Date.now(),
+    }),
+    availabilityUpdated: (availability) => dispatch({
+      type: 'AVAILABILITY_UPDATED',
+      availability,
+    }),
+    interactionBlocked: (reason) => dispatch({ type: 'INTERACTION_BLOCKED', reason }),
+    interactionUnblocked: () => dispatch({ type: 'INTERACTION_UNBLOCKED' }),
+    heartbeatOk: () => dispatch({ type: 'HEARTBEAT_OK' }),
+    heartbeatFailed: (error) => dispatch({ type: 'HEARTBEAT_FAILED', error }),
+    setSessionsPollingPaused: (paused) => dispatch({
+      type: 'POLLING_PAUSED_CHANGED',
+      paused,
+    }),
+    disconnectRequested: () => dispatch({ type: 'DISCONNECT_REQUESTED' }),
+  };
+}
+
+// connectionBrowserAdapter.js
+// connectionBrowserAdapter.js — wires connectionUseCases into the browser
+// `state.connection` projection. Keeping this glue in its own file keeps
+// state.js free of FSM details and gives the use cases an explicit entry
+// point (so tests can stub it out if needed).
+//
+// Returns the use-cases object. The caller passes a mutator that copies
+// the frozen FSM state into the legacy `state.connection` object so
+// non-FSM readers (rendering, devices, preview) keep observing changes.
+
+function createBrowserConnectionUseCases(projectState) {
+  const onChange = typeof projectState === 'function' ? projectState : () => {};
+  return createConnectionUseCases({
+    initialState: createInitialConnectionState(),
+    onChange,
+  });
+}
+
+// previewFsm.js
+// previewFsm.js — pure reducer for the live preview lifecycle.
+//
+// Owns the preview request/zoom/poll counters previously held as
+// module-level lets in state.js (previewRequestGeneration,
+// previewRequestContextGeneration, previewRequestInFlight,
+// previewRequestInFlightContextGeneration, previewZoom). No DOM,
+// fetch, timers, or globals here.
+//
+// Action set (per console-state-machine-expansion §3.3):
+//   REQUEST_STARTED      — bump requestGeneration; capture (generation,
+//                          contextGeneration) into inFlight; lifecycle → REQUESTING
+//   REQUEST_SUCCEEDED    — applied only if BOTH action.generation and
+//                          action.contextGeneration match the inFlight tuple;
+//                          otherwise dropped (race-fence)
+//   REQUEST_FAILED       — same race-fence as REQUEST_SUCCEEDED; lifecycle → ERROR
+//   CONTEXT_CHANGED      — bump contextGeneration; clear inFlight and current;
+//                          lifecycle → IDLE (so the next request re-fetches)
+//   SET_STALE            — toggle lifecycle between READY ↔ STALE
+//   SET_ZOOM             — clamp to [MinPreviewZoom, MaxPreviewZoom], round to 0.1
+//   SET_POLL_INTERVAL    — set pollIntervalMs (or null for manual)
+
+const PreviewLifecycle = Object.freeze({
+  IDLE: 'idle',
+  REQUESTING: 'requesting',
+  READY: 'ready',
+  STALE: 'stale',
+  ERROR: 'error',
+});
+
+const MinPreviewZoom = 0.5;
+const MaxPreviewZoom = 2;
+
+function createInitialPreviewState() {
+  return Object.freeze({
+    lifecycle: PreviewLifecycle.IDLE,
+    requestGeneration: 0,
+    contextGeneration: 0,
+    inFlight: null,
+    current: null,
+    zoom: 1,
+    pollIntervalMs: null,
+    error: null,
+  });
+}
+
+function clampPreviewZoom(value) {
+  const numeric = typeof value === 'number' && !Number.isNaN(value) ? value : 1;
+  const clamped = Math.min(Math.max(numeric, MinPreviewZoom), MaxPreviewZoom);
+  return Math.round(clamped * 10) / 10;
+}
+
+function isStaleFence(state, action) {
+  if (!state.inFlight) return true;
+  if (action.generation !== state.inFlight.generation) return true;
+  if (action.contextGeneration !== state.inFlight.contextGeneration) return true;
+  return false;
+}
+
+function reducePreview(state, action) {
+  if (!state) state = createInitialPreviewState();
+  if (!action || typeof action.type !== 'string') return state;
+  switch (action.type) {
+    case 'REQUEST_STARTED': {
+      const nextGeneration = state.requestGeneration + 1;
+      return Object.freeze({
+        ...state,
+        lifecycle: PreviewLifecycle.REQUESTING,
+        requestGeneration: nextGeneration,
+        inFlight: Object.freeze({
+          generation: nextGeneration,
+          contextGeneration: state.contextGeneration,
+        }),
+        error: null,
+      });
+    }
+    case 'REQUEST_SUCCEEDED': {
+      if (isStaleFence(state, action)) return state;
+      return Object.freeze({
+        ...state,
+        lifecycle: PreviewLifecycle.READY,
+        current: action.preview ?? null,
+        inFlight: null,
+        error: null,
+      });
+    }
+    case 'REQUEST_FAILED': {
+      if (isStaleFence(state, action)) return state;
+      return Object.freeze({
+        ...state,
+        lifecycle: PreviewLifecycle.ERROR,
+        inFlight: null,
+        error: action.error ?? null,
+      });
+    }
+    case 'CONTEXT_CHANGED': {
+      return Object.freeze({
+        ...state,
+        lifecycle: PreviewLifecycle.IDLE,
+        requestGeneration: state.requestGeneration + 1,
+        contextGeneration: state.contextGeneration + 1,
+        inFlight: null,
+        current: null,
+        error: null,
+      });
+    }
+    case 'SET_STALE': {
+      const stale = !!action.stale;
+      if (stale && state.lifecycle === PreviewLifecycle.READY) {
+        return Object.freeze({ ...state, lifecycle: PreviewLifecycle.STALE });
+      }
+      if (!stale && state.lifecycle === PreviewLifecycle.STALE) {
+        return Object.freeze({ ...state, lifecycle: PreviewLifecycle.READY });
+      }
+      return state;
+    }
+    case 'SET_ZOOM': {
+      const zoom = clampPreviewZoom(action.zoom);
+      if (zoom === state.zoom) return state;
+      return Object.freeze({ ...state, zoom });
+    }
+    case 'SET_POLL_INTERVAL': {
+      const intervalMs = typeof action.intervalMs === 'number' ? action.intervalMs : null;
+      if (intervalMs === state.pollIntervalMs) return state;
+      return Object.freeze({ ...state, pollIntervalMs: intervalMs });
+    }
+    default:
+      return state;
+  }
+}
+
+// previewUseCases.js
+// previewUseCases.js — action dispatchers for the preview FSM.
+//
+// Pure: no DOM, fetch, timers, localStorage. Takes async primitives
+// (capture) and storage via ports. The browser adapter
+// (previewBrowserAdapter.js) wires in the real implementations.
+//
+// Factory shape:
+//   createPreviewUseCases({ onChange, api, storage })
+//     -> { getState, dispatch, request, contextChanged, setStale,
+//          setZoom, setPollInterval }
+//
+// Race-fence contract (normative): when request() awaits api.capture,
+// the (generation, contextGeneration) tuple captured immediately after
+// REQUEST_STARTED is passed to REQUEST_SUCCEEDED / REQUEST_FAILED.
+// The reducer drops the action if EITHER counter mismatches.
+
+const PreviewIntervalStorageKeyConst = 'fixthis.previewIntervalMs.v2';
+
+function createPreviewUseCases(options = {}) {
+  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
+  const api = options.api || {};
+  const storage = options.storage || {};
+  let current = options.initialState ?? createInitialPreviewState();
+  if (!Object.isFrozen(current)) current = Object.freeze({ ...current });
+  let inFlightPromise = null;
+
+  function dispatch(action) {
+    const next = reducePreview(current, action);
+    if (next !== current) {
+      current = next;
+      onChange(current);
+    }
+    return current;
+  }
+
+  function getState() {
+    return current;
+  }
+
+  function request() {
+    // Dedup: if an in-flight promise exists AND the FSM still considers it
+    // current (lifecycle REQUESTING with a matching inFlight snapshot),
+    // return the existing promise rather than starting a new fetch.
+    if (inFlightPromise && current.inFlight) {
+      return inFlightPromise;
+    }
+    dispatch({ type: 'REQUEST_STARTED' });
+    const captured = current.inFlight;
+    const promise = Promise.resolve()
+      .then(() => api.capture())
+      .then((preview) => {
+        if (inFlightPromise === promise) inFlightPromise = null;
+        dispatch({
+          type: 'REQUEST_SUCCEEDED',
+          generation: captured.generation,
+          contextGeneration: captured.contextGeneration,
+          preview,
+        });
+        return preview;
+      })
+      .catch((cause) => {
+        if (inFlightPromise === promise) inFlightPromise = null;
+        const message = cause && cause.message ? cause.message : String(cause);
+        dispatch({
+          type: 'REQUEST_FAILED',
+          generation: captured.generation,
+          contextGeneration: captured.contextGeneration,
+          error: message,
+        });
+        throw cause;
+      });
+    inFlightPromise = promise;
+    return promise;
+  }
+
+  function contextChanged() {
+    inFlightPromise = null;
+    dispatch({ type: 'CONTEXT_CHANGED' });
+  }
+
+  function setStale(stale) {
+    dispatch({ type: 'SET_STALE', stale });
+  }
+
+  function setZoom(zoom) {
+    dispatch({ type: 'SET_ZOOM', zoom });
+  }
+
+  function setPollInterval(intervalMs) {
+    dispatch({ type: 'SET_POLL_INTERVAL', intervalMs });
+    if (typeof storage.setItem === 'function' && intervalMs != null) {
+      storage.setItem(PreviewIntervalStorageKeyConst, String(intervalMs));
+    }
+  }
+
+  return {
+    getState,
+    dispatch,
+    request,
+    contextChanged,
+    setStale,
+    setZoom,
+    setPollInterval,
+  };
+}
+
+// previewBrowserAdapter.js
+// previewBrowserAdapter.js — wires previewUseCases into the browser
+// environment. Lives separately so state.js stays free of FSM details
+// and the use cases get an explicit entry point for tests.
+//
+// The caller passes a mutator (onChange) that copies the frozen FSM
+// state into a legacy projection (state.previewFsm) for any non-FSM
+// readers. The api.capture port resolves to the requestLivePreview
+// function declared in preview.js — these symbols share lexical scope
+// inside the bundled IIFE, so the adapter sees them at call time.
+
+function createBrowserPreviewUseCases(options = {}) {
+  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
+  return createPreviewUseCases({
+    initialState: createInitialPreviewState(),
+    onChange,
+    api: {
+      capture: () => requestLivePreview(),
+    },
+    storage: typeof localStorage !== 'undefined' ? localStorage : { setItem: () => {} },
+  });
+}
+
+// pollingFsm.js
+// pollingFsm.js — pure reducer for the sessions-polling lifecycle.
+//
+// Owns the polling-related state previously held as module-level lets in
+// state.js: sessionsPollingTimer (the *concept* of running/stopped),
+// lastSessionsEtag, lastSessionEtag, pendingMutationCount,
+// sessionMutationGeneration, consecutivePollFailures, promptActionInFlight.
+// No DOM, fetch, timers, or globals here.
+//
+// Lifecycle (per console-state-machine-expansion §3.5):
+//   STOPPED          — no setInterval handle, no polling
+//   POLLING_ACTIVE   — normal polling cadence
+//   POLLING_BACKOFF  — too many consecutive failures; waiting for backoff
+//                      timer or visibility/manual restart
+//   POLLING_PAUSED   — pause requested (e.g. visibility hidden); will resume
+//                      to pausedReturnLifecycle on VISIBILITY_VISIBLE
+//
+// Action set:
+//   START                  — begin polling (resets consecutiveFailures)
+//   STOP                   — stop polling
+//   DISCONNECT_REQUESTED   — alias for STOP that fires from connection FSM
+//   VISIBILITY_HIDDEN      — pause; preserve current lifecycle in
+//                            pausedReturnLifecycle so we can resume
+//   VISIBILITY_VISIBLE     — restore pausedReturnLifecycle
+//   TICK_OK                — reset failure counter; update etags from payload
+//   TICK_FAILED            — increment failure counter; at threshold,
+//                            transition to POLLING_BACKOFF
+//   BACKOFF_TIMER_FIRED    — POLLING_BACKOFF → POLLING_ACTIVE without
+//                            resetting the counter (only TICK_OK resets it)
+//   MUTATION_START         — bump pendingMutationCount AND mutationGeneration
+//   MUTATION_END           — decrement pendingMutationCount (clamped ≥ 0)
+//   MUTATION_GENERATION_BUMP — bump only mutationGeneration (no counter change);
+//                              used by legacy bumpSessionMutationGeneration()
+//                              callers that signal "session changed" outside a
+//                              lock context.
+//   PROMPT_ACTION_START    — set promptActionInFlight true
+//   PROMPT_ACTION_END      — set promptActionInFlight false
+//
+// MaxConsecutivePollFailures is the spec constant 5; exposed via the
+// IIFE-shared lexical scope (consumed by sessions-polling.js for the
+// existing Kotlin grep contract, and by tests directly).
+
+const MaxConsecutivePollFailures = 5;
+
+const PollingLifecycle = Object.freeze({
+  STOPPED: 'stopped',
+  POLLING_ACTIVE: 'polling_active',
+  POLLING_BACKOFF: 'polling_backoff',
+  POLLING_PAUSED: 'polling_paused',
+});
+
+function createInitialPollingState() {
+  return Object.freeze({
+    lifecycle: PollingLifecycle.STOPPED,
+    pausedReturnLifecycle: null,
+    lastSessionsEtag: null,
+    lastSessionEtag: null,
+    pendingMutationCount: 0,
+    mutationGeneration: 0,
+    consecutiveFailures: 0,
+    promptActionInFlight: false,
+  });
+}
+
+function reducePolling(state, action) {
+  if (!state) state = createInitialPollingState();
+  if (!action || typeof action.type !== 'string') return state;
+  switch (action.type) {
+    case 'START':
+      return Object.freeze({
+        ...state,
+        lifecycle: PollingLifecycle.POLLING_ACTIVE,
+        consecutiveFailures: 0,
+        pausedReturnLifecycle: null,
+      });
+    case 'STOP':
+    case 'DISCONNECT_REQUESTED':
+      return Object.freeze({
+        ...state,
+        lifecycle: PollingLifecycle.STOPPED,
+        pausedReturnLifecycle: null,
+      });
+    case 'VISIBILITY_HIDDEN': {
+      if (state.lifecycle === PollingLifecycle.POLLING_PAUSED) return state;
+      if (state.lifecycle === PollingLifecycle.STOPPED) return state;
+      return Object.freeze({
+        ...state,
+        lifecycle: PollingLifecycle.POLLING_PAUSED,
+        pausedReturnLifecycle: state.lifecycle,
+      });
+    }
+    case 'VISIBILITY_VISIBLE': {
+      if (state.lifecycle !== PollingLifecycle.POLLING_PAUSED) return state;
+      const target = state.pausedReturnLifecycle || PollingLifecycle.POLLING_ACTIVE;
+      return Object.freeze({
+        ...state,
+        lifecycle: target,
+        pausedReturnLifecycle: null,
+      });
+    }
+    case 'TICK_OK':
+      return Object.freeze({
+        ...state,
+        consecutiveFailures: 0,
+        lastSessionsEtag: action.sessionsEtag !== undefined ? action.sessionsEtag : state.lastSessionsEtag,
+        lastSessionEtag: action.sessionEtag !== undefined ? action.sessionEtag : state.lastSessionEtag,
+      });
+    case 'TICK_FAILED': {
+      const nextFailures = state.consecutiveFailures + 1;
+      const shouldBackoff = nextFailures >= MaxConsecutivePollFailures &&
+        state.lifecycle === PollingLifecycle.POLLING_ACTIVE;
+      return Object.freeze({
+        ...state,
+        consecutiveFailures: nextFailures,
+        lifecycle: shouldBackoff ? PollingLifecycle.POLLING_BACKOFF : state.lifecycle,
+      });
+    }
+    case 'BACKOFF_TIMER_FIRED': {
+      if (state.lifecycle !== PollingLifecycle.POLLING_BACKOFF) return state;
+      return Object.freeze({
+        ...state,
+        lifecycle: PollingLifecycle.POLLING_ACTIVE,
+      });
+    }
+    case 'MUTATION_START':
+      return Object.freeze({
+        ...state,
+        pendingMutationCount: state.pendingMutationCount + 1,
+        mutationGeneration: state.mutationGeneration + 1,
+      });
+    case 'MUTATION_END':
+      return Object.freeze({
+        ...state,
+        pendingMutationCount: Math.max(0, state.pendingMutationCount - 1),
+      });
+    case 'MUTATION_GENERATION_BUMP':
+      return Object.freeze({
+        ...state,
+        mutationGeneration: state.mutationGeneration + 1,
+      });
+    case 'PROMPT_ACTION_START':
+      return Object.freeze({ ...state, promptActionInFlight: true });
+    case 'PROMPT_ACTION_END':
+      return Object.freeze({ ...state, promptActionInFlight: false });
+    default:
+      return state;
+  }
+}
+
+// pollingUseCases.js
+// pollingUseCases.js — action dispatchers for the polling FSM.
+//
+// Pure: no DOM, fetch, timers, localStorage. Takes the reducer and an
+// async sessions port via options. The browser adapter
+// (pollingBrowserAdapter.js) wires in real fetches; sessions-polling.js
+// keeps the top-level identifiers (pollSessionsTick / startSessionsPolling /
+// withMutationLock) that asset contract tests grep for and delegates here.
+//
+// Factory shape:
+//   createPollingUseCases({ onChange, api })
+//     -> { getState, dispatch,
+//          startSessionsPolling, stopSessionsPolling,
+//          visibilityHidden, visibilityVisible, disconnect,
+//          withMutationLock, pollSessionsTick,
+//          backoffTimerFired, setPromptActionInFlight }
+//
+// The api.sessions port receives the current etags and returns a result
+// shaped { sessionsEtag, sessionEtag, ... }. On success the FSM dispatches
+// TICK_OK with the returned etags; on rejection it dispatches TICK_FAILED.
+
+function createPollingUseCases(options = {}) {
+  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
+  const api = options.api || {};
+  let current = options.initialState ?? createInitialPollingState();
+  if (!Object.isFrozen(current)) current = Object.freeze({ ...current });
+
+  function dispatch(action) {
+    const next = reducePolling(current, action);
+    if (next !== current) {
+      current = next;
+      onChange(current);
+    }
+    return current;
+  }
+
+  function getState() {
+    return current;
+  }
+
+  async function withMutationLock(fn) {
+    dispatch({ type: 'MUTATION_START' });
+    try {
+      return await fn();
+    } finally {
+      dispatch({ type: 'MUTATION_END' });
+      // NOTE: legacy "resume-on-mutation-drain" hook lives in sessions-polling.js
+      // (it bridges to the connection FSM's sessionsPollingPaused projection).
+      // The pure use case must not call cross-FSM side effects.
+    }
+  }
+
+  // Internal: dispatches FSM transitions around the api.sessions port.
+  // The exposed property name on the returned object is the spec name
+  // (see below); this inner function uses a distinct identifier so the
+  // top-level function declaration in sessions-polling.js remains the
+  // only matching declaration site for body-grep contracts.
+  async function tickViaApi() {
+    if (typeof api.sessions !== 'function') {
+      throw new Error('pollingUseCases: api.sessions port is required');
+    }
+    try {
+      const result = await api.sessions({
+        sessionsEtag: current.lastSessionsEtag,
+        sessionEtag: current.lastSessionEtag,
+      });
+      dispatch({
+        type: 'TICK_OK',
+        sessionsEtag: result?.sessionsEtag ?? null,
+        sessionEtag: result?.sessionEtag ?? null,
+      });
+      return result;
+    } catch (err) {
+      dispatch({ type: 'TICK_FAILED' });
+      throw err;
+    }
+  }
+
+  return {
+    getState,
+    dispatch,
+    startSessionsPolling: () => dispatch({ type: 'START' }),
+    stopSessionsPolling: () => dispatch({ type: 'STOP' }),
+    visibilityHidden: () => dispatch({ type: 'VISIBILITY_HIDDEN' }),
+    visibilityVisible: () => dispatch({ type: 'VISIBILITY_VISIBLE' }),
+    disconnect: () => dispatch({ type: 'DISCONNECT_REQUESTED' }),
+    withMutationLock,
+    pollSessionsTick: tickViaApi,
+    backoffTimerFired: () => dispatch({ type: 'BACKOFF_TIMER_FIRED' }),
+    setPromptActionInFlight: (flag) => dispatch({
+      type: flag ? 'PROMPT_ACTION_START' : 'PROMPT_ACTION_END',
+    }),
+  };
+}
+
+// pollingBrowserAdapter.js
+// pollingBrowserAdapter.js — wires pollingUseCases into the browser
+// environment. Lives separately so state.js stays free of FSM details
+// and the use cases get an explicit entry point for tests.
+//
+// The api.sessions port performs the actual HTTP fetches (and side-
+// effects on state.sessionSummaries / renderSessionsList / etc.). It
+// returns the new ETag headers so the FSM can persist them via TICK_OK.
+//
+// The closure-over-state is deliberate: this adapter sees the legacy
+// state, fetch, and renderers via the bundled IIFE's shared lexical
+// scope.
+
+function createBrowserPollingUseCases(options = {}) {
+  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
+  return createPollingUseCases({
+    initialState: createInitialPollingState(),
+    onChange,
+    api: {
+      sessions: async ({ sessionsEtag, sessionEtag }) => {
+        let nextSessionsEtag = sessionsEtag ?? null;
+        let nextSessionEtag = sessionEtag ?? null;
+        const listResp = await fetch('/api/sessions', {
+          headers: sessionsEtag ? { 'If-None-Match': sessionsEtag } : {},
+        });
+        if (listResp.status === 200) {
+          nextSessionsEtag = listResp.headers.get('ETag');
+          const data = await listResp.json();
+          state.sessionSummaries = data.sessions || [];
+          renderSessionsList();
+        }
+        if (state.session?.sessionId) {
+          const sessResp = await fetch('/api/session', {
+            headers: sessionEtag ? { 'If-None-Match': sessionEtag } : {},
+          });
+          if (sessResp.status === 200) {
+            nextSessionEtag = sessResp.headers.get('ETag');
+            const fresh = await sessResp.json();
+            if (fresh) {
+              mergeSessionIntoState(fresh);
+              renderInspectorRegion();
+            }
+          }
+        }
+        return { sessionsEtag: nextSessionsEtag, sessionEtag: nextSessionEtag };
+      },
+    },
+  });
+}
+
+// toolModeFsm.js
+// toolModeFsm.js — pure reducer for the tool-mode lifecycle.
+//
+// Owns the tool-mode-related state previously held as module-level lets in
+// state.js: toolMode, annotationSequence, hoveredAnnotationTarget,
+// dragStart, dragPreview, suppressNextClick, addItemsFlowStarting,
+// newHistoryAnnotateModeStarting, historyDrawerOpen, focusedSavedItemId,
+// focusedSavedSessionId. No DOM, fetch, timers, or globals here.
+//
+// Modes (per console-state-machine-expansion §3.4):
+//   SELECT             — default; clicks tap-through, annotation tools off
+//   ANNOTATE_IDLE      — annotate mode armed; hover preview enabled, no drag
+//   ANNOTATE_DRAGGING  — pointerdown in annotate mode created a drag region
+//
+// Action set:
+//   ENTER_SELECT                      — switch to SELECT, clear hover/drag
+//   ENTER_ANNOTATE                    — switch to ANNOTATE_IDLE
+//   START_DRAG                        — pointerdown in annotate → DRAGGING
+//   UPDATE_DRAG_PREVIEW               — pointermove during drag
+//   DROP_COMMIT                       — pointerup, commit (advances seq)
+//   DROP_DISCARD                      — pointerup, discard (no seq advance)
+//   SET_HOVERED_TARGET                — hover overlay target
+//   SET_SUPPRESS_NEXT_CLICK           — suppress next image click
+//   TOGGLE_HISTORY_DRAWER             — flip drawer open/closed
+//   SET_HISTORY_DRAWER                — set drawer open/closed explicitly
+//   FOCUS_SAVED_ITEM                  — focus saved evidence item by id
+//   SET_ADD_ITEMS_FLOW_STARTING       — set add-items flow starting flag
+//   SET_NEW_HISTORY_ANNOTATE_MODE_STARTING — set history-annotate start flag
+//   ADVANCE_ANNOTATION_SEQ            — bump seq by 1 (legacy seq++ shape)
+//   SET_ANNOTATION_SEQUENCE_AT_LEAST  — raise seq to max(current, value)
+
+const ToolMode = Object.freeze({
+  SELECT: 'SELECT',
+  ANNOTATE_IDLE: 'ANNOTATE_IDLE',
+  ANNOTATE_DRAGGING: 'ANNOTATE_DRAGGING',
+});
+
+function createEmptyToolMode() {
+  return Object.freeze({
+    mode: ToolMode.SELECT,
+    annotationSequence: 1,
+    hoveredTarget: null,
+    drag: null,
+    suppressNextClick: false,
+    focusedSavedItemId: null,
+    focusedSavedSessionId: null,
+    historyDrawerOpen: false,
+    addItemsFlowStarting: false,
+    newHistoryAnnotateModeStarting: false,
+  });
+}
+
+function reduceToolMode(state, action) {
+  if (!state) state = createEmptyToolMode();
+  if (!action || typeof action.type !== 'string') return state;
+  switch (action.type) {
+    case 'ENTER_SELECT':
+      return Object.freeze({
+        ...state,
+        mode: ToolMode.SELECT,
+        hoveredTarget: null,
+        drag: null,
+      });
+    case 'ENTER_ANNOTATE':
+      return Object.freeze({
+        ...state,
+        mode: ToolMode.ANNOTATE_IDLE,
+      });
+    case 'START_DRAG': {
+      if (state.mode !== ToolMode.ANNOTATE_IDLE && state.mode !== ToolMode.ANNOTATE_DRAGGING) {
+        return state;
+      }
+      return Object.freeze({
+        ...state,
+        mode: ToolMode.ANNOTATE_DRAGGING,
+        drag: Object.freeze({ start: action.point || null, preview: null }),
+      });
+    }
+    case 'UPDATE_DRAG_PREVIEW': {
+      if (state.mode !== ToolMode.ANNOTATE_DRAGGING || !state.drag) return state;
+      return Object.freeze({
+        ...state,
+        drag: Object.freeze({
+          start: state.drag.start,
+          preview: action.preview || null,
+        }),
+      });
+    }
+    case 'DROP_COMMIT': {
+      if (state.mode !== ToolMode.ANNOTATE_DRAGGING) return state;
+      return Object.freeze({
+        ...state,
+        mode: ToolMode.ANNOTATE_IDLE,
+        drag: null,
+        annotationSequence: state.annotationSequence + 1,
+      });
+    }
+    case 'DROP_DISCARD': {
+      // Defensive: only transition out of ANNOTATE_DRAGGING. Calling
+      // dropDiscard while not dragging is a no-op (preserves mode and
+      // ensures drag is null).
+      if (state.mode !== ToolMode.ANNOTATE_DRAGGING && !state.drag) return state;
+      return Object.freeze({
+        ...state,
+        mode: state.mode === ToolMode.ANNOTATE_DRAGGING ? ToolMode.ANNOTATE_IDLE : state.mode,
+        drag: null,
+      });
+    }
+    case 'SET_HOVERED_TARGET':
+      return Object.freeze({
+        ...state,
+        hoveredTarget: action.target ?? null,
+      });
+    case 'SET_SUPPRESS_NEXT_CLICK':
+      return Object.freeze({
+        ...state,
+        suppressNextClick: Boolean(action.value),
+      });
+    case 'TOGGLE_HISTORY_DRAWER':
+      return Object.freeze({
+        ...state,
+        historyDrawerOpen: !state.historyDrawerOpen,
+      });
+    case 'SET_HISTORY_DRAWER':
+      return Object.freeze({
+        ...state,
+        historyDrawerOpen: Boolean(action.open),
+      });
+    case 'FOCUS_SAVED_ITEM':
+      return Object.freeze({
+        ...state,
+        focusedSavedItemId: action.itemId ?? null,
+        focusedSavedSessionId: action.sessionId ?? null,
+      });
+    case 'SET_ADD_ITEMS_FLOW_STARTING':
+      return Object.freeze({
+        ...state,
+        addItemsFlowStarting: Boolean(action.value),
+      });
+    case 'SET_NEW_HISTORY_ANNOTATE_MODE_STARTING':
+      return Object.freeze({
+        ...state,
+        newHistoryAnnotateModeStarting: Boolean(action.value),
+      });
+    case 'ADVANCE_ANNOTATION_SEQ':
+      return Object.freeze({
+        ...state,
+        annotationSequence: state.annotationSequence + 1,
+      });
+    case 'SET_ANNOTATION_SEQUENCE_AT_LEAST': {
+      const target = Number(action.value);
+      if (!Number.isFinite(target)) return state;
+      if (target <= state.annotationSequence) return state;
+      return Object.freeze({
+        ...state,
+        annotationSequence: target,
+      });
+    }
+    default:
+      return state;
+  }
+}
+
+// toolModeUseCases.js
+// toolModeUseCases.js — action dispatchers for the tool-mode FSM.
+//
+// Pure synchronous transitions: no DOM, fetch, timers, localStorage.
+// No browser adapter — the tool-mode FSM is consumed directly by
+// annotations.js / history.js / preview.js / rendering.js / main.js
+// / connection.js via the toolModeUseCases instance constructed in
+// state.js.
+//
+// Factory shape:
+//   createToolModeUseCases({ onChange })
+//     -> { getState,
+//          enterSelect, enterAnnotate,
+//          startDrag, updateDragPreview, dropCommit, dropDiscard,
+//          setHoveredTarget, setSuppressNextClick,
+//          toggleHistoryDrawer, setHistoryDrawer,
+//          focusSavedItem,
+//          setAddItemsFlowStarting, setNewHistoryAnnotateModeStarting,
+//          nextAnnotationSeq, setAnnotationSequenceAtLeast,
+//          isSelectMode, isAnnotateMode, isDragging }
+//
+// `nextAnnotationSeq` preserves the legacy `'draft-' + annotationSequence++`
+// increment-and-return shape. Use `setAnnotationSequenceAtLeast` for the
+// `annotationSequence = Math.max(annotationSequence, next)` pattern used
+// when recovering items from persisted drafts.
+
+function createToolModeUseCases(options = {}) {
+  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
+  let current = options.initialState ?? createEmptyToolMode();
+  if (!Object.isFrozen(current)) current = Object.freeze({ ...current });
+
+  function dispatch(action) {
+    const next = reduceToolMode(current, action);
+    if (next !== current) {
+      current = next;
+      onChange(current);
+    }
+    return current;
+  }
+
+  function getState() {
+    return current;
+  }
+
+  function nextAnnotationSeq() {
+    const previous = current.annotationSequence;
+    dispatch({ type: 'ADVANCE_ANNOTATION_SEQ' });
+    return previous;
+  }
+
+  return {
+    getState,
+    enterSelect: () => dispatch({ type: 'ENTER_SELECT' }),
+    enterAnnotate: () => dispatch({ type: 'ENTER_ANNOTATE' }),
+    startDrag: (point) => dispatch({ type: 'START_DRAG', point }),
+    updateDragPreview: (preview) => dispatch({ type: 'UPDATE_DRAG_PREVIEW', preview }),
+    dropCommit: () => dispatch({ type: 'DROP_COMMIT' }),
+    dropDiscard: () => dispatch({ type: 'DROP_DISCARD' }),
+    setHoveredTarget: (target) => dispatch({ type: 'SET_HOVERED_TARGET', target }),
+    setSuppressNextClick: (value) => dispatch({ type: 'SET_SUPPRESS_NEXT_CLICK', value }),
+    toggleHistoryDrawer: () => dispatch({ type: 'TOGGLE_HISTORY_DRAWER' }),
+    setHistoryDrawer: (open) => dispatch({ type: 'SET_HISTORY_DRAWER', open }),
+    focusSavedItem: (itemId, sessionId) => dispatch({ type: 'FOCUS_SAVED_ITEM', itemId, sessionId }),
+    setAddItemsFlowStarting: (value) => dispatch({ type: 'SET_ADD_ITEMS_FLOW_STARTING', value }),
+    setNewHistoryAnnotateModeStarting: (value) => dispatch({ type: 'SET_NEW_HISTORY_ANNOTATE_MODE_STARTING', value }),
+    nextAnnotationSeq,
+    setAnnotationSequenceAtLeast: (value) => dispatch({ type: 'SET_ANNOTATION_SEQUENCE_AT_LEAST', value }),
+    isSelectMode: () => current.mode === ToolMode.SELECT,
+    isAnnotateMode: () => current.mode === ToolMode.ANNOTATE_IDLE || current.mode === ToolMode.ANNOTATE_DRAGGING,
+    isDragging: () => current.mode === ToolMode.ANNOTATE_DRAGGING,
+  };
+}
+
+// consoleApp.js
+            // consoleApp.js — top-level FSM boot factory.
+            // Aggregates the four sub-FSMs introduced by the
+            // console-state-machine-expansion plan plus the already-migrated
+            // draft FSM into one structured handle. Cross-FSM coordination
+            // wires happen here at boot time (not in a global event bus).
+            //
+            // Each sub-FSM's onChange continues to project its frozen state
+            // into the appropriate legacy `state.*` slot so READ-only sites
+            // in rendering.js / devices.js / preview.js / annotations.js
+            // observe changes without going through a new accessor.
+            //
+            // @requires connectionBrowserAdapter.js, previewBrowserAdapter.js,
+            //           pollingBrowserAdapter.js, toolModeUseCases.js
+            function createConsoleApp({ state, render } = {}) {
+              const render_ = typeof render === 'function' ? render : () => {};
+              const project = (slot) => (next) => {
+                if (state) state[slot] = { ...next };
+                render_();
+              };
+              const connection = createBrowserConnectionUseCases(project('connection'));
+              const preview = createBrowserPreviewUseCases({ onChange: project('previewFsm') });
+              const polling = createBrowserPollingUseCases({ onChange: project('pollingFsm') });
+              // Tool-mode has no legacy state.* projection (callers go through
+              // toolModeUseCases.getState() directly), so onChange is only
+              // used to trigger a render when supplied.
+              const toolMode = createToolModeUseCases({ onChange: render_ });
+              return { connection, preview, polling, toolMode };
+            }
+
 // state.js
             const DefaultLivePreviewIntervalMs = 1000;
             const MinLivePreviewIntervalMs = 1000;
@@ -8,17 +1025,44 @@
               sessionSummaries: [],
               selectedDeviceSerial: null,
               devices: [],
-              connection: {
-                current: null,
-                hasEverConnected: false,
-                lastReadyAt: null,
-                launchInFlight: false,
-                availability: null,
-                interactionBlockedReason: null,
-                previousBlockedReason: null,
-                sessionsPollingPaused: false
-              }
+              connection: null, // projected from connectionUseCases below
+              previewFsm: null, // projected from previewUseCases below
+              pollingFsm: null, // projected from pollingUseCases below
             };
+            // Console FSM boot. createConsoleApp() wires the four sub-FSMs
+            // (connection, preview, polling, tool-mode) and routes each
+            // FSM's onChange into the corresponding legacy state.* slot so
+            // non-FSM read sites (rendering, devices, preview, annotations)
+            // keep observing changes. See consoleApp.js for the factory.
+            //
+            // Connection FSM: state.connection projection — all WRITES are
+            // migrated to connectionUseCases dispatches (see
+            // connectionUseCases.js / connection.js / sessions-polling.js).
+            // Preview FSM: state.previewFsm projection — legacy
+            // state.preview (current screenshot object) remains as-is for
+            // existing renderers; FSM.current overlaps for race-fence
+            // purposes only.
+            // Polling FSM: state.pollingFsm projection — owns sessions-poll
+            // lifecycle, mutation lock counters, sessions/session etags,
+            // failure counter, and prompt-action-in-flight flag. Top-level
+            // helpers below (startSessionsPolling / stopSessionsPolling /
+            // pollSessionsTick / withMutationLock) delegate into
+            // pollingUseCases (preserving the Kotlin grep contract
+            // documented in ConsoleFeedbackItemRoutesTest).
+            // Tool-mode FSM: no state.* projection; callers go through
+            // toolModeUseCases.getState() directly. Owns toolMode,
+            // annotationSequence, hoveredAnnotationTarget, dragStart/
+            // dragPreview, suppressNextClick, addItemsFlowStarting,
+            // newHistoryAnnotateModeStarting, historyDrawerOpen,
+            // focusedSavedItemId, focusedSavedSessionId.
+            const consoleApp = createConsoleApp({ state });
+            const connectionUseCases = consoleApp.connection;
+            const previewUseCases = consoleApp.preview;
+            const pollingUseCases = consoleApp.polling;
+            const toolModeUseCases = consoleApp.toolMode;
+            state.connection = { ...connectionUseCases.getState() };
+            state.previewFsm = { ...previewUseCases.getState() };
+            state.pollingFsm = { ...pollingUseCases.getState() };
             const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });
             const unresponsiveTracker = createUnresponsiveTracker({ threshold: 3 });
             const sessions = document.getElementById('sessions');
@@ -62,37 +1106,25 @@
             const zoomPercent = document.getElementById('zoomPercent');
             const previewStaleBadge = document.getElementById('previewStaleBadge');
             const workflowProgress = document.getElementById('workflowProgress');
-            let livePreviewTimer = null;
-            let heartbeatTimer = null;
-            let heartbeatPolling = false;
-            let previewRequestGeneration = 0;
-            let previewRequestContextGeneration = 0;
-            let sessionMutationGeneration = 0;
-            let previewRequestInFlight = null;
-            let previewRequestInFlightContextGeneration = null;
+            // heartbeatTimer / heartbeatPolling now live at connection.js
+            // module scope (only used by sendBridgeHeartbeat /
+            // scheduleNextHeartbeat / startHeartbeatPolling /
+            // stopHeartbeatPolling). See connection.js.
             let addItemsFlow = null;
-            let addItemsFlowStarting = false;
-            let newHistoryAnnotateModeStarting = false;
-            let promptActionInFlight = false;
             let pendingFeedbackItems = [];
             let focusedPendingItemIndex = null;
-            let focusedSavedItemId = null;
-            let focusedSavedSessionId = null;
             let currentSelection = null;
-            let toolMode = 'select';
-            let annotationSequence = 1;
-            let hoveredAnnotationTarget = null;
-            let dragStart = null;
-            let dragPreview = null;
-            let suppressNextClick = false;
-            let previewZoom = 1;
-            let historyDrawerOpen = false;
-            let sessionsPollingTimer = null;
-            let lastSessionsEtag = null;
-            let lastSessionEtag = null;
-            let pendingMutationCount = 0;
-            let consecutivePollFailures = 0;
-            const MaxConsecutivePollFailures = 5;
+            // Tool-mode-owned state (toolMode, annotationSequence,
+            // hoveredAnnotationTarget, dragStart, dragPreview,
+            // suppressNextClick, addItemsFlowStarting,
+            // newHistoryAnnotateModeStarting, historyDrawerOpen,
+            // focusedSavedItemId, focusedSavedSessionId) now lives in
+            // toolModeUseCases (see toolModeFsm.js / toolModeUseCases.js).
+            // Polling-owned state (sessionsPollingTimer, lastSessionsEtag,
+            // lastSessionEtag, pendingMutationCount, sessionMutationGeneration,
+            // consecutivePollFailures, promptActionInFlight) now lives in
+            // pollingUseCases (see pollingFsm.js / pollingUseCases.js).
+            // MaxConsecutivePollFailures is declared in pollingFsm.js.
             // ALH-2: Undo/redo history singleton for pending feedback items.
             let undoRedoHistory = createHistory();
             let draftWorkspace = createEmptyDraftWorkspace();
@@ -145,11 +1177,11 @@
               return createFakeDraftPorts({
                 ids: {
                   nextWorkspaceId: () => 'workspace-' + Date.now() + '-' + Math.random().toString(36).slice(2),
-                  nextDraftItemId: () => 'draft-' + annotationSequence++,
+                  nextDraftItemId: () => 'draft-' + toolModeUseCases.nextAnnotationSeq(),
                 },
                 clock: { now: () => Date.now() },
                 preview: {
-                  capture: requestLivePreview,
+                  capture: () => previewUseCases.request(),
                   screenshotUrl: previewScreenshotUrl,
                 },
                 feedbackApi: createDraftApiAdapter({
@@ -180,20 +1212,28 @@
             }
 
             function bumpSessionMutationGeneration() {
-              sessionMutationGeneration += 1;
-              return sessionMutationGeneration;
+              // Delegates to the polling FSM; MUTATION_GENERATION_BUMP
+              // increments only the generation counter (callers that need
+              // pendingMutationCount accounting use withMutationLock).
+              pollingUseCases.dispatch({ type: 'MUTATION_GENERATION_BUMP' });
+              return pollingUseCases.getState().mutationGeneration;
             }
 
             async function withMutationLock(fn) {
-              pendingMutationCount++;
+              // Delegates to pollingUseCases.withMutationLock for the
+              // pendingMutationCount accounting. The recovery hook
+              // (restart polling if the connection FSM reports
+              // sessionsPollingPaused once the queue drains) stays here
+              // because it crosses the polling/connection FSM boundary;
+              // Task 6 will move it into a coordinator.
               let succeeded = false;
               try {
-                const result = await fn();
+                const result = await pollingUseCases.withMutationLock(fn);
                 succeeded = true;
                 return result;
               } finally {
-                pendingMutationCount--;
-                if (succeeded && pendingMutationCount === 0 && state.connection?.sessionsPollingPaused) {
+                const drained = pollingUseCases.getState().pendingMutationCount === 0;
+                if (succeeded && drained && state.connection?.sessionsPollingPaused) {
                   startSessionsPolling();
                 }
               }
@@ -268,8 +1308,6 @@
               return String(count) + ' ' + (count === 1 ? singular : plural);
             }
 
-            let statusClearTimeout = null;
-
             function syncStatusVisibility() {
               error.hidden = !String(error.textContent || '').trim();
             }
@@ -283,13 +1321,6 @@
             }
             syncStatusVisibility();
 
-            function clearStatusTimer() {
-              if (statusClearTimeout) {
-                clearTimeout(statusClearTimeout);
-                statusClearTimeout = null;
-              }
-            }
-
             function resetStatusSurface() {
               error.textContent = '';
               error.hidden = true;
@@ -298,37 +1329,49 @@
               error.setAttribute('aria-live', 'polite');
             }
 
-            function showStatus(message, { variant = 'info', durationMs = 0, assertive = false } = {}) {
-              clearStatusTimer();
-              error.textContent = message;
-              error.hidden = !message;
-              error.className = 'global-status status-' + variant;
-              error.setAttribute('role', assertive ? 'alert' : 'status');
-              error.setAttribute('aria-live', assertive ? 'assertive' : 'polite');
-              if (durationMs > 0) {
-                statusClearTimeout = setTimeout(() => {
-                  resetStatusSurface();
+            // statusClearTimeout is encapsulated in an IIFE closure so it
+            // does not appear as a module-level let in state.js (Task 6
+            // closure-scoping pattern).
+            const { clearStatusTimer, showStatus, showSuccess, showWarning, clearSuccessStatus } = (() => {
+              let statusClearTimeout = null;
+
+              function clearStatusTimer() {
+                if (statusClearTimeout) {
+                  clearTimeout(statusClearTimeout);
                   statusClearTimeout = null;
-                }, durationMs);
+                }
               }
-            }
 
-            function showSuccess(message, durationMs = 2000) {
-              showStatus(message, { variant: 'success', durationMs });
-            }
+              function showStatus(message, { variant = 'info', durationMs = 0, assertive = false } = {}) {
+                clearStatusTimer();
+                error.textContent = message;
+                error.hidden = !message;
+                error.className = 'global-status status-' + variant;
+                error.setAttribute('role', assertive ? 'alert' : 'status');
+                error.setAttribute('aria-live', assertive ? 'assertive' : 'polite');
+                if (durationMs > 0) {
+                  statusClearTimeout = setTimeout(() => {
+                    resetStatusSurface();
+                    statusClearTimeout = null;
+                  }, durationMs);
+                }
+              }
 
-            function showWarning(message, durationMs = 0) {
-              showStatus(message, { variant: 'warning', durationMs });
-            }
+              function showSuccess(message, durationMs = 2000) {
+                showStatus(message, { variant: 'success', durationMs });
+              }
 
-            function clearSuccessStatus() {
-              clearStatusTimer();
-              resetStatusSurface();
-            }
+              function showWarning(message, durationMs = 0) {
+                showStatus(message, { variant: 'warning', durationMs });
+              }
 
-// build-header
-const ConsoleBuildEpochMs = 1778702100000;
-const ConsoleBuildGitSha = 'ac3c7b5';
+              function clearSuccessStatus() {
+                clearStatusTimer();
+                resetStatusSurface();
+              }
+
+              return { clearStatusTimer, showStatus, showSuccess, showWarning, clearSuccessStatus };
+            })();
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -1462,6 +2505,12 @@ function createDraftCommandQueue({ getWorkspace, setWorkspace, onStaleResponse =
 }
 
 // connection.js
+            // Heartbeat timer handles. These are connection-internal browser
+            // timer state (not reducer state, not pure) so they live here
+            // rather than in connectionFsm.js or state.js.
+            let heartbeatTimer = null;
+            let heartbeatPolling = false;
+
             function connectionActionLabel(action) {
               if (action === 'START') return 'Start';
               if (action === 'OPEN_APP') return 'Open app';
@@ -1530,22 +2579,34 @@ function createDraftCommandQueue({ getWorkspace, setWorkspace, onStaleResponse =
               );
             }
 
-            function recomputeInteractionBlockedReason() {
-              const annotate = toolMode === 'annotate';
-              const resolverInput = state.connection.availability
-                ? { ...state.connection.availability, unresponsive: unresponsiveTracker.isUnresponsive() }
+            function computeCurrentBlockedReason(statusAvailability) {
+              const annotate = toolModeUseCases.isAnnotateMode();
+              const availability = statusAvailability ?? connectionUseCases.getState().availability;
+              const resolverInput = availability
+                ? { ...availability, unresponsive: unresponsiveTracker.isUnresponsive() }
                 : { unresponsive: unresponsiveTracker.isUnresponsive() };
               const rawReason = computeBlockedReason(resolverInput, annotate);
-              state.connection.interactionBlockedReason = blockedReasonDebouncer.observe(rawReason);
+              return blockedReasonDebouncer.observe(rawReason);
+            }
+
+            function recomputeInteractionBlockedReason() {
+              const reason = computeCurrentBlockedReason();
+              connectionUseCases.interactionBlocked(reason);
             }
 
             function applyConnectionStatus(status, options) {
               const connectionOptions = options || {};
-              state.connection.current = status;
-              state.connection.availability = status?.availability ?? null;
 
-              // Combine availability with the unresponsive tracker for the resolver input.
-              recomputeInteractionBlockedReason();
+              // Compute the new blocked reason from the incoming availability
+              // BEFORE dispatching, so STATUS_RECEIVED can write it atomically
+              // (avoiding a stale-availability window between dispatches).
+              const newBlockedReason = computeCurrentBlockedReason(status?.availability ?? null);
+
+              // Capture the prior previousBlockedReason for transition detection.
+              // STATUS_RECEIVED will roll it forward on dispatch.
+              const priorPreviousBlockedReason = connectionUseCases.getState().previousBlockedReason;
+
+              connectionUseCases.setStatus(status, newBlockedReason);
 
               // success → clear failure streak
               unresponsiveTracker.observeSuccess();
@@ -1571,21 +2632,18 @@ function createDraftCommandQueue({ getWorkspace, setWorkspace, onStaleResponse =
               }
 
               // Detect blocked → unblocked transitions for select-mode auto-resume.
-              if (
-                state.connection.previousBlockedReason !== null &&
-                state.connection.interactionBlockedReason === null
-              ) {
-                if (toolMode === 'select' && state.session) {
+              // Use the captured prior previousBlockedReason vs the new reason.
+              if (priorPreviousBlockedReason !== null && newBlockedReason === null) {
+                if (toolModeUseCases.isSelectMode() && state.session) {
                   refreshPreview().catch(showError);
                 }
               }
-              state.connection.previousBlockedReason = state.connection.interactionBlockedReason;
+              // previousBlockedReason rolling is handled inside STATUS_RECEIVED.
 
               syncSelectedDeviceFromConnection(status);
               const viewState = userConnectionState(status);
               if (viewState === 'ready') {
-                state.connection.hasEverConnected = true;
-                state.connection.lastReadyAt = Date.now();
+                // hasEverConnected and lastReadyAt are set by STATUS_RECEIVED above.
                 if (!connectionOptions.preservePreviewStale) markPreviewStale(false);
                 startLivePreviewPolling();
               } else {
@@ -1655,14 +2713,17 @@ function createDraftCommandQueue({ getWorkspace, setWorkspace, onStaleResponse =
             }
 
             async function launchApp() {
-              state.connection.launchInFlight = true;
+              connectionUseCases.launchRequested();
               renderConnection(state.connection.current);
+              let succeeded = false;
               try {
                 const status = await requestJson('/api/app/launch', { method: 'POST' });
                 applyConnectionStatus(status);
                 setTimeout(() => refreshConnection().catch(showError), 800);
+                succeeded = true;
               } finally {
-                state.connection.launchInFlight = false;
+                if (succeeded) connectionUseCases.launchSucceeded();
+                else connectionUseCases.launchFailed();
                 renderConnection(state.connection.current);
               }
             }
@@ -1978,27 +3039,17 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
 // preview.js
+            // Raw HTTP fetch — the previewUseCases layer provides dedup and
+            // race-fence via the FSM. Cross-caller dedup (across draft port
+            // and FSM) is achieved by routing all callers through
+            // previewUseCases.request().
             function requestLivePreview() {
-              if (previewRequestInFlight && previewRequestInFlightContextGeneration === previewRequestContextGeneration) return previewRequestInFlight;
-              const requestContextGeneration = previewRequestContextGeneration;
-              const request = requestJson('/api/preview')
-                .finally(() => {
-                  if (previewRequestInFlight === request) {
-                    previewRequestInFlight = null;
-                    previewRequestInFlightContextGeneration = null;
-                  }
-                });
-              previewRequestInFlight = request;
-              previewRequestInFlightContextGeneration = requestContextGeneration;
-              return previewRequestInFlight;
+              return requestJson('/api/preview');
             }
 
             function invalidatePreviewContext() {
-              previewRequestGeneration++;
-              previewRequestContextGeneration++;
+              previewUseCases.contextChanged();
               state.preview = null;
-              previewRequestInFlight = null;
-              previewRequestInFlightContextGeneration = null;
             }
 
             function scopedQuery(sessionId) {
@@ -2016,7 +3067,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             function screenImageUrl(screen) {
               if (addItemsFlow) return addItemsFlow.screenshotUrl;
               if (state.preview?.screen === screen && state.preview?.previewId) return previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null);
-              if (screen?.screenId) return screenScreenshotUrl(screen.screenId, state.session?.sessionId || focusedSavedSessionId || null);
+              if (screen?.screenId) return screenScreenshotUrl(screen.screenId, state.session?.sessionId || toolModeUseCases.getState().focusedSavedSessionId || null);
               return '';
             }
 
@@ -2036,6 +3087,10 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               return configuredPreviewIntervalMs() != null && shouldPollPreview();
             }
 
+            // livePreviewTimer is a closure-scoped browser timer handle.
+            // It is not reducer state (not pure), so it lives here rather
+            // than in previewFsm.js.
+            let livePreviewTimer = null;
             function startLivePreviewPolling() {
               stopLivePreviewPolling();
               const intervalMs = configuredPreviewIntervalMs();
@@ -2082,6 +3137,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function latestScreen() {
               if (addItemsFlow) return addItemsFlow.screen;
+              const focusedSavedItemId = toolModeUseCases.getState().focusedSavedItemId;
               if (focusedSavedItemId) {
                 const focusedItem = savedEvidenceItems().find(item => item.itemId === focusedSavedItemId);
                 if (focusedItem) {
@@ -2098,16 +3154,17 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function applyPreviewZoom() {
               const frame = document.getElementById('snapshotFrame');
-              zoomPercent.textContent = Math.round(previewZoom * 100) + '%';
-              zoomOutButton.disabled = previewZoom <= PreviewZoomMin;
-              zoomInButton.disabled = previewZoom >= PreviewZoomMax;
+              const zoom = previewUseCases.getState().zoom;
+              zoomPercent.textContent = Math.round(zoom * 100) + '%';
+              zoomOutButton.disabled = zoom <= PreviewZoomMin;
+              zoomInButton.disabled = zoom >= PreviewZoomMax;
               if (frame) {
-                frame.style.setProperty('--preview-zoom', String(previewZoom));
+                frame.style.setProperty('--preview-zoom', String(zoom));
               }
             }
 
             function setPreviewZoom(nextZoom) {
-              previewZoom = Math.round(clamp(nextZoom, PreviewZoomMin, PreviewZoomMax) * 10) / 10;
+              previewUseCases.setZoom(nextZoom);
               applyPreviewZoom();
             }
 
@@ -2115,10 +3172,10 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             async function refreshPreview() {
               error.textContent = '';
               if (!state.session || addItemsFlow) return;
-              const requestGeneration = ++previewRequestGeneration;
+              const requestGeneration = previewUseCases.getState().requestGeneration + 1;
               try {
-                const preview = await requestLivePreview();
-                if (addItemsFlow || requestGeneration !== previewRequestGeneration) return;
+                const preview = await previewUseCases.request();
+                if (addItemsFlow || requestGeneration !== previewUseCases.getState().requestGeneration) return;
                 state.preview = {
                   ...preview,
                   activity: state.connection?.availability?.activity ?? null,
@@ -2201,7 +3258,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             async function useLatestStaleFrame() {
-              const wasAnnotating = toolMode === 'annotate' || Boolean(addItemsFlow);
+              const wasAnnotating = toolModeUseCases.isAnnotateMode() || Boolean(addItemsFlow);
               flushFocusedPendingComment();
               const pendingItems = draftWorkspaceItems(draftWorkspace).slice();
               const previousWorkspace = draftWorkspace;
@@ -2232,10 +3289,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 });
                 updateAnnotationSequenceFromPendingItems(pendingItems);
                 focusedPendingItemIndex = null;
-                focusedSavedItemId = null;
-                focusedSavedSessionId = null;
+                toolModeUseCases.focusSavedItem(null, null);
                 currentSelection = null;
-                hoveredAnnotationTarget = null;
+                toolModeUseCases.setHoveredTarget(null);
                 persistCurrentPendingState();
               } else {
                 await refreshPreview();
@@ -2357,7 +3413,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function promptReadinessState() {
-              if (promptActionInFlight) {
+              if (pollingUseCases.getState().promptActionInFlight) {
                 return {
                   state: 'busy',
                   label: 'Preparing handoff...',
@@ -2488,16 +3544,16 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function updateComposerState() {
               const hasPromptAnnotations = currentPromptAnnotations().length > 0;
-              const promptDisabled = !hasPromptAnnotations || promptActionInFlight;
+              const promptDisabled = !hasPromptAnnotations || pollingUseCases.getState().promptActionInFlight;
               copyPromptButton.disabled = promptDisabled;
               sendAgentButton.disabled = promptDisabled;
               cancelAddFlowButton.disabled = !addItemsFlow;
               addItemButton.hidden = true;
               addItemButton.disabled = true;
-              annotateToolButton.disabled = addItemsFlowStarting;
-              selectToolButton.setAttribute('aria-pressed', String(toolMode === 'select'));
-              annotateToolButton.setAttribute('aria-pressed', String(toolMode === 'annotate'));
-              toolStatus.innerHTML = toolMode === 'annotate'
+              annotateToolButton.disabled = toolModeUseCases.getState().addItemsFlowStarting;
+              selectToolButton.setAttribute('aria-pressed', String(toolModeUseCases.isSelectMode()));
+              annotateToolButton.setAttribute('aria-pressed', String(toolModeUseCases.isAnnotateMode()));
+              toolStatus.innerHTML = toolModeUseCases.isAnnotateMode()
                 ? '<span class="ts-hint"><span class="ts-dot"></span><span>Click a widget — or drag to draw a region</span></span>'
                 : '<span class="ts-meta">' +
                     '<span class="ts-dot-label"><span class="ts-dot"></span>' + toolbarOpenCount() + ' open</span>' +
@@ -2508,7 +3564,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 ? currentSelection.label + ' - ' + formatBounds(currentSelection.bounds)
                 : (item
                   ? 'Focused #' + (focusedPendingItemIndex + 1) + ' - ' + formatBounds(item.bounds)
-                  : (toolMode === 'annotate' ? 'Click a component or drag a region to create an annotation.' : 'No annotation selected.'));
+                  : (toolModeUseCases.isAnnotateMode() ? 'Click a component or drag a region to create an annotation.' : 'No annotation selected.'));
               renderPromptReadiness();
             }
 
@@ -2579,19 +3635,20 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (isInteractionBlocked()) return;
               const selection = nodeSelectionAtPoint(event, image);
               const nextId = selection?.nodeUid || null;
-              const currentId = hoveredAnnotationTarget?.nodeUid || null;
+              const currentId = toolModeUseCases.getState().hoveredTarget?.nodeUid || null;
               if (nextId === currentId) return;
-              hoveredAnnotationTarget = selection;
+              toolModeUseCases.setHoveredTarget(selection);
               renderSelectionOverlay();
             }
 
             function confirmHoveredAnnotationTarget(event, image) {
               if (isInteractionBlocked()) return;
-              if (hoveredAnnotationTarget) {
+              const hoveredTarget = toolModeUseCases.getState().hoveredTarget;
+              if (hoveredTarget) {
                 const point = naturalPointFromEvent(event, image);
-                if (containsPoint(hoveredAnnotationTarget.bounds, point)) {
-                  const selection = hoveredAnnotationTarget;
-                  hoveredAnnotationTarget = null;
+                if (containsPoint(hoveredTarget.bounds, point)) {
+                  const selection = hoveredTarget;
+                  toolModeUseCases.setHoveredTarget(null);
                   createAnnotationFromSelection(selection);
                   error.textContent = '';
                   return;
@@ -2613,15 +3670,15 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function clearDragState() {
-              if (!dragStart && !dragPreview) return;
-              dragStart = null;
-              dragPreview = null;
+              const drag = toolModeUseCases.getState().drag;
+              if (!drag) return;
+              toolModeUseCases.dropDiscard();
               renderSelectionOverlay();
             }
 
             function clearHoverPreview() {
-              if (!hoveredAnnotationTarget) return;
-              hoveredAnnotationTarget = null;
+              if (!toolModeUseCases.getState().hoveredTarget) return;
+              toolModeUseCases.setHoveredTarget(null);
               renderSelectionOverlay();
             }
 
@@ -2632,11 +3689,10 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 activePendingMirrorSessions.delete(state.session?.sessionId);
               }
               focusedPendingItemIndex = null;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
+              toolModeUseCases.focusSavedItem(null, null);
               currentSelection = null;
-              hoveredAnnotationTarget = null;
-              toolMode = 'select';
+              toolModeUseCases.setHoveredTarget(null);
+              toolModeUseCases.enterSelect();
               comment.value = '';
               clearDragState();
             }
@@ -2668,9 +3724,8 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             function clearSelection() {
               currentSelection = null;
               focusedPendingItemIndex = null;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
-              hoveredAnnotationTarget = null;
+              toolModeUseCases.focusSavedItem(null, null);
+              toolModeUseCases.setHoveredTarget(null);
               comment.value = '';
               clearDragState();
               renderSelectionOverlay();
@@ -2680,18 +3735,17 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
 
             async function startAddItemsFlow() {
-              if (addItemsFlowStarting) return;
+              if (toolModeUseCases.getState().addItemsFlowStarting) return;
               error.textContent = '';
-              addItemsFlowStarting = true;
+              toolModeUseCases.setAddItemsFlowStarting(true);
               updateComposerState();
               stopLivePreviewPolling();
               try {
-                const addFlowContextGeneration = previewRequestContextGeneration;
-                previewRequestGeneration++;
+                const addFlowContextGeneration = previewUseCases.getState().contextGeneration;
                 let preview = state.preview;
-                if (previewRequestInFlight || !preview) {
-                  preview = await requestLivePreview();
-                  if (addFlowContextGeneration !== previewRequestContextGeneration) return;
+                if (previewUseCases.getState().inFlight || !preview) {
+                  preview = await previewUseCases.request();
+                  if (addFlowContextGeneration !== previewUseCases.getState().contextGeneration) return;
                   preview = {
                     ...preview,
                     activity: state.connection?.availability?.activity ?? null,
@@ -2716,12 +3770,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   },
                 });
                 setDraftWorkspace(nextWorkspace);
-                toolMode = 'annotate';
-                focusedSavedItemId = null;
-                focusedSavedSessionId = null;
+                toolModeUseCases.enterAnnotate();
+                toolModeUseCases.focusSavedItem(null, null);
                 render();
               } finally {
-                addItemsFlowStarting = false;
+                toolModeUseCases.setAddItemsFlowStarting(false);
                 updateComposerState();
                 if (!addItemsFlow) startLivePreviewPolling();
               }
@@ -2755,10 +3808,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               }
               setDraftWorkspace(nextWorkspace);
               const createdItem = nextWorkspace.items[nextWorkspace.items.length - 1];
-              hoveredAnnotationTarget = null;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
-              toolMode = 'annotate';
+              toolModeUseCases.setHoveredTarget(null);
+              toolModeUseCases.focusSavedItem(null, null);
+              toolModeUseCases.enterAnnotate();
               comment.value = '';
               renderPreviewOnly();
               renderInspectorRegion();
@@ -2772,10 +3824,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               setDraftWorkspace(deleteDraftItem(draftWorkspace, removed.draftItemId));
               showUndoToast(removed.draftItemId);
               focusedPendingItemIndex = null;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
+              toolModeUseCases.focusSavedItem(null, null);
               currentSelection = null;
-              hoveredAnnotationTarget = null;
+              toolModeUseCases.setHoveredTarget(null);
               comment.value = '';
               renderPreviewOnly();
               renderInspectorRegion();
@@ -2785,21 +3836,19 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             function focusPendingFeedbackItem(index) {
               flushFocusedPendingComment();
               focusedPendingItemIndex = index;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
+              toolModeUseCases.focusSavedItem(null, null);
               currentSelection = null;
-              toolMode = 'select';
+              toolModeUseCases.enterSelect();
               comment.value = pendingFeedbackItems[index]?.comment || '';
               renderPreviewOnly();
               renderInspectorRegion();
             }
 
             function focusSavedEvidenceItem(itemId) {
-              focusedSavedItemId = itemId;
-              focusedSavedSessionId = state.session?.sessionId || null;
+              toolModeUseCases.focusSavedItem(itemId, state.session?.sessionId || null);
               focusedPendingItemIndex = null;
               currentSelection = null;
-              toolMode = 'select';
+              toolModeUseCases.enterSelect();
               comment.value = '';
               renderPreviewOnly();
               renderInspectorRegion();
@@ -2822,7 +3871,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               return updatedSession;
             }
 
-            async function persistSavedEvidenceItem(item, sessionId = focusedSavedSessionId || state.session?.sessionId || null) {
+            async function persistSavedEvidenceItem(item, sessionId = toolModeUseCases.getState().focusedSavedSessionId || state.session?.sessionId || null) {
               if (!item?.itemId) return state.session;
               const updatedSession = await withMutationLock(() => requestJson('/api/items/' + encodeURIComponent(item.itemId), {
                 method: 'PUT',
@@ -2838,15 +3887,14 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               return applySavedSessionUpdate(updatedSession, sessionId);
             }
 
-            async function deleteSavedEvidenceItem(itemId, sessionId = focusedSavedSessionId || state.session?.sessionId || null) {
+            async function deleteSavedEvidenceItem(itemId, sessionId = toolModeUseCases.getState().focusedSavedSessionId || state.session?.sessionId || null) {
               if (!itemId) return;
               const sessionQuery = sessionId
                 ? '?sessionId=' + encodeURIComponent(sessionId)
                 : '';
               const updatedSession = await withMutationLock(() => requestJson('/api/items/' + encodeURIComponent(itemId) + sessionQuery, { method: 'DELETE' }));
               if (state.session?.sessionId === (updatedSession?.sessionId || sessionId)) {
-                focusedSavedItemId = null;
-                focusedSavedSessionId = null;
+                toolModeUseCases.focusSavedItem(null, null);
                 state.session = updatedSession;
                 renderPreviewOnly();
                 renderInspectorRegion();
@@ -2993,7 +4041,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function enterSelectMode() {
-              toolMode = 'select';
+              toolModeUseCases.enterSelect();
               currentSelection = null;
               clearHoverPreview();
               clearDragState();
@@ -3143,7 +4191,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             async function enterAnnotateMode() {
               if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
               await ensureSessionForAnnotating();
-              toolMode = 'annotate';
+              toolModeUseCases.enterAnnotate();
               renderCurrentSessionList();
               if (!addItemsFlow) {
                 await startAddItemsFlow();
@@ -3154,9 +4202,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             async function enterNewHistoryAnnotateMode() {
-              if (newHistoryAnnotateModeStarting) return;
-              newHistoryAnnotateModeStarting = true;
-              toolMode = 'annotate';
+              if (toolModeUseCases.getState().newHistoryAnnotateModeStarting) return;
+              toolModeUseCases.setNewHistoryAnnotateModeStarting(true);
+              toolModeUseCases.enterAnnotate();
               renderCurrentSessionList();
               try {
                 await newSession();
@@ -3164,7 +4212,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 await enterAnnotateMode();
                 scrollActiveHistoryItemIntoView();
               } finally {
-                newHistoryAnnotateModeStarting = false;
+                toolModeUseCases.setNewHistoryAnnotateModeStarting(false);
                 renderCurrentSessionList();
               }
             }
@@ -3176,23 +4224,24 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function syncHistoryDrawerState() {
               if (!historyToggleButton || !historyDrawerScrim) return;
-              if (historyDrawerOpen) {
+              const open = toolModeUseCases.getState().historyDrawerOpen;
+              if (open) {
                 document.body.dataset.historyDrawerOpen = 'true';
               } else {
                 delete document.body.dataset.historyDrawerOpen;
               }
-              historyToggleButton.setAttribute('aria-expanded', String(historyDrawerOpen));
+              historyToggleButton.setAttribute('aria-expanded', String(open));
             }
 
             function openHistoryDrawer() {
-              historyDrawerOpen = true;
+              toolModeUseCases.setHistoryDrawer(true);
               syncHistoryDrawerState();
               document.getElementById('historyPanel')?.focus({ preventScroll: true });
             }
 
             function closeHistoryDrawer(options = {}) {
-              const wasOpen = historyDrawerOpen;
-              historyDrawerOpen = false;
+              const wasOpen = toolModeUseCases.getState().historyDrawerOpen;
+              toolModeUseCases.setHistoryDrawer(false);
               syncHistoryDrawerState();
               if (wasOpen && options.returnFocus !== false) historyToggleButton?.focus({ preventScroll: true });
             }
@@ -3200,7 +4249,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             historyToggleButton?.addEventListener('click', openHistoryDrawer);
             historyDrawerScrim?.addEventListener('click', () => closeHistoryDrawer());
             document.addEventListener('keydown', event => {
-              if (event.key === 'Escape' && historyDrawerOpen) {
+              if (event.key === 'Escape' && toolModeUseCases.getState().historyDrawerOpen) {
                 event.preventDefault();
                 closeHistoryDrawer();
               }
@@ -3208,7 +4257,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             syncHistoryDrawerState();
 
             function historyStartAnnotatingItemHtml() {
-              if (newHistoryAnnotateModeStarting) return '';
+              if (toolModeUseCases.getState().newHistoryAnnotateModeStarting) return '';
               return '<button type="button" class="history-item history-add-row" data-start-new-history-annotating aria-label="Start annotating">' +
                 '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>' +
               '</button>';
@@ -3453,11 +4502,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             async function copyPrompt() {
-                if (promptActionInFlight) return;
+                if (pollingUseCases.getState().promptActionInFlight) return;
                 await withMutationLock(async () => {
                     clearSuccessStatus();
                     ensurePromptAnnotationsAvailable();
-                    promptActionInFlight = true;
+                    pollingUseCases.setPromptActionInFlight(true);
                     updateComposerState();
                     const labelSpan = copyPromptButton.querySelector('span:not(.button-icon)');
                     const originalLabel = labelSpan ? labelSpan.textContent : null;
@@ -3477,7 +4526,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                             showWarning('Copied, but MCP handoff status was not updated. Copy again after the connection recovers to update item state.');
                         }
                     } finally {
-                        promptActionInFlight = false;
+                        pollingUseCases.setPromptActionInFlight(false);
                         updateComposerState();
                         if (copied && labelSpan) {
                             labelSpan.textContent = 'Copied ✓';
@@ -3490,11 +4539,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             async function sendAgentPrompt() {
-                if (promptActionInFlight) return;
+                if (pollingUseCases.getState().promptActionInFlight) return;
                 await withMutationLock(async () => {
                     clearSuccessStatus();
                     ensurePromptAnnotationsAvailable();
-                    promptActionInFlight = true;
+                    pollingUseCases.setPromptActionInFlight(true);
                     updateComposerState();
                     let sent = false;
                     try {
@@ -3518,7 +4567,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                         startLivePreviewPolling();
                         sent = true;
                     } finally {
-                        promptActionInFlight = false;
+                        pollingUseCases.setPromptActionInFlight(false);
                         updateComposerState();
                         if (sent) showSuccess('Saved to MCP ✓ — agent will pick up', 3000);
                     }
@@ -3603,8 +4652,8 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               }
 
               renderNumberedFeedbackOverlay(overlay, image);
-              if (!addItemsFlow && focusedSavedItemId) {
-                const focusedItem = savedEvidenceItems().find(item => item.itemId === focusedSavedItemId);
+              if (!addItemsFlow && toolModeUseCases.getState().focusedSavedItemId) {
+                const focusedItem = savedEvidenceItems().find(item => item.itemId === toolModeUseCases.getState().focusedSavedItemId);
                 if (focusedItem) {
                   const sameScreenItems = savedEvidenceItems().filter(item => item.screenId === focusedItem.screenId);
                   if (sameScreenItems.length) renderSavedEvidenceOverlay(overlay, image, sameScreenItems);
@@ -3613,11 +4662,12 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (currentSelection) {
                 renderOverlayBox(overlay, image, currentSelection.bounds, currentSelection.label);
               }
-              if (addItemsFlow && toolMode === 'annotate' && hoveredAnnotationTarget && !dragPreview) {
-                renderOverlayBox(overlay, image, hoveredAnnotationTarget.bounds, null, false, false, null, 'hover-preview');
+              const toolModeState = toolModeUseCases.getState();
+              if (addItemsFlow && toolModeUseCases.isAnnotateMode() && toolModeState.hoveredTarget && !toolModeState.drag?.preview) {
+                renderOverlayBox(overlay, image, toolModeState.hoveredTarget.bounds, null, false, false, null, 'hover-preview');
               }
-              if (dragPreview) {
-                renderOverlayBox(overlay, image, dragPreview, null, true);
+              if (toolModeState.drag?.preview) {
+                renderOverlayBox(overlay, image, toolModeState.drag.preview, null, true);
               }
               updateComposerState();
             }
@@ -3628,7 +4678,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function startAnnotatingButtonHtml() {
-              if (toolMode === 'annotate') return '';
+              if (toolModeUseCases.isAnnotateMode()) return '';
               return '<button type="button" class="primary" data-start-annotating>Start annotating</button>';
             }
 
@@ -3879,12 +4929,14 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function selectedSavedAnnotation() {
-              if (!focusedSavedItemId) return null;
-              return savedEvidenceItems().find(item => item.itemId === focusedSavedItemId) || null;
+              const focused = toolModeUseCases.getState().focusedSavedItemId;
+              if (!focused) return null;
+              return savedEvidenceItems().find(item => item.itemId === focused) || null;
             }
 
             function renderSavedEvidenceOverlay(overlay, image, items) {
               const allSavedItems = savedEvidenceItems();
+              const focused = toolModeUseCases.getState().focusedSavedItemId;
               items.forEach((item, index) => {
                 const savedIndex = Math.max(0, allSavedItems.findIndex(savedItem => savedItem.itemId === item.itemId));
                 const displayNumber = annotationDisplayNumber(item, savedIndex);
@@ -3894,7 +4946,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   boundsForTarget(item.target),
                   String(displayNumber),
                   false,
-                  item.itemId === focusedSavedItemId,
+                  item.itemId === focused,
                   savedIndex,
                   '',
                   severityColor(annotationSeverity(item)),
@@ -3945,7 +4997,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                     prevScreenId = item.screenId;
                   }
                   return header +
-                    '<button type="button" class="ann-row saved-item-row ' + (item.itemId === focusedSavedItemId ? 'active' : '') + '" style="--annotation-color:' + color + '" data-phase="' + escapeHtml(phase) + '" data-item-id="' + escapeHtml(item.itemId) + '" data-focus-saved="' + escapeHtml(item.itemId) + '">' +
+                    '<button type="button" class="ann-row saved-item-row ' + (item.itemId === toolModeUseCases.getState().focusedSavedItemId ? 'active' : '') + '" style="--annotation-color:' + color + '" data-phase="' + escapeHtml(phase) + '" data-item-id="' + escapeHtml(item.itemId) + '" data-focus-saved="' + escapeHtml(item.itemId) + '">' +
                       '<span class="ann-row-num" style="background:' + color + '">' + escapeHtml(String(displayNumber)) + '</span>' +
                       '<span class="ann-row-body">' +
                         '<span class="ann-row-title">' + escapeHtml(targetLabel(item)) + '</span>' +
@@ -3967,7 +5019,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             function renderSavedAnnotationDetail(item, index) {
               const severity = annotationSeverity(item);
               const status = annotationStatus(item);
-              const editSessionId = focusedSavedSessionId || state.session?.sessionId || null;
+              const editSessionId = toolModeUseCases.getState().focusedSavedSessionId || state.session?.sessionId || null;
               const phase = lifecyclePhase(item);
               const editable = phase === 'draft' || phase === 'sent' || phase === 'sent_modified' || phase === 'needs_clarification';
               const dis = editable ? '' : ' disabled';
@@ -4140,8 +5192,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   // reject a PATCH on non-editable items with ITEM_NOT_EDITABLE — we should
                   // still let the user leave the detail view.
                   const goBack = () => {
-                    focusedSavedItemId = null;
-                    focusedSavedSessionId = null;
+                    toolModeUseCases.focusSavedItem(null, null);
                     renderPreviewOnly();
                     renderInspectorRegion();
                   };
@@ -4167,7 +5218,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function workflowActiveStep() {
               if (!state.connection?.hasEverConnected && userConnectionState(state.connection?.current) !== 'ready') return 'connect';
-              if (addItemsFlow || toolMode === 'annotate') return 'annotate';
+              if (addItemsFlow || toolModeUseCases.isAnnotateMode()) return 'annotate';
               if (currentPromptAnnotations().length > 0) return 'handoff';
               return 'preview';
             }
@@ -4256,7 +5307,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (!hasScreenshot) return { state: 'unavailable', label: 'No screenshot' };
               if (state.preview?.stale) return { state: 'stale', label: 'Stale frame' };
               if (addItemsFlow) return { state: 'frozen', label: 'Frozen for annotation' };
-              if (focusedSavedItemId || (!state.preview && screen?.screenId)) return { state: 'saved', label: 'Saved screen' };
+              if (toolModeUseCases.getState().focusedSavedItemId || (!state.preview && screen?.screenId)) return { state: 'saved', label: 'Saved screen' };
               if (state.preview) return { state: 'live', label: 'Live preview' };
               return { state: 'unavailable', label: 'No screenshot' };
             }
@@ -4273,7 +5324,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               const screen = latestScreen();
               const hasScreenshot = Boolean(screen?.screenshot?.desktopFullPath);
               const mode = addItemsFlow ? 'frozen' : (state.preview ? 'live' : (screen ? 'frozen' : 'idle'));
-              snapshot.dataset.toolMode = toolMode;
+              snapshot.dataset.toolMode = toolModeUseCases.isAnnotateMode() ? 'annotate' : 'select';
               if (!hasScreenshot) {
                 const emptyMessage = screen
                   ? 'No screenshot artifact for this preview.'
@@ -4299,7 +5350,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               }
               const hintSlot = document.getElementById('annotateHintSlot');
               let hint = document.getElementById('annotateHint');
-              if (toolMode === 'annotate') {
+              if (toolModeUseCases.isAnnotateMode()) {
                 if (!hint) {
                   hint = document.createElement('div');
                   hint.id = 'annotateHint';
@@ -4338,15 +5389,15 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               image.addEventListener('dragstart', event => event.preventDefault());
               image.addEventListener('click', event => {
                 try {
-                  if (addItemsFlowStarting) {
+                  if (toolModeUseCases.getState().addItemsFlowStarting) {
                     event.preventDefault();
                     return;
                   }
-                  if (suppressNextClick) {
-                    suppressNextClick = false;
+                  if (toolModeUseCases.getState().suppressNextClick) {
+                    toolModeUseCases.setSuppressNextClick(false);
                     return;
                   }
-                  if (toolMode === 'select' && addItemsFlow) {
+                  if (toolModeUseCases.isSelectMode() && addItemsFlow) {
                     clearSelection();
                     return;
                   }
@@ -4355,7 +5406,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                     navigate('tap', { x: point.x, y: point.y }).catch(showError);
                     return;
                   }
-                  if (toolMode === 'annotate' && !dragStart) {
+                  if (toolModeUseCases.isAnnotateMode() && !toolModeUseCases.isDragging()) {
                     selectNodeAtPoint(event, image);
                   }
                 } catch (cause) {
@@ -4363,28 +5414,30 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 }
               });
               image.addEventListener('pointerdown', event => {
-                if (addItemsFlowStarting) {
+                if (toolModeUseCases.getState().addItemsFlowStarting) {
                   event.preventDefault();
                   return;
                 }
-                if (!addItemsFlow || toolMode !== 'annotate') return;
+                if (!addItemsFlow || !toolModeUseCases.isAnnotateMode()) return;
                 try {
                   image.setPointerCapture?.(event.pointerId);
-                  dragStart = naturalPointFromEvent(event, image);
-                  dragPreview = normalizeBounds(dragStart, dragStart);
+                  const point = naturalPointFromEvent(event, image);
+                  toolModeUseCases.startDrag(point);
+                  toolModeUseCases.updateDragPreview(normalizeBounds(point, point));
                   renderSelectionOverlay();
                 } catch (cause) {
                   showError(cause);
                 }
               });
               image.addEventListener('pointermove', event => {
-                if (!addItemsFlow || toolMode !== 'annotate') return;
+                if (!addItemsFlow || !toolModeUseCases.isAnnotateMode()) return;
                 try {
-                  if (!dragStart) {
+                  const dragState = toolModeUseCases.getState().drag;
+                  if (!dragState) {
                     previewNodeAtPoint(event, image);
                     return;
                   }
-                  dragPreview = normalizeBounds(dragStart, naturalPointFromEvent(event, image));
+                  toolModeUseCases.updateDragPreview(normalizeBounds(dragState.start, naturalPointFromEvent(event, image)));
                   renderSelectionOverlay();
                 } catch (cause) {
                   clearDragState();
@@ -4392,17 +5445,18 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 }
               });
               image.addEventListener('pointerup', event => {
-                if (!addItemsFlow || toolMode !== 'annotate' || !dragStart) return;
+                const dragState = toolModeUseCases.getState().drag;
+                if (!addItemsFlow || !toolModeUseCases.isAnnotateMode() || !dragState) return;
                 try {
                   const end = naturalPointFromEvent(event, image);
-                  const bounds = normalizeBounds(dragStart, end);
+                  const bounds = normalizeBounds(dragState.start, end);
                   clearDragState();
                   releaseSnapshotPointerCapture(image, event);
                   if ((bounds.right - bounds.left) >= 8 && (bounds.bottom - bounds.top) >= 8) {
-                    suppressNextClick = true;
+                    toolModeUseCases.setSuppressNextClick(true);
                     finishAreaSelection(bounds);
 	                  } else {
-	                    suppressNextClick = true;
+	                    toolModeUseCases.setSuppressNextClick(true);
 	                    renderSelectionOverlay();
 	                    confirmHoveredAnnotationTarget(event, image);
 	                  }
@@ -4423,14 +5477,16 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             function mergeSessionIntoState(fresh) {
               const previous = state.session;
               const preservedComment = comment.value;
-              const preservedFocusedSavedItemId = focusedSavedItemId;
+              const toolModeStateBefore = toolModeUseCases.getState();
+              const preservedFocusedSavedItemId = toolModeStateBefore.focusedSavedItemId;
+              const preservedFocusedSavedSessionId = toolModeStateBefore.focusedSavedSessionId;
               const preservedFocusedPendingIndex = focusedPendingItemIndex;
               const preservedSelection = currentSelection;
 
               state.session = fresh;
 
               comment.value = preservedComment;
-              focusedSavedItemId = preservedFocusedSavedItemId;
+              toolModeUseCases.focusSavedItem(preservedFocusedSavedItemId, preservedFocusedSavedSessionId);
               focusedPendingItemIndex = preservedFocusedPendingIndex;
               currentSelection = preservedSelection;
 
@@ -4461,15 +5517,26 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 // sessions-polling.js
             const SessionsPollIntervalMs = 2000;
 
+            // sessionsPollingTimer is the setInterval handle; lives in this
+            // closure (no longer at module scope) so polling-owned timer
+            // state never leaks into state.js.
+            let sessionsPollingTimer = null;
+
             function setSessionsPollingPaused(paused) {
               if (state.connection.sessionsPollingPaused === paused) return;
-              state.connection.sessionsPollingPaused = paused;
+              connectionUseCases.setSessionsPollingPaused(paused);
+              // Mirror into the polling FSM via visibility-style transitions
+              // so the lifecycle stays consistent.
+              if (paused) pollingUseCases.visibilityHidden();
+              else pollingUseCases.visibilityVisible();
               // Re-render the connection card to surface the change.
               if (state.connection.current) renderConnection(state.connection.current);
             }
 
             function shouldPollSessions() {
-              return !document.hidden && pendingMutationCount === 0 && !isEditingAnnotation();
+              return !document.hidden &&
+                pollingUseCases.getState().pendingMutationCount === 0 &&
+                !isEditingAnnotation();
             }
 
             function isEditingAnnotation() {
@@ -4480,7 +5547,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function startSessionsPolling() {
               stopSessionsPolling();
-              consecutivePollFailures = 0;
+              pollingUseCases.startSessionsPolling();
               sessionsPollingTimer = setInterval(() => {
                 if (shouldPollSessions()) pollSessionsTick().catch(() => {
                   // pollSessionsTick already handles its own failures; this catch is defensive.
@@ -4491,46 +5558,30 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             function stopSessionsPolling() {
               if (sessionsPollingTimer) clearInterval(sessionsPollingTimer);
               sessionsPollingTimer = null;
+              pollingUseCases.stopSessionsPolling();
             }
 
+            // pollSessionsTick delegates the HTTP + FSM bookkeeping to
+            // pollingUseCases.pollSessionsTick (api.sessions performs the
+            // actual fetches and side-effects; the use case dispatches
+            // TICK_OK / TICK_FAILED). At the threshold, the FSM transitions
+            // to POLLING_BACKOFF; this wrapper observes that transition and
+            // mirrors it into the connection FSM via setSessionsPollingPaused
+            // so legacy UI continues to surface the pause.
             async function pollSessionsTick() {
               try {
-                const listResp = await fetch('/api/sessions', {
-                  headers: lastSessionsEtag ? { 'If-None-Match': lastSessionsEtag } : {}
-                });
-                if (listResp.status === 200) {
-                  lastSessionsEtag = listResp.headers.get('ETag');
-                  const data = await listResp.json();
-                  state.sessionSummaries = data.sessions || [];
-                  renderSessionsList();
-                }
-
-                if (state.session?.sessionId) {
-                  const sessResp = await fetch('/api/session', {
-                    headers: lastSessionEtag ? { 'If-None-Match': lastSessionEtag } : {}
-                  });
-                  if (sessResp.status === 200) {
-                    lastSessionEtag = sessResp.headers.get('ETag');
-                    const fresh = await sessResp.json();
-                    if (fresh) {
-                      mergeSessionIntoState(fresh);
-                      renderInspectorRegion();
-                    }
-                  }
-                }
-
-                // success path: reset counter and ensure not paused
-                consecutivePollFailures = 0;
-                if (state.connection?.sessionsPollingPaused) {
-                  setSessionsPollingPaused(false);
-                }
+                await pollingUseCases.pollSessionsTick();
               } catch (err) {
-                consecutivePollFailures++;
-                if (consecutivePollFailures >= MaxConsecutivePollFailures) {
+                if (pollingUseCases.getState().lifecycle === PollingLifecycle.POLLING_BACKOFF) {
                   setSessionsPollingPaused(true);
                   stopSessionsPolling();
                 }
                 // Swallow error silently while in backoff window — no toast for transient failures.
+                return;
+              }
+              // success path: ensure not paused (drain any stale paused projection)
+              if (state.connection?.sessionsPollingPaused) {
+                setSessionsPollingPaused(false);
               }
             }
 
@@ -4566,8 +5617,8 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             selectToolButton.addEventListener('click', enterSelectMode);
             annotateToolButton.addEventListener('click', () => enterAnnotateMode().catch(showError));
-            zoomOutButton.addEventListener('click', () => setPreviewZoom(previewZoom - PreviewZoomStep));
-            zoomInButton.addEventListener('click', () => setPreviewZoom(previewZoom + PreviewZoomStep));
+            zoomOutButton.addEventListener('click', () => setPreviewZoom(previewUseCases.getState().zoom - PreviewZoomStep));
+            zoomInButton.addEventListener('click', () => setPreviewZoom(previewUseCases.getState().zoom + PreviewZoomStep));
             addItemButton.addEventListener('click', () => {
               try {
                 createAnnotationFromSelection(currentSelection);
@@ -4756,13 +5807,14 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function updateAnnotationSequenceFromPendingItems(items) {
+              const current = toolModeUseCases.getState().annotationSequence;
               const next = (items || [])
                 .map(item => String(item?.annotationId || '').match(/^local-(\d+)$/))
                 .filter(Boolean)
                 .map(match => Number(match[1]))
                 .filter(Number.isFinite)
-                .reduce((max, value) => Math.max(max, value + 1), annotationSequence);
-              annotationSequence = Math.max(annotationSequence, next);
+                .reduce((max, value) => Math.max(max, value + 1), current);
+              toolModeUseCases.setAnnotationSequenceAtLeast(next);
             }
 
             function restorePendingRecoveryContext(recovery) {
@@ -4777,11 +5829,10 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               };
               updateAnnotationSequenceFromPendingItems(workspace.items);
               focusedPendingItemIndex = null;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
+              toolModeUseCases.focusSavedItem(null, null);
               currentSelection = null;
-              hoveredAnnotationTarget = null;
-              toolMode = 'select';
+              toolModeUseCases.setHoveredTarget(null);
+              toolModeUseCases.enterSelect();
               stopLivePreviewPolling();
               persistCurrentPendingState();
             }
@@ -4901,10 +5952,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               updateAnnotationSequenceFromPendingItems(recoveredItems);
               pendingRecovery = null;
               focusedPendingItemIndex = null;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
+              toolModeUseCases.focusSavedItem(null, null);
               currentSelection = null;
-              hoveredAnnotationTarget = null;
+              toolModeUseCases.setHoveredTarget(null);
               persistCurrentPendingState();
               renderPendingRecoveryBanner();
               render();

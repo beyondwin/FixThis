@@ -59,7 +59,12 @@ test('agent handoff includes sessionId in request body', () => {
 });
 
 test('draft command queue fences stale pending save responses', () => {
-  assert.match(stateSource, /let sessionMutationGeneration = 0;/);
+  // sessionMutationGeneration migrated into pollingFsm.js (mutationGeneration
+  // field on the polling FSM, bumped by bumpSessionMutationGeneration() via
+  // MUTATION_GENERATION_BUMP). The legacy entry point stays as a top-level
+  // function in state.js for callers.
+  assert.match(stateSource, /function bumpSessionMutationGeneration\(\)/);
+  assert.match(stateSource, /MUTATION_GENERATION_BUMP/);
   assert.match(stateSource, /let draftCommandQueue = null;/);
   assert.match(annotationsSource, /expectedRevision:\s*draftWorkspace\.revision/);
 });
