@@ -47,6 +47,34 @@ The following table is the canonical contract for which workflows are (or will b
 
 The branch-protection flip itself is gated on the "Pending" rows above turning green for the stated observation window. Maintainers update the readiness tracker as windows complete.
 
+## Console Inner Loop
+
+The console JS is live-reloaded; the Kotlin server is pinned in the JAR. Two helper scripts cover the common inner-loop cases.
+
+### `scripts/restart-console.sh` — restart after Kotlin server changes
+
+Use after any change to `:fixthis-mcp` server code. The script kills any running console process, frees the bookmarked port (default `9876`), and starts a new console pointed at the source-tree assets.
+
+```bash
+bash scripts/restart-console.sh                 # restart console only
+bash scripts/restart-console.sh --with-app      # also reinstall the sample APK
+bash scripts/restart-console.sh --dry-run       # preview commands without executing
+bash scripts/restart-console.sh --port 9876     # use a non-default port
+```
+
+Override the port with `FIXTHIS_CONSOLE_PORT` or `--port`. The script also frees stray `screen` sessions named `fixthis-console-*`.
+
+### `scripts/fixthis-console-dev.sh` — JS-only hot-reload loop
+
+Use after edits to `fixthis-mcp/src/main/console/*` that you rebundle with `node scripts/build-console-assets.mjs`. The script launches `fixthis console` with `--console-assets-dir` (so the source-tree JS is served live), parses the `consoleUrl` from CLI output, and opens it in the default browser.
+
+```bash
+scripts/fixthis-console-dev.sh                                # default package
+scripts/fixthis-console-dev.sh io.beyondwin.fixthis.sample    # explicit package
+```
+
+Stop with Ctrl-C; re-running kills any stale `fixthis console` process before starting a new one.
+
 ## Required Local Checks
 
 The root build enables the local Gradle build cache by default. Configuration
