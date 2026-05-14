@@ -1,4 +1,4 @@
-// @requires (none)
+// @requires connectionFsm.js, previewFsm.js, pollingFsm.js, toolModeFsm.js, connectionUseCases.js, previewUseCases.js, pollingUseCases.js, toolModeUseCases.js
             const DefaultLivePreviewIntervalMs = 1000;
             const MinLivePreviewIntervalMs = 1000;
             const PreviewIntervalStorageKey = 'fixthis.previewIntervalMs.v2';
