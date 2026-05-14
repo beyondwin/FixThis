@@ -27,6 +27,12 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+### Build / performance
+- Console bundle minified via esbuild + topological-sort source resolution
+  (`// @requires` directives). Raw 275 KiB → 160 KiB / gzip 55 KiB → 37 KiB.
+  External source map; build aborts on size budget overflow or missing
+  contract symbol.
+
 ### Added
 
 - **Setup error diagnostics — categorized merge failures + `--verbose` (cli, 2026-05-14):**

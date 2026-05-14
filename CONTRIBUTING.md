@@ -134,6 +134,32 @@ If you edited any console JS module under `fixthis-mcp/src/main/console/`, rebun
 node scripts/build-console-assets.mjs
 ```
 
+### Console bundle
+
+`node scripts/build-console-assets.mjs` produces three files under
+`fixthis-mcp/src/main/resources/console/`:
+
+- `app.js` — minified bundle (must be ≤ 170 KiB raw / ≤ 40 KiB gzipped; the build aborts otherwise).
+- `app.js.map` — external source map; DevTools picks it up via the
+  `//# sourceMappingURL=app.js.map` trailer when the console is served
+  with `--console-assets-dir`. The map is excluded from the packaged JAR.
+- `console-build-meta.json` — sidecar with `buildEpochMs` and `gitSha`,
+  inlined into `window.FixThisConsoleConfig.buildMeta` by
+  `FeedbackConsoleAssets.kt` at serve time.
+
+`node scripts/build-console-assets.mjs --check` verifies all three artifacts
+are byte-equivalent to a fresh regeneration under `FIXTHIS_BUNDLE_REPRODUCIBLE=1`.
+CI runs this check.
+
+Module load order is a topological sort over `// @requires` directives at
+the top of each `fixthis-mcp/src/main/console/*.js` file. The build aborts
+if a non-entry-point module lacks a `// @requires` header.
+
+If the build aborts with "esbuild dropped contract symbol", a JS function
+the asset contract tests rely on was inlined or renamed by the minifier;
+audit the change or extend the `CONTRACT_SYMBOLS` list in
+`scripts/build-console-assets.mjs`.
+
 If you changed Gradle build logic, also run:
 
 ```bash
