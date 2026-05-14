@@ -29,6 +29,38 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ### Changed
 
+- **Console state machines expanded — Connection, Preview, Polling, Tool-mode FSMs (console, 2026-05-14):**
+  - Four new sub-state-machines extract ~30 module-level `let` declarations
+    from `fixthis-mcp/src/main/console/state.js` into pure reducers + use
+    cases over ports + browser adapters. Each FSM is a 3-layer triangle
+    matching the already-shipped draft workspace FSM.
+  - **Connection FSM** (`connectionFsm.js`): 5 lifecycle states
+    (`DISCONNECTED` → `LAUNCHING` → `READY` → `BLOCKED` ⇄ `UNAVAILABLE`).
+    Owns `state.connection.*`, `heartbeatTimer`, `heartbeatPolling`,
+    `lastHeartbeatError`. Heartbeat failure ≥ 3 consecutive ticks
+    degrades `READY` → `DISCONNECTED`. Added `STATUS_RECEIVED` /
+    `POLLING_PAUSED_CHANGED` actions beyond the original spec so every
+    `state.connection.*` write goes through the FSM.
+  - **Preview FSM** (`previewFsm.js`): 5 lifecycle states (`IDLE` /
+    `REQUESTING` / `READY` / `STALE` / `ERROR`). Owns the preview request
+    generation counters and `previewZoom`. Race fence drops
+    `REQUEST_SUCCEEDED` / `REQUEST_FAILED` when either generation diverges;
+    zoom clamp [0.5, 2].
+  - **Polling FSM** (`pollingFsm.js`): 4 lifecycle states (`STOPPED` /
+    `POLLING_ACTIVE` / `POLLING_BACKOFF` / `POLLING_PAUSED`). Owns the
+    sessions/session etags, mutation lock counters, and poll-failure
+    counter. Top-level identifiers (`pollSessionsTick`,
+    `startSessionsPolling`, `withMutationLock`,
+    `MaxConsecutivePollFailures`) preserved as thin wrappers.
+  - **Tool-mode FSM** (`toolModeFsm.js`): 3 modes (`SELECT` /
+    `ANNOTATE_IDLE` / `ANNOTATE_DRAGGING`) — pure synchronous FSM, no
+    browser adapter.
+  - **`consoleApp.js`** boot factory aggregates all four FSMs; state.js
+    module-level `let` count drops from ~35 to 7 (only draft-FSM holders
+    remain). Wire protocol unchanged; all HTTP routes and persisted JSON
+    shapes preserved. See FSM table in
+    [`docs/reference/feedback-console-contract.md`](docs/reference/feedback-console-contract.md).
+
 - **Bridge server concurrency model (sidekick, 2026-05-14):**
   - `BridgeServer.start()` / `stop()` are now `suspend fun` serialised by a
     `kotlinx.coroutines.sync.Mutex`. The two legacy `@Volatile` lifecycle
