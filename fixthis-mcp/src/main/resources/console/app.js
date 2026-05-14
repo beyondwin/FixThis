@@ -358,10 +358,6 @@
             })();
 //#endregion state.js
 
-// build-header
-const ConsoleBuildEpochMs = 1778752800000;
-const ConsoleBuildGitSha = '5de1aa2';
-
 //#region activityDrift.js
 // @requires state.js
 // activityDrift.js — SIF-6: pure decision helper that decides whether the
@@ -5932,13 +5928,14 @@ function evaluateStale(state, now) {
                 }
                 if (!resp.ok) return; // 5xx etc. ambiguous — silent
                 const server = await resp.json();
-                const drift = Math.abs(server.serverBuildEpochMs - ConsoleBuildEpochMs);
+                const drift = Math.abs(server.serverBuildEpochMs - (window.FixThisConsoleConfig?.buildMeta?.buildEpochMs ?? 0));
                 if (drift > StaleThresholdMs) {
-                  const hash = `${server.serverGitSha}-${ConsoleBuildGitSha}`;
+                  const consoleSha = window.FixThisConsoleConfig?.buildMeta?.gitSha ?? 'unknown';
+                  const hash = `${server.serverGitSha}-${consoleSha}`;
                   renderStalenessBanner({
                     severity: 'warning',
                     headline: 'Server build is older than this console',
-                    detail: `Client ${ConsoleBuildGitSha} → Server ${server.serverGitSha}. Restart fixthis-mcp.`,
+                    detail: `Client ${consoleSha} → Server ${server.serverGitSha}. Restart fixthis-mcp.`,
                     hash,
                   });
                 }
@@ -6017,7 +6014,7 @@ function evaluateStale(state, now) {
             function checkSidekickBuildEpoch(status) {
               const sidekickEpoch = status?.sidekickBuildEpochMs;
               if (typeof sidekickEpoch !== 'number') return;
-              const drift = Math.abs(sidekickEpoch - ConsoleBuildEpochMs);
+              const drift = Math.abs(sidekickEpoch - (window.FixThisConsoleConfig?.buildMeta?.buildEpochMs ?? 0));
               if (drift > StaleThresholdMs) {
                 renderStalenessBanner({
                   severity: 'warning',

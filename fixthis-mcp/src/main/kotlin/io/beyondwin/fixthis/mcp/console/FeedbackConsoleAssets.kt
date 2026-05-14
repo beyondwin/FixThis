@@ -32,19 +32,42 @@ internal object FeedbackConsoleAssets {
         }.use { input -> input.readAllBytes() }
     }
 
-    private fun buildIndexHtml(consoleAssetsDir: File?, consoleToken: String = ""): String = readText("index.html", consoleAssetsDir)
-        .replace(StylesPlaceholder, "<style>\n${readText("styles.css", consoleAssetsDir)}\n</style>")
-        .replace(
-            ScriptPlaceholder,
-            """
-                <script>
-                window.FixThisConsoleConfig = { consoleToken: "${consoleToken.escapeJavaScriptString()}" };
-                </script>
-                <script>
-                ${readText("app.js", consoleAssetsDir)}
-                </script>
-            """.trimIndent(),
-        )
+    private fun consoleBuildMetaJson(): String =
+        FeedbackConsoleAssets::class.java
+            .getResource("/console/console-build-meta.json")
+            ?.readText()
+            ?: "{\"buildEpochMs\":0,\"gitSha\":\"unknown\"}"
+
+    private fun effectiveBuildMetaJson(): String {
+        val metaJson = consoleBuildMetaJson()
+        return if (metaJson.contains("\"reproducible\"")) {
+            val runtimeSha = try {
+                Runtime.getRuntime().exec(arrayOf("git", "rev-parse", "--short", "HEAD"))
+                    .inputStream.bufferedReader().readText().trim().ifEmpty { "unknown" }
+            } catch (_: Exception) { "unknown" }
+            """{"buildEpochMs":${System.currentTimeMillis()},"gitSha":"$runtimeSha"}"""
+        } else {
+            metaJson
+        }
+    }
+
+    private fun buildIndexHtml(consoleAssetsDir: File?, consoleToken: String = ""): String {
+        val effectiveMeta = effectiveBuildMetaJson()
+        return readText("index.html", consoleAssetsDir)
+            .replace(StylesPlaceholder, "<style>\n${readText("styles.css", consoleAssetsDir)}\n</style>")
+            .replace(
+                ScriptPlaceholder,
+                """
+                    <script>
+                    window.FixThisConsoleConfig = { consoleToken: "${consoleToken.escapeJavaScriptString()}" };
+                    window.FixThisConsoleConfig.buildMeta = $effectiveMeta;
+                    </script>
+                    <script>
+                    ${readText("app.js", consoleAssetsDir)}
+                    </script>
+                """.trimIndent(),
+            )
+    }
 
     private fun readText(path: String, consoleAssetsDir: File?): String = resource(path, consoleAssetsDir).toString(Charsets.UTF_8)
 

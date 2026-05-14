@@ -38,12 +38,6 @@ export function topoSort(g) {
   return order;
 }
 
-const buildHeaderRegex = /\/\/ build-header\nconst ConsoleBuildEpochMs = \d+;\nconst ConsoleBuildGitSha = '[^']+';\n/g;
-const normalizedBuildHeader = "// build-header\nconst ConsoleBuildEpochMs = 0;\nconst ConsoleBuildGitSha = 'normalized';\n";
-function normalizeBuildHeader(text) {
-  return text.replace(buildHeaderRegex, normalizedBuildHeader);
-}
-
 const isMainModule = import.meta.url === `file://${process.argv[1]}`;
 if (isMainModule) {
   const onDisk = readdirSync(sourceDir).filter((name) => name.endsWith('.js'));
@@ -66,7 +60,7 @@ if (isMainModule) {
 
   const sources = topoSort(graph);
 
-  // Compute build metadata for the header injected after state.js.
+  // Compute build metadata for the sidecar JSON.
   const epochMs = Math.floor(Date.now() / 60000) * 60000;
 
   let gitSha;
@@ -81,20 +75,22 @@ if (isMainModule) {
     gitSha = 'unknown';
   }
 
-  const buildHeader = `// build-header\nconst ConsoleBuildEpochMs = ${epochMs};\nconst ConsoleBuildGitSha = '${gitSha}';\n`;
-
   const entries = sources.map((name) => {
     const path = resolve(sourceDir, name);
     return `//#region ${name}\n${readFileSync(path, 'utf8').trimEnd()}\n//#endregion ${name}\n`;
   });
 
-  // Splice the build header immediately after state.js.
-  entries.splice(sources.indexOf('state.js') + 1, 0, buildHeader);
-
   const concatenated = entries.join('\n');
   const output = concatenated;
 
   const target = resolve(root, 'fixthis-mcp/src/main/resources/console/app.js');
+  const metaPath = resolve(root, 'fixthis-mcp/src/main/resources/console/console-build-meta.json');
+  const reproducible = process.env.FIXTHIS_BUNDLE_REPRODUCIBLE === '1'
+    || process.argv.includes('--check');
+  const meta = reproducible
+    ? { buildEpochMs: 0, gitSha: 'reproducible' }
+    : { buildEpochMs: epochMs, gitSha };
+  const metaSerialized = JSON.stringify(meta, null, 2) + '\n';
 
   if (process.argv.includes('--check')) {
     if (!existsSync(target)) {
@@ -102,8 +98,17 @@ if (isMainModule) {
       process.exit(1);
     }
     const current = readFileSync(target, 'utf8');
-    if (normalizeBuildHeader(current) !== normalizeBuildHeader(output)) {
+    if (current !== output) {
       console.error('Generated console app.js is out of date. Run node scripts/build-console-assets.mjs.');
+      process.exit(1);
+    }
+    if (!existsSync(metaPath)) {
+      console.error('Generated console-build-meta.json is missing. Run FIXTHIS_BUNDLE_REPRODUCIBLE=1 node scripts/build-console-assets.mjs.');
+      process.exit(1);
+    }
+    const currentMeta = readFileSync(metaPath, 'utf8');
+    if (currentMeta !== metaSerialized) {
+      console.error('Generated console-build-meta.json is out of date. Run FIXTHIS_BUNDLE_REPRODUCIBLE=1 node scripts/build-console-assets.mjs.');
       process.exit(1);
     }
     process.exit(0);
@@ -111,4 +116,5 @@ if (isMainModule) {
 
   mkdirSync(dirname(target), { recursive: true });
   writeFileSync(target, output);
+  writeFileSync(metaPath, metaSerialized);
 }

@@ -149,8 +149,9 @@ class ConsoleAssetRoutesTest {
     @Test
     fun consoleBundleEmbedsBuildEpochAndGitSha() {
         val html = FeedbackConsoleAssets.indexHtml
-        assertTrue(html.contains("const ConsoleBuildEpochMs = "), "must embed build epoch")
-        assertTrue(html.contains("const ConsoleBuildGitSha = '"), "must embed git sha")
+        assertTrue(html.contains("window.FixThisConsoleConfig.buildMeta"), "must embed buildMeta via FixThisConsoleConfig")
+        assertTrue(html.contains("buildEpochMs"), "must embed buildEpochMs in buildMeta")
+        assertTrue(html.contains("gitSha"), "must embed gitSha in buildMeta")
     }
 
     @Test

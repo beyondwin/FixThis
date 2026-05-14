@@ -46,8 +46,12 @@ test('app.js gzipped bytes are within the 40 KiB budget', () => {
   );
 });
 
-test('--check returns 0 immediately after a fresh build', () => {
-  execFileSync('node', [script], { cwd: root, stdio: 'pipe' });
+test('--check returns 0 immediately after a reproducible build', () => {
+  execFileSync('node', [script], {
+    cwd: root,
+    stdio: 'pipe',
+    env: { ...process.env, FIXTHIS_BUNDLE_REPRODUCIBLE: '1' },
+  });
   execFileSync('node', [script, '--check'], { cwd: root, stdio: 'pipe' });
 });
 
