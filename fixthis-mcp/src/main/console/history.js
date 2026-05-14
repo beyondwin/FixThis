@@ -27,8 +27,33 @@
             }
 
             function pendingHistoryItemsForSession(session) {
-              if (!draftFlow() || state.session?.sessionId !== session?.sessionId) return [];
-              return draftItemList();
+              if (draftFlow() && state.session?.sessionId === session?.sessionId) return draftItemList();
+              return historyRecoveryItemsForSession(session);
+            }
+
+            function historyRecoveryEnvelopeItems(envelope) {
+              return Array.isArray(envelope?.items) ? envelope.items : [];
+            }
+
+            function newestHistoryRecovery(workspaces) {
+              return [...(workspaces || [])]
+                .filter((workspace) => historyRecoveryEnvelopeItems(workspace).length)
+                .sort((left, right) => (left.updatedAtEpochMillis || 0) - (right.updatedAtEpochMillis || 0))
+                .at(-1) || null;
+            }
+
+            function historyRecoveryItemsForSession(session) {
+              const sessionId = session?.sessionId;
+              if (!sessionId) return [];
+              try {
+                const storage = createBrowserDraftPorts().storage;
+                const stored = storage.loadWorkspacesForSession(sessionId);
+                const legacy = restorePendingState(sessionId);
+                const recovery = newestHistoryRecovery(stored.concat(legacy ? [legacy] : []));
+                return historyRecoveryEnvelopeItems(recovery);
+              } catch (_) {
+                return [];
+              }
             }
 
             function historyOpenCount(session) {

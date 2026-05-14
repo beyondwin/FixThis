@@ -238,6 +238,18 @@ test('returning to an active pending mirror auto-restores instead of re-showing 
   );
 });
 
+test('history counts inactive pending recovery without migrating storage', () => {
+  const pendingHistoryBody = extractFunctionBody(historySource, 'function pendingHistoryItemsForSession(session)');
+  const recoveryHistoryBody = extractFunctionBody(historySource, 'function historyRecoveryItemsForSession(session)');
+
+  assert.match(historySource, /function historyRecoveryItemsForSession\(session\)/);
+  assert.match(pendingHistoryBody, /historyRecoveryItemsForSession\(session\)/);
+  assert.match(recoveryHistoryBody, /storage\.loadWorkspacesForSession\(sessionId\)/);
+  assert.match(recoveryHistoryBody, /restorePendingState\(sessionId\)/);
+  assert.doesNotMatch(recoveryHistoryBody, /migrateLegacyPending/);
+  assert.doesNotMatch(recoveryHistoryBody, /loadDraftRecoveryForSession/);
+});
+
 test('pending annotation detail edits write through to recovery envelope', () => {
   const detailBody = extractFunctionBody(renderingSource, 'function renderAnnotationDetail(item, index)');
   assert.match(detailBody, /item\.label\s*=\s*event\.target\.value;[\s\S]*?persistCurrentPendingState\(\);/);
