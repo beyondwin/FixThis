@@ -5,6 +5,9 @@ import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.beyondwin.fixthis.compose.core.model.SourceCandidateSummary
+import io.beyondwin.fixthis.compose.core.model.TargetConfidence
+import io.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 
 object FixThisMarkdownFormatter {
     fun format(annotation: FixThisAnnotation): String = format(annotation, DetailMode.FULL)
@@ -25,6 +28,7 @@ object FixThisMarkdownFormatter {
         appendLine()
         appendLine("Target:")
         appendCompactTarget(annotation)
+        appendTargetReliability(annotation.targetReliability, compact = true)
         appendLine()
         appendCompactSourceLine(annotation.sourceCandidates.firstOrNull())
     }
@@ -71,6 +75,7 @@ object FixThisMarkdownFormatter {
         appendLine()
         appendLine("## Target Evidence")
         appendTargetEvidence(annotation, includeEmpty = true)
+        appendTargetReliability(annotation.targetReliability, compact = false)
         appendLine()
         appendLine("## Selected UI")
         appendNode(annotation.selectedNode)
@@ -85,9 +90,10 @@ object FixThisMarkdownFormatter {
     private fun formatFull(annotation: FixThisAnnotation): String = buildString {
         appendLine("# FixThis Compose Feedback")
         appendLine()
-        if (annotation.targetEvidence != null) {
+        if (annotation.targetEvidence != null || annotation.targetReliability != null) {
             appendLine("## Target Evidence")
             appendTargetEvidence(annotation, includeEmpty = false)
+            appendTargetReliability(annotation.targetReliability, compact = false)
             appendLine()
         }
         appendLine("## User request")
@@ -160,6 +166,37 @@ object FixThisMarkdownFormatter {
             appendLine("- Screenshot evidence: ${evidence.screenshotKinds.markdownListValue()}")
         }
         appendLine("- Quality: ${evidence.evidenceQuality}")
+    }
+
+    private fun StringBuilder.appendTargetReliability(reliability: TargetReliability?, compact: Boolean) {
+        if (reliability == null) return
+        if (reliability.confidence == TargetConfidence.UNKNOWN && reliability.warnings.isEmpty()) return
+        appendLine("- Target confidence: ${reliability.confidence.name.lowercase()}${reliability.reasonSummary()}")
+        reliability.warnings.forEach { warning ->
+            appendLine("- Warning: ${warning.message().markdownInline()}")
+        }
+        if (!compact && reliability.reasons.isNotEmpty()) {
+            val reasons = reliability.reasons.map { reason -> reason.name.lowercase().replace('_', '-') }
+            appendLine("- Reliability reasons: ${reasons.markdownListValue()}")
+        }
+    }
+
+    private fun TargetReliability.reasonSummary(): String {
+        val labels = reasons.take(2).map { reason -> reason.name.lowercase().replace('_', '-') }
+        return if (labels.isEmpty()) "" else " - ${labels.joinToString(" + ")}"
+    }
+
+    private fun TargetReliabilityWarning.message(): String = when (this) {
+        TargetReliabilityWarning.VISUAL_AREA_ONLY -> "visual area only; verify screenshot and bounds"
+        TargetReliabilityWarning.NO_MEANINGFUL_COMPOSE_TARGET -> "no meaningful Compose semantics node covered this target"
+        TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP ->
+            "possible AndroidView/WebView area; source candidates may not explain rendered pixels"
+        TargetReliabilityWarning.LOW_SOURCE_CANDIDATE_MARGIN -> "source candidates are close; verify before editing"
+        TargetReliabilityWarning.SOURCE_INDEX_STALE -> "source index may be stale"
+        TargetReliabilityWarning.SCREEN_FINGERPRINT_MISMATCH_FORCED ->
+            "screen changed after capture; user force-saved this item"
+        TargetReliabilityWarning.SCREEN_FINGERPRINT_UNAVAILABLE -> "screen fingerprint unavailable; mismatch check was skipped"
+        TargetReliabilityWarning.SENSITIVE_TEXT_REDACTED -> "sensitive text was redacted from target evidence"
     }
 
     private fun StringBuilder.appendCompactTarget(annotation: FixThisAnnotation) {
