@@ -100,3 +100,28 @@ test('save during pending boundary opens target session after draft save succeed
   assert.equal(saved.state.workspace.kind, m.WorkspaceKind.LIVE_PREVIEW);
   m.assertConsoleInvariants(saved.state);
 });
+
+test('annotate click plans preview capture and capture success starts draft', () => {
+  let state = m.createInitialConsoleAppState({ activeSessionId: 'session-a', sessions: [{ sessionId: 'session-a' }] });
+  const annotate = m.reduceConsoleAppState(state, { type: 'ANNOTATE_CLICKED' });
+  assert.equal(annotate.effects[0].kind, 'capturePreview');
+  state = m.reduceConsoleAppState(annotate.state, {
+    type: 'PREVIEW_CAPTURE_SUCCEEDED',
+    requestId: annotate.effects[0].requestId,
+    sessionId: 'session-a',
+    generation: annotate.effects[0].generation,
+    preview: preview(1),
+  }).state;
+  const draft = m.reduceConsoleAppState(state, { type: 'DRAFT_STARTED_FROM_PREVIEW', sessionId: 'session-a', preview: preview(1) }).state;
+  assert.equal(draft.workspace.kind, m.WorkspaceKind.DRAFT);
+});
+
+test('copy prompt is planned from draft workspace only', () => {
+  let state = m.createInitialConsoleAppState({ activeSessionId: 'session-a', sessions: [{ sessionId: 'session-a' }] });
+  assert.deepEqual(m.reduceConsoleAppState(state, { type: 'COPY_PROMPT_CLICKED' }).effects, []);
+  state = m.reduceConsoleAppState(state, { type: 'DRAFT_STARTED_FROM_PREVIEW', sessionId: 'session-a', preview: preview(1) }).state;
+  state = m.reduceConsoleAppState(state, { type: 'DRAFT_TARGET_SELECTED', itemId: 'item-1', selection: { label: 'CTA' }, comment: 'Fix' }).state;
+  const copy = m.reduceConsoleAppState(state, { type: 'COPY_PROMPT_CLICKED' });
+  assert.equal(copy.effects[0].kind, 'copyPrompt');
+  assert.match(copy.effects[0].markdown, /Fix/);
+});

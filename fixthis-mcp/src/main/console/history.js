@@ -149,6 +149,7 @@
               toolModeUseCases.enterAnnotate();
               renderCurrentSessionList();
               if (!draftRuntimeFlow()) {
+                requestCanonicalPreviewCapture();
                 await startDraftAnnotationFlow();
               } else {
                 renderPreviewOnly();
@@ -315,6 +316,7 @@
             }
 
             async function openSession(sessionId) {
+              store.dispatch({ type: 'SESSION_ROW_CLICKED', sessionId });
               if (!sessionId) return;
               error.textContent = '';
               if (sessionId === state.session?.sessionId) {

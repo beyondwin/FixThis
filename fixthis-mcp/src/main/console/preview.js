@@ -7,6 +7,10 @@
               return requestJson('/api/preview');
             }
 
+            function requestCanonicalPreviewCapture() {
+              store.dispatch({ type: 'ANNOTATE_CLICKED' });
+            }
+
             function clearPreviewRuntimeContext() {
               previewUseCases.contextChanged();
               setConsolePreview(null);

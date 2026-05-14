@@ -753,6 +753,7 @@
             }
 
             async function savePendingFeedbackItems() {
+              store.dispatch({ type: 'SAVE_TO_MCP_CLICKED' });
               await persistPendingFeedbackItems();
               await refresh();
               startLivePreviewPolling();

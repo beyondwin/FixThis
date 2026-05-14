@@ -156,7 +156,7 @@ test('null/undefined sessionId is a no-op (no throw)', () => {
 
 test('recapture forces a fresh preview before remapping recovered pending items', () => {
   const recaptureBody = extractFunctionBody(mainSource, 'async function recapturePendingRecovery()');
-  assert.match(recaptureBody, /invalidateCanonicalPreviewContext\(\);[\s\S]*?await startDraftAnnotationFlow\(\);/);
+  assert.match(recaptureBody, /clearPreviewRuntimeContext\(\);[\s\S]*?await startDraftAnnotationFlow\(\);/);
   assert.match(recaptureBody, /const recoveredItems = items\.map/);
   assert.match(recaptureBody, /setDraftWorkspace\(\{[\s\S]*?items:\s*recoveredItems/);
   assert.match(recaptureBody, /persistCurrentPendingState\(\);/);
@@ -188,16 +188,16 @@ test('session refresh reloads pending recovery and session switches require a re
 });
 
 test('switching sessions keeps the previous session pending recovery mirror', () => {
-  const resetBody = extractFunctionBody(annotationsSource, 'function resetCanonicalAnnotationComposerState');
+  const resetBody = extractFunctionBody(annotationsSource, 'function resetAnnotationComposerRuntime');
   const openBody = extractFunctionBody(historySource, 'async function openSession(sessionId)');
-  assert.match(annotationsSource, /function resetCanonicalAnnotationComposerState\(clearFlow\s*=\s*true,\s*clearMirror\s*=\s*true\)/);
+  assert.match(annotationsSource, /function resetAnnotationComposerRuntime\(clearFlow\s*=\s*true,\s*clearMirror\s*=\s*true\)/);
   assert.match(resetBody, /if\s*\(clearMirror\)\s*\{[\s\S]*?clearPendingMirror\(state\.session\?\.sessionId\);/);
-  assert.match(openBody, /resetCanonicalAnnotationComposerState\(true,\s*false\);/);
-  assert.doesNotMatch(openBody, /resetCanonicalAnnotationComposerState\(\);/);
+  assert.match(openBody, /resetAnnotationComposerRuntime\(true,\s*false\);/);
+  assert.doesNotMatch(openBody, /resetAnnotationComposerRuntime\(\);/);
 });
 
-test('resetCanonicalAnnotationComposerState deletes schema v2 workspace when clearing flow and mirror', () => {
-  const resetBody = extractFunctionBody(annotationsSource, 'function resetCanonicalAnnotationComposerState');
+test('resetAnnotationComposerRuntime deletes schema v2 workspace when clearing flow and mirror', () => {
+  const resetBody = extractFunctionBody(annotationsSource, 'function resetAnnotationComposerRuntime');
   assert.match(resetBody, /deleteCurrentDraftWorkspaceStorage\(\);/);
   assert.match(resetBody, /if \(clearFlow\) setDraftWorkspace\(createEmptyDraftWorkspace\(\)\);/);
 });
@@ -211,7 +211,7 @@ test('deletePendingFeedbackItem deletes workspace storage when last draft item i
 test('returning to a session with pending mirror loads draft workspace recovery', () => {
   const persistBody = extractFunctionBody(annotationsSource, 'function persistCurrentPendingState()');
   const loadBody = extractFunctionBody(mainSource, 'function loadPendingRecoveryForCurrentSession()');
-  const resetBody = extractFunctionBody(annotationsSource, 'function resetCanonicalAnnotationComposerState');
+  const resetBody = extractFunctionBody(annotationsSource, 'function resetAnnotationComposerRuntime');
   assert.match(mainSource, /const activePendingMirrorSessions = new Set\(\);/);
   assert.match(persistBody, /persistCurrentDraftWorkspaceIfNeeded\(\);/);
   assert.match(mainSource, /function loadDraftRecoveryForSession\(sessionId\)/);
@@ -274,7 +274,7 @@ test('new pending annotations record undo history before persistence', () => {
 });
 
 test('using latest stale frame preserves pending annotations while recapturing', () => {
-  assert.match(previewSource, /const pendingItems = draftWorkspaceItems\(draftWorkspace\)\.slice\(\);[\s\S]*?invalidateCanonicalPreviewContext\(\);[\s\S]*?await startDraftAnnotationFlow\(\);[\s\S]*?setDraftWorkspace\(\{[\s\S]*?items:\s*pendingItems[\s\S]*?persistCurrentPendingState\(\);/);
-  assert.doesNotMatch(previewSource, /data-use-latest[\s\S]*?draftFeedbackItems\.length\s*=\s*0;/);
+  assert.match(previewSource, /const pendingItems = draftWorkspaceItems\(draftWorkspace\)\.slice\(\);[\s\S]*?clearPreviewRuntimeContext\(\);[\s\S]*?await startDraftAnnotationFlow\(\);[\s\S]*?setDraftWorkspace\(\{[\s\S]*?items:\s*pendingItems[\s\S]*?persistCurrentPendingState\(\);/);
+  assert.doesNotMatch(previewSource, /data-use-latest[\s\S]*?draftRuntimeItems\.length\s*=\s*0;/);
   assert.doesNotMatch(previewSource, /data-use-latest[\s\S]*?clearPendingMirror\(state\.session\?\.sessionId\);/);
 });

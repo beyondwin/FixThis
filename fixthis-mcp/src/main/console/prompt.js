@@ -64,6 +64,7 @@
             }
 
             async function copyPrompt() {
+                store.dispatch({ type: 'COPY_PROMPT_CLICKED' });
                 if (pollingUseCases.getState().promptActionInFlight) return;
                 await withMutationLock(async () => {
                     clearSuccessStatus();
@@ -102,6 +103,7 @@
             }
 
             async function sendAgentPrompt() {
+                store.dispatch({ type: 'SAVE_TO_MCP_CLICKED' });
                 if (pollingUseCases.getState().promptActionInFlight) return;
                 await withMutationLock(async () => {
                     clearSuccessStatus();

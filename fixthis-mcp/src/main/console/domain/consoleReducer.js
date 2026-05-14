@@ -53,11 +53,20 @@ function reduceConsoleAppState(state = createInitialConsoleAppState(), event = {
     case 'SAVE_TO_MCP_CLICKED':
       result = reduceSaveDraftClicked(state);
       break;
+    case 'COPY_PROMPT_CLICKED':
+      result = reduceCopyPromptClicked(state);
+      break;
     case 'DRAFT_SAVE_SUCCEEDED':
       result = reduceDraftSaveSucceeded(state, event);
       break;
     case 'DRAFT_SAVE_FAILED':
       result = reduceDraftSaveFailed(state, event);
+      break;
+    case 'PROMPT_COPY_SUCCEEDED':
+      result = reducePromptCopySucceeded(state, event);
+      break;
+    case 'PROMPT_COPY_FAILED':
+      result = reducePromptCopyFailed(state, event);
       break;
     case 'UNDO_CLICKED':
     case 'REDO_CLICKED':
@@ -293,6 +302,30 @@ function reduceSaveDraftClicked(state) {
   };
 }
 
+function reduceCopyPromptClicked(state) {
+  if (!isDraftWorkspace(state.workspace)) return { state, effects: [] };
+  const readyItems = state.workspace.items.filter((item) => String(item.comment || '').trim());
+  if (!readyItems.length) return { state, effects: [] };
+  const generation = nextGeneration(state);
+  const markdown = readyItems
+    .map((item, index) => `${index + 1}. ${item.comment || ''}`.trim())
+    .join('\n');
+  return {
+    state: replaceConsoleState(state, {
+      effectsGeneration: generation,
+      promptAction: Object.freeze({ inFlight: true }),
+    }),
+    effects: [Object.freeze({
+      kind: 'copyPrompt',
+      requestId: nextRequestId('copy-prompt', generation),
+      sessionId: state.workspace.context.sessionId,
+      workspaceId: state.workspace.context.workspaceId,
+      markdown,
+      generation,
+    })],
+  };
+}
+
 function reduceDraftSaveSucceeded(state, event) {
   if (event.generation !== state.effectsGeneration) return { state, effects: [] };
   if (!isDraftWorkspace(state.workspace)) return { state, effects: [] };
@@ -317,6 +350,28 @@ function reduceDraftSaveFailed(state, event) {
     state: replaceConsoleState(state, {
       promptAction: Object.freeze({ inFlight: false }),
       status: Object.freeze({ message: event.error || 'Could not save draft.', variant: 'error', assertive: true }),
+    }),
+    effects: [],
+  };
+}
+
+function reducePromptCopySucceeded(state, event) {
+  if (event.generation !== state.effectsGeneration) return { state, effects: [] };
+  return {
+    state: replaceConsoleState(state, {
+      promptAction: Object.freeze({ inFlight: false }),
+      status: Object.freeze({ message: 'Prompt copied.', variant: 'success', assertive: false }),
+    }),
+    effects: [],
+  };
+}
+
+function reducePromptCopyFailed(state, event) {
+  if (event.generation !== state.effectsGeneration) return { state, effects: [] };
+  return {
+    state: replaceConsoleState(state, {
+      promptAction: Object.freeze({ inFlight: false }),
+      status: Object.freeze({ message: event.error || 'Could not copy prompt.', variant: 'error', assertive: true }),
     }),
     effects: [],
   };
