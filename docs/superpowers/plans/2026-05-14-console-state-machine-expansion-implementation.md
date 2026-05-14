@@ -139,20 +139,23 @@ for (const [key, fileName] of Object.entries(USE_CASE_FILES)) {
 }
 
 // state.js threshold: tightened in two stages.
-//   - while any FSM is pending: assert ≤ 30 (current baseline + slack)
+//   - while any FSM is pending: assert ≤ 40 (current baseline ~35 + slack)
 //   - when PENDING_EXTRACTION is empty: assert ≤ 5
 test('state.js module-level let count meets current target', () => {
   const content = readFileSync(resolve(sourceDir, 'state.js'), 'utf8');
-  // Match `let X = ...` at exactly two spaces of leading indentation,
-  // which is the module-level convention. Function-body lets use ≥4.
-  const matches = content.match(/^  let [a-zA-Z_$]/gm) || [];
-  const target = PENDING_EXTRACTION.size === 0 ? 5 : 30;
+  // state.js is wrapped in an IIFE at 12-space body indentation. Module-
+  // level declarations therefore appear at exactly 12 leading spaces;
+  // function-body locals appear at 14+ spaces. Anchor the regex to the
+  // module-level indent so we count only the declarations this refactor
+  // targets.
+  const matches = content.match(/^ {12}let [a-zA-Z_$]/gm) || [];
+  const target = PENDING_EXTRACTION.size === 0 ? 5 : 40;
   assert.ok(matches.length <= target,
     `state.js has ${matches.length} module-level let declarations; target ≤ ${target}`);
 });
 ```
 
-Note the regex tightening: `^  let ` (exactly two spaces) targets module-level declarations only, avoiding the over-counting from `^\s+let `.
+The regex anchors at exactly 12 leading spaces, the module-body indent for state.js's IIFE. Function-body `let`s sit at ≥14 spaces and are excluded. If a future refactor changes the IIFE wrapping, update both this regex and the grep in Task 6 Step 4.
 
 - [ ] **Step 2: Run to verify it passes on `main`**
 
@@ -160,7 +163,7 @@ Note the regex tightening: `^  let ` (exactly two spaces) targets module-level d
 node --test scripts/consoleFsmContract-test.mjs
 ```
 
-Expected: all assertions PASS at land time because every FSM key is pending, and the state.js threshold is the lax target (≤30). The test exists and runs; it just has nothing to assert until Phase 1.
+Expected: all assertions PASS at land time because every FSM key is pending, and the state.js threshold is the lax target (≤40). The test exists and runs; it just has nothing to assert until Phase 1.
 
 - [ ] **Step 3: Add the npm script**
 
@@ -1732,10 +1735,10 @@ function startLivePreview() {
 Same pattern for any other `let` left in `state.js`. After this step:
 
 ```bash
-grep -cE "^\s+let " fixthis-mcp/src/main/console/state.js
+grep -cE "^ {12}let " fixthis-mcp/src/main/console/state.js
 ```
 
-Expected: ≤ `5`.
+Expected: ≤ `5`. (The 12-space anchor matches the umbrella contract test; it counts only module-level declarations and excludes function-body locals.)
 
 - [ ] **Step 5: Run umbrella tests**
 
@@ -1841,14 +1844,14 @@ document the slowest selector and consider memoizing.
 
 ```bash
 wc -l fixthis-mcp/src/main/console/state.js
-grep -cE "^\s+let " fixthis-mcp/src/main/console/state.js
-grep -cE "^\s+const " fixthis-mcp/src/main/console/state.js
+grep -cE "^ {12}let " fixthis-mcp/src/main/console/state.js
+grep -cE "^ {12}const " fixthis-mcp/src/main/console/state.js
 ```
 
 Expected:
 - Line count: significantly reduced from 326.
-- `let` count: ≤ 5.
-- `const` count: roughly preserved (DOM handles + FSM holders).
+- Module-level `let` count: ≤ 5.
+- Module-level `const` count: roughly preserved (DOM handles + FSM holders).
 
 - [ ] **Step 4: Generate verification report (no commit)**
 
