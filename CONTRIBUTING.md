@@ -133,6 +133,7 @@ npm run console:beforeunload:test   # beforeunload guard harness
 npm run console:undo:test           # undo/redo harness
 npm run console:activity:test       # activity-drift harness
 npm run console:preview:test        # preview staleness harness
+npm run console:harness:test        # scenario matrix harness unit tests
 npm run console:fsm:test            # connection FSM harness
 npm run console:build:test          # build-console-assets unit tests
 ```
@@ -161,7 +162,7 @@ node scripts/build-console-assets.mjs --check
 node scripts/check-doc-consistency.mjs
 node --check fixthis-mcp/src/main/resources/console/app.js
 # All console JS tests (single source of truth is scripts/console-tests.json).
-node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview draft session
+node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview draft session harness
 # Equivalent to `npm run console:test:all`; edit the JSON, not this command line.
 git diff --check
 ```
