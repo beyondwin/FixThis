@@ -744,7 +744,15 @@
               font-size: 12px;
               font-weight: 700;
             }
-            .empty-stage { color: var(--txt-2); font-size: 13px; }
+            .empty-stage {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-wrap: wrap;
+              gap: 8px;
+              color: var(--txt-2);
+              font-size: 13px;
+            }
             .annotate-hint-slot {
               min-height: 32px;
               display: flex;
@@ -813,7 +821,7 @@
               position: static;
               display: inline-flex;
               max-width: 100%;
-              margin-bottom: 4px;
+              margin-bottom: 0;
             }
             .snapshot-frame img {
               display: block;
@@ -1680,7 +1688,7 @@
               .annotate-hint {
                 max-width: calc(100% - 24px);
                 justify-content: center;
-                white-space: normal;
+                white-space: nowrap;
                 padding: 5px 10px;
               }
               .studio-inspector {

@@ -92,6 +92,24 @@ class ConsoleAssetContractTest {
     }
 
     @Test
+    fun consoleHtmlSpacesEmptyPreviewBadgeFromMessage() {
+        val html = ConsoleSourceFixtures.readAll()
+
+        assertTrue(
+            Regex("\\.empty-stage \\{[\\s\\S]*display: flex;[\\s\\S]*gap: 8px;").containsMatchIn(html),
+            "Empty preview state should leave visible space between the status badge and guidance copy",
+        )
+        assertTrue(
+            Regex("\\.empty-stage \\{[\\s\\S]*flex-wrap: wrap;").containsMatchIn(html),
+            "Empty preview state should wrap cleanly on narrow widths",
+        )
+        assertTrue(
+            Regex("\\.preview-frame-status\\.empty \\{[\\s\\S]*margin-bottom: 0;").containsMatchIn(html),
+            "Empty preview badge should not depend on vertical margin for horizontal spacing",
+        )
+    }
+
+    @Test
     fun consoleHtmlUsesModeAwareStudioInspector() {
         val html = ConsoleSourceFixtures.readAll()
         val pendingRenderer = javascriptFunctionBody(html, "renderPendingItems")
