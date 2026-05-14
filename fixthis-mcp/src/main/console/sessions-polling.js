@@ -1,14 +1,25 @@
             const SessionsPollIntervalMs = 2000;
 
+            // sessionsPollingTimer is the setInterval handle; lives in this
+            // closure (no longer at module scope) so polling-owned timer
+            // state never leaks into state.js.
+            let sessionsPollingTimer = null;
+
             function setSessionsPollingPaused(paused) {
               if (state.connection.sessionsPollingPaused === paused) return;
               connectionUseCases.setSessionsPollingPaused(paused);
+              // Mirror into the polling FSM via visibility-style transitions
+              // so the lifecycle stays consistent.
+              if (paused) pollingUseCases.visibilityHidden();
+              else pollingUseCases.visibilityVisible();
               // Re-render the connection card to surface the change.
               if (state.connection.current) renderConnection(state.connection.current);
             }
 
             function shouldPollSessions() {
-              return !document.hidden && pendingMutationCount === 0 && !isEditingAnnotation();
+              return !document.hidden &&
+                pollingUseCases.getState().pendingMutationCount === 0 &&
+                !isEditingAnnotation();
             }
 
             function isEditingAnnotation() {
@@ -19,7 +30,7 @@
 
             function startSessionsPolling() {
               stopSessionsPolling();
-              consecutivePollFailures = 0;
+              pollingUseCases.startSessionsPolling();
               sessionsPollingTimer = setInterval(() => {
                 if (shouldPollSessions()) pollSessionsTick().catch(() => {
                   // pollSessionsTick already handles its own failures; this catch is defensive.
@@ -30,45 +41,29 @@
             function stopSessionsPolling() {
               if (sessionsPollingTimer) clearInterval(sessionsPollingTimer);
               sessionsPollingTimer = null;
+              pollingUseCases.stopSessionsPolling();
             }
 
+            // pollSessionsTick delegates the HTTP + FSM bookkeeping to
+            // pollingUseCases.pollSessionsTick (api.sessions performs the
+            // actual fetches and side-effects; the use case dispatches
+            // TICK_OK / TICK_FAILED). At the threshold, the FSM transitions
+            // to POLLING_BACKOFF; this wrapper observes that transition and
+            // mirrors it into the connection FSM via setSessionsPollingPaused
+            // so legacy UI continues to surface the pause.
             async function pollSessionsTick() {
               try {
-                const listResp = await fetch('/api/sessions', {
-                  headers: lastSessionsEtag ? { 'If-None-Match': lastSessionsEtag } : {}
-                });
-                if (listResp.status === 200) {
-                  lastSessionsEtag = listResp.headers.get('ETag');
-                  const data = await listResp.json();
-                  state.sessionSummaries = data.sessions || [];
-                  renderSessionsList();
-                }
-
-                if (state.session?.sessionId) {
-                  const sessResp = await fetch('/api/session', {
-                    headers: lastSessionEtag ? { 'If-None-Match': lastSessionEtag } : {}
-                  });
-                  if (sessResp.status === 200) {
-                    lastSessionEtag = sessResp.headers.get('ETag');
-                    const fresh = await sessResp.json();
-                    if (fresh) {
-                      mergeSessionIntoState(fresh);
-                      renderInspectorRegion();
-                    }
-                  }
-                }
-
-                // success path: reset counter and ensure not paused
-                consecutivePollFailures = 0;
-                if (state.connection?.sessionsPollingPaused) {
-                  setSessionsPollingPaused(false);
-                }
+                await pollingUseCases.pollSessionsTick();
               } catch (err) {
-                consecutivePollFailures++;
-                if (consecutivePollFailures >= MaxConsecutivePollFailures) {
+                if (pollingUseCases.getState().lifecycle === PollingLifecycle.POLLING_BACKOFF) {
                   setSessionsPollingPaused(true);
                   stopSessionsPolling();
                 }
                 // Swallow error silently while in backoff window — no toast for transient failures.
+                return;
+              }
+              // success path: ensure not paused (drain any stale paused projection)
+              if (state.connection?.sessionsPollingPaused) {
+                setSessionsPollingPaused(false);
               }
             }

@@ -107,7 +107,7 @@
             }
 
             function promptReadinessState() {
-              if (promptActionInFlight) {
+              if (pollingUseCases.getState().promptActionInFlight) {
                 return {
                   state: 'busy',
                   label: 'Preparing handoff...',
@@ -238,7 +238,7 @@
 
             function updateComposerState() {
               const hasPromptAnnotations = currentPromptAnnotations().length > 0;
-              const promptDisabled = !hasPromptAnnotations || promptActionInFlight;
+              const promptDisabled = !hasPromptAnnotations || pollingUseCases.getState().promptActionInFlight;
               copyPromptButton.disabled = promptDisabled;
               sendAgentButton.disabled = promptDisabled;
               cancelAddFlowButton.disabled = !addItemsFlow;

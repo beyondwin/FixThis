@@ -9,6 +9,7 @@
               devices: [],
               connection: null, // projected from connectionUseCases below
               previewFsm: null, // projected from previewUseCases below
+              pollingFsm: null, // projected from pollingUseCases below
             };
             // Connection FSM single source of truth. The compat shim projects
             // each new FSM state into state.connection so legacy READ sites
@@ -29,6 +30,17 @@
               onChange: (next) => { state.previewFsm = { ...next }; },
             });
             state.previewFsm = { ...previewUseCases.getState() };
+            // Polling FSM single source of truth. Owns sessions-poll lifecycle,
+            // mutation lock counters, sessions/session etags, failure counter,
+            // and the prompt-action-in-flight flag previously held as module-
+            // level lets here. The top-level functions startSessionsPolling /
+            // stopSessionsPolling / pollSessionsTick / withMutationLock below
+            // delegate into pollingUseCases (preserving the Kotlin grep contract
+            // documented in ConsoleFeedbackItemRoutesTest).
+            const pollingUseCases = createBrowserPollingUseCases({
+              onChange: (next) => { state.pollingFsm = { ...next }; },
+            });
+            state.pollingFsm = { ...pollingUseCases.getState() };
             const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });
             const unresponsiveTracker = createUnresponsiveTracker({ threshold: 3 });
             const sessions = document.getElementById('sessions');
@@ -74,11 +86,9 @@
             const workflowProgress = document.getElementById('workflowProgress');
             let heartbeatTimer = null;
             let heartbeatPolling = false;
-            let sessionMutationGeneration = 0;
             let addItemsFlow = null;
             let addItemsFlowStarting = false;
             let newHistoryAnnotateModeStarting = false;
-            let promptActionInFlight = false;
             let pendingFeedbackItems = [];
             let focusedPendingItemIndex = null;
             let focusedSavedItemId = null;
@@ -91,12 +101,11 @@
             let dragPreview = null;
             let suppressNextClick = false;
             let historyDrawerOpen = false;
-            let sessionsPollingTimer = null;
-            let lastSessionsEtag = null;
-            let lastSessionEtag = null;
-            let pendingMutationCount = 0;
-            let consecutivePollFailures = 0;
-            const MaxConsecutivePollFailures = 5;
+            // Polling-owned state (sessionsPollingTimer, lastSessionsEtag,
+            // lastSessionEtag, pendingMutationCount, sessionMutationGeneration,
+            // consecutivePollFailures, promptActionInFlight) now lives in
+            // pollingUseCases (see pollingFsm.js / pollingUseCases.js).
+            // MaxConsecutivePollFailures is declared in pollingFsm.js.
             // ALH-2: Undo/redo history singleton for pending feedback items.
             let undoRedoHistory = createHistory();
             let draftWorkspace = createEmptyDraftWorkspace();
@@ -184,20 +193,28 @@
             }
 
             function bumpSessionMutationGeneration() {
-              sessionMutationGeneration += 1;
-              return sessionMutationGeneration;
+              // Delegates to the polling FSM; MUTATION_GENERATION_BUMP
+              // increments only the generation counter (callers that need
+              // pendingMutationCount accounting use withMutationLock).
+              pollingUseCases.dispatch({ type: 'MUTATION_GENERATION_BUMP' });
+              return pollingUseCases.getState().mutationGeneration;
             }
 
             async function withMutationLock(fn) {
-              pendingMutationCount++;
+              // Delegates to pollingUseCases.withMutationLock for the
+              // pendingMutationCount accounting. The recovery hook
+              // (restart polling if the connection FSM reports
+              // sessionsPollingPaused once the queue drains) stays here
+              // because it crosses the polling/connection FSM boundary;
+              // Task 6 will move it into a coordinator.
               let succeeded = false;
               try {
-                const result = await fn();
+                const result = await pollingUseCases.withMutationLock(fn);
                 succeeded = true;
                 return result;
               } finally {
-                pendingMutationCount--;
-                if (succeeded && pendingMutationCount === 0 && state.connection?.sessionsPollingPaused) {
+                const drained = pollingUseCases.getState().pendingMutationCount === 0;
+                if (succeeded && drained && state.connection?.sessionsPollingPaused) {
                   startSessionsPolling();
                 }
               }

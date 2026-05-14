@@ -113,8 +113,8 @@ function reduceConnection(state, action) {
 }
 
 // build-header
-const ConsoleBuildEpochMs = 1778744760000;
-const ConsoleBuildGitSha = 'c0394a3';
+const ConsoleBuildEpochMs = 1778745900000;
+const ConsoleBuildGitSha = '670eb3b';
 
 // connectionUseCases.js
 // connectionUseCases.js — action dispatchers for the connection FSM.
@@ -455,6 +455,300 @@ function createBrowserPreviewUseCases(options = {}) {
   });
 }
 
+// pollingFsm.js
+// pollingFsm.js — pure reducer for the sessions-polling lifecycle.
+//
+// Owns the polling-related state previously held as module-level lets in
+// state.js: sessionsPollingTimer (the *concept* of running/stopped),
+// lastSessionsEtag, lastSessionEtag, pendingMutationCount,
+// sessionMutationGeneration, consecutivePollFailures, promptActionInFlight.
+// No DOM, fetch, timers, or globals here.
+//
+// Lifecycle (per console-state-machine-expansion §3.5):
+//   STOPPED          — no setInterval handle, no polling
+//   POLLING_ACTIVE   — normal polling cadence
+//   POLLING_BACKOFF  — too many consecutive failures; waiting for backoff
+//                      timer or visibility/manual restart
+//   POLLING_PAUSED   — pause requested (e.g. visibility hidden); will resume
+//                      to pausedReturnLifecycle on VISIBILITY_VISIBLE
+//
+// Action set:
+//   START                  — begin polling (resets consecutiveFailures)
+//   STOP                   — stop polling
+//   DISCONNECT_REQUESTED   — alias for STOP that fires from connection FSM
+//   VISIBILITY_HIDDEN      — pause; preserve current lifecycle in
+//                            pausedReturnLifecycle so we can resume
+//   VISIBILITY_VISIBLE     — restore pausedReturnLifecycle
+//   TICK_OK                — reset failure counter; update etags from payload
+//   TICK_FAILED            — increment failure counter; at threshold,
+//                            transition to POLLING_BACKOFF
+//   BACKOFF_TIMER_FIRED    — POLLING_BACKOFF → POLLING_ACTIVE without
+//                            resetting the counter (only TICK_OK resets it)
+//   MUTATION_START         — bump pendingMutationCount AND mutationGeneration
+//   MUTATION_END           — decrement pendingMutationCount (clamped ≥ 0)
+//   MUTATION_GENERATION_BUMP — bump only mutationGeneration (no counter change);
+//                              used by legacy bumpSessionMutationGeneration()
+//                              callers that signal "session changed" outside a
+//                              lock context.
+//   PROMPT_ACTION_START    — set promptActionInFlight true
+//   PROMPT_ACTION_END      — set promptActionInFlight false
+//
+// MaxConsecutivePollFailures is the spec constant 5; exposed via the
+// IIFE-shared lexical scope (consumed by sessions-polling.js for the
+// existing Kotlin grep contract, and by tests directly).
+
+const MaxConsecutivePollFailures = 5;
+
+const PollingLifecycle = Object.freeze({
+  STOPPED: 'stopped',
+  POLLING_ACTIVE: 'polling_active',
+  POLLING_BACKOFF: 'polling_backoff',
+  POLLING_PAUSED: 'polling_paused',
+});
+
+function createInitialPollingState() {
+  return Object.freeze({
+    lifecycle: PollingLifecycle.STOPPED,
+    pausedReturnLifecycle: null,
+    lastSessionsEtag: null,
+    lastSessionEtag: null,
+    pendingMutationCount: 0,
+    mutationGeneration: 0,
+    consecutiveFailures: 0,
+    promptActionInFlight: false,
+  });
+}
+
+function reducePolling(state, action) {
+  if (!state) state = createInitialPollingState();
+  if (!action || typeof action.type !== 'string') return state;
+  switch (action.type) {
+    case 'START':
+      return Object.freeze({
+        ...state,
+        lifecycle: PollingLifecycle.POLLING_ACTIVE,
+        consecutiveFailures: 0,
+        pausedReturnLifecycle: null,
+      });
+    case 'STOP':
+    case 'DISCONNECT_REQUESTED':
+      return Object.freeze({
+        ...state,
+        lifecycle: PollingLifecycle.STOPPED,
+        pausedReturnLifecycle: null,
+      });
+    case 'VISIBILITY_HIDDEN': {
+      if (state.lifecycle === PollingLifecycle.POLLING_PAUSED) return state;
+      if (state.lifecycle === PollingLifecycle.STOPPED) return state;
+      return Object.freeze({
+        ...state,
+        lifecycle: PollingLifecycle.POLLING_PAUSED,
+        pausedReturnLifecycle: state.lifecycle,
+      });
+    }
+    case 'VISIBILITY_VISIBLE': {
+      if (state.lifecycle !== PollingLifecycle.POLLING_PAUSED) return state;
+      const target = state.pausedReturnLifecycle || PollingLifecycle.POLLING_ACTIVE;
+      return Object.freeze({
+        ...state,
+        lifecycle: target,
+        pausedReturnLifecycle: null,
+      });
+    }
+    case 'TICK_OK':
+      return Object.freeze({
+        ...state,
+        consecutiveFailures: 0,
+        lastSessionsEtag: action.sessionsEtag !== undefined ? action.sessionsEtag : state.lastSessionsEtag,
+        lastSessionEtag: action.sessionEtag !== undefined ? action.sessionEtag : state.lastSessionEtag,
+      });
+    case 'TICK_FAILED': {
+      const nextFailures = state.consecutiveFailures + 1;
+      const shouldBackoff = nextFailures >= MaxConsecutivePollFailures &&
+        state.lifecycle === PollingLifecycle.POLLING_ACTIVE;
+      return Object.freeze({
+        ...state,
+        consecutiveFailures: nextFailures,
+        lifecycle: shouldBackoff ? PollingLifecycle.POLLING_BACKOFF : state.lifecycle,
+      });
+    }
+    case 'BACKOFF_TIMER_FIRED': {
+      if (state.lifecycle !== PollingLifecycle.POLLING_BACKOFF) return state;
+      return Object.freeze({
+        ...state,
+        lifecycle: PollingLifecycle.POLLING_ACTIVE,
+      });
+    }
+    case 'MUTATION_START':
+      return Object.freeze({
+        ...state,
+        pendingMutationCount: state.pendingMutationCount + 1,
+        mutationGeneration: state.mutationGeneration + 1,
+      });
+    case 'MUTATION_END':
+      return Object.freeze({
+        ...state,
+        pendingMutationCount: Math.max(0, state.pendingMutationCount - 1),
+      });
+    case 'MUTATION_GENERATION_BUMP':
+      return Object.freeze({
+        ...state,
+        mutationGeneration: state.mutationGeneration + 1,
+      });
+    case 'PROMPT_ACTION_START':
+      return Object.freeze({ ...state, promptActionInFlight: true });
+    case 'PROMPT_ACTION_END':
+      return Object.freeze({ ...state, promptActionInFlight: false });
+    default:
+      return state;
+  }
+}
+
+// pollingUseCases.js
+// pollingUseCases.js — action dispatchers for the polling FSM.
+//
+// Pure: no DOM, fetch, timers, localStorage. Takes the reducer and an
+// async sessions port via options. The browser adapter
+// (pollingBrowserAdapter.js) wires in real fetches; sessions-polling.js
+// keeps the top-level identifiers (pollSessionsTick / startSessionsPolling /
+// withMutationLock) that asset contract tests grep for and delegates here.
+//
+// Factory shape:
+//   createPollingUseCases({ onChange, api })
+//     -> { getState, dispatch,
+//          startSessionsPolling, stopSessionsPolling,
+//          visibilityHidden, visibilityVisible, disconnect,
+//          withMutationLock, pollSessionsTick,
+//          backoffTimerFired, setPromptActionInFlight }
+//
+// The api.sessions port receives the current etags and returns a result
+// shaped { sessionsEtag, sessionEtag, ... }. On success the FSM dispatches
+// TICK_OK with the returned etags; on rejection it dispatches TICK_FAILED.
+
+function createPollingUseCases(options = {}) {
+  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
+  const api = options.api || {};
+  let current = options.initialState ?? createInitialPollingState();
+  if (!Object.isFrozen(current)) current = Object.freeze({ ...current });
+
+  function dispatch(action) {
+    const next = reducePolling(current, action);
+    if (next !== current) {
+      current = next;
+      onChange(current);
+    }
+    return current;
+  }
+
+  function getState() {
+    return current;
+  }
+
+  async function withMutationLock(fn) {
+    dispatch({ type: 'MUTATION_START' });
+    try {
+      return await fn();
+    } finally {
+      dispatch({ type: 'MUTATION_END' });
+      // NOTE: legacy "resume-on-mutation-drain" hook lives in sessions-polling.js
+      // (it bridges to the connection FSM's sessionsPollingPaused projection).
+      // The pure use case must not call cross-FSM side effects.
+    }
+  }
+
+  // Internal: dispatches FSM transitions around the api.sessions port.
+  // The exposed property name on the returned object is the spec name
+  // (see below); this inner function uses a distinct identifier so the
+  // top-level function declaration in sessions-polling.js remains the
+  // only matching declaration site for body-grep contracts.
+  async function tickViaApi() {
+    if (typeof api.sessions !== 'function') {
+      throw new Error('pollingUseCases: api.sessions port is required');
+    }
+    try {
+      const result = await api.sessions({
+        sessionsEtag: current.lastSessionsEtag,
+        sessionEtag: current.lastSessionEtag,
+      });
+      dispatch({
+        type: 'TICK_OK',
+        sessionsEtag: result?.sessionsEtag ?? null,
+        sessionEtag: result?.sessionEtag ?? null,
+      });
+      return result;
+    } catch (err) {
+      dispatch({ type: 'TICK_FAILED' });
+      throw err;
+    }
+  }
+
+  return {
+    getState,
+    dispatch,
+    startSessionsPolling: () => dispatch({ type: 'START' }),
+    stopSessionsPolling: () => dispatch({ type: 'STOP' }),
+    visibilityHidden: () => dispatch({ type: 'VISIBILITY_HIDDEN' }),
+    visibilityVisible: () => dispatch({ type: 'VISIBILITY_VISIBLE' }),
+    disconnect: () => dispatch({ type: 'DISCONNECT_REQUESTED' }),
+    withMutationLock,
+    pollSessionsTick: tickViaApi,
+    backoffTimerFired: () => dispatch({ type: 'BACKOFF_TIMER_FIRED' }),
+    setPromptActionInFlight: (flag) => dispatch({
+      type: flag ? 'PROMPT_ACTION_START' : 'PROMPT_ACTION_END',
+    }),
+  };
+}
+
+// pollingBrowserAdapter.js
+// pollingBrowserAdapter.js — wires pollingUseCases into the browser
+// environment. Lives separately so state.js stays free of FSM details
+// and the use cases get an explicit entry point for tests.
+//
+// The api.sessions port performs the actual HTTP fetches (and side-
+// effects on state.sessionSummaries / renderSessionsList / etc.). It
+// returns the new ETag headers so the FSM can persist them via TICK_OK.
+//
+// The closure-over-state is deliberate: this adapter sees the legacy
+// state, fetch, and renderers via the bundled IIFE's shared lexical
+// scope.
+
+function createBrowserPollingUseCases(options = {}) {
+  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
+  return createPollingUseCases({
+    initialState: createInitialPollingState(),
+    onChange,
+    api: {
+      sessions: async ({ sessionsEtag, sessionEtag }) => {
+        let nextSessionsEtag = sessionsEtag ?? null;
+        let nextSessionEtag = sessionEtag ?? null;
+        const listResp = await fetch('/api/sessions', {
+          headers: sessionsEtag ? { 'If-None-Match': sessionsEtag } : {},
+        });
+        if (listResp.status === 200) {
+          nextSessionsEtag = listResp.headers.get('ETag');
+          const data = await listResp.json();
+          state.sessionSummaries = data.sessions || [];
+          renderSessionsList();
+        }
+        if (state.session?.sessionId) {
+          const sessResp = await fetch('/api/session', {
+            headers: sessionEtag ? { 'If-None-Match': sessionEtag } : {},
+          });
+          if (sessResp.status === 200) {
+            nextSessionEtag = sessResp.headers.get('ETag');
+            const fresh = await sessResp.json();
+            if (fresh) {
+              mergeSessionIntoState(fresh);
+              renderInspectorRegion();
+            }
+          }
+        }
+        return { sessionsEtag: nextSessionsEtag, sessionEtag: nextSessionEtag };
+      },
+    },
+  });
+}
+
 // state.js
             const DefaultLivePreviewIntervalMs = 1000;
             const MinLivePreviewIntervalMs = 1000;
@@ -467,6 +761,7 @@ function createBrowserPreviewUseCases(options = {}) {
               devices: [],
               connection: null, // projected from connectionUseCases below
               previewFsm: null, // projected from previewUseCases below
+              pollingFsm: null, // projected from pollingUseCases below
             };
             // Connection FSM single source of truth. The compat shim projects
             // each new FSM state into state.connection so legacy READ sites
@@ -487,6 +782,17 @@ function createBrowserPreviewUseCases(options = {}) {
               onChange: (next) => { state.previewFsm = { ...next }; },
             });
             state.previewFsm = { ...previewUseCases.getState() };
+            // Polling FSM single source of truth. Owns sessions-poll lifecycle,
+            // mutation lock counters, sessions/session etags, failure counter,
+            // and the prompt-action-in-flight flag previously held as module-
+            // level lets here. The top-level functions startSessionsPolling /
+            // stopSessionsPolling / pollSessionsTick / withMutationLock below
+            // delegate into pollingUseCases (preserving the Kotlin grep contract
+            // documented in ConsoleFeedbackItemRoutesTest).
+            const pollingUseCases = createBrowserPollingUseCases({
+              onChange: (next) => { state.pollingFsm = { ...next }; },
+            });
+            state.pollingFsm = { ...pollingUseCases.getState() };
             const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });
             const unresponsiveTracker = createUnresponsiveTracker({ threshold: 3 });
             const sessions = document.getElementById('sessions');
@@ -532,11 +838,9 @@ function createBrowserPreviewUseCases(options = {}) {
             const workflowProgress = document.getElementById('workflowProgress');
             let heartbeatTimer = null;
             let heartbeatPolling = false;
-            let sessionMutationGeneration = 0;
             let addItemsFlow = null;
             let addItemsFlowStarting = false;
             let newHistoryAnnotateModeStarting = false;
-            let promptActionInFlight = false;
             let pendingFeedbackItems = [];
             let focusedPendingItemIndex = null;
             let focusedSavedItemId = null;
@@ -549,12 +853,11 @@ function createBrowserPreviewUseCases(options = {}) {
             let dragPreview = null;
             let suppressNextClick = false;
             let historyDrawerOpen = false;
-            let sessionsPollingTimer = null;
-            let lastSessionsEtag = null;
-            let lastSessionEtag = null;
-            let pendingMutationCount = 0;
-            let consecutivePollFailures = 0;
-            const MaxConsecutivePollFailures = 5;
+            // Polling-owned state (sessionsPollingTimer, lastSessionsEtag,
+            // lastSessionEtag, pendingMutationCount, sessionMutationGeneration,
+            // consecutivePollFailures, promptActionInFlight) now lives in
+            // pollingUseCases (see pollingFsm.js / pollingUseCases.js).
+            // MaxConsecutivePollFailures is declared in pollingFsm.js.
             // ALH-2: Undo/redo history singleton for pending feedback items.
             let undoRedoHistory = createHistory();
             let draftWorkspace = createEmptyDraftWorkspace();
@@ -642,20 +945,28 @@ function createBrowserPreviewUseCases(options = {}) {
             }
 
             function bumpSessionMutationGeneration() {
-              sessionMutationGeneration += 1;
-              return sessionMutationGeneration;
+              // Delegates to the polling FSM; MUTATION_GENERATION_BUMP
+              // increments only the generation counter (callers that need
+              // pendingMutationCount accounting use withMutationLock).
+              pollingUseCases.dispatch({ type: 'MUTATION_GENERATION_BUMP' });
+              return pollingUseCases.getState().mutationGeneration;
             }
 
             async function withMutationLock(fn) {
-              pendingMutationCount++;
+              // Delegates to pollingUseCases.withMutationLock for the
+              // pendingMutationCount accounting. The recovery hook
+              // (restart polling if the connection FSM reports
+              // sessionsPollingPaused once the queue drains) stays here
+              // because it crosses the polling/connection FSM boundary;
+              // Task 6 will move it into a coordinator.
               let succeeded = false;
               try {
-                const result = await fn();
+                const result = await pollingUseCases.withMutationLock(fn);
                 succeeded = true;
                 return result;
               } finally {
-                pendingMutationCount--;
-                if (succeeded && pendingMutationCount === 0 && state.connection?.sessionsPollingPaused) {
+                const drained = pollingUseCases.getState().pendingMutationCount === 0;
+                if (succeeded && drained && state.connection?.sessionsPollingPaused) {
                   startSessionsPolling();
                 }
               }
@@ -2822,7 +3133,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function promptReadinessState() {
-              if (promptActionInFlight) {
+              if (pollingUseCases.getState().promptActionInFlight) {
                 return {
                   state: 'busy',
                   label: 'Preparing handoff...',
@@ -2953,7 +3264,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function updateComposerState() {
               const hasPromptAnnotations = currentPromptAnnotations().length > 0;
-              const promptDisabled = !hasPromptAnnotations || promptActionInFlight;
+              const promptDisabled = !hasPromptAnnotations || pollingUseCases.getState().promptActionInFlight;
               copyPromptButton.disabled = promptDisabled;
               sendAgentButton.disabled = promptDisabled;
               cancelAddFlowButton.disabled = !addItemsFlow;
@@ -3917,11 +4228,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             async function copyPrompt() {
-                if (promptActionInFlight) return;
+                if (pollingUseCases.getState().promptActionInFlight) return;
                 await withMutationLock(async () => {
                     clearSuccessStatus();
                     ensurePromptAnnotationsAvailable();
-                    promptActionInFlight = true;
+                    pollingUseCases.setPromptActionInFlight(true);
                     updateComposerState();
                     const labelSpan = copyPromptButton.querySelector('span:not(.button-icon)');
                     const originalLabel = labelSpan ? labelSpan.textContent : null;
@@ -3941,7 +4252,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                             showWarning('Copied, but MCP handoff status was not updated. Copy again after the connection recovers to update item state.');
                         }
                     } finally {
-                        promptActionInFlight = false;
+                        pollingUseCases.setPromptActionInFlight(false);
                         updateComposerState();
                         if (copied && labelSpan) {
                             labelSpan.textContent = 'Copied ✓';
@@ -3954,11 +4265,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             async function sendAgentPrompt() {
-                if (promptActionInFlight) return;
+                if (pollingUseCases.getState().promptActionInFlight) return;
                 await withMutationLock(async () => {
                     clearSuccessStatus();
                     ensurePromptAnnotationsAvailable();
-                    promptActionInFlight = true;
+                    pollingUseCases.setPromptActionInFlight(true);
                     updateComposerState();
                     let sent = false;
                     try {
@@ -3982,7 +4293,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                         startLivePreviewPolling();
                         sent = true;
                     } finally {
-                        promptActionInFlight = false;
+                        pollingUseCases.setPromptActionInFlight(false);
                         updateComposerState();
                         if (sent) showSuccess('Saved to MCP ✓ — agent will pick up', 3000);
                     }
@@ -4925,15 +5236,26 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 // sessions-polling.js
             const SessionsPollIntervalMs = 2000;
 
+            // sessionsPollingTimer is the setInterval handle; lives in this
+            // closure (no longer at module scope) so polling-owned timer
+            // state never leaks into state.js.
+            let sessionsPollingTimer = null;
+
             function setSessionsPollingPaused(paused) {
               if (state.connection.sessionsPollingPaused === paused) return;
               connectionUseCases.setSessionsPollingPaused(paused);
+              // Mirror into the polling FSM via visibility-style transitions
+              // so the lifecycle stays consistent.
+              if (paused) pollingUseCases.visibilityHidden();
+              else pollingUseCases.visibilityVisible();
               // Re-render the connection card to surface the change.
               if (state.connection.current) renderConnection(state.connection.current);
             }
 
             function shouldPollSessions() {
-              return !document.hidden && pendingMutationCount === 0 && !isEditingAnnotation();
+              return !document.hidden &&
+                pollingUseCases.getState().pendingMutationCount === 0 &&
+                !isEditingAnnotation();
             }
 
             function isEditingAnnotation() {
@@ -4944,7 +5266,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function startSessionsPolling() {
               stopSessionsPolling();
-              consecutivePollFailures = 0;
+              pollingUseCases.startSessionsPolling();
               sessionsPollingTimer = setInterval(() => {
                 if (shouldPollSessions()) pollSessionsTick().catch(() => {
                   // pollSessionsTick already handles its own failures; this catch is defensive.
@@ -4955,46 +5277,30 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             function stopSessionsPolling() {
               if (sessionsPollingTimer) clearInterval(sessionsPollingTimer);
               sessionsPollingTimer = null;
+              pollingUseCases.stopSessionsPolling();
             }
 
+            // pollSessionsTick delegates the HTTP + FSM bookkeeping to
+            // pollingUseCases.pollSessionsTick (api.sessions performs the
+            // actual fetches and side-effects; the use case dispatches
+            // TICK_OK / TICK_FAILED). At the threshold, the FSM transitions
+            // to POLLING_BACKOFF; this wrapper observes that transition and
+            // mirrors it into the connection FSM via setSessionsPollingPaused
+            // so legacy UI continues to surface the pause.
             async function pollSessionsTick() {
               try {
-                const listResp = await fetch('/api/sessions', {
-                  headers: lastSessionsEtag ? { 'If-None-Match': lastSessionsEtag } : {}
-                });
-                if (listResp.status === 200) {
-                  lastSessionsEtag = listResp.headers.get('ETag');
-                  const data = await listResp.json();
-                  state.sessionSummaries = data.sessions || [];
-                  renderSessionsList();
-                }
-
-                if (state.session?.sessionId) {
-                  const sessResp = await fetch('/api/session', {
-                    headers: lastSessionEtag ? { 'If-None-Match': lastSessionEtag } : {}
-                  });
-                  if (sessResp.status === 200) {
-                    lastSessionEtag = sessResp.headers.get('ETag');
-                    const fresh = await sessResp.json();
-                    if (fresh) {
-                      mergeSessionIntoState(fresh);
-                      renderInspectorRegion();
-                    }
-                  }
-                }
-
-                // success path: reset counter and ensure not paused
-                consecutivePollFailures = 0;
-                if (state.connection?.sessionsPollingPaused) {
-                  setSessionsPollingPaused(false);
-                }
+                await pollingUseCases.pollSessionsTick();
               } catch (err) {
-                consecutivePollFailures++;
-                if (consecutivePollFailures >= MaxConsecutivePollFailures) {
+                if (pollingUseCases.getState().lifecycle === PollingLifecycle.POLLING_BACKOFF) {
                   setSessionsPollingPaused(true);
                   stopSessionsPolling();
                 }
                 // Swallow error silently while in backoff window — no toast for transient failures.
+                return;
+              }
+              // success path: ensure not paused (drain any stale paused projection)
+              if (state.connection?.sessionsPollingPaused) {
+                setSessionsPollingPaused(false);
               }
             }
 

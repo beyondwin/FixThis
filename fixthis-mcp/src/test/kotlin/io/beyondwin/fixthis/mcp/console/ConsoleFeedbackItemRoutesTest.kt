@@ -2328,12 +2328,22 @@ class ConsoleFeedbackItemHistoryRoutesTest {
 
     @Test
     fun consoleHtmlDeclaresPollingGlobals() {
+        // Per console-state-machine-expansion Task 4, the polling-owned state
+        // (lastSessionsEtag, lastSessionEtag, pendingMutationCount,
+        // consecutivePollFailures, promptActionInFlight, sessionMutationGeneration)
+        // moved from module-level lets in state.js into pollingFsm /
+        // pollingUseCases. The sessionsPollingTimer setInterval handle now
+        // lives in sessions-polling.js's closure but is still emitted in the
+        // bundled IIFE. The withMutationLock + pollingUseCases identifiers
+        // must survive for behavior contracts elsewhere.
         val html = FeedbackConsoleAssets.indexHtml
-        assertTrue(html.contains("let pendingMutationCount"))
         assertTrue(html.contains("let sessionsPollingTimer"))
-        assertTrue(html.contains("let lastSessionsEtag"))
-        assertTrue(html.contains("let lastSessionEtag"))
         assertTrue(html.contains("async function withMutationLock"))
+        assertTrue(html.contains("pollingUseCases"), "polling FSM must be wired in")
+        assertTrue(html.contains("createBrowserPollingUseCases"), "browser adapter must be wired")
+        assertTrue(html.contains("lastSessionsEtag"), "polling FSM owns lastSessionsEtag")
+        assertTrue(html.contains("lastSessionEtag"), "polling FSM owns lastSessionEtag")
+        assertTrue(html.contains("pendingMutationCount"), "polling FSM owns pendingMutationCount")
     }
 
     @Test
@@ -2419,31 +2429,38 @@ class ConsoleFeedbackItemHistoryRoutesTest {
 
     @Test
     fun sessionsPollingDeclaresFailureBackoffConstants() {
+        // Failure counter (consecutiveFailures) and threshold
+        // (MaxConsecutivePollFailures = 5) now live in pollingFsm.js. The
+        // counter no longer exists as a module-level let in state.js, but
+        // both identifiers must survive in the bundle as part of the FSM.
         val html = FeedbackConsoleAssets.indexHtml
-        assertTrue(html.contains("let consecutivePollFailures"), "must declare failure counter")
+        assertTrue(html.contains("consecutiveFailures"), "polling FSM must own the failure counter")
         assertTrue(
-            html.contains("MaxConsecutivePollFailures") || html.contains("= 5"),
-            "must declare threshold (named const or literal 5)",
+            html.contains("MaxConsecutivePollFailures = 5") || html.contains("MaxConsecutivePollFailures=5"),
+            "must declare threshold constant",
         )
     }
 
     @Test
     fun pollSessionsTickResetsFailureCounterOnSuccess() {
+        // The reset semantics now live in pollingFsm.js TICK_OK. The
+        // top-level pollSessionsTick wrapper still exists for the grep
+        // contract; the FSM-side behavior is verified by node tests.
         val html = FeedbackConsoleAssets.indexHtml
         val body = javascriptFunctionBody(html, "pollSessionsTick")
         assertTrue(
-            body.contains("consecutivePollFailures = 0") || body.contains("consecutivePollFailures=0"),
-            "tick must reset counter on success",
+            body.contains("pollingUseCases.pollSessionsTick"),
+            "tick must delegate to pollingUseCases.pollSessionsTick (FSM dispatches TICK_OK on success)",
         )
     }
 
     @Test
     fun pollSessionsTickIncrementsFailureCounterOnError() {
+        // Increment semantics live in pollingFsm.js TICK_FAILED.
         val html = FeedbackConsoleAssets.indexHtml
-        val body = javascriptFunctionBody(html, "pollSessionsTick")
         assertTrue(
-            body.contains("consecutivePollFailures++") || body.contains("consecutivePollFailures += 1"),
-            "tick must increment counter on failure",
+            html.contains("TICK_FAILED"),
+            "polling FSM must dispatch TICK_FAILED to increment the failure counter",
         )
     }
 
