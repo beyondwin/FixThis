@@ -1,5 +1,16 @@
 # Contributing
 
+## Prerequisites
+
+| Tool | Minimum | Notes |
+|---|---|---|
+| JDK | 21 | Adoptium Temurin recommended. |
+| Android SDK + ADB | API 30+ | Required for `:app:assembleDebug` and connected smoke. |
+| Node.js | 20.0.0 | Enforced via `package.json` `engines` and `.npmrc engine-strict=true`. Node 20.x LTS is supported through 2026-04; 22.x LTS also supported. Node 18.x is EOL. |
+| Chromium | Bundled by Playwright 1.59 | `npx playwright install chromium` after `npm install`. macOS 11+ / Ubuntu 20.04+ required by Playwright's bundled Chromium. |
+
+Run `npm install` and `npx playwright install chromium` once before running any `npm run console:*` script.
+
 ## Formatting
 
 Kotlin sources and Gradle Kotlin DSL scripts are formatted by [Spotless](https://github.com/diffplug/spotless)
