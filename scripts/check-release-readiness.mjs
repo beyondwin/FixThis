@@ -57,10 +57,11 @@ function forbidPublishedGradleClaims(rule, file) {
   }
 }
 
-requireIncludes(
+requireRegex(
   'R1.readme-not-published',
   'README.md',
-  'It is not yet on Maven Central or the Gradle Plugin Portal',
+  /not\s+yet[\s>]+on\s+Maven\s+Central\s+or\s+the\s+Gradle\s+Plugin\s+Portal/i,
+  'an explicit not-yet-published Maven Central and Gradle Plugin Portal status',
 );
 requireIncludes(
   'R2.readiness-release-process',

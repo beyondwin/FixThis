@@ -22,48 +22,48 @@ The implementation must preserve MCP tool contracts and server API routes. The o
 
 Create these new domain/application/adapter files:
 
-- `fixthis-mcp/src/main/console/domain/workspaceState.js`  
+- `fixthis-mcp/src/main/console/domain/workspaceState.js`
   Owns workspace tags, constructors, and workspace helper predicates.
-- `fixthis-mcp/src/main/console/domain/consoleAppState.js`  
+- `fixthis-mcp/src/main/console/domain/consoleAppState.js`
   Owns initial app state, request id generation shape, and session normalization helpers.
-- `fixthis-mcp/src/main/console/domain/consoleInvariants.js`  
+- `fixthis-mcp/src/main/console/domain/consoleInvariants.js`
   Throws when canonical state invariants are violated.
-- `fixthis-mcp/src/main/console/domain/consoleReducer.js`  
+- `fixthis-mcp/src/main/console/domain/consoleReducer.js`
   Pure reducer. Returns `{ state, effects }`.
-- `fixthis-mcp/src/main/console/domain/consoleSelectors.js`  
+- `fixthis-mcp/src/main/console/domain/consoleSelectors.js`
   Pure view-model selectors for history, toolbar, canvas, inspector, prompt, and boundary UI.
-- `fixthis-mcp/src/main/console/application/consoleStore.js`  
+- `fixthis-mcp/src/main/console/application/consoleStore.js`
   Dispatch loop. Applies reducer, checks invariants, runs render callback, queues effects.
-- `fixthis-mcp/src/main/console/application/consoleEffects.js`  
+- `fixthis-mcp/src/main/console/application/consoleEffects.js`
   Runs effect descriptions through browser ports and dispatches result events.
-- `fixthis-mcp/src/main/console/adapters/browserPorts.js`  
+- `fixthis-mcp/src/main/console/adapters/browserPorts.js`
   Browser implementations for session API, preview API, draft storage, clipboard, timers, and clock.
-- `fixthis-mcp/src/main/console/adapters/browserRenderer.js`  
+- `fixthis-mcp/src/main/console/adapters/browserRenderer.js`
   DOM rendering coordinator that consumes selector models.
 
 Modify these existing files:
 
-- `scripts/build-console-assets.mjs`  
+- `scripts/build-console-assets.mjs`
   Include nested console source files in the `// @requires` graph.
-- `scripts/build-console-assets-test.mjs`  
+- `scripts/build-console-assets-test.mjs`
   Test nested module discovery and nested `// @requires` validation.
-- `fixthis-mcp/src/main/console/main.js`  
+- `fixthis-mcp/src/main/console/main.js`
   Bootstrap store, ports, renderer, and event binding.
-- `fixthis-mcp/src/main/console/history.js`  
+- `fixthis-mcp/src/main/console/history.js`
   Reduce to history rendering helpers and dispatch binding.
-- `fixthis-mcp/src/main/console/annotations.js`  
+- `fixthis-mcp/src/main/console/annotations.js`
   Reduce to annotation rendering helpers and dispatch binding.
-- `fixthis-mcp/src/main/console/preview.js`  
+- `fixthis-mcp/src/main/console/preview.js`
   Reduce to preview rendering helpers and dispatch binding.
-- `fixthis-mcp/src/main/console/prompt.js`  
+- `fixthis-mcp/src/main/console/prompt.js`
   Reduce to prompt rendering helpers and dispatch binding.
-- `fixthis-mcp/src/main/console/state.js`  
+- `fixthis-mcp/src/main/console/state.js`
   Remove legacy mutable state or reduce to constants consumed by bootstrap.
-- `fixthis-mcp/src/main/console/rendering.js`  
+- `fixthis-mcp/src/main/console/rendering.js`
   Remove state mutation from render paths; render from selector models.
-- `fixthis-mcp/src/main/resources/console/app.js` and `app.js.map`  
+- `fixthis-mcp/src/main/resources/console/app.js` and `app.js.map`
   Regenerate with reproducible build.
-- `docs/reference/feedback-console-contract.md`  
+- `docs/reference/feedback-console-contract.md`
   Update the console state-machine section to describe canonical state, selectors, and boundary sheet.
 
 Create or modify these tests:
