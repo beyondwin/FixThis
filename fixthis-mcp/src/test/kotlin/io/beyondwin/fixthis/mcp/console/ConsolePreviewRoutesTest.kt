@@ -7,6 +7,7 @@ import io.beyondwin.fixthis.mcp.fixtures.FakeIds
 import io.beyondwin.fixthis.mcp.fixtures.LegacyScreenshotBridge
 import io.beyondwin.fixthis.mcp.fixtures.SequencedSessionScreenshotBridge
 import io.beyondwin.fixthis.mcp.fixtures.SessionScreenshotBridge
+import io.beyondwin.fixthis.mcp.fixtures.ConsoleSourceFixtures
 import io.beyondwin.fixthis.mcp.fixtures.addCapturedScreenForTest
 import io.beyondwin.fixthis.mcp.fixtures.javascriptFunctionBody
 import io.beyondwin.fixthis.mcp.session.FakeFixThisBridge
@@ -63,7 +64,7 @@ class ConsolePreviewRoutesTest {
 
     @Test
     fun consoleHtmlRefreshPreviewOnlyRendersPreviewRegion() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val refreshPreviewBody = javascriptFunctionBody(html, "refreshPreview")
 
         assertTrue(html.contains("function renderPreviewRegion"))
@@ -76,7 +77,7 @@ class ConsolePreviewRoutesTest {
 
     @Test
     fun consoleHtmlDoesNotAutoCapturePreviewWithoutActiveSession() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val shouldPollPreview = javascriptFunctionBody(html, "shouldPollPreview")
         val captureScreen = javascriptFunctionBody(html, "captureScreen")
         val selectDevice = javascriptFunctionBody(html, "selectDevice")
@@ -114,7 +115,7 @@ class ConsolePreviewRoutesTest {
 
     @Test
     fun consoleHtmlKeepsPreviewFramePositionStableAcrossSelectAndAnnotateModes() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(
             Regex(
@@ -133,7 +134,7 @@ class ConsolePreviewRoutesTest {
 
     @Test
     fun consoleHtmlKeepsFrozenPreviewStableAndShowsPersistedScreenHistory() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         // Preview FSM single source of truth — counters live inside
         // previewFsm.js (createInitialPreviewState) and are dispatched
@@ -193,7 +194,7 @@ class ConsolePreviewRoutesTest {
 
     @Test
     fun consoleHtmlLivePreviewImageUsesPreviewIdScopedScreenshotRoute() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(
             html.contains(
@@ -212,7 +213,7 @@ class ConsolePreviewRoutesTest {
 
     @Test
     fun consoleHtmlRefreshPreviewReusesInFlightPreviewRequest() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         // The in-flight dedup + race-fence now lives in the Preview FSM
         // (previewFsm.js / previewUseCases.js). Verify the FSM dispatch
@@ -229,7 +230,7 @@ class ConsolePreviewRoutesTest {
 
     @Test
     fun consoleHtmlAddFlowStopsPollingAndFreezesPreviewIdScopedScreenshot() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(html.contains("async function startAddItemsFlow()"))
         // addItemsFlowStarting is owned by the toolMode FSM.
@@ -277,7 +278,7 @@ class ConsolePreviewRoutesTest {
 
     @Test
     fun consoleHtmlClearsSavedPreviewAndDoesNotAutoFetchWhenManual() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(html.contains("state.preview = null;"))
         assertTrue(html.contains("function shouldAutoFetchPreview()"))
