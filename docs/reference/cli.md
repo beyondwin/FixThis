@@ -104,6 +104,7 @@ fixthis setup --package <applicationId> --write --target codex --dry-run
 | `--dry-run` | off | With `--write`, print planned writes without modifying files. |
 | `--target` | `all` | Agent target: `claude`, `codex`, or `all`. |
 | `--server-name` | `fixthis` | MCP server name to write. |
+| `--verbose`, `-v` | off | Print the full Java stack trace on failure. Implies the cause chain is rendered too, but skipped by default to keep the terse error readable. |
 
 Targets:
 

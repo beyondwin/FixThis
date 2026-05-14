@@ -296,3 +296,17 @@ The browser console shows a red banner at the top when it detects that the JS, t
 - **Sidekick build is older than the console** — the sample APK was built before the running console JAR was built. Reinstall the debug APK as above so its sidekick matches.
 
 The banner is dismissable; it does not block usage, but recovery features that depend on the new protocol fields will degrade until you refresh the stale side. See `CLAUDE.md` (`## Bridge Protocol Compatibility`) for the contract that governs when `BridgeProtocol.VERSION` and the console’s minimum must change in lockstep.
+
+## Setup failures
+
+`fixthis setup --write` fails when an existing agent config file cannot be parsed. The error message classifies the cause and recommends an action.
+
+| Category | Meaning | Recommended action |
+|---|---|---|
+| `MALFORMED_JSON` | `.claude/settings.json` is not valid JSON. | Fix the JSON syntax shown in the `caused by` line, or back up + delete the file and re-run. |
+| `MALFORMED_MCPSERVERS_SHAPE` | The `mcpServers` key exists but is not a JSON object. | Replace its value with `{}` or remove the key; re-run. |
+| `MALFORMED_TOML` | `~/.codex/config.toml` has a TOML syntax error in the `[mcp_servers.fixthis]` section. | Back up the file, remove the `[mcp_servers.fixthis]` block, and re-run. |
+| `FILESYSTEM_ERROR` | The config file cannot be read (permissions, missing directory). | Check `ls -l <path>`; fix ownership or permissions with `chmod`/`chown`. |
+| `UNKNOWN` | Anything else. | Re-run with `--verbose` for a stack trace and file an issue. |
+
+For maximum detail, append `--verbose` to any failing `fixthis setup` invocation. The same categorized message is printed, followed by a full Java stack trace including nested causes.

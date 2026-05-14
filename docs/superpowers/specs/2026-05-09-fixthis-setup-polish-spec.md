@@ -1,5 +1,10 @@
 # FixThis Setup Polish — Code Spec
 
+> **Update 2026-05-14:** Change 1 (cause preservation) is extended by
+> [`2026-05-14-setup-error-diagnostics-design.md`](2026-05-14-setup-error-diagnostics-design.md),
+> which adds full cause-chain printing, category classification, and a `--verbose`
+> flag. Changes 2/3/4 are unchanged.
+
 ## Goal
 
 Fix four quality gaps in `fixthis setup --write` identified during code review: swallowed exception details, silent `mcpServers` type mismatch, under-actionable executable-not-found warning, and invisible scope asymmetry (Codex global vs Claude project-local) in the output message.
