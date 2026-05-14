@@ -8,6 +8,7 @@
               selectedDeviceSerial: null,
               devices: [],
               connection: null, // projected from connectionUseCases below
+              previewFsm: null, // projected from previewUseCases below
             };
             // Connection FSM single source of truth. The compat shim projects
             // each new FSM state into state.connection so legacy READ sites
@@ -18,6 +19,16 @@
               state.connection = { ...next };
             });
             state.connection = { ...connectionUseCases.getState() };
+            // Preview FSM single source of truth. The compat shim projects
+            // each new FSM state into state.previewFsm so legacy READ sites
+            // observe lifecycle/zoom/inFlight/generation changes. Legacy
+            // state.preview (current screenshot object) remains as-is for
+            // existing screenshot renderers; FSM.current overlaps for
+            // race-fence purposes only.
+            const previewUseCases = createBrowserPreviewUseCases({
+              onChange: (next) => { state.previewFsm = { ...next }; },
+            });
+            state.previewFsm = { ...previewUseCases.getState() };
             const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });
             const unresponsiveTracker = createUnresponsiveTracker({ threshold: 3 });
             const sessions = document.getElementById('sessions');
@@ -61,14 +72,9 @@
             const zoomPercent = document.getElementById('zoomPercent');
             const previewStaleBadge = document.getElementById('previewStaleBadge');
             const workflowProgress = document.getElementById('workflowProgress');
-            let livePreviewTimer = null;
             let heartbeatTimer = null;
             let heartbeatPolling = false;
-            let previewRequestGeneration = 0;
-            let previewRequestContextGeneration = 0;
             let sessionMutationGeneration = 0;
-            let previewRequestInFlight = null;
-            let previewRequestInFlightContextGeneration = null;
             let addItemsFlow = null;
             let addItemsFlowStarting = false;
             let newHistoryAnnotateModeStarting = false;
@@ -84,7 +90,6 @@
             let dragStart = null;
             let dragPreview = null;
             let suppressNextClick = false;
-            let previewZoom = 1;
             let historyDrawerOpen = false;
             let sessionsPollingTimer = null;
             let lastSessionsEtag = null;
@@ -148,7 +153,7 @@
                 },
                 clock: { now: () => Date.now() },
                 preview: {
-                  capture: requestLivePreview,
+                  capture: () => previewUseCases.request(),
                   screenshotUrl: previewScreenshotUrl,
                 },
                 feedbackApi: createDraftApiAdapter({

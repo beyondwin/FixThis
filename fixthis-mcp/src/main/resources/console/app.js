@@ -113,8 +113,8 @@ function reduceConnection(state, action) {
 }
 
 // build-header
-const ConsoleBuildEpochMs = 1778743860000;
-const ConsoleBuildGitSha = '8a7f832';
+const ConsoleBuildEpochMs = 1778744760000;
+const ConsoleBuildGitSha = 'c0394a3';
 
 // connectionUseCases.js
 // connectionUseCases.js — action dispatchers for the connection FSM.
@@ -194,6 +194,267 @@ function createBrowserConnectionUseCases(projectState) {
   });
 }
 
+// previewFsm.js
+// previewFsm.js — pure reducer for the live preview lifecycle.
+//
+// Owns the preview request/zoom/poll counters previously held as
+// module-level lets in state.js (previewRequestGeneration,
+// previewRequestContextGeneration, previewRequestInFlight,
+// previewRequestInFlightContextGeneration, previewZoom). No DOM,
+// fetch, timers, or globals here.
+//
+// Action set (per console-state-machine-expansion §3.3):
+//   REQUEST_STARTED      — bump requestGeneration; capture (generation,
+//                          contextGeneration) into inFlight; lifecycle → REQUESTING
+//   REQUEST_SUCCEEDED    — applied only if BOTH action.generation and
+//                          action.contextGeneration match the inFlight tuple;
+//                          otherwise dropped (race-fence)
+//   REQUEST_FAILED       — same race-fence as REQUEST_SUCCEEDED; lifecycle → ERROR
+//   CONTEXT_CHANGED      — bump contextGeneration; clear inFlight and current;
+//                          lifecycle → IDLE (so the next request re-fetches)
+//   SET_STALE            — toggle lifecycle between READY ↔ STALE
+//   SET_ZOOM             — clamp to [MinPreviewZoom, MaxPreviewZoom], round to 0.1
+//   SET_POLL_INTERVAL    — set pollIntervalMs (or null for manual)
+
+const PreviewLifecycle = Object.freeze({
+  IDLE: 'idle',
+  REQUESTING: 'requesting',
+  READY: 'ready',
+  STALE: 'stale',
+  ERROR: 'error',
+});
+
+const MinPreviewZoom = 0.5;
+const MaxPreviewZoom = 2;
+
+function createInitialPreviewState() {
+  return Object.freeze({
+    lifecycle: PreviewLifecycle.IDLE,
+    requestGeneration: 0,
+    contextGeneration: 0,
+    inFlight: null,
+    current: null,
+    zoom: 1,
+    pollIntervalMs: null,
+    error: null,
+  });
+}
+
+function clampPreviewZoom(value) {
+  const numeric = typeof value === 'number' && !Number.isNaN(value) ? value : 1;
+  const clamped = Math.min(Math.max(numeric, MinPreviewZoom), MaxPreviewZoom);
+  return Math.round(clamped * 10) / 10;
+}
+
+function isStaleFence(state, action) {
+  if (!state.inFlight) return true;
+  if (action.generation !== state.inFlight.generation) return true;
+  if (action.contextGeneration !== state.inFlight.contextGeneration) return true;
+  return false;
+}
+
+function reducePreview(state, action) {
+  if (!state) state = createInitialPreviewState();
+  if (!action || typeof action.type !== 'string') return state;
+  switch (action.type) {
+    case 'REQUEST_STARTED': {
+      const nextGeneration = state.requestGeneration + 1;
+      return Object.freeze({
+        ...state,
+        lifecycle: PreviewLifecycle.REQUESTING,
+        requestGeneration: nextGeneration,
+        inFlight: Object.freeze({
+          generation: nextGeneration,
+          contextGeneration: state.contextGeneration,
+        }),
+        error: null,
+      });
+    }
+    case 'REQUEST_SUCCEEDED': {
+      if (isStaleFence(state, action)) return state;
+      return Object.freeze({
+        ...state,
+        lifecycle: PreviewLifecycle.READY,
+        current: action.preview ?? null,
+        inFlight: null,
+        error: null,
+      });
+    }
+    case 'REQUEST_FAILED': {
+      if (isStaleFence(state, action)) return state;
+      return Object.freeze({
+        ...state,
+        lifecycle: PreviewLifecycle.ERROR,
+        inFlight: null,
+        error: action.error ?? null,
+      });
+    }
+    case 'CONTEXT_CHANGED': {
+      return Object.freeze({
+        ...state,
+        lifecycle: PreviewLifecycle.IDLE,
+        requestGeneration: state.requestGeneration + 1,
+        contextGeneration: state.contextGeneration + 1,
+        inFlight: null,
+        current: null,
+        error: null,
+      });
+    }
+    case 'SET_STALE': {
+      const stale = !!action.stale;
+      if (stale && state.lifecycle === PreviewLifecycle.READY) {
+        return Object.freeze({ ...state, lifecycle: PreviewLifecycle.STALE });
+      }
+      if (!stale && state.lifecycle === PreviewLifecycle.STALE) {
+        return Object.freeze({ ...state, lifecycle: PreviewLifecycle.READY });
+      }
+      return state;
+    }
+    case 'SET_ZOOM': {
+      const zoom = clampPreviewZoom(action.zoom);
+      if (zoom === state.zoom) return state;
+      return Object.freeze({ ...state, zoom });
+    }
+    case 'SET_POLL_INTERVAL': {
+      const intervalMs = typeof action.intervalMs === 'number' ? action.intervalMs : null;
+      if (intervalMs === state.pollIntervalMs) return state;
+      return Object.freeze({ ...state, pollIntervalMs: intervalMs });
+    }
+    default:
+      return state;
+  }
+}
+
+// previewUseCases.js
+// previewUseCases.js — action dispatchers for the preview FSM.
+//
+// Pure: no DOM, fetch, timers, localStorage. Takes async primitives
+// (capture) and storage via ports. The browser adapter
+// (previewBrowserAdapter.js) wires in the real implementations.
+//
+// Factory shape:
+//   createPreviewUseCases({ onChange, api, storage })
+//     -> { getState, dispatch, request, contextChanged, setStale,
+//          setZoom, setPollInterval }
+//
+// Race-fence contract (normative): when request() awaits api.capture,
+// the (generation, contextGeneration) tuple captured immediately after
+// REQUEST_STARTED is passed to REQUEST_SUCCEEDED / REQUEST_FAILED.
+// The reducer drops the action if EITHER counter mismatches.
+
+const PreviewIntervalStorageKeyConst = 'fixthis.previewIntervalMs.v2';
+
+function createPreviewUseCases(options = {}) {
+  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
+  const api = options.api || {};
+  const storage = options.storage || {};
+  let current = options.initialState ?? createInitialPreviewState();
+  if (!Object.isFrozen(current)) current = Object.freeze({ ...current });
+  let inFlightPromise = null;
+
+  function dispatch(action) {
+    const next = reducePreview(current, action);
+    if (next !== current) {
+      current = next;
+      onChange(current);
+    }
+    return current;
+  }
+
+  function getState() {
+    return current;
+  }
+
+  function request() {
+    // Dedup: if an in-flight promise exists AND the FSM still considers it
+    // current (lifecycle REQUESTING with a matching inFlight snapshot),
+    // return the existing promise rather than starting a new fetch.
+    if (inFlightPromise && current.inFlight) {
+      return inFlightPromise;
+    }
+    dispatch({ type: 'REQUEST_STARTED' });
+    const captured = current.inFlight;
+    const promise = Promise.resolve()
+      .then(() => api.capture())
+      .then((preview) => {
+        if (inFlightPromise === promise) inFlightPromise = null;
+        dispatch({
+          type: 'REQUEST_SUCCEEDED',
+          generation: captured.generation,
+          contextGeneration: captured.contextGeneration,
+          preview,
+        });
+        return preview;
+      })
+      .catch((cause) => {
+        if (inFlightPromise === promise) inFlightPromise = null;
+        const message = cause && cause.message ? cause.message : String(cause);
+        dispatch({
+          type: 'REQUEST_FAILED',
+          generation: captured.generation,
+          contextGeneration: captured.contextGeneration,
+          error: message,
+        });
+        throw cause;
+      });
+    inFlightPromise = promise;
+    return promise;
+  }
+
+  function contextChanged() {
+    inFlightPromise = null;
+    dispatch({ type: 'CONTEXT_CHANGED' });
+  }
+
+  function setStale(stale) {
+    dispatch({ type: 'SET_STALE', stale });
+  }
+
+  function setZoom(zoom) {
+    dispatch({ type: 'SET_ZOOM', zoom });
+  }
+
+  function setPollInterval(intervalMs) {
+    dispatch({ type: 'SET_POLL_INTERVAL', intervalMs });
+    if (typeof storage.setItem === 'function' && intervalMs != null) {
+      storage.setItem(PreviewIntervalStorageKeyConst, String(intervalMs));
+    }
+  }
+
+  return {
+    getState,
+    dispatch,
+    request,
+    contextChanged,
+    setStale,
+    setZoom,
+    setPollInterval,
+  };
+}
+
+// previewBrowserAdapter.js
+// previewBrowserAdapter.js — wires previewUseCases into the browser
+// environment. Lives separately so state.js stays free of FSM details
+// and the use cases get an explicit entry point for tests.
+//
+// The caller passes a mutator (onChange) that copies the frozen FSM
+// state into a legacy projection (state.previewFsm) for any non-FSM
+// readers. The api.capture port resolves to the requestLivePreview
+// function declared in preview.js — these symbols share lexical scope
+// inside the bundled IIFE, so the adapter sees them at call time.
+
+function createBrowserPreviewUseCases(options = {}) {
+  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
+  return createPreviewUseCases({
+    initialState: createInitialPreviewState(),
+    onChange,
+    api: {
+      capture: () => requestLivePreview(),
+    },
+    storage: typeof localStorage !== 'undefined' ? localStorage : { setItem: () => {} },
+  });
+}
+
 // state.js
             const DefaultLivePreviewIntervalMs = 1000;
             const MinLivePreviewIntervalMs = 1000;
@@ -205,6 +466,7 @@ function createBrowserConnectionUseCases(projectState) {
               selectedDeviceSerial: null,
               devices: [],
               connection: null, // projected from connectionUseCases below
+              previewFsm: null, // projected from previewUseCases below
             };
             // Connection FSM single source of truth. The compat shim projects
             // each new FSM state into state.connection so legacy READ sites
@@ -215,6 +477,16 @@ function createBrowserConnectionUseCases(projectState) {
               state.connection = { ...next };
             });
             state.connection = { ...connectionUseCases.getState() };
+            // Preview FSM single source of truth. The compat shim projects
+            // each new FSM state into state.previewFsm so legacy READ sites
+            // observe lifecycle/zoom/inFlight/generation changes. Legacy
+            // state.preview (current screenshot object) remains as-is for
+            // existing screenshot renderers; FSM.current overlaps for
+            // race-fence purposes only.
+            const previewUseCases = createBrowserPreviewUseCases({
+              onChange: (next) => { state.previewFsm = { ...next }; },
+            });
+            state.previewFsm = { ...previewUseCases.getState() };
             const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });
             const unresponsiveTracker = createUnresponsiveTracker({ threshold: 3 });
             const sessions = document.getElementById('sessions');
@@ -258,14 +530,9 @@ function createBrowserConnectionUseCases(projectState) {
             const zoomPercent = document.getElementById('zoomPercent');
             const previewStaleBadge = document.getElementById('previewStaleBadge');
             const workflowProgress = document.getElementById('workflowProgress');
-            let livePreviewTimer = null;
             let heartbeatTimer = null;
             let heartbeatPolling = false;
-            let previewRequestGeneration = 0;
-            let previewRequestContextGeneration = 0;
             let sessionMutationGeneration = 0;
-            let previewRequestInFlight = null;
-            let previewRequestInFlightContextGeneration = null;
             let addItemsFlow = null;
             let addItemsFlowStarting = false;
             let newHistoryAnnotateModeStarting = false;
@@ -281,7 +548,6 @@ function createBrowserConnectionUseCases(projectState) {
             let dragStart = null;
             let dragPreview = null;
             let suppressNextClick = false;
-            let previewZoom = 1;
             let historyDrawerOpen = false;
             let sessionsPollingTimer = null;
             let lastSessionsEtag = null;
@@ -345,7 +611,7 @@ function createBrowserConnectionUseCases(projectState) {
                 },
                 clock: { now: () => Date.now() },
                 preview: {
-                  capture: requestLivePreview,
+                  capture: () => previewUseCases.request(),
                   screenshotUrl: previewScreenshotUrl,
                 },
                 feedbackApi: createDraftApiAdapter({
@@ -2182,27 +2448,17 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
 // preview.js
+            // Raw HTTP fetch — the previewUseCases layer provides dedup and
+            // race-fence via the FSM. Cross-caller dedup (across draft port
+            // and FSM) is achieved by routing all callers through
+            // previewUseCases.request().
             function requestLivePreview() {
-              if (previewRequestInFlight && previewRequestInFlightContextGeneration === previewRequestContextGeneration) return previewRequestInFlight;
-              const requestContextGeneration = previewRequestContextGeneration;
-              const request = requestJson('/api/preview')
-                .finally(() => {
-                  if (previewRequestInFlight === request) {
-                    previewRequestInFlight = null;
-                    previewRequestInFlightContextGeneration = null;
-                  }
-                });
-              previewRequestInFlight = request;
-              previewRequestInFlightContextGeneration = requestContextGeneration;
-              return previewRequestInFlight;
+              return requestJson('/api/preview');
             }
 
             function invalidatePreviewContext() {
-              previewRequestGeneration++;
-              previewRequestContextGeneration++;
+              previewUseCases.contextChanged();
               state.preview = null;
-              previewRequestInFlight = null;
-              previewRequestInFlightContextGeneration = null;
             }
 
             function scopedQuery(sessionId) {
@@ -2240,6 +2496,10 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               return configuredPreviewIntervalMs() != null && shouldPollPreview();
             }
 
+            // livePreviewTimer is a closure-scoped browser timer handle.
+            // It is not reducer state (not pure), so it lives here rather
+            // than in previewFsm.js.
+            let livePreviewTimer = null;
             function startLivePreviewPolling() {
               stopLivePreviewPolling();
               const intervalMs = configuredPreviewIntervalMs();
@@ -2302,16 +2562,17 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function applyPreviewZoom() {
               const frame = document.getElementById('snapshotFrame');
-              zoomPercent.textContent = Math.round(previewZoom * 100) + '%';
-              zoomOutButton.disabled = previewZoom <= PreviewZoomMin;
-              zoomInButton.disabled = previewZoom >= PreviewZoomMax;
+              const zoom = previewUseCases.getState().zoom;
+              zoomPercent.textContent = Math.round(zoom * 100) + '%';
+              zoomOutButton.disabled = zoom <= PreviewZoomMin;
+              zoomInButton.disabled = zoom >= PreviewZoomMax;
               if (frame) {
-                frame.style.setProperty('--preview-zoom', String(previewZoom));
+                frame.style.setProperty('--preview-zoom', String(zoom));
               }
             }
 
             function setPreviewZoom(nextZoom) {
-              previewZoom = Math.round(clamp(nextZoom, PreviewZoomMin, PreviewZoomMax) * 10) / 10;
+              previewUseCases.setZoom(nextZoom);
               applyPreviewZoom();
             }
 
@@ -2319,10 +2580,10 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             async function refreshPreview() {
               error.textContent = '';
               if (!state.session || addItemsFlow) return;
-              const requestGeneration = ++previewRequestGeneration;
+              const requestGeneration = previewUseCases.getState().requestGeneration + 1;
               try {
-                const preview = await requestLivePreview();
-                if (addItemsFlow || requestGeneration !== previewRequestGeneration) return;
+                const preview = await previewUseCases.request();
+                if (addItemsFlow || requestGeneration !== previewUseCases.getState().requestGeneration) return;
                 state.preview = {
                   ...preview,
                   activity: state.connection?.availability?.activity ?? null,
@@ -2890,12 +3151,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               updateComposerState();
               stopLivePreviewPolling();
               try {
-                const addFlowContextGeneration = previewRequestContextGeneration;
-                previewRequestGeneration++;
+                const addFlowContextGeneration = previewUseCases.getState().contextGeneration;
                 let preview = state.preview;
-                if (previewRequestInFlight || !preview) {
-                  preview = await requestLivePreview();
-                  if (addFlowContextGeneration !== previewRequestContextGeneration) return;
+                if (previewUseCases.getState().inFlight || !preview) {
+                  preview = await previewUseCases.request();
+                  if (addFlowContextGeneration !== previewUseCases.getState().contextGeneration) return;
                   preview = {
                     ...preview,
                     activity: state.connection?.availability?.activity ?? null,
@@ -4770,8 +5030,8 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             selectToolButton.addEventListener('click', enterSelectMode);
             annotateToolButton.addEventListener('click', () => enterAnnotateMode().catch(showError));
-            zoomOutButton.addEventListener('click', () => setPreviewZoom(previewZoom - PreviewZoomStep));
-            zoomInButton.addEventListener('click', () => setPreviewZoom(previewZoom + PreviewZoomStep));
+            zoomOutButton.addEventListener('click', () => setPreviewZoom(previewUseCases.getState().zoom - PreviewZoomStep));
+            zoomInButton.addEventListener('click', () => setPreviewZoom(previewUseCases.getState().zoom + PreviewZoomStep));
             addItemButton.addEventListener('click', () => {
               try {
                 createAnnotationFromSelection(currentSelection);

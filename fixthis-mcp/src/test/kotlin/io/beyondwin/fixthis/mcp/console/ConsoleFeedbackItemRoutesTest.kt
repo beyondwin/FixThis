@@ -989,7 +989,8 @@ class ConsoleFeedbackItemCanvasRoutesTest {
         assertTrue(html.contains("id=\"zoomOutButton\""))
         assertTrue(html.contains("id=\"zoomPercent\""))
         assertTrue(html.contains("id=\"zoomInButton\""))
-        assertTrue(html.contains("let previewZoom = 1"))
+        // Preview FSM owns the zoom level (zoom: 1 in createInitialPreviewState).
+        assertTrue(html.contains("zoom: 1,"))
         assertTrue(html.contains("function applyPreviewZoom()"))
         assertTrue(html.contains("function setPreviewZoom(nextZoom)"))
         assertTrue(html.contains("frame.style.setProperty('--preview-zoom'"))

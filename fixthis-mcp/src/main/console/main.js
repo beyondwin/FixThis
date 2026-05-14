@@ -3,8 +3,8 @@
 
             selectToolButton.addEventListener('click', enterSelectMode);
             annotateToolButton.addEventListener('click', () => enterAnnotateMode().catch(showError));
-            zoomOutButton.addEventListener('click', () => setPreviewZoom(previewZoom - PreviewZoomStep));
-            zoomInButton.addEventListener('click', () => setPreviewZoom(previewZoom + PreviewZoomStep));
+            zoomOutButton.addEventListener('click', () => setPreviewZoom(previewUseCases.getState().zoom - PreviewZoomStep));
+            zoomInButton.addEventListener('click', () => setPreviewZoom(previewUseCases.getState().zoom + PreviewZoomStep));
             addItemButton.addEventListener('click', () => {
               try {
                 createAnnotationFromSelection(currentSelection);

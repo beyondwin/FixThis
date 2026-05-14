@@ -547,11 +547,11 @@ class ConsoleDeviceSelectionRoutesTest {
         val html = FeedbackConsoleAssets.indexHtml
 
         assertTrue(html.contains("function invalidatePreviewContext()"))
-        assertTrue(html.contains("previewRequestGeneration++;"))
-        assertTrue(html.contains("previewRequestContextGeneration++;"))
+        // Preview FSM single source of truth — invalidate dispatches
+        // CONTEXT_CHANGED, which clears inFlight + current and bumps
+        // requestGeneration/contextGeneration atomically.
+        assertTrue(html.contains("previewUseCases.contextChanged();"))
         assertTrue(html.contains("state.preview = null;"))
-        assertTrue(html.contains("previewRequestInFlight = null;"))
-        assertTrue(html.contains("previewRequestInFlightContextGeneration = null;"))
         assertTrue(
             Regex(
                 "async function selectDevice\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);" +

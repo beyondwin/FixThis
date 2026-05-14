@@ -135,11 +135,17 @@ class ConsolePreviewRoutesTest {
     fun consoleHtmlKeepsFrozenPreviewStableAndShowsPersistedScreenHistory() {
         val html = FeedbackConsoleAssets.indexHtml
 
-        assertTrue(html.contains("let previewRequestGeneration = 0"))
-        assertTrue(html.contains("let previewRequestInFlight = null"))
-        assertTrue(html.contains("const preview = await requestLivePreview();"))
-        assertTrue(html.contains("const requestGeneration = ++previewRequestGeneration"))
-        assertTrue(html.contains("if (addItemsFlow || requestGeneration !== previewRequestGeneration) return;"))
+        // Preview FSM single source of truth — counters live inside
+        // previewFsm.js (createInitialPreviewState) and are dispatched
+        // via previewUseCases.request().
+        assertTrue(html.contains("createInitialPreviewState"))
+        assertTrue(html.contains("const preview = await previewUseCases.request();"))
+        assertTrue(html.contains("const requestGeneration = previewUseCases.getState().requestGeneration + 1"))
+        assertTrue(
+            html.contains(
+                "if (addItemsFlow || requestGeneration !== previewUseCases.getState().requestGeneration) return;",
+            ),
+        )
         assertTrue(
             html.contains("screenshotUrl: ports.preview.screenshotUrl(preview.previewId, sessionId)"),
         )
@@ -208,17 +214,16 @@ class ConsolePreviewRoutesTest {
     fun consoleHtmlRefreshPreviewReusesInFlightPreviewRequest() {
         val html = FeedbackConsoleAssets.indexHtml
 
-        assertTrue(html.contains("let previewRequestInFlight = null"))
-        assertTrue(html.contains("let previewRequestContextGeneration = 0"))
-        assertTrue(html.contains("let previewRequestInFlightContextGeneration = null"))
+        // The in-flight dedup + race-fence now lives in the Preview FSM
+        // (previewFsm.js / previewUseCases.js). Verify the FSM dispatch
+        // path is wired up rather than the legacy module-level lets.
         assertTrue(html.contains("function requestLivePreview()"))
-        assertTrue(html.contains("previewRequestInFlightContextGeneration === previewRequestContextGeneration"))
-        assertTrue(html.contains("const requestContextGeneration = previewRequestContextGeneration;"))
-        assertTrue(html.contains("const request = requestJson('/api/preview')"))
-        assertTrue(html.contains("if (previewRequestInFlight === request) {"))
-        assertTrue(html.contains("previewRequestInFlightContextGeneration = null;"))
-        assertTrue(html.contains("return previewRequestInFlight;"))
-        assertTrue(html.contains("const preview = await requestLivePreview();"))
+        assertTrue(html.contains("return requestJson('/api/preview');"))
+        assertTrue(html.contains("function createPreviewUseCases("))
+        assertTrue(html.contains("if (inFlightPromise && current.inFlight) {"))
+        assertTrue(html.contains("dispatch({ type: 'REQUEST_STARTED' })"))
+        assertTrue(html.contains("type: 'REQUEST_SUCCEEDED'"))
+        assertTrue(html.contains("const preview = await previewUseCases.request();"))
         assertFalse(html.contains("const preview = await requestJson('/api/preview');"))
     }
 
@@ -233,12 +238,21 @@ class ConsolePreviewRoutesTest {
         assertTrue(html.contains("addItemsFlowStarting = false;"))
         assertTrue(html.contains("stopLivePreviewPolling();"))
         assertTrue(html.contains("try {"))
-        assertTrue(html.contains("const addFlowContextGeneration = previewRequestContextGeneration;"))
-        assertTrue(html.contains("previewRequestGeneration++;"))
+        // Preview FSM owns request/context counters — addFlow captures the
+        // contextGeneration before awaiting and bails if it advances.
+        assertTrue(
+            html.contains(
+                "const addFlowContextGeneration = previewUseCases.getState().contextGeneration;",
+            ),
+        )
         assertTrue(html.contains("let preview = state.preview;"))
-        assertTrue(html.contains("if (previewRequestInFlight || !preview) {"))
-        assertTrue(html.contains("preview = await requestLivePreview();"))
-        assertTrue(html.contains("if (addFlowContextGeneration !== previewRequestContextGeneration) return;"))
+        assertTrue(html.contains("if (previewUseCases.getState().inFlight || !preview) {"))
+        assertTrue(html.contains("preview = await previewUseCases.request();"))
+        assertTrue(
+            html.contains(
+                "if (addFlowContextGeneration !== previewUseCases.getState().contextGeneration) return;",
+            ),
+        )
         assertTrue(html.contains("state.preview = preview;"))
         assertTrue(html.contains("if (!state.preview) {"))
         assertTrue(html.contains("startDraftFreeze(draftWorkspace"))

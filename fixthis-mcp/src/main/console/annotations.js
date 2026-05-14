@@ -436,12 +436,11 @@
               updateComposerState();
               stopLivePreviewPolling();
               try {
-                const addFlowContextGeneration = previewRequestContextGeneration;
-                previewRequestGeneration++;
+                const addFlowContextGeneration = previewUseCases.getState().contextGeneration;
                 let preview = state.preview;
-                if (previewRequestInFlight || !preview) {
-                  preview = await requestLivePreview();
-                  if (addFlowContextGeneration !== previewRequestContextGeneration) return;
+                if (previewUseCases.getState().inFlight || !preview) {
+                  preview = await previewUseCases.request();
+                  if (addFlowContextGeneration !== previewUseCases.getState().contextGeneration) return;
                   preview = {
                     ...preview,
                     activity: state.connection?.availability?.activity ?? null,
