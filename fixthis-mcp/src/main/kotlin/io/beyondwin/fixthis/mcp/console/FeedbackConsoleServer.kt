@@ -15,29 +15,73 @@ import java.util.concurrent.atomic.AtomicInteger
 
 internal const val ConsoleTokenHeader = "X-FixThis-Console-Token"
 
-class FeedbackConsoleServer(
-    private val service: FeedbackSessionService,
-    private val host: String = "127.0.0.1",
-    private val port: Int = 0,
-    private val consoleAssetsDir: File? = null,
-    private val eventBus: ConsoleEventBus = ConsoleEventBus(),
+class FeedbackConsoleServer private constructor(
+    private val host: String,
+    private val port: Int,
+    private val consoleToken: String,
+    private val routeTable: ConsoleRouteTable,
+    private val diagnosticsSink: (String) -> Unit,
 ) {
-    private val consoleToken: String = UUID.randomUUID().toString()
-    private val lock = Any()
-    private val routeTable = ConsoleRouteTable(
-        listOf(
-            ServerVersionRoutes(),
-            ConsoleEventRoutes(service, eventBus),
-            SessionRoutes(service, consoleAssetsDir, consoleToken, eventBus),
-            DeviceRoutes(service, eventBus),
-            ConnectionRoutes(service, eventBus),
-            PreviewRoutes(service, eventBus),
-            FeedbackItemRoutes(service, eventBus),
-            ArtifactRoutes(service),
-            HandoffPreviewRoutes(service),
-            MarkHandedOffRoutes(service, eventBus),
-        ),
+    constructor(
+        service: FeedbackSessionService,
+        host: String = "127.0.0.1",
+        port: Int = 0,
+        consoleAssetsDir: File? = null,
+        eventBus: ConsoleEventBus = ConsoleEventBus(),
+        diagnosticsSink: (String) -> Unit = { System.err.print(it) },
+    ) : this(
+        service = service,
+        host = host,
+        port = port,
+        consoleAssetsDir = consoleAssetsDir,
+        eventBus = eventBus,
+        consoleToken = UUID.randomUUID().toString(),
+        diagnosticsSink = diagnosticsSink,
     )
+
+    private constructor(
+        service: FeedbackSessionService,
+        host: String,
+        port: Int,
+        consoleAssetsDir: File?,
+        eventBus: ConsoleEventBus,
+        consoleToken: String,
+        diagnosticsSink: (String) -> Unit,
+    ) : this(
+        host = host,
+        port = port,
+        consoleToken = consoleToken,
+        routeTable = ConsoleRouteTable(
+            listOf(
+                ServerVersionRoutes(),
+                ConsoleEventRoutes(service, eventBus),
+                SessionRoutes(service, consoleAssetsDir, consoleToken, eventBus),
+                DeviceRoutes(service, eventBus),
+                ConnectionRoutes(service, eventBus),
+                PreviewRoutes(service, eventBus),
+                FeedbackItemRoutes(service, eventBus),
+                ArtifactRoutes(service),
+                HandoffPreviewRoutes(service),
+                MarkHandedOffRoutes(service, eventBus),
+            ),
+        ),
+        diagnosticsSink = diagnosticsSink,
+    )
+
+    internal constructor(
+        routes: List<ConsoleRoute>,
+        host: String = "127.0.0.1",
+        port: Int = 0,
+        diagnosticsSink: (String) -> Unit = { System.err.print(it) },
+    ) : this(
+        host = host,
+        port = port,
+        consoleToken = UUID.randomUUID().toString(),
+        routeTable = ConsoleRouteTable(routes),
+        diagnosticsSink = diagnosticsSink,
+    )
+
+    private val lock = Any()
     private var server: HttpServer? = null
     private var executor: ExecutorService? = null
 
@@ -51,7 +95,7 @@ class FeedbackConsoleServer(
         val requestExecutor = consoleHttpExecutor()
         HttpServer.create(InetSocketAddress(InetAddress.getByName(host), port), 0)
             .also { httpServer ->
-                httpServer.createContext("/") { exchange -> handle(exchange) }
+                httpServer.createContext("/") { exchange -> dispatch(exchange) }
                 httpServer.executor = requestExecutor
                 httpServer.start()
                 executor = requestExecutor
@@ -73,7 +117,7 @@ class FeedbackConsoleServer(
         server ?: throw IllegalStateException("Feedback console server is not running")
     }
 
-    private fun handle(exchange: HttpExchange) {
+    internal fun dispatch(exchange: HttpExchange) {
         try {
             if (exchange.requiresConsoleMutationGuard()) {
                 exchange.requireConsoleMutationAllowed(consoleToken)
@@ -87,6 +131,9 @@ class FeedbackConsoleServer(
             val httpError = error.toConsoleHttpException()
             exchange.sendErrorJson(httpError.statusCode, httpError.message)
         } catch (error: Throwable) {
+            diagnosticsSink(
+                "FeedbackConsoleServer: ${error::class.java.name}: ${error.message}\n${error.stackTraceToString()}",
+            )
             exchange.sendErrorJson(500, error.message ?: error::class.java.simpleName)
         }
     }
