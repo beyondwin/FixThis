@@ -149,6 +149,19 @@ Before changing README install instructions to public Gradle coordinates:
 7. Only after verification, update README and getting-started docs from
    source/composite-build setup to published-artifact setup.
 
+### Publish Prep Validation
+
+These commands are safe because they do not publish remote artifacts:
+
+```bash
+./gradlew publishToMavenLocal --dry-run
+./gradlew :fixthis-gradle-plugin:validatePlugins
+```
+
+If either task does not exist yet, keep the command documented here as the
+target validation contract and track the missing Gradle publishing setup as an
+artifact-release blocker in `release-readiness.md`.
+
 ## Post-release
 
 - Verify the GitHub Release appears on the repository Releases page.
