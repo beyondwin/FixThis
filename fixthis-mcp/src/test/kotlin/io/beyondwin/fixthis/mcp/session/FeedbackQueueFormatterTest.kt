@@ -12,7 +12,10 @@ import io.beyondwin.fixthis.compose.core.model.OccurrenceSignature
 import io.beyondwin.fixthis.compose.core.model.OccurrenceSignatureType
 import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.beyondwin.fixthis.compose.core.model.TargetConfidence
 import io.beyondwin.fixthis.compose.core.model.TargetEvidence
+import io.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import io.beyondwin.fixthis.compose.core.model.TreeKind
 import java.io.File
 import kotlin.test.Test
@@ -21,6 +24,43 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class FeedbackQueueFormatterTest {
+    @Test
+    fun preciseMarkdownRendersTargetReliabilityWarnings() {
+        val session = SessionDto(
+            sessionId = "session-1",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(
+                SnapshotDto(
+                    screenId = "screen-1",
+                    capturedAtEpochMillis = 1L,
+                    displayName = "Diagnostics",
+                ),
+            ),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(10f, 20f, 200f, 120f)),
+                    comment = "Fix the native chart spacing",
+                    targetReliability = TargetReliability(
+                        confidence = TargetConfidence.LOW,
+                        warnings = listOf(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP),
+                    ),
+                ),
+            ),
+        )
+
+        val markdown = FeedbackQueueFormatter.toMarkdown(session, DetailMode.PRECISE)
+
+        assertTrue(markdown.contains("Target confidence: low"))
+        assertTrue(markdown.contains("possible AndroidView/WebView area"))
+    }
+
     @Test
     fun markdownFocusesOnRequestTargetEvidenceAndLikelySource() {
         val selectedNode = FixThisNode(

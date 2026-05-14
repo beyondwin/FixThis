@@ -16,7 +16,7 @@
 | Clear current selection | `clearSelectionButton` | `Clear Selection` |
 | Clear draft feedback | `clearDraftButton` | `Clear Draft` |
 | Refresh devices | `refreshDevicesButton` | `Refresh devices` |
-| Clear FixThis device selection | `disconnectDeviceButton` | `Clear selection` |
+| Clear FixThis device selection | `disconnectDeviceButton` | `x` icon |
 | Workflow progress | `workflowProgress` | `FixThis feedback workflow` |
 | Prompt readiness | `promptReadiness` | `Prompt readiness` |
 | Compact history drawer | `historyToggleButton` | `History` |
@@ -89,8 +89,8 @@
 
 ## Device Semantics
 
-- `Clear selection` clears only FixThis's active device selection and owned bridge resources.
-- `Clear selection` must not run `adb disconnect`, detach USB, or affect Wi-Fi ADB outside FixThis-owned resources.
+- The device-chip `x` clears only FixThis's active device selection and owned bridge resources.
+- The device-chip `x` must not run `adb disconnect`, detach USB, or affect Wi-Fi ADB outside FixThis-owned resources.
 
 ## Privacy Semantics
 

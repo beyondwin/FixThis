@@ -7,6 +7,8 @@ import io.beyondwin.fixthis.compose.core.model.IdentityHintConfidence
 import io.beyondwin.fixthis.compose.core.model.IdentityHintSource
 import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.beyondwin.fixthis.compose.core.model.TargetConfidence
+import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import io.beyondwin.fixthis.compose.core.model.TreeKind
 import io.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
@@ -121,6 +123,56 @@ class TargetEvidenceServiceTest {
         val candidate = item.sourceCandidates.single { it.file.endsWith("Foo.kt") }
         assertEquals(true, candidate.stale)
         assertEquals("excerpt mismatch", candidate.staleReason)
+    }
+
+    @Test
+    fun buildFeedbackItemAddsLowReliabilityForVisualAreaWithoutMeaningfulCoverage() {
+        val service = targetEvidenceService()
+        val screen = screenWith()
+
+        val item = service.buildFeedbackItem(
+            screen = screen,
+            sourceIndex = null,
+            targetType = FeedbackTargetType.AREA,
+            bounds = FixThisRect(20f, 120f, 260f, 220f),
+            nodeUid = null,
+            comment = "Fix native chart spacing",
+            allowBlankComment = false,
+            writtenStatus = AnnotationStatusDto.OPEN,
+        )
+
+        assertEquals(TargetConfidence.LOW, item.targetReliability?.confidence)
+        assertTrue(item.targetReliability?.warnings.orEmpty().contains(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP))
+    }
+
+    @Test
+    fun buildFeedbackItemAddsMediumReliabilityForMeaningfulNodeWithoutSourceIndex() {
+        val service = targetEvidenceService()
+        val selected = node(
+            uid = "pay-button",
+            text = listOf("Pay now"),
+            role = "Button",
+            testTag = "comp:CheckoutButton:primary",
+        )
+        val screen = screenWith(selected)
+
+        val item = service.buildFeedbackItem(
+            screen = screen,
+            sourceIndex = null,
+            targetType = FeedbackTargetType.NODE,
+            bounds = selected.boundsInWindow,
+            nodeUid = selected.uid,
+            comment = "Round this button",
+            allowBlankComment = false,
+            writtenStatus = AnnotationStatusDto.OPEN,
+        )
+
+        assertEquals(TargetConfidence.MEDIUM, item.targetReliability?.confidence)
+        assertTrue(
+            item.targetReliability?.warnings.orEmpty()
+                .contains(TargetReliabilityWarning.NO_MEANINGFUL_COMPOSE_TARGET)
+                .not(),
+        )
     }
 
     private fun targetEvidenceService(projectRoot: File = File(".").canonicalFile): TargetEvidenceService = TargetEvidenceService(

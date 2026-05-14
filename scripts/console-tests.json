@@ -13,7 +13,8 @@
     "scripts/draftUseCases-test.mjs",
     "scripts/draftCommandQueue-test.mjs",
     "scripts/draftPresentationContract-test.mjs",
-    "scripts/draftWorkflowInvariant-test.mjs"
+    "scripts/draftWorkflowInvariant-test.mjs",
+    "scripts/targetReliabilityPresentation-test.mjs"
   ],
   "session": [
     "scripts/pendingBoundaryGuard-test.mjs",

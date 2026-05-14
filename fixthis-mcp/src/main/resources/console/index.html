@@ -30,6 +30,9 @@
                   </span>
                   <span class="device-chevron" aria-hidden="true">▾</span>
                   <select id="devicePicker" aria-label="Android device"></select>
+                  <button id="disconnectDeviceButton" class="device-clear-button" type="button" title="Clear FixThis device selection" aria-label="Clear FixThis device selection">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
                 </div>
                 <select id="previewIntervalSelect" aria-label="Preview interval">
                   <option value="manual">Manual</option>
@@ -38,7 +41,6 @@
                   <option value="5000">5s</option>
                 </select>
                 <button id="refreshDevicesButton" class="icon-button" type="button" title="Refresh devices" aria-label="Refresh devices">↻</button>
-                <button id="disconnectDeviceButton" class="clear-device-button" type="button" title="Clear FixThis device selection" aria-label="Clear FixThis device selection">Clear selection</button>
                 <span id="deviceStatus" class="status-pill" hidden>No device</span>
                 <button id="historyToggleButton" class="history-toggle-button" type="button" aria-controls="historyPanel" aria-expanded="false">History</button>
               </div>

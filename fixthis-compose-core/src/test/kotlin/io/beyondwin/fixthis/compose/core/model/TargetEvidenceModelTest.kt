@@ -135,6 +135,45 @@ class TargetEvidenceModelTest {
         assertEquals(listOf("fallback source candidate was ignored"), targetEvidence?.warnings)
     }
 
+    @Test
+    fun decodesLegacyAnnotationWithoutTargetReliability() {
+        val annotation = json.decodeFromString<FixThisAnnotation>(
+            """
+            {
+              "schemaVersion": "1.0",
+              "id": "annotation-1",
+              "createdAtEpochMillis": 100,
+              "platform": "android-compose",
+              "app": {"packageName": "pkg", "debuggable": true},
+              "activity": {"className": "MainActivity"},
+              "tap": {"xInWindow": 10.0, "yInWindow": 11.0},
+              "selection": {"kind": "VISUAL_AREA", "confidence": "LOW", "source": "AREA_SELECT"},
+              "userComment": "Make this clearer"
+            }
+            """.trimIndent(),
+        )
+
+        assertNull(annotation.targetReliability)
+    }
+
+    @Test
+    fun roundTripsTargetReliability() {
+        val annotation = baseAnnotation().copy(
+            targetReliability = TargetReliability(
+                confidence = TargetConfidence.LOW,
+                reasons = listOf(TargetReliabilityReason.VISUAL_AREA_SELECTION),
+                warnings = listOf(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP),
+            ),
+        )
+
+        val encoded = json.encodeToString(annotation)
+        val decoded = json.decodeFromString<FixThisAnnotation>(encoded)
+
+        assertEquals(annotation.targetReliability, decoded.targetReliability)
+        assertTrue(encoded.contains("\"targetReliability\""))
+        assertTrue(encoded.contains("POSSIBLE_VIEW_INTEROP"))
+    }
+
     private fun baseAnnotation(): FixThisAnnotation = FixThisAnnotation(
         id = "annotation-1",
         createdAtEpochMillis = 100,

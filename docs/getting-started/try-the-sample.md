@@ -52,6 +52,13 @@ your default browser.
    *Or* click **Save to MCP** to persist the batch as a local handoff that
    Claude Code or Codex can read on demand via MCP tools.
 
+## Sample coverage
+
+- The Diagnostics tab includes a native AndroidView fixture. Use it to verify
+  that visual-area annotations over non-Compose pixels carry low-confidence or
+  possible-interop handoff warnings instead of overclaiming Compose source
+  precision.
+
 ## Troubleshooting
 
 If `fixthis doctor` or `fixthis run` reports an issue, see

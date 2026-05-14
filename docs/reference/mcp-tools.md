@@ -79,11 +79,11 @@ Console workflow:
 
 The console defaults to `Select` mode. Preview clicks navigate the app until `Annotate` freezes the latest preview for feedback targeting. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions.
 
-Top bar actions are short session-level controls: device selection, connection state, `Refresh devices`, `Clear selection`, `Copy Prompt`, and `Save to MCP`. Canvas controls include `Select`, `Annotate`, `Add annotation`, and `Exit Annotate`. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 1s. Preview polling pauses while the browser tab is hidden and while the `Annotate` frozen-preview flow is active.
+Top bar actions are short session-level controls: device selection, connection state, `Refresh devices`, the device `x` clear icon, `Copy Prompt`, and `Save to MCP`. Canvas controls include `Select`, `Annotate`, `Add annotation`, and `Exit Annotate`. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 1s. Preview polling pauses while the browser tab is hidden and while the `Annotate` frozen-preview flow is active.
 
 `Annotate` freezes the latest preview only; it does not write a session item by itself. Multiple pending annotations can be added to one frozen preview with `Add annotation`. Pending items support Focus and Delete before they are persisted; deleting renumbers pending items so the pending list numbers and overlay numbers match.
 
-`Copy Prompt` and `Save to MCP` persist written pending annotations when needed, promote the frozen preview into one persisted evidence snapshot, and connect those items to the same `screenId`. The item's `screenId` field points to the evidence snapshot saved with that item batch, so multiple saved items can share one `screenId`. During persistence, FixThis derives optional `targetEvidence` for each item from the frozen preview's captured merged semantics nodes and source-index candidates. Later `Annotate` work on the same visible app screen can create another evidence snapshot when pending annotations are persisted. Live preview frames are not session history: `FeedbackSession.screens` contains persisted evidence snapshots, not every preview frame.
+`Copy Prompt` and `Save to MCP` persist written pending annotations when needed, promote the frozen preview into one persisted evidence snapshot, and connect those items to the same `screenId`. The item's `screenId` field points to the evidence snapshot saved with that item batch, so multiple saved items can share one `screenId`. During persistence, FixThis derives optional `targetEvidence` and `targetReliability` for each item from the frozen preview's captured merged semantics nodes, source-index candidates, and save-time screen integrity checks. Later `Annotate` work on the same visible app screen can create another evidence snapshot when pending annotations are persisted. Live preview frames are not session history: `FeedbackSession.screens` contains persisted evidence snapshots, not every preview frame.
 
 Before persistence, the server compares the frozen preview fingerprint with a
 lightweight live capture when both fingerprints exist. If they differ,
@@ -249,9 +249,14 @@ Arguments:
 - `includeAll`: optional boolean. When `true`, the queue listing in JSON and Markdown includes drafts and resolved items. Default `false` (matches the focused list described above).
 - `detailMode`: optional Markdown detail level. Supported values are `compact`, `precise`, and `full`; the default is `precise`.
 
-`detailMode` affects only the Markdown content. The JSON content remains complete and includes all persisted session evidence, including optional `targetEvidence`.
+`detailMode` affects only the Markdown content. The JSON content remains complete and includes all persisted session evidence, including optional `targetEvidence` and `targetReliability`.
 
 The JSON output preserves the full feedback session schema for tools that need exact IDs, paths, and tool contracts. The Markdown output is the compact agent-facing handoff view: it focuses on request, target evidence, and likely source, and intentionally omits internal IDs plus repeated storage metadata such as raw session, screen, item, batch, and screenshot artifact IDs.
+
+`compactMarkdown` includes target confidence lines when reliability metadata is
+present. Low-confidence or warning items remain actionable, but agents should
+verify them before editing. JSON output includes the complete optional
+`targetReliability` object on each item.
 
 The compact Markdown handoff also emits a per-item `id:` token (the feedback item id) and ends with an `agent_protocol:` footer that documents the claim/resolve contract inline. The same compact text is what the `Copy Prompt` button puts on the clipboard, so an agent that only sees the pasted prompt can still reference items by id and call `fixthis_claim_feedback` / `fixthis_resolve_feedback` over MCP.
 
