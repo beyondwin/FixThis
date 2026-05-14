@@ -514,7 +514,7 @@ class ConsoleDeviceSelectionRoutesTest {
         assertTrue(html.contains(".annotate-hint"))
         assertTrue(html.contains("position: static;"))
         assertTrue(html.contains("id=\"annotateHintSlot\""))
-        assertTrue(renderPreviewRegion.contains("snapshot.dataset.toolMode = toolMode;"))
+        assertTrue(renderPreviewRegion.contains("snapshot.dataset.toolMode = toolModeUseCases.isAnnotateMode() ? 'annotate' : 'select';"))
         assertTrue(renderPreviewRegion.contains("const hintSlot = document.getElementById('annotateHintSlot');"))
         assertTrue(renderPreviewRegion.contains("hintSlot.appendChild(hint);"))
         assertFalse(renderPreviewRegion.contains("snapshot.insertBefore(hint, frame);"))
@@ -529,7 +529,8 @@ class ConsoleDeviceSelectionRoutesTest {
         val renderOverlayBox = javascriptFunctionBody(html, "renderOverlayBox")
 
         assertTrue(html.contains("function renderSavedEvidenceOverlay(overlay, image, items)"))
-        assertTrue(html.contains("let focusedSavedItemId = null"))
+        // focusedSavedItemId is now owned by the toolModeFsm (no longer a module-level let).
+        assertTrue(html.contains("focusedSavedItemId: null"))
         assertTrue(html.contains("function focusSavedEvidenceItem(itemId)"))
         assertTrue(html.contains("function selectedSavedAnnotation()"))
         assertTrue(renderOverlayBox.contains("selectHandler"))

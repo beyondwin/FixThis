@@ -232,10 +232,11 @@ class ConsolePreviewRoutesTest {
         val html = FeedbackConsoleAssets.indexHtml
 
         assertTrue(html.contains("async function startAddItemsFlow()"))
-        assertTrue(html.contains("let addItemsFlowStarting = false;"))
-        assertTrue(html.contains("if (addItemsFlowStarting) return;"))
-        assertTrue(html.contains("addItemsFlowStarting = true;"))
-        assertTrue(html.contains("addItemsFlowStarting = false;"))
+        // addItemsFlowStarting is owned by the toolMode FSM.
+        assertTrue(html.contains("addItemsFlowStarting: false,"))
+        assertTrue(html.contains("if (toolModeUseCases.getState().addItemsFlowStarting) return;"))
+        assertTrue(html.contains("toolModeUseCases.setAddItemsFlowStarting(true);"))
+        assertTrue(html.contains("toolModeUseCases.setAddItemsFlowStarting(false);"))
         assertTrue(html.contains("stopLivePreviewPolling();"))
         assertTrue(html.contains("try {"))
         // Preview FSM owns request/context counters — addFlow captures the
@@ -263,11 +264,11 @@ class ConsolePreviewRoutesTest {
         )
         assertTrue(
             Regex(
-                "finally \\{\\s+addItemsFlowStarting = false;\\s+updateComposerState\\(\\);" +
+                "finally \\{\\s+toolModeUseCases\\.setAddItemsFlowStarting\\(false\\);\\s+updateComposerState\\(\\);" +
                     "\\s+if \\(!addItemsFlow\\) startLivePreviewPolling\\(\\);\\s+\\}",
             ).containsMatchIn(html),
         )
-        assertTrue(html.contains("if (addItemsFlowStarting) {"))
+        assertTrue(html.contains("if (toolModeUseCases.getState().addItemsFlowStarting) {"))
         assertTrue(html.contains("event.preventDefault();"))
         assertTrue(
             html.contains("annotateToolButton.addEventListener('click', () => enterAnnotateMode().catch(showError));"),

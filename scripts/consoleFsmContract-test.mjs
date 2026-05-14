@@ -11,7 +11,6 @@ const sourceDir = resolve(root, 'fixthis-mcp/src/main/console');
 // strict assertions below apply universally. Each Phase's commit
 // includes a single-line edit to this list.
 const PENDING_EXTRACTION = new Set([
-  'toolMode',
 ]);
 
 const FSM_FILES = {

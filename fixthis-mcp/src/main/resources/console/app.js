@@ -113,8 +113,8 @@ function reduceConnection(state, action) {
 }
 
 // build-header
-const ConsoleBuildEpochMs = 1778745900000;
-const ConsoleBuildGitSha = '670eb3b';
+const ConsoleBuildEpochMs = 1778747520000;
+const ConsoleBuildGitSha = '2e57af9';
 
 // connectionUseCases.js
 // connectionUseCases.js — action dispatchers for the connection FSM.
@@ -749,6 +749,242 @@ function createBrowserPollingUseCases(options = {}) {
   });
 }
 
+// toolModeFsm.js
+// toolModeFsm.js — pure reducer for the tool-mode lifecycle.
+//
+// Owns the tool-mode-related state previously held as module-level lets in
+// state.js: toolMode, annotationSequence, hoveredAnnotationTarget,
+// dragStart, dragPreview, suppressNextClick, addItemsFlowStarting,
+// newHistoryAnnotateModeStarting, historyDrawerOpen, focusedSavedItemId,
+// focusedSavedSessionId. No DOM, fetch, timers, or globals here.
+//
+// Modes (per console-state-machine-expansion §3.4):
+//   SELECT             — default; clicks tap-through, annotation tools off
+//   ANNOTATE_IDLE      — annotate mode armed; hover preview enabled, no drag
+//   ANNOTATE_DRAGGING  — pointerdown in annotate mode created a drag region
+//
+// Action set:
+//   ENTER_SELECT                      — switch to SELECT, clear hover/drag
+//   ENTER_ANNOTATE                    — switch to ANNOTATE_IDLE
+//   START_DRAG                        — pointerdown in annotate → DRAGGING
+//   UPDATE_DRAG_PREVIEW               — pointermove during drag
+//   DROP_COMMIT                       — pointerup, commit (advances seq)
+//   DROP_DISCARD                      — pointerup, discard (no seq advance)
+//   SET_HOVERED_TARGET                — hover overlay target
+//   SET_SUPPRESS_NEXT_CLICK           — suppress next image click
+//   TOGGLE_HISTORY_DRAWER             — flip drawer open/closed
+//   SET_HISTORY_DRAWER                — set drawer open/closed explicitly
+//   FOCUS_SAVED_ITEM                  — focus saved evidence item by id
+//   SET_ADD_ITEMS_FLOW_STARTING       — set add-items flow starting flag
+//   SET_NEW_HISTORY_ANNOTATE_MODE_STARTING — set history-annotate start flag
+//   ADVANCE_ANNOTATION_SEQ            — bump seq by 1 (legacy seq++ shape)
+//   SET_ANNOTATION_SEQUENCE_AT_LEAST  — raise seq to max(current, value)
+
+const ToolMode = Object.freeze({
+  SELECT: 'SELECT',
+  ANNOTATE_IDLE: 'ANNOTATE_IDLE',
+  ANNOTATE_DRAGGING: 'ANNOTATE_DRAGGING',
+});
+
+function createEmptyToolMode() {
+  return Object.freeze({
+    mode: ToolMode.SELECT,
+    annotationSequence: 1,
+    hoveredTarget: null,
+    drag: null,
+    suppressNextClick: false,
+    focusedSavedItemId: null,
+    focusedSavedSessionId: null,
+    historyDrawerOpen: false,
+    addItemsFlowStarting: false,
+    newHistoryAnnotateModeStarting: false,
+  });
+}
+
+function reduceToolMode(state, action) {
+  if (!state) state = createEmptyToolMode();
+  if (!action || typeof action.type !== 'string') return state;
+  switch (action.type) {
+    case 'ENTER_SELECT':
+      return Object.freeze({
+        ...state,
+        mode: ToolMode.SELECT,
+        hoveredTarget: null,
+        drag: null,
+      });
+    case 'ENTER_ANNOTATE':
+      return Object.freeze({
+        ...state,
+        mode: ToolMode.ANNOTATE_IDLE,
+      });
+    case 'START_DRAG': {
+      if (state.mode !== ToolMode.ANNOTATE_IDLE && state.mode !== ToolMode.ANNOTATE_DRAGGING) {
+        return state;
+      }
+      return Object.freeze({
+        ...state,
+        mode: ToolMode.ANNOTATE_DRAGGING,
+        drag: Object.freeze({ start: action.point || null, preview: null }),
+      });
+    }
+    case 'UPDATE_DRAG_PREVIEW': {
+      if (state.mode !== ToolMode.ANNOTATE_DRAGGING || !state.drag) return state;
+      return Object.freeze({
+        ...state,
+        drag: Object.freeze({
+          start: state.drag.start,
+          preview: action.preview || null,
+        }),
+      });
+    }
+    case 'DROP_COMMIT': {
+      if (state.mode !== ToolMode.ANNOTATE_DRAGGING) return state;
+      return Object.freeze({
+        ...state,
+        mode: ToolMode.ANNOTATE_IDLE,
+        drag: null,
+        annotationSequence: state.annotationSequence + 1,
+      });
+    }
+    case 'DROP_DISCARD': {
+      // Defensive: only transition out of ANNOTATE_DRAGGING. Calling
+      // dropDiscard while not dragging is a no-op (preserves mode and
+      // ensures drag is null).
+      if (state.mode !== ToolMode.ANNOTATE_DRAGGING && !state.drag) return state;
+      return Object.freeze({
+        ...state,
+        mode: state.mode === ToolMode.ANNOTATE_DRAGGING ? ToolMode.ANNOTATE_IDLE : state.mode,
+        drag: null,
+      });
+    }
+    case 'SET_HOVERED_TARGET':
+      return Object.freeze({
+        ...state,
+        hoveredTarget: action.target ?? null,
+      });
+    case 'SET_SUPPRESS_NEXT_CLICK':
+      return Object.freeze({
+        ...state,
+        suppressNextClick: Boolean(action.value),
+      });
+    case 'TOGGLE_HISTORY_DRAWER':
+      return Object.freeze({
+        ...state,
+        historyDrawerOpen: !state.historyDrawerOpen,
+      });
+    case 'SET_HISTORY_DRAWER':
+      return Object.freeze({
+        ...state,
+        historyDrawerOpen: Boolean(action.open),
+      });
+    case 'FOCUS_SAVED_ITEM':
+      return Object.freeze({
+        ...state,
+        focusedSavedItemId: action.itemId ?? null,
+        focusedSavedSessionId: action.sessionId ?? null,
+      });
+    case 'SET_ADD_ITEMS_FLOW_STARTING':
+      return Object.freeze({
+        ...state,
+        addItemsFlowStarting: Boolean(action.value),
+      });
+    case 'SET_NEW_HISTORY_ANNOTATE_MODE_STARTING':
+      return Object.freeze({
+        ...state,
+        newHistoryAnnotateModeStarting: Boolean(action.value),
+      });
+    case 'ADVANCE_ANNOTATION_SEQ':
+      return Object.freeze({
+        ...state,
+        annotationSequence: state.annotationSequence + 1,
+      });
+    case 'SET_ANNOTATION_SEQUENCE_AT_LEAST': {
+      const target = Number(action.value);
+      if (!Number.isFinite(target)) return state;
+      if (target <= state.annotationSequence) return state;
+      return Object.freeze({
+        ...state,
+        annotationSequence: target,
+      });
+    }
+    default:
+      return state;
+  }
+}
+
+// toolModeUseCases.js
+// toolModeUseCases.js — action dispatchers for the tool-mode FSM.
+//
+// Pure synchronous transitions: no DOM, fetch, timers, localStorage.
+// No browser adapter — the tool-mode FSM is consumed directly by
+// annotations.js / history.js / preview.js / rendering.js / main.js
+// / connection.js via the toolModeUseCases instance constructed in
+// state.js.
+//
+// Factory shape:
+//   createToolModeUseCases({ onChange })
+//     -> { getState,
+//          enterSelect, enterAnnotate,
+//          startDrag, updateDragPreview, dropCommit, dropDiscard,
+//          setHoveredTarget, setSuppressNextClick,
+//          toggleHistoryDrawer, setHistoryDrawer,
+//          focusSavedItem,
+//          setAddItemsFlowStarting, setNewHistoryAnnotateModeStarting,
+//          nextAnnotationSeq, setAnnotationSequenceAtLeast,
+//          isSelectMode, isAnnotateMode, isDragging }
+//
+// `nextAnnotationSeq` preserves the legacy `'draft-' + annotationSequence++`
+// increment-and-return shape. Use `setAnnotationSequenceAtLeast` for the
+// `annotationSequence = Math.max(annotationSequence, next)` pattern used
+// when recovering items from persisted drafts.
+
+function createToolModeUseCases(options = {}) {
+  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
+  let current = options.initialState ?? createEmptyToolMode();
+  if (!Object.isFrozen(current)) current = Object.freeze({ ...current });
+
+  function dispatch(action) {
+    const next = reduceToolMode(current, action);
+    if (next !== current) {
+      current = next;
+      onChange(current);
+    }
+    return current;
+  }
+
+  function getState() {
+    return current;
+  }
+
+  function nextAnnotationSeq() {
+    const previous = current.annotationSequence;
+    dispatch({ type: 'ADVANCE_ANNOTATION_SEQ' });
+    return previous;
+  }
+
+  return {
+    getState,
+    enterSelect: () => dispatch({ type: 'ENTER_SELECT' }),
+    enterAnnotate: () => dispatch({ type: 'ENTER_ANNOTATE' }),
+    startDrag: (point) => dispatch({ type: 'START_DRAG', point }),
+    updateDragPreview: (preview) => dispatch({ type: 'UPDATE_DRAG_PREVIEW', preview }),
+    dropCommit: () => dispatch({ type: 'DROP_COMMIT' }),
+    dropDiscard: () => dispatch({ type: 'DROP_DISCARD' }),
+    setHoveredTarget: (target) => dispatch({ type: 'SET_HOVERED_TARGET', target }),
+    setSuppressNextClick: (value) => dispatch({ type: 'SET_SUPPRESS_NEXT_CLICK', value }),
+    toggleHistoryDrawer: () => dispatch({ type: 'TOGGLE_HISTORY_DRAWER' }),
+    setHistoryDrawer: (open) => dispatch({ type: 'SET_HISTORY_DRAWER', open }),
+    focusSavedItem: (itemId, sessionId) => dispatch({ type: 'FOCUS_SAVED_ITEM', itemId, sessionId }),
+    setAddItemsFlowStarting: (value) => dispatch({ type: 'SET_ADD_ITEMS_FLOW_STARTING', value }),
+    setNewHistoryAnnotateModeStarting: (value) => dispatch({ type: 'SET_NEW_HISTORY_ANNOTATE_MODE_STARTING', value }),
+    nextAnnotationSeq,
+    setAnnotationSequenceAtLeast: (value) => dispatch({ type: 'SET_ANNOTATION_SEQUENCE_AT_LEAST', value }),
+    isSelectMode: () => current.mode === ToolMode.SELECT,
+    isAnnotateMode: () => current.mode === ToolMode.ANNOTATE_IDLE || current.mode === ToolMode.ANNOTATE_DRAGGING,
+    isDragging: () => current.mode === ToolMode.ANNOTATE_DRAGGING,
+  };
+}
+
 // state.js
             const DefaultLivePreviewIntervalMs = 1000;
             const MinLivePreviewIntervalMs = 1000;
@@ -793,6 +1029,15 @@ function createBrowserPollingUseCases(options = {}) {
               onChange: (next) => { state.pollingFsm = { ...next }; },
             });
             state.pollingFsm = { ...pollingUseCases.getState() };
+            // Tool-mode FSM single source of truth. Owns toolMode,
+            // annotationSequence, hoveredAnnotationTarget, dragStart/dragPreview
+            // (combined as drag), suppressNextClick, addItemsFlowStarting,
+            // newHistoryAnnotateModeStarting, historyDrawerOpen,
+            // focusedSavedItemId, focusedSavedSessionId. No browser adapter —
+            // pure synchronous transitions per spec §3.4. Legacy READ/WRITE
+            // sites in annotations.js/history.js/preview.js/rendering.js/
+            // main.js/connection.js delegate through this instance.
+            const toolModeUseCases = createToolModeUseCases();
             const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });
             const unresponsiveTracker = createUnresponsiveTracker({ threshold: 3 });
             const sessions = document.getElementById('sessions');
@@ -839,20 +1084,15 @@ function createBrowserPollingUseCases(options = {}) {
             let heartbeatTimer = null;
             let heartbeatPolling = false;
             let addItemsFlow = null;
-            let addItemsFlowStarting = false;
-            let newHistoryAnnotateModeStarting = false;
             let pendingFeedbackItems = [];
             let focusedPendingItemIndex = null;
-            let focusedSavedItemId = null;
-            let focusedSavedSessionId = null;
             let currentSelection = null;
-            let toolMode = 'select';
-            let annotationSequence = 1;
-            let hoveredAnnotationTarget = null;
-            let dragStart = null;
-            let dragPreview = null;
-            let suppressNextClick = false;
-            let historyDrawerOpen = false;
+            // Tool-mode-owned state (toolMode, annotationSequence,
+            // hoveredAnnotationTarget, dragStart, dragPreview,
+            // suppressNextClick, addItemsFlowStarting,
+            // newHistoryAnnotateModeStarting, historyDrawerOpen,
+            // focusedSavedItemId, focusedSavedSessionId) now lives in
+            // toolModeUseCases (see toolModeFsm.js / toolModeUseCases.js).
             // Polling-owned state (sessionsPollingTimer, lastSessionsEtag,
             // lastSessionEtag, pendingMutationCount, sessionMutationGeneration,
             // consecutivePollFailures, promptActionInFlight) now lives in
@@ -910,7 +1150,7 @@ function createBrowserPollingUseCases(options = {}) {
               return createFakeDraftPorts({
                 ids: {
                   nextWorkspaceId: () => 'workspace-' + Date.now() + '-' + Math.random().toString(36).slice(2),
-                  nextDraftItemId: () => 'draft-' + annotationSequence++,
+                  nextDraftItemId: () => 'draft-' + toolModeUseCases.nextAnnotationSeq(),
                 },
                 clock: { now: () => Date.now() },
                 preview: {
@@ -2300,7 +2540,7 @@ function createDraftCommandQueue({ getWorkspace, setWorkspace, onStaleResponse =
             }
 
             function computeCurrentBlockedReason(statusAvailability) {
-              const annotate = toolMode === 'annotate';
+              const annotate = toolModeUseCases.isAnnotateMode();
               const availability = statusAvailability ?? connectionUseCases.getState().availability;
               const resolverInput = availability
                 ? { ...availability, unresponsive: unresponsiveTracker.isUnresponsive() }
@@ -2354,7 +2594,7 @@ function createDraftCommandQueue({ getWorkspace, setWorkspace, onStaleResponse =
               // Detect blocked → unblocked transitions for select-mode auto-resume.
               // Use the captured prior previousBlockedReason vs the new reason.
               if (priorPreviousBlockedReason !== null && newBlockedReason === null) {
-                if (toolMode === 'select' && state.session) {
+                if (toolModeUseCases.isSelectMode() && state.session) {
                   refreshPreview().catch(showError);
                 }
               }
@@ -2787,7 +3027,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             function screenImageUrl(screen) {
               if (addItemsFlow) return addItemsFlow.screenshotUrl;
               if (state.preview?.screen === screen && state.preview?.previewId) return previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null);
-              if (screen?.screenId) return screenScreenshotUrl(screen.screenId, state.session?.sessionId || focusedSavedSessionId || null);
+              if (screen?.screenId) return screenScreenshotUrl(screen.screenId, state.session?.sessionId || toolModeUseCases.getState().focusedSavedSessionId || null);
               return '';
             }
 
@@ -2857,6 +3097,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function latestScreen() {
               if (addItemsFlow) return addItemsFlow.screen;
+              const focusedSavedItemId = toolModeUseCases.getState().focusedSavedItemId;
               if (focusedSavedItemId) {
                 const focusedItem = savedEvidenceItems().find(item => item.itemId === focusedSavedItemId);
                 if (focusedItem) {
@@ -2977,7 +3218,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             async function useLatestStaleFrame() {
-              const wasAnnotating = toolMode === 'annotate' || Boolean(addItemsFlow);
+              const wasAnnotating = toolModeUseCases.isAnnotateMode() || Boolean(addItemsFlow);
               flushFocusedPendingComment();
               const pendingItems = draftWorkspaceItems(draftWorkspace).slice();
               const previousWorkspace = draftWorkspace;
@@ -3008,10 +3249,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 });
                 updateAnnotationSequenceFromPendingItems(pendingItems);
                 focusedPendingItemIndex = null;
-                focusedSavedItemId = null;
-                focusedSavedSessionId = null;
+                toolModeUseCases.focusSavedItem(null, null);
                 currentSelection = null;
-                hoveredAnnotationTarget = null;
+                toolModeUseCases.setHoveredTarget(null);
                 persistCurrentPendingState();
               } else {
                 await refreshPreview();
@@ -3270,10 +3510,10 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               cancelAddFlowButton.disabled = !addItemsFlow;
               addItemButton.hidden = true;
               addItemButton.disabled = true;
-              annotateToolButton.disabled = addItemsFlowStarting;
-              selectToolButton.setAttribute('aria-pressed', String(toolMode === 'select'));
-              annotateToolButton.setAttribute('aria-pressed', String(toolMode === 'annotate'));
-              toolStatus.innerHTML = toolMode === 'annotate'
+              annotateToolButton.disabled = toolModeUseCases.getState().addItemsFlowStarting;
+              selectToolButton.setAttribute('aria-pressed', String(toolModeUseCases.isSelectMode()));
+              annotateToolButton.setAttribute('aria-pressed', String(toolModeUseCases.isAnnotateMode()));
+              toolStatus.innerHTML = toolModeUseCases.isAnnotateMode()
                 ? '<span class="ts-hint"><span class="ts-dot"></span><span>Click a widget — or drag to draw a region</span></span>'
                 : '<span class="ts-meta">' +
                     '<span class="ts-dot-label"><span class="ts-dot"></span>' + toolbarOpenCount() + ' open</span>' +
@@ -3284,7 +3524,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 ? currentSelection.label + ' - ' + formatBounds(currentSelection.bounds)
                 : (item
                   ? 'Focused #' + (focusedPendingItemIndex + 1) + ' - ' + formatBounds(item.bounds)
-                  : (toolMode === 'annotate' ? 'Click a component or drag a region to create an annotation.' : 'No annotation selected.'));
+                  : (toolModeUseCases.isAnnotateMode() ? 'Click a component or drag a region to create an annotation.' : 'No annotation selected.'));
               renderPromptReadiness();
             }
 
@@ -3355,19 +3595,20 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (isInteractionBlocked()) return;
               const selection = nodeSelectionAtPoint(event, image);
               const nextId = selection?.nodeUid || null;
-              const currentId = hoveredAnnotationTarget?.nodeUid || null;
+              const currentId = toolModeUseCases.getState().hoveredTarget?.nodeUid || null;
               if (nextId === currentId) return;
-              hoveredAnnotationTarget = selection;
+              toolModeUseCases.setHoveredTarget(selection);
               renderSelectionOverlay();
             }
 
             function confirmHoveredAnnotationTarget(event, image) {
               if (isInteractionBlocked()) return;
-              if (hoveredAnnotationTarget) {
+              const hoveredTarget = toolModeUseCases.getState().hoveredTarget;
+              if (hoveredTarget) {
                 const point = naturalPointFromEvent(event, image);
-                if (containsPoint(hoveredAnnotationTarget.bounds, point)) {
-                  const selection = hoveredAnnotationTarget;
-                  hoveredAnnotationTarget = null;
+                if (containsPoint(hoveredTarget.bounds, point)) {
+                  const selection = hoveredTarget;
+                  toolModeUseCases.setHoveredTarget(null);
                   createAnnotationFromSelection(selection);
                   error.textContent = '';
                   return;
@@ -3389,15 +3630,15 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function clearDragState() {
-              if (!dragStart && !dragPreview) return;
-              dragStart = null;
-              dragPreview = null;
+              const drag = toolModeUseCases.getState().drag;
+              if (!drag) return;
+              toolModeUseCases.dropDiscard();
               renderSelectionOverlay();
             }
 
             function clearHoverPreview() {
-              if (!hoveredAnnotationTarget) return;
-              hoveredAnnotationTarget = null;
+              if (!toolModeUseCases.getState().hoveredTarget) return;
+              toolModeUseCases.setHoveredTarget(null);
               renderSelectionOverlay();
             }
 
@@ -3408,11 +3649,10 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 activePendingMirrorSessions.delete(state.session?.sessionId);
               }
               focusedPendingItemIndex = null;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
+              toolModeUseCases.focusSavedItem(null, null);
               currentSelection = null;
-              hoveredAnnotationTarget = null;
-              toolMode = 'select';
+              toolModeUseCases.setHoveredTarget(null);
+              toolModeUseCases.enterSelect();
               comment.value = '';
               clearDragState();
             }
@@ -3444,9 +3684,8 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             function clearSelection() {
               currentSelection = null;
               focusedPendingItemIndex = null;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
-              hoveredAnnotationTarget = null;
+              toolModeUseCases.focusSavedItem(null, null);
+              toolModeUseCases.setHoveredTarget(null);
               comment.value = '';
               clearDragState();
               renderSelectionOverlay();
@@ -3456,9 +3695,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
 
             async function startAddItemsFlow() {
-              if (addItemsFlowStarting) return;
+              if (toolModeUseCases.getState().addItemsFlowStarting) return;
               error.textContent = '';
-              addItemsFlowStarting = true;
+              toolModeUseCases.setAddItemsFlowStarting(true);
               updateComposerState();
               stopLivePreviewPolling();
               try {
@@ -3491,12 +3730,11 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   },
                 });
                 setDraftWorkspace(nextWorkspace);
-                toolMode = 'annotate';
-                focusedSavedItemId = null;
-                focusedSavedSessionId = null;
+                toolModeUseCases.enterAnnotate();
+                toolModeUseCases.focusSavedItem(null, null);
                 render();
               } finally {
-                addItemsFlowStarting = false;
+                toolModeUseCases.setAddItemsFlowStarting(false);
                 updateComposerState();
                 if (!addItemsFlow) startLivePreviewPolling();
               }
@@ -3530,10 +3768,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               }
               setDraftWorkspace(nextWorkspace);
               const createdItem = nextWorkspace.items[nextWorkspace.items.length - 1];
-              hoveredAnnotationTarget = null;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
-              toolMode = 'annotate';
+              toolModeUseCases.setHoveredTarget(null);
+              toolModeUseCases.focusSavedItem(null, null);
+              toolModeUseCases.enterAnnotate();
               comment.value = '';
               renderPreviewOnly();
               renderInspectorRegion();
@@ -3547,10 +3784,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               setDraftWorkspace(deleteDraftItem(draftWorkspace, removed.draftItemId));
               showUndoToast(removed.draftItemId);
               focusedPendingItemIndex = null;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
+              toolModeUseCases.focusSavedItem(null, null);
               currentSelection = null;
-              hoveredAnnotationTarget = null;
+              toolModeUseCases.setHoveredTarget(null);
               comment.value = '';
               renderPreviewOnly();
               renderInspectorRegion();
@@ -3560,21 +3796,19 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             function focusPendingFeedbackItem(index) {
               flushFocusedPendingComment();
               focusedPendingItemIndex = index;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
+              toolModeUseCases.focusSavedItem(null, null);
               currentSelection = null;
-              toolMode = 'select';
+              toolModeUseCases.enterSelect();
               comment.value = pendingFeedbackItems[index]?.comment || '';
               renderPreviewOnly();
               renderInspectorRegion();
             }
 
             function focusSavedEvidenceItem(itemId) {
-              focusedSavedItemId = itemId;
-              focusedSavedSessionId = state.session?.sessionId || null;
+              toolModeUseCases.focusSavedItem(itemId, state.session?.sessionId || null);
               focusedPendingItemIndex = null;
               currentSelection = null;
-              toolMode = 'select';
+              toolModeUseCases.enterSelect();
               comment.value = '';
               renderPreviewOnly();
               renderInspectorRegion();
@@ -3597,7 +3831,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               return updatedSession;
             }
 
-            async function persistSavedEvidenceItem(item, sessionId = focusedSavedSessionId || state.session?.sessionId || null) {
+            async function persistSavedEvidenceItem(item, sessionId = toolModeUseCases.getState().focusedSavedSessionId || state.session?.sessionId || null) {
               if (!item?.itemId) return state.session;
               const updatedSession = await withMutationLock(() => requestJson('/api/items/' + encodeURIComponent(item.itemId), {
                 method: 'PUT',
@@ -3613,15 +3847,14 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               return applySavedSessionUpdate(updatedSession, sessionId);
             }
 
-            async function deleteSavedEvidenceItem(itemId, sessionId = focusedSavedSessionId || state.session?.sessionId || null) {
+            async function deleteSavedEvidenceItem(itemId, sessionId = toolModeUseCases.getState().focusedSavedSessionId || state.session?.sessionId || null) {
               if (!itemId) return;
               const sessionQuery = sessionId
                 ? '?sessionId=' + encodeURIComponent(sessionId)
                 : '';
               const updatedSession = await withMutationLock(() => requestJson('/api/items/' + encodeURIComponent(itemId) + sessionQuery, { method: 'DELETE' }));
               if (state.session?.sessionId === (updatedSession?.sessionId || sessionId)) {
-                focusedSavedItemId = null;
-                focusedSavedSessionId = null;
+                toolModeUseCases.focusSavedItem(null, null);
                 state.session = updatedSession;
                 renderPreviewOnly();
                 renderInspectorRegion();
@@ -3768,7 +4001,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function enterSelectMode() {
-              toolMode = 'select';
+              toolModeUseCases.enterSelect();
               currentSelection = null;
               clearHoverPreview();
               clearDragState();
@@ -3918,7 +4151,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             async function enterAnnotateMode() {
               if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
               await ensureSessionForAnnotating();
-              toolMode = 'annotate';
+              toolModeUseCases.enterAnnotate();
               renderCurrentSessionList();
               if (!addItemsFlow) {
                 await startAddItemsFlow();
@@ -3929,9 +4162,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             async function enterNewHistoryAnnotateMode() {
-              if (newHistoryAnnotateModeStarting) return;
-              newHistoryAnnotateModeStarting = true;
-              toolMode = 'annotate';
+              if (toolModeUseCases.getState().newHistoryAnnotateModeStarting) return;
+              toolModeUseCases.setNewHistoryAnnotateModeStarting(true);
+              toolModeUseCases.enterAnnotate();
               renderCurrentSessionList();
               try {
                 await newSession();
@@ -3939,7 +4172,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 await enterAnnotateMode();
                 scrollActiveHistoryItemIntoView();
               } finally {
-                newHistoryAnnotateModeStarting = false;
+                toolModeUseCases.setNewHistoryAnnotateModeStarting(false);
                 renderCurrentSessionList();
               }
             }
@@ -3951,23 +4184,24 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function syncHistoryDrawerState() {
               if (!historyToggleButton || !historyDrawerScrim) return;
-              if (historyDrawerOpen) {
+              const open = toolModeUseCases.getState().historyDrawerOpen;
+              if (open) {
                 document.body.dataset.historyDrawerOpen = 'true';
               } else {
                 delete document.body.dataset.historyDrawerOpen;
               }
-              historyToggleButton.setAttribute('aria-expanded', String(historyDrawerOpen));
+              historyToggleButton.setAttribute('aria-expanded', String(open));
             }
 
             function openHistoryDrawer() {
-              historyDrawerOpen = true;
+              toolModeUseCases.setHistoryDrawer(true);
               syncHistoryDrawerState();
               document.getElementById('historyPanel')?.focus({ preventScroll: true });
             }
 
             function closeHistoryDrawer(options = {}) {
-              const wasOpen = historyDrawerOpen;
-              historyDrawerOpen = false;
+              const wasOpen = toolModeUseCases.getState().historyDrawerOpen;
+              toolModeUseCases.setHistoryDrawer(false);
               syncHistoryDrawerState();
               if (wasOpen && options.returnFocus !== false) historyToggleButton?.focus({ preventScroll: true });
             }
@@ -3975,7 +4209,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             historyToggleButton?.addEventListener('click', openHistoryDrawer);
             historyDrawerScrim?.addEventListener('click', () => closeHistoryDrawer());
             document.addEventListener('keydown', event => {
-              if (event.key === 'Escape' && historyDrawerOpen) {
+              if (event.key === 'Escape' && toolModeUseCases.getState().historyDrawerOpen) {
                 event.preventDefault();
                 closeHistoryDrawer();
               }
@@ -3983,7 +4217,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             syncHistoryDrawerState();
 
             function historyStartAnnotatingItemHtml() {
-              if (newHistoryAnnotateModeStarting) return '';
+              if (toolModeUseCases.getState().newHistoryAnnotateModeStarting) return '';
               return '<button type="button" class="history-item history-add-row" data-start-new-history-annotating aria-label="Start annotating">' +
                 '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>' +
               '</button>';
@@ -4378,8 +4612,8 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               }
 
               renderNumberedFeedbackOverlay(overlay, image);
-              if (!addItemsFlow && focusedSavedItemId) {
-                const focusedItem = savedEvidenceItems().find(item => item.itemId === focusedSavedItemId);
+              if (!addItemsFlow && toolModeUseCases.getState().focusedSavedItemId) {
+                const focusedItem = savedEvidenceItems().find(item => item.itemId === toolModeUseCases.getState().focusedSavedItemId);
                 if (focusedItem) {
                   const sameScreenItems = savedEvidenceItems().filter(item => item.screenId === focusedItem.screenId);
                   if (sameScreenItems.length) renderSavedEvidenceOverlay(overlay, image, sameScreenItems);
@@ -4388,11 +4622,12 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (currentSelection) {
                 renderOverlayBox(overlay, image, currentSelection.bounds, currentSelection.label);
               }
-              if (addItemsFlow && toolMode === 'annotate' && hoveredAnnotationTarget && !dragPreview) {
-                renderOverlayBox(overlay, image, hoveredAnnotationTarget.bounds, null, false, false, null, 'hover-preview');
+              const toolModeState = toolModeUseCases.getState();
+              if (addItemsFlow && toolModeUseCases.isAnnotateMode() && toolModeState.hoveredTarget && !toolModeState.drag?.preview) {
+                renderOverlayBox(overlay, image, toolModeState.hoveredTarget.bounds, null, false, false, null, 'hover-preview');
               }
-              if (dragPreview) {
-                renderOverlayBox(overlay, image, dragPreview, null, true);
+              if (toolModeState.drag?.preview) {
+                renderOverlayBox(overlay, image, toolModeState.drag.preview, null, true);
               }
               updateComposerState();
             }
@@ -4403,7 +4638,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function startAnnotatingButtonHtml() {
-              if (toolMode === 'annotate') return '';
+              if (toolModeUseCases.isAnnotateMode()) return '';
               return '<button type="button" class="primary" data-start-annotating>Start annotating</button>';
             }
 
@@ -4654,12 +4889,14 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function selectedSavedAnnotation() {
-              if (!focusedSavedItemId) return null;
-              return savedEvidenceItems().find(item => item.itemId === focusedSavedItemId) || null;
+              const focused = toolModeUseCases.getState().focusedSavedItemId;
+              if (!focused) return null;
+              return savedEvidenceItems().find(item => item.itemId === focused) || null;
             }
 
             function renderSavedEvidenceOverlay(overlay, image, items) {
               const allSavedItems = savedEvidenceItems();
+              const focused = toolModeUseCases.getState().focusedSavedItemId;
               items.forEach((item, index) => {
                 const savedIndex = Math.max(0, allSavedItems.findIndex(savedItem => savedItem.itemId === item.itemId));
                 const displayNumber = annotationDisplayNumber(item, savedIndex);
@@ -4669,7 +4906,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   boundsForTarget(item.target),
                   String(displayNumber),
                   false,
-                  item.itemId === focusedSavedItemId,
+                  item.itemId === focused,
                   savedIndex,
                   '',
                   severityColor(annotationSeverity(item)),
@@ -4720,7 +4957,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                     prevScreenId = item.screenId;
                   }
                   return header +
-                    '<button type="button" class="ann-row saved-item-row ' + (item.itemId === focusedSavedItemId ? 'active' : '') + '" style="--annotation-color:' + color + '" data-phase="' + escapeHtml(phase) + '" data-item-id="' + escapeHtml(item.itemId) + '" data-focus-saved="' + escapeHtml(item.itemId) + '">' +
+                    '<button type="button" class="ann-row saved-item-row ' + (item.itemId === toolModeUseCases.getState().focusedSavedItemId ? 'active' : '') + '" style="--annotation-color:' + color + '" data-phase="' + escapeHtml(phase) + '" data-item-id="' + escapeHtml(item.itemId) + '" data-focus-saved="' + escapeHtml(item.itemId) + '">' +
                       '<span class="ann-row-num" style="background:' + color + '">' + escapeHtml(String(displayNumber)) + '</span>' +
                       '<span class="ann-row-body">' +
                         '<span class="ann-row-title">' + escapeHtml(targetLabel(item)) + '</span>' +
@@ -4742,7 +4979,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             function renderSavedAnnotationDetail(item, index) {
               const severity = annotationSeverity(item);
               const status = annotationStatus(item);
-              const editSessionId = focusedSavedSessionId || state.session?.sessionId || null;
+              const editSessionId = toolModeUseCases.getState().focusedSavedSessionId || state.session?.sessionId || null;
               const phase = lifecyclePhase(item);
               const editable = phase === 'draft' || phase === 'sent' || phase === 'sent_modified' || phase === 'needs_clarification';
               const dis = editable ? '' : ' disabled';
@@ -4915,8 +5152,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                   // reject a PATCH on non-editable items with ITEM_NOT_EDITABLE — we should
                   // still let the user leave the detail view.
                   const goBack = () => {
-                    focusedSavedItemId = null;
-                    focusedSavedSessionId = null;
+                    toolModeUseCases.focusSavedItem(null, null);
                     renderPreviewOnly();
                     renderInspectorRegion();
                   };
@@ -4942,7 +5178,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function workflowActiveStep() {
               if (!state.connection?.hasEverConnected && userConnectionState(state.connection?.current) !== 'ready') return 'connect';
-              if (addItemsFlow || toolMode === 'annotate') return 'annotate';
+              if (addItemsFlow || toolModeUseCases.isAnnotateMode()) return 'annotate';
               if (currentPromptAnnotations().length > 0) return 'handoff';
               return 'preview';
             }
@@ -5031,7 +5267,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               if (!hasScreenshot) return { state: 'unavailable', label: 'No screenshot' };
               if (state.preview?.stale) return { state: 'stale', label: 'Stale frame' };
               if (addItemsFlow) return { state: 'frozen', label: 'Frozen for annotation' };
-              if (focusedSavedItemId || (!state.preview && screen?.screenId)) return { state: 'saved', label: 'Saved screen' };
+              if (toolModeUseCases.getState().focusedSavedItemId || (!state.preview && screen?.screenId)) return { state: 'saved', label: 'Saved screen' };
               if (state.preview) return { state: 'live', label: 'Live preview' };
               return { state: 'unavailable', label: 'No screenshot' };
             }
@@ -5048,7 +5284,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               const screen = latestScreen();
               const hasScreenshot = Boolean(screen?.screenshot?.desktopFullPath);
               const mode = addItemsFlow ? 'frozen' : (state.preview ? 'live' : (screen ? 'frozen' : 'idle'));
-              snapshot.dataset.toolMode = toolMode;
+              snapshot.dataset.toolMode = toolModeUseCases.isAnnotateMode() ? 'annotate' : 'select';
               if (!hasScreenshot) {
                 const emptyMessage = screen
                   ? 'No screenshot artifact for this preview.'
@@ -5074,7 +5310,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               }
               const hintSlot = document.getElementById('annotateHintSlot');
               let hint = document.getElementById('annotateHint');
-              if (toolMode === 'annotate') {
+              if (toolModeUseCases.isAnnotateMode()) {
                 if (!hint) {
                   hint = document.createElement('div');
                   hint.id = 'annotateHint';
@@ -5113,15 +5349,15 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               image.addEventListener('dragstart', event => event.preventDefault());
               image.addEventListener('click', event => {
                 try {
-                  if (addItemsFlowStarting) {
+                  if (toolModeUseCases.getState().addItemsFlowStarting) {
                     event.preventDefault();
                     return;
                   }
-                  if (suppressNextClick) {
-                    suppressNextClick = false;
+                  if (toolModeUseCases.getState().suppressNextClick) {
+                    toolModeUseCases.setSuppressNextClick(false);
                     return;
                   }
-                  if (toolMode === 'select' && addItemsFlow) {
+                  if (toolModeUseCases.isSelectMode() && addItemsFlow) {
                     clearSelection();
                     return;
                   }
@@ -5130,7 +5366,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                     navigate('tap', { x: point.x, y: point.y }).catch(showError);
                     return;
                   }
-                  if (toolMode === 'annotate' && !dragStart) {
+                  if (toolModeUseCases.isAnnotateMode() && !toolModeUseCases.isDragging()) {
                     selectNodeAtPoint(event, image);
                   }
                 } catch (cause) {
@@ -5138,28 +5374,30 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 }
               });
               image.addEventListener('pointerdown', event => {
-                if (addItemsFlowStarting) {
+                if (toolModeUseCases.getState().addItemsFlowStarting) {
                   event.preventDefault();
                   return;
                 }
-                if (!addItemsFlow || toolMode !== 'annotate') return;
+                if (!addItemsFlow || !toolModeUseCases.isAnnotateMode()) return;
                 try {
                   image.setPointerCapture?.(event.pointerId);
-                  dragStart = naturalPointFromEvent(event, image);
-                  dragPreview = normalizeBounds(dragStart, dragStart);
+                  const point = naturalPointFromEvent(event, image);
+                  toolModeUseCases.startDrag(point);
+                  toolModeUseCases.updateDragPreview(normalizeBounds(point, point));
                   renderSelectionOverlay();
                 } catch (cause) {
                   showError(cause);
                 }
               });
               image.addEventListener('pointermove', event => {
-                if (!addItemsFlow || toolMode !== 'annotate') return;
+                if (!addItemsFlow || !toolModeUseCases.isAnnotateMode()) return;
                 try {
-                  if (!dragStart) {
+                  const dragState = toolModeUseCases.getState().drag;
+                  if (!dragState) {
                     previewNodeAtPoint(event, image);
                     return;
                   }
-                  dragPreview = normalizeBounds(dragStart, naturalPointFromEvent(event, image));
+                  toolModeUseCases.updateDragPreview(normalizeBounds(dragState.start, naturalPointFromEvent(event, image)));
                   renderSelectionOverlay();
                 } catch (cause) {
                   clearDragState();
@@ -5167,17 +5405,18 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 }
               });
               image.addEventListener('pointerup', event => {
-                if (!addItemsFlow || toolMode !== 'annotate' || !dragStart) return;
+                const dragState = toolModeUseCases.getState().drag;
+                if (!addItemsFlow || !toolModeUseCases.isAnnotateMode() || !dragState) return;
                 try {
                   const end = naturalPointFromEvent(event, image);
-                  const bounds = normalizeBounds(dragStart, end);
+                  const bounds = normalizeBounds(dragState.start, end);
                   clearDragState();
                   releaseSnapshotPointerCapture(image, event);
                   if ((bounds.right - bounds.left) >= 8 && (bounds.bottom - bounds.top) >= 8) {
-                    suppressNextClick = true;
+                    toolModeUseCases.setSuppressNextClick(true);
                     finishAreaSelection(bounds);
 	                  } else {
-	                    suppressNextClick = true;
+	                    toolModeUseCases.setSuppressNextClick(true);
 	                    renderSelectionOverlay();
 	                    confirmHoveredAnnotationTarget(event, image);
 	                  }
@@ -5198,14 +5437,16 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             function mergeSessionIntoState(fresh) {
               const previous = state.session;
               const preservedComment = comment.value;
-              const preservedFocusedSavedItemId = focusedSavedItemId;
+              const toolModeStateBefore = toolModeUseCases.getState();
+              const preservedFocusedSavedItemId = toolModeStateBefore.focusedSavedItemId;
+              const preservedFocusedSavedSessionId = toolModeStateBefore.focusedSavedSessionId;
               const preservedFocusedPendingIndex = focusedPendingItemIndex;
               const preservedSelection = currentSelection;
 
               state.session = fresh;
 
               comment.value = preservedComment;
-              focusedSavedItemId = preservedFocusedSavedItemId;
+              toolModeUseCases.focusSavedItem(preservedFocusedSavedItemId, preservedFocusedSavedSessionId);
               focusedPendingItemIndex = preservedFocusedPendingIndex;
               currentSelection = preservedSelection;
 
@@ -5526,13 +5767,14 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
             function updateAnnotationSequenceFromPendingItems(items) {
+              const current = toolModeUseCases.getState().annotationSequence;
               const next = (items || [])
                 .map(item => String(item?.annotationId || '').match(/^local-(\d+)$/))
                 .filter(Boolean)
                 .map(match => Number(match[1]))
                 .filter(Number.isFinite)
-                .reduce((max, value) => Math.max(max, value + 1), annotationSequence);
-              annotationSequence = Math.max(annotationSequence, next);
+                .reduce((max, value) => Math.max(max, value + 1), current);
+              toolModeUseCases.setAnnotationSequenceAtLeast(next);
             }
 
             function restorePendingRecoveryContext(recovery) {
@@ -5547,11 +5789,10 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               };
               updateAnnotationSequenceFromPendingItems(workspace.items);
               focusedPendingItemIndex = null;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
+              toolModeUseCases.focusSavedItem(null, null);
               currentSelection = null;
-              hoveredAnnotationTarget = null;
-              toolMode = 'select';
+              toolModeUseCases.setHoveredTarget(null);
+              toolModeUseCases.enterSelect();
               stopLivePreviewPolling();
               persistCurrentPendingState();
             }
@@ -5671,10 +5912,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               updateAnnotationSequenceFromPendingItems(recoveredItems);
               pendingRecovery = null;
               focusedPendingItemIndex = null;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
+              toolModeUseCases.focusSavedItem(null, null);
               currentSelection = null;
-              hoveredAnnotationTarget = null;
+              toolModeUseCases.setHoveredTarget(null);
               persistCurrentPendingState();
               renderPendingRecoveryBanner();
               render();

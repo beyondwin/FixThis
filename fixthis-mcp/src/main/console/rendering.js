@@ -75,8 +75,8 @@
               }
 
               renderNumberedFeedbackOverlay(overlay, image);
-              if (!addItemsFlow && focusedSavedItemId) {
-                const focusedItem = savedEvidenceItems().find(item => item.itemId === focusedSavedItemId);
+              if (!addItemsFlow && toolModeUseCases.getState().focusedSavedItemId) {
+                const focusedItem = savedEvidenceItems().find(item => item.itemId === toolModeUseCases.getState().focusedSavedItemId);
                 if (focusedItem) {
                   const sameScreenItems = savedEvidenceItems().filter(item => item.screenId === focusedItem.screenId);
                   if (sameScreenItems.length) renderSavedEvidenceOverlay(overlay, image, sameScreenItems);
@@ -85,11 +85,12 @@
               if (currentSelection) {
                 renderOverlayBox(overlay, image, currentSelection.bounds, currentSelection.label);
               }
-              if (addItemsFlow && toolMode === 'annotate' && hoveredAnnotationTarget && !dragPreview) {
-                renderOverlayBox(overlay, image, hoveredAnnotationTarget.bounds, null, false, false, null, 'hover-preview');
+              const toolModeState = toolModeUseCases.getState();
+              if (addItemsFlow && toolModeUseCases.isAnnotateMode() && toolModeState.hoveredTarget && !toolModeState.drag?.preview) {
+                renderOverlayBox(overlay, image, toolModeState.hoveredTarget.bounds, null, false, false, null, 'hover-preview');
               }
-              if (dragPreview) {
-                renderOverlayBox(overlay, image, dragPreview, null, true);
+              if (toolModeState.drag?.preview) {
+                renderOverlayBox(overlay, image, toolModeState.drag.preview, null, true);
               }
               updateComposerState();
             }
@@ -100,7 +101,7 @@
             }
 
             function startAnnotatingButtonHtml() {
-              if (toolMode === 'annotate') return '';
+              if (toolModeUseCases.isAnnotateMode()) return '';
               return '<button type="button" class="primary" data-start-annotating>Start annotating</button>';
             }
 
@@ -351,12 +352,14 @@
             }
 
             function selectedSavedAnnotation() {
-              if (!focusedSavedItemId) return null;
-              return savedEvidenceItems().find(item => item.itemId === focusedSavedItemId) || null;
+              const focused = toolModeUseCases.getState().focusedSavedItemId;
+              if (!focused) return null;
+              return savedEvidenceItems().find(item => item.itemId === focused) || null;
             }
 
             function renderSavedEvidenceOverlay(overlay, image, items) {
               const allSavedItems = savedEvidenceItems();
+              const focused = toolModeUseCases.getState().focusedSavedItemId;
               items.forEach((item, index) => {
                 const savedIndex = Math.max(0, allSavedItems.findIndex(savedItem => savedItem.itemId === item.itemId));
                 const displayNumber = annotationDisplayNumber(item, savedIndex);
@@ -366,7 +369,7 @@
                   boundsForTarget(item.target),
                   String(displayNumber),
                   false,
-                  item.itemId === focusedSavedItemId,
+                  item.itemId === focused,
                   savedIndex,
                   '',
                   severityColor(annotationSeverity(item)),
@@ -417,7 +420,7 @@
                     prevScreenId = item.screenId;
                   }
                   return header +
-                    '<button type="button" class="ann-row saved-item-row ' + (item.itemId === focusedSavedItemId ? 'active' : '') + '" style="--annotation-color:' + color + '" data-phase="' + escapeHtml(phase) + '" data-item-id="' + escapeHtml(item.itemId) + '" data-focus-saved="' + escapeHtml(item.itemId) + '">' +
+                    '<button type="button" class="ann-row saved-item-row ' + (item.itemId === toolModeUseCases.getState().focusedSavedItemId ? 'active' : '') + '" style="--annotation-color:' + color + '" data-phase="' + escapeHtml(phase) + '" data-item-id="' + escapeHtml(item.itemId) + '" data-focus-saved="' + escapeHtml(item.itemId) + '">' +
                       '<span class="ann-row-num" style="background:' + color + '">' + escapeHtml(String(displayNumber)) + '</span>' +
                       '<span class="ann-row-body">' +
                         '<span class="ann-row-title">' + escapeHtml(targetLabel(item)) + '</span>' +
@@ -439,7 +442,7 @@
             function renderSavedAnnotationDetail(item, index) {
               const severity = annotationSeverity(item);
               const status = annotationStatus(item);
-              const editSessionId = focusedSavedSessionId || state.session?.sessionId || null;
+              const editSessionId = toolModeUseCases.getState().focusedSavedSessionId || state.session?.sessionId || null;
               const phase = lifecyclePhase(item);
               const editable = phase === 'draft' || phase === 'sent' || phase === 'sent_modified' || phase === 'needs_clarification';
               const dis = editable ? '' : ' disabled';
@@ -612,8 +615,7 @@
                   // reject a PATCH on non-editable items with ITEM_NOT_EDITABLE — we should
                   // still let the user leave the detail view.
                   const goBack = () => {
-                    focusedSavedItemId = null;
-                    focusedSavedSessionId = null;
+                    toolModeUseCases.focusSavedItem(null, null);
                     renderPreviewOnly();
                     renderInspectorRegion();
                   };
@@ -639,7 +641,7 @@
 
             function workflowActiveStep() {
               if (!state.connection?.hasEverConnected && userConnectionState(state.connection?.current) !== 'ready') return 'connect';
-              if (addItemsFlow || toolMode === 'annotate') return 'annotate';
+              if (addItemsFlow || toolModeUseCases.isAnnotateMode()) return 'annotate';
               if (currentPromptAnnotations().length > 0) return 'handoff';
               return 'preview';
             }
@@ -728,7 +730,7 @@
               if (!hasScreenshot) return { state: 'unavailable', label: 'No screenshot' };
               if (state.preview?.stale) return { state: 'stale', label: 'Stale frame' };
               if (addItemsFlow) return { state: 'frozen', label: 'Frozen for annotation' };
-              if (focusedSavedItemId || (!state.preview && screen?.screenId)) return { state: 'saved', label: 'Saved screen' };
+              if (toolModeUseCases.getState().focusedSavedItemId || (!state.preview && screen?.screenId)) return { state: 'saved', label: 'Saved screen' };
               if (state.preview) return { state: 'live', label: 'Live preview' };
               return { state: 'unavailable', label: 'No screenshot' };
             }
@@ -745,7 +747,7 @@
               const screen = latestScreen();
               const hasScreenshot = Boolean(screen?.screenshot?.desktopFullPath);
               const mode = addItemsFlow ? 'frozen' : (state.preview ? 'live' : (screen ? 'frozen' : 'idle'));
-              snapshot.dataset.toolMode = toolMode;
+              snapshot.dataset.toolMode = toolModeUseCases.isAnnotateMode() ? 'annotate' : 'select';
               if (!hasScreenshot) {
                 const emptyMessage = screen
                   ? 'No screenshot artifact for this preview.'
@@ -771,7 +773,7 @@
               }
               const hintSlot = document.getElementById('annotateHintSlot');
               let hint = document.getElementById('annotateHint');
-              if (toolMode === 'annotate') {
+              if (toolModeUseCases.isAnnotateMode()) {
                 if (!hint) {
                   hint = document.createElement('div');
                   hint.id = 'annotateHint';
@@ -810,15 +812,15 @@
               image.addEventListener('dragstart', event => event.preventDefault());
               image.addEventListener('click', event => {
                 try {
-                  if (addItemsFlowStarting) {
+                  if (toolModeUseCases.getState().addItemsFlowStarting) {
                     event.preventDefault();
                     return;
                   }
-                  if (suppressNextClick) {
-                    suppressNextClick = false;
+                  if (toolModeUseCases.getState().suppressNextClick) {
+                    toolModeUseCases.setSuppressNextClick(false);
                     return;
                   }
-                  if (toolMode === 'select' && addItemsFlow) {
+                  if (toolModeUseCases.isSelectMode() && addItemsFlow) {
                     clearSelection();
                     return;
                   }
@@ -827,7 +829,7 @@
                     navigate('tap', { x: point.x, y: point.y }).catch(showError);
                     return;
                   }
-                  if (toolMode === 'annotate' && !dragStart) {
+                  if (toolModeUseCases.isAnnotateMode() && !toolModeUseCases.isDragging()) {
                     selectNodeAtPoint(event, image);
                   }
                 } catch (cause) {
@@ -835,28 +837,30 @@
                 }
               });
               image.addEventListener('pointerdown', event => {
-                if (addItemsFlowStarting) {
+                if (toolModeUseCases.getState().addItemsFlowStarting) {
                   event.preventDefault();
                   return;
                 }
-                if (!addItemsFlow || toolMode !== 'annotate') return;
+                if (!addItemsFlow || !toolModeUseCases.isAnnotateMode()) return;
                 try {
                   image.setPointerCapture?.(event.pointerId);
-                  dragStart = naturalPointFromEvent(event, image);
-                  dragPreview = normalizeBounds(dragStart, dragStart);
+                  const point = naturalPointFromEvent(event, image);
+                  toolModeUseCases.startDrag(point);
+                  toolModeUseCases.updateDragPreview(normalizeBounds(point, point));
                   renderSelectionOverlay();
                 } catch (cause) {
                   showError(cause);
                 }
               });
               image.addEventListener('pointermove', event => {
-                if (!addItemsFlow || toolMode !== 'annotate') return;
+                if (!addItemsFlow || !toolModeUseCases.isAnnotateMode()) return;
                 try {
-                  if (!dragStart) {
+                  const dragState = toolModeUseCases.getState().drag;
+                  if (!dragState) {
                     previewNodeAtPoint(event, image);
                     return;
                   }
-                  dragPreview = normalizeBounds(dragStart, naturalPointFromEvent(event, image));
+                  toolModeUseCases.updateDragPreview(normalizeBounds(dragState.start, naturalPointFromEvent(event, image)));
                   renderSelectionOverlay();
                 } catch (cause) {
                   clearDragState();
@@ -864,17 +868,18 @@
                 }
               });
               image.addEventListener('pointerup', event => {
-                if (!addItemsFlow || toolMode !== 'annotate' || !dragStart) return;
+                const dragState = toolModeUseCases.getState().drag;
+                if (!addItemsFlow || !toolModeUseCases.isAnnotateMode() || !dragState) return;
                 try {
                   const end = naturalPointFromEvent(event, image);
-                  const bounds = normalizeBounds(dragStart, end);
+                  const bounds = normalizeBounds(dragState.start, end);
                   clearDragState();
                   releaseSnapshotPointerCapture(image, event);
                   if ((bounds.right - bounds.left) >= 8 && (bounds.bottom - bounds.top) >= 8) {
-                    suppressNextClick = true;
+                    toolModeUseCases.setSuppressNextClick(true);
                     finishAreaSelection(bounds);
 	                  } else {
-	                    suppressNextClick = true;
+	                    toolModeUseCases.setSuppressNextClick(true);
 	                    renderSelectionOverlay();
 	                    confirmHoveredAnnotationTarget(event, image);
 	                  }
@@ -895,14 +900,16 @@
             function mergeSessionIntoState(fresh) {
               const previous = state.session;
               const preservedComment = comment.value;
-              const preservedFocusedSavedItemId = focusedSavedItemId;
+              const toolModeStateBefore = toolModeUseCases.getState();
+              const preservedFocusedSavedItemId = toolModeStateBefore.focusedSavedItemId;
+              const preservedFocusedSavedSessionId = toolModeStateBefore.focusedSavedSessionId;
               const preservedFocusedPendingIndex = focusedPendingItemIndex;
               const preservedSelection = currentSelection;
 
               state.session = fresh;
 
               comment.value = preservedComment;
-              focusedSavedItemId = preservedFocusedSavedItemId;
+              toolModeUseCases.focusSavedItem(preservedFocusedSavedItemId, preservedFocusedSavedSessionId);
               focusedPendingItemIndex = preservedFocusedPendingIndex;
               currentSelection = preservedSelection;
 

@@ -97,6 +97,8 @@ class ConsoleAssetRoutesTest {
             "pollingFsm.js",
             "pollingUseCases.js",
             "pollingBrowserAdapter.js",
+            "toolModeFsm.js",
+            "toolModeUseCases.js",
             "state.js",
             "staleness.js",
             "pendingPersistence.js",

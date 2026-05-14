@@ -67,7 +67,7 @@
             }
 
             function computeCurrentBlockedReason(statusAvailability) {
-              const annotate = toolMode === 'annotate';
+              const annotate = toolModeUseCases.isAnnotateMode();
               const availability = statusAvailability ?? connectionUseCases.getState().availability;
               const resolverInput = availability
                 ? { ...availability, unresponsive: unresponsiveTracker.isUnresponsive() }
@@ -121,7 +121,7 @@
               // Detect blocked → unblocked transitions for select-mode auto-resume.
               // Use the captured prior previousBlockedReason vs the new reason.
               if (priorPreviousBlockedReason !== null && newBlockedReason === null) {
-                if (toolMode === 'select' && state.session) {
+                if (toolModeUseCases.isSelectMode() && state.session) {
                   refreshPreview().catch(showError);
                 }
               }

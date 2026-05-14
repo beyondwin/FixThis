@@ -244,10 +244,10 @@
               cancelAddFlowButton.disabled = !addItemsFlow;
               addItemButton.hidden = true;
               addItemButton.disabled = true;
-              annotateToolButton.disabled = addItemsFlowStarting;
-              selectToolButton.setAttribute('aria-pressed', String(toolMode === 'select'));
-              annotateToolButton.setAttribute('aria-pressed', String(toolMode === 'annotate'));
-              toolStatus.innerHTML = toolMode === 'annotate'
+              annotateToolButton.disabled = toolModeUseCases.getState().addItemsFlowStarting;
+              selectToolButton.setAttribute('aria-pressed', String(toolModeUseCases.isSelectMode()));
+              annotateToolButton.setAttribute('aria-pressed', String(toolModeUseCases.isAnnotateMode()));
+              toolStatus.innerHTML = toolModeUseCases.isAnnotateMode()
                 ? '<span class="ts-hint"><span class="ts-dot"></span><span>Click a widget — or drag to draw a region</span></span>'
                 : '<span class="ts-meta">' +
                     '<span class="ts-dot-label"><span class="ts-dot"></span>' + toolbarOpenCount() + ' open</span>' +
@@ -258,7 +258,7 @@
                 ? currentSelection.label + ' - ' + formatBounds(currentSelection.bounds)
                 : (item
                   ? 'Focused #' + (focusedPendingItemIndex + 1) + ' - ' + formatBounds(item.bounds)
-                  : (toolMode === 'annotate' ? 'Click a component or drag a region to create an annotation.' : 'No annotation selected.'));
+                  : (toolModeUseCases.isAnnotateMode() ? 'Click a component or drag a region to create an annotation.' : 'No annotation selected.'));
               renderPromptReadiness();
             }
 
@@ -329,19 +329,20 @@
               if (isInteractionBlocked()) return;
               const selection = nodeSelectionAtPoint(event, image);
               const nextId = selection?.nodeUid || null;
-              const currentId = hoveredAnnotationTarget?.nodeUid || null;
+              const currentId = toolModeUseCases.getState().hoveredTarget?.nodeUid || null;
               if (nextId === currentId) return;
-              hoveredAnnotationTarget = selection;
+              toolModeUseCases.setHoveredTarget(selection);
               renderSelectionOverlay();
             }
 
             function confirmHoveredAnnotationTarget(event, image) {
               if (isInteractionBlocked()) return;
-              if (hoveredAnnotationTarget) {
+              const hoveredTarget = toolModeUseCases.getState().hoveredTarget;
+              if (hoveredTarget) {
                 const point = naturalPointFromEvent(event, image);
-                if (containsPoint(hoveredAnnotationTarget.bounds, point)) {
-                  const selection = hoveredAnnotationTarget;
-                  hoveredAnnotationTarget = null;
+                if (containsPoint(hoveredTarget.bounds, point)) {
+                  const selection = hoveredTarget;
+                  toolModeUseCases.setHoveredTarget(null);
                   createAnnotationFromSelection(selection);
                   error.textContent = '';
                   return;
@@ -363,15 +364,15 @@
             }
 
             function clearDragState() {
-              if (!dragStart && !dragPreview) return;
-              dragStart = null;
-              dragPreview = null;
+              const drag = toolModeUseCases.getState().drag;
+              if (!drag) return;
+              toolModeUseCases.dropDiscard();
               renderSelectionOverlay();
             }
 
             function clearHoverPreview() {
-              if (!hoveredAnnotationTarget) return;
-              hoveredAnnotationTarget = null;
+              if (!toolModeUseCases.getState().hoveredTarget) return;
+              toolModeUseCases.setHoveredTarget(null);
               renderSelectionOverlay();
             }
 
@@ -382,11 +383,10 @@
                 activePendingMirrorSessions.delete(state.session?.sessionId);
               }
               focusedPendingItemIndex = null;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
+              toolModeUseCases.focusSavedItem(null, null);
               currentSelection = null;
-              hoveredAnnotationTarget = null;
-              toolMode = 'select';
+              toolModeUseCases.setHoveredTarget(null);
+              toolModeUseCases.enterSelect();
               comment.value = '';
               clearDragState();
             }
@@ -418,9 +418,8 @@
             function clearSelection() {
               currentSelection = null;
               focusedPendingItemIndex = null;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
-              hoveredAnnotationTarget = null;
+              toolModeUseCases.focusSavedItem(null, null);
+              toolModeUseCases.setHoveredTarget(null);
               comment.value = '';
               clearDragState();
               renderSelectionOverlay();
@@ -430,9 +429,9 @@
 
 
             async function startAddItemsFlow() {
-              if (addItemsFlowStarting) return;
+              if (toolModeUseCases.getState().addItemsFlowStarting) return;
               error.textContent = '';
-              addItemsFlowStarting = true;
+              toolModeUseCases.setAddItemsFlowStarting(true);
               updateComposerState();
               stopLivePreviewPolling();
               try {
@@ -465,12 +464,11 @@
                   },
                 });
                 setDraftWorkspace(nextWorkspace);
-                toolMode = 'annotate';
-                focusedSavedItemId = null;
-                focusedSavedSessionId = null;
+                toolModeUseCases.enterAnnotate();
+                toolModeUseCases.focusSavedItem(null, null);
                 render();
               } finally {
-                addItemsFlowStarting = false;
+                toolModeUseCases.setAddItemsFlowStarting(false);
                 updateComposerState();
                 if (!addItemsFlow) startLivePreviewPolling();
               }
@@ -504,10 +502,9 @@
               }
               setDraftWorkspace(nextWorkspace);
               const createdItem = nextWorkspace.items[nextWorkspace.items.length - 1];
-              hoveredAnnotationTarget = null;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
-              toolMode = 'annotate';
+              toolModeUseCases.setHoveredTarget(null);
+              toolModeUseCases.focusSavedItem(null, null);
+              toolModeUseCases.enterAnnotate();
               comment.value = '';
               renderPreviewOnly();
               renderInspectorRegion();
@@ -521,10 +518,9 @@
               setDraftWorkspace(deleteDraftItem(draftWorkspace, removed.draftItemId));
               showUndoToast(removed.draftItemId);
               focusedPendingItemIndex = null;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
+              toolModeUseCases.focusSavedItem(null, null);
               currentSelection = null;
-              hoveredAnnotationTarget = null;
+              toolModeUseCases.setHoveredTarget(null);
               comment.value = '';
               renderPreviewOnly();
               renderInspectorRegion();
@@ -534,21 +530,19 @@
             function focusPendingFeedbackItem(index) {
               flushFocusedPendingComment();
               focusedPendingItemIndex = index;
-              focusedSavedItemId = null;
-              focusedSavedSessionId = null;
+              toolModeUseCases.focusSavedItem(null, null);
               currentSelection = null;
-              toolMode = 'select';
+              toolModeUseCases.enterSelect();
               comment.value = pendingFeedbackItems[index]?.comment || '';
               renderPreviewOnly();
               renderInspectorRegion();
             }
 
             function focusSavedEvidenceItem(itemId) {
-              focusedSavedItemId = itemId;
-              focusedSavedSessionId = state.session?.sessionId || null;
+              toolModeUseCases.focusSavedItem(itemId, state.session?.sessionId || null);
               focusedPendingItemIndex = null;
               currentSelection = null;
-              toolMode = 'select';
+              toolModeUseCases.enterSelect();
               comment.value = '';
               renderPreviewOnly();
               renderInspectorRegion();
@@ -571,7 +565,7 @@
               return updatedSession;
             }
 
-            async function persistSavedEvidenceItem(item, sessionId = focusedSavedSessionId || state.session?.sessionId || null) {
+            async function persistSavedEvidenceItem(item, sessionId = toolModeUseCases.getState().focusedSavedSessionId || state.session?.sessionId || null) {
               if (!item?.itemId) return state.session;
               const updatedSession = await withMutationLock(() => requestJson('/api/items/' + encodeURIComponent(item.itemId), {
                 method: 'PUT',
@@ -587,15 +581,14 @@
               return applySavedSessionUpdate(updatedSession, sessionId);
             }
 
-            async function deleteSavedEvidenceItem(itemId, sessionId = focusedSavedSessionId || state.session?.sessionId || null) {
+            async function deleteSavedEvidenceItem(itemId, sessionId = toolModeUseCases.getState().focusedSavedSessionId || state.session?.sessionId || null) {
               if (!itemId) return;
               const sessionQuery = sessionId
                 ? '?sessionId=' + encodeURIComponent(sessionId)
                 : '';
               const updatedSession = await withMutationLock(() => requestJson('/api/items/' + encodeURIComponent(itemId) + sessionQuery, { method: 'DELETE' }));
               if (state.session?.sessionId === (updatedSession?.sessionId || sessionId)) {
-                focusedSavedItemId = null;
-                focusedSavedSessionId = null;
+                toolModeUseCases.focusSavedItem(null, null);
                 state.session = updatedSession;
                 renderPreviewOnly();
                 renderInspectorRegion();
@@ -742,7 +735,7 @@
             }
 
             function enterSelectMode() {
-              toolMode = 'select';
+              toolModeUseCases.enterSelect();
               currentSelection = null;
               clearHoverPreview();
               clearDragState();

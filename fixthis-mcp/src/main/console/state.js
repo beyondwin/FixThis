@@ -41,6 +41,15 @@
               onChange: (next) => { state.pollingFsm = { ...next }; },
             });
             state.pollingFsm = { ...pollingUseCases.getState() };
+            // Tool-mode FSM single source of truth. Owns toolMode,
+            // annotationSequence, hoveredAnnotationTarget, dragStart/dragPreview
+            // (combined as drag), suppressNextClick, addItemsFlowStarting,
+            // newHistoryAnnotateModeStarting, historyDrawerOpen,
+            // focusedSavedItemId, focusedSavedSessionId. No browser adapter —
+            // pure synchronous transitions per spec §3.4. Legacy READ/WRITE
+            // sites in annotations.js/history.js/preview.js/rendering.js/
+            // main.js/connection.js delegate through this instance.
+            const toolModeUseCases = createToolModeUseCases();
             const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });
             const unresponsiveTracker = createUnresponsiveTracker({ threshold: 3 });
             const sessions = document.getElementById('sessions');
@@ -87,20 +96,15 @@
             let heartbeatTimer = null;
             let heartbeatPolling = false;
             let addItemsFlow = null;
-            let addItemsFlowStarting = false;
-            let newHistoryAnnotateModeStarting = false;
             let pendingFeedbackItems = [];
             let focusedPendingItemIndex = null;
-            let focusedSavedItemId = null;
-            let focusedSavedSessionId = null;
             let currentSelection = null;
-            let toolMode = 'select';
-            let annotationSequence = 1;
-            let hoveredAnnotationTarget = null;
-            let dragStart = null;
-            let dragPreview = null;
-            let suppressNextClick = false;
-            let historyDrawerOpen = false;
+            // Tool-mode-owned state (toolMode, annotationSequence,
+            // hoveredAnnotationTarget, dragStart, dragPreview,
+            // suppressNextClick, addItemsFlowStarting,
+            // newHistoryAnnotateModeStarting, historyDrawerOpen,
+            // focusedSavedItemId, focusedSavedSessionId) now lives in
+            // toolModeUseCases (see toolModeFsm.js / toolModeUseCases.js).
             // Polling-owned state (sessionsPollingTimer, lastSessionsEtag,
             // lastSessionEtag, pendingMutationCount, sessionMutationGeneration,
             // consecutivePollFailures, promptActionInFlight) now lives in
@@ -158,7 +162,7 @@
               return createFakeDraftPorts({
                 ids: {
                   nextWorkspaceId: () => 'workspace-' + Date.now() + '-' + Math.random().toString(36).slice(2),
-                  nextDraftItemId: () => 'draft-' + annotationSequence++,
+                  nextDraftItemId: () => 'draft-' + toolModeUseCases.nextAnnotationSeq(),
                 },
                 clock: { now: () => Date.now() },
                 preview: {

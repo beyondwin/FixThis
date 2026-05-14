@@ -26,7 +26,7 @@
             function screenImageUrl(screen) {
               if (addItemsFlow) return addItemsFlow.screenshotUrl;
               if (state.preview?.screen === screen && state.preview?.previewId) return previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null);
-              if (screen?.screenId) return screenScreenshotUrl(screen.screenId, state.session?.sessionId || focusedSavedSessionId || null);
+              if (screen?.screenId) return screenScreenshotUrl(screen.screenId, state.session?.sessionId || toolModeUseCases.getState().focusedSavedSessionId || null);
               return '';
             }
 
@@ -96,6 +96,7 @@
 
             function latestScreen() {
               if (addItemsFlow) return addItemsFlow.screen;
+              const focusedSavedItemId = toolModeUseCases.getState().focusedSavedItemId;
               if (focusedSavedItemId) {
                 const focusedItem = savedEvidenceItems().find(item => item.itemId === focusedSavedItemId);
                 if (focusedItem) {
@@ -216,7 +217,7 @@
             }
 
             async function useLatestStaleFrame() {
-              const wasAnnotating = toolMode === 'annotate' || Boolean(addItemsFlow);
+              const wasAnnotating = toolModeUseCases.isAnnotateMode() || Boolean(addItemsFlow);
               flushFocusedPendingComment();
               const pendingItems = draftWorkspaceItems(draftWorkspace).slice();
               const previousWorkspace = draftWorkspace;
@@ -247,10 +248,9 @@
                 });
                 updateAnnotationSequenceFromPendingItems(pendingItems);
                 focusedPendingItemIndex = null;
-                focusedSavedItemId = null;
-                focusedSavedSessionId = null;
+                toolModeUseCases.focusSavedItem(null, null);
                 currentSelection = null;
-                hoveredAnnotationTarget = null;
+                toolModeUseCases.setHoveredTarget(null);
                 persistCurrentPendingState();
               } else {
                 await refreshPreview();

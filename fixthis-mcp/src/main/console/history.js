@@ -138,7 +138,7 @@
             async function enterAnnotateMode() {
               if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
               await ensureSessionForAnnotating();
-              toolMode = 'annotate';
+              toolModeUseCases.enterAnnotate();
               renderCurrentSessionList();
               if (!addItemsFlow) {
                 await startAddItemsFlow();
@@ -149,9 +149,9 @@
             }
 
             async function enterNewHistoryAnnotateMode() {
-              if (newHistoryAnnotateModeStarting) return;
-              newHistoryAnnotateModeStarting = true;
-              toolMode = 'annotate';
+              if (toolModeUseCases.getState().newHistoryAnnotateModeStarting) return;
+              toolModeUseCases.setNewHistoryAnnotateModeStarting(true);
+              toolModeUseCases.enterAnnotate();
               renderCurrentSessionList();
               try {
                 await newSession();
@@ -159,7 +159,7 @@
                 await enterAnnotateMode();
                 scrollActiveHistoryItemIntoView();
               } finally {
-                newHistoryAnnotateModeStarting = false;
+                toolModeUseCases.setNewHistoryAnnotateModeStarting(false);
                 renderCurrentSessionList();
               }
             }
@@ -171,23 +171,24 @@
 
             function syncHistoryDrawerState() {
               if (!historyToggleButton || !historyDrawerScrim) return;
-              if (historyDrawerOpen) {
+              const open = toolModeUseCases.getState().historyDrawerOpen;
+              if (open) {
                 document.body.dataset.historyDrawerOpen = 'true';
               } else {
                 delete document.body.dataset.historyDrawerOpen;
               }
-              historyToggleButton.setAttribute('aria-expanded', String(historyDrawerOpen));
+              historyToggleButton.setAttribute('aria-expanded', String(open));
             }
 
             function openHistoryDrawer() {
-              historyDrawerOpen = true;
+              toolModeUseCases.setHistoryDrawer(true);
               syncHistoryDrawerState();
               document.getElementById('historyPanel')?.focus({ preventScroll: true });
             }
 
             function closeHistoryDrawer(options = {}) {
-              const wasOpen = historyDrawerOpen;
-              historyDrawerOpen = false;
+              const wasOpen = toolModeUseCases.getState().historyDrawerOpen;
+              toolModeUseCases.setHistoryDrawer(false);
               syncHistoryDrawerState();
               if (wasOpen && options.returnFocus !== false) historyToggleButton?.focus({ preventScroll: true });
             }
@@ -195,7 +196,7 @@
             historyToggleButton?.addEventListener('click', openHistoryDrawer);
             historyDrawerScrim?.addEventListener('click', () => closeHistoryDrawer());
             document.addEventListener('keydown', event => {
-              if (event.key === 'Escape' && historyDrawerOpen) {
+              if (event.key === 'Escape' && toolModeUseCases.getState().historyDrawerOpen) {
                 event.preventDefault();
                 closeHistoryDrawer();
               }
@@ -203,7 +204,7 @@
             syncHistoryDrawerState();
 
             function historyStartAnnotatingItemHtml() {
-              if (newHistoryAnnotateModeStarting) return '';
+              if (toolModeUseCases.getState().newHistoryAnnotateModeStarting) return '';
               return '<button type="button" class="history-item history-add-row" data-start-new-history-annotating aria-label="Start annotating">' +
                 '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>' +
               '</button>';
