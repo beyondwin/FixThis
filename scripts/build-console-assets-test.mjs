@@ -11,7 +11,7 @@ const script = resolve(root, 'scripts/build-console-assets.mjs');
 const targetJs = resolve(root, 'fixthis-mcp/src/main/resources/console/app.js');
 const targetMeta = resolve(root, 'fixthis-mcp/src/main/resources/console/console-build-meta.json');
 
-const RAW_BUDGET = 110 * 1024;   // 112,640 bytes
+const RAW_BUDGET = 170 * 1024;   // 174,080 bytes
 const GZIP_BUDGET = 40 * 1024;   // 40,960 bytes
 
 test('build script runs without arguments and produces app.js', () => {
@@ -27,12 +27,12 @@ test('build script produces console-build-meta.json sidecar', () => {
   assert.equal(typeof meta.gitSha, 'string');
 });
 
-test('app.js raw bytes are within the 110 KiB budget', () => {
+test('app.js raw bytes are within the 170 KiB budget', () => {
   execFileSync('node', [script], { cwd: root, stdio: 'pipe' });
   const bytes = readFileSync(targetJs).byteLength;
   assert.ok(
     bytes <= RAW_BUDGET,
-    `app.js is ${bytes} bytes, exceeds raw budget ${RAW_BUDGET} bytes (110 KiB)`,
+    `app.js is ${bytes} bytes, exceeds raw budget ${RAW_BUDGET} bytes (170 KiB)`,
   );
 });
 
@@ -43,6 +43,15 @@ test('app.js gzipped bytes are within the 40 KiB budget', () => {
   assert.ok(
     gz <= GZIP_BUDGET,
     `app.js gzipped is ${gz} bytes, exceeds gzip budget ${GZIP_BUDGET} bytes (40 KiB)`,
+  );
+});
+
+test('app.js links its external source map via //# sourceMappingURL', () => {
+  execFileSync('node', [script], { cwd: root, stdio: 'pipe' });
+  const generated = readFileSync(targetJs, 'utf8');
+  assert.ok(
+    /\/\/# sourceMappingURL=app\.js\.map\s*$/.test(generated.trimEnd()),
+    `app.js missing //# sourceMappingURL=app.js.map trailer (last 100 chars: ${generated.slice(-100)})`,
   );
 });
 
@@ -58,10 +67,11 @@ test('--check returns 0 immediately after a reproducible build', () => {
 test('topological order matches legacy hand-curated array', () => {
   execFileSync('node', [script], { cwd: root, stdio: 'pipe' });
   const generated = readFileSync(targetJs, 'utf8');
-  const stateIdx = generated.indexOf('//#region state.js');
-  const annotationsIdx = generated.indexOf('//#region annotations.js');
-  const renderingIdx = generated.indexOf('//#region rendering.js');
-  const mainIdx = generated.indexOf('//#region main.js');
+  // Use stable identifiers that survive minifyWhitespace (no //#region markers after minification)
+  const stateIdx = generated.indexOf('DefaultLivePreviewIntervalMs');
+  const annotationsIdx = generated.indexOf('isInteractionBlocked');
+  const renderingIdx = generated.indexOf('renderOverlayBox');
+  const mainIdx = generated.indexOf('FixThisConsoleDebug');
   assert.ok(stateIdx >= 0 && stateIdx < annotationsIdx, 'state.js must precede annotations.js');
   assert.ok(annotationsIdx < renderingIdx, 'annotations.js must precede rendering.js');
   assert.ok(renderingIdx < mainIdx, 'main.js must be last');

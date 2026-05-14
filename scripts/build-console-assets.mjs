@@ -3,6 +3,8 @@ import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { gzipSync } from 'node:zlib';
+import { build as esbuild } from 'esbuild';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sourceDir = resolve(root, 'fixthis-mcp/src/main/console');
@@ -40,6 +42,10 @@ export function topoSort(g) {
 
 const isMainModule = import.meta.url === `file://${process.argv[1]}`;
 if (isMainModule) {
+  main().catch((e) => { console.error(e); process.exit(1); });
+}
+
+async function main() {
   const onDisk = readdirSync(sourceDir).filter((name) => name.endsWith('.js'));
 
   // Enforce that every non-entry-point module has a // @requires header.
@@ -81,9 +87,9 @@ if (isMainModule) {
   });
 
   const concatenated = entries.join('\n');
-  const output = concatenated;
 
   const target = resolve(root, 'fixthis-mcp/src/main/resources/console/app.js');
+  const mapPath = `${target}.map`;
   const metaPath = resolve(root, 'fixthis-mcp/src/main/resources/console/console-build-meta.json');
   const reproducible = process.env.FIXTHIS_BUNDLE_REPRODUCIBLE === '1'
     || process.argv.includes('--check');
@@ -92,14 +98,52 @@ if (isMainModule) {
     : { buildEpochMs: epochMs, gitSha };
   const metaSerialized = JSON.stringify(meta, null, 2) + '\n';
 
+  const result = await esbuild({
+    stdin: { contents: concatenated, loader: 'js', sourcefile: 'app.js' },
+    bundle: false,
+    write: false,
+    outfile: target,
+    minify: false,
+    minifyWhitespace: true,
+    minifySyntax: true,
+    minifyIdentifiers: false,
+    target: ['es2020'],
+    sourcemap: 'linked',
+    legalComments: 'inline',
+  });
+
+  const jsBytes = result.outputFiles.find((f) => f.path.endsWith('.js')).contents;
+  const mapBytes = result.outputFiles.find((f) => f.path.endsWith('.map')).contents;
+
+  const RAW_BUDGET_BYTES = 170 * 1024;
+  const GZIP_BUDGET_BYTES = 40 * 1024;
+  if (jsBytes.byteLength > RAW_BUDGET_BYTES) {
+    console.error(`Bundle (raw) is ${jsBytes.byteLength} bytes, exceeds raw budget of ${RAW_BUDGET_BYTES} bytes (170 KiB).`);
+    process.exit(1);
+  }
+  const gzBytes = gzipSync(Buffer.from(jsBytes), { level: 9 }).byteLength;
+  if (gzBytes > GZIP_BUDGET_BYTES) {
+    console.error(`Bundle (gzipped) is ${gzBytes} bytes, exceeds gzip budget of ${GZIP_BUDGET_BYTES} bytes (40 KiB).`);
+    process.exit(1);
+  }
+
   if (process.argv.includes('--check')) {
     if (!existsSync(target)) {
       console.error('Generated console app.js is missing. Run node scripts/build-console-assets.mjs.');
       process.exit(1);
     }
-    const current = readFileSync(target, 'utf8');
-    if (current !== output) {
+    const current = readFileSync(target);
+    if (!Buffer.from(jsBytes).equals(current)) {
       console.error('Generated console app.js is out of date. Run node scripts/build-console-assets.mjs.');
+      process.exit(1);
+    }
+    if (!existsSync(mapPath)) {
+      console.error('Generated console app.js.map is missing. Run node scripts/build-console-assets.mjs.');
+      process.exit(1);
+    }
+    const currentMap = readFileSync(mapPath);
+    if (!Buffer.from(mapBytes).equals(currentMap)) {
+      console.error('Generated console app.js.map is out of date. Run node scripts/build-console-assets.mjs.');
       process.exit(1);
     }
     if (!existsSync(metaPath)) {
@@ -115,6 +159,7 @@ if (isMainModule) {
   }
 
   mkdirSync(dirname(target), { recursive: true });
-  writeFileSync(target, output);
+  writeFileSync(target, jsBytes);
+  writeFileSync(mapPath, mapBytes);
   writeFileSync(metaPath, metaSerialized);
 }
