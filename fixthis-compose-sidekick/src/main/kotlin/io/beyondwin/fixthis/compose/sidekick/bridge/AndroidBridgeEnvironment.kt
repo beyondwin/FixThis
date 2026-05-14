@@ -14,6 +14,10 @@ import io.beyondwin.fixthis.compose.sidekick.screenshot.ScreenshotCapturer
 import io.beyondwin.fixthis.compose.sidekick.screenshot.ScreenshotStore
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.lang.ref.WeakReference
@@ -27,14 +31,26 @@ internal class AndroidBridgeEnvironment(
     private val inspector: SemanticsInspector = SemanticsInspector(),
     private val screenshotCapturer: ScreenshotCapturer = ScreenshotCapturer(ScreenshotStore(context)),
 ) : BridgeEnvironment {
-    var currentActivity: WeakReference<Activity>? = null
+    private val _currentActivity = MutableStateFlow<WeakReference<Activity>?>(null)
+    val currentActivity: StateFlow<WeakReference<Activity>?> = _currentActivity.asStateFlow()
+
+    fun setCurrentActivity(ref: WeakReference<Activity>?) {
+        _currentActivity.value = ref
+    }
+
+    fun clearCurrentActivityIf(activity: Activity) {
+        _currentActivity.update { current ->
+            if (current?.get() === activity) null else current
+        }
+    }
+
     private var lastScreenSnapshot: BridgeScreenSnapshot? = null
     private val buildInfoProvider: SidekickBuildInfoProvider = AndroidResourceSidekickBuildInfoProvider(context)
 
     @Volatile
     private var cachedSourceIndexResult: BridgeSourceIndexResult? = null
     private val navigationPerformer = AndroidNavigationPerformer(
-        activityProvider = { currentActivity?.get() },
+        activityProvider = { _currentActivity.value?.get() },
         mainDispatcher = mainDispatcher,
     )
 
@@ -65,7 +81,7 @@ internal class AndroidBridgeEnvironment(
     }.getOrNull()
 
     override suspend fun inspectCurrentScreen(): BridgeScreenInspection = withContext(mainDispatcher) {
-        val activity = currentActivity?.get()
+        val activity = _currentActivity.value?.get()
             ?: return@withContext BridgeScreenInspection(
                 errors = listOf(FixThisError("NO_ACTIVITY", "No resumed Activity is available")),
             )
@@ -92,7 +108,7 @@ internal class AndroidBridgeEnvironment(
     override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot = readSourceIndex().let { sourceIndexResult ->
         withContext(mainDispatcher) {
             val sourceIndexAvailable = sourceIndexResult.sourceIndexAvailable
-            val activity = currentActivity?.get()
+            val activity = _currentActivity.value?.get()
             if (activity == null) {
                 val inspection = BridgeScreenInspection(
                     errors = listOf(FixThisError("NO_ACTIVITY", "No resumed Activity is available")),

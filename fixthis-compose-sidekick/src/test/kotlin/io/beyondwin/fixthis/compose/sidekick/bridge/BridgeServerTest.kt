@@ -1,5 +1,6 @@
 package io.beyondwin.fixthis.compose.sidekick.bridge
 
+import android.net.LocalServerSocket
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.ScreenshotInfo
@@ -7,6 +8,7 @@ import io.beyondwin.fixthis.compose.core.model.TreeKind
 import io.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
 import kotlinx.coroutines.runBlocking
+import sun.misc.Unsafe
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonArray
@@ -381,6 +383,26 @@ class BridgeServerTest {
     }
 
     @Test
+    fun stateTransitionsThroughIdleStartingRunningStoppingIdle() = runBlocking {
+        val server = server(socketFactory = { fakeServerSocket() })
+
+        assertEquals(BridgeServerState.Idle, server.state.value)
+        assertTrue(server.start())
+        assertTrue(server.state.value is BridgeServerState.Running)
+        server.stop()
+        assertEquals(BridgeServerState.Idle, server.state.value)
+    }
+
+    @Test
+    fun startIsIdempotentAcrossSequentialCalls() = runBlocking {
+        val server = server(socketFactory = { fakeServerSocket() })
+        assertTrue(server.start())
+        assertFalse(server.start())
+        assertFalse(server.start())
+        server.stop()
+    }
+
+    @Test
     fun verifyUiChangeReportsFalseWhenExpectedTextIsAbsent() = runBlocking {
         val server = server()
 
@@ -395,8 +417,9 @@ class BridgeServerTest {
     private fun server(
         environment: BridgeEnvironment = RecordingBridgeEnvironment(),
         connectionState: BridgeConnectionState = BridgeConnectionState(),
-    ): BridgeServer = BridgeServer(
-        session = SidekickSession(
+        socketFactory: ((String) -> LocalServerSocket)? = null,
+    ): BridgeServer {
+        val session = SidekickSession(
             packageName = "io.beyondwin.fixthis.sample",
             socketName = "fixthis_io.beyondwin.fixthis.sample",
             socketAddress = "localabstract:fixthis_io.beyondwin.fixthis.sample",
@@ -405,10 +428,25 @@ class BridgeServerTest {
             bridgeProtocolVersion = BridgeProtocol.VERSION,
             createdAtEpochMillis = 1234L,
             processStartEpochMillis = 1234L,
-        ),
-        environment = environment,
-        connectionState = connectionState,
-    )
+        )
+        return if (socketFactory != null) {
+            BridgeServer(
+                session = session,
+                environment = environment,
+                connectionState = connectionState,
+                socketFactory = socketFactory,
+            )
+        } else {
+            BridgeServer(
+                session = session,
+                environment = environment,
+                connectionState = connectionState,
+            )
+        }
+    }
+
+    private fun fakeServerSocket(): LocalServerSocket =
+        unsafe.allocateInstance(LocalServerSocket::class.java) as LocalServerSocket
 
     private class RecordingBridgeEnvironment(
         private val screenshotCacheDirectory: File = tempDirectory(prefix = "fixthis-cache"),
@@ -470,6 +508,11 @@ class BridgeServerTest {
             0x1A,
             0x0A,
         )
+
+        val unsafe: Unsafe = Unsafe::class.java
+            .getDeclaredField("theUnsafe")
+            .apply { isAccessible = true }
+            .get(null) as Unsafe
     }
 }
 

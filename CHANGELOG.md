@@ -27,6 +27,29 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+### Changed
+
+- **Bridge server concurrency model (sidekick, 2026-05-14):**
+  - `BridgeServer.start()` / `stop()` are now `suspend fun` serialised by a
+    `kotlinx.coroutines.sync.Mutex`. The two legacy `@Volatile` lifecycle
+    fields (`serverSocket` / `resolvedName`) are replaced by a
+    `MutableStateFlow<BridgeServerState>` exposed as a read-only
+    `state: StateFlow<BridgeServerState>`. `resolvedSocketName()` becomes
+    a derived read.
+  - `FixThisBridgeRuntime.start(...)` now launches on
+    `ProcessLifecycleOwner.lifecycleScope.launch(Dispatchers.IO)` so the
+    main thread is never blocked on a mutex or socket bind. `runBlocking`
+    is restricted to `stopForTest()`.
+  - `stop()` `cancelAndJoin`s the accept loop and the scope's parent Job
+    inside `withTimeoutOrNull(5.seconds)`; a hung handler logs and leaks
+    instead of hanging shutdown. `BridgeServer` is single-use after
+    `stop()`; restart requires a fresh instance.
+  - `AndroidBridgeEnvironment.currentActivity` is atomicized as
+    `StateFlow<WeakReference<Activity>?>` with compare-and-clear semantics.
+  - Wire protocol unchanged (`BridgeProtocol.VERSION` stays `1.3`).
+    See ADR
+    [`docs/architecture/adr/2026-05-14-bridge-server-concurrency.md`](docs/architecture/adr/2026-05-14-bridge-server-concurrency.md).
+
 ### Added
 
 - **Annotation lifecycle hardening — Phase A (ALH-1..ALH-4):**

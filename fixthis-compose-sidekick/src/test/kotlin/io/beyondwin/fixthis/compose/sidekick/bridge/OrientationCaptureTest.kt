@@ -68,7 +68,7 @@ class OrientationCaptureTest {
             sidekickVersion = "test",
             lifecycleCallbacks = lifecycle,
         )
-        environment.currentActivity = java.lang.ref.WeakReference(activity)
+        environment.setCurrentActivity(java.lang.ref.WeakReference(activity))
 
         val snapshot = environment.captureScreenSnapshot()
 

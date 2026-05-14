@@ -536,6 +536,26 @@ modifier is source-compatible from `runBlocking` test callers).
   drive would prove only that suspending handlers join their parent
   scope, which the Kotlin coroutines runtime already guarantees.
 
+  **Test location — Robolectric vs androidTest.** Under Robolectric
+  the test harness used by `:fixthis-compose-sidekick:testDebugUnitTest`,
+  `android.net.LocalServerSocket` cannot be bound natively (its native
+  `bind()` fails; the existing `BridgeServerStartupTest` works around
+  this by allocating an empty `LocalServerSocket` via
+  `Unsafe.allocateInstance`, which cannot serve real client
+  connections). Consequently T2's real-socket drive is **not viable
+  under Robolectric** and must run as an instrumented test under
+  `:fixthis-compose-sidekick:connectedAndroidTest` against an
+  emulator/device. The mutex + bounded-drain implementation introduced
+  by Task 3 is invariant-correct independent of the test harness;
+  T2's Robolectric placeholder is kept under `@Ignore("Reproduces
+  §1.2 zombie-handler race; LocalSocket cannot bind under Robolectric.
+  Move to androidTest/ in a follow-up — covered by Task 6 stress harness
+  in the meantime.")` so the test body documents the design intent in
+  the same file as T1/T3. §1.2 invariant coverage in Phase D = the
+  bounded-drain log path plus Task 6's stress harness exercising
+  start/stop cycles concurrent with request issuance via the
+  injectable `socketFactory`.
+
 - **T3 — observed state is consistent across a single lifecycle.**
   Construct one `BridgeServer`. Launch a collector that records every
   `state` emission into a list. From the main coroutine, run

@@ -2,6 +2,7 @@ package io.beyondwin.fixthis.compose.sidekick.bridge
 
 import android.net.LocalServerSocket
 import io.beyondwin.fixthis.compose.core.model.FixThisError
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -30,7 +31,7 @@ import kotlin.io.path.createTempDirectory
 class BridgeServerStartupTest {
 
     @Test
-    fun startSucceedsOnFirstAttemptAndReportsBaseName() {
+    fun startSucceedsOnFirstAttemptAndReportsBaseName() = runBlocking {
         val attempted = mutableListOf<String>()
         val baseName = "fixthis_test1"
         val server = newServer(baseName) { name ->
@@ -48,7 +49,7 @@ class BridgeServerStartupTest {
     }
 
     @Test
-    fun startRetriesWithSuffixFallbackWhenFirstNameIsBound() {
+    fun startRetriesWithSuffixFallbackWhenFirstNameIsBound() = runBlocking {
         val baseName = "fixthis_test2"
         val attempted = mutableListOf<String>()
         val server = newServer(baseName) { name ->
@@ -69,7 +70,7 @@ class BridgeServerStartupTest {
     }
 
     @Test
-    fun startReturnsFalseAfterThreeFailedAttempts() {
+    fun startReturnsFalseAfterThreeFailedAttempts() = runBlocking {
         val baseName = "fixthis_test3"
         val attempted = mutableListOf<String>()
         val server = newServer(baseName) { name ->
