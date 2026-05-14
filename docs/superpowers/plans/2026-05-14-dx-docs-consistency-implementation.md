@@ -110,7 +110,7 @@ git commit -m "docs(contributing): document JDK/Node/Chromium prerequisites"
 cat package.json
 ```
 
-Confirm the current scripts list matches what the spec enumerated (7 scripts; no `engines` field). If it differs, escalate and update this plan before editing.
+Confirm the current scripts list contains 10 scripts present after the console-harness merge (`console:smoke`, `console:harness`, `console:responsive:stress`, `console:availability:test`, `console:pending:test`, `console:beforeunload:test`, `console:undo:test`, `console:draft:test`, `console:fsm:test`, `console:build:test`), no `engines` field, and `devDependencies` containing `esbuild` and `playwright`. If it differs, escalate and update this plan before editing.
 
 - [ ] **Step 2: Replace `package.json` with the new shape**
 
@@ -127,6 +127,7 @@ The full new content:
   },
   "scripts": {
     "console:smoke": "node scripts/console-browser-smoke.mjs",
+    "console:harness": "node scripts/console-harness.mjs",
     "console:responsive:stress": "node scripts/console-responsive-stress.mjs",
     "console:availability:test": "node scripts/run-console-tests.mjs availability",
     "console:pending:test": "node scripts/run-console-tests.mjs pending",
@@ -136,10 +137,13 @@ The full new content:
     "console:activity:test": "node scripts/run-console-tests.mjs activity",
     "console:preview:test": "node scripts/run-console-tests.mjs preview",
     "console:session:test": "node scripts/run-console-tests.mjs session",
+    "console:fsm:test": "node scripts/run-console-fsm-tests.mjs",
+    "console:build:test": "node --test scripts/build-console-assets-test.mjs",
     "console:test:fast": "node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview",
     "console:test:all": "node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview draft session"
   },
   "devDependencies": {
+    "esbuild": "0.21.5",
     "playwright": "^1.59.1",
     "github-slugger": "^2.0.0"
   }
