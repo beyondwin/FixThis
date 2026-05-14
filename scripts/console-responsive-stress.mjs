@@ -10,7 +10,9 @@ const outputDir = resolve(root, 'output/playwright');
 mkdirSync(outputDir, { recursive: true });
 
 const viewports = [
+  { name: 'desktop', width: 1440, height: 900 },
   { name: 'mobile-390', width: 390, height: 844 },
+  { name: 'tablet', width: 900, height: 900 },
   { name: 'breakpoint-900', width: 900, height: 900 },
   { name: 'compact-1024', width: 1024, height: 768 },
   { name: 'desktop-1280', width: 1280, height: 800 },
@@ -59,6 +61,9 @@ async function injectStressState(page) {
       'Copied, but MCP handoff status was not updated. Copy again after the connection recovers to update item lifecycle metadata. ' + longPath;
 
     document.getElementById('sessionCount').textContent = '2';
+    const draftLockBar = document.getElementById('draftLockBar');
+    draftLockBar.hidden = false;
+    draftLockBar.textContent = 'Locked: Session 2 · Preview preview-stress · Live preview paused';
     document.getElementById('sessions').innerHTML =
       '<div class="history-item session-row" role="button" tabindex="0" data-session-id="session-1">' +
         '<span class="hi-head">' +
@@ -169,6 +174,8 @@ async function assertNoHorizontalOverflow(page, viewportName) {
       '.evidence-details',
       '.evidence-grid',
       '#previewFrameStatus',
+      '#draftLockBar',
+      '#sessionBoundarySheet',
     ];
     return selectors.flatMap(selector => Array.from(document.querySelectorAll(selector)).map(element => {
       const overflow = element.scrollWidth - element.clientWidth;
@@ -181,6 +188,11 @@ async function assertNoHorizontalOverflow(page, viewportName) {
     })).filter(result => result.overflow > 1);
   });
   assert.deepEqual(failures, [], `${viewportName} has horizontal overflow`);
+}
+
+async function expectVisibleText(page, text) {
+  const visible = await page.locator(`text=${text}`).first().isVisible();
+  if (!visible) throw new Error(`Expected visible text: ${text}`);
 }
 
 async function assertHistoryRowsAreStacked(page, viewportName) {
@@ -367,6 +379,8 @@ async function run(baseUrl) {
         path: resolve(outputDir, `fixthis-responsive-stress-${viewport.name}.png`),
         fullPage: true,
       });
+      await expectVisibleText(page, 'Locked:');
+      await expectVisibleText(page, 'Live preview paused');
       await assertNoHorizontalOverflow(page, viewport.name);
       await assertHistoryRowsAreStacked(page, viewport.name);
       await assertPreviewFrameMatchesImage(page, viewport.name);

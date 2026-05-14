@@ -771,13 +771,49 @@
               return { state: 'unavailable', label: 'No screenshot' };
             }
 
-            function renderPreviewFrameStatus(screen, hasScreenshot) {
-              const status = previewFrameStatus(screen, hasScreenshot);
-              let badge = document.getElementById('previewFrameStatus');
-              if (!badge) return;
-              badge.dataset.state = status.state;
-              badge.textContent = status.label;
-            }
+	            function renderPreviewFrameStatus(screen, hasScreenshot) {
+	              const status = previewFrameStatus(screen, hasScreenshot);
+	              let badge = document.getElementById('previewFrameStatus');
+	              if (!badge) return;
+	              badge.dataset.state = status.state;
+	              badge.textContent = status.label;
+	            }
+
+	            function renderDraftLockBar(canvasModel = null) {
+	              const root = document.getElementById('draftLockBar');
+	              if (!root) return;
+	              const isDraft = canvasModel ? canvasModel.mode === 'frozenDraft' : Boolean(addItemsFlow);
+	              root.hidden = !isDraft;
+	              if (!isDraft) {
+	                root.textContent = '';
+	                return;
+	              }
+	              root.textContent = canvasModel?.lockLabel || (
+	                'Locked: Session ' + (addItemsFlow?.context?.sessionId || state.session?.sessionId || 'current') +
+	                ' · Preview ' + (addItemsFlow?.previewId || addItemsFlow?.context?.previewId || 'frozen') +
+	                ' · Live preview paused'
+	              );
+	            }
+
+	            function renderBoundaryFromModel(boundary) {
+	              const root = document.getElementById('sessionBoundarySheet');
+	              if (!root) return;
+	              root.hidden = !boundary;
+	              if (!boundary) return;
+	              root.querySelector('[data-boundary-title]').textContent = boundary.title;
+	              root.querySelector('[data-boundary-summary]').textContent =
+	                boundary.draftSummary.itemCount + ' draft annotations · ' + boundary.draftSummary.missingCommentCount + ' missing comments';
+	              root.querySelectorAll('[data-boundary-action]').forEach((button, index) => {
+	                const action = boundary.actions[index];
+	                button.hidden = !action;
+	                if (action) {
+	                  button.textContent = action.label;
+	                  button.onclick = () => {
+	                    if (typeof consoleStore !== 'undefined') consoleStore.dispatch({ type: action.type });
+	                  };
+	                }
+	              });
+	            }
 
             function renderPreviewRegion() {
               const screen = latestScreen();
@@ -795,10 +831,11 @@
                 updateComposerState();
                 // Even with no screenshot, surface the blocked-reason overlay and
                 // stale-frame notice so users see WHY there's no capture yet.
-                renderCanvasBlockedOverlay();
-                renderStaleFrameNotice();
-                return;
-              }
+	                renderCanvasBlockedOverlay();
+	                renderStaleFrameNotice();
+	                renderDraftLockBar();
+	                return;
+	              }
               const frame = ensurePreviewFrame();
               frame.dataset.mode = mode;
               renderPreviewFrameStatus(screen, hasScreenshot);
@@ -820,10 +857,11 @@
               } else if (hint) {
                 hint.remove();
               }
-              renderSelectionOverlay();
-              renderCanvasBlockedOverlay();
-              renderStaleFrameNotice();
-            }
+	              renderSelectionOverlay();
+	              renderCanvasBlockedOverlay();
+	              renderStaleFrameNotice();
+	              renderDraftLockBar();
+	            }
 
             function renderPreviewOnly() {
               renderPreviewRegion();

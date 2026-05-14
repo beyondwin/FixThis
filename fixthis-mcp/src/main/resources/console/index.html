@@ -127,13 +127,14 @@
                     </button>
                   </div>
                   <div id="toolStatus" class="tool-status">Select mode</div>
-                  <div class="zoom-control" aria-label="Zoom controls">
-                    <button id="zoomOutButton" class="zoom-button" type="button" aria-label="Zoom out">−</button>
-                    <span id="zoomPercent">100%</span>
-                    <button id="zoomInButton" class="zoom-button" type="button" aria-label="Zoom in">+</button>
-                  </div>
-                </div>
-                <span id="previewStaleBadge" class="preview-stale-badge" hidden>Connection paused - showing last preview</span>
+	                  <div class="zoom-control" aria-label="Zoom controls">
+	                    <button id="zoomOutButton" class="zoom-button" type="button" aria-label="Zoom out">−</button>
+	                    <span id="zoomPercent">100%</span>
+	                    <button id="zoomInButton" class="zoom-button" type="button" aria-label="Zoom in">+</button>
+	                  </div>
+	                </div>
+	                <div id="draftLockBar" class="draft-lock-bar" role="status" aria-live="polite" hidden></div>
+	                <span id="previewStaleBadge" class="preview-stale-badge" hidden>Connection paused - showing last preview</span>
                 <div id="snapshot" class="snapshot-stage">
                   <div class="empty-stage">Connect a device to get started.</div>
                 </div>
@@ -143,11 +144,23 @@
                   <div class="canvas-blocked__detail" data-detail></div>
                   <button type="button" class="canvas-blocked__retry" data-retry hidden>Retry now</button>
                 </div>
-                <div id="canvasStaleNotice" class="canvas-stale" hidden>
-                  <span>Frozen frame may be out of date.</span>
-                  <button type="button" data-use-latest>Use latest frame</button>
-                </div>
-              </section>
+	                <div id="canvasStaleNotice" class="canvas-stale" hidden>
+	                  <span>Frozen frame may be out of date.</span>
+	                  <button type="button" data-use-latest>Use latest frame</button>
+	                </div>
+	                <div id="sessionBoundarySheet" class="session-boundary-sheet" hidden>
+	                  <div class="session-boundary-dialog" role="dialog" aria-modal="true" aria-labelledby="sessionBoundaryTitle">
+	                    <h2 id="sessionBoundaryTitle" data-boundary-title>Switch sessions?</h2>
+	                    <p data-boundary-summary></p>
+	                    <div class="session-boundary-actions">
+	                      <button type="button" class="annotation-done" data-boundary-action></button>
+	                      <button type="button" class="annotation-done" data-boundary-action></button>
+	                      <button type="button" class="annotation-danger" data-boundary-action></button>
+	                      <button type="button" data-boundary-action></button>
+	                    </div>
+	                  </div>
+	                </div>
+	              </section>
               <aside class="studio-inspector">
                 <div class="panel-head">
                   <div id="inspectorTitle" class="panel-title">Annotations</div>
