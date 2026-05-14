@@ -28,6 +28,7 @@ dependencies {
     implementation(platform(libs.compose.bom))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.startup)
+    implementation(libs.androidx.lifecycle.process)
     implementation(libs.compose.ui)
     implementation(libs.compose.foundation)
     implementation(libs.kotlinx.coroutines.android)

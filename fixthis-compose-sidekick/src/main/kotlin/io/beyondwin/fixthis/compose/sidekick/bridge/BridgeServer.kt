@@ -8,19 +8,25 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 import java.io.IOException
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 class BridgeServer(
     // @VisibleForTesting: tests construct BridgeServer directly to drive the
@@ -39,8 +45,13 @@ class BridgeServer(
     private val _state = MutableStateFlow<BridgeServerState>(BridgeServerState.Idle)
     val state: StateFlow<BridgeServerState> = _state.asStateFlow()
 
+    private val lifecycleMutex = Mutex()
+
     @Volatile
     private var serverSocket: LocalServerSocket? = null
+
+    @Volatile
+    private var acceptJob: Job? = null
 
     /**
      * The actual socket name [start] bound to (may differ from the session's
@@ -53,8 +64,8 @@ class BridgeServer(
         else -> null
     }
 
-    fun start(): Boolean {
-        if (serverSocket != null) return false
+    suspend fun start(): Boolean = lifecycleMutex.withLock {
+        if (_state.value != BridgeServerState.Idle) return@withLock false
         _state.value = BridgeServerState.Starting
         val attempted = mutableListOf<String>()
         var lastError: Throwable? = null
@@ -68,11 +79,9 @@ class BridgeServer(
                 continue
             }
             serverSocket = socket
+            acceptJob = scope.launch { acceptLoop(socket) }
             _state.value = BridgeServerState.Running(candidate)
-            scope.launch {
-                acceptLoop(socket)
-            }
-            return true
+            return@withLock true
         }
         _state.value = BridgeServerState.Idle
         Log.w(
@@ -81,15 +90,34 @@ class BridgeServer(
                 "tried ${attempted.joinToString(", ")}",
             lastError,
         )
-        return false
+        false
     }
 
-    fun stop() {
+    suspend fun stop() = lifecycleMutex.withLock {
+        // Idempotent for Idle/Stopping — re-entrant callers do not wait.
+        when (_state.value) {
+            BridgeServerState.Idle, BridgeServerState.Stopping -> return@withLock
+            else -> Unit
+        }
         _state.value = BridgeServerState.Stopping
-        runCatching { serverSocket?.close() }
+        runCatching { serverSocket?.close() } // unblocks accept()
+
+        // Bounded drain. If a handler hangs, log loudly and leak rather than block forever.
+        val drained = withTimeoutOrNull(StopDrainTimeout) {
+            acceptJob?.cancelAndJoin()
+            scope.coroutineContext[Job]?.cancelAndJoin()
+        }
+        if (drained == null) {
+            Log.w(
+                BridgeServerLogTag,
+                "BridgeServer.stop() drain timed out after $StopDrainTimeout; pending handlers leaked",
+            )
+        }
+
         serverSocket = null
+        acceptJob = null
         _state.value = BridgeServerState.Idle
-        scope.cancel()
+        // Single-use: scope is now cancelled. Reuse requires a fresh instance.
     }
 
     internal suspend fun handleRequestForTest(payload: String): String = handleRequest(payload)
@@ -190,8 +218,11 @@ class BridgeServer(
         )
     }
 
-    private companion object {
+    internal companion object {
         const val BridgeServerLogTag = "FixThisBridge"
+
+        @VisibleForTesting
+        internal val StopDrainTimeout: Duration = 5.seconds
     }
 }
 

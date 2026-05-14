@@ -394,6 +394,15 @@ class BridgeServerTest {
     }
 
     @Test
+    fun startIsIdempotentAcrossSequentialCalls() = runBlocking {
+        val server = server(socketFactory = { fakeServerSocket() })
+        assertTrue(server.start())
+        assertFalse(server.start())
+        assertFalse(server.start())
+        server.stop()
+    }
+
+    @Test
     fun verifyUiChangeReportsFalseWhenExpectedTextIsAbsent() = runBlocking {
         val server = server()
 
