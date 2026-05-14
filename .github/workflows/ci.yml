@@ -26,6 +26,9 @@ jobs:
       - name: Doc consistency check
         run: node scripts/check-doc-consistency.mjs
 
+      - name: Check release readiness docs
+        run: node scripts/check-release-readiness.mjs
+
       - name: Check console asset bundle
         run: node scripts/build-console-assets.mjs --check
 

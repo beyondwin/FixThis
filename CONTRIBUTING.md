@@ -160,12 +160,17 @@ Run these before opening a pull request:
   --no-daemon
 node scripts/build-console-assets.mjs --check
 node scripts/check-doc-consistency.mjs
+node scripts/check-release-readiness.mjs
 node --check fixthis-mcp/src/main/resources/console/app.js
 # All console JS tests (single source of truth is scripts/console-tests.json).
 node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview draft session harness
 # Equivalent to `npm run console:test:all`; edit the JSON, not this command line.
 git diff --check
 ```
+
+`check-release-readiness.mjs` protects public release docs from accidentally
+claiming Maven Central or Gradle Plugin Portal publication before artifacts are
+actually visible.
 
 When touching feedback-session switching, saved overlays, pending recovery, or
 undo/redo context, also run the focused session-scope harnesses:
