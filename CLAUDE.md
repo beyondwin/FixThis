@@ -13,7 +13,8 @@ constraints — those apply equally to Claude Code.
 - **Restart loop after Kotlin changes** → run `bash scripts/restart-console.sh`
   (add `--with-app` to also reinstall the sample APK). Kotlin server code is
   pinned in the JAR; the console JS is live-reloaded under
-  `--console-assets-dir`.
+  `--console-assets-dir`. Full flag list in
+  [`CONTRIBUTING.md` § Console Inner Loop](CONTRIBUTING.md#console-inner-loop).
 - **Bridge protocol changes** must update `BridgeProtocol.VERSION`, the console
   `MinimumSupportedProtocolVersion`, and the mirrored constants in
   `BridgeClient.kt` and `ServerVersionRoutes.kt`. `BridgeProtocolVersionSyncTest`

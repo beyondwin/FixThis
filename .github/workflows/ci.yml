@@ -20,6 +20,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Doc consistency check
+        run: node scripts/check-doc-consistency.mjs
+
       - name: Check console asset bundle
         run: node scripts/build-console-assets.mjs --check
 

@@ -3,20 +3,29 @@
   "private": true,
   "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "console:smoke": "node scripts/console-browser-smoke.mjs",
     "console:harness": "node scripts/console-harness.mjs",
     "console:responsive:stress": "node scripts/console-responsive-stress.mjs",
-    "console:availability:test": "node --test scripts/console-availability-test.mjs",
-    "console:pending:test": "node --test scripts/pendingItemRecovery-test.mjs",
-    "console:beforeunload:test": "node --test scripts/beforeunloadGuard-test.mjs",
-    "console:undo:test": "node --test scripts/undoRedo-test.mjs scripts/undoKeymatch-test.mjs",
-    "console:draft:test": "node --test scripts/draftWorkspace-test.mjs scripts/draftWorkspaceHistory-test.mjs scripts/draftStorageAdapter-test.mjs scripts/draftApiAdapter-test.mjs scripts/draftUseCases-test.mjs scripts/draftCommandQueue-test.mjs scripts/draftPresentationContract-test.mjs scripts/draftWorkflowInvariant-test.mjs",
+    "console:availability:test": "node scripts/run-console-tests.mjs availability",
+    "console:pending:test": "node scripts/run-console-tests.mjs pending",
+    "console:beforeunload:test": "node scripts/run-console-tests.mjs beforeunload",
+    "console:undo:test": "node scripts/run-console-tests.mjs undo",
+    "console:draft:test": "node scripts/run-console-tests.mjs draft",
+    "console:activity:test": "node scripts/run-console-tests.mjs activity",
+    "console:preview:test": "node scripts/run-console-tests.mjs preview",
+    "console:session:test": "node scripts/run-console-tests.mjs session",
     "console:fsm:test": "node scripts/run-console-fsm-tests.mjs",
-    "console:build:test": "node --test scripts/build-console-assets-test.mjs"
+    "console:build:test": "node --test scripts/build-console-assets-test.mjs",
+    "console:test:fast": "node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview",
+    "console:test:all": "node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview draft session"
   },
   "devDependencies": {
     "esbuild": "0.21.5",
-    "playwright": "^1.59.1"
+    "playwright": "^1.59.1",
+    "github-slugger": "^2.0.0"
   }
 }

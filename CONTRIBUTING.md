@@ -1,5 +1,16 @@
 # Contributing
 
+## Prerequisites
+
+| Tool | Minimum | Notes |
+|---|---|---|
+| JDK | 21 | Adoptium Temurin recommended. |
+| Android SDK + ADB | API 30+ | Required for `:app:assembleDebug` and connected smoke. |
+| Node.js | 20.0.0 | Enforced via `package.json` `engines` and `.npmrc engine-strict=true`. Node 20.x LTS is supported through 2026-04; 22.x LTS also supported. Node 18.x is EOL. |
+| Chromium | Bundled by Playwright 1.59 | `npx playwright install chromium` after `npm install`. macOS 11+ / Ubuntu 20.04+ required by Playwright's bundled Chromium. |
+
+Run `npm install` and `npx playwright install chromium` once before running any `npm run console:*` script.
+
 ## Formatting
 
 Kotlin sources and Gradle Kotlin DSL scripts are formatted by [Spotless](https://github.com/diffplug/spotless)
@@ -36,6 +47,44 @@ The following table is the canonical contract for which workflows are (or will b
 
 The branch-protection flip itself is gated on the "Pending" rows above turning green for the stated observation window. Maintainers update the readiness tracker as windows complete.
 
+## Console Inner Loop
+
+The console JS is live-reloaded; the Kotlin server is pinned in the JAR. Two helper scripts cover the common inner-loop cases.
+
+### `scripts/restart-console.sh` — restart after Kotlin server changes
+
+Use after any change to `:fixthis-mcp` server code. The script kills any running console process, frees the bookmarked port (default `9876`), and starts a new console pointed at the source-tree assets.
+
+```bash
+bash scripts/restart-console.sh                 # restart console only
+bash scripts/restart-console.sh --with-app      # also reinstall the sample APK
+bash scripts/restart-console.sh --dry-run       # preview commands without executing
+bash scripts/restart-console.sh --port 9876     # use a non-default port
+```
+
+Override the port with `FIXTHIS_CONSOLE_PORT` or `--port`. The script also frees stray `screen` sessions named `fixthis-console-*`.
+
+### `scripts/fixthis-console-dev.sh` — JS-only hot-reload loop
+
+Use after edits to `fixthis-mcp/src/main/console/*` that you rebundle with `node scripts/build-console-assets.mjs`. The script launches `fixthis console` with `--console-assets-dir` (so the source-tree JS is served live), parses the `consoleUrl` from CLI output, and opens it in the default browser.
+
+```bash
+scripts/fixthis-console-dev.sh                                # default package
+scripts/fixthis-console-dev.sh io.beyondwin.fixthis.sample    # explicit package
+```
+
+Stop with Ctrl-C; re-running kills any stale `fixthis console` process before starting a new one.
+
+### Documentation consistency check (required)
+
+After editing `package.json`, README, AGENTS.md, or this file, run:
+
+```bash
+node scripts/check-doc-consistency.mjs
+```
+
+The script verifies that npm scripts and CONTRIBUTING.md agree, that README ↔ AGENTS cross-links exist, that the contributor scripts are documented here, and that every `*.md#anchor` link resolves to a real heading (via `github-slugger`). It exits non-zero with a `FAIL Rx.…` line if any rule breaks.
+
 ## Required Local Checks
 
 The root build enables the local Gradle build cache by default. Configuration
@@ -68,17 +117,24 @@ opening or updating a pull request.
 ./gradlew :fixthis-compose-sidekick:testDebugUnitTest --no-daemon
 
 # Pure console JavaScript changes
-node --test \
-  scripts/console-availability-test.mjs \
-  scripts/pendingItemRecovery-test.mjs \
-  scripts/beforeunloadGuard-test.mjs \
-  scripts/undoRedo-test.mjs \
-  scripts/undoKeymatch-test.mjs \
-  scripts/activityDrift-test.mjs \
-  scripts/previewStaleness-test.mjs
+npm run console:test:fast
 
 # Draft workspace state-machine changes
 npm run console:draft:test
+```
+
+Per-feature focused harnesses are also available as named npm scripts (each
+delegates to `scripts/run-console-tests.mjs` or its dedicated runner):
+
+```bash
+npm run console:availability:test   # availability/blocked-state harness
+npm run console:pending:test        # pending-item recovery harness
+npm run console:beforeunload:test   # beforeunload guard harness
+npm run console:undo:test           # undo/redo harness
+npm run console:activity:test       # activity-drift harness
+npm run console:preview:test        # preview staleness harness
+npm run console:fsm:test            # connection FSM harness
+npm run console:build:test          # build-console-assets unit tests
 ```
 
 > As of 2026-05-14, `ConsoleFeedbackItemRoutesTest.kt` was split into seven
@@ -102,23 +158,11 @@ Run these before opening a pull request:
   :fixthis-mcp:installDist \
   --no-daemon
 node scripts/build-console-assets.mjs --check
+node scripts/check-doc-consistency.mjs
 node --check fixthis-mcp/src/main/resources/console/app.js
-node --test \
-  scripts/console-availability-test.mjs \
-  scripts/pendingItemRecovery-test.mjs \
-  scripts/beforeunloadGuard-test.mjs \
-  scripts/undoRedo-test.mjs \
-  scripts/undoKeymatch-test.mjs \
-  scripts/activityDrift-test.mjs \
-  scripts/previewStaleness-test.mjs \
-  scripts/draftWorkspace-test.mjs \
-  scripts/draftWorkspaceHistory-test.mjs \
-  scripts/draftStorageAdapter-test.mjs \
-  scripts/draftApiAdapter-test.mjs \
-  scripts/draftUseCases-test.mjs \
-  scripts/draftCommandQueue-test.mjs \
-  scripts/draftPresentationContract-test.mjs \
-  scripts/draftWorkflowInvariant-test.mjs
+# All console JS tests (single source of truth is scripts/console-tests.json).
+node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview draft session
+# Equivalent to `npm run console:test:all`; edit the JSON, not this command line.
 git diff --check
 ```
 
@@ -126,11 +170,7 @@ When touching feedback-session switching, saved overlays, pending recovery, or
 undo/redo context, also run the focused session-scope harnesses:
 
 ```bash
-node --test \
-  scripts/pendingBoundaryGuard-test.mjs \
-  scripts/sessionScopedRequests-test.mjs \
-  scripts/savedOverlayScope-test.mjs \
-  scripts/undoRedoContext-test.mjs
+npm run console:session:test
 ```
 
 If you edited any console JS module under `fixthis-mcp/src/main/console/`, rebundle the served asset before running `installDist` and the syntax check:
