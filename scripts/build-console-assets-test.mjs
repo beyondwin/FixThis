@@ -98,3 +98,25 @@ test('every console module (except entry point) carries a // @requires header', 
   }
   assert.deepEqual(missing, [], `Missing // @requires header in: ${missing.join(', ')}`);
 });
+
+test('contract-symbol guard catches a dropped symbol', async () => {
+  const { assertContractSymbols } = await import('../scripts/build-console-assets.mjs');
+  assert.throws(
+    () => assertContractSymbols('function foo(){}', ['withMutationLock']),
+    /contract symbol 'withMutationLock'/,
+  );
+});
+
+test('contract-symbol guard passes when all symbols are present', async () => {
+  const { assertContractSymbols } = await import('../scripts/build-console-assets.mjs');
+  assert.doesNotThrow(() =>
+    assertContractSymbols('function withMutationLock(fn){}', ['withMutationLock']),
+  );
+});
+
+test('bundled JS parses as valid es2020 module', () => {
+  execFileSync('node', [script], { cwd: root, stdio: 'pipe' });
+  const code = readFileSync(targetJs, 'utf8');
+  // Pass through Node's parser via new Function (sloppy mode parse)
+  assert.doesNotThrow(() => new Function(code), 'bundle has syntax error');
+});

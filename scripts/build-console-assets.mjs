@@ -40,6 +40,100 @@ export function topoSort(g) {
   return order;
 }
 
+const CONTRACT_SYMBOLS = [
+  // Core session-polling identifiers (grep'd by ConsoleFeedbackItemRoutesTest)
+  'withMutationLock',
+  'pollSessionsTick',
+  'startSessionsPolling',
+  'mergeSessionIntoState',
+  'MaxConsecutivePollFailures',
+  'DefaultLivePreviewIntervalMs',
+  'PreviewIntervalStorageKey',
+  // Polling FSM wiring (ConsoleFeedbackItemRoutesTest.pollingFsmIsWiredIntoMainBundle)
+  'pollingUseCases',
+  'createBrowserPollingUseCases',
+  'lastSessionsEtag',
+  'lastSessionEtag',
+  'pendingMutationCount',
+  'consecutiveFailures',
+  // State / connection (ConsoleConnectionRoutesTest)
+  'createInitialConnectionState',
+  'createInitialPreviewState',
+  // Staleness (ConsoleAssetRoutesTest)
+  'checkServerStaleness',
+  'renderStalenessBanner',
+  'MinimumSupportedProtocolVersion',
+  'checkProtocolCompat',
+  'parseProtocolVersion',
+  'compareProtocolVersion',
+  'StaleThresholdMs',
+  // Preview region rendering (ConsolePreviewRoutesTest)
+  'renderPreviewRegion',
+  'renderSessionRegions',
+  'renderInspectorRegion',
+  // Saved-evidence / annotation rendering (ConsoleFeedbackItemRoutesTest)
+  'renderSavedEvidenceOverlay',
+  'focusSavedEvidenceItem',
+  'renderSavedEvidenceGroups',
+  'renderComposerInspector',
+  'renderSavedAnnotationsInspector',
+  'renderAnnotationDetail',
+  'resetAnnotationComposerState',
+  // Pending items (ConsoleFeedbackItemRoutesTest)
+  'renderPendingItems',
+  'renderNumberedFeedbackOverlay',
+  'focusPendingFeedbackItem',
+  'deletePendingFeedbackItem',
+  'startAddItemsFlow',
+  'createAnnotationFromSelection',
+  'savePendingFeedbackItems',
+  // Canvas selection (ConsoleFeedbackItemRoutesTest)
+  'finishAreaSelection',
+  'selectNodeAtPoint',
+  'nodesForHitTest',
+  'naturalPointFromEvent',
+  // History panel (ConsoleFeedbackItemRoutesTest)
+  'formatSessionLabel',
+  'formatSessionSummary',
+  'historyOpenCount',
+  'historyDoneCount',
+  'renderHistoryStrip',
+  'formatItemLabel',
+  'sessionOrdinalLookup',
+  'stableHistorySessions',
+  'renderSessionsList',
+  'emptySessionsHtml',
+  'historyStartAnnotatingItemHtml',
+  'enterNewHistoryAnnotateMode',
+  'deleteHistorySession',
+  // Device control (ConsoleFeedbackItemRoutesTest / ConsoleConnectionRoutesTest)
+  'refreshDevices',
+  'selectDevice',
+  'disconnectDevice',
+  'deviceLabel',
+  'shortenDeviceSerial',
+  'setDeviceUiState',
+  'deviceOptionLabel',
+  // Top-bar actions (ConsoleFeedbackItemRoutesTest)
+  'sendAgentPrompt',
+  'clearSelection',
+  'clearDraft',
+  // Shortcuts (ConsoleFeedbackItemRoutesTest)
+  'isTextInputFocused',
+  'handleGlobalShortcut',
+];
+
+export function assertContractSymbols(output, symbols = CONTRACT_SYMBOLS) {
+  for (const symbol of symbols) {
+    if (!output.includes(symbol)) {
+      throw new Error(
+        `esbuild dropped contract symbol '${symbol}'. ` +
+        `Add @preserve banner or stop minifying.`,
+      );
+    }
+  }
+}
+
 const isMainModule = import.meta.url === `file://${process.argv[1]}`;
 if (isMainModule) {
   main().catch((e) => { console.error(e); process.exit(1); });
@@ -114,6 +208,9 @@ async function main() {
 
   const jsBytes = result.outputFiles.find((f) => f.path.endsWith('.js')).contents;
   const mapBytes = result.outputFiles.find((f) => f.path.endsWith('.map')).contents;
+
+  const jsText = new TextDecoder().decode(jsBytes);
+  assertContractSymbols(jsText);
 
   const RAW_BUDGET_BYTES = 170 * 1024;
   const GZIP_BUDGET_BYTES = 40 * 1024;
