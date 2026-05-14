@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -49,4 +49,38 @@ test('app.js gzipped bytes are within the 40 KiB budget', () => {
 test('--check returns 0 immediately after a fresh build', () => {
   execFileSync('node', [script], { cwd: root, stdio: 'pipe' });
   execFileSync('node', [script, '--check'], { cwd: root, stdio: 'pipe' });
+});
+
+test('topological order matches legacy hand-curated array', () => {
+  execFileSync('node', [script], { cwd: root, stdio: 'pipe' });
+  const generated = readFileSync(targetJs, 'utf8');
+  const stateIdx = generated.indexOf('//#region state.js');
+  const annotationsIdx = generated.indexOf('//#region annotations.js');
+  const renderingIdx = generated.indexOf('//#region rendering.js');
+  const mainIdx = generated.indexOf('//#region main.js');
+  assert.ok(stateIdx >= 0 && stateIdx < annotationsIdx, 'state.js must precede annotations.js');
+  assert.ok(annotationsIdx < renderingIdx, 'annotations.js must precede rendering.js');
+  assert.ok(renderingIdx < mainIdx, 'main.js must be last');
+});
+
+test('cycle in @requires aborts the build', async () => {
+  const { topoSort } = await import('../scripts/build-console-assets.mjs');
+  const cyclic = new Map([
+    ['a.js', { content: '', deps: ['b.js'] }],
+    ['b.js', { content: '', deps: ['a.js'] }],
+  ]);
+  assert.throws(() => topoSort(cyclic), /Cycle in .* @requires graph/);
+});
+
+test('every console module (except entry point) carries a // @requires header', () => {
+  const sourceDir = resolve(root, 'fixthis-mcp/src/main/console');
+  const ENTRY_POINT = 'main.js';
+  const files = readdirSync(sourceDir).filter((f) => f.endsWith('.js') && f !== ENTRY_POINT);
+  assert.ok(files.length >= 26, `expected >=26 non-entry modules, found ${files.length}`);
+  const missing = [];
+  for (const name of files) {
+    const text = readFileSync(resolve(sourceDir, name), 'utf8');
+    if (!/^\s*\/\/\s*@requires\s+/m.test(text)) missing.push(name);
+  }
+  assert.deepEqual(missing, [], `Missing // @requires header in: ${missing.join(', ')}`);
 });

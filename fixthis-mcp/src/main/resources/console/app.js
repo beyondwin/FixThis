@@ -1,1033 +1,4 @@
-// connectionFsm.js
-// @requires (none)
-// connectionFsm.js — pure reducer for the bridge connection lifecycle.
-//
-// Owns the entire state.connection.* object plus heartbeat-related fields
-// previously held as module-level lets in state.js. No DOM, fetch, timers,
-// or globals here.
-//
-// Action set (per console-state-machine-expansion §3.2):
-//   LAUNCH_REQUESTED       — user requested app launch
-//   LAUNCH_SUCCEEDED       — launch RPC returned a status
-//   LAUNCH_FAILED          — launch RPC failed
-//   HEARTBEAT_OK           — heartbeat ping succeeded
-//   HEARTBEAT_FAILED       — heartbeat ping failed (carries error message)
-//   INTERACTION_BLOCKED    — resolver decided interaction is blocked
-//   INTERACTION_UNBLOCKED  — resolver cleared the blocked reason
-//   AVAILABILITY_UPDATED   — availability snapshot arrived without a full status
-//   DISCONNECT_REQUESTED   — user/UI explicitly tore the connection down
-//
-// Plus two non-spec actions added during extraction so that **no** state.connection.*
-// mutation lives outside this reducer (R3 mitigation: FSM is the single source
-// of truth from creation):
-//   STATUS_RECEIVED         — a full /api/connection status payload arrived
-//   POLLING_PAUSED_CHANGED  — sessions polling backed off / resumed
-//
-// MaxHeartbeatFailures is exposed as a constant; consumers may import via the
-// IIFE-shared lexical scope (no module object exists at runtime).
-
-const MaxHeartbeatFailures = 3;
-
-const ConnectionLifecycle = Object.freeze({
-  WELCOME: 'welcome',
-  STARTING: 'starting',
-  READY: 'ready',
-  RECONNECT: 'reconnect',
-  ERROR: 'error',
-});
-
-function createInitialConnectionState() {
-  return Object.freeze({
-    current: null,
-    hasEverConnected: false,
-    lastReadyAt: null,
-    launchInFlight: false,
-    availability: null,
-    interactionBlockedReason: null,
-    previousBlockedReason: null,
-    sessionsPollingPaused: false,
-    heartbeatPolling: false,
-    lastHeartbeatError: null,
-  });
-}
-
-function statusIsReady(status) {
-  if (!status) return false;
-  const raw = String(status.state || '').toLowerCase();
-  return raw === 'ready';
-}
-
-function reduceConnection(state, action) {
-  if (!state) state = createInitialConnectionState();
-  if (!action || typeof action.type !== 'string') return state;
-  switch (action.type) {
-    case 'LAUNCH_REQUESTED':
-      return Object.freeze({ ...state, launchInFlight: true });
-    case 'LAUNCH_SUCCEEDED':
-    case 'LAUNCH_FAILED':
-      return Object.freeze({ ...state, launchInFlight: false });
-    case 'STATUS_RECEIVED': {
-      const status = action.status ?? null;
-      const next = {
-        ...state,
-        current: status,
-        availability: status?.availability ?? null,
-        previousBlockedReason: state.interactionBlockedReason,
-        interactionBlockedReason: action.blockedReason ?? null,
-      };
-      if (statusIsReady(status)) {
-        next.hasEverConnected = true;
-        next.lastReadyAt = typeof action.nowMs === 'number' ? action.nowMs : state.lastReadyAt;
-      }
-      return Object.freeze(next);
-    }
-    case 'AVAILABILITY_UPDATED':
-      return Object.freeze({ ...state, availability: action.availability ?? null });
-    case 'INTERACTION_BLOCKED':
-      return Object.freeze({
-        ...state,
-        previousBlockedReason: state.interactionBlockedReason,
-        interactionBlockedReason: action.reason ?? null,
-      });
-    case 'INTERACTION_UNBLOCKED':
-      return Object.freeze({
-        ...state,
-        previousBlockedReason: state.interactionBlockedReason,
-        interactionBlockedReason: null,
-      });
-    case 'HEARTBEAT_OK':
-      return Object.freeze({ ...state, lastHeartbeatError: null });
-    case 'HEARTBEAT_FAILED':
-      return Object.freeze({ ...state, lastHeartbeatError: action.error ?? null });
-    case 'POLLING_PAUSED_CHANGED':
-      return Object.freeze({ ...state, sessionsPollingPaused: !!action.paused });
-    case 'DISCONNECT_REQUESTED':
-      return Object.freeze({
-        ...state,
-        current: null,
-        availability: null,
-        heartbeatPolling: false,
-      });
-    default:
-      return state;
-  }
-}
-
-// build-header
-const ConsoleBuildEpochMs = 1778752320000;
-const ConsoleBuildGitSha = '5124d4e';
-
-// connectionUseCases.js
-// @requires connectionFsm.js
-// connectionUseCases.js — action dispatchers for the connection FSM.
-//
-// Pure: no DOM, fetch, timers, localStorage. Takes the reducer and an
-// onChange observer (the compat shim in state.js projects the new state
-// into the legacy state.connection object so non-FSM readers keep working).
-//
-// Factory shape:
-//   createConnectionUseCases({ initialState, onChange })
-//     -> { getState, dispatch, launchRequested, launchSucceeded, launchFailed,
-//          setStatus, availabilityUpdated, interactionBlocked,
-//          interactionUnblocked, heartbeatOk, heartbeatFailed,
-//          setSessionsPollingPaused, disconnectRequested }
-
-function createConnectionUseCases(options = {}) {
-  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
-  let current = options.initialState ?? createInitialConnectionState();
-  if (!Object.isFrozen(current)) current = Object.freeze({ ...current });
-
-  function dispatch(action) {
-    const next = reduceConnection(current, action);
-    if (next !== current) {
-      current = next;
-      onChange(current);
-    }
-    return current;
-  }
-
-  function getState() {
-    return current;
-  }
-
-  return {
-    getState,
-    dispatch,
-    launchRequested: () => dispatch({ type: 'LAUNCH_REQUESTED' }),
-    launchSucceeded: () => dispatch({ type: 'LAUNCH_SUCCEEDED' }),
-    launchFailed: () => dispatch({ type: 'LAUNCH_FAILED' }),
-    setStatus: (status, blockedReason, extras = {}) => dispatch({
-      type: 'STATUS_RECEIVED',
-      status,
-      blockedReason: blockedReason ?? null,
-      nowMs: typeof extras.nowMs === 'number' ? extras.nowMs : Date.now(),
-    }),
-    availabilityUpdated: (availability) => dispatch({
-      type: 'AVAILABILITY_UPDATED',
-      availability,
-    }),
-    interactionBlocked: (reason) => dispatch({ type: 'INTERACTION_BLOCKED', reason }),
-    interactionUnblocked: () => dispatch({ type: 'INTERACTION_UNBLOCKED' }),
-    heartbeatOk: () => dispatch({ type: 'HEARTBEAT_OK' }),
-    heartbeatFailed: (error) => dispatch({ type: 'HEARTBEAT_FAILED', error }),
-    setSessionsPollingPaused: (paused) => dispatch({
-      type: 'POLLING_PAUSED_CHANGED',
-      paused,
-    }),
-    disconnectRequested: () => dispatch({ type: 'DISCONNECT_REQUESTED' }),
-  };
-}
-
-// connectionBrowserAdapter.js
-// @requires connectionFsm.js, connectionUseCases.js
-// connectionBrowserAdapter.js — wires connectionUseCases into the browser
-// `state.connection` projection. Keeping this glue in its own file keeps
-// state.js free of FSM details and gives the use cases an explicit entry
-// point (so tests can stub it out if needed).
-//
-// Returns the use-cases object. The caller passes a mutator that copies
-// the frozen FSM state into the legacy `state.connection` object so
-// non-FSM readers (rendering, devices, preview) keep observing changes.
-
-function createBrowserConnectionUseCases(projectState) {
-  const onChange = typeof projectState === 'function' ? projectState : () => {};
-  return createConnectionUseCases({
-    initialState: createInitialConnectionState(),
-    onChange,
-  });
-}
-
-// previewFsm.js
-// @requires (none)
-// previewFsm.js — pure reducer for the live preview lifecycle.
-//
-// Owns the preview request/zoom/poll counters previously held as
-// module-level lets in state.js (previewRequestGeneration,
-// previewRequestContextGeneration, previewRequestInFlight,
-// previewRequestInFlightContextGeneration, previewZoom). No DOM,
-// fetch, timers, or globals here.
-//
-// Action set (per console-state-machine-expansion §3.3):
-//   REQUEST_STARTED      — bump requestGeneration; capture (generation,
-//                          contextGeneration) into inFlight; lifecycle → REQUESTING
-//   REQUEST_SUCCEEDED    — applied only if BOTH action.generation and
-//                          action.contextGeneration match the inFlight tuple;
-//                          otherwise dropped (race-fence)
-//   REQUEST_FAILED       — same race-fence as REQUEST_SUCCEEDED; lifecycle → ERROR
-//   CONTEXT_CHANGED      — bump contextGeneration; clear inFlight and current;
-//                          lifecycle → IDLE (so the next request re-fetches)
-//   SET_STALE            — toggle lifecycle between READY ↔ STALE
-//   SET_ZOOM             — clamp to [MinPreviewZoom, MaxPreviewZoom], round to 0.1
-//   SET_POLL_INTERVAL    — set pollIntervalMs (or null for manual)
-
-const PreviewLifecycle = Object.freeze({
-  IDLE: 'idle',
-  REQUESTING: 'requesting',
-  READY: 'ready',
-  STALE: 'stale',
-  ERROR: 'error',
-});
-
-const MinPreviewZoom = 0.5;
-const MaxPreviewZoom = 2;
-
-function createInitialPreviewState() {
-  return Object.freeze({
-    lifecycle: PreviewLifecycle.IDLE,
-    requestGeneration: 0,
-    contextGeneration: 0,
-    inFlight: null,
-    current: null,
-    zoom: 1,
-    pollIntervalMs: null,
-    error: null,
-  });
-}
-
-function clampPreviewZoom(value) {
-  const numeric = typeof value === 'number' && !Number.isNaN(value) ? value : 1;
-  const clamped = Math.min(Math.max(numeric, MinPreviewZoom), MaxPreviewZoom);
-  return Math.round(clamped * 10) / 10;
-}
-
-function isStaleFence(state, action) {
-  if (!state.inFlight) return true;
-  if (action.generation !== state.inFlight.generation) return true;
-  if (action.contextGeneration !== state.inFlight.contextGeneration) return true;
-  return false;
-}
-
-function reducePreview(state, action) {
-  if (!state) state = createInitialPreviewState();
-  if (!action || typeof action.type !== 'string') return state;
-  switch (action.type) {
-    case 'REQUEST_STARTED': {
-      const nextGeneration = state.requestGeneration + 1;
-      return Object.freeze({
-        ...state,
-        lifecycle: PreviewLifecycle.REQUESTING,
-        requestGeneration: nextGeneration,
-        inFlight: Object.freeze({
-          generation: nextGeneration,
-          contextGeneration: state.contextGeneration,
-        }),
-        error: null,
-      });
-    }
-    case 'REQUEST_SUCCEEDED': {
-      if (isStaleFence(state, action)) return state;
-      return Object.freeze({
-        ...state,
-        lifecycle: PreviewLifecycle.READY,
-        current: action.preview ?? null,
-        inFlight: null,
-        error: null,
-      });
-    }
-    case 'REQUEST_FAILED': {
-      if (isStaleFence(state, action)) return state;
-      return Object.freeze({
-        ...state,
-        lifecycle: PreviewLifecycle.ERROR,
-        inFlight: null,
-        error: action.error ?? null,
-      });
-    }
-    case 'CONTEXT_CHANGED': {
-      return Object.freeze({
-        ...state,
-        lifecycle: PreviewLifecycle.IDLE,
-        requestGeneration: state.requestGeneration + 1,
-        contextGeneration: state.contextGeneration + 1,
-        inFlight: null,
-        current: null,
-        error: null,
-      });
-    }
-    case 'SET_STALE': {
-      const stale = !!action.stale;
-      if (stale && state.lifecycle === PreviewLifecycle.READY) {
-        return Object.freeze({ ...state, lifecycle: PreviewLifecycle.STALE });
-      }
-      if (!stale && state.lifecycle === PreviewLifecycle.STALE) {
-        return Object.freeze({ ...state, lifecycle: PreviewLifecycle.READY });
-      }
-      return state;
-    }
-    case 'SET_ZOOM': {
-      const zoom = clampPreviewZoom(action.zoom);
-      if (zoom === state.zoom) return state;
-      return Object.freeze({ ...state, zoom });
-    }
-    case 'SET_POLL_INTERVAL': {
-      const intervalMs = typeof action.intervalMs === 'number' ? action.intervalMs : null;
-      if (intervalMs === state.pollIntervalMs) return state;
-      return Object.freeze({ ...state, pollIntervalMs: intervalMs });
-    }
-    default:
-      return state;
-  }
-}
-
-// previewUseCases.js
-// @requires previewFsm.js
-// previewUseCases.js — action dispatchers for the preview FSM.
-//
-// Pure: no DOM, fetch, timers, localStorage. Takes async primitives
-// (capture) and storage via ports. The browser adapter
-// (previewBrowserAdapter.js) wires in the real implementations.
-//
-// Factory shape:
-//   createPreviewUseCases({ onChange, api, storage })
-//     -> { getState, dispatch, request, contextChanged, setStale,
-//          setZoom, setPollInterval }
-//
-// Race-fence contract (normative): when request() awaits api.capture,
-// the (generation, contextGeneration) tuple captured immediately after
-// REQUEST_STARTED is passed to REQUEST_SUCCEEDED / REQUEST_FAILED.
-// The reducer drops the action if EITHER counter mismatches.
-
-const PreviewIntervalStorageKeyConst = 'fixthis.previewIntervalMs.v2';
-
-function createPreviewUseCases(options = {}) {
-  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
-  const api = options.api || {};
-  const storage = options.storage || {};
-  let current = options.initialState ?? createInitialPreviewState();
-  if (!Object.isFrozen(current)) current = Object.freeze({ ...current });
-  let inFlightPromise = null;
-
-  function dispatch(action) {
-    const next = reducePreview(current, action);
-    if (next !== current) {
-      current = next;
-      onChange(current);
-    }
-    return current;
-  }
-
-  function getState() {
-    return current;
-  }
-
-  function request() {
-    // Dedup: if an in-flight promise exists AND the FSM still considers it
-    // current (lifecycle REQUESTING with a matching inFlight snapshot),
-    // return the existing promise rather than starting a new fetch.
-    if (inFlightPromise && current.inFlight) {
-      return inFlightPromise;
-    }
-    dispatch({ type: 'REQUEST_STARTED' });
-    const captured = current.inFlight;
-    const promise = Promise.resolve()
-      .then(() => api.capture())
-      .then((preview) => {
-        if (inFlightPromise === promise) inFlightPromise = null;
-        dispatch({
-          type: 'REQUEST_SUCCEEDED',
-          generation: captured.generation,
-          contextGeneration: captured.contextGeneration,
-          preview,
-        });
-        return preview;
-      })
-      .catch((cause) => {
-        if (inFlightPromise === promise) inFlightPromise = null;
-        const message = cause && cause.message ? cause.message : String(cause);
-        dispatch({
-          type: 'REQUEST_FAILED',
-          generation: captured.generation,
-          contextGeneration: captured.contextGeneration,
-          error: message,
-        });
-        throw cause;
-      });
-    inFlightPromise = promise;
-    return promise;
-  }
-
-  function contextChanged() {
-    inFlightPromise = null;
-    dispatch({ type: 'CONTEXT_CHANGED' });
-  }
-
-  function setStale(stale) {
-    dispatch({ type: 'SET_STALE', stale });
-  }
-
-  function setZoom(zoom) {
-    dispatch({ type: 'SET_ZOOM', zoom });
-  }
-
-  function setPollInterval(intervalMs) {
-    dispatch({ type: 'SET_POLL_INTERVAL', intervalMs });
-    if (typeof storage.setItem === 'function' && intervalMs != null) {
-      storage.setItem(PreviewIntervalStorageKeyConst, String(intervalMs));
-    }
-  }
-
-  return {
-    getState,
-    dispatch,
-    request,
-    contextChanged,
-    setStale,
-    setZoom,
-    setPollInterval,
-  };
-}
-
-// previewBrowserAdapter.js
-// @requires previewFsm.js, previewUseCases.js, preview.js
-// previewBrowserAdapter.js — wires previewUseCases into the browser
-// environment. Lives separately so state.js stays free of FSM details
-// and the use cases get an explicit entry point for tests.
-//
-// The caller passes a mutator (onChange) that copies the frozen FSM
-// state into a legacy projection (state.previewFsm) for any non-FSM
-// readers. The api.capture port resolves to the requestLivePreview
-// function declared in preview.js — these symbols share lexical scope
-// inside the bundled IIFE, so the adapter sees them at call time.
-
-function createBrowserPreviewUseCases(options = {}) {
-  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
-  return createPreviewUseCases({
-    initialState: createInitialPreviewState(),
-    onChange,
-    api: {
-      capture: () => requestLivePreview(),
-    },
-    storage: typeof localStorage !== 'undefined' ? localStorage : { setItem: () => {} },
-  });
-}
-
-// pollingFsm.js
-// @requires (none)
-// pollingFsm.js — pure reducer for the sessions-polling lifecycle.
-//
-// Owns the polling-related state previously held as module-level lets in
-// state.js: sessionsPollingTimer (the *concept* of running/stopped),
-// lastSessionsEtag, lastSessionEtag, pendingMutationCount,
-// sessionMutationGeneration, consecutivePollFailures, promptActionInFlight.
-// No DOM, fetch, timers, or globals here.
-//
-// Lifecycle (per console-state-machine-expansion §3.5):
-//   STOPPED          — no setInterval handle, no polling
-//   POLLING_ACTIVE   — normal polling cadence
-//   POLLING_BACKOFF  — too many consecutive failures; waiting for backoff
-//                      timer or visibility/manual restart
-//   POLLING_PAUSED   — pause requested (e.g. visibility hidden); will resume
-//                      to pausedReturnLifecycle on VISIBILITY_VISIBLE
-//
-// Action set:
-//   START                  — begin polling (resets consecutiveFailures)
-//   STOP                   — stop polling
-//   DISCONNECT_REQUESTED   — alias for STOP that fires from connection FSM
-//   VISIBILITY_HIDDEN      — pause; preserve current lifecycle in
-//                            pausedReturnLifecycle so we can resume
-//   VISIBILITY_VISIBLE     — restore pausedReturnLifecycle
-//   TICK_OK                — reset failure counter; update etags from payload
-//   TICK_FAILED            — increment failure counter; at threshold,
-//                            transition to POLLING_BACKOFF
-//   BACKOFF_TIMER_FIRED    — POLLING_BACKOFF → POLLING_ACTIVE without
-//                            resetting the counter (only TICK_OK resets it)
-//   MUTATION_START         — bump pendingMutationCount AND mutationGeneration
-//   MUTATION_END           — decrement pendingMutationCount (clamped ≥ 0)
-//   MUTATION_GENERATION_BUMP — bump only mutationGeneration (no counter change);
-//                              used by legacy bumpSessionMutationGeneration()
-//                              callers that signal "session changed" outside a
-//                              lock context.
-//   PROMPT_ACTION_START    — set promptActionInFlight true
-//   PROMPT_ACTION_END      — set promptActionInFlight false
-//
-// MaxConsecutivePollFailures is the spec constant 5; exposed via the
-// IIFE-shared lexical scope (consumed by sessions-polling.js for the
-// existing Kotlin grep contract, and by tests directly).
-
-const MaxConsecutivePollFailures = 5;
-
-const PollingLifecycle = Object.freeze({
-  STOPPED: 'stopped',
-  POLLING_ACTIVE: 'polling_active',
-  POLLING_BACKOFF: 'polling_backoff',
-  POLLING_PAUSED: 'polling_paused',
-});
-
-function createInitialPollingState() {
-  return Object.freeze({
-    lifecycle: PollingLifecycle.STOPPED,
-    pausedReturnLifecycle: null,
-    lastSessionsEtag: null,
-    lastSessionEtag: null,
-    pendingMutationCount: 0,
-    mutationGeneration: 0,
-    consecutiveFailures: 0,
-    promptActionInFlight: false,
-  });
-}
-
-function reducePolling(state, action) {
-  if (!state) state = createInitialPollingState();
-  if (!action || typeof action.type !== 'string') return state;
-  switch (action.type) {
-    case 'START':
-      return Object.freeze({
-        ...state,
-        lifecycle: PollingLifecycle.POLLING_ACTIVE,
-        consecutiveFailures: 0,
-        pausedReturnLifecycle: null,
-      });
-    case 'STOP':
-    case 'DISCONNECT_REQUESTED':
-      return Object.freeze({
-        ...state,
-        lifecycle: PollingLifecycle.STOPPED,
-        pausedReturnLifecycle: null,
-      });
-    case 'VISIBILITY_HIDDEN': {
-      if (state.lifecycle === PollingLifecycle.POLLING_PAUSED) return state;
-      if (state.lifecycle === PollingLifecycle.STOPPED) return state;
-      return Object.freeze({
-        ...state,
-        lifecycle: PollingLifecycle.POLLING_PAUSED,
-        pausedReturnLifecycle: state.lifecycle,
-      });
-    }
-    case 'VISIBILITY_VISIBLE': {
-      if (state.lifecycle !== PollingLifecycle.POLLING_PAUSED) return state;
-      const target = state.pausedReturnLifecycle || PollingLifecycle.POLLING_ACTIVE;
-      return Object.freeze({
-        ...state,
-        lifecycle: target,
-        pausedReturnLifecycle: null,
-      });
-    }
-    case 'TICK_OK':
-      return Object.freeze({
-        ...state,
-        consecutiveFailures: 0,
-        lastSessionsEtag: action.sessionsEtag !== undefined ? action.sessionsEtag : state.lastSessionsEtag,
-        lastSessionEtag: action.sessionEtag !== undefined ? action.sessionEtag : state.lastSessionEtag,
-      });
-    case 'TICK_FAILED': {
-      const nextFailures = state.consecutiveFailures + 1;
-      const shouldBackoff = nextFailures >= MaxConsecutivePollFailures &&
-        state.lifecycle === PollingLifecycle.POLLING_ACTIVE;
-      return Object.freeze({
-        ...state,
-        consecutiveFailures: nextFailures,
-        lifecycle: shouldBackoff ? PollingLifecycle.POLLING_BACKOFF : state.lifecycle,
-      });
-    }
-    case 'BACKOFF_TIMER_FIRED': {
-      if (state.lifecycle !== PollingLifecycle.POLLING_BACKOFF) return state;
-      return Object.freeze({
-        ...state,
-        lifecycle: PollingLifecycle.POLLING_ACTIVE,
-      });
-    }
-    case 'MUTATION_START':
-      return Object.freeze({
-        ...state,
-        pendingMutationCount: state.pendingMutationCount + 1,
-        mutationGeneration: state.mutationGeneration + 1,
-      });
-    case 'MUTATION_END':
-      return Object.freeze({
-        ...state,
-        pendingMutationCount: Math.max(0, state.pendingMutationCount - 1),
-      });
-    case 'MUTATION_GENERATION_BUMP':
-      return Object.freeze({
-        ...state,
-        mutationGeneration: state.mutationGeneration + 1,
-      });
-    case 'PROMPT_ACTION_START':
-      return Object.freeze({ ...state, promptActionInFlight: true });
-    case 'PROMPT_ACTION_END':
-      return Object.freeze({ ...state, promptActionInFlight: false });
-    default:
-      return state;
-  }
-}
-
-// pollingUseCases.js
-// @requires pollingFsm.js
-// pollingUseCases.js — action dispatchers for the polling FSM.
-//
-// Pure: no DOM, fetch, timers, localStorage. Takes the reducer and an
-// async sessions port via options. The browser adapter
-// (pollingBrowserAdapter.js) wires in real fetches; sessions-polling.js
-// keeps the top-level identifiers (pollSessionsTick / startSessionsPolling /
-// withMutationLock) that asset contract tests grep for and delegates here.
-//
-// Factory shape:
-//   createPollingUseCases({ onChange, api })
-//     -> { getState, dispatch,
-//          startSessionsPolling, stopSessionsPolling,
-//          visibilityHidden, visibilityVisible, disconnect,
-//          withMutationLock, pollSessionsTick,
-//          backoffTimerFired, setPromptActionInFlight }
-//
-// The api.sessions port receives the current etags and returns a result
-// shaped { sessionsEtag, sessionEtag, ... }. On success the FSM dispatches
-// TICK_OK with the returned etags; on rejection it dispatches TICK_FAILED.
-
-function createPollingUseCases(options = {}) {
-  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
-  const api = options.api || {};
-  let current = options.initialState ?? createInitialPollingState();
-  if (!Object.isFrozen(current)) current = Object.freeze({ ...current });
-
-  function dispatch(action) {
-    const next = reducePolling(current, action);
-    if (next !== current) {
-      current = next;
-      onChange(current);
-    }
-    return current;
-  }
-
-  function getState() {
-    return current;
-  }
-
-  async function withMutationLock(fn) {
-    dispatch({ type: 'MUTATION_START' });
-    try {
-      return await fn();
-    } finally {
-      dispatch({ type: 'MUTATION_END' });
-      // NOTE: legacy "resume-on-mutation-drain" hook lives in sessions-polling.js
-      // (it bridges to the connection FSM's sessionsPollingPaused projection).
-      // The pure use case must not call cross-FSM side effects.
-    }
-  }
-
-  // Internal: dispatches FSM transitions around the api.sessions port.
-  // The exposed property name on the returned object is the spec name
-  // (see below); this inner function uses a distinct identifier so the
-  // top-level function declaration in sessions-polling.js remains the
-  // only matching declaration site for body-grep contracts.
-  async function tickViaApi() {
-    if (typeof api.sessions !== 'function') {
-      throw new Error('pollingUseCases: api.sessions port is required');
-    }
-    try {
-      const result = await api.sessions({
-        sessionsEtag: current.lastSessionsEtag,
-        sessionEtag: current.lastSessionEtag,
-      });
-      dispatch({
-        type: 'TICK_OK',
-        sessionsEtag: result?.sessionsEtag ?? null,
-        sessionEtag: result?.sessionEtag ?? null,
-      });
-      return result;
-    } catch (err) {
-      dispatch({ type: 'TICK_FAILED' });
-      throw err;
-    }
-  }
-
-  return {
-    getState,
-    dispatch,
-    startSessionsPolling: () => dispatch({ type: 'START' }),
-    stopSessionsPolling: () => dispatch({ type: 'STOP' }),
-    visibilityHidden: () => dispatch({ type: 'VISIBILITY_HIDDEN' }),
-    visibilityVisible: () => dispatch({ type: 'VISIBILITY_VISIBLE' }),
-    disconnect: () => dispatch({ type: 'DISCONNECT_REQUESTED' }),
-    withMutationLock,
-    pollSessionsTick: tickViaApi,
-    backoffTimerFired: () => dispatch({ type: 'BACKOFF_TIMER_FIRED' }),
-    setPromptActionInFlight: (flag) => dispatch({
-      type: flag ? 'PROMPT_ACTION_START' : 'PROMPT_ACTION_END',
-    }),
-  };
-}
-
-// pollingBrowserAdapter.js
-// @requires pollingFsm.js, pollingUseCases.js, state.js, history.js, rendering.js
-// pollingBrowserAdapter.js — wires pollingUseCases into the browser
-// environment. Lives separately so state.js stays free of FSM details
-// and the use cases get an explicit entry point for tests.
-//
-// The api.sessions port performs the actual HTTP fetches (and side-
-// effects on state.sessionSummaries / renderSessionsList / etc.). It
-// returns the new ETag headers so the FSM can persist them via TICK_OK.
-//
-// The closure-over-state is deliberate: this adapter sees the legacy
-// state, fetch, and renderers via the bundled IIFE's shared lexical
-// scope.
-
-function createBrowserPollingUseCases(options = {}) {
-  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
-  return createPollingUseCases({
-    initialState: createInitialPollingState(),
-    onChange,
-    api: {
-      sessions: async ({ sessionsEtag, sessionEtag }) => {
-        let nextSessionsEtag = sessionsEtag ?? null;
-        let nextSessionEtag = sessionEtag ?? null;
-        const listResp = await fetch('/api/sessions', {
-          headers: sessionsEtag ? { 'If-None-Match': sessionsEtag } : {},
-        });
-        if (listResp.status === 200) {
-          nextSessionsEtag = listResp.headers.get('ETag');
-          const data = await listResp.json();
-          state.sessionSummaries = data.sessions || [];
-          renderSessionsList();
-        }
-        if (state.session?.sessionId) {
-          const sessResp = await fetch('/api/session', {
-            headers: sessionEtag ? { 'If-None-Match': sessionEtag } : {},
-          });
-          if (sessResp.status === 200) {
-            nextSessionEtag = sessResp.headers.get('ETag');
-            const fresh = await sessResp.json();
-            if (fresh) {
-              mergeSessionIntoState(fresh);
-              renderInspectorRegion();
-            }
-          }
-        }
-        return { sessionsEtag: nextSessionsEtag, sessionEtag: nextSessionEtag };
-      },
-    },
-  });
-}
-
-// toolModeFsm.js
-// @requires (none)
-// toolModeFsm.js — pure reducer for the tool-mode lifecycle.
-//
-// Owns the tool-mode-related state previously held as module-level lets in
-// state.js: toolMode, annotationSequence, hoveredAnnotationTarget,
-// dragStart, dragPreview, suppressNextClick, addItemsFlowStarting,
-// newHistoryAnnotateModeStarting, historyDrawerOpen, focusedSavedItemId,
-// focusedSavedSessionId. No DOM, fetch, timers, or globals here.
-//
-// Modes (per console-state-machine-expansion §3.4):
-//   SELECT             — default; clicks tap-through, annotation tools off
-//   ANNOTATE_IDLE      — annotate mode armed; hover preview enabled, no drag
-//   ANNOTATE_DRAGGING  — pointerdown in annotate mode created a drag region
-//
-// Action set:
-//   ENTER_SELECT                      — switch to SELECT, clear hover/drag
-//   ENTER_ANNOTATE                    — switch to ANNOTATE_IDLE
-//   START_DRAG                        — pointerdown in annotate → DRAGGING
-//   UPDATE_DRAG_PREVIEW               — pointermove during drag
-//   DROP_COMMIT                       — pointerup, commit (advances seq)
-//   DROP_DISCARD                      — pointerup, discard (no seq advance)
-//   SET_HOVERED_TARGET                — hover overlay target
-//   SET_SUPPRESS_NEXT_CLICK           — suppress next image click
-//   TOGGLE_HISTORY_DRAWER             — flip drawer open/closed
-//   SET_HISTORY_DRAWER                — set drawer open/closed explicitly
-//   FOCUS_SAVED_ITEM                  — focus saved evidence item by id
-//   SET_ADD_ITEMS_FLOW_STARTING       — set add-items flow starting flag
-//   SET_NEW_HISTORY_ANNOTATE_MODE_STARTING — set history-annotate start flag
-//   ADVANCE_ANNOTATION_SEQ            — bump seq by 1 (legacy seq++ shape)
-//   SET_ANNOTATION_SEQUENCE_AT_LEAST  — raise seq to max(current, value)
-
-const ToolMode = Object.freeze({
-  SELECT: 'SELECT',
-  ANNOTATE_IDLE: 'ANNOTATE_IDLE',
-  ANNOTATE_DRAGGING: 'ANNOTATE_DRAGGING',
-});
-
-function createEmptyToolMode() {
-  return Object.freeze({
-    mode: ToolMode.SELECT,
-    annotationSequence: 1,
-    hoveredTarget: null,
-    drag: null,
-    suppressNextClick: false,
-    focusedSavedItemId: null,
-    focusedSavedSessionId: null,
-    historyDrawerOpen: false,
-    addItemsFlowStarting: false,
-    newHistoryAnnotateModeStarting: false,
-  });
-}
-
-function reduceToolMode(state, action) {
-  if (!state) state = createEmptyToolMode();
-  if (!action || typeof action.type !== 'string') return state;
-  switch (action.type) {
-    case 'ENTER_SELECT':
-      return Object.freeze({
-        ...state,
-        mode: ToolMode.SELECT,
-        hoveredTarget: null,
-        drag: null,
-      });
-    case 'ENTER_ANNOTATE':
-      return Object.freeze({
-        ...state,
-        mode: ToolMode.ANNOTATE_IDLE,
-      });
-    case 'START_DRAG': {
-      if (state.mode !== ToolMode.ANNOTATE_IDLE && state.mode !== ToolMode.ANNOTATE_DRAGGING) {
-        return state;
-      }
-      return Object.freeze({
-        ...state,
-        mode: ToolMode.ANNOTATE_DRAGGING,
-        drag: Object.freeze({ start: action.point || null, preview: null }),
-      });
-    }
-    case 'UPDATE_DRAG_PREVIEW': {
-      if (state.mode !== ToolMode.ANNOTATE_DRAGGING || !state.drag) return state;
-      return Object.freeze({
-        ...state,
-        drag: Object.freeze({
-          start: state.drag.start,
-          preview: action.preview || null,
-        }),
-      });
-    }
-    case 'DROP_COMMIT': {
-      if (state.mode !== ToolMode.ANNOTATE_DRAGGING) return state;
-      return Object.freeze({
-        ...state,
-        mode: ToolMode.ANNOTATE_IDLE,
-        drag: null,
-        annotationSequence: state.annotationSequence + 1,
-      });
-    }
-    case 'DROP_DISCARD': {
-      // Defensive: only transition out of ANNOTATE_DRAGGING. Calling
-      // dropDiscard while not dragging is a no-op (preserves mode and
-      // ensures drag is null).
-      if (state.mode !== ToolMode.ANNOTATE_DRAGGING && !state.drag) return state;
-      return Object.freeze({
-        ...state,
-        mode: state.mode === ToolMode.ANNOTATE_DRAGGING ? ToolMode.ANNOTATE_IDLE : state.mode,
-        drag: null,
-      });
-    }
-    case 'SET_HOVERED_TARGET':
-      return Object.freeze({
-        ...state,
-        hoveredTarget: action.target ?? null,
-      });
-    case 'SET_SUPPRESS_NEXT_CLICK':
-      return Object.freeze({
-        ...state,
-        suppressNextClick: Boolean(action.value),
-      });
-    case 'TOGGLE_HISTORY_DRAWER':
-      return Object.freeze({
-        ...state,
-        historyDrawerOpen: !state.historyDrawerOpen,
-      });
-    case 'SET_HISTORY_DRAWER':
-      return Object.freeze({
-        ...state,
-        historyDrawerOpen: Boolean(action.open),
-      });
-    case 'FOCUS_SAVED_ITEM':
-      return Object.freeze({
-        ...state,
-        focusedSavedItemId: action.itemId ?? null,
-        focusedSavedSessionId: action.sessionId ?? null,
-      });
-    case 'SET_ADD_ITEMS_FLOW_STARTING':
-      return Object.freeze({
-        ...state,
-        addItemsFlowStarting: Boolean(action.value),
-      });
-    case 'SET_NEW_HISTORY_ANNOTATE_MODE_STARTING':
-      return Object.freeze({
-        ...state,
-        newHistoryAnnotateModeStarting: Boolean(action.value),
-      });
-    case 'ADVANCE_ANNOTATION_SEQ':
-      return Object.freeze({
-        ...state,
-        annotationSequence: state.annotationSequence + 1,
-      });
-    case 'SET_ANNOTATION_SEQUENCE_AT_LEAST': {
-      const target = Number(action.value);
-      if (!Number.isFinite(target)) return state;
-      if (target <= state.annotationSequence) return state;
-      return Object.freeze({
-        ...state,
-        annotationSequence: target,
-      });
-    }
-    default:
-      return state;
-  }
-}
-
-// toolModeUseCases.js
-// @requires toolModeFsm.js
-// toolModeUseCases.js — action dispatchers for the tool-mode FSM.
-//
-// Pure synchronous transitions: no DOM, fetch, timers, localStorage.
-// No browser adapter — the tool-mode FSM is consumed directly by
-// annotations.js / history.js / preview.js / rendering.js / main.js
-// / connection.js via the toolModeUseCases instance constructed in
-// state.js.
-//
-// Factory shape:
-//   createToolModeUseCases({ onChange })
-//     -> { getState,
-//          enterSelect, enterAnnotate,
-//          startDrag, updateDragPreview, dropCommit, dropDiscard,
-//          setHoveredTarget, setSuppressNextClick,
-//          toggleHistoryDrawer, setHistoryDrawer,
-//          focusSavedItem,
-//          setAddItemsFlowStarting, setNewHistoryAnnotateModeStarting,
-//          nextAnnotationSeq, setAnnotationSequenceAtLeast,
-//          isSelectMode, isAnnotateMode, isDragging }
-//
-// `nextAnnotationSeq` preserves the legacy `'draft-' + annotationSequence++`
-// increment-and-return shape. Use `setAnnotationSequenceAtLeast` for the
-// `annotationSequence = Math.max(annotationSequence, next)` pattern used
-// when recovering items from persisted drafts.
-
-function createToolModeUseCases(options = {}) {
-  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
-  let current = options.initialState ?? createEmptyToolMode();
-  if (!Object.isFrozen(current)) current = Object.freeze({ ...current });
-
-  function dispatch(action) {
-    const next = reduceToolMode(current, action);
-    if (next !== current) {
-      current = next;
-      onChange(current);
-    }
-    return current;
-  }
-
-  function getState() {
-    return current;
-  }
-
-  function nextAnnotationSeq() {
-    const previous = current.annotationSequence;
-    dispatch({ type: 'ADVANCE_ANNOTATION_SEQ' });
-    return previous;
-  }
-
-  return {
-    getState,
-    enterSelect: () => dispatch({ type: 'ENTER_SELECT' }),
-    enterAnnotate: () => dispatch({ type: 'ENTER_ANNOTATE' }),
-    startDrag: (point) => dispatch({ type: 'START_DRAG', point }),
-    updateDragPreview: (preview) => dispatch({ type: 'UPDATE_DRAG_PREVIEW', preview }),
-    dropCommit: () => dispatch({ type: 'DROP_COMMIT' }),
-    dropDiscard: () => dispatch({ type: 'DROP_DISCARD' }),
-    setHoveredTarget: (target) => dispatch({ type: 'SET_HOVERED_TARGET', target }),
-    setSuppressNextClick: (value) => dispatch({ type: 'SET_SUPPRESS_NEXT_CLICK', value }),
-    toggleHistoryDrawer: () => dispatch({ type: 'TOGGLE_HISTORY_DRAWER' }),
-    setHistoryDrawer: (open) => dispatch({ type: 'SET_HISTORY_DRAWER', open }),
-    focusSavedItem: (itemId, sessionId) => dispatch({ type: 'FOCUS_SAVED_ITEM', itemId, sessionId }),
-    setAddItemsFlowStarting: (value) => dispatch({ type: 'SET_ADD_ITEMS_FLOW_STARTING', value }),
-    setNewHistoryAnnotateModeStarting: (value) => dispatch({ type: 'SET_NEW_HISTORY_ANNOTATE_MODE_STARTING', value }),
-    nextAnnotationSeq,
-    setAnnotationSequenceAtLeast: (value) => dispatch({ type: 'SET_ANNOTATION_SEQUENCE_AT_LEAST', value }),
-    isSelectMode: () => current.mode === ToolMode.SELECT,
-    isAnnotateMode: () => current.mode === ToolMode.ANNOTATE_IDLE || current.mode === ToolMode.ANNOTATE_DRAGGING,
-    isDragging: () => current.mode === ToolMode.ANNOTATE_DRAGGING,
-  };
-}
-
-// consoleApp.js
-// @requires connectionBrowserAdapter.js, previewBrowserAdapter.js, pollingBrowserAdapter.js, toolModeUseCases.js
-            // consoleApp.js — top-level FSM boot factory.
-            // Aggregates the four sub-FSMs introduced by the
-            // console-state-machine-expansion plan plus the already-migrated
-            // draft FSM into one structured handle. Cross-FSM coordination
-            // wires happen here at boot time (not in a global event bus).
-            //
-            // Each sub-FSM's onChange continues to project its frozen state
-            // into the appropriate legacy `state.*` slot so READ-only sites
-            // in rendering.js / devices.js / preview.js / annotations.js
-            // observe changes without going through a new accessor.
-            //
-            // @requires connectionBrowserAdapter.js, previewBrowserAdapter.js,
-            //           pollingBrowserAdapter.js, toolModeUseCases.js
-            function createConsoleApp({ state, render } = {}) {
-              const render_ = typeof render === 'function' ? render : () => {};
-              const project = (slot) => (next) => {
-                if (state) state[slot] = { ...next };
-                render_();
-              };
-              const connection = createBrowserConnectionUseCases(project('connection'));
-              const preview = createBrowserPreviewUseCases({ onChange: project('previewFsm') });
-              const polling = createBrowserPollingUseCases({ onChange: project('pollingFsm') });
-              // Tool-mode has no legacy state.* projection (callers go through
-              // toolModeUseCases.getState() directly), so onChange is only
-              // used to trigger a render when supplied.
-              const toolMode = createToolModeUseCases({ onChange: render_ });
-              return { connection, preview, polling, toolMode };
-            }
-
-// state.js
+//#region state.js
 // @requires (none)
             const DefaultLivePreviewIntervalMs = 1000;
             const MinLivePreviewIntervalMs = 1000;
@@ -1385,207 +356,38 @@ function createToolModeUseCases(options = {}) {
 
               return { clearStatusTimer, showStatus, showSuccess, showWarning, clearSuccessStatus };
             })();
+//#endregion state.js
 
-// staleness.js
+// build-header
+const ConsoleBuildEpochMs = 1778752800000;
+const ConsoleBuildGitSha = '5de1aa2';
+
+//#region activityDrift.js
 // @requires state.js
-            // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
-            const StaleThresholdMs = 5 * 60 * 1000;
-            const StalenessDismissKey = 'fixthis.console.stalenessDismissedHash';
+// activityDrift.js — SIF-6: pure decision helper that decides whether the
+// currently foregrounded activity differs from the activity captured when
+// the addItemsFlow freeze was taken. Returning drift=true tells the caller
+// to surface the inline warning + "분리 (새 freeze 시작)" button on the
+// next pin form.
+//
+// Bare-function module — concatenated into resources/console/app.js by
+// scripts/build-console-assets.mjs. Must be registered BEFORE annotations.js
+// (its sole caller) in the sources array.
 
-            async function checkServerStaleness() {
-              try {
-                const resp = await fetch('/api/server-version');
-                if (resp.status === 404) {
-                  // /api/server-version not present = pre-Task-5 fixthis-mcp = stale
-                  renderStalenessBanner({
-                    severity: 'warning',
-                    headline: 'Server is older than this console',
-                    detail: 'Restart fixthis-mcp to apply the latest server code.',
-                    hash: 'pre-version-endpoint',
-                  });
-                  return;
-                }
-                if (!resp.ok) return; // 5xx etc. ambiguous — silent
-                const server = await resp.json();
-                const drift = Math.abs(server.serverBuildEpochMs - ConsoleBuildEpochMs);
-                if (drift > StaleThresholdMs) {
-                  const hash = `${server.serverGitSha}-${ConsoleBuildGitSha}`;
-                  renderStalenessBanner({
-                    severity: 'warning',
-                    headline: 'Server build is older than this console',
-                    detail: `Client ${ConsoleBuildGitSha} → Server ${server.serverGitSha}. Restart fixthis-mcp.`,
-                    hash,
-                  });
-                }
-              } catch (_err) {
-                // network or JSON error — silent
-              }
-            }
+function checkActivityDrift(flow, current) {
+  const expected = flow && flow.activity ? flow.activity : null;
+  const actual = current && current.activity ? current.activity : null;
+  if (!expected || !actual) {
+    return { drift: false };
+  }
+  if (expected === actual) {
+    return { drift: false };
+  }
+  return { drift: true, expected: expected, actual: actual };
+}
+//#endregion activityDrift.js
 
-            function renderStalenessBanner(info) {
-              const banner = document.getElementById('stalenessBanner');
-              if (!banner) return;
-              const dismissed = sessionStorage.getItem(StalenessDismissKey);
-              if (dismissed === info.hash) return;
-              banner.dataset.severity = info.severity || 'warning';
-              const headlineSlot = banner.querySelector('[data-headline]');
-              if (headlineSlot) headlineSlot.textContent = info.headline;
-              const detailSlot = banner.querySelector('[data-detail]');
-              if (detailSlot) detailSlot.textContent = info.detail;
-              banner.dataset.hash = info.hash;
-              banner.hidden = false;
-            }
-
-            document.getElementById('stalenessBanner')?.querySelector('[data-dismiss]')
-              ?.addEventListener('click', (event) => {
-                const banner = event.currentTarget.closest('#stalenessBanner');
-                if (!banner) return;
-                sessionStorage.setItem(StalenessDismissKey, banner.dataset.hash || '');
-                banner.hidden = true;
-              });
-
-            const MinimumSupportedProtocolVersion = '1.3';
-
-            // Parse "1.1" -> [1, 1]; "1" -> [1]; non-numeric / null / undefined -> null.
-            function parseProtocolVersion(s) {
-              if (typeof s !== 'string') return null;
-              const parts = s.split('.').map((token) => Number(token));
-              if (parts.length === 0) return null;
-              if (parts.some((n) => !Number.isFinite(n))) return null;
-              return parts;
-            }
-
-            // Returns negative / 0 / positive. Shorter array right-padded with 0.
-            function compareProtocolVersion(a, b) {
-              const len = Math.max(a.length, b.length);
-              for (let i = 0; i < len; i++) {
-                const ai = a[i] ?? 0;
-                const bi = b[i] ?? 0;
-                if (ai !== bi) return ai - bi;
-              }
-              return 0;
-            }
-
-            function checkProtocolCompat(status) {
-              const reported = parseProtocolVersion(status?.bridgeProtocolVersion);
-              const expected = parseProtocolVersion(MinimumSupportedProtocolVersion);
-              if (!reported || !expected) return;
-              const cmp = compareProtocolVersion(reported, expected);
-              if (cmp === 0) return;
-              if (cmp < 0) {
-                renderStalenessBanner({
-                  severity: 'critical',
-                  headline: `Sample app bridge protocol v${status.bridgeProtocolVersion} is older than this console (expects v${MinimumSupportedProtocolVersion})`,
-                  detail: 'Reinstall the sample APK (./gradlew :app:installDebug) to update sidekick.',
-                  hash: `protocol-sidekick-old-${status.bridgeProtocolVersion}`,
-                });
-              } else {
-                renderStalenessBanner({
-                  severity: 'critical',
-                  headline: `This console is older than sample app bridge protocol v${status.bridgeProtocolVersion} (expects v${MinimumSupportedProtocolVersion})`,
-                  detail: 'Restart fixthis-mcp + hard reload the browser tab to update console.',
-                  hash: `protocol-console-old-${status.bridgeProtocolVersion}`,
-                });
-              }
-            }
-
-            function checkSidekickBuildEpoch(status) {
-              const sidekickEpoch = status?.sidekickBuildEpochMs;
-              if (typeof sidekickEpoch !== 'number') return;
-              const drift = Math.abs(sidekickEpoch - ConsoleBuildEpochMs);
-              if (drift > StaleThresholdMs) {
-                renderStalenessBanner({
-                  severity: 'warning',
-                  headline: 'Sample app sidekick is older than this console',
-                  detail: 'Reinstall the sample APK to refresh.',
-                  hash: `sidekick-${sidekickEpoch}`,
-                });
-              }
-            }
-
-// pendingPersistence.js
-// @requires state.js
-            // pendingPersistence.js — write-through mirror to localStorage
-            // for pending feedback state (ALH-1/STAB-5). Functions are bare so the
-            // concat bundle exposes them in shared closure scope.
-
-            const PENDING_KEY_PREFIX = 'fixthis.pending.';
-
-            function pendingKey(sessionId) {
-              return PENDING_KEY_PREFIX + sessionId;
-            }
-
-            function persistPendingState(sessionId, value) {
-              if (!sessionId || typeof localStorage === 'undefined') return;
-              try {
-                const envelope = {
-                  schemaVersion: 1,
-                  sessionId: sessionId,
-                  context: value?.context ?? null,
-                  previewId: value?.previewId ?? null,
-                  screen: value?.screen ?? null,
-                  screenshotUrl: value?.screenshotUrl ?? null,
-                  frozenAtEpochMillis: value?.frozenAtEpochMillis ?? Date.now(),
-                  items: Array.isArray(value?.items) ? value.items : [],
-                };
-                localStorage.setItem(pendingKey(sessionId), JSON.stringify(envelope));
-              } catch (e) {
-                // Quota exceeded or storage disabled — best-effort, don't block UX
-              }
-            }
-
-            function restorePendingState(sessionId) {
-              if (!sessionId || typeof localStorage === 'undefined') return null;
-              const raw = localStorage.getItem(pendingKey(sessionId));
-              if (!raw) return null;
-              try {
-                const parsed = JSON.parse(raw);
-                if (Array.isArray(parsed)) {
-                  return {
-                    schemaVersion: 0,
-                    sessionId: sessionId,
-                    context: null,
-                    previewId: null,
-                    screen: null,
-                    screenshotUrl: null,
-                    frozenAtEpochMillis: null,
-                    items: parsed
-                  };
-                }
-                if (parsed && Array.isArray(parsed.items)) {
-                  return {
-                    schemaVersion: parsed.schemaVersion === 1 ? 1 : parsed.schemaVersion,
-                    sessionId: parsed.sessionId ?? sessionId,
-                    context: parsed.context ?? null,
-                    previewId: parsed.previewId ?? null,
-                    screen: parsed.screen ?? null,
-                    screenshotUrl: parsed.screenshotUrl ?? null,
-                    frozenAtEpochMillis: parsed.frozenAtEpochMillis ?? null,
-                    items: parsed.items
-                  };
-                }
-                return null;
-              } catch (e) {
-                return null;
-              }
-            }
-
-            function persistPendingItems(sessionId, items) {
-              persistPendingState(sessionId, { items: items || [] });
-            }
-
-            function restorePendingItems(sessionId) {
-              return restorePendingState(sessionId)?.items || [];
-            }
-
-            function clearPendingMirror(sessionId) {
-              if (!sessionId || typeof localStorage === 'undefined') return;
-              try {
-                localStorage.removeItem(pendingKey(sessionId));
-              } catch (e) { /* ignore */ }
-            }
-
-// draftWorkspace.js
+//#region draftWorkspace.js
 // @requires (none)
 // draftWorkspace.js - pure DraftWorkspace domain policy.
 // No DOM, fetch, localStorage, timers, or global console state in this file.
@@ -1741,8 +543,9 @@ function reduceDraftWorkspace(workspace = createEmptyDraftWorkspace(), action = 
       return workspace;
   }
 }
+//#endregion draftWorkspace.js
 
-// draftWorkspaceHistory.js
+//#region draftWorkspaceHistory.js
 // @requires (none)
 // draftWorkspaceHistory.js - pure undo/redo helpers for DraftWorkspace items.
 
@@ -1842,8 +645,9 @@ function redoDraftHistory(history, items) {
     items: applyDraftForward(op, items || []),
   };
 }
+//#endregion draftWorkspaceHistory.js
 
-// draftPorts.js
+//#region draftPorts.js
 // @requires (none)
 // draftPorts.js - narrow port helpers for DraftWorkspace use cases.
 // Port shape:
@@ -1894,457 +698,9 @@ function createFakeDraftPorts(overrides = {}) {
     ...overrides,
   };
 }
+//#endregion draftPorts.js
 
-// draftStorageAdapter.js
-// @requires draftPorts.js, draftWorkspace.js
-// draftStorageAdapter.js - browser storage adapter for DraftWorkspace recovery.
-
-const DraftWorkspaceKeyPrefix = 'fixthis.workspace.';
-const LegacyPendingKeyPrefix = 'fixthis.pending.';
-
-function draftWorkspaceKey(sessionId, workspaceId) {
-  return DraftWorkspaceKeyPrefix + sessionId + '.' + workspaceId;
-}
-
-function draftWorkspaceIndexKey(sessionId) {
-  return DraftWorkspaceKeyPrefix + 'index.' + sessionId;
-}
-
-function parseDraftStorageJson(raw) {
-  if (!raw) return null;
-  try { return JSON.parse(raw); } catch (_) { return null; }
-}
-
-function normalizeLegacyDraftItem(item, index) {
-  return {
-    ...item,
-    draftItemId: item?.draftItemId || item?.annotationId || ('legacy-' + (index + 1)),
-  };
-}
-
-function createDraftStorageAdapter(localStorageLike, ids = {}) {
-  const nextWorkspaceId = ids.nextWorkspaceId || (() => 'workspace-' + Date.now());
-
-  function readIndex(sessionId) {
-    const parsed = parseDraftStorageJson(localStorageLike.getItem(draftWorkspaceIndexKey(sessionId)));
-    return Array.isArray(parsed) ? parsed : [];
-  }
-
-  function writeIndex(sessionId, workspaceIds) {
-    localStorageLike.setItem(draftWorkspaceIndexKey(sessionId), JSON.stringify(Array.from(new Set(workspaceIds))));
-  }
-
-  function saveWorkspace(envelope) {
-    const sessionId = envelope?.sessionId || envelope?.context?.sessionId;
-    const workspaceId = envelope?.workspaceId;
-    if (!sessionId || !workspaceId) throw new Error('Workspace storage requires sessionId and workspaceId');
-    const normalized = { ...envelope, schemaVersion: 2, sessionId, workspaceId };
-    localStorageLike.setItem(draftWorkspaceKey(sessionId, workspaceId), JSON.stringify(normalized));
-    writeIndex(sessionId, readIndex(sessionId).concat(workspaceId));
-  }
-
-  function loadWorkspacesForSession(sessionId) {
-    return readIndex(sessionId)
-      .map((workspaceId) => parseDraftStorageJson(localStorageLike.getItem(draftWorkspaceKey(sessionId, workspaceId))))
-      .filter((value) => value?.schemaVersion === 2 && value?.context?.sessionId === sessionId);
-  }
-
-  function deleteWorkspace(sessionId, workspaceId) {
-    localStorageLike.removeItem(draftWorkspaceKey(sessionId, workspaceId));
-    writeIndex(sessionId, readIndex(sessionId).filter((id) => id !== workspaceId));
-  }
-
-  function migrateLegacyPending(sessionId) {
-    const raw = localStorageLike.getItem(LegacyPendingKeyPrefix + sessionId);
-    const legacy = parseDraftStorageJson(raw);
-    if (!legacy || !Array.isArray(legacy.items) || !legacy.items.length) return [];
-    if (legacy.schemaVersion === 0 || (!legacy.context && !legacy.previewId)) {
-      return [{
-        schemaVersion: 0,
-        sessionId,
-        requiresRecapture: true,
-        items: legacy.items.map(normalizeLegacyDraftItem),
-      }];
-    }
-    const workspaceId = nextWorkspaceId();
-    const envelope = {
-      schemaVersion: 2,
-      sessionId,
-      workspaceId,
-      revision: 1,
-      lifecycle: 'editing',
-      context: legacy.context || {
-        sessionId,
-        previewId: legacy.previewId,
-        screenId: legacy.screen?.screenId || null,
-        screenFingerprint: legacy.screen?.fingerprint ?? null,
-        deviceSerial: null,
-        frozenAtEpochMillis: legacy.frozenAtEpochMillis || null,
-        activityName: legacy.activity || legacy.screen?.activityName || null,
-      },
-      screen: legacy.screen || null,
-      screenshotUrl: legacy.screenshotUrl || null,
-      items: legacy.items.map(normalizeLegacyDraftItem),
-      history: { undoStack: [], redoStack: [] },
-      updatedAtEpochMillis: Date.now(),
-    };
-    saveWorkspace(envelope);
-    return [envelope];
-  }
-
-  return { saveWorkspace, loadWorkspacesForSession, deleteWorkspace, migrateLegacyPending };
-}
-
-// beforeunloadGuard.js
-// @requires (none)
-// beforeunloadGuard.js — ALH-1: pure decision helper for the
-// beforeunload prompt. The window.addEventListener call lives in
-// main.js and delegates here.
-
-function shouldGuardUnload(pendingItemsCount) {
-  return Number(pendingItemsCount) > 0;
-}
-
-// undoRedo.js
-// @requires state.js
-            // undoRedo.js — ALH-2 pure undo/redo for pending feedback items.
-            // Caller passes a state shape { pendingFeedbackItems: [...] }; no
-            // closure reference needed.
-
-            const UNDO_MAX_DEPTH = 50;
-
-            function createHistory(context = null) {
-              return { context: cloneHistoryContext(context), undoStack: [], redoStack: [] };
-            }
-
-            function pushOp(stack, op) {
-              stack.push(op);
-              if (stack.length > UNDO_MAX_DEPTH) stack.shift();
-            }
-
-            function cloneHistoryContext(context) {
-              if (!context) return null;
-              return {
-                sessionId: context.sessionId || null,
-                previewId: context.previewId || null,
-                screenId: context.screenId || null,
-                screenFingerprint: context.screenFingerprint || null,
-                deviceSerial: context.deviceSerial || null
-              };
-            }
-
-            function sameHistoryContext(left, right) {
-              const a = cloneHistoryContext(left);
-              const b = cloneHistoryContext(right);
-              if (!a && !b) return true;
-              return Boolean(a && b) &&
-                a.sessionId === b.sessionId &&
-                a.previewId === b.previewId &&
-                a.screenId === b.screenId &&
-                a.screenFingerprint === b.screenFingerprint &&
-                a.deviceSerial === b.deviceSerial;
-            }
-
-            function clearHistory(history) {
-              history.undoStack.length = 0;
-              history.redoStack.length = 0;
-            }
-
-            function itemStableId(item) {
-              return item?.itemId ?? item?.annotationId ?? null;
-            }
-
-            function sameHistoryItem(left, right) {
-              const leftId = itemStableId(left);
-              const rightId = itemStableId(right);
-              return leftId != null && rightId != null && leftId === rightId;
-            }
-
-            function recordAdd(history, item, context = history.context) {
-              pushOp(history.undoStack, {
-                kind: 'add',
-                after: { ...item },
-                context: cloneHistoryContext(context),
-                createdAtEpochMillis: Date.now()
-              });
-              history.redoStack.length = 0;
-            }
-
-            function recordDelete(history, before, index = null, context = history.context) {
-              if (!before) return;
-              pushOp(history.undoStack, {
-                kind: 'delete',
-                before: { ...before },
-                index: Number.isInteger(index) ? index : null,
-                context: cloneHistoryContext(context),
-                createdAtEpochMillis: Date.now()
-              });
-              history.redoStack.length = 0;
-            }
-
-            function recordUpdate(history, before, after, context = history.context) {
-              if (!before || !after) return;
-              pushOp(history.undoStack, {
-                kind: 'update',
-                before: { ...before },
-                after: { ...after },
-                context: cloneHistoryContext(context),
-                createdAtEpochMillis: Date.now()
-              });
-              history.redoStack.length = 0;
-            }
-
-            function applyInverse(op, state) {
-              const items = state.pendingFeedbackItems;
-              if (op.kind === 'add') {
-                const idx = items.findIndex((item) => sameHistoryItem(item, op.after));
-                if (idx >= 0) items.splice(idx, 1);
-              } else if (op.kind === 'delete') {
-                const restored = { ...op.before };
-                if (Number.isInteger(op.index)) {
-                  const index = Math.max(0, Math.min(op.index, items.length));
-                  items.splice(index, 0, restored);
-                } else {
-                  items.push(restored);
-                  items.sort((a, b) => (a.sequenceNumber || 0) - (b.sequenceNumber || 0));
-                }
-              } else if (op.kind === 'update') {
-                const target = items.find((item) => sameHistoryItem(item, op.before));
-                if (target) Object.assign(target, op.before);
-              }
-            }
-
-            function applyForward(op, state) {
-              const items = state.pendingFeedbackItems;
-              if (op.kind === 'add') {
-                items.push({ ...op.after });
-              } else if (op.kind === 'delete') {
-                const idx = items.findIndex((item) => sameHistoryItem(item, op.before));
-                if (idx >= 0) items.splice(idx, 1);
-              } else if (op.kind === 'update') {
-                const target = items.find((item) => sameHistoryItem(item, op.after));
-                if (target) Object.assign(target, op.after);
-              }
-            }
-
-            function undo(history, state, context = history.context) {
-              const op = history.undoStack.pop();
-              if (!op) return { applied: false, reason: 'empty' };
-              if (!sameHistoryContext(op.context, context)) {
-                clearHistory(history);
-                return { applied: false, reason: 'context_mismatch' };
-              }
-              applyInverse(op, state);
-              pushOp(history.redoStack, op);
-              return { applied: true };
-            }
-
-            function redo(history, state, context = history.context) {
-              const op = history.redoStack.pop();
-              if (!op) return { applied: false, reason: 'empty' };
-              if (!sameHistoryContext(op.context, context)) {
-                clearHistory(history);
-                return { applied: false, reason: 'context_mismatch' };
-              }
-              applyForward(op, state);
-              pushOp(history.undoStack, op);
-              return { applied: true };
-            }
-
-// undoKeymatch.js
-// @requires state.js
-            // undoKeymatch.js — ALH-2 pure undo/redo keyboard match helpers.
-            // The actual addEventListener('keydown', ...) wraps in main.js.
-
-            function isInEditableField(activeElement) {
-              if (!activeElement) return false;
-              const tag = activeElement.tagName || '';
-              if (tag === 'INPUT' || tag === 'TEXTAREA') return true;
-              if (activeElement.isContentEditable) return true;
-              return false;
-            }
-
-            function matchesUndo(event, activeElement) {
-              if (!event) return false;
-              if (isInEditableField(activeElement)) return false;
-              const meta = !!(event.metaKey || event.ctrlKey);
-              const key = (event.key || '').toLowerCase();
-              return meta && key === 'z' && !event.shiftKey;
-            }
-
-            function matchesRedo(event, activeElement) {
-              if (!event) return false;
-              if (isInEditableField(activeElement)) return false;
-              const meta = !!(event.metaKey || event.ctrlKey);
-              const key = (event.key || '').toLowerCase();
-              return meta && key === 'z' && event.shiftKey === true;
-            }
-
-// previewStaleness.js
-// @requires state.js
-// previewStaleness.js — SIF-5: pure decision helper for time-based and
-// disconnect-based preview staleness. A frozen preview becomes stale when
-// either (a) it is older than MAX_PREVIEW_AGE_MS, or (b) the bridge is not
-// in the "connected" state. The status-tick site in main.js / connection.js
-// is responsible for calling evaluateStale on each refresh and writing the
-// result back into state.preview.stale.
-//
-// NOTE: This file is intentionally separate from staleness.js, which handles
-// build-epoch / protocol-version drift between the server JAR and the bundled
-// console assets — an unrelated concern.
-
-const MAX_PREVIEW_AGE_MS = 30000;
-
-function evaluateStale(state, now) {
-  const frozenAt = state && state.preview && state.preview.frozenAtEpochMillis;
-  if (!frozenAt) return false;
-  const age = now - frozenAt;
-  if (age > MAX_PREVIEW_AGE_MS) return true;
-  const connection = state && state.bridgeStatus && state.bridgeStatus.connection;
-  if (connection !== 'connected') return true;
-  return false;
-}
-
-// activityDrift.js
-// @requires state.js
-// activityDrift.js — SIF-6: pure decision helper that decides whether the
-// currently foregrounded activity differs from the activity captured when
-// the addItemsFlow freeze was taken. Returning drift=true tells the caller
-// to surface the inline warning + "분리 (새 freeze 시작)" button on the
-// next pin form.
-//
-// Bare-function module — concatenated into resources/console/app.js by
-// scripts/build-console-assets.mjs. Must be registered BEFORE annotations.js
-// (its sole caller) in the sources array.
-
-function checkActivityDrift(flow, current) {
-  const expected = flow && flow.activity ? flow.activity : null;
-  const actual = current && current.activity ? current.activity : null;
-  if (!expected || !actual) {
-    return { drift: false };
-  }
-  if (expected === actual) {
-    return { drift: false };
-  }
-  return { drift: true, expected: expected, actual: actual };
-}
-
-// api.js
-// @requires state.js
-            async function requestJson(path, options = {}) {
-              const method = (options.method || 'GET').toUpperCase();
-              const headers = new Headers(options.headers || {});
-              if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-                const token = window.FixThisConsoleConfig?.consoleToken;
-                if (token) headers.set('X-FixThis-Console-Token', token);
-              }
-              const response = await fetch(path, { ...options, headers });
-              if (!response.ok) {
-                throw new Error(await response.text() || 'HTTP ' + response.status);
-              }
-              return response.json();
-            }
-
-
-            async function copyTextToClipboard(text) {
-              try {
-                if (navigator.clipboard?.writeText) {
-                  await navigator.clipboard.writeText(text);
-                  return;
-                }
-              } catch (cause) {
-                // Fall back below for browser surfaces that deny Clipboard API writes.
-              }
-              const fallback = document.createElement('textarea');
-              fallback.value = text;
-              fallback.setAttribute('readonly', '');
-              fallback.style.position = 'fixed';
-              fallback.style.top = '-9999px';
-              fallback.style.left = '-9999px';
-              document.body.appendChild(fallback);
-              fallback.focus();
-              fallback.select();
-              const copied = document.execCommand('copy');
-              fallback.remove();
-              if (!copied) throw new Error('Copy failed. Select the prompt and copy it manually.');
-            }
-
-// draftApiAdapter.js
-// @requires draftPorts.js, draftWorkspace.js
-// draftApiAdapter.js - explicit-session HTTP adapter for DraftWorkspace use cases.
-
-function draftItemToAnnotationDraftDto(item, options = {}) {
-  const rawComment = String(item.comment || '');
-  const fallbackComment = String(item.label || '').trim() || (item.targetType === 'node' ? 'Component target' : 'Custom area');
-  return {
-    targetType: item.targetType,
-    bounds: item.bounds,
-    nodeUid: item.nodeUid,
-    label: String(item.label || '').trim() || null,
-    severity: item.severity || 'med',
-    status: String(item.status || 'open').replace('-', '_'),
-    comment: options.allowFallbackComments ? (rawComment.trim() || fallbackComment) : rawComment,
-  };
-}
-
-function buildDraftWorkspaceSaveRequest(workspace, options = {}) {
-  const context = workspace?.context || {};
-  if (!context.sessionId) throw new Error('Draft save requires sessionId');
-  if (!context.previewId) throw new Error('Draft save requires previewId');
-  requireDraftContext(workspace);
-  return {
-    sessionId: context.sessionId,
-    previewId: context.previewId,
-    screen: workspace.screen || null,
-    items: (workspace.items || [])
-      .filter((item) => options.allowBlankComments || options.allowFallbackComments || String(item.comment || '').trim())
-      .map((item) => draftItemToAnnotationDraftDto(item, options)),
-    frozenFingerprint: context.screenFingerprint,
-    forceMismatchOverride: Boolean(options.forceMismatchOverride),
-  };
-}
-
-function createDraftApiHeaders(consoleToken) {
-  const headers = new Headers({ 'Content-Type': 'application/json' });
-  if (consoleToken) headers.set('X-FixThis-Console-Token', consoleToken);
-  return headers;
-}
-
-function createDraftApiAdapter({ fetchImpl = fetch, consoleToken = null } = {}) {
-  async function requestJson(path, body) {
-    const response = await fetchImpl(path, {
-      method: 'POST',
-      headers: createDraftApiHeaders(consoleToken),
-      body: JSON.stringify(body),
-    });
-    if (!response.ok) {
-      if (response.status === 409) {
-        const conflict = await response.json().catch(() => ({}));
-        return { conflict };
-      }
-      throw new Error(await response.text?.() || 'HTTP ' + response.status);
-    }
-    return await response.json();
-  }
-
-  return {
-    saveDraftWorkspace: (request) => requestJson('/api/items/batch', request),
-    saveToMcp: (sessionId, itemIds) => requestJson('/api/agent-handoffs', { sessionId, itemIds }),
-    handoffPreview: async (sessionId, itemIds) => {
-      const response = await fetchImpl('/api/sessions/' + encodeURIComponent(sessionId) + '/handoff-preview', {
-        method: 'POST',
-        headers: createDraftApiHeaders(consoleToken),
-        body: JSON.stringify({ itemIds }),
-      });
-      if (!response.ok) throw new Error(await response.text?.() || 'HTTP ' + response.status);
-      return await response.text();
-    },
-    markHandedOff: (sessionId, itemIds) =>
-      requestJson('/api/sessions/' + encodeURIComponent(sessionId) + '/items/mark-handed-off', { itemIds }),
-  };
-}
-
-// draftUseCases.js
+//#region draftUseCases.js
 // @requires draftWorkspace.js, draftWorkspaceHistory.js, draftPorts.js
 // draftUseCases.js - DraftWorkspace application workflows over narrow ports.
 
@@ -2481,8 +837,9 @@ async function resolveDraftBoundary(workspace, boundaryAction, ports) {
   }
   return { choice: 'cancel', workspace };
 }
+//#endregion draftUseCases.js
 
-// draftCommandQueue.js
+//#region draftCommandQueue.js
 // @requires draftUseCases.js, draftWorkspace.js
 // draftCommandQueue.js - serialize DraftWorkspace application commands.
 
@@ -2531,811 +888,9 @@ function createDraftCommandQueue({ getWorkspace, setWorkspace, onStaleResponse =
     pendingCount: () => pendingCount,
   };
 }
+//#endregion draftCommandQueue.js
 
-// connection.js
-// @requires state.js, api.js
-            // Heartbeat timer handles. These are connection-internal browser
-            // timer state (not reducer state, not pure) so they live here
-            // rather than in connectionFsm.js or state.js.
-            let heartbeatTimer = null;
-            let heartbeatPolling = false;
-
-            function connectionActionLabel(action) {
-              if (action === 'START') return 'Start';
-              if (action === 'OPEN_APP') return 'Open app';
-              if (action === 'RECONNECT') return 'Reconnect';
-              if (action === 'TRY_AGAIN') return 'Try again';
-              if (action === 'CHOOSE_DEVICE') return 'Choose device';
-              if (action === 'CAPTURE') return 'Capture screen';
-              return 'Continue';
-            }
-
-            function userConnectionState(status) {
-              if (!status) return 'welcome';
-              const rawState = String(status.state || 'WELCOME').toLowerCase();
-              if (rawState === 'open_app' && state.connection.hasEverConnected) return 'reconnect';
-              return rawState;
-            }
-
-            function connectionDetailsText(status) {
-              if (!status) return 'No connection check has run yet.';
-              const details = status.details || {};
-              return [
-                'Device: ' + (status.selectedDevice ? deviceLabel(status.selectedDevice) + ' - ' + text(status.selectedDevice.state) : 'none'),
-                'Package: ' + text(status.packageName),
-                'Bridge: ' + text(details.bridgeState),
-                'Last connected: ' + (state.connection.lastReadyAt ? new Date(state.connection.lastReadyAt).toLocaleTimeString() : '-'),
-                'Raw error: ' + text(details.rawError)
-              ].join('\n');
-            }
-
-            function markPreviewStale(stale) {
-              const hasPreviewSurface = Boolean(state.preview || addItemsFlow?.screen || latestPersistedScreen());
-              previewStaleBadge.hidden = !stale || !hasPreviewSurface;
-            }
-
-            function syncSelectedDeviceFromConnection(status) {
-              const selectedDevice = status?.selectedDevice;
-              if (!selectedDevice?.serial) return;
-
-              const connectionDevices = Array.isArray(status.devices) && status.devices.length
-                ? status.devices
-                : state.devices;
-              if (connectionDevices && connectionDevices.length) {
-                state.devices = connectionDevices;
-              }
-              if (!deviceBySerial(state.devices, selectedDevice.serial)) {
-                state.devices = (state.devices || []).concat([selectedDevice]);
-              }
-
-              state.selectedDeviceSerial = selectedDevice.serial;
-              devicePicker.disabled = false;
-              devicePicker.innerHTML = '';
-              state.devices.forEach(device => {
-                const option = document.createElement('option');
-                option.value = device.serial;
-                option.textContent = deviceOptionLabel(device);
-                option.disabled = device.state !== 'device';
-                option.selected = device.serial === selectedDevice.serial;
-                devicePicker.appendChild(option);
-              });
-
-              const selected = deviceBySerial(state.devices, selectedDevice.serial) || selectedDevice;
-              devicePicker.value = selectedDevice.serial;
-              setDeviceUiState(
-                selected.state === 'device' ? DeviceUiState.CONNECTED : DeviceUiState.UNAVAILABLE,
-                selected
-              );
-            }
-
-            function computeCurrentBlockedReason(statusAvailability) {
-              const annotate = toolModeUseCases.isAnnotateMode();
-              const availability = statusAvailability ?? connectionUseCases.getState().availability;
-              const resolverInput = availability
-                ? { ...availability, unresponsive: unresponsiveTracker.isUnresponsive() }
-                : { unresponsive: unresponsiveTracker.isUnresponsive() };
-              const rawReason = computeBlockedReason(resolverInput, annotate);
-              return blockedReasonDebouncer.observe(rawReason);
-            }
-
-            function recomputeInteractionBlockedReason() {
-              const reason = computeCurrentBlockedReason();
-              connectionUseCases.interactionBlocked(reason);
-            }
-
-            function applyConnectionStatus(status, options) {
-              const connectionOptions = options || {};
-
-              // Compute the new blocked reason from the incoming availability
-              // BEFORE dispatching, so STATUS_RECEIVED can write it atomically
-              // (avoiding a stale-availability window between dispatches).
-              const newBlockedReason = computeCurrentBlockedReason(status?.availability ?? null);
-
-              // Capture the prior previousBlockedReason for transition detection.
-              // STATUS_RECEIVED will roll it forward on dispatch.
-              const priorPreviousBlockedReason = connectionUseCases.getState().previousBlockedReason;
-
-              connectionUseCases.setStatus(status, newBlockedReason);
-
-              // success → clear failure streak
-              unresponsiveTracker.observeSuccess();
-
-              // Mark frozen preview stale when the device's foreground activity has changed.
-              const restoredActivity = state.preview?.activity ?? null;
-              const currentActivity = status?.availability?.activity ?? null;
-              if (state.preview && restoredActivity && currentActivity) {
-                state.preview.stale = restoredActivity !== currentActivity;
-              } else if (state.preview) {
-                state.preview.stale = false;
-              }
-              // SIF-5: also evaluate time-based + disconnect-based staleness on every
-              // status tick. OR'd with the activity-drift result above so existing
-              // semantics are preserved.
-              if (state.preview) {
-                const bridgeConnection = userConnectionState(status) === 'ready' ? 'connected' : 'disconnected';
-                const stalenessInput = {
-                  preview: state.preview,
-                  bridgeStatus: { connection: bridgeConnection },
-                };
-                state.preview.stale = state.preview.stale || evaluateStale(stalenessInput, Date.now());
-              }
-
-              // Detect blocked → unblocked transitions for select-mode auto-resume.
-              // Use the captured prior previousBlockedReason vs the new reason.
-              if (priorPreviousBlockedReason !== null && newBlockedReason === null) {
-                if (toolModeUseCases.isSelectMode() && state.session) {
-                  refreshPreview().catch(showError);
-                }
-              }
-              // previousBlockedReason rolling is handled inside STATUS_RECEIVED.
-
-              syncSelectedDeviceFromConnection(status);
-              const viewState = userConnectionState(status);
-              if (viewState === 'ready') {
-                // hasEverConnected and lastReadyAt are set by STATUS_RECEIVED above.
-                if (!connectionOptions.preservePreviewStale) markPreviewStale(false);
-                startLivePreviewPolling();
-              } else {
-                stopLivePreviewPolling();
-                if (pendingFeedbackItems.length || state.preview) markPreviewStale(true);
-              }
-              renderConnection(status);
-              // Re-render the preview region so the canvas blocked-reason overlay and
-              // stale-frame notice reflect the latest interactionBlockedReason / preview.stale.
-              // Without this, the heartbeat-driven state update never reaches the canvas.
-              renderPreviewRegion();
-              checkProtocolCompat(status);
-              checkSidekickBuildEpoch(status);
-            }
-
-            function renderConnection(status) {
-              const viewState = userConnectionState(status);
-              connectionCard.dataset.connectionState = viewState;
-              connectionHeadline.textContent = viewState === 'reconnect'
-                ? 'Reconnect'
-                : (status?.headline || 'Connect to your app');
-              connectionMessage.textContent = viewState === 'reconnect'
-                ? 'The connection was interrupted. Your work is saved.'
-                : (status?.message || "We'll find your phone and open the app for you.");
-              const action = viewState === 'reconnect'
-                ? 'RECONNECT'
-                : (status?.primaryAction || (viewState === 'starting' ? 'OPEN_APP' : null));
-              connectionPrimaryAction.textContent = connectionActionLabel(action);
-              connectionPrimaryAction.disabled = state.connection.launchInFlight;
-              connectionPrimaryAction.dataset.connectionAction = action || 'START';
-              if (state.connection.sessionsPollingPaused) {
-                // Surface a sub-line indicating sessions polling is paused. The details panel
-                // preserves line breaks and wraps long tokens through .connection-details pre.
-                const baseDetails = connectionDetailsText(status);
-                connectionDetailsBody.textContent = baseDetails
-                  ? baseDetails + '\nReconnecting feedback updates…'
-                  : 'Reconnecting feedback updates…';
-              } else {
-                connectionDetailsBody.textContent = connectionDetailsText(status);
-              }
-              connectionDetails.hidden = viewState === 'ready'
-                && !state.connection.hasEverConnected
-                && !state.connection.sessionsPollingPaused;
-            }
-
-            async function refreshConnection(options) {
-              try {
-                const status = await requestJson('/api/connection');
-                applyConnectionStatus(status, options);
-                return status;
-              } catch (error) {
-                unresponsiveTracker.observeFailure();
-                recomputeInteractionBlockedReason();
-                showError(error);
-              }
-            }
-
-            function welcomeConnectionStatus() {
-              return {
-                state: 'WELCOME',
-                headline: 'Connect to your app',
-                message: "We'll find your phone and open the app for you.",
-                primaryAction: 'START',
-                packageName: state.session?.packageName || '',
-                details: { deviceState: 'none', bridgeState: 'not checked' }
-              };
-            }
-
-            async function launchApp() {
-              connectionUseCases.launchRequested();
-              renderConnection(state.connection.current);
-              let succeeded = false;
-              try {
-                const status = await requestJson('/api/app/launch', { method: 'POST' });
-                applyConnectionStatus(status);
-                setTimeout(() => refreshConnection().catch(showError), 800);
-                succeeded = true;
-              } finally {
-                if (succeeded) connectionUseCases.launchSucceeded();
-                else connectionUseCases.launchFailed();
-                renderConnection(state.connection.current);
-              }
-            }
-
-            async function captureScreen() {
-              if (!state.session) return;
-              await refreshPreview();
-            }
-
-            async function handleConnectionPrimaryAction() {
-              const action = connectionPrimaryAction.dataset.connectionAction || 'START';
-              if (action === 'START' || action === 'OPEN_APP' || action === 'RECONNECT') {
-                await launchApp();
-                return;
-              }
-              if (action === 'TRY_AGAIN') {
-                await refreshDevices();
-                await refreshConnection();
-                return;
-              }
-              if (action === 'CHOOSE_DEVICE') {
-                devicePicker.focus();
-                return;
-              }
-              if (action === 'CAPTURE') {
-                await captureScreen();
-              }
-            }
-
-
-            let lastHeartbeatError = null;
-
-            function handleHeartbeatError(cause) {
-              const message = cause && cause.message ? cause.message : String(cause);
-              if (message === lastHeartbeatError) return;
-              lastHeartbeatError = message;
-              showError(cause);
-            }
-
-            async function sendBridgeHeartbeat() {
-              if (!state.session || !state.selectedDeviceSerial) return;
-              await refreshConnection();
-              lastHeartbeatError = null;
-            }
-
-            function scheduleNextHeartbeat() {
-              if (!heartbeatPolling) return;
-              const nextDelayMs = unresponsiveTracker.nextBackoffMs();
-              heartbeatTimer = setTimeout(() => {
-                heartbeatTimer = null;
-                if (!heartbeatPolling) return;
-                if (!state.selectedDeviceSerial) {
-                  scheduleNextHeartbeat();
-                  return;
-                }
-                sendBridgeHeartbeat()
-                  .catch(handleHeartbeatError)
-                  .finally(scheduleNextHeartbeat);
-              }, nextDelayMs);
-            }
-
-            function startHeartbeatPolling() {
-              stopHeartbeatPolling();
-              heartbeatPolling = true;
-              sendBridgeHeartbeat()
-                .catch(handleHeartbeatError)
-                .finally(scheduleNextHeartbeat);
-            }
-
-            function stopHeartbeatPolling() {
-              heartbeatPolling = false;
-              if (heartbeatTimer) clearTimeout(heartbeatTimer);
-              heartbeatTimer = null;
-            }
-
-// availability.js
-// @requires state.js
-// availability.js
-function computeBlockedReason(status, isAnnotateMode) {
-  if (!status) return null;
-  if (status.screenInteractive === false) return 'screenOff';
-  if (status.keyguardLocked === true) return 'locked';
-  if (status.appForeground === false) return 'background';
-  if (status.pictureInPicture === true) return 'pictureInPicture';
-  if (status.unresponsive === true) return 'unresponsive';
-  if (isAnnotateMode && (status.rootsCount === 0)) return 'noComposeUi';
-  return null;
-}
-
-function createBlockedReasonDebouncer({ delayMs = 300, now = () => Date.now() } = {}) {
-  let committed = null;
-  let pending = null;
-  let pendingSince = 0;
-  return {
-    observe(reason) {
-      if (reason === null) {
-        pending = null;
-        pendingSince = 0;
-        committed = null;
-        return null;
-      }
-      if (reason === committed) return committed;
-      if (pending !== reason) {
-        pending = reason;
-        pendingSince = now();
-        return committed;
-      }
-      if (now() - pendingSince >= delayMs) {
-        committed = reason;
-        pending = null;
-        pendingSince = 0;
-        return committed;
-      }
-      return committed;
-    }
-  };
-}
-
-const UNRESPONSIVE_BACKOFF_MS = [1000, 2000, 5000, 10000, 30000];
-
-function createUnresponsiveTracker({ threshold = 3 } = {}) {
-  let streak = 0;
-  return {
-    observeFailure() {
-      streak += 1;
-      return streak >= threshold;
-    },
-    observeSuccess() {
-      streak = 0;
-    },
-    isUnresponsive() {
-      return streak >= threshold;
-    },
-    nextBackoffMs() {
-      const idx = Math.min(streak, UNRESPONSIVE_BACKOFF_MS.length - 1);
-      return UNRESPONSIVE_BACKOFF_MS[idx];
-    },
-  };
-}
-
-// devices.js
-// @requires state.js, api.js
-            const BLOCKED_SUFFIX = {
-              screenOff: 'Screen off',
-              locked: 'Locked',
-              background: 'In background',
-              pictureInPicture: 'PiP',
-              unresponsive: 'Unresponsive',
-              noComposeUi: 'No Compose UI',
-            };
-
-            function decorateConnectionLabel(baseLabel, reason) {
-              if (!reason) return baseLabel;
-              const suffix = BLOCKED_SUFFIX[reason];
-              return suffix ? `${baseLabel} · ${suffix}` : baseLabel;
-            }
-
-            function shortenDeviceSerial(serial) {
-              const raw = String(serial || '').trim();
-              if (!raw) return '';
-              const withoutServiceSuffix = raw.split('._adb-tls-connect._tcp')[0];
-              if (withoutServiceSuffix.startsWith('adb-')) return withoutServiceSuffix.substring(4);
-              if (withoutServiceSuffix.length <= 24) return withoutServiceSuffix;
-              return withoutServiceSuffix.slice(0, 10) + '...' + withoutServiceSuffix.slice(-6);
-            }
-
-            function deviceLabel(device) {
-              if (!device) return 'No device';
-              return device.label || device.model || device.deviceName || device.product || shortenDeviceSerial(device.serial) || 'Unknown device';
-            }
-
-            function deviceDetail(device) {
-              if (!device) return 'No device';
-              if (device.state === 'device') return 'connected';
-              return (device.state || 'unknown') + ' · unavailable';
-            }
-
-            function deviceOptionLabel(device) {
-              return deviceLabel(device) + ' - ' + deviceDetail(device);
-            }
-
-            function setDeviceUiState(uiState, device = null) {
-              deviceControl.dataset.connectionState = uiState;
-              deviceName.textContent = device ? deviceLabel(device) : 'No device';
-              const baseLabel = DeviceStateCopy[uiState];
-              const reason = uiState === DeviceUiState.CONNECTED
-                ? (state.connection?.interactionBlockedReason || null)
-                : null;
-              deviceConnectionState.textContent = decorateConnectionLabel(baseLabel, reason);
-              deviceStatus.textContent = deviceName.textContent + ' - ' + deviceConnectionState.textContent;
-            }
-
-
-            function deviceBySerial(devices, serial) {
-              if (!serial) return null;
-              return (devices || []).find(device => device.serial === serial) || null;
-            }
-
-            function renderDeviceList(payload) {
-              const devices = payload.devices || [];
-              state.devices = devices;
-              const previousSelectedDeviceSerial = state.selectedDeviceSerial;
-              devicePicker.innerHTML = '';
-
-              if (!devices.length) {
-                const selectedSerial = null;
-                if (previousSelectedDeviceSerial !== selectedSerial) {
-                  bumpSessionMutationGeneration();
-                  invalidatePreviewContext();
-                  renderPreviewOnly();
-                }
-                state.selectedDeviceSerial = selectedSerial;
-                const option = document.createElement('option');
-                option.value = '';
-                option.textContent = 'No devices available';
-                devicePicker.appendChild(option);
-                devicePicker.disabled = true;
-                setDeviceUiState(DeviceUiState.NONE);
-                return;
-              }
-
-              const selectedSerialFromPayload = payload.selectedSerial || null;
-              const selected = devices.find(device => device.selected || device.serial === selectedSerialFromPayload) || null;
-              devicePicker.disabled = false;
-
-              if (!selected) {
-                const option = document.createElement('option');
-                option.value = '';
-                option.textContent = 'Select device...';
-                option.disabled = true;
-                option.selected = true;
-                devicePicker.appendChild(option);
-              }
-
-              devices.forEach(device => {
-                const option = document.createElement('option');
-                option.value = device.serial;
-                option.textContent = deviceOptionLabel(device);
-                option.disabled = device.state !== 'device';
-                option.selected = Boolean(device.selected) || device.serial === selectedSerialFromPayload;
-                devicePicker.appendChild(option);
-              });
-
-              const selectedSerial = selected && selected.state === 'device' ? selected.serial : null;
-              if (previousSelectedDeviceSerial !== selectedSerial) {
-                bumpSessionMutationGeneration();
-                invalidatePreviewContext();
-                renderPreviewOnly();
-              }
-              state.selectedDeviceSerial = selectedSerial;
-
-              if (!selected) {
-                setDeviceUiState(DeviceUiState.NONE);
-              } else if (selected.state === 'device') {
-                setDeviceUiState(DeviceUiState.CONNECTED, selected);
-              } else {
-                setDeviceUiState(DeviceUiState.UNAVAILABLE, selected);
-              }
-            }
-
-            async function refreshDevices() {
-              if (state.selectedDeviceSerial) {
-                setDeviceUiState(DeviceUiState.CONNECTING, deviceBySerial(state.devices, state.selectedDeviceSerial));
-              }
-              let payload = await requestJson('/api/devices');
-              const devices = payload.devices || [];
-              const connectedDevices = (payload.devices || []).filter(device => device.state === 'device');
-              if (!payload.selectedSerial && devices.length === 1 && connectedDevices.length === 1) {
-                setDeviceUiState(DeviceUiState.CONNECTING, connectedDevices[0]);
-                bumpSessionMutationGeneration();
-                payload = await requestJson('/api/device/select', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ serial: connectedDevices[0].serial })
-                });
-              }
-              renderDeviceList(payload);
-            }
-
-            async function selectDevice() {
-              const option = devicePicker.selectedOptions[0];
-              if (!option || !option.value || option.disabled) return;
-              setDeviceUiState(DeviceUiState.CONNECTING, deviceBySerial(state.devices, option.value));
-              bumpSessionMutationGeneration();
-              invalidatePreviewContext();
-              try {
-                renderDeviceList(await requestJson('/api/device/select', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ serial: option.value })
-                }));
-                startHeartbeatPolling();
-                await refreshConnection();
-                if (state.session && userConnectionState(state.connection.current) === 'ready') {
-                  await refreshPreview();
-                  startLivePreviewPolling();
-                }
-              } catch (cause) {
-                state.selectedDeviceSerial = null;
-                stopHeartbeatPolling();
-                stopLivePreviewPolling();
-                setDeviceUiState(DeviceUiState.UNAVAILABLE, deviceBySerial(state.devices, option.value) || { serial: option.value });
-                throw cause;
-              }
-            }
-
-            async function disconnectDevice() {
-              bumpSessionMutationGeneration();
-              invalidatePreviewContext();
-              renderDeviceList(await requestJson('/api/device/disconnect', { method: 'POST' }));
-              setDeviceUiState(DeviceUiState.NONE);
-              render();
-              stopHeartbeatPolling();
-              applyConnectionStatus(welcomeConnectionStatus());
-            }
-
-// preview.js
-// @requires state.js, api.js, draftWorkspace.js
-            // Raw HTTP fetch — the previewUseCases layer provides dedup and
-            // race-fence via the FSM. Cross-caller dedup (across draft port
-            // and FSM) is achieved by routing all callers through
-            // previewUseCases.request().
-            function requestLivePreview() {
-              return requestJson('/api/preview');
-            }
-
-            function invalidatePreviewContext() {
-              previewUseCases.contextChanged();
-              state.preview = null;
-            }
-
-            function scopedQuery(sessionId) {
-              return sessionId ? '?sessionId=' + encodeURIComponent(sessionId) : '';
-            }
-
-            function previewScreenshotUrl(previewId, sessionId = state.session?.sessionId || null) {
-              return '/api/preview/' + encodeURIComponent(previewId) + '/screenshot/full' + scopedQuery(sessionId);
-            }
-
-            function screenScreenshotUrl(screenId, sessionId = state.session?.sessionId || null) {
-              return '/api/screens/' + encodeURIComponent(screenId) + '/screenshot/full' + scopedQuery(sessionId);
-            }
-
-            function screenImageUrl(screen) {
-              if (addItemsFlow) return addItemsFlow.screenshotUrl;
-              if (state.preview?.screen === screen && state.preview?.previewId) return previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null);
-              if (screen?.screenId) return screenScreenshotUrl(screen.screenId, state.session?.sessionId || toolModeUseCases.getState().focusedSavedSessionId || null);
-              return '';
-            }
-
-
-            function configuredPreviewIntervalMs() {
-              const rawValue = previewIntervalSelect.value;
-              if (rawValue === 'manual') return null;
-              const parsed = Number(rawValue || localStorage.getItem(PreviewIntervalStorageKey) || DefaultLivePreviewIntervalMs);
-              return Math.max(1000, parsed);
-            }
-
-            function shouldPollPreview() {
-              return !document.hidden && !addItemsFlow && Boolean(state.session) && Boolean(state.selectedDeviceSerial) && userConnectionState(state.connection.current) === 'ready';
-            }
-
-            function shouldAutoFetchPreview() {
-              return configuredPreviewIntervalMs() != null && shouldPollPreview();
-            }
-
-            // livePreviewTimer is a closure-scoped browser timer handle.
-            // It is not reducer state (not pure), so it lives here rather
-            // than in previewFsm.js.
-            let livePreviewTimer = null;
-            function startLivePreviewPolling() {
-              stopLivePreviewPolling();
-              const intervalMs = configuredPreviewIntervalMs();
-              if (!intervalMs) return;
-              livePreviewTimer = setInterval(() => {
-                if (shouldPollPreview()) refreshPreview().catch(showError);
-              }, intervalMs);
-            }
-
-            function stopLivePreviewPolling() {
-              if (livePreviewTimer) clearInterval(livePreviewTimer);
-              livePreviewTimer = null;
-            }
-
-            function initializePreviewIntervalSelect() {
-              const stored = localStorage.getItem(PreviewIntervalStorageKey);
-              previewIntervalSelect.value = stored || String(DefaultLivePreviewIntervalMs);
-              if (!previewIntervalSelect.value) previewIntervalSelect.value = String(DefaultLivePreviewIntervalMs);
-            }
-
-            function visibleScreenNodeUids(screen) {
-              const uids = new Set();
-              if (!screen) return uids;
-              (screen.roots || []).forEach(root => {
-                (root.mergedNodes || []).forEach(node => { if (node?.uid) uids.add(node.uid); });
-                (root.unmergedNodes || []).forEach(node => { if (node?.uid) uids.add(node.uid); });
-              });
-              return uids;
-            }
-
-            function latestPersistedScreen() {
-              const screens = state.session?.screens || [];
-              const persistedScreenIds = new Set(
-                (state.session?.items || []).map(item => item.screenId)
-              );
-              const screenshotScreens = screens
-                .filter(screen => screen?.screenshot?.desktopFullPath);
-              return screenshotScreens
-                .filter(screen => persistedScreenIds.has(screen.screenId))
-                .sort((left, right) => (right.capturedAtEpochMillis || 0) - (left.capturedAtEpochMillis || 0))[0] ||
-                screenshotScreens
-                .sort((left, right) => (right.capturedAtEpochMillis || 0) - (left.capturedAtEpochMillis || 0))[0] || null;
-            }
-
-            function latestScreen() {
-              if (addItemsFlow) return addItemsFlow.screen;
-              const focusedSavedItemId = toolModeUseCases.getState().focusedSavedItemId;
-              if (focusedSavedItemId) {
-                const focusedItem = savedEvidenceItems().find(item => item.itemId === focusedSavedItemId);
-                if (focusedItem) {
-                  const focusedScreen = (state.session?.screens || []).find(s => s.screenId === focusedItem.screenId);
-                  if (focusedScreen) return focusedScreen;
-                }
-              }
-              return state.preview?.screen || latestPersistedScreen();
-            }
-
-            function clamp(value, min, max) {
-              return Math.min(Math.max(value, min), max);
-            }
-
-            function applyPreviewZoom() {
-              const frame = document.getElementById('snapshotFrame');
-              const zoom = previewUseCases.getState().zoom;
-              zoomPercent.textContent = Math.round(zoom * 100) + '%';
-              zoomOutButton.disabled = zoom <= PreviewZoomMin;
-              zoomInButton.disabled = zoom >= PreviewZoomMax;
-              if (frame) {
-                frame.style.setProperty('--preview-zoom', String(zoom));
-              }
-            }
-
-            function setPreviewZoom(nextZoom) {
-              previewUseCases.setZoom(nextZoom);
-              applyPreviewZoom();
-            }
-
-
-            async function refreshPreview() {
-              error.textContent = '';
-              if (!state.session || addItemsFlow) return;
-              const requestGeneration = previewUseCases.getState().requestGeneration + 1;
-              try {
-                const preview = await previewUseCases.request();
-                if (addItemsFlow || requestGeneration !== previewUseCases.getState().requestGeneration) return;
-                state.preview = {
-                  ...preview,
-                  activity: state.connection?.availability?.activity ?? null,
-                  frozenAtEpochMillis: Date.now(),
-                  stale: false,
-                };
-                if (userConnectionState(state.connection.current) === 'ready') markPreviewStale(false);
-                renderPreviewOnly();
-              } catch (cause) {
-                markPreviewStale(true);
-                refreshConnection({ preservePreviewStale: true }).catch(() => {});
-                throw cause;
-              }
-            }
-
-
-            async function navigate(action, extras = {}) {
-              error.textContent = '';
-              if (!state.session) return;
-              const navigation = await requestJson('/api/navigation', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  action: action,
-                  captureAfter: false,
-                  ...extras
-                })
-              });
-              clearSelection();
-              await refresh();
-              await refreshPreview();
-              if (navigation.captureError) {
-                error.textContent = 'Navigation performed, but capture failed: ' + navigation.captureError;
-              }
-            }
-
-            function renderCanvasBlockedOverlay() {
-              const overlay = document.getElementById('canvasBlockedOverlay');
-              if (!overlay) return;
-              const reason = state.connection?.interactionBlockedReason ?? null;
-              if (!reason) {
-                overlay.hidden = true;
-                return;
-              }
-              overlay.hidden = false;
-              const headlines = {
-                screenOff: 'Device screen is off',
-                locked: 'Device is locked',
-                background: 'Sample app is in the background',
-                pictureInPicture: 'Sample app is in Picture-in-Picture',
-                unresponsive: 'Sample app is unresponsive',
-                noComposeUi: 'No Compose UI on this screen',
-              };
-              const details = {
-                screenOff: 'Wake the device to continue.',
-                locked: 'Unlock the device to continue.',
-                background: 'Bring the sample app to the foreground.',
-                pictureInPicture: 'Exit Picture-in-Picture to continue.',
-                unresponsive: 'Retrying…',
-                noComposeUi: 'Switch to a screen with Compose content to annotate.',
-              };
-              overlay.querySelector('[data-headline]').textContent = headlines[reason] ?? '';
-              overlay.querySelector('[data-detail]').textContent = details[reason] ?? '';
-              const retry = overlay.querySelector('[data-retry]');
-              retry.hidden = reason !== 'unresponsive';
-            }
-
-            document.getElementById('canvasBlockedOverlay')?.querySelector('[data-retry]')?.addEventListener('click', () => {
-              refreshConnection().catch(showError);
-            });
-
-            function renderStaleFrameNotice() {
-              const root = document.getElementById('canvasStaleNotice');
-              if (!root) return;
-              if (state.preview?.stale) {
-                root.hidden = false;
-              } else {
-                root.hidden = true;
-              }
-            }
-
-            async function useLatestStaleFrame() {
-              const wasAnnotating = toolModeUseCases.isAnnotateMode() || Boolean(addItemsFlow);
-              flushFocusedPendingComment();
-              const pendingItems = draftWorkspaceItems(draftWorkspace).slice();
-              const previousWorkspace = draftWorkspace;
-              const previousPreview = state.preview;
-              invalidatePreviewContext();
-              if (wasAnnotating) {
-                setDraftWorkspace(createEmptyDraftWorkspace());
-                try {
-                  await startAddItemsFlow();
-                } catch (cause) {
-                  setDraftWorkspace(previousWorkspace);
-                  state.preview = previousPreview;
-                  if (addItemsFlow) persistCurrentPendingState();
-                  render();
-                  throw cause;
-                }
-                if (!addItemsFlow) {
-                  setDraftWorkspace(previousWorkspace);
-                  state.preview = previousPreview;
-                  render();
-                  return;
-                }
-                setDraftWorkspace({
-                  ...draftWorkspace,
-                  revision: draftWorkspace.revision + 1,
-                  items: pendingItems,
-                  history: { undoStack: [], redoStack: [] },
-                });
-                updateAnnotationSequenceFromPendingItems(pendingItems);
-                focusedPendingItemIndex = null;
-                toolModeUseCases.focusSavedItem(null, null);
-                currentSelection = null;
-                toolModeUseCases.setHoveredTarget(null);
-                persistCurrentPendingState();
-              } else {
-                await refreshPreview();
-              }
-              render();
-            }
-
-            document.getElementById('canvasStaleNotice')?.querySelector('[data-use-latest]')?.addEventListener('click', () => {
-              useLatestStaleFrame().catch(showError);
-            });
-
-// annotations.js
+//#region annotations.js
 // @requires state.js, draftWorkspace.js, draftUseCases.js, draftCommandQueue.js
             function isInteractionBlocked() {
               return Boolean(state.connection?.interactionBlockedReason);
@@ -4082,8 +1637,1404 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               renderPreviewOnly();
               renderInspectorRegion();
             }
+//#endregion annotations.js
 
-// history.js
+//#region api.js
+// @requires state.js
+            async function requestJson(path, options = {}) {
+              const method = (options.method || 'GET').toUpperCase();
+              const headers = new Headers(options.headers || {});
+              if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+                const token = window.FixThisConsoleConfig?.consoleToken;
+                if (token) headers.set('X-FixThis-Console-Token', token);
+              }
+              const response = await fetch(path, { ...options, headers });
+              if (!response.ok) {
+                throw new Error(await response.text() || 'HTTP ' + response.status);
+              }
+              return response.json();
+            }
+
+
+            async function copyTextToClipboard(text) {
+              try {
+                if (navigator.clipboard?.writeText) {
+                  await navigator.clipboard.writeText(text);
+                  return;
+                }
+              } catch (cause) {
+                // Fall back below for browser surfaces that deny Clipboard API writes.
+              }
+              const fallback = document.createElement('textarea');
+              fallback.value = text;
+              fallback.setAttribute('readonly', '');
+              fallback.style.position = 'fixed';
+              fallback.style.top = '-9999px';
+              fallback.style.left = '-9999px';
+              document.body.appendChild(fallback);
+              fallback.focus();
+              fallback.select();
+              const copied = document.execCommand('copy');
+              fallback.remove();
+              if (!copied) throw new Error('Copy failed. Select the prompt and copy it manually.');
+            }
+//#endregion api.js
+
+//#region availability.js
+// @requires state.js
+// availability.js
+function computeBlockedReason(status, isAnnotateMode) {
+  if (!status) return null;
+  if (status.screenInteractive === false) return 'screenOff';
+  if (status.keyguardLocked === true) return 'locked';
+  if (status.appForeground === false) return 'background';
+  if (status.pictureInPicture === true) return 'pictureInPicture';
+  if (status.unresponsive === true) return 'unresponsive';
+  if (isAnnotateMode && (status.rootsCount === 0)) return 'noComposeUi';
+  return null;
+}
+
+function createBlockedReasonDebouncer({ delayMs = 300, now = () => Date.now() } = {}) {
+  let committed = null;
+  let pending = null;
+  let pendingSince = 0;
+  return {
+    observe(reason) {
+      if (reason === null) {
+        pending = null;
+        pendingSince = 0;
+        committed = null;
+        return null;
+      }
+      if (reason === committed) return committed;
+      if (pending !== reason) {
+        pending = reason;
+        pendingSince = now();
+        return committed;
+      }
+      if (now() - pendingSince >= delayMs) {
+        committed = reason;
+        pending = null;
+        pendingSince = 0;
+        return committed;
+      }
+      return committed;
+    }
+  };
+}
+
+const UNRESPONSIVE_BACKOFF_MS = [1000, 2000, 5000, 10000, 30000];
+
+function createUnresponsiveTracker({ threshold = 3 } = {}) {
+  let streak = 0;
+  return {
+    observeFailure() {
+      streak += 1;
+      return streak >= threshold;
+    },
+    observeSuccess() {
+      streak = 0;
+    },
+    isUnresponsive() {
+      return streak >= threshold;
+    },
+    nextBackoffMs() {
+      const idx = Math.min(streak, UNRESPONSIVE_BACKOFF_MS.length - 1);
+      return UNRESPONSIVE_BACKOFF_MS[idx];
+    },
+  };
+}
+//#endregion availability.js
+
+//#region beforeunloadGuard.js
+// @requires (none)
+// beforeunloadGuard.js — ALH-1: pure decision helper for the
+// beforeunload prompt. The window.addEventListener call lives in
+// main.js and delegates here.
+
+function shouldGuardUnload(pendingItemsCount) {
+  return Number(pendingItemsCount) > 0;
+}
+//#endregion beforeunloadGuard.js
+
+//#region connection.js
+// @requires state.js, api.js
+            // Heartbeat timer handles. These are connection-internal browser
+            // timer state (not reducer state, not pure) so they live here
+            // rather than in connectionFsm.js or state.js.
+            let heartbeatTimer = null;
+            let heartbeatPolling = false;
+
+            function connectionActionLabel(action) {
+              if (action === 'START') return 'Start';
+              if (action === 'OPEN_APP') return 'Open app';
+              if (action === 'RECONNECT') return 'Reconnect';
+              if (action === 'TRY_AGAIN') return 'Try again';
+              if (action === 'CHOOSE_DEVICE') return 'Choose device';
+              if (action === 'CAPTURE') return 'Capture screen';
+              return 'Continue';
+            }
+
+            function userConnectionState(status) {
+              if (!status) return 'welcome';
+              const rawState = String(status.state || 'WELCOME').toLowerCase();
+              if (rawState === 'open_app' && state.connection.hasEverConnected) return 'reconnect';
+              return rawState;
+            }
+
+            function connectionDetailsText(status) {
+              if (!status) return 'No connection check has run yet.';
+              const details = status.details || {};
+              return [
+                'Device: ' + (status.selectedDevice ? deviceLabel(status.selectedDevice) + ' - ' + text(status.selectedDevice.state) : 'none'),
+                'Package: ' + text(status.packageName),
+                'Bridge: ' + text(details.bridgeState),
+                'Last connected: ' + (state.connection.lastReadyAt ? new Date(state.connection.lastReadyAt).toLocaleTimeString() : '-'),
+                'Raw error: ' + text(details.rawError)
+              ].join('\n');
+            }
+
+            function markPreviewStale(stale) {
+              const hasPreviewSurface = Boolean(state.preview || addItemsFlow?.screen || latestPersistedScreen());
+              previewStaleBadge.hidden = !stale || !hasPreviewSurface;
+            }
+
+            function syncSelectedDeviceFromConnection(status) {
+              const selectedDevice = status?.selectedDevice;
+              if (!selectedDevice?.serial) return;
+
+              const connectionDevices = Array.isArray(status.devices) && status.devices.length
+                ? status.devices
+                : state.devices;
+              if (connectionDevices && connectionDevices.length) {
+                state.devices = connectionDevices;
+              }
+              if (!deviceBySerial(state.devices, selectedDevice.serial)) {
+                state.devices = (state.devices || []).concat([selectedDevice]);
+              }
+
+              state.selectedDeviceSerial = selectedDevice.serial;
+              devicePicker.disabled = false;
+              devicePicker.innerHTML = '';
+              state.devices.forEach(device => {
+                const option = document.createElement('option');
+                option.value = device.serial;
+                option.textContent = deviceOptionLabel(device);
+                option.disabled = device.state !== 'device';
+                option.selected = device.serial === selectedDevice.serial;
+                devicePicker.appendChild(option);
+              });
+
+              const selected = deviceBySerial(state.devices, selectedDevice.serial) || selectedDevice;
+              devicePicker.value = selectedDevice.serial;
+              setDeviceUiState(
+                selected.state === 'device' ? DeviceUiState.CONNECTED : DeviceUiState.UNAVAILABLE,
+                selected
+              );
+            }
+
+            function computeCurrentBlockedReason(statusAvailability) {
+              const annotate = toolModeUseCases.isAnnotateMode();
+              const availability = statusAvailability ?? connectionUseCases.getState().availability;
+              const resolverInput = availability
+                ? { ...availability, unresponsive: unresponsiveTracker.isUnresponsive() }
+                : { unresponsive: unresponsiveTracker.isUnresponsive() };
+              const rawReason = computeBlockedReason(resolverInput, annotate);
+              return blockedReasonDebouncer.observe(rawReason);
+            }
+
+            function recomputeInteractionBlockedReason() {
+              const reason = computeCurrentBlockedReason();
+              connectionUseCases.interactionBlocked(reason);
+            }
+
+            function applyConnectionStatus(status, options) {
+              const connectionOptions = options || {};
+
+              // Compute the new blocked reason from the incoming availability
+              // BEFORE dispatching, so STATUS_RECEIVED can write it atomically
+              // (avoiding a stale-availability window between dispatches).
+              const newBlockedReason = computeCurrentBlockedReason(status?.availability ?? null);
+
+              // Capture the prior previousBlockedReason for transition detection.
+              // STATUS_RECEIVED will roll it forward on dispatch.
+              const priorPreviousBlockedReason = connectionUseCases.getState().previousBlockedReason;
+
+              connectionUseCases.setStatus(status, newBlockedReason);
+
+              // success → clear failure streak
+              unresponsiveTracker.observeSuccess();
+
+              // Mark frozen preview stale when the device's foreground activity has changed.
+              const restoredActivity = state.preview?.activity ?? null;
+              const currentActivity = status?.availability?.activity ?? null;
+              if (state.preview && restoredActivity && currentActivity) {
+                state.preview.stale = restoredActivity !== currentActivity;
+              } else if (state.preview) {
+                state.preview.stale = false;
+              }
+              // SIF-5: also evaluate time-based + disconnect-based staleness on every
+              // status tick. OR'd with the activity-drift result above so existing
+              // semantics are preserved.
+              if (state.preview) {
+                const bridgeConnection = userConnectionState(status) === 'ready' ? 'connected' : 'disconnected';
+                const stalenessInput = {
+                  preview: state.preview,
+                  bridgeStatus: { connection: bridgeConnection },
+                };
+                state.preview.stale = state.preview.stale || evaluateStale(stalenessInput, Date.now());
+              }
+
+              // Detect blocked → unblocked transitions for select-mode auto-resume.
+              // Use the captured prior previousBlockedReason vs the new reason.
+              if (priorPreviousBlockedReason !== null && newBlockedReason === null) {
+                if (toolModeUseCases.isSelectMode() && state.session) {
+                  refreshPreview().catch(showError);
+                }
+              }
+              // previousBlockedReason rolling is handled inside STATUS_RECEIVED.
+
+              syncSelectedDeviceFromConnection(status);
+              const viewState = userConnectionState(status);
+              if (viewState === 'ready') {
+                // hasEverConnected and lastReadyAt are set by STATUS_RECEIVED above.
+                if (!connectionOptions.preservePreviewStale) markPreviewStale(false);
+                startLivePreviewPolling();
+              } else {
+                stopLivePreviewPolling();
+                if (pendingFeedbackItems.length || state.preview) markPreviewStale(true);
+              }
+              renderConnection(status);
+              // Re-render the preview region so the canvas blocked-reason overlay and
+              // stale-frame notice reflect the latest interactionBlockedReason / preview.stale.
+              // Without this, the heartbeat-driven state update never reaches the canvas.
+              renderPreviewRegion();
+              checkProtocolCompat(status);
+              checkSidekickBuildEpoch(status);
+            }
+
+            function renderConnection(status) {
+              const viewState = userConnectionState(status);
+              connectionCard.dataset.connectionState = viewState;
+              connectionHeadline.textContent = viewState === 'reconnect'
+                ? 'Reconnect'
+                : (status?.headline || 'Connect to your app');
+              connectionMessage.textContent = viewState === 'reconnect'
+                ? 'The connection was interrupted. Your work is saved.'
+                : (status?.message || "We'll find your phone and open the app for you.");
+              const action = viewState === 'reconnect'
+                ? 'RECONNECT'
+                : (status?.primaryAction || (viewState === 'starting' ? 'OPEN_APP' : null));
+              connectionPrimaryAction.textContent = connectionActionLabel(action);
+              connectionPrimaryAction.disabled = state.connection.launchInFlight;
+              connectionPrimaryAction.dataset.connectionAction = action || 'START';
+              if (state.connection.sessionsPollingPaused) {
+                // Surface a sub-line indicating sessions polling is paused. The details panel
+                // preserves line breaks and wraps long tokens through .connection-details pre.
+                const baseDetails = connectionDetailsText(status);
+                connectionDetailsBody.textContent = baseDetails
+                  ? baseDetails + '\nReconnecting feedback updates…'
+                  : 'Reconnecting feedback updates…';
+              } else {
+                connectionDetailsBody.textContent = connectionDetailsText(status);
+              }
+              connectionDetails.hidden = viewState === 'ready'
+                && !state.connection.hasEverConnected
+                && !state.connection.sessionsPollingPaused;
+            }
+
+            async function refreshConnection(options) {
+              try {
+                const status = await requestJson('/api/connection');
+                applyConnectionStatus(status, options);
+                return status;
+              } catch (error) {
+                unresponsiveTracker.observeFailure();
+                recomputeInteractionBlockedReason();
+                showError(error);
+              }
+            }
+
+            function welcomeConnectionStatus() {
+              return {
+                state: 'WELCOME',
+                headline: 'Connect to your app',
+                message: "We'll find your phone and open the app for you.",
+                primaryAction: 'START',
+                packageName: state.session?.packageName || '',
+                details: { deviceState: 'none', bridgeState: 'not checked' }
+              };
+            }
+
+            async function launchApp() {
+              connectionUseCases.launchRequested();
+              renderConnection(state.connection.current);
+              let succeeded = false;
+              try {
+                const status = await requestJson('/api/app/launch', { method: 'POST' });
+                applyConnectionStatus(status);
+                setTimeout(() => refreshConnection().catch(showError), 800);
+                succeeded = true;
+              } finally {
+                if (succeeded) connectionUseCases.launchSucceeded();
+                else connectionUseCases.launchFailed();
+                renderConnection(state.connection.current);
+              }
+            }
+
+            async function captureScreen() {
+              if (!state.session) return;
+              await refreshPreview();
+            }
+
+            async function handleConnectionPrimaryAction() {
+              const action = connectionPrimaryAction.dataset.connectionAction || 'START';
+              if (action === 'START' || action === 'OPEN_APP' || action === 'RECONNECT') {
+                await launchApp();
+                return;
+              }
+              if (action === 'TRY_AGAIN') {
+                await refreshDevices();
+                await refreshConnection();
+                return;
+              }
+              if (action === 'CHOOSE_DEVICE') {
+                devicePicker.focus();
+                return;
+              }
+              if (action === 'CAPTURE') {
+                await captureScreen();
+              }
+            }
+
+
+            let lastHeartbeatError = null;
+
+            function handleHeartbeatError(cause) {
+              const message = cause && cause.message ? cause.message : String(cause);
+              if (message === lastHeartbeatError) return;
+              lastHeartbeatError = message;
+              showError(cause);
+            }
+
+            async function sendBridgeHeartbeat() {
+              if (!state.session || !state.selectedDeviceSerial) return;
+              await refreshConnection();
+              lastHeartbeatError = null;
+            }
+
+            function scheduleNextHeartbeat() {
+              if (!heartbeatPolling) return;
+              const nextDelayMs = unresponsiveTracker.nextBackoffMs();
+              heartbeatTimer = setTimeout(() => {
+                heartbeatTimer = null;
+                if (!heartbeatPolling) return;
+                if (!state.selectedDeviceSerial) {
+                  scheduleNextHeartbeat();
+                  return;
+                }
+                sendBridgeHeartbeat()
+                  .catch(handleHeartbeatError)
+                  .finally(scheduleNextHeartbeat);
+              }, nextDelayMs);
+            }
+
+            function startHeartbeatPolling() {
+              stopHeartbeatPolling();
+              heartbeatPolling = true;
+              sendBridgeHeartbeat()
+                .catch(handleHeartbeatError)
+                .finally(scheduleNextHeartbeat);
+            }
+
+            function stopHeartbeatPolling() {
+              heartbeatPolling = false;
+              if (heartbeatTimer) clearTimeout(heartbeatTimer);
+              heartbeatTimer = null;
+            }
+//#endregion connection.js
+
+//#region connectionFsm.js
+// @requires (none)
+// connectionFsm.js — pure reducer for the bridge connection lifecycle.
+//
+// Owns the entire state.connection.* object plus heartbeat-related fields
+// previously held as module-level lets in state.js. No DOM, fetch, timers,
+// or globals here.
+//
+// Action set (per console-state-machine-expansion §3.2):
+//   LAUNCH_REQUESTED       — user requested app launch
+//   LAUNCH_SUCCEEDED       — launch RPC returned a status
+//   LAUNCH_FAILED          — launch RPC failed
+//   HEARTBEAT_OK           — heartbeat ping succeeded
+//   HEARTBEAT_FAILED       — heartbeat ping failed (carries error message)
+//   INTERACTION_BLOCKED    — resolver decided interaction is blocked
+//   INTERACTION_UNBLOCKED  — resolver cleared the blocked reason
+//   AVAILABILITY_UPDATED   — availability snapshot arrived without a full status
+//   DISCONNECT_REQUESTED   — user/UI explicitly tore the connection down
+//
+// Plus two non-spec actions added during extraction so that **no** state.connection.*
+// mutation lives outside this reducer (R3 mitigation: FSM is the single source
+// of truth from creation):
+//   STATUS_RECEIVED         — a full /api/connection status payload arrived
+//   POLLING_PAUSED_CHANGED  — sessions polling backed off / resumed
+//
+// MaxHeartbeatFailures is exposed as a constant; consumers may import via the
+// IIFE-shared lexical scope (no module object exists at runtime).
+
+const MaxHeartbeatFailures = 3;
+
+const ConnectionLifecycle = Object.freeze({
+  WELCOME: 'welcome',
+  STARTING: 'starting',
+  READY: 'ready',
+  RECONNECT: 'reconnect',
+  ERROR: 'error',
+});
+
+function createInitialConnectionState() {
+  return Object.freeze({
+    current: null,
+    hasEverConnected: false,
+    lastReadyAt: null,
+    launchInFlight: false,
+    availability: null,
+    interactionBlockedReason: null,
+    previousBlockedReason: null,
+    sessionsPollingPaused: false,
+    heartbeatPolling: false,
+    lastHeartbeatError: null,
+  });
+}
+
+function statusIsReady(status) {
+  if (!status) return false;
+  const raw = String(status.state || '').toLowerCase();
+  return raw === 'ready';
+}
+
+function reduceConnection(state, action) {
+  if (!state) state = createInitialConnectionState();
+  if (!action || typeof action.type !== 'string') return state;
+  switch (action.type) {
+    case 'LAUNCH_REQUESTED':
+      return Object.freeze({ ...state, launchInFlight: true });
+    case 'LAUNCH_SUCCEEDED':
+    case 'LAUNCH_FAILED':
+      return Object.freeze({ ...state, launchInFlight: false });
+    case 'STATUS_RECEIVED': {
+      const status = action.status ?? null;
+      const next = {
+        ...state,
+        current: status,
+        availability: status?.availability ?? null,
+        previousBlockedReason: state.interactionBlockedReason,
+        interactionBlockedReason: action.blockedReason ?? null,
+      };
+      if (statusIsReady(status)) {
+        next.hasEverConnected = true;
+        next.lastReadyAt = typeof action.nowMs === 'number' ? action.nowMs : state.lastReadyAt;
+      }
+      return Object.freeze(next);
+    }
+    case 'AVAILABILITY_UPDATED':
+      return Object.freeze({ ...state, availability: action.availability ?? null });
+    case 'INTERACTION_BLOCKED':
+      return Object.freeze({
+        ...state,
+        previousBlockedReason: state.interactionBlockedReason,
+        interactionBlockedReason: action.reason ?? null,
+      });
+    case 'INTERACTION_UNBLOCKED':
+      return Object.freeze({
+        ...state,
+        previousBlockedReason: state.interactionBlockedReason,
+        interactionBlockedReason: null,
+      });
+    case 'HEARTBEAT_OK':
+      return Object.freeze({ ...state, lastHeartbeatError: null });
+    case 'HEARTBEAT_FAILED':
+      return Object.freeze({ ...state, lastHeartbeatError: action.error ?? null });
+    case 'POLLING_PAUSED_CHANGED':
+      return Object.freeze({ ...state, sessionsPollingPaused: !!action.paused });
+    case 'DISCONNECT_REQUESTED':
+      return Object.freeze({
+        ...state,
+        current: null,
+        availability: null,
+        heartbeatPolling: false,
+      });
+    default:
+      return state;
+  }
+}
+//#endregion connectionFsm.js
+
+//#region connectionUseCases.js
+// @requires connectionFsm.js
+// connectionUseCases.js — action dispatchers for the connection FSM.
+//
+// Pure: no DOM, fetch, timers, localStorage. Takes the reducer and an
+// onChange observer (the compat shim in state.js projects the new state
+// into the legacy state.connection object so non-FSM readers keep working).
+//
+// Factory shape:
+//   createConnectionUseCases({ initialState, onChange })
+//     -> { getState, dispatch, launchRequested, launchSucceeded, launchFailed,
+//          setStatus, availabilityUpdated, interactionBlocked,
+//          interactionUnblocked, heartbeatOk, heartbeatFailed,
+//          setSessionsPollingPaused, disconnectRequested }
+
+function createConnectionUseCases(options = {}) {
+  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
+  let current = options.initialState ?? createInitialConnectionState();
+  if (!Object.isFrozen(current)) current = Object.freeze({ ...current });
+
+  function dispatch(action) {
+    const next = reduceConnection(current, action);
+    if (next !== current) {
+      current = next;
+      onChange(current);
+    }
+    return current;
+  }
+
+  function getState() {
+    return current;
+  }
+
+  return {
+    getState,
+    dispatch,
+    launchRequested: () => dispatch({ type: 'LAUNCH_REQUESTED' }),
+    launchSucceeded: () => dispatch({ type: 'LAUNCH_SUCCEEDED' }),
+    launchFailed: () => dispatch({ type: 'LAUNCH_FAILED' }),
+    setStatus: (status, blockedReason, extras = {}) => dispatch({
+      type: 'STATUS_RECEIVED',
+      status,
+      blockedReason: blockedReason ?? null,
+      nowMs: typeof extras.nowMs === 'number' ? extras.nowMs : Date.now(),
+    }),
+    availabilityUpdated: (availability) => dispatch({
+      type: 'AVAILABILITY_UPDATED',
+      availability,
+    }),
+    interactionBlocked: (reason) => dispatch({ type: 'INTERACTION_BLOCKED', reason }),
+    interactionUnblocked: () => dispatch({ type: 'INTERACTION_UNBLOCKED' }),
+    heartbeatOk: () => dispatch({ type: 'HEARTBEAT_OK' }),
+    heartbeatFailed: (error) => dispatch({ type: 'HEARTBEAT_FAILED', error }),
+    setSessionsPollingPaused: (paused) => dispatch({
+      type: 'POLLING_PAUSED_CHANGED',
+      paused,
+    }),
+    disconnectRequested: () => dispatch({ type: 'DISCONNECT_REQUESTED' }),
+  };
+}
+//#endregion connectionUseCases.js
+
+//#region connectionBrowserAdapter.js
+// @requires connectionFsm.js, connectionUseCases.js
+// connectionBrowserAdapter.js — wires connectionUseCases into the browser
+// `state.connection` projection. Keeping this glue in its own file keeps
+// state.js free of FSM details and gives the use cases an explicit entry
+// point (so tests can stub it out if needed).
+//
+// Returns the use-cases object. The caller passes a mutator that copies
+// the frozen FSM state into the legacy `state.connection` object so
+// non-FSM readers (rendering, devices, preview) keep observing changes.
+
+function createBrowserConnectionUseCases(projectState) {
+  const onChange = typeof projectState === 'function' ? projectState : () => {};
+  return createConnectionUseCases({
+    initialState: createInitialConnectionState(),
+    onChange,
+  });
+}
+//#endregion connectionBrowserAdapter.js
+
+//#region previewFsm.js
+// @requires (none)
+// previewFsm.js — pure reducer for the live preview lifecycle.
+//
+// Owns the preview request/zoom/poll counters previously held as
+// module-level lets in state.js (previewRequestGeneration,
+// previewRequestContextGeneration, previewRequestInFlight,
+// previewRequestInFlightContextGeneration, previewZoom). No DOM,
+// fetch, timers, or globals here.
+//
+// Action set (per console-state-machine-expansion §3.3):
+//   REQUEST_STARTED      — bump requestGeneration; capture (generation,
+//                          contextGeneration) into inFlight; lifecycle → REQUESTING
+//   REQUEST_SUCCEEDED    — applied only if BOTH action.generation and
+//                          action.contextGeneration match the inFlight tuple;
+//                          otherwise dropped (race-fence)
+//   REQUEST_FAILED       — same race-fence as REQUEST_SUCCEEDED; lifecycle → ERROR
+//   CONTEXT_CHANGED      — bump contextGeneration; clear inFlight and current;
+//                          lifecycle → IDLE (so the next request re-fetches)
+//   SET_STALE            — toggle lifecycle between READY ↔ STALE
+//   SET_ZOOM             — clamp to [MinPreviewZoom, MaxPreviewZoom], round to 0.1
+//   SET_POLL_INTERVAL    — set pollIntervalMs (or null for manual)
+
+const PreviewLifecycle = Object.freeze({
+  IDLE: 'idle',
+  REQUESTING: 'requesting',
+  READY: 'ready',
+  STALE: 'stale',
+  ERROR: 'error',
+});
+
+const MinPreviewZoom = 0.5;
+const MaxPreviewZoom = 2;
+
+function createInitialPreviewState() {
+  return Object.freeze({
+    lifecycle: PreviewLifecycle.IDLE,
+    requestGeneration: 0,
+    contextGeneration: 0,
+    inFlight: null,
+    current: null,
+    zoom: 1,
+    pollIntervalMs: null,
+    error: null,
+  });
+}
+
+function clampPreviewZoom(value) {
+  const numeric = typeof value === 'number' && !Number.isNaN(value) ? value : 1;
+  const clamped = Math.min(Math.max(numeric, MinPreviewZoom), MaxPreviewZoom);
+  return Math.round(clamped * 10) / 10;
+}
+
+function isStaleFence(state, action) {
+  if (!state.inFlight) return true;
+  if (action.generation !== state.inFlight.generation) return true;
+  if (action.contextGeneration !== state.inFlight.contextGeneration) return true;
+  return false;
+}
+
+function reducePreview(state, action) {
+  if (!state) state = createInitialPreviewState();
+  if (!action || typeof action.type !== 'string') return state;
+  switch (action.type) {
+    case 'REQUEST_STARTED': {
+      const nextGeneration = state.requestGeneration + 1;
+      return Object.freeze({
+        ...state,
+        lifecycle: PreviewLifecycle.REQUESTING,
+        requestGeneration: nextGeneration,
+        inFlight: Object.freeze({
+          generation: nextGeneration,
+          contextGeneration: state.contextGeneration,
+        }),
+        error: null,
+      });
+    }
+    case 'REQUEST_SUCCEEDED': {
+      if (isStaleFence(state, action)) return state;
+      return Object.freeze({
+        ...state,
+        lifecycle: PreviewLifecycle.READY,
+        current: action.preview ?? null,
+        inFlight: null,
+        error: null,
+      });
+    }
+    case 'REQUEST_FAILED': {
+      if (isStaleFence(state, action)) return state;
+      return Object.freeze({
+        ...state,
+        lifecycle: PreviewLifecycle.ERROR,
+        inFlight: null,
+        error: action.error ?? null,
+      });
+    }
+    case 'CONTEXT_CHANGED': {
+      return Object.freeze({
+        ...state,
+        lifecycle: PreviewLifecycle.IDLE,
+        requestGeneration: state.requestGeneration + 1,
+        contextGeneration: state.contextGeneration + 1,
+        inFlight: null,
+        current: null,
+        error: null,
+      });
+    }
+    case 'SET_STALE': {
+      const stale = !!action.stale;
+      if (stale && state.lifecycle === PreviewLifecycle.READY) {
+        return Object.freeze({ ...state, lifecycle: PreviewLifecycle.STALE });
+      }
+      if (!stale && state.lifecycle === PreviewLifecycle.STALE) {
+        return Object.freeze({ ...state, lifecycle: PreviewLifecycle.READY });
+      }
+      return state;
+    }
+    case 'SET_ZOOM': {
+      const zoom = clampPreviewZoom(action.zoom);
+      if (zoom === state.zoom) return state;
+      return Object.freeze({ ...state, zoom });
+    }
+    case 'SET_POLL_INTERVAL': {
+      const intervalMs = typeof action.intervalMs === 'number' ? action.intervalMs : null;
+      if (intervalMs === state.pollIntervalMs) return state;
+      return Object.freeze({ ...state, pollIntervalMs: intervalMs });
+    }
+    default:
+      return state;
+  }
+}
+//#endregion previewFsm.js
+
+//#region previewUseCases.js
+// @requires previewFsm.js
+// previewUseCases.js — action dispatchers for the preview FSM.
+//
+// Pure: no DOM, fetch, timers, localStorage. Takes async primitives
+// (capture) and storage via ports. The browser adapter
+// (previewBrowserAdapter.js) wires in the real implementations.
+//
+// Factory shape:
+//   createPreviewUseCases({ onChange, api, storage })
+//     -> { getState, dispatch, request, contextChanged, setStale,
+//          setZoom, setPollInterval }
+//
+// Race-fence contract (normative): when request() awaits api.capture,
+// the (generation, contextGeneration) tuple captured immediately after
+// REQUEST_STARTED is passed to REQUEST_SUCCEEDED / REQUEST_FAILED.
+// The reducer drops the action if EITHER counter mismatches.
+
+const PreviewIntervalStorageKeyConst = 'fixthis.previewIntervalMs.v2';
+
+function createPreviewUseCases(options = {}) {
+  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
+  const api = options.api || {};
+  const storage = options.storage || {};
+  let current = options.initialState ?? createInitialPreviewState();
+  if (!Object.isFrozen(current)) current = Object.freeze({ ...current });
+  let inFlightPromise = null;
+
+  function dispatch(action) {
+    const next = reducePreview(current, action);
+    if (next !== current) {
+      current = next;
+      onChange(current);
+    }
+    return current;
+  }
+
+  function getState() {
+    return current;
+  }
+
+  function request() {
+    // Dedup: if an in-flight promise exists AND the FSM still considers it
+    // current (lifecycle REQUESTING with a matching inFlight snapshot),
+    // return the existing promise rather than starting a new fetch.
+    if (inFlightPromise && current.inFlight) {
+      return inFlightPromise;
+    }
+    dispatch({ type: 'REQUEST_STARTED' });
+    const captured = current.inFlight;
+    const promise = Promise.resolve()
+      .then(() => api.capture())
+      .then((preview) => {
+        if (inFlightPromise === promise) inFlightPromise = null;
+        dispatch({
+          type: 'REQUEST_SUCCEEDED',
+          generation: captured.generation,
+          contextGeneration: captured.contextGeneration,
+          preview,
+        });
+        return preview;
+      })
+      .catch((cause) => {
+        if (inFlightPromise === promise) inFlightPromise = null;
+        const message = cause && cause.message ? cause.message : String(cause);
+        dispatch({
+          type: 'REQUEST_FAILED',
+          generation: captured.generation,
+          contextGeneration: captured.contextGeneration,
+          error: message,
+        });
+        throw cause;
+      });
+    inFlightPromise = promise;
+    return promise;
+  }
+
+  function contextChanged() {
+    inFlightPromise = null;
+    dispatch({ type: 'CONTEXT_CHANGED' });
+  }
+
+  function setStale(stale) {
+    dispatch({ type: 'SET_STALE', stale });
+  }
+
+  function setZoom(zoom) {
+    dispatch({ type: 'SET_ZOOM', zoom });
+  }
+
+  function setPollInterval(intervalMs) {
+    dispatch({ type: 'SET_POLL_INTERVAL', intervalMs });
+    if (typeof storage.setItem === 'function' && intervalMs != null) {
+      storage.setItem(PreviewIntervalStorageKeyConst, String(intervalMs));
+    }
+  }
+
+  return {
+    getState,
+    dispatch,
+    request,
+    contextChanged,
+    setStale,
+    setZoom,
+    setPollInterval,
+  };
+}
+//#endregion previewUseCases.js
+
+//#region preview.js
+// @requires state.js, api.js, draftWorkspace.js
+            // Raw HTTP fetch — the previewUseCases layer provides dedup and
+            // race-fence via the FSM. Cross-caller dedup (across draft port
+            // and FSM) is achieved by routing all callers through
+            // previewUseCases.request().
+            function requestLivePreview() {
+              return requestJson('/api/preview');
+            }
+
+            function invalidatePreviewContext() {
+              previewUseCases.contextChanged();
+              state.preview = null;
+            }
+
+            function scopedQuery(sessionId) {
+              return sessionId ? '?sessionId=' + encodeURIComponent(sessionId) : '';
+            }
+
+            function previewScreenshotUrl(previewId, sessionId = state.session?.sessionId || null) {
+              return '/api/preview/' + encodeURIComponent(previewId) + '/screenshot/full' + scopedQuery(sessionId);
+            }
+
+            function screenScreenshotUrl(screenId, sessionId = state.session?.sessionId || null) {
+              return '/api/screens/' + encodeURIComponent(screenId) + '/screenshot/full' + scopedQuery(sessionId);
+            }
+
+            function screenImageUrl(screen) {
+              if (addItemsFlow) return addItemsFlow.screenshotUrl;
+              if (state.preview?.screen === screen && state.preview?.previewId) return previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null);
+              if (screen?.screenId) return screenScreenshotUrl(screen.screenId, state.session?.sessionId || toolModeUseCases.getState().focusedSavedSessionId || null);
+              return '';
+            }
+
+
+            function configuredPreviewIntervalMs() {
+              const rawValue = previewIntervalSelect.value;
+              if (rawValue === 'manual') return null;
+              const parsed = Number(rawValue || localStorage.getItem(PreviewIntervalStorageKey) || DefaultLivePreviewIntervalMs);
+              return Math.max(1000, parsed);
+            }
+
+            function shouldPollPreview() {
+              return !document.hidden && !addItemsFlow && Boolean(state.session) && Boolean(state.selectedDeviceSerial) && userConnectionState(state.connection.current) === 'ready';
+            }
+
+            function shouldAutoFetchPreview() {
+              return configuredPreviewIntervalMs() != null && shouldPollPreview();
+            }
+
+            // livePreviewTimer is a closure-scoped browser timer handle.
+            // It is not reducer state (not pure), so it lives here rather
+            // than in previewFsm.js.
+            let livePreviewTimer = null;
+            function startLivePreviewPolling() {
+              stopLivePreviewPolling();
+              const intervalMs = configuredPreviewIntervalMs();
+              if (!intervalMs) return;
+              livePreviewTimer = setInterval(() => {
+                if (shouldPollPreview()) refreshPreview().catch(showError);
+              }, intervalMs);
+            }
+
+            function stopLivePreviewPolling() {
+              if (livePreviewTimer) clearInterval(livePreviewTimer);
+              livePreviewTimer = null;
+            }
+
+            function initializePreviewIntervalSelect() {
+              const stored = localStorage.getItem(PreviewIntervalStorageKey);
+              previewIntervalSelect.value = stored || String(DefaultLivePreviewIntervalMs);
+              if (!previewIntervalSelect.value) previewIntervalSelect.value = String(DefaultLivePreviewIntervalMs);
+            }
+
+            function visibleScreenNodeUids(screen) {
+              const uids = new Set();
+              if (!screen) return uids;
+              (screen.roots || []).forEach(root => {
+                (root.mergedNodes || []).forEach(node => { if (node?.uid) uids.add(node.uid); });
+                (root.unmergedNodes || []).forEach(node => { if (node?.uid) uids.add(node.uid); });
+              });
+              return uids;
+            }
+
+            function latestPersistedScreen() {
+              const screens = state.session?.screens || [];
+              const persistedScreenIds = new Set(
+                (state.session?.items || []).map(item => item.screenId)
+              );
+              const screenshotScreens = screens
+                .filter(screen => screen?.screenshot?.desktopFullPath);
+              return screenshotScreens
+                .filter(screen => persistedScreenIds.has(screen.screenId))
+                .sort((left, right) => (right.capturedAtEpochMillis || 0) - (left.capturedAtEpochMillis || 0))[0] ||
+                screenshotScreens
+                .sort((left, right) => (right.capturedAtEpochMillis || 0) - (left.capturedAtEpochMillis || 0))[0] || null;
+            }
+
+            function latestScreen() {
+              if (addItemsFlow) return addItemsFlow.screen;
+              const focusedSavedItemId = toolModeUseCases.getState().focusedSavedItemId;
+              if (focusedSavedItemId) {
+                const focusedItem = savedEvidenceItems().find(item => item.itemId === focusedSavedItemId);
+                if (focusedItem) {
+                  const focusedScreen = (state.session?.screens || []).find(s => s.screenId === focusedItem.screenId);
+                  if (focusedScreen) return focusedScreen;
+                }
+              }
+              return state.preview?.screen || latestPersistedScreen();
+            }
+
+            function clamp(value, min, max) {
+              return Math.min(Math.max(value, min), max);
+            }
+
+            function applyPreviewZoom() {
+              const frame = document.getElementById('snapshotFrame');
+              const zoom = previewUseCases.getState().zoom;
+              zoomPercent.textContent = Math.round(zoom * 100) + '%';
+              zoomOutButton.disabled = zoom <= PreviewZoomMin;
+              zoomInButton.disabled = zoom >= PreviewZoomMax;
+              if (frame) {
+                frame.style.setProperty('--preview-zoom', String(zoom));
+              }
+            }
+
+            function setPreviewZoom(nextZoom) {
+              previewUseCases.setZoom(nextZoom);
+              applyPreviewZoom();
+            }
+
+
+            async function refreshPreview() {
+              error.textContent = '';
+              if (!state.session || addItemsFlow) return;
+              const requestGeneration = previewUseCases.getState().requestGeneration + 1;
+              try {
+                const preview = await previewUseCases.request();
+                if (addItemsFlow || requestGeneration !== previewUseCases.getState().requestGeneration) return;
+                state.preview = {
+                  ...preview,
+                  activity: state.connection?.availability?.activity ?? null,
+                  frozenAtEpochMillis: Date.now(),
+                  stale: false,
+                };
+                if (userConnectionState(state.connection.current) === 'ready') markPreviewStale(false);
+                renderPreviewOnly();
+              } catch (cause) {
+                markPreviewStale(true);
+                refreshConnection({ preservePreviewStale: true }).catch(() => {});
+                throw cause;
+              }
+            }
+
+
+            async function navigate(action, extras = {}) {
+              error.textContent = '';
+              if (!state.session) return;
+              const navigation = await requestJson('/api/navigation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: action,
+                  captureAfter: false,
+                  ...extras
+                })
+              });
+              clearSelection();
+              await refresh();
+              await refreshPreview();
+              if (navigation.captureError) {
+                error.textContent = 'Navigation performed, but capture failed: ' + navigation.captureError;
+              }
+            }
+
+            function renderCanvasBlockedOverlay() {
+              const overlay = document.getElementById('canvasBlockedOverlay');
+              if (!overlay) return;
+              const reason = state.connection?.interactionBlockedReason ?? null;
+              if (!reason) {
+                overlay.hidden = true;
+                return;
+              }
+              overlay.hidden = false;
+              const headlines = {
+                screenOff: 'Device screen is off',
+                locked: 'Device is locked',
+                background: 'Sample app is in the background',
+                pictureInPicture: 'Sample app is in Picture-in-Picture',
+                unresponsive: 'Sample app is unresponsive',
+                noComposeUi: 'No Compose UI on this screen',
+              };
+              const details = {
+                screenOff: 'Wake the device to continue.',
+                locked: 'Unlock the device to continue.',
+                background: 'Bring the sample app to the foreground.',
+                pictureInPicture: 'Exit Picture-in-Picture to continue.',
+                unresponsive: 'Retrying…',
+                noComposeUi: 'Switch to a screen with Compose content to annotate.',
+              };
+              overlay.querySelector('[data-headline]').textContent = headlines[reason] ?? '';
+              overlay.querySelector('[data-detail]').textContent = details[reason] ?? '';
+              const retry = overlay.querySelector('[data-retry]');
+              retry.hidden = reason !== 'unresponsive';
+            }
+
+            document.getElementById('canvasBlockedOverlay')?.querySelector('[data-retry]')?.addEventListener('click', () => {
+              refreshConnection().catch(showError);
+            });
+
+            function renderStaleFrameNotice() {
+              const root = document.getElementById('canvasStaleNotice');
+              if (!root) return;
+              if (state.preview?.stale) {
+                root.hidden = false;
+              } else {
+                root.hidden = true;
+              }
+            }
+
+            async function useLatestStaleFrame() {
+              const wasAnnotating = toolModeUseCases.isAnnotateMode() || Boolean(addItemsFlow);
+              flushFocusedPendingComment();
+              const pendingItems = draftWorkspaceItems(draftWorkspace).slice();
+              const previousWorkspace = draftWorkspace;
+              const previousPreview = state.preview;
+              invalidatePreviewContext();
+              if (wasAnnotating) {
+                setDraftWorkspace(createEmptyDraftWorkspace());
+                try {
+                  await startAddItemsFlow();
+                } catch (cause) {
+                  setDraftWorkspace(previousWorkspace);
+                  state.preview = previousPreview;
+                  if (addItemsFlow) persistCurrentPendingState();
+                  render();
+                  throw cause;
+                }
+                if (!addItemsFlow) {
+                  setDraftWorkspace(previousWorkspace);
+                  state.preview = previousPreview;
+                  render();
+                  return;
+                }
+                setDraftWorkspace({
+                  ...draftWorkspace,
+                  revision: draftWorkspace.revision + 1,
+                  items: pendingItems,
+                  history: { undoStack: [], redoStack: [] },
+                });
+                updateAnnotationSequenceFromPendingItems(pendingItems);
+                focusedPendingItemIndex = null;
+                toolModeUseCases.focusSavedItem(null, null);
+                currentSelection = null;
+                toolModeUseCases.setHoveredTarget(null);
+                persistCurrentPendingState();
+              } else {
+                await refreshPreview();
+              }
+              render();
+            }
+
+            document.getElementById('canvasStaleNotice')?.querySelector('[data-use-latest]')?.addEventListener('click', () => {
+              useLatestStaleFrame().catch(showError);
+            });
+//#endregion preview.js
+
+//#region previewBrowserAdapter.js
+// @requires previewFsm.js, previewUseCases.js, preview.js
+// previewBrowserAdapter.js — wires previewUseCases into the browser
+// environment. Lives separately so state.js stays free of FSM details
+// and the use cases get an explicit entry point for tests.
+//
+// The caller passes a mutator (onChange) that copies the frozen FSM
+// state into a legacy projection (state.previewFsm) for any non-FSM
+// readers. The api.capture port resolves to the requestLivePreview
+// function declared in preview.js — these symbols share lexical scope
+// inside the bundled IIFE, so the adapter sees them at call time.
+
+function createBrowserPreviewUseCases(options = {}) {
+  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
+  return createPreviewUseCases({
+    initialState: createInitialPreviewState(),
+    onChange,
+    api: {
+      capture: () => requestLivePreview(),
+    },
+    storage: typeof localStorage !== 'undefined' ? localStorage : { setItem: () => {} },
+  });
+}
+//#endregion previewBrowserAdapter.js
+
+//#region pollingFsm.js
+// @requires (none)
+// pollingFsm.js — pure reducer for the sessions-polling lifecycle.
+//
+// Owns the polling-related state previously held as module-level lets in
+// state.js: sessionsPollingTimer (the *concept* of running/stopped),
+// lastSessionsEtag, lastSessionEtag, pendingMutationCount,
+// sessionMutationGeneration, consecutivePollFailures, promptActionInFlight.
+// No DOM, fetch, timers, or globals here.
+//
+// Lifecycle (per console-state-machine-expansion §3.5):
+//   STOPPED          — no setInterval handle, no polling
+//   POLLING_ACTIVE   — normal polling cadence
+//   POLLING_BACKOFF  — too many consecutive failures; waiting for backoff
+//                      timer or visibility/manual restart
+//   POLLING_PAUSED   — pause requested (e.g. visibility hidden); will resume
+//                      to pausedReturnLifecycle on VISIBILITY_VISIBLE
+//
+// Action set:
+//   START                  — begin polling (resets consecutiveFailures)
+//   STOP                   — stop polling
+//   DISCONNECT_REQUESTED   — alias for STOP that fires from connection FSM
+//   VISIBILITY_HIDDEN      — pause; preserve current lifecycle in
+//                            pausedReturnLifecycle so we can resume
+//   VISIBILITY_VISIBLE     — restore pausedReturnLifecycle
+//   TICK_OK                — reset failure counter; update etags from payload
+//   TICK_FAILED            — increment failure counter; at threshold,
+//                            transition to POLLING_BACKOFF
+//   BACKOFF_TIMER_FIRED    — POLLING_BACKOFF → POLLING_ACTIVE without
+//                            resetting the counter (only TICK_OK resets it)
+//   MUTATION_START         — bump pendingMutationCount AND mutationGeneration
+//   MUTATION_END           — decrement pendingMutationCount (clamped ≥ 0)
+//   MUTATION_GENERATION_BUMP — bump only mutationGeneration (no counter change);
+//                              used by legacy bumpSessionMutationGeneration()
+//                              callers that signal "session changed" outside a
+//                              lock context.
+//   PROMPT_ACTION_START    — set promptActionInFlight true
+//   PROMPT_ACTION_END      — set promptActionInFlight false
+//
+// MaxConsecutivePollFailures is the spec constant 5; exposed via the
+// IIFE-shared lexical scope (consumed by sessions-polling.js for the
+// existing Kotlin grep contract, and by tests directly).
+
+const MaxConsecutivePollFailures = 5;
+
+const PollingLifecycle = Object.freeze({
+  STOPPED: 'stopped',
+  POLLING_ACTIVE: 'polling_active',
+  POLLING_BACKOFF: 'polling_backoff',
+  POLLING_PAUSED: 'polling_paused',
+});
+
+function createInitialPollingState() {
+  return Object.freeze({
+    lifecycle: PollingLifecycle.STOPPED,
+    pausedReturnLifecycle: null,
+    lastSessionsEtag: null,
+    lastSessionEtag: null,
+    pendingMutationCount: 0,
+    mutationGeneration: 0,
+    consecutiveFailures: 0,
+    promptActionInFlight: false,
+  });
+}
+
+function reducePolling(state, action) {
+  if (!state) state = createInitialPollingState();
+  if (!action || typeof action.type !== 'string') return state;
+  switch (action.type) {
+    case 'START':
+      return Object.freeze({
+        ...state,
+        lifecycle: PollingLifecycle.POLLING_ACTIVE,
+        consecutiveFailures: 0,
+        pausedReturnLifecycle: null,
+      });
+    case 'STOP':
+    case 'DISCONNECT_REQUESTED':
+      return Object.freeze({
+        ...state,
+        lifecycle: PollingLifecycle.STOPPED,
+        pausedReturnLifecycle: null,
+      });
+    case 'VISIBILITY_HIDDEN': {
+      if (state.lifecycle === PollingLifecycle.POLLING_PAUSED) return state;
+      if (state.lifecycle === PollingLifecycle.STOPPED) return state;
+      return Object.freeze({
+        ...state,
+        lifecycle: PollingLifecycle.POLLING_PAUSED,
+        pausedReturnLifecycle: state.lifecycle,
+      });
+    }
+    case 'VISIBILITY_VISIBLE': {
+      if (state.lifecycle !== PollingLifecycle.POLLING_PAUSED) return state;
+      const target = state.pausedReturnLifecycle || PollingLifecycle.POLLING_ACTIVE;
+      return Object.freeze({
+        ...state,
+        lifecycle: target,
+        pausedReturnLifecycle: null,
+      });
+    }
+    case 'TICK_OK':
+      return Object.freeze({
+        ...state,
+        consecutiveFailures: 0,
+        lastSessionsEtag: action.sessionsEtag !== undefined ? action.sessionsEtag : state.lastSessionsEtag,
+        lastSessionEtag: action.sessionEtag !== undefined ? action.sessionEtag : state.lastSessionEtag,
+      });
+    case 'TICK_FAILED': {
+      const nextFailures = state.consecutiveFailures + 1;
+      const shouldBackoff = nextFailures >= MaxConsecutivePollFailures &&
+        state.lifecycle === PollingLifecycle.POLLING_ACTIVE;
+      return Object.freeze({
+        ...state,
+        consecutiveFailures: nextFailures,
+        lifecycle: shouldBackoff ? PollingLifecycle.POLLING_BACKOFF : state.lifecycle,
+      });
+    }
+    case 'BACKOFF_TIMER_FIRED': {
+      if (state.lifecycle !== PollingLifecycle.POLLING_BACKOFF) return state;
+      return Object.freeze({
+        ...state,
+        lifecycle: PollingLifecycle.POLLING_ACTIVE,
+      });
+    }
+    case 'MUTATION_START':
+      return Object.freeze({
+        ...state,
+        pendingMutationCount: state.pendingMutationCount + 1,
+        mutationGeneration: state.mutationGeneration + 1,
+      });
+    case 'MUTATION_END':
+      return Object.freeze({
+        ...state,
+        pendingMutationCount: Math.max(0, state.pendingMutationCount - 1),
+      });
+    case 'MUTATION_GENERATION_BUMP':
+      return Object.freeze({
+        ...state,
+        mutationGeneration: state.mutationGeneration + 1,
+      });
+    case 'PROMPT_ACTION_START':
+      return Object.freeze({ ...state, promptActionInFlight: true });
+    case 'PROMPT_ACTION_END':
+      return Object.freeze({ ...state, promptActionInFlight: false });
+    default:
+      return state;
+  }
+}
+//#endregion pollingFsm.js
+
+//#region pollingUseCases.js
+// @requires pollingFsm.js
+// pollingUseCases.js — action dispatchers for the polling FSM.
+//
+// Pure: no DOM, fetch, timers, localStorage. Takes the reducer and an
+// async sessions port via options. The browser adapter
+// (pollingBrowserAdapter.js) wires in real fetches; sessions-polling.js
+// keeps the top-level identifiers (pollSessionsTick / startSessionsPolling /
+// withMutationLock) that asset contract tests grep for and delegates here.
+//
+// Factory shape:
+//   createPollingUseCases({ onChange, api })
+//     -> { getState, dispatch,
+//          startSessionsPolling, stopSessionsPolling,
+//          visibilityHidden, visibilityVisible, disconnect,
+//          withMutationLock, pollSessionsTick,
+//          backoffTimerFired, setPromptActionInFlight }
+//
+// The api.sessions port receives the current etags and returns a result
+// shaped { sessionsEtag, sessionEtag, ... }. On success the FSM dispatches
+// TICK_OK with the returned etags; on rejection it dispatches TICK_FAILED.
+
+function createPollingUseCases(options = {}) {
+  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
+  const api = options.api || {};
+  let current = options.initialState ?? createInitialPollingState();
+  if (!Object.isFrozen(current)) current = Object.freeze({ ...current });
+
+  function dispatch(action) {
+    const next = reducePolling(current, action);
+    if (next !== current) {
+      current = next;
+      onChange(current);
+    }
+    return current;
+  }
+
+  function getState() {
+    return current;
+  }
+
+  async function withMutationLock(fn) {
+    dispatch({ type: 'MUTATION_START' });
+    try {
+      return await fn();
+    } finally {
+      dispatch({ type: 'MUTATION_END' });
+      // NOTE: legacy "resume-on-mutation-drain" hook lives in sessions-polling.js
+      // (it bridges to the connection FSM's sessionsPollingPaused projection).
+      // The pure use case must not call cross-FSM side effects.
+    }
+  }
+
+  // Internal: dispatches FSM transitions around the api.sessions port.
+  // The exposed property name on the returned object is the spec name
+  // (see below); this inner function uses a distinct identifier so the
+  // top-level function declaration in sessions-polling.js remains the
+  // only matching declaration site for body-grep contracts.
+  async function tickViaApi() {
+    if (typeof api.sessions !== 'function') {
+      throw new Error('pollingUseCases: api.sessions port is required');
+    }
+    try {
+      const result = await api.sessions({
+        sessionsEtag: current.lastSessionsEtag,
+        sessionEtag: current.lastSessionEtag,
+      });
+      dispatch({
+        type: 'TICK_OK',
+        sessionsEtag: result?.sessionsEtag ?? null,
+        sessionEtag: result?.sessionEtag ?? null,
+      });
+      return result;
+    } catch (err) {
+      dispatch({ type: 'TICK_FAILED' });
+      throw err;
+    }
+  }
+
+  return {
+    getState,
+    dispatch,
+    startSessionsPolling: () => dispatch({ type: 'START' }),
+    stopSessionsPolling: () => dispatch({ type: 'STOP' }),
+    visibilityHidden: () => dispatch({ type: 'VISIBILITY_HIDDEN' }),
+    visibilityVisible: () => dispatch({ type: 'VISIBILITY_VISIBLE' }),
+    disconnect: () => dispatch({ type: 'DISCONNECT_REQUESTED' }),
+    withMutationLock,
+    pollSessionsTick: tickViaApi,
+    backoffTimerFired: () => dispatch({ type: 'BACKOFF_TIMER_FIRED' }),
+    setPromptActionInFlight: (flag) => dispatch({
+      type: flag ? 'PROMPT_ACTION_START' : 'PROMPT_ACTION_END',
+    }),
+  };
+}
+//#endregion pollingUseCases.js
+
+//#region history.js
 // @requires state.js, draftWorkspace.js
             function sessionOrdinalLookup(sessions) {
               const ordinalBySessionId = new Map();
@@ -4469,147 +3420,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
               clearSelection();
               await refresh();
             }
+//#endregion history.js
 
-// prompt.js
-// @requires state.js, draftWorkspace.js, draftUseCases.js
-            function promptUnavailableMessage() {
-              if (!state.session) return 'Select a history item before copying or sending annotations.';
-              const annotations = toolbarAnnotations();
-              if (!annotations.length) return 'The selected history item has no annotations to send.';
-              if (!annotations.some(hasWrittenAnnotationComment)) return 'Add a comment to at least one annotation before copying or sending it.';
-              return 'No completed annotations are ready to send.';
-            }
-
-            function ensurePromptAnnotationsAvailable() {
-              const annotations = currentPromptAnnotations();
-              if (annotations.length) return annotations;
-              const message = promptUnavailableMessage();
-              error.textContent = message;
-              throw new Error(message);
-            }
-
-            async function persistAndCollectItemIds() {
-                const before = (state.session && Array.isArray(state.session.items)) ? state.session.items : [];
-                const beforeIds = new Set(before.map(item => item.itemId));
-                if (addItemsFlow) {
-                    flushFocusedPendingComment();
-                    if (pendingFeedbackItems.some(item => !hasWrittenAnnotationComment(item))) {
-                        throw new Error('Add a comment to every annotation before saving.');
-                    }
-                    await persistPendingFeedbackItems();
-                }
-                const after = (state.session && Array.isArray(state.session.items)) ? state.session.items : [];
-                const newlyPersisted = after.filter(item => !beforeIds.has(item.itemId)).map(item => item.itemId);
-                if (newlyPersisted.length === 0) {
-                    // No new items: fall back to currently-pending (already-sent or already-drafted) prompt selection.
-                    const fallback = currentPromptAnnotations().map(item => item.itemId).filter(Boolean);
-                    if (fallback.length === 0) throw new Error('Add a comment to at least one annotation before sending.');
-                    return fallback;
-                }
-                return newlyPersisted;
-            }
-
-            async function fetchHandoffPreview(sessionId, itemIds) {
-                const headers = new Headers({ 'Content-Type': 'application/json' });
-                const token = window.FixThisConsoleConfig?.consoleToken;
-                if (token) headers.set('X-FixThis-Console-Token', token);
-                const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/handoff-preview`, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({ itemIds }),
-                });
-                if (!response.ok) {
-                    const text = await response.text();
-                    throw new Error(`Preview fetch failed (${response.status}): ${text}`);
-                }
-                return response.text();
-            }
-
-            async function markItemsHandedOff(sessionId, itemIds) {
-                return await requestJson(
-                    '/api/sessions/' + encodeURIComponent(sessionId) + '/items/mark-handed-off',
-                    {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ itemIds }),
-                    }
-                );
-            }
-
-            async function copyPrompt() {
-                if (pollingUseCases.getState().promptActionInFlight) return;
-                await withMutationLock(async () => {
-                    clearSuccessStatus();
-                    ensurePromptAnnotationsAvailable();
-                    pollingUseCases.setPromptActionInFlight(true);
-                    updateComposerState();
-                    const labelSpan = copyPromptButton.querySelector('span:not(.button-icon)');
-                    const originalLabel = labelSpan ? labelSpan.textContent : null;
-                    let copied = false;
-                    try {
-                        const itemIds = await persistAndCollectItemIds();
-                        const sessionId = draftWorkspace?.context?.sessionId || state.session?.sessionId;
-                        if (!sessionId) throw new Error('Feedback session context is missing. Re-capture and try again.');
-                        const markdown = await fetchHandoffPreview(sessionId, itemIds);
-                        await copyTextToClipboard(markdown);
-                        copied = true;
-                        try {
-                            const updated = await markItemsHandedOff(sessionId, itemIds);
-                            state.session = updated;
-                            renderInspectorRegion();
-                        } catch (markError) {
-                            showWarning('Copied, but MCP handoff status was not updated. Copy again after the connection recovers to update item state.');
-                        }
-                    } finally {
-                        pollingUseCases.setPromptActionInFlight(false);
-                        updateComposerState();
-                        if (copied && labelSpan) {
-                            labelSpan.textContent = 'Copied ✓';
-                            setTimeout(() => {
-                                if (labelSpan.textContent === 'Copied ✓') labelSpan.textContent = originalLabel;
-                            }, 1500);
-                        }
-                    }
-                });
-            }
-
-            async function sendAgentPrompt() {
-                if (pollingUseCases.getState().promptActionInFlight) return;
-                await withMutationLock(async () => {
-                    clearSuccessStatus();
-                    ensurePromptAnnotationsAvailable();
-                    pollingUseCases.setPromptActionInFlight(true);
-                    updateComposerState();
-                    let sent = false;
-                    try {
-                        const itemIds = await persistAndCollectItemIds();
-                        const sessionId = draftWorkspace?.context?.sessionId || state.session?.sessionId;
-                        if (!sessionId) throw new Error('Feedback session context is missing. Re-capture and try again.');
-                        const result = await requestJson('/api/agent-handoffs', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                sessionId,
-                                itemIds
-                            }),
-                        });
-                        state.session = result.session;
-                        comment.value = '';
-                        resetAnnotationComposerState();
-                        invalidatePreviewContext();
-                        await refreshSessions();
-                        render();
-                        startLivePreviewPolling();
-                        sent = true;
-                    } finally {
-                        pollingUseCases.setPromptActionInFlight(false);
-                        updateComposerState();
-                        if (sent) showSuccess('Saved to MCP ✓ — agent will pick up', 3000);
-                    }
-                });
-            }
-
-// rendering.js
+//#region rendering.js
 // @requires state.js, annotations.js, draftWorkspace.js
             function renderOverlayBox(overlay, image, bounds, labelText, isDragPreview = false, isFocused = false, annotationIndex = null, extraClass = '', color = null, selectHandler = focusPendingFeedbackItem) {
               if (!bounds) return;
@@ -5549,8 +4362,827 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 });
               });
             }
+//#endregion rendering.js
 
-// sessions-polling.js
+//#region pollingBrowserAdapter.js
+// @requires pollingFsm.js, pollingUseCases.js, state.js, history.js, rendering.js
+// pollingBrowserAdapter.js — wires pollingUseCases into the browser
+// environment. Lives separately so state.js stays free of FSM details
+// and the use cases get an explicit entry point for tests.
+//
+// The api.sessions port performs the actual HTTP fetches (and side-
+// effects on state.sessionSummaries / renderSessionsList / etc.). It
+// returns the new ETag headers so the FSM can persist them via TICK_OK.
+//
+// The closure-over-state is deliberate: this adapter sees the legacy
+// state, fetch, and renderers via the bundled IIFE's shared lexical
+// scope.
+
+function createBrowserPollingUseCases(options = {}) {
+  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
+  return createPollingUseCases({
+    initialState: createInitialPollingState(),
+    onChange,
+    api: {
+      sessions: async ({ sessionsEtag, sessionEtag }) => {
+        let nextSessionsEtag = sessionsEtag ?? null;
+        let nextSessionEtag = sessionEtag ?? null;
+        const listResp = await fetch('/api/sessions', {
+          headers: sessionsEtag ? { 'If-None-Match': sessionsEtag } : {},
+        });
+        if (listResp.status === 200) {
+          nextSessionsEtag = listResp.headers.get('ETag');
+          const data = await listResp.json();
+          state.sessionSummaries = data.sessions || [];
+          renderSessionsList();
+        }
+        if (state.session?.sessionId) {
+          const sessResp = await fetch('/api/session', {
+            headers: sessionEtag ? { 'If-None-Match': sessionEtag } : {},
+          });
+          if (sessResp.status === 200) {
+            nextSessionEtag = sessResp.headers.get('ETag');
+            const fresh = await sessResp.json();
+            if (fresh) {
+              mergeSessionIntoState(fresh);
+              renderInspectorRegion();
+            }
+          }
+        }
+        return { sessionsEtag: nextSessionsEtag, sessionEtag: nextSessionEtag };
+      },
+    },
+  });
+}
+//#endregion pollingBrowserAdapter.js
+
+//#region toolModeFsm.js
+// @requires (none)
+// toolModeFsm.js — pure reducer for the tool-mode lifecycle.
+//
+// Owns the tool-mode-related state previously held as module-level lets in
+// state.js: toolMode, annotationSequence, hoveredAnnotationTarget,
+// dragStart, dragPreview, suppressNextClick, addItemsFlowStarting,
+// newHistoryAnnotateModeStarting, historyDrawerOpen, focusedSavedItemId,
+// focusedSavedSessionId. No DOM, fetch, timers, or globals here.
+//
+// Modes (per console-state-machine-expansion §3.4):
+//   SELECT             — default; clicks tap-through, annotation tools off
+//   ANNOTATE_IDLE      — annotate mode armed; hover preview enabled, no drag
+//   ANNOTATE_DRAGGING  — pointerdown in annotate mode created a drag region
+//
+// Action set:
+//   ENTER_SELECT                      — switch to SELECT, clear hover/drag
+//   ENTER_ANNOTATE                    — switch to ANNOTATE_IDLE
+//   START_DRAG                        — pointerdown in annotate → DRAGGING
+//   UPDATE_DRAG_PREVIEW               — pointermove during drag
+//   DROP_COMMIT                       — pointerup, commit (advances seq)
+//   DROP_DISCARD                      — pointerup, discard (no seq advance)
+//   SET_HOVERED_TARGET                — hover overlay target
+//   SET_SUPPRESS_NEXT_CLICK           — suppress next image click
+//   TOGGLE_HISTORY_DRAWER             — flip drawer open/closed
+//   SET_HISTORY_DRAWER                — set drawer open/closed explicitly
+//   FOCUS_SAVED_ITEM                  — focus saved evidence item by id
+//   SET_ADD_ITEMS_FLOW_STARTING       — set add-items flow starting flag
+//   SET_NEW_HISTORY_ANNOTATE_MODE_STARTING — set history-annotate start flag
+//   ADVANCE_ANNOTATION_SEQ            — bump seq by 1 (legacy seq++ shape)
+//   SET_ANNOTATION_SEQUENCE_AT_LEAST  — raise seq to max(current, value)
+
+const ToolMode = Object.freeze({
+  SELECT: 'SELECT',
+  ANNOTATE_IDLE: 'ANNOTATE_IDLE',
+  ANNOTATE_DRAGGING: 'ANNOTATE_DRAGGING',
+});
+
+function createEmptyToolMode() {
+  return Object.freeze({
+    mode: ToolMode.SELECT,
+    annotationSequence: 1,
+    hoveredTarget: null,
+    drag: null,
+    suppressNextClick: false,
+    focusedSavedItemId: null,
+    focusedSavedSessionId: null,
+    historyDrawerOpen: false,
+    addItemsFlowStarting: false,
+    newHistoryAnnotateModeStarting: false,
+  });
+}
+
+function reduceToolMode(state, action) {
+  if (!state) state = createEmptyToolMode();
+  if (!action || typeof action.type !== 'string') return state;
+  switch (action.type) {
+    case 'ENTER_SELECT':
+      return Object.freeze({
+        ...state,
+        mode: ToolMode.SELECT,
+        hoveredTarget: null,
+        drag: null,
+      });
+    case 'ENTER_ANNOTATE':
+      return Object.freeze({
+        ...state,
+        mode: ToolMode.ANNOTATE_IDLE,
+      });
+    case 'START_DRAG': {
+      if (state.mode !== ToolMode.ANNOTATE_IDLE && state.mode !== ToolMode.ANNOTATE_DRAGGING) {
+        return state;
+      }
+      return Object.freeze({
+        ...state,
+        mode: ToolMode.ANNOTATE_DRAGGING,
+        drag: Object.freeze({ start: action.point || null, preview: null }),
+      });
+    }
+    case 'UPDATE_DRAG_PREVIEW': {
+      if (state.mode !== ToolMode.ANNOTATE_DRAGGING || !state.drag) return state;
+      return Object.freeze({
+        ...state,
+        drag: Object.freeze({
+          start: state.drag.start,
+          preview: action.preview || null,
+        }),
+      });
+    }
+    case 'DROP_COMMIT': {
+      if (state.mode !== ToolMode.ANNOTATE_DRAGGING) return state;
+      return Object.freeze({
+        ...state,
+        mode: ToolMode.ANNOTATE_IDLE,
+        drag: null,
+        annotationSequence: state.annotationSequence + 1,
+      });
+    }
+    case 'DROP_DISCARD': {
+      // Defensive: only transition out of ANNOTATE_DRAGGING. Calling
+      // dropDiscard while not dragging is a no-op (preserves mode and
+      // ensures drag is null).
+      if (state.mode !== ToolMode.ANNOTATE_DRAGGING && !state.drag) return state;
+      return Object.freeze({
+        ...state,
+        mode: state.mode === ToolMode.ANNOTATE_DRAGGING ? ToolMode.ANNOTATE_IDLE : state.mode,
+        drag: null,
+      });
+    }
+    case 'SET_HOVERED_TARGET':
+      return Object.freeze({
+        ...state,
+        hoveredTarget: action.target ?? null,
+      });
+    case 'SET_SUPPRESS_NEXT_CLICK':
+      return Object.freeze({
+        ...state,
+        suppressNextClick: Boolean(action.value),
+      });
+    case 'TOGGLE_HISTORY_DRAWER':
+      return Object.freeze({
+        ...state,
+        historyDrawerOpen: !state.historyDrawerOpen,
+      });
+    case 'SET_HISTORY_DRAWER':
+      return Object.freeze({
+        ...state,
+        historyDrawerOpen: Boolean(action.open),
+      });
+    case 'FOCUS_SAVED_ITEM':
+      return Object.freeze({
+        ...state,
+        focusedSavedItemId: action.itemId ?? null,
+        focusedSavedSessionId: action.sessionId ?? null,
+      });
+    case 'SET_ADD_ITEMS_FLOW_STARTING':
+      return Object.freeze({
+        ...state,
+        addItemsFlowStarting: Boolean(action.value),
+      });
+    case 'SET_NEW_HISTORY_ANNOTATE_MODE_STARTING':
+      return Object.freeze({
+        ...state,
+        newHistoryAnnotateModeStarting: Boolean(action.value),
+      });
+    case 'ADVANCE_ANNOTATION_SEQ':
+      return Object.freeze({
+        ...state,
+        annotationSequence: state.annotationSequence + 1,
+      });
+    case 'SET_ANNOTATION_SEQUENCE_AT_LEAST': {
+      const target = Number(action.value);
+      if (!Number.isFinite(target)) return state;
+      if (target <= state.annotationSequence) return state;
+      return Object.freeze({
+        ...state,
+        annotationSequence: target,
+      });
+    }
+    default:
+      return state;
+  }
+}
+//#endregion toolModeFsm.js
+
+//#region toolModeUseCases.js
+// @requires toolModeFsm.js
+// toolModeUseCases.js — action dispatchers for the tool-mode FSM.
+//
+// Pure synchronous transitions: no DOM, fetch, timers, localStorage.
+// No browser adapter — the tool-mode FSM is consumed directly by
+// annotations.js / history.js / preview.js / rendering.js / main.js
+// / connection.js via the toolModeUseCases instance constructed in
+// state.js.
+//
+// Factory shape:
+//   createToolModeUseCases({ onChange })
+//     -> { getState,
+//          enterSelect, enterAnnotate,
+//          startDrag, updateDragPreview, dropCommit, dropDiscard,
+//          setHoveredTarget, setSuppressNextClick,
+//          toggleHistoryDrawer, setHistoryDrawer,
+//          focusSavedItem,
+//          setAddItemsFlowStarting, setNewHistoryAnnotateModeStarting,
+//          nextAnnotationSeq, setAnnotationSequenceAtLeast,
+//          isSelectMode, isAnnotateMode, isDragging }
+//
+// `nextAnnotationSeq` preserves the legacy `'draft-' + annotationSequence++`
+// increment-and-return shape. Use `setAnnotationSequenceAtLeast` for the
+// `annotationSequence = Math.max(annotationSequence, next)` pattern used
+// when recovering items from persisted drafts.
+
+function createToolModeUseCases(options = {}) {
+  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
+  let current = options.initialState ?? createEmptyToolMode();
+  if (!Object.isFrozen(current)) current = Object.freeze({ ...current });
+
+  function dispatch(action) {
+    const next = reduceToolMode(current, action);
+    if (next !== current) {
+      current = next;
+      onChange(current);
+    }
+    return current;
+  }
+
+  function getState() {
+    return current;
+  }
+
+  function nextAnnotationSeq() {
+    const previous = current.annotationSequence;
+    dispatch({ type: 'ADVANCE_ANNOTATION_SEQ' });
+    return previous;
+  }
+
+  return {
+    getState,
+    enterSelect: () => dispatch({ type: 'ENTER_SELECT' }),
+    enterAnnotate: () => dispatch({ type: 'ENTER_ANNOTATE' }),
+    startDrag: (point) => dispatch({ type: 'START_DRAG', point }),
+    updateDragPreview: (preview) => dispatch({ type: 'UPDATE_DRAG_PREVIEW', preview }),
+    dropCommit: () => dispatch({ type: 'DROP_COMMIT' }),
+    dropDiscard: () => dispatch({ type: 'DROP_DISCARD' }),
+    setHoveredTarget: (target) => dispatch({ type: 'SET_HOVERED_TARGET', target }),
+    setSuppressNextClick: (value) => dispatch({ type: 'SET_SUPPRESS_NEXT_CLICK', value }),
+    toggleHistoryDrawer: () => dispatch({ type: 'TOGGLE_HISTORY_DRAWER' }),
+    setHistoryDrawer: (open) => dispatch({ type: 'SET_HISTORY_DRAWER', open }),
+    focusSavedItem: (itemId, sessionId) => dispatch({ type: 'FOCUS_SAVED_ITEM', itemId, sessionId }),
+    setAddItemsFlowStarting: (value) => dispatch({ type: 'SET_ADD_ITEMS_FLOW_STARTING', value }),
+    setNewHistoryAnnotateModeStarting: (value) => dispatch({ type: 'SET_NEW_HISTORY_ANNOTATE_MODE_STARTING', value }),
+    nextAnnotationSeq,
+    setAnnotationSequenceAtLeast: (value) => dispatch({ type: 'SET_ANNOTATION_SEQUENCE_AT_LEAST', value }),
+    isSelectMode: () => current.mode === ToolMode.SELECT,
+    isAnnotateMode: () => current.mode === ToolMode.ANNOTATE_IDLE || current.mode === ToolMode.ANNOTATE_DRAGGING,
+    isDragging: () => current.mode === ToolMode.ANNOTATE_DRAGGING,
+  };
+}
+//#endregion toolModeUseCases.js
+
+//#region consoleApp.js
+// @requires connectionBrowserAdapter.js, previewBrowserAdapter.js, pollingBrowserAdapter.js, toolModeUseCases.js
+            // consoleApp.js — top-level FSM boot factory.
+            // Aggregates the four sub-FSMs introduced by the
+            // console-state-machine-expansion plan plus the already-migrated
+            // draft FSM into one structured handle. Cross-FSM coordination
+            // wires happen here at boot time (not in a global event bus).
+            //
+            // Each sub-FSM's onChange continues to project its frozen state
+            // into the appropriate legacy `state.*` slot so READ-only sites
+            // in rendering.js / devices.js / preview.js / annotations.js
+            // observe changes without going through a new accessor.
+            //
+            // @requires connectionBrowserAdapter.js, previewBrowserAdapter.js,
+            //           pollingBrowserAdapter.js, toolModeUseCases.js
+            function createConsoleApp({ state, render } = {}) {
+              const render_ = typeof render === 'function' ? render : () => {};
+              const project = (slot) => (next) => {
+                if (state) state[slot] = { ...next };
+                render_();
+              };
+              const connection = createBrowserConnectionUseCases(project('connection'));
+              const preview = createBrowserPreviewUseCases({ onChange: project('previewFsm') });
+              const polling = createBrowserPollingUseCases({ onChange: project('pollingFsm') });
+              // Tool-mode has no legacy state.* projection (callers go through
+              // toolModeUseCases.getState() directly), so onChange is only
+              // used to trigger a render when supplied.
+              const toolMode = createToolModeUseCases({ onChange: render_ });
+              return { connection, preview, polling, toolMode };
+            }
+//#endregion consoleApp.js
+
+//#region devices.js
+// @requires state.js, api.js
+            const BLOCKED_SUFFIX = {
+              screenOff: 'Screen off',
+              locked: 'Locked',
+              background: 'In background',
+              pictureInPicture: 'PiP',
+              unresponsive: 'Unresponsive',
+              noComposeUi: 'No Compose UI',
+            };
+
+            function decorateConnectionLabel(baseLabel, reason) {
+              if (!reason) return baseLabel;
+              const suffix = BLOCKED_SUFFIX[reason];
+              return suffix ? `${baseLabel} · ${suffix}` : baseLabel;
+            }
+
+            function shortenDeviceSerial(serial) {
+              const raw = String(serial || '').trim();
+              if (!raw) return '';
+              const withoutServiceSuffix = raw.split('._adb-tls-connect._tcp')[0];
+              if (withoutServiceSuffix.startsWith('adb-')) return withoutServiceSuffix.substring(4);
+              if (withoutServiceSuffix.length <= 24) return withoutServiceSuffix;
+              return withoutServiceSuffix.slice(0, 10) + '...' + withoutServiceSuffix.slice(-6);
+            }
+
+            function deviceLabel(device) {
+              if (!device) return 'No device';
+              return device.label || device.model || device.deviceName || device.product || shortenDeviceSerial(device.serial) || 'Unknown device';
+            }
+
+            function deviceDetail(device) {
+              if (!device) return 'No device';
+              if (device.state === 'device') return 'connected';
+              return (device.state || 'unknown') + ' · unavailable';
+            }
+
+            function deviceOptionLabel(device) {
+              return deviceLabel(device) + ' - ' + deviceDetail(device);
+            }
+
+            function setDeviceUiState(uiState, device = null) {
+              deviceControl.dataset.connectionState = uiState;
+              deviceName.textContent = device ? deviceLabel(device) : 'No device';
+              const baseLabel = DeviceStateCopy[uiState];
+              const reason = uiState === DeviceUiState.CONNECTED
+                ? (state.connection?.interactionBlockedReason || null)
+                : null;
+              deviceConnectionState.textContent = decorateConnectionLabel(baseLabel, reason);
+              deviceStatus.textContent = deviceName.textContent + ' - ' + deviceConnectionState.textContent;
+            }
+
+
+            function deviceBySerial(devices, serial) {
+              if (!serial) return null;
+              return (devices || []).find(device => device.serial === serial) || null;
+            }
+
+            function renderDeviceList(payload) {
+              const devices = payload.devices || [];
+              state.devices = devices;
+              const previousSelectedDeviceSerial = state.selectedDeviceSerial;
+              devicePicker.innerHTML = '';
+
+              if (!devices.length) {
+                const selectedSerial = null;
+                if (previousSelectedDeviceSerial !== selectedSerial) {
+                  bumpSessionMutationGeneration();
+                  invalidatePreviewContext();
+                  renderPreviewOnly();
+                }
+                state.selectedDeviceSerial = selectedSerial;
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No devices available';
+                devicePicker.appendChild(option);
+                devicePicker.disabled = true;
+                setDeviceUiState(DeviceUiState.NONE);
+                return;
+              }
+
+              const selectedSerialFromPayload = payload.selectedSerial || null;
+              const selected = devices.find(device => device.selected || device.serial === selectedSerialFromPayload) || null;
+              devicePicker.disabled = false;
+
+              if (!selected) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'Select device...';
+                option.disabled = true;
+                option.selected = true;
+                devicePicker.appendChild(option);
+              }
+
+              devices.forEach(device => {
+                const option = document.createElement('option');
+                option.value = device.serial;
+                option.textContent = deviceOptionLabel(device);
+                option.disabled = device.state !== 'device';
+                option.selected = Boolean(device.selected) || device.serial === selectedSerialFromPayload;
+                devicePicker.appendChild(option);
+              });
+
+              const selectedSerial = selected && selected.state === 'device' ? selected.serial : null;
+              if (previousSelectedDeviceSerial !== selectedSerial) {
+                bumpSessionMutationGeneration();
+                invalidatePreviewContext();
+                renderPreviewOnly();
+              }
+              state.selectedDeviceSerial = selectedSerial;
+
+              if (!selected) {
+                setDeviceUiState(DeviceUiState.NONE);
+              } else if (selected.state === 'device') {
+                setDeviceUiState(DeviceUiState.CONNECTED, selected);
+              } else {
+                setDeviceUiState(DeviceUiState.UNAVAILABLE, selected);
+              }
+            }
+
+            async function refreshDevices() {
+              if (state.selectedDeviceSerial) {
+                setDeviceUiState(DeviceUiState.CONNECTING, deviceBySerial(state.devices, state.selectedDeviceSerial));
+              }
+              let payload = await requestJson('/api/devices');
+              const devices = payload.devices || [];
+              const connectedDevices = (payload.devices || []).filter(device => device.state === 'device');
+              if (!payload.selectedSerial && devices.length === 1 && connectedDevices.length === 1) {
+                setDeviceUiState(DeviceUiState.CONNECTING, connectedDevices[0]);
+                bumpSessionMutationGeneration();
+                payload = await requestJson('/api/device/select', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ serial: connectedDevices[0].serial })
+                });
+              }
+              renderDeviceList(payload);
+            }
+
+            async function selectDevice() {
+              const option = devicePicker.selectedOptions[0];
+              if (!option || !option.value || option.disabled) return;
+              setDeviceUiState(DeviceUiState.CONNECTING, deviceBySerial(state.devices, option.value));
+              bumpSessionMutationGeneration();
+              invalidatePreviewContext();
+              try {
+                renderDeviceList(await requestJson('/api/device/select', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ serial: option.value })
+                }));
+                startHeartbeatPolling();
+                await refreshConnection();
+                if (state.session && userConnectionState(state.connection.current) === 'ready') {
+                  await refreshPreview();
+                  startLivePreviewPolling();
+                }
+              } catch (cause) {
+                state.selectedDeviceSerial = null;
+                stopHeartbeatPolling();
+                stopLivePreviewPolling();
+                setDeviceUiState(DeviceUiState.UNAVAILABLE, deviceBySerial(state.devices, option.value) || { serial: option.value });
+                throw cause;
+              }
+            }
+
+            async function disconnectDevice() {
+              bumpSessionMutationGeneration();
+              invalidatePreviewContext();
+              renderDeviceList(await requestJson('/api/device/disconnect', { method: 'POST' }));
+              setDeviceUiState(DeviceUiState.NONE);
+              render();
+              stopHeartbeatPolling();
+              applyConnectionStatus(welcomeConnectionStatus());
+            }
+//#endregion devices.js
+
+//#region draftApiAdapter.js
+// @requires draftPorts.js, draftWorkspace.js
+// draftApiAdapter.js - explicit-session HTTP adapter for DraftWorkspace use cases.
+
+function draftItemToAnnotationDraftDto(item, options = {}) {
+  const rawComment = String(item.comment || '');
+  const fallbackComment = String(item.label || '').trim() || (item.targetType === 'node' ? 'Component target' : 'Custom area');
+  return {
+    targetType: item.targetType,
+    bounds: item.bounds,
+    nodeUid: item.nodeUid,
+    label: String(item.label || '').trim() || null,
+    severity: item.severity || 'med',
+    status: String(item.status || 'open').replace('-', '_'),
+    comment: options.allowFallbackComments ? (rawComment.trim() || fallbackComment) : rawComment,
+  };
+}
+
+function buildDraftWorkspaceSaveRequest(workspace, options = {}) {
+  const context = workspace?.context || {};
+  if (!context.sessionId) throw new Error('Draft save requires sessionId');
+  if (!context.previewId) throw new Error('Draft save requires previewId');
+  requireDraftContext(workspace);
+  return {
+    sessionId: context.sessionId,
+    previewId: context.previewId,
+    screen: workspace.screen || null,
+    items: (workspace.items || [])
+      .filter((item) => options.allowBlankComments || options.allowFallbackComments || String(item.comment || '').trim())
+      .map((item) => draftItemToAnnotationDraftDto(item, options)),
+    frozenFingerprint: context.screenFingerprint,
+    forceMismatchOverride: Boolean(options.forceMismatchOverride),
+  };
+}
+
+function createDraftApiHeaders(consoleToken) {
+  const headers = new Headers({ 'Content-Type': 'application/json' });
+  if (consoleToken) headers.set('X-FixThis-Console-Token', consoleToken);
+  return headers;
+}
+
+function createDraftApiAdapter({ fetchImpl = fetch, consoleToken = null } = {}) {
+  async function requestJson(path, body) {
+    const response = await fetchImpl(path, {
+      method: 'POST',
+      headers: createDraftApiHeaders(consoleToken),
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      if (response.status === 409) {
+        const conflict = await response.json().catch(() => ({}));
+        return { conflict };
+      }
+      throw new Error(await response.text?.() || 'HTTP ' + response.status);
+    }
+    return await response.json();
+  }
+
+  return {
+    saveDraftWorkspace: (request) => requestJson('/api/items/batch', request),
+    saveToMcp: (sessionId, itemIds) => requestJson('/api/agent-handoffs', { sessionId, itemIds }),
+    handoffPreview: async (sessionId, itemIds) => {
+      const response = await fetchImpl('/api/sessions/' + encodeURIComponent(sessionId) + '/handoff-preview', {
+        method: 'POST',
+        headers: createDraftApiHeaders(consoleToken),
+        body: JSON.stringify({ itemIds }),
+      });
+      if (!response.ok) throw new Error(await response.text?.() || 'HTTP ' + response.status);
+      return await response.text();
+    },
+    markHandedOff: (sessionId, itemIds) =>
+      requestJson('/api/sessions/' + encodeURIComponent(sessionId) + '/items/mark-handed-off', { itemIds }),
+  };
+}
+//#endregion draftApiAdapter.js
+
+//#region draftStorageAdapter.js
+// @requires draftPorts.js, draftWorkspace.js
+// draftStorageAdapter.js - browser storage adapter for DraftWorkspace recovery.
+
+const DraftWorkspaceKeyPrefix = 'fixthis.workspace.';
+const LegacyPendingKeyPrefix = 'fixthis.pending.';
+
+function draftWorkspaceKey(sessionId, workspaceId) {
+  return DraftWorkspaceKeyPrefix + sessionId + '.' + workspaceId;
+}
+
+function draftWorkspaceIndexKey(sessionId) {
+  return DraftWorkspaceKeyPrefix + 'index.' + sessionId;
+}
+
+function parseDraftStorageJson(raw) {
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch (_) { return null; }
+}
+
+function normalizeLegacyDraftItem(item, index) {
+  return {
+    ...item,
+    draftItemId: item?.draftItemId || item?.annotationId || ('legacy-' + (index + 1)),
+  };
+}
+
+function createDraftStorageAdapter(localStorageLike, ids = {}) {
+  const nextWorkspaceId = ids.nextWorkspaceId || (() => 'workspace-' + Date.now());
+
+  function readIndex(sessionId) {
+    const parsed = parseDraftStorageJson(localStorageLike.getItem(draftWorkspaceIndexKey(sessionId)));
+    return Array.isArray(parsed) ? parsed : [];
+  }
+
+  function writeIndex(sessionId, workspaceIds) {
+    localStorageLike.setItem(draftWorkspaceIndexKey(sessionId), JSON.stringify(Array.from(new Set(workspaceIds))));
+  }
+
+  function saveWorkspace(envelope) {
+    const sessionId = envelope?.sessionId || envelope?.context?.sessionId;
+    const workspaceId = envelope?.workspaceId;
+    if (!sessionId || !workspaceId) throw new Error('Workspace storage requires sessionId and workspaceId');
+    const normalized = { ...envelope, schemaVersion: 2, sessionId, workspaceId };
+    localStorageLike.setItem(draftWorkspaceKey(sessionId, workspaceId), JSON.stringify(normalized));
+    writeIndex(sessionId, readIndex(sessionId).concat(workspaceId));
+  }
+
+  function loadWorkspacesForSession(sessionId) {
+    return readIndex(sessionId)
+      .map((workspaceId) => parseDraftStorageJson(localStorageLike.getItem(draftWorkspaceKey(sessionId, workspaceId))))
+      .filter((value) => value?.schemaVersion === 2 && value?.context?.sessionId === sessionId);
+  }
+
+  function deleteWorkspace(sessionId, workspaceId) {
+    localStorageLike.removeItem(draftWorkspaceKey(sessionId, workspaceId));
+    writeIndex(sessionId, readIndex(sessionId).filter((id) => id !== workspaceId));
+  }
+
+  function migrateLegacyPending(sessionId) {
+    const raw = localStorageLike.getItem(LegacyPendingKeyPrefix + sessionId);
+    const legacy = parseDraftStorageJson(raw);
+    if (!legacy || !Array.isArray(legacy.items) || !legacy.items.length) return [];
+    if (legacy.schemaVersion === 0 || (!legacy.context && !legacy.previewId)) {
+      return [{
+        schemaVersion: 0,
+        sessionId,
+        requiresRecapture: true,
+        items: legacy.items.map(normalizeLegacyDraftItem),
+      }];
+    }
+    const workspaceId = nextWorkspaceId();
+    const envelope = {
+      schemaVersion: 2,
+      sessionId,
+      workspaceId,
+      revision: 1,
+      lifecycle: 'editing',
+      context: legacy.context || {
+        sessionId,
+        previewId: legacy.previewId,
+        screenId: legacy.screen?.screenId || null,
+        screenFingerprint: legacy.screen?.fingerprint ?? null,
+        deviceSerial: null,
+        frozenAtEpochMillis: legacy.frozenAtEpochMillis || null,
+        activityName: legacy.activity || legacy.screen?.activityName || null,
+      },
+      screen: legacy.screen || null,
+      screenshotUrl: legacy.screenshotUrl || null,
+      items: legacy.items.map(normalizeLegacyDraftItem),
+      history: { undoStack: [], redoStack: [] },
+      updatedAtEpochMillis: Date.now(),
+    };
+    saveWorkspace(envelope);
+    return [envelope];
+  }
+
+  return { saveWorkspace, loadWorkspacesForSession, deleteWorkspace, migrateLegacyPending };
+}
+//#endregion draftStorageAdapter.js
+
+//#region prompt.js
+// @requires state.js, draftWorkspace.js, draftUseCases.js
+            function promptUnavailableMessage() {
+              if (!state.session) return 'Select a history item before copying or sending annotations.';
+              const annotations = toolbarAnnotations();
+              if (!annotations.length) return 'The selected history item has no annotations to send.';
+              if (!annotations.some(hasWrittenAnnotationComment)) return 'Add a comment to at least one annotation before copying or sending it.';
+              return 'No completed annotations are ready to send.';
+            }
+
+            function ensurePromptAnnotationsAvailable() {
+              const annotations = currentPromptAnnotations();
+              if (annotations.length) return annotations;
+              const message = promptUnavailableMessage();
+              error.textContent = message;
+              throw new Error(message);
+            }
+
+            async function persistAndCollectItemIds() {
+                const before = (state.session && Array.isArray(state.session.items)) ? state.session.items : [];
+                const beforeIds = new Set(before.map(item => item.itemId));
+                if (addItemsFlow) {
+                    flushFocusedPendingComment();
+                    if (pendingFeedbackItems.some(item => !hasWrittenAnnotationComment(item))) {
+                        throw new Error('Add a comment to every annotation before saving.');
+                    }
+                    await persistPendingFeedbackItems();
+                }
+                const after = (state.session && Array.isArray(state.session.items)) ? state.session.items : [];
+                const newlyPersisted = after.filter(item => !beforeIds.has(item.itemId)).map(item => item.itemId);
+                if (newlyPersisted.length === 0) {
+                    // No new items: fall back to currently-pending (already-sent or already-drafted) prompt selection.
+                    const fallback = currentPromptAnnotations().map(item => item.itemId).filter(Boolean);
+                    if (fallback.length === 0) throw new Error('Add a comment to at least one annotation before sending.');
+                    return fallback;
+                }
+                return newlyPersisted;
+            }
+
+            async function fetchHandoffPreview(sessionId, itemIds) {
+                const headers = new Headers({ 'Content-Type': 'application/json' });
+                const token = window.FixThisConsoleConfig?.consoleToken;
+                if (token) headers.set('X-FixThis-Console-Token', token);
+                const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/handoff-preview`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ itemIds }),
+                });
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(`Preview fetch failed (${response.status}): ${text}`);
+                }
+                return response.text();
+            }
+
+            async function markItemsHandedOff(sessionId, itemIds) {
+                return await requestJson(
+                    '/api/sessions/' + encodeURIComponent(sessionId) + '/items/mark-handed-off',
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ itemIds }),
+                    }
+                );
+            }
+
+            async function copyPrompt() {
+                if (pollingUseCases.getState().promptActionInFlight) return;
+                await withMutationLock(async () => {
+                    clearSuccessStatus();
+                    ensurePromptAnnotationsAvailable();
+                    pollingUseCases.setPromptActionInFlight(true);
+                    updateComposerState();
+                    const labelSpan = copyPromptButton.querySelector('span:not(.button-icon)');
+                    const originalLabel = labelSpan ? labelSpan.textContent : null;
+                    let copied = false;
+                    try {
+                        const itemIds = await persistAndCollectItemIds();
+                        const sessionId = draftWorkspace?.context?.sessionId || state.session?.sessionId;
+                        if (!sessionId) throw new Error('Feedback session context is missing. Re-capture and try again.');
+                        const markdown = await fetchHandoffPreview(sessionId, itemIds);
+                        await copyTextToClipboard(markdown);
+                        copied = true;
+                        try {
+                            const updated = await markItemsHandedOff(sessionId, itemIds);
+                            state.session = updated;
+                            renderInspectorRegion();
+                        } catch (markError) {
+                            showWarning('Copied, but MCP handoff status was not updated. Copy again after the connection recovers to update item state.');
+                        }
+                    } finally {
+                        pollingUseCases.setPromptActionInFlight(false);
+                        updateComposerState();
+                        if (copied && labelSpan) {
+                            labelSpan.textContent = 'Copied ✓';
+                            setTimeout(() => {
+                                if (labelSpan.textContent === 'Copied ✓') labelSpan.textContent = originalLabel;
+                            }, 1500);
+                        }
+                    }
+                });
+            }
+
+            async function sendAgentPrompt() {
+                if (pollingUseCases.getState().promptActionInFlight) return;
+                await withMutationLock(async () => {
+                    clearSuccessStatus();
+                    ensurePromptAnnotationsAvailable();
+                    pollingUseCases.setPromptActionInFlight(true);
+                    updateComposerState();
+                    let sent = false;
+                    try {
+                        const itemIds = await persistAndCollectItemIds();
+                        const sessionId = draftWorkspace?.context?.sessionId || state.session?.sessionId;
+                        if (!sessionId) throw new Error('Feedback session context is missing. Re-capture and try again.');
+                        const result = await requestJson('/api/agent-handoffs', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                sessionId,
+                                itemIds
+                            }),
+                        });
+                        state.session = result.session;
+                        comment.value = '';
+                        resetAnnotationComposerState();
+                        invalidatePreviewContext();
+                        await refreshSessions();
+                        render();
+                        startLivePreviewPolling();
+                        sent = true;
+                    } finally {
+                        pollingUseCases.setPromptActionInFlight(false);
+                        updateComposerState();
+                        if (sent) showSuccess('Saved to MCP ✓ — agent will pick up', 3000);
+                    }
+                });
+            }
+//#endregion prompt.js
+
+//#region sessions-polling.js
 // @requires state.js, api.js
             const SessionsPollIntervalMs = 2000;
 
@@ -5621,8 +5253,156 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 setSessionsPollingPaused(false);
               }
             }
+//#endregion sessions-polling.js
 
-// shortcuts.js
+//#region undoRedo.js
+// @requires state.js
+            // undoRedo.js — ALH-2 pure undo/redo for pending feedback items.
+            // Caller passes a state shape { pendingFeedbackItems: [...] }; no
+            // closure reference needed.
+
+            const UNDO_MAX_DEPTH = 50;
+
+            function createHistory(context = null) {
+              return { context: cloneHistoryContext(context), undoStack: [], redoStack: [] };
+            }
+
+            function pushOp(stack, op) {
+              stack.push(op);
+              if (stack.length > UNDO_MAX_DEPTH) stack.shift();
+            }
+
+            function cloneHistoryContext(context) {
+              if (!context) return null;
+              return {
+                sessionId: context.sessionId || null,
+                previewId: context.previewId || null,
+                screenId: context.screenId || null,
+                screenFingerprint: context.screenFingerprint || null,
+                deviceSerial: context.deviceSerial || null
+              };
+            }
+
+            function sameHistoryContext(left, right) {
+              const a = cloneHistoryContext(left);
+              const b = cloneHistoryContext(right);
+              if (!a && !b) return true;
+              return Boolean(a && b) &&
+                a.sessionId === b.sessionId &&
+                a.previewId === b.previewId &&
+                a.screenId === b.screenId &&
+                a.screenFingerprint === b.screenFingerprint &&
+                a.deviceSerial === b.deviceSerial;
+            }
+
+            function clearHistory(history) {
+              history.undoStack.length = 0;
+              history.redoStack.length = 0;
+            }
+
+            function itemStableId(item) {
+              return item?.itemId ?? item?.annotationId ?? null;
+            }
+
+            function sameHistoryItem(left, right) {
+              const leftId = itemStableId(left);
+              const rightId = itemStableId(right);
+              return leftId != null && rightId != null && leftId === rightId;
+            }
+
+            function recordAdd(history, item, context = history.context) {
+              pushOp(history.undoStack, {
+                kind: 'add',
+                after: { ...item },
+                context: cloneHistoryContext(context),
+                createdAtEpochMillis: Date.now()
+              });
+              history.redoStack.length = 0;
+            }
+
+            function recordDelete(history, before, index = null, context = history.context) {
+              if (!before) return;
+              pushOp(history.undoStack, {
+                kind: 'delete',
+                before: { ...before },
+                index: Number.isInteger(index) ? index : null,
+                context: cloneHistoryContext(context),
+                createdAtEpochMillis: Date.now()
+              });
+              history.redoStack.length = 0;
+            }
+
+            function recordUpdate(history, before, after, context = history.context) {
+              if (!before || !after) return;
+              pushOp(history.undoStack, {
+                kind: 'update',
+                before: { ...before },
+                after: { ...after },
+                context: cloneHistoryContext(context),
+                createdAtEpochMillis: Date.now()
+              });
+              history.redoStack.length = 0;
+            }
+
+            function applyInverse(op, state) {
+              const items = state.pendingFeedbackItems;
+              if (op.kind === 'add') {
+                const idx = items.findIndex((item) => sameHistoryItem(item, op.after));
+                if (idx >= 0) items.splice(idx, 1);
+              } else if (op.kind === 'delete') {
+                const restored = { ...op.before };
+                if (Number.isInteger(op.index)) {
+                  const index = Math.max(0, Math.min(op.index, items.length));
+                  items.splice(index, 0, restored);
+                } else {
+                  items.push(restored);
+                  items.sort((a, b) => (a.sequenceNumber || 0) - (b.sequenceNumber || 0));
+                }
+              } else if (op.kind === 'update') {
+                const target = items.find((item) => sameHistoryItem(item, op.before));
+                if (target) Object.assign(target, op.before);
+              }
+            }
+
+            function applyForward(op, state) {
+              const items = state.pendingFeedbackItems;
+              if (op.kind === 'add') {
+                items.push({ ...op.after });
+              } else if (op.kind === 'delete') {
+                const idx = items.findIndex((item) => sameHistoryItem(item, op.before));
+                if (idx >= 0) items.splice(idx, 1);
+              } else if (op.kind === 'update') {
+                const target = items.find((item) => sameHistoryItem(item, op.after));
+                if (target) Object.assign(target, op.after);
+              }
+            }
+
+            function undo(history, state, context = history.context) {
+              const op = history.undoStack.pop();
+              if (!op) return { applied: false, reason: 'empty' };
+              if (!sameHistoryContext(op.context, context)) {
+                clearHistory(history);
+                return { applied: false, reason: 'context_mismatch' };
+              }
+              applyInverse(op, state);
+              pushOp(history.redoStack, op);
+              return { applied: true };
+            }
+
+            function redo(history, state, context = history.context) {
+              const op = history.redoStack.pop();
+              if (!op) return { applied: false, reason: 'empty' };
+              if (!sameHistoryContext(op.context, context)) {
+                clearHistory(history);
+                return { applied: false, reason: 'context_mismatch' };
+              }
+              applyForward(op, state);
+              pushOp(history.undoStack, op);
+              return { applied: true };
+            }
+//#endregion undoRedo.js
+
+//#region shortcuts.js
 // @requires state.js, undoRedo.js
             function isTextInputFocused(target = document.activeElement) {
               const element = target?.nodeType === Node.ELEMENT_NODE ? target : target?.parentElement || document.activeElement;
@@ -5648,8 +5428,9 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 return;
               }
             }
+//#endregion shortcuts.js
 
-// main.js
+//#region main.js
 // @requires state.js, connection.js, devices.js, preview.js, annotations.js, history.js, prompt.js, rendering.js, sessions-polling.js, shortcuts.js, draftUseCases.js, draftCommandQueue.js
             let pendingRecovery = null;
             const activePendingMirrorSessions = new Set();
@@ -6019,3 +5800,261 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
                 startSessionsPolling();
               })
               .catch(showError);
+//#endregion main.js
+
+//#region pendingPersistence.js
+// @requires state.js
+            // pendingPersistence.js — write-through mirror to localStorage
+            // for pending feedback state (ALH-1/STAB-5). Functions are bare so the
+            // concat bundle exposes them in shared closure scope.
+
+            const PENDING_KEY_PREFIX = 'fixthis.pending.';
+
+            function pendingKey(sessionId) {
+              return PENDING_KEY_PREFIX + sessionId;
+            }
+
+            function persistPendingState(sessionId, value) {
+              if (!sessionId || typeof localStorage === 'undefined') return;
+              try {
+                const envelope = {
+                  schemaVersion: 1,
+                  sessionId: sessionId,
+                  context: value?.context ?? null,
+                  previewId: value?.previewId ?? null,
+                  screen: value?.screen ?? null,
+                  screenshotUrl: value?.screenshotUrl ?? null,
+                  frozenAtEpochMillis: value?.frozenAtEpochMillis ?? Date.now(),
+                  items: Array.isArray(value?.items) ? value.items : [],
+                };
+                localStorage.setItem(pendingKey(sessionId), JSON.stringify(envelope));
+              } catch (e) {
+                // Quota exceeded or storage disabled — best-effort, don't block UX
+              }
+            }
+
+            function restorePendingState(sessionId) {
+              if (!sessionId || typeof localStorage === 'undefined') return null;
+              const raw = localStorage.getItem(pendingKey(sessionId));
+              if (!raw) return null;
+              try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) {
+                  return {
+                    schemaVersion: 0,
+                    sessionId: sessionId,
+                    context: null,
+                    previewId: null,
+                    screen: null,
+                    screenshotUrl: null,
+                    frozenAtEpochMillis: null,
+                    items: parsed
+                  };
+                }
+                if (parsed && Array.isArray(parsed.items)) {
+                  return {
+                    schemaVersion: parsed.schemaVersion === 1 ? 1 : parsed.schemaVersion,
+                    sessionId: parsed.sessionId ?? sessionId,
+                    context: parsed.context ?? null,
+                    previewId: parsed.previewId ?? null,
+                    screen: parsed.screen ?? null,
+                    screenshotUrl: parsed.screenshotUrl ?? null,
+                    frozenAtEpochMillis: parsed.frozenAtEpochMillis ?? null,
+                    items: parsed.items
+                  };
+                }
+                return null;
+              } catch (e) {
+                return null;
+              }
+            }
+
+            function persistPendingItems(sessionId, items) {
+              persistPendingState(sessionId, { items: items || [] });
+            }
+
+            function restorePendingItems(sessionId) {
+              return restorePendingState(sessionId)?.items || [];
+            }
+
+            function clearPendingMirror(sessionId) {
+              if (!sessionId || typeof localStorage === 'undefined') return;
+              try {
+                localStorage.removeItem(pendingKey(sessionId));
+              } catch (e) { /* ignore */ }
+            }
+//#endregion pendingPersistence.js
+
+//#region previewStaleness.js
+// @requires state.js
+// previewStaleness.js — SIF-5: pure decision helper for time-based and
+// disconnect-based preview staleness. A frozen preview becomes stale when
+// either (a) it is older than MAX_PREVIEW_AGE_MS, or (b) the bridge is not
+// in the "connected" state. The status-tick site in main.js / connection.js
+// is responsible for calling evaluateStale on each refresh and writing the
+// result back into state.preview.stale.
+//
+// NOTE: This file is intentionally separate from staleness.js, which handles
+// build-epoch / protocol-version drift between the server JAR and the bundled
+// console assets — an unrelated concern.
+
+const MAX_PREVIEW_AGE_MS = 30000;
+
+function evaluateStale(state, now) {
+  const frozenAt = state && state.preview && state.preview.frozenAtEpochMillis;
+  if (!frozenAt) return false;
+  const age = now - frozenAt;
+  if (age > MAX_PREVIEW_AGE_MS) return true;
+  const connection = state && state.bridgeStatus && state.bridgeStatus.connection;
+  if (connection !== 'connected') return true;
+  return false;
+}
+//#endregion previewStaleness.js
+
+//#region staleness.js
+// @requires state.js
+            // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
+            const StaleThresholdMs = 5 * 60 * 1000;
+            const StalenessDismissKey = 'fixthis.console.stalenessDismissedHash';
+
+            async function checkServerStaleness() {
+              try {
+                const resp = await fetch('/api/server-version');
+                if (resp.status === 404) {
+                  // /api/server-version not present = pre-Task-5 fixthis-mcp = stale
+                  renderStalenessBanner({
+                    severity: 'warning',
+                    headline: 'Server is older than this console',
+                    detail: 'Restart fixthis-mcp to apply the latest server code.',
+                    hash: 'pre-version-endpoint',
+                  });
+                  return;
+                }
+                if (!resp.ok) return; // 5xx etc. ambiguous — silent
+                const server = await resp.json();
+                const drift = Math.abs(server.serverBuildEpochMs - ConsoleBuildEpochMs);
+                if (drift > StaleThresholdMs) {
+                  const hash = `${server.serverGitSha}-${ConsoleBuildGitSha}`;
+                  renderStalenessBanner({
+                    severity: 'warning',
+                    headline: 'Server build is older than this console',
+                    detail: `Client ${ConsoleBuildGitSha} → Server ${server.serverGitSha}. Restart fixthis-mcp.`,
+                    hash,
+                  });
+                }
+              } catch (_err) {
+                // network or JSON error — silent
+              }
+            }
+
+            function renderStalenessBanner(info) {
+              const banner = document.getElementById('stalenessBanner');
+              if (!banner) return;
+              const dismissed = sessionStorage.getItem(StalenessDismissKey);
+              if (dismissed === info.hash) return;
+              banner.dataset.severity = info.severity || 'warning';
+              const headlineSlot = banner.querySelector('[data-headline]');
+              if (headlineSlot) headlineSlot.textContent = info.headline;
+              const detailSlot = banner.querySelector('[data-detail]');
+              if (detailSlot) detailSlot.textContent = info.detail;
+              banner.dataset.hash = info.hash;
+              banner.hidden = false;
+            }
+
+            document.getElementById('stalenessBanner')?.querySelector('[data-dismiss]')
+              ?.addEventListener('click', (event) => {
+                const banner = event.currentTarget.closest('#stalenessBanner');
+                if (!banner) return;
+                sessionStorage.setItem(StalenessDismissKey, banner.dataset.hash || '');
+                banner.hidden = true;
+              });
+
+            const MinimumSupportedProtocolVersion = '1.3';
+
+            // Parse "1.1" -> [1, 1]; "1" -> [1]; non-numeric / null / undefined -> null.
+            function parseProtocolVersion(s) {
+              if (typeof s !== 'string') return null;
+              const parts = s.split('.').map((token) => Number(token));
+              if (parts.length === 0) return null;
+              if (parts.some((n) => !Number.isFinite(n))) return null;
+              return parts;
+            }
+
+            // Returns negative / 0 / positive. Shorter array right-padded with 0.
+            function compareProtocolVersion(a, b) {
+              const len = Math.max(a.length, b.length);
+              for (let i = 0; i < len; i++) {
+                const ai = a[i] ?? 0;
+                const bi = b[i] ?? 0;
+                if (ai !== bi) return ai - bi;
+              }
+              return 0;
+            }
+
+            function checkProtocolCompat(status) {
+              const reported = parseProtocolVersion(status?.bridgeProtocolVersion);
+              const expected = parseProtocolVersion(MinimumSupportedProtocolVersion);
+              if (!reported || !expected) return;
+              const cmp = compareProtocolVersion(reported, expected);
+              if (cmp === 0) return;
+              if (cmp < 0) {
+                renderStalenessBanner({
+                  severity: 'critical',
+                  headline: `Sample app bridge protocol v${status.bridgeProtocolVersion} is older than this console (expects v${MinimumSupportedProtocolVersion})`,
+                  detail: 'Reinstall the sample APK (./gradlew :app:installDebug) to update sidekick.',
+                  hash: `protocol-sidekick-old-${status.bridgeProtocolVersion}`,
+                });
+              } else {
+                renderStalenessBanner({
+                  severity: 'critical',
+                  headline: `This console is older than sample app bridge protocol v${status.bridgeProtocolVersion} (expects v${MinimumSupportedProtocolVersion})`,
+                  detail: 'Restart fixthis-mcp + hard reload the browser tab to update console.',
+                  hash: `protocol-console-old-${status.bridgeProtocolVersion}`,
+                });
+              }
+            }
+
+            function checkSidekickBuildEpoch(status) {
+              const sidekickEpoch = status?.sidekickBuildEpochMs;
+              if (typeof sidekickEpoch !== 'number') return;
+              const drift = Math.abs(sidekickEpoch - ConsoleBuildEpochMs);
+              if (drift > StaleThresholdMs) {
+                renderStalenessBanner({
+                  severity: 'warning',
+                  headline: 'Sample app sidekick is older than this console',
+                  detail: 'Reinstall the sample APK to refresh.',
+                  hash: `sidekick-${sidekickEpoch}`,
+                });
+              }
+            }
+//#endregion staleness.js
+
+//#region undoKeymatch.js
+// @requires state.js
+            // undoKeymatch.js — ALH-2 pure undo/redo keyboard match helpers.
+            // The actual addEventListener('keydown', ...) wraps in main.js.
+
+            function isInEditableField(activeElement) {
+              if (!activeElement) return false;
+              const tag = activeElement.tagName || '';
+              if (tag === 'INPUT' || tag === 'TEXTAREA') return true;
+              if (activeElement.isContentEditable) return true;
+              return false;
+            }
+
+            function matchesUndo(event, activeElement) {
+              if (!event) return false;
+              if (isInEditableField(activeElement)) return false;
+              const meta = !!(event.metaKey || event.ctrlKey);
+              const key = (event.key || '').toLowerCase();
+              return meta && key === 'z' && !event.shiftKey;
+            }
+
+            function matchesRedo(event, activeElement) {
+              if (!event) return false;
+              if (isInEditableField(activeElement)) return false;
+              const meta = !!(event.metaKey || event.ctrlKey);
+              const key = (event.key || '').toLowerCase();
+              return meta && key === 'z' && event.shiftKey === true;
+            }
+//#endregion undoKeymatch.js
