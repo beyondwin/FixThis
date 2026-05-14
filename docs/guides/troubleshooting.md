@@ -142,16 +142,18 @@ Deleting a pending item renumbers the pending list and overlay markers so they k
 
 ### Reopened console shows a pending recovery banner
 
-The browser found unsaved pending annotations in
-`localStorage["fixthis.pending.<sessionId>"]`. Choose:
+The browser found unsaved pending annotations in a DraftWorkspace recovery
+mirror under `localStorage["fixthis.workspace.<sessionId>.<workspaceId>"]`.
+Choose:
 
 - **Recover** to restore the frozen preview, screenshot, and comments when the
   saved preview context is complete.
 - **Recapture** to start from a fresh preview before saving.
 - **Discard** to remove the browser-local mirror.
 
-Schema-v0 legacy mirrors contain only item rows, so direct recovery is not
-available; use Recapture or Discard.
+Legacy `fixthis.pending.<sessionId>` mirrors are migrated when enough frozen
+preview context is present. Older mirrors that contain only item rows cannot
+restore the frozen preview directly; use Recapture or Discard.
 
 ### Save warns that the screen changed
 

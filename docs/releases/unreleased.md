@@ -24,6 +24,10 @@ remains the chronological source of truth.
   saved overlay edits, pending recovery, and undo/redo history carry the
   session context that created them, and persisted item numbers remain stable
   across deletes and session reopens.
+- Browser-only pending annotations now run through a DraftWorkspace state
+  machine. Drafts carry an immutable freeze context, revision, lifecycle, and
+  undo/redo history; stale async responses and session switches can no longer
+  move draft work into the wrong session.
 - The browser console has been hardened for narrow screens and long diagnostics.
   Global status messages, connection details, activity-drift warnings, stale
   binary banners, and agent summaries wrap without forcing horizontal scroll.
@@ -33,6 +37,10 @@ remains the chronological source of truth.
   console tests, and architecture hotspot guardrails.
 - Contributor checks now cover console bundle freshness and pure JavaScript
   harnesses. The project license is MIT.
+- Contributor loops are faster. The local Gradle build cache is enabled by
+  default, source-index generation is cacheable, sidekick build metadata avoids
+  unnecessary Kotlin recompilation, and CI separates console JavaScript checks
+  from Gradle verification for faster failures.
 
 ## Compatibility Notes
 
@@ -80,7 +88,15 @@ node --test \
   scripts/pendingBoundaryGuard-test.mjs \
   scripts/sessionScopedRequests-test.mjs \
   scripts/savedOverlayScope-test.mjs \
-  scripts/undoRedoContext-test.mjs
+  scripts/undoRedoContext-test.mjs \
+  scripts/draftWorkspace-test.mjs \
+  scripts/draftWorkspaceHistory-test.mjs \
+  scripts/draftStorageAdapter-test.mjs \
+  scripts/draftApiAdapter-test.mjs \
+  scripts/draftUseCases-test.mjs \
+  scripts/draftCommandQueue-test.mjs \
+  scripts/draftPresentationContract-test.mjs \
+  scripts/draftWorkflowInvariant-test.mjs
 git diff --check
 ```
 

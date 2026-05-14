@@ -239,11 +239,16 @@ Important distinction:
   cannot leak saved overlays or screenshot URLs across workspaces.
 - `Save to MCP` is local persistence for MCP handoff. It does not call an external AI API.
 - Connection recovery is console-local UI state. `GET /api/connection` diagnoses ADB device and sidekick bridge state, while `POST /api/app/launch` launches the selected or only ready app when that is a valid recovery action. These calls do not persist feedback data.
-- When a device or bridge drops, pending browser draft work is mirrored to
-  `localStorage["fixthis.pending.<sessionId>"]` with frozen preview context.
-  On reload or session reattach, the user explicitly chooses Recover,
-  Recapture, or Discard before the pending rows are exposed again. The last
-  preview remains visible and is marked stale until the card returns to `Ready`.
+- When a device or bridge drops, pending browser draft work is mirrored as a
+  schema-v2 DraftWorkspace under
+  `localStorage["fixthis.workspace.<sessionId>.<workspaceId>"]`, with a
+  per-session index at `localStorage["fixthis.workspace.index.<sessionId>"]`.
+  The workspace carries immutable freeze context, frozen screen data,
+  screenshot URL, pending items, revision, lifecycle, and undo/redo history.
+  Legacy `fixthis.pending.<sessionId>` mirrors are still read and migrated. On
+  reload or session reattach, the user explicitly chooses Recover, Recapture,
+  or Discard before the pending rows are exposed again. The last preview
+  remains visible and is marked stale until the card returns to `Ready`.
 - When the device is `Connected` but not interactable (screen off, lock screen, app backgrounded, PiP, unresponsive, no Compose UI), the console renders a cause-specific overlay on the canvas and gates selection input. When the cause clears, the prior tool mode, frozen preview, and pending pins are auto-resumed.
 - Before `Copy Prompt` or `Save to MCP` persists pending annotations, the
   server compares the frozen preview fingerprint with a lightweight current

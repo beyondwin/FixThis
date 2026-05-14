@@ -5,12 +5,15 @@ below that matches how you drive your agent.
 
 | Agent style                       | Mode             | Setup                              |
 | --------------------------------- | ---------------- | ---------------------------------- |
-| Claude Code (CLI)                 | **Save to MCP**  | `fixthis setup --write --target claude` |
-| Codex CLI                         | **Save to MCP**  | `fixthis setup --write --target codex`  |
+| Claude Code (CLI)                 | **Save to MCP**  | `./scripts/bootstrap-mcp.sh --package <applicationId> --target claude` |
+| Codex CLI                         | **Save to MCP**  | `./scripts/bootstrap-mcp.sh --package <applicationId> --target codex`  |
 | Cursor / ChatGPT / any chat agent | **Copy Prompt**  | None — paste from the clipboard    |
 
 Both modes share the same compact Markdown prompt format and the same JSON
-evidence; **Save to MCP** just removes the manual paste step.
+evidence; **Save to MCP** just removes the manual paste step. The bootstrap
+script builds the local CLI/MCP distributions and then runs
+`fixthis setup --write`; use the raw CLI command only for manual setup or
+Windows shells.
 
 ## Claude Code
 

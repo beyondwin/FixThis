@@ -79,6 +79,12 @@ fixthis doctor --package io.beyondwin.fixthis.sample
 Generates MCP config for AI agents. Without `--write`, prints the JSON / TOML
 for manual paste. With `--write`, merges into agent settings files.
 
+Fresh contributors should usually run `./scripts/bootstrap-mcp.sh --package
+<applicationId>` first. It builds `:fixthis-cli` and `:fixthis-mcp` installDist
+and then calls this command with `--write`. Use `fixthis setup` directly when
+the distributions are already built, on Windows, or when you need to inspect
+the exact generated config.
+
 ```bash
 # Print only (default)
 fixthis setup --package <applicationId>

@@ -76,6 +76,9 @@ node --test \
   scripts/undoKeymatch-test.mjs \
   scripts/activityDrift-test.mjs \
   scripts/previewStaleness-test.mjs
+
+# Draft workspace state-machine changes
+npm run console:draft:test
 ```
 
 Run these before opening a pull request:
@@ -102,7 +105,15 @@ node --test \
   scripts/undoRedo-test.mjs \
   scripts/undoKeymatch-test.mjs \
   scripts/activityDrift-test.mjs \
-  scripts/previewStaleness-test.mjs
+  scripts/previewStaleness-test.mjs \
+  scripts/draftWorkspace-test.mjs \
+  scripts/draftWorkspaceHistory-test.mjs \
+  scripts/draftStorageAdapter-test.mjs \
+  scripts/draftApiAdapter-test.mjs \
+  scripts/draftUseCases-test.mjs \
+  scripts/draftCommandQueue-test.mjs \
+  scripts/draftPresentationContract-test.mjs \
+  scripts/draftWorkflowInvariant-test.mjs
 git diff --check
 ```
 
@@ -139,6 +150,7 @@ Optional console smoke harnesses (require Node + a recent Chromium via Playwrigh
 npm run console:smoke                  # end-to-end console smoke
 npm run console:responsive:stress      # narrow-width error/agent-state stress test
 npm run console:availability:test      # availability/blocked-state harness
+npm run console:draft:test             # DraftWorkspace reducer/storage/API/use-case harnesses
 node scripts/console-blocked-harness.mjs # blocked-overlay rendering harness
 ```
 

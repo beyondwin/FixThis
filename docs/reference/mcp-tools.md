@@ -93,10 +93,16 @@ fingerprint is unavailable, saving continues and the response includes
 `X-FixThis-Fingerprint-Unavailable-Reason` for diagnostics.
 
 Pending annotations also have a browser-local recovery mirror. The console
-stores a schema-v1 `localStorage["fixthis.pending.<sessionId>"]` envelope with
-the frozen annotation context, preview id, screen metadata, screenshot URL,
-frozen timestamp, and items. On reload or reattach, it asks the user to
-Recover, Recapture, or Discard before exposing those pending rows again.
+stores schema-v2 DraftWorkspace envelopes under
+`localStorage["fixthis.workspace.<sessionId>.<workspaceId>"]`, with a
+per-session index at `localStorage["fixthis.workspace.index.<sessionId>"]`.
+Each envelope carries the immutable frozen annotation context, preview id,
+screen metadata, screenshot URL, frozen timestamp, pending items, revision,
+lifecycle, and undo/redo history. Legacy schema-v1
+`localStorage["fixthis.pending.<sessionId>"]` envelopes are still readable and
+migrated into schema-v2 recovery workspaces. On reload or reattach, the console
+asks the user to Recover, Recapture, or Discard before exposing pending rows
+again.
 
 Saved evidence groups can be expanded to review the persisted screenshot, numbered overlay, and saved comments. `Save to MCP` is local persistence, not an external AI API call. FixThis marks the affected items with `delivery: sent` so MCP clients can list them through `fixthis_list_feedback`, claim one with `fixthis_claim_feedback`, and resolve it with `fixthis_resolve_feedback`. Sessions that contain sent items remain in the main History list; while an agent is actively working on an item the row shows a `working` pip that is driven by the item's `in_progress` status.
 

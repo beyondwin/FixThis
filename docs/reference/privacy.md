@@ -16,11 +16,15 @@ Feedback workspace files are local project artifacts under `.fixthis/feedback-se
 
 `Save to MCP` stores a local handoff batch in the feedback session so MCP tools can read it. It does not upload feedback or screenshots and does not call an external AI API.
 
-Unsaved pending annotations are mirrored in browser `localStorage` under
-`fixthis.pending.<sessionId>`. The mirror may contain comments, target bounds,
-the frozen screen metadata, the preview id, a local screenshot URL, and a
-frozen timestamp. It stays in the browser until you recover, recapture,
-discard, or persist the batch.
+Unsaved pending annotations are mirrored in browser `localStorage` as
+DraftWorkspace envelopes under
+`fixthis.workspace.<sessionId>.<workspaceId>`, with a per-session index at
+`fixthis.workspace.index.<sessionId>`. The mirror may contain comments, target
+bounds, frozen screen metadata, the preview id, a local screenshot URL, a
+frozen timestamp, lifecycle/revision state, and undo/redo history. Legacy
+`fixthis.pending.<sessionId>` mirrors may still be read for migration. Browser
+draft mirrors stay local until you recover, recapture, discard, or persist the
+batch.
 
 ## Debug Scope
 

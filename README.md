@@ -14,7 +14,7 @@ Telling a coding agent *which* part of a complex Compose screen to change is har
 Two handoff modes:
 
 - **Copy Prompt** — copies a compact Markdown prompt to the clipboard. Paste into Claude, Codex, Cursor, or any chat-style agent. No setup beyond having FixThis running.
-- **Save to MCP** — saves the annotation batch as a local handoff. Claude Code or Codex (auto-configured by `fixthis setup --write`) reads it on demand via MCP tools — no copy/paste round trip.
+- **Save to MCP** — saves the annotation batch as a local handoff. Claude Code or Codex (configured by `./scripts/bootstrap-mcp.sh`, or manually with `fixthis setup --write` after building the CLI/MCP distributions) reads it on demand via MCP tools — no copy/paste round trip.
 
 Both modes share the same compact prompt format and the same JSON evidence.
 

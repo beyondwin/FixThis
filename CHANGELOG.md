@@ -117,6 +117,15 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   normalizes the dynamic build header before comparing `app.js`, so CI catches
   real stale bundles without failing only because the timestamp or git SHA
   changed.
+- Contributor build loops are faster and more deterministic. The local Gradle
+  build cache is enabled by default, source-index generation is cacheable,
+  sidekick build metadata avoids unnecessary Kotlin recompilation on unchanged
+  inputs, and `scripts/bootstrap-mcp.sh` uses build/configuration cache flags
+  while building the local CLI/MCP distributions.
+- CI now runs console JavaScript checks in a separate job from Gradle
+  verification. Stale console assets fail before the heavier Android/Kotlin
+  matrix finishes, and the compatibility matrix can exercise AGP, Kotlin, and
+  Compose lower bounds through explicit version overrides.
 - Detekt is applied only for build/check/detekt task requests. This keeps
   `./gradlew help --warning-mode all` free of the Gradle 10
   `ReportingExtension.file(String)` warning while preserving normal
@@ -144,6 +153,10 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   timestamp, and items. On reload or session reattach, the console shows an
   explicit Recover / Recapture / Discard choice instead of silently exposing
   stale pending rows.
+- Browser recovery now routes those pending annotations through a schema-v2
+  DraftWorkspace state machine. Drafts carry immutable freeze context,
+  lifecycle, revision, and undo/redo history; legacy schema-v1 mirrors remain
+  readable and migrate into the new recovery shape.
 - Saved previews, screenshot artifact routes, draft mutations, and undo/redo
   history are now scoped to the feedback session that created them. Switching
   sessions while a save or preview request is in flight no longer leaks
