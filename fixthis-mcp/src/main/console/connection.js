@@ -1,3 +1,9 @@
+            // Heartbeat timer handles. These are connection-internal browser
+            // timer state (not reducer state, not pure) so they live here
+            // rather than in connectionFsm.js or state.js.
+            let heartbeatTimer = null;
+            let heartbeatPolling = false;
+
             function connectionActionLabel(action) {
               if (action === 'START') return 'Start';
               if (action === 'OPEN_APP') return 'Open app';

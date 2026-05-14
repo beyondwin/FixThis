@@ -17,6 +17,7 @@ const sources = [
   'pollingBrowserAdapter.js',
   'toolModeFsm.js',
   'toolModeUseCases.js',
+  'consoleApp.js',
   'state.js',
   'staleness.js',
   'pendingPersistence.js',

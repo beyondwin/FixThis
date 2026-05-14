@@ -11,45 +11,40 @@
               previewFsm: null, // projected from previewUseCases below
               pollingFsm: null, // projected from pollingUseCases below
             };
-            // Connection FSM single source of truth. The compat shim projects
-            // each new FSM state into state.connection so legacy READ sites
-            // (rendering, devices, preview, annotations) keep working. All
-            // WRITES to state.connection.* are migrated to connectionUseCases
-            // dispatches — see connectionUseCases.js / connection.js / sessions-polling.js.
-            const connectionUseCases = createBrowserConnectionUseCases((next) => {
-              state.connection = { ...next };
-            });
-            state.connection = { ...connectionUseCases.getState() };
-            // Preview FSM single source of truth. The compat shim projects
-            // each new FSM state into state.previewFsm so legacy READ sites
-            // observe lifecycle/zoom/inFlight/generation changes. Legacy
+            // Console FSM boot. createConsoleApp() wires the four sub-FSMs
+            // (connection, preview, polling, tool-mode) and routes each
+            // FSM's onChange into the corresponding legacy state.* slot so
+            // non-FSM read sites (rendering, devices, preview, annotations)
+            // keep observing changes. See consoleApp.js for the factory.
+            //
+            // Connection FSM: state.connection projection — all WRITES are
+            // migrated to connectionUseCases dispatches (see
+            // connectionUseCases.js / connection.js / sessions-polling.js).
+            // Preview FSM: state.previewFsm projection — legacy
             // state.preview (current screenshot object) remains as-is for
-            // existing screenshot renderers; FSM.current overlaps for
-            // race-fence purposes only.
-            const previewUseCases = createBrowserPreviewUseCases({
-              onChange: (next) => { state.previewFsm = { ...next }; },
-            });
-            state.previewFsm = { ...previewUseCases.getState() };
-            // Polling FSM single source of truth. Owns sessions-poll lifecycle,
-            // mutation lock counters, sessions/session etags, failure counter,
-            // and the prompt-action-in-flight flag previously held as module-
-            // level lets here. The top-level functions startSessionsPolling /
-            // stopSessionsPolling / pollSessionsTick / withMutationLock below
-            // delegate into pollingUseCases (preserving the Kotlin grep contract
+            // existing renderers; FSM.current overlaps for race-fence
+            // purposes only.
+            // Polling FSM: state.pollingFsm projection — owns sessions-poll
+            // lifecycle, mutation lock counters, sessions/session etags,
+            // failure counter, and prompt-action-in-flight flag. Top-level
+            // helpers below (startSessionsPolling / stopSessionsPolling /
+            // pollSessionsTick / withMutationLock) delegate into
+            // pollingUseCases (preserving the Kotlin grep contract
             // documented in ConsoleFeedbackItemRoutesTest).
-            const pollingUseCases = createBrowserPollingUseCases({
-              onChange: (next) => { state.pollingFsm = { ...next }; },
-            });
-            state.pollingFsm = { ...pollingUseCases.getState() };
-            // Tool-mode FSM single source of truth. Owns toolMode,
-            // annotationSequence, hoveredAnnotationTarget, dragStart/dragPreview
-            // (combined as drag), suppressNextClick, addItemsFlowStarting,
+            // Tool-mode FSM: no state.* projection; callers go through
+            // toolModeUseCases.getState() directly. Owns toolMode,
+            // annotationSequence, hoveredAnnotationTarget, dragStart/
+            // dragPreview, suppressNextClick, addItemsFlowStarting,
             // newHistoryAnnotateModeStarting, historyDrawerOpen,
-            // focusedSavedItemId, focusedSavedSessionId. No browser adapter —
-            // pure synchronous transitions per spec §3.4. Legacy READ/WRITE
-            // sites in annotations.js/history.js/preview.js/rendering.js/
-            // main.js/connection.js delegate through this instance.
-            const toolModeUseCases = createToolModeUseCases();
+            // focusedSavedItemId, focusedSavedSessionId.
+            const consoleApp = createConsoleApp({ state });
+            const connectionUseCases = consoleApp.connection;
+            const previewUseCases = consoleApp.preview;
+            const pollingUseCases = consoleApp.polling;
+            const toolModeUseCases = consoleApp.toolMode;
+            state.connection = { ...connectionUseCases.getState() };
+            state.previewFsm = { ...previewUseCases.getState() };
+            state.pollingFsm = { ...pollingUseCases.getState() };
             const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });
             const unresponsiveTracker = createUnresponsiveTracker({ threshold: 3 });
             const sessions = document.getElementById('sessions');
@@ -93,8 +88,10 @@
             const zoomPercent = document.getElementById('zoomPercent');
             const previewStaleBadge = document.getElementById('previewStaleBadge');
             const workflowProgress = document.getElementById('workflowProgress');
-            let heartbeatTimer = null;
-            let heartbeatPolling = false;
+            // heartbeatTimer / heartbeatPolling now live at connection.js
+            // module scope (only used by sendBridgeHeartbeat /
+            // scheduleNextHeartbeat / startHeartbeatPolling /
+            // stopHeartbeatPolling). See connection.js.
             let addItemsFlow = null;
             let pendingFeedbackItems = [];
             let focusedPendingItemIndex = null;
@@ -293,8 +290,6 @@
               return String(count) + ' ' + (count === 1 ? singular : plural);
             }
 
-            let statusClearTimeout = null;
-
             function syncStatusVisibility() {
               error.hidden = !String(error.textContent || '').trim();
             }
@@ -308,13 +303,6 @@
             }
             syncStatusVisibility();
 
-            function clearStatusTimer() {
-              if (statusClearTimeout) {
-                clearTimeout(statusClearTimeout);
-                statusClearTimeout = null;
-              }
-            }
-
             function resetStatusSurface() {
               error.textContent = '';
               error.hidden = true;
@@ -323,30 +311,46 @@
               error.setAttribute('aria-live', 'polite');
             }
 
-            function showStatus(message, { variant = 'info', durationMs = 0, assertive = false } = {}) {
-              clearStatusTimer();
-              error.textContent = message;
-              error.hidden = !message;
-              error.className = 'global-status status-' + variant;
-              error.setAttribute('role', assertive ? 'alert' : 'status');
-              error.setAttribute('aria-live', assertive ? 'assertive' : 'polite');
-              if (durationMs > 0) {
-                statusClearTimeout = setTimeout(() => {
-                  resetStatusSurface();
+            // statusClearTimeout is encapsulated in an IIFE closure so it
+            // does not appear as a module-level let in state.js (Task 6
+            // closure-scoping pattern).
+            const { clearStatusTimer, showStatus, showSuccess, showWarning, clearSuccessStatus } = (() => {
+              let statusClearTimeout = null;
+
+              function clearStatusTimer() {
+                if (statusClearTimeout) {
+                  clearTimeout(statusClearTimeout);
                   statusClearTimeout = null;
-                }, durationMs);
+                }
               }
-            }
 
-            function showSuccess(message, durationMs = 2000) {
-              showStatus(message, { variant: 'success', durationMs });
-            }
+              function showStatus(message, { variant = 'info', durationMs = 0, assertive = false } = {}) {
+                clearStatusTimer();
+                error.textContent = message;
+                error.hidden = !message;
+                error.className = 'global-status status-' + variant;
+                error.setAttribute('role', assertive ? 'alert' : 'status');
+                error.setAttribute('aria-live', assertive ? 'assertive' : 'polite');
+                if (durationMs > 0) {
+                  statusClearTimeout = setTimeout(() => {
+                    resetStatusSurface();
+                    statusClearTimeout = null;
+                  }, durationMs);
+                }
+              }
 
-            function showWarning(message, durationMs = 0) {
-              showStatus(message, { variant: 'warning', durationMs });
-            }
+              function showSuccess(message, durationMs = 2000) {
+                showStatus(message, { variant: 'success', durationMs });
+              }
 
-            function clearSuccessStatus() {
-              clearStatusTimer();
-              resetStatusSurface();
-            }
+              function showWarning(message, durationMs = 0) {
+                showStatus(message, { variant: 'warning', durationMs });
+              }
+
+              function clearSuccessStatus() {
+                clearStatusTimer();
+                resetStatusSurface();
+              }
+
+              return { clearStatusTimer, showStatus, showSuccess, showWarning, clearSuccessStatus };
+            })();

@@ -200,3 +200,27 @@ Tool-using agents that parsed the v1 compact prompt format must update the follo
 | (absent) | `note: N markers map to same call site — likely list-rendered; disambiguate by instance index` | New: collision signal on the first item of each instance group. |
 | (absent) | `targetRisk=duplicate-of-marker-M` | New: surfaces true marker duplication so agents do not double-resolve. |
 | (absent) | `- Source root: \`<prefix>\`` header + relative candidate paths | New (2026-05-10 trim): hoist the directory-boundary common prefix of all candidate paths once, strip from each candidate line. Net token saving on long monorepo paths; absent for sessions whose candidates do not share a prefix. |
+
+## Console state machines
+
+The console maintains five independent FSMs. Each is a pure reducer
+(`*Fsm.js`) plus use cases over ports (`*UseCases.js`) plus a browser
+adapter (`*BrowserAdapter.js`) — except tool-mode which is synchronous
+and needs no adapter. They are booted together via `createConsoleApp`
+in `consoleApp.js`. Cross-FSM coordination happens in `consoleApp.js`
+(boot factory) and `main.js`; there is no global event bus.
+
+| FSM | States | Owned state |
+| --- | --- | --- |
+| Draft Workspace | EMPTY / EDITING / FROZEN / RECOVERY | session-scoped pending annotations |
+| Connection | DISCONNECTED / LAUNCHING / READY / BLOCKED / UNAVAILABLE | bridge connection lifecycle |
+| Preview | IDLE / REQUESTING / READY / STALE / ERROR | live preview pipeline + zoom |
+| Polling | STOPPED / POLLING_ACTIVE / POLLING_BACKOFF / POLLING_PAUSED | sessions polling + mutation lock |
+| Tool-mode | SELECT / ANNOTATE_IDLE / ANNOTATE_DRAGGING | UI tool, hover, drag, drawer |
+
+Each sub-FSM's `onChange` projects its frozen state into a legacy
+`state.*` slot (`state.connection`, `state.previewFsm`,
+`state.pollingFsm`) so non-FSM read sites in `rendering.js`,
+`devices.js`, `preview.js`, and `annotations.js` keep observing
+changes without going through a new accessor. Tool-mode has no
+projection — callers go through `toolModeUseCases.getState()`.
