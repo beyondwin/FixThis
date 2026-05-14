@@ -76,14 +76,11 @@ internal object FixThisBridgeRuntime {
     }
 
     fun onActivityResumed(activity: Activity) {
-        environment?.currentActivity = WeakReference(activity)
+        environment?.setCurrentActivity(WeakReference(activity))
     }
 
     fun onActivityDestroyed(activity: Activity) {
-        val current = environment?.currentActivity?.get()
-        if (current === activity) {
-            environment?.currentActivity = null
-        }
+        environment?.clearCurrentActivityIf(activity)
     }
 
     fun stopForTest() {
