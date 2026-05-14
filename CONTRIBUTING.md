@@ -75,6 +75,16 @@ scripts/fixthis-console-dev.sh io.beyondwin.fixthis.sample    # explicit package
 
 Stop with Ctrl-C; re-running kills any stale `fixthis console` process before starting a new one.
 
+### Documentation consistency check (required)
+
+After editing `package.json`, README, AGENTS.md, or this file, run:
+
+```bash
+node scripts/check-doc-consistency.mjs
+```
+
+The script verifies that npm scripts and CONTRIBUTING.md agree, that README ↔ AGENTS cross-links exist, that the contributor scripts are documented here, and that every `*.md#anchor` link resolves to a real heading (via `github-slugger`). It exits non-zero with a `FAIL Rx.…` line if any rule breaks.
+
 ## Required Local Checks
 
 The root build enables the local Gradle build cache by default. Configuration
@@ -113,6 +123,20 @@ npm run console:test:fast
 npm run console:draft:test
 ```
 
+Per-feature focused harnesses are also available as named npm scripts (each
+delegates to `scripts/run-console-tests.mjs` or its dedicated runner):
+
+```bash
+npm run console:availability:test   # availability/blocked-state harness
+npm run console:pending:test        # pending-item recovery harness
+npm run console:beforeunload:test   # beforeunload guard harness
+npm run console:undo:test           # undo/redo harness
+npm run console:activity:test       # activity-drift harness
+npm run console:preview:test        # preview staleness harness
+npm run console:fsm:test            # connection FSM harness
+npm run console:build:test          # build-console-assets unit tests
+```
+
 > As of 2026-05-14, `ConsoleFeedbackItemRoutesTest.kt` was split into seven
 > focused files. If you previously pinned that class in your IDE run
 > configurations, switch to the package filter
@@ -134,6 +158,7 @@ Run these before opening a pull request:
   :fixthis-mcp:installDist \
   --no-daemon
 node scripts/build-console-assets.mjs --check
+node scripts/check-doc-consistency.mjs
 node --check fixthis-mcp/src/main/resources/console/app.js
 # All console JS tests (single source of truth is scripts/console-tests.json).
 node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview draft session
