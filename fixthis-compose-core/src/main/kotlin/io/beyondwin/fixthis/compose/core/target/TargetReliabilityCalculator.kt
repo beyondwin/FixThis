@@ -4,8 +4,8 @@ import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.IdentityHintConfidence
 import io.beyondwin.fixthis.compose.core.model.IdentityHintSource
-import io.beyondwin.fixthis.compose.core.model.SemanticCoverage
 import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
+import io.beyondwin.fixthis.compose.core.model.SemanticCoverage
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
 import io.beyondwin.fixthis.compose.core.model.TargetConfidence
@@ -17,9 +17,9 @@ import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import io.beyondwin.fixthis.compose.core.model.withWarnings
 import kotlin.math.sqrt
 
-object TargetReliabilityCalculator {
-    private const val LOW_MARGIN_THRESHOLD = 0.15
+private const val LOW_MARGIN_THRESHOLD = 0.15
 
+object TargetReliabilityCalculator {
     fun calculate(input: TargetReliabilityInput): TargetReliability {
         val reasons = buildReasons(input)
         val warnings = buildWarnings(input)
@@ -120,48 +120,47 @@ object TargetReliabilityCalculator {
         input: TargetReliabilityInput,
         reasons: List<TargetReliabilityReason>,
         warnings: List<TargetReliabilityWarning>,
-    ): TargetConfidence {
-        if (warnings.any { warning -> warning.reducesConfidence() }) return TargetConfidence.LOW
-        if (TargetReliabilityReason.STRICT_COMPOSABLE_IDENTITY in reasons &&
+    ): TargetConfidence = when {
+        warnings.any { warning -> warning.reducesConfidence() } -> TargetConfidence.LOW
+        TargetReliabilityReason.STRICT_COMPOSABLE_IDENTITY in reasons &&
             TargetReliabilityReason.STRONG_SOURCE_CANDIDATE in reasons
-        ) {
-            return TargetConfidence.HIGH
-        }
-        if (TargetReliabilityReason.MEANINGFUL_COMPOSE_NODE in reasons || input.sourceCandidates.isNotEmpty()) {
-            return TargetConfidence.MEDIUM
-        }
-        return TargetConfidence.UNKNOWN
+        -> TargetConfidence.HIGH
+        TargetReliabilityReason.MEANINGFUL_COMPOSE_NODE in reasons || input.sourceCandidates.isNotEmpty() ->
+            TargetConfidence.MEDIUM
+        else -> TargetConfidence.UNKNOWN
     }
+}
 
-    private fun TargetReliabilityWarning.reducesConfidence(): Boolean = when (this) {
-        TargetReliabilityWarning.SCREEN_FINGERPRINT_UNAVAILABLE,
-        TargetReliabilityWarning.SENSITIVE_TEXT_REDACTED,
-        -> false
-        TargetReliabilityWarning.VISUAL_AREA_ONLY,
-        TargetReliabilityWarning.NO_MEANINGFUL_COMPOSE_TARGET,
-        TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP,
-        TargetReliabilityWarning.LOW_SOURCE_CANDIDATE_MARGIN,
-        TargetReliabilityWarning.SOURCE_INDEX_STALE,
-        TargetReliabilityWarning.SCREEN_FINGERPRINT_MISMATCH_FORCED,
-        -> true
-    }
+private fun TargetReliabilityWarning.reducesConfidence(): Boolean = when (this) {
+    TargetReliabilityWarning.SCREEN_FINGERPRINT_UNAVAILABLE,
+    TargetReliabilityWarning.SENSITIVE_TEXT_REDACTED,
+    -> false
+    TargetReliabilityWarning.VISUAL_AREA_ONLY,
+    TargetReliabilityWarning.NO_MEANINGFUL_COMPOSE_TARGET,
+    TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP,
+    TargetReliabilityWarning.LOW_SOURCE_CANDIDATE_MARGIN,
+    TargetReliabilityWarning.SOURCE_INDEX_STALE,
+    TargetReliabilityWarning.SCREEN_FINGERPRINT_MISMATCH_FORCED,
+    -> true
+}
 
-    private fun SourceCandidate.hasLowMargin(): Boolean =
-        scoreMargin != null && scoreMargin < LOW_MARGIN_THRESHOLD ||
-            SourceCandidateRisk.AMBIGUOUS in riskFlags
+private fun SourceCandidate.hasLowMargin(): Boolean = scoreMargin != null &&
+    scoreMargin < LOW_MARGIN_THRESHOLD ||
+    SourceCandidateRisk.AMBIGUOUS in riskFlags
 
-    private fun FixThisRect.containsCenterOf(other: FixThisRect): Boolean {
-        val x = (other.left + other.right) / 2f
-        val y = (other.top + other.bottom) / 2f
-        return contains(x, y)
-    }
+private fun FixThisRect.containsCenterOf(other: FixThisRect): Boolean {
+    val x = (other.left + other.right) / 2f
+    val y = (other.top + other.bottom) / 2f
+    return contains(x, y)
+}
 
-    private fun FixThisRect.intersects(other: FixThisRect): Boolean =
-        left < other.right && right > other.left && top < other.bottom && bottom > other.top
+private fun FixThisRect.intersects(other: FixThisRect): Boolean = left < other.right &&
+    right > other.left &&
+    top < other.bottom &&
+    bottom > other.top
 
-    private fun FixThisRect.centerDistanceTo(other: FixThisRect): Double {
-        val dx = ((left + right) / 2.0) - ((other.left + other.right) / 2.0)
-        val dy = ((top + bottom) / 2.0) - ((other.top + other.bottom) / 2.0)
-        return dx * dx + dy * dy
-    }
+private fun FixThisRect.centerDistanceTo(other: FixThisRect): Double {
+    val dx = ((left + right) / 2.0) - ((other.left + other.right) / 2.0)
+    val dy = ((top + bottom) / 2.0) - ((other.top + other.bottom) / 2.0)
+    return dx * dx + dy * dy
 }

@@ -124,10 +124,7 @@ class TargetEvidenceService(
             sourceCandidates = sourceCandidates,
         )
         val targetReliability = targetReliabilityFor(
-            targetType = validatedTarget.targetType,
-            selectedNode = validatedTarget.selectedNode,
-            evidenceNodes = validatedTarget.evidenceNodes,
-            storedBounds = validatedTarget.storedBounds,
+            validatedTarget = validatedTarget,
             screen = screen,
             sourceCandidates = sourceCandidates,
             targetEvidence = targetEvidence,
@@ -194,10 +191,7 @@ class TargetEvidenceService(
     }
 
     fun targetReliabilityFor(
-        targetType: FeedbackTargetType,
-        selectedNode: FixThisNode?,
-        evidenceNodes: List<FixThisNode>,
-        storedBounds: FixThisRect,
+        validatedTarget: ValidatedFeedbackTarget,
         screen: SnapshotDto,
         sourceCandidates: List<SourceCandidate>,
         targetEvidence: TargetEvidence?,
@@ -206,18 +200,18 @@ class TargetEvidenceService(
         val meaningfulNodes = screen.allNodes().filter { node -> node.hasMeaningfulSemantic() }
         return reliabilityCalculator.calculate(
             TargetReliabilityInput(
-                targetKind = when (targetType) {
+                targetKind = when (validatedTarget.targetType) {
                     FeedbackTargetType.AREA -> TargetKind.AREA
                     FeedbackTargetType.NODE -> TargetKind.NODE
                 },
-                selectedNode = selectedNode,
-                nearbyNodes = evidenceNodes,
+                selectedNode = validatedTarget.selectedNode,
+                nearbyNodes = validatedTarget.evidenceNodes,
                 sourceCandidates = sourceCandidates,
                 targetEvidence = targetEvidence,
                 semanticCoverage = TargetReliabilityCalculator.coverageFor(
                     roots = roots,
                     meaningfulNodes = meaningfulNodes,
-                    targetBounds = storedBounds,
+                    targetBounds = validatedTarget.storedBounds,
                 ),
                 screenFingerprintAvailable = screen.fingerprint != null,
             ),

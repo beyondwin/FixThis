@@ -78,6 +78,12 @@ class FeedbackDraftService(
             screen = screen,
             sourceCandidates = emptyList(),
         )
+        val validatedTarget = TargetEvidenceService.ValidatedFeedbackTarget(
+            targetType = FeedbackTargetType.AREA,
+            selectedNode = null,
+            storedBounds = bounds,
+            evidenceNodes = emptyList(),
+        )
         return store.addItem(
             sessionId,
             AnnotationDto(
@@ -90,10 +96,7 @@ class FeedbackDraftService(
                 status = if (comment.isBlank()) AnnotationStatusDto.OPEN else AnnotationStatusDto.READY,
                 targetEvidence = targetEvidence,
                 targetReliability = targetEvidenceService.targetReliabilityFor(
-                    targetType = FeedbackTargetType.AREA,
-                    selectedNode = null,
-                    evidenceNodes = emptyList(),
-                    storedBounds = bounds,
+                    validatedTarget = validatedTarget,
                     screen = screen,
                     sourceCandidates = emptyList(),
                     targetEvidence = targetEvidence,
@@ -262,42 +265,11 @@ class FeedbackDraftService(
             fingerprintUnavailableReason = fingerprintUnavailableReason,
         )
         val preview = reservation.preview
-        val baseFeedbackItems = reservation.items.map { pending ->
-            targetEvidenceService.buildFeedbackItem(
-                screen = preview.snapshot.screen,
-                sourceIndex = preview.sourceIndex,
-                targetType = pending.targetType,
-                bounds = pending.bounds,
-                nodeUid = pending.nodeUid,
-                comment = pending.comment,
-                allowBlankComment = reservation.allowBlankComments,
-                writtenStatus = pending.status,
-                missingNodeContext = "preview",
-            ).copy(
-                label = pending.label?.takeIf { it.isNotBlank() },
-                severity = pending.severity,
-            )
-        }
-        val reliabilityWarnings = buildList {
-            if (fingerprintCheck.forceMismatchOverride) {
-                add(TargetReliabilityWarning.SCREEN_FINGERPRINT_MISMATCH_FORCED)
-            }
-            if (fingerprintUnavailableReason != null) {
-                add(TargetReliabilityWarning.SCREEN_FINGERPRINT_UNAVAILABLE)
-            }
-        }
-        val feedbackItems = baseFeedbackItems.map { item ->
-            if (reliabilityWarnings.isEmpty()) {
-                item
-            } else {
-                item.copy(
-                    targetReliability = TargetReliabilityCalculator.addWarnings(
-                        item.targetReliability,
-                        reliabilityWarnings,
-                    ),
-                )
-            }
-        }
+        val feedbackItems = buildPreviewFeedbackItems(
+            reservation = reservation,
+            fingerprintCheck = fingerprintCheck,
+            fingerprintUnavailableReason = fingerprintUnavailableReason,
+        )
         val persistedScreen = screenshotArtifactPromoter.promote(
             projectRoot = preview.projectRoot,
             sessionId = reservation.sessionId,
@@ -318,6 +290,59 @@ class FeedbackDraftService(
     } catch (error: Throwable) {
         cancelPreviewFeedbackSave(reservation)
         throw error
+    }
+
+    private fun buildPreviewFeedbackItems(
+        reservation: PreviewFeedbackSaveReservation,
+        fingerprintCheck: PreviewSaveFingerprintCheck,
+        fingerprintUnavailableReason: String?,
+    ): List<AnnotationDto> {
+        val preview = reservation.preview
+        val baseFeedbackItems = reservation.items.map { pending ->
+            targetEvidenceService.buildFeedbackItem(
+                screen = preview.snapshot.screen,
+                sourceIndex = preview.sourceIndex,
+                targetType = pending.targetType,
+                bounds = pending.bounds,
+                nodeUid = pending.nodeUid,
+                comment = pending.comment,
+                allowBlankComment = reservation.allowBlankComments,
+                writtenStatus = pending.status,
+                missingNodeContext = "preview",
+            ).copy(
+                label = pending.label?.takeIf { it.isNotBlank() },
+                severity = pending.severity,
+            )
+        }
+        return baseFeedbackItems.withReliabilityWarnings(
+            reliabilityWarningsFor(fingerprintCheck, fingerprintUnavailableReason),
+        )
+    }
+
+    private fun reliabilityWarningsFor(
+        fingerprintCheck: PreviewSaveFingerprintCheck,
+        fingerprintUnavailableReason: String?,
+    ): List<TargetReliabilityWarning> = buildList {
+        if (fingerprintCheck.forceMismatchOverride) {
+            add(TargetReliabilityWarning.SCREEN_FINGERPRINT_MISMATCH_FORCED)
+        }
+        if (fingerprintUnavailableReason != null) {
+            add(TargetReliabilityWarning.SCREEN_FINGERPRINT_UNAVAILABLE)
+        }
+    }
+
+    private fun List<AnnotationDto>.withReliabilityWarnings(
+        warnings: List<TargetReliabilityWarning>,
+    ): List<AnnotationDto> {
+        if (warnings.isEmpty()) return this
+        return map { item ->
+            item.copy(
+                targetReliability = TargetReliabilityCalculator.addWarnings(
+                    item.targetReliability,
+                    warnings,
+                ),
+            )
+        }
     }
 
     internal fun cancelPreviewFeedbackSave(reservation: PreviewFeedbackSaveReservation) {

@@ -27,6 +27,13 @@ import io.beyondwin.fixthis.sample.components.StateChip
 import io.beyondwin.fixthis.sample.components.StudioHeader
 import io.beyondwin.fixthis.sample.model.FixThisDemoData
 
+private const val NATIVE_VIEW_HEIGHT_DP = 72
+private const val NATIVE_VIEW_BG_RED = 49
+private const val NATIVE_VIEW_BG_GREEN = 79
+private const val NATIVE_VIEW_BG_BLUE = 124
+private const val NATIVE_VIEW_HORIZONTAL_PADDING_PX = 24
+private const val NATIVE_VIEW_VERTICAL_PADDING_PX = 18
+
 @Composable
 fun DiagnosticsScreen(padding: PaddingValues) {
     Column(
@@ -51,20 +58,7 @@ fun DiagnosticsScreen(padding: PaddingValues) {
             },
         )
         Text("AndroidView interop preview", style = MaterialTheme.typography.titleSmall)
-        AndroidView(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(72.dp),
-            factory = { context ->
-                TextView(context).apply {
-                    text = "Native AndroidView target"
-                    contentDescription = "Native AndroidView target"
-                    setTextColor(Color.WHITE)
-                    setBackgroundColor(Color.rgb(49, 79, 124))
-                    setPadding(24, 18, 24, 18)
-                }
-            },
-        )
+        NativeAndroidViewPreview()
         FixThisDemoData.diagnostics.forEach { signal ->
             InfoRow(
                 title = signal.label,
@@ -90,4 +84,28 @@ fun DiagnosticsScreen(padding: PaddingValues) {
             }
         }
     }
+}
+
+@Composable
+@Suppress("FunctionNaming")
+private fun NativeAndroidViewPreview() {
+    AndroidView(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(NATIVE_VIEW_HEIGHT_DP.dp),
+        factory = { context ->
+            TextView(context).apply {
+                text = "Native AndroidView target"
+                contentDescription = "Native AndroidView target"
+                setTextColor(Color.WHITE)
+                setBackgroundColor(Color.rgb(NATIVE_VIEW_BG_RED, NATIVE_VIEW_BG_GREEN, NATIVE_VIEW_BG_BLUE))
+                setPadding(
+                    NATIVE_VIEW_HORIZONTAL_PADDING_PX,
+                    NATIVE_VIEW_VERTICAL_PADDING_PX,
+                    NATIVE_VIEW_HORIZONTAL_PADDING_PX,
+                    NATIVE_VIEW_VERTICAL_PADDING_PX,
+                )
+            }
+        },
+    )
 }

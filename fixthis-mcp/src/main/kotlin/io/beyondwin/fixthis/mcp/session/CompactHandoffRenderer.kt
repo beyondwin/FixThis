@@ -188,14 +188,16 @@ object CompactHandoffRenderer {
 
     private fun TargetReliabilityWarning.message(): String = when (this) {
         TargetReliabilityWarning.VISUAL_AREA_ONLY -> "visual area only; verify screenshot and bounds"
-        TargetReliabilityWarning.NO_MEANINGFUL_COMPOSE_TARGET -> "no meaningful Compose semantics node covered this target"
+        TargetReliabilityWarning.NO_MEANINGFUL_COMPOSE_TARGET ->
+            "no meaningful Compose semantics node covered this target"
         TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP ->
             "possible AndroidView/WebView area; source candidates may not explain rendered pixels"
         TargetReliabilityWarning.LOW_SOURCE_CANDIDATE_MARGIN -> "source candidates are close; verify before editing"
         TargetReliabilityWarning.SOURCE_INDEX_STALE -> "source index may be stale"
         TargetReliabilityWarning.SCREEN_FINGERPRINT_MISMATCH_FORCED ->
             "screen changed after capture; user force-saved this item"
-        TargetReliabilityWarning.SCREEN_FINGERPRINT_UNAVAILABLE -> "screen fingerprint unavailable; mismatch check was skipped"
+        TargetReliabilityWarning.SCREEN_FINGERPRINT_UNAVAILABLE ->
+            "screen fingerprint unavailable; mismatch check was skipped"
         TargetReliabilityWarning.SENSITIVE_TEXT_REDACTED -> "sensitive text was redacted from target evidence"
     }
 
