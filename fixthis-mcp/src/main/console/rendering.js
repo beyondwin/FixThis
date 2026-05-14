@@ -699,7 +699,7 @@
             }
 
             function renderSessionRegions() {
-              renderSessionsList();
+              renderCurrentSessionList();
             }
 
             function renderComposerInspector() {

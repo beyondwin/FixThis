@@ -4,7 +4,7 @@
 // and the use cases get an explicit entry point for tests.
 //
 // The api.sessions port performs the actual HTTP fetches (and side-
-// effects on state.sessionSummaries / renderSessionsList / etc.). It
+// effects on state.sessionSummaries / renderSessionsListFromPayload / etc.). It
 // returns the new ETag headers so the FSM can persist them via TICK_OK.
 //
 // The closure-over-state is deliberate: this adapter sees the legacy
@@ -26,8 +26,7 @@ function createBrowserPollingUseCases(options = {}) {
         if (listResp.status === 200) {
           nextSessionsEtag = listResp.headers.get('ETag');
           const data = await listResp.json();
-          state.sessionSummaries = data.sessions || [];
-          renderSessionsList();
+          renderSessionsListFromPayload(data.sessions || []);
         }
         if (state.session?.sessionId) {
           const sessResp = await fetch('/api/session', {

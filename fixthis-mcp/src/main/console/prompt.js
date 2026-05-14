@@ -83,6 +83,7 @@
                         try {
                             const updated = await markItemsHandedOff(sessionId, itemIds);
                             state.session = updated;
+                            await refreshSessions();
                             renderInspectorRegion();
                         } catch (markError) {
                             showWarning('Copied, but MCP handoff status was not updated. Copy again after the connection recovers to update item state.');

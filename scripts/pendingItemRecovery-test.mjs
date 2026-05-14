@@ -162,6 +162,20 @@ test('recapture forces a fresh preview before remapping recovered pending items'
   assert.match(recaptureBody, /persistCurrentPendingState\(\);/);
 });
 
+test('pending recovery refreshes history summaries after restoring draft items', () => {
+  const bannerBody = extractFunctionBody(mainSource, 'function renderPendingRecoveryBanner()');
+  assert.match(
+    bannerBody,
+    /restorePendingRecoveryContext\(pendingRecovery\);[\s\S]*?renderPendingRecoveryBanner\(\);[\s\S]*?render\(\);/,
+  );
+
+  const recaptureBody = extractFunctionBody(mainSource, 'async function recapturePendingRecovery()');
+  assert.match(
+    recaptureBody,
+    /setDraftWorkspace\(\{[\s\S]*?items:\s*recoveredItems[\s\S]*?\}\);[\s\S]*?render\(\);/,
+  );
+});
+
 test('session refresh reloads pending recovery and session switches require a recovery choice', () => {
   const refreshBody = extractFunctionBody(historySource, 'async function refresh()');
   assert.match(refreshBody, /loadPendingRecoveryForCurrentSession\(\);[\s\S]*?render\(\);/);
