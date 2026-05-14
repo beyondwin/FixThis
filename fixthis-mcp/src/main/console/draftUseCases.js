@@ -1,3 +1,4 @@
+// @requires draftWorkspace.js, draftWorkspaceHistory.js, draftPorts.js
 // draftUseCases.js - DraftWorkspace application workflows over narrow ports.
 
 async function startDraftFreeze(workspace, input, ports) {

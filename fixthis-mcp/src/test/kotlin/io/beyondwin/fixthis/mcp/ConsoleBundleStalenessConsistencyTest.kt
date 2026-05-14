@@ -1,37 +1,35 @@
 package io.beyondwin.fixthis.mcp
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class ConsoleBundleStalenessConsistencyTest {
-    private val bundle: String =
-        requireNotNull(this::class.java.classLoader.getResourceAsStream("console/app.js")) {
-            "console/app.js resource missing on test classpath"
+    private val metaJson: String =
+        requireNotNull(this::class.java.classLoader.getResourceAsStream("console/console-build-meta.json")) {
+            "console/console-build-meta.json resource missing on test classpath"
         }.bufferedReader().use { it.readText() }
 
     @Test
-    fun bundledConsoleEpochMatchesServerBuildInfo() {
-        val match = Regex("""const\s+ConsoleBuildEpochMs\s*=\s*(\d+)\s*;""").find(bundle)
-        assertNotNull(match, "ConsoleBuildEpochMs declaration must exist in app.js")
-        val bundleEpoch = match.groupValues[1].toLong()
-        assertEquals(
-            BuildInfo.BUILD_EPOCH_MS,
-            bundleEpoch,
-            "console bundle epoch must equal BuildInfo.BUILD_EPOCH_MS within the same JAR " +
-                "(otherwise the staleness banner fires on a freshly built JAR)",
-        )
+    fun sidecarHasBuildEpochMsField() {
+        val obj = Json.parseToJsonElement(metaJson).jsonObject
+        val buildEpochMs = obj["buildEpochMs"]?.jsonPrimitive?.long
+        assertNotNull(buildEpochMs, "console-build-meta.json must have buildEpochMs field")
+        // The committed sidecar carries reproducible zeros; FeedbackConsoleAssets.kt substitutes
+        // real runtime values (System.currentTimeMillis() / git rev-parse HEAD) when serving.
+        assertTrue(buildEpochMs >= 0, "buildEpochMs must be non-negative")
     }
 
     @Test
-    fun bundledConsoleGitShaMatchesServerBuildInfo() {
-        val match = Regex("""const\s+ConsoleBuildGitSha\s*=\s*'([^']*)'\s*;""").find(bundle)
-        assertNotNull(match, "ConsoleBuildGitSha declaration must exist in app.js")
-        val bundleSha = match.groupValues[1]
-        assertEquals(
-            BuildInfo.GIT_SHA,
-            bundleSha,
-            "console bundle git sha must equal BuildInfo.GIT_SHA within the same JAR",
-        )
+    fun sidecarHasGitShaField() {
+        val obj = Json.parseToJsonElement(metaJson).jsonObject
+        val gitSha = obj["gitSha"]?.jsonPrimitive?.content
+        assertNotNull(gitSha, "console-build-meta.json must have gitSha field")
+        assertTrue(gitSha.isNotEmpty(), "gitSha must not be empty")
     }
 }

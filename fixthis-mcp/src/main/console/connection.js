@@ -1,3 +1,4 @@
+// @requires state.js, api.js
             // Heartbeat timer handles. These are connection-internal browser
             // timer state (not reducer state, not pure) so they live here
             // rather than in connectionFsm.js or state.js.

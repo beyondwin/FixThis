@@ -1,3 +1,4 @@
+// @requires state.js
             async function requestJson(path, options = {}) {
               const method = (options.method || 'GET').toUpperCase();
               const headers = new Headers(options.headers || {});

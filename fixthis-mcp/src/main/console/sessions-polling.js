@@ -1,3 +1,4 @@
+// @requires state.js, api.js
             const SessionsPollIntervalMs = 2000;
 
             // sessionsPollingTimer is the setInterval handle; lives in this

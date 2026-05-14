@@ -1,3 +1,4 @@
+// @requires previewFsm.js
 // previewUseCases.js — action dispatchers for the preview FSM.
 //
 // Pure: no DOM, fetch, timers, localStorage. Takes async primitives

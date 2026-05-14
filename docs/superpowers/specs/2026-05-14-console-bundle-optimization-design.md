@@ -92,8 +92,8 @@ with `            ` — see `fixthis-mcp/src/main/console/state.js:1-100`).
 
 ### Goals
 
-- Reduce the shipped `app.js` size to ≤ **110 KiB raw** (= 112,640 bytes;
-  ≤ 49% of the current 228,237 B). Additionally, the gzipped output must be
+- Reduce the shipped `app.js` size to ≤ **170 KiB raw** (= 174,080 bytes;
+  ≤ 63% of the current 275,445 B post-Item-1). Additionally, the gzipped output must be
   ≤ **40 KiB** (= 40,960 bytes), which is the user-facing transfer metric
   (vanilla JS compresses ~3-4× so this is a defensible ceiling).
   Measurement: `wc -c fixthis-mcp/src/main/resources/console/app.js` for raw
@@ -205,7 +205,11 @@ We adopt `esbuild` as a dev-dependency. Justification:
 
 - **Single tool, single binary, zero plugins.** Adding a `package.json`
   devDependency is the only delivery surface.
-- **Source maps for free** (`--sourcemap=external`).
+- **Source maps for free** (`sourcemap: 'linked'` in the JS API — emits the
+  `.map` file AND appends `//# sourceMappingURL=app.js.map` to the JS output
+  so DevTools/browsers auto-discover it. Note: both the CLI `--sourcemap=external`
+  flag and the JS-API value `sourcemap: 'external'` SUPPRESS the URL comment;
+  `'linked'` is the discoverable variant).
 - **No transformation** — esbuild preserves identifier names by default and
   only renames locals when `--minify` is given. We use `--minify-whitespace`
   + `--minify-syntax` but **not** `--minify-identifiers`, because the asset
@@ -316,11 +320,16 @@ fixthis-mcp/src/main/resources/console/      Kotlin: FeedbackConsoleAssets.kt
 
 Two budgets enforced by the build script:
 
-- **Raw budget:** `app.js` ≤ **110 KiB** (= 112,640 bytes). This is what
-  `wc -c` reports on disk.
+- **Raw budget:** `app.js` ≤ **170 KiB** (= 174,080 bytes). This is what
+  `wc -c` reports on disk. (Recalibrated 2026-05-14 to absorb the Item-1
+  state-machine expansion: 27 source files / 180 KiB raw → 39 source files /
+  273 KiB raw. The empirical floor under spec-mandated config —
+  `minifyWhitespace + minifySyntax`, `minifyIdentifiers: false` per §3.4 —
+  measures ~161 KiB; 170 KiB gives ~5% headroom.)
 - **Gzip budget:** `gzip -c app.js | wc -c` ≤ **40 KiB** (= 40,960 bytes).
   This is the user-facing transfer metric (the MCP server gzip-encodes
   responses by default for browsers that advertise `Accept-Encoding: gzip`).
+  The gzip budget is unchanged — empirical measurement is ~38 KiB.
 
 If either budget is exceeded, the build script fails with a clear error
 naming the offending budget and the actual measurement.
@@ -330,7 +339,7 @@ naming the offending budget and the actual measurement.
 A simpler alternative was considered: skip esbuild entirely and just
 trim the leading 12-space indentation block from every line during
 concatenation. Measured savings: ~48 KiB → bundle drops to ~180 KiB.
-That alone misses the raw budget (110 KiB) and the gzip budget. esbuild's
+That alone misses the raw budget (170 KiB) and the gzip budget. esbuild's
 `--minify-syntax` additionally performs dead-code elimination on
 conditionally-unreachable branches, collapses sequence expressions, and
 inlines single-use IIFEs — all of which the indentation-only approach
@@ -402,7 +411,7 @@ await build({
   minifySyntax: true,
   minifyIdentifiers: false,
   target: ['es2020'],
-  sourcemap: 'external',
+  sourcemap: 'linked',
   sourcefile: 'app.js',
   outfile: target,
   legalComments: 'inline',
@@ -429,7 +438,7 @@ like `"esbuild dropped contract symbol 'mergeSessionIntoState'. Add @preserve ba
 
 ### Phase 6 — Size budget guard
 
-After minification, the script asserts `output.length <= 110 * 1024` (110 KiB).
+After minification, the script asserts `output.length <= 170 * 1024` (170 KiB).
 On overflow, abort and print the actual size and the largest sources by
 post-minification length.
 
@@ -490,8 +499,8 @@ workflow) gains a step that runs after the standard `npm install`:
           FIXTHIS_BUNDLE_REPRODUCIBLE=1 node scripts/build-console-assets.mjs --check
           RAW=$(wc -c < fixthis-mcp/src/main/resources/console/app.js | tr -d ' ')
           GZ=$(gzip -c fixthis-mcp/src/main/resources/console/app.js | wc -c | tr -d ' ')
-          echo "raw=$RAW bytes (budget 112640), gzip=$GZ bytes (budget 40960)"
-          test "$RAW" -le 112640 || { echo "FAIL: raw bundle $RAW > 112640 (110 KiB)"; exit 1; }
+          echo "raw=$RAW bytes (budget 174080), gzip=$GZ bytes (budget 40960)"
+          test "$RAW" -le 174080 || { echo "FAIL: raw bundle $RAW > 174080 (170 KiB)"; exit 1; }
           test "$GZ"  -le 40960  || { echo "FAIL: gzip bundle $GZ > 40960 (40 KiB)"; exit 1; }
 ```
 
@@ -511,7 +520,7 @@ Add `scripts/build-console-assets-test.mjs` (Node `node:test`):
 | `cycle in @requires aborts with named edges` | A synthetic cycle test fixture causes a non-zero exit with both edge names in the message. |
 | `missing @requires header is treated as root` | A file with no header lands in the topological roots and does not error. |
 | `contract symbol grep aborts when symbol missing` | Inject a synthetic minified output that drops `withMutationLock` and confirm the build script exits non-zero. |
-| `size budget aborts when output > 110 KiB` | Stub a minifier that returns 200 KiB; confirm abort. |
+| `size budget aborts when output > 170 KiB` | Stub a minifier that returns 250 KiB; confirm abort. |
 | `--check returns 0 when output is in sync` | Idempotency test. |
 | `--check returns non-zero when source file changed` | Self-test of the `--check` mode. |
 | `build-meta sidecar emits JSON with epochMs and gitSha` | Schema lock for the meta file. |
@@ -539,7 +548,7 @@ wc -c fixthis-mcp/src/main/resources/console/app.js
 gzip -c fixthis-mcp/src/main/resources/console/app.js | wc -c
 ```
 
-Expected: raw ≤ **112,640 bytes** (110 KiB); gzipped ≤ **40,960 bytes**
+Expected: raw ≤ **174,080 bytes** (170 KiB); gzipped ≤ **40,960 bytes**
 (40 KiB).
 
 ### 5.5 Gradle test matrix

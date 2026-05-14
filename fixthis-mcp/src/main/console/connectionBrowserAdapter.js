@@ -1,3 +1,4 @@
+// @requires connectionFsm.js, connectionUseCases.js
 // connectionBrowserAdapter.js — wires connectionUseCases into the browser
 // `state.connection` projection. Keeping this glue in its own file keeps
 // state.js free of FSM details and gives the use cases an explicit entry

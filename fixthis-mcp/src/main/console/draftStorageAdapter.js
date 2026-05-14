@@ -1,3 +1,4 @@
+// @requires draftPorts.js, draftWorkspace.js
 // draftStorageAdapter.js - browser storage adapter for DraftWorkspace recovery.
 
 const DraftWorkspaceKeyPrefix = 'fixthis.workspace.';

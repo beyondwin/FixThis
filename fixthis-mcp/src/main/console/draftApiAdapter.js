@@ -1,3 +1,4 @@
+// @requires draftPorts.js, draftWorkspace.js
 // draftApiAdapter.js - explicit-session HTTP adapter for DraftWorkspace use cases.
 
 function draftItemToAnnotationDraftDto(item, options = {}) {

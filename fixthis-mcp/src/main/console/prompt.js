@@ -1,3 +1,4 @@
+// @requires state.js, draftWorkspace.js, draftUseCases.js
             function promptUnavailableMessage() {
               if (!state.session) return 'Select a history item before copying or sending annotations.';
               const annotations = toolbarAnnotations();

@@ -86,6 +86,7 @@ kotlin.sourceSets.named("main") {
 tasks.named("compileKotlin") { dependsOn(generateBuildInfo) }
 
 tasks.processResources {
+    exclude("**/*.map")
     val sha = resolvedGitSha
     val epoch = resolvedBuildEpochMs
     inputs.property("consoleGitSha", sha)

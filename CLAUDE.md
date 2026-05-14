@@ -25,7 +25,10 @@ constraints — those apply equally to Claude Code.
   [`docs/architecture/adr/`](docs/architecture/adr/).
 - **Console UI iteration** — pass `--console-assets-dir` to read HTML/CSS/JS
   from source instead of the packaged JAR; rebundle JS via
-  `node scripts/build-console-assets.mjs` after edits, then verify with
+  `node scripts/build-console-assets.mjs` after edits (produces minified
+  `app.js` ≤ 170 KiB raw / 40 KiB gzip, an `app.js.map` source map for
+  DevTools, and a `console-build-meta.json` sidecar inlined as
+  `window.FixThisConsoleConfig.buildMeta` at serve time), then verify with
   `node scripts/build-console-assets.mjs --check`. Details in
   [`docs/reference/feedback-console-contract.md`](docs/reference/feedback-console-contract.md).
 - **Connected tests** — require an unlocked interactive emulator or device.

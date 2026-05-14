@@ -1,3 +1,4 @@
+// @requires (none)
 // draftPorts.js - narrow port helpers for DraftWorkspace use cases.
 // Port shape:
 // {

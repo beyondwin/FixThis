@@ -5,6 +5,7 @@ import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.TreeKind
 import io.beyondwin.fixthis.mcp.fixtures.ConsoleHttpTestClient
+import io.beyondwin.fixthis.mcp.fixtures.ConsoleSourceFixtures
 import io.beyondwin.fixthis.mcp.fixtures.FakeIds
 import io.beyondwin.fixthis.mcp.fixtures.FakeLongs
 import io.beyondwin.fixthis.mcp.fixtures.NullableSequencedFingerprintBridge
@@ -240,7 +241,7 @@ class ConsoleFeedbackItemRoutesTest {
 
     @Test
     fun consoleHtmlIncludesSessionPickerControls() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(html.contains("id=\"sessions\""))
         assertTrue(html.contains("/api/sessions"))
@@ -250,7 +251,7 @@ class ConsoleFeedbackItemRoutesTest {
 
     @Test
     fun consoleHtmlOmitsToolbarNavigationControls() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertFalse(html.contains("id=\"backButton\""))
         assertFalse(html.contains("id=\"captureAfterNavigation\""))
@@ -261,7 +262,7 @@ class ConsoleFeedbackItemRoutesTest {
 
     @Test
     fun consoleHtmlUsesBrowserStudioLayout() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(html.contains("class=\"studio-shell\""))
         assertTrue(html.contains("class=\"studio-topbar\""))
@@ -281,7 +282,7 @@ class ConsoleFeedbackItemRoutesTest {
 
     @Test
     fun consoleHtmlKeepsStudioUsableInNarrowBrowser() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(html.contains("@media (max-width: 900px)"))
         assertTrue(Regex("\\.studio-body \\{\\s+grid-template-columns: 1fr;").containsMatchIn(html))
@@ -298,7 +299,7 @@ class ConsoleFeedbackItemRoutesTest {
 
     @Test
     fun consoleHtmlUsesModeAwareStudioInspector() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val pendingRenderer = javascriptFunctionBody(html, "renderPendingItems")
         val createAnnotationFromSelection = javascriptFunctionBody(html, "createAnnotationFromSelection")
         val renderSavedEvidenceGroups = javascriptFunctionBody(html, "renderSavedEvidenceGroups")
@@ -360,7 +361,7 @@ class ConsoleFeedbackItemRoutesTest {
 
     @Test
     fun consoleHtmlEditsSelectedAnnotationsAndFocusesComment() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val toolbarAnnotationCounts = javascriptFunctionBody(html, "toolbarAnnotationCounts")
         val focusCommentInputAtEnd = javascriptFunctionBody(html, "focusCommentInputAtEnd")
         val renderAnnotationDetail = javascriptFunctionBody(html, "renderAnnotationDetail")
@@ -387,7 +388,7 @@ class ConsoleFeedbackItemRoutesTest {
 
     @Test
     fun consoleHtmlResetsAnnotationComposerStateAcrossSessionActions() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(html.contains("function resetAnnotationComposerState(clearFlow = true, clearMirror = true)"))
         assertTrue(
@@ -443,7 +444,7 @@ class ConsoleFeedbackItemRoutesTest {
 
     @Test
     fun consoleHtmlKeepsFixThisTopLevelActionsInStudioTopbar() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(html.contains("id=\"copyPromptButton\""))
         assertTrue(html.contains("id=\"sendAgentButton\""))
@@ -473,7 +474,7 @@ class ConsoleFeedbackItemRoutesTest {
 
     @Test
     fun consoleHtmlAddsStudioKeyboardAndAccessibilityGuards() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val inputGuardBody = javascriptFunctionBody(html, "isTextInputFocused")
         val shortcutBody = javascriptFunctionBody(html, "handleGlobalShortcut")
 
@@ -495,7 +496,7 @@ class ConsoleFeedbackItemRoutesTest {
 
     @Test
     fun consoleHtmlDoesNotRenderSavedAnnotationPinsOnLivePreviewWithoutFocus() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val renderSelectionOverlay = javascriptFunctionBody(html, "renderSelectionOverlay")
 
         assertTrue(
@@ -514,7 +515,7 @@ class ConsoleFeedbackItemRoutesTest {
 
     @Test
     fun consoleHtmlRefreshesSessionSummariesAfterSavedItemDeleteOrEdit() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val deleteSavedEvidenceItem = javascriptFunctionBody(html, "deleteSavedEvidenceItem")
         val applySavedSessionUpdate = javascriptFunctionBody(html, "applySavedSessionUpdate")
 
@@ -534,7 +535,7 @@ class ConsoleFeedbackItemRoutesTest {
 
     @Test
     fun consoleHtmlReplacesPlaceholderYouLabelWithScreensCount() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val formatSessionSummary = javascriptFunctionBody(html, "formatSessionSummary")
 
         // History cards previously showed "You · May 9 · 19:33" — meaningless on a
@@ -549,7 +550,7 @@ class ConsoleFeedbackItemRoutesTest {
 
     @Test
     fun consoleHtmlGroupsSavedAnnotationsByScreenInPanel() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val renderSavedEvidenceGroups = javascriptFunctionBody(html, "renderSavedEvidenceGroups")
 
         // The saved-annotations panel previously rendered a flat list of "1, 2, 3, 4" rows
@@ -593,7 +594,7 @@ class ConsoleFeedbackItemRoutesTest {
 
     @Test
     fun consoleHtmlComposerInspectorAlsoShowsSavedAnnotations() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val renderComposerInspector = javascriptFunctionBody(html, "renderComposerInspector")
 
         // While `addItemsFlow` is active the composer inspector previously hid every saved
@@ -622,7 +623,7 @@ class ConsoleFeedbackItemRoutesTest {
 
     @Test
     fun consoleHtmlNoLongerFiltersSentItemsFromInspector() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         // Narrow scope: latestPersistedScreen() must include SENT items.
         // The send-path filter inside currentPromptAnnotations() is intentional and stays.
         val latestPersistedScreenBody = javascriptFunctionBody(html, "latestPersistedScreen")
@@ -637,7 +638,7 @@ class ConsoleFeedbackItemWorkspaceRoutesTest {
     @Test
     @Suppress("LongMethod")
     fun consoleHtmlIncludesSelectionHandoffWorkspace() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(html.contains("id=\"deviceControl\""))
         assertTrue(html.contains("id=\"devicePicker\""))
@@ -700,7 +701,7 @@ class ConsoleFeedbackItemWorkspaceRoutesTest {
 
     @Test
     fun consoleHtmlDoesNotRenderInternalIdsInHumanLabels() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertFalse(html.contains("id \${shortId(session.sessionId)}"))
         assertFalse(html.contains("\${session.status} | \${shortId(session.sessionId)}"))
@@ -719,7 +720,7 @@ class ConsoleFeedbackItemWorkspaceRoutesTest {
     @Test
     @Suppress("LongMethod")
     fun consoleHtmlRendersStudioSessionHistoryWithoutInternalIds() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val formatSessionLabel = javascriptFunctionBody(html, "formatSessionLabel")
 
         assertTrue(html.contains("function renderSessionsList"))
@@ -800,7 +801,7 @@ class ConsoleFeedbackItemWorkspaceRoutesTest {
 
     @Test
     fun consoleHtmlFlushesPendingAnnotationsBeforeSessionSwitch() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val openSession = javascriptFunctionBody(html, "openSession")
         val newSession = javascriptFunctionBody(html, "newSession")
 
@@ -820,7 +821,7 @@ class ConsoleFeedbackItemWorkspaceRoutesTest {
 
     @Test
     fun consoleUsesOptionASelectAnnotateToolsAndSimpleLabels() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(html.contains("<span>Select</span>"))
         assertTrue(html.contains("<span>Annotate</span>"))
@@ -874,7 +875,7 @@ class ConsoleFeedbackItemWorkspaceRoutesTest {
 
     @Test
     fun consoleHtmlKeepsHiddenInspectorListsOutOfLayout() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(html.contains("[hidden] { display: none !important; }"))
         assertTrue(html.contains("pendingItems.hidden = true"))
@@ -886,7 +887,7 @@ class ConsoleFeedbackItemWorkspaceRoutesTest {
 
     @Test
     fun consoleHtmlShowsStartAnnotatingWhenSavedAnnotationsAreEmpty() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val renderSavedEvidenceGroups = javascriptFunctionBody(html, "renderSavedEvidenceGroups")
 
         assertTrue(renderSavedEvidenceGroups.contains("startAnnotatingButtonHtml()"))
@@ -901,7 +902,7 @@ class ConsoleFeedbackItemWorkspaceRoutesTest {
 
     @Test
     fun consoleHtmlGivesBackToAnnotationsButtonButtonPadding() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(
             Regex("\\.annotation-back \\{[\\s\\S]*min-height: 32px;[\\s\\S]*padding: 0 14px;")
@@ -915,7 +916,7 @@ class ConsoleFeedbackItemWorkspaceRoutesTest {
 
     @Test
     fun consoleHtmlCreatesHistorySessionBeforeAnnotatingFromEmptyState() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val hasActiveHistorySessionForAnnotating = javascriptFunctionBody(html, "hasActiveHistorySessionForAnnotating")
         val ensureSessionForAnnotating = javascriptFunctionBody(html, "ensureSessionForAnnotating")
         val enterAnnotateMode = javascriptFunctionBody(html, "enterAnnotateMode")
@@ -936,14 +937,14 @@ class ConsoleFeedbackItemWorkspaceRoutesTest {
 
     @Test
     fun consoleHtmlNoLongerFiltersReadyForAgentSessions() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val rendered = javascriptFunctionBody(html, "renderSessionsListFromPayload")
         assertFalse(rendered.contains("'ready_for_agent'"), "History list must show sent sessions too")
     }
 
     @Test
     fun consoleHtmlRendersSavedAnnotationsWithSameListUiAfterSessionSwitch() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val renderSavedEvidenceGroups = javascriptFunctionBody(html, "renderSavedEvidenceGroups")
 
         assertTrue(renderSavedEvidenceGroups.contains("const items = savedEvidenceItems();"))
@@ -964,7 +965,7 @@ class ConsoleFeedbackItemWorkspaceRoutesTest {
 class ConsoleFeedbackItemCanvasRoutesTest {
     @Test
     fun consoleHtmlRendersOptionACanvasToolbar() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val toolbarAnnotationCounts = javascriptFunctionBody(html, "toolbarAnnotationCounts")
 
         assertTrue(html.contains("frame.dataset.mode = mode"))
@@ -1004,7 +1005,7 @@ class ConsoleFeedbackItemCanvasRoutesTest {
 
     @Test
     fun consoleHtmlCountsActivePendingAnnotationsInHistory() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val historyOpenCount = javascriptFunctionBody(html, "historyOpenCount")
         val historyDoneCount = javascriptFunctionBody(html, "historyDoneCount")
         val createAnnotationFromSelection = javascriptFunctionBody(html, "createAnnotationFromSelection")
@@ -1031,7 +1032,7 @@ class ConsoleFeedbackItemCanvasRoutesTest {
 
     @Test
     fun consoleHtmlFocusesPendingItemWithoutDrawingUnnumberedSelectionOverlay() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(html.contains("function focusedPendingSelectionSummary()"))
         assertTrue(html.contains("focusedPendingItemIndex != null"))
@@ -1045,7 +1046,7 @@ class ConsoleFeedbackItemCanvasRoutesTest {
     @Test
     @Suppress("LongMethod")
     fun consoleHtmlImplementsSnapshotSelectionModes() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(html.contains("let addItemsFlow"))
         assertTrue(html.contains("let pendingFeedbackItems"))
@@ -1110,7 +1111,7 @@ class ConsoleFeedbackItemCanvasRoutesTest {
 
     @Test
     fun consoleHtmlReportsNavigationCaptureErrors() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(html.contains("navigation.captureError"))
         assertTrue(html.contains("Navigation performed, but capture failed:"))
@@ -1120,7 +1121,7 @@ class ConsoleFeedbackItemCanvasRoutesTest {
 class ConsoleFeedbackItemBatchRoutesTest {
     @Test
     fun consoleHtmlAnnotationSaveUsesCurrentSelectionPayload() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val createAnnotationFromSelection = javascriptFunctionBody(html, "createAnnotationFromSelection")
 
         assertTrue(html.contains("function buildDraftWorkspaceSaveRequest"))
@@ -2300,7 +2301,7 @@ class ConsoleFeedbackItemHistoryRoutesTest {
 
     @Test
     fun historyPipsCollapseWorkingIntoOpen() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         assertFalse(
             html.contains("class=\"hi-pip working\""),
             "History pips must not render a separate working/WIP pip",
@@ -2314,14 +2315,14 @@ class ConsoleFeedbackItemHistoryRoutesTest {
 
     @Test
     fun historyPipDropsPointsLabel() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val rendered = javascriptFunctionBody(html, "renderSessionsListFromPayload")
         assertFalse(rendered.contains("hi-pip points"), "Points pip must be removed")
     }
 
     @Test
     fun consoleHtmlContainsSessionsPolling() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         assertTrue(html.contains("function startSessionsPolling"), html.takeLast(2_000))
         assertTrue(html.contains("async function pollSessionsTick"), "Polling tick must exist")
     }
@@ -2336,7 +2337,7 @@ class ConsoleFeedbackItemHistoryRoutesTest {
         // lives in sessions-polling.js's closure but is still emitted in the
         // bundled IIFE. The withMutationLock + pollingUseCases identifiers
         // must survive for behavior contracts elsewhere.
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         assertTrue(html.contains("let sessionsPollingTimer"))
         assertTrue(html.contains("async function withMutationLock"))
         assertTrue(html.contains("pollingUseCases"), "polling FSM must be wired in")
@@ -2348,14 +2349,14 @@ class ConsoleFeedbackItemHistoryRoutesTest {
 
     @Test
     fun saveToMcpToastMentionsAgentPickup() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         assertTrue(html.contains("Saved to MCP ✓ — agent will pick up"))
         assertFalse(html.contains("Saved to MCP ✓\","), "Old toast text must be gone")
     }
 
     @Test
     fun promptActionsDoNotSilentlyDropUncommentedPendingAnnotations() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val persistAndCollect = javascriptFunctionBody(html, "persistAndCollectItemIds")
 
         assertTrue(
@@ -2374,7 +2375,7 @@ class ConsoleFeedbackItemHistoryRoutesTest {
 
     @Test
     fun mutationsAreWrappedInLock() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val sendAgent = javascriptFunctionBody(html, "sendAgentPrompt")
         val copyPrompt = javascriptFunctionBody(html, "copyPrompt")
         assertTrue(sendAgent.contains("withMutationLock"))
@@ -2383,7 +2384,7 @@ class ConsoleFeedbackItemHistoryRoutesTest {
 
     @Test
     fun mergeSessionIntoStatePreservesUserState() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val body = javascriptFunctionBody(html, "mergeSessionIntoState")
         assertTrue(body.contains("comment.value"), "Must preserve textarea value")
         assertTrue(body.contains("focusedSavedItemId") || body.contains("focusedPendingItemIndex"))
@@ -2393,7 +2394,7 @@ class ConsoleFeedbackItemHistoryRoutesTest {
 
     @Test
     fun mergeSessionIntoStateSkipsHighlightOnBulkChange() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val body = javascriptFunctionBody(html, "mergeSessionIntoState")
         assertTrue(
             body.contains("BULK_CHANGE_HIGHLIGHT_THRESHOLD") || body.contains(">= 6") || body.contains("> 5"),
@@ -2403,7 +2404,7 @@ class ConsoleFeedbackItemHistoryRoutesTest {
 
     @Test
     fun startSessionsPollingIsCalledOnBoot() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         // Boot chain (16-space indent inside .then()): startSessionsPolling() must follow
         // startLivePreviewPolling() in the .then() block that already starts heartbeat + live-preview polling.
         assertTrue(
@@ -2433,7 +2434,7 @@ class ConsoleFeedbackItemHistoryRoutesTest {
         // (MaxConsecutivePollFailures = 5) now live in pollingFsm.js. The
         // counter no longer exists as a module-level let in state.js, but
         // both identifiers must survive in the bundle as part of the FSM.
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         assertTrue(html.contains("consecutiveFailures"), "polling FSM must own the failure counter")
         assertTrue(
             html.contains("MaxConsecutivePollFailures = 5") || html.contains("MaxConsecutivePollFailures=5"),
@@ -2446,7 +2447,7 @@ class ConsoleFeedbackItemHistoryRoutesTest {
         // The reset semantics now live in pollingFsm.js TICK_OK. The
         // top-level pollSessionsTick wrapper still exists for the grep
         // contract; the FSM-side behavior is verified by node tests.
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val body = javascriptFunctionBody(html, "pollSessionsTick")
         assertTrue(
             body.contains("pollingUseCases.pollSessionsTick"),
@@ -2457,7 +2458,7 @@ class ConsoleFeedbackItemHistoryRoutesTest {
     @Test
     fun pollSessionsTickIncrementsFailureCounterOnError() {
         // Increment semantics live in pollingFsm.js TICK_FAILED.
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         assertTrue(
             html.contains("TICK_FAILED"),
             "polling FSM must dispatch TICK_FAILED to increment the failure counter",
@@ -2466,7 +2467,7 @@ class ConsoleFeedbackItemHistoryRoutesTest {
 
     @Test
     fun pollSessionsTickPausesAfterThreshold() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val body = javascriptFunctionBody(html, "pollSessionsTick")
         assertTrue(
             body.contains("setSessionsPollingPaused(true)") || body.contains("stopSessionsPolling()"),
@@ -2476,7 +2477,7 @@ class ConsoleFeedbackItemHistoryRoutesTest {
 
     @Test
     fun visibilityChangeRecoversFromPolledFailure() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         // The visibilitychange handler must restart polling when paused.
         assertTrue(
             html.contains("sessionsPollingPaused") && html.contains("startSessionsPolling"),
@@ -2486,7 +2487,7 @@ class ConsoleFeedbackItemHistoryRoutesTest {
 
     @Test
     fun withMutationLockRecoversFromPolledFailure() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val body = javascriptFunctionBody(html, "withMutationLock")
         assertTrue(
             body.contains("sessionsPollingPaused") || body.contains("startSessionsPolling"),

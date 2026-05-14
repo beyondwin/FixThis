@@ -1,3 +1,4 @@
+// @requires state.js
             // undoRedo.js — ALH-2 pure undo/redo for pending feedback items.
             // Caller passes a state shape { pendingFeedbackItems: [...] }; no
             // closure reference needed.

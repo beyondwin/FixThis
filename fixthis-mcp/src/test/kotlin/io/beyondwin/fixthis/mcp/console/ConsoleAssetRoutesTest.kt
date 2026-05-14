@@ -1,6 +1,7 @@
 package io.beyondwin.fixthis.mcp.console
 
 import io.beyondwin.fixthis.mcp.fixtures.ConsoleHttpTestClient
+import io.beyondwin.fixthis.mcp.fixtures.ConsoleSourceFixtures
 import io.beyondwin.fixthis.mcp.fixtures.consoleTokenFrom
 import io.beyondwin.fixthis.mcp.fixtures.javascriptFunctionBody
 import io.beyondwin.fixthis.mcp.fixtures.writeConsoleAssets
@@ -41,7 +42,7 @@ class ConsoleAssetRoutesTest {
 
     @Test
     fun consoleRequestJsonSendsTokenForMutatingRequestsAndPreservesHeaders() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val requestJsonBody = javascriptFunctionBody(html, "requestJson")
 
         assertTrue(html.contains("window.FixThisConsoleConfig"))
@@ -83,74 +84,11 @@ class ConsoleAssetRoutesTest {
     }
 
     @Test
-    fun generatedConsoleAppMatchesConsoleSourceModules() {
-        val root = generateSequence(File("").absoluteFile) { it.parentFile }
-            .first { File(it, "settings.gradle.kts").isFile || File(it, "settings.gradle").isFile }
-        val sourceDir = File(root, "fixthis-mcp/src/main/console")
-        val modules = listOf(
-            "connectionFsm.js",
-            "connectionUseCases.js",
-            "connectionBrowserAdapter.js",
-            "previewFsm.js",
-            "previewUseCases.js",
-            "previewBrowserAdapter.js",
-            "pollingFsm.js",
-            "pollingUseCases.js",
-            "pollingBrowserAdapter.js",
-            "toolModeFsm.js",
-            "toolModeUseCases.js",
-            "consoleApp.js",
-            "state.js",
-            "staleness.js",
-            "pendingPersistence.js",
-            "draftWorkspace.js",
-            "draftWorkspaceHistory.js",
-            "draftPorts.js",
-            "draftStorageAdapter.js",
-            "beforeunloadGuard.js",
-            "undoRedo.js",
-            "undoKeymatch.js",
-            "previewStaleness.js",
-            "activityDrift.js",
-            "api.js",
-            "draftApiAdapter.js",
-            "draftUseCases.js",
-            "draftCommandQueue.js",
-            "connection.js",
-            "availability.js",
-            "devices.js",
-            "preview.js",
-            "annotations.js",
-            "history.js",
-            "prompt.js",
-            "rendering.js",
-            "sessions-polling.js",
-            "shortcuts.js",
-            "main.js",
-        )
-        val expected = modules.joinToString("\n") { name ->
-            val source = File(sourceDir, name)
-            assertTrue(source.isFile, "Expected console source module $name")
-            "// $name\n${source.readText().trimEnd()}\n"
-        }
-        val generated = File(root, "fixthis-mcp/src/main/resources/console/app.js").readText()
-
-        // Strip the dynamic build header (injected between state.js and api.js) before comparing.
-        // The header entry has the form:
-        // // build-header\nconst ConsoleBuildEpochMs = N;\nconst ConsoleBuildGitSha = 'X';\n
-        // After join('\n') the seam between state.js and the header adds one more \n, giving \n\n before api.js.
-        val headerRegex = Regex(
-            "// build-header\\nconst ConsoleBuildEpochMs = \\d+;\\nconst ConsoleBuildGitSha = '[a-z0-9]+';\\n\\n",
-        )
-        val withoutHeader = generated.replace(headerRegex, "")
-        assertEquals(expected, withoutHeader)
-    }
-
-    @Test
     fun consoleBundleEmbedsBuildEpochAndGitSha() {
         val html = FeedbackConsoleAssets.indexHtml
-        assertTrue(html.contains("const ConsoleBuildEpochMs = "), "must embed build epoch")
-        assertTrue(html.contains("const ConsoleBuildGitSha = '"), "must embed git sha")
+        assertTrue(html.contains("window.FixThisConsoleConfig.buildMeta"), "must embed buildMeta via FixThisConsoleConfig")
+        assertTrue(html.contains("buildEpochMs"), "must embed buildEpochMs in buildMeta")
+        assertTrue(html.contains("gitSha"), "must embed gitSha in buildMeta")
     }
 
     @Test

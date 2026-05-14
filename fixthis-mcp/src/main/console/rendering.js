@@ -1,3 +1,4 @@
+// @requires state.js, annotations.js, draftWorkspace.js
             function renderOverlayBox(overlay, image, bounds, labelText, isDragPreview = false, isFocused = false, annotationIndex = null, extraClass = '', color = null, selectHandler = focusPendingFeedbackItem) {
               if (!bounds) return;
               const left = bounds.left * 100 / image.naturalWidth;

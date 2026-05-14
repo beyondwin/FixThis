@@ -1,3 +1,4 @@
+// @requires (none)
 // toolModeFsm.js — pure reducer for the tool-mode lifecycle.
 //
 // Owns the tool-mode-related state previously held as module-level lets in

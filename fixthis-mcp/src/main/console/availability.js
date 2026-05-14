@@ -1,3 +1,4 @@
+// @requires state.js
 // availability.js
 function computeBlockedReason(status, isAnnotateMode) {
   if (!status) return null;

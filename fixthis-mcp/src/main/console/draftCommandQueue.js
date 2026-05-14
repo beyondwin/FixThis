@@ -1,3 +1,4 @@
+// @requires draftUseCases.js, draftWorkspace.js
 // draftCommandQueue.js - serialize DraftWorkspace application commands.
 
 function createDraftCommandQueue({ getWorkspace, setWorkspace, onStaleResponse = () => {}, onError = () => {} }) {

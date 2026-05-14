@@ -1,3 +1,4 @@
+// @requires state.js, draftWorkspace.js
             function sessionOrdinalLookup(sessions) {
               const ordinalBySessionId = new Map();
               stableHistorySessions(sessions)

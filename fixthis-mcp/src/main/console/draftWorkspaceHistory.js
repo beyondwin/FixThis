@@ -1,3 +1,4 @@
+// @requires (none)
 // draftWorkspaceHistory.js - pure undo/redo helpers for DraftWorkspace items.
 
 const DraftHistoryMaxDepth = 50;

@@ -1,3 +1,4 @@
+// @requires state.js
             // undoKeymatch.js — ALH-2 pure undo/redo keyboard match helpers.
             // The actual addEventListener('keydown', ...) wraps in main.js.
 

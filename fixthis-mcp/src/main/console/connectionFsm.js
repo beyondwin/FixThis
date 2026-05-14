@@ -1,3 +1,4 @@
+// @requires (none)
 // connectionFsm.js — pure reducer for the bridge connection lifecycle.
 //
 // Owns the entire state.connection.* object plus heartbeat-related fields

@@ -5,6 +5,7 @@ import io.beyondwin.fixthis.cli.fixThisJson
 import io.beyondwin.fixthis.mcp.fixtures.ConsoleHttpTestClient
 import io.beyondwin.fixthis.mcp.fixtures.DeviceListBridge
 import io.beyondwin.fixthis.mcp.fixtures.FakeIds
+import io.beyondwin.fixthis.mcp.fixtures.ConsoleSourceFixtures
 import io.beyondwin.fixthis.mcp.fixtures.assertDoesNotClearDraftOrPreview
 import io.beyondwin.fixthis.mcp.fixtures.javascriptFunctionBody
 import io.beyondwin.fixthis.mcp.session.FakeFixThisBridge
@@ -27,7 +28,7 @@ import kotlin.test.assertTrue
 class ConsoleConnectionRoutesTest {
     @Test
     fun consoleHtmlShowsReadableDeviceConnectionStates() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(html.contains("const DeviceUiState = {"))
         assertTrue(html.contains("NONE: 'none'"))
@@ -55,7 +56,7 @@ class ConsoleConnectionRoutesTest {
 
     @Test
     fun consoleHtmlRefreshesConnectionStatusWhileDeviceIsSelected() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val startHeartbeatPolling = javascriptFunctionBody(html, "startHeartbeatPolling")
         val stopHeartbeatPolling = javascriptFunctionBody(html, "stopHeartbeatPolling")
         val sendBridgeHeartbeat = javascriptFunctionBody(html, "sendBridgeHeartbeat")
@@ -76,7 +77,7 @@ class ConsoleConnectionRoutesTest {
 
     @Test
     fun consoleHasSimpleConnectionRecoveryCard() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val refreshConnectionBody = javascriptFunctionBody(html, "refreshConnection")
         val renderConnectionBody = javascriptFunctionBody(html, "renderConnection")
         val launchAppBody = javascriptFunctionBody(html, "launchApp")
@@ -104,7 +105,7 @@ class ConsoleConnectionRoutesTest {
 
     @Test
     fun connectionDropPreservesDraftWorkAndMarksPreviewStale() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val applyConnectionBody = javascriptFunctionBody(html, "applyConnectionStatus")
 
         assertTrue(applyConnectionBody.contains("pendingFeedbackItems"))
@@ -119,7 +120,7 @@ class ConsoleConnectionRoutesTest {
 
     @Test
     fun previewFailureMarksConnectionPausedWithoutClearingDrafts() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val refreshPreviewBody = javascriptFunctionBody(html, "refreshPreview")
         val refreshConnectionBody = javascriptFunctionBody(html, "refreshConnection")
         val friendlyErrorMessageBody = javascriptFunctionBody(html, "friendlyErrorMessage")
@@ -167,7 +168,7 @@ class ConsoleConnectionRoutesTest {
 
     @Test
     fun readyConnectionSyncsSelectedDeviceBeforePreviewPolling() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val applyConnectionBody = javascriptFunctionBody(html, "applyConnectionStatus")
         val syncSelectedDeviceBody = javascriptFunctionBody(html, "syncSelectedDeviceFromConnection")
 
@@ -402,7 +403,7 @@ class ConsoleConnectionRoutesTest {
 class ConsoleDeviceSelectionRoutesTest {
     @Test
     fun consoleHtmlDisablesPreviewPollingForUnavailableDeviceSelection() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(
             html.contains("const selectedSerial = selected && selected.state === 'device' ? selected.serial : null;"),
@@ -419,7 +420,7 @@ class ConsoleDeviceSelectionRoutesTest {
 
     @Test
     fun consoleHtmlAutoSelectsSingleConnectedDeviceOnRefresh() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val refreshDevices = javascriptFunctionBody(html, "refreshDevices")
 
         assertTrue(refreshDevices.contains("let payload = await requestJson('/api/devices');"))
@@ -440,7 +441,7 @@ class ConsoleDeviceSelectionRoutesTest {
 
     @Test
     fun consoleHtmlRerendersPreviewWhenDeviceSelectionInvalidatesPreview() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val renderDeviceList = javascriptFunctionBody(html, "renderDeviceList")
         val invalidatesPreview = "\\s*bumpSessionMutationGeneration\\(\\);" +
             "\\s*invalidatePreviewContext\\(\\);\\s*renderPreviewOnly\\(\\);\\s*\\}"
@@ -467,7 +468,7 @@ class ConsoleDeviceSelectionRoutesTest {
 
     @Test
     fun consoleHtmlClearsDeviceUiOnlyAfterClearSelectionSucceeds() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val clearRequest = "renderDeviceList(await requestJson('/api/device/disconnect', { method: 'POST' }));"
         val clearUi = "setDeviceUiState(DeviceUiState.NONE);"
         val clearRequestIndex = html.indexOf(clearRequest)
@@ -479,7 +480,7 @@ class ConsoleDeviceSelectionRoutesTest {
 
     @Test
     fun consoleHtmlShortensWifiAdbSerialsForNormalDeviceLabels() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(html.contains("function shortenDeviceSerial(serial)"))
         assertTrue(html.contains("withoutServiceSuffix = raw.split('._adb-tls-connect._tcp')[0];"))
@@ -504,7 +505,7 @@ class ConsoleDeviceSelectionRoutesTest {
 
     @Test
     fun consoleHtmlPlacesAnnotateHintOutsideDeviceFrame() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val renderPreviewRegion = javascriptFunctionBody(html, "renderPreviewRegion")
 
         assertTrue(html.contains(".snapshot-stage"))
@@ -523,7 +524,7 @@ class ConsoleDeviceSelectionRoutesTest {
 
     @Test
     fun consoleHtmlKeepsSavedAnnotationPreviewsInCenterDeviceOnly() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val renderSavedEvidenceGroups = javascriptFunctionBody(html, "renderSavedEvidenceGroups")
         val renderSavedEvidenceOverlay = javascriptFunctionBody(html, "renderSavedEvidenceOverlay")
         val renderOverlayBox = javascriptFunctionBody(html, "renderOverlayBox")
@@ -545,7 +546,7 @@ class ConsoleDeviceSelectionRoutesTest {
     @Test
     @Suppress("LongMethod")
     fun consoleHtmlInvalidatesPreviewContextOnDeviceAndSessionBoundaries() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(html.contains("function invalidatePreviewContext()"))
         // Preview FSM single source of truth — invalidate dispatches
@@ -715,7 +716,7 @@ class ConsoleDeviceSelectionRoutesTest {
 class ConsoleConnectionHtmlContractRoutesTest {
     @Test
     fun applyConnectionStatusCallsCheckProtocolCompat() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val body = javascriptFunctionBody(html, "applyConnectionStatus")
         assertTrue(
             body.contains("checkProtocolCompat"),
@@ -729,7 +730,7 @@ class ConsoleConnectionHtmlContractRoutesTest {
 
     @Test
     fun stateConnectionDeclaresSessionsPollingPaused() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         // The flag must be declared on state.connection (or a sibling module-level let).
         assertTrue(
             html.contains("sessionsPollingPaused"),
@@ -743,7 +744,7 @@ class ConsoleConnectionHtmlContractRoutesTest {
 
     @Test
     fun renderConnectionSurfacesSessionsPollingPaused() {
-        val html = FeedbackConsoleAssets.indexHtml
+        val html = ConsoleSourceFixtures.readAll()
         val body = javascriptFunctionBody(html, "renderConnection")
         assertTrue(
             body.contains("sessionsPollingPaused") || body.contains("Reconnecting feedback updates"),

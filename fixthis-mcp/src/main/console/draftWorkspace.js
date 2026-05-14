@@ -1,3 +1,4 @@
+// @requires (none)
 // draftWorkspace.js - pure DraftWorkspace domain policy.
 // No DOM, fetch, localStorage, timers, or global console state in this file.
 

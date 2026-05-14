@@ -1,3 +1,4 @@
+// @requires state.js
             // pendingPersistence.js — write-through mirror to localStorage
             // for pending feedback state (ALH-1/STAB-5). Functions are bare so the
             // concat bundle exposes them in shared closure scope.

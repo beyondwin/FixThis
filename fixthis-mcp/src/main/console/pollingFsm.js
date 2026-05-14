@@ -1,3 +1,4 @@
+// @requires (none)
 // pollingFsm.js — pure reducer for the sessions-polling lifecycle.
 //
 // Owns the polling-related state previously held as module-level lets in
