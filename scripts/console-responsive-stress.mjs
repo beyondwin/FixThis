@@ -91,6 +91,9 @@ async function injectStressState(page) {
         '<rect x="32" y="444" width="328" height="128" rx="12" fill="#ffffff"/>' +
       '</svg>';
     document.getElementById('snapshot').innerHTML =
+      '<div id="annotateHintSlot" class="annotate-hint-slot" aria-live="polite">' +
+        '<div id="annotateHint" class="annotate-hint">Annotate mode</div>' +
+      '</div>' +
       '<div id="snapshotFrame" class="snapshot-frame" data-mode="frozen">' +
         '<span id="previewFrameStatus" class="preview-frame-status" data-state="frozen">Frozen for annotation</span>' +
         '<img id="snapshotImage" alt="FixThis preview" aria-label="FixThis preview" src="data:image/svg+xml,' + encodeURIComponent(previewSvg) + '">' +
@@ -259,6 +262,31 @@ async function assertPreviewFrameStatusBadge(page, viewportName) {
   );
 }
 
+async function assertAnnotateModeBadgeDoesNotWrap(page, viewportName) {
+  const failure = await page.evaluate(() => {
+    const badge = document.getElementById('annotateHint');
+    if (!badge) return { missing: true };
+    const style = getComputedStyle(badge);
+    const box = badge.getBoundingClientRect();
+    return {
+      text: badge.textContent?.trim() || '',
+      whiteSpace: style.whiteSpace,
+      wrappedHeight: box.height,
+    };
+  });
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(failure).filter(([key, value]) => {
+      if (key === 'missing') return value === true;
+      if (key === 'text') return value !== 'Annotate mode';
+      if (key === 'whiteSpace') return value !== 'nowrap';
+      if (key === 'wrappedHeight') return value > 32;
+      return true;
+    })),
+    {},
+    `${viewportName} annotate mode badge wraps`,
+  );
+}
+
 async function assertPendingRecoveryBannerIsReadable(page, viewportName) {
   const failure = await page.evaluate(() => {
     const banner = document.getElementById('pendingRecoveryBanner');
@@ -343,6 +371,7 @@ async function run(baseUrl) {
       await assertHistoryRowsAreStacked(page, viewport.name);
       await assertPreviewFrameMatchesImage(page, viewport.name);
       await assertPreviewFrameStatusBadge(page, viewport.name);
+      await assertAnnotateModeBadgeDoesNotWrap(page, viewport.name);
       await assertPendingRecoveryBannerIsReadable(page, viewport.name);
       await assertCompactHistoryReachable(page, viewport.name);
       await page.close();

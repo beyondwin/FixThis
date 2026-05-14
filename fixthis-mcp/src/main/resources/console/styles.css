@@ -749,7 +749,7 @@
               align-items: center;
               justify-content: center;
               flex-wrap: wrap;
-              gap: 8px;
+              gap: 14px;
               color: var(--txt-2);
               font-size: 13px;
             }
@@ -898,6 +898,7 @@
               color: var(--bg-0);
               font-size: 12px;
               font-weight: 800;
+              line-height: 1.15;
               box-shadow: 0 12px 28px -12px rgba(0, 0, 0, .70);
               white-space: nowrap;
             }
