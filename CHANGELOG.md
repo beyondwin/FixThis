@@ -81,6 +81,51 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
     Task 3, `MainPrintTest` ×2) plus 2 SetupCommand integration tests.
     Module total: 78 tests passing, 0 failures.
 
+- **DX documentation consistency — SSOT topic ownership, npm/runner unification, drift detector (docs, 2026-05-14):**
+  - New `## Prerequisites` section in `CONTRIBUTING.md` documents JDK 21,
+    Android SDK + ADB, Node.js 20.0.0 minimum (enforced via
+    `package.json` `engines` + `.npmrc engine-strict=true`), and
+    Playwright-bundled Chromium with its macOS 11+ / Ubuntu 20.04+ host
+    floor.
+  - New `## Console Inner Loop` section in `CONTRIBUTING.md` documents
+    `scripts/restart-console.sh` (Kotlin server restart loop, port-free,
+    `--with-app` / `--dry-run` / `--port` flags) and
+    `scripts/fixthis-console-dev.sh` (JS-only hot-reload loop using
+    `--console-assets-dir` and auto-opened browser). `CLAUDE.md`'s
+    "Restart loop after Kotlin changes" pointer now links to the new
+    anchor `CONTRIBUTING.md#console-inner-loop`.
+  - `package.json` gains `engines.node: ">=20.0.0"`, five new scripts
+    (`console:activity:test`, `console:preview:test`, `console:session:test`,
+    `console:test:fast`, `console:test:all`) plus `github-slugger` devDep.
+    Existing per-area `console:*:test` scripts now route through the new
+    `scripts/run-console-tests.mjs` runner backed by the single-source-of-truth
+    group catalog at `scripts/console-tests.json`. `console:smoke`,
+    `console:harness`, `console:responsive:stress`, `console:fsm:test`,
+    and `console:build:test` remain on their existing entry points.
+  - `CONTRIBUTING.md` Focused Test Loops + Required Local Checks now use
+    `npm run console:test:fast`, `npm run console:session:test`, and a
+    single `node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview draft session`
+    invocation — eliminating the previous 15-file `node --test` mirror.
+  - `README.md` gains a Node 20+ badge and a cross-link to `AGENTS.md` for
+    MCP-aware agents. `AGENTS.md` gains a banner blockquote prompting
+    sequential reads, a Node.js 20.0+ LTS bullet in Prerequisites linking
+    to CONTRIBUTING's Prerequisites table, and a cross-link to README's
+    Quick Start for human contributors.
+  - New `scripts/check-doc-consistency.mjs` drift detector enforces six
+    rules: (R1) every `console:*` script in `package.json` is referenced
+    in `CONTRIBUTING.md`; (R2) every `npm run console:*` in CONTRIBUTING
+    resolves to a real script; (R3) bidirectional README ↔ AGENTS
+    cross-links; (R4) both contributor scripts named in CONTRIBUTING;
+    (R5) `engines.node` present; (R6) every `*.md#anchor` link in DX
+    docs resolves to a real heading via `github-slugger`. Exit 0 on
+    pass, 1 with `FAIL Rx.…` on drift. Added to CONTRIBUTING's Required
+    Local Checks block and as a required CI step in the `console-js`
+    workflow job (with a new `npm ci` install step).
+  - Plan + spec at
+    `docs/superpowers/{plans,specs}/2026-05-14-dx-docs-consistency-*.md`;
+    final verification: `node scripts/check-doc-consistency.mjs` PASS R1–R6,
+    `npm run console:test:fast` 68/68, `npm run console:test:all` 107/107.
+
 ### Changed
 
 - **Console state machines expanded — Connection, Preview, Polling, Tool-mode FSMs (console, 2026-05-14):**
