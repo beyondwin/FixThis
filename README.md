@@ -28,8 +28,6 @@ room, interop content, or another region that is not a clean component.
 - Use **Save to MCP** with Claude Code or Codex after running the bootstrap script.
 - Runs locally over ADB and `127.0.0.1`; FixThis makes no external API calls.
 - Debug builds only. Jetpack Compose only.
-- External app setup currently uses source/composite-build wiring; artifact
-  publication is tracked in [Release status](#release-status).
 
 ## Quick Start: Sample App to Agent Handoff
 
@@ -68,28 +66,6 @@ copied compact Markdown or saved a local MCP handoff.
 | Inspect CLI, MCP, or JSON contracts | [Documentation index](docs/index.md) |
 | Contribute | [Contributing guide](CONTRIBUTING.md) |
 
-## Release Status
-
-FixThis has GitHub source releases, starting with
-[v0.1.0](docs/releases/v0.1.0.md), and current `main` can be tried directly
-from source.
-
-It is not yet on Maven Central or the Gradle Plugin Portal. External projects
-currently wire this repository with Gradle composite build (`includeBuild`) or
-local repository setup until artifacts are released.
-
-The live readiness dashboard is
-[Release readiness](docs/contributing/release-readiness.md). It lists the
-supported install paths today, future artifact coordinates, and the checks
-required before public artifact instructions can replace source/composite
-setup.
-
-Current `main` also contains unreleased hardening after v0.1.0. See
-[Unreleased changes since v0.1.0](docs/releases/unreleased.md) and
-[`CHANGELOG.md`](CHANGELOG.md#unreleased) before cutting the next tag.
-
-Agents working inside this repository should also read [AGENTS.md](AGENTS.md).
-
 ## Trust and Privacy
 
 FixThis is local-first: the sidekick talks to the desktop tools over ADB, the
@@ -117,19 +93,6 @@ Modern coding agents already accept screenshots and accessibility trees. FixThis
 
 If your screen has a single obvious target with clear text, a plain screenshot may already be enough. FixThis pays off when the UI is dense, list-rendered, or labeled mostly by composable name.
 
-## Scope (V1)
-
-FixThis is intentionally narrow today:
-
-- **Jetpack Compose only.** View-based hierarchies (XML, AndroidView interop, web views) are **not detected** for source candidates.
-- **Debug builds only.** Sidekick ships as a `debugImplementation` artifact and is omitted from release. No production runtime cost.
-- **Local-only & ADB-only.** No cloud, no upload, no external network call. Artifacts live under `.fixthis/`.
-- **No required testTags.** Smart Select prefers semantics + nearby labels + composable-name conventions.
-- **No AccessibilityService.** Inspection runs in-process inside the debug app via the sidekick.
-- **MCP-first.** The browser feedback console is the primary surface; the Android app shows only a connection pill.
-- **Source candidates are best-effort.** Up to 3 candidates plus a margin score so the agent can pick or verify.
-- **Screenshots are pixel captures.** Editable / password text is redacted, but pixels may still contain sensitive content.
-
 ## Module Map
 
 | Module | Role |
@@ -147,19 +110,46 @@ Architecture details live in [Architecture overview](docs/architecture/overview.
 
 > ⚠️ **Source release available.** FixThis has GitHub Releases for source
 > snapshots, starting with [v0.1.0](docs/releases/v0.1.0.md), but it is not yet
-> on Maven Central or the Gradle Plugin Portal. External projects must wire this
-> repository via Gradle composite build (`includeBuild`) until artifacts are
-> released. See
-> [Release readiness](docs/contributing/release-readiness.md) for the publishing
-> checklist.
->
-> Current `main` also contains unreleased hardening after v0.1.0. See
-> [Unreleased changes since v0.1.0](docs/releases/unreleased.md) and
-> [`CHANGELOG.md`](CHANGELOG.md#unreleased) before cutting the next tag.
+> on Maven Central or the Gradle Plugin Portal. Current `main` can be tried
+> directly from source.
+
+External projects currently wire this repository via Gradle composite build
+(`includeBuild`) or local repository setup until artifacts are released.
+
+The live readiness dashboard is
+[Release readiness](docs/contributing/release-readiness.md). It lists the
+supported install paths today, future artifact coordinates, and the checks
+required before public artifact instructions can replace source/composite
+setup.
+
+Current `main` also contains unreleased hardening after v0.1.0. See
+[Unreleased changes since v0.1.0](docs/releases/unreleased.md) and
+[`CHANGELOG.md`](CHANGELOG.md#unreleased) before cutting the next tag.
+
+Agents working inside this repository should also read [AGENTS.md](AGENTS.md).
 
 ## Roadmap
 
-V1 is intentionally narrow. High-priority items beyond V1:
+FixThis V1 is intentionally narrow:
+
+- **Jetpack Compose only.** View-based hierarchies (XML, AndroidView interop,
+  web views) are **not detected** for source candidates.
+- **Debug builds only.** Sidekick ships as a `debugImplementation` artifact and
+  is omitted from release. No production runtime cost.
+- **Local-only & ADB-only.** No cloud, no upload, no external network call.
+  Artifacts live under `.fixthis/`.
+- **No required testTags.** Smart Select prefers semantics, nearby labels, and
+  composable-name conventions.
+- **No AccessibilityService.** Inspection runs in-process inside the debug app
+  via the sidekick.
+- **MCP-first.** The browser feedback console is the primary surface; the
+  Android app shows only a connection pill.
+- **Source candidates are best-effort.** Up to 3 candidates plus a margin score
+  so the agent can pick or verify.
+- **Screenshots are pixel captures.** Editable / password text is redacted, but
+  pixels may still contain sensitive content.
+
+High-priority items beyond V1:
 
 - **Maven Central / Gradle Plugin Portal release** — single-line install for external projects.
 - **Deeper `AndroidView` / interop awareness** — FixThis now warns when a
