@@ -205,11 +205,16 @@ class FeedbackSessionService(
                 annotations.cancelPreviewFeedbackSave(reservation)
             }
         }
+        val serverFrozenFingerprint = reservation.serverFrozenFingerprint()
+        val clientFrozenFingerprint = request.fingerprintCheck.frozenFingerprint
         return annotations.commitPreviewFeedbackSaveWithMetadata(
             reservation = reservation,
-            frozenFingerprint = request.fingerprintCheck.frozenFingerprint,
+            frozenFingerprint = serverFrozenFingerprint.value,
             currentFingerprint = currentScreen.fingerprint,
             forceMismatchOverride = request.fingerprintCheck.forceMismatchOverride,
+            frozenFingerprintSource = serverFrozenFingerprint.source,
+            clientFrozenFingerprintMismatched = clientFrozenFingerprint != null &&
+                clientFrozenFingerprint != serverFrozenFingerprint.value,
         )
     }
 

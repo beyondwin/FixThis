@@ -13,12 +13,17 @@ import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
 import io.beyondwin.fixthis.mcp.console.AnnotationDraftDto
 import io.beyondwin.fixthis.mcp.console.ConsoleConnectionState
 import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
+import io.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
+import io.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
 import io.beyondwin.fixthis.mcp.tools.FixThisBridge
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.io.File
 import java.util.concurrent.CountDownLatch
@@ -442,6 +447,124 @@ class FeedbackSessionServiceTest {
         assertTrue(updated.items[1].nearbyNodes.isNotEmpty())
         assertTrue(updated.items.first().sourceCandidates.isNotEmpty())
         assertTrue(updated.items[1].sourceCandidates.isNotEmpty())
+    }
+
+    @Test
+    fun liveSaveUsesCachedPreviewFingerprintWhenClientOmitsFrozenFingerprint() = runBlocking {
+        val root = tempDir(prefix = "fixthis-server-fingerprint-")
+        val bridge = FakeFixThisBridge(
+            snapshotMutator = { callIndex, json ->
+                if (callIndex == 1) json.withFingerprint("frozen-server") else json.withFingerprint("current-live")
+            },
+        )
+        val service = FeedbackSessionService(
+            bridge = bridge,
+            store = FeedbackSessionStore(
+                idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1"),
+            ),
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val preview = service.capturePreview(session.sessionId)
+
+        val error = assertFailsWith<ScreenFingerprintMismatch> {
+            service.savePreviewFeedbackItemsWithLiveFingerprintMetadata(
+                PreviewFeedbackLiveSaveRequest(
+                    sessionId = session.sessionId,
+                    previewId = preview.previewId,
+                    items = listOf(validAreaDraft()),
+                    fallbackScreen = preview.screen,
+                    fingerprintCheck = PreviewFeedbackFingerprintCheck(
+                        frozenFingerprint = null,
+                        forceMismatchOverride = false,
+                    ),
+                ),
+            )
+        }
+
+        assertEquals("frozen-server", error.frozenFingerprint)
+        assertEquals("current-live", error.currentFingerprint)
+    }
+
+    @Test
+    fun liveSaveIgnoresClientFrozenFingerprintThatDiffersFromCachedPreview() = runBlocking {
+        val root = tempDir(prefix = "fixthis-server-fingerprint-tamper-")
+        val bridge = FakeFixThisBridge(
+            snapshotMutator = { callIndex, json ->
+                if (callIndex == 1) json.withFingerprint("frozen-server") else json.withFingerprint("current-live")
+            },
+        )
+        val service = FeedbackSessionService(
+            bridge = bridge,
+            store = FeedbackSessionStore(
+                idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1"),
+            ),
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val preview = service.capturePreview(session.sessionId)
+
+        val error = assertFailsWith<ScreenFingerprintMismatch> {
+            service.savePreviewFeedbackItemsWithLiveFingerprintMetadata(
+                PreviewFeedbackLiveSaveRequest(
+                    sessionId = session.sessionId,
+                    previewId = preview.previewId,
+                    items = listOf(validAreaDraft()),
+                    fallbackScreen = preview.screen,
+                    fingerprintCheck = PreviewFeedbackFingerprintCheck(
+                        frozenFingerprint = "current-live",
+                        forceMismatchOverride = false,
+                    ),
+                ),
+            )
+        }
+
+        assertEquals("frozen-server", error.frozenFingerprint)
+        assertEquals("current-live", error.currentFingerprint)
+    }
+
+    @Test
+    fun liveForceSavePersistsServerFingerprintSourceAndClientMismatchMetadata() = runBlocking {
+        val root = tempDir(prefix = "fixthis-server-fingerprint-metadata-")
+        val eventRoot = File(root, "events")
+        val bridge = FakeFixThisBridge(
+            snapshotMutator = { callIndex, json ->
+                if (callIndex == 1) json.withFingerprint("frozen-server") else json.withFingerprint("current-live")
+            },
+        )
+        val service = FeedbackSessionService(
+            bridge = bridge,
+            store = FeedbackSessionStore(
+                idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1", "event-1"),
+                eventLogWriterProvider = { sessionId -> EventLogWriter(File(eventRoot, "$sessionId/events")) },
+            ),
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val preview = service.capturePreview(session.sessionId)
+
+        service.savePreviewFeedbackItemsWithLiveFingerprintMetadata(
+            PreviewFeedbackLiveSaveRequest(
+                sessionId = session.sessionId,
+                previewId = preview.previewId,
+                items = listOf(validAreaDraft()),
+                fallbackScreen = preview.screen,
+                fingerprintCheck = PreviewFeedbackFingerprintCheck(
+                    frozenFingerprint = "current-live",
+                    forceMismatchOverride = true,
+                ),
+            ),
+        )
+
+        val event = EventLogReader(File(eventRoot, "${session.sessionId}/events"))
+            .readAll()
+            .single { it.type == "addScreenWithItems" }
+        assertEquals(true, event.payload["forceMismatchOverride"]?.jsonPrimitive?.boolean)
+        assertEquals("previewCache", event.payload["frozenFingerprintSource"]?.jsonPrimitive?.contentOrNull)
+        assertEquals(true, event.payload["clientFrozenFingerprintMismatched"]?.jsonPrimitive?.boolean)
     }
 
     @Test
@@ -1441,6 +1564,17 @@ class FeedbackSessionServiceTest {
         store = FeedbackSessionStore(),
         projectRoot = tempDir(prefix = "fixthis-connection-service-").absolutePath,
         defaultPackageName = "io.beyondwin.fixthis.sample",
+    )
+
+    private fun JsonObject.withFingerprint(value: String): JsonObject = buildJsonObject {
+        this@withFingerprint.forEach { (key, element) -> put(key, element) }
+        put("fingerprint", value)
+    }
+
+    private fun validAreaDraft(): AnnotationDraftDto = AnnotationDraftDto(
+        targetType = FeedbackTargetType.AREA,
+        bounds = FixThisRect(112f, 426f, 351f, 588f),
+        comment = "Change this visual area",
     )
 
     private class SecondCaptureBlockingBridge : FixThisBridge {

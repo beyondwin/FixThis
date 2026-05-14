@@ -26,6 +26,7 @@ internal class FakeFixThisBridge(
     private val devicesError: Throwable? = null,
     private val heartbeatError: Throwable? = null,
     private val statusProvider: (() -> JsonObject)? = null,
+    private val snapshotMutator: (callIndex: Int, payload: JsonObject) -> JsonObject = { _, payload -> payload },
 ) : FixThisBridge {
     val resolvedOverrides = mutableListOf<String?>()
     val navigationRequests = mutableListOf<FeedbackNavigationRequest>()
@@ -104,52 +105,55 @@ internal class FakeFixThisBridge(
         sessionId: String?,
         screenId: String?,
         destinationDirectory: File?,
-    ): JsonObject = buildJsonObject {
+    ): JsonObject {
         captureError?.let { throw it }
         lastCaptureSessionId = sessionId
         lastCaptureScreenId = screenId
         lastCaptureDestination = destinationDirectory?.absolutePath
         captureCount += 1
-        put("activity", "MainActivity")
-        put("sourceIndexAvailable", sourceIndexAvailable)
-        put(
-            "inspection",
-            buildJsonObject {
-                put("activity", "MainActivity")
-                put(
-                    "roots",
-                    JsonArray(
-                        captureRoots.map { root ->
-                            McpProtocol.json.encodeToJsonElement(SnapshotRootDto.serializer(), root)
-                        },
-                    ),
-                )
-                put("sourceIndexAvailable", sourceIndexAvailable)
-                put("errors", JsonArray(emptyList()))
-            },
-        )
-        put(
-            "screenshot",
-            buildJsonObject {
-                val fallbackPath = "/repo/.fixthis/artifacts/screen-1/full.png"
-                val capturedPath = destinationDirectory
-                    ?.resolve("${screenId ?: "screen-1"}-full.png")
-                    ?.absolutePath
-                    ?.also { path ->
-                        runCatching {
-                            File(path).also { file ->
-                                if (file.parentFile?.exists() != true) file.parentFile?.mkdirs()
-                                if (file.parentFile?.exists() == true) {
-                                    file.writeBytes(byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47))
+        val payload = buildJsonObject {
+            put("activity", "MainActivity")
+            put("sourceIndexAvailable", sourceIndexAvailable)
+            put(
+                "inspection",
+                buildJsonObject {
+                    put("activity", "MainActivity")
+                    put(
+                        "roots",
+                        JsonArray(
+                            captureRoots.map { root ->
+                                McpProtocol.json.encodeToJsonElement(SnapshotRootDto.serializer(), root)
+                            },
+                        ),
+                    )
+                    put("sourceIndexAvailable", sourceIndexAvailable)
+                    put("errors", JsonArray(emptyList()))
+                },
+            )
+            put(
+                "screenshot",
+                buildJsonObject {
+                    val fallbackPath = "/repo/.fixthis/artifacts/screen-1/full.png"
+                    val capturedPath = destinationDirectory
+                        ?.resolve("${screenId ?: "screen-1"}-full.png")
+                        ?.absolutePath
+                        ?.also { path ->
+                            runCatching {
+                                File(path).also { file ->
+                                    if (file.parentFile?.exists() != true) file.parentFile?.mkdirs()
+                                    if (file.parentFile?.exists() == true) {
+                                        file.writeBytes(byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47))
+                                    }
                                 }
                             }
                         }
-                    }
-                put("desktopFullPath", capturedPath ?: fallbackPath)
-                put("width", 720)
-                put("height", 1600)
-            },
-        )
+                    put("desktopFullPath", capturedPath ?: fallbackPath)
+                    put("width", 720)
+                    put("height", 1600)
+                },
+            )
+        }
+        return snapshotMutator(captureCount, payload)
     }
 
     override suspend fun readSourceIndex(packageName: String): JsonObject = buildJsonObject {

@@ -101,11 +101,15 @@ class AnnotationWorkflow(
         frozenFingerprint: String? = null,
         currentFingerprint: String? = null,
         forceMismatchOverride: Boolean = false,
+        frozenFingerprintSource: String = "client",
+        clientFrozenFingerprintMismatched: Boolean = false,
     ): SessionDto = draftService.commitPreviewFeedbackSave(
         reservation = reservation,
         frozenFingerprint = frozenFingerprint,
         currentFingerprint = currentFingerprint,
         forceMismatchOverride = forceMismatchOverride,
+        frozenFingerprintSource = frozenFingerprintSource,
+        clientFrozenFingerprintMismatched = clientFrozenFingerprintMismatched,
     )
 
     internal fun commitPreviewFeedbackSaveWithMetadata(
@@ -113,11 +117,15 @@ class AnnotationWorkflow(
         frozenFingerprint: String? = null,
         currentFingerprint: String? = null,
         forceMismatchOverride: Boolean = false,
+        frozenFingerprintSource: String = "client",
+        clientFrozenFingerprintMismatched: Boolean = false,
     ): PreviewFeedbackSaveResult = draftService.commitPreviewFeedbackSaveWithMetadata(
         reservation = reservation,
         frozenFingerprint = frozenFingerprint,
         currentFingerprint = currentFingerprint,
         forceMismatchOverride = forceMismatchOverride,
+        frozenFingerprintSource = frozenFingerprintSource,
+        clientFrozenFingerprintMismatched = clientFrozenFingerprintMismatched,
     )
 
     internal fun cancelPreviewFeedbackSave(reservation: PreviewFeedbackSaveReservation) {

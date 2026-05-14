@@ -15,6 +15,17 @@ internal data class PreviewFeedbackSaveReservation(
     val allowBlankComments: Boolean,
     val inFlightKey: String,
     val preview: PreviewRecord,
+    val frozenFingerprintSource: String,
+)
+
+internal data class PreviewFrozenFingerprint(
+    val value: String?,
+    val source: String,
+)
+
+internal fun PreviewFeedbackSaveReservation.serverFrozenFingerprint(): PreviewFrozenFingerprint = PreviewFrozenFingerprint(
+    value = preview.snapshot.screen.fingerprint,
+    source = frozenFingerprintSource,
 )
 
 private data class PreviewSaveSlot(
@@ -176,6 +187,7 @@ class FeedbackDraftService(
                 allowBlankComments = allowBlankComments,
                 inFlightKey = slot.inFlightKey,
                 preview = preview,
+                frozenFingerprintSource = if (slot.cachedPreview != null) "previewCache" else "fallbackScreen",
             )
         } catch (error: Throwable) {
             releasePreviewSaveReservation(slot.inFlightKey)
@@ -206,11 +218,15 @@ class FeedbackDraftService(
         frozenFingerprint: String? = null,
         currentFingerprint: String? = null,
         forceMismatchOverride: Boolean = false,
+        frozenFingerprintSource: String = "client",
+        clientFrozenFingerprintMismatched: Boolean = false,
     ): SessionDto = commitPreviewFeedbackSaveWithMetadata(
         reservation = reservation,
         frozenFingerprint = frozenFingerprint,
         currentFingerprint = currentFingerprint,
         forceMismatchOverride = forceMismatchOverride,
+        frozenFingerprintSource = frozenFingerprintSource,
+        clientFrozenFingerprintMismatched = clientFrozenFingerprintMismatched,
     ).session
 
     internal fun commitPreviewFeedbackSaveWithMetadata(
@@ -218,10 +234,17 @@ class FeedbackDraftService(
         frozenFingerprint: String? = null,
         currentFingerprint: String? = null,
         forceMismatchOverride: Boolean = false,
+        frozenFingerprintSource: String = "client",
+        clientFrozenFingerprintMismatched: Boolean = false,
     ): PreviewFeedbackSaveResult = try {
         enforceFingerprintMatch(frozenFingerprint, currentFingerprint, forceMismatchOverride)
         val fingerprintUnavailableReason = fingerprintUnavailableReason(frozenFingerprint, currentFingerprint)
-        val eventMetadata = previewSaveEventMetadata(forceMismatchOverride, fingerprintUnavailableReason)
+        val eventMetadata = previewSaveEventMetadata(
+            forceMismatchOverride = forceMismatchOverride,
+            fingerprintUnavailableReason = fingerprintUnavailableReason,
+            frozenFingerprintSource = frozenFingerprintSource,
+            clientFrozenFingerprintMismatched = clientFrozenFingerprintMismatched,
+        )
         val preview = reservation.preview
         val feedbackItems = reservation.items.map { pending ->
             targetEvidenceService.buildFeedbackItem(
@@ -292,11 +315,15 @@ class FeedbackDraftService(
     private fun previewSaveEventMetadata(
         forceMismatchOverride: Boolean,
         fingerprintUnavailableReason: String?,
+        frozenFingerprintSource: String,
+        clientFrozenFingerprintMismatched: Boolean,
     ): JsonObject = buildJsonObject {
         if (forceMismatchOverride) put("forceMismatchOverride", true)
         if (fingerprintUnavailableReason != null) {
             put("fingerprintUnavailableReason", fingerprintUnavailableReason)
         }
+        put("frozenFingerprintSource", frozenFingerprintSource)
+        if (clientFrozenFingerprintMismatched) put("clientFrozenFingerprintMismatched", true)
     }
 
     private fun validatePreviewPendingItems(
