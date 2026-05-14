@@ -260,7 +260,7 @@ class ConsolePreviewRoutesTest {
                 "if (addFlowContextGeneration !== previewUseCases.getState().contextGeneration) return;",
             ),
         )
-        assertTrue(html.contains("state.preview = preview;"))
+        assertTrue(html.contains("setConsolePreview(preview);"))
         assertTrue(html.contains("if (!state.preview) {"))
         assertTrue(html.contains("startDraftFreeze(draftWorkspace"))
         assertTrue(html.contains("capture: async () => state.preview"))
@@ -285,7 +285,7 @@ class ConsolePreviewRoutesTest {
     fun consoleHtmlClearsSavedPreviewAndDoesNotAutoFetchWhenManual() {
         val html = ConsoleSourceFixtures.readAll()
 
-        assertTrue(html.contains("state.preview = null;"))
+        assertTrue(html.contains("setConsolePreview(null);"))
         assertTrue(html.contains("function shouldAutoFetchPreview()"))
         assertTrue(html.contains("return configuredPreviewIntervalMs() != null && shouldPollPreview();"))
         assertTrue(

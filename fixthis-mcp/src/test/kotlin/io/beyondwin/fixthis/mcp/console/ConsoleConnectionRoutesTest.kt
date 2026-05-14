@@ -444,7 +444,7 @@ class ConsoleDeviceSelectionRoutesTest {
         val html = ConsoleSourceFixtures.readAll()
         val renderDeviceList = javascriptFunctionBody(html, "renderDeviceList")
         val invalidatesPreview = "\\s*bumpSessionMutationGeneration\\(\\);" +
-            "\\s*invalidatePreviewContext\\(\\);\\s*renderPreviewOnly\\(\\);\\s*\\}"
+            "\\s*invalidateCanonicalPreviewContext\\(\\);\\s*renderPreviewOnly\\(\\);\\s*\\}"
         val noDevicesSelectionChange = Regex(
             "if \\(!devices\\.length\\) \\{[\\s\\S]*?" +
                 "if \\(previousSelectedDeviceSerial !== selectedSerial\\) \\{$invalidatesPreview",
@@ -552,27 +552,27 @@ class ConsoleDeviceSelectionRoutesTest {
     fun consoleHtmlInvalidatesPreviewContextOnDeviceAndSessionBoundaries() {
         val html = ConsoleSourceFixtures.readAll()
 
-        assertTrue(html.contains("function invalidatePreviewContext()"))
+        assertTrue(html.contains("function invalidateCanonicalPreviewContext()"))
         // Preview FSM single source of truth — invalidate dispatches
         // CONTEXT_CHANGED, which clears inFlight + current and bumps
         // requestGeneration/contextGeneration atomically.
         assertTrue(html.contains("previewUseCases.contextChanged();"))
-        assertTrue(html.contains("state.preview = null;"))
+        assertTrue(html.contains("setConsolePreview(null);"))
         assertTrue(
             Regex(
-                "async function selectDevice\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);" +
+                "async function selectDevice\\(\\)[\\s\\S]*invalidateCanonicalPreviewContext\\(\\);" +
                     "[\\s\\S]*/api/device/select",
             ).containsMatchIn(html),
         )
         assertTrue(
             Regex(
-                "async function disconnectDevice\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);" +
+                "async function disconnectDevice\\(\\)[\\s\\S]*invalidateCanonicalPreviewContext\\(\\);" +
                     "[\\s\\S]*/api/device/disconnect",
             ).containsMatchIn(html),
         )
         assertTrue(
             Regex(
-                "async function openSession\\(sessionId\\)[\\s\\S]*invalidatePreviewContext\\(\\);" +
+                "async function openSession\\(sessionId\\)[\\s\\S]*invalidateCanonicalPreviewContext\\(\\);" +
                     "[\\s\\S]*/api/session/open",
             ).containsMatchIn(html),
         )
@@ -596,22 +596,22 @@ class ConsoleDeviceSelectionRoutesTest {
         assertTrue(html.contains("return savedScreen || state.preview?.screen || latestPersistedScreen();"))
         assertTrue(
             Regex(
-                "async function newSession\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);" +
+                "async function newSession\\(\\)[\\s\\S]*invalidateCanonicalPreviewContext\\(\\);" +
                     "[\\s\\S]*/api/session/open",
             ).containsMatchIn(html),
         )
         assertTrue(
             Regex(
-                "async function closeSession\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);" +
+                "async function closeSession\\(\\)[\\s\\S]*invalidateCanonicalPreviewContext\\(\\);" +
                     "[\\s\\S]*/api/session/close",
             ).containsMatchIn(html),
         )
         assertTrue(html.contains("const previousSelectedDeviceSerial = state.selectedDeviceSerial;"))
         assertTrue(html.contains("if (previousSelectedDeviceSerial !== selectedSerial) {"))
         assertFalse(
-            html.contains("state.preview = null;\n              state.session = await requestJson('/api/session/open'"),
+            html.contains("setConsolePreview(null);\n              setConsoleSession(await requestJson('/api/session/open'"),
         )
-        assertFalse(html.contains("state.preview = null;\n              await refreshSessions();"))
+        assertFalse(html.contains("setConsolePreview(null);\n              await refreshSessions();"))
     }
 
     @Test

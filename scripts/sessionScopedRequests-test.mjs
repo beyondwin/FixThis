@@ -76,7 +76,7 @@ test('full render rebuilds history summaries from current state', () => {
 
 test('copy prompt refreshes session summaries after marking items handed off', () => {
   const copy = body(promptSource, 'async function copyPrompt()');
-  assert.match(copy, /const updated = await markItemsHandedOff\(sessionId,\s*itemIds\);[\s\S]*?state\.session = updated;[\s\S]*?await refreshSessions\(\);[\s\S]*?renderInspectorRegion\(\);/);
+  assert.match(copy, /const updated = await markItemsHandedOff\(sessionId,\s*itemIds\);[\s\S]*?setConsoleSession\(updated\);[\s\S]*?await refreshSessions\(\);[\s\S]*?renderInspectorRegion\(\);/);
 });
 
 test('draft command queue fences stale pending save responses', () => {

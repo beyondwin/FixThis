@@ -40,7 +40,7 @@ class ConsoleAssetContractTest {
         assertTrue(html.contains("id=\"sessions\""))
         assertTrue(html.contains("/api/sessions"))
         assertTrue(html.contains("/api/session/open"))
-        assertTrue(html.contains("state.session = null;"))
+        assertTrue(html.contains("setConsoleSession(null);"))
     }
 
     @Test
@@ -203,26 +203,26 @@ class ConsoleAssetContractTest {
     fun consoleHtmlResetsAnnotationComposerStateAcrossSessionActions() {
         val html = ConsoleSourceFixtures.readAll()
 
-        assertTrue(html.contains("function resetAnnotationComposerState(clearFlow = true, clearMirror = true)"))
+        assertTrue(html.contains("function resetCanonicalAnnotationComposerState(clearFlow = true, clearMirror = true)"))
         assertTrue(
             Regex("if \\(clearMirror\\) \\{[\\s\\S]*clearPendingMirror\\(state\\.session\\?\\.sessionId\\);")
                 .containsMatchIn(html),
         )
         assertTrue(
             Regex(
-                "async function openSession\\(sessionId\\)[\\s\\S]*resetAnnotationComposerState\\(true, false\\);" +
+                "async function openSession\\(sessionId\\)[\\s\\S]*resetCanonicalAnnotationComposerState\\(true, false\\);" +
                     "[\\s\\S]*/api/session/open",
             ).containsMatchIn(html),
         )
         assertTrue(
             Regex(
-                "async function newSession\\(\\)[\\s\\S]*resetAnnotationComposerState\\(\\);" +
+                "async function newSession\\(\\)[\\s\\S]*resetCanonicalAnnotationComposerState\\(\\);" +
                     "[\\s\\S]*/api/session/open",
             ).containsMatchIn(html),
         )
         assertTrue(
             Regex(
-                "async function closeSession\\(\\)[\\s\\S]*resetAnnotationComposerState\\(\\);" +
+                "async function closeSession\\(\\)[\\s\\S]*resetCanonicalAnnotationComposerState\\(\\);" +
                     "[\\s\\S]*/api/session/close",
             ).containsMatchIn(html),
         )
@@ -231,19 +231,19 @@ class ConsoleAssetContractTest {
                 "async function deleteHistorySession\\(sessionId\\)[\\s\\S]*const isDisplayedSession = " +
                     "\\(\\) => state\\.session\\?\\.sessionId === sessionId;[\\s\\S]*const wasDisplayedSession = " +
                     "isDisplayedSession\\(\\);[\\s\\S]*if \\(wasDisplayedSession\\) \\{\\s+" +
-                    "resetAnnotationComposerState\\(\\);",
+                    "resetCanonicalAnnotationComposerState\\(\\);",
             ).containsMatchIn(html),
         )
         assertTrue(
             Regex(
                 "async function deleteHistorySession\\(sessionId\\)[\\s\\S]*if " +
-                    "\\(wasDisplayedSession\\) \\{[\\s\\S]*state\\.session = null;[\\s\\S]*" +
+                    "\\(wasDisplayedSession\\) \\{[\\s\\S]*setConsoleSession\\(null\\);[\\s\\S]*" +
                     "await refreshSessions\\(\\);\\s+render\\(\\);\\s+await refreshDevices\\(\\);",
             ).containsMatchIn(html),
         )
         assertTrue(
             Regex(
-                "function cancelAddItemsFlow\\(\\)[\\s\\S]*resetAnnotationComposerState\\(\\);" +
+                "function cancelAddItemsFlow\\(\\)[\\s\\S]*resetCanonicalAnnotationComposerState\\(\\);" +
                     "[\\s\\S]*render\\(\\);",
             ).containsMatchIn(html),
         )
