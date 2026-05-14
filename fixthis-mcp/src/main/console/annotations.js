@@ -399,7 +399,7 @@
 
             function resetAnnotationComposerRuntime(clearFlow = true, clearMirror = true) {
               if (clearFlow && clearMirror) deleteCurrentDraftWorkspaceStorage();
-              if (clearFlow) setDraftWorkspace(createEmptyDraftWorkspace());
+              if (clearFlow) setDraftWorkspaceState(createEmptyDraftWorkspace());
               if (clearMirror) {
                 clearPendingMirror(state.session?.sessionId);
                 activePendingMirrorSessions.delete(state.session?.sessionId);
@@ -485,7 +485,7 @@
                     capture: async () => state.preview,
                   },
                 });
-                setDraftWorkspace(nextWorkspace);
+                setDraftWorkspaceState(nextWorkspace);
                 toolModeUseCases.enterAnnotate();
                 toolModeUseCases.focusSavedItem(null, null);
                 render();
@@ -522,7 +522,7 @@
                   activityDriftWarning: checkActivityDrift({ activity: nextWorkspace.context.activityName }, currentActivitySnapshot),
                 };
               }
-              setDraftWorkspace(nextWorkspace);
+              setDraftWorkspaceState(nextWorkspace);
               const createdItem = nextWorkspace.items[nextWorkspace.items.length - 1];
               toolModeUseCases.setHoveredTarget(null);
               toolModeUseCases.focusSavedItem(null, null);
@@ -541,7 +541,7 @@
               if (nextWorkspace.items.length === 0) {
                 deleteCurrentDraftWorkspaceStorage();
               }
-              setDraftWorkspace(nextWorkspace);
+              setDraftWorkspaceState(nextWorkspace);
               showUndoToast(removed.draftItemId);
               setDraftRuntimeFocusIndex(null);
               toolModeUseCases.focusSavedItem(null, null);
@@ -689,7 +689,7 @@
                   return await persistPendingFeedbackItems({ ...options, forceMismatchOverride: true });
                 }
                 if (choice === 'recapture') {
-                  setDraftWorkspace(createEmptyDraftWorkspace());
+                  setDraftWorkspaceState(createEmptyDraftWorkspace());
                   setConsolePreview(null);
                   startLivePreviewPolling();
                   return null;

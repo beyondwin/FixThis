@@ -28,7 +28,7 @@ test('saved list overlays use saved screen context after detail focus clears', (
   const render = body(renderingSource, 'function renderSelectionOverlay()');
   assert.match(render, /focusedSavedScreenId/);
   assert.match(render, /sameScreenItems = savedEvidenceItems\(\)\.filter\(item => item\.screenId === savedScreenId\)/);
-  assert.doesNotMatch(render, /if \(!activeDraftFlow && toolModeUseCases\.getState\(\)\.focusedSavedItemId\)/);
+  assert.doesNotMatch(render, /if \(!runtimeDraftFlow && toolModeUseCases\.getState\(\)\.focusedSavedItemId\)/);
 });
 
 test('latestScreen keeps saved screen context before live preview fallback', () => {

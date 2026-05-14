@@ -13,22 +13,22 @@ const contextA = { sessionId: 'a', previewId: 'p1', screenId: 's1', screenFinger
 const contextB = { sessionId: 'b', previewId: 'p2', screenId: 's2', screenFingerprint: 'fp2', deviceSerial: 'd1' };
 
 test('undo rejects operations from a different context', () => {
-  const state = { draftFeedbackItems: [{ annotationId: 'local-1', comment: 'a' }] };
+  const state = { items: [{ annotationId: 'local-1', comment: 'a' }] };
   const h = m.createHistory(contextA);
-  m.recordDelete(h, state.draftFeedbackItems[0], 0, contextA);
-  state.draftFeedbackItems = [];
+  m.recordDelete(h, state.items[0], 0, contextA);
+  state.items = [];
   const result = m.undo(h, state, contextB);
   assert.deepEqual(result, { applied: false, reason: 'context_mismatch' });
-  assert.equal(state.draftFeedbackItems.length, 0);
+  assert.equal(state.items.length, 0);
   assert.equal(h.undoStack.length, 0);
 });
 
 test('undo applies operations from the same context', () => {
-  const state = { draftFeedbackItems: [{ annotationId: 'local-1', comment: 'a' }] };
+  const state = { items: [{ annotationId: 'local-1', comment: 'a' }] };
   const h = m.createHistory(contextA);
-  m.recordDelete(h, state.draftFeedbackItems[0], 0, contextA);
-  state.draftFeedbackItems = [];
+  m.recordDelete(h, state.items[0], 0, contextA);
+  state.items = [];
   const result = m.undo(h, state, contextA);
   assert.deepEqual(result, { applied: true });
-  assert.equal(state.draftFeedbackItems[0].annotationId, 'local-1');
+  assert.equal(state.items[0].annotationId, 'local-1');
 });

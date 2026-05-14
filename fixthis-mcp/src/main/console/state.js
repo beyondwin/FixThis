@@ -103,10 +103,10 @@
             // module scope (only used by sendBridgeHeartbeat /
             // scheduleNextHeartbeat / startHeartbeatPolling /
             // stopHeartbeatPolling). See connection.js.
-            let activeDraftFlow = null;
-            let draftFeedbackItems = [];
-            let focusedPendingItemIndex = null;
-            let currentSelection = null;
+            let runtimeDraftFlow = null;
+            let runtimeDraftItems = [];
+            let runtimeDraftFocusIndex = null;
+            let runtimeDraftSelection = null;
             // Tool-mode-owned state (toolMode, annotationSequence,
             // hoveredAnnotationTarget, dragStart, dragPreview,
             // suppressNextClick, draftFlowStarting,
@@ -129,30 +129,30 @@
             }
 
             function draftRuntimeFlow() {
-              return activeDraftFlow;
+              return runtimeDraftFlow;
             }
 
             function draftRuntimeItems() {
-              return draftFeedbackItems;
+              return runtimeDraftItems;
             }
 
             function draftRuntimeFocusIndex() {
-              return focusedPendingItemIndex;
+              return runtimeDraftFocusIndex;
             }
 
             function setDraftRuntimeFocusIndex(index) {
-              focusedPendingItemIndex = index;
+              runtimeDraftFocusIndex = index;
             }
 
             function draftRuntimeSelection() {
-              return currentSelection;
+              return runtimeDraftSelection;
             }
 
             function setDraftRuntimeSelection(selection) {
-              currentSelection = selection;
+              runtimeDraftSelection = selection;
             }
 
-            function setDraftWorkspace(nextWorkspace) {
+            function setDraftWorkspaceState(nextWorkspace) {
               draftWorkspace = nextWorkspace || createEmptyDraftWorkspace();
               syncDraftWorkspaceCompatibility();
               persistCurrentDraftWorkspaceIfNeeded();
@@ -160,14 +160,14 @@
 
             function syncDraftWorkspaceCompatibility() {
               if (draftWorkspace.lifecycle === DraftLifecycle.EMPTY) {
-                activeDraftFlow = null;
-                draftFeedbackItems = [];
-                focusedPendingItemIndex = null;
-                currentSelection = null;
+                runtimeDraftFlow = null;
+                runtimeDraftItems = [];
+                runtimeDraftFocusIndex = null;
+                runtimeDraftSelection = null;
                 undoRedoHistory = createHistory();
                 return;
               }
-              activeDraftFlow = {
+              runtimeDraftFlow = {
                 context: draftWorkspace.context,
                 previewId: draftWorkspace.context?.previewId || null,
                 screen: draftWorkspace.screen,
@@ -176,12 +176,12 @@
                 activity: draftWorkspace.context?.activityName || null,
                 activityDriftWarning: draftWorkspace.activityDriftWarning || null,
               };
-              draftFeedbackItems = draftWorkspace.items;
-              focusedPendingItemIndex = draftWorkspace.focusedItemId
+              runtimeDraftItems = draftWorkspace.items;
+              runtimeDraftFocusIndex = draftWorkspace.focusedItemId
                 ? draftWorkspace.items.findIndex((item) => item.draftItemId === draftWorkspace.focusedItemId)
                 : null;
-              if (focusedPendingItemIndex < 0) focusedPendingItemIndex = null;
-              currentSelection = draftWorkspace.currentSelection;
+              if (runtimeDraftFocusIndex < 0) runtimeDraftFocusIndex = null;
+              runtimeDraftSelection = draftWorkspace.currentSelection;
               undoRedoHistory = draftWorkspace.history || createHistory(draftWorkspace.context);
             }
 
@@ -234,7 +234,7 @@
               if (draftCommandQueue) return draftCommandQueue;
               draftCommandQueue = createDraftCommandQueue({
                 getWorkspace: currentDraftWorkspace,
-                setWorkspace: setDraftWorkspace,
+                setWorkspace: setDraftWorkspaceState,
                 onStaleResponse: () => refreshSessions().catch(showError),
                 onError: showError,
               });

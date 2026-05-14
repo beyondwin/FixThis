@@ -236,23 +236,23 @@
               const previousPreview = state.preview;
               clearPreviewRuntimeContext();
               if (wasAnnotating) {
-                setDraftWorkspace(createEmptyDraftWorkspace());
+                setDraftWorkspaceState(createEmptyDraftWorkspace());
                 try {
                   await startDraftAnnotationFlow();
                 } catch (cause) {
-                  setDraftWorkspace(previousWorkspace);
+                  setDraftWorkspaceState(previousWorkspace);
                   setConsolePreview(previousPreview);
                   if (draftRuntimeFlow()) persistCurrentPendingState();
                   render();
                   throw cause;
                 }
                 if (!draftRuntimeFlow()) {
-                  setDraftWorkspace(previousWorkspace);
+                  setDraftWorkspaceState(previousWorkspace);
                   setConsolePreview(previousPreview);
                   render();
                   return;
                 }
-                setDraftWorkspace({
+                setDraftWorkspaceState({
                   ...draftWorkspace,
                   revision: draftWorkspace.revision + 1,
                   items: pendingItems,

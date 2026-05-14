@@ -162,7 +162,7 @@
               if (sessionId && pendingSessionId && sessionId !== pendingSessionId) {
                 createBrowserDraftPorts().storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(draftWorkspace));
                 activePendingMirrorSessions.add(pendingSessionId);
-                setDraftWorkspace(createEmptyDraftWorkspace());
+                setDraftWorkspaceState(createEmptyDraftWorkspace());
                 return 'continue';
               }
               const result = await ensureDraftCommandQueue().enqueue({
@@ -219,7 +219,7 @@
 
 	            function restorePendingRecoveryContext(recovery) {
 	              const workspace = recoverDraftWorkspaceFromEnvelope(recovery);
-	              setDraftWorkspace(workspace);
+	              setDraftWorkspaceState(workspace);
 	              setConsolePreview({
 	                previewId: workspace.context.previewId,
 	                screen: workspace.screen,
@@ -351,7 +351,7 @@
                 ...item,
                 draftItemId: item?.draftItemId || item?.annotationId || ('recovered-' + (index + 1)),
               }));
-              setDraftWorkspace({
+              setDraftWorkspaceState({
                 ...draftWorkspace,
                 revision: draftWorkspace.revision + 1,
                 items: recoveredItems,

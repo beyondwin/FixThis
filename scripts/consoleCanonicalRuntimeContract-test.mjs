@@ -68,3 +68,12 @@ test('rendering bridge functions accept models and do not read legacy globals', 
     assert.match(rendering, new RegExp('function ' + fn + '\\(model'));
   }
 });
+
+test('state module no longer declares legacy draft runtime state', () => {
+  const state = source('fixthis-mcp/src/main/console/state.js');
+  assert.doesNotMatch(state, /\blet\s+activeDraftFlow\b/);
+  assert.doesNotMatch(state, /\blet\s+draftFeedbackItems\b/);
+  assert.doesNotMatch(state, /\blet\s+focusedPendingItemIndex\b/);
+  assert.doesNotMatch(state, /\blet\s+currentSelection\b/);
+  assert.doesNotMatch(state, /function\s+setDraftWorkspace\(/);
+});
