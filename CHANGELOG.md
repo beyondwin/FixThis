@@ -27,6 +27,31 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+### Added
+
+- **Setup error diagnostics — categorized merge failures + `--verbose` (cli, 2026-05-14):**
+  - `fixthis setup --write` now classifies merge failures into five
+    categories (`MALFORMED_JSON`, `MALFORMED_MCPSERVERS_SHAPE`,
+    `MALFORMED_TOML`, `FILESYSTEM_ERROR`, `UNKNOWN`) and prints a
+    multi-line error including the full cause chain and a per-category
+    `Fix:` recommendation.
+  - New `--verbose` / `-v` flag on `fixthis setup` opts into a full
+    Java stack trace (suppresses the terse `Re-run with --verbose` hint).
+    Stack-trace output is routed through a new internal
+    `SetupErrorRedactor` that masks API keys, tokens, secrets, bearer
+    headers, and `/Users/<user>` / `/home/<user>` paths before printing.
+  - Cause chain renderer is depth-limited (8) and cycle-safe
+    (IdentityHashMap + self-reference guard).
+  - Documented in
+    [`docs/reference/cli.md`](docs/reference/cli.md) and
+    [`docs/guides/troubleshooting.md`](docs/guides/troubleshooting.md);
+    supersedes the cause-preservation change from the 2026-05-09 polish
+    spec (which is still in effect for changes 2/3/4).
+  - 16 new unit tests (`SetupErrorRedactorTest` ×7,
+    `SetupErrorRenderingTest` ×8 — 1 RED-phase from Task 1 + 7 added in
+    Task 3, `MainPrintTest` ×2) plus 2 SetupCommand integration tests.
+    Module total: 78 tests passing, 0 failures.
+
 ### Changed
 
 - **Console state machines expanded — Connection, Preview, Polling, Tool-mode FSMs (console, 2026-05-14):**

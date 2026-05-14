@@ -2,6 +2,7 @@ package io.beyondwin.fixthis.cli.commands
 
 import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.parse
+import io.beyondwin.fixthis.cli.DiagnosticContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -80,7 +81,7 @@ class SetupCommandTest {
         assertEquals(originalCodex, codexConfig.readText())
         assertTrue(
             "Expected message to start with merge error prefix",
-            error.message!!.startsWith("Could not merge claude MCP config at ${claudeSettings.absolutePath}:"),
+            error.message!!.startsWith("Could not merge claude MCP config at ${claudeSettings.absolutePath}."),
         )
     }
 
@@ -201,5 +202,61 @@ class SetupCommandTest {
     private fun assertTempConfigPath(parent: Path, path: Path) {
         assertEquals(parent, path.parent)
         assertTrue(path.fileName.toString().startsWith(".config.toml"))
+    }
+
+    @Test
+    fun mergeErrorIncludesCategoryAndFixForMalformedJson() {
+        val projectRoot = temporaryFolder.newFolder("project").canonicalFile
+        val userHome = temporaryFolder.newFolder("home")
+        val claudeSettings = projectRoot.resolve(".claude/settings.json")
+        claudeSettings.parentFile.mkdirs()
+        claudeSettings.writeText("""{"mcpServers":""") // truncated JSON
+
+        val error = withUserHome(userHome) {
+            assertThrows(CliktError::class.java) {
+                SetupCommand().parse(
+                    listOf(
+                        "--package", "io.beyondwin.fixthis.sample",
+                        "--project-dir", projectRoot.absolutePath,
+                        "--write",
+                        "--target", "claude",
+                    ),
+                )
+            }
+        }
+
+        val message = error.message!!
+        assertTrue(
+            "Expected Category line, got: $message",
+            message.contains("Category: MALFORMED_JSON"),
+        )
+        assertTrue("Expected Fix line", message.contains("Fix:"))
+        assertNotNull("Expected cause attached", error.cause)
+    }
+
+    @Test
+    fun verboseFlagSetsDiagnosticContext() {
+        val projectRoot = temporaryFolder.newFolder("project").canonicalFile
+        val userHome = temporaryFolder.newFolder("home")
+        val claudeSettings = projectRoot.resolve(".claude/settings.json")
+        claudeSettings.parentFile.mkdirs()
+        claudeSettings.writeText("""{"mcpServers":""")
+
+        DiagnosticContext.reset()
+        withUserHome(userHome) {
+            runCatching {
+                SetupCommand().parse(
+                    listOf(
+                        "--package", "io.beyondwin.fixthis.sample",
+                        "--project-dir", projectRoot.absolutePath,
+                        "--write",
+                        "--target", "claude",
+                        "--verbose",
+                    ),
+                )
+            }
+        }
+        assertTrue("Expected DiagnosticContext.verbose = true after --verbose run", DiagnosticContext.verbose)
+        DiagnosticContext.reset()
     }
 }
