@@ -985,6 +985,47 @@ class FeedbackSessionServiceTest {
     }
 
     @Test
+    fun capturePreviewDeletesOldUnsavedPreviewDirectoriesAfterRetentionLimit() = runBlocking {
+        val root = tempDir(prefix = "fixthis-preview-retention-")
+        try {
+            val store = FeedbackSessionStore(
+                clock = { 1_000L },
+                idGenerator = sequenceIds(
+                    "session-1",
+                    "preview-1",
+                    "screen-1",
+                    "preview-2",
+                    "screen-2",
+                    "preview-3",
+                    "screen-3",
+                    "preview-4",
+                    "screen-4",
+                ),
+            )
+            val service = FeedbackSessionService(
+                bridge = FakeFixThisBridge(),
+                store = store,
+                projectRoot = root.absolutePath,
+                defaultPackageName = "io.beyondwin.fixthis.sample",
+                previewCacheRetentionPolicy = PreviewCacheRetentionPolicy(
+                    maxDirectoriesPerSession = 2,
+                    minAgeMillis = 0L,
+                    clock = { 2_000L },
+                ),
+            )
+            val session = service.openSession(null, newSession = true)
+
+            repeat(4) { service.capturePreview(session.sessionId) }
+
+            val previewRoot = root.resolve(".fixthis/preview-cache/${session.sessionId}")
+            val names = previewRoot.listFiles().orEmpty().filter { it.isDirectory }.map { it.name }.sorted()
+            assertEquals(listOf("preview-3", "preview-4"), names)
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
     fun capturePreviewRetainsEvictedPreviewCacheDirectoriesForLateScreenshotRequests() = runBlocking {
         val root = tempDir(prefix = "fixthis-v2-preview-cache-")
         try {

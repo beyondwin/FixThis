@@ -21,6 +21,7 @@ class PreviewCaptureService(
     private val store: FeedbackSessionStore,
     private val previewCache: PreviewSnapshotCache,
     private val targetEvidenceService: TargetEvidenceService,
+    private val previewCacheRetentionPolicy: PreviewCacheRetentionPolicy = PreviewCacheRetentionPolicy(),
 ) {
     suspend fun capturePreview(session: SessionDto): FeedbackPreviewSnapshot {
         val previewId = store.nextId()
@@ -48,6 +49,8 @@ class PreviewCaptureService(
                 sourceIndex = sourceIndex,
             ),
         )
+        val previewRoot = File(session.projectRoot, ".fixthis/preview-cache/${session.sessionId}").canonicalFile
+        previewCacheRetentionPolicy.cleanupSessionPreviewRoot(previewRoot)
         return preview
     }
 

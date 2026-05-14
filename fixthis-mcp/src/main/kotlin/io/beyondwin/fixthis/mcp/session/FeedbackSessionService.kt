@@ -39,6 +39,7 @@ class FeedbackSessionService(
     private val projectRoot: String,
     private val defaultPackageName: String? = null,
     previewCache: PreviewSnapshotCache = PreviewSnapshotCache(MaxRetainedPreviews),
+    previewCacheRetentionPolicy: PreviewCacheRetentionPolicy = PreviewCacheRetentionPolicy(),
     sourceIndexRegistry: SourceIndexRegistry = SourceIndexRegistry(),
 ) {
     private val connectionService = ConsoleConnectionService(bridge)
@@ -53,6 +54,7 @@ class FeedbackSessionService(
         store = store,
         previewCache = previewCache,
         targetEvidenceService = targetEvidenceService,
+        previewCacheRetentionPolicy = previewCacheRetentionPolicy,
     )
     private val feedbackDraftService = FeedbackDraftService(
         store = store,
