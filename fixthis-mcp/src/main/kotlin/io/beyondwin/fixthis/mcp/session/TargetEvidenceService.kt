@@ -7,9 +7,13 @@ import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.beyondwin.fixthis.compose.core.model.TargetEvidence
+import io.beyondwin.fixthis.compose.core.model.TargetKind
+import io.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.beyondwin.fixthis.compose.core.model.TargetReliabilityInput
 import io.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.beyondwin.fixthis.compose.core.source.SourceInterpretationFactory
 import io.beyondwin.fixthis.compose.core.source.SourceMatcher
+import io.beyondwin.fixthis.compose.core.target.TargetReliabilityCalculator
 import io.beyondwin.fixthis.mcp.McpProtocol
 import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import io.beyondwin.fixthis.mcp.tools.FixThisBridge
@@ -23,6 +27,7 @@ class TargetEvidenceService(
     private val sourceIndexRegistry: SourceIndexRegistry,
     private val projectRoot: File = File(".").canonicalFile,
     private val stalenessChecker: SourceCandidateStalenessChecker = SourceCandidateStalenessChecker(projectRoot),
+    private val reliabilityCalculator: TargetReliabilityCalculator = TargetReliabilityCalculator,
 ) {
     suspend fun readSourceIndexOrNull(packageName: String, screen: SnapshotDto): SourceIndex? {
         if (!screen.sourceIndexAvailable) return null
@@ -112,6 +117,21 @@ class TargetEvidenceService(
             FeedbackTargetType.NODE -> validatedTarget.evidenceNodes
         }
         val sourceCandidates = sourceCandidatesFor(sourceIndex, sourceSelectedNode, sourceNearbyNodes, screen.activityName)
+        val targetEvidence = targetEvidenceFor(
+            targetType = validatedTarget.targetType,
+            selectedNode = validatedTarget.selectedNode,
+            screen = screen,
+            sourceCandidates = sourceCandidates,
+        )
+        val targetReliability = targetReliabilityFor(
+            targetType = validatedTarget.targetType,
+            selectedNode = validatedTarget.selectedNode,
+            evidenceNodes = validatedTarget.evidenceNodes,
+            storedBounds = validatedTarget.storedBounds,
+            screen = screen,
+            sourceCandidates = sourceCandidates,
+            targetEvidence = targetEvidence,
+        )
         val target = when (validatedTarget.targetType) {
             FeedbackTargetType.AREA -> AnnotationTargetDto.Area(validatedTarget.storedBounds)
             FeedbackTargetType.NODE -> {
@@ -135,12 +155,8 @@ class TargetEvidenceService(
             sourceCandidates = sourceCandidates,
             comment = comment,
             status = if (comment.isBlank()) AnnotationStatusDto.OPEN else writtenStatus,
-            targetEvidence = targetEvidenceFor(
-                targetType = validatedTarget.targetType,
-                selectedNode = validatedTarget.selectedNode,
-                screen = screen,
-                sourceCandidates = sourceCandidates,
-            ),
+            targetEvidence = targetEvidence,
+            targetReliability = targetReliability,
         )
     }
 
@@ -174,6 +190,37 @@ class TargetEvidenceService(
                     add("No selected semantics node was available for target evidence.")
                 }
             },
+        )
+    }
+
+    fun targetReliabilityFor(
+        targetType: FeedbackTargetType,
+        selectedNode: FixThisNode?,
+        evidenceNodes: List<FixThisNode>,
+        storedBounds: FixThisRect,
+        screen: SnapshotDto,
+        sourceCandidates: List<SourceCandidate>,
+        targetEvidence: TargetEvidence?,
+    ): TargetReliability {
+        val roots = screen.roots.map { root -> root.boundsInWindow }
+        val meaningfulNodes = screen.allNodes().filter { node -> node.hasMeaningfulSemantic() }
+        return reliabilityCalculator.calculate(
+            TargetReliabilityInput(
+                targetKind = when (targetType) {
+                    FeedbackTargetType.AREA -> TargetKind.AREA
+                    FeedbackTargetType.NODE -> TargetKind.NODE
+                },
+                selectedNode = selectedNode,
+                nearbyNodes = evidenceNodes,
+                sourceCandidates = sourceCandidates,
+                targetEvidence = targetEvidence,
+                semanticCoverage = TargetReliabilityCalculator.coverageFor(
+                    roots = roots,
+                    meaningfulNodes = meaningfulNodes,
+                    targetBounds = storedBounds,
+                ),
+                screenFingerprintAvailable = screen.fingerprint != null,
+            ),
         )
     }
 

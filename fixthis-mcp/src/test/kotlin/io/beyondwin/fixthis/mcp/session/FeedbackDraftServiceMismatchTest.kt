@@ -1,6 +1,7 @@
 package io.beyondwin.fixthis.mcp.session
 
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import io.beyondwin.fixthis.mcp.console.AnnotationDraftDto
 import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
@@ -13,6 +14,7 @@ import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class FeedbackDraftServiceMismatchTest {
     @Test
@@ -100,6 +102,38 @@ class FeedbackDraftServiceMismatchTest {
 
         val event = fixture.addScreenWithItemsEvents(session.sessionId).single()
         assertEquals(true, event.payload["forceMismatchOverride"]?.jsonPrimitive?.boolean)
+    }
+
+    @Test
+    fun forceSavedMismatchAddsReliabilityWarningToSavedItems() = runBlocking {
+        val fixture = draftFixture(
+            ids = arrayOf("session-1", "preview-1", "screen-1", "item-1"),
+            prefix = "fixthis-draft-mismatch-reliability-",
+        )
+        val session = fixture.store.openSession("io.beyondwin.fixthis.sample", fixture.root.absolutePath)
+        val preview = fixture.previewCaptureService.capturePreview(session)
+        val reservation = fixture.draftService.preparePreviewFeedbackSave(
+            sessionId = session.sessionId,
+            previewId = preview.previewId,
+            items = listOf(validItem()),
+            allowBlankComments = true,
+        )
+
+        val result = fixture.draftService.commitPreviewFeedbackSaveWithMetadata(
+            reservation,
+            PreviewSaveFingerprintCheck(
+                frozenFingerprint = "frozen",
+                currentFingerprint = "current",
+                forceMismatchOverride = true,
+                frozenFingerprintSource = "previewCache",
+            ),
+        )
+
+        val saved = result.session.items.single()
+        assertTrue(
+            saved.targetReliability?.warnings.orEmpty()
+                .contains(TargetReliabilityWarning.SCREEN_FINGERPRINT_MISMATCH_FORCED),
+        )
     }
 
     @Test

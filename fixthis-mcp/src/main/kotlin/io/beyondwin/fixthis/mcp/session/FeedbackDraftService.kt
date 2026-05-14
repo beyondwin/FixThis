@@ -1,6 +1,8 @@
 package io.beyondwin.fixthis.mcp.session
 
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+import io.beyondwin.fixthis.compose.core.target.TargetReliabilityCalculator
 import io.beyondwin.fixthis.mcp.console.AnnotationDraftDto
 import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import kotlinx.coroutines.runBlocking
@@ -70,6 +72,12 @@ class FeedbackDraftService(
         val session = store.getSession(sessionId)
         val screen = session.screens.firstOrNull { it.screenId == screenId }
             ?: throw FeedbackSessionException("SCREEN_NOT_FOUND: Unknown screen: $screenId")
+        val targetEvidence = targetEvidenceService.targetEvidenceFor(
+            targetType = FeedbackTargetType.AREA,
+            selectedNode = null,
+            screen = screen,
+            sourceCandidates = emptyList(),
+        )
         return store.addItem(
             sessionId,
             AnnotationDto(
@@ -80,11 +88,15 @@ class FeedbackDraftService(
                 target = AnnotationTargetDto.Area(bounds),
                 comment = comment,
                 status = if (comment.isBlank()) AnnotationStatusDto.OPEN else AnnotationStatusDto.READY,
-                targetEvidence = targetEvidenceService.targetEvidenceFor(
+                targetEvidence = targetEvidence,
+                targetReliability = targetEvidenceService.targetReliabilityFor(
                     targetType = FeedbackTargetType.AREA,
                     selectedNode = null,
+                    evidenceNodes = emptyList(),
+                    storedBounds = bounds,
                     screen = screen,
                     sourceCandidates = emptyList(),
+                    targetEvidence = targetEvidence,
                 ),
             ),
         )
@@ -250,7 +262,7 @@ class FeedbackDraftService(
             fingerprintUnavailableReason = fingerprintUnavailableReason,
         )
         val preview = reservation.preview
-        val feedbackItems = reservation.items.map { pending ->
+        val baseFeedbackItems = reservation.items.map { pending ->
             targetEvidenceService.buildFeedbackItem(
                 screen = preview.snapshot.screen,
                 sourceIndex = preview.sourceIndex,
@@ -265,6 +277,26 @@ class FeedbackDraftService(
                 label = pending.label?.takeIf { it.isNotBlank() },
                 severity = pending.severity,
             )
+        }
+        val reliabilityWarnings = buildList {
+            if (fingerprintCheck.forceMismatchOverride) {
+                add(TargetReliabilityWarning.SCREEN_FINGERPRINT_MISMATCH_FORCED)
+            }
+            if (fingerprintUnavailableReason != null) {
+                add(TargetReliabilityWarning.SCREEN_FINGERPRINT_UNAVAILABLE)
+            }
+        }
+        val feedbackItems = baseFeedbackItems.map { item ->
+            if (reliabilityWarnings.isEmpty()) {
+                item
+            } else {
+                item.copy(
+                    targetReliability = TargetReliabilityCalculator.addWarnings(
+                        item.targetReliability,
+                        reliabilityWarnings,
+                    ),
+                )
+            }
         }
         val persistedScreen = screenshotArtifactPromoter.promote(
             projectRoot = preview.projectRoot,
