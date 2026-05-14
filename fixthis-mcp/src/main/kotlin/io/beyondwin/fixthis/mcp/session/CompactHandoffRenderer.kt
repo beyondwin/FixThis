@@ -1,5 +1,8 @@
 package io.beyondwin.fixthis.mcp.session
 
+import io.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+
 object CompactHandoffRenderer {
     private const val MAX_CANDIDATES_RENDERED = 3
     fun render(session: SessionDto, itemIds: List<String>? = null): String = buildString {
@@ -145,6 +148,7 @@ object CompactHandoffRenderer {
         appendLine(compactUiLine(item, isOverlap, instanceLabel, dupRefMarker))
         item.screenshotCrop?.desktopCropPath?.let { appendLine("crop: ${it.inlineSafe()}") }
         appendCandidatesBlock(item, sourceRoot)
+        appendReliabilityBlock(item.targetReliability)
         if (isInstanceLeader && groupSize >= 2 && !isOverlap) {
             appendLine("  note: $groupSize markers map to same call site — likely list-rendered; disambiguate by instance index")
         }
@@ -170,6 +174,29 @@ object CompactHandoffRenderer {
         if (!rank1Caution.isNullOrBlank()) {
             appendLine("  note: ${rank1Caution.inlineSafe()}")
         }
+    }
+
+    private fun StringBuilder.appendReliabilityBlock(reliability: TargetReliability?) {
+        if (reliability == null) return
+        val confidence = reliability.confidence.name.lowercase()
+        if (confidence == "unknown" && reliability.warnings.isEmpty()) return
+        appendLine("  targetConfidence=$confidence")
+        reliability.warnings.forEach { warning ->
+            appendLine("  warning: ${warning.message()}")
+        }
+    }
+
+    private fun TargetReliabilityWarning.message(): String = when (this) {
+        TargetReliabilityWarning.VISUAL_AREA_ONLY -> "visual area only; verify screenshot and bounds"
+        TargetReliabilityWarning.NO_MEANINGFUL_COMPOSE_TARGET -> "no meaningful Compose semantics node covered this target"
+        TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP ->
+            "possible AndroidView/WebView area; source candidates may not explain rendered pixels"
+        TargetReliabilityWarning.LOW_SOURCE_CANDIDATE_MARGIN -> "source candidates are close; verify before editing"
+        TargetReliabilityWarning.SOURCE_INDEX_STALE -> "source index may be stale"
+        TargetReliabilityWarning.SCREEN_FINGERPRINT_MISMATCH_FORCED ->
+            "screen changed after capture; user force-saved this item"
+        TargetReliabilityWarning.SCREEN_FINGERPRINT_UNAVAILABLE -> "screen fingerprint unavailable; mismatch check was skipped"
+        TargetReliabilityWarning.SENSITIVE_TEXT_REDACTED -> "sensitive text was redacted from target evidence"
     }
 
     private fun formatCandidateLine(

@@ -4,6 +4,9 @@ import io.beyondwin.fixthis.cli.fixThisJson
 import io.beyondwin.fixthis.compose.core.format.DetailMode
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.beyondwin.fixthis.compose.core.model.TargetConfidence
+import io.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import io.beyondwin.fixthis.mcp.console.enrichSessionWithStaleness
 import kotlinx.serialization.json.JsonObject
 
@@ -62,6 +65,7 @@ object FeedbackQueueFormatter {
                 appendLine("- Type: Compose semantics node")
                 appendNodeEvidence(item.selectedNode)
                 appendTargetEvidence(item)
+                appendTargetReliability(item.targetReliability)
                 appendLine("- Bounds: `${target.boundsInWindow.formatBounds()}`")
             }
             is AnnotationTargetDto.Area -> {
@@ -69,6 +73,7 @@ object FeedbackQueueFormatter {
                 appendLine("- Bounds: `${target.boundsInWindow.formatBounds()}`")
                 appendLine("- Nearby UI: `${item.nearbyNodes.nearbyUiLabel()}`")
                 appendTargetEvidence(item)
+                appendTargetReliability(item.targetReliability)
                 appendLine("- Note: area selection only; verify screenshot and source candidates.")
             }
         }
@@ -93,6 +98,28 @@ object FeedbackQueueFormatter {
             val identity = listOfNotNull(hint.composableNameHint, hint.variantHint).joinToString(":")
             if (identity.isNotBlank()) appendLine("- Identity: `${identity.inlineSafe()}`")
         }
+    }
+
+    private fun StringBuilder.appendTargetReliability(reliability: TargetReliability?) {
+        if (reliability == null) return
+        if (reliability.confidence == TargetConfidence.UNKNOWN && reliability.warnings.isEmpty()) return
+        appendLine("- Target confidence: ${reliability.confidence.name.lowercase()}")
+        reliability.warnings.forEach { warning ->
+            appendLine("- Warning: ${warning.message()}")
+        }
+    }
+
+    private fun TargetReliabilityWarning.message(): String = when (this) {
+        TargetReliabilityWarning.VISUAL_AREA_ONLY -> "visual area only; verify screenshot and bounds"
+        TargetReliabilityWarning.NO_MEANINGFUL_COMPOSE_TARGET -> "no meaningful Compose semantics node covered this target"
+        TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP ->
+            "possible AndroidView/WebView area; source candidates may not explain rendered pixels"
+        TargetReliabilityWarning.LOW_SOURCE_CANDIDATE_MARGIN -> "source candidates are close; verify before editing"
+        TargetReliabilityWarning.SOURCE_INDEX_STALE -> "source index may be stale"
+        TargetReliabilityWarning.SCREEN_FINGERPRINT_MISMATCH_FORCED ->
+            "screen changed after capture; user force-saved this item"
+        TargetReliabilityWarning.SCREEN_FINGERPRINT_UNAVAILABLE -> "screen fingerprint unavailable; mismatch check was skipped"
+        TargetReliabilityWarning.SENSITIVE_TEXT_REDACTED -> "sensitive text was redacted from target evidence"
     }
 
     private fun StringBuilder.appendLikelySource(
