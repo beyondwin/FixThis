@@ -5,6 +5,7 @@ import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.TreeKind
 import io.beyondwin.fixthis.mcp.fixtures.ConsoleHttpTestClient
+import io.beyondwin.fixthis.mcp.fixtures.ConsoleRouteTestFixtures.newConsoleSessionFixture
 import io.beyondwin.fixthis.mcp.fixtures.ConsoleSourceFixtures
 import io.beyondwin.fixthis.mcp.fixtures.FakeIds
 import io.beyondwin.fixthis.mcp.fixtures.FakeLongs
@@ -57,39 +58,31 @@ private fun HttpURLConnection.inputJsonObject(): JsonObject = fixThisJson
 class ConsoleFeedbackItemRoutesTest {
     @Test
     fun itemPatchUpdatesDraftAnnotation() {
-        val store = FeedbackSessionStore(
+        val fixture = newConsoleSessionFixture(
             clock = FakeLongs(100L, 200L, 300L, 400L).next,
             idGenerator = FakeIds("session-1", "item-1").next,
         )
-        val service = FeedbackSessionService(
-            bridge = FakeFixThisBridge(),
-            store = store,
-            projectRoot = "/repo",
-            defaultPackageName = "io.beyondwin.fixthis.sample",
-        )
-        val session = service.openSession(null, newSession = true)
-        store.addScreen(
-            session.sessionId,
-            SnapshotDto(
-                screenId = "screen-1",
-                capturedAtEpochMillis = 100L,
-                displayName = "Screen 1",
-            ),
-        )
-        store.addItem(
-            session.sessionId,
-            AnnotationDto(
-                itemId = "pending",
-                screenId = "screen-1",
-                createdAtEpochMillis = 0L,
-                updatedAtEpochMillis = 0L,
-                target = AnnotationTargetDto.Area(FixThisRect(1f, 2f, 3f, 4f)),
-                comment = "Before",
-            ),
-        )
-        val server = FeedbackConsoleServer(service = service, port = 0)
-        server.start()
-        try {
+        fixture.use { (service, store, server, _) ->
+            val session = service.openSession(null, newSession = true)
+            store.addScreen(
+                session.sessionId,
+                SnapshotDto(
+                    screenId = "screen-1",
+                    capturedAtEpochMillis = 100L,
+                    displayName = "Screen 1",
+                ),
+            )
+            store.addItem(
+                session.sessionId,
+                AnnotationDto(
+                    itemId = "pending",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 0L,
+                    updatedAtEpochMillis = 0L,
+                    target = AnnotationTargetDto.Area(FixThisRect(1f, 2f, 3f, 4f)),
+                    comment = "Before",
+                ),
+            )
             val connection = ConsoleHttpTestClient(server.url).connection(
                 "/api/items/item-1",
                 method = "PUT",
@@ -103,8 +96,6 @@ class ConsoleFeedbackItemRoutesTest {
             assertEquals("in_progress", item.getValue("status").jsonPrimitive.content)
             assertEquals("After", service.getSession("session-1").items.single().comment)
             assertEquals(AnnotationStatusDto.IN_PROGRESS, service.getSession("session-1").items.single().status)
-        } finally {
-            server.stop()
         }
     }
 
