@@ -1,13 +1,30 @@
 #!/usr/bin/env node
 import { execSync } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { build as esbuild } from 'esbuild';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sourceDir = resolve(root, 'fixthis-mcp/src/main/console');
+
+export function consoleSourceFiles(rootDir) {
+  const files = [];
+  function walk(dir) {
+    for (const entry of readdirSync(dir).sort()) {
+      const absolute = resolve(dir, entry);
+      const stat = statSync(absolute);
+      if (stat.isDirectory()) {
+        walk(absolute);
+      } else if (entry.endsWith('.js')) {
+        files.push(relative(rootDir, absolute).split('\\').join('/'));
+      }
+    }
+  }
+  walk(rootDir);
+  return files.sort();
+}
 
 export function parseRequires(content) {
   const headerMatch = content.match(/^\s*\/\/\s*@requires\s+(.+)$/m);
@@ -140,7 +157,7 @@ if (isMainModule) {
 }
 
 async function main() {
-  const onDisk = readdirSync(sourceDir).filter((name) => name.endsWith('.js'));
+  const onDisk = consoleSourceFiles(sourceDir);
 
   // Enforce that every non-entry-point module has a // @requires header.
   for (const name of onDisk) {

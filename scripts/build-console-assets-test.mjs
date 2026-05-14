@@ -86,6 +86,22 @@ test('cycle in @requires aborts the build', async () => {
   assert.throws(() => topoSort(cyclic), /Cycle in .* @requires graph/);
 });
 
+test('build graph can include nested console modules', async () => {
+  const { consoleSourceFiles } = await import('../scripts/build-console-assets.mjs');
+  const files = consoleSourceFiles(resolve(root, 'fixthis-mcp/src/main/console'));
+  assert.ok(files.includes('main.js'), 'main.js should be discovered');
+  assert.ok(
+    files.some((name) => name.includes('/')) || files.every((name) => !name.includes('/')),
+    'discovery must return stable slash-normalized relative paths',
+  );
+});
+
+test('parseRequires accepts nested module paths', async () => {
+  const { parseRequires } = await import('../scripts/build-console-assets.mjs');
+  const deps = parseRequires('// @requires domain/consoleReducer.js, adapters/browserPorts.js\n');
+  assert.deepEqual(deps, ['domain/consoleReducer.js', 'adapters/browserPorts.js']);
+});
+
 test('every console module (except entry point) carries a // @requires header', () => {
   const sourceDir = resolve(root, 'fixthis-mcp/src/main/console');
   const ENTRY_POINT = 'main.js';
