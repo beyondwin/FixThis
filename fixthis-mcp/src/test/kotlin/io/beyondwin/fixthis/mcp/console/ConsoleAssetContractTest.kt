@@ -313,16 +313,33 @@ class ConsoleAssetContractTest {
         val renderSelectionOverlay = javascriptFunctionBody(html, "renderSelectionOverlay")
 
         assertTrue(
-            renderSelectionOverlay.contains("if (!addItemsFlow && toolModeUseCases.getState().focusedSavedItemId)"),
-            "saved overlays should be gated by focusedSavedItemId",
+            renderSelectionOverlay.contains("if (!addItemsFlow)"),
+            "saved overlays should be gated outside the active add-items flow",
+        )
+        assertTrue(
+            renderSelectionOverlay.contains(
+                "const focusedItem = savedEvidenceItems().find(item => " +
+                    "item.itemId === toolModeState.focusedSavedItemId);",
+            ),
+            "saved overlays should prefer the focused saved item",
+        )
+        assertTrue(
+            renderSelectionOverlay.contains(
+                "const savedScreenId = focusedItem?.screenId || " +
+                    "toolModeState.focusedSavedScreenId;",
+            ),
+            "saved overlays should be scoped to the focused saved screen",
+        )
+        assertTrue(
+            renderSelectionOverlay.contains(
+                "const sameScreenItems = savedEvidenceItems().filter(" +
+                    "item => item.screenId === savedScreenId);",
+            ),
+            "saved overlays should include only items from the focused screen",
         )
         assertFalse(
             renderSelectionOverlay.contains("if (nodeUid) return visibleUids.has(nodeUid);"),
             "saved overlays must not infer screen identity from nodeUid on live preview",
-        )
-        assertTrue(
-            renderSelectionOverlay.contains("item.screenId === focusedItem.screenId"),
-            "focused saved overlay should include only items from the focused screen",
         )
     }
 
@@ -602,7 +619,12 @@ class ConsoleAssetContractTest {
         assertTrue(html.contains("function scrollActiveHistoryItemIntoView()"))
         assertTrue(html.contains("sessions.querySelector('.session-row.is-active')"))
         assertTrue(html.contains("renderCurrentSessionList();"))
-        assertTrue(html.contains("if (toolModeUseCases.getState().newHistoryAnnotateModeStarting) return '';"))
+        assertTrue(
+            html.contains(
+                "if (toolModeUseCases.getState().newHistoryAnnotateModeStarting || " +
+                    "isSessionNavigationInFlight()) return '';",
+            ),
+        )
         assertFalse(html.contains("if (toolMode === 'annotate' || newHistoryAnnotateModeStarting) return '';"))
         assertFalse(html.contains("id=\"historyStartAnnotatingButton\""))
         assertFalse(html.contains(".panel-head-actions"))

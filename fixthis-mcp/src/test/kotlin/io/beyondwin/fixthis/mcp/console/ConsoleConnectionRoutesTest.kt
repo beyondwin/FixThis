@@ -593,7 +593,7 @@ class ConsoleDeviceSelectionRoutesTest {
                     "\\.find\\(item => item\\.itemId === focusedSavedItemId\\);",
             ).containsMatchIn(html),
         )
-        assertTrue(html.contains("return state.preview?.screen || latestPersistedScreen();"))
+        assertTrue(html.contains("return savedScreen || state.preview?.screen || latestPersistedScreen();"))
         assertTrue(
             Regex(
                 "async function newSession\\(\\)[\\s\\S]*invalidatePreviewContext\\(\\);" +

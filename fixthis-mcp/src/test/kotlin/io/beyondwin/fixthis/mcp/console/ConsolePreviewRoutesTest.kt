@@ -157,7 +157,7 @@ class ConsolePreviewRoutesTest {
         assertTrue(html.contains("function latestScreen()"))
         assertTrue(html.contains("if (addItemsFlow) return addItemsFlow.screen;"))
         assertTrue(html.contains("if (focusedSavedItemId) {"))
-        assertTrue(html.contains("return state.preview?.screen || latestPersistedScreen();"))
+        assertTrue(html.contains("return savedScreen || state.preview?.screen || latestPersistedScreen();"))
         assertFalse(html.contains("return addItemsFlow?.screen || latestPersistedScreen() || state.preview?.screen;"))
         assertTrue(html.contains("'/api/screens/' + encodeURIComponent(screenId) + '/screenshot/full'"))
         assertTrue(html.contains("if (!addItemsFlow) {"))
@@ -169,8 +169,13 @@ class ConsolePreviewRoutesTest {
         )
         assertTrue(
             html.contains(
+                "const savedScreenId = focusedItem?.screenId || toolModeState.focusedSavedScreenId;",
+            ),
+        )
+        assertTrue(
+            html.contains(
                 "const sameScreenItems = savedEvidenceItems().filter(" +
-                    "item => item.screenId === focusedItem.screenId);",
+                    "item => item.screenId === savedScreenId);",
             ),
         )
         assertFalse(html.contains("const visibleScreen = latestScreen();"))

@@ -133,7 +133,8 @@ object TargetReliabilityCalculator {
     }
 }
 
-private fun SourceCandidate.hasLowMargin(): Boolean = scoreMargin != null && scoreMargin < LOW_MARGIN_THRESHOLD ||
+private fun SourceCandidate.hasLowMargin(): Boolean = scoreMargin != null &&
+    scoreMargin < LOW_MARGIN_THRESHOLD ||
     SourceCandidateRisk.AMBIGUOUS in riskFlags
 
 private fun FixThisRect.containsCenterOf(other: FixThisRect): Boolean {
@@ -142,8 +143,10 @@ private fun FixThisRect.containsCenterOf(other: FixThisRect): Boolean {
     return contains(x, y)
 }
 
-private fun FixThisRect.intersects(other: FixThisRect): Boolean = left < other.right && right > other.left &&
-    top < other.bottom && bottom > other.top
+private fun FixThisRect.intersects(other: FixThisRect): Boolean = left < other.right &&
+    right > other.left &&
+    top < other.bottom &&
+    bottom > other.top
 
 private fun FixThisRect.centerDistanceTo(other: FixThisRect): Double {
     val dx = ((left + right) / 2.0) - ((other.left + other.right) / 2.0)
