@@ -23,6 +23,7 @@ room, interop content, or another region that is not a clean component.
 ## Works Today
 
 - Try the bundled sample app in about five minutes.
+- Let Claude Code or Codex configure the sample MCP server with `./scripts/bootstrap-mcp.sh --sample`.
 - Use **Copy Prompt** with Cursor, ChatGPT, or any chat-style coding agent.
 - Use **Save to MCP** with Claude Code or Codex after running the bootstrap script.
 - Runs locally over ADB and `127.0.0.1`; FixThis makes no external API calls.
@@ -60,6 +61,7 @@ copied compact Markdown or saved a local MCP handoff.
 | Try FixThis without touching your app | [Quick Start with the sample](docs/getting-started/try-the-sample.md) |
 | Add FixThis to your Compose debug build | [Add FixThis to your app](docs/getting-started/add-to-your-app.md) |
 | Connect Claude Code, Codex, Cursor, or a chat agent | [Connect your agent](docs/getting-started/connect-your-agent.md) |
+| Let an agent bootstrap MCP from the repo | [MCP bootstrap](MCP.md) |
 | Learn the browser console workflow | [Feedback console tour](docs/guides/feedback-console-tour.md) |
 | Diagnose setup problems | [Troubleshooting](docs/guides/troubleshooting.md) |
 | Inspect CLI, MCP, or JSON contracts | [Documentation index](docs/index.md) |

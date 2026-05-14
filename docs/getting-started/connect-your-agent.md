@@ -4,8 +4,8 @@ FixThis supports two handoff modes:
 
 | Agent style | Use | Setup |
 | --- | --- | --- |
-| Claude Code | **Save to MCP** | `./scripts/bootstrap-mcp.sh --package <applicationId> --target claude` |
-| Codex | **Save to MCP** | `./scripts/bootstrap-mcp.sh --package <applicationId> --target codex` |
+| Claude Code | **Save to MCP** | `./scripts/bootstrap-mcp.sh --sample --target claude` for the sample, or `--package <applicationId>` for your app |
+| Codex | **Save to MCP** | `./scripts/bootstrap-mcp.sh --sample --target codex` for the sample, or `--package <applicationId>` for your app |
 | Cursor, ChatGPT, or another chat-style agent | **Copy Prompt** | No MCP setup; paste the copied Markdown |
 
 Both modes use the same evidence. **Copy Prompt** puts compact Markdown on your
@@ -20,15 +20,23 @@ agent can read, claim, and resolve feedback items.
 
 For the sample app, the package is `io.beyondwin.fixthis.sample`.
 
+For the fastest sample setup, use the shortcut:
+
+```bash
+./scripts/bootstrap-mcp.sh --sample
+```
+
 ## Claude Code
 
 ```bash
-./scripts/bootstrap-mcp.sh --package <applicationId> --target claude
+./scripts/bootstrap-mcp.sh --sample --target claude
 ```
 
 The script builds the local CLI/MCP distributions and writes project-local
 Claude Code settings under `.claude/settings.json`. Restart Claude Code after
 the script finishes.
+
+For your own debug app, use `--package <applicationId>` instead of `--sample`.
 
 In Claude Code, open the console:
 
@@ -45,11 +53,13 @@ Read the latest FixThis handoff, claim the item, make the change, and mark it re
 ## Codex
 
 ```bash
-./scripts/bootstrap-mcp.sh --package <applicationId> --target codex
+./scripts/bootstrap-mcp.sh --sample --target codex
 ```
 
 The script builds the local CLI/MCP distributions and writes Codex MCP config
 to `~/.codex/config.toml`. Restart Codex after the script finishes.
+
+For your own debug app, use `--package <applicationId>` instead of `--sample`.
 
 In Codex, open the console:
 
@@ -99,4 +109,5 @@ Markdown to your clipboard. Do not commit `.fixthis/`.
 - [Try the sample app](try-the-sample.md)
 - [Add FixThis to your app](add-to-your-app.md)
 - [Working with AI agents](../guides/agents.md)
+- [MCP bootstrap summary](../../MCP.md)
 - [Troubleshooting](../guides/troubleshooting.md)
