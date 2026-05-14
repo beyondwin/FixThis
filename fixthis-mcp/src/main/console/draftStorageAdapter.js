@@ -91,6 +91,7 @@ function createDraftStorageAdapter(localStorageLike, ids = {}) {
       updatedAtEpochMillis: Date.now(),
     };
     saveWorkspace(envelope);
+    localStorageLike.removeItem(LegacyPendingKeyPrefix + sessionId);
     return [envelope];
   }
 
