@@ -222,6 +222,22 @@ test('returning to a session with pending mirror loads draft workspace recovery'
   assert.match(loadBody, /pendingRecovery = pendingRecoveryItems\(restored\)\.length \? restored : null;/);
 });
 
+test('returning to an active pending mirror auto-restores instead of re-showing recovery banner', () => {
+  const resolveBody = extractFunctionBody(mainSource, 'async function resolvePendingBeforeBoundary(action, sessionId = null)');
+  const loadBody = extractFunctionBody(mainSource, 'function loadPendingRecoveryForCurrentSession()');
+  const bannerBody = extractFunctionBody(mainSource, 'function renderPendingRecoveryBanner()');
+  assert.match(resolveBody, /activePendingMirrorSessions\.add\(pendingSessionId\);/);
+  assert.match(bannerBody, /activePendingMirrorSessions\.add\(recoverySessionId\);/);
+  assert.match(
+    loadBody,
+    /if \(activePendingMirrorSessions\.has\(sessionId\) && pendingRecoveryItems\(restored\)\.length && hasRecoverablePreviewContext\(restored\)\) \{/,
+  );
+  assert.match(
+    loadBody,
+    /restorePendingRecoveryContext\(restored\);[\s\S]*?pendingRecovery = null;[\s\S]*?renderPendingRecoveryBanner\(\);[\s\S]*?return;/,
+  );
+});
+
 test('pending annotation detail edits write through to recovery envelope', () => {
   const detailBody = extractFunctionBody(renderingSource, 'function renderAnnotationDetail(item, index)');
   assert.match(detailBody, /item\.label\s*=\s*event\.target\.value;[\s\S]*?persistCurrentPendingState\(\);/);

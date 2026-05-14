@@ -789,6 +789,13 @@ async function runSmoke(baseUrl) {
     const firstAnnotationComment = 'Make the checkout heading clearer';
     await page.fill('#annotationCommentInput', firstAnnotationComment);
     await assertPromptReadiness(page, '1 ready');
+    await page.locator('#sessions .session-row[data-session-id="session-2"]').click();
+    await page.waitForFunction(() => document.querySelector('#sessions .session-row.is-active')?.dataset.sessionId === 'session-2');
+    await page.locator('#sessions .session-row[data-session-id="session-1"]').click();
+    await page.waitForFunction(() => document.querySelector('#sessions .session-row.is-active')?.dataset.sessionId === 'session-1');
+    await waitForPendingPins(page, 1, 'Recovered active pending draft should auto-restore after session round-trip');
+    await page.waitForFunction(() => document.getElementById('pendingRecoveryBanner')?.hidden !== false);
+    assert.match(await page.locator('#pendingItems').textContent(), new RegExp(firstAnnotationComment));
     await page.evaluate(() => {
       window.fixThisPromptPendingBoundary = () => 'cancel';
     });
@@ -811,6 +818,10 @@ async function runSmoke(baseUrl) {
     const draftWorkspaceSessionSwitchRace = await page.evaluate(() => window.__fixthisDraftRaceResult);
     assert.equal(draftWorkspaceSessionSwitchRace.activeWorkspaceSession, draftWorkspaceSessionSwitchRace.visibleSession);
     assert.ok(draftWorkspaceSessionSwitchRace.activeWorkspaceItems >= 0);
+    if (await page.getAttribute('#snapshot', 'data-tool-mode') !== 'annotate') {
+      await page.click('#annotateToolButton');
+      await page.waitForSelector('#snapshot[data-tool-mode="annotate"]');
+    }
     await page.mouse.move(imageBox.x + 40, imageBox.y + 40);
     await page.mouse.down();
     await page.mouse.move(imageBox.x + 120, imageBox.y + 90);

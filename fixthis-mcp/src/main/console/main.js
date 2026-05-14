@@ -149,6 +149,7 @@
               const pendingSessionId = draftWorkspace?.context?.sessionId || null;
               if (sessionId && pendingSessionId && sessionId !== pendingSessionId) {
                 createBrowserDraftPorts().storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(draftWorkspace));
+                activePendingMirrorSessions.add(pendingSessionId);
                 setDraftWorkspace(createEmptyDraftWorkspace());
                 return 'continue';
               }
@@ -280,7 +281,9 @@
                 '</div>';
               banner.querySelector('[data-recover-pending]')?.addEventListener('click', () => {
                 if (!hasRecoverablePreviewContext(pendingRecovery)) return;
+                const recoverySessionId = pendingRecovery?.sessionId || pendingRecovery?.context?.sessionId || state.session?.sessionId;
                 restorePendingRecoveryContext(pendingRecovery);
+                if (recoverySessionId) activePendingMirrorSessions.add(recoverySessionId);
                 pendingRecovery = null;
                 renderPendingRecoveryBanner();
                 render();
@@ -311,6 +314,12 @@
                 return;
               }
               const restored = loadDraftRecoveryForSession(sessionId) || restorePendingState(sessionId);
+              if (activePendingMirrorSessions.has(sessionId) && pendingRecoveryItems(restored).length && hasRecoverablePreviewContext(restored)) {
+                restorePendingRecoveryContext(restored);
+                pendingRecovery = null;
+                renderPendingRecoveryBanner();
+                return;
+              }
               pendingRecovery = pendingRecoveryItems(restored).length ? restored : null;
               renderPendingRecoveryBanner();
             }

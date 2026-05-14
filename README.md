@@ -12,6 +12,10 @@ Telling a coding agent *which* part of a complex Compose screen to change is har
 
 **FixThis flips that around: point at the UI, type what you want, and the agent gets a structured prompt with the target nailed down.** Behind the screenshot we attach source-file candidates, the surrounding semantic tree, the activity, the bounds, and severity / status — the agent acts on a precise target instead of decoding a description.
 
+In the browser console, a single click selects the nearest Compose UI
+component, and a drag selects any visual area when the target is spacing,
+empty room, interop content, or another region that is not a clean component.
+
 Two handoff modes:
 
 - **Copy Prompt** — copies a compact Markdown prompt to the clipboard. Paste into Claude, Codex, Cursor, or any chat-style agent. No setup beyond having FixThis running.
