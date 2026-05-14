@@ -3,7 +3,7 @@
 //
 // Owns the tool-mode-related state previously held as module-level lets in
 // state.js: toolMode, annotationSequence, hoveredAnnotationTarget,
-// dragStart, dragPreview, suppressNextClick, addItemsFlowStarting,
+// dragStart, dragPreview, suppressNextClick, draftFlowStarting,
 // newHistoryAnnotateModeStarting, historyDrawerOpen, focusedSavedItemId,
 // focusedSavedSessionId, focusedSavedScreenId. No DOM, fetch, timers, or
 // globals here.
@@ -47,7 +47,7 @@ function createEmptyToolMode() {
     focusedSavedSessionId: null,
     focusedSavedScreenId: null,
     historyDrawerOpen: false,
-    addItemsFlowStarting: false,
+    draftFlowStarting: false,
     newHistoryAnnotateModeStarting: false,
   });
 }
@@ -138,7 +138,7 @@ function reduceToolMode(state, action) {
     case 'SET_ADD_ITEMS_FLOW_STARTING':
       return Object.freeze({
         ...state,
-        addItemsFlowStarting: Boolean(action.value),
+        draftFlowStarting: Boolean(action.value),
       });
     case 'SET_NEW_HISTORY_ANNOTATE_MODE_STARTING':
       return Object.freeze({

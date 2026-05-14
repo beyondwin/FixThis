@@ -1,7 +1,7 @@
 // @requires state.js
 // activityDrift.js — SIF-6: pure decision helper that decides whether the
 // currently foregrounded activity differs from the activity captured when
-// the addItemsFlow freeze was taken. Returning drift=true tells the caller
+// the activeDraftFlow freeze was taken. Returning drift=true tells the caller
 // to surface the inline warning + "분리 (새 freeze 시작)" button on the
 // next pin form.
 //

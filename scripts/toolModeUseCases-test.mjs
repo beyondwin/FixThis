@@ -77,7 +77,7 @@ test('focusSavedItem / setAddItemsFlowStarting / setNewHistoryAnnotateModeStarti
   assert.equal(uc.getState().focusedSavedSessionId, 'sess-9');
   assert.equal(uc.getState().focusedSavedScreenId, 'screen-9');
   uc.setAddItemsFlowStarting(true);
-  assert.equal(uc.getState().addItemsFlowStarting, true);
+  assert.equal(uc.getState().draftFlowStarting, true);
   uc.setNewHistoryAnnotateModeStarting(true);
   assert.equal(uc.getState().newHistoryAnnotateModeStarting, true);
 });

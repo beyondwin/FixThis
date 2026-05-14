@@ -1,0 +1,62 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const sources = [
+  'domain/workspaceState.js',
+  'domain/consoleAppState.js',
+  'domain/consoleInvariants.js',
+  'domain/consoleReducer.js',
+  'domain/consoleSelectors.js',
+].map((name) => readFileSync(resolve(root, 'fixthis-mcp/src/main/console', name), 'utf8')).join('\n');
+
+const factory = new Function(`${sources}; return {
+  createInitialConsoleAppState,
+  reduceConsoleAppState,
+  selectInspectorModel,
+  selectCanvasModel,
+  selectBoundarySheet,
+  selectPromptReadiness,
+  selectHistoryModel
+};`);
+const m = factory();
+
+function preview() {
+  return {
+    previewId: 'preview-a',
+    screen: { screenId: 'screen-a', fingerprint: 'fp-a', roots: [] },
+    screenshotUrl: '/api/preview/preview-a/screenshot/full?sessionId=session-a',
+    frozenAtEpochMillis: 1,
+  };
+}
+
+test('draft workspace selects draft inspector and frozen canvas', () => {
+  let state = m.createInitialConsoleAppState({ activeSessionId: 'session-a', sessions: [{ sessionId: 'session-a' }] });
+  state = m.reduceConsoleAppState(state, { type: 'DRAFT_STARTED_FROM_PREVIEW', sessionId: 'session-a', preview: preview() }).state;
+  const inspector = m.selectInspectorModel(state);
+  const canvas = m.selectCanvasModel(state);
+  assert.equal(inspector.title, 'Draft Annotations');
+  assert.equal(inspector.primaryAction.type, 'DRAFT_ADD_ANNOTATION_CLICKED');
+  assert.equal(canvas.mode, 'frozenDraft');
+  assert.match(canvas.lockLabel, /Session/);
+});
+
+test('pending boundary selects session switch sheet', () => {
+  let state = m.createInitialConsoleAppState({
+    activeSessionId: 'session-a',
+    sessions: [{ sessionId: 'session-a' }, { sessionId: 'session-b' }],
+  });
+  state = m.reduceConsoleAppState(state, { type: 'DRAFT_STARTED_FROM_PREVIEW', sessionId: 'session-a', preview: preview() }).state;
+  state = m.reduceConsoleAppState(state, { type: 'SESSION_ROW_CLICKED', sessionId: 'session-b' }).state;
+  const boundary = m.selectBoundarySheet(state);
+  assert.equal(boundary.kind, 'session-switch');
+  assert.deepEqual(boundary.actions.map((action) => action.type), [
+    'BOUNDARY_SAVE_DRAFT_CLICKED',
+    'BOUNDARY_KEEP_RECOVERY_CLICKED',
+    'BOUNDARY_DISCARD_CLICKED',
+    'BOUNDARY_CANCEL_CLICKED',
+  ]);
+});

@@ -144,7 +144,7 @@ class ConsolePreviewRoutesTest {
         assertTrue(html.contains("const requestGeneration = previewUseCases.getState().requestGeneration + 1"))
         assertTrue(
             html.contains(
-                "if (addItemsFlow || requestGeneration !== previewUseCases.getState().requestGeneration) return;",
+                "if (activeDraftFlow || requestGeneration !== previewUseCases.getState().requestGeneration) return;",
             ),
         )
         assertTrue(
@@ -155,12 +155,12 @@ class ConsolePreviewRoutesTest {
         assertTrue(html.contains(".filter(screen => persistedScreenIds.has(screen.screenId))"))
         assertTrue(html.contains("function screenImageUrl(screen)"))
         assertTrue(html.contains("function latestScreen()"))
-        assertTrue(html.contains("if (addItemsFlow) return addItemsFlow.screen;"))
+        assertTrue(html.contains("if (activeDraftFlow) return activeDraftFlow.screen;"))
         assertTrue(html.contains("if (focusedSavedItemId) {"))
         assertTrue(html.contains("return savedScreen || state.preview?.screen || latestPersistedScreen();"))
-        assertFalse(html.contains("return addItemsFlow?.screen || latestPersistedScreen() || state.preview?.screen;"))
+        assertFalse(html.contains("return activeDraftFlow?.screen || latestPersistedScreen() || state.preview?.screen;"))
         assertTrue(html.contains("'/api/screens/' + encodeURIComponent(screenId) + '/screenshot/full'"))
-        assertTrue(html.contains("if (!addItemsFlow) {"))
+        assertTrue(html.contains("if (!activeDraftFlow) {"))
         assertTrue(
             html.contains(
                 "const focusedItem = savedEvidenceItems().find(" +
@@ -185,7 +185,7 @@ class ConsolePreviewRoutesTest {
             html.contains("if (sameScreenItems.length) renderSavedEvidenceOverlay(overlay, image, sameScreenItems);"),
         )
         assertFalse(html.contains("renderSavedEvidenceOverlay(overlay, image, persistedItems);"))
-        assertFalse(html.contains("if (!addItemsFlow && !state.preview && persistedItems.length)"))
+        assertFalse(html.contains("if (!activeDraftFlow && !state.preview && persistedItems.length)"))
         assertTrue(
             Regex(
                 "async function openSession\\(sessionId\\)[\\s\\S]*stopLivePreviewPolling\\(\\);" +
@@ -213,7 +213,7 @@ class ConsolePreviewRoutesTest {
             ),
         )
         assertTrue(html.contains("const src = screenImageUrl(screen);"))
-        assertFalse(html.contains("const src = addItemsFlow?.screenshotUrl || '/api/preview/screenshot/full'"))
+        assertFalse(html.contains("const src = activeDraftFlow?.screenshotUrl || '/api/preview/screenshot/full'"))
     }
 
     @Test
@@ -237,10 +237,10 @@ class ConsolePreviewRoutesTest {
     fun consoleHtmlAddFlowStopsPollingAndFreezesPreviewIdScopedScreenshot() {
         val html = ConsoleSourceFixtures.readAll()
 
-        assertTrue(html.contains("async function startAddItemsFlow()"))
-        // addItemsFlowStarting is owned by the toolMode FSM.
-        assertTrue(html.contains("addItemsFlowStarting: false,"))
-        assertTrue(html.contains("if (toolModeUseCases.getState().addItemsFlowStarting) return;"))
+        assertTrue(html.contains("async function startDraftAnnotationFlow()"))
+        // draftFlowStarting is owned by the toolMode FSM.
+        assertTrue(html.contains("draftFlowStarting: false,"))
+        assertTrue(html.contains("if (toolModeUseCases.getState().draftFlowStarting) return;"))
         assertTrue(html.contains("toolModeUseCases.setAddItemsFlowStarting(true);"))
         assertTrue(html.contains("toolModeUseCases.setAddItemsFlowStarting(false);"))
         assertTrue(html.contains("stopLivePreviewPolling();"))
@@ -260,7 +260,7 @@ class ConsolePreviewRoutesTest {
                 "if (addFlowContextGeneration !== previewUseCases.getState().contextGeneration) return;",
             ),
         )
-        assertTrue(html.contains("state.preview = preview;"))
+        assertTrue(html.contains("setConsolePreview(preview);"))
         assertTrue(html.contains("if (!state.preview) {"))
         assertTrue(html.contains("startDraftFreeze(draftWorkspace"))
         assertTrue(html.contains("capture: async () => state.preview"))
@@ -271,10 +271,10 @@ class ConsolePreviewRoutesTest {
         assertTrue(
             Regex(
                 "finally \\{\\s+toolModeUseCases\\.setAddItemsFlowStarting\\(false\\);\\s+updateComposerState\\(\\);" +
-                    "\\s+if \\(!addItemsFlow\\) startLivePreviewPolling\\(\\);\\s+\\}",
+                    "\\s+if \\(!activeDraftFlow\\) startLivePreviewPolling\\(\\);\\s+\\}",
             ).containsMatchIn(html),
         )
-        assertTrue(html.contains("if (toolModeUseCases.getState().addItemsFlowStarting) {"))
+        assertTrue(html.contains("if (toolModeUseCases.getState().draftFlowStarting) {"))
         assertTrue(html.contains("event.preventDefault();"))
         assertTrue(
             html.contains("annotateToolButton.addEventListener('click', () => enterAnnotateMode().catch(showError));"),
@@ -285,7 +285,7 @@ class ConsolePreviewRoutesTest {
     fun consoleHtmlClearsSavedPreviewAndDoesNotAutoFetchWhenManual() {
         val html = ConsoleSourceFixtures.readAll()
 
-        assertTrue(html.contains("state.preview = null;"))
+        assertTrue(html.contains("setConsolePreview(null);"))
         assertTrue(html.contains("function shouldAutoFetchPreview()"))
         assertTrue(html.contains("return configuredPreviewIntervalMs() != null && shouldPollPreview();"))
         assertTrue(

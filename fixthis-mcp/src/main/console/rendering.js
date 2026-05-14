@@ -77,7 +77,7 @@
 
               renderNumberedFeedbackOverlay(overlay, image);
               const toolModeState = toolModeUseCases.getState();
-              if (!addItemsFlow) {
+              if (!activeDraftFlow) {
                 const focusedItem = savedEvidenceItems().find(item => item.itemId === toolModeState.focusedSavedItemId);
                 const savedScreenId = focusedItem?.screenId || toolModeState.focusedSavedScreenId;
                 const sameScreenItems = savedEvidenceItems().filter(item => item.screenId === savedScreenId);
@@ -86,7 +86,7 @@
               if (currentSelection) {
                 renderOverlayBox(overlay, image, currentSelection.bounds, currentSelection.label);
               }
-              if (addItemsFlow && toolModeUseCases.isAnnotateMode() && toolModeState.hoveredTarget && !toolModeState.drag?.preview) {
+              if (activeDraftFlow && toolModeUseCases.isAnnotateMode() && toolModeState.hoveredTarget && !toolModeState.drag?.preview) {
                 renderOverlayBox(overlay, image, toolModeState.hoveredTarget.bounds, null, false, false, null, 'hover-preview');
               }
               if (toolModeState.drag?.preview) {
@@ -111,19 +111,19 @@
                 return;
               }
               // SIF-6: inline activity-drift warning + restart button. Visible
-              // only while an addItemsFlow is active and the most recent
+              // only while an activeDraftFlow is active and the most recent
               // checkActivityDrift() result reported drift=true.
-              const driftWarningHtml = (addItemsFlow && addItemsFlow.activityDriftWarning && addItemsFlow.activityDriftWarning.drift)
+              const driftWarningHtml = (activeDraftFlow && activeDraftFlow.activityDriftWarning && activeDraftFlow.activityDriftWarning.drift)
                 ? '<div class="activity-drift-warning" role="status" aria-live="polite" data-activity-drift>' +
                     '<div class="activity-drift-warning-body">' +
                       '<div class="activity-drift-warning-title">Activity changed during freeze</div>' +
-                      '<div class="activity-drift-warning-detail">Frozen: ' + escapeHtml(String(addItemsFlow.activityDriftWarning.expected)) + ' · Now: ' + escapeHtml(String(addItemsFlow.activityDriftWarning.actual)) + '</div>' +
+                      '<div class="activity-drift-warning-detail">Frozen: ' + escapeHtml(String(activeDraftFlow.activityDriftWarning.expected)) + ' · Now: ' + escapeHtml(String(activeDraftFlow.activityDriftWarning.actual)) + '</div>' +
                     '</div>' +
                     '<button type="button" class="activity-drift-warning-button" data-activity-drift-restart>Start new freeze</button>' +
                   '</div>'
                 : '';
-              pendingItems.innerHTML = driftWarningHtml + (pendingFeedbackItems.length
-                ? '<div class="ann-list">' + pendingFeedbackItems.map((item, index) => {
+              pendingItems.innerHTML = driftWarningHtml + (draftFeedbackItems.length
+                ? '<div class="ann-list">' + draftFeedbackItems.map((item, index) => {
                   const commentText = firstLine(item.comment || 'No comment');
                   const hasComment = Boolean(String(item.comment || '').trim());
                   const phase = lifecyclePhase(item);
@@ -147,8 +147,8 @@
               if (driftRestartButton) {
                 driftRestartButton.addEventListener('click', () => {
                   // SIF-6: discard the stale freeze and start a fresh one.
-                  resetAnnotationComposerState(true);
-                  startAddItemsFlow().catch(showError);
+                  resetCanonicalAnnotationComposerState(true);
+                  startDraftAnnotationFlow().catch(showError);
                 });
               }
               bindStartAnnotatingButtons(pendingItems);
@@ -634,7 +634,7 @@
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ itemIds: [item.itemId] }),
                     });
-                    state.session = result.session;
+                    setConsoleSession(result.session);
                     renderInspectorRegion();
                     renderPreviewOnly();
                     showSuccess('Re-saved to MCP ✓', 2000);
@@ -677,7 +677,7 @@
 
             function workflowActiveStep() {
               if (!state.connection?.hasEverConnected && userConnectionState(state.connection?.current) !== 'ready') return 'connect';
-              if (addItemsFlow || toolModeUseCases.isAnnotateMode()) return 'annotate';
+              if (activeDraftFlow || toolModeUseCases.isAnnotateMode()) return 'annotate';
               if (currentPromptAnnotations().length > 0) return 'handoff';
               return 'preview';
             }
@@ -705,7 +705,7 @@
               const item = selectedAnnotation();
               const savedItems = savedEvidenceItems();
               inspectorTitle.textContent = item ? 'Annotation' : 'Annotations';
-              inspectorCount.textContent = String(pendingFeedbackItems.length + savedItems.length);
+              inspectorCount.textContent = String(draftFeedbackItems.length + savedItems.length);
               selectionSummary.hidden = true;
               comment.hidden = true;
               pendingItems.hidden = false;
@@ -738,7 +738,7 @@
             }
 
             function renderInspectorRegion() {
-              if (addItemsFlow) {
+              if (activeDraftFlow) {
                 renderComposerInspector();
               } else {
                 renderSavedAnnotationsInspector();
@@ -765,24 +765,60 @@
               if (state.connection?.interactionBlockedReason) return { state: 'blocked', label: 'Interaction blocked' };
               if (!hasScreenshot) return { state: 'unavailable', label: 'No screenshot' };
               if (state.preview?.stale) return { state: 'stale', label: 'Stale frame' };
-              if (addItemsFlow) return { state: 'frozen', label: 'Frozen for annotation' };
+              if (activeDraftFlow) return { state: 'frozen', label: 'Frozen for annotation' };
               if (toolModeUseCases.getState().focusedSavedItemId || toolModeUseCases.getState().focusedSavedScreenId || (!state.preview && screen?.screenId)) return { state: 'saved', label: 'Saved screen' };
               if (state.preview) return { state: 'live', label: 'Live preview' };
               return { state: 'unavailable', label: 'No screenshot' };
             }
 
-            function renderPreviewFrameStatus(screen, hasScreenshot) {
-              const status = previewFrameStatus(screen, hasScreenshot);
-              let badge = document.getElementById('previewFrameStatus');
-              if (!badge) return;
-              badge.dataset.state = status.state;
-              badge.textContent = status.label;
-            }
+	            function renderPreviewFrameStatus(screen, hasScreenshot) {
+	              const status = previewFrameStatus(screen, hasScreenshot);
+	              let badge = document.getElementById('previewFrameStatus');
+	              if (!badge) return;
+	              badge.dataset.state = status.state;
+	              badge.textContent = status.label;
+	            }
+
+	            function renderDraftLockBar(canvasModel = null) {
+	              const root = document.getElementById('draftLockBar');
+	              if (!root) return;
+	              const isDraft = canvasModel ? canvasModel.mode === 'frozenDraft' : Boolean(activeDraftFlow);
+	              root.hidden = !isDraft;
+	              if (!isDraft) {
+	                root.textContent = '';
+	                return;
+	              }
+	              root.textContent = canvasModel?.lockLabel || (
+	                'Locked: Session ' + (activeDraftFlow?.context?.sessionId || state.session?.sessionId || 'current') +
+	                ' · Preview ' + (activeDraftFlow?.previewId || activeDraftFlow?.context?.previewId || 'frozen') +
+	                ' · Live preview paused'
+	              );
+	            }
+
+	            function renderBoundaryFromModel(boundary) {
+	              const root = document.getElementById('sessionBoundarySheet');
+	              if (!root) return;
+	              root.hidden = !boundary;
+	              if (!boundary) return;
+	              root.querySelector('[data-boundary-title]').textContent = boundary.title;
+	              root.querySelector('[data-boundary-summary]').textContent =
+	                boundary.draftSummary.itemCount + ' draft annotations · ' + boundary.draftSummary.missingCommentCount + ' missing comments';
+	              root.querySelectorAll('[data-boundary-action]').forEach((button, index) => {
+	                const action = boundary.actions[index];
+	                button.hidden = !action;
+	                if (action) {
+	                  button.textContent = action.label;
+	                  button.onclick = () => {
+	                    if (typeof consoleStore !== 'undefined') consoleStore.dispatch({ type: action.type });
+	                  };
+	                }
+	              });
+	            }
 
             function renderPreviewRegion() {
               const screen = latestScreen();
               const hasScreenshot = Boolean(screen?.screenshot?.desktopFullPath);
-              const mode = addItemsFlow ? 'frozen' : (state.preview ? 'live' : (screen ? 'frozen' : 'idle'));
+              const mode = activeDraftFlow ? 'frozen' : (state.preview ? 'live' : (screen ? 'frozen' : 'idle'));
               snapshot.dataset.toolMode = toolModeUseCases.isAnnotateMode() ? 'annotate' : 'select';
               if (!hasScreenshot) {
                 const emptyMessage = screen
@@ -795,10 +831,11 @@
                 updateComposerState();
                 // Even with no screenshot, surface the blocked-reason overlay and
                 // stale-frame notice so users see WHY there's no capture yet.
-                renderCanvasBlockedOverlay();
-                renderStaleFrameNotice();
-                return;
-              }
+	                renderCanvasBlockedOverlay();
+	                renderStaleFrameNotice();
+	                renderDraftLockBar();
+	                return;
+	              }
               const frame = ensurePreviewFrame();
               frame.dataset.mode = mode;
               renderPreviewFrameStatus(screen, hasScreenshot);
@@ -820,10 +857,11 @@
               } else if (hint) {
                 hint.remove();
               }
-              renderSelectionOverlay();
-              renderCanvasBlockedOverlay();
-              renderStaleFrameNotice();
-            }
+	              renderSelectionOverlay();
+	              renderCanvasBlockedOverlay();
+	              renderStaleFrameNotice();
+	              renderDraftLockBar();
+	            }
 
             function renderPreviewOnly() {
               renderPreviewRegion();
@@ -848,7 +886,7 @@
               image.addEventListener('dragstart', event => event.preventDefault());
               image.addEventListener('click', event => {
                 try {
-                  if (toolModeUseCases.getState().addItemsFlowStarting) {
+                  if (toolModeUseCases.getState().draftFlowStarting) {
                     event.preventDefault();
                     return;
                   }
@@ -856,11 +894,11 @@
                     toolModeUseCases.setSuppressNextClick(false);
                     return;
                   }
-                  if (toolModeUseCases.isSelectMode() && addItemsFlow) {
+                  if (toolModeUseCases.isSelectMode() && activeDraftFlow) {
                     clearSelection();
                     return;
                   }
-                  if (!addItemsFlow) {
+                  if (!activeDraftFlow) {
                     const point = naturalPointFromEvent(event, image);
                     navigate('tap', { x: point.x, y: point.y }).catch(showError);
                     return;
@@ -873,11 +911,11 @@
                 }
               });
               image.addEventListener('pointerdown', event => {
-                if (toolModeUseCases.getState().addItemsFlowStarting) {
+                if (toolModeUseCases.getState().draftFlowStarting) {
                   event.preventDefault();
                   return;
                 }
-                if (!addItemsFlow || !toolModeUseCases.isAnnotateMode()) return;
+                if (!activeDraftFlow || !toolModeUseCases.isAnnotateMode()) return;
                 try {
                   image.setPointerCapture?.(event.pointerId);
                   const point = naturalPointFromEvent(event, image);
@@ -889,7 +927,7 @@
                 }
               });
               image.addEventListener('pointermove', event => {
-                if (!addItemsFlow || !toolModeUseCases.isAnnotateMode()) return;
+                if (!activeDraftFlow || !toolModeUseCases.isAnnotateMode()) return;
                 try {
                   const dragState = toolModeUseCases.getState().drag;
                   if (!dragState) {
@@ -905,7 +943,7 @@
               });
               image.addEventListener('pointerup', event => {
                 const dragState = toolModeUseCases.getState().drag;
-                if (!addItemsFlow || !toolModeUseCases.isAnnotateMode() || !dragState) return;
+                if (!activeDraftFlow || !toolModeUseCases.isAnnotateMode() || !dragState) return;
                 try {
                   const end = naturalPointFromEvent(event, image);
                   const bounds = normalizeBounds(dragState.start, end);
@@ -943,7 +981,7 @@
               const preservedFocusedPendingIndex = focusedPendingItemIndex;
               const preservedSelection = currentSelection;
 
-              state.session = fresh;
+              setConsoleSession(fresh);
 
               comment.value = preservedComment;
               const freshItems = fresh?.items || [];

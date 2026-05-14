@@ -30,7 +30,7 @@ function body(source, signature) {
 }
 
 test('annotate flow captures immutable session preview context', () => {
-  const start = body(annotationsSource, 'async function startAddItemsFlow()');
+  const start = body(annotationsSource, 'async function startDraftAnnotationFlow()');
   assert.match(start, /startDraftFreeze\(/);
   assert.match(start, /sessionId:\s*state\.session\?\.sessionId\s*\|\|\s*null/);
   assert.match(start, /selectedDeviceSerial:\s*state\.selectedDeviceSerial\s*\|\|\s*null/);
@@ -76,7 +76,7 @@ test('full render rebuilds history summaries from current state', () => {
 
 test('copy prompt refreshes session summaries after marking items handed off', () => {
   const copy = body(promptSource, 'async function copyPrompt()');
-  assert.match(copy, /const updated = await markItemsHandedOff\(sessionId,\s*itemIds\);[\s\S]*?state\.session = updated;[\s\S]*?await refreshSessions\(\);[\s\S]*?renderInspectorRegion\(\);/);
+  assert.match(copy, /const updated = await markItemsHandedOff\(sessionId,\s*itemIds\);[\s\S]*?setConsoleSession\(updated\);[\s\S]*?await refreshSessions\(\);[\s\S]*?renderInspectorRegion\(\);/);
 });
 
 test('draft command queue fences stale pending save responses', () => {

@@ -18,9 +18,9 @@
             async function persistAndCollectItemIds() {
                 const before = (state.session && Array.isArray(state.session.items)) ? state.session.items : [];
                 const beforeIds = new Set(before.map(item => item.itemId));
-                if (addItemsFlow) {
+                if (activeDraftFlow) {
                     flushFocusedPendingComment();
-                    if (pendingFeedbackItems.some(item => !hasWrittenAnnotationComment(item))) {
+                    if (draftFeedbackItems.some(item => !hasWrittenAnnotationComment(item))) {
                         throw new Error('Add a comment to every annotation before saving.');
                     }
                     await persistPendingFeedbackItems();
@@ -82,7 +82,7 @@
                         copied = true;
                         try {
                             const updated = await markItemsHandedOff(sessionId, itemIds);
-                            state.session = updated;
+                            setConsoleSession(updated);
                             await refreshSessions();
                             renderInspectorRegion();
                         } catch (markError) {
@@ -121,10 +121,10 @@
                                 itemIds
                             }),
                         });
-                        state.session = result.session;
+                        setConsoleSession(result.session);
                         comment.value = '';
-                        resetAnnotationComposerState();
-                        invalidatePreviewContext();
+                        resetCanonicalAnnotationComposerState();
+                        invalidateCanonicalPreviewContext();
                         await refreshSessions();
                         render();
                         startLivePreviewPolling();

@@ -52,7 +52,7 @@ class ConsoleSessionsPollingContractTest {
         val persistAndCollect = javascriptFunctionBody(html, "persistAndCollectItemIds")
 
         assertTrue(
-            persistAndCollect.contains("pendingFeedbackItems.some(item => !hasWrittenAnnotationComment(item))"),
+            persistAndCollect.contains("draftFeedbackItems.some(item => !hasWrittenAnnotationComment(item))"),
             "Prompt actions must detect partially-commented pending batches before persistence",
         )
         assertTrue(

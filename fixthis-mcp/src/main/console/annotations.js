@@ -107,7 +107,7 @@
             // The send/copy path uses currentPromptAnnotations(), which re-applies the delivery filter
             // so already-sent items are not re-sent.
             function toolbarAnnotations() {
-              if (addItemsFlow) return pendingFeedbackItems;
+              if (activeDraftFlow) return draftFeedbackItems;
               return state.session?.items || [];
             }
 
@@ -143,7 +143,7 @@
               const missing = unsent.length - ready.length;
               const warningCount = annotations.reduce((total, item) => total + reliabilityWarnings(item).length, 0);
               if (ready.length > 0) {
-                const itemKind = addItemsFlow ? 'draft' : 'saved';
+                const itemKind = activeDraftFlow ? 'draft' : 'saved';
                 return {
                   state: missing > 0 ? 'blocked' : (warningCount > 0 ? 'warn' : 'ready'),
                   label: countLabel(ready.length, 'ready', 'ready') +
@@ -252,7 +252,7 @@
 
             function focusedPendingSelectionSummary() {
               if (focusedPendingItemIndex != null) {
-                return pendingFeedbackItems[focusedPendingItemIndex] || null;
+                return draftFeedbackItems[focusedPendingItemIndex] || null;
               }
               return null;
             }
@@ -262,10 +262,10 @@
               const promptDisabled = !hasPromptAnnotations || pollingUseCases.getState().promptActionInFlight;
               copyPromptButton.disabled = promptDisabled;
               sendAgentButton.disabled = promptDisabled;
-              cancelAddFlowButton.disabled = !addItemsFlow;
+              cancelAddFlowButton.disabled = !activeDraftFlow;
               addItemButton.hidden = true;
               addItemButton.disabled = true;
-              annotateToolButton.disabled = toolModeUseCases.getState().addItemsFlowStarting;
+              annotateToolButton.disabled = toolModeUseCases.getState().draftFlowStarting;
               selectToolButton.setAttribute('aria-pressed', String(toolModeUseCases.isSelectMode()));
               annotateToolButton.setAttribute('aria-pressed', String(toolModeUseCases.isAnnotateMode()));
               toolStatus.innerHTML = toolModeUseCases.isAnnotateMode()
@@ -397,7 +397,7 @@
               renderSelectionOverlay();
             }
 
-            function resetAnnotationComposerState(clearFlow = true, clearMirror = true) {
+            function resetCanonicalAnnotationComposerState(clearFlow = true, clearMirror = true) {
               if (clearFlow && clearMirror) deleteCurrentDraftWorkspaceStorage();
               if (clearFlow) setDraftWorkspace(createEmptyDraftWorkspace());
               if (clearMirror) {
@@ -413,13 +413,13 @@
               clearDragState();
             }
 
-            function currentPendingStateEnvelope(items = pendingFeedbackItems) {
+            function currentPendingStateEnvelope(items = draftFeedbackItems) {
               return {
-                context: addItemsFlow?.context ?? null,
-                previewId: addItemsFlow?.previewId ?? addItemsFlow?.context?.previewId ?? null,
-                screen: addItemsFlow?.screen ?? null,
-                screenshotUrl: addItemsFlow?.screenshotUrl ?? null,
-                frozenAtEpochMillis: addItemsFlow?.frozenAtEpochMillis ?? addItemsFlow?.context?.frozenAtEpochMillis ?? null,
+                context: activeDraftFlow?.context ?? null,
+                previewId: activeDraftFlow?.previewId ?? activeDraftFlow?.context?.previewId ?? null,
+                screen: activeDraftFlow?.screen ?? null,
+                screenshotUrl: activeDraftFlow?.screenshotUrl ?? null,
+                frozenAtEpochMillis: activeDraftFlow?.frozenAtEpochMillis ?? activeDraftFlow?.context?.frozenAtEpochMillis ?? null,
                 items: items,
               };
             }
@@ -450,8 +450,8 @@
             }
 
 
-            async function startAddItemsFlow() {
-              if (toolModeUseCases.getState().addItemsFlowStarting) return;
+            async function startDraftAnnotationFlow() {
+              if (toolModeUseCases.getState().draftFlowStarting) return;
               error.textContent = '';
               toolModeUseCases.setAddItemsFlowStarting(true);
               updateComposerState();
@@ -468,7 +468,7 @@
                     frozenAtEpochMillis: Date.now(),
                     stale: false,
                   };
-                  state.preview = preview;
+                  setConsolePreview(preview);
                 }
                 if (!state.preview) {
                   return;
@@ -492,20 +492,20 @@
               } finally {
                 toolModeUseCases.setAddItemsFlowStarting(false);
                 updateComposerState();
-                if (!addItemsFlow) startLivePreviewPolling();
+                if (!activeDraftFlow) startLivePreviewPolling();
               }
             }
 
             function flushFocusedPendingComment() {
               if (focusedPendingItemIndex == null) return;
-              const item = pendingFeedbackItems[focusedPendingItemIndex];
+              const item = draftFeedbackItems[focusedPendingItemIndex];
               if (!item) return;
               const commentInput = pendingItems.querySelector('#annotationCommentInput');
               item.comment = commentInput ? commentInput.value : comment.value;
             }
 
             function createAnnotationFromSelection(selection) {
-              if (!addItemsFlow) throw new Error('Switch to Annotate before selecting feedback.');
+              if (!activeDraftFlow) throw new Error('Switch to Annotate before selecting feedback.');
               if (!selection) throw new Error('Select a component or area first.');
               flushFocusedPendingComment();
               const ports = createBrowserDraftPorts();
@@ -559,7 +559,7 @@
               toolModeUseCases.focusSavedItem(null, null);
               currentSelection = null;
               toolModeUseCases.enterSelect();
-              comment.value = pendingFeedbackItems[index]?.comment || '';
+              comment.value = draftFeedbackItems[index]?.comment || '';
               renderPreviewOnly();
               renderInspectorRegion();
             }
@@ -582,7 +582,7 @@
             function applySavedSessionUpdate(updatedSession, sessionId) {
               const updatedSessionId = updatedSession?.sessionId || sessionId;
               if (state.session?.sessionId === updatedSessionId) {
-                state.session = updatedSession;
+                setConsoleSession(updatedSession);
                 renderCurrentSessionList();
                 updateComposerState();
                 refreshSessions().catch(showError);
@@ -619,7 +619,7 @@
                 const fallbackItem = (updatedSession?.items || []).find(item => item.screenId === previousScreenId) || null;
                 const fallbackScreenId = fallbackItem?.screenId || ((updatedSession?.screens || []).some(screen => screen.screenId === previousScreenId) ? previousScreenId : null);
                 toolModeUseCases.focusSavedItem(fallbackItem?.itemId || null, fallbackScreenId ? sessionId : null, fallbackScreenId);
-                state.session = updatedSession;
+                setConsoleSession(updatedSession);
                 renderPreviewOnly();
                 renderInspectorRegion();
                 renderCurrentSessionList();
@@ -633,7 +633,7 @@
               const item = selectedAnnotation();
               if (!item) return;
               item.comment = comment.value;
-              if (addItemsFlow) persistCurrentPendingState();
+              if (activeDraftFlow) persistCurrentPendingState();
               renderPendingItems();
               updateComposerState();
             }
@@ -642,7 +642,7 @@
               const allowFallbackComments = Boolean(options.allowFallbackComments);
               const onlyWrittenComments = Boolean(options.onlyWrittenComments);
               const allowBlankComments = Boolean(options.allowBlankComments);
-              const items = onlyWrittenComments ? pendingFeedbackItems.filter(hasWrittenAnnotationComment) : pendingFeedbackItems;
+              const items = onlyWrittenComments ? draftFeedbackItems.filter(hasWrittenAnnotationComment) : draftFeedbackItems;
               return items.map(item => ({
                 targetType: item.targetType,
                 bounds: item.bounds,
@@ -690,15 +690,15 @@
                 }
                 if (choice === 'recapture') {
                   setDraftWorkspace(createEmptyDraftWorkspace());
-                  state.preview = null;
+                  setConsolePreview(null);
                   startLivePreviewPolling();
                   return null;
                 }
                 return null;
               }
               if (result?.result?.session) {
-                state.session = result.result.session;
-                state.preview = null;
+                setConsoleSession(result.result.session);
+                setConsolePreview(null);
                 return state.session;
               }
               await refreshSessions();
@@ -748,7 +748,7 @@
             }
 
             async function flushPendingAnnotationsBeforeSessionChange() {
-              if (!addItemsFlow || !pendingFeedbackItems.length) return;
+              if (!activeDraftFlow || !draftFeedbackItems.length) return;
               await persistPendingFeedbackItems({ allowBlankComments: true });
             }
 
@@ -759,7 +759,7 @@
             }
 
             function cancelAddItemsFlow() {
-              resetAnnotationComposerState();
+              resetCanonicalAnnotationComposerState();
               render();
               startLivePreviewPolling();
             }

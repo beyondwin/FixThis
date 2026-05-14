@@ -32,7 +32,7 @@
             window.addEventListener('keydown', (e) => {
               const active = document.activeElement;
               if (matchesUndo(e, active)) {
-                const result = undo(undoRedoHistory, { pendingFeedbackItems }, addItemsFlow?.context ?? null);
+                const result = undo(undoRedoHistory, { draftFeedbackItems }, activeDraftFlow?.context ?? null);
                 if (result.reason === 'context_mismatch') showError('Undo history was cleared because the annotation session changed.');
                 if (result.applied) {
                   e.preventDefault();
@@ -42,7 +42,7 @@
                   renderCurrentSessionList();
                 }
               } else if (matchesRedo(e, active)) {
-                const result = redo(undoRedoHistory, { pendingFeedbackItems }, addItemsFlow?.context ?? null);
+                const result = redo(undoRedoHistory, { draftFeedbackItems }, activeDraftFlow?.context ?? null);
                 if (result.reason === 'context_mismatch') showError('Undo history was cleared because the annotation session changed.');
                 if (result.applied) {
                   e.preventDefault();
@@ -55,7 +55,7 @@
             });
             // ALH-1: warn user if they try to leave with unsaved pending items.
             window.addEventListener('beforeunload', (e) => {
-              if (shouldGuardUnload(pendingFeedbackItems.length)) {
+              if (shouldGuardUnload(draftFeedbackItems.length)) {
                 e.preventDefault();
                 e.returnValue = '저장하지 않은 어노테이션이 있습니다. 정말 떠나시겠습니까?';
                 return e.returnValue;
@@ -107,7 +107,7 @@
               btn.textContent = '되돌리기';
               btn.style.cssText = 'background:none;border:none;color:#bb86fc;cursor:pointer;font-size:14px;padding:0;font-weight:500;';
               btn.addEventListener('click', () => {
-                const result = undo(undoRedoHistory, { pendingFeedbackItems }, addItemsFlow?.context ?? null);
+                const result = undo(undoRedoHistory, { draftFeedbackItems }, activeDraftFlow?.context ?? null);
                 if (result.reason === 'context_mismatch') showError('Undo history was cleared because the annotation session changed.');
                 if (result.applied) {
                   persistCurrentPendingState();
@@ -205,16 +205,16 @@
               toolModeUseCases.setAnnotationSequenceAtLeast(next);
             }
 
-            function restorePendingRecoveryContext(recovery) {
-              const workspace = recoverDraftWorkspaceFromEnvelope(recovery);
-              setDraftWorkspace(workspace);
-              state.preview = {
-                previewId: workspace.context.previewId,
-                screen: workspace.screen,
-                activity: workspace.context.activityName,
-                frozenAtEpochMillis: workspace.context.frozenAtEpochMillis,
-                stale: false
-              };
+	            function restorePendingRecoveryContext(recovery) {
+	              const workspace = recoverDraftWorkspaceFromEnvelope(recovery);
+	              setDraftWorkspace(workspace);
+	              setConsolePreview({
+	                previewId: workspace.context.previewId,
+	                screen: workspace.screen,
+	                activity: workspace.context.activityName,
+	                frozenAtEpochMillis: workspace.context.frozenAtEpochMillis,
+	                stale: false
+	              });
               updateAnnotationSequenceFromPendingItems(workspace.items);
               focusedPendingItemIndex = null;
               toolModeUseCases.focusSavedItem(null, null);
@@ -259,7 +259,7 @@
             function renderPendingRecoveryBanner() {
               const banner = ensurePendingRecoveryBanner();
               const recoveryItems = pendingRecoveryItems(pendingRecovery);
-              if (!pendingRecovery || !recoveryItems.length || addItemsFlow || pendingFeedbackItems.length) {
+              if (!pendingRecovery || !recoveryItems.length || activeDraftFlow || draftFeedbackItems.length) {
                 banner.hidden = true;
                 return;
               }
@@ -309,7 +309,7 @@
                 return;
               }
               const sessionId = state.session.sessionId;
-              if (addItemsFlow || pendingFeedbackItems.length) {
+              if (activeDraftFlow || draftFeedbackItems.length) {
                 renderPendingRecoveryBanner();
                 return;
               }
@@ -332,9 +332,9 @@
                 const accepted = window.confirm('Recapture the current app screen and remap recovered pins to the new frozen preview?');
                 if (!accepted) return;
               }
-              invalidatePreviewContext();
-              await startAddItemsFlow();
-              if (!addItemsFlow) return;
+              invalidateCanonicalPreviewContext();
+              await startDraftAnnotationFlow();
+              if (!activeDraftFlow) return;
               const recoveredItems = items.map((item, index) => ({
                 ...item,
                 draftItemId: item?.draftItemId || item?.annotationId || ('recovered-' + (index + 1)),
