@@ -489,48 +489,37 @@ git commit -m "feat(core): add target reliability calculator"
 - Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt`
 - Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt`
 - Modify: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt`
-- Create: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/TargetReliabilitySerializationTest.kt`
+- Modify: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/TargetEvidenceModelTest.kt`
 
 - [ ] **Step 1: Write serialization and formatter tests**
 
-Create `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/TargetReliabilitySerializationTest.kt`:
+Append these tests to `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/TargetEvidenceModelTest.kt`, before `baseAnnotation()`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.model
-
-import kotlinx.serialization.json.Json
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
-
-class TargetReliabilitySerializationTest {
-    private val json = Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = false
-    }
-
     @Test
     fun decodesLegacyAnnotationWithoutTargetReliability() {
-        val legacy = """
+        val annotation = json.decodeFromString<FixThisAnnotation>(
+            """
             {
-              "id": "ann-1",
-              "createdAtEpochMillis": 1,
+              "schemaVersion": "1.0",
+              "id": "annotation-1",
+              "createdAtEpochMillis": 100,
+              "platform": "android-compose",
               "app": {"packageName": "pkg", "debuggable": true},
               "activity": {"className": "MainActivity"},
               "tap": {"xInWindow": 10.0, "yInWindow": 11.0},
               "selection": {"kind": "VISUAL_AREA", "confidence": "LOW", "source": "AREA_SELECT"},
               "userComment": "Make this clearer"
             }
-        """.trimIndent()
+            """.trimIndent(),
+        )
 
-        val annotation = json.decodeFromString(FixThisAnnotation.serializer(), legacy)
-
-        assertEquals(null, annotation.targetReliability)
+        assertNull(annotation.targetReliability)
     }
 
     @Test
     fun roundTripsTargetReliability() {
-        val annotation = minimalAnnotation().copy(
+        val annotation = baseAnnotation().copy(
             targetReliability = TargetReliability(
                 confidence = TargetConfidence.LOW,
                 reasons = listOf(TargetReliabilityReason.VISUAL_AREA_SELECTION),
@@ -538,28 +527,13 @@ class TargetReliabilitySerializationTest {
             ),
         )
 
-        val encoded = json.encodeToString(FixThisAnnotation.serializer(), annotation)
-        val decoded = json.decodeFromString(FixThisAnnotation.serializer(), encoded)
+        val encoded = json.encodeToString(annotation)
+        val decoded = json.decodeFromString<FixThisAnnotation>(encoded)
 
         assertEquals(annotation.targetReliability, decoded.targetReliability)
         assertTrue(encoded.contains("\"targetReliability\""))
         assertTrue(encoded.contains("POSSIBLE_VIEW_INTEROP"))
     }
-
-    private fun minimalAnnotation(): FixThisAnnotation = FixThisAnnotation(
-        id = "ann-1",
-        createdAtEpochMillis = 1,
-        app = AppInfo(packageName = "pkg", debuggable = true),
-        activity = ActivityInfo(className = "MainActivity"),
-        tap = TapPoint(10f, 11f),
-        selection = SelectionInfo(
-            kind = SelectionKind.VISUAL_AREA,
-            confidence = SelectionConfidence.LOW,
-            source = SelectionSource.AREA_SELECT,
-        ),
-        userComment = "Make this clearer",
-    )
-}
 ```
 
 Append this test to `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt`:
@@ -1135,19 +1109,33 @@ Append this test to `CompactHandoffRendererTest.kt`:
 ```kotlin
     @Test
     fun compactHandoffRendersTargetReliabilityWarnings() {
-        val session = sessionWithSingleItem(
-            AnnotationDto(
-                itemId = "item-1",
-                screenId = "screen-1",
-                createdAtEpochMillis = 1,
-                updatedAtEpochMillis = 1,
-                target = AnnotationTargetDto.Area(FixThisRect(10f, 20f, 200f, 120f)),
-                comment = "Fix the native chart spacing",
-                sequenceNumber = 1,
-                targetReliability = TargetReliability(
-                    confidence = TargetConfidence.LOW,
-                    reasons = listOf(TargetReliabilityReason.VISUAL_AREA_SELECTION),
-                    warnings = listOf(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP),
+        val session = SessionDto(
+            sessionId = "session-1",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(
+                SnapshotDto(
+                    screenId = "screen-1",
+                    capturedAtEpochMillis = 1L,
+                    displayName = "Diagnostics",
+                ),
+            ),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(10f, 20f, 200f, 120f)),
+                    comment = "Fix the native chart spacing",
+                    sequenceNumber = 1,
+                    targetReliability = TargetReliability(
+                        confidence = TargetConfidence.LOW,
+                        reasons = listOf(TargetReliabilityReason.VISUAL_AREA_SELECTION),
+                        warnings = listOf(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP),
+                    ),
                 ),
             ),
         )
@@ -1164,17 +1152,31 @@ Append this test to `FeedbackQueueFormatterTest.kt`:
 ```kotlin
     @Test
     fun preciseMarkdownRendersTargetReliabilityWarnings() {
-        val session = sessionWithItem(
-            AnnotationDto(
-                itemId = "item-1",
-                screenId = "screen-1",
-                createdAtEpochMillis = 1,
-                updatedAtEpochMillis = 1,
-                target = AnnotationTargetDto.Area(FixThisRect(10f, 20f, 200f, 120f)),
-                comment = "Fix the native chart spacing",
-                targetReliability = TargetReliability(
-                    confidence = TargetConfidence.LOW,
-                    warnings = listOf(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP),
+        val session = SessionDto(
+            sessionId = "session-1",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(
+                SnapshotDto(
+                    screenId = "screen-1",
+                    capturedAtEpochMillis = 1L,
+                    displayName = "Diagnostics",
+                ),
+            ),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(10f, 20f, 200f, 120f)),
+                    comment = "Fix the native chart spacing",
+                    targetReliability = TargetReliability(
+                        confidence = TargetConfidence.LOW,
+                        warnings = listOf(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP),
+                    ),
                 ),
             ),
         )
@@ -1186,12 +1188,20 @@ Append this test to `FeedbackQueueFormatterTest.kt`:
     }
 ```
 
-Add imports to both test files:
+Add imports to `CompactHandoffRendererTest.kt`:
 
 ```kotlin
 import io.beyondwin.fixthis.compose.core.model.TargetConfidence
 import io.beyondwin.fixthis.compose.core.model.TargetReliability
 import io.beyondwin.fixthis.compose.core.model.TargetReliabilityReason
+import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+```
+
+Add imports to `FeedbackQueueFormatterTest.kt`:
+
+```kotlin
+import io.beyondwin.fixthis.compose.core.model.TargetConfidence
+import io.beyondwin.fixthis.compose.core.model.TargetReliability
 import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 ```
 
@@ -1503,6 +1513,11 @@ Append this CSS to `fixthis-mcp/src/main/resources/console/styles.css`:
   border-color: rgba(91, 180, 142, .38);
   color: #5bb48e;
 }
+
+.prompt-readiness[data-state="warn"] {
+  border-color: rgba(230, 180, 90, .38);
+  color: #d8a84f;
+}
 ```
 
 - [ ] **Step 6: Run console presentation tests**
@@ -1621,7 +1636,7 @@ Run:
 rg -n "targetReliability|Target confidence|possible AndroidView/WebView" docs README.md
 ```
 
-Expected before edits: either no matches or only the design spec matches under `docs/superpowers/specs`.
+Expected before edits: matches are limited to existing superpowers spec/plan files.
 
 - [ ] **Step 2: Document agent behavior**
 
@@ -1650,7 +1665,7 @@ confidence level for the UI target, not as a task priority.
 
 In `docs/reference/output-schema.md`, add this optional field to the saved item schema section:
 
-```markdown
+````markdown
 #### `targetReliability` optional object
 
 `targetReliability` is additive and optional. Older sessions omit it.
@@ -1665,8 +1680,7 @@ In `docs/reference/output-schema.md`, add this optional field to the saved item 
 
 It is a sibling of `targetEvidence`. `targetEvidence` stores captured target
 facts; `targetReliability` stores FixThis's derived judgment over those facts.
-```
-```
+````
 
 - [ ] **Step 4: Document MCP output**
 
