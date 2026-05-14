@@ -205,16 +205,16 @@
               toolModeUseCases.setAnnotationSequenceAtLeast(next);
             }
 
-            function restorePendingRecoveryContext(recovery) {
-              const workspace = recoverDraftWorkspaceFromEnvelope(recovery);
-              setDraftWorkspace(workspace);
-              state.preview = {
-                previewId: workspace.context.previewId,
-                screen: workspace.screen,
-                activity: workspace.context.activityName,
-                frozenAtEpochMillis: workspace.context.frozenAtEpochMillis,
-                stale: false
-              };
+	            function restorePendingRecoveryContext(recovery) {
+	              const workspace = recoverDraftWorkspaceFromEnvelope(recovery);
+	              setDraftWorkspace(workspace);
+	              setConsolePreview({
+	                previewId: workspace.context.previewId,
+	                screen: workspace.screen,
+	                activity: workspace.context.activityName,
+	                frozenAtEpochMillis: workspace.context.frozenAtEpochMillis,
+	                stale: false
+	              });
               updateAnnotationSequenceFromPendingItems(workspace.items);
               focusedPendingItemIndex = null;
               toolModeUseCases.focusSavedItem(null, null);
@@ -332,7 +332,7 @@
                 const accepted = window.confirm('Recapture the current app screen and remap recovered pins to the new frozen preview?');
                 if (!accepted) return;
               }
-              invalidatePreviewContext();
+              invalidateCanonicalPreviewContext();
               await startAddItemsFlow();
               if (!addItemsFlow) return;
               const recoveredItems = items.map((item, index) => ({

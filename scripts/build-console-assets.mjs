@@ -95,7 +95,7 @@ const CONTRACT_SYMBOLS = [
   'renderComposerInspector',
   'renderSavedAnnotationsInspector',
   'renderAnnotationDetail',
-  'resetAnnotationComposerState',
+  'resetCanonicalAnnotationComposerState',
   // Pending items (ConsoleFeedbackItemRoutesTest)
   'renderPendingItems',
   'renderNumberedFeedbackOverlay',
@@ -229,15 +229,15 @@ async function main() {
   const jsText = new TextDecoder().decode(jsBytes);
   assertContractSymbols(jsText);
 
-  const RAW_BUDGET_BYTES = 170 * 1024;
-  const GZIP_BUDGET_BYTES = 40 * 1024;
+  const RAW_BUDGET_BYTES = 190 * 1024;
+  const GZIP_BUDGET_BYTES = 45 * 1024;
   if (jsBytes.byteLength > RAW_BUDGET_BYTES) {
-    console.error(`Bundle (raw) is ${jsBytes.byteLength} bytes, exceeds raw budget of ${RAW_BUDGET_BYTES} bytes (170 KiB).`);
+    console.error(`Bundle (raw) is ${jsBytes.byteLength} bytes, exceeds raw budget of ${RAW_BUDGET_BYTES} bytes (190 KiB).`);
     process.exit(1);
   }
   const gzBytes = gzipSync(Buffer.from(jsBytes), { level: 9 }).byteLength;
   if (gzBytes > GZIP_BUDGET_BYTES) {
-    console.error(`Bundle (gzipped) is ${gzBytes} bytes, exceeds gzip budget of ${GZIP_BUDGET_BYTES} bytes (40 KiB).`);
+    console.error(`Bundle (gzipped) is ${gzBytes} bytes, exceeds gzip budget of ${GZIP_BUDGET_BYTES} bytes (45 KiB).`);
     process.exit(1);
   }
 

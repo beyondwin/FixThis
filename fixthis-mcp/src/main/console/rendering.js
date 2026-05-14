@@ -147,7 +147,7 @@
               if (driftRestartButton) {
                 driftRestartButton.addEventListener('click', () => {
                   // SIF-6: discard the stale freeze and start a fresh one.
-                  resetAnnotationComposerState(true);
+                  resetCanonicalAnnotationComposerState(true);
                   startAddItemsFlow().catch(showError);
                 });
               }
@@ -634,7 +634,7 @@
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ itemIds: [item.itemId] }),
                     });
-                    state.session = result.session;
+                    setConsoleSession(result.session);
                     renderInspectorRegion();
                     renderPreviewOnly();
                     showSuccess('Re-saved to MCP ✓', 2000);
@@ -943,7 +943,7 @@
               const preservedFocusedPendingIndex = focusedPendingItemIndex;
               const preservedSelection = currentSelection;
 
-              state.session = fresh;
+              setConsoleSession(fresh);
 
               comment.value = preservedComment;
               const freshItems = fresh?.items || [];

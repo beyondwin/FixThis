@@ -2,16 +2,26 @@
             const DefaultLivePreviewIntervalMs = 1000;
             const MinLivePreviewIntervalMs = 1000;
             const PreviewIntervalStorageKey = 'fixthis.previewIntervalMs.v2';
-            const state = {
-              session: null,
-              preview: null,
+	            const state = {
+	              session: null,
+	              preview: null,
               sessionSummaries: [],
               selectedDeviceSerial: null,
               devices: [],
               connection: null, // projected from connectionUseCases below
               previewFsm: null, // projected from previewUseCases below
-              pollingFsm: null, // projected from pollingUseCases below
-            };
+	              pollingFsm: null, // projected from pollingUseCases below
+	            };
+
+	            function setConsoleSession(session) {
+	              state.session = session;
+	              return state.session;
+	            }
+
+	            function setConsolePreview(preview) {
+	              state.preview = preview;
+	              return state.preview;
+	            }
             // Console FSM boot. createConsoleApp() wires the four sub-FSMs
             // (connection, preview, polling, tool-mode) and routes each
             // FSM's onChange into the corresponding legacy state.* slot so

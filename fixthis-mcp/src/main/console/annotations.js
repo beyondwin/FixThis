@@ -397,7 +397,7 @@
               renderSelectionOverlay();
             }
 
-            function resetAnnotationComposerState(clearFlow = true, clearMirror = true) {
+            function resetCanonicalAnnotationComposerState(clearFlow = true, clearMirror = true) {
               if (clearFlow && clearMirror) deleteCurrentDraftWorkspaceStorage();
               if (clearFlow) setDraftWorkspace(createEmptyDraftWorkspace());
               if (clearMirror) {
@@ -468,7 +468,7 @@
                     frozenAtEpochMillis: Date.now(),
                     stale: false,
                   };
-                  state.preview = preview;
+                  setConsolePreview(preview);
                 }
                 if (!state.preview) {
                   return;
@@ -582,7 +582,7 @@
             function applySavedSessionUpdate(updatedSession, sessionId) {
               const updatedSessionId = updatedSession?.sessionId || sessionId;
               if (state.session?.sessionId === updatedSessionId) {
-                state.session = updatedSession;
+                setConsoleSession(updatedSession);
                 renderCurrentSessionList();
                 updateComposerState();
                 refreshSessions().catch(showError);
@@ -619,7 +619,7 @@
                 const fallbackItem = (updatedSession?.items || []).find(item => item.screenId === previousScreenId) || null;
                 const fallbackScreenId = fallbackItem?.screenId || ((updatedSession?.screens || []).some(screen => screen.screenId === previousScreenId) ? previousScreenId : null);
                 toolModeUseCases.focusSavedItem(fallbackItem?.itemId || null, fallbackScreenId ? sessionId : null, fallbackScreenId);
-                state.session = updatedSession;
+                setConsoleSession(updatedSession);
                 renderPreviewOnly();
                 renderInspectorRegion();
                 renderCurrentSessionList();
@@ -690,15 +690,15 @@
                 }
                 if (choice === 'recapture') {
                   setDraftWorkspace(createEmptyDraftWorkspace());
-                  state.preview = null;
+                  setConsolePreview(null);
                   startLivePreviewPolling();
                   return null;
                 }
                 return null;
               }
               if (result?.result?.session) {
-                state.session = result.result.session;
-                state.preview = null;
+                setConsoleSession(result.result.session);
+                setConsolePreview(null);
                 return state.session;
               }
               await refreshSessions();
@@ -759,7 +759,7 @@
             }
 
             function cancelAddItemsFlow() {
-              resetAnnotationComposerState();
+              resetCanonicalAnnotationComposerState();
               render();
               startLivePreviewPolling();
             }

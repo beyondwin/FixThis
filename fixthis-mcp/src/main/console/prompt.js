@@ -82,7 +82,7 @@
                         copied = true;
                         try {
                             const updated = await markItemsHandedOff(sessionId, itemIds);
-                            state.session = updated;
+                            setConsoleSession(updated);
                             await refreshSessions();
                             renderInspectorRegion();
                         } catch (markError) {
@@ -121,10 +121,10 @@
                                 itemIds
                             }),
                         });
-                        state.session = result.session;
+                        setConsoleSession(result.session);
                         comment.value = '';
-                        resetAnnotationComposerState();
-                        invalidatePreviewContext();
+                        resetCanonicalAnnotationComposerState();
+                        invalidateCanonicalPreviewContext();
                         await refreshSessions();
                         render();
                         startLivePreviewPolling();

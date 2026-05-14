@@ -7,9 +7,9 @@
               return requestJson('/api/preview');
             }
 
-            function invalidatePreviewContext() {
+            function invalidateCanonicalPreviewContext() {
               previewUseCases.contextChanged();
-              state.preview = null;
+              setConsolePreview(null);
             }
 
             function scopedQuery(sessionId) {
@@ -143,12 +143,12 @@
               try {
                 const preview = await previewUseCases.request();
                 if (addItemsFlow || requestGeneration !== previewUseCases.getState().requestGeneration) return;
-                state.preview = {
-                  ...preview,
-                  activity: state.connection?.availability?.activity ?? null,
-                  frozenAtEpochMillis: Date.now(),
-                  stale: false,
-                };
+	                setConsolePreview({
+	                  ...preview,
+	                  activity: state.connection?.availability?.activity ?? null,
+	                  frozenAtEpochMillis: Date.now(),
+	                  stale: false,
+	                });
                 if (userConnectionState(state.connection.current) === 'ready') markPreviewStale(false);
                 renderPreviewOnly();
               } catch (cause) {
@@ -230,21 +230,21 @@
               const pendingItems = draftWorkspaceItems(draftWorkspace).slice();
               const previousWorkspace = draftWorkspace;
               const previousPreview = state.preview;
-              invalidatePreviewContext();
+              invalidateCanonicalPreviewContext();
               if (wasAnnotating) {
                 setDraftWorkspace(createEmptyDraftWorkspace());
                 try {
                   await startAddItemsFlow();
                 } catch (cause) {
                   setDraftWorkspace(previousWorkspace);
-                  state.preview = previousPreview;
+                  setConsolePreview(previousPreview);
                   if (addItemsFlow) persistCurrentPendingState();
                   render();
                   throw cause;
                 }
                 if (!addItemsFlow) {
                   setDraftWorkspace(previousWorkspace);
-                  state.preview = previousPreview;
+                  setConsolePreview(previousPreview);
                   render();
                   return;
                 }

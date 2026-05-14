@@ -133,13 +133,13 @@
               if (!requirePendingRecoveryChoiceBeforeSessionChange()) {
                 throw new Error('Recover, recapture, or discard unsaved annotations before changing sessions.');
               }
-              resetAnnotationComposerState();
-              invalidatePreviewContext();
-              state.session = await withMutationLock(() => requestJson('/api/session/open', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ newSession: true })
-              }));
+              resetCanonicalAnnotationComposerState();
+              invalidateCanonicalPreviewContext();
+	              setConsoleSession(await withMutationLock(() => requestJson('/api/session/open', {
+	                method: 'POST',
+	                headers: { 'Content-Type': 'application/json' },
+	                body: JSON.stringify({ newSession: true })
+	              })));
               await refreshSessions();
             }
 
@@ -300,7 +300,7 @@
                 requestJson('/api/sessions'),
                 requestJson('/api/session'),
               ]);
-              state.session = currentSession || null;
+              setConsoleSession(currentSession || null);
               renderSessionsListFromPayload(response.sessions || []);
               return response.sessions || [];
             }
@@ -333,13 +333,13 @@
                 if (await resolvePendingBeforeBoundary('open-session', sessionId) !== 'continue') return;
                 bumpSessionMutationGeneration();
                 stopLivePreviewPolling();
-                resetAnnotationComposerState(true, false);
-                invalidatePreviewContext();
-                state.session = await withMutationLock(() => requestJson('/api/session/open', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ sessionId: sessionId })
-                }));
+                resetCanonicalAnnotationComposerState(true, false);
+                invalidateCanonicalPreviewContext();
+	                setConsoleSession(await withMutationLock(() => requestJson('/api/session/open', {
+	                  method: 'POST',
+	                  headers: { 'Content-Type': 'application/json' },
+	                  body: JSON.stringify({ sessionId: sessionId })
+	                })));
                 await refresh();
                 if (!latestPersistedScreen() && shouldAutoFetchPreview()) {
                   await refreshPreview();
@@ -359,13 +359,13 @@
               if (sessionNavigationInFlight) return;
               if (await resolvePendingBeforeBoundary('new-session') !== 'continue') return;
               bumpSessionMutationGeneration();
-              resetAnnotationComposerState();
-              invalidatePreviewContext();
-              state.session = await withMutationLock(() => requestJson('/api/session/open', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ newSession: true })
-              }));
+              resetCanonicalAnnotationComposerState();
+              invalidateCanonicalPreviewContext();
+	              setConsoleSession(await withMutationLock(() => requestJson('/api/session/open', {
+	                method: 'POST',
+	                headers: { 'Content-Type': 'application/json' },
+	                body: JSON.stringify({ newSession: true })
+	              })));
               await refresh();
               startLivePreviewPolling();
             }
@@ -381,9 +381,9 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: sessionId })
               }));
-              resetAnnotationComposerState();
-              invalidatePreviewContext();
-              state.session = null;
+              resetCanonicalAnnotationComposerState();
+              invalidateCanonicalPreviewContext();
+              setConsoleSession(null);
               await refreshSessions();
               render();
               await refreshDevices();
@@ -403,9 +403,9 @@
                 body: JSON.stringify({ sessionId: sessionId })
               }));
               if (wasDisplayedSession) {
-                resetAnnotationComposerState();
-                invalidatePreviewContext();
-                state.session = null;
+                resetCanonicalAnnotationComposerState();
+                invalidateCanonicalPreviewContext();
+                setConsoleSession(null);
               }
               await refreshSessions();
               render();
