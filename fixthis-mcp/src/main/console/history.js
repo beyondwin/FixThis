@@ -317,6 +317,10 @@
             async function openSession(sessionId) {
               if (!sessionId) return;
               error.textContent = '';
+              if (sessionId === state.session?.sessionId) {
+                renderSessionsList();
+                return;
+              }
               if (sessionNavigationInFlight) {
                 pendingSessionNavigationId = sessionId;
                 renderSessionsList();

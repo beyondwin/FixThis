@@ -60,6 +60,12 @@ test('session navigation exposes in-flight state instead of silently racing clic
   assert.match(historySource, /aria-busy/);
 });
 
+test('reopening the active history session does not reset pending annotation flow', () => {
+  const openBody = body(historySource, 'async function openSession(sessionId)');
+  assert.match(openBody, /if \(sessionId === state\.session\?\.sessionId\) \{/);
+  assert.match(openBody, /if \(sessionId === state\.session\?\.sessionId\) \{[\s\S]*?return;[\s\S]*?resetAnnotationComposerState\(true,\s*false\);/);
+});
+
 test('closeSession uses boundary resolver before reset', () => {
   const closeBody = body(historySource, 'async function closeSession()');
   assert.match(closeBody, /await resolvePendingBeforeBoundary\('close-session'/);
