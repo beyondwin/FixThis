@@ -63,7 +63,12 @@ async function injectStressState(page) {
     document.getElementById('sessionCount').textContent = '2';
     const draftLockBar = document.getElementById('draftLockBar');
     draftLockBar.hidden = false;
-    draftLockBar.textContent = 'Locked: Session 2 · Preview preview-stress · Live preview paused';
+    draftLockBar.textContent = 'Locked: Session 2 · Preview preview-stress';
+    const staleNotice = document.getElementById('canvasStaleNotice');
+    staleNotice.hidden = false;
+    staleNotice.querySelector('[data-stale-title]')?.replaceChildren('Recovered draft');
+    staleNotice.querySelector('[data-stale-detail]')?.replaceChildren('Live preview paused for this frozen frame.');
+    staleNotice.querySelector('[data-use-latest]')?.replaceChildren('Use latest frame');
     document.getElementById('sessions').innerHTML =
       '<div class="history-item session-row" role="button" tabindex="0" data-session-id="session-1">' +
         '<span class="hi-head">' +
@@ -333,6 +338,36 @@ async function assertPendingRecoveryBannerIsReadable(page, viewportName) {
   );
 }
 
+async function assertCanvasStaleNoticeIsCompact(page, viewportName) {
+  const failure = await page.evaluate(() => {
+    const notice = document.getElementById('canvasStaleNotice');
+    const copy = notice?.querySelector('.canvas-stale__copy');
+    const action = notice?.querySelector('[data-use-latest]');
+    const frame = document.getElementById('snapshotFrame');
+    const toolbar = document.querySelector('.canvas-toolbar');
+    if (!notice || !copy || !action || !frame || !toolbar) return { missing: true };
+    const noticeBox = notice.getBoundingClientRect();
+    const frameBox = frame.getBoundingClientRect();
+    const toolbarBox = toolbar.getBoundingClientRect();
+    return {
+      tooTall: noticeBox.height > 76,
+      outsideFrame: noticeBox.left < frameBox.left - 1 || noticeBox.right > frameBox.right + 1,
+      overlapsToolbar: noticeBox.top < toolbarBox.bottom - 1,
+      textOverflow: copy.scrollWidth - copy.clientWidth,
+      actionsOverflow: action.scrollWidth - action.clientWidth,
+    };
+  });
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(failure).filter(([key, value]) => {
+      if (key === 'missing') return value === true;
+      if (typeof value === 'number') return value > 1;
+      return value === true;
+    })),
+    {},
+    `${viewportName} stale frame notice is not compact`,
+  );
+}
+
 async function assertCompactHistoryReachable(page, viewportName) {
   const failure = await page.evaluate(() => {
     const toggle = document.getElementById('historyToggleButton');
@@ -387,6 +422,7 @@ async function run(baseUrl) {
       await assertPreviewFrameStatusBadge(page, viewport.name);
       await assertAnnotateModeBadgeDoesNotWrap(page, viewport.name);
       await assertPendingRecoveryBannerIsReadable(page, viewport.name);
+      await assertCanvasStaleNoticeIsCompact(page, viewport.name);
       await assertCompactHistoryReachable(page, viewport.name);
       await page.close();
     }

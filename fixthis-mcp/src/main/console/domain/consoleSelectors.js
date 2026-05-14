@@ -64,7 +64,7 @@ function selectCanvasModel(state) {
       screen: workspace.screen,
       screenshotUrl: workspace.screenshotUrl,
       pins: Object.freeze([...workspace.items]),
-      lockLabel: 'Locked: Session ' + workspace.context.sessionId + ' · Preview ' + workspace.context.previewId + ' · Live preview paused',
+      lockLabel: 'Locked: Session ' + workspace.context.sessionId + ' · Preview ' + workspace.context.previewId,
     });
   }
   if (workspace.kind === WorkspaceKind.LIVE_PREVIEW) {

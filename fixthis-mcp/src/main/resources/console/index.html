@@ -144,10 +144,13 @@
                   <div class="canvas-blocked__detail" data-detail></div>
                   <button type="button" class="canvas-blocked__retry" data-retry hidden>Retry now</button>
                 </div>
-	                <div id="canvasStaleNotice" class="canvas-stale" hidden>
-	                  <span>Frozen frame may be out of date.</span>
-	                  <button type="button" data-use-latest>Use latest frame</button>
-	                </div>
+                <div id="canvasStaleNotice" class="canvas-stale" role="status" aria-live="polite" hidden>
+                  <div class="canvas-stale__copy">
+                    <strong data-stale-title>Recovered draft</strong>
+                    <span data-stale-detail>Live preview paused for this frozen frame.</span>
+                  </div>
+                  <button type="button" data-use-latest>Use latest frame</button>
+                </div>
 	                <div id="sessionBoundarySheet" class="session-boundary-sheet" hidden>
 	                  <div class="session-boundary-dialog" role="dialog" aria-modal="true" aria-labelledby="sessionBoundaryTitle">
 	                    <h2 id="sessionBoundaryTitle" data-boundary-title>Switch sessions?</h2>

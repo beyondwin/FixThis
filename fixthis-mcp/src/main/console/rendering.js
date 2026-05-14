@@ -790,8 +790,7 @@
 	              }
 	              root.textContent = canvasModel?.lockLabel || (
 	                'Locked: Session ' + (draftFlow()?.context?.sessionId || state.session?.sessionId || 'current') +
-	                ' · Preview ' + (draftFlow()?.previewId || draftFlow()?.context?.previewId || 'frozen') +
-	                ' · Live preview paused'
+	                ' · Preview ' + (draftFlow()?.previewId || draftFlow()?.context?.previewId || 'frozen')
 	              );
 	            }
 
@@ -902,7 +901,7 @@
             function renderCanonicalDraftLockModel(model) {
               renderDraftLockBar(model?.visible ? {
                 mode: 'frozenDraft',
-                lockLabel: 'Locked: Session ' + model.sessionId + ' · Preview ' + model.previewId + ' · Live preview paused',
+                lockLabel: 'Locked: Session ' + model.sessionId + ' · Preview ' + model.previewId,
               } : { mode: 'livePreview' });
             }
 

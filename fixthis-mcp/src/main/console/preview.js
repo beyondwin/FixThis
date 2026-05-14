@@ -221,11 +221,15 @@
             function renderStaleFrameNotice() {
               const root = document.getElementById('canvasStaleNotice');
               if (!root) return;
-              if (state.preview?.stale) {
-                root.hidden = false;
-              } else {
+              if (!state.preview?.stale || state.connection?.interactionBlockedReason) {
                 root.hidden = true;
+                return;
               }
+              const title = root.querySelector('[data-stale-title]');
+              const detail = root.querySelector('[data-stale-detail]');
+              if (title) title.textContent = 'Recovered draft';
+              if (detail) detail.textContent = 'Live preview paused for this frozen frame.';
+              root.hidden = false;
             }
 
             async function useLatestStaleFrame() {

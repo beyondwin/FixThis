@@ -1866,16 +1866,54 @@
             .canvas-blocked__retry[hidden] { display: none; }
             .canvas-stale {
               position: absolute;
-              top: 12px;
-              left: 12px;
-              right: 12px;
-              background: rgba(120, 53, 15, 0.85);
-              color: #fff7ed;
-              padding: 8px 12px;
-              border-radius: 6px;
+              top: 104px;
+              left: 50%;
+              z-index: 5;
+              box-sizing: border-box;
+              width: min(270px, calc(100% - 48px));
+              transform: translateX(-50%);
               display: flex;
               align-items: center;
-              gap: 12px;
+              justify-content: space-between;
+              gap: 10px;
+              padding: 8px 10px;
+              border: 1px solid rgba(230, 180, 90, .36);
+              border-radius: 7px;
+              background: rgba(19, 17, 12, .94);
+              color: #f8e7a2;
+              box-shadow: 0 16px 36px -26px rgba(0, 0, 0, .9);
+            }
+            .canvas-stale__copy {
+              display: grid;
+              min-width: 0;
+              gap: 2px;
+              text-align: left;
+            }
+            .canvas-stale__copy strong {
+              color: #fff7cc;
+              font-size: 12px;
+              line-height: 1.15;
+            }
+            .canvas-stale__copy span {
+              color: var(--txt-2);
+              font-size: 11px;
+              line-height: 1.25;
+              overflow-wrap: anywhere;
+            }
+            .canvas-stale button {
+              flex: 0 0 auto;
+              min-height: 28px;
+              max-width: 118px;
+              padding: 5px 8px;
+              border: 0;
+              border-radius: 5px;
+              background: var(--accent);
+              color: #12150f;
+              font-size: 11px;
+              font-weight: 900;
+              line-height: 1.1;
+              white-space: normal;
+              cursor: pointer;
             }
             .canvas-stale[hidden] { display: none; }
             .ann-row[data-just-changed],

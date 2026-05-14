@@ -290,3 +290,9 @@ test('using latest stale frame preserves pending annotations while recapturing',
   assert.doesNotMatch(previewSource, /data-use-latest[\s\S]*?draftItemList\.length\s*=\s*0;/);
   assert.doesNotMatch(previewSource, /data-use-latest[\s\S]*?clearPendingMirror\(state\.session\?\.sessionId\);/);
 });
+
+test('stale canvas notice yields to interaction blocked overlay', () => {
+  const body = extractFunctionBody(previewSource, 'function renderStaleFrameNotice()');
+  assert.match(body, /state\.connection\?\.interactionBlockedReason/);
+  assert.match(body, /root\.hidden = true;[\s\S]*?return;/);
+});
