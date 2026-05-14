@@ -17,11 +17,11 @@ internal enum class SetupFailureCategory {
 internal fun renderMergeFailure(writerName: String, configFile: File, error: Throwable): String {
     val category = classify(configFile, error)
     val builder = StringBuilder()
-    builder.appendLine("Could not merge $writerName MCP config at ${configFile.absolutePath}.")
+    builder.appendLine("Could not merge $writerName MCP config at ${SetupErrorRedactor.redact(configFile.absolutePath)}.")
     builder.appendLine("  Category: ${category.name}")
     builder.appendLine("  Cause:")
-    renderCauseChain(error).forEach { builder.appendLine("    $it") }
-    builder.appendLine("  Fix: ${recommendation(category, configFile)}")
+    renderCauseChain(error).forEach { builder.appendLine("    ${SetupErrorRedactor.redact(it)}") }
+    builder.appendLine("  Fix: ${SetupErrorRedactor.redact(recommendation(category, configFile))}")
     if (!DiagnosticContext.verbose) {
         builder.append("  Re-run with --verbose for a full stack trace.")
     } else {
