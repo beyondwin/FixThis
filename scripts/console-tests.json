@@ -3,7 +3,8 @@
   "canonical": [
     "scripts/consoleCanonicalState-test.mjs",
     "scripts/consoleEffects-test.mjs",
-    "scripts/consoleSelectors-test.mjs"
+    "scripts/consoleSelectors-test.mjs",
+    "scripts/consoleCanonicalWorkflow-test.mjs"
   ],
   "pending": ["scripts/pendingItemRecovery-test.mjs"],
   "beforeunload": ["scripts/beforeunloadGuard-test.mjs"],
