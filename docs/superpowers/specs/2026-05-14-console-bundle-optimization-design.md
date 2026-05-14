@@ -92,8 +92,13 @@ with `            ` — see `fixthis-mcp/src/main/console/state.js:1-100`).
 
 ### Goals
 
-- Reduce the shipped `app.js` size to ≤ **110 KiB** (≤ 49% of current).
-  Measurement: `wc -c fixthis-mcp/src/main/resources/console/app.js`.
+- Reduce the shipped `app.js` size to ≤ **110 KiB raw** (= 112,640 bytes;
+  ≤ 49% of the current 228,237 B). Additionally, the gzipped output must be
+  ≤ **40 KiB** (= 40,960 bytes), which is the user-facing transfer metric
+  (vanilla JS compresses ~3-4× so this is a defensible ceiling).
+  Measurement: `wc -c fixthis-mcp/src/main/resources/console/app.js` for raw
+  and `gzip -c fixthis-mcp/src/main/resources/console/app.js | wc -c` for
+  gzipped.
 - Replace the 27-element hand-maintained `sources` array with a
   dependency-graph-driven order derived from explicit per-module annotations.
 - Make the build deterministic for identical inputs (no minute-rounded epoch
@@ -113,8 +118,13 @@ with `            ` — see `fixthis-mcp/src/main/console/state.js:1-100`).
 - **No TypeScript migration.** Pure JS only.
 - **No build-time tree shaking that drops dead exports.** Every source file
   is currently considered live; manual cleanup is a separate task.
-- **No HTTP-level caching changes.** ETag / `Cache-Control` headers are out
-  of scope.
+- **No content-hashed asset URLs.** We do not introduce `app.<sha>.js`
+  filenames or rewrite `index.html` per build. The console is served with
+  `Cache-Control: no-cache, must-revalidate` (forces an ETag re-check on
+  every navigation), and `window.FixThisConsoleConfig.buildMeta` changes
+  per build so the inline metadata in `index.html` never collides across
+  builds. ETag is computed from the JAR resource bytes by the existing
+  Ktor static handler.
 - **No source-file consolidation.** The 27 files stay 27 files (the
   draft-workspace plan deliberately created 7 of them; we do not undo that).
 - **No browser-side dynamic imports.** Code splitting is not required at
@@ -225,6 +235,12 @@ returned text. To keep these working we:
    `MaxConsecutivePollFailures`, `DefaultLivePreviewIntervalMs`). If any is
    missing, the build aborts with a clear message naming which symbol the
    minifier dropped.
+4. Add a **runtime-reachability assertion** (`node:vm` sandbox or
+   Playwright `page.evaluate`) that loads the *bundled* `app.js` and
+   verifies each contract symbol is `typeof !== 'undefined'` on the
+   sandbox `globalThis`. Pure string-presence is insufficient: a minifier
+   can keep the *name* in a banner while inlining the *value* such that
+   the symbol is unreachable at runtime.
 
 ### 3.6 Build-meta sidecar
 
@@ -293,13 +309,33 @@ fixthis-mcp/src/main/resources/console/      Kotlin: FeedbackConsoleAssets.kt
 |---|---|
 | Raw source (27 files) | 179,870 B |
 | Concat + indentation-strip | ~140 KiB |
-| esbuild `--minify-whitespace --minify-syntax` | ~95–105 KiB |
+| esbuild `--minify-whitespace --minify-syntax` (raw) | ~95–105 KiB |
+| esbuild output (gzipped) | ~28–35 KiB |
 | Source map (separate, dev-only) | ~250 KiB (not on hot path) |
 | `console-build-meta.json` | < 200 B |
 
-Target ceiling: 110 KiB on `app.js` (a 51% reduction from 223 KiB). If the
-measured output exceeds the budget, the build script fails with a clear
-error.
+Two budgets enforced by the build script:
+
+- **Raw budget:** `app.js` ≤ **110 KiB** (= 112,640 bytes). This is what
+  `wc -c` reports on disk.
+- **Gzip budget:** `gzip -c app.js | wc -c` ≤ **40 KiB** (= 40,960 bytes).
+  This is the user-facing transfer metric (the MCP server gzip-encodes
+  responses by default for browsers that advertise `Accept-Encoding: gzip`).
+
+If either budget is exceeded, the build script fails with a clear error
+naming the offending budget and the actual measurement.
+
+### 3.9 Considered & rejected: indentation-strip-only
+
+A simpler alternative was considered: skip esbuild entirely and just
+trim the leading 12-space indentation block from every line during
+concatenation. Measured savings: ~48 KiB → bundle drops to ~180 KiB.
+That alone misses the raw budget (110 KiB) and the gzip budget. esbuild's
+`--minify-syntax` additionally performs dead-code elimination on
+conditionally-unreachable branches, collapses sequence expressions, and
+inlines single-use IIFEs — all of which the indentation-only approach
+forfeits. We accept the one extra dev-dependency (`esbuild`) in exchange
+for hitting both budgets with margin.
 
 ## 4. Migration Strategy
 
@@ -442,6 +478,27 @@ map when debugging production stack traces.
 - The console route `FeedbackConsoleAssets.kt` is the only Kotlin file
   touched.
 
+### Merge-gate size regression guard
+
+CI must fail any PR that pushes the bundle past either budget. The
+existing `.github/workflows/ci.yml` (the project's Gradle/Node GH Actions
+workflow) gains a step that runs after the standard `npm install`:
+
+```yaml
+      - name: Verify console bundle budgets
+        run: |
+          FIXTHIS_BUNDLE_REPRODUCIBLE=1 node scripts/build-console-assets.mjs --check
+          RAW=$(wc -c < fixthis-mcp/src/main/resources/console/app.js | tr -d ' ')
+          GZ=$(gzip -c fixthis-mcp/src/main/resources/console/app.js | wc -c | tr -d ' ')
+          echo "raw=$RAW bytes (budget 112640), gzip=$GZ bytes (budget 40960)"
+          test "$RAW" -le 112640 || { echo "FAIL: raw bundle $RAW > 112640 (110 KiB)"; exit 1; }
+          test "$GZ"  -le 40960  || { echo "FAIL: gzip bundle $GZ > 40960 (40 KiB)"; exit 1; }
+```
+
+This guard is independent of the Node test in `console:build:test` — it
+runs even if a contributor disables the test script, so the merge gate
+cannot be silently weakened.
+
 ## 5. Test Strategy
 
 ### 5.1 Build-script unit tests
@@ -479,9 +536,11 @@ After the rewrite is on `main`:
 ```bash
 node scripts/build-console-assets.mjs
 wc -c fixthis-mcp/src/main/resources/console/app.js
+gzip -c fixthis-mcp/src/main/resources/console/app.js | wc -c
 ```
 
-Expected: ≤ 110 KiB (110,592 bytes).
+Expected: raw ≤ **112,640 bytes** (110 KiB); gzipped ≤ **40,960 bytes**
+(40 KiB).
 
 ### 5.5 Gradle test matrix
 
@@ -501,31 +560,78 @@ tests do not anticipate, even when identifier names are preserved
 - The contract-symbol guard catches dropped names but not rewritten
   expressions. The plan adds a small "rewrite tolerance" rule: each contract
   test asserts on the unbundled source, never on the minified bundle. The
-  bundle is checked only for size and symbol presence.
+  bundle is checked only for size and **runtime-reachable** symbol
+  presence (a `node:vm` sandbox load proves the symbol is defined as a
+  global, not just present as a string — see §3.5 step 4).
 
-### R2 — Source map exposure
+### R2 — Source map JAR exposure
 
 **Risk:** `app.js.map` reveals the unminified source via DevTools to anyone
-who can load the console.
+who can load the console, **and** is packaged into the shipped JAR via
+Gradle's default `processResources` copy. The map is useful in dev but
+should not increase the production JAR's footprint or expose internal
+filenames in a release artifact.
 
 **Mitigation:**
-- The console is a developer tool; the unbundled source is already in the
-  repo and served via `--console-assets-dir` during development. There is
-  no proprietary code here. We ship the map.
-- If a contributor objects, the build script accepts
-  `--no-sourcemap` and skips emission.
+- The build script emits `app.js.map` into
+  `fixthis-mcp/src/main/resources/console/` for local development use
+  (DevTools picks it up automatically when the console is served via
+  `--console-assets-dir`).
+- Gradle's `processResources` task is configured to **exclude `**/*.map`**
+  from the packaged JAR. Concrete snippet (Kotlin DSL,
+  `fixthis-mcp/build.gradle.kts`):
 
-### R3 — Build-meta JSON race
+  ```kotlin
+  tasks.named<Copy>("processResources") {
+      exclude("**/*.map")
+  }
+  ```
+
+  This keeps the map available in dev (served from
+  `--console-assets-dir`, which reads source files directly off the
+  working tree) while ensuring the production JAR contains only `app.js`
+  + `console-build-meta.json`. The exclusion is verified by a
+  `ConsoleAssetContractTest` assertion that lists the console resources
+  inside the built JAR and rejects any `*.map` entry.
+- The build script also accepts `--no-sourcemap` to skip emission
+  entirely for contributors who object on principle.
+
+### R3 — Build-meta JSON race / `--check` non-determinism
 
 **Risk:** A developer edits `state.js` and forgets to regenerate the bundle.
 Today this is caught by `--check` because the JS bundle header changes. If
 we move the header into a sidecar JSON, the JS bundle bytes are unchanged
 for whitespace-only edits, so `--check` may pass while the sidecar is stale.
+Furthermore, `buildEpochMs` and `gitSha` vary per build, so a naive
+byte-compare of `console-build-meta.json` is non-deterministic and breaks
+CI's `--check`.
 
-**Mitigation:**
-- `--check` is rewritten to verify **all three** outputs (`app.js`,
-  `app.js.map`, `console-build-meta.json`) are byte-equivalent to a fresh
-  regeneration.
+**Mitigation — chosen approach: reproducible-mode write normalization.**
+
+When the environment variable `FIXTHIS_BUNDLE_REPRODUCIBLE=1` is set (CI
+sets this), the build script writes a normalized sidecar at write-time:
+
+```json
+{ "buildEpochMs": 0, "gitSha": "reproducible" }
+```
+
+When the variable is unset (local dev), real values are written and the
+sidecar reflects the actual build. `--check` always runs with
+`FIXTHIS_BUNDLE_REPRODUCIBLE=1` set internally, so the on-disk normalized
+sidecar matches a regenerated normalized sidecar byte-for-byte. The
+compare-time `normalizeMeta()` helper is removed; normalization moves to
+the write path so the stored bytes are the source of truth.
+
+Local developers who want a real epoch/sha simply run the build script
+without the env var. CI always commits the normalized form. The
+`FeedbackConsoleAssets.kt` server-side reader falls back to the JVM clock
+and `git rev-parse HEAD` (or "unknown") at *runtime* when the sidecar
+contains the reproducible placeholder, so production users still see a
+meaningful build identifier in `window.FixThisConsoleConfig.buildMeta`.
+
+- `--check` verifies **all three** outputs (`app.js`, `app.js.map`,
+  `console-build-meta.json`) are byte-equivalent to a fresh regeneration
+  *under reproducible mode*.
 - The sidecar is regenerated by the same build script invocation, so a
   forgotten `node scripts/build-console-assets.mjs` fails CI as before.
 
@@ -547,11 +653,16 @@ versions. Users get a fresh download every CI run.
 the build silently treats it as a root.
 
 **Mitigation:**
-- The build script emits a warning on STDOUT when any file lacks an
-  annotation: `WARN: src/main/console/foo.js has no // @requires header; treating as root.`
-- A new test `scripts/build-console-assets-test.mjs` asserts that **all 27
-  files** carry a header (just presence; the dependency content is the
-  author's responsibility).
+- The build script **fails (non-zero exit) at build time** when any file
+  in `fixthis-mcp/src/main/console/*.js` other than the entry point
+  (`main.js`) lacks a `// @requires` header. The message names the offending
+  file: `ERROR: fixthis-mcp/src/main/console/foo.js has no // @requires header.`
+  Treating absence as WARN was rejected because WARN is not a CI failure
+  and silent root-promotion is exactly the drift this risk describes.
+- A complementary Node test (`scripts/build-console-assets-test.mjs`)
+  greps every `console/*.js` (except the entry point) for at least one
+  `// @requires` line, failing if any is missing. Run in CI's
+  `console:build:test` script.
 
 ### R6 — Concurrent landing with Item 1 / Item 3
 

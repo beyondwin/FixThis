@@ -116,7 +116,7 @@ G4. **Cross-references between README and AGENTS.md.** Each Quick Start explicit
 
 G5. **Node ≥18 and Playwright-bundled Chromium are documented.** `package.json` gains an `engines` field. CONTRIBUTING.md and README's "Quick Start" each gain one prerequisite line. AGENTS.md's existing `## Prerequisites` block grows by one bullet.
 
-G6. **CI does not change.** This spec adds zero new CI jobs. It only adds a `scripts/check-doc-consistency.mjs` invocation (Task 6 in the plan) that is *runnable locally and recommended* but not required.
+G6. **Drift detector is enforced both locally and in CI.** `node scripts/check-doc-consistency.mjs` is added to the **Required Local Checks** block in `CONTRIBUTING.md` and as a CI job. (Earlier drafts of this spec proposed leaving this as opt-in; review on 2026-05-14 reversed that decision because a non-enforced detector is effectively documentation, and we already have evidence — see `docs/guides/troubleshooting.md` ownership conflict — that DX drift recurs faster than humans notice.)
 
 G7. **Every documentation change is verified by running a real command.** No "doc-only" task ships without an executable check (e.g., `npm run <new-script>`, `bash scripts/restart-console.sh --dry-run`).
 
@@ -128,7 +128,7 @@ NG2. **No new top-level files.** No new SUPPORT.md, no new GLOSSARY.md.
 
 NG3. **No git pre-commit hook to enforce consistency.** A drift-detector script is provided as documentation, not as enforcement.
 
-NG4. **No localization changes.** Korean references in CLAUDE.md user-memory are project-private and out of scope.
+NG4. **No localization changes.** Korean references in CLAUDE.md user-memory are project-private and out of scope. The maintainer's documented Korean preference (CLAUDE.md user-memory bullet "AskUserQuestion in Korean") is acknowledged; future repo-wide i18n is tracked in a separate ADR to be opened — see `docs/architecture/adr/TBD-doc-localization.md`.
 
 NG5. **No changes to the script implementations.** `restart-console.sh` and `fixthis-console-dev.sh` stay as-is. We only document them.
 
@@ -152,8 +152,11 @@ Each DX topic is assigned a single canonical file. Every other file that touches
 | Contributor scripts (`restart-console.sh`, `fixthis-console-dev.sh`, `bootstrap-mcp.sh`) | `CONTRIBUTING.md` § "Console inner loop" (new) | `CLAUDE.md` existing pointers updated to point at CONTRIBUTING anchors; AGENTS.md existing `bootstrap-mcp.sh` pointer adds a cross-link |
 | Console JS focused tests | `package.json` `scripts` block + CONTRIBUTING.md § "Focused Test Loops" | All test-list narratives use `npm run console:*` exclusively; no `node --test scripts/…` duplication outside CONTRIBUTING.md "raw form" appendix |
 | Toolchain prerequisites (JDK, Android SDK, Node, Chromium-via-Playwright) | `CONTRIBUTING.md` § "Prerequisites" (new top-level section) | `AGENTS.md` § Prerequisites lists the minimum versions only and links; `README.md` Quick Start summarizes in one line and links |
-| Bridge protocol contract | `docs/reference/bridge-protocol.md` (already canonical — no change) | n/a |
-| Console contract | `docs/reference/feedback-console-contract.md` (already canonical — no change) | n/a |
+| Bridge protocol contract | `docs/reference/bridge-protocol.md` — owner: bridge maintainers (already canonical — no change) | All cross-references must link, not restate. |
+| Console contract | `docs/reference/feedback-console-contract.md` — owner: console maintainers (already canonical — no change) | All cross-references must link, not restate. |
+| Architecture overview | `docs/architecture/overview.md` — owner: architecture team (added in commit `3047e3e`) | Linked from CLAUDE.md and AGENTS.md; not restated elsewhere. |
+| Architecture Decision Records | `docs/architecture/adr/` — owner: each ADR's author (directory added in commit `3047e3e`) | Each ADR is its own canonical source for its decision; the directory index links them all. |
+| Troubleshooting / known failures | `docs/guides/troubleshooting.md` — owner: shared (added in commit `3047e3e`; **conflict risk** with the parallel `2026-05-14-setup-error-diagnostics` plan, which also appends a "Setup failures" section. See coordination note below.) | Other docs link to specific anchors; do not duplicate the action tables. |
 
 The map is materialized in the docs by:
 
@@ -250,12 +253,33 @@ becomes:
 npm run console:test:fast
 ```
 
-The current required-PR-check block (lines 100–116) keeps the raw `node --test` form because it is exercised by CI and the exact file list is a stability contract — but it gets a comment header:
+**The "raw `node --test` block + `npm run console:test:all` aggregate" parallel mirroring is replaced by a JSON source of truth.** A new file `scripts/console-tests.json` enumerates every test file by group:
+
+```json
+{
+  "fast": [
+    "scripts/console-availability-test.mjs",
+    "scripts/pendingItemRecovery-test.mjs",
+    "scripts/beforeunloadGuard-test.mjs",
+    "scripts/undoRedo-test.mjs",
+    "scripts/undoKeymatch-test.mjs",
+    "scripts/activityDrift-test.mjs",
+    "scripts/previewStaleness-test.mjs"
+  ],
+  "draft": ["scripts/draftWorkspace-test.mjs", "scripts/draftWorkspaceHistory-test.mjs", "..."],
+  "session": ["scripts/pendingBoundaryGuard-test.mjs", "..."]
+}
+```
+
+A thin runner `scripts/run-console-tests.mjs` reads this file and invokes `node --test` on the named groups. Both `package.json` scripts (`console:test:fast`, `console:test:all`, etc.) and the CONTRIBUTING.md Required Local Checks block call into this runner instead of restating the file list. The Required Local Checks block thus becomes:
 
 ```bash
-# Equivalent to `npm run console:test:all` and `npm run console:session:test`.
-# Kept as raw `node --test` for CI parity; if you edit, mirror to package.json.
+node scripts/run-console-tests.mjs fast draft session
+# Equivalent to `npm run console:test:all`. The file list lives in
+# scripts/console-tests.json — edit there, not here.
 ```
+
+This removes the manual mirror requirement entirely: the only place a test file name appears is `scripts/console-tests.json`.
 
 The session-scope block (currently CONTRIBUTING.md lines 122–129) shrinks to:
 
@@ -275,7 +299,15 @@ Two paragraph-level inserts, one in each file.
 (`./scripts/bootstrap-mcp.sh`) and the MCP tool index.
 ```
 
-**3.4.2 AGENTS.md** — after the Quick Start block (currently line 31, after the "Manual setup, full CLI flags..." line), add:
+**3.4.2 AGENTS.md** — make the *first* content line (immediately under the H1 title) a banner blockquote so agents reading sequentially do not skip the cross-link or stop after the first runnable code block:
+
+```markdown
+> **Agents:** read this file end-to-end. Sub-anchors may be skipped on a
+> first pass, but every top-level section is load-bearing for correct
+> tool use.
+```
+
+Then, after the Quick Start block (currently line 31, after the "Manual setup, full CLI flags..." line), add:
 
 ```markdown
 **Trying FixThis from scratch on the sample app?** Start at the README's
@@ -283,7 +315,7 @@ Two paragraph-level inserts, one in each file.
 flow (build → doctor → run → console UI).
 ```
 
-The two cross-links are intentionally short (one sentence each) and bidirectional. They explicitly name the audience ("MCP-aware agent" / "human-driven flow") so readers self-route without confusion.
+The two cross-links are intentionally short (one sentence each) and bidirectional. They explicitly name the audience ("MCP-aware agent" / "human-driven flow") so readers self-route without confusion. The banner directly addresses the discoverability concern raised in R6 (cross-link buried below the first runnable block): a banner at the top primes the reader to keep scrolling instead of stopping at the first code fence.
 
 ### 3.5 (d) Node and Chromium prerequisites
 
@@ -298,17 +330,24 @@ Three additive changes, no removals.
   "license": "MIT",
   "type": "module",
   "engines": {
-    "node": ">=18.18"
+    "node": ">=20.0.0"
   },
   "scripts": { ... }
 }
 ```
 
-Why `>=18.18` specifically, not `>=18`:
+Why `>=20.0.0`:
 
-- Playwright 1.59.1 declares `engines.node: ">=18"`. (Verified in `node_modules/playwright/package.json`.)
-- Our harnesses use `node --test`, which is stable in Node 18.x but received the `--test-reporter` improvements we rely on in 18.17. Pinning to 18.18 sidesteps a known crash in 18.0–18.16 with parallel test isolation.
-- 20.x and 22.x LTS are explicitly supported (npm honors `>=`).
+- Node 20.x is the current LTS line, in active support through 2026-04 and maintenance through 2026-04-30. Pinning the floor at 20.0.0 keeps us inside a supported LTS for the lifetime of this spec.
+- Playwright 1.59.1 declares `engines.node: ">=18"`, so a 20.0.0 floor is strictly compatible.
+- Node 18.x EOL'd 2025-04-30; documenting 18.18 as a floor would advertise an unsupported runtime. The earlier draft of this spec proposed `>=18.18` for that reason; the 2026-05-14 review reversed it.
+- 22.x LTS is implicitly supported (npm honors `>=`).
+
+In addition, add `.npmrc` with `engine-strict=true` (the file lives at the
+repo root and is checked into git) so a contributor on Node 18 sees an
+immediate `npm install` failure rather than a silent `EBADENGINE` warning.
+Equivalent docs-only fallback: `CONTRIBUTING.md` § Prerequisites explicitly
+instructs `npm install --engine-strict` and explains why.
 
 **3.5.2 CONTRIBUTING.md** — new top-level `## Prerequisites` section inserted before `## Formatting`:
 
@@ -319,7 +358,7 @@ Why `>=18.18` specifically, not `>=18`:
 |---|---|---|
 | JDK | 21 | Adoptium Temurin recommended. |
 | Android SDK + ADB | API 30+ | Required for `:app:assembleDebug` and connected smoke. |
-| Node.js | 18.18 | Enforced via `package.json` `engines`. 20.x and 22.x LTS also supported. |
+| Node.js | 20.0.0 | Enforced via `package.json` `engines` and `.npmrc engine-strict=true` (or `npm install --engine-strict`). Node 20.x LTS is supported through 2026-04; 22.x LTS also supported. Node 18.x is EOL and not supported. |
 | Chromium | Bundled by Playwright 1.59 | `npx playwright install chromium` after `npm install`. macOS 11+ / Ubuntu 20.04+ required by Playwright's bundled Chromium. |
 
 Run `npm install` and `npx playwright install chromium` once before running any `npm run console:*` script.
@@ -332,7 +371,7 @@ Run `npm install` and `npx playwright install chromium` once before running any 
 
 - JDK 21+
 - Android SDK with ADB (`adb devices` shows a connected device or emulator)
-- Node.js 18.18+ (for console JS harnesses; see `CONTRIBUTING.md` § Prerequisites)
+- Node.js 20.0+ LTS (for console JS harnesses; see `CONTRIBUTING.md` § Prerequisites)
 - Target app is a **debug build** (`debugImplementation` only; release is not supported)
 ```
 
@@ -340,7 +379,7 @@ Run `npm install` and `npx playwright install chromium` once before running any 
 
 ```markdown
 [![JDK 21](https://img.shields.io/badge/JDK-21-orange.svg)](https://adoptium.net/)
-[![Node 18.18+](https://img.shields.io/badge/Node-18.18%2B-339933.svg)](https://nodejs.org/)
+[![Node 20+](https://img.shields.io/badge/Node-20%2B-339933.svg)](https://nodejs.org/)
 [![Compose](https://img.shields.io/badge/Jetpack_Compose-2026.04.01-4285F4.svg)](https://developer.android.com/jetpack/compose)
 ```
 
@@ -398,7 +437,7 @@ The only anchor used by external pointers today is `CONTRIBUTING.md#required-loc
 - `CONTRIBUTING.md#scripts-restart-console-sh--restart-after-kotlin-server-changes`
 - `CONTRIBUTING.md#scripts-fixthis-console-dev-sh--js-only-hot-reload-loop`
 
-GitHub-flavored Markdown anchor generation: section title is lowercased, spaces become `-`, special characters (`/`, `.`) are dropped or doubled-dashed. The exact anchor strings above are verified manually after the doc edit by appending `#…` to a browser URL.
+GitHub-flavored Markdown anchor generation: section title is lowercased, spaces become `-`, special characters (`/`, `.`) are dropped or doubled-dashed. The exact anchor strings above are verified automatically — see R2 — using `github-slugger` (added as a dev dependency on `package.json`). The plan includes an anchor-verify step (`scripts/check-doc-consistency.mjs` rule R6) that walks every markdown link of the form `FILE.md#anchor`, generates the slug for every `^#+ ` heading in `FILE.md` via `github-slugger`, and asserts the target anchor exists. Manual browser inspection is retained only as a fallback when the script cannot reach a file (e.g. external repo).
 
 ### 4.4 Rollout
 
@@ -481,15 +520,15 @@ We deliberately do not rename existing scripts. `console:smoke` and `console:res
 
 ### 6.2 R2: Anchor links are fragile
 
-GitHub renders section headings to anchors with rules that vary between markdown processors. The plan verifies anchor links by browser test, not by automation. If a heading is later renamed, anchors silently break. Mitigation: the drift detector's rule 3 (cross-references exist) catches missing target *files* but not missing target *anchors*. Anchor checking is deferred.
+GitHub renders section headings to anchors with rules that vary between markdown processors. **The plan now verifies anchor links by automation, not by browser test.** `scripts/check-doc-consistency.mjs` rule R6 walks every `*.md#anchor` link in the repo's primary DX docs (README, AGENTS, CONTRIBUTING, CLAUDE.md, and `docs/**/*.md`), generates the canonical slug for every `^#+ ` heading in the target file via `github-slugger`, and asserts the anchor exists. `github-slugger` is added as a `devDependency` in `package.json` (`"github-slugger": "^2.0.0"`). If a heading is renamed, the check fails locally and in CI.
 
-### 6.3 R3: Drift detector is not enforced
+### 6.3 R3: Drift detector enforcement
 
-`scripts/check-doc-consistency.mjs` is opt-in. A future PR can add `console:*` references without keeping CONTRIBUTING.md in sync. Mitigation: documented as a recommended pre-PR step in CONTRIBUTING.md. If drift becomes a recurring problem, promote to CI in a follow-up PR.
+`scripts/check-doc-consistency.mjs` is **required**, both locally (added to CONTRIBUTING.md's Required Local Checks block) and in CI (new job in `.github/workflows/ci.yml`). The risk inverts from "drift detector is ignored" to "CI fails on a legitimate doc-only restructure"; mitigation is that the script's rules are narrow (5 rules, each with a single regex/string check) and any false positive is fixed by either updating a rule or fixing the doc — both 1-line changes.
 
-### 6.4 R4: Node 18.18 minimum may be too aggressive
+### 6.4 R4: Node 20.0 minimum may be too aggressive for some shared infra
 
-Some developers on shared infra (corp CI runners) may be locked to Node 18.16 LTS-extended. Mitigation: choose `>=18.18` over `>=18.17` because Node 18.18 was released 2023-09-18, two years before this spec. If feedback indicates issues, lower to `>=18.0` and document the known parallel-test crash.
+Some developers on shared corp CI runners may still be pinned to Node 18.x. Mitigation: Node 18.x is EOL (2025-04-30); shared infra owners must upgrade regardless. The spec documents Node 20.x LTS (supported through 2026-04) and 22.x LTS as the only supported lines, and `.npmrc engine-strict=true` produces an immediate, actionable error message on Node 18. If a specific runner blocks the upgrade, that runner — not this repo — is the bug.
 
 ### 6.5 R5: Chromium minimum host requirements are Playwright-version-dependent
 
@@ -497,7 +536,7 @@ Pinning "macOS 11+ / Ubuntu 20.04+" in CONTRIBUTING.md may drift when Playwright
 
 ### 6.6 R6: AGENTS.md cross-link discoverability
 
-The new AGENTS.md → README.md cross-link is inserted under the Quick Start. Coding agents reading AGENTS.md sequentially may stop at the first runnable code block (`bootstrap-mcp.sh`) and never reach the cross-link. Mitigation: position the cross-link *after* the Quick Start (so it does not pre-empt the agent action) but before "Feedback Workflow" (so it appears within the first screen of scroll). Verified in the plan with a `grep -n` of the resulting AGENTS.md.
+The new AGENTS.md → README.md cross-link is inserted under the Quick Start. Coding agents reading AGENTS.md sequentially may stop at the first runnable code block (`bootstrap-mcp.sh`) and never reach the cross-link. Mitigation: AGENTS.md's *first content line* under the H1 is now a banner blockquote ("Agents: read this file end-to-end…", per §3.4) that primes the reader to keep scrolling past the first runnable block. The cross-link is positioned *after* the Quick Start (so it does not pre-empt the agent action) but before "Feedback Workflow" (so it appears within the first screen of scroll). The combination of banner + position is verified in the plan with a `grep -n` of the resulting AGENTS.md.
 
 ### 6.7 R7: README badge row grows long
 

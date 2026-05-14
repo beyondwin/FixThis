@@ -1,4 +1,14 @@
-# FixThis Setup — Error Diagnostics Design Spec
+# FixThis Setup — SetupCommand Config-Merge Diagnostics Design Spec
+
+> **Scope note (2026-05-14 review):** This spec is narrowed to
+> `SetupCommand` config-merge diagnostics (the `.claude/settings.json` and
+> `~/.codex/config.toml` merge surface). Other "setup error" surfaces —
+> adb/emulator preflight, BridgeProtocol mismatch reporting, port-in-use
+> diagnostics — are out of scope and tracked separately in followup docs:
+>
+> - `docs/superpowers/specs/TBD-adb-preflight-diagnostics-design.md`
+> - `docs/superpowers/specs/TBD-bridge-protocol-mismatch-diagnostics-design.md`
+> - `docs/superpowers/specs/TBD-port-in-use-diagnostics-design.md`
 
 > **Status:** Design — ready for implementation plan
 > **Owner:** DX / Setup domain
@@ -79,7 +89,9 @@ NG3. **No `--verbose` plumbing for `run`, `console`, `doctor`, `mcp`, `clean`, o
 
 NG4. **No localization of error messages.** Messages remain English; localization is tracked separately.
 
-NG5. **No JSON output mode for setup errors.** Some MCP tooling needs machine-readable failures; that is a separate spec.
+NG5. **No JSON output mode for setup errors.** No `--output=json` flag is added in this iteration. Some MCP tooling needs machine-readable failures so they can be parsed by an orchestrator; an MCP machine-readable mode is in a separate followup spec (`docs/superpowers/specs/TBD-setup-error-json-output-design.md`). Acknowledged here so reviewers know it was considered.
+
+NG7. **API token / secret leakage in cause chains is in scope but only via a redaction pass, not via censoring the underlying writer.** See §6.3 and the new `SetupErrorRedactor` utility — secrets that appear in `settings.json` fragments echoed by `kotlinx-serialization` parse errors MUST be masked before being printed.
 
 NG6. **No changes to `AtomicConfigFileWriter`.** The "Could not write …" path in `applyWritePlan` already catches without preserving cause (line 105: `catch (_: Exception)`), but it is gated by `AtomicConfigFileWriter.write` which produces IO errors with self-explanatory messages. Folding it in is a stretch goal for the implementation plan but not a Goal here.
 
@@ -121,11 +133,13 @@ Three surfaces change, each with a clear contract:
                          ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │ DiagnosticContext (new, internal)                               │
-│   - thread-local-ish flag, set by SetupCommand when --verbose   │
-│     is true; read by Main.kt after CliktError catch.            │
-│   - Implementation: companion-object var on a new               │
-│     `DiagnosticContext` object. (Setup is the only writer;      │
-│     Main is the only reader; the CLI process is single-shot.)   │
+│   - ThreadLocal<Boolean> flag, set by SetupCommand when         │
+│     --verbose is true; read by Main.kt after CliktError catch.  │
+│   - Implementation: a `ThreadLocal<Boolean>` wrapped inside     │
+│     `internal object DiagnosticContext` with `get()`, `set()`,  │
+│     and `reset()` helpers. Using a ThreadLocal avoids cross-    │
+│     test contamination when Gradle runs tests in parallel, and  │
+│     is strictly safer than the rejected companion-object var.   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -137,7 +151,7 @@ The merge surface is small enough to enumerate. Each category gets a stable stri
 |---|---|---|
 | `MALFORMED_JSON` | `kotlinx.serialization.json.JsonDecodingException` from `parseToJsonElement` (e.g., truncated `.claude/settings.json`). Detect by class-name suffix `JsonDecodingException` to avoid linking against an internal class. | "Open `<path>`, fix the JSON syntax (the parse error above points at the offending position), and re-run `fixthis setup --write`. If you cannot recover the file, back it up and delete it; `fixthis setup --write` will create a fresh one." |
 | `MALFORMED_MCPSERVERS_SHAPE` | `IllegalArgumentException` whose message contains `"mcpServers"` and `"not a JSON object"` (the exact string thrown by `ClaudeConfigWriter.merge` after Polish Change 2). | "The `mcpServers` key already exists in `<path>` but is not a JSON object. Open the file and replace it with `{}` (an empty object), or remove the key entirely; `fixthis setup --write` will add the FixThis entry." |
-| `MALFORMED_TOML` | `IllegalStateException` or generic `Exception` raised inside `CodexConfigWriter.merge` (the writer parses TOML manually; failures surface as `IllegalStateException` from the regex/section code or `IllegalArgumentException` from key normalization). Detect by `configFile.name.endsWith(".toml")` plus *not* a `JsonDecodingException` and *not* the explicit Claude `mcpServers` shape error. | "Open `<path>`, repair the TOML (errors above name the failure), and re-run. If unsure, back up the file and delete the `[mcp_servers.fixthis]` section; `fixthis setup --write` will rewrite it." |
+| `MALFORMED_TOML` | `IllegalStateException` *or* `IllegalArgumentException` raised inside `CodexConfigWriter.merge` (the writer parses TOML manually; failures surface as `IllegalStateException` from the regex/section code and `IllegalArgumentException` from key normalization). Detect by `configFile.name.endsWith(".toml")` plus *not* a `JsonDecodingException` and *not* the explicit Claude `mcpServers` shape error. Specifically, the classifier MUST treat `IllegalArgumentException` from `CodexConfigWriter` as MALFORMED_TOML (not UNKNOWN). | "Open `<path>`, repair the TOML (errors above name the failure), and re-run. If unsure, back up the file and delete the `[mcp_servers.fixthis]` section; `fixthis setup --write` will rewrite it." |
 | `FILESYSTEM_ERROR` | `IOException` thrown by `configFile.readText()` (e.g., EACCES on a config file owned by another UID). | "Filesystem error reading `<path>`. Check permissions with `ls -l <path>`. If the file is owned by another user, `chmod +r` or `chown` so your shell can read it." |
 | `UNKNOWN` | Any other `Exception` reaching the catch. Falls back to "category UNKNOWN" + the full cause chain. | "Please file an issue with the output of `fixthis setup --write --verbose` and the contents of `<path>` (redact secrets first)." |
 
@@ -186,11 +200,12 @@ Added on `SetupCommand` only:
 private val verbose by option("--verbose", "-v", help = "Print full stack trace on failure").flag(default = false)
 ```
 
-When `--verbose` is true and `run()` is about to throw a `CliktError` from the merge path, it first records `DiagnosticContext.verbose = true`. `Main.kt`, after printing the formatted help, checks `DiagnosticContext.verbose` and prints `error.cause?.stackTraceToString()` to `System.err` if set.
+When `--verbose` is true and `run()` is about to throw a `CliktError` from the merge path, it first records `DiagnosticContext.setVerbose(true)`. `Main.kt`, after printing the formatted help, checks `DiagnosticContext.isVerbose()` and prints `error.cause?.stackTraceToString()` to `System.err` if set.
 
-Why a companion-object var instead of Clikt's `Context`:
+Why a `ThreadLocal<Boolean>` instead of Clikt's `Context` or a plain companion-object var:
 
-- `getFormattedHelp` runs *with* the context but the context object is not surfaced on a plain (non-`ContextCliktError`) error. We could thread a `ContextCliktError`, but that requires a custom error class and pulls Clikt-internal API into our code. A single `internal object DiagnosticContext` with a `@JvmStatic var verbose: Boolean` is simpler and lives in the same module that owns both writer and reader. The CLI is a one-shot process; there is no risk of cross-invocation leakage.
+- `getFormattedHelp` runs *with* the context but the context object is not surfaced on a plain (non-`ContextCliktError`) error. We could thread a `ContextCliktError`, but that requires a custom error class and pulls Clikt-internal API into our code.
+- A plain `var verbose: Boolean` is mutable global state and contaminates parallel Gradle test workers. Wrapping it in a `ThreadLocal<Boolean>` keeps the same API (a single `internal object DiagnosticContext`) but isolates per-thread state so tests can run in parallel and the production single-thread CLI path is unaffected.
 
 Alternative considered: thread the flag through the throw site as a new `DiagnosticCliktError(message: String, cause: Throwable, val verbose: Boolean)` subclass, caught in Main. Rejected because:
 
@@ -329,13 +344,38 @@ After implementation, perform these manual scenarios on a sample project (`io.be
 
 `JsonDecodingException` is `internal` in `kotlinx-serialization-json`. We cannot reference it directly. Mitigation: detect via class-simple-name suffix or via the public superclass `SerializationException` plus a string check on the message. The plan uses the simple-name approach (`e::class.simpleName == "JsonDecodingException"`) with a fallback to `SerializationException` so even if the internal class name changes in a future serialization version, we still classify as `MALFORMED_JSON`.
 
-### 6.2 R2: `DiagnosticContext` is mutable global state
+### 6.2 R2: `DiagnosticContext` parallel safety
 
-The companion-object var is technically not thread-safe. The CLI is single-threaded for argument parsing; this is fine in practice. However, *tests* run in parallel within Gradle. Mitigation: tests must reset the flag in `@Before` and the renderer must read the flag exactly once per render (snapshot it into a local). The plan codifies both. If we ever add a multi-threaded test runner stage, switch to `ThreadLocal<Boolean>`.
+`DiagnosticContext` wraps a `ThreadLocal<Boolean>` (per the §3.1 / §3.5 update). The CLI is single-threaded for argument parsing, but Gradle test workers run tests in parallel; the `ThreadLocal` makes the flag per-thread so workers cannot contaminate each other. Tests still call `DiagnosticContext.reset()` in `@After` to free the ThreadLocal value and avoid leaking the `true` value to a subsequent reused worker thread. Renderers read the flag exactly once per render (snapshot into a local) so a concurrent reset cannot flip mid-render.
 
 ### 6.3 R3: Cause-chain rendering can include sensitive paths or secrets
 
-Exception messages from `kotlinx-serialization` typically include offending JSON fragments. If a user's `settings.json` contains a secret in another key (e.g., an `OPENAI_API_KEY`), the parser may echo it as `Unexpected token near "…"`. The default render *and* `--verbose` will surface this on stderr. Mitigation: document in `docs/guides/troubleshooting.md` that users should redact before pasting setup error output into bug reports; the documentation is the mitigation, not the code. Tracking issue: not opened in this spec.
+Exception messages from `kotlinx-serialization` typically include offending JSON fragments. If a user's `settings.json` contains a secret in another key (e.g., an `OPENAI_API_KEY`), the parser may echo it as `Unexpected token near "…"`. The default render *and* `--verbose` will surface this on stderr.
+
+**Mitigation (code-based, not just documentation):** introduce
+`fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRedactor.kt`
+with `redact(text: String): String`. The renderer routes every cause message and
+every Java stack-trace line through `redact()` before emitting. Rules:
+
+1. Mask values for JSON keys whose name (case-insensitive) matches
+   `(?i)(api[-_]?key|token|secret|credential|password|bearer)`; replace the
+   value with `"***REDACTED***"`.
+2. Mask home paths matching `/Users/[^/]+` and `/home/[^/]+` to
+   `/Users/<redacted>` and `/home/<redacted>` (so `/Users/u/proj` becomes
+   `/Users/<redacted>/proj`).
+3. As a defense-in-depth fallback, if a string longer than 20 characters
+   appears after any quoted key matched by rule 1, mask the entire run.
+4. Bearer/Authorization-style headers (`Bearer ey…`, `Basic …`) are masked
+   wholesale.
+
+Unit tests in `SetupErrorRedactorTest` pin each rule with a positive and a
+negative case. The renderer and the verbose stack-trace path BOTH call
+`redact()`; tests assert that a `RuntimeException("api_key=\"sk-live-abc…\"")`
+never round-trips the secret literal into stderr.
+
+Additionally, `docs/guides/troubleshooting.md` keeps the human reminder that
+users should re-redact before pasting into bug reports — the code is
+defense-in-depth, not a guarantee against novel key shapes.
 
 ### 6.4 R4: Behavior divergence between installed CLI and Gradle-wrapped invocations
 

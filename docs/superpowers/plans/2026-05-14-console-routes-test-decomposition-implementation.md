@@ -32,7 +32,7 @@ Modify these existing files:
 ## Conventions
 
 - **No body rewrites.** Test method bodies are copied verbatim. Only import lists, package declarations, and class names are written fresh in each new file.
-- **No `git mv` is required.** Every test extraction is implemented as: (a) write new file, (b) delete moved tests from legacy file, (c) commit. The legacy file keeps its history; new files start with the extraction commit as their first authorship.
+- **`git mv` policy** (matches design spec §3.5): use `git mv` only for true file renames; use plain create + delete for cluster splits. All cluster extractions in this plan (Tasks 3–8) are splits, so each is implemented as: (a) write new file, (b) delete moved tests from legacy file, (c) commit. The legacy file keeps its history; new files start with the extraction commit as their first authorship. Rationale: a split has no "inherits-from" endpoint that satisfies Git's rename similarity heuristic, so `git mv` would either no-op or produce misleading blame.
 - Each task ends with a commit. The commit message starts with `test(console):` and names the destination file.
 - The full Gradle test count for package `io.beyondwin.fixthis.mcp.console.*` must equal the baseline at every checkpoint.
 - The ledger from Task 1 is the source of truth; the final task verifies every ledger entry resolved to exactly one new file.
@@ -199,12 +199,16 @@ Baseline total: 100 `@Test` methods
 
 Totals (must sum to 100):
 - ConsoleFeedbackItemRoutesTest.kt: 18
-- ConsoleSessionRoutesTest.kt: 7
-- ConsoleHandoffRoutesTest.kt: 22
+- ConsoleSessionRoutesTest.kt: 8
+- ConsoleHandoffRoutesTest.kt: 19
 - ConsoleSessionsPollingContractTest.kt: 13
-- ConsoleAssetContractTest.kt: 33
+- ConsoleAssetContractTest.kt: 34
 - ConsoleEtagRoutesTest.kt: 6
 - ConsoleNavigationRoutesTest.kt: 2
+
+> The per-test rows above are the source of truth. If a row's destination
+> ever disagrees with this totals block, the rows win and this block must be
+> recomputed (and design spec §3.1 updated to match).
 ```
 
 - [ ] **Step 4: Verify ledger totals**
@@ -236,75 +240,14 @@ EOF
 
 **Files:**
 - Create: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/fixtures/ConsoleRouteTestFixtures.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt` (one test-site swap, to exercise the helper)
 
-- [ ] **Step 1: Write the failing helper-use test**
+> **Ordering note:** the helper file is added *before* any caller is edited
+> so the build is never broken mid-task. The legacy-test edit in Step 2 and
+> the helper file from Step 1 are committed together in Step 5; they may not
+> be split across commits, since the test edit alone would not compile.
 
-Edit the legacy `ConsoleFeedbackItemRoutesTest.kt` to replace the body of *only* the `itemPatchUpdatesDraftAnnotation` test setup with a call to the new helper. Replace lines 57–108 boilerplate with:
-
-```kotlin
-@Test
-fun itemPatchUpdatesDraftAnnotation() {
-    val fixture = newConsoleSessionFixture(
-        clock = FakeLongs(100L, 200L, 300L, 400L).next,
-        idGenerator = FakeIds("session-1", "item-1").next,
-    )
-    fixture.use { (service, store, server, _) ->
-        val session = service.openSession(null, newSession = true)
-        store.addScreen(
-            session.sessionId,
-            SnapshotDto(screenId = "screen-1", capturedAtEpochMillis = 100L, displayName = "Screen 1"),
-        )
-        store.addItem(
-            session.sessionId,
-            AnnotationDto(
-                itemId = "pending",
-                screenId = "screen-1",
-                createdAtEpochMillis = 0L,
-                updatedAtEpochMillis = 0L,
-                target = AnnotationTargetDto.Area(FixThisRect(1f, 2f, 3f, 4f)),
-                comment = "Before",
-            ),
-        )
-        val connection = ConsoleHttpTestClient(server.url).connection(
-            "/api/items/item-1",
-            method = "PUT",
-            body = """{"comment":"After","status":"in_progress"}""",
-        )
-
-        assertEquals(200, connection.responseCode)
-        val payload = fixThisJson.parseToJsonElement(connection.inputStream.bufferedReader().readText()).jsonObject
-        val item = payload.getValue("items").jsonArray.single().jsonObject
-        assertEquals("After", item.getValue("comment").jsonPrimitive.content)
-        assertEquals("in_progress", item.getValue("status").jsonPrimitive.content)
-        assertEquals("After", service.getSession("session-1").items.single().comment)
-        assertEquals(AnnotationStatusDto.IN_PROGRESS, service.getSession("session-1").items.single().status)
-    }
-}
-```
-
-Add at the top of `ConsoleFeedbackItemRoutesTest.kt`:
-
-```kotlin
-import io.beyondwin.fixthis.mcp.fixtures.ConsoleRouteTestFixtures.newConsoleSessionFixture
-```
-
-Run:
-
-```bash
-./gradlew :fixthis-mcp:compileTestKotlin
-```
-
-Expected: **FAIL** with `Unresolved reference: ConsoleRouteTestFixtures`.
-
-- [ ] **Step 2: Run to verify FAIL**
-
-```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.itemPatchUpdatesDraftAnnotation" 2>&1 | tail -20
-```
-
-Expected: compilation failure.
-
-- [ ] **Step 3: Implement the helper**
+- [ ] **Step 1: Implement the helper**
 
 Create `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/fixtures/ConsoleRouteTestFixtures.kt`:
 
@@ -366,6 +309,66 @@ object ConsoleRouteTestFixtures {
 }
 ```
 
+- [ ] **Step 2: Compile the helper in isolation**
+
+```bash
+./gradlew :fixthis-mcp:compileTestKotlin
+```
+
+Expected: `BUILD SUCCESSFUL`. The helper compiles before any caller is
+written, so the build is green at this checkpoint.
+
+- [ ] **Step 3: Switch one test-site over to the helper**
+
+Edit the legacy `ConsoleFeedbackItemRoutesTest.kt` to replace the body of *only* the `itemPatchUpdatesDraftAnnotation` test setup with a call to the new helper. Replace lines 57–108 boilerplate with:
+
+```kotlin
+@Test
+fun itemPatchUpdatesDraftAnnotation() {
+    val fixture = newConsoleSessionFixture(
+        clock = FakeLongs(100L, 200L, 300L, 400L).next,
+        idGenerator = FakeIds("session-1", "item-1").next,
+    )
+    fixture.use { (service, store, server, _) ->
+        val session = service.openSession(null, newSession = true)
+        store.addScreen(
+            session.sessionId,
+            SnapshotDto(screenId = "screen-1", capturedAtEpochMillis = 100L, displayName = "Screen 1"),
+        )
+        store.addItem(
+            session.sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = "screen-1",
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(1f, 2f, 3f, 4f)),
+                comment = "Before",
+            ),
+        )
+        val connection = ConsoleHttpTestClient(server.url).connection(
+            "/api/items/item-1",
+            method = "PUT",
+            body = """{"comment":"After","status":"in_progress"}""",
+        )
+
+        assertEquals(200, connection.responseCode)
+        val payload = fixThisJson.parseToJsonElement(connection.inputStream.bufferedReader().readText()).jsonObject
+        val item = payload.getValue("items").jsonArray.single().jsonObject
+        assertEquals("After", item.getValue("comment").jsonPrimitive.content)
+        assertEquals("in_progress", item.getValue("status").jsonPrimitive.content)
+        assertEquals("After", service.getSession("session-1").items.single().comment)
+        assertEquals(AnnotationStatusDto.IN_PROGRESS, service.getSession("session-1").items.single().status)
+    }
+}
+```
+
+Add at the top of `ConsoleFeedbackItemRoutesTest.kt`:
+
+```kotlin
+import io.beyondwin.fixthis.mcp.fixtures.ConsoleRouteTestFixtures.newConsoleSessionFixture
+```
+
 - [ ] **Step 4: Run to verify PASS**
 
 ```bash
@@ -383,7 +386,9 @@ grep -cE " > .* PASSED" /tmp/after-task2.log
 
 Expected: same baseline integer as Task 1 Step 1.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Commit (helper + caller together)**
+
+Both files must land in the same commit so no intermediate state on `main` has the test edit without the helper file.
 
 ```bash
 git add fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/fixtures/ConsoleRouteTestFixtures.kt \
@@ -671,18 +676,18 @@ EOF
 - Create: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleSessionRoutesTest.kt`
 - Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
 
-- [ ] **Step 1: Identify the 7 session tests**
+- [ ] **Step 1: Identify the 8 session tests**
 
 ```bash
 grep -nE "fun (sessionsApi(Lists|Filters)|openSessionApi|closeSessionApi|sessionApi(Returns|Does))" \
   fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt | wc -l
 ```
 
-Expected: `7`.
+Expected: `8`.
 
 - [ ] **Step 2: Create the new test file**
 
-Create `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleSessionRoutesTest.kt` containing the 7 functions verbatim.
+Create `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleSessionRoutesTest.kt` containing the 8 functions verbatim.
 
 - [ ] **Step 3: Run new file only**
 
@@ -690,17 +695,17 @@ Create `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleSess
 ./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleSessionRoutesTest"
 ```
 
-Expected: 7 tests passed.
+Expected: 8 tests passed.
 
-- [ ] **Step 4: Delete the 7 functions from the legacy file**
+- [ ] **Step 4: Delete the 8 functions from the legacy file**
 
 - [ ] **Step 5: Verify totals**
 
 ```bash
 ./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.*" 2>&1 | tee /tmp/after-task6.log
 grep -cE " > .* PASSED" /tmp/after-task6.log                              # baseline
-grep -cE "ConsoleFeedbackItemRoutesTest > .* PASSED" /tmp/after-task6.log # 72
-grep -cE "ConsoleSessionRoutesTest > .* PASSED" /tmp/after-task6.log      # 7
+grep -cE "ConsoleFeedbackItemRoutesTest > .* PASSED" /tmp/after-task6.log # 71
+grep -cE "ConsoleSessionRoutesTest > .* PASSED" /tmp/after-task6.log      # 8
 ```
 
 - [ ] **Step 6: Commit**
@@ -709,7 +714,7 @@ grep -cE "ConsoleSessionRoutesTest > .* PASSED" /tmp/after-task6.log      # 7
 git add fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleSessionRoutesTest.kt \
         fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt
 git commit -m "$(cat <<'EOF'
-test(console): extract ConsoleSessionRoutesTest (7 tests)
+test(console): extract ConsoleSessionRoutesTest (8 tests)
 
 Mirrors fixthis-mcp/src/main/kotlin/.../console/SessionRoutes.kt.
 EOF
@@ -724,18 +729,18 @@ EOF
 - Create: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleHandoffRoutesTest.kt`
 - Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
 
-- [ ] **Step 1: Identify the 22 handoff tests**
+- [ ] **Step 1: Identify the 19 handoff tests**
 
 ```bash
 grep -nE "fun (agentHandoff|handoffPreviewEndpoint|markHandedOffEndpoint|sessionResponseStaleAfterHandoff|sessionResponseIncludesStaleAfterHandoff|saveToMcpToast)" \
   fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt | wc -l
 ```
 
-Expected: `22`.
+Expected: `19`.
 
 - [ ] **Step 2: Create the new test file**
 
-Create `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleHandoffRoutesTest.kt` containing the 22 functions verbatim.
+Create `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleHandoffRoutesTest.kt` containing the 19 functions verbatim.
 
 Because some handoff tests use a temp-directory project root, ensure these imports survive the copy:
 
@@ -749,17 +754,17 @@ import java.nio.file.Files
 ./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleHandoffRoutesTest"
 ```
 
-Expected: 22 tests passed.
+Expected: 19 tests passed.
 
-- [ ] **Step 4: Delete the 22 functions from the legacy file**
+- [ ] **Step 4: Delete the 19 functions from the legacy file**
 
 - [ ] **Step 5: Verify totals**
 
 ```bash
 ./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.*" 2>&1 | tee /tmp/after-task7.log
 grep -cE " > .* PASSED" /tmp/after-task7.log                              # baseline
-grep -cE "ConsoleFeedbackItemRoutesTest > .* PASSED" /tmp/after-task7.log # 50
-grep -cE "ConsoleHandoffRoutesTest > .* PASSED" /tmp/after-task7.log      # 22
+grep -cE "ConsoleFeedbackItemRoutesTest > .* PASSED" /tmp/after-task7.log # 52
+grep -cE "ConsoleHandoffRoutesTest > .* PASSED" /tmp/after-task7.log      # 19
 ```
 
 - [ ] **Step 6: Commit**
@@ -768,7 +773,7 @@ grep -cE "ConsoleHandoffRoutesTest > .* PASSED" /tmp/after-task7.log      # 22
 git add fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleHandoffRoutesTest.kt \
         fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt
 git commit -m "$(cat <<'EOF'
-test(console): extract ConsoleHandoffRoutesTest (22 tests)
+test(console): extract ConsoleHandoffRoutesTest (19 tests)
 
 Covers /api/agent/handoff, /api/handoff/preview, /api/items/handed-off,
 and the staleAfterHandoff session response fields.
@@ -784,14 +789,16 @@ EOF
 - Create: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt`
 - Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
 
-- [ ] **Step 1: Identify the 33 asset tests**
+- [ ] **Step 1: Identify the 34 asset tests**
 
 ```bash
 grep -nE "fun (consoleHtml|consoleUsesOptionASelectAnnotateToolsAndSimpleLabels)" \
   fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt | wc -l
 ```
 
-Expected: `33`.
+Expected: `34` (includes `consoleHtmlContainsSessionsPolling` and
+`consoleHtmlDeclaresPollingGlobals`, which match the `^consoleHtml` rule
+first per design spec §3.2).
 
 - [ ] **Step 2: Create the new test file with KDoc**
 
@@ -815,7 +822,7 @@ package io.beyondwin.fixthis.mcp.console
 // ... imports ...
 
 class ConsoleAssetContractTest {
-    // 33 @Test functions copied verbatim
+    // 34 @Test functions copied verbatim
 }
 ```
 
@@ -825,20 +832,21 @@ class ConsoleAssetContractTest {
 ./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleAssetContractTest"
 ```
 
-Expected: 33 tests passed.
+Expected: 34 tests passed.
 
-- [ ] **Step 4: Delete the 33 functions from the legacy file**
+- [ ] **Step 4: Delete the 34 functions from the legacy file**
 
 - [ ] **Step 5: Verify totals**
 
 ```bash
 ./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.*" 2>&1 | tee /tmp/after-task8.log
 grep -cE " > .* PASSED" /tmp/after-task8.log                              # baseline
-grep -cE "ConsoleFeedbackItemRoutesTest > .* PASSED" /tmp/after-task8.log # 17 + 1 from Task 2 helper-use
-grep -cE "ConsoleAssetContractTest > .* PASSED" /tmp/after-task8.log      # 33
+grep -cE "ConsoleFeedbackItemRoutesTest > .* PASSED" /tmp/after-task8.log # 18 (the remaining feedback-item route tests)
+grep -cE "ConsoleAssetContractTest > .* PASSED" /tmp/after-task8.log      # 34
 ```
 
-(The legacy file should now hold the 18 feedback-item route tests.)
+Arithmetic check: 100 − 2 − 6 − 13 − 8 − 19 − 34 = **18**, matching the
+legacy file's remaining feedback-item tests.
 
 - [ ] **Step 6: Commit**
 
@@ -846,7 +854,7 @@ grep -cE "ConsoleAssetContractTest > .* PASSED" /tmp/after-task8.log      # 33
 git add fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt \
         fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt
 git commit -m "$(cat <<'EOF'
-test(console): extract ConsoleAssetContractTest (33 tests)
+test(console): extract ConsoleAssetContractTest (34 tests)
 
 consoleHtml*/consoleUsesOptionASelect* tests assert against the served
 HTML/JS payload, not against any route. Aligns naming with

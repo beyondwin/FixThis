@@ -56,6 +56,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
+import { gzipSync } from 'node:zlib';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -63,6 +64,9 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const script = resolve(root, 'scripts/build-console-assets.mjs');
 const targetJs = resolve(root, 'fixthis-mcp/src/main/resources/console/app.js');
 const targetMeta = resolve(root, 'fixthis-mcp/src/main/resources/console/console-build-meta.json');
+
+const RAW_BUDGET = 110 * 1024;   // 112,640 bytes
+const GZIP_BUDGET = 40 * 1024;   // 40,960 bytes
 
 test('build script runs without arguments and produces app.js', () => {
   execFileSync('node', [script], { cwd: root, stdio: 'pipe' });
@@ -77,10 +81,23 @@ test('build script produces console-build-meta.json sidecar', () => {
   assert.equal(typeof meta.gitSha, 'string');
 });
 
-test('app.js is at most 110 KiB after minification', () => {
+test('app.js raw bytes are within the 110 KiB budget', () => {
   execFileSync('node', [script], { cwd: root, stdio: 'pipe' });
   const bytes = readFileSync(targetJs).byteLength;
-  assert.ok(bytes <= 110 * 1024, `app.js is ${bytes} bytes, exceeds 110 KiB budget`);
+  assert.ok(
+    bytes <= RAW_BUDGET,
+    `app.js is ${bytes} bytes, exceeds raw budget ${RAW_BUDGET} bytes (110 KiB)`,
+  );
+});
+
+test('app.js gzipped bytes are within the 40 KiB budget', () => {
+  execFileSync('node', [script], { cwd: root, stdio: 'pipe' });
+  const raw = readFileSync(targetJs);
+  const gz = gzipSync(raw, { level: 9 }).byteLength;
+  assert.ok(
+    gz <= GZIP_BUDGET,
+    `app.js gzipped is ${gz} bytes, exceeds gzip budget ${GZIP_BUDGET} bytes (40 KiB)`,
+  );
 });
 
 test('--check returns 0 immediately after a fresh build', () => {
@@ -180,11 +197,24 @@ Files (5):
 - `fixthis-mcp/src/main/console/draftWorkspaceHistory.js`
 - `fixthis-mcp/src/main/console/beforeunloadGuard.js`
 
-- [ ] **Step 2: Annotate the remaining 22 modules**
+- [ ] **Step 2: Annotate the remaining non-root modules**
 
-For each file, add a `// @requires <deps>` line. Use this matrix, derived
-from reading the source order in `scripts/build-console-assets.mjs:8-36`
-(later files may reference earlier files):
+For each file, add a `// @requires <deps>` line. Discover the full set of
+non-root files by globbing the source directory and excluding the roots
+from Step 1:
+
+```bash
+ls fixthis-mcp/src/main/console/*.js | wc -l
+# Sanity check: expected >= 27 files; current count: $N.
+# Item 1 (state-machine expansion) may grow this number — that is fine,
+# but every new file must carry a // @requires header.
+```
+
+Use the dependency edges below as a starting matrix (derived from the
+legacy hand-curated order in `scripts/build-console-assets.mjs:8-36` —
+later files may reference earlier files). If the glob surfaces modules not
+listed here (because Item 1 has landed new files), annotate them by
+inspecting their actual references in the source:
 
 | File | `// @requires` |
 |---|---|
@@ -211,15 +241,28 @@ from reading the source order in `scripts/build-console-assets.mjs:8-36`
 | `shortcuts.js` | state.js, undoRedo.js |
 | `main.js` | state.js, connection.js, devices.js, preview.js, annotations.js, history.js, prompt.js, rendering.js, sessions-polling.js, shortcuts.js, draftUseCases.js, draftCommandQueue.js |
 
-- [ ] **Step 3: Verify presence of annotation in every file**
+- [ ] **Step 3: Verify presence of annotation in every file (no exceptions)**
 
 ```bash
+EXPECTED_MIN=27
+COUNT=$(ls fixthis-mcp/src/main/console/*.js | wc -l | tr -d ' ')
+if [ "$COUNT" -lt "$EXPECTED_MIN" ]; then
+  echo "FAIL: expected >= $EXPECTED_MIN .js files, found $COUNT"
+  exit 1
+fi
+echo "Found $COUNT module files (>= $EXPECTED_MIN required)"
+
+MISSING=0
 for f in fixthis-mcp/src/main/console/*.js; do
-  head -3 "$f" | grep -q '// @requires' || echo "MISSING: $f"
+  head -3 "$f" | grep -q '// @requires' || { echo "MISSING: $f"; MISSING=1; }
 done
+[ "$MISSING" -eq 0 ] || exit 1
 ```
 
-Expected: no output (every file has the header).
+Expected: file count printed; no "MISSING:" lines. The build script
+(Task 3) enforces this same invariant at every build via a presence test,
+so a future contributor who adds a module without a header fails CI
+(see Task 3 Step 3 below).
 
 - [ ] **Step 4: Regenerate bundle the legacy way and verify no diff**
 
@@ -391,7 +434,51 @@ npm run console:build:test 2>&1 | head -40
 
 Expected: cycle test PASSES; size budget still FAILS.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Add `// @requires` presence test (CI-failing, not WARN)**
+
+Append to `scripts/build-console-assets-test.mjs`:
+
+```js
+import { readdirSync } from 'node:fs';
+
+test('every console module (except entry point) carries a // @requires header', () => {
+  const sourceDir = resolve(root, 'fixthis-mcp/src/main/console');
+  const ENTRY_POINT = 'main.js';
+  const files = readdirSync(sourceDir).filter((f) => f.endsWith('.js') && f !== ENTRY_POINT);
+  assert.ok(files.length >= 26, `expected >=26 non-entry modules, found ${files.length}`);
+  const missing = [];
+  for (const name of files) {
+    const text = readFileSync(resolve(sourceDir, name), 'utf8');
+    if (!/^\s*\/\/\s*@requires\s+/m.test(text)) missing.push(name);
+  }
+  assert.deepEqual(missing, [], `Missing // @requires header in: ${missing.join(', ')}`);
+});
+```
+
+In `scripts/build-console-assets.mjs`, also fail the build (non-zero exit)
+when any non-entry-point module lacks a header. Replace the
+"missing → treat as root" branch in `parseRequires` callers with:
+
+```js
+for (const name of onDisk) {
+  if (name === 'main.js') continue;
+  const content = readFileSync(resolve(sourceDir, name), 'utf8');
+  if (!/^\s*\/\/\s*@requires\s+/m.test(content)) {
+    console.error(`ERROR: fixthis-mcp/src/main/console/${name} has no // @requires header.`);
+    process.exit(1);
+  }
+}
+```
+
+Run:
+
+```bash
+npm run console:build:test
+```
+
+Expected: PASS (every module has a header from Task 2).
+
+- [ ] **Step 7: Commit**
 
 ```bash
 git add scripts/build-console-assets.mjs scripts/build-console-assets-test.mjs fixthis-mcp/src/main/resources/console/app.js
@@ -401,7 +488,8 @@ build(console): drive bundle order from @requires DAG
 Replaces the hand-curated sources array with a topological sort over the
 @requires annotations introduced in the previous commit. Adds //#region
 banners between modules so order is verifiable post-bundling. Exports
-topoSort for cycle-detection testing.
+topoSort for cycle-detection testing. Fails the build on any non-entry
+module missing a // @requires header.
 EOF
 )"
 ```
@@ -439,20 +527,28 @@ Expected: FAIL on the sidecar test (still RED from Task 1).
 - [ ] **Step 3: Implement sidecar emission in the build script**
 
 After the `concatenated` string is computed and before any minification, add
-to `scripts/build-console-assets.mjs`:
+to `scripts/build-console-assets.mjs`. Normalization happens at **write
+time** when `FIXTHIS_BUNDLE_REPRODUCIBLE=1` is set, not at compare time —
+so the stored bytes are deterministic and `--check` is a simple byte
+compare (see spec §R3):
 
 ```js
 const metaPath = resolve(root, 'fixthis-mcp/src/main/resources/console/console-build-meta.json');
-const meta = { buildEpochMs: epochMs, gitSha };
+const reproducible = process.env.FIXTHIS_BUNDLE_REPRODUCIBLE === '1'
+  || process.argv.includes('--check');
+const meta = reproducible
+  ? { buildEpochMs: 0, gitSha: 'reproducible' }
+  : { buildEpochMs: epochMs, gitSha };
 const metaSerialized = JSON.stringify(meta, null, 2) + '\n';
+
 if (process.argv.includes('--check')) {
   if (!existsSync(metaPath)) {
-    console.error('Generated console-build-meta.json is missing. Run node scripts/build-console-assets.mjs.');
+    console.error('Generated console-build-meta.json is missing. Run FIXTHIS_BUNDLE_REPRODUCIBLE=1 node scripts/build-console-assets.mjs.');
     process.exit(1);
   }
   const currentMeta = readFileSync(metaPath, 'utf8');
-  if (normalizeMeta(currentMeta) !== normalizeMeta(metaSerialized)) {
-    console.error('Generated console-build-meta.json is out of date. Run node scripts/build-console-assets.mjs.');
+  if (currentMeta !== metaSerialized) {
+    console.error('Generated console-build-meta.json is out of date. Run FIXTHIS_BUNDLE_REPRODUCIBLE=1 node scripts/build-console-assets.mjs.');
     process.exit(1);
   }
 } else {
@@ -460,14 +556,16 @@ if (process.argv.includes('--check')) {
 }
 ```
 
-Add a helper:
+CI invokes the script as `FIXTHIS_BUNDLE_REPRODUCIBLE=1 node
+scripts/build-console-assets.mjs` (or simply via `--check`, which forces
+reproducible mode). Local developers run plain `node
+scripts/build-console-assets.mjs` to get real `buildEpochMs` / `gitSha` in
+the sidecar — but those reproducible values are what land on `main`.
 
-```js
-function normalizeMeta(text) {
-  return text.replace(/"buildEpochMs":\s*\d+/g, '"buildEpochMs":0')
-             .replace(/"gitSha":\s*"[^"]+"/g, '"gitSha":"normalized"');
-}
-```
+`FeedbackConsoleAssets.kt` substitutes a runtime epoch and the JVM-readable
+git sha (or "unknown") into `window.FixThisConsoleConfig.buildMeta` when
+the sidecar contains the reproducible placeholder, so the served HTML
+still carries a useful build identifier in production.
 
 Remove the legacy `buildHeader` injection block (`scripts/build-console-assets.mjs:54-73, 81`).
 
@@ -593,13 +691,23 @@ const jsBytes = result.outputFiles.find((f) => f.path.endsWith('.js')).contents;
 const mapBytes = result.outputFiles.find((f) => f.path.endsWith('.map')).contents;
 ```
 
-After computing `jsBytes`, add the size-budget guard:
+After computing `jsBytes`, add the raw + gzip size-budget guard:
 
 ```js
-const SIZE_BUDGET_BYTES = 110 * 1024;
-if (jsBytes.byteLength > SIZE_BUDGET_BYTES) {
+import { gzipSync } from 'node:zlib';
+
+const RAW_BUDGET_BYTES = 110 * 1024;   // 112,640
+const GZIP_BUDGET_BYTES = 40 * 1024;   // 40,960
+if (jsBytes.byteLength > RAW_BUDGET_BYTES) {
   console.error(
-    `Bundle is ${jsBytes.byteLength} bytes, exceeds budget of ${SIZE_BUDGET_BYTES} bytes.`,
+    `Bundle (raw) is ${jsBytes.byteLength} bytes, exceeds raw budget of ${RAW_BUDGET_BYTES} bytes (110 KiB).`,
+  );
+  process.exit(1);
+}
+const gzBytes = gzipSync(Buffer.from(jsBytes), { level: 9 }).byteLength;
+if (gzBytes > GZIP_BUDGET_BYTES) {
+  console.error(
+    `Bundle (gzipped) is ${gzBytes} bytes, exceeds gzip budget of ${GZIP_BUDGET_BYTES} bytes (40 KiB).`,
   );
   process.exit(1);
 }
@@ -630,20 +738,22 @@ Convert the script's top-level body to an `async function main() { ... }` wrappe
 
 The `app.js` file must end with a `//# sourceMappingURL=app.js.map` line (esbuild adds this when `sourcemap: 'external'` is set; verify after building).
 
-- [ ] **Step 3: Run to verify the size budget PASSES**
+- [ ] **Step 3: Run to verify both size budgets PASS**
 
 ```bash
 node scripts/build-console-assets.mjs
 wc -c fixthis-mcp/src/main/resources/console/app.js
+gzip -c fixthis-mcp/src/main/resources/console/app.js | wc -c
 ```
 
-Expected: a number ≤ 112,640 (110 KiB).
+Expected: raw bytes ≤ 112,640 (110 KiB); gzipped bytes ≤ 40,960 (40 KiB).
 
 ```bash
 npm run console:build:test
 ```
 
-Expected: all 4 tests PASS.
+Expected: all 5 tests PASS (build-runs, sidecar, raw budget, gzip budget,
+`--check`).
 
 - [ ] **Step 4: Verify the source map maps correctly**
 
@@ -657,7 +767,46 @@ If a more granular map is desired (one source entry per module file), the
 plan does **not** require it for Phase 1 — the size budget is the priority.
 The improved map is filed as a follow-up.
 
-- [ ] **Step 5: Run the full Gradle matrix to confirm asset-contract tests survive**
+- [ ] **Step 5: Exclude source maps from the shipped JAR**
+
+The source map must stay on disk (DevTools needs it under
+`--console-assets-dir`) but must **not** be packaged into the production
+JAR. Edit `fixthis-mcp/build.gradle.kts` and add to `processResources`:
+
+```kotlin
+tasks.named<Copy>("processResources") {
+    exclude("**/*.map")
+}
+```
+
+If a sibling task name is more idiomatic in this module
+(e.g. `jvmProcessResources` for Kotlin Multiplatform), use that name; the
+behavior is the same.
+
+Add a verification assertion in
+`fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt`
+(or a new sibling test) that enumerates the console resources visible to
+the classloader and rejects any `.map` entry:
+
+```kotlin
+@Test
+fun `JAR resources do not include source maps`() {
+    val cl = javaClass.classLoader
+    val mapUrl = cl.getResource("console/app.js.map")
+    assertNull(mapUrl, "app.js.map leaked into the packaged resources")
+}
+```
+
+Run:
+
+```bash
+./gradlew :fixthis-mcp:processResources
+find fixthis-mcp/build/resources/main/console -name '*.map'
+```
+
+Expected: no output (no `.map` files in the staged resources).
+
+- [ ] **Step 6: Run the full Gradle matrix to confirm asset-contract tests survive**
 
 ```bash
 ./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.*"
@@ -666,17 +815,23 @@ The improved map is filed as a follow-up.
 Expected: PASS. If any test fails on a substring that the minifier rewrote
 or removed, capture the failing assertions; they get migrated in Task 7.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add scripts/build-console-assets.mjs fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/main/resources/console/app.js.map
+git add scripts/build-console-assets.mjs \
+        fixthis-mcp/build.gradle.kts \
+        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt \
+        fixthis-mcp/src/main/resources/console/app.js \
+        fixthis-mcp/src/main/resources/console/app.js.map
 git commit -m "$(cat <<'EOF'
 build(console): minify bundle with esbuild, emit external source map
 
 Pipes the topologically-sorted concatenated source through esbuild with
 --minify-whitespace --minify-syntax. Identifier minification is OFF so
 that asset-contract tests grep'ing for function names still match. Emits
-app.js.map alongside app.js. Asserts a 110 KiB budget.
+app.js.map alongside app.js. Asserts a 110 KiB budget. Excludes *.map
+from processResources so the shipped JAR stays lean (map is still served
+via --console-assets-dir in dev).
 EOF
 )"
 ```
@@ -804,7 +959,61 @@ node scripts/build-console-assets.mjs
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Runtime-reachability assertion against the bundled JS**
+
+The string-grep guard from Step 3 only proves the symbol's *bytes*
+survive; the minifier could still inline the function such that the name
+appears in a comment but is unreachable at runtime. Add a Node test that
+loads the bundled JS and asserts each contract symbol is actually a
+defined global on a sandbox `globalThis`:
+
+Append to `scripts/build-console-assets-test.mjs`:
+
+```js
+test('bundled JS exposes every contract symbol at runtime', () => {
+  execFileSync('node', [script], { cwd: root, stdio: 'pipe' });
+  const code = readFileSync(targetJs, 'utf8');
+  // Strip the //# sourceMappingURL trailer to keep vm happy.
+  const stripped = code.replace(/\/\/# sourceMappingURL=.*$/m, '');
+  const sandbox = {
+    window: {},
+    document: { addEventListener() {}, querySelectorAll: () => [], createElement: () => ({}) },
+    localStorage: { getItem: () => null, setItem() {} },
+    fetch: async () => ({ ok: true, json: async () => ({}) }),
+    setInterval: () => 0, clearInterval() {}, setTimeout: () => 0, clearTimeout() {},
+  };
+  sandbox.globalThis = sandbox;
+  // Run the script in a fresh VM context so module-level declarations
+  // attach to `sandbox` (script-scoped, like the browser).
+  const { runInNewContext } = require('node:vm');
+  runInNewContext(stripped, sandbox);
+  for (const symbol of [
+    'withMutationLock', 'pollSessionsTick', 'mergeSessionIntoState',
+    'startSessionsPolling', 'MaxConsecutivePollFailures',
+    'DefaultLivePreviewIntervalMs', 'PreviewIntervalStorageKey',
+  ]) {
+    assert.ok(
+      typeof sandbox[symbol] !== 'undefined',
+      `Bundled JS does not expose '${symbol}' at runtime (minifier inlined or dropped it)`,
+    );
+  }
+});
+```
+
+A Playwright equivalent under `scripts/console-browser-smoke.mjs` is an
+acceptable alternative if the `node:vm` shim above proves too brittle —
+load the served console, then `await page.evaluate(() => typeof
+withMutationLock)` per symbol.
+
+Run:
+
+```bash
+npm run console:build:test
+```
+
+Expected: PASS.
+
+- [ ] **Step 7: Commit**
 
 ```bash
 git add scripts/build-console-assets.mjs scripts/build-console-assets-test.mjs fixthis-mcp/src/main/resources/console/app.js
@@ -966,15 +1175,17 @@ Expected: PASS for every script.
 
 Expected: PASS.
 
-- [ ] **Step 5: Measure final size**
+- [ ] **Step 5: Measure final size (raw + gzipped)**
 
 ```bash
 wc -c fixthis-mcp/src/main/resources/console/app.js
+gzip -c fixthis-mcp/src/main/resources/console/app.js | wc -c
 wc -c fixthis-mcp/src/main/resources/console/app.js.map
 wc -c fixthis-mcp/src/main/resources/console/console-build-meta.json
 ```
 
-Record these numbers in the commit message of Task 9.
+Record both raw and gzipped numbers in the commit message of Task 9.
+Budgets: raw ≤ 112,640 (110 KiB), gzip ≤ 40,960 (40 KiB).
 
 - [ ] **Step 6: Commit (no file changes — verification only)**
 
@@ -989,6 +1200,7 @@ step.
 **Files:**
 - Modify: `CONTRIBUTING.md`
 - Modify: `docs/reference/feedback-console-contract.md`
+- Modify: `CLAUDE.md`
 
 - [ ] **Step 1: Update CONTRIBUTING.md**
 
@@ -1029,15 +1241,31 @@ and a `console-build-meta.json` sidecar. Identifier minification is
 disabled to keep asset contract tests stable.
 ```
 
-- [ ] **Step 3: Run the doc-link verification commands**
+- [ ] **Step 3: Update CLAUDE.md "Console UI iteration" bullet**
+
+The current bullet points contributors at the legacy bundler. Update the
+relevant line in `/Users/kws/source/android/FixThis/CLAUDE.md` so it
+reflects the new pipeline:
+
+```markdown
+- **Console UI iteration** — pass `--console-assets-dir` to read HTML/CSS/JS
+  from source instead of the packaged JAR; rebundle JS via
+  `node scripts/build-console-assets.mjs` after edits (produces minified
+  `app.js` ≤ 110 KiB raw / 40 KiB gzip, an `app.js.map` source map for
+  DevTools, and a `console-build-meta.json` sidecar), then verify with
+  `node scripts/build-console-assets.mjs --check`. Details in
+  [`docs/reference/feedback-console-contract.md`](docs/reference/feedback-console-contract.md).
+```
+
+- [ ] **Step 4: Run the doc-link verification commands**
 
 ```bash
-grep -rn "build-console-assets" CONTRIBUTING.md docs/
+grep -rn "build-console-assets" CONTRIBUTING.md docs/ CLAUDE.md
 ```
 
 Confirm every reference still makes sense after the rewrite.
 
-- [ ] **Step 4: Run the complete required-local-checks recipe**
+- [ ] **Step 5: Run the complete required-local-checks recipe**
 
 ```bash
 ./gradlew :fixthis-mcp:test
@@ -1051,20 +1279,23 @@ git diff --check
 
 Expected: PASS for every command.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add CONTRIBUTING.md docs/reference/feedback-console-contract.md
+git add CONTRIBUTING.md docs/reference/feedback-console-contract.md CLAUDE.md
 git commit -m "$(cat <<'EOF'
 docs(console): document bundle minification, sidecar, and budget guard
 
 CONTRIBUTING.md gains a Console bundle section with the three artifacts
-emitted by build-console-assets.mjs and a note on the 110 KiB budget.
-feedback-console-contract.md describes the @requires-driven topological
-order. Asset contract tests read unbundled sources; minification
-preserves all symbols grep'd by those tests.
+emitted by build-console-assets.mjs and a note on the 110 KiB raw /
+40 KiB gzip budgets. feedback-console-contract.md describes the
+@requires-driven topological order. CLAUDE.md's "Console UI iteration"
+pointer is updated to mention the new minified output and source map.
+Asset contract tests read unbundled sources; minification preserves all
+symbols grep'd by those tests.
 
-Final bundle size: <fill from Task 8 Step 5> bytes (was 228,237).
+Final bundle size: <fill from Task 8 Step 5> bytes raw,
+<fill> bytes gzipped (was 228,237 raw).
 EOF
 )"
 ```
@@ -1074,11 +1305,16 @@ EOF
 ## Self-Review Checklist
 
 - [ ] Spec coverage:
-  - §3.1 Pipeline: Tasks 3 (DAG), 4 (sidecar), 5 (esbuild).
-  - §3.2 Dependency declaration: Task 2.
-  - §3.5 Contract-stable minification: Tasks 5 and 6.
-  - §3.6 Build-meta sidecar: Task 4.
-  - §3.8 Size budget: Tasks 1 (test) and 5 (enforcement).
+  - §3.1 Pipeline: Tasks 3 (DAG), 4 (sidecar), 5 (esbuild + JAR map exclusion).
+  - §3.2 Dependency declaration + §R5 missing-header CI failure: Tasks 2, 3 (Step 6).
+  - §3.5 Contract-stable minification (string + runtime reachability):
+        Tasks 5 and 6 (Steps 3+6).
+  - §3.6 Build-meta sidecar with reproducible-mode write normalization
+        (§R3): Task 4.
+  - §3.8 Raw + gzip size budgets: Tasks 1 (both tests) and 5 (raw
+        enforcement); gzip enforcement in CI workflow (spec §4
+        merge-gate snippet).
+  - §R2 JAR map exclusion: Task 5 Step 5.
 - [ ] Every task ends with a single commit; no `--amend`, no rebase.
 - [ ] Tests are RED before they are GREEN in every task.
 - [ ] No placeholder code; every Step shows the actual change to make.

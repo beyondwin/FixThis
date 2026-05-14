@@ -1,8 +1,8 @@
-# Test Speed Optimization — Merge Gate Design
+# Test Speed Optimization — Post-Merge Audit & Followup Tracker
 
 **Date:** 2026-05-14
-**Scope:** Audit and merge-readiness gate for the test speed optimization effort.
-**Status:** All seven tasks of the implementation plan have landed on `main`.
+**Scope:** Retrospective audit and followup tracker for the test speed optimization effort.
+**Status:** Merged on 2026-05-13 (merge commit `2ce4f1b`); this doc tracks post-merge verification and followups.
 
 ---
 
@@ -86,17 +86,29 @@
 
 ---
 
-## 4. Merge Gate Checklist
+## 4. Post-Merge Verification Checklist
 
 - [x] All seven plan tasks are merged into `main` (see Task → Commit Mapping above).
 - [x] `EventLogWriter` default constructor still produces a `Durable` writer (verified by `defaultConstructorUsesDurableWrites`).
 - [x] `EventLogFailureModeTest` still exercises the durable code path with no fast-mode override.
-- [x] CI workflow exposes the `baseline` aggregate job under the original name; branch protection rules continue to recognize it.
+- [x] CI workflow split — see [`2026-05-14-ci-console-precheck-merge-gate-design.md`](2026-05-14-ci-console-precheck-merge-gate-design.md) §4 (authoritative).
 - [x] `CONTRIBUTING.md` documents the focused test loops with copy-pasteable commands.
 - [x] Plan doc and detailed spec are both checked in under `docs/superpowers/`.
-- [x] No `EventLogDurability.Fast` references exist under `src/main/` of any module.
+- [x] No `EventLogDurability.Fast` references exist under `src/main/` of any module (assertion holds today; lint enforcement still pending — see §5 #1 for the active followup that tracks the lint rule).
 - [x] `:fixthis-mcp:test` reports `UP-TO-DATE` on a second run with no source changes (validated locally in Task 4 Step 5 and Task 7 Step 3).
 - [x] `git diff --check` is clean on `main` after the merge.
+- [ ] Baseline file committed to `docs/superpowers/measurements/2026-05-14-test-speed-baseline.md` (Task 1 currently lives only in the PR body; in-repo copy still owed).
+  - Owner: TBD
+  - Rollback if regressed: not applicable — this item is additive; if a baseline file is added and later found incorrect, revert the file commit.
+
+### Invariant Re-Verification
+
+Grep-able commands that must remain green for this slice not to regress structural invariants:
+
+- [x] `./gradlew :fixthis-mcp:test --tests "*BridgeProtocolVersionSyncTest"` — Bridge protocol 4-site sync. Evidence: this slice touches `EventLogWriter`, compactor fixtures, MCP `BuildInfo` epoch, CI YAML, and docs; none of the bridge protocol pin sites move.
+- [x] `./gradlew :fixthis-mcp:test --tests "*ModuleBoundaryTest"` — module boundary invariants. Evidence: changes are confined to `:fixthis-mcp` and CI config; no new cross-module imports.
+- [x] `./gradlew :fixthis-mcp:test --tests "*ArchitectureHotspotBudgetTest"` — hotspot budgets. Evidence: edits to `EventLogWriter.kt` and `EventLogCompactorTest.kt` keep both files inside their existing budgets.
+- [x] Persisted JSON schema compatibility — N/A; this change does not touch persisted JSON.
 
 ---
 

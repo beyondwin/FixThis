@@ -17,11 +17,15 @@
 | Action | Path |
 |---|---|
 | Modify | `package.json` |
+| Create | `.npmrc` |
 | Modify | `README.md` |
 | Modify | `AGENTS.md` |
 | Modify | `CONTRIBUTING.md` |
 | Modify | `CLAUDE.md` |
+| Modify | `.github/workflows/ci.yml` |
 | Create | `scripts/check-doc-consistency.mjs` |
+| Create | `scripts/console-tests.json` |
+| Create | `scripts/run-console-tests.mjs` |
 
 **Verification pattern for every task:** doc edit → runnable command → asserted output. No code-only commits without a paired verification command.
 
@@ -31,6 +35,14 @@
 
 **Files:**
 - Modify: `CONTRIBUTING.md`
+
+**Cross-pair coordination (read first):** This plan and
+`2026-05-14-setup-error-diagnostics-implementation.md` both modify
+`docs/guides/troubleshooting.md`. **Merge order: this plan first, then
+setup-error-diagnostics plan to avoid line-number drift.** The
+setup-error-diagnostics plan appends a "Setup failures" section at the bottom
+of the file; this plan touches a different section near the top, so landing
+in this order keeps both diffs minimal and rebase-free.
 
 - [ ] **Step 1: Locate the insertion point**
 
@@ -53,7 +65,7 @@ Insert the following block immediately before `## Formatting`:
 |---|---|---|
 | JDK | 21 | Adoptium Temurin recommended. |
 | Android SDK + ADB | API 30+ | Required for `:app:assembleDebug` and connected smoke. |
-| Node.js | 18.18 | Enforced via `package.json` `engines`. 20.x and 22.x LTS also supported. |
+| Node.js | 20.0.0 | Enforced via `package.json` `engines` and `.npmrc engine-strict=true`. Node 20.x LTS is supported through 2026-04; 22.x LTS also supported. Node 18.x is EOL. |
 | Chromium | Bundled by Playwright 1.59 | `npx playwright install chromium` after `npm install`. macOS 11+ / Ubuntu 20.04+ required by Playwright's bundled Chromium. |
 
 Run `npm install` and `npx playwright install chromium` once before running any `npm run console:*` script.
@@ -70,13 +82,13 @@ grep -n "^## Prerequisites" CONTRIBUTING.md
 
 Expected: exactly one match. GitHub will render the anchor as `#prerequisites`.
 
-- [ ] **Step 4: Confirm Node version really is ≥18.18 on this machine**
+- [ ] **Step 4: Confirm Node version really is ≥20.0.0 on this machine**
 
 ```bash
 node --version
 ```
 
-Expected: `v18.18.0` or higher. If lower, the plan still proceeds (the prerequisite documents the requirement; meeting it is the contributor's responsibility), but record in the PR description what version was used for verification.
+Expected: `v20.0.0` or higher. If lower, the plan still proceeds (the prerequisite documents the requirement; meeting it is the contributor's responsibility), but record in the PR description what version was used for verification.
 
 - [ ] **Step 5: Commit**
 
@@ -111,27 +123,36 @@ The full new content:
   "license": "MIT",
   "type": "module",
   "engines": {
-    "node": ">=18.18"
+    "node": ">=20.0.0"
   },
   "scripts": {
     "console:smoke": "node scripts/console-browser-smoke.mjs",
     "console:responsive:stress": "node scripts/console-responsive-stress.mjs",
-    "console:availability:test": "node --test scripts/console-availability-test.mjs",
-    "console:pending:test": "node --test scripts/pendingItemRecovery-test.mjs",
-    "console:beforeunload:test": "node --test scripts/beforeunloadGuard-test.mjs",
-    "console:undo:test": "node --test scripts/undoRedo-test.mjs scripts/undoKeymatch-test.mjs",
-    "console:draft:test": "node --test scripts/draftWorkspace-test.mjs scripts/draftWorkspaceHistory-test.mjs scripts/draftStorageAdapter-test.mjs scripts/draftApiAdapter-test.mjs scripts/draftUseCases-test.mjs scripts/draftCommandQueue-test.mjs scripts/draftPresentationContract-test.mjs scripts/draftWorkflowInvariant-test.mjs",
-    "console:activity:test": "node --test scripts/activityDrift-test.mjs",
-    "console:preview:test": "node --test scripts/previewStaleness-test.mjs",
-    "console:session:test": "node --test scripts/pendingBoundaryGuard-test.mjs scripts/sessionScopedRequests-test.mjs scripts/savedOverlayScope-test.mjs scripts/undoRedoContext-test.mjs",
-    "console:test:fast": "npm run console:availability:test && npm run console:pending:test && npm run console:beforeunload:test && npm run console:undo:test && npm run console:activity:test && npm run console:preview:test",
-    "console:test:all": "npm run console:test:fast && npm run console:draft:test && npm run console:session:test"
+    "console:availability:test": "node scripts/run-console-tests.mjs availability",
+    "console:pending:test": "node scripts/run-console-tests.mjs pending",
+    "console:beforeunload:test": "node scripts/run-console-tests.mjs beforeunload",
+    "console:undo:test": "node scripts/run-console-tests.mjs undo",
+    "console:draft:test": "node scripts/run-console-tests.mjs draft",
+    "console:activity:test": "node scripts/run-console-tests.mjs activity",
+    "console:preview:test": "node scripts/run-console-tests.mjs preview",
+    "console:session:test": "node scripts/run-console-tests.mjs session",
+    "console:test:fast": "node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview",
+    "console:test:all": "node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview draft session"
   },
   "devDependencies": {
-    "playwright": "^1.59.1"
+    "playwright": "^1.59.1",
+    "github-slugger": "^2.0.0"
   }
 }
 ```
+
+Also create `.npmrc` at the repo root containing exactly:
+
+```
+engine-strict=true
+```
+
+so `npm install` fails immediately on Node <20 instead of warning. The file is checked into git.
 
 - [ ] **Step 3: Verify each new script resolves and runs**
 
@@ -168,8 +189,89 @@ Expected on Node ≥18.18: no `EBADENGINE` warning. (npm exits 0 because Playwri
 - [ ] **Step 6: Commit**
 
 ```bash
-git add package.json
-git commit -m "build(npm): pin Node >=18.18 and add console test aggregates"
+git add package.json .npmrc
+git commit -m "build(npm): pin Node >=20, add engine-strict, switch console scripts to runner"
+```
+
+---
+
+### Task 2B: Create scripts/console-tests.json and scripts/run-console-tests.mjs (SSOT for test groups)
+
+**Files:**
+- Create: `scripts/console-tests.json`
+- Create: `scripts/run-console-tests.mjs`
+
+- [ ] **Step 1: Create `scripts/console-tests.json`**
+
+```json
+{
+  "availability": ["scripts/console-availability-test.mjs"],
+  "pending": ["scripts/pendingItemRecovery-test.mjs"],
+  "beforeunload": ["scripts/beforeunloadGuard-test.mjs"],
+  "undo": ["scripts/undoRedo-test.mjs", "scripts/undoKeymatch-test.mjs"],
+  "activity": ["scripts/activityDrift-test.mjs"],
+  "preview": ["scripts/previewStaleness-test.mjs"],
+  "draft": [
+    "scripts/draftWorkspace-test.mjs",
+    "scripts/draftWorkspaceHistory-test.mjs",
+    "scripts/draftStorageAdapter-test.mjs",
+    "scripts/draftApiAdapter-test.mjs",
+    "scripts/draftUseCases-test.mjs",
+    "scripts/draftCommandQueue-test.mjs",
+    "scripts/draftPresentationContract-test.mjs",
+    "scripts/draftWorkflowInvariant-test.mjs"
+  ],
+  "session": [
+    "scripts/pendingBoundaryGuard-test.mjs",
+    "scripts/sessionScopedRequests-test.mjs",
+    "scripts/savedOverlayScope-test.mjs",
+    "scripts/undoRedoContext-test.mjs"
+  ]
+}
+```
+
+- [ ] **Step 2: Create `scripts/run-console-tests.mjs`**
+
+```js
+import fs from "node:fs";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const groups = JSON.parse(fs.readFileSync(path.join(repoRoot, "scripts/console-tests.json"), "utf8"));
+const requested = process.argv.slice(2);
+if (requested.length === 0) {
+  console.error("Usage: node scripts/run-console-tests.mjs <group> [<group> ...]");
+  console.error("Known groups:", Object.keys(groups).join(", "));
+  process.exit(2);
+}
+const files = [];
+for (const g of requested) {
+  if (!(g in groups)) {
+    console.error(`Unknown group: ${g}`);
+    process.exit(2);
+  }
+  files.push(...groups[g]);
+}
+const result = spawnSync(process.execPath, ["--test", ...files], { stdio: "inherit", cwd: repoRoot });
+process.exit(result.status ?? 1);
+```
+
+- [ ] **Step 3: Verify the runner works for each defined group**
+
+```bash
+node scripts/run-console-tests.mjs availability
+node scripts/run-console-tests.mjs activity preview
+```
+
+Expected: both exit 0.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add scripts/console-tests.json scripts/run-console-tests.mjs
+git commit -m "tools(console): single-source-of-truth test list + runner"
 ```
 
 ---
@@ -262,17 +364,23 @@ git commit -m "docs(contributing): document Console Inner Loop scripts"
 **Files:**
 - Modify: `CONTRIBUTING.md`
 
-- [ ] **Step 1: Read the current Focused Test Loops block**
+- [ ] **Step 1: Read the current Focused Test Loops block using anchor patterns**
+
+Use anchor-based extraction instead of absolute line numbers (which drift after every prior edit). Two reliable forms:
 
 ```bash
-grep -n "^### Focused Test Loops\|^## Required Local Checks\|^Run these before opening" CONTRIBUTING.md | head
+# Show the Focused Test Loops section in full
+awk '/^### Focused Test Loops/,/^### |^## /' CONTRIBUTING.md
+
+# Locate boundaries
+grep -nE "^### Focused Test Loops|^## Required Local Checks" CONTRIBUTING.md
 ```
 
-Expected: locates the block boundary so the edit replaces only the JS section, not the Gradle focused loops or the required local checks.
+Expected: the `awk` invocation prints the entire section. The `grep` locates the header lines wherever they currently live (no line-number assumption).
 
 - [ ] **Step 2: Replace the "Pure console JavaScript changes" block**
 
-Find:
+Find the block under `# Pure console JavaScript changes` (use `grep -n "Pure console JavaScript changes" CONTRIBUTING.md` to locate it without committing to a line number):
 
 ```bash
 # Pure console JavaScript changes
@@ -295,7 +403,7 @@ npm run console:test:fast
 
 - [ ] **Step 3: Replace the "Draft workspace state-machine changes" line**
 
-Find:
+Find under `# Draft workspace state-machine changes`:
 
 ```bash
 # Draft workspace state-machine changes
@@ -304,31 +412,22 @@ npm run console:draft:test
 
 This line already uses npm — no change. Leave it.
 
-- [ ] **Step 4: Replace the session-scope block (currently lines 122–129)**
+- [ ] **Step 4: Replace the session-scope block (anchor: the `pendingBoundaryGuard-test.mjs` line)**
 
-Find:
-
-```bash
-node --test \
-  scripts/pendingBoundaryGuard-test.mjs \
-  scripts/sessionScopedRequests-test.mjs \
-  scripts/savedOverlayScope-test.mjs \
-  scripts/undoRedoContext-test.mjs
-```
-
-Replace with:
+Use `grep -n pendingBoundaryGuard-test.mjs CONTRIBUTING.md` to find the block; then replace the whole `node --test \\` … `undoRedoContext-test.mjs` chunk with:
 
 ```bash
 npm run console:session:test
 ```
 
-- [ ] **Step 5: Add the parity comment to the Required Local Checks raw-form block**
+- [ ] **Step 5: Replace the Required Local Checks raw-form block with the runner**
 
-Find the block in the Required Local Checks section (currently lines 100–116 — the `node --test \` block with eight test files plus the eight session/scope files). Above the `node --test \` line, insert a single-line comment line:
+Locate the block via `awk '/^## Required Local Checks/,/^## /' CONTRIBUTING.md`. The block currently restates a `node --test \\` invocation. Replace it with:
 
 ```bash
-# Equivalent to `npm run console:test:all`. Kept as raw `node --test` for CI parity;
-# if you edit this list, mirror to package.json `console:*` scripts.
+# All console JS tests (single source of truth is scripts/console-tests.json).
+node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview draft session
+# Equivalent to `npm run console:test:all`; edit the JSON, not this command line.
 ```
 
 - [ ] **Step 6: Verify the rewritten focused loops actually work**
@@ -342,28 +441,13 @@ Expected: both exit 0. (`console:test:all` is implicitly verified by the union o
 
 - [ ] **Step 7: Confirm the Required Local Checks block still produces the same test count as before**
 
-This is the canonical pre-PR list and must not change behavior. Run only the test invocation from that block (skip the gradle commands for time):
+Now there is only one place that names the test files (`scripts/console-tests.json`), so the verification reduces to:
 
 ```bash
-node --test \
-  scripts/console-availability-test.mjs \
-  scripts/pendingItemRecovery-test.mjs \
-  scripts/beforeunloadGuard-test.mjs \
-  scripts/undoRedo-test.mjs \
-  scripts/undoKeymatch-test.mjs \
-  scripts/activityDrift-test.mjs \
-  scripts/previewStaleness-test.mjs \
-  scripts/draftWorkspace-test.mjs \
-  scripts/draftWorkspaceHistory-test.mjs \
-  scripts/draftStorageAdapter-test.mjs \
-  scripts/draftApiAdapter-test.mjs \
-  scripts/draftUseCases-test.mjs \
-  scripts/draftCommandQueue-test.mjs \
-  scripts/draftPresentationContract-test.mjs \
-  scripts/draftWorkflowInvariant-test.mjs
+node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview draft session
 ```
 
-Expected: exits 0; summary line reports test counts identical to a pre-edit baseline. (Counts: the raw block intentionally combines fast + draft.)
+Expected: exits 0; summary line reports the union of all groups.
 
 - [ ] **Step 8: Commit**
 
@@ -394,7 +478,7 @@ Find (README.md lines 3–6):
 Insert one new badge line after the JDK badge:
 
 ```markdown
-[![Node 18.18+](https://img.shields.io/badge/Node-18.18%2B-339933.svg)](https://nodejs.org/)
+[![Node 20+](https://img.shields.io/badge/Node-20%2B-339933.svg)](https://nodejs.org/)
 ```
 
 - [ ] **Step 2: Add the AGENTS cross-link after the Quick Start**
@@ -418,6 +502,20 @@ Insert a blank line above it, then a new paragraph immediately above the first `
 
 (One trailing blank line separates the paragraph from the `→` block.)
 
+- [ ] **Step 2B: Add the "Agents: read end-to-end" banner as the first content line of AGENTS.md**
+
+Locate the H1 (`grep -n "^# " AGENTS.md | head -1`). Immediately after the H1 (no blank line skipped), insert:
+
+```markdown
+
+> **Agents:** read this file end-to-end. Sub-anchors may be skipped on a
+> first pass, but every top-level section is load-bearing for correct
+> tool use.
+
+```
+
+(Blank lines around the blockquote are intentional.) Verify with `grep -n "Agents: read this file end-to-end" AGENTS.md` — expect exactly one match in the first 10 lines.
+
 - [ ] **Step 3: Add the Node bullet to AGENTS Prerequisites**
 
 Find (AGENTS.md lines 11–15):
@@ -437,7 +535,7 @@ Replace with:
 
 - JDK 21+
 - Android SDK with ADB (`adb devices` shows a connected device or emulator)
-- Node.js 18.18+ (for console JS harnesses; see `CONTRIBUTING.md` § Prerequisites)
+- Node.js 20.0+ LTS (for console JS harnesses; see `CONTRIBUTING.md` § Prerequisites)
 - Target app is a **debug build** (`debugImplementation` only; release is not supported)
 ```
 
@@ -459,14 +557,14 @@ Append, separated by one blank line:
 flow (build → doctor → run → console UI).
 ```
 
-- [ ] **Step 5: Verify the badge URL works**
+- [ ] **Step 5: Verify the doc consistency invariants now hold**
 
 ```bash
 grep -n "shields.io/badge/Node" README.md
-curl -sIo /dev/null -w "%{http_code}\n" 'https://img.shields.io/badge/Node-18.18%2B-339933.svg'
+node scripts/check-doc-consistency.mjs
 ```
 
-Expected: grep returns one match. The `curl` HEAD prints `200` (shields.io is up). If the curl fails because of offline, skip — the badge URL is a known-good shields.io path.
+Expected: grep returns one match (badge present); the drift detector exits 0 with every PASS rule, including the new R6 anchor-verify rule and R3 cross-reference rule. (The earlier draft of this plan ran `curl shields.io`; that check verified only that shields.io was up, which is irrelevant to the diff. Replaced with the actual drift detector.)
 
 - [ ] **Step 6: Verify the cross-links exist and target real anchors**
 
@@ -622,6 +720,31 @@ check(
   "package.json missing engines.node field.",
 );
 
+// Rule 6: every *.md#anchor link in the DX docs resolves to an existing heading.
+// Uses github-slugger to compute canonical anchors.
+import GithubSlugger from "github-slugger";
+const dxDocs = ["README.md", "AGENTS.md", "CONTRIBUTING.md", "CLAUDE.md"];
+const docFiles = new Map();
+for (const f of dxDocs) {
+  try { docFiles.set(f, read(f)); } catch {}
+}
+const anchorLink = /\[[^\]]+\]\(([^)\s]+\.md)#([^)\s]+)\)/g;
+for (const [src, content] of docFiles) {
+  for (const m of content.matchAll(anchorLink)) {
+    const [, targetPath, anchor] = m;
+    const targetKey = path.normalize(targetPath);
+    const target = docFiles.get(targetKey) ?? (fs.existsSync(path.join(repoRoot, targetPath)) ? read(targetPath) : null);
+    if (!target) continue; // skip external/missing files; R3 covers cross-file presence
+    const slugger = new GithubSlugger();
+    const headings = [...target.matchAll(/^#+\s+(.+)$/gm)].map((mm) => slugger.slug(mm[1].trim()));
+    check(
+      `R6.${src}->${targetPath}#${anchor}`,
+      headings.includes(anchor),
+      `${src} links to ${targetPath}#${anchor} but no matching heading exists.`,
+    );
+  }
+}
+
 if (failures.length > 0) {
   console.error("\n" + failures.join("\n"));
   process.exit(1);
@@ -656,12 +779,12 @@ rm -f CONTRIBUTING.md.tmp
 
 Expected: the second invocation prints `FAIL R4.fixthis-console-dev: …` and exits with `Detector returned 1`. After restore, re-running should pass.
 
-- [ ] **Step 5: Document the drift detector in CONTRIBUTING.md**
+- [ ] **Step 5: Document the drift detector as a REQUIRED local check**
 
 In CONTRIBUTING.md, immediately after the new `## Console Inner Loop` section (from Task 3), insert:
 
 ```markdown
-### Documentation consistency check
+### Documentation consistency check (required)
 
 After editing `package.json`, README, AGENTS.md, or this file, run:
 
@@ -669,9 +792,26 @@ After editing `package.json`, README, AGENTS.md, or this file, run:
 node scripts/check-doc-consistency.mjs
 ```
 
-The script verifies that npm scripts and CONTRIBUTING.md agree, that README ↔ AGENTS cross-links exist, and that the contributor scripts are documented here. It exits non-zero with a `FAIL Rx.…` line if any rule breaks.
+The script verifies that npm scripts and CONTRIBUTING.md agree, that README ↔ AGENTS cross-links exist, that the contributor scripts are documented here, and that every `*.md#anchor` link resolves to a real heading (via `github-slugger`). It exits non-zero with a `FAIL Rx.…` line if any rule breaks.
 
 ```
+
+Then **add the command to the Required Local Checks block** so it runs alongside the Gradle matrix and console asset check. The line goes adjacent to the existing `node scripts/build-console-assets.mjs --check` line:
+
+```bash
+node scripts/check-doc-consistency.mjs
+```
+
+- [ ] **Step 5B: Wire the drift detector into CI**
+
+Edit `.github/workflows/ci.yml`. Add a new job (or extend an existing JS job) with the step:
+
+```yaml
+- name: Doc consistency check
+  run: node scripts/check-doc-consistency.mjs
+```
+
+If a JS dependency install step does not already exist in that job, add `npm ci` before the new step so `github-slugger` is available.
 
 - [ ] **Step 6: Re-run the detector after adding its own documentation**
 
@@ -760,7 +900,7 @@ If any PASS/FAIL above flipped, return to the relevant earlier task; do not sile
 - [x] G3 (npm catalog unified) — Task 2 adds missing scripts; Task 4 rewrites Focused Test Loops to npm form.
 - [x] G4 (README ↔ AGENTS cross-refs) — Task 5 adds bidirectional cross-links.
 - [x] G5 (Node + Chromium documented) — Task 1 (CONTRIBUTING table), Task 2 (`engines.node`), Task 5 (AGENTS bullet + README badge).
-- [x] G6 (no CI changes) — No CI workflow files touched.
+- [x] G6 (drift detector enforced) — Task 7 Step 5/5B add the drift detector to CONTRIBUTING.md Required Local Checks and to the CI workflow.
 - [x] G7 (each doc change paired with verification) — Every task has a `Run …` step with asserted output.
 - [x] No "TBD" / "similar to" / placeholders.
 - [x] Commits independent and small (Tasks 1, 2, 3, 4, 5, 6, 7 each commit; Task 8 is verification only).

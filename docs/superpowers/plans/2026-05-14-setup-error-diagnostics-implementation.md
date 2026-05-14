@@ -15,6 +15,8 @@
 | Action | Path |
 |---|---|
 | Create | `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/DiagnosticContext.kt` |
+| Create | `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRedactor.kt` |
+| Create | `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRedactorTest.kt` |
 | Create | `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRendering.kt` |
 | Create | `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRenderingTest.kt` |
 | Create | `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/MainPrintTest.kt` |
@@ -43,15 +45,22 @@ Write the file with exactly:
 package io.beyondwin.fixthis.cli
 
 /**
- * Process-wide diagnostic flag. The CLI is single-shot, so a mutable
- * companion-object var is acceptable here. Tests MUST reset to false in @Before.
+ * Per-thread diagnostic flag. Wraps a [ThreadLocal] so Gradle's parallel test
+ * workers do not contaminate one another. The production CLI is single-shot
+ * and single-threaded, so the ThreadLocal collapses to one slot in practice.
+ * Tests MUST call [reset] in `@After` to free the value on the worker thread.
  */
 internal object DiagnosticContext {
-    @Volatile
-    var verbose: Boolean = false
+    private val verboseFlag: ThreadLocal<Boolean> = ThreadLocal.withInitial { false }
+
+    var verbose: Boolean
+        get() = verboseFlag.get()
+        set(value) {
+            verboseFlag.set(value)
+        }
 
     fun reset() {
-        verbose = false
+        verboseFlag.remove()
     }
 }
 ```
@@ -120,6 +129,141 @@ git commit -m "test(setup): failing test for renderMergeFailure + DiagnosticCont
 
 ---
 
+### Task 1B: Introduce SetupErrorRedactor (secret-leakage mitigation, spec §6.3)
+
+**Files:**
+- Create: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRedactor.kt`
+- Create: `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRedactorTest.kt`
+
+- [ ] **Step 1: Write the redactor**
+
+Create `SetupErrorRedactor.kt`:
+
+```kotlin
+package io.beyondwin.fixthis.cli.commands
+
+/**
+ * Best-effort scrubbing of secrets and home paths out of error messages and
+ * stack traces before they are printed to stderr. Defense-in-depth alongside
+ * the documented "redact before pasting" guidance in
+ * docs/guides/troubleshooting.md.
+ */
+internal object SetupErrorRedactor {
+
+    private val SENSITIVE_KEY = Regex(
+        "(?i)\"((?:api[-_]?key|token|secret|credential|password|bearer)[\\w-]*)\"\\s*[:=]\\s*\"[^\"]*\""
+    )
+    private val SENSITIVE_LONG_VALUE_AFTER_KEY = Regex(
+        "(?i)((?:api[-_]?key|token|secret|credential|password|bearer)[\\w-]*\\s*[:=]\\s*)([^\\s,;}\\]]{20,})"
+    )
+    private val BEARER_HEADER = Regex("(?i)(Bearer|Basic)\\s+[A-Za-z0-9._\\-/+=]+")
+    private val USERS_HOME = Regex("/Users/[^/\\s\"]+")
+    private val LINUX_HOME = Regex("/home/[^/\\s\"]+")
+
+    fun redact(text: String?): String {
+        if (text.isNullOrEmpty()) return text ?: ""
+        var out = text
+        out = SENSITIVE_KEY.replace(out) { match ->
+            "\"${match.groupValues[1]}\": \"***REDACTED***\""
+        }
+        out = SENSITIVE_LONG_VALUE_AFTER_KEY.replace(out, "$1***REDACTED***")
+        out = BEARER_HEADER.replace(out, "$1 ***REDACTED***")
+        out = USERS_HOME.replace(out, "/Users/<redacted>")
+        out = LINUX_HOME.replace(out, "/home/<redacted>")
+        return out
+    }
+}
+```
+
+- [ ] **Step 2: Write the redactor tests**
+
+Create `SetupErrorRedactorTest.kt`:
+
+```kotlin
+package io.beyondwin.fixthis.cli.commands
+
+import org.junit.Test
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+
+class SetupErrorRedactorTest {
+
+    @Test
+    fun masksJsonApiKeyValue() {
+        val input = """{"api_key":"sk-live-abcdefghij","other":"ok"}"""
+        val out = SetupErrorRedactor.redact(input)
+        assertFalse("must not leak literal", out.contains("sk-live-abcdefghij"))
+        assertTrue(out.contains("***REDACTED***"))
+        assertTrue("non-secret key preserved", out.contains("\"other\":\"ok\""))
+    }
+
+    @Test
+    fun masksTokenAndSecretAndPassword() {
+        val out = SetupErrorRedactor.redact(
+            """{"token":"abc","secret":"xyz","password":"hunter2"}""",
+        )
+        assertFalse(out.contains("abc"))
+        assertFalse(out.contains("xyz"))
+        assertFalse(out.contains("hunter2"))
+    }
+
+    @Test
+    fun masksHomePathOnMacOS() {
+        val out = SetupErrorRedactor.redact("/Users/wooseung/proj/.claude/settings.json")
+        assertTrue(out.contains("/Users/<redacted>/proj/.claude/settings.json"))
+    }
+
+    @Test
+    fun masksHomePathOnLinux() {
+        val out = SetupErrorRedactor.redact("/home/ci/.claude/settings.json")
+        assertTrue(out.contains("/home/<redacted>/.claude/settings.json"))
+    }
+
+    @Test
+    fun masksBearerHeader() {
+        val out = SetupErrorRedactor.redact("Authorization: Bearer eyJhbGciOi.payload.sig")
+        assertFalse(out.contains("eyJhbGciOi.payload.sig"))
+        assertTrue(out.contains("Bearer ***REDACTED***"))
+    }
+
+    @Test
+    fun masksLongValueAfterKeyAsFallback() {
+        val out = SetupErrorRedactor.redact("api_key=sk-live-abcdefghijklmnopqrstuvwxyz")
+        assertFalse("must not leak long value", out.contains("sk-live-abcdefghijklmnopqrstuvwxyz"))
+        assertTrue(out.contains("***REDACTED***"))
+    }
+
+    @Test
+    fun leavesNonSensitiveTextAlone() {
+        val out = SetupErrorRedactor.redact("Unexpected JSON token at offset 14")
+        assertTrue(out == "Unexpected JSON token at offset 14")
+    }
+}
+```
+
+- [ ] **Step 3: Run the redactor tests**
+
+```bash
+./gradlew :fixthis-cli:test --tests "io.beyondwin.fixthis.cli.commands.SetupErrorRedactorTest" --no-daemon
+```
+
+Expected: BUILD SUCCESSFUL, 7 tests pass.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRedactor.kt \
+        fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRedactorTest.kt
+git commit -m "feat(setup): SetupErrorRedactor masks secrets, tokens, and home paths"
+```
+
+Note: Task 2's `renderMergeFailure` and Task 5's `printCliktError` must both
+pipe outputs through `SetupErrorRedactor.redact(...)` (cause messages and
+stack-trace lines). The wire-up is folded into the relevant Task 2 / Task 5
+steps below.
+
+---
+
 ### Task 2: Implement renderMergeFailure to make Task 1's test pass
 
 **Files:**
@@ -147,11 +291,11 @@ internal enum class SetupFailureCategory {
 internal fun renderMergeFailure(writerName: String, configFile: File, error: Throwable): String {
     val category = classify(configFile, error)
     val builder = StringBuilder()
-    builder.appendLine("Could not merge $writerName MCP config at ${configFile.absolutePath}.")
+    builder.appendLine("Could not merge $writerName MCP config at ${SetupErrorRedactor.redact(configFile.absolutePath)}.")
     builder.appendLine("  Category: ${category.name}")
     builder.appendLine("  Cause:")
-    renderCauseChain(error).forEach { builder.appendLine("    $it") }
-    builder.appendLine("  Fix: ${recommendation(category, configFile)}")
+    renderCauseChain(error).forEach { builder.appendLine("    ${SetupErrorRedactor.redact(it)}") }
+    builder.appendLine("  Fix: ${SetupErrorRedactor.redact(recommendation(category, configFile))}")
     if (!DiagnosticContext.verbose) {
         builder.append("  Re-run with --verbose for a full stack trace.")
     } else {
@@ -165,6 +309,15 @@ internal fun classify(configFile: File, error: Throwable): SetupFailureCategory 
     if (isJsonDecodingFailure(error)) return SetupFailureCategory.MALFORMED_JSON
     if (isMcpServersShapeFailure(error)) return SetupFailureCategory.MALFORMED_MCPSERVERS_SHAPE
     if (isFilesystemFailure(error)) return SetupFailureCategory.FILESYSTEM_ERROR
+    // CodexConfigWriter throws IllegalStateException from regex/section parsing
+    // and IllegalArgumentException from key normalization. Both indicate TOML
+    // shape problems and MUST be classified as MALFORMED_TOML, not UNKNOWN.
+    if (configFile.name.endsWith(".toml") &&
+        error !is SerializationException &&
+        (error is IllegalStateException || error is IllegalArgumentException || causeChain(error).any { it is IllegalStateException || it is IllegalArgumentException })
+    ) {
+        return SetupFailureCategory.MALFORMED_TOML
+    }
     if (configFile.name.endsWith(".toml") && error !is SerializationException) {
         return SetupFailureCategory.MALFORMED_TOML
     }
@@ -296,6 +449,19 @@ fun rendersMalformedTomlCategoryForCodexFailure() {
     val rendered = renderMergeFailure("codex", configFile, cause)
     assertTrue(rendered.contains("Category: MALFORMED_TOML"))
     assertTrue(rendered.contains("[mcp_servers.fixthis]"))
+}
+
+@Test
+fun rendersMalformedTomlCategoryForCodexIllegalArgument() {
+    // CodexConfigWriter raises IllegalArgumentException from key normalization;
+    // it must classify as MALFORMED_TOML, not UNKNOWN.
+    val configFile = File("/tmp/home/.codex/config.toml")
+    val cause = IllegalArgumentException("invalid key name \"!!\"")
+    val rendered = renderMergeFailure("codex", configFile, cause)
+    assertTrue(
+        "Expected MALFORMED_TOML for IllegalArgumentException from CodexConfigWriter, got: $rendered",
+        rendered.contains("Category: MALFORMED_TOML"),
+    )
 }
 
 @Test
@@ -598,7 +764,15 @@ class MainPrintTest {
 
         val errOut = errBuf.toString()
         assertTrue("Expected outer message", errOut.contains("outer message"))
-        assertTrue("Expected stack-trace marker", errOut.contains("at "))
+        // Use a regex that matches an actual JVM stack-frame line (e.g.
+        // `at io.beyondwin.fixthis.cli.MainPrintTest.foo(MainPrintTest.kt:42)`)
+        // instead of the bare substring "at ", which appears in the outer
+        // message text and gives a false positive.
+        val stackFrameRegex = Regex("""at .+\(.+\.kt:\d+\)""")
+        assertTrue(
+            "Expected JVM stack-frame line, got: $errOut",
+            stackFrameRegex.containsMatchIn(errOut),
+        )
         assertTrue("Expected inner class name", errOut.contains("RuntimeException"))
     }
 
@@ -708,7 +882,12 @@ internal fun printCliktError(command: CoreNoOpCliktCommand, error: CliktError) {
             }
         }
     if (DiagnosticContext.verbose) {
-        error.cause?.let { System.err.println(it.stackTraceToString()) }
+        error.cause?.let {
+            // Defense-in-depth: stack traces can contain home paths or echoed
+            // settings.json fragments. Route through SetupErrorRedactor before
+            // printing.
+            System.err.println(io.beyondwin.fixthis.cli.commands.SetupErrorRedactor.redact(it.stackTraceToString()))
+        }
     }
 }
 

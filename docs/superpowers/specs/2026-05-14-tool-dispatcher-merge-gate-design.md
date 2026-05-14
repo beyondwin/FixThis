@@ -1,12 +1,14 @@
-# FixThisToolDispatcher Merge Gate (SOLID Remediation Task 7)
+# FixThisToolDispatcher — Post-Merge Audit & Followup Tracker (SOLID Remediation Task 7)
+
+**Status:** Merged on 2026-05-13 (merge commit `a6abe8a`); this doc tracks post-merge verification and followups.
 
 > **Scope.** This is a **post-merge audit + follow-up registry**, not a fresh
 > specification. The split of MCP tool dispatch from registry, bridge result
 > cache, and console lifecycle landed on `main` via merge commit `a6abe8a`
 > (2026-05-13). This document records what shipped, the residual risks the
 > auditor found in the post-merge `FixThisToolDispatcher`, and the
-> verification gate before declaring the tool-dispatcher portion of the
-> SOLID initiative fully closed.
+> verification followups before declaring the tool-dispatcher portion of
+> the SOLID initiative fully closed.
 
 ## 1. Current Plan Reference
 
@@ -164,7 +166,18 @@ for the LRU-style eviction; it relies on the prior `FixThisToolsTest`
 suite. A regression in eviction would not be caught by the existing
 tests. Listed as a low-priority follow-up.
 
-## 4. Merge Gate Checklist
+## 4. Post-Merge Verification Checklist
+
+### Invariant Re-Verification
+
+Grep-able commands that must remain green for this slice not to regress structural invariants:
+
+- [x] `./gradlew :fixthis-mcp:test --tests "*BridgeProtocolVersionSyncTest"` — Bridge protocol 4-site sync. Evidence: the dispatcher split is purely an MCP-internal refactor; bridge protocol pin sites are untouched.
+- [x] `./gradlew :fixthis-mcp:test --tests "*ModuleBoundaryTest"` — module boundary invariants. Evidence: all new files live under `fixthis-mcp/.../tools/`; no new cross-module imports introduced.
+- [ ] `./gradlew :fixthis-mcp:test --tests "*ArchitectureHotspotBudgetTest"` — hotspot budgets. Currently passes, **but** the test does not include `FixThisToolDispatcher.kt` in its budget map — see R2. The new file is therefore unprotected, not protected. Treat the gate as **incomplete** until Followup-C lands.
+  - Owner: TBD
+  - Rollback if regressed: revert the budget-registration commit (TODO sha — to be filled in when Followup-C lands).
+- [x] Persisted JSON schema compatibility — N/A; this change does not touch persisted JSON.
 
 ### Code-state gates
 
@@ -174,12 +187,29 @@ tests. Listed as a low-priority follow-up.
 - [x] `FixThisToolDispatcher.kt` and `FixThisResourceDispatcher.kt`
       exist; `FixThisTools.kt` delegates to them.
 - [x] `FixThisTools.kt` is below `920` lines (currently 206).
-- [x] `FixThisToolDispatcher.kt` is below `560` lines (currently 494).
+- [ ] `FixThisToolDispatcher.kt` is enforced under a hotspot budget
+      (currently 494 lines, **no budget registered**). Size alone is
+      not a gate — the budget is the gate (R2). Marked unchecked until
+      `ArchitectureHotspotBudgetTest` lists the file.
+  - Owner: TBD
+  - Rollback if regressed: revert the Followup-C registration commit
+    (TODO sha — to be filled in once Followup-C lands).
 - [ ] `ArchitectureHotspotBudgetTest` lists `FixThisToolDispatcher.kt`
-      with a budget of `560` (R2).
+      with a budget of `560` (R2). Followup-C is the registration
+      commit; until it lands, the dispatcher is structurally
+      unguarded.
+  - Owner: TBD
+  - Rollback if regressed: revert the Followup-C registration commit
+    (TODO sha — to be filled in once Followup-C lands).
 - [ ] `FixThisResourceDispatcher.kt` is similarly audited and budgeted
       (R5).
+  - Owner: TBD
+  - Rollback if regressed: revert the registration commit (TODO sha).
 - [ ] `FixThisToolDispatcher.openConsoleLock` is removed (R3).
+  - Owner: TBD
+  - Rollback if regressed: revert the Followup-B commit (TODO sha)
+    and restore the outer `synchronized(openConsoleLock)` block in
+    `openFeedbackConsole`.
 
 ### Test gates
 
@@ -190,9 +220,15 @@ tests. Listed as a low-priority follow-up.
 - [ ] A `BridgeResultCacheEvictionTest` asserts that the LRU eviction
       pops the oldest non-default package once
       `maxRecentOverridePackages` is exceeded (R6).
+  - Owner: TBD
+  - Rollback if regressed: delete the new test file; no production
+    behavior depends on it.
 - [ ] A `ConsoleServerManagerLifecycleTest` asserts that
       `open()` is idempotent across concurrent callers (independent
       of the dispatcher's lock, so that R3 can be removed safely).
+  - Owner: TBD
+  - Rollback if regressed: delete the new test file; no production
+    behavior depends on it.
 
 ### Documentation gates
 
@@ -200,6 +236,9 @@ tests. Listed as a low-priority follow-up.
 - [ ] An ADR or `docs/reference/` note documents the
       dispatcher-registry-cache split so a future contributor adding a
       new MCP tool knows where each concern lives.
+  - Owner: TBD
+  - Rollback if regressed: delete the ADR/reference note; no code
+    change to revert.
 
 ### Verification commands
 

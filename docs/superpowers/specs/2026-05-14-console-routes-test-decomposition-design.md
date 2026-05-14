@@ -11,23 +11,37 @@ The single test file
 has grown to **2897 lines / 100 `@Test` methods** while the production code it
 exercises has already been split across many route modules:
 
+> The per-row counts below are approximate (some prefixes overlap module
+> boundaries). The plan's per-test ledger is the authoritative partition;
+> see §3.1 for the agreed per-cluster totals.
+
 | Production file | Concern | Tests still living in `ConsoleFeedbackItemRoutesTest.kt` |
 |---|---|---|
 | `FeedbackItemRoutes.kt` | PUT/POST/DELETE on `/api/items/*` | ~18 |
-| `SessionRoutes.kt` | `/api/sessions`, `/api/session`, `/api/session/open\|close` | ~16 |
-| `HandoffPreviewRoutes.kt` | `/api/handoff/preview` | 4 |
-| `MarkHandedOffRoutes.kt` | `/api/items/handed-off` | 4 |
-| `FeedbackItemRoutes.kt` (agent flow) | `/api/agent/handoff`, `agentHandoffs*` | ~10 |
-| `FeedbackConsoleAssets.kt` | served `index.html` / inlined JS contract | **33** (`consoleHtml*`, `consoleUsesOptionASelect*`) |
-| (cross-cutting) | sessions polling, mutation lock, merge logic | ~13 |
-| (misc) | history pip rendering, status toast strings | 2 |
-| ETag | `apiSessions*Etag`, `apiSession*Etag` | 5 |
+| `SessionRoutes.kt` | `/api/sessions`, `/api/session`, `/api/session/open\|close` | ~8 |
+| `HandoffPreviewRoutes.kt` + `MarkHandedOffRoutes.kt` + agent flow | `/api/handoff/preview`, `/api/items/handed-off`, `/api/agent/handoff`, `agentHandoffs*` | ~19 |
+| `FeedbackConsoleAssets.kt` | served `index.html` / inlined JS contract | **34** (`consoleHtml*`, `consoleUsesOptionASelect*`) |
+| (cross-cutting) | sessions polling, mutation lock, merge logic, history pips | ~13 |
+| ETag | `apiSessions*Etag`, `apiSession*Etag` | 6 |
 | Navigation | `navigationApi*` | 2 |
 
-The 33 `consoleHtml*` tests do not exercise routes at all — they assert that
-the static `index.html` payload (and the inlined `app.js` it serves) contain
-expected markers, IDs, JS function signatures, and CSS class names. They live
-with `FeedbackConsoleAssets.kt` / `console/index.html` / bundled `console/app.js`.
+The `consoleHtml*` / `consoleUsesOptionASelect*` cluster (34 tests after
+partitioning, including `consoleHtmlContainsSessionsPolling` and
+`consoleHtmlDeclaresPollingGlobals` which match the `^consoleHtml` rule first)
+does not exercise routes at all — they assert that the static `index.html`
+payload (and the inlined `app.js` it serves) contain expected markers, IDs, JS
+function signatures, and CSS class names. They live with
+`FeedbackConsoleAssets.kt` / `console/index.html` / bundled `console/app.js`.
+
+> **Naming boundary (avoid confusion with the existing `ConsoleHttpEtagTest`):**
+> - `ConsoleHttpEtagTest` (existing): exercises generic ETag/`If-None-Match`
+>   handling on the console HTTP layer (asset routes and similar) — it predates
+>   this refactor and is unchanged.
+> - `ConsoleEtagRoutesTest` (proposed, new): exercises the `/api/sessions` and
+>   `/api/session` endpoints' ETag round-trip behavior specifically. The two
+>   files have non-overlapping subjects; this file extracts only the
+>   `apiSessions*Etag` / `apiSession*Etag` / `apiSessionWithoutCurrent*` tests
+>   from the legacy file.
 
 ### Evidence
 
@@ -103,11 +117,30 @@ with `FeedbackConsoleAssets.kt` / `console/index.html` / bundled `console/app.js
   `FeedbackConsoleAssets.kt`, and `FeedbackConsoleServer.kt` are untouched.
 - **No test parallelism changes.** Gradle's existing test executor settings
   are left alone; the goal is structural clarity, not faster wall-clock CI
-  (though there will be modest parallelism wins for free).
+  (though there will be modest parallelism wins for free). Splitting one
+  previously-serial file into seven means Gradle's `maxParallelForks` /
+  `forkEvery` settings can now run the resulting classes concurrently. This
+  is safe because every test uses `FeedbackConsoleServer(... port = 0)`
+  (kernel-assigned port) and the server lifecycle is fully scoped to each
+  `ConsoleSessionFixture` (`use { ... }`) — no global singletons, no
+  fixed ports, no shared on-disk state outside per-test temp dirs. The
+  `ConsoleRouteTestFixtures` helper preserves this scoping by construction.
+- **BridgeProtocolVersionSyncTest** is unaffected by this refactor; it lives
+  outside the `console` package and will still run as part of the existing
+  `:fixthis-mcp:test` suite verify step.
 - **No assertion-style migration.** We do not move from `kotlin.test` to
   JUnit5-style or Kotest in this pass.
 
 ## 3. Design
+
+> **TDD exemption — behavior-preserving move.** This refactor is exempt from
+> the project's red-first TDD discipline because it makes no behavioral
+> changes: every `@Test` body is copied byte-for-byte. The verify gate is the
+> existing tests passing verbatim after the move (same total count, same
+> per-test names, same green status). The plan codifies this with a Gradle
+> test-count invariant and a ledger-completeness grep at every checkpoint.
+> The single exception is Task 2's helper-introduction step, which does
+> follow red→green because the helper file is genuinely new code.
 
 ### 3.1 Target file layout
 
@@ -117,22 +150,32 @@ contains:
 ```
 ConsoleFeedbackItemRoutesTest.kt          (~600 lines, 18 tests)
   └ item PATCH / batch save / items API / clearDraft / deleteScreen / preview save in progress
-ConsoleSessionRoutesTest.kt               (~550 lines, 16 tests)
+ConsoleSessionRoutesTest.kt               (~400 lines, 8 tests)
   └ /api/sessions, /api/session, /api/session/open|close, server error, package filter
-ConsoleHandoffRoutesTest.kt               (~700 lines, 22 tests)
-  └ /api/agent/handoff, /api/handoff/preview, /api/items/handed-off, staleAfterHandoff fields
+ConsoleHandoffRoutesTest.kt               (~650 lines, 19 tests)
+  └ /api/agent/handoff, /api/handoff/preview, /api/items/handed-off, staleAfterHandoff fields, saveToMcp toast
 ConsoleSessionsPollingContractTest.kt     (~250 lines, 13 tests)
   └ JS-source string assertions for sessions polling, mutation lock, merge helpers, history pips, prompt actions
-ConsoleAssetContractTest.kt               (~750 lines, 33 tests)
+ConsoleAssetContractTest.kt               (~750 lines, 34 tests)
   └ consoleHtml* + consoleUsesOptionASelect* assertions over served index.html and bundled app.js
-ConsoleEtagRoutesTest.kt                  (~250 lines, 5 tests)
+ConsoleEtagRoutesTest.kt                  (~250 lines, 6 tests)
   └ apiSessions/apiSession ETag round-trip
 ConsoleNavigationRoutesTest.kt            (~100 lines, 2 tests)
   └ navigationApi*
 ```
 
-Total: **7 files** replacing 1, with the largest still at ~750 lines —
-under the 800-line ceiling.
+Per-cluster totals (must sum to 100): 18 + 8 + 19 + 13 + 34 + 6 + 2 = **100**.
+
+> **Source of truth:** the plan's per-test ledger
+> (`docs/superpowers/work-notes/2026-05-14-console-test-decomposition-ledger.md`,
+> created in plan Task 1) is the authoritative partition. If a count here ever
+> drifts from the ledger rows, the ledger wins and this section must be
+> updated to match.
+
+Total: **7 files** replacing 1, with the largest still at ~750 lines — under
+the 800-line target. The 800-line target derives from the project's existing
+hotspot budget convention for test files; future overflow on any one cluster
+is itself a signal to split again rather than to relax the budget.
 
 Helper file:
 
@@ -174,7 +217,7 @@ used to verify nothing was lost.
               │          │          │          │          │          │           │
               ▼          ▼          ▼          ▼          ▼          ▼           ▼
         FeedbackItem  Session   Handoff   Polling    Asset      Etag      Navigation
-            18         16        22         13         33         5            2
+            18          8        19         13         34         6            2
         (HTTP)       (HTTP)    (HTTP)    (JS-src)  (HTML+JS)   (HTTP)       (HTTP)
               │          │          │          │          │          │           │
               └──────────┴──────────┴──────────┴──────────┴──────────┴───────────┘
@@ -225,10 +268,23 @@ and are reused.
 ### 3.5 Migration unit
 
 The legacy file is removed only after every test has a green sibling in the
-new file. The git history of the legacy file is preserved by using `git mv`
-on the *first* move (one of the new files inherits history); the others are
-created by `git add`. We pick `ConsoleFeedbackItemRoutesTest.kt` itself to
-inherit history because its name overlaps the legacy file name.
+new file. **`git mv` policy:** use `git mv` only for true renames (file A
+becomes file B with substantially the same content); use plain
+create + delete for *splits* (extracting a cluster of tests out of a file
+that continues to exist). Rationale: `git mv` is just rename detection plus
+content similarity, and Git's similarity heuristic only fires when one
+endpoint clearly inherits from the other. For a split, neither destination
+"inherits"; spurious `git mv` invocations either no-op or produce confusing
+blame.
+
+Concretely:
+- Tasks 3–8 (cluster extractions) use **create + delete** — no `git mv`.
+- The final step (Task 9) keeps `ConsoleFeedbackItemRoutesTest.kt` at its
+  existing path with a smaller test set; no rename is needed and `git mv` is
+  not used.
+
+This means `git blame` on the extracted clusters will start from the
+extraction commit. The plan's R2 risk note documents that tradeoff.
 
 ## 4. Migration Strategy
 
@@ -251,11 +307,11 @@ Each task moves exactly one cluster, in this order (smallest first to keep
 review diff small):
 
 1. Navigation (2 tests) → `ConsoleNavigationRoutesTest.kt`
-2. ETag (5 tests) → `ConsoleEtagRoutesTest.kt`
-3. Polling/contract (13 tests) → `ConsoleSessionsPollingContractTest.kt`
-4. Session routes (16 tests) → `ConsoleSessionRoutesTest.kt`
-5. Handoff routes (22 tests) → `ConsoleHandoffRoutesTest.kt`
-6. Asset contract (33 tests) → `ConsoleAssetContractTest.kt`
+2. ETag (6 tests) → `ConsoleEtagRoutesTest.kt`
+3. Session routes (8 tests) → `ConsoleSessionRoutesTest.kt`
+4. Polling/contract (13 tests) → `ConsoleSessionsPollingContractTest.kt`
+5. Handoff routes (19 tests) → `ConsoleHandoffRoutesTest.kt`
+6. Asset contract (34 tests) → `ConsoleAssetContractTest.kt`
 
 After each move:
 - Run `./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.*"`
@@ -377,11 +433,11 @@ lose their authorship blame after extraction.
 **Mitigation:**
 - For each extraction commit, include a short `Co-Authored-By` line if the
   history shows a meaningful prior author who is still on the project.
-- For the largest cluster (`ConsoleAssetContractTest`, 33 tests), use
-  `git mv ConsoleFeedbackItemRoutesTest.kt` as a staging step then split —
-  this preserves history on the largest extracted file rather than the
-  legacy-named one. (The legacy file is rebuilt from a smaller subset of
-  18 tests.)
+- Per §3.5, splits use plain create + delete (not `git mv`) because no
+  endpoint genuinely inherits from the legacy file; spurious `git mv` here
+  fails Git's similarity heuristic and produces misleading blame. Authors
+  are recovered via `git log --follow` on the legacy file plus the
+  `Co-Authored-By` convention above.
 - This is a tradeoff explicitly documented in the plan; reviewers can
   comment.
 

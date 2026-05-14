@@ -1,8 +1,8 @@
-# Build Optimization — Merge Gate Design
+# Build Optimization — Post-Merge Audit & Followup Tracker
 
 **Date:** 2026-05-14
-**Scope:** Audit and merge-readiness gate for the Gradle build optimization effort.
-**Status:** All six tasks of the implementation plan have landed on `main`.
+**Scope:** Retrospective audit and followup tracker for the Gradle build optimization effort.
+**Status:** Merged on 2026-05-13 (merge commit `03e7fde`); this doc tracks post-merge verification and followups.
 
 ---
 
@@ -87,7 +87,7 @@ Merge commit `03e7fde Merge branch 'codex/build-optimization'` brought the chain
 
 ---
 
-## 4. Merge Gate Checklist
+## 4. Post-Merge Verification Checklist
 
 - [x] All six plan tasks merged into `main`.
 - [x] `gradle.properties` contains `org.gradle.caching=true` and omits `configuration-cache=true`.
@@ -95,9 +95,18 @@ Merge commit `03e7fde Merge branch 'codex/build-optimization'` brought the chain
 - [x] Sidekick `BuildInfo` resources are generated via `GenerateSidekickBuildInfoResourcesTask`; no Kotlin file imports `io.beyondwin.fixthis.compose.sidekick.BuildInfo`.
 - [x] `settings.gradle.kts` and `fixthis-gradle-plugin/settings.gradle.kts` honor all four override properties.
 - [x] `nightly-compat.yml` exercises at least one Compose UI test lower-bound override.
-- [x] `.github/workflows/ci.yml` runs `build-console-assets.mjs --check` and the syntax check ahead of any Gradle work (now in the `console-js` job).
+- [x] CI console pre-check ordering — see [`2026-05-14-ci-console-precheck-merge-gate-design.md`](2026-05-14-ci-console-precheck-merge-gate-design.md) §4 (authoritative).
 - [x] `./gradlew :app:assembleDebug --configuration-cache --build-cache --no-daemon` run twice in a row reports `Configuration cache entry reused.` on the second run.
 - [x] `git diff --check` is clean on `main` after the merge.
+
+### Invariant Re-Verification
+
+Grep-able commands that must remain green for this slice not to regress structural invariants:
+
+- [x] `./gradlew :fixthis-mcp:test --tests "*BridgeProtocolVersionSyncTest"` — Bridge protocol 4-site sync. Evidence: the build-optimization slice does not touch `BridgeProtocol.VERSION`, the console minimum, `BridgeClient.kt`, or `ServerVersionRoutes.kt`; the sync test runs as part of `:fixthis-mcp:test` on every merge.
+- [x] `./gradlew :fixthis-mcp:test --tests "*ModuleBoundaryTest"` — module boundary invariants. Evidence: no cross-module imports were added; the build-optimization edits live in `gradle.properties`, build scripts, and the `:fixthis-gradle-plugin` source set.
+- [x] `./gradlew :fixthis-mcp:test --tests "*ArchitectureHotspotBudgetTest"` — hotspot budgets. Evidence: this slice did not touch any file currently registered in the hotspot budget map.
+- [x] Persisted JSON schema compatibility — N/A; this change does not touch persisted JSON.
 
 ---
 

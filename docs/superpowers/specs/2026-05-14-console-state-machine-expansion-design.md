@@ -214,12 +214,21 @@ DISCONNECTED ─┐
               │ launch                    ┌─── tick OK ────┐
               ▼                          │                ▼
         LAUNCHING ───── ready ────► READY ──── tick fail ─┐
-              │                          ▲                │
-              │ launch fail              │                │
-              ▼                          │                ▼
-        UNAVAILABLE  ◄──────── retry ─── │ ── BLOCKED (interaction-blocked) ─┐
-                                         │                                  │
-                                         └──── unblock ─────────────────────┘
+              │                          ▲   ▲            │
+              │ launch fail              │   │            │
+              ▼                          │   │            ▼
+        UNAVAILABLE  ◄──────── retry ─── │ ──┼─ BLOCKED (interaction-blocked) ─┐
+              │                          │   │                                 │
+              │                          │   └──── unblock ──────────────────┘
+              │                          │
+              │  N consecutive            │   disconnect_requested
+              │  heartbeat failures       │   (from READY/BLOCKED/UNAVAILABLE)
+              └────────────►  DISCONNECTED  ◄────────────────┐
+                                                              │
+                                                              │
+                              READY ── tick fail × MaxHeart ──┘
+                              BLOCKED ── disconnect_requested ─┘
+                              UNAVAILABLE ── disconnect_requested ─┘
 ```
 
 **Owned state:**
@@ -235,13 +244,32 @@ DISCONNECTED ─┐
   previousBlockedReason: string | null,
   sessionsPollingPaused: boolean,
   heartbeatGeneration: number,        // replaces ad-hoc heartbeatTimer == null check
+  consecutiveHeartbeatFailures: number, // replaces ad-hoc retry counter
   lastHeartbeatError: string | null,
 }
 ```
 
 **Actions:** `LAUNCH_REQUESTED`, `LAUNCH_SUCCEEDED`, `LAUNCH_FAILED`,
 `HEARTBEAT_OK`, `HEARTBEAT_FAILED`, `INTERACTION_BLOCKED`,
-`INTERACTION_UNBLOCKED`, `AVAILABILITY_UPDATED`.
+`INTERACTION_UNBLOCKED`, `AVAILABILITY_UPDATED`, `DISCONNECT_REQUESTED`.
+
+**Degradation rules (explicit; not on diagram for legibility):**
+
+- `HEARTBEAT_FAILED` from `READY` does **not** itself leave `READY`.
+  The reducer increments `consecutiveHeartbeatFailures`. When the count
+  reaches `MaxHeartbeatFailures` (default 3, mirrored to a top-level
+  const so tests can override), the FSM transitions
+  `READY → DISCONNECTED` and zeroes the counter. A subsequent
+  `HEARTBEAT_OK` resets the counter.
+- `DISCONNECT_REQUESTED` is accepted in any state except
+  `DISCONNECTED` and unconditionally returns to `DISCONNECTED`. This
+  covers user-initiated teardown (e.g., "Stop console" button) and
+  programmatic teardown (e.g., `console.close()` from sample app).
+- `BLOCKED` is held by `INTERACTION_BLOCKED`; only `INTERACTION_UNBLOCKED`
+  (auto-recovery) or `DISCONNECT_REQUESTED` (user teardown) leaves it.
+
+These are the only ways to leave `READY`/`BLOCKED`/`UNAVAILABLE`.
+Permanent stuck-state is impossible.
 
 **Replaces (in `state.js`):** the entire `state.connection.*` object plus
 `heartbeatTimer`, `heartbeatPolling` (and `lastHeartbeatError` in
@@ -280,6 +308,27 @@ IDLE ── request ──► REQUESTING ── ok ──► READY ── stale 
 
 The generation counters survive verbatim; they are the existing
 race-fence mechanism. The reducer formalizes when they advance.
+
+**Race fence (normative).** A `REQUEST_SUCCEEDED` or `REQUEST_FAILED`
+action carries the in-flight `(generation, contextGeneration)` tuple
+captured at request time. The reducer drops the action (no state
+change) if **either**:
+
+- `action.generation !== state.inFlight.generation`, **or**
+- `action.contextGeneration !== state.inFlight.contextGeneration`.
+
+Both comparisons are mandatory. The plan's reducer test must assert
+**both** drop conditions in independent cases (stale generation only;
+stale context only; both stale). The existing `state.js` code
+compares both; the new reducer must preserve this — comparing only
+`generation` is a regression.
+
+`CONTEXT_CHANGED` (e.g., the user navigates away or the device
+context invalidates) advances `contextGeneration`; this immediately
+invalidates any in-flight request without cancelling it (the cancel
+is performed by the use-case layer when it detects the dropped
+reducer action). `REQUEST_STARTED` advances `generation` and
+captures the current `contextGeneration` into `inFlight`.
 
 **Replaces:** `livePreviewTimer`, `previewRequestGeneration`,
 `previewRequestContextGeneration`, `previewRequestInFlight`,
@@ -336,20 +385,55 @@ STOPPED ── start ──► POLLING_ACTIVE ── visibility_hidden ──►
    ▲                       │                                       │
    │                       │ failure × N                           │
    │                       ▼                                       │
-   │                  POLLING_BACKOFF ◄─── visibility_visible ─────┘
-   │                       │
-   │                       │ success
-   │                       ▼
-   │                  POLLING_ACTIVE
-   │                       │
-   └─ all_done ────────────┘
+   │                  POLLING_BACKOFF                              │
+   │                  │       ▲                                    │
+   │ all_done         │       │                                    │
+   │   ▲              │       │ backoff_timer_fired                │
+   │   │              │       │ (retry attempt)                    │
+   │   │              │       │                                    │
+   │   │  ─tick OK──► POLLING_ACTIVE ◄─── visibility_visible ──────┘
+   │   │              │
+   │   │              │ tick fail (same generation as last failure)
+   │   │              ▼
+   │   │         POLLING_BACKOFF
+   │   │              │
+   │   └──────────────┘
+   │   visibility_hidden during BACKOFF → POLLING_PAUSED
+   │   (back to ACTIVE when visibility_visible; counter NOT reset)
+   │
+   └─ disconnect_requested (from any) ──► STOPPED
 ```
+
+**Transitions (normative; the diagram is illustrative):**
+
+| From | Action | To | Notes |
+| --- | --- | --- | --- |
+| `STOPPED` | `START` | `POLLING_ACTIVE` | reset `consecutiveFailures = 0` |
+| `POLLING_ACTIVE` | `TICK_OK` | `POLLING_ACTIVE` | reset `consecutiveFailures = 0` |
+| `POLLING_ACTIVE` | `TICK_FAILED` (incremented < `MaxConsecutivePollFailures`) | `POLLING_ACTIVE` | bump counter |
+| `POLLING_ACTIVE` | `TICK_FAILED` (incremented ≥ `MaxConsecutivePollFailures`) | `POLLING_BACKOFF` | adapter starts backoff timer |
+| `POLLING_BACKOFF` | `BACKOFF_TIMER_FIRED` | `POLLING_ACTIVE` | adapter issues a retry tick; counter unchanged |
+| `POLLING_ACTIVE` | `VISIBILITY_HIDDEN` | `POLLING_PAUSED` | |
+| `POLLING_BACKOFF` | `VISIBILITY_HIDDEN` | `POLLING_PAUSED` | counter unchanged (resumes to BACKOFF on visible) |
+| `POLLING_PAUSED` | `VISIBILITY_VISIBLE` | `POLLING_ACTIVE` if `consecutiveFailures < Max`; else `POLLING_BACKOFF` | |
+| `POLLING_ACTIVE` / `POLLING_BACKOFF` / `POLLING_PAUSED` | `ALL_DONE` | `STOPPED` | |
+| any | `DISCONNECT_REQUESTED` | `STOPPED` | |
+
+The earlier diagram in this section implied `TICK_OK` directly
+returns to `POLLING_ACTIVE`, but did not specify what triggers the
+**first** retry from `POLLING_BACKOFF`. The adapter holds a backoff
+timer (NOT the reducer); when the timer fires it dispatches
+`BACKOFF_TIMER_FIRED`, which moves to `POLLING_ACTIVE` so the next
+tick can run. If that tick fails, the FSM returns to
+`POLLING_BACKOFF` with the counter still at the threshold. This
+matches the existing `state.js` behavior.
 
 **Owned state:**
 
 ```js
 {
   lifecycle: 'STOPPED' | 'POLLING_ACTIVE' | 'POLLING_BACKOFF' | 'POLLING_PAUSED',
+  pausedReturnLifecycle: 'POLLING_ACTIVE' | 'POLLING_BACKOFF' | null,
   lastSessionsEtag: string | null,
   lastSessionEtag: string | null,
   pendingMutationCount: number,
@@ -358,6 +442,10 @@ STOPPED ── start ──► POLLING_ACTIVE ── visibility_hidden ──►
   promptActionInFlight: boolean,
 }
 ```
+
+`pausedReturnLifecycle` records whether the FSM was `ACTIVE` or
+`BACKOFF` when `VISIBILITY_HIDDEN` fired, so `VISIBILITY_VISIBLE` can
+restore the prior lifecycle without recomputing from counters.
 
 Constants kept (referenced by `ConsoleSessionsPollingContractTest`):
 
@@ -378,16 +466,30 @@ moved into FSM state.
 The four sub-FSMs do not share a single store. Coordination happens at
 the *use-case* layer:
 
-- Connection FSM `BLOCKED` action calls `pollingUseCases.pause()`.
+- Connection FSM entering `BLOCKED` or leaving `READY` calls
+  `pollingUseCases.pause()`. Connection FSM leaving `BLOCKED` back to
+  `READY` calls `pollingUseCases.resume()`. **`pause`/`resume` operate
+  via `VISIBILITY_HIDDEN`/`VISIBILITY_VISIBLE` so that polling's prior
+  lifecycle (`ACTIVE` vs `BACKOFF`) is preserved across the pause** —
+  see §3.5 `pausedReturnLifecycle`.
+- Connection FSM entering `DISCONNECTED` (after heartbeat-failure
+  degradation or user teardown) calls `pollingUseCases.stop()` which
+  dispatches `DISCONNECT_REQUESTED` to the polling FSM.
 - Polling FSM `mutationStart()` increments `pendingMutationCount`;
   when the count drops to zero AND the connection FSM is `READY`,
   the use case auto-resumes polling.
 - Preview FSM `request()` reads the connection FSM lifecycle via a
-  selector; it returns early if not `READY`.
+  selector; it returns early if not `READY`. On Connection FSM
+  `DISCONNECT_REQUESTED`, the preview use case advances
+  `contextGeneration` so any in-flight `REQUEST_SUCCEEDED` is dropped
+  (see §3.3 race-fence rule).
 
 Each cross-FSM call is a one-line use-case-to-use-case invocation in
 `main.js`, with the dependency injected at boot. There is no global
-event bus.
+event bus. **Direction is one-way: Connection → Polling/Preview.**
+Polling and Preview never call back into Connection; they only read
+its current lifecycle via a passed-in selector. This avoids the
+hidden-global concern in R1.
 
 ### 3.7 ASCII diagram of the post-migration layout
 
@@ -438,9 +540,36 @@ read selectors from earlier ones):
 
 A single test file `scripts/consoleFsmIsolation-test.mjs` asserts that
 the four sub-FSM modules expose pure reducers (no DOM access, no
-`document`, no `window`, no `setTimeout` in the reducer file). This is
-the umbrella invariant; it lands red and turns green as each sub-FSM is
-extracted.
+`document`, no `window`, no `setTimeout` in the reducer file).
+
+This is the umbrella invariant; it turns green as each sub-FSM is
+extracted. **The test must NOT land red on `main`** — the plan's Task 1
+adds the test under an explicit `pendingExpectedFails` flag (or via a
+`SkipForExtraction` tag understood by the test runner). The flag is
+cleared one sub-FSM at a time as Phases 1–4 land. This avoids the
+"red on main" anti-pattern where every commit between Phase 0 and
+Phase 4 makes `git bisect` show CI red even though the work is
+progressing normally.
+
+Concretely: Phase 0 commits a `pendingExpectedFails: ['connection',
+'preview', 'polling', 'toolMode']` configuration. Each subsequent
+Phase commits a one-line edit removing its own entry as it lands.
+Phase 4's commit removes the last entry and switches the test to
+asserting full isolation. Each intermediate `main` commit passes.
+
+### Wire-protocol invariant (Bridge protocol unchanged)
+
+This change is client-only. `BridgeProtocol.VERSION` is unchanged, the
+4-site `BridgeProtocolVersionSyncTest` invariant is not at risk, and
+`MinimumSupportedProtocolVersion` in the console does not need to be
+bumped. Each Phase's verify step still runs:
+
+```bash
+./gradlew :fixthis-mcp:test --tests "*BridgeProtocolVersionSyncTest"
+```
+
+as a sanity check against accidental drift from adjacent edits in
+`fixthis-mcp/src/main/resources/console/`.
 
 ### Phase 1–4 — Per-FSM extraction (Tasks 2–5)
 

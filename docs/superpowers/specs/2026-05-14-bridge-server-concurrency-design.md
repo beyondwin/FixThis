@@ -131,8 +131,14 @@ data path.
 - **G1.** `start()` is safe to call from any thread; concurrent invocations
   produce exactly one bound socket and at most one running `acceptLoop`.
 - **G2.** `stop()` waits for in-flight client coroutines launched on the
-  server's scope to terminate before returning. `stop(); start()` is safe
-  with no zombie handler windows.
+  server's scope to terminate before returning, with no zombie handler
+  writes to closed sockets after `stop()` returns.
+- **G2a.** **`BridgeServer` is single-use.** After `stop()` returns, the
+  instance cannot be restarted; the internal `scope` is cancelled. To
+  restart, the owner (`FixThisBridgeRuntime`) constructs a fresh
+  `BridgeServer`. This matches production reality (the runtime never
+  restarts the same instance) and removes an entire class of "restart
+  race" failure modes. See §3.4 for the rationale.
 - **G3.** Lifecycle state is observable via a typed `StateFlow` for tests
   and future console/UI consumers, without exposing internal sockets or
   scopes.
@@ -142,9 +148,16 @@ data path.
   cannot suspend.
 - **G5.** A new test class `BridgeServerConcurrencyTest` reproduces the
   three races in §1 and demonstrates they no longer occur after the fix.
+  Each race-reproduction test exercises **the actual code path it claims
+  to cover** (T2 must drive the socket path, not the test-only
+  `handleRequestForTest` shortcut).
 - **G6.** Public API of `BridgeServer` and `FixThisBridgeRuntime` is
   preserved for existing callers — adding `state(): StateFlow<...>` is
-  additive only.
+  additive only. `start()` / `stop()` become `suspend fun` but
+  `FixThisBridgeRuntime` keeps a non-suspending facade.
+- **G7.** No new ANR risk. `runBlocking(Dispatchers.IO)` is **not**
+  invoked from the main thread. `FixThisBridgeRuntime.start(...)` is
+  invoked off the main thread (see §3.6).
 
 ### Non-Goals
 
@@ -253,16 +266,19 @@ BridgeServer.stop()  (suspend)
 │
 ├─ lifecycleMutex.withLock {
 │    │
-│    ├─ if (_state.value == Idle) return     // idempotent
+│    ├─ if (_state.value is Stopping or Idle) return  // idempotent
+│    │   // Note: if a re-entrant caller observes Stopping, it returns
+│    │   // immediately rather than waiting. Callers that need to await
+│    │   // shutdown subscribe to state.first { it is Idle }.
 │    │
 │    ├─ _state.value = Stopping
 │    │
 │    ├─ runCatching { serverSocket?.close() }   // unblocks accept()
 │    │
-│    ├─ acceptJob?.cancelAndJoin()              // waits for loop
-│    │
-│    ├─ // Drain in-flight handlers: cancel the scope and join its job
-│    ├─ scope.coroutineContext[Job]?.cancelAndJoin()
+│    ├─ withTimeoutOrNull(5.seconds) {
+│    │     acceptJob?.cancelAndJoin()           // waits for loop
+│    │     scope.coroutineContext[Job]?.cancelAndJoin()  // drains handlers
+│    │ } ?: Log.w(tag, "stop() drain timed out; leaking pending handlers")
 │    │
 │    ├─ serverSocket = null
 │    ├─ acceptJob = null
@@ -274,6 +290,28 @@ BridgeServer.stop()  (suspend)
 `cancelAndJoin` on the scope's parent `Job` is the suspend-safe equivalent
 of "wait for every launched coroutine to finish unwinding." This closes the
 zombie-handler window from §1.2.
+
+**Single-use rationale.** Cancelling the scope's parent `Job` makes
+`scope` permanently unusable. We deliberately accept this because:
+
+1. In production, `FixThisBridgeRuntime` owns exactly one `BridgeServer`
+   per `Application` instance. Restart is never invoked.
+2. `stopForTest()` already discards the instance — there is no caller
+   that depends on `stop(); start()` working on the same instance.
+3. The alternative (rebuild `scope` inside `start()`) would require
+   `start()` to be re-entrancy-safe across scopes, introducing a second
+   class of races we now avoid.
+
+Tests that previously implied restart capability (T3 from earlier
+drafts) are restructured in §5.2 to subscribe to state across a single
+lifecycle rather than cycle the same instance.
+
+**Re-entrant cancellation note.** If the caller of `stop()` is itself
+cancelled mid-drain, `withTimeoutOrNull` re-throws the cancellation; the
+mutex is released by `withLock`, but `_state` is left at `Stopping`. A
+subsequent caller observing `Stopping` returns immediately per the
+idempotency rule above. This is acceptable for the single-use contract;
+the instance is shutting down and will not be restarted.
 
 ### 3.5. resolvedSocketName() compatibility
 
@@ -297,8 +335,8 @@ after `stop()`), and removes the second `@Volatile` field entirely.
 FixThisBridgeRuntime  (was: synchronized(lock) for start)
 │
 ├─ private val mutex = Mutex()
-├─ suspend fun start(...) = mutex.withLock { ... }
-├─ suspend fun stopForTest() = mutex.withLock { ... }
+├─ suspend fun startSuspending(...) = mutex.withLock { ... }
+├─ suspend fun stopSuspending() = mutex.withLock { ... }
 │
 ├─ // currentActivity is now a MutableStateFlow, not a WeakReference field
 ├─ private val _currentActivity = MutableStateFlow<WeakReference<Activity>?>(null)
@@ -307,14 +345,47 @@ FixThisBridgeRuntime  (was: synchronized(lock) for start)
 ```
 
 The `Application.isDebuggable() && synchronized(lock) { ... }` short-circuit
-becomes:
+becomes a **background-launched** start to avoid blocking the main thread:
 
 ```kotlin
 fun start(app, callbacks): Boolean {
     if (!app.isDebuggable()) return false
-    return runBlocking(Dispatchers.IO) { startSuspending(app, callbacks) }
+    // Run off the main thread. We use the application's process scope so
+    // the start completes even if the launching Activity is destroyed.
+    val deferred = ProcessLifecycleOwner.get().lifecycleScope.async(Dispatchers.IO) {
+        startSuspending(app, callbacks)
+    }
+    // Callers that need the result immediately (tests) must use
+    // startSuspending(...) directly; production callers fire-and-forget.
+    return true.also { /* deferred result is logged by startSuspending */ }
 }
 ```
+
+Production callers of `FixThisBridgeRuntime.start(...)` are
+`Application.onCreate` paths (debug only). They do not consume the
+returned `Boolean` for control flow — they treat it as a hint for
+logging. Tests use the `suspend` variant directly inside `runBlocking`.
+
+**ANR mitigation rationale.** The original sketch wrapped the entire
+suspending start in `runBlocking(Dispatchers.IO)` on the **calling**
+thread. For tests that is fine (the calling thread is the JUnit runner).
+For production, the caller is the main thread inside an Activity
+lifecycle callback. `LocalServerSocket.bind()` is typically
+sub-millisecond, but a stale-binding retry can take longer; and worse,
+if a future change makes `startSuspending` await any other suspending
+work (e.g., a `Mutex` already held by `stopSuspending`), the main
+thread would block indefinitely → ANR. Launching on a process-scoped
+coroutine eliminates this risk while keeping the synchronous Java
+signature for callers that only need fire-and-forget semantics.
+
+`stopForTest()` likewise routes through a suspending core:
+
+```kotlin
+fun stopForTest() = runBlocking(Dispatchers.IO) { stopSuspending() }
+```
+
+`stopForTest()` is invoked **only from test code** which already runs
+off the main thread; `runBlocking` is acceptable here.
 
 ### 3.7. ASCII concurrency diagram (steady-state)
 
@@ -361,42 +432,67 @@ fun start(app, callbacks): Boolean {
 
 ## 4. Migration Strategy
 
-The change is staged to keep every commit shippable:
+The change is staged for review clarity. **Phases A+B through D form a
+single behavioural slice that must merge in order.** Phase E
+(`currentActivity` flow) is independent and can land before or after the
+bundle. Phase F (docs) lands with Phase D.
 
-1. **Phase A (test infrastructure).** Add `BridgeServerConcurrencyTest`
-   that reproduces the three races. These tests will FAIL on `main`. They
-   are committed under `@Ignore` initially so CI stays green; an
-   accompanying `BridgeServerConcurrencyContractTest` documents the
-   *intended* contract assertions and runs from day one.
+1. **Phase A+B (state surface + ignored tests) — bundled commit.** The
+   tests in Phase A reference `BridgeServerState` / `state` symbols, so
+   they cannot compile without Phase B's scaffold. We therefore land
+   them together: introduce the sealed `BridgeServerState`, the
+   `MutableStateFlow` backing it, and rewrite `resolvedSocketName()` to
+   read from it (Phase B); and add `BridgeServerConcurrencyTest` with
+   all three tests under `@Ignore` referencing Phase D for un-ignore
+   (Phase A). Existing `@Volatile` fields stay in place so behaviour is
+   unchanged and all existing tests still pass. Required visibility
+   changes (e.g., `@VisibleForTesting internal val session` on
+   `BridgeServer`) also land here with a `grep`-based verify step to
+   confirm no production caller depends on the visibility relaxation.
 
-2. **Phase B (state surface).** Introduce the sealed
-   `BridgeServerState` and a `MutableStateFlow` backing it. Keep the
-   existing `@Volatile` fields wired up so behaviour is unchanged.
-   `resolvedSocketName()` now reads from the state flow. All existing
-   tests must still pass.
+2. **Phase C (suspending lifecycle).** Convert `start()` and `stop()` to
+   `suspend fun`. Update `BridgeRuntime` to use
+   `ProcessLifecycleOwner.lifecycleScope.launch(Dispatchers.IO)` for
+   production start and `runBlocking(Dispatchers.IO)` for
+   `stopForTest()` (see §3.6). Add the `Mutex` and use `withLock`.
+   Remove `@Volatile` from `serverSocket`.
 
-3. **Phase C (suspending lifecycle).** Convert `start()` and `stop()` to
-   `suspend fun`. Update `BridgeRuntime` to wrap them in
-   `runBlocking(Dispatchers.IO)` at the singleton boundary. Add the
-   `Mutex` and use `withLock`. Remove `@Volatile` from `serverSocket`.
+3. **Phase D (handler drain + budget + un-ignore) — bundled commit.**
+   Add `withTimeoutOrNull(5.seconds) { ...cancelAndJoin... }` to
+   `stop()`. Un-ignore the concurrency tests; they should now PASS.
+   Tighten the architecture hotspot budget for `BridgeServer.kt` from
+   `740` down to `260` **in the same commit** so no intermediate state
+   where the file has been refactored but the budget is stale exists
+   on `main`.
 
-4. **Phase D (handler drain).** Add `scope.coroutineContext[Job]
-   ?.cancelAndJoin()` to `stop()`. Un-ignore the concurrency tests; they
-   should now PASS. Tighten the architecture hotspot budget for
-   `BridgeServer.kt` from `740` down to `260`.
-
-5. **Phase E (Runtime currentActivity flow).** Replace the
-   `WeakReference` field in `FixThisBridgeRuntime.environment` with a
+4. **Phase E (Runtime currentActivity flow) — independently mergeable.**
+   Replace the `WeakReference` field in
+   `FixThisBridgeRuntime.environment` with a
    `MutableStateFlow<WeakReference<Activity>?>`. Update the activity
-   lifecycle callbacks to assign atomically.
+   lifecycle callbacks to assign atomically. This phase has no
+   dependency on A+B–D and can merge before or after the bundle.
 
-6. **Phase F (ADR + docs).** Write
+5. **Phase F (ADR + docs).** Write
    `docs/architecture/adr/2026-05-14-bridge-server-concurrency.md`
    capturing the decision (Mutex over synchronized; StateFlow over
-   Volatile; suspend boundary at BridgeRuntime).
+   Volatile; suspend boundary at BridgeRuntime; single-use after
+   `stop()`). Co-merge with Phase D.
 
-Each phase is one commit. Phase A can land independently; B–E are a
-single behavioural slice.
+**Bisectability.** Phase A+B is purely additive — the new state flow
+shadows the retained `@Volatile` fields so behaviour is unchanged and
+all existing tests pass; the new concurrency tests are under `@Ignore`
+so they compile but do not run. Phase C changes signatures but
+preserves call sites via `runBlocking`/`launch` shims. Only Phase D
+introduces the race-closing semantics; the concurrency tests move from
+`@Ignore` → green in the same commit. `git bisect` between phases
+works because each phase keeps the full test suite green.
+
+**Rollback.** If Phase D regresses, revert *only* Phase D; A+B and C
+remain valid (the tests fall back under `@Ignore`). If A+B through D
+collectively must revert, revert in reverse order. Phase E reverts in
+isolation. The merge gate for the bundle is: all phases pass
+`./gradlew check` and
+`./gradlew :fixthis-mcp:test --tests "*BridgeProtocolVersionSyncTest"`.
 
 ## 5. Test Strategy
 
@@ -424,24 +520,53 @@ modifier is source-compatible from `runBlocking` test callers).
   `Running(name)` value. `socketFactory` was invoked at most
   `MaxAttempts` times.
 
-- **T2 — stop awaits in-flight handlers.** Inject a `BridgeEnvironment`
-  whose `status()` suspends on a `CompletableDeferred`. Send a request,
-  observe it enter `status()`, then call `stop()`. Assert that `stop()`
-  does not return until the deferred is completed and the request
-  handler finishes. Use a `withTimeoutOrNull(2.seconds)` guard so a
+- **T2 — stop awaits in-flight handlers (socket path).** Drive a
+  request **through a real `LocalSocket` client**, not via
+  `handleRequestForTest`. Inject a `BridgeEnvironment` whose `status()`
+  suspends on a `CompletableDeferred`. Open a client socket, write a
+  status request, observe (via the deferred awaiter) that the handler
+  has entered `status()`, then call `stop()`. Assert that `stop()` does
+  not return until the deferred is completed *and* the handler's
+  response write has finished. Use `withTimeout(5.seconds)` so a
   regression manifests as a test timeout, not a hang.
 
-- **T3 — start-stop-start re-binds cleanly.** Run 100 iterations of
-  `start() ; stop() ; start() ; stop()` from a single coroutine.
-  Concurrently, a second coroutine reads `state.value` continually.
-  Assert no observed state is illegal (e.g., `Running` with an empty
-  socket name; `Idle` followed by `Running` without a `Starting`
-  in between when subscribed via `state.toList()`).
+  *Why not `handleRequestForTest`?* That entry point bypasses the
+  socket and `acceptLoop.launch { handleClient(...) }`. The §1.2
+  zombie-handler race lives in the *socket* path; a `handleRequestForTest`
+  drive would prove only that suspending handlers join their parent
+  scope, which the Kotlin coroutines runtime already guarantees.
 
-- **T4 — resolvedSocketName is monotonic within a generation.**
-  Between any two `Running(a)` and `Running(b)` observations, there
-  must be at least one non-`Running` state. Asserted by collecting
-  the state flow into a list and walking adjacent pairs.
+- **T3 — observed state is consistent across a single lifecycle.**
+  Construct one `BridgeServer`. Launch a collector that records every
+  `state` emission into a list. From the main coroutine, run
+  `start() ; stop()`. After both complete, assert:
+  - First emission is `Idle`.
+  - The sequence contains at least one `Running(name)` with non-blank
+    `name`.
+  - Last emission is `Idle`.
+  - No `Running` emission has a blank socket name.
+  - No two adjacent emissions are illegal: `Idle→Idle` and
+    `Running→Running` are forbidden; `Running→Starting` is forbidden.
+
+  This is a single-lifecycle assertion only — `BridgeServer` is
+  single-use (G2a), so cross-lifecycle observations are tested by
+  constructing a *new* server per lifecycle and aggregating the
+  per-lifecycle assertions.
+
+  **Conflation note.** `StateFlow` is conflated; if a producer
+  transitions `Idle→Starting→Running` faster than the collector
+  consumes, the collector may observe only `Idle→Running`. The
+  assertion above tolerates this — it requires that **observed**
+  emissions are consistent, not that every transition is observed.
+  Tests asserting *every* transition fires must use a `Channel` or
+  emit transitions to a debug sink in test builds; that is out of
+  scope here.
+
+- **T4 — `resolvedSocketName` agrees with `state`.** For every
+  observed emission, assert
+  `resolvedSocketName() == (state as? Running)?.socketName`. This is
+  the same idea as the prior "monotonic" assertion but stated as a
+  point-in-time invariant which is robust to conflation.
 
 - **T5 — BridgeRuntime double-start is idempotent.** Two threads
   call `FixThisBridgeRuntime.start(application, callbacks)`
@@ -468,20 +593,20 @@ No `IllegalStateException`, no `NullPointerException`, no zombie writes.
 
 ## 6. Open Risks
 
-### 6.1. `runBlocking` at the runtime boundary
+### 6.1. ANR risk from `runBlocking` (CLOSED)
 
-`FixThisBridgeRuntime.start()` is called from `Application.onCreate`
-indirectly via the lifecycle callbacks. `runBlocking(Dispatchers.IO)`
-on the main thread for the duration of a `LocalServerSocket.bind()`
-plus up to two retry attempts is **at most ~50ms** in practice (Linux
-abstract-namespace bind is sub-millisecond when the name is free), but
-the retries with a stale binding can take longer if the kernel's
-internal cleanup is slow.
+The original draft of this spec proposed `runBlocking(Dispatchers.IO)`
+on the main thread. That risk is now closed by §3.6: production
+`FixThisBridgeRuntime.start(...)` uses
+`ProcessLifecycleOwner.lifecycleScope.async(Dispatchers.IO)` instead.
+`runBlocking` is reserved for test-only paths (`stopForTest`) which
+never execute on the main thread.
 
-Mitigation: the runtime start is gated by `isDebuggable()`. Production
-APKs never hit this path. If the wait becomes a problem, we can promote
-the entire runtime start to be invoked from a background coroutine
-launched off the application's `ProcessLifecycleOwner` scope.
+If a future change ever reintroduces `runBlocking` on the main thread,
+the lint/style review must reject it; we add an
+`ArchitectureNoMainThreadBlockingTest` to the verify checklist that
+greps for `runBlocking(Dispatchers.` outside `*Test.kt` /
+`*ForTest.kt` files in `:fixthis-compose-sidekick`.
 
 ### 6.2. `scope.cancelAndJoin()` blocks indefinitely if a handler hangs
 
@@ -501,9 +626,13 @@ Adding a public `state: StateFlow<BridgeServerState>` lets future
 console/UI code subscribe. `StateFlow` is conflated, so slow consumers
 miss intermediate `Starting`/`Stopping` ticks. That is the documented
 behaviour and matches our intent (consumers see "current" state, not a
-log of every transition). Tests that walk transitions must
-use `MutableStateFlow.collect` with a fast collector, or collect via
-`state.take(N)` driven by signal coroutines.
+log of every transition).
+
+This conflation interacts with §5.2 T3/T4. The test design explicitly
+tolerates conflation: assertions check that **observed** emissions form
+a legal subsequence, not that every transition is observed. Tests
+asserting every transition fires (none currently planned) would need
+a separate debug `SharedFlow` sink — out of scope here.
 
 ### 6.4. Interaction with `BridgeSocketNameNegotiator.MaxAttempts`
 
@@ -518,7 +647,31 @@ gone. Acceptable because the retry was incidental, not designed.
 
 The internal test entry point currently sidesteps the socket entirely.
 It does not interact with lifecycle state, so it continues to work
-without changes.
+without changes. **It is NOT used to reproduce the §1.2 zombie-handler
+race** — T2 explicitly drives the socket path (see §5.2).
+
+### 6.6. Test fixture visibility
+
+T1's `bindCount` counting fixture and T2's socket-driven test both
+need to construct `BridgeServer` directly and inspect
+`server.session.token`. The current `BridgeServer.session` field is
+`private`. Phase A adds `@VisibleForTesting internal val session` (or
+exposes a `session.token` accessor) **with a justification comment**
+and a `grep`-based verify step to ensure no production code outside
+the package reads `session` directly.
+
+### 6.7. `BridgeProtocol.VERSION` sync invariant
+
+Per CLAUDE.md, `BridgeProtocol.VERSION` is mirrored across four sites
+and enforced by `BridgeProtocolVersionSyncTest` in `:fixthis-mcp:test`.
+This concurrency change **does not** modify the wire protocol (see
+NG2). Every phase's verify checklist therefore includes:
+
+```bash
+./gradlew :fixthis-mcp:test --tests "*BridgeProtocolVersionSyncTest"
+```
+
+to guard against accidental drift introduced by adjacent edits.
 
 ### 6.6. Test flakiness from real time
 

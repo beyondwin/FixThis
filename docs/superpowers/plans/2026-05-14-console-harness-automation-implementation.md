@@ -4,7 +4,7 @@
 
 **Goal:** Promote the three Playwright-touching console harnesses (`console-blocked-harness.mjs`, `console-responsive-stress.mjs`, `console-browser-smoke.mjs`) from manual aids to a nightly CI-enforced check, and add three new scenarios (network outage, slow handoff, multi-tab) that today are never exercised.
 
-**Architecture:** Extract a shared fake-bridge fixture module under `scripts/console-fixture/`, layer three new scenario modules on top of it, and add a single `scripts/console-harness.mjs` driver that runs a `(scenario × viewport)` matrix with Playwright. A new GitHub Actions workflow `console-harness-nightly.yml` runs the driver on a cron schedule plus `paths`-filtered PRs, uploads failure artifacts, and stays informational so PR latency is preserved.
+**Architecture:** Extract a shared fake-bridge fixture module under `scripts/console-fixture/`, layer three new scenario modules on top of it, and add a single `scripts/console-harness.mjs` driver that runs a `(scenario × viewport)` matrix with Playwright. A new GitHub Actions workflow `console-harness-nightly.yml` runs the driver on a cron schedule plus `workflow_dispatch` only (no `pull_request` trigger), uploads failure artifacts, and stays informational so PR latency is preserved.
 
 **Tech Stack:** Playwright, Node.js, GitHub Actions
 
@@ -22,7 +22,8 @@
 - `scripts/console-fixture/scenarios/multiTab.mjs`
 - `scripts/console-fixture/scenarios-test.mjs` — scenario module unit tests.
 - `scripts/console-harness.mjs` — matrix driver, CI entry point.
-- `.github/workflows/console-harness-nightly.yml` — nightly + paths-filtered PR workflow.
+- `scripts/console-harness.test.mjs` — unit tests for `parseArgs`, `selectScenarios`, `emitJunit`.
+- `.github/workflows/console-harness-nightly.yml` — nightly workflow (schedule + workflow_dispatch only).
 
 **Modify:**
 - `scripts/console-browser-smoke.mjs` — delegate fixture wiring to `startFakeBridge`.
@@ -314,16 +315,14 @@ Create `scripts/console-fixture/scenarios/slowHandoff.mjs`:
 
 ```javascript
 export async function applySlowHandoff(fixture, options = {}) {
-  // The fakeBridge slow-handoff scenario uses a fixed 6 s delay; for unit tests
-  // callers can pass options.delayMs to override via a one-off scenario alias.
   const delayMs = options.delayMs ?? 6000;
-  // We extend the fixture's SCENARIOS map indirectly by re-applying a
-  // synthesized scenario name; the fakeBridge only supports a static map, so
-  // we monkey-patch through scenarioState here.
-  await fixture.applyScenario('slow-handoff');
-  if (typeof fixture.__overrideHandoffDelayMs === 'function') {
-    fixture.__overrideHandoffDelayMs(delayMs);
-  }
+  // Use the fixture's first-class config-injection API. Each scenario accepts
+  // an `overrides` object; the active scenario state is recomputed by merging
+  // the factory output with `overrides`.
+  await fixture.runScenario({
+    scenario: 'slow-handoff',
+    overrides: { handoffDelayMs: delayMs },
+  });
   return {
     label: 'slow-handoff',
     delayMs,
@@ -342,13 +341,19 @@ export async function applyMultiTab(fixture) {
 }
 ```
 
-To make `slowHandoff` parameter-overridable, extend `fakeBridgeServer.mjs` minimally. In the returned object add:
+To make `slowHandoff` parameter-overridable, extend `fakeBridgeServer.mjs` with a first-class `runScenario` config-injection method (no monkey-patches). In the returned object add:
 
 ```javascript
-    __overrideHandoffDelayMs: (delayMs) => {
-      scenarioState = { ...scenarioState, handoffDelayMs: delayMs };
+    runScenario: async ({ scenario, overrides = {} } = {}) => {
+      if (!SCENARIOS[scenario]) {
+        throw new Error(`unknown scenario: ${scenario}`);
+      }
+      activeScenario = scenario;
+      scenarioState = { ...SCENARIOS[scenario](), ...overrides };
     },
 ```
+
+Keep `applyScenario(name)` as a thin shim that calls `runScenario({ scenario: name })` for back-compat with existing callers.
 
 - [ ] **Step 4: Verify the test now PASSES**
 
@@ -395,20 +400,42 @@ Leave the Playwright driving block unchanged for now — only the fixture wiring
 
 - [ ] **Step 2: Update `console-blocked-harness.mjs`**
 
-Replace its inline `http.createServer` block and inline HTML assembly with:
+Replace its inline `http.createServer` block and inline HTML assembly with the
+shared fixture, but **preserve** the existing interactive parking behavior. The
+harness today prints the URL and parks so a human can drive it via Playwright
+MCP; that flow must keep working. Add a `--non-interactive` flag so CI (and
+ad-hoc scripted runs) can exit after fixture startup without manual SIGINT.
 
 ```javascript
 import { startFakeBridge } from './console-fixture/fakeBridgeServer.mjs';
 
+const nonInteractive =
+  process.argv.includes('--non-interactive') ||
+  process.env.FIXTHIS_BLOCKED_NON_INTERACTIVE === '1';
+
 const fixture = await startFakeBridge({ scenario: 'blocked-welcome' });
 console.log(`open ${fixture.url} to drive the console`);
+
+if (nonInteractive) {
+  // CI path: exit cleanly after asserting the fixture came up. No parking.
+  await fixture.close();
+  process.exit(0);
+}
+
+// Interactive path (default): preserve any prompts, status lines, or
+// keep-alive timers from the previous implementation, then park on SIGINT.
+// Migrate the existing interactive scaffolding verbatim — do NOT collapse it
+// to a single SIGINT handler. Examples to preserve: connection status logging,
+// 'press Ctrl+C to stop' hint, periodic 'still alive' heartbeat if present.
 process.on('SIGINT', async () => {
   await fixture.close();
   process.exit(0);
 });
 ```
 
-The harness no longer needs its own fake-bridge HTTP wiring; the rest of the script (Playwright MCP driving notes) is unchanged.
+The harness no longer needs its own fake-bridge HTTP wiring; the rest of the
+interactive scaffolding (Playwright MCP driving notes, status logging, prompts)
+is unchanged.
 
 - [ ] **Step 3: Update `console-responsive-stress.mjs`**
 
@@ -465,6 +492,7 @@ git commit -m "refactor(console): share fake bridge fixture across harnesses"
 
 **Files:**
 - Create: `scripts/console-harness.mjs`
+- Create: `scripts/console-harness.test.mjs`
 - Modify: `package.json`
 
 - [ ] **Step 1: Add npm script**
@@ -484,6 +512,25 @@ node scripts/console-harness.mjs --matrix happy-path --viewport mobile-390
 ```
 
 Expected: failure with `Cannot find module … console-harness.mjs`.
+
+- [ ] **Step 2b: Verify selectors exist in the live console bundle**
+
+Before wiring the driver to specific selectors, confirm the assumed
+`data-testid` and class names actually exist in `fixthis-mcp/src/main/resources/console/`.
+Run:
+
+```bash
+grep -rn 'data-testid="reconnect-banner"' fixthis-mcp/src/main/resources/console/ || echo "MISSING: reconnect-banner"
+grep -rn 'pending-recovery'              fixthis-mcp/src/main/resources/console/ || echo "MISSING: pending-recovery"
+grep -rn 'data-testid="send-button"'     fixthis-mcp/src/main/resources/console/ || echo "MISSING: send-button"
+```
+
+For each `MISSING:` line, mark the corresponding scenario in the SCENARIOS map with
+`status: '@blocked-pending-impl'` and have `runCell` skip it with a warning instead of
+running Playwright assertions against it. Re-enable the scenario in a follow-up plan
+once the selector exists in the console bundle. The driver code below assumes the
+selectors exist; if any are missing, prefer `getByRole`/`getByText` fallbacks over
+inventing new `data-testid`s in the console source from this plan.
 
 - [ ] **Step 3: Implement the driver**
 
@@ -515,8 +562,17 @@ const SCENARIOS = {
   'multi-tab': { apply: applyMultiTab, requiredViewports: ['breakpoint-900', 'compact-1024', 'desktop-1280'] },
 };
 
-function parseArgs(argv) {
-  const args = { matrix: 'all', viewport: 'all', output: resolve(root, 'output/playwright'), headed: false };
+export function parseArgs(argv, env = process.env) {
+  // Defaults can be overridden by env vars, which can in turn be overridden by
+  // explicit flags. Order: defaults < env < flags.
+  const args = {
+    matrix: env.FIXTHIS_HARNESS_MATRIX ?? 'all',
+    viewport: env.FIXTHIS_HARNESS_VIEWPORTS ?? 'all',
+    output: env.FIXTHIS_HARNESS_OUTPUT ?? resolve(root, 'output/playwright'),
+    headed: env.FIXTHIS_HARNESS_HEADED === '1',
+    trace: env.FIXTHIS_HARNESS_TRACE === '1',
+    updateBaselines: env.FIXTHIS_HARNESS_UPDATE_BASELINES === '1',
+  };
   for (let i = 2; i < argv.length; i += 1) {
     const flag = argv[i];
     const next = argv[i + 1];
@@ -524,11 +580,22 @@ function parseArgs(argv) {
     else if (flag === '--viewport') { args.viewport = next; i += 1; }
     else if (flag === '--output') { args.output = next; i += 1; }
     else if (flag === '--headed') { args.headed = true; }
+    else if (flag === '--trace') { args.trace = true; }
+    else if (flag === '--update-baselines') { args.updateBaselines = true; }
   }
   return args;
 }
 
-function selectScenarios(matrixArg) {
+function xmlEscape(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+export function selectScenarios(matrixArg) {
   if (matrixArg === 'all') return Object.keys(SCENARIOS);
   return matrixArg.split(',').map((s) => s.trim()).filter(Boolean);
 }
@@ -564,8 +631,15 @@ async function runCell({ playwright, scenarioKey, viewportKey, args }) {
     } else if (scenarioKey === 'slow-handoff') {
       await page.waitForSelector('[data-testid="send-button"], button.send', { timeout: 8000 });
     } else if (scenarioKey === 'multi-tab') {
+      // Two Pages in the same BrowserContext share localStorage; the DOM
+      // `storage` event only fires in *other* pages of the same origin, so
+      // `page` (the writer) will never see it. We always assert cross-tab
+      // signals on the *receiver* page (here: `second`).
       const second = await context.newPage();
       await second.goto(fixture.url, { waitUntil: 'domcontentloaded' });
+      // TODO: trigger a draft write on `page` and assert that `second`
+      // observes the change (storage event or polling fallback). Receiver
+      // must be `second`, never `page`.
       await second.close();
     } else {
       await page.waitForSelector('body');
@@ -584,14 +658,14 @@ async function runCell({ playwright, scenarioKey, viewportKey, args }) {
   }
 }
 
-function emitJunit(results, outputDir) {
+export function emitJunit(results, outputDir) {
   mkdirSync(outputDir, { recursive: true });
   const cases = results.map((r) => {
-    const name = `${r.scenarioKey}__${r.viewportKey}`;
+    const name = xmlEscape(`${r.scenarioKey}__${r.viewportKey}`);
     if (r.ok) {
       return `    <testcase classname="console-harness" name="${name}" />`;
     }
-    return `    <testcase classname="console-harness" name="${name}">\n      <failure>${r.error}</failure>\n    </testcase>`;
+    return `    <testcase classname="console-harness" name="${name}">\n      <failure>${xmlEscape(r.error)}</failure>\n    </testcase>`;
   }).join('\n');
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="console-harness" tests="${results.length}" failures="${results.filter((r) => !r.ok).length}">\n${cases}\n</testsuite>\n`;
   writeFileSync(resolve(outputDir, 'results.xml'), xml);
@@ -600,10 +674,19 @@ function emitJunit(results, outputDir) {
 async function main() {
   const args = parseArgs(process.argv);
   const playwright = await loadPlaywright();
-  const scenarios = selectScenarios(args.matrix);
+  const requested = selectScenarios(args.matrix);
+  const unknown = requested.filter((s) => !SCENARIOS[s]);
+  const known = requested.filter((s) => SCENARIOS[s]);
+  if (unknown.length > 0) {
+    console.warn(`warn: unknown scenario(s) requested: ${unknown.join(', ')}`);
+  }
+  if (known.length === 0) {
+    console.error(`error: no known scenarios selected for matrix='${args.matrix}'`);
+    process.exitCode = 2;
+    return;
+  }
   const results = [];
-  for (const scenarioKey of scenarios) {
-    if (!SCENARIOS[scenarioKey]) continue;
+  for (const scenarioKey of known) {
     const viewports = selectViewports(args.viewport, scenarioKey);
     for (const viewportKey of viewports) {
       const result = await runCell({ playwright, scenarioKey, viewportKey, args });
@@ -625,6 +708,77 @@ main().catch((err) => {
 });
 ```
 
+- [ ] **Step 3b: Add driver self-tests (`node --test`) for the pure helpers**
+
+Create `scripts/console-harness.test.mjs`:
+
+```javascript
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { parseArgs, selectScenarios, emitJunit } from './console-harness.mjs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+test('parseArgs honors defaults', () => {
+  const args = parseArgs(['node', 'script'], {});
+  assert.equal(args.matrix, 'all');
+  assert.equal(args.viewport, 'all');
+  assert.equal(args.headed, false);
+});
+
+test('parseArgs honors env vars', () => {
+  const args = parseArgs(['node', 'script'], {
+    FIXTHIS_HARNESS_MATRIX: 'network-outage',
+    FIXTHIS_HARNESS_VIEWPORTS: 'mobile-390',
+    FIXTHIS_HARNESS_HEADED: '1',
+  });
+  assert.equal(args.matrix, 'network-outage');
+  assert.equal(args.viewport, 'mobile-390');
+  assert.equal(args.headed, true);
+});
+
+test('parseArgs flags override env vars', () => {
+  const args = parseArgs(
+    ['node', 'script', '--matrix', 'slow-handoff', '--viewport', 'desktop-1280'],
+    { FIXTHIS_HARNESS_MATRIX: 'network-outage' }
+  );
+  assert.equal(args.matrix, 'slow-handoff');
+  assert.equal(args.viewport, 'desktop-1280');
+});
+
+test('selectScenarios expands all and trims CSV', () => {
+  const all = selectScenarios('all');
+  assert.ok(all.includes('happy-path'));
+  const csv = selectScenarios(' slow-handoff , multi-tab ');
+  assert.deepEqual(csv, ['slow-handoff', 'multi-tab']);
+});
+
+test('emitJunit XML-escapes failure messages', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'harness-'));
+  try {
+    emitJunit(
+      [{ scenarioKey: 'x<y', viewportKey: 'm', ok: false, error: 'bad & worse "<>" \'q\'' }],
+      dir
+    );
+    const xml = readFileSync(join(dir, 'results.xml'), 'utf8');
+    assert.match(xml, /name="x&lt;y__m"/);
+    assert.match(xml, /bad &amp; worse &quot;&lt;&gt;&quot; &apos;q&apos;/);
+    assert.doesNotMatch(xml, /<failure>bad & /);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+```
+
+Run:
+
+```bash
+node --test scripts/console-harness.test.mjs
+```
+
+Expected: all five tests pass (`# fail 0`). These pure-function tests run before the Playwright integration step, in the existing `console-js` CI lane.
+
 - [ ] **Step 4: Verify the driver runs for a single scenario**
 
 Run:
@@ -644,7 +798,7 @@ Run:
 node scripts/console-harness.mjs --matrix nonexistent-scenario
 ```
 
-Expected: no scenarios match, results array is empty, exit code 0 (empty matrix is allowed for now).
+Expected: warning `unknown scenario(s) requested: nonexistent-scenario` followed by `error: no known scenarios selected for matrix='nonexistent-scenario'`. Exit code 2. Typos must never silently succeed.
 
 Then run:
 
@@ -654,10 +808,34 @@ node scripts/console-harness.mjs --matrix network-outage --viewport mobile-390
 
 Expected: either PASS (if the console gracefully shows a reconnect banner) or FAIL with an error message; exit code corresponds.
 
-- [ ] **Step 6: Commit Task 4**
+- [ ] **Step 6: Document the baseline screenshot procedure (deferred until Phase 2)**
+
+Visual-regression baselines (Appendix B in the spec) are a Phase 2 deliverable
+because `responsive-stress` is deferred. Record the procedure now so Phase 2
+inherits a single source of truth:
 
 ```bash
-git add scripts/console-harness.mjs package.json
+# Regenerate baselines locally. The env var gate is mandatory; without it the
+# driver refuses to overwrite committed baseline PNGs even if --update-baselines
+# is passed, so accidental updates from CI runs are impossible.
+FIXTHIS_HARNESS_UPDATE_BASELINES=1 node scripts/console-harness.mjs \
+  --matrix responsive-stress --update-baselines
+
+# Review the diff manually, then commit:
+git add scripts/console-fixture/baseline-screenshots/
+git commit -m "test(console): refresh harness baseline screenshots"
+```
+
+Driver behavior: `--update-baselines` is only honored when
+`process.env.FIXTHIS_HARNESS_UPDATE_BASELINES === '1'`. CI never sets this
+variable, so `--update-baselines` is a no-op on the nightly workflow. This is
+documented here for the Phase 2 follow-up; Task 4 itself does not produce any
+baseline PNG.
+
+- [ ] **Step 7: Commit Task 4**
+
+```bash
+git add scripts/console-harness.mjs scripts/console-harness.test.mjs package.json
 git commit -m "test(console): add harness matrix driver"
 ```
 
@@ -679,12 +857,11 @@ on:
   schedule:
     - cron: '17 9 * * *'
   workflow_dispatch: {}
-  pull_request:
-    paths:
-      - 'scripts/console-*.mjs'
-      - 'scripts/console-fixture/**'
-      - 'fixthis-mcp/src/main/resources/console/**'
-      - '.github/workflows/console-harness-nightly.yml'
+
+# Intentionally NO pull_request trigger. G4 (PR latency unchanged) is non-
+# negotiable; PR runs would push latency from ~1.5 min to ~25 min. PRs that
+# touch console assets are validated by the existing console-js node --test
+# lane. Promotion to PR gating must be a separate, explicit design.
 
 concurrency:
   group: console-harness-${{ github.ref }}
@@ -709,14 +886,35 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      - name: Resolve Playwright version
+        id: pw-version
+        # Read the resolved playwright version from package-lock.json so the
+        # cache key invalidates the moment we bump Playwright (and therefore
+        # the Chromium build it pins).
+        run: |
+          PW_VERSION=$(node -e "const p=require('./package-lock.json');\
+            const pkg=p.packages && (p.packages['node_modules/playwright']||p.packages['node_modules/playwright-core']);\
+            if(!pkg)throw new Error('playwright not in lockfile');\
+            console.log(pkg.version)")
+          echo "version=$PW_VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          # Include the Playwright version so a Chromium bump (which is pinned
+          # by Playwright) invalidates the cache automatically.
+          key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}-${{ hashFiles('package-lock.json') }}
 
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
+
+      - name: Verify bridge protocol version sync
+        # Re-uses the existing JVM test that enforces equality across all four
+        # mirrored sites (BridgeProtocol.kt, console MinimumSupportedProtocolVersion,
+        # BridgeClient.kt, ServerVersionRoutes.kt). Catches drift before the
+        # harness exercises the fixture against an already-stale console bundle.
+        run: ./gradlew :fixthis-mcp:test --tests "*BridgeProtocolVersionSyncTest"
 
       - name: Run console harness matrix
         run: node scripts/console-harness.mjs --matrix all --output output/playwright
@@ -780,7 +978,8 @@ In `.github/workflows/ci.yml`, the `console-js` job's `Run console JavaScript te
             scripts/activityDrift-test.mjs \
             scripts/previewStaleness-test.mjs \
             scripts/console-fixture/fakeBridgeServer-test.mjs \
-            scripts/console-fixture/scenarios-test.mjs
+            scripts/console-fixture/scenarios-test.mjs \
+            scripts/console-harness.test.mjs
 ```
 
 - [ ] **Step 2: Validate YAML locally**
@@ -807,7 +1006,8 @@ node --test \
   scripts/activityDrift-test.mjs \
   scripts/previewStaleness-test.mjs \
   scripts/console-fixture/fakeBridgeServer-test.mjs \
-  scripts/console-fixture/scenarios-test.mjs
+  scripts/console-fixture/scenarios-test.mjs \
+  scripts/console-harness.test.mjs
 ```
 
 Expected: every file reports `pass`; total `# fail 0`.
@@ -897,7 +1097,8 @@ node --test \
   scripts/activityDrift-test.mjs \
   scripts/previewStaleness-test.mjs \
   scripts/console-fixture/fakeBridgeServer-test.mjs \
-  scripts/console-fixture/scenarios-test.mjs
+  scripts/console-fixture/scenarios-test.mjs \
+  scripts/console-harness.test.mjs
 ```
 
 Expected: `# fail 0`.
@@ -986,6 +1187,6 @@ If neither doc changed, skip this step.
 - [ ] Placeholder scan: this plan contains no unfinished placeholder markers or generic instructions.
 - [ ] Type consistency: `startFakeBridge`, `applyNetworkOutage`, `applySlowHandoff`, `applyMultiTab`, `FIXTURE_SCENARIO_KEYS` are named identically in implementation, tests, and driver.
 - [ ] CI ordering: the new `console-harness-nightly.yml` workflow is fully additive; `.github/workflows/ci.yml` only gains two extra `node --test` paths.
-- [ ] PR latency: the nightly workflow is informational and runs on `schedule` plus a `paths`-filtered `pull_request` trigger, so green-build SLAs are preserved.
+- [ ] PR latency: the nightly workflow runs on `schedule` + `workflow_dispatch` only; no `pull_request` trigger, so green-build SLAs are preserved (G4).
 - [ ] Rollback: removing `console-harness-nightly.yml` and dropping the two fixture-test paths from `ci.yml` fully reverts the automation without touching production code.
 - [ ] No new Gradle dependency: the only npm dependency change is the existing `playwright` package; Gradle artifacts are unchanged.

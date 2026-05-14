@@ -1,8 +1,8 @@
-# CI Console Precheck — Merge Gate Design
+# CI Console Precheck — Post-Merge Audit & Followup Tracker
 
 **Date:** 2026-05-14
-**Scope:** Audit the cross-plan slice that moves cheap console checks ahead of the long Gradle baseline and splits them into a separate CI job.
-**Status:** Merged across two parent plans.
+**Scope:** Retrospective audit and followup tracker for the cross-plan slice that moves cheap console checks ahead of the long Gradle baseline and splits them into a separate CI job. **This document is the authoritative reference for the console-js / gradle-verification / baseline job split.**
+**Status:** Merged on 2026-05-13 across two parent plans (merge commits `2ce4f1b` and `03e7fde`); this doc tracks post-merge verification and followups.
 
 ---
 
@@ -57,7 +57,10 @@ The two commits are complementary. The build-optimization commit reordered steps
 
 ---
 
-## 4. Merge Gate Checklist
+## 4. Post-Merge Verification Checklist (Authoritative CI Gate)
+
+This section is the canonical reference for the CI job split. The build-optimization
+and test-speed merge-gate docs both cross-reference it instead of duplicating items.
 
 - [x] `.github/workflows/ci.yml` parses as valid YAML.
 - [x] `console-js` job runs `build-console-assets.mjs --check`, `node --check`, and the seven `node --test` files.
@@ -67,7 +70,18 @@ The two commits are complementary. The build-optimization commit reordered steps
 - [x] `concurrency.cancel-in-progress: true` still cancels old runs on push.
 - [x] No `Run console JavaScript tests` step remains inside `gradle-verification`.
 - [x] No step inside `console-js` requires Java, the Android SDK, or Gradle.
-- [x] PR description (`codex/test-speed-optimization`) documents the timing improvement.
+- [ ] Manual verification: grep PR description on `codex/test-speed-optimization` for the documented timing improvement (criterion: PR body cites before/after wall-clock numbers for the split).
+  - Owner: TBD
+  - Rollback if regressed: revert commit `c8f1219` (CI job split) to restore the single `Baseline verification` job; coordinate the branch-protection name with repo settings before doing so.
+
+### Invariant Re-Verification
+
+Grep-able commands that must remain green for this slice not to regress structural invariants:
+
+- [x] `./gradlew :fixthis-mcp:test --tests "*BridgeProtocolVersionSyncTest"` — Bridge protocol 4-site sync. Evidence: this slice only touches `.github/workflows/ci.yml`; bridge protocol constants are untouched.
+- [x] `./gradlew :fixthis-mcp:test --tests "*ModuleBoundaryTest"` — module boundary invariants. Evidence: no Kotlin source changed; pure CI/workflow edits.
+- [x] `./gradlew :fixthis-mcp:test --tests "*ArchitectureHotspotBudgetTest"` — hotspot budgets. Evidence: no registered hotspot file changed.
+- [x] Persisted JSON schema compatibility — N/A; this change does not touch persisted JSON.
 
 ---
 

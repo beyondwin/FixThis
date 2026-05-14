@@ -33,8 +33,8 @@ These three scenarios are not exotic — they were each cited in post-merge stab
 
 ### Goals
 
-- **G1:** Run all three Playwright-touching harnesses on a scheduled (nightly) CI job that fails the build on regression.
-- **G2:** Add three new scenarios layered on top of the existing fake-bridge fixture: `network-outage`, `slow-handoff`, `multi-tab`.
+- **G1:** Run the four currently-implementable scenarios (`happy-path`, `network-outage`, `slow-handoff`, `multi-tab`) on a scheduled (nightly) CI job that fails the build on regression. The remaining scenarios listed in §3.2 are Phase 2 followups.
+- **G2:** Add three new scenarios layered on top of the existing fake-bridge fixture: `network-outage`, `slow-handoff`, `multi-tab`. (`happy-path` is the existing smoke baseline; the five Phase 2 scenarios — `blocked-welcome`, `blocked-permission-prompt`, `responsive-stress`, `smoke-handoff`, `smoke-history-drawer` — remain out of scope for Phase 1.)
 - **G3:** Define a scenario matrix that crosses (scenario × viewport × handoff state) and yields concrete assertions per cell.
 - **G4:** Keep PR latency unchanged — the nightly Playwright job must not gate PR merges.
 - **G5:** Surface screenshots and traces from failing nightly runs as GitHub Actions artifacts.
@@ -81,19 +81,28 @@ These three scenarios are not exotic — they were each cited in post-merge stab
 
 Each cell is a single Playwright `test.step`. Cell selection is driven by `process.env.FIXTHIS_HARNESS_MATRIX` (CSV of scenario keys); the default in nightly CI is `all`.
 
+**Phase 1 (active in this design — 4 scenarios × 4 viewports = 16 cells minus the one `multi-tab` mobile cell skipped below = 15 active cells):**
+
 | Scenario \ Viewport | `mobile-390` | `breakpoint-900` | `compact-1024` | `desktop-1280` |
 | --- | --- | --- | --- | --- |
-| `blocked-welcome` | required | required | required | required |
-| `blocked-permission-prompt` | required | skipped | required | skipped |
-| `responsive-stress` | screenshot diff | screenshot diff | screenshot diff | screenshot diff |
-| `smoke-happy-path` | smoke | smoke | smoke | smoke |
-| `smoke-handoff` | smoke | smoke | smoke | smoke |
-| `smoke-history-drawer` | required | required | required | required |
+| `happy-path` | smoke | smoke | smoke | smoke |
 | **`network-outage` (NEW)** | required | required | required | required |
 | **`slow-handoff` (NEW)** | required | required | required | required |
 | **`multi-tab` (NEW)** | skipped | required | required | required |
 
-`required` cells must produce a passing assertion. `screenshot diff` cells compare against a checked-in baseline under `scripts/console-fixture/baseline-screenshots/<viewport>/<scenario>.png` with `maxDiffPixelRatio: 0.005`. `skipped` cells run but only confirm no console errors are logged.
+`required` cells must produce a passing assertion. `smoke` cells assert the page loads and emits no console errors. `skipped` cells are not exercised in Phase 1.
+
+**Phase 2 followups (out of scope for this design — owners TBD):**
+
+| Phase 2 scenario | Notes |
+| --- | --- |
+| `blocked-welcome` | Drives the WELCOME blocked state; needs harness wiring for the blocked sub-states. |
+| `blocked-permission-prompt` | Permission-prompt blocked state; depends on `blocked-welcome` plumbing. |
+| `responsive-stress` | Screenshot-diff sweep at the 4 viewports against checked-in baselines under `scripts/console-fixture/baseline-screenshots/<viewport>/<scenario>.png` with `maxDiffPixelRatio: 0.005`. Baseline generation procedure deferred to Phase 2. |
+| `smoke-handoff` | Existing manual smoke step; promote after Phase 1 stabilizes. |
+| `smoke-history-drawer` | History drawer assertions; covered today by `console-availability-test.mjs` at unit level. |
+
+These will be picked up in a follow-up plan once Phase 1 has run cleanly on nightly cadence for at least two weeks.
 
 #### 3.2.1 Scenario: `network-outage`
 
@@ -106,7 +115,7 @@ Each cell is a single Playwright `test.step`. Cell selection is driven by `proce
 
 #### 3.2.2 Scenario: `slow-handoff`
 
-- **Trigger:** `/api/handoff` accepts the POST after a 6-second artificial delay (`await new Promise(r => setTimeout(r, 6000))`).
+- **Trigger:** `/api/handoff` accepts the POST after a 6-second artificial delay. Delay is injected through the fixture's config-injection API — `runScenario({ scenario: 'slow-handoff', overrides: { handoffDelayMs: 6000 } })` — rather than by monkey-patching the static scenarios map. Unit tests and ad-hoc runs may pass a shorter `handoffDelayMs` via the same override hook.
 - **Assertions:**
   - The "Sending…" affordance appears within 200 ms.
   - The page does not exceed 100 ms of jank as measured by `performance.getEntriesByType('longtask')`.
@@ -115,7 +124,7 @@ Each cell is a single Playwright `test.step`. Cell selection is driven by `proce
 
 #### 3.2.3 Scenario: `multi-tab`
 
-- **Trigger:** Playwright opens two `BrowserContext`s pointing at the same fixture URL with the same `consoleToken`.
+- **Trigger:** Playwright opens two `Page`s in a single `BrowserContext` (via `context.newPage()` twice) pointing at the same fixture URL with the same `consoleToken`. Two pages of the same context are required because the DOM `storage` event only fires in *other* pages of the same origin — never in the page that performed the write. The assertions below must read the cross-tab signal on the *receiver* page (Tab B when Tab A writes, and vice versa).
 - **Assertions:**
   - Tab A creates a draft annotation; Tab B's draft-workspace list shows the same draft after the next poll.
   - Tab A sends the draft; Tab B's status reflects "sent" within one poll cycle.
@@ -152,7 +161,7 @@ Per-scenario behavior lives in `scripts/console-fixture/scenarios/*.mjs`. The th
 
 A new workflow file `.github/workflows/console-harness-nightly.yml`:
 
-- **Trigger:** `schedule: cron: '17 9 * * *'` (09:17 UTC daily, off-peak for the maintainer in KST/PST) plus `workflow_dispatch` and `pull_request` (with a `paths` filter so PRs that touch `scripts/console-*` or `fixthis-mcp/src/main/resources/console/**` opt in).
+- **Trigger:** Nightly-only; no PR gating. `schedule: cron: '17 9 * * *'` (09:17 UTC daily, off-peak for the maintainer in KST/PST) plus `workflow_dispatch` for manual runs. The PR `paths`-filtered trigger is intentionally omitted so that G4 (PR latency unchanged) holds: PRs that touch console assets are validated by the existing `console-js` lane and any later promotion to PR gating must clear an explicit re-design.
 - **Job:** `console-harness`, single Chromium job.
 - **Cache:** `actions/cache@v4` keyed on `package-lock.json` and a `playwright --version` echo so the 300 MB browser install is reused across nightly runs.
 - **Steps:**
@@ -201,11 +210,7 @@ on:
   schedule:
     - cron: '17 9 * * *'
   workflow_dispatch: {}
-  pull_request:
-    paths:
-      - 'scripts/console-*.mjs'
-      - 'scripts/console-fixture/**'
-      - 'fixthis-mcp/src/main/resources/console/**'
+  # No pull_request trigger — G4 forbids PR gating.
 
 concurrency:
   group: console-harness-${{ github.ref }}
@@ -222,12 +227,20 @@ jobs:
           node-version: '22'
           cache: 'npm'
       - run: npm ci
+      - id: pw-version
+        run: |
+          PW_VERSION=$(node -e "const p=require('./package-lock.json');\
+            const pkg=p.packages && (p.packages['node_modules/playwright']||p.packages['node_modules/playwright-core']);\
+            console.log(pkg.version)")
+          echo "version=$PW_VERSION" >> "$GITHUB_OUTPUT"
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps chromium
+      - name: Bridge protocol version sync
+        run: ./gradlew :fixthis-mcp:test --tests "*BridgeProtocolVersionSyncTest"
       - run: node scripts/console-harness.mjs --matrix all --output output/playwright
       - if: failure()
         uses: actions/upload-artifact@v4
@@ -296,13 +309,27 @@ node scripts/console-harness.mjs --matrix network-outage --viewport mobile-390 -
 ### 6.1 CI cost
 
 - **Playwright Chromium install:** ~300 MB, ~30 s warm-cache, ~90 s cold-cache. Mitigated by `actions/cache@v4`.
-- **Wall-clock per nightly run:** budgeted at 25 minutes including install. Current smoke alone is ~3 minutes. Stress run is ~5 minutes. Three new scenarios add roughly 4 minutes. Buffer of ~13 minutes.
+- **Wall-clock per nightly run:** budgeted at 25 minutes including install. Measured per-cell expectations for Phase 1 (4 scenarios × 4 viewports, minus the one `multi-tab/mobile-390` skip = 15 cells):
+
+  | Scenario | Per-cell wall time | Viewports | Subtotal |
+  | --- | --- | --- | --- |
+  | `happy-path` | ~25 s | 4 | ~100 s |
+  | `network-outage` | ~35 s (8 s outage window + asserts) | 4 | ~140 s |
+  | `slow-handoff` | ~45 s (6 s artificial delay dominates) | 4 | ~180 s |
+  | `multi-tab` | ~40 s (two pages + cross-tab poll) | 3 | ~120 s |
+  | **Cell subtotal** | | | **~540 s (9 min)** |
+  | Playwright install (cold) | | | ~90 s |
+  | npm ci + checkout | | | ~60 s |
+  | 20 % retry buffer on cells | | | ~110 s |
+  | **Total** | | | **~13.3 min** |
+
+  This fits within the 25-minute budget with ~11.7 minutes of headroom. If retries push us over budget, drop the viewport matrix to two (`mobile-390` + `desktop-1280`) which halves the cell subtotal.
 - **Monthly cost on a free runner:** 30 runs × 25 min = 750 minutes; well under the 2000-minute monthly quota. PR-triggered runs are scoped via `paths` filter so they only fire when console assets change.
 
 ### 6.2 Flakiness
 
 - **Risk:** Visual diff baselines drift under font or rendering library updates.
-  - **Mitigation:** Bake the Chromium version into the cache key. Refresh baselines in a dedicated PR when fonts change.
+  - **Mitigation:** Bake the Playwright version (which pins the Chromium build) into the `actions/cache` key — e.g. `playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}-${{ hashFiles('package-lock.json') }}`. Refresh baselines in a dedicated PR when fonts or Chromium change.
 - **Risk:** `slow-handoff` test's 6-second artificial delay races with the 5-second `waitFor` timeout.
   - **Mitigation:** Raise `slow-handoff` waitFor to 10 seconds; assert that the Sending affordance appears within 200 ms (a much tighter sub-bound).
 - **Risk:** `multi-tab` test depends on `localStorage` cross-tab `storage` events firing.
@@ -311,7 +338,7 @@ node scripts/console-harness.mjs --matrix network-outage --viewport mobile-390 -
 ### 6.3 False sense of security
 
 - **Risk:** The fixture and the real `:fixthis-mcp` bridge can drift apart, masking real protocol breaks.
-  - **Mitigation:** The Kotlin-side `BridgeProtocolVersionSyncTest` already enforces protocol version alignment. The fixture should declare a `MinimumSupportedProtocolVersion` constant imported from the same source-of-truth file (`fixthis-mcp/src/main/kotlin/.../BridgeProtocol.kt`) via a small TypeScript-ish loader; we read the constant out at fixture startup.
+  - **Mitigation:** The nightly workflow runs `./gradlew :fixthis-mcp:test --tests "*BridgeProtocolVersionSyncTest"` *before* the Playwright matrix. That JVM test already enforces equality across all four mirrored sites (`BridgeProtocol.kt`, console `MinimumSupportedProtocolVersion`, `BridgeClient.kt`, `ServerVersionRoutes.kt`); if it fails the harness aborts early, before fixture startup ever wires up a stale console bundle. A separate JS-side loader is therefore unnecessary at Phase 1; revisit only if we eventually run the harness in isolation from the Gradle toolchain.
 
 ### 6.4 Maintenance burden
 
@@ -370,7 +397,7 @@ Each new scenario is justified against a specific historical incident or stabili
 - `scripts/console-fixture/scenarios/slowHandoff.mjs`
 - `scripts/console-fixture/scenarios/multiTab.mjs`
 - `scripts/console-fixture/scenarios-test.mjs`
-- `scripts/console-fixture/baseline-screenshots/<viewport>/<scenario>.png` (4 viewports × 4 visual scenarios)
+- `scripts/console-fixture/baseline-screenshots/<viewport>/<scenario>.png` — **Phase 2.** Generated via `FIXTHIS_HARNESS_UPDATE_BASELINES=1 node scripts/console-harness.mjs --update-baselines`; the env-var gate prevents accidental CI overwrites. No baseline PNGs are committed in Phase 1; the `responsive-stress` scenario that consumes them is deferred.
 - `scripts/console-harness.mjs`
 - `.github/workflows/console-harness-nightly.yml`
 

@@ -63,13 +63,15 @@ Modify these existing files:
 
 ---
 
-### Task 1: Umbrella Contract Test (Red)
+### Task 1: Umbrella Contract Test (Green via pending list)
 
 **Files:**
 - Create: `scripts/consoleFsmContract-test.mjs`
 - Modify: `package.json`
 
-- [ ] **Step 1: Write the umbrella contract test**
+> **Anti-red-on-main.** Previous draft of this plan landed the umbrella test red on `main` and turned it green incrementally — that makes every intermediate commit fail CI and breaks `git bisect`. We instead land the test **green** via an explicit `pendingExtraction` list. Each subsequent Phase commits a one-line edit removing its own FSM from the list. The final Phase 4 commit empties the list and turns on full strict assertion. Every intermediate `main` commit is green. (Spec §4 Phase 0.)
+
+- [ ] **Step 1: Write the umbrella contract test (green at land time)**
 
 Create `scripts/consoleFsmContract-test.mjs`:
 
@@ -83,73 +85,82 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sourceDir = resolve(root, 'fixthis-mcp/src/main/console');
 
-const FSM_FILES = [
-  'connectionFsm.js',
-  'previewFsm.js',
-  'pollingFsm.js',
-  'toolModeFsm.js',
-];
+// Each entry is removed by its own extraction Phase. When empty, the
+// strict assertions below apply universally. Each Phase's commit
+// includes a single-line edit to this list.
+const PENDING_EXTRACTION = new Set([
+  'connection',
+  'preview',
+  'polling',
+  'toolMode',
+]);
 
-const USE_CASE_FILES = [
-  'connectionUseCases.js',
-  'previewUseCases.js',
-  'pollingUseCases.js',
-  'toolModeUseCases.js',
-];
+const FSM_FILES = {
+  connection: 'connectionFsm.js',
+  preview:    'previewFsm.js',
+  polling:    'pollingFsm.js',
+  toolMode:   'toolModeFsm.js',
+};
 
-test('every reducer file exists', () => {
-  const onDisk = new Set(readdirSync(sourceDir));
-  for (const name of FSM_FILES) {
-    assert.ok(onDisk.has(name), `${name} is missing`);
-  }
-});
+const USE_CASE_FILES = {
+  connection: 'connectionUseCases.js',
+  preview:    'previewUseCases.js',
+  polling:    'pollingUseCases.js',
+  toolMode:   'toolModeUseCases.js',
+};
 
-test('reducer files are pure: no DOM/setTimeout/fetch', () => {
-  for (const name of FSM_FILES) {
-    const content = readFileSync(resolve(sourceDir, name), 'utf8');
+const onDisk = new Set(readdirSync(sourceDir));
+
+for (const [key, fileName] of Object.entries(FSM_FILES)) {
+  if (PENDING_EXTRACTION.has(key)) continue; // not yet expected to exist
+  test(`reducer file ${fileName} exists`, () => {
+    assert.ok(onDisk.has(fileName), `${fileName} is missing`);
+  });
+  test(`reducer ${fileName} is pure: no DOM/setTimeout/fetch`, () => {
+    const content = readFileSync(resolve(sourceDir, fileName), 'utf8');
     for (const forbidden of ['document.', 'window.', 'setTimeout', 'fetch(', 'localStorage']) {
-      assert.ok(
-        !content.includes(forbidden),
-        `${name} must not reference ${forbidden}`,
-      );
+      assert.ok(!content.includes(forbidden), `${fileName} must not reference ${forbidden}`);
     }
-  }
-});
+  });
+}
 
-test('every use-case file exists', () => {
-  const onDisk = new Set(readdirSync(sourceDir));
-  for (const name of USE_CASE_FILES) {
-    assert.ok(onDisk.has(name), `${name} is missing`);
-  }
-});
-
-test('use-case files take async primitives via ports: no direct setTimeout/fetch', () => {
-  for (const name of USE_CASE_FILES) {
-    const content = readFileSync(resolve(sourceDir, name), 'utf8');
+for (const [key, fileName] of Object.entries(USE_CASE_FILES)) {
+  if (PENDING_EXTRACTION.has(key)) continue;
+  test(`use-case file ${fileName} exists`, () => {
+    assert.ok(onDisk.has(fileName), `${fileName} is missing`);
+  });
+  test(`use-case ${fileName} takes async primitives via ports`, () => {
+    const content = readFileSync(resolve(sourceDir, fileName), 'utf8');
     for (const forbidden of ['setTimeout(', 'setInterval(', 'fetch(']) {
-      assert.ok(
-        !content.includes(forbidden),
-        `${name} must take ${forbidden.slice(0, -1)} via a port, not call it directly`,
-      );
+      assert.ok(!content.includes(forbidden),
+        `${fileName} must take ${forbidden.slice(0, -1)} via a port, not call it directly`);
     }
-  }
-});
+  });
+}
 
-test('state.js has at most 5 module-level let declarations after migration', () => {
+// state.js threshold: tightened in two stages.
+//   - while any FSM is pending: assert ≤ 30 (current baseline + slack)
+//   - when PENDING_EXTRACTION is empty: assert ≤ 5
+test('state.js module-level let count meets current target', () => {
   const content = readFileSync(resolve(sourceDir, 'state.js'), 'utf8');
-  // Count `let X = ...` at the top of a line (no leading word chars).
-  const matches = content.match(/^\s+let [a-zA-Z_$]/gm) || [];
-  assert.ok(matches.length <= 5, `state.js still has ${matches.length} let declarations; target ≤ 5`);
+  // Match `let X = ...` at exactly two spaces of leading indentation,
+  // which is the module-level convention. Function-body lets use ≥4.
+  const matches = content.match(/^  let [a-zA-Z_$]/gm) || [];
+  const target = PENDING_EXTRACTION.size === 0 ? 5 : 30;
+  assert.ok(matches.length <= target,
+    `state.js has ${matches.length} module-level let declarations; target ≤ ${target}`);
 });
 ```
 
-- [ ] **Step 2: Run to verify FAIL**
+Note the regex tightening: `^  let ` (exactly two spaces) targets module-level declarations only, avoiding the over-counting from `^\s+let `.
+
+- [ ] **Step 2: Run to verify it passes on `main`**
 
 ```bash
-node --test scripts/consoleFsmContract-test.mjs 2>&1 | head -40
+node --test scripts/consoleFsmContract-test.mjs
 ```
 
-Expected: every test FAILS — files don't exist yet; `state.js` has ~30 `let` declarations.
+Expected: all assertions PASS at land time because every FSM key is pending, and the state.js threshold is the lax target (≤30). The test exists and runs; it just has nothing to assert until Phase 1.
 
 - [ ] **Step 3: Add the npm script**
 
@@ -159,15 +170,18 @@ Modify `package.json` to add:
 "console:fsm:test": "node --test scripts/connectionFsm-test.mjs scripts/connectionUseCases-test.mjs scripts/previewFsm-test.mjs scripts/previewUseCases-test.mjs scripts/pollingFsm-test.mjs scripts/pollingUseCases-test.mjs scripts/toolModeFsm-test.mjs scripts/toolModeUseCases-test.mjs scripts/consoleFsmContract-test.mjs"
 ```
 
-- [ ] **Step 4: Commit (still red — that's the point)**
+The per-FSM test files do not yet exist; each Phase creates its own and removes the pending entry in `consoleFsmContract-test.mjs` in the same commit. To avoid `node --test` failing on missing files during phases, gate the npm script entries to "added at the same commit as the file". The simplest pattern: replace the literal list above with a glob runner script that picks up only existing files (write a 10-line `scripts/run-console-fsm-tests.mjs`). Use whichever fits the project's existing test-runner style.
+
+- [ ] **Step 4: Commit (GREEN — Phase 0 lands green)**
 
 ```bash
 git add scripts/consoleFsmContract-test.mjs package.json
 git commit -m "$(cat <<'EOF'
-test(console): umbrella FSM contract test (RED)
+test(console): umbrella FSM contract test (Phase 0, green via pending list)
 
-Lands failing assertions for four sub-FSMs and the state.js cleanup
-target. Subsequent tasks turn them green one FSM at a time.
+Lands the umbrella isolation test with an explicit pendingExtraction
+list. Each subsequent Phase removes its own entry as it lands.
+Asserts pass at land time so `main` stays green and `git bisect` works.
 EOF
 )"
 ```
@@ -278,6 +292,8 @@ const ConnectionLifecycle = Object.freeze({
   UNAVAILABLE: 'UNAVAILABLE',
 });
 
+const MaxHeartbeatFailures = 3;
+
 function createEmptyConnection() {
   return Object.freeze({
     lifecycle: ConnectionLifecycle.DISCONNECTED,
@@ -289,6 +305,7 @@ function createEmptyConnection() {
     previousBlockedReason: null,
     sessionsPollingPaused: false,
     heartbeatGeneration: 0,
+    consecutiveHeartbeatFailures: 0,
     lastHeartbeatError: null,
   });
 }
@@ -304,6 +321,7 @@ function reduceConnection(state, action) {
         current: action.current,
         hasEverConnected: true,
         lastReadyAt: action.nowMs,
+        consecutiveHeartbeatFailures: 0,
         lastHeartbeatError: null,
       });
     case 'LAUNCH_FAILED':
@@ -317,15 +335,30 @@ function reduceConnection(state, action) {
         ...state,
         lifecycle: ConnectionLifecycle.READY,
         heartbeatGeneration: state.heartbeatGeneration + 1,
+        consecutiveHeartbeatFailures: 0,
         lastHeartbeatError: null,
         lastReadyAt: action.nowMs,
       });
-    case 'HEARTBEAT_FAILED':
+    case 'HEARTBEAT_FAILED': {
+      const nextFailures = state.consecutiveHeartbeatFailures + 1;
+      if (nextFailures >= MaxHeartbeatFailures) {
+        // Degrade: too many consecutive failures → fall back to DISCONNECTED
+        return Object.freeze({
+          ...state,
+          lifecycle: ConnectionLifecycle.DISCONNECTED,
+          heartbeatGeneration: state.heartbeatGeneration + 1,
+          consecutiveHeartbeatFailures: 0, // reset on lifecycle change
+          lastHeartbeatError: action.error,
+          current: null,
+        });
+      }
       return Object.freeze({
         ...state,
         heartbeatGeneration: state.heartbeatGeneration + 1,
+        consecutiveHeartbeatFailures: nextFailures,
         lastHeartbeatError: action.error,
       });
+    }
     case 'INTERACTION_BLOCKED':
       return Object.freeze({
         ...state,
@@ -344,10 +377,60 @@ function reduceConnection(state, action) {
       });
     case 'AVAILABILITY_UPDATED':
       return Object.freeze({ ...state, availability: action.availability });
+    case 'DISCONNECT_REQUESTED':
+      // User or programmatic teardown — unconditional return to DISCONNECTED
+      // from any lifecycle except DISCONNECTED (no-op there).
+      if (state.lifecycle === ConnectionLifecycle.DISCONNECTED) return state;
+      return Object.freeze({
+        ...state,
+        lifecycle: ConnectionLifecycle.DISCONNECTED,
+        current: null,
+        interactionBlockedReason: null,
+        sessionsPollingPaused: false,
+        consecutiveHeartbeatFailures: 0,
+      });
     default:
       return state;
   }
 }
+
+module.exports.MaxHeartbeatFailures = MaxHeartbeatFailures;
+```
+
+**New reducer tests** (add to `connectionFsm-test.mjs`):
+
+```js
+test('HEARTBEAT_FAILED < Max keeps READY but increments counter', () => {
+  let s = m.reduceConnection(m.createEmptyConnection(), { type: 'LAUNCH_REQUESTED' });
+  s = m.reduceConnection(s, { type: 'LAUNCH_SUCCEEDED', current: { id: 'c-1' }, nowMs: 1 });
+  s = m.reduceConnection(s, { type: 'HEARTBEAT_FAILED', error: 'net' });
+  assert.equal(s.lifecycle, 'READY');
+  assert.equal(s.consecutiveHeartbeatFailures, 1);
+});
+
+test('HEARTBEAT_FAILED at threshold degrades READY → DISCONNECTED', () => {
+  let s = m.reduceConnection(m.createEmptyConnection(), { type: 'LAUNCH_REQUESTED' });
+  s = m.reduceConnection(s, { type: 'LAUNCH_SUCCEEDED', current: { id: 'c-1' }, nowMs: 1 });
+  for (let i = 0; i < m.MaxHeartbeatFailures; i++) {
+    s = m.reduceConnection(s, { type: 'HEARTBEAT_FAILED', error: 'net' });
+  }
+  assert.equal(s.lifecycle, 'DISCONNECTED');
+  assert.equal(s.consecutiveHeartbeatFailures, 0); // reset on transition
+  assert.equal(s.current, null);
+});
+
+test('DISCONNECT_REQUESTED is accepted from READY/BLOCKED/UNAVAILABLE', () => {
+  let s = m.reduceConnection(m.createEmptyConnection(), { type: 'LAUNCH_REQUESTED' });
+  s = m.reduceConnection(s, { type: 'LAUNCH_SUCCEEDED', current: { id: 'c-1' }, nowMs: 1 });
+  s = m.reduceConnection(s, { type: 'DISCONNECT_REQUESTED' });
+  assert.equal(s.lifecycle, 'DISCONNECTED');
+});
+
+test('DISCONNECT_REQUESTED from DISCONNECTED is a no-op (same reference)', () => {
+  const s0 = m.createEmptyConnection();
+  const s1 = m.reduceConnection(s0, { type: 'DISCONNECT_REQUESTED' });
+  assert.strictEqual(s1, s0);
+});
 ```
 
 - [ ] **Step 4: Run to verify PASS**
@@ -715,7 +798,15 @@ function reducePreview(state, action) {
     case 'CONTEXT_CHANGED':
       return Object.freeze({ ...state, contextGeneration: state.contextGeneration + 1 });
     case 'REQUEST_SUCCEEDED': {
-      if (!state.inFlight || action.generation !== state.inFlight.generation) {
+      // Race-fence: drop the action if EITHER generation has advanced
+      // (a newer request started) OR contextGeneration has advanced
+      // (the device context changed mid-flight). Both checks are
+      // mandatory per spec §3.3.
+      if (
+        !state.inFlight ||
+        action.generation !== state.inFlight.generation ||
+        action.contextGeneration !== state.inFlight.contextGeneration
+      ) {
         return state;
       }
       return Object.freeze({
@@ -727,7 +818,11 @@ function reducePreview(state, action) {
       });
     }
     case 'REQUEST_FAILED': {
-      if (!state.inFlight || action.generation !== state.inFlight.generation) {
+      if (
+        !state.inFlight ||
+        action.generation !== state.inFlight.generation ||
+        action.contextGeneration !== state.inFlight.contextGeneration
+      ) {
         return state;
       }
       return Object.freeze({
@@ -783,18 +878,29 @@ function createPreviewUseCases(ports) {
     getState: () => state,
     async request() {
       dispatch({ type: 'REQUEST_STARTED' });
-      const captured = { generation: state.requestGeneration };
+      // Capture BOTH generation counters after REQUEST_STARTED so the
+      // reducer's race-fence (spec §3.3) can compare both. Comparing
+      // only `generation` is a regression — a CONTEXT_CHANGED that
+      // arrives while a request is in flight would not invalidate
+      // the stale response, polluting `current` with data from the
+      // previous device context.
+      const captured = {
+        generation: state.requestGeneration,
+        contextGeneration: state.contextGeneration,
+      };
       try {
         const result = await ports.api.capture();
         dispatch({
           type: 'REQUEST_SUCCEEDED',
           generation: captured.generation,
+          contextGeneration: captured.contextGeneration,
           current: result,
         });
       } catch (err) {
         dispatch({
           type: 'REQUEST_FAILED',
           generation: captured.generation,
+          contextGeneration: captured.contextGeneration,
           error: String(err?.message || err),
         });
       }
@@ -964,6 +1070,36 @@ test('MUTATION_START/END toggle pendingMutationCount', () => {
   s = m.reducePolling(s, { type: 'MUTATION_END' });
   assert.equal(s.pendingMutationCount, 1);
 });
+
+test('BACKOFF_TIMER_FIRED returns BACKOFF → ACTIVE without resetting counter', () => {
+  let s = m.reducePolling(m.createEmptyPolling(), { type: 'START' });
+  for (let i = 0; i < m.MaxConsecutivePollFailures; i++) {
+    s = m.reducePolling(s, { type: 'TICK_FAILED' });
+  }
+  assert.equal(s.lifecycle, m.PollingLifecycle.POLLING_BACKOFF);
+  s = m.reducePolling(s, { type: 'BACKOFF_TIMER_FIRED' });
+  assert.equal(s.lifecycle, m.PollingLifecycle.POLLING_ACTIVE);
+  assert.equal(s.consecutiveFailures, m.MaxConsecutivePollFailures); // not reset
+});
+
+test('VISIBILITY_HIDDEN from BACKOFF preserves BACKOFF as pausedReturn', () => {
+  let s = m.reducePolling(m.createEmptyPolling(), { type: 'START' });
+  for (let i = 0; i < m.MaxConsecutivePollFailures; i++) {
+    s = m.reducePolling(s, { type: 'TICK_FAILED' });
+  }
+  s = m.reducePolling(s, { type: 'VISIBILITY_HIDDEN' });
+  assert.equal(s.lifecycle, m.PollingLifecycle.POLLING_PAUSED);
+  assert.equal(s.pausedReturnLifecycle, m.PollingLifecycle.POLLING_BACKOFF);
+  s = m.reducePolling(s, { type: 'VISIBILITY_VISIBLE' });
+  assert.equal(s.lifecycle, m.PollingLifecycle.POLLING_BACKOFF);
+  assert.equal(s.pausedReturnLifecycle, null);
+});
+
+test('DISCONNECT_REQUESTED stops polling from any state', () => {
+  let s = m.reducePolling(m.createEmptyPolling(), { type: 'START' });
+  s = m.reducePolling(s, { type: 'DISCONNECT_REQUESTED' });
+  assert.equal(s.lifecycle, m.PollingLifecycle.STOPPED);
+});
 ```
 
 - [ ] **Step 2: Run to verify FAIL → implement → verify PASS**
@@ -989,6 +1125,7 @@ const MaxConsecutivePollFailures = 5;
 function createEmptyPolling() {
   return Object.freeze({
     lifecycle: PollingLifecycle.STOPPED,
+    pausedReturnLifecycle: null,  // 'POLLING_ACTIVE' | 'POLLING_BACKOFF' | null
     lastSessionsEtag: null,
     lastSessionEtag: null,
     pendingMutationCount: 0,
@@ -1001,17 +1138,39 @@ function createEmptyPolling() {
 function reducePolling(state, action) {
   switch (action.type) {
     case 'START':
-      return Object.freeze({ ...state, lifecycle: PollingLifecycle.POLLING_ACTIVE });
-    case 'STOP':
-      return Object.freeze({ ...state, lifecycle: PollingLifecycle.STOPPED });
-    case 'PAUSE':
-      return Object.freeze({ ...state, lifecycle: PollingLifecycle.POLLING_PAUSED });
-    case 'RESUME':
       return Object.freeze({
         ...state,
         lifecycle: PollingLifecycle.POLLING_ACTIVE,
         consecutiveFailures: 0,
+        pausedReturnLifecycle: null,
       });
+    case 'STOP':
+    case 'DISCONNECT_REQUESTED':
+      return Object.freeze({
+        ...state,
+        lifecycle: PollingLifecycle.STOPPED,
+        pausedReturnLifecycle: null,
+      });
+    case 'VISIBILITY_HIDDEN': {
+      if (state.lifecycle === PollingLifecycle.POLLING_PAUSED ||
+          state.lifecycle === PollingLifecycle.STOPPED) {
+        return state;
+      }
+      return Object.freeze({
+        ...state,
+        lifecycle: PollingLifecycle.POLLING_PAUSED,
+        pausedReturnLifecycle: state.lifecycle,
+      });
+    }
+    case 'VISIBILITY_VISIBLE': {
+      if (state.lifecycle !== PollingLifecycle.POLLING_PAUSED) return state;
+      const restore = state.pausedReturnLifecycle ?? PollingLifecycle.POLLING_ACTIVE;
+      return Object.freeze({
+        ...state,
+        lifecycle: restore,
+        pausedReturnLifecycle: null,
+      });
+    }
     case 'TICK_OK':
       return Object.freeze({
         ...state,
@@ -1029,6 +1188,14 @@ function reducePolling(state, action) {
           ? PollingLifecycle.POLLING_BACKOFF
           : state.lifecycle,
       });
+    }
+    case 'BACKOFF_TIMER_FIRED': {
+      // Adapter's backoff timer fired. Move from BACKOFF back to ACTIVE
+      // so the next tick attempt runs. Counter is NOT reset — only a
+      // successful TICK_OK resets it. If the next tick also fails,
+      // the FSM returns to BACKOFF (counter remains at threshold).
+      if (state.lifecycle !== PollingLifecycle.POLLING_BACKOFF) return state;
+      return Object.freeze({ ...state, lifecycle: PollingLifecycle.POLLING_ACTIVE });
     }
     case 'MUTATION_START':
       return Object.freeze({

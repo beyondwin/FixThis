@@ -1,11 +1,13 @@
-# FeedbackSessionStore Merge Gate (SOLID Remediation Tasks 4–5)
+# FeedbackSessionStore — Post-Merge Audit & Followup Tracker (SOLID Remediation Tasks 4–5)
+
+**Status:** Merged on 2026-05-13 (merge commit `a6abe8a`); this doc tracks post-merge verification and followups.
 
 > **Scope.** This is a **post-merge audit + follow-up registry**, not a fresh
 > specification. The SOLID Remediation plan
 > ([`../plans/2026-05-13-architecture-solid-remediation-implementation.md`](../plans/2026-05-13-architecture-solid-remediation-implementation.md))
 > covering the `FeedbackSessionStore` responsibility split landed on `main`
 > via merge commit `a6abe8a` (2026-05-13). This document records what
-> shipped, what risks remain, and the verification gate before declaring
+> shipped, what risks remain, and the verification followups before declaring
 > the `FeedbackSessionStore` portion of that initiative fully closed.
 
 ## 1. Current Plan Reference
@@ -183,13 +185,26 @@ this can serialise concurrent reads. The SOLID plan did not address this
 because it was a structural refactor, not a performance one. Recorded
 here so the merge gate doesn't paper over it.
 
-## 4. Merge Gate Checklist
+## 4. Post-Merge Verification Checklist
 
 Pre-merge verification for the *original* SOLID work has already been
-satisfied (the merge has happened). The checklist below is the **gate
-for declaring the FeedbackSessionStore portion of the SOLID initiative
-"fully closed"** — i.e., the point at which we can take down the
-`@Suppress("LargeClass")` and stop treating this as in-flight work.
+satisfied (the merge has happened). The checklist below is the **post-merge
+followup tracker for declaring the FeedbackSessionStore portion of the SOLID
+initiative "fully closed"** — i.e., the point at which we can take down
+the `@Suppress("LargeClass")` and stop treating this as in-flight work.
+
+### Invariant Re-Verification
+
+Grep-able commands that must remain green for this slice not to regress structural invariants:
+
+- [x] `./gradlew :fixthis-mcp:test --tests "*BridgeProtocolVersionSyncTest"` — Bridge protocol 4-site sync. Evidence: SOLID remediation reshapes session internals only; bridge protocol pin sites are untouched.
+- [x] `./gradlew :fixthis-mcp:test --tests "*ModuleBoundaryTest"` — module boundary invariants. Evidence: domain adapters live under `fixthis-mcp/.../session/domain/` and depend on `:fixthis-compose-core` ports as designed; `ModuleBoundaryTest` was tightened in `1756e27` and currently passes.
+- [x] `./gradlew :fixthis-mcp:test --tests "*ArchitectureHotspotBudgetTest"` — hotspot budgets. Evidence: `FeedbackSessionStore.kt` budget is `1_050`; current size is 748 lines.
+- [ ] Persisted JSON schema compatibility — `SessionDto`, `ScreenDto`, `AnnotationDto`, and `SessionEvent*` JSON shapes must continue to round-trip historical session files. Evidence pending: no dedicated schema fixture test exists in the suite today; the migration helper `withMigratedItemSequenceCounter()` covers one field but not the broader schema. Manual verification today is "load a session JSON from before merge `a6abe8a`, save it again, diff."
+  - Owner: TBD
+  - Rollback if regressed: revert the SOLID merge `a6abe8a` (last resort);
+    more narrowly, restore the previous shape of `FeedbackSessionStore.save*`
+    paths by reverting `a1278dc` and `6d54545`.
 
 ### Code-state gates
 
@@ -202,10 +217,17 @@ for declaring the FeedbackSessionStore portion of the SOLID initiative
 - [ ] `FeedbackSessionStore.kt` is below 800 lines **and**
       `@Suppress("LargeClass")` is removed *or* re-annotated with a
       current rationale (see R2).
+  - Owner: TBD
+  - Rollback if regressed: revert the split commit (TODO sha) and restore
+    the prior `@Suppress("LargeClass")` rationale comment.
 - [ ] At least one production call site (composition root in
       `:fixthis-mcp` main) uses the `McpSessionRepository` /
       `SnapshotRepository` / `AnnotationRepository` ports rather than
       calling the store directly (R3).
+  - Owner: TBD
+  - Rollback if regressed: revert the wiring commit (TODO sha); the
+    dormant adapters remain in tree and production keeps calling
+    `FeedbackSessionStore` directly.
 
 ### Test gates
 
@@ -222,11 +244,17 @@ for declaring the FeedbackSessionStore portion of the SOLID initiative
       yields a `SessionDto` with the same `screens`, `items`,
       `handoffBatches`, `status`, and `updatedAtEpochMillis` as the
       store's inline implementation (R1).
+  - Owner: TBD
+  - Rollback if regressed: delete the new test file; no production
+    behavior depends on it.
 - [ ] Replay round-trip: feed a known sequence of events to a fresh
       store, capture the resulting `SessionDto`, then feed the same
       events through `SessionReducer` directly; assert equality. This
       proves replay and reducer agree even though they don't share a
       code path today.
+  - Owner: TBD
+  - Rollback if regressed: delete the new test file; no production
+    behavior depends on it.
 
 ### Documentation gates
 
@@ -234,8 +262,13 @@ for declaring the FeedbackSessionStore portion of the SOLID initiative
 - [ ] An ADR or follow-up note records the residual `@Suppress
       ("LargeClass")` decision (R2) — either "removed" or
       "keeping; here's the budget".
+  - Owner: TBD
+  - Rollback if regressed: delete the ADR or note; no code change to revert.
 - [ ] The next-step plan for adopting `McpSessionRepository` in
       production exists (filename, even if the body is `TBD`).
+  - Owner: TBD
+  - Rollback if regressed: delete the plan file; the dormant adapters
+    remain undisturbed.
 
 ### Verification commands
 
@@ -251,9 +284,22 @@ git diff --check
 Each command must complete without error before the unchecked items are
 marked done.
 
-## 5. Follow-up Work
+## 5. Outstanding Followups
 
-Items deferred past the SOLID merge, sequenced by dependency:
+Items deferred past the SOLID merge, sequenced by dependency.
+
+### Outstanding Followups Checklist
+
+- [ ] Domain adapters (`McpSessionRepository`, `McpSnapshotRepository`,
+      `McpAnnotationRepository`) are dormant in production — only test code
+      constructs them today (R3 / Followup-B). Until at least one
+      production caller routes through the ports, the
+      `:fixthis-compose-core` domain interfaces are decorative for the
+      shipped binary.
+  - Owner: TBD
+  - Rollback if regressed: when production wiring lands, if it breaks
+    behaviour, revert the wiring commit (TODO sha) and keep the adapters
+    dormant.
 
 ### Followup-A. Adopt the reducer in all store mutations (R1)
 
