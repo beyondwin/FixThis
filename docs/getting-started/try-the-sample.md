@@ -1,7 +1,7 @@
-# Quick Start — Try the Sample App
+# Quick Start — Sample App to Agent Handoff
 
-The fastest way to see FixThis end-to-end is the bundled sample app. No code
-changes to your own app required.
+The fastest way to understand FixThis is to create one real handoff from the
+bundled sample app. No changes to your own app are required.
 
 ## Prerequisites
 
@@ -52,6 +52,14 @@ your default browser.
    *Or* click **Save to MCP** to persist the batch as a local handoff that
    Claude Code or Codex can read on demand via MCP tools.
 
+## Done State
+
+The quick start is complete when:
+
+- the console shows at least one numbered annotation pin;
+- **Copy Prompt** has placed compact Markdown on your clipboard, or **Save to MCP** has persisted a local handoff;
+- your agent can either receive the pasted Markdown or call `fixthis_read_feedback`.
+
 ## Sample coverage
 
 - The Diagnostics tab includes a native AndroidView fixture. Use it to verify
@@ -67,8 +75,9 @@ bridge-attach diagnoses.
 
 ## What's next
 
+- [Connect your AI agent](connect-your-agent.md) — Claude Code, Codex, Cursor,
+  and chat-style agents
 - [Add FixThis to your own app](add-to-your-app.md)
 - [Feedback console tour](../guides/feedback-console-tour.md) — full walkthrough
   with screenshots
-- [Working with AI agents](../guides/agents.md) — Claude Code, Codex,
-  Cursor, and chat-style agents
+- [Troubleshooting](../guides/troubleshooting.md)
