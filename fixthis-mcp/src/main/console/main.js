@@ -184,6 +184,10 @@
                 return Promise.resolve(window.fixThisPromptPendingBoundary({ action, count }));
               }
               if (typeof window === 'undefined' || typeof window.confirm !== 'function') return Promise.resolve('cancel');
+              if (action === 'delete-session') {
+                const discard = window.confirm('Discard unsaved annotations and delete this session?\n확인 = Delete session\n취소 = Keep editing');
+                return Promise.resolve(discard ? 'discard' : 'cancel');
+              }
               const save = window.confirm('Save draft before changing sessions?\n확인 = Save draft\n취소 = Keep editing or discard');
               if (save) return Promise.resolve('save');
               const discard = window.confirm('Discard unsaved annotations?\n확인 = Discard\n취소 = Keep editing');

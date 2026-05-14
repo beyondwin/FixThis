@@ -24,6 +24,26 @@ function body(source, signature) {
   assert.fail(`${signature} body did not close`);
 }
 
+function functionText(source, signature) {
+  const start = source.indexOf(signature);
+  assert.notEqual(start, -1, `${signature} not found`);
+  const paramsEnd = source.indexOf(')', start);
+  const bodyStart = source.indexOf('{', paramsEnd);
+  let depth = 0;
+  for (let i = bodyStart; i < source.length; i += 1) {
+    if (source[i] === '{') depth += 1;
+    if (source[i] === '}') {
+      depth -= 1;
+      if (depth === 0) return source.slice(start, i + 1);
+    }
+  }
+  assert.fail(`${signature} body did not close`);
+}
+
+function promptPendingBoundaryChoiceWithWindow(windowLike) {
+  return new Function('window', `${functionText(mainSource, 'function promptPendingBoundaryChoice(action, count)')}; return promptPendingBoundaryChoice;`)(windowLike);
+}
+
 test('shared pending boundary resolver exists', () => {
   assert.match(mainSource, /async function resolvePendingBeforeBoundary\(action,\s*sessionId = null\)/);
   assert.match(mainSource, /Save draft/);
@@ -35,6 +55,22 @@ test('shared pending boundary resolver delegates to draft boundary use case', ()
   assert.match(mainSource, /async function resolvePendingBeforeBoundary\(action,\s*sessionId = null\)/);
   assert.match(mainSource, /resolveDraftBoundary\(/);
   assert.match(mainSource, /ensureDraftCommandQueue\(\)\.enqueue/);
+});
+
+test('delete session draft boundary uses one destructive confirmation', async () => {
+  const prompts = [];
+  const promptPendingBoundaryChoice = promptPendingBoundaryChoiceWithWindow({
+    confirm: (message) => {
+      prompts.push(message);
+      return true;
+    },
+  });
+
+  const choice = await promptPendingBoundaryChoice('delete-session', 1);
+
+  assert.equal(choice, 'discard');
+  assert.equal(prompts.length, 1);
+  assert.match(prompts[0], /delete this session/i);
 });
 
 test('openSession and newSession use boundary resolver instead of immediate flush', () => {
