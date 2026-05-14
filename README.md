@@ -20,6 +20,25 @@ In the browser console, a single click selects the nearest Compose UI
 component, and a drag selects any visual area when the target is spacing, empty
 room, interop content, or another region that is not a clean component.
 
+## Status
+
+> ⚠️ **Source release available; Gradle artifacts not published.** FixThis has
+> GitHub Releases for source snapshots, starting with
+> [v0.1.0](docs/releases/v0.1.0.md), and current `main` can be tried from
+> source. It is not yet on Maven Central or the Gradle Plugin Portal. External
+> projects must wire this repository via Gradle composite build (`includeBuild`)
+> until artifacts are released.
+>
+> The live readiness dashboard is
+> [Release readiness](docs/contributing/release-readiness.md). It lists the
+> supported install paths today, future artifact coordinates, and the checks
+> required before public artifact instructions can replace source/composite
+> setup.
+>
+> Current `main` also contains unreleased hardening after v0.1.0. See
+> [Unreleased changes since v0.1.0](docs/releases/unreleased.md) and
+> [`CHANGELOG.md`](CHANGELOG.md#unreleased) before cutting the next tag.
+
 ## Works Today
 
 - Try the bundled sample app in about five minutes.

@@ -1,36 +1,120 @@
 # Release Readiness
 
+FixThis is usable today as a GitHub source release and from `main` through the
+sample app, local MCP bootstrap, and Gradle composite-build wiring. Public
+Gradle artifacts are not published yet.
+
+This page is the release dashboard. It separates what users can do today from
+what must be true before the README can advertise Maven Central or Gradle
+Plugin Portal installation.
+
 ## Current Status
 
-FixThis has a GitHub source release (`v0.1.0`) for local debug use and
-evaluation from this repository. External Gradle artifact publication still
-requires the items below to be completed first.
+| Surface | Status | User impact |
+| --- | --- | --- |
+| GitHub source release | Available from `v0.1.0` | Users can inspect tagged source and release notes. |
+| Current `main` | Unreleased hardening after `v0.1.0` | Users can try latest docs/code from source. |
+| Sample app | Available | Users can verify the workflow before touching their app. |
+| Claude Code / Codex MCP bootstrap | Available from source | `./scripts/bootstrap-mcp.sh --sample` configures local MCP for the sample. |
+| External Gradle artifacts | Not published | External apps must use source/composite-build wiring for now. |
+| MCP Registry entry | Not published | Discovery remains through the GitHub repository and docs. |
 
-## Required Before External Release
+## Supported Install Paths Today
 
-- [x] Project owner selects and adds a root `LICENSE` (MIT, updated 2026-05-13).
-- [x] CI baseline runs on pull requests (`.github/workflows/ci.yml`).
-- [x] `CONTRIBUTING.md` documents local verification.
-- [x] `CHANGELOG.md` records user-visible changes and known limitations.
-- [x] `SECURITY.md` documents the local-first debug security model.
-- [x] GitHub source release is published (`v0.1.0`, 2026-05-11).
-- [ ] Maven Central / Gradle Plugin Portal coordinates are published (still placeholder).
+- Clone the repository and run the sample app.
+- Use `./scripts/bootstrap-mcp.sh --sample` to register the local MCP server
+  with Claude Code or Codex.
+- Use Gradle composite-build or local repository wiring for an external debug
+  Compose app.
+- Use **Copy Prompt** for chat-style agents without MCP.
 
-## Compatibility Matrix
+## Not Published Yet
 
-| Surface | Supported |
+The following install paths are intentionally not advertised as ready:
+
+- Maven Central dependency for `io.beyondwin.fixthis:fixthis-compose-sidekick`.
+- Gradle Plugin Portal entry for `io.beyondwin.fixthis.compose`.
+- npm/PyPI/Docker package for the MCP server.
+- MCP Registry metadata entry.
+
+Do not change README install instructions to published Gradle coordinates until
+the artifacts are visible in their public registries and verified from a clean
+consumer project.
+
+## Required Before Next Source Release
+
+- [ ] Full PR checks pass on the release commit.
+- [ ] `node scripts/check-doc-consistency.mjs` passes.
+- [ ] `node scripts/check-release-readiness.mjs` passes.
+- [ ] `git diff --check` passes.
+- [ ] `CHANGELOG.md` entries are reviewed and moved under the release heading.
+- [ ] `docs/releases/vX.Y.Z.md` exists and matches the changelog summary.
+- [ ] `docs/releases/unreleased.md` is reset for the next cycle after tagging.
+- [ ] Connected smoke is run on a real device or unlocked emulator, or the
+      release notes explicitly say it was not run.
+- [ ] Security, privacy, compatibility, and troubleshooting docs still match
+      the release claims.
+
+## Required Before External Artifact Release
+
+- [ ] Public group and artifact coordinates are final:
+      `io.beyondwin.fixthis:fixthis-compose-sidekick` and
+      `io.beyondwin.fixthis:fixthis-compose-core` if core is published.
+- [ ] Gradle plugin id remains `io.beyondwin.fixthis.compose`.
+- [ ] One version source of truth is established for all published modules.
+- [ ] Gradle publishing plugins are configured for local dry-run validation.
+- [ ] `publishToMavenLocal` or equivalent dry-run packaging is verified.
+- [ ] `./gradlew publishToMavenLocal --dry-run` succeeds.
+- [ ] Gradle Plugin Portal validation passes for `:fixthis-gradle-plugin`.
+- [ ] `./gradlew :fixthis-gradle-plugin:validatePlugins` succeeds.
+- [ ] Maven Central namespace ownership is verified by the maintainer.
+- [ ] Gradle Plugin Portal account ownership is verified by the maintainer.
+- [ ] Signing and publishing secrets are configured outside the repository.
+- [ ] A clean external sample project resolves the published artifacts from
+      public registries.
+- [ ] README install instructions are updated only after registry verification.
+
+## Future Coordinates
+
+| Surface | Future coordinate / id | Registry |
+| --- | --- | --- |
+| Gradle plugin | `io.beyondwin.fixthis.compose` | Gradle Plugin Portal |
+| Compose sidekick | `io.beyondwin.fixthis:fixthis-compose-sidekick` | Maven Central |
+| Compose core | `io.beyondwin.fixthis:fixthis-compose-core` | Maven Central, only if needed by consumers |
+| MCP server | no package coordinate yet | Future MCP Registry metadata after an install package exists |
+
+## Required Maintainer Secrets
+
+These names document the default expected CI inputs. They are not committed and
+can be renamed before real publication is enabled.
+
+| Secret | Purpose |
 | --- | --- |
-| Android UI toolkit | Jetpack Compose debug builds |
-| Release builds | Not supported |
-| AccessibilityService | Not used |
-| MCP workflow | Desktop stdio server plus localhost console |
-| Console host | Loopback localhost by default |
-| Screenshots | Local artifacts only |
-| External AI API calls | Not made by FixThis |
-| GitHub source releases | Published from repository tags |
-| External Gradle artifacts | Not published yet |
+| `MAVEN_CENTRAL_USERNAME` | Maven Central publishing identity or token user. |
+| `MAVEN_CENTRAL_PASSWORD` | Maven Central publishing password or token secret. |
+| `SIGNING_KEY` | ASCII-armored signing key for Maven artifacts. |
+| `SIGNING_PASSWORD` | Password for the signing key. |
+| `GRADLE_PUBLISH_KEY` | Gradle Plugin Portal publish key. |
+| `GRADLE_PUBLISH_SECRET` | Gradle Plugin Portal publish secret. |
 
-## Known Release Blockers
+## Evidence Links
 
-- Published Gradle plugin and sidekick coordinates are placeholders until artifacts are actually released to Maven Central / Gradle Plugin Portal.
-- Compatibility should be rechecked against the target Android Gradle Plugin, Kotlin, Compose BOM, Java, Gradle, SDK, operating system, and MCP client versions before publishing.
+- [Release process](release-process.md)
+- [Changelog](../../CHANGELOG.md)
+- [Unreleased release notes](../releases/unreleased.md)
+- [Security model](../../SECURITY.md)
+- [Privacy](../reference/privacy.md)
+- [Threat model](../reference/threat-model.md)
+- [Compatibility](../reference/compatibility.md)
+- [CLI reference](../reference/cli.md)
+- [MCP tools](../reference/mcp-tools.md)
+
+## Release Claim Rules
+
+- Use **source release** only for GitHub tags and GitHub Releases.
+- Use **publish-ready** only when build, docs, and checks are prepared but no
+  public artifact exists.
+- Use **artifact release** only after Maven Central or Gradle Plugin Portal
+  artifacts are public and verified.
+- Never use "published", "install from Maven", or "available on Gradle" for
+  FixThis artifacts until the relevant registry listing is live.
