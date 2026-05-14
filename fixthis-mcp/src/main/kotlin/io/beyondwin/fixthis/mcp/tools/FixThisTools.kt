@@ -9,6 +9,7 @@ import io.beyondwin.fixthis.mcp.session.FeedbackSessionPersistence
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 import io.beyondwin.fixthis.mcp.session.HostSourceFreshnessProbe
+import io.beyondwin.fixthis.mcp.session.eventlog.EventLogCompactor
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
 import kotlinx.serialization.json.JsonArray
@@ -25,17 +26,27 @@ private fun defaultFeedbackSessionService(
     projectRoot: File,
 ): FeedbackSessionService {
     val feedbackSessionPaths = FeedbackSessionPaths(projectRoot)
+    val persistence = FeedbackSessionPersistence(feedbackSessionPaths)
+    lateinit var store: FeedbackSessionStore
+    store = FeedbackSessionStore(
+        persistence = persistence,
+        eventLogWriterProvider = { sessionId ->
+            EventLogWriter(feedbackSessionPaths.eventLogDirectory(sessionId))
+        },
+        eventLogReaderProvider = { sessionId ->
+            EventLogReader(feedbackSessionPaths.eventLogDirectory(sessionId))
+        },
+        eventLogCompactorProvider = { sessionId ->
+            EventLogCompactor(
+                directory = feedbackSessionPaths.eventLogDirectory(sessionId),
+                snapshotProvider = { store.getSession(sessionId) },
+                snapshotWriter = { persistence.save(it) },
+            )
+        },
+    )
     return FeedbackSessionService(
         bridge = bridge,
-        store = FeedbackSessionStore(
-            persistence = FeedbackSessionPersistence(feedbackSessionPaths),
-            eventLogWriterProvider = { sessionId ->
-                EventLogWriter(feedbackSessionPaths.eventLogDirectory(sessionId))
-            },
-            eventLogReaderProvider = { sessionId ->
-                EventLogReader(feedbackSessionPaths.eventLogDirectory(sessionId))
-            },
-        ),
+        store = store,
         projectRoot = projectRoot.absolutePath,
         defaultPackageName = defaultPackageName,
     )

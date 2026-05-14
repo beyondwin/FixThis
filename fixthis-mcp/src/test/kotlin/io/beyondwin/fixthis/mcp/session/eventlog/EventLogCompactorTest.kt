@@ -124,6 +124,45 @@ class EventLogCompactorTest {
     }
 
     @Test
+    fun storeRunsCompactionAfterSuccessfulMutationsWhenThresholdExceeded() {
+        val projectRoot = Files.createTempDirectory("compactor-production-wire").toFile()
+        try {
+            val paths = FeedbackSessionPaths(projectRoot)
+            val persistence = FeedbackSessionPersistence(paths)
+            var now = 1_000L
+            lateinit var store: FeedbackSessionStore
+            store = FeedbackSessionStore(
+                clock = { ++now },
+                idGenerator = idGenerator(),
+                persistence = persistence,
+                eventLogWriterProvider = fastEventWriterFor(paths),
+                eventLogReaderProvider = eventReaderFor(paths),
+                eventLogCompactorProvider = { sessionId ->
+                    EventLogCompactor(
+                        directory = paths.eventLogDirectory(sessionId),
+                        snapshotProvider = { store.getSession(sessionId) },
+                        snapshotWriter = { persistence.save(it) },
+                        clock = { ++now },
+                    )
+                },
+                eventLogCompactionThreshold = 3,
+            )
+            val session = store.openSession("com.test", projectRoot.absolutePath)
+            val screen = store.addScreen(session.sessionId, makeScreen())
+            repeat(8) { index -> store.addItem(session.sessionId, makeDraftItem(screen.screenId, index + 1)) }
+
+            val active = paths.eventLogDirectory(session.sessionId)
+                .listFiles { f -> f.isFile && f.extension == "jsonl" }
+                .orEmpty()
+            assertTrue(active.size <= 3)
+            assertTrue(File(paths.eventLogDirectory(session.sessionId), "checkpoint.json").isFile)
+            assertTrue(File(paths.eventLogDirectory(session.sessionId), "archive").isDirectory)
+        } finally {
+            projectRoot.deleteRecursively()
+        }
+    }
+
+    @Test
     fun compactionMovesOldestFilesWhenAboveThreshold() {
         val dir = Files.createTempDirectory("compactor-primary").toFile()
         try {

@@ -1,5 +1,6 @@
 package io.beyondwin.fixthis.mcp.session
 
+import io.beyondwin.fixthis.mcp.session.eventlog.EventLogCompactor
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
 import kotlinx.serialization.json.Json
@@ -39,6 +40,8 @@ class FeedbackSessionStore(
     private val persistence: FeedbackSessionPersistence? = null,
     private val eventLogWriterProvider: ((sessionId: String) -> EventLogWriter)? = null,
     private val eventLogReaderProvider: ((sessionId: String) -> EventLogReader)? = null,
+    private val eventLogCompactorProvider: ((sessionId: String) -> EventLogCompactor)? = null,
+    private val eventLogCompactionThreshold: Int = 1000,
 ) {
     private val lock = Any()
     private val sessions = linkedMapOf<String, SessionDto>()
@@ -651,6 +654,20 @@ class FeedbackSessionStore(
         // Throws EventLogException on failure — mutate() is never reached.
         journal.append(sessionId = sessionId, type = type, payload = payload)
         mutate()
+        compactEventLogAfterMutation(sessionId)
+    }
+
+    @Suppress("TooGenericExceptionCaught", "SwallowedException")
+    private fun compactEventLogAfterMutation(sessionId: String) {
+        val compactor = eventLogCompactorProvider?.invoke(sessionId) ?: return
+        try {
+            compactor.runOnce(eventLogCompactionThreshold)
+        } catch (error: Exception) {
+            replaySkippedSessions[sessionId] = SkippedFeedbackSession(
+                path = "event-log-compaction",
+                message = "Event log compaction failed: ${error.message ?: error::class.java.simpleName}",
+            )
+        }
     }
 
     private fun JsonObjectBuilder.putItems(items: List<AnnotationDto>) {
