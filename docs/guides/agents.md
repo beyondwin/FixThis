@@ -1,7 +1,9 @@
 # Working with AI Agents
 
-FixThis hands UI context to AI coding agents in two modes. Pick the section
-below that matches how you drive your agent.
+For first-time setup, start with
+[Connect Your AI Agent](../getting-started/connect-your-agent.md). This guide
+keeps the deeper workflow details: queue behavior, claim/resolve semantics,
+shared mode behavior, and target reliability warnings.
 
 | Agent style                       | Mode             | Setup                              |
 | --------------------------------- | ---------------- | ---------------------------------- |

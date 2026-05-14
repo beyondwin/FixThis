@@ -1,0 +1,102 @@
+# Connect Your AI Agent
+
+FixThis supports two handoff modes:
+
+| Agent style | Use | Setup |
+| --- | --- | --- |
+| Claude Code | **Save to MCP** | `./scripts/bootstrap-mcp.sh --package <applicationId> --target claude` |
+| Codex | **Save to MCP** | `./scripts/bootstrap-mcp.sh --package <applicationId> --target codex` |
+| Cursor, ChatGPT, or another chat-style agent | **Copy Prompt** | No MCP setup; paste the copied Markdown |
+
+Both modes use the same evidence. **Copy Prompt** puts compact Markdown on your
+clipboard. **Save to MCP** writes the same handoff locally so an MCP-aware
+agent can read, claim, and resolve feedback items.
+
+## Prerequisites
+
+- Run the bundled sample or a Compose debug build with FixThis installed.
+- Know the Android `applicationId` for the app you want to inspect.
+- Keep ADB on your PATH and use an unlocked device or emulator.
+
+For the sample app, the package is `io.beyondwin.fixthis.sample`.
+
+## Claude Code
+
+```bash
+./scripts/bootstrap-mcp.sh --package <applicationId> --target claude
+```
+
+The script builds the local CLI/MCP distributions and writes project-local
+Claude Code settings under `.claude/settings.json`. Restart Claude Code after
+the script finishes.
+
+In Claude Code, open the console:
+
+```text
+fixthis_open_feedback_console
+```
+
+After you click **Save to MCP** in the console, ask Claude Code:
+
+```text
+Read the latest FixThis handoff, claim the item, make the change, and mark it resolved when done.
+```
+
+## Codex
+
+```bash
+./scripts/bootstrap-mcp.sh --package <applicationId> --target codex
+```
+
+The script builds the local CLI/MCP distributions and writes Codex MCP config
+to `~/.codex/config.toml`. Restart Codex after the script finishes.
+
+In Codex, open the console:
+
+```text
+fixthis_open_feedback_console
+```
+
+After **Save to MCP**, ask Codex:
+
+```text
+Read the latest FixThis handoff, claim the item, make the change, and mark it resolved when done.
+```
+
+## Cursor, ChatGPT, and Chat-Style Agents
+
+Use **Copy Prompt**:
+
+1. Open FixThis Studio.
+2. Click **Annotate**.
+3. Select a UI element or drag a visual area.
+4. Type the change request.
+5. Click **Add annotation**.
+6. Click **Copy Prompt**.
+7. Paste the Markdown into your agent.
+
+No MCP restart or config file is required for this mode.
+
+## MCP Queue Lifecycle
+
+MCP-aware agents should follow this lifecycle:
+
+1. `fixthis_read_feedback` to read the compact Markdown and JSON evidence.
+2. `fixthis_claim_feedback` before editing, so the console shows the item as in progress.
+3. `fixthis_resolve_feedback` after editing, with `resolved`, `needs_clarification`, or `wont_fix`.
+
+Full signatures live in the [MCP tools reference](../reference/mcp-tools.md).
+CLI setup flags live in the [CLI reference](../reference/cli.md).
+
+## Locality and Artifacts
+
+FixThis does not call an external AI API. **Save to MCP** writes local handoff
+files under `.fixthis/feedback-sessions/`, and **Copy Prompt** writes compact
+Markdown to your clipboard. Do not commit `.fixthis/`.
+
+## Next
+
+- [Try the sample app](try-the-sample.md)
+- [Add FixThis to your app](add-to-your-app.md)
+- [Working with AI agents](../guides/agents.md)
+- [Troubleshooting](../guides/troubleshooting.md)

@@ -1,9 +1,8 @@
 # Add FixThis to Your Own App
 
-> ⚠️ **Pre-publication.** FixThis is not yet published to Maven Central or the
-> Gradle Plugin Portal. External projects must wire this repository explicitly
-> via Gradle composite build (`includeBuild`) or project-dependency, _not_ via
-> the placeholder coordinates below. See
+> ⚠️ **Pre-publication status:** The bundled sample works now. A separate app can
+> use FixThis today through Gradle composite-build or local project wiring.
+> Maven Central and Gradle Plugin Portal coordinates are not published yet. See
 > [Release readiness](../contributing/release-readiness.md) for the publishing
 > checklist.
 
@@ -31,8 +30,8 @@ directly. **External projects must reproduce that wiring** (composite build or
 project dependency) until a published plugin coordinate exists.
 
 The plugin handles source-index generation and adds the sidekick as a
-`debugImplementation` automatically. Once published, manual sidekick wiring
-will look like (placeholder, do not use yet):
+`debugImplementation` automatically. Future published sidekick wiring will look
+like this, but this snippet is not copyable until artifacts are released:
 
 ```kotlin
 // Future, once published. Until then, use composite build.
@@ -91,8 +90,19 @@ Or directly from the CLI:
 fixthis console --package <applicationId>
 ```
 
+## Done State
+
+Your app integration is working when:
+
+- `fixthis doctor --package <applicationId>` reports a reachable debug app and sidekick bridge;
+- `fixthis_open_feedback_console` or `fixthis console --package <applicationId>` opens FixThis Studio;
+- one annotation can be saved through **Copy Prompt** or **Save to MCP**;
+- release builds do not include the sidekick.
+
 ## What's next
 
+- [Connect your AI agent](connect-your-agent.md) — Claude Code, Codex, Cursor,
+  and chat-style agents
 - [Feedback console tour](../guides/feedback-console-tour.md) — visual walkthrough
 - [Working with AI agents](../guides/agents.md) — Claude Code, Codex, Cursor,
   and chat-style agents

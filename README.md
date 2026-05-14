@@ -8,20 +8,77 @@
 
 ![FixThis Studio — point at any Jetpack Compose UI element, annotate, hand off AI-ready context to your coding agent](docs/assets/fixthis-studio-hero.png)
 
-Telling a coding agent *which* part of a complex Compose screen to change is harder than the change itself. "The second card from the bottom — the small chip on its right edge — make the corners rounder" is tedious to write, ambiguous to read, and the agent still has to guess where in the source tree to land.
+Point at a Jetpack Compose UI, write the change you want, and hand Claude,
+Codex, Cursor, or another coding agent the source context it needs.
 
-**FixThis flips that around: point at the UI, type what you want, and the agent gets a structured prompt with the target nailed down.** Behind the screenshot we attach source-file candidates, the surrounding semantic tree, the activity, the bounds, and severity / status — the agent acts on a precise target instead of decoding a description.
+FixThis adds a debug-only sidekick to a Compose app, mirrors the current screen
+into a local browser console, and turns your UI annotations into a compact
+agent handoff with screenshot bounds, semantics context, source candidates, and
+target-confidence warnings.
 
 In the browser console, a single click selects the nearest Compose UI
-component, and a drag selects any visual area when the target is spacing,
-empty room, interop content, or another region that is not a clean component.
+component, and a drag selects any visual area when the target is spacing, empty
+room, interop content, or another region that is not a clean component.
 
-Two handoff modes:
+## Works Today
 
-- **Copy Prompt** — copies a compact Markdown prompt to the clipboard. Paste into Claude, Codex, Cursor, or any chat-style agent. No setup beyond having FixThis running.
-- **Save to MCP** — saves the annotation batch as a local handoff. Claude Code or Codex (configured by `./scripts/bootstrap-mcp.sh`, or manually with `fixthis setup --write` after building the CLI/MCP distributions) reads it on demand via MCP tools — no copy/paste round trip.
+- Try the bundled sample app in about five minutes.
+- Use **Copy Prompt** with Cursor, ChatGPT, or any chat-style coding agent.
+- Use **Save to MCP** with Claude Code or Codex after running the bootstrap script.
+- Runs locally over ADB and `127.0.0.1`; FixThis makes no external API calls.
+- Debug builds only. Jetpack Compose only.
+- External Gradle artifacts are not published yet; your own app needs composite-build or local repository wiring for now.
 
-Both modes share the same compact prompt format and the same JSON evidence.
+## Quick Start: Sample App to Agent Handoff
+
+```bash
+git clone <this-repo> && cd FixThis
+./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
+fixthis-cli/build/install/fixthis/bin/fixthis doctor --package io.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
+```
+
+`fixthis run` installs the sample debug APK, launches it, attaches the
+sidekick bridge, and opens FixThis Studio at `http://127.0.0.1:<port>`.
+
+In the console:
+
+1. Click **Annotate**.
+2. Click a Compose UI element, or drag a visual area.
+3. Type the requested change.
+4. Click **Add annotation**.
+5. Click **Copy Prompt** for any chat-style agent, or **Save to MCP** for
+   Claude Code / Codex.
+
+You are done when the console shows a numbered annotation and you have either
+copied compact Markdown or saved a local MCP handoff.
+
+## Pick Your Path
+
+| Goal | Start here |
+| --- | --- |
+| Try FixThis without touching your app | [Quick Start with the sample](docs/getting-started/try-the-sample.md) |
+| Add FixThis to your Compose debug build | [Add FixThis to your app](docs/getting-started/add-to-your-app.md) |
+| Connect Claude Code, Codex, Cursor, or a chat agent | [Connect your agent](docs/getting-started/connect-your-agent.md) |
+| Learn the browser console workflow | [Feedback console tour](docs/guides/feedback-console-tour.md) |
+| Diagnose setup problems | [Troubleshooting](docs/guides/troubleshooting.md) |
+| Inspect CLI, MCP, or JSON contracts | [Documentation index](docs/index.md) |
+| Contribute | [Contributing guide](CONTRIBUTING.md) |
+
+Agents working inside this repository should also read [AGENTS.md](AGENTS.md).
+
+## Trust and Privacy
+
+FixThis is local-first: the sidekick talks to the desktop tools over ADB, the
+browser console binds to localhost, and **Save to MCP** writes local files under
+`.fixthis/`. FixThis does not call an external AI API.
+
+Screenshots may still contain sensitive pixels. Review copied prompts or local
+artifacts before sharing them outside your machine, and do not commit
+`.fixthis/`.
+
+Details: [Privacy](docs/reference/privacy.md), [Security](SECURITY.md), and
+[Threat model](docs/reference/threat-model.md).
 
 ## Why FixThis vs. just sending a screenshot?
 
@@ -37,29 +94,6 @@ Modern coding agents already accept screenshots and accessibility trees. FixThis
 
 If your screen has a single obvious target with clear text, a plain screenshot may already be enough. FixThis pays off when the UI is dense, list-rendered, or labeled mostly by composable name.
 
-## Quick Start (sample app, ~5 min)
-
-```bash
-git clone <this-repo> && cd FixThis
-./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
-fixthis-cli/build/install/fixthis/bin/fixthis doctor --package io.beyondwin.fixthis.sample
-fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
-```
-
-`fixthis run` installs the sample debug APK, attaches the sidekick bridge, and
-opens the FixThis Studio console at `http://127.0.0.1:<port>`. Follow the
-Connect → Preview → Annotate → Handoff progress, watch the readiness summary
-near **Copy Prompt** / **Save to MCP**, then copy Markdown or save the local
-MCP handoff for Claude Code or Codex.
-
-**Using Claude Code, Codex, or another MCP-aware agent?** See
-[`AGENTS.md`](AGENTS.md) for the agent-first quick start
-(`./scripts/bootstrap-mcp.sh`) and the MCP tool index.
-
-→ Full walkthrough: [Quick Start with the sample](docs/getting-started/try-the-sample.md)
-→ Add to your own app: [Add FixThis to your app](docs/getting-started/add-to-your-app.md)
-→ Anything broken? [Troubleshooting](docs/guides/troubleshooting.md)
-
 ## Scope (V1)
 
 FixThis is intentionally narrow today:
@@ -73,26 +107,18 @@ FixThis is intentionally narrow today:
 - **Source candidates are best-effort.** Up to 3 candidates plus a margin score so the agent can pick or verify.
 - **Screenshots are pixel captures.** Editable / password text is redacted, but pixels may still contain sensitive content.
 
-## Documentation
+## Module Map
 
-→ **Full docs index: [`docs/index.md`](docs/index.md)**
+| Module | Role |
+| --- | --- |
+| `:app` (`sample/`) | Validation sample app |
+| `:fixthis-compose-core` | Pure Kotlin domain |
+| `:fixthis-compose-sidekick` | Debug Android runtime |
+| `:fixthis-gradle-plugin` | Source-index generation and debug DI |
+| `:fixthis-cli` | Desktop CLI |
+| `:fixthis-mcp` | stdio MCP server and local HTTP feedback console |
 
-| You want                          | Look here                                                            |
-| --------------------------------- | -------------------------------------------------------------------- |
-| Try it on the sample              | [`docs/getting-started/try-the-sample.md`](docs/getting-started/try-the-sample.md) |
-| Add to your own app               | [`docs/getting-started/add-to-your-app.md`](docs/getting-started/add-to-your-app.md) |
-| Use with Claude Code / Codex / Cursor | [`docs/guides/agents.md`](docs/guides/agents.md)                |
-| Console walkthrough               | [`docs/guides/feedback-console-tour.md`](docs/guides/feedback-console-tour.md) |
-| CLI flags                         | [`docs/reference/cli.md`](docs/reference/cli.md)                     |
-| MCP tool list                     | [`docs/reference/mcp-tools.md`](docs/reference/mcp-tools.md)         |
-| Output JSON shape                 | [`docs/reference/output-schema.md`](docs/reference/output-schema.md) |
-| Bridge protocol                   | [`docs/reference/bridge-protocol.md`](docs/reference/bridge-protocol.md) |
-| Compatibility (AGP / Kotlin / Compose) | [`docs/reference/compatibility.md`](docs/reference/compatibility.md) |
-| Privacy & security                | [`docs/reference/privacy.md`](docs/reference/privacy.md), [`docs/reference/threat-model.md`](docs/reference/threat-model.md), [`SECURITY.md`](SECURITY.md) |
-| Architecture                      | [`docs/architecture/overview.md`](docs/architecture/overview.md), [`docs/architecture/adr/`](docs/architecture/adr/) |
-| Release notes                     | [`docs/releases/`](docs/releases/)                              |
-| Contribute                        | [`CONTRIBUTING.md`](CONTRIBUTING.md), [`docs/contributing/release-process.md`](docs/contributing/release-process.md) |
-| Troubleshoot                      | [`docs/guides/troubleshooting.md`](docs/guides/troubleshooting.md)   |
+Architecture details live in [Architecture overview](docs/architecture/overview.md).
 
 ## Status
 

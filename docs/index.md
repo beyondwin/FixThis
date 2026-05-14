@@ -5,50 +5,30 @@ context to AI coding agents — point at a UI element in a desktop browser
 console, type what you want, and the agent gets a structured prompt with the
 target nailed down.
 
-This page is a directory. Pick the path that matches what you're trying to do.
+This page is a directory. Start with the [project README](../README.md) for the
+pitch, scope, and sample-to-agent Quick Start.
 
-## I'm new — what is this?
+## Start Here
 
-- **Start at the [project README](../README.md).** It has the pitch, the
-  scope, and a 5-minute Quick Start against the bundled sample app.
-- **Want the architecture in one page?** Read
-  [`architecture/overview.md`](architecture/overview.md).
+| I want to... | Read |
+| --- | --- |
+| Try FixThis without changing my app | [Quick Start — sample app](getting-started/try-the-sample.md) |
+| Add FixThis to my Compose debug build | [Add FixThis to your app](getting-started/add-to-your-app.md) |
+| Connect Claude Code, Codex, Cursor, or ChatGPT | [Connect your AI agent](getting-started/connect-your-agent.md) |
+| Learn the browser annotation workflow | [Feedback console tour](guides/feedback-console-tour.md) |
+| Fix setup or device problems | [Troubleshooting](guides/troubleshooting.md) |
 
-## I want to use FixThis
+## Reference Contracts
 
-### Try it out (5 min, no app changes)
+- [CLI reference](reference/cli.md) — command flags and setup modes.
+- [MCP tools reference](reference/mcp-tools.md) — tool signatures and return shapes.
+- [Output schema](reference/output-schema.md) — persisted JSON fields and handoff shape.
+- [Feedback console contract](reference/feedback-console-contract.md) — console behavior and compact prompt grammar.
+- [Bridge protocol](reference/bridge-protocol.md) — sidekick/desktop wire protocol.
+- [Compatibility matrix](reference/compatibility.md) — tested and minimum toolchain axes.
+- [Privacy](reference/privacy.md), [Security](../SECURITY.md), and [Threat model](reference/threat-model.md) — local artifacts, trust boundaries, and security model.
 
-- [Quick Start with the sample app](getting-started/try-the-sample.md)
-- [Troubleshooting](guides/troubleshooting.md) — ADB, lockscreen, bridge attach
-
-### Use it on my own app
-
-- [Add FixThis to your app](getting-started/add-to-your-app.md) — Gradle plugin,
-  bootstrap, MCP setup
-- [Feedback console tour](guides/feedback-console-tour.md) — annotate, pin to
-  source, hand off
-- [Working with AI agents](guides/agents.md) — Claude Code, Codex, Cursor,
-  and any chat-style agent
-- [CLI reference](reference/cli.md) — `fixthis run / doctor / setup / console / clean / mcp`
-
-## I want to integrate at a deeper level
-
-- [MCP tools reference](reference/mcp-tools.md) — every tool the MCP server
-  exposes
-- [Output schema](reference/output-schema.md) — JSON shape of annotations,
-  sessions, and handoff batches
-- [Feedback console contract](reference/feedback-console-contract.md) —
-  console-side semantics and persisted shape
-- [Bridge protocol](reference/bridge-protocol.md) — sidekick ↔ console wire
-  protocol and version compatibility
-- [Privacy](reference/privacy.md) — what stays local, what's redacted, what to
-  review before sharing
-- [Security model](../SECURITY.md) — local-first debug threat model
-- [Threat model](reference/threat-model.md) — assets, trust boundaries,
-  in-scope and out-of-scope adversaries, current mitigations, and deferred
-  follow-ups
-
-## I want to understand the design
+## Architecture and Design
 
 - [Architecture overview](architecture/overview.md) — module map, runtime
   flow, source-matching pipeline
@@ -57,7 +37,7 @@ This page is a directory. Pick the path that matches what you're trying to do.
 - [Console state sync](architecture/console-state-sync-design.md) — shipped
   lockstep refresh + ETag polling design, plus deferred SSE migration plan
 
-## I want to contribute
+## Contribute and Release
 
 - [Contributing guide](../CONTRIBUTING.md) — local checks before opening a PR
 - [Release notes](releases/README.md) — GitHub Release summaries, including
