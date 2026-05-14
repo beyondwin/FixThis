@@ -1,3 +1,5 @@
+@file:Suppress("MaxLineLength")
+
 package io.beyondwin.fixthis.compose.sidekick.bridge
 
 import android.net.LocalServerSocket
@@ -66,11 +68,9 @@ class BridgeServerConcurrencyStressTest {
         socketFactory = { _ -> fakeServerSocket() },
     )
 
-    private fun fakeServerSocket(): LocalServerSocket =
-        unsafe.allocateInstance(LocalServerSocket::class.java) as LocalServerSocket
+    private fun fakeServerSocket(): LocalServerSocket = unsafe.allocateInstance(LocalServerSocket::class.java) as LocalServerSocket
 
-    private fun statusRequestPayload(token: String): String =
-        """{"id":"1","method":"status","params":{},"token":"$token"}"""
+    private fun statusRequestPayload(token: String): String = """{"id":"1","method":"status","params":{},"token":"$token"}"""
 
     private fun fixedSession(): SidekickSession = SidekickSession(
         packageName = "io.beyondwin.fixthis.sample",
@@ -95,19 +95,15 @@ class BridgeServerConcurrencyStressTest {
             sourceIndexAvailable = false,
         )
 
-        override suspend fun inspectCurrentScreen(): BridgeScreenInspection =
-            BridgeScreenInspection(activity = null)
+        override suspend fun inspectCurrentScreen(): BridgeScreenInspection = BridgeScreenInspection(activity = null)
 
-        override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot =
-            BridgeScreenSnapshot(inspection = BridgeScreenInspection(activity = null))
+        override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot = BridgeScreenSnapshot(inspection = BridgeScreenInspection(activity = null))
 
-        override suspend fun readSourceIndex(): BridgeSourceIndexResult =
-            BridgeSourceIndexResult(sourceIndexAvailable = false)
+        override suspend fun readSourceIndex(): BridgeSourceIndexResult = BridgeSourceIndexResult(sourceIndexAvailable = false)
 
         override suspend fun getLastScreenSnapshot(): BridgeScreenSnapshot? = null
 
-        override suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult =
-            BridgeNavigationResult(performed = false, action = request.action)
+        override suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult = BridgeNavigationResult(performed = false, action = request.action)
 
         override fun screenshotCacheDirectory(): File = screenshotCacheDir
     }

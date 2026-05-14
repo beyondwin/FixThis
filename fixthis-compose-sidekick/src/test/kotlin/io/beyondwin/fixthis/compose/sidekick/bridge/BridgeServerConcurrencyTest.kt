@@ -1,3 +1,5 @@
+@file:Suppress("MaxLineLength")
+
 package io.beyondwin.fixthis.compose.sidekick.bridge
 
 import android.net.LocalServerSocket
@@ -47,7 +49,10 @@ class BridgeServerConcurrencyTest {
     }
 
     @Test
-    @Ignore("Reproduces §1.2 zombie-handler race; LocalSocket cannot bind under Robolectric. Move to androidTest/ in a follow-up — covered by Task 6 stress harness in the meantime.")
+    @Ignore(
+        "Reproduces §1.2 zombie-handler race; LocalSocket cannot bind under Robolectric. " +
+            "Move to androidTest/ in a follow-up — covered by Task 6 stress harness in the meantime.",
+    )
     fun stopWaitsForInFlightHandlerToCompleteOverRealSocket(): Unit = runBlocking {
         // T2 drives the REAL socket path (not handleRequestForTest) so the
         // §1.2 zombie-handler race is actually reproduced. handleRequestForTest
@@ -95,12 +100,12 @@ class BridgeServerConcurrencyTest {
         val server = newServerWithCountingSocketFactory(AtomicInteger(0))
         val seen = mutableListOf<BridgeServerState>()
         val collector = launch { server.state.collect { seen += it } }
-        yield()              // let collector observe initial Idle before start() overwrites it
+        yield() // let collector observe initial Idle before start() overwrites it
 
         server.start()
-        yield()              // let collector observe Running before stop() overwrites it
+        yield() // let collector observe Running before stop() overwrites it
         server.stop()
-        delay(50)            // allow trailing emission to land
+        delay(50) // allow trailing emission to land
         collector.cancel()
 
         assertEquals("must start in Idle", BridgeServerState.Idle, seen.first())
@@ -139,8 +144,7 @@ class BridgeServerConcurrencyTest {
         )
     }
 
-    private fun fakeServerSocket(): LocalServerSocket =
-        unsafe.allocateInstance(LocalServerSocket::class.java) as LocalServerSocket
+    private fun fakeServerSocket(): LocalServerSocket = unsafe.allocateInstance(LocalServerSocket::class.java) as LocalServerSocket
 
     private fun newServerWithBlockingEnvironment(
         entered: CompletableDeferred<Unit>,
@@ -150,8 +154,8 @@ class BridgeServerConcurrencyTest {
         val session = fixedSession()
         val env = object : BridgeEnvironment by StubBridgeEnvironment() {
             override suspend fun status(): BridgeStatus {
-                entered.complete(Unit)   // signal observation
-                gate.await()              // hold until caller releases
+                entered.complete(Unit) // signal observation
+                gate.await() // hold until caller releases
                 return BridgeStatus(
                     activity = null,
                     rootsCount = 0,
@@ -164,8 +168,7 @@ class BridgeServerConcurrencyTest {
         return BridgeServer(session = session, environment = env)
     }
 
-    private fun statusRequestPayload(token: String): String =
-        """{"id":"1","method":"status","params":{},"token":"$token"}"""
+    private fun statusRequestPayload(token: String): String = """{"id":"1","method":"status","params":{},"token":"$token"}"""
 
     private fun fixedSession(): SidekickSession = SidekickSession(
         packageName = "io.beyondwin.fixthis.sample",
@@ -190,19 +193,15 @@ class BridgeServerConcurrencyTest {
             sourceIndexAvailable = false,
         )
 
-        override suspend fun inspectCurrentScreen(): BridgeScreenInspection =
-            BridgeScreenInspection(activity = null)
+        override suspend fun inspectCurrentScreen(): BridgeScreenInspection = BridgeScreenInspection(activity = null)
 
-        override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot =
-            BridgeScreenSnapshot(inspection = BridgeScreenInspection(activity = null))
+        override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot = BridgeScreenSnapshot(inspection = BridgeScreenInspection(activity = null))
 
-        override suspend fun readSourceIndex(): BridgeSourceIndexResult =
-            BridgeSourceIndexResult(sourceIndexAvailable = false)
+        override suspend fun readSourceIndex(): BridgeSourceIndexResult = BridgeSourceIndexResult(sourceIndexAvailable = false)
 
         override suspend fun getLastScreenSnapshot(): BridgeScreenSnapshot? = null
 
-        override suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult =
-            BridgeNavigationResult(performed = false, action = request.action)
+        override suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult = BridgeNavigationResult(performed = false, action = request.action)
 
         override fun screenshotCacheDirectory(): File = screenshotCacheDir
     }

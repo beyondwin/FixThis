@@ -62,6 +62,7 @@ private inline fun withConsoleServer(service: FeedbackSessionService, block: (Fe
     }
 }
 
+@Suppress("LargeClass")
 class ConsoleFeedbackItemRoutesTest {
     @Test
     fun itemPatchUpdatesDraftAnnotation() {
@@ -69,7 +70,10 @@ class ConsoleFeedbackItemRoutesTest {
             clock = FakeLongs(100L, 200L, 300L, 400L).next,
             idGenerator = FakeIds("session-1", "item-1").next,
         )
-        fixture.use { (service, store, server, _) ->
+        fixture.use { context ->
+            val service = context.service
+            val store = context.store
+            val server = context.server
             val session = service.openSession(null, newSession = true)
             store.addScreen(
                 session.sessionId,

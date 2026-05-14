@@ -8,7 +8,6 @@ import io.beyondwin.fixthis.mcp.fixtures.writeConsoleAssets
 import io.beyondwin.fixthis.mcp.session.FakeFixThisBridge
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
-import java.io.File
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -86,7 +85,10 @@ class ConsoleAssetRoutesTest {
     @Test
     fun consoleBundleEmbedsBuildEpochAndGitSha() {
         val html = FeedbackConsoleAssets.indexHtml
-        assertTrue(html.contains("window.FixThisConsoleConfig.buildMeta"), "must embed buildMeta via FixThisConsoleConfig")
+        assertTrue(
+            html.contains("window.FixThisConsoleConfig.buildMeta"),
+            "must embed buildMeta via FixThisConsoleConfig",
+        )
         assertTrue(html.contains("buildEpochMs"), "must embed buildEpochMs in buildMeta")
         assertTrue(html.contains("gitSha"), "must embed gitSha in buildMeta")
     }

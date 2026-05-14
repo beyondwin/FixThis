@@ -3,11 +3,11 @@ package io.beyondwin.fixthis.mcp.console
 import io.beyondwin.fixthis.cli.fixThisJson
 import io.beyondwin.fixthis.mcp.fixtures.BlockingCaptureBridge
 import io.beyondwin.fixthis.mcp.fixtures.ConsoleHttpTestClient
+import io.beyondwin.fixthis.mcp.fixtures.ConsoleSourceFixtures
 import io.beyondwin.fixthis.mcp.fixtures.FakeIds
 import io.beyondwin.fixthis.mcp.fixtures.LegacyScreenshotBridge
 import io.beyondwin.fixthis.mcp.fixtures.SequencedSessionScreenshotBridge
 import io.beyondwin.fixthis.mcp.fixtures.SessionScreenshotBridge
-import io.beyondwin.fixthis.mcp.fixtures.ConsoleSourceFixtures
 import io.beyondwin.fixthis.mcp.fixtures.addCapturedScreenForTest
 import io.beyondwin.fixthis.mcp.fixtures.javascriptFunctionBody
 import io.beyondwin.fixthis.mcp.session.FakeFixThisBridge

@@ -3,11 +3,11 @@ package io.beyondwin.fixthis.cli.commands
 import io.beyondwin.fixthis.cli.DiagnosticContext
 import kotlinx.serialization.json.Json
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.File
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 
 class SetupErrorRenderingTest {
 

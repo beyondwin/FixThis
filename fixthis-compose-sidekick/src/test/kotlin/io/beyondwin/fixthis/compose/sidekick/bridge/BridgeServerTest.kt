@@ -1,3 +1,5 @@
+@file:Suppress("MaxLineLength")
+
 package io.beyondwin.fixthis.compose.sidekick.bridge
 
 import android.net.LocalServerSocket
@@ -8,7 +10,6 @@ import io.beyondwin.fixthis.compose.core.model.TreeKind
 import io.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
 import kotlinx.coroutines.runBlocking
-import sun.misc.Unsafe
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonArray
@@ -22,6 +23,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import sun.misc.Unsafe
 import java.io.File
 import java.io.RandomAccessFile
 import kotlin.io.path.createTempDirectory
@@ -445,8 +447,7 @@ class BridgeServerTest {
         }
     }
 
-    private fun fakeServerSocket(): LocalServerSocket =
-        unsafe.allocateInstance(LocalServerSocket::class.java) as LocalServerSocket
+    private fun fakeServerSocket(): LocalServerSocket = unsafe.allocateInstance(LocalServerSocket::class.java) as LocalServerSocket
 
     private class RecordingBridgeEnvironment(
         private val screenshotCacheDirectory: File = tempDirectory(prefix = "fixthis-cache"),

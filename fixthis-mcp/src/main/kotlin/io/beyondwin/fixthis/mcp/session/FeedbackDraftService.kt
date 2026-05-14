@@ -23,9 +23,18 @@ internal data class PreviewFrozenFingerprint(
     val source: String,
 )
 
+@Suppress("MaxLineLength")
 internal fun PreviewFeedbackSaveReservation.serverFrozenFingerprint(): PreviewFrozenFingerprint = PreviewFrozenFingerprint(
     value = preview.snapshot.screen.fingerprint,
     source = frozenFingerprintSource,
+)
+
+internal data class PreviewSaveFingerprintCheck(
+    val frozenFingerprint: String? = null,
+    val currentFingerprint: String? = null,
+    val forceMismatchOverride: Boolean = false,
+    val frozenFingerprintSource: String = "client",
+    val clientFrozenFingerprintMismatched: Boolean = false,
 )
 
 private data class PreviewSaveSlot(
@@ -150,9 +159,11 @@ class FeedbackDraftService(
         )
         return commitPreviewFeedbackSaveWithMetadata(
             reservation = reservation,
-            frozenFingerprint = frozenFingerprint,
-            currentFingerprint = currentFingerprint,
-            forceMismatchOverride = forceMismatchOverride,
+            fingerprintCheck = PreviewSaveFingerprintCheck(
+                frozenFingerprint = frozenFingerprint,
+                currentFingerprint = currentFingerprint,
+                forceMismatchOverride = forceMismatchOverride,
+            ),
         )
     }
 
@@ -215,35 +226,28 @@ class FeedbackDraftService(
 
     internal fun commitPreviewFeedbackSave(
         reservation: PreviewFeedbackSaveReservation,
-        frozenFingerprint: String? = null,
-        currentFingerprint: String? = null,
-        forceMismatchOverride: Boolean = false,
-        frozenFingerprintSource: String = "client",
-        clientFrozenFingerprintMismatched: Boolean = false,
+        fingerprintCheck: PreviewSaveFingerprintCheck = PreviewSaveFingerprintCheck(),
     ): SessionDto = commitPreviewFeedbackSaveWithMetadata(
         reservation = reservation,
-        frozenFingerprint = frozenFingerprint,
-        currentFingerprint = currentFingerprint,
-        forceMismatchOverride = forceMismatchOverride,
-        frozenFingerprintSource = frozenFingerprintSource,
-        clientFrozenFingerprintMismatched = clientFrozenFingerprintMismatched,
+        fingerprintCheck = fingerprintCheck,
     ).session
 
     internal fun commitPreviewFeedbackSaveWithMetadata(
         reservation: PreviewFeedbackSaveReservation,
-        frozenFingerprint: String? = null,
-        currentFingerprint: String? = null,
-        forceMismatchOverride: Boolean = false,
-        frozenFingerprintSource: String = "client",
-        clientFrozenFingerprintMismatched: Boolean = false,
+        fingerprintCheck: PreviewSaveFingerprintCheck = PreviewSaveFingerprintCheck(),
     ): PreviewFeedbackSaveResult = try {
-        enforceFingerprintMatch(frozenFingerprint, currentFingerprint, forceMismatchOverride)
-        val fingerprintUnavailableReason = fingerprintUnavailableReason(frozenFingerprint, currentFingerprint)
+        enforceFingerprintMatch(
+            fingerprintCheck.frozenFingerprint,
+            fingerprintCheck.currentFingerprint,
+            fingerprintCheck.forceMismatchOverride,
+        )
+        val fingerprintUnavailableReason = fingerprintUnavailableReason(
+            fingerprintCheck.frozenFingerprint,
+            fingerprintCheck.currentFingerprint,
+        )
         val eventMetadata = previewSaveEventMetadata(
-            forceMismatchOverride = forceMismatchOverride,
+            fingerprintCheck = fingerprintCheck,
             fingerprintUnavailableReason = fingerprintUnavailableReason,
-            frozenFingerprintSource = frozenFingerprintSource,
-            clientFrozenFingerprintMismatched = clientFrozenFingerprintMismatched,
         )
         val preview = reservation.preview
         val feedbackItems = reservation.items.map { pending ->
@@ -313,17 +317,17 @@ class FeedbackDraftService(
     }
 
     private fun previewSaveEventMetadata(
-        forceMismatchOverride: Boolean,
+        fingerprintCheck: PreviewSaveFingerprintCheck,
         fingerprintUnavailableReason: String?,
-        frozenFingerprintSource: String,
-        clientFrozenFingerprintMismatched: Boolean,
     ): JsonObject = buildJsonObject {
-        if (forceMismatchOverride) put("forceMismatchOverride", true)
+        if (fingerprintCheck.forceMismatchOverride) put("forceMismatchOverride", true)
         if (fingerprintUnavailableReason != null) {
             put("fingerprintUnavailableReason", fingerprintUnavailableReason)
         }
-        put("frozenFingerprintSource", frozenFingerprintSource)
-        if (clientFrozenFingerprintMismatched) put("clientFrozenFingerprintMismatched", true)
+        put("frozenFingerprintSource", fingerprintCheck.frozenFingerprintSource)
+        if (fingerprintCheck.clientFrozenFingerprintMismatched) {
+            put("clientFrozenFingerprintMismatched", true)
+        }
     }
 
     private fun validatePreviewPendingItems(

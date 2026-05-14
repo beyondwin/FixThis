@@ -85,7 +85,8 @@ internal object FixThisBridgeRuntime {
 
     fun stopForTest() {
         // stopForTest: runBlocking is permitted only here per spec §6.1.
-        runBlocking(Dispatchers.IO) { // stopForTest
+        runBlocking(Dispatchers.IO) {
+            // stopForTest
             mutex.withLock {
                 server?.stop()
                 server = null

@@ -3,9 +3,9 @@ package io.beyondwin.fixthis.mcp.console
 import io.beyondwin.fixthis.cli.AdbDevice
 import io.beyondwin.fixthis.cli.fixThisJson
 import io.beyondwin.fixthis.mcp.fixtures.ConsoleHttpTestClient
+import io.beyondwin.fixthis.mcp.fixtures.ConsoleSourceFixtures
 import io.beyondwin.fixthis.mcp.fixtures.DeviceListBridge
 import io.beyondwin.fixthis.mcp.fixtures.FakeIds
-import io.beyondwin.fixthis.mcp.fixtures.ConsoleSourceFixtures
 import io.beyondwin.fixthis.mcp.fixtures.assertDoesNotClearDraftOrPreview
 import io.beyondwin.fixthis.mcp.fixtures.javascriptFunctionBody
 import io.beyondwin.fixthis.mcp.session.FakeFixThisBridge
@@ -515,7 +515,11 @@ class ConsoleDeviceSelectionRoutesTest {
         assertTrue(html.contains(".annotate-hint"))
         assertTrue(html.contains("position: static;"))
         assertTrue(html.contains("id=\"annotateHintSlot\""))
-        assertTrue(renderPreviewRegion.contains("snapshot.dataset.toolMode = toolModeUseCases.isAnnotateMode() ? 'annotate' : 'select';"))
+        assertTrue(
+            renderPreviewRegion.contains(
+                "snapshot.dataset.toolMode = toolModeUseCases.isAnnotateMode() ? 'annotate' : 'select';",
+            ),
+        )
         assertTrue(renderPreviewRegion.contains("const hintSlot = document.getElementById('annotateHintSlot');"))
         assertTrue(renderPreviewRegion.contains("hintSlot.appendChild(hint);"))
         assertFalse(renderPreviewRegion.contains("snapshot.insertBefore(hint, frame);"))

@@ -7,8 +7,7 @@ object ConsoleSourceFixtures {
     private val jsSourceDir = Paths.get("src/main/console")
     private val resourcesDir = Paths.get("src/main/resources/console")
 
-    fun read(moduleFileName: String): String =
-        Files.readString(jsSourceDir.resolve(moduleFileName))
+    fun read(moduleFileName: String): String = Files.readString(jsSourceDir.resolve(moduleFileName))
 
     fun readAll(): String = buildString {
         appendLine(Files.readString(resourcesDir.resolve("index.html")))

@@ -15,6 +15,7 @@ import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.put
 import java.io.File
 
+@Suppress("LongParameterList")
 internal class FakeFixThisBridge(
     private val packageName: String = "io.beyondwin.fixthis.sample",
     private val captureError: Throwable? = null,

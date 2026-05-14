@@ -216,10 +216,13 @@ class SetupCommandTest {
             assertThrows(CliktError::class.java) {
                 SetupCommand().parse(
                     listOf(
-                        "--package", "io.beyondwin.fixthis.sample",
-                        "--project-dir", projectRoot.absolutePath,
+                        "--package",
+                        "io.beyondwin.fixthis.sample",
+                        "--project-dir",
+                        projectRoot.absolutePath,
                         "--write",
-                        "--target", "claude",
+                        "--target",
+                        "claude",
                     ),
                 )
             }
@@ -247,10 +250,13 @@ class SetupCommandTest {
             runCatching {
                 SetupCommand().parse(
                     listOf(
-                        "--package", "io.beyondwin.fixthis.sample",
-                        "--project-dir", projectRoot.absolutePath,
+                        "--package",
+                        "io.beyondwin.fixthis.sample",
+                        "--project-dir",
+                        projectRoot.absolutePath,
                         "--write",
-                        "--target", "claude",
+                        "--target",
+                        "claude",
                         "--verbose",
                     ),
                 )

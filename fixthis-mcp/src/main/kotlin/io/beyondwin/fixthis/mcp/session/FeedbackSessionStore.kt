@@ -33,7 +33,7 @@ private val eventLogJson = Json {
  * preserving backward compatibility for the ~482 existing tests.
  */
 // LargeClass suppressed: split into smaller responsibilities once the event-log API stabilises — see #ALH-followup
-@Suppress("LargeClass")
+@Suppress("LargeClass", "LongParameterList")
 class FeedbackSessionStore(
     private val clock: () -> Long = { System.currentTimeMillis() },
     private val idGenerator: () -> String = { UUID.randomUUID().toString() },

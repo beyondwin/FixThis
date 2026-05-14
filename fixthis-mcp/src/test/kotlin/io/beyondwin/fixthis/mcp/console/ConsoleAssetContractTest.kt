@@ -10,7 +10,8 @@
  * Also includes a JAR resource check (no source maps leak into packaged jar).
  *
  * Running in isolation: a fresh `node scripts/build-console-assets.mjs` must
- * have been run since the last edit to console JS sources under fixthis-mcp/src/main/console/.
+ * have been run since the last edit to console JS sources under
+ * fixthis-mcp/src/main/console/.
  * See CONTRIBUTING.md for the full local-checks recipe.
  */
 package io.beyondwin.fixthis.mcp.console
@@ -23,6 +24,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+@Suppress("LargeClass")
 class ConsoleAssetContractTest {
     @Test
     fun `JAR resources do not include source maps`() {
@@ -168,7 +170,8 @@ class ConsoleAssetContractTest {
         assertFalse(renderSavedAnnotationDetail.contains("readonly"))
         assertTrue(
             renderSavedAnnotationDetail.contains(
-                "const editSessionId = toolModeUseCases.getState().focusedSavedSessionId || state.session?.sessionId || null;",
+                "const editSessionId = toolModeUseCases.getState().focusedSavedSessionId " +
+                    "|| state.session?.sessionId || null;",
             ),
         )
         assertTrue(renderSavedAnnotationDetail.contains("persistSavedEvidenceItem(item, editSessionId)"))

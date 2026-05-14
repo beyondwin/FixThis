@@ -9,10 +9,10 @@ package io.beyondwin.fixthis.cli.commands
 internal object SetupErrorRedactor {
 
     private val SENSITIVE_KEY = Regex(
-        "(?i)\"((?:api[-_]?key|token|secret|credential|password|bearer)[\\w-]*)\"\\s*[:=]\\s*\"[^\"]*\""
+        "(?i)\"((?:api[-_]?key|token|secret|credential|password|bearer)[\\w-]*)\"\\s*[:=]\\s*\"[^\"]*\"",
     )
     private val SENSITIVE_LONG_VALUE_AFTER_KEY = Regex(
-        "(?i)((?:api[-_]?key|token|secret|credential|password|bearer)[\\w-]*\\s*[:=]\\s*)([^\\s,;}\\]]{20,})"
+        "(?i)((?:api[-_]?key|token|secret|credential|password|bearer)[\\w-]*\\s*[:=]\\s*)([^\\s,;}\\]]{20,})",
     )
     private val BEARER_HEADER = Regex("(?i)(Bearer|Basic)\\s+[A-Za-z0-9._\\-/+=]+")
     private val USERS_HOME = Regex("/Users/[^/\\s\"]+")
