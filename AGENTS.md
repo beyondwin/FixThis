@@ -37,8 +37,8 @@ Manual setup, full CLI flags, and dry-run examples:
 [`docs/reference/cli.md`](docs/reference/cli.md).
 
 **Trying FixThis from scratch on the sample app?** Start at the README's
-[Quick Start](README.md#quick-start-sample-app-5-min) for the human-driven
-flow (build → doctor → run → console UI).
+[Quick Start](README.md#quick-start-sample-app-to-agent-handoff) for the
+human-driven flow (build → doctor → run → console → agent handoff).
 
 ## Feedback Workflow
 
@@ -54,7 +54,9 @@ flow (build → doctor → run → console UI).
 9. Call `fixthis_read_feedback` to read the queue, then
    `fixthis_resolve_feedback` after making changes.
 
-Agent integration deep dive (Claude Code / Codex / Cursor specifics):
+First-run agent setup:
+[`docs/getting-started/connect-your-agent.md`](docs/getting-started/connect-your-agent.md).
+Deeper agent workflow notes:
 [`docs/guides/agents.md`](docs/guides/agents.md).
 
 ## MCP Tools — Index
