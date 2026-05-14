@@ -20,25 +20,6 @@ In the browser console, a single click selects the nearest Compose UI
 component, and a drag selects any visual area when the target is spacing, empty
 room, interop content, or another region that is not a clean component.
 
-## Status
-
-> ⚠️ **Source release available; Gradle artifacts not published.** FixThis has
-> GitHub Releases for source snapshots, starting with
-> [v0.1.0](docs/releases/v0.1.0.md), and current `main` can be tried from
-> source. It is not yet on Maven Central or the Gradle Plugin Portal. External
-> projects must wire this repository via Gradle composite build (`includeBuild`)
-> until artifacts are released.
->
-> The live readiness dashboard is
-> [Release readiness](docs/contributing/release-readiness.md). It lists the
-> supported install paths today, future artifact coordinates, and the checks
-> required before public artifact instructions can replace source/composite
-> setup.
->
-> Current `main` also contains unreleased hardening after v0.1.0. See
-> [Unreleased changes since v0.1.0](docs/releases/unreleased.md) and
-> [`CHANGELOG.md`](CHANGELOG.md#unreleased) before cutting the next tag.
-
 ## Works Today
 
 - Try the bundled sample app in about five minutes.
@@ -47,7 +28,8 @@ room, interop content, or another region that is not a clean component.
 - Use **Save to MCP** with Claude Code or Codex after running the bootstrap script.
 - Runs locally over ADB and `127.0.0.1`; FixThis makes no external API calls.
 - Debug builds only. Jetpack Compose only.
-- External Gradle artifacts are not published yet; your own app needs composite-build or local repository wiring for now.
+- External app setup currently uses source/composite-build wiring; artifact
+  publication is tracked in [Release status](#release-status).
 
 ## Quick Start: Sample App to Agent Handoff
 
@@ -85,6 +67,26 @@ copied compact Markdown or saved a local MCP handoff.
 | Diagnose setup problems | [Troubleshooting](docs/guides/troubleshooting.md) |
 | Inspect CLI, MCP, or JSON contracts | [Documentation index](docs/index.md) |
 | Contribute | [Contributing guide](CONTRIBUTING.md) |
+
+## Release Status
+
+FixThis has GitHub source releases, starting with
+[v0.1.0](docs/releases/v0.1.0.md), and current `main` can be tried directly
+from source.
+
+It is not yet on Maven Central or the Gradle Plugin Portal. External projects
+currently wire this repository with Gradle composite build (`includeBuild`) or
+local repository setup until artifacts are released.
+
+The live readiness dashboard is
+[Release readiness](docs/contributing/release-readiness.md). It lists the
+supported install paths today, future artifact coordinates, and the checks
+required before public artifact instructions can replace source/composite
+setup.
+
+Current `main` also contains unreleased hardening after v0.1.0. See
+[Unreleased changes since v0.1.0](docs/releases/unreleased.md) and
+[`CHANGELOG.md`](CHANGELOG.md#unreleased) before cutting the next tag.
 
 Agents working inside this repository should also read [AGENTS.md](AGENTS.md).
 
