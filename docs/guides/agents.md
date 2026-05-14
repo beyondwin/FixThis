@@ -87,6 +87,23 @@ For agents without first-class MCP support, use **Copy Prompt** in the console:
 The agent can start editing immediately — no MCP setup, no restart, no extra
 tools.
 
+### Target reliability warnings
+
+Saved feedback items may include `targetReliability`. Treat it as the
+confidence level for the UI target, not as task priority.
+
+- `HIGH`: source candidates are strong starting points, but still verify the
+  screenshot and surrounding code before editing.
+- `MEDIUM`: inspect the listed candidates before editing; the right call site
+  may be nearby rather than the first candidate.
+- `LOW`: use the screenshot, bounds, comment, and nearby UI labels first. Treat
+  source candidates as hints.
+- `POSSIBLE_VIEW_INTEROP`: the selected pixels may come from AndroidView,
+  WebView, or another non-Compose boundary. Do not assume a Compose candidate
+  rendered those pixels.
+- `SCREEN_FINGERPRINT_MISMATCH_FORCED`: the user force-saved after the screen
+  changed. Confirm the current UI before applying edits.
+
 ## Behavior shared across modes
 
 - **Both modes are local.** No FixThis call goes to an external API. **Save to

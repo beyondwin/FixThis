@@ -253,6 +253,11 @@ Arguments:
 
 The JSON output preserves the full feedback session schema for tools that need exact IDs, paths, and tool contracts. The Markdown output is the compact agent-facing handoff view: it focuses on request, target evidence, and likely source, and intentionally omits internal IDs plus repeated storage metadata such as raw session, screen, item, batch, and screenshot artifact IDs.
 
+`compactMarkdown` includes target confidence lines when reliability metadata is
+present. Low-confidence or warning items remain actionable, but agents should
+verify them before editing. JSON output includes the complete optional
+`targetReliability` object on each item.
+
 The compact Markdown handoff also emits a per-item `id:` token (the feedback item id) and ends with an `agent_protocol:` footer that documents the claim/resolve contract inline. The same compact text is what the `Copy Prompt` button puts on the clipboard, so an agent that only sees the pasted prompt can still reference items by id and call `fixthis_claim_feedback` / `fixthis_resolve_feedback` over MCP.
 
 `fixthis_claim_feedback`

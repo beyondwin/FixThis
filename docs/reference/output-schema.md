@@ -53,6 +53,21 @@ These fields can be absent or empty depending on runtime context:
 - `screenshotKinds`: screenshot artifact kinds available for the annotation, such as `full` and `crop`.
 - `warnings`: human-readable caveats. Agents must treat these as confidence constraints.
 
+#### `targetReliability` optional object
+
+`targetReliability` is additive and optional. Older sessions omit it.
+
+```json
+{
+  "confidence": "HIGH | MEDIUM | LOW | UNKNOWN",
+  "reasons": ["STRICT_COMPOSABLE_IDENTITY"],
+  "warnings": ["POSSIBLE_VIEW_INTEROP"]
+}
+```
+
+It is a sibling of `targetEvidence`. `targetEvidence` stores captured target
+facts; `targetReliability` stores FixThis's derived judgment over those facts.
+
 ## Feedback Session Schema
 
 Feedback console sessions are returned by `fixthis_open_feedback_console` and served by the local console API. Top-level fields:
@@ -176,6 +191,8 @@ Feedback items represent human comments on a persisted evidence snapshot. When a
 - `status`: `open`, `ready`, `in_progress`, `resolved`, `needs_clarification`, or `wont_fix`.
 - `agentSummary`: optional agent resolution summary.
 - `targetEvidence`: optional additive evidence for stable agent handoff. When present, it follows the annotation `targetEvidence` shape above.
+- `targetReliability`: optional derived target confidence and warning metadata.
+  When present, it follows the `targetReliability` shape above.
 
 `ready` is retained for persisted/session JSON compatibility. Domain mappers normalize legacy `ready` values to `AnnotationStatus.OPEN`; this is not a JSON field migration.
 

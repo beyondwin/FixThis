@@ -38,6 +38,10 @@ Editable text and password fields are redacted from semantics-derived data by de
 
 Redaction applies to structured semantics data. It does not guarantee that pixels in screenshots are redacted.
 
+Target reliability warnings do not reveal redacted text. When sensitive text
+reduces available evidence, FixThis reports `SENSITIVE_TEXT_REDACTED` rather
+than the original value.
+
 ## Screenshot Limitations
 
 Screenshots are captured from the app window. They may include names, email addresses, account data, messages, payment details, or other sensitive information visible on screen.
