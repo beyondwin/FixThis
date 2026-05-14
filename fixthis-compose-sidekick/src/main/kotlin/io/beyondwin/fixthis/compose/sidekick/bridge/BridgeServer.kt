@@ -3,12 +3,16 @@ package io.beyondwin.fixthis.compose.sidekick.bridge
 import android.net.LocalServerSocket
 import android.net.LocalSocket
 import android.util.Log
+import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
@@ -19,7 +23,11 @@ import java.io.File
 import java.io.IOException
 
 class BridgeServer(
-    private val session: SidekickSession,
+    // @VisibleForTesting: tests construct BridgeServer directly to drive the
+    // socket path. Production callers go through FixThisBridgeRuntime which
+    // only consumes resolvedSocketName(). Do not read this outside tests.
+    @VisibleForTesting
+    internal val session: SidekickSession,
     private val environment: BridgeEnvironment,
     private val connectionState: BridgeConnectionState = BridgeConnectionState(),
     private val socketFactory: (String) -> LocalServerSocket = { socketName -> LocalServerSocket(socketName) },
@@ -28,11 +36,11 @@ class BridgeServer(
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
     private val screenshotReader = BridgeScreenshotReader(environment, ioDispatcher)
 
-    @Volatile
-    private var serverSocket: LocalServerSocket? = null
+    private val _state = MutableStateFlow<BridgeServerState>(BridgeServerState.Idle)
+    val state: StateFlow<BridgeServerState> = _state.asStateFlow()
 
     @Volatile
-    private var resolvedName: String? = null
+    private var serverSocket: LocalServerSocket? = null
 
     /**
      * The actual socket name [start] bound to (may differ from the session's
@@ -40,10 +48,14 @@ class BridgeServer(
      * see [BridgeSocketNameNegotiator]). `null` before [start] succeeds or
      * after [stop].
      */
-    fun resolvedSocketName(): String? = resolvedName
+    fun resolvedSocketName(): String? = when (val s = _state.value) {
+        is BridgeServerState.Running -> s.socketName
+        else -> null
+    }
 
     fun start(): Boolean {
         if (serverSocket != null) return false
+        _state.value = BridgeServerState.Starting
         val attempted = mutableListOf<String>()
         var lastError: Throwable? = null
         for (attempt in 0 until BridgeSocketNameNegotiator.MaxAttempts) {
@@ -56,12 +68,13 @@ class BridgeServer(
                 continue
             }
             serverSocket = socket
-            resolvedName = candidate
+            _state.value = BridgeServerState.Running(candidate)
             scope.launch {
                 acceptLoop(socket)
             }
             return true
         }
+        _state.value = BridgeServerState.Idle
         Log.w(
             BridgeServerLogTag,
             "BridgeServer.start() failed after ${attempted.size} attempts: " +
@@ -72,9 +85,10 @@ class BridgeServer(
     }
 
     fun stop() {
+        _state.value = BridgeServerState.Stopping
         runCatching { serverSocket?.close() }
         serverSocket = null
-        resolvedName = null
+        _state.value = BridgeServerState.Idle
         scope.cancel()
     }
 
@@ -128,7 +142,7 @@ class BridgeServer(
                     BridgeProtocol.json.encodeToJsonElement(BridgeHeartbeatResult())
                 }
                 "status" -> BridgeProtocol.json.encodeToJsonElement(
-                    environment.status().copy(socketName = resolvedName ?: session.socketName),
+                    environment.status().copy(socketName = resolvedSocketName() ?: session.socketName),
                 )
                 "inspectCurrentScreen" -> BridgeProtocol.json.encodeToJsonElement(environment.inspectCurrentScreen())
                 "captureScreenSnapshot" -> BridgeProtocol.json.encodeToJsonElement(environment.captureScreenSnapshot())
