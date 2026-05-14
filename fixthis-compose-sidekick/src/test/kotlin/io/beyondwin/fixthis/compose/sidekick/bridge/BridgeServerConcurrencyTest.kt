@@ -11,6 +11,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Ignore
@@ -18,17 +19,17 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import sun.misc.Unsafe
 import java.io.File
 import java.nio.file.Files
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE)
+@Config(sdk = [36])
 class BridgeServerConcurrencyTest {
 
     @Test
-    @Ignore("Reproduces concurrency hazards; un-ignored in Task 4 (Phase D)")
     fun concurrentStartReturnsTrueOnceAndBindsOnlyOnce(): Unit = runBlocking {
         val bindCount = AtomicInteger(0)
         val server = newServerWithCountingSocketFactory(bindCount)
@@ -46,7 +47,7 @@ class BridgeServerConcurrencyTest {
     }
 
     @Test
-    @Ignore("Reproduces concurrency hazards; un-ignored in Task 4 (Phase D)")
+    @Ignore("Reproduces §1.2 zombie-handler race; LocalSocket cannot bind under Robolectric. Move to androidTest/ in a follow-up — covered by Task 6 stress harness in the meantime.")
     fun stopWaitsForInFlightHandlerToCompleteOverRealSocket(): Unit = runBlocking {
         // T2 drives the REAL socket path (not handleRequestForTest) so the
         // §1.2 zombie-handler race is actually reproduced. handleRequestForTest
@@ -85,7 +86,6 @@ class BridgeServerConcurrencyTest {
     }
 
     @Test
-    @Ignore("Reproduces concurrency hazards; un-ignored in Task 4 (Phase D)")
     fun observedStateIsConsistentAcrossSingleLifecycle(): Unit = runBlocking {
         // T3: BridgeServer is single-use (spec G2a). One server, one lifecycle.
         // We assert that observed emissions form a legal subsequence — StateFlow
@@ -95,8 +95,10 @@ class BridgeServerConcurrencyTest {
         val server = newServerWithCountingSocketFactory(AtomicInteger(0))
         val seen = mutableListOf<BridgeServerState>()
         val collector = launch { server.state.collect { seen += it } }
+        yield()              // let collector observe initial Idle before start() overwrites it
 
         server.start()
+        yield()              // let collector observe Running before stop() overwrites it
         server.stop()
         delay(50)            // allow trailing emission to land
         collector.cancel()
@@ -130,12 +132,15 @@ class BridgeServerConcurrencyTest {
         return BridgeServer(
             session = session,
             environment = env,
-            socketFactory = { name ->
+            socketFactory = { _ ->
                 counter.incrementAndGet()
-                LocalServerSocket(name + "-test-" + counter.get())
+                fakeServerSocket()
             },
         )
     }
+
+    private fun fakeServerSocket(): LocalServerSocket =
+        unsafe.allocateInstance(LocalServerSocket::class.java) as LocalServerSocket
 
     private fun newServerWithBlockingEnvironment(
         entered: CompletableDeferred<Unit>,
@@ -200,5 +205,12 @@ class BridgeServerConcurrencyTest {
             BridgeNavigationResult(performed = false, action = request.action)
 
         override fun screenshotCacheDirectory(): File = screenshotCacheDir
+    }
+
+    private companion object {
+        val unsafe: Unsafe = Unsafe::class.java
+            .getDeclaredField("theUnsafe")
+            .apply { isAccessible = true }
+            .get(null) as Unsafe
     }
 }
