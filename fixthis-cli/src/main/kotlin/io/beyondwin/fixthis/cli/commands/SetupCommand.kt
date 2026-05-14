@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.choice
 import io.beyondwin.fixthis.cli.BridgeClient
+import io.beyondwin.fixthis.cli.DiagnosticContext
 import io.beyondwin.fixthis.cli.fixThisJson
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -23,8 +24,12 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
     private val dryRun by option("--dry-run", help = "Print planned writes without modifying files").flag(default = false)
     private val target by option("--target", help = "Agent config target").choice("codex", "claude", "all").default("all")
     private val serverName by option("--server-name", help = "MCP server name to write").default("fixthis")
+    private val verbose by option("--verbose", "-v", help = "Print full stack trace on failure").flag(default = false)
 
     override fun run() {
+        if (verbose) {
+            DiagnosticContext.verbose = true
+        }
         val root = File(projectDir).canonicalFile
         val client = BridgeClient(projectRoot = root)
         val resolvedPackage = failAsCliError { client.resolvePackageName(packageName) }
@@ -84,7 +89,7 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
             writer.merge(current, entry)
         } catch (e: Exception) {
             throw CliktError(
-                "Could not merge ${writer.name} MCP config at ${configFile.absolutePath}: ${e.message}",
+                renderMergeFailure(writer.name, configFile, e),
                 cause = e,
             )
         }
