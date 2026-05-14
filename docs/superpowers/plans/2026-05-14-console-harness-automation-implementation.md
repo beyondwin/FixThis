@@ -377,26 +377,12 @@ git commit -m "test(console): add network outage, slow handoff, multi-tab scenar
 ## Task 3: Delegate Existing Harnesses to the Shared Fixture
 
 **Files:**
-- Modify: `scripts/console-browser-smoke.mjs`
 - Modify: `scripts/console-blocked-harness.mjs`
 - Modify: `scripts/console-responsive-stress.mjs`
 
-- [ ] **Step 1: Update `console-browser-smoke.mjs` to use `startFakeBridge`**
+**Deferred to Phase 2:** `scripts/console-browser-smoke.mjs` is intentionally NOT migrated in Phase 1. Its `handleApi` covers a much richer surface (`/api/connection`, `/api/devices`, `/api/sessions`, `/api/preview/...`, `/api/session/open`, `/api/items/...`, `/api/navigation`, `/api/agent-handoffs`, etc.) than the shared fixture supports, and spec §3.6 ("legacy entry points stay functional") forbids end-to-end smoke regression. Folding the smoke's API surface into `startFakeBridge` is a Phase 2 follow-up; do NOT touch `scripts/console-browser-smoke.mjs` in this task.
 
-Inside `scripts/console-browser-smoke.mjs`, near the top:
-
-Replace the existing inline `http.createServer` and inline HTML assembly block (currently spanning the inline `readFileSync` calls and the `http.createServer` body, see lines ~9 through the `server.listen` call) with:
-
-```javascript
-import { startFakeBridge } from './console-fixture/fakeBridgeServer.mjs';
-
-const fixture = await startFakeBridge({ scenario: 'happy-path' });
-const baseUrl = fixture.url;
-```
-
-At the end of the script, replace the existing `server.close()` invocation with `await fixture.close();`.
-
-Leave the Playwright driving block unchanged for now — only the fixture wiring is being refactored.
+- [ ] **Step 1: Deferred — `console-browser-smoke.mjs` is out of scope for Phase 1 (see note above).**
 
 - [ ] **Step 2: Update `console-blocked-harness.mjs`**
 
@@ -455,12 +441,11 @@ At the end of the script, change `server.close()` to `await fixture.close()`.
 Run:
 
 ```bash
-node --check scripts/console-browser-smoke.mjs
 node --check scripts/console-blocked-harness.mjs
 node --check scripts/console-responsive-stress.mjs
 ```
 
-Expected: each command exits 0.
+Expected: each command exits 0. (`console-browser-smoke.mjs` is unmodified by this task and continues to use its private fixture.)
 
 - [ ] **Step 5: Verify the existing `console-js` CI tests still pass**
 
@@ -482,8 +467,8 @@ Expected: all tests pass; no regression.
 - [ ] **Step 6: Commit Task 3**
 
 ```bash
-git add scripts/console-browser-smoke.mjs scripts/console-blocked-harness.mjs scripts/console-responsive-stress.mjs
-git commit -m "refactor(console): share fake bridge fixture across harnesses"
+git add scripts/console-blocked-harness.mjs scripts/console-responsive-stress.mjs
+git commit -m "refactor(console): share fake bridge fixture across blocked/responsive harnesses"
 ```
 
 ---
