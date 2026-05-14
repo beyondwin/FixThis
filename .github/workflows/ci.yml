@@ -11,8 +11,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  baseline:
-    name: Baseline verification
+  console-js:
+    name: Console JavaScript
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check console asset bundle
+        run: node scripts/build-console-assets.mjs --check
+
+      - name: Check console JavaScript syntax
+        run: node --check fixthis-mcp/src/main/resources/console/app.js
+
+      - name: Run console JavaScript tests
+        run: |
+          node --test \
+            scripts/console-availability-test.mjs \
+            scripts/pendingItemRecovery-test.mjs \
+            scripts/beforeunloadGuard-test.mjs \
+            scripts/undoRedo-test.mjs \
+            scripts/undoKeymatch-test.mjs \
+            scripts/activityDrift-test.mjs \
+            scripts/previewStaleness-test.mjs
+
+  gradle-verification:
+    name: Gradle verification
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -52,23 +78,6 @@ jobs:
             :fixthis-mcp:installDist \
             --no-daemon
 
-      - name: Check console JavaScript syntax
-        run: node --check fixthis-mcp/src/main/resources/console/app.js
-
-      - name: Check console asset bundle
-        run: node scripts/build-console-assets.mjs --check
-
-      - name: Run console JavaScript tests
-        run: |
-          node --test \
-            scripts/console-availability-test.mjs \
-            scripts/pendingItemRecovery-test.mjs \
-            scripts/beforeunloadGuard-test.mjs \
-            scripts/undoRedo-test.mjs \
-            scripts/undoKeymatch-test.mjs \
-            scripts/activityDrift-test.mjs \
-            scripts/previewStaleness-test.mjs
-
       - name: Check whitespace
         shell: bash
         env:
@@ -89,4 +98,25 @@ jobs:
             git diff --check "${SHA}^..${SHA}"
           else
             git diff-tree --check --root -r "${SHA}"
+          fi
+
+  baseline:
+    name: Baseline verification
+    runs-on: ubuntu-latest
+    needs:
+      - console-js
+      - gradle-verification
+    if: always()
+
+    steps:
+      - name: Check required jobs
+        shell: bash
+        run: |
+          if [[ "${{ needs.console-js.result }}" != "success" ]]; then
+            echo "console-js failed with result: ${{ needs.console-js.result }}"
+            exit 1
+          fi
+          if [[ "${{ needs.gradle-verification.result }}" != "success" ]]; then
+            echo "gradle-verification failed with result: ${{ needs.gradle-verification.result }}"
+            exit 1
           fi

@@ -54,6 +54,41 @@ class EventLogWriterTest {
         }
     }
 
+    @Test
+    fun fastDurabilityWritesReadableEvents() {
+        val dir = Files.createTempDirectory("evtlog-fast").toFile()
+        try {
+            val eventsDir = File(dir, "events")
+            val touched = mutableListOf<String>()
+            val writer = EventLogWriter(
+                directory = eventsDir,
+                onWriteHook = { touched += it.fileName.toString() },
+                durability = EventLogDurability.Fast,
+            )
+
+            writer.append(makeEvent(1L, "fast"))
+
+            val replayed = EventLogReader(eventsDir).readAll()
+            assertEquals(listOf(1L), replayed.map { it.sequenceNumber })
+            assertEquals(listOf("1715500000001-0000000001.jsonl.tmp"), touched)
+            assertEquals(EventLogDurability.Fast, writer.durability)
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun defaultConstructorUsesDurableWrites() {
+        val dir = Files.createTempDirectory("evtlog-default-durable").toFile()
+        try {
+            val writer = EventLogWriter(directory = File(dir, "events"))
+
+            assertEquals(EventLogDurability.Durable, writer.durability)
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
     private fun makeEvent(seq: Long, itemId: String) = SessionEvent(
         eventId = "evt-$seq",
         sequenceNumber = seq,
