@@ -52,7 +52,7 @@ class ConsoleSessionsPollingContractTest {
         val persistAndCollect = javascriptFunctionBody(html, "persistAndCollectItemIds")
 
         assertTrue(
-            persistAndCollect.contains("dPins().some(item => !hasWrittenAnnotationComment(item))"),
+            persistAndCollect.contains("draftItemList().some(item => !hasWrittenAnnotationComment(item))"),
             "Prompt actions must detect partially-commented pending batches before persistence",
         )
         assertTrue(
@@ -79,8 +79,8 @@ class ConsoleSessionsPollingContractTest {
         val html = ConsoleSourceFixtures.readAll()
         val body = javascriptFunctionBody(html, "mergeSessionIntoState")
         assertTrue(body.contains("comment.value"), "Must preserve textarea value")
-        assertTrue(body.contains("focusedSavedItemId") || body.contains("dFocus()"))
-        assertTrue(body.contains("dSel()"))
+        assertTrue(body.contains("focusedSavedItemId") || body.contains("draftFocusIndex()"))
+        assertTrue(body.contains("draftSelection()"))
         assertTrue(body.contains("data-just-changed"))
     }
 

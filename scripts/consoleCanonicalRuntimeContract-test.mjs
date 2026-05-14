@@ -77,3 +77,36 @@ test('state module no longer declares legacy draft runtime state', () => {
   assert.doesNotMatch(state, /\blet\s+currentSelection\b/);
   assert.doesNotMatch(state, /function\s+setDraftWorkspace\(/);
 });
+
+test('runtime draft helpers use readable canonical names', () => {
+  const files = [
+    'fixthis-mcp/src/main/console/state.js',
+    'fixthis-mcp/src/main/console/main.js',
+    'fixthis-mcp/src/main/console/annotations.js',
+    'fixthis-mcp/src/main/console/preview.js',
+    'fixthis-mcp/src/main/console/history.js',
+    'fixthis-mcp/src/main/console/rendering.js',
+    'fixthis-mcp/src/main/console/prompt.js',
+    'fixthis-mcp/src/main/console/shortcuts.js',
+    'scripts/draftPresentationContract-test.mjs',
+    'scripts/pendingItemRecovery-test.mjs',
+    'scripts/sessionScopedRequests-test.mjs',
+  ];
+  for (const file of files) {
+    const text = source(file);
+    assert.doesNotMatch(text, /\bdFlow\b/, file);
+    assert.doesNotMatch(text, /\bdPins\b/, file);
+    assert.doesNotMatch(text, /\bdFocus\b/, file);
+    assert.doesNotMatch(text, /\bdSel\b/, file);
+    assert.doesNotMatch(text, /\bsetWs\b/, file);
+    assert.doesNotMatch(text, /\bdw\b/, file);
+  }
+
+  const state = source('fixthis-mcp/src/main/console/state.js');
+  assert.match(state, /function draftFlow\(\)/);
+  assert.match(state, /function draftItemList\(\)/);
+  assert.match(state, /function draftFocusIndex\(\)/);
+  assert.match(state, /function draftSelection\(\)/);
+  assert.match(state, /function replaceDraftWorkspace\(nextWorkspace\)/);
+  assert.match(state, /let draftWorkspace = createEmptyDraftWorkspace\(\);/);
+});

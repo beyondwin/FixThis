@@ -107,7 +107,7 @@
             // The send/copy path uses currentPromptAnnotations(), which re-applies the delivery filter
             // so already-sent items are not re-sent.
             function toolbarAnnotations() {
-              if (dFlow()) return dPins();
+              if (draftFlow()) return draftItemList();
               return state.session?.items || [];
             }
 
@@ -143,7 +143,7 @@
               const missing = unsent.length - ready.length;
               const warningCount = annotations.reduce((total, item) => total + reliabilityWarnings(item).length, 0);
               if (ready.length > 0) {
-                const itemKind = dFlow() ? 'draft' : 'saved';
+                const itemKind = draftFlow() ? 'draft' : 'saved';
                 return {
                   state: missing > 0 ? 'blocked' : (warningCount > 0 ? 'warn' : 'ready'),
                   label: countLabel(ready.length, 'ready', 'ready') +
@@ -251,8 +251,8 @@
             }
 
             function focusedPendingSelectionSummary() {
-              if (dFocus() != null) {
-                return dPins()[dFocus()] || null;
+              if (draftFocusIndex() != null) {
+                return draftItemList()[draftFocusIndex()] || null;
               }
               return null;
             }
@@ -262,24 +262,24 @@
               const promptDisabled = !hasPromptAnnotations || pollingUseCases.getState().promptActionInFlight;
               copyPromptButton.disabled = promptDisabled;
               sendAgentButton.disabled = promptDisabled;
-              cancelAddFlowButton.disabled = !dFlow();
+              cancelAddFlowButton.disabled = !draftFlow();
               addItemButton.hidden = true;
               addItemButton.disabled = true;
-              annotateToolButton.disabled = toolModeUseCases.getState().draftFlowStarting;
-              selectToolButton.setAttribute('aria-pressed', String(toolModeUseCases.isSelectMode()));
-              annotateToolButton.setAttribute('aria-pressed', String(toolModeUseCases.isAnnotateMode()));
-              toolStatus.innerHTML = toolModeUseCases.isAnnotateMode()
+              annotateToolButton.disabled = toolMode.getState().draftFlowStarting;
+              selectToolButton.setAttribute('aria-pressed', String(toolMode.isSelectMode()));
+              annotateToolButton.setAttribute('aria-pressed', String(toolMode.isAnnotateMode()));
+              toolStatus.innerHTML = toolMode.isAnnotateMode()
                 ? '<span class="ts-hint"><span class="ts-dot"></span><span>Click a widget — or drag to draw a region</span></span>'
                 : '<span class="ts-meta">' +
                     '<span class="ts-dot-label"><span class="ts-dot"></span>' + toolbarOpenCount() + ' open</span>' +
                     '<span class="ts-dot-label"><span class="ts-dot resolved"></span>' + toolbarResolvedCount() + ' resolved</span>' +
                   '</span>';
               const item = focusedPendingSelectionSummary();
-              selectionSummary.textContent = dSel()
-                ? dSel().label + ' - ' + formatBounds(dSel().bounds)
+              selectionSummary.textContent = draftSelection()
+                ? draftSelection().label + ' - ' + formatBounds(draftSelection().bounds)
                 : (item
-                  ? 'Focused #' + (dFocus() + 1) + ' - ' + formatBounds(item.bounds)
-                  : (toolModeUseCases.isAnnotateMode() ? 'Click a component or drag a region to create an annotation.' : 'No annotation selected.'));
+                  ? 'Focused #' + (draftFocusIndex() + 1) + ' - ' + formatBounds(item.bounds)
+                  : (toolMode.isAnnotateMode() ? 'Click a component or drag a region to create an annotation.' : 'No annotation selected.'));
               renderPromptReadiness();
             }
 
@@ -341,7 +341,7 @@
                 }
                 return;
               }
-              setDSel(selection);
+              setDraftSelection(selection);
               createAnnotationFromSelection(selection);
               error.textContent = '';
             }
@@ -350,20 +350,20 @@
               if (isInteractionBlocked()) return;
               const selection = nodeSelectionAtPoint(event, image);
               const nextId = selection?.nodeUid || null;
-              const currentId = toolModeUseCases.getState().hoveredTarget?.nodeUid || null;
+              const currentId = toolMode.getState().hoveredTarget?.nodeUid || null;
               if (nextId === currentId) return;
-              toolModeUseCases.setHoveredTarget(selection);
+              toolMode.setHoveredTarget(selection);
               renderSelectionOverlay();
             }
 
             function confirmHoveredAnnotationTarget(event, image) {
               if (isInteractionBlocked()) return;
-              const hoveredTarget = toolModeUseCases.getState().hoveredTarget;
+              const hoveredTarget = toolMode.getState().hoveredTarget;
               if (hoveredTarget) {
                 const point = naturalPointFromEvent(event, image);
                 if (containsPoint(hoveredTarget.bounds, point)) {
                   const selection = hoveredTarget;
-                  toolModeUseCases.setHoveredTarget(null);
+                  toolMode.setHoveredTarget(null);
                   createAnnotationFromSelection(selection);
                   error.textContent = '';
                   return;
@@ -379,47 +379,47 @@
                 bounds: bounds,
                 label: 'Custom area ' + Math.round(bounds.right - bounds.left) + 'x' + Math.round(bounds.bottom - bounds.top)
               };
-              setDSel(selection);
+              setDraftSelection(selection);
               createAnnotationFromSelection(selection);
               error.textContent = '';
             }
 
             function clearDragState() {
-              const drag = toolModeUseCases.getState().drag;
+              const drag = toolMode.getState().drag;
               if (!drag) return;
-              toolModeUseCases.dropDiscard();
+              toolMode.dropDiscard();
               renderSelectionOverlay();
             }
 
             function clearHoverPreview() {
-              if (!toolModeUseCases.getState().hoveredTarget) return;
-              toolModeUseCases.setHoveredTarget(null);
+              if (!toolMode.getState().hoveredTarget) return;
+              toolMode.setHoveredTarget(null);
               renderSelectionOverlay();
             }
 
             function resetComposer(clearFlow = true, clearMirror = true) {
               if (clearFlow && clearMirror) deleteCurrentDraftWorkspaceStorage();
-              if (clearFlow) setWs(createEmptyDraftWorkspace());
+              if (clearFlow) replaceDraftWorkspace(createEmptyDraftWorkspace());
               if (clearMirror) {
                 clearPendingMirror(state.session?.sessionId);
                 activePendingMirrorSessions.delete(state.session?.sessionId);
               }
-              setDFocus(null);
-              toolModeUseCases.focusSavedItem(null, null);
-              setDSel(null);
-              toolModeUseCases.setHoveredTarget(null);
-              toolModeUseCases.enterSelect();
+              setDraftFocusIndex(null);
+              toolMode.focusSavedItem(null, null);
+              setDraftSelection(null);
+              toolMode.setHoveredTarget(null);
+              toolMode.enterSelect();
               comment.value = '';
               clearDragState();
             }
 
-            function currentPendingStateEnvelope(items = dPins()) {
+            function currentPendingStateEnvelope(items = draftItemList()) {
               return {
-                context: dFlow()?.context ?? null,
-                previewId: dFlow()?.previewId ?? dFlow()?.context?.previewId ?? null,
-                screen: dFlow()?.screen ?? null,
-                screenshotUrl: dFlow()?.screenshotUrl ?? null,
-                frozenAtEpochMillis: dFlow()?.frozenAtEpochMillis ?? dFlow()?.context?.frozenAtEpochMillis ?? null,
+                context: draftFlow()?.context ?? null,
+                previewId: draftFlow()?.previewId ?? draftFlow()?.context?.previewId ?? null,
+                screen: draftFlow()?.screen ?? null,
+                screenshotUrl: draftFlow()?.screenshotUrl ?? null,
+                frozenAtEpochMillis: draftFlow()?.frozenAtEpochMillis ?? draftFlow()?.context?.frozenAtEpochMillis ?? null,
                 items: items,
               };
             }
@@ -438,10 +438,10 @@
             }
 
             function clearSelection() {
-              setDSel(null);
-              setDFocus(null);
-              toolModeUseCases.focusSavedItem(null, null);
-              toolModeUseCases.setHoveredTarget(null);
+              setDraftSelection(null);
+              setDraftFocusIndex(null);
+              toolMode.focusSavedItem(null, null);
+              toolMode.setHoveredTarget(null);
               comment.value = '';
               clearDragState();
               renderSelectionOverlay();
@@ -451,9 +451,9 @@
 
 
             async function startDraftAnnotationFlow() {
-              if (toolModeUseCases.getState().draftFlowStarting) return;
+              if (toolMode.getState().draftFlowStarting) return;
               error.textContent = '';
-              toolModeUseCases.setAddItemsFlowStarting(true);
+              toolMode.setAddItemsFlowStarting(true);
               updateComposerState();
               stopLivePreviewPolling();
               try {
@@ -474,7 +474,7 @@
                   return;
                 }
                 const ports = createBrowserDraftPorts();
-                const nextWorkspace = await startDraftFreeze(dw, {
+                const nextWorkspace = await startDraftFreeze(draftWorkspace, {
                   sessionId: state.session?.sessionId || null,
                   selectedDeviceSerial: state.selectedDeviceSerial || null,
                   activityName: state.connection?.availability?.activity ?? null,
@@ -485,31 +485,31 @@
                     capture: async () => state.preview,
                   },
                 });
-                setWs(nextWorkspace);
-                toolModeUseCases.enterAnnotate();
-                toolModeUseCases.focusSavedItem(null, null);
+                replaceDraftWorkspace(nextWorkspace);
+                toolMode.enterAnnotate();
+                toolMode.focusSavedItem(null, null);
                 render();
               } finally {
-                toolModeUseCases.setAddItemsFlowStarting(false);
+                toolMode.setAddItemsFlowStarting(false);
                 updateComposerState();
-                if (!dFlow()) startLivePreviewPolling();
+                if (!draftFlow()) startLivePreviewPolling();
               }
             }
 
             function flushFocusedPendingComment() {
-              if (dFocus() == null) return;
-              const item = dPins()[dFocus()];
+              if (draftFocusIndex() == null) return;
+              const item = draftItemList()[draftFocusIndex()];
               if (!item) return;
               const commentInput = pendingItems.querySelector('#annotationCommentInput');
               item.comment = commentInput ? commentInput.value : comment.value;
             }
 
             function createAnnotationFromSelection(selection) {
-              if (!dFlow()) throw new Error('Switch to Annotate before selecting feedback.');
+              if (!draftFlow()) throw new Error('Switch to Annotate before selecting feedback.');
               if (!selection) throw new Error('Select a component or area first.');
               flushFocusedPendingComment();
               const ports = createBrowserDraftPorts();
-              let nextWorkspace = addDraftItem(dw, selection, ports);
+              let nextWorkspace = addDraftItem(draftWorkspace, selection, ports);
               // SIF-6: re-check activity drift after each pending item is
               // appended. Uses the existing status-poll-derived availability
               // — no extra fetch is issued.
@@ -522,11 +522,11 @@
                   activityDriftWarning: checkActivityDrift({ activity: nextWorkspace.context.activityName }, currentActivitySnapshot),
                 };
               }
-              setWs(nextWorkspace);
+              replaceDraftWorkspace(nextWorkspace);
               const createdItem = nextWorkspace.items[nextWorkspace.items.length - 1];
-              toolModeUseCases.setHoveredTarget(null);
-              toolModeUseCases.focusSavedItem(null, null);
-              toolModeUseCases.enterAnnotate();
+              toolMode.setHoveredTarget(null);
+              toolMode.focusSavedItem(null, null);
+              toolMode.enterAnnotate();
               comment.value = '';
               renderPreviewOnly();
               renderInspectorRegion();
@@ -535,18 +535,18 @@
             }
 
             function deletePendingFeedbackItem(index) {
-              const removed = dw.items[index];
+              const removed = draftWorkspace.items[index];
               if (!removed) return;
-              const nextWorkspace = deleteDraftItem(dw, removed.draftItemId);
+              const nextWorkspace = deleteDraftItem(draftWorkspace, removed.draftItemId);
               if (nextWorkspace.items.length === 0) {
                 deleteCurrentDraftWorkspaceStorage();
               }
-              setWs(nextWorkspace);
+              replaceDraftWorkspace(nextWorkspace);
               showUndoToast(removed.draftItemId);
-              setDFocus(null);
-              toolModeUseCases.focusSavedItem(null, null);
-              setDSel(null);
-              toolModeUseCases.setHoveredTarget(null);
+              setDraftFocusIndex(null);
+              toolMode.focusSavedItem(null, null);
+              setDraftSelection(null);
+              toolMode.setHoveredTarget(null);
               comment.value = '';
               renderPreviewOnly();
               renderInspectorRegion();
@@ -555,21 +555,21 @@
 
             function focusPendingFeedbackItem(index) {
               flushFocusedPendingComment();
-              setDFocus(index);
-              toolModeUseCases.focusSavedItem(null, null);
-              setDSel(null);
-              toolModeUseCases.enterSelect();
-              comment.value = dPins()[index]?.comment || '';
+              setDraftFocusIndex(index);
+              toolMode.focusSavedItem(null, null);
+              setDraftSelection(null);
+              toolMode.enterSelect();
+              comment.value = draftItemList()[index]?.comment || '';
               renderPreviewOnly();
               renderInspectorRegion();
             }
 
             function focusSavedEvidenceItem(itemId) {
               const item = savedEvidenceItems().find(savedItem => savedItem.itemId === itemId);
-              toolModeUseCases.focusSavedItem(item ? itemId : null, item ? state.session?.sessionId || null : null, item?.screenId || null);
-              setDFocus(null);
-              setDSel(null);
-              toolModeUseCases.enterSelect();
+              toolMode.focusSavedItem(item ? itemId : null, item ? state.session?.sessionId || null : null, item?.screenId || null);
+              setDraftFocusIndex(null);
+              setDraftSelection(null);
+              toolMode.enterSelect();
               comment.value = '';
               renderPreviewOnly();
               renderInspectorRegion();
@@ -592,7 +592,7 @@
               return updatedSession;
             }
 
-            async function persistSavedEvidenceItem(item, sessionId = toolModeUseCases.getState().focusedSavedSessionId || state.session?.sessionId || null) {
+            async function persistSavedEvidenceItem(item, sessionId = toolMode.getState().focusedSavedSessionId || state.session?.sessionId || null) {
               if (!item?.itemId) return state.session;
               const updatedSession = await withMutationLock(() => requestJson('/api/items/' + encodeURIComponent(item.itemId), {
                 method: 'PUT',
@@ -608,17 +608,17 @@
               return applySavedSessionUpdate(updatedSession, sessionId);
             }
 
-            async function deleteSavedEvidenceItem(itemId, sessionId = toolModeUseCases.getState().focusedSavedSessionId || state.session?.sessionId || null) {
+            async function deleteSavedEvidenceItem(itemId, sessionId = toolMode.getState().focusedSavedSessionId || state.session?.sessionId || null) {
               if (!itemId) return;
               const sessionQuery = sessionId
                 ? '?sessionId=' + encodeURIComponent(sessionId)
                 : '';
               const updatedSession = await withMutationLock(() => requestJson('/api/items/' + encodeURIComponent(itemId) + sessionQuery, { method: 'DELETE' }));
               if (state.session?.sessionId === (updatedSession?.sessionId || sessionId)) {
-                const previousScreenId = toolModeUseCases.getState().focusedSavedScreenId;
+                const previousScreenId = toolMode.getState().focusedSavedScreenId;
                 const fallbackItem = (updatedSession?.items || []).find(item => item.screenId === previousScreenId) || null;
                 const fallbackScreenId = fallbackItem?.screenId || ((updatedSession?.screens || []).some(screen => screen.screenId === previousScreenId) ? previousScreenId : null);
-                toolModeUseCases.focusSavedItem(fallbackItem?.itemId || null, fallbackScreenId ? sessionId : null, fallbackScreenId);
+                toolMode.focusSavedItem(fallbackItem?.itemId || null, fallbackScreenId ? sessionId : null, fallbackScreenId);
                 setConsoleSession(updatedSession);
                 renderPreviewOnly();
                 renderInspectorRegion();
@@ -633,7 +633,7 @@
               const item = selectedAnnotation();
               if (!item) return;
               item.comment = comment.value;
-              if (dFlow()) persistCurrentPendingState();
+              if (draftFlow()) persistCurrentPendingState();
               renderPendingItems();
               updateComposerState();
             }
@@ -642,7 +642,7 @@
               const allowFallbackComments = Boolean(options.allowFallbackComments);
               const onlyWrittenComments = Boolean(options.onlyWrittenComments);
               const allowBlankComments = Boolean(options.allowBlankComments);
-              const items = onlyWrittenComments ? dPins().filter(hasWrittenAnnotationComment) : dPins();
+              const items = onlyWrittenComments ? draftItemList().filter(hasWrittenAnnotationComment) : draftItemList();
               return items.map(item => ({
                 targetType: item.targetType,
                 bounds: item.bounds,
@@ -657,19 +657,19 @@
             }
 
             async function persistPendingFeedbackItems(options = {}) {
-              if (!dw?.workspaceId) return;
-              if (!draftWorkspaceItems(dw).length) throw new Error('Add at least one pending feedback item.');
+              if (!draftWorkspace?.workspaceId) return;
+              if (!draftWorkspaceItems(draftWorkspace).length) throw new Error('Add at least one pending feedback item.');
               const allowFallbackComments = Boolean(options.allowFallbackComments);
               const onlyWrittenComments = Boolean(options.onlyWrittenComments);
               const allowBlankComments = Boolean(options.allowBlankComments);
               const forceMismatchOverride = Boolean(options.forceMismatchOverride);
-              const items = draftWorkspaceItems(dw);
+              const items = draftWorkspaceItems(draftWorkspace);
               if (!allowFallbackComments && !onlyWrittenComments && !allowBlankComments && items.some(item => !String(item.comment || '').trim())) throw new Error('Add a comment to every annotation before saving.');
               if (onlyWrittenComments && !items.some(hasWrittenAnnotationComment)) throw new Error('Add a comment to at least one annotation before sending.');
               const meta = {
                 kind: 'persist-draft-workspace',
-                workspaceId: dw.workspaceId,
-                expectedRevision: dw.revision,
+                workspaceId: draftWorkspace.workspaceId,
+                expectedRevision: draftWorkspace.revision,
               };
               const result = await ensureDraftCommandQueue().enqueue(meta, async (workspace) => {
                 const saveWorkspace = onlyWrittenComments
@@ -689,7 +689,7 @@
                   return await persistPendingFeedbackItems({ ...options, forceMismatchOverride: true });
                 }
                 if (choice === 'recapture') {
-                  setWs(createEmptyDraftWorkspace());
+                  replaceDraftWorkspace(createEmptyDraftWorkspace());
                   setConsolePreview(null);
                   startLivePreviewPolling();
                   return null;
@@ -748,7 +748,7 @@
             }
 
             async function flushPendingAnnotationsBeforeSessionChange() {
-              if (!dFlow() || !dPins().length) return;
+              if (!draftFlow() || !draftItemList().length) return;
               await persistPendingFeedbackItems({ allowBlankComments: true });
             }
 
@@ -766,8 +766,8 @@
             }
 
             function enterSelectMode() {
-              toolModeUseCases.enterSelect();
-              setDSel(null);
+              toolMode.enterSelect();
+              setDraftSelection(null);
               clearHoverPreview();
               clearDragState();
               renderCurrentSessionList();

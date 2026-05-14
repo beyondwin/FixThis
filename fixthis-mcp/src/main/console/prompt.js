@@ -18,9 +18,9 @@
             async function persistAndCollectItemIds() {
                 const before = (state.session && Array.isArray(state.session.items)) ? state.session.items : [];
                 const beforeIds = new Set(before.map(item => item.itemId));
-                if (dFlow()) {
+                if (draftFlow()) {
                     flushFocusedPendingComment();
-                    if (dPins().some(item => !hasWrittenAnnotationComment(item))) {
+                    if (draftItemList().some(item => !hasWrittenAnnotationComment(item))) {
                         throw new Error('Add a comment to every annotation before saving.');
                     }
                     await persistPendingFeedbackItems();
@@ -76,7 +76,7 @@
                     let copied = false;
                     try {
                         const itemIds = await persistAndCollectItemIds();
-                        const sessionId = dw?.context?.sessionId || state.session?.sessionId;
+                        const sessionId = draftWorkspace?.context?.sessionId || state.session?.sessionId;
                         if (!sessionId) throw new Error('Feedback session context is missing. Re-capture and try again.');
                         const markdown = await fetchHandoffPreview(sessionId, itemIds);
                         await copyTextToClipboard(markdown);
@@ -113,7 +113,7 @@
                     let sent = false;
                     try {
                         const itemIds = await persistAndCollectItemIds();
-                        const sessionId = dw?.context?.sessionId || state.session?.sessionId;
+                        const sessionId = draftWorkspace?.context?.sessionId || state.session?.sessionId;
                         if (!sessionId) throw new Error('Feedback session context is missing. Re-capture and try again.');
                         const result = await requestJson('/api/agent-handoffs', {
                             method: 'POST',

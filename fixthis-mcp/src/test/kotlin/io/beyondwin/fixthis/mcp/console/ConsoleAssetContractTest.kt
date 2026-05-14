@@ -139,8 +139,8 @@ class ConsoleAssetContractTest {
         assertTrue(pendingRenderer.contains("ann-row-status"))
         assertTrue(pendingRenderer.contains("startAnnotatingButtonHtml()"))
         assertTrue(pendingRenderer.contains("data-focus-pending"))
-        assertTrue(createAnnotationFromSelection.contains("addDraftItem(dw, selection, ports)"))
-        assertTrue(createAnnotationFromSelection.contains("setWs(nextWorkspace);"))
+        assertTrue(createAnnotationFromSelection.contains("addDraftItem(draftWorkspace, selection, ports)"))
+        assertTrue(createAnnotationFromSelection.contains("replaceDraftWorkspace(nextWorkspace);"))
         assertFalse(pendingRenderer.contains("data-delete-pending"))
         assertTrue(renderSavedEvidenceGroups.contains("data-focus-saved"))
         assertTrue(html.contains("grid-template-columns: 28px minmax(0, 1fr) auto;"))
@@ -151,7 +151,7 @@ class ConsoleAssetContractTest {
         assertTrue(
             html.contains(
                 "renderOverlayBox(overlay, image, item.bounds, String(displayNumber), false, " +
-                    "index === dFocus(), index, '', severityColor(annotationSeverity(item)))",
+                    "index === draftFocusIndex(), index, '', severityColor(annotationSeverity(item)))",
             ),
         )
         assertTrue(html.contains("focusSavedEvidenceItem(item.itemId)"))
@@ -188,7 +188,7 @@ class ConsoleAssetContractTest {
         assertFalse(renderSavedAnnotationDetail.contains("readonly"))
         assertTrue(
             renderSavedAnnotationDetail.contains(
-                "const editSessionId = toolModeUseCases.getState().focusedSavedSessionId " +
+                "const editSessionId = toolMode.getState().focusedSavedSessionId " +
                     "|| state.session?.sessionId || null;",
             ),
         )
@@ -254,8 +254,8 @@ class ConsoleAssetContractTest {
         )
         assertTrue(
             Regex(
-                "function deletePendingFeedbackItem\\(index\\)[\\s\\S]*setDFocus\\(null\\);" +
-                    "[\\s\\S]*setDSel\\(null\\);[\\s\\S]*comment.value = '';",
+                "function deletePendingFeedbackItem\\(index\\)[\\s\\S]*setDraftFocusIndex\\(null\\);" +
+                    "[\\s\\S]*setDraftSelection\\(null\\);[\\s\\S]*comment.value = '';",
             ).containsMatchIn(html),
         )
     }
@@ -318,7 +318,7 @@ class ConsoleAssetContractTest {
         val renderSelectionOverlay = javascriptFunctionBody(html, "renderSelectionOverlay")
 
         assertTrue(
-            renderSelectionOverlay.contains("if (!dFlow())"),
+            renderSelectionOverlay.contains("if (!draftFlow())"),
             "saved overlays should be gated outside the active add-items flow",
         )
         assertTrue(
@@ -432,7 +432,7 @@ class ConsoleAssetContractTest {
         val html = ConsoleSourceFixtures.readAll()
         val renderComposerInspector = javascriptFunctionBody(html, "renderComposerInspector")
 
-        // While `dFlow()` is active the composer inspector previously hid every saved
+        // While `draftFlow()` is active the composer inspector previously hid every saved
         // annotation, so users adding a new pin to a session that already had four saved
         // items only saw the single pending entry. The composer must surface saved
         // annotations as well so totals stay coherent across pending + saved.
@@ -442,7 +442,7 @@ class ConsoleAssetContractTest {
         )
         assertTrue(
             renderComposerInspector.contains(
-                "inspectorCount.textContent = String(dPins().length + savedItems.length);",
+                "inspectorCount.textContent = String(draftItemList().length + savedItems.length);",
             ),
             "renderComposerInspector inspector count should include saved items",
         )
@@ -518,7 +518,7 @@ class ConsoleAssetContractTest {
         assertTrue(html.contains("function clearSelection"))
         assertTrue(html.contains("function clearDraft"))
         assertTrue(html.contains("function sendAgentPrompt"))
-        assertTrue(html.contains("selectionSummary.textContent = dSel()"))
+        assertTrue(html.contains("selectionSummary.textContent = draftSelection()"))
         assertTrue(html.contains("sendAgentButton.disabled = promptDisabled;"))
         assertTrue(html.contains("formatSessionLabel"))
         assertTrue(html.contains("formatSessionSummary"))
@@ -615,9 +615,9 @@ class ConsoleAssetContractTest {
         )
         assertTrue(html.contains("async function enterNewHistoryAnnotateMode()"))
         assertTrue(html.contains("newHistoryAnnotateModeStarting: false,"))
-        assertTrue(html.contains("if (toolModeUseCases.getState().newHistoryAnnotateModeStarting) return;"))
-        assertTrue(html.contains("toolModeUseCases.setNewHistoryAnnotateModeStarting(true);"))
-        assertTrue(html.contains("toolModeUseCases.setNewHistoryAnnotateModeStarting(false);"))
+        assertTrue(html.contains("if (toolMode.getState().newHistoryAnnotateModeStarting) return;"))
+        assertTrue(html.contains("toolMode.setNewHistoryAnnotateModeStarting(true);"))
+        assertTrue(html.contains("toolMode.setNewHistoryAnnotateModeStarting(false);"))
         assertTrue(html.contains("await newSession();"))
         assertTrue(html.contains("scrollActiveHistoryItemIntoView();"))
         assertTrue(html.contains("await enterAnnotateMode();"))
@@ -626,7 +626,7 @@ class ConsoleAssetContractTest {
         assertTrue(html.contains("renderCurrentSessionList();"))
         assertTrue(
             html.contains(
-                "if (toolModeUseCases.getState().newHistoryAnnotateModeStarting || " +
+                "if (toolMode.getState().newHistoryAnnotateModeStarting || " +
                     "isSessionNavigationInFlight()) return '';",
             ),
         )
@@ -685,9 +685,9 @@ class ConsoleAssetContractTest {
                 "async function enterAnnotateMode\\(\\) \\{\\s+" +
                     "if \\(!requirePendingRecoveryChoiceBeforeSessionChange\\(\\)\\) return;\\s+" +
                     "await ensureSessionForAnnotating\\(\\);\\s+" +
-                    "toolModeUseCases\\.enterAnnotate\\(\\);\\s+" +
+                    "toolMode\\.enterAnnotate\\(\\);\\s+" +
                     "renderCurrentSessionList\\(\\);\\s+" +
-                    "if \\(!dFlow\\(\\)\\) \\{\\s+" +
+                    "if \\(!draftFlow\\(\\)\\) \\{\\s+" +
                     "requestCanonicalPreviewCapture\\(\\);\\s+" +
                     "await startDraftAnnotationFlow\\(\\);",
             ).containsMatchIn(html),
@@ -738,7 +738,7 @@ class ConsoleAssetContractTest {
         assertTrue(html.contains("function bindStartAnnotatingButtons(container)"))
         assertTrue(renderSavedEvidenceGroups.contains("bindStartAnnotatingButtons(draftItems);"))
         assertTrue(html.contains("function startAnnotatingButtonHtml()"))
-        assertTrue(html.contains("if (toolModeUseCases.isAnnotateMode()) return '';"))
+        assertTrue(html.contains("if (toolMode.isAnnotateMode()) return '';"))
         assertTrue(html.contains("function historyStartAnnotatingItemHtml()"))
     }
 
@@ -771,9 +771,9 @@ class ConsoleAssetContractTest {
         assertTrue(ensureSessionForAnnotating.contains("body: JSON.stringify({ newSession: true })"))
         assertTrue(ensureSessionForAnnotating.contains("await refreshSessions();"))
         assertTrue(enterAnnotateMode.contains("await ensureSessionForAnnotating();"))
-        assertTrue(enterAnnotateMode.contains("toolModeUseCases.enterAnnotate();"))
+        assertTrue(enterAnnotateMode.contains("toolMode.enterAnnotate();"))
         assertTrue(enterAnnotateMode.contains("renderCurrentSessionList();"))
-        assertTrue(enterAnnotateMode.contains("if (!dFlow()) {"))
+        assertTrue(enterAnnotateMode.contains("if (!draftFlow()) {"))
         assertTrue(enterAnnotateMode.contains("await startDraftAnnotationFlow();"))
     }
 
@@ -875,11 +875,11 @@ class ConsoleAssetContractTest {
         val html = ConsoleSourceFixtures.readAll()
 
         assertTrue(html.contains("function focusedPendingSelectionSummary()"))
-        assertTrue(html.contains("dFocus() != null"))
+        assertTrue(html.contains("draftFocusIndex() != null"))
         assertTrue(html.contains("const item = focusedPendingSelectionSummary();"))
-        assertTrue(html.contains("setDFocus(index);"))
-        assertTrue(html.contains("setDSel(null);"))
-        assertFalse(html.contains("const item = dPins()[index];\n              setDSel(item ?"))
+        assertTrue(html.contains("setDraftFocusIndex(index);"))
+        assertTrue(html.contains("setDraftSelection(null);"))
+        assertFalse(html.contains("const item = draftItemList()[index];\n              setDraftSelection(item ?"))
         assertFalse(html.contains("label: item.targetType === 'node' ? 'Selected component' : 'Custom area'"))
     }
 
@@ -970,11 +970,11 @@ class ConsoleAssetContractTest {
         assertTrue(html.contains("bounds: selection.bounds"))
         assertTrue(html.contains("function draftSelectionToItem"))
         assertTrue(html.contains("function persistPendingFeedbackItems"))
-        assertTrue(createAnnotationFromSelection.contains("toolModeUseCases.enterAnnotate();"))
-        assertFalse(createAnnotationFromSelection.contains("toolModeUseCases.enterSelect();"))
-        assertTrue(createAnnotationFromSelection.contains("addDraftItem(dw, selection, ports)"))
-        assertTrue(createAnnotationFromSelection.contains("setWs(nextWorkspace);"))
-        assertTrue(html.contains("toolModeUseCases.setSuppressNextClick(true);"))
+        assertTrue(createAnnotationFromSelection.contains("toolMode.enterAnnotate();"))
+        assertFalse(createAnnotationFromSelection.contains("toolMode.enterSelect();"))
+        assertTrue(createAnnotationFromSelection.contains("addDraftItem(draftWorkspace, selection, ports)"))
+        assertTrue(createAnnotationFromSelection.contains("replaceDraftWorkspace(nextWorkspace);"))
+        assertTrue(html.contains("toolMode.setSuppressNextClick(true);"))
         assertTrue(html.contains("function updateSelectedAnnotationComment"))
         assertTrue(html.contains("item.comment = comment.value;"))
         assertTrue(html.contains("Add a comment to every annotation before saving."))

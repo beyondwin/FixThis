@@ -22,7 +22,7 @@
               const preview = createBrowserPreviewUseCases({ onChange: project('previewFsm') });
               const polling = createBrowserPollingUseCases({ onChange: project('pollingFsm') });
               // Tool-mode has no legacy state.* projection (callers go through
-              // toolModeUseCases.getState() directly), so onChange is only
+              // toolMode.getState() directly), so onChange is only
               // used to trigger a render when supplied.
               const toolMode = createToolModeUseCases({ onChange: render_ });
               return { connection, preview, polling, toolMode };

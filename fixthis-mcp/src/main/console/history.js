@@ -27,8 +27,8 @@
             }
 
             function pendingHistoryItemsForSession(session) {
-              if (!dFlow() || state.session?.sessionId !== session?.sessionId) return [];
-              return dPins();
+              if (!draftFlow() || state.session?.sessionId !== session?.sessionId) return [];
+              return draftItemList();
             }
 
             function historyOpenCount(session) {
@@ -86,8 +86,8 @@
             }
 
             function toolbarAnnotationCounts() {
-              if (dFlow()) {
-                const pending = dPins();
+              if (draftFlow()) {
+                const pending = draftItemList();
                 return {
                   open: pending.filter(item => annotationStatus(item) !== 'resolved').length,
                   resolved: pending.filter(item => annotationStatus(item) === 'resolved').length
@@ -109,8 +109,8 @@
             }
 
             function selectedAnnotation() {
-              if (dFocus() == null) return null;
-              return dPins()[dFocus()] || null;
+              if (draftFocusIndex() == null) return null;
+              return draftItemList()[draftFocusIndex()] || null;
             }
 
             function sourceHintLabel(item) {
@@ -146,9 +146,9 @@
             async function enterAnnotateMode() {
               if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
               await ensureSessionForAnnotating();
-              toolModeUseCases.enterAnnotate();
+              toolMode.enterAnnotate();
               renderCurrentSessionList();
-              if (!dFlow()) {
+              if (!draftFlow()) {
                 requestCanonicalPreviewCapture();
                 await startDraftAnnotationFlow();
               } else {
@@ -158,9 +158,9 @@
             }
 
             async function enterNewHistoryAnnotateMode() {
-              if (toolModeUseCases.getState().newHistoryAnnotateModeStarting) return;
-              toolModeUseCases.setNewHistoryAnnotateModeStarting(true);
-              toolModeUseCases.enterAnnotate();
+              if (toolMode.getState().newHistoryAnnotateModeStarting) return;
+              toolMode.setNewHistoryAnnotateModeStarting(true);
+              toolMode.enterAnnotate();
               renderCurrentSessionList();
               try {
                 await newSession();
@@ -168,7 +168,7 @@
                 await enterAnnotateMode();
                 scrollActiveHistoryItemIntoView();
               } finally {
-                toolModeUseCases.setNewHistoryAnnotateModeStarting(false);
+                toolMode.setNewHistoryAnnotateModeStarting(false);
                 renderCurrentSessionList();
               }
             }
@@ -180,7 +180,7 @@
 
             function syncHistoryDrawerState() {
               if (!historyToggleButton || !historyDrawerScrim) return;
-              const open = toolModeUseCases.getState().historyDrawerOpen;
+              const open = toolMode.getState().historyDrawerOpen;
               if (open) {
                 document.body.dataset.historyDrawerOpen = 'true';
               } else {
@@ -190,14 +190,14 @@
             }
 
             function openHistoryDrawer() {
-              toolModeUseCases.setHistoryDrawer(true);
+              toolMode.setHistoryDrawer(true);
               syncHistoryDrawerState();
               document.getElementById('historyPanel')?.focus({ preventScroll: true });
             }
 
             function closeHistoryDrawer(options = {}) {
-              const wasOpen = toolModeUseCases.getState().historyDrawerOpen;
-              toolModeUseCases.setHistoryDrawer(false);
+              const wasOpen = toolMode.getState().historyDrawerOpen;
+              toolMode.setHistoryDrawer(false);
               syncHistoryDrawerState();
               if (wasOpen && options.returnFocus !== false) historyToggleButton?.focus({ preventScroll: true });
             }
@@ -205,7 +205,7 @@
             historyToggleButton?.addEventListener('click', openHistoryDrawer);
             historyDrawerScrim?.addEventListener('click', () => closeHistoryDrawer());
             document.addEventListener('keydown', event => {
-              if (event.key === 'Escape' && toolModeUseCases.getState().historyDrawerOpen) {
+              if (event.key === 'Escape' && toolMode.getState().historyDrawerOpen) {
                 event.preventDefault();
                 closeHistoryDrawer();
               }
@@ -213,7 +213,7 @@
             syncHistoryDrawerState();
 
             function historyStartAnnotatingItemHtml() {
-              if (toolModeUseCases.getState().newHistoryAnnotateModeStarting || isSessionNavigationInFlight()) return '';
+              if (toolMode.getState().newHistoryAnnotateModeStarting || isSessionNavigationInFlight()) return '';
               return '<button type="button" class="history-item history-add-row" data-start-new-history-annotating aria-label="Start annotating">' +
                 '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>' +
               '</button>';

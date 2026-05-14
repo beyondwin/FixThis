@@ -108,7 +108,7 @@ class ConsoleConnectionRoutesTest {
         val html = ConsoleSourceFixtures.readAll()
         val applyConnectionBody = javascriptFunctionBody(html, "applyConnectionStatus")
 
-        assertTrue(applyConnectionBody.contains("dPins()"))
+        assertTrue(applyConnectionBody.contains("draftItemList()"))
         assertTrue(applyConnectionBody.contains("markPreviewStale"))
         assertTrue(applyConnectionBody.contains("stopLivePreviewPolling"))
         assertTrue(applyConnectionBody.contains("startLivePreviewPolling"))
@@ -517,7 +517,7 @@ class ConsoleDeviceSelectionRoutesTest {
         assertTrue(html.contains("id=\"annotateHintSlot\""))
         assertTrue(
             renderPreviewRegion.contains(
-                "snapshot.dataset.toolMode = toolModeUseCases.isAnnotateMode() ? 'annotate' : 'select';",
+                "snapshot.dataset.toolMode = toolMode.isAnnotateMode() ? 'annotate' : 'select';",
             ),
         )
         assertTrue(renderPreviewRegion.contains("const hintSlot = document.getElementById('annotateHintSlot');"))
@@ -584,7 +584,7 @@ class ConsoleDeviceSelectionRoutesTest {
             ).containsMatchIn(html),
         )
         assertTrue(
-            Regex("function latestScreen\\(\\) \\{\\s+if \\(dFlow\\(\\)\\) return dFlow\\(\\)\\.screen;")
+            Regex("function latestScreen\\(\\) \\{\\s+if \\(draftFlow\\(\\)\\) return draftFlow\\(\\)\\.screen;")
                 .containsMatchIn(html),
         )
         assertTrue(

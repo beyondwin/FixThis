@@ -144,7 +144,7 @@ class ConsolePreviewRoutesTest {
         assertTrue(html.contains("const requestGeneration = previewUseCases.getState().requestGeneration + 1"))
         assertTrue(
             html.contains(
-                "if (dFlow() || requestGeneration !== previewUseCases.getState().requestGeneration) return;",
+                "if (draftFlow() || requestGeneration !== previewUseCases.getState().requestGeneration) return;",
             ),
         )
         assertTrue(
@@ -155,12 +155,12 @@ class ConsolePreviewRoutesTest {
         assertTrue(html.contains(".filter(screen => persistedScreenIds.has(screen.screenId))"))
         assertTrue(html.contains("function screenImageUrl(screen)"))
         assertTrue(html.contains("function latestScreen()"))
-        assertTrue(html.contains("if (dFlow()) return dFlow().screen;"))
+        assertTrue(html.contains("if (draftFlow()) return draftFlow().screen;"))
         assertTrue(html.contains("if (focusedSavedItemId) {"))
         assertTrue(html.contains("return savedScreen || state.preview?.screen || latestPersistedScreen();"))
         assertFalse(html.contains(legacyLatestScreenFallback()))
         assertTrue(html.contains("'/api/screens/' + encodeURIComponent(screenId) + '/screenshot/full'"))
-        assertTrue(html.contains("if (!dFlow()) {"))
+        assertTrue(html.contains("if (!draftFlow()) {"))
         assertTrue(
             html.contains(
                 "const focusedItem = savedEvidenceItems().find(" +
@@ -185,7 +185,7 @@ class ConsolePreviewRoutesTest {
             html.contains("if (sameScreenItems.length) renderSavedEvidenceOverlay(overlay, image, sameScreenItems);"),
         )
         assertFalse(html.contains("renderSavedEvidenceOverlay(overlay, image, persistedItems);"))
-        assertFalse(html.contains("if (!dFlow() && !state.preview && persistedItems.length)"))
+        assertFalse(html.contains("if (!draftFlow() && !state.preview && persistedItems.length)"))
         assertTrue(
             Regex(
                 "async function openSession\\(sessionId\\)[\\s\\S]*stopLivePreviewPolling\\(\\);" +
@@ -197,7 +197,7 @@ class ConsolePreviewRoutesTest {
         assertFalse(html.contains("escapeHtml(formatSavedEvidenceItemLabel(item, index))"))
     }
 
-    private fun legacyLatestScreenFallback(): String = "return dFlow()?.screen || " +
+    private fun legacyLatestScreenFallback(): String = "return draftFlow()?.screen || " +
         "latestPersistedScreen() || state.preview?.screen;"
 
     @Test
@@ -216,7 +216,7 @@ class ConsolePreviewRoutesTest {
             ),
         )
         assertTrue(html.contains("const src = screenImageUrl(screen);"))
-        assertFalse(html.contains("const src = dFlow()?.screenshotUrl || '/api/preview/screenshot/full'"))
+        assertFalse(html.contains("const src = draftFlow()?.screenshotUrl || '/api/preview/screenshot/full'"))
     }
 
     @Test
@@ -243,9 +243,9 @@ class ConsolePreviewRoutesTest {
         assertTrue(html.contains("async function startDraftAnnotationFlow()"))
         // draftFlowStarting is owned by the toolMode FSM.
         assertTrue(html.contains("draftFlowStarting: false,"))
-        assertTrue(html.contains("if (toolModeUseCases.getState().draftFlowStarting) return;"))
-        assertTrue(html.contains("toolModeUseCases.setAddItemsFlowStarting(true);"))
-        assertTrue(html.contains("toolModeUseCases.setAddItemsFlowStarting(false);"))
+        assertTrue(html.contains("if (toolMode.getState().draftFlowStarting) return;"))
+        assertTrue(html.contains("toolMode.setAddItemsFlowStarting(true);"))
+        assertTrue(html.contains("toolMode.setAddItemsFlowStarting(false);"))
         assertTrue(html.contains("stopLivePreviewPolling();"))
         assertTrue(html.contains("try {"))
         // Preview FSM owns request/context counters — addFlow captures the
@@ -265,7 +265,7 @@ class ConsolePreviewRoutesTest {
         )
         assertTrue(html.contains("setConsolePreview(preview);"))
         assertTrue(html.contains("if (!state.preview) {"))
-        assertTrue(html.contains("startDraftFreeze(dw"))
+        assertTrue(html.contains("startDraftFreeze(draftWorkspace"))
         assertTrue(html.contains("capture: async () => state.preview"))
         assertTrue(html.contains("sessionId: state.session?.sessionId || null"))
         assertTrue(
@@ -273,11 +273,11 @@ class ConsolePreviewRoutesTest {
         )
         assertTrue(
             Regex(
-                "finally \\{\\s+toolModeUseCases\\.setAddItemsFlowStarting\\(false\\);\\s+updateComposerState\\(\\);" +
-                    "\\s+if \\(!dFlow\\(\\)\\) startLivePreviewPolling\\(\\);\\s+\\}",
+                "finally \\{\\s+toolMode\\.setAddItemsFlowStarting\\(false\\);\\s+updateComposerState\\(\\);" +
+                    "\\s+if \\(!draftFlow\\(\\)\\) startLivePreviewPolling\\(\\);\\s+\\}",
             ).containsMatchIn(html),
         )
-        assertTrue(html.contains("if (toolModeUseCases.getState().draftFlowStarting) {"))
+        assertTrue(html.contains("if (toolMode.getState().draftFlowStarting) {"))
         assertTrue(html.contains("event.preventDefault();"))
         assertTrue(
             html.contains("annotateToolButton.addEventListener('click', () => enterAnnotateMode().catch(showError));"),

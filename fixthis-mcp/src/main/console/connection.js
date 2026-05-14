@@ -35,7 +35,7 @@
             }
 
             function markPreviewStale(stale) {
-              const hasPreviewSurface = Boolean(state.preview || dFlow()?.screen || latestPersistedScreen());
+              const hasPreviewSurface = Boolean(state.preview || draftFlow()?.screen || latestPersistedScreen());
               previewStaleBadge.hidden = !stale || !hasPreviewSurface;
             }
 
@@ -74,7 +74,7 @@
             }
 
             function computeCurrentBlockedReason(statusAvailability) {
-              const annotate = toolModeUseCases.isAnnotateMode();
+              const annotate = toolMode.isAnnotateMode();
               const availability = statusAvailability ?? connectionUseCases.getState().availability;
               const resolverInput = availability
                 ? { ...availability, unresponsive: unresponsiveTracker.isUnresponsive() }
@@ -128,7 +128,7 @@
               // Detect blocked → unblocked transitions for select-mode auto-resume.
               // Use the captured prior previousBlockedReason vs the new reason.
               if (priorPreviousBlockedReason !== null && newBlockedReason === null) {
-                if (toolModeUseCases.isSelectMode() && state.session) {
+                if (toolMode.isSelectMode() && state.session) {
                   refreshPreview().catch(showError);
                 }
               }
@@ -142,7 +142,7 @@
                 startLivePreviewPolling();
               } else {
                 stopLivePreviewPolling();
-                if (dPins().length || state.preview) markPreviewStale(true);
+                if (draftItemList().length || state.preview) markPreviewStale(true);
               }
               renderConnection(status);
               // Re-render the preview region so the canvas blocked-reason overlay and

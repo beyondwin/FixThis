@@ -34,7 +34,7 @@
             zoomInButton.addEventListener('click', () => setPreviewZoom(previewUseCases.getState().zoom + PreviewZoomStep));
             addItemButton.addEventListener('click', () => {
               try {
-                createAnnotationFromSelection(dSel());
+                createAnnotationFromSelection(draftSelection());
               } catch (cause) {
                 showError(cause);
               }
@@ -67,7 +67,7 @@
             });
             // ALH-1: warn user if they try to leave with unsaved pending items.
             window.addEventListener('beforeunload', (e) => {
-              if (shouldGuardUnload(dPins().length)) {
+              if (shouldGuardUnload(draftItemList().length)) {
                 e.preventDefault();
                 e.returnValue = '저장하지 않은 어노테이션이 있습니다. 정말 떠나시겠습니까?';
                 return e.returnValue;
@@ -119,7 +119,7 @@
               btn.textContent = '되돌리기';
               btn.style.cssText = 'background:none;border:none;color:#bb86fc;cursor:pointer;font-size:14px;padding:0;font-weight:500;';
               btn.addEventListener('click', () => {
-                const result = undo(undoRedoHistory, { items: dPins() }, dFlow()?.context ?? null);
+                const result = undo(undoRedoHistory, { items: draftItemList() }, draftFlow()?.context ?? null);
                 if (result.reason === 'context_mismatch') showError('Undo history was cleared because the annotation session changed.');
                 if (result.applied) {
                   persistCurrentPendingState();
@@ -151,24 +151,24 @@
             }
 
             async function resolvePendingBeforeBoundary(action, sessionId = null) {
-              const hasActivePending = Boolean(dw?.workspaceId && draftWorkspaceItems(dw).length);
+              const hasActivePending = Boolean(draftWorkspace?.workspaceId && draftWorkspaceItems(draftWorkspace).length);
               if (!hasActivePending && !hasPendingRecoveryItems()) return 'continue';
               if (hasPendingRecoveryItems() && !hasActivePending) {
                 renderPendingRecoveryBanner();
                 showError('Recover, recapture, or discard unsaved annotations before changing sessions.');
                 return 'cancel';
               }
-              const pendingSessionId = dw?.context?.sessionId || null;
+              const pendingSessionId = draftWorkspace?.context?.sessionId || null;
               if (sessionId && pendingSessionId && sessionId !== pendingSessionId) {
-                createBrowserDraftPorts().storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(dw));
+                createBrowserDraftPorts().storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(draftWorkspace));
                 activePendingMirrorSessions.add(pendingSessionId);
-                setWs(createEmptyDraftWorkspace());
+                replaceDraftWorkspace(createEmptyDraftWorkspace());
                 return 'continue';
               }
               const result = await ensureDraftCommandQueue().enqueue({
                 kind: 'session-boundary',
-                workspaceId: dw.workspaceId,
-                expectedRevision: dw.revision,
+                workspaceId: draftWorkspace.workspaceId,
+                expectedRevision: draftWorkspace.revision,
               }, async (workspace) => {
                 return await resolveDraftBoundary(workspace, { kind: action, sessionId }, createBrowserDraftPorts());
               });
@@ -207,19 +207,19 @@
             }
 
             function updateAnnotationSequenceFromPendingItems(items) {
-              const current = toolModeUseCases.getState().annotationSequence;
+              const current = toolMode.getState().annotationSequence;
               const next = (items || [])
                 .map(item => String(item?.annotationId || '').match(/^local-(\d+)$/))
                 .filter(Boolean)
                 .map(match => Number(match[1]))
                 .filter(Number.isFinite)
                 .reduce((max, value) => Math.max(max, value + 1), current);
-              toolModeUseCases.setAnnotationSequenceAtLeast(next);
+              toolMode.setAnnotationSequenceAtLeast(next);
             }
 
 	            function restorePendingRecoveryContext(recovery) {
 	              const workspace = recoverDraftWorkspaceFromEnvelope(recovery);
-	              setWs(workspace);
+	              replaceDraftWorkspace(workspace);
 	              setConsolePreview({
 	                previewId: workspace.context.previewId,
 	                screen: workspace.screen,
@@ -228,11 +228,11 @@
 	                stale: false
 	              });
               updateAnnotationSequenceFromPendingItems(workspace.items);
-              setDFocus(null);
-              toolModeUseCases.focusSavedItem(null, null);
-              setDSel(null);
-              toolModeUseCases.setHoveredTarget(null);
-              toolModeUseCases.enterSelect();
+              setDraftFocusIndex(null);
+              toolMode.focusSavedItem(null, null);
+              setDraftSelection(null);
+              toolMode.setHoveredTarget(null);
+              toolMode.enterSelect();
               stopLivePreviewPolling();
               persistCurrentPendingState();
             }
@@ -271,7 +271,7 @@
             function renderPendingRecoveryBanner() {
               const banner = ensurePendingRecoveryBanner();
               const recoveryItems = pendingRecoveryItems(pendingRecovery);
-              if (!pendingRecovery || !recoveryItems.length || dFlow() || dPins().length) {
+              if (!pendingRecovery || !recoveryItems.length || draftFlow() || draftItemList().length) {
                 banner.hidden = true;
                 return;
               }
@@ -321,7 +321,7 @@
                 return;
               }
               const sessionId = state.session.sessionId;
-              if (dFlow() || dPins().length) {
+              if (draftFlow() || draftItemList().length) {
                 renderPendingRecoveryBanner();
                 return;
               }
@@ -346,30 +346,30 @@
               }
               clearPreview();
               await startDraftAnnotationFlow();
-              if (!dFlow()) return;
+              if (!draftFlow()) return;
               const recoveredItems = items.map((item, index) => ({
                 ...item,
                 draftItemId: item?.draftItemId || item?.annotationId || ('recovered-' + (index + 1)),
               }));
-              setWs({
-                ...dw,
-                revision: dw.revision + 1,
+              replaceDraftWorkspace({
+                ...draftWorkspace,
+                revision: draftWorkspace.revision + 1,
                 items: recoveredItems,
                 history: { undoStack: [], redoStack: [] },
               });
               updateAnnotationSequenceFromPendingItems(recoveredItems);
               pendingRecovery = null;
-              setDFocus(null);
-              toolModeUseCases.focusSavedItem(null, null);
-              setDSel(null);
-              toolModeUseCases.setHoveredTarget(null);
+              setDraftFocusIndex(null);
+              toolMode.focusSavedItem(null, null);
+              setDraftSelection(null);
+              toolMode.setHoveredTarget(null);
               persistCurrentPendingState();
               renderPendingRecoveryBanner();
               render();
             }
 
             window.FixThisConsoleDebug = Object.freeze({
-              getDraftWorkspace: () => dw,
+              getDraftWorkspace: () => draftWorkspace,
               getState: () => state,
             });
 

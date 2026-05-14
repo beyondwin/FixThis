@@ -28,9 +28,9 @@ function body(source, signature) {
 }
 
 test('state owns a draft workspace and command queue', () => {
-  assert.match(stateSource, /let dw = createEmptyDraftWorkspace\(\);/);
+  assert.match(stateSource, /let draftWorkspace = createEmptyDraftWorkspace\(\);/);
   assert.match(stateSource, /let draftCommandQueue = null;/);
-  assert.match(stateSource, /function setWs\(nextWorkspace\)/);
+  assert.match(stateSource, /function replaceDraftWorkspace\(nextWorkspace\)/);
 });
 
 test('annotation creation uses addDraftItem use case instead of direct push', () => {
@@ -46,7 +46,7 @@ test('pending delete uses deleteDraftItem use case instead of direct splice', ()
 });
 
 test('pending overlay renders from draft workspace selector', () => {
-  assert.match(renderingSource, /draftWorkspaceItems\(dw\)/);
+  assert.match(renderingSource, /draftWorkspaceItems\(draftWorkspace\)/);
 });
 
 test('annotation presentation no longer mutates pending array directly', () => {

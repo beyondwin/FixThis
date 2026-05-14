@@ -29,9 +29,9 @@
             }
 
             function screenImageUrl(screen) {
-              if (dFlow()) return dFlow().screenshotUrl;
+              if (draftFlow()) return draftFlow().screenshotUrl;
               if (state.preview?.screen === screen && state.preview?.previewId) return previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null);
-              const savedContext = toolModeUseCases.getState();
+              const savedContext = toolMode.getState();
               const savedSessionId = screen?.screenId === savedContext.focusedSavedScreenId ? savedContext.focusedSavedSessionId : null;
               if (screen?.screenId) return screenScreenshotUrl(screen.screenId, savedSessionId || state.session?.sessionId || null);
               return '';
@@ -46,7 +46,7 @@
             }
 
             function shouldPollPreview() {
-              return !document.hidden && !dFlow() && Boolean(state.session) && Boolean(state.selectedDeviceSerial) && userConnectionState(state.connection.current) === 'ready';
+              return !document.hidden && !draftFlow() && Boolean(state.session) && Boolean(state.selectedDeviceSerial) && userConnectionState(state.connection.current) === 'ready';
             }
 
             function shouldAutoFetchPreview() {
@@ -102,8 +102,8 @@
             }
 
             function latestScreen() {
-              if (dFlow()) return dFlow().screen;
-              const toolModeState = toolModeUseCases.getState();
+              if (draftFlow()) return draftFlow().screen;
+              const toolModeState = toolMode.getState();
               const focusedSavedItemId = toolModeState.focusedSavedItemId;
               let savedScreen = null;
               if (focusedSavedItemId) {
@@ -142,11 +142,11 @@
 
             async function refreshPreview() {
               error.textContent = '';
-              if (!state.session || dFlow()) return;
+              if (!state.session || draftFlow()) return;
               const requestGeneration = previewUseCases.getState().requestGeneration + 1;
               try {
                 const preview = await previewUseCases.request();
-                if (dFlow() || requestGeneration !== previewUseCases.getState().requestGeneration) return;
+                if (draftFlow() || requestGeneration !== previewUseCases.getState().requestGeneration) return;
 	                setConsolePreview({
 	                  ...preview,
 	                  activity: state.connection?.availability?.activity ?? null,
@@ -229,40 +229,40 @@
             }
 
             async function useLatestStaleFrame() {
-              const wasAnnotating = toolModeUseCases.isAnnotateMode() || Boolean(dFlow());
+              const wasAnnotating = toolMode.isAnnotateMode() || Boolean(draftFlow());
               flushFocusedPendingComment();
-              const pendingItems = draftWorkspaceItems(dw).slice();
-              const previousWorkspace = dw;
+              const pendingItems = draftWorkspaceItems(draftWorkspace).slice();
+              const previousWorkspace = draftWorkspace;
               const previousPreview = state.preview;
               clearPreview();
               if (wasAnnotating) {
-                setWs(createEmptyDraftWorkspace());
+                replaceDraftWorkspace(createEmptyDraftWorkspace());
                 try {
                   await startDraftAnnotationFlow();
                 } catch (cause) {
-                  setWs(previousWorkspace);
+                  replaceDraftWorkspace(previousWorkspace);
                   setConsolePreview(previousPreview);
-                  if (dFlow()) persistCurrentPendingState();
+                  if (draftFlow()) persistCurrentPendingState();
                   render();
                   throw cause;
                 }
-                if (!dFlow()) {
-                  setWs(previousWorkspace);
+                if (!draftFlow()) {
+                  replaceDraftWorkspace(previousWorkspace);
                   setConsolePreview(previousPreview);
                   render();
                   return;
                 }
-                setWs({
-                  ...dw,
-                  revision: dw.revision + 1,
+                replaceDraftWorkspace({
+                  ...draftWorkspace,
+                  revision: draftWorkspace.revision + 1,
                   items: pendingItems,
                   history: { undoStack: [], redoStack: [] },
                 });
                 updateAnnotationSequenceFromPendingItems(pendingItems);
-                setDFocus(null);
-                toolModeUseCases.focusSavedItem(null, null);
-                setDSel(null);
-                toolModeUseCases.setHoveredTarget(null);
+                setDraftFocusIndex(null);
+                toolMode.focusSavedItem(null, null);
+                setDraftSelection(null);
+                toolMode.setHoveredTarget(null);
                 persistCurrentPendingState();
               } else {
                 await refreshPreview();

@@ -10,7 +10,7 @@
               if (isTextInputFocused(event.target)) return;
               if (event.key === 'Escape') {
                 event.preventDefault();
-                if (dFlow()) {
+                if (draftFlow()) {
                   cancelAddItemsFlow();
                 } else {
                   clearSelection();

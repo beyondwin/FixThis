@@ -43,7 +43,7 @@
             // pollingUseCases (preserving the Kotlin grep contract
             // documented in ConsoleFeedbackItemRoutesTest).
             // Tool-mode FSM: no state.* projection; callers go through
-            // toolModeUseCases.getState() directly. Owns toolMode,
+            // toolMode.getState() directly. Owns toolMode,
             // annotationSequence, hoveredAnnotationTarget, dragStart/
             // dragPreview, suppressNextClick, draftFlowStarting,
             // newHistoryAnnotateModeStarting, historyDrawerOpen,
@@ -52,7 +52,7 @@
             const connectionUseCases = consoleApp.connection;
             const previewUseCases = consoleApp.preview;
             const pollingUseCases = consoleApp.polling;
-            const toolModeUseCases = consoleApp.toolMode;
+            const toolMode = consoleApp.toolMode;
             state.connection = { ...connectionUseCases.getState() };
             state.previewFsm = { ...previewUseCases.getState() };
             state.pollingFsm = { ...pollingUseCases.getState() };
@@ -113,7 +113,7 @@
             // newHistoryAnnotateModeStarting, historyDrawerOpen,
             // focusedSavedItemId, focusedSavedSessionId,
             // focusedSavedScreenId) now lives in
-            // toolModeUseCases (see toolModeFsm.js / toolModeUseCases.js).
+            // toolMode (see toolModeFsm.js / toolModeUseCases.js).
             // Polling-owned state (sessionsPollingTimer, lastSessionsEtag,
             // lastSessionEtag, pendingMutationCount, sessionMutationGeneration,
             // consecutivePollFailures, promptActionInFlight) now lives in
@@ -121,45 +121,45 @@
             // MaxConsecutivePollFailures is declared in pollingFsm.js.
             // ALH-2: Undo/redo history singleton for pending feedback items.
             let undoRedoHistory = createHistory();
-            let dw = createEmptyDraftWorkspace();
+            let draftWorkspace = createEmptyDraftWorkspace();
             let draftCommandQueue = null;
 
             function currentDraftWorkspace() {
-              return dw;
+              return draftWorkspace;
             }
 
-            function dFlow() {
+            function draftFlow() {
               return draftFlowState;
             }
 
-            function dPins() {
+            function draftItemList() {
               return draftPinsState;
             }
 
-            function dFocus() {
+            function draftFocusIndex() {
               return draftFocusIndexState;
             }
 
-            function setDFocus(index) {
+            function setDraftFocusIndex(index) {
               draftFocusIndexState = index;
             }
 
-            function dSel() {
+            function draftSelection() {
               return draftSelectionState;
             }
 
-            function setDSel(selection) {
+            function setDraftSelection(selection) {
               draftSelectionState = selection;
             }
 
-            function setWs(nextWorkspace) {
-              dw = nextWorkspace || createEmptyDraftWorkspace();
+            function replaceDraftWorkspace(nextWorkspace) {
+              draftWorkspace = nextWorkspace || createEmptyDraftWorkspace();
               syncDraftWorkspaceCompatibility();
               persistCurrentDraftWorkspaceIfNeeded();
             }
 
             function syncDraftWorkspaceCompatibility() {
-              if (dw.lifecycle === DraftLifecycle.EMPTY) {
+              if (draftWorkspace.lifecycle === DraftLifecycle.EMPTY) {
                 draftFlowState = null;
                 draftPinsState = [];
                 draftFocusIndexState = null;
@@ -168,46 +168,46 @@
                 return;
               }
               draftFlowState = {
-                context: dw.context,
-                previewId: dw.context?.previewId || null,
-                screen: dw.screen,
-                screenshotUrl: dw.screenshotUrl,
-                frozenAtEpochMillis: dw.context?.frozenAtEpochMillis || null,
-                activity: dw.context?.activityName || null,
-                activityDriftWarning: dw.activityDriftWarning || null,
+                context: draftWorkspace.context,
+                previewId: draftWorkspace.context?.previewId || null,
+                screen: draftWorkspace.screen,
+                screenshotUrl: draftWorkspace.screenshotUrl,
+                frozenAtEpochMillis: draftWorkspace.context?.frozenAtEpochMillis || null,
+                activity: draftWorkspace.context?.activityName || null,
+                activityDriftWarning: draftWorkspace.activityDriftWarning || null,
               };
-              draftPinsState = dw.items;
-              draftFocusIndexState = dw.focusedItemId
-                ? dw.items.findIndex((item) => item.draftItemId === dw.focusedItemId)
+              draftPinsState = draftWorkspace.items;
+              draftFocusIndexState = draftWorkspace.focusedItemId
+                ? draftWorkspace.items.findIndex((item) => item.draftItemId === draftWorkspace.focusedItemId)
                 : null;
               if (draftFocusIndexState < 0) draftFocusIndexState = null;
-              draftSelectionState = dw.currentSelection;
-              undoRedoHistory = dw.history || createHistory(dw.context);
+              draftSelectionState = draftWorkspace.currentSelection;
+              undoRedoHistory = draftWorkspace.history || createHistory(draftWorkspace.context);
             }
 
             function persistCurrentDraftWorkspaceIfNeeded() {
-              if (!dw?.workspaceId) return;
-              if (!(dw.items || []).length) {
+              if (!draftWorkspace?.workspaceId) return;
+              if (!(draftWorkspace.items || []).length) {
                 deleteCurrentDraftWorkspaceStorage();
                 return;
               }
               const storage = createBrowserDraftPorts().storage;
-              storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(dw));
+              storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(draftWorkspace));
             }
 
             function deleteCurrentDraftWorkspaceStorage() {
-              if (!dw?.workspaceId) return;
-              const sessionId = dw.context?.sessionId || state.session?.sessionId;
+              if (!draftWorkspace?.workspaceId) return;
+              const sessionId = draftWorkspace.context?.sessionId || state.session?.sessionId;
               if (!sessionId) return;
               const storage = createBrowserDraftPorts().storage;
-              storage.deleteWorkspace(sessionId, dw.workspaceId);
+              storage.deleteWorkspace(sessionId, draftWorkspace.workspaceId);
             }
 
             function createBrowserDraftPorts() {
               return createFakeDraftPorts({
                 ids: {
                   nextWorkspaceId: () => 'workspace-' + Date.now() + '-' + Math.random().toString(36).slice(2),
-                  nextDraftItemId: () => 'draft-' + toolModeUseCases.nextAnnotationSeq(),
+                  nextDraftItemId: () => 'draft-' + toolMode.nextAnnotationSeq(),
                 },
                 clock: { now: () => Date.now() },
                 preview: {
@@ -234,7 +234,7 @@
               if (draftCommandQueue) return draftCommandQueue;
               draftCommandQueue = createDraftCommandQueue({
                 getWorkspace: currentDraftWorkspace,
-                setWorkspace: setWs,
+                setWorkspace: replaceDraftWorkspace,
                 onStaleResponse: () => refreshSessions().catch(showError),
                 onError: showError,
               });

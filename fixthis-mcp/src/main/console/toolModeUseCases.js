@@ -4,7 +4,7 @@
 // Pure synchronous transitions: no DOM, fetch, timers, localStorage.
 // No browser adapter — the tool-mode FSM is consumed directly by
 // annotations.js / history.js / preview.js / rendering.js / main.js
-// / connection.js via the toolModeUseCases instance constructed in
+// / connection.js via the toolMode instance constructed in
 // state.js.
 //
 // Factory shape:
