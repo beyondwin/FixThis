@@ -6,7 +6,6 @@ import io.beyondwin.fixthis.compose.core.model.ScreenshotInfo
 import io.beyondwin.fixthis.compose.core.model.TreeKind
 import io.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
-import io.beyondwin.fixthis.compose.sidekick.BuildInfo
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.encodeToJsonElement
@@ -427,7 +426,7 @@ class BridgeServerTest {
             sidekickVersion = "0.1.0-test",
             bridgeProtocolVersion = BridgeProtocol.VERSION,
             sourceIndexAvailable = true,
-            sidekickBuildEpochMs = BuildInfo.BUILD_EPOCH_MS,
+            sidekickBuildEpochMs = 1234L,
         )
 
         override suspend fun inspectCurrentScreen(): BridgeScreenInspection = BridgeScreenInspection(

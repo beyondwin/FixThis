@@ -45,7 +45,7 @@ dependencies {
     debugImplementation(libs.compose.ui.test.manifest)
 }
 
-abstract class GenerateSidekickBuildInfoTask : org.gradle.api.DefaultTask() {
+abstract class GenerateSidekickBuildInfoResourcesTask : org.gradle.api.DefaultTask() {
     @get:org.gradle.api.tasks.OutputDirectory
     abstract val outputDir: org.gradle.api.file.DirectoryProperty
 
@@ -57,15 +57,15 @@ abstract class GenerateSidekickBuildInfoTask : org.gradle.api.DefaultTask() {
 
     @org.gradle.api.tasks.TaskAction
     fun generate() {
-        val target = outputDir.get().file("io/beyondwin/fixthis/compose/sidekick/BuildInfo.kt").asFile
+        val target = outputDir.get().file("values/fixthis_build_info.xml").asFile
         target.parentFile.mkdirs()
         target.writeText(
             """
-            package io.beyondwin.fixthis.compose.sidekick
-            object BuildInfo {
-                const val BUILD_EPOCH_MS: Long = ${buildEpoch.get()}L
-                const val GIT_SHA: String = "${gitSha.get()}"
-            }
+            <?xml version="1.0" encoding="utf-8"?>
+            <resources>
+                <string name="fixthis_sidekick_build_epoch_ms" translatable="false">${buildEpoch.get()}</string>
+                <string name="fixthis_sidekick_git_sha" translatable="false">${gitSha.get()}</string>
+            </resources>
             """.trimIndent(),
         )
     }
@@ -95,9 +95,9 @@ val gitCommitEpochProvider =
         }.standardOutput.asText
         .map { it.trim() }
 
-val generateBuildInfo =
-    tasks.register<GenerateSidekickBuildInfoTask>("generateBuildInfo") {
-        outputDir.set(layout.buildDirectory.dir("generated/source/buildinfo/main/kotlin"))
+val generateBuildInfoResources =
+    tasks.register<GenerateSidekickBuildInfoResourcesTask>("generateBuildInfoResources") {
+        outputDir.set(layout.buildDirectory.dir("generated/res/buildinfo/main"))
         gitSha.set(
             gitShortShaProvider.zip(gitStatusProvider) { sha, status ->
                 if (status.isEmpty()) sha else "$sha-dirty"
@@ -116,9 +116,9 @@ val generateBuildInfo =
 
 androidComponents {
     onVariants { variant ->
-        variant.sources.java?.addGeneratedSourceDirectory(
-            generateBuildInfo,
-            GenerateSidekickBuildInfoTask::outputDir,
+        variant.sources.res?.addGeneratedSourceDirectory(
+            generateBuildInfoResources,
+            GenerateSidekickBuildInfoResourcesTask::outputDir,
         )
     }
 }

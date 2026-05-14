@@ -16,41 +16,42 @@ internal object FixThisBridgeRuntime {
     fun start(
         application: Application,
         lifecycleCallbacks: FixThisActivityLifecycleCallbacks,
-    ): Boolean = application.isDebuggable() && synchronized(lock) {
-        if (server != null) {
-            false
-        } else {
-            val store = SessionTokenStore(application)
-            val session = store.create(application.packageName)
-            val bridgeEnvironment = AndroidBridgeEnvironment(
-                context = application,
-                sidekickVersion = session.sidekickVersion,
-                lifecycleCallbacks = lifecycleCallbacks,
-            )
-            val bridgeServer = BridgeServer(
-                session = session,
-                environment = bridgeEnvironment,
-                connectionState = connectionState,
-            )
-            if (!bridgeServer.start()) {
+    ): Boolean = application.isDebuggable() &&
+        synchronized(lock) {
+            if (server != null) {
                 false
             } else {
-                // Write the session AFTER bind succeeds so session.json reflects the
-                // actual name BridgeServer is listening on (the bind retry may have
-                // promoted us to a -1 / -2 suffix to dodge a stale prior binding).
-                val resolved = bridgeServer.resolvedSocketName() ?: session.socketName
-                val resolvedSession = if (resolved == session.socketName) {
-                    session
+                val store = SessionTokenStore(application)
+                val session = store.create(application.packageName)
+                val bridgeEnvironment = AndroidBridgeEnvironment(
+                    context = application,
+                    sidekickVersion = session.sidekickVersion,
+                    lifecycleCallbacks = lifecycleCallbacks,
+                )
+                val bridgeServer = BridgeServer(
+                    session = session,
+                    environment = bridgeEnvironment,
+                    connectionState = connectionState,
+                )
+                if (!bridgeServer.start()) {
+                    false
                 } else {
-                    session.copy(socketName = resolved, socketAddress = "localabstract:$resolved")
+                    // Write the session AFTER bind succeeds so session.json reflects the
+                    // actual name BridgeServer is listening on (the bind retry may have
+                    // promoted us to a -1 / -2 suffix to dodge a stale prior binding).
+                    val resolved = bridgeServer.resolvedSocketName() ?: session.socketName
+                    val resolvedSession = if (resolved == session.socketName) {
+                        session
+                    } else {
+                        session.copy(socketName = resolved, socketAddress = "localabstract:$resolved")
+                    }
+                    store.write(resolvedSession)
+                    environment = bridgeEnvironment
+                    server = bridgeServer
+                    true
                 }
-                store.write(resolvedSession)
-                environment = bridgeEnvironment
-                server = bridgeServer
-                true
             }
         }
-    }
 
     fun onActivityResumed(activity: Activity) {
         environment?.currentActivity = WeakReference(activity)

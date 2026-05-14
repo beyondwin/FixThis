@@ -8,6 +8,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Internal
@@ -17,6 +18,7 @@ import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import java.io.File
 
+@CacheableTask
 abstract class GenerateFixThisSourceIndexTask : DefaultTask() {
     @get:Internal
     abstract val projectDirectory: DirectoryProperty
@@ -55,7 +57,11 @@ abstract class GenerateFixThisSourceIndexTask : DefaultTask() {
 
     @TaskAction
     fun generate() {
-        val assetRoot = outputDirectory.get().asFile.resolve("fixthis")
+        val outputRoot = outputDirectory.get().asFile
+        if (outputRoot.exists()) {
+            outputRoot.deleteRecursively()
+        }
+        val assetRoot = outputRoot.resolve("fixthis")
         assetRoot.mkdirs()
 
         if (generateSourceIndex.get()) {

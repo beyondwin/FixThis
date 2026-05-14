@@ -6,8 +6,10 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.gradle.api.tasks.CacheableTask
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -308,11 +310,97 @@ class GenerateFixThisSourceIndexTaskTest {
         assertTrue(contentDescriptions.any { it.contains("Payment options") })
     }
 
+    @Test
+    fun `task is explicitly cacheable`() {
+        assertTrue(
+            "GenerateFixThisSourceIndexTask must be annotated with @CacheableTask so Gradle can reuse output bytes",
+            GenerateFixThisSourceIndexTask::class.java.isAnnotationPresent(CacheableTask::class.java),
+        )
+    }
+
+    @Test
+    fun `removes stale source index output when source index generation is disabled`() {
+        val projectDir = temporaryFolder.newFolder("project")
+        val sourceFile = projectDir.resolve("src/main/java/io/github/fixthis/sample/SampleApp.kt")
+        sourceFile.parentFile.mkdirs()
+        sourceFile.writeText(
+            """
+            package io.beyondwin.fixthis.sample
+
+            import androidx.compose.material3.Text
+
+            fun SampleApp() {
+                Text("First")
+            }
+            """.trimIndent(),
+        )
+        val outputDir = projectDir.resolve("build/generated/fixthis/debug/assets")
+
+        runTask(
+            projectDir = projectDir,
+            kotlinSources = listOf(sourceFile),
+            resourceXmlFiles = emptyList(),
+            outputDir = outputDir,
+        )
+        val sourceIndex = outputDir.resolve("fixthis/fixthis-source-index.json")
+        assertTrue(sourceIndex.isFile)
+
+        runTask(
+            projectDir = projectDir,
+            kotlinSources = listOf(sourceFile),
+            resourceXmlFiles = emptyList(),
+            outputDir = outputDir,
+            generateSourceIndex = false,
+            generateProjectMetadata = true,
+        )
+
+        assertFalse("stale source index JSON must not remain after generation is disabled", sourceIndex.exists())
+        assertTrue(outputDir.resolve("fixthis/fixthis-build-info.json").isFile)
+    }
+
+    @Test
+    fun `removes stale build info output when metadata generation is disabled`() {
+        val projectDir = temporaryFolder.newFolder("project")
+        val stringsFile = projectDir.resolve("src/main/res/values/strings.xml")
+        stringsFile.parentFile.mkdirs()
+        stringsFile.writeText(
+            """
+            <resources>
+                <string name="app_name">FixThis</string>
+            </resources>
+            """.trimIndent(),
+        )
+        val outputDir = projectDir.resolve("build/generated/fixthis/debug/assets")
+
+        runTask(
+            projectDir = projectDir,
+            kotlinSources = emptyList(),
+            resourceXmlFiles = listOf(stringsFile),
+            outputDir = outputDir,
+        )
+        val buildInfo = outputDir.resolve("fixthis/fixthis-build-info.json")
+        assertTrue(buildInfo.isFile)
+
+        runTask(
+            projectDir = projectDir,
+            kotlinSources = emptyList(),
+            resourceXmlFiles = listOf(stringsFile),
+            outputDir = outputDir,
+            generateSourceIndex = true,
+            generateProjectMetadata = false,
+        )
+
+        assertTrue(outputDir.resolve("fixthis/fixthis-source-index.json").isFile)
+        assertFalse("stale build info JSON must not remain after metadata generation is disabled", buildInfo.exists())
+    }
+
     private fun runTask(
         projectDir: File,
         kotlinSources: List<File>,
         resourceXmlFiles: List<File>,
         outputDir: File,
+        generateSourceIndex: Boolean = true,
+        generateProjectMetadata: Boolean = true,
     ) {
         val project = ProjectBuilder.builder()
             .withProjectDir(projectDir)
@@ -330,8 +418,8 @@ class GenerateFixThisSourceIndexTaskTest {
         task.runtimeVersion.set("0.1.0-test")
         task.includeScreenshots.set(true)
         task.redactEditableText.set(true)
-        task.generateSourceIndex.set(true)
-        task.generateProjectMetadata.set(true)
+        task.generateSourceIndex.set(generateSourceIndex)
+        task.generateProjectMetadata.set(generateProjectMetadata)
 
         task.generate()
     }
