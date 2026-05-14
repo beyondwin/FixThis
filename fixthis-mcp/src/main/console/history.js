@@ -27,8 +27,8 @@
             }
 
             function pendingHistoryItemsForSession(session) {
-              if (!activeDraftFlow || state.session?.sessionId !== session?.sessionId) return [];
-              return draftFeedbackItems;
+              if (!draftRuntimeFlow() || state.session?.sessionId !== session?.sessionId) return [];
+              return draftRuntimeItems();
             }
 
             function historyOpenCount(session) {
@@ -86,8 +86,8 @@
             }
 
             function toolbarAnnotationCounts() {
-              if (activeDraftFlow) {
-                const pending = draftFeedbackItems;
+              if (draftRuntimeFlow()) {
+                const pending = draftRuntimeItems();
                 return {
                   open: pending.filter(item => annotationStatus(item) !== 'resolved').length,
                   resolved: pending.filter(item => annotationStatus(item) === 'resolved').length
@@ -109,8 +109,8 @@
             }
 
             function selectedAnnotation() {
-              if (focusedPendingItemIndex == null) return null;
-              return draftFeedbackItems[focusedPendingItemIndex] || null;
+              if (draftRuntimeFocusIndex() == null) return null;
+              return draftRuntimeItems()[draftRuntimeFocusIndex()] || null;
             }
 
             function sourceHintLabel(item) {
@@ -133,8 +133,8 @@
               if (!requirePendingRecoveryChoiceBeforeSessionChange()) {
                 throw new Error('Recover, recapture, or discard unsaved annotations before changing sessions.');
               }
-              resetCanonicalAnnotationComposerState();
-              invalidateCanonicalPreviewContext();
+              resetAnnotationComposerRuntime();
+              clearPreviewRuntimeContext();
 	              setConsoleSession(await withMutationLock(() => requestJson('/api/session/open', {
 	                method: 'POST',
 	                headers: { 'Content-Type': 'application/json' },
@@ -148,7 +148,7 @@
               await ensureSessionForAnnotating();
               toolModeUseCases.enterAnnotate();
               renderCurrentSessionList();
-              if (!activeDraftFlow) {
+              if (!draftRuntimeFlow()) {
                 await startDraftAnnotationFlow();
               } else {
                 renderPreviewOnly();
@@ -333,8 +333,8 @@
                 if (await resolvePendingBeforeBoundary('open-session', sessionId) !== 'continue') return;
                 bumpSessionMutationGeneration();
                 stopLivePreviewPolling();
-                resetCanonicalAnnotationComposerState(true, false);
-                invalidateCanonicalPreviewContext();
+                resetAnnotationComposerRuntime(true, false);
+                clearPreviewRuntimeContext();
 	                setConsoleSession(await withMutationLock(() => requestJson('/api/session/open', {
 	                  method: 'POST',
 	                  headers: { 'Content-Type': 'application/json' },
@@ -359,8 +359,8 @@
               if (sessionNavigationInFlight) return;
               if (await resolvePendingBeforeBoundary('new-session') !== 'continue') return;
               bumpSessionMutationGeneration();
-              resetCanonicalAnnotationComposerState();
-              invalidateCanonicalPreviewContext();
+              resetAnnotationComposerRuntime();
+              clearPreviewRuntimeContext();
 	              setConsoleSession(await withMutationLock(() => requestJson('/api/session/open', {
 	                method: 'POST',
 	                headers: { 'Content-Type': 'application/json' },
@@ -381,8 +381,8 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: sessionId })
               }));
-              resetCanonicalAnnotationComposerState();
-              invalidateCanonicalPreviewContext();
+              resetAnnotationComposerRuntime();
+              clearPreviewRuntimeContext();
               setConsoleSession(null);
               await refreshSessions();
               render();
@@ -403,8 +403,8 @@
                 body: JSON.stringify({ sessionId: sessionId })
               }));
               if (wasDisplayedSession) {
-                resetCanonicalAnnotationComposerState();
-                invalidateCanonicalPreviewContext();
+                resetAnnotationComposerRuntime();
+                clearPreviewRuntimeContext();
                 setConsoleSession(null);
               }
               await refreshSessions();

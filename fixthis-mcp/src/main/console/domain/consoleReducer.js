@@ -59,6 +59,10 @@ function reduceConsoleAppState(state = createInitialConsoleAppState(), event = {
     case 'DRAFT_SAVE_FAILED':
       result = reduceDraftSaveFailed(state, event);
       break;
+    case 'UNDO_CLICKED':
+    case 'REDO_CLICKED':
+      result = { state, effects: [] };
+      break;
     default:
       result = { state, effects: [] };
   }

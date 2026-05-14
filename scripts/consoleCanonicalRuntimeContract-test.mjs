@@ -34,3 +34,24 @@ test('console store checks invariants before rendering', () => {
   assert.match(store, /assertConsoleInvariants\(current\)/);
   assert.match(store, /assertConsoleInvariants\(result\.state\)/);
 });
+
+test('runtime modules do not mutate legacy draft globals', () => {
+  const files = [
+    'fixthis-mcp/src/main/console/main.js',
+    'fixthis-mcp/src/main/console/annotations.js',
+    'fixthis-mcp/src/main/console/preview.js',
+    'fixthis-mcp/src/main/console/history.js',
+    'fixthis-mcp/src/main/console/rendering.js',
+    'fixthis-mcp/src/main/console/prompt.js',
+    'fixthis-mcp/src/main/console/shortcuts.js',
+  ];
+  for (const file of files) {
+    const text = source(file);
+    assert.doesNotMatch(text, /\bactiveDraftFlow\b/, file);
+    assert.doesNotMatch(text, /\bdraftFeedbackItems\b/, file);
+    assert.doesNotMatch(text, /\bfocusedPendingItemIndex\b/, file);
+    assert.doesNotMatch(text, /\bcurrentSelection\b/, file);
+    assert.doesNotMatch(text, /resetCanonicalAnnotationComposerState\(/, file);
+    assert.doesNotMatch(text, /invalidateCanonicalPreviewContext\(/, file);
+  }
+});

@@ -7,7 +7,7 @@
               return requestJson('/api/preview');
             }
 
-            function invalidateCanonicalPreviewContext() {
+            function clearPreviewRuntimeContext() {
               previewUseCases.contextChanged();
               setConsolePreview(null);
             }
@@ -25,7 +25,7 @@
             }
 
             function screenImageUrl(screen) {
-              if (activeDraftFlow) return activeDraftFlow.screenshotUrl;
+              if (draftRuntimeFlow()) return draftRuntimeFlow().screenshotUrl;
               if (state.preview?.screen === screen && state.preview?.previewId) return previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null);
               const savedContext = toolModeUseCases.getState();
               const savedSessionId = screen?.screenId === savedContext.focusedSavedScreenId ? savedContext.focusedSavedSessionId : null;
@@ -42,7 +42,7 @@
             }
 
             function shouldPollPreview() {
-              return !document.hidden && !activeDraftFlow && Boolean(state.session) && Boolean(state.selectedDeviceSerial) && userConnectionState(state.connection.current) === 'ready';
+              return !document.hidden && !draftRuntimeFlow() && Boolean(state.session) && Boolean(state.selectedDeviceSerial) && userConnectionState(state.connection.current) === 'ready';
             }
 
             function shouldAutoFetchPreview() {
@@ -98,7 +98,7 @@
             }
 
             function latestScreen() {
-              if (activeDraftFlow) return activeDraftFlow.screen;
+              if (draftRuntimeFlow()) return draftRuntimeFlow().screen;
               const toolModeState = toolModeUseCases.getState();
               const focusedSavedItemId = toolModeState.focusedSavedItemId;
               let savedScreen = null;
@@ -138,11 +138,11 @@
 
             async function refreshPreview() {
               error.textContent = '';
-              if (!state.session || activeDraftFlow) return;
+              if (!state.session || draftRuntimeFlow()) return;
               const requestGeneration = previewUseCases.getState().requestGeneration + 1;
               try {
                 const preview = await previewUseCases.request();
-                if (activeDraftFlow || requestGeneration !== previewUseCases.getState().requestGeneration) return;
+                if (draftRuntimeFlow() || requestGeneration !== previewUseCases.getState().requestGeneration) return;
 	                setConsolePreview({
 	                  ...preview,
 	                  activity: state.connection?.availability?.activity ?? null,
@@ -225,12 +225,12 @@
             }
 
             async function useLatestStaleFrame() {
-              const wasAnnotating = toolModeUseCases.isAnnotateMode() || Boolean(activeDraftFlow);
+              const wasAnnotating = toolModeUseCases.isAnnotateMode() || Boolean(draftRuntimeFlow());
               flushFocusedPendingComment();
               const pendingItems = draftWorkspaceItems(draftWorkspace).slice();
               const previousWorkspace = draftWorkspace;
               const previousPreview = state.preview;
-              invalidateCanonicalPreviewContext();
+              clearPreviewRuntimeContext();
               if (wasAnnotating) {
                 setDraftWorkspace(createEmptyDraftWorkspace());
                 try {
@@ -238,11 +238,11 @@
                 } catch (cause) {
                   setDraftWorkspace(previousWorkspace);
                   setConsolePreview(previousPreview);
-                  if (activeDraftFlow) persistCurrentPendingState();
+                  if (draftRuntimeFlow()) persistCurrentPendingState();
                   render();
                   throw cause;
                 }
-                if (!activeDraftFlow) {
+                if (!draftRuntimeFlow()) {
                   setDraftWorkspace(previousWorkspace);
                   setConsolePreview(previousPreview);
                   render();
@@ -255,9 +255,9 @@
                   history: { undoStack: [], redoStack: [] },
                 });
                 updateAnnotationSequenceFromPendingItems(pendingItems);
-                focusedPendingItemIndex = null;
+                setDraftRuntimeFocusIndex(null);
                 toolModeUseCases.focusSavedItem(null, null);
-                currentSelection = null;
+                setDraftRuntimeSelection(null);
                 toolModeUseCases.setHoveredTarget(null);
                 persistCurrentPendingState();
               } else {

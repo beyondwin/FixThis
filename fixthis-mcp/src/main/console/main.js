@@ -32,7 +32,7 @@
             zoomInButton.addEventListener('click', () => setPreviewZoom(previewUseCases.getState().zoom + PreviewZoomStep));
             addItemButton.addEventListener('click', () => {
               try {
-                createAnnotationFromSelection(currentSelection);
+                createAnnotationFromSelection(draftRuntimeSelection());
               } catch (cause) {
                 showError(cause);
               }
@@ -56,30 +56,16 @@
             window.addEventListener('keydown', (e) => {
               const active = document.activeElement;
               if (matchesUndo(e, active)) {
-                const result = undo(undoRedoHistory, { draftFeedbackItems }, activeDraftFlow?.context ?? null);
-                if (result.reason === 'context_mismatch') showError('Undo history was cleared because the annotation session changed.');
-                if (result.applied) {
-                  e.preventDefault();
-                  persistCurrentPendingState();
-                  renderPreviewOnly();
-                  renderInspectorRegion();
-                  renderCurrentSessionList();
-                }
+                e.preventDefault();
+                store.dispatch({ type: 'UNDO_CLICKED' });
               } else if (matchesRedo(e, active)) {
-                const result = redo(undoRedoHistory, { draftFeedbackItems }, activeDraftFlow?.context ?? null);
-                if (result.reason === 'context_mismatch') showError('Undo history was cleared because the annotation session changed.');
-                if (result.applied) {
-                  e.preventDefault();
-                  persistCurrentPendingState();
-                  renderPreviewOnly();
-                  renderInspectorRegion();
-                  renderCurrentSessionList();
-                }
+                e.preventDefault();
+                store.dispatch({ type: 'REDO_CLICKED' });
               }
             });
             // ALH-1: warn user if they try to leave with unsaved pending items.
             window.addEventListener('beforeunload', (e) => {
-              if (shouldGuardUnload(draftFeedbackItems.length)) {
+              if (shouldGuardUnload(draftRuntimeItems().length)) {
                 e.preventDefault();
                 e.returnValue = '저장하지 않은 어노테이션이 있습니다. 정말 떠나시겠습니까?';
                 return e.returnValue;
@@ -131,7 +117,7 @@
               btn.textContent = '되돌리기';
               btn.style.cssText = 'background:none;border:none;color:#bb86fc;cursor:pointer;font-size:14px;padding:0;font-weight:500;';
               btn.addEventListener('click', () => {
-                const result = undo(undoRedoHistory, { draftFeedbackItems }, activeDraftFlow?.context ?? null);
+                const result = undo(undoRedoHistory, { items: draftRuntimeItems() }, draftRuntimeFlow()?.context ?? null);
                 if (result.reason === 'context_mismatch') showError('Undo history was cleared because the annotation session changed.');
                 if (result.applied) {
                   persistCurrentPendingState();
@@ -240,9 +226,9 @@
 	                stale: false
 	              });
               updateAnnotationSequenceFromPendingItems(workspace.items);
-              focusedPendingItemIndex = null;
+              setDraftRuntimeFocusIndex(null);
               toolModeUseCases.focusSavedItem(null, null);
-              currentSelection = null;
+              setDraftRuntimeSelection(null);
               toolModeUseCases.setHoveredTarget(null);
               toolModeUseCases.enterSelect();
               stopLivePreviewPolling();
@@ -283,7 +269,7 @@
             function renderPendingRecoveryBanner() {
               const banner = ensurePendingRecoveryBanner();
               const recoveryItems = pendingRecoveryItems(pendingRecovery);
-              if (!pendingRecovery || !recoveryItems.length || activeDraftFlow || draftFeedbackItems.length) {
+              if (!pendingRecovery || !recoveryItems.length || draftRuntimeFlow() || draftRuntimeItems().length) {
                 banner.hidden = true;
                 return;
               }
@@ -333,7 +319,7 @@
                 return;
               }
               const sessionId = state.session.sessionId;
-              if (activeDraftFlow || draftFeedbackItems.length) {
+              if (draftRuntimeFlow() || draftRuntimeItems().length) {
                 renderPendingRecoveryBanner();
                 return;
               }
@@ -356,9 +342,9 @@
                 const accepted = window.confirm('Recapture the current app screen and remap recovered pins to the new frozen preview?');
                 if (!accepted) return;
               }
-              invalidateCanonicalPreviewContext();
+              clearPreviewRuntimeContext();
               await startDraftAnnotationFlow();
-              if (!activeDraftFlow) return;
+              if (!draftRuntimeFlow()) return;
               const recoveredItems = items.map((item, index) => ({
                 ...item,
                 draftItemId: item?.draftItemId || item?.annotationId || ('recovered-' + (index + 1)),
@@ -371,9 +357,9 @@
               });
               updateAnnotationSequenceFromPendingItems(recoveredItems);
               pendingRecovery = null;
-              focusedPendingItemIndex = null;
+              setDraftRuntimeFocusIndex(null);
               toolModeUseCases.focusSavedItem(null, null);
-              currentSelection = null;
+              setDraftRuntimeSelection(null);
               toolModeUseCases.setHoveredTarget(null);
               persistCurrentPendingState();
               renderPendingRecoveryBanner();

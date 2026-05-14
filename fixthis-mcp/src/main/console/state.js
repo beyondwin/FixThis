@@ -128,6 +128,30 @@
               return draftWorkspace;
             }
 
+            function draftRuntimeFlow() {
+              return activeDraftFlow;
+            }
+
+            function draftRuntimeItems() {
+              return draftFeedbackItems;
+            }
+
+            function draftRuntimeFocusIndex() {
+              return focusedPendingItemIndex;
+            }
+
+            function setDraftRuntimeFocusIndex(index) {
+              focusedPendingItemIndex = index;
+            }
+
+            function draftRuntimeSelection() {
+              return currentSelection;
+            }
+
+            function setDraftRuntimeSelection(selection) {
+              currentSelection = selection;
+            }
+
             function setDraftWorkspace(nextWorkspace) {
               draftWorkspace = nextWorkspace || createEmptyDraftWorkspace();
               syncDraftWorkspaceCompatibility();

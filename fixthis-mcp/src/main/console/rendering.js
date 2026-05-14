@@ -49,7 +49,7 @@
             function renderNumberedFeedbackOverlay(overlay, image) {
               draftWorkspaceItems(draftWorkspace).forEach((item, index) => {
                 const displayNumber = index + 1;
-                renderOverlayBox(overlay, image, item.bounds, String(displayNumber), false, index === focusedPendingItemIndex, index, '', severityColor(annotationSeverity(item)));
+                renderOverlayBox(overlay, image, item.bounds, String(displayNumber), false, index === draftRuntimeFocusIndex(), index, '', severityColor(annotationSeverity(item)));
               });
             }
 
@@ -77,16 +77,16 @@
 
               renderNumberedFeedbackOverlay(overlay, image);
               const toolModeState = toolModeUseCases.getState();
-              if (!activeDraftFlow) {
+              if (!draftRuntimeFlow()) {
                 const focusedItem = savedEvidenceItems().find(item => item.itemId === toolModeState.focusedSavedItemId);
                 const savedScreenId = focusedItem?.screenId || toolModeState.focusedSavedScreenId;
                 const sameScreenItems = savedEvidenceItems().filter(item => item.screenId === savedScreenId);
                 if (sameScreenItems.length) renderSavedEvidenceOverlay(overlay, image, sameScreenItems);
               }
-              if (currentSelection) {
-                renderOverlayBox(overlay, image, currentSelection.bounds, currentSelection.label);
+              if (draftRuntimeSelection()) {
+                renderOverlayBox(overlay, image, draftRuntimeSelection().bounds, draftRuntimeSelection().label);
               }
-              if (activeDraftFlow && toolModeUseCases.isAnnotateMode() && toolModeState.hoveredTarget && !toolModeState.drag?.preview) {
+              if (draftRuntimeFlow() && toolModeUseCases.isAnnotateMode() && toolModeState.hoveredTarget && !toolModeState.drag?.preview) {
                 renderOverlayBox(overlay, image, toolModeState.hoveredTarget.bounds, null, false, false, null, 'hover-preview');
               }
               if (toolModeState.drag?.preview) {
@@ -106,30 +106,30 @@
             }
 
             function renderPendingItems() {
-              if (focusedPendingItemIndex != null && selectedAnnotation()) {
-                renderAnnotationDetail(selectedAnnotation(), focusedPendingItemIndex);
+              if (draftRuntimeFocusIndex() != null && selectedAnnotation()) {
+                renderAnnotationDetail(selectedAnnotation(), draftRuntimeFocusIndex());
                 return;
               }
               // SIF-6: inline activity-drift warning + restart button. Visible
-              // only while an activeDraftFlow is active and the most recent
+              // only while an draftRuntimeFlow() is active and the most recent
               // checkActivityDrift() result reported drift=true.
-              const driftWarningHtml = (activeDraftFlow && activeDraftFlow.activityDriftWarning && activeDraftFlow.activityDriftWarning.drift)
+              const driftWarningHtml = (draftRuntimeFlow() && draftRuntimeFlow().activityDriftWarning && draftRuntimeFlow().activityDriftWarning.drift)
                 ? '<div class="activity-drift-warning" role="status" aria-live="polite" data-activity-drift>' +
                     '<div class="activity-drift-warning-body">' +
                       '<div class="activity-drift-warning-title">Activity changed during freeze</div>' +
-                      '<div class="activity-drift-warning-detail">Frozen: ' + escapeHtml(String(activeDraftFlow.activityDriftWarning.expected)) + ' · Now: ' + escapeHtml(String(activeDraftFlow.activityDriftWarning.actual)) + '</div>' +
+                      '<div class="activity-drift-warning-detail">Frozen: ' + escapeHtml(String(draftRuntimeFlow().activityDriftWarning.expected)) + ' · Now: ' + escapeHtml(String(draftRuntimeFlow().activityDriftWarning.actual)) + '</div>' +
                     '</div>' +
                     '<button type="button" class="activity-drift-warning-button" data-activity-drift-restart>Start new freeze</button>' +
                   '</div>'
                 : '';
-              pendingItems.innerHTML = driftWarningHtml + (draftFeedbackItems.length
-                ? '<div class="ann-list">' + draftFeedbackItems.map((item, index) => {
+              pendingItems.innerHTML = driftWarningHtml + (draftRuntimeItems().length
+                ? '<div class="ann-list">' + draftRuntimeItems().map((item, index) => {
                   const commentText = firstLine(item.comment || 'No comment');
                   const hasComment = Boolean(String(item.comment || '').trim());
                   const phase = lifecyclePhase(item);
                   const color = severityColor(annotationSeverity(item));
                   const pendingItemIdAttr = item.itemId ? ' data-item-id="' + escapeHtml(item.itemId) + '"' : '';
-                  return '<button type="button" class="ann-row pending-item-row ' + (index === focusedPendingItemIndex ? 'active' : '') + '" style="--annotation-color:' + color + '" data-phase="' + escapeHtml(phase) + '"' + pendingItemIdAttr + ' data-focus-pending="' + index + '">' +
+                  return '<button type="button" class="ann-row pending-item-row ' + (index === draftRuntimeFocusIndex() ? 'active' : '') + '" style="--annotation-color:' + color + '" data-phase="' + escapeHtml(phase) + '"' + pendingItemIdAttr + ' data-focus-pending="' + index + '">' +
                     '<span class="ann-row-num" style="background:' + severityColor(annotationSeverity(item)) + '">' + (index + 1) + '</span>' +
                     '<span class="ann-row-body">' +
                       '<span class="ann-row-title">' + escapeHtml(annotationTitle(item, index)) + '</span>' +
@@ -147,7 +147,7 @@
               if (driftRestartButton) {
                 driftRestartButton.addEventListener('click', () => {
                   // SIF-6: discard the stale freeze and start a fresh one.
-                  resetCanonicalAnnotationComposerState(true);
+                  resetAnnotationComposerRuntime(true);
                   startDraftAnnotationFlow().catch(showError);
                 });
               }
@@ -357,7 +357,7 @@
               });
               pendingItems.querySelectorAll('[data-back-annotations]').forEach(button => {
                 button.addEventListener('click', () => {
-                  focusedPendingItemIndex = null;
+                  setDraftRuntimeFocusIndex(null);
                   renderPreviewOnly();
                   renderInspectorRegion();
                 });
@@ -677,7 +677,7 @@
 
             function workflowActiveStep() {
               if (!state.connection?.hasEverConnected && userConnectionState(state.connection?.current) !== 'ready') return 'connect';
-              if (activeDraftFlow || toolModeUseCases.isAnnotateMode()) return 'annotate';
+              if (draftRuntimeFlow() || toolModeUseCases.isAnnotateMode()) return 'annotate';
               if (currentPromptAnnotations().length > 0) return 'handoff';
               return 'preview';
             }
@@ -705,7 +705,7 @@
               const item = selectedAnnotation();
               const savedItems = savedEvidenceItems();
               inspectorTitle.textContent = item ? 'Annotation' : 'Annotations';
-              inspectorCount.textContent = String(draftFeedbackItems.length + savedItems.length);
+              inspectorCount.textContent = String(draftRuntimeItems().length + savedItems.length);
               selectionSummary.hidden = true;
               comment.hidden = true;
               pendingItems.hidden = false;
@@ -738,7 +738,7 @@
             }
 
             function renderInspectorRegion() {
-              if (activeDraftFlow) {
+              if (draftRuntimeFlow()) {
                 renderComposerInspector();
               } else {
                 renderSavedAnnotationsInspector();
@@ -765,7 +765,7 @@
               if (state.connection?.interactionBlockedReason) return { state: 'blocked', label: 'Interaction blocked' };
               if (!hasScreenshot) return { state: 'unavailable', label: 'No screenshot' };
               if (state.preview?.stale) return { state: 'stale', label: 'Stale frame' };
-              if (activeDraftFlow) return { state: 'frozen', label: 'Frozen for annotation' };
+              if (draftRuntimeFlow()) return { state: 'frozen', label: 'Frozen for annotation' };
               if (toolModeUseCases.getState().focusedSavedItemId || toolModeUseCases.getState().focusedSavedScreenId || (!state.preview && screen?.screenId)) return { state: 'saved', label: 'Saved screen' };
               if (state.preview) return { state: 'live', label: 'Live preview' };
               return { state: 'unavailable', label: 'No screenshot' };
@@ -782,15 +782,15 @@
 	            function renderDraftLockBar(canvasModel = null) {
 	              const root = document.getElementById('draftLockBar');
 	              if (!root) return;
-	              const isDraft = canvasModel ? canvasModel.mode === 'frozenDraft' : Boolean(activeDraftFlow);
+	              const isDraft = canvasModel ? canvasModel.mode === 'frozenDraft' : Boolean(draftRuntimeFlow());
 	              root.hidden = !isDraft;
 	              if (!isDraft) {
 	                root.textContent = '';
 	                return;
 	              }
 	              root.textContent = canvasModel?.lockLabel || (
-	                'Locked: Session ' + (activeDraftFlow?.context?.sessionId || state.session?.sessionId || 'current') +
-	                ' · Preview ' + (activeDraftFlow?.previewId || activeDraftFlow?.context?.previewId || 'frozen') +
+	                'Locked: Session ' + (draftRuntimeFlow()?.context?.sessionId || state.session?.sessionId || 'current') +
+	                ' · Preview ' + (draftRuntimeFlow()?.previewId || draftRuntimeFlow()?.context?.previewId || 'frozen') +
 	                ' · Live preview paused'
 	              );
 	            }
@@ -818,7 +818,7 @@
             function renderPreviewRegion() {
               const screen = latestScreen();
               const hasScreenshot = Boolean(screen?.screenshot?.desktopFullPath);
-              const mode = activeDraftFlow ? 'frozen' : (state.preview ? 'live' : (screen ? 'frozen' : 'idle'));
+              const mode = draftRuntimeFlow() ? 'frozen' : (state.preview ? 'live' : (screen ? 'frozen' : 'idle'));
               snapshot.dataset.toolMode = toolModeUseCases.isAnnotateMode() ? 'annotate' : 'select';
               if (!hasScreenshot) {
                 const emptyMessage = screen
@@ -914,11 +914,11 @@
                     toolModeUseCases.setSuppressNextClick(false);
                     return;
                   }
-                  if (toolModeUseCases.isSelectMode() && activeDraftFlow) {
+                  if (toolModeUseCases.isSelectMode() && draftRuntimeFlow()) {
                     clearSelection();
                     return;
                   }
-                  if (!activeDraftFlow) {
+                  if (!draftRuntimeFlow()) {
                     const point = naturalPointFromEvent(event, image);
                     navigate('tap', { x: point.x, y: point.y }).catch(showError);
                     return;
@@ -935,7 +935,7 @@
                   event.preventDefault();
                   return;
                 }
-                if (!activeDraftFlow || !toolModeUseCases.isAnnotateMode()) return;
+                if (!draftRuntimeFlow() || !toolModeUseCases.isAnnotateMode()) return;
                 try {
                   image.setPointerCapture?.(event.pointerId);
                   const point = naturalPointFromEvent(event, image);
@@ -947,7 +947,7 @@
                 }
               });
               image.addEventListener('pointermove', event => {
-                if (!activeDraftFlow || !toolModeUseCases.isAnnotateMode()) return;
+                if (!draftRuntimeFlow() || !toolModeUseCases.isAnnotateMode()) return;
                 try {
                   const dragState = toolModeUseCases.getState().drag;
                   if (!dragState) {
@@ -963,7 +963,7 @@
               });
               image.addEventListener('pointerup', event => {
                 const dragState = toolModeUseCases.getState().drag;
-                if (!activeDraftFlow || !toolModeUseCases.isAnnotateMode() || !dragState) return;
+                if (!draftRuntimeFlow() || !toolModeUseCases.isAnnotateMode() || !dragState) return;
                 try {
                   const end = naturalPointFromEvent(event, image);
                   const bounds = normalizeBounds(dragState.start, end);
@@ -998,8 +998,8 @@
               const preservedFocusedSavedItemId = toolModeStateBefore.focusedSavedItemId;
               const preservedFocusedSavedSessionId = toolModeStateBefore.focusedSavedSessionId;
               const preservedFocusedSavedScreenId = toolModeStateBefore.focusedSavedScreenId;
-              const preservedFocusedPendingIndex = focusedPendingItemIndex;
-              const preservedSelection = currentSelection;
+              const preservedFocusedPendingIndex = draftRuntimeFocusIndex();
+              const preservedSelection = draftRuntimeSelection();
 
               setConsoleSession(fresh);
 
@@ -1014,8 +1014,8 @@
                 savedScreenStillExists ? preservedFocusedSavedSessionId : null,
                 savedScreenStillExists ? nextSavedScreenId : null
               );
-              focusedPendingItemIndex = preservedFocusedPendingIndex;
-              currentSelection = preservedSelection;
+              setDraftRuntimeFocusIndex(preservedFocusedPendingIndex);
+              setDraftRuntimeSelection(preservedSelection);
 
               // Compute which items actually changed status since last tick.
               const previousStatusById = new Map(
