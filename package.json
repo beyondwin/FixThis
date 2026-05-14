@@ -25,8 +25,8 @@
     "console:test:all": "node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview draft session harness"
   },
   "devDependencies": {
-    "esbuild": "0.21.5",
-    "playwright": "^1.59.1",
-    "github-slugger": "^2.0.0"
+    "esbuild": "^0.28.0",
+    "github-slugger": "^2.0.0",
+    "playwright": "^1.59.1"
   }
 }
