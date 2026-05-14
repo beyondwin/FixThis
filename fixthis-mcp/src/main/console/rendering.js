@@ -76,17 +76,16 @@
               }
 
               renderNumberedFeedbackOverlay(overlay, image);
-              if (!addItemsFlow && toolModeUseCases.getState().focusedSavedItemId) {
-                const focusedItem = savedEvidenceItems().find(item => item.itemId === toolModeUseCases.getState().focusedSavedItemId);
-                if (focusedItem) {
-                  const sameScreenItems = savedEvidenceItems().filter(item => item.screenId === focusedItem.screenId);
-                  if (sameScreenItems.length) renderSavedEvidenceOverlay(overlay, image, sameScreenItems);
-                }
+              const toolModeState = toolModeUseCases.getState();
+              if (!addItemsFlow) {
+                const focusedItem = savedEvidenceItems().find(item => item.itemId === toolModeState.focusedSavedItemId);
+                const savedScreenId = focusedItem?.screenId || toolModeState.focusedSavedScreenId;
+                const sameScreenItems = savedEvidenceItems().filter(item => item.screenId === savedScreenId);
+                if (sameScreenItems.length) renderSavedEvidenceOverlay(overlay, image, sameScreenItems);
               }
               if (currentSelection) {
                 renderOverlayBox(overlay, image, currentSelection.bounds, currentSelection.label);
               }
-              const toolModeState = toolModeUseCases.getState();
               if (addItemsFlow && toolModeUseCases.isAnnotateMode() && toolModeState.hoveredTarget && !toolModeState.drag?.preview) {
                 renderOverlayBox(overlay, image, toolModeState.hoveredTarget.bounds, null, false, false, null, 'hover-preview');
               }
@@ -652,7 +651,7 @@
                   // reject a PATCH on non-editable items with ITEM_NOT_EDITABLE — we should
                   // still let the user leave the detail view.
                   const goBack = () => {
-                    toolModeUseCases.focusSavedItem(null, null);
+                    toolModeUseCases.focusSavedItem(null, editSessionId, item.screenId || null);
                     renderPreviewOnly();
                     renderInspectorRegion();
                   };
@@ -767,7 +766,7 @@
               if (!hasScreenshot) return { state: 'unavailable', label: 'No screenshot' };
               if (state.preview?.stale) return { state: 'stale', label: 'Stale frame' };
               if (addItemsFlow) return { state: 'frozen', label: 'Frozen for annotation' };
-              if (toolModeUseCases.getState().focusedSavedItemId || (!state.preview && screen?.screenId)) return { state: 'saved', label: 'Saved screen' };
+              if (toolModeUseCases.getState().focusedSavedItemId || toolModeUseCases.getState().focusedSavedScreenId || (!state.preview && screen?.screenId)) return { state: 'saved', label: 'Saved screen' };
               if (state.preview) return { state: 'live', label: 'Live preview' };
               return { state: 'unavailable', label: 'No screenshot' };
             }
@@ -940,13 +939,23 @@
               const toolModeStateBefore = toolModeUseCases.getState();
               const preservedFocusedSavedItemId = toolModeStateBefore.focusedSavedItemId;
               const preservedFocusedSavedSessionId = toolModeStateBefore.focusedSavedSessionId;
+              const preservedFocusedSavedScreenId = toolModeStateBefore.focusedSavedScreenId;
               const preservedFocusedPendingIndex = focusedPendingItemIndex;
               const preservedSelection = currentSelection;
 
               state.session = fresh;
 
               comment.value = preservedComment;
-              toolModeUseCases.focusSavedItem(preservedFocusedSavedItemId, preservedFocusedSavedSessionId);
+              const freshItems = fresh?.items || [];
+              const freshScreens = fresh?.screens || [];
+              const focusedItem = freshItems.find(item => item.itemId === preservedFocusedSavedItemId);
+              const nextSavedScreenId = focusedItem?.screenId || preservedFocusedSavedScreenId;
+              const savedScreenStillExists = nextSavedScreenId && freshScreens.some(screen => screen.screenId === nextSavedScreenId);
+              toolModeUseCases.focusSavedItem(
+                focusedItem ? preservedFocusedSavedItemId : null,
+                savedScreenStillExists ? preservedFocusedSavedSessionId : null,
+                savedScreenStillExists ? nextSavedScreenId : null
+              );
               focusedPendingItemIndex = preservedFocusedPendingIndex;
               currentSelection = preservedSelection;
 

@@ -27,7 +27,9 @@
             function screenImageUrl(screen) {
               if (addItemsFlow) return addItemsFlow.screenshotUrl;
               if (state.preview?.screen === screen && state.preview?.previewId) return previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null);
-              if (screen?.screenId) return screenScreenshotUrl(screen.screenId, state.session?.sessionId || toolModeUseCases.getState().focusedSavedSessionId || null);
+              const savedContext = toolModeUseCases.getState();
+              const savedSessionId = screen?.screenId === savedContext.focusedSavedScreenId ? savedContext.focusedSavedSessionId : null;
+              if (screen?.screenId) return screenScreenshotUrl(screen.screenId, savedSessionId || state.session?.sessionId || null);
               return '';
             }
 
@@ -97,15 +99,20 @@
 
             function latestScreen() {
               if (addItemsFlow) return addItemsFlow.screen;
-              const focusedSavedItemId = toolModeUseCases.getState().focusedSavedItemId;
+              const toolModeState = toolModeUseCases.getState();
+              const focusedSavedItemId = toolModeState.focusedSavedItemId;
+              let savedScreen = null;
               if (focusedSavedItemId) {
                 const focusedItem = savedEvidenceItems().find(item => item.itemId === focusedSavedItemId);
                 if (focusedItem) {
                   const focusedScreen = (state.session?.screens || []).find(s => s.screenId === focusedItem.screenId);
-                  if (focusedScreen) return focusedScreen;
+                  if (focusedScreen) savedScreen = focusedScreen;
                 }
               }
-              return state.preview?.screen || latestPersistedScreen();
+              if (!savedScreen && toolModeState.focusedSavedScreenId) {
+                savedScreen = (state.session?.screens || []).find(s => s.screenId === toolModeState.focusedSavedScreenId) || null;
+              }
+              return savedScreen || state.preview?.screen || latestPersistedScreen();
             }
 
             function clamp(value, min, max) {

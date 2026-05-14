@@ -565,7 +565,8 @@
             }
 
             function focusSavedEvidenceItem(itemId) {
-              toolModeUseCases.focusSavedItem(itemId, state.session?.sessionId || null);
+              const item = savedEvidenceItems().find(savedItem => savedItem.itemId === itemId);
+              toolModeUseCases.focusSavedItem(item ? itemId : null, item ? state.session?.sessionId || null : null, item?.screenId || null);
               focusedPendingItemIndex = null;
               currentSelection = null;
               toolModeUseCases.enterSelect();
@@ -614,7 +615,10 @@
                 : '';
               const updatedSession = await withMutationLock(() => requestJson('/api/items/' + encodeURIComponent(itemId) + sessionQuery, { method: 'DELETE' }));
               if (state.session?.sessionId === (updatedSession?.sessionId || sessionId)) {
-                toolModeUseCases.focusSavedItem(null, null);
+                const previousScreenId = toolModeUseCases.getState().focusedSavedScreenId;
+                const fallbackItem = (updatedSession?.items || []).find(item => item.screenId === previousScreenId) || null;
+                const fallbackScreenId = fallbackItem?.screenId || ((updatedSession?.screens || []).some(screen => screen.screenId === previousScreenId) ? previousScreenId : null);
+                toolModeUseCases.focusSavedItem(fallbackItem?.itemId || null, fallbackScreenId ? sessionId : null, fallbackScreenId);
                 state.session = updatedSession;
                 renderPreviewOnly();
                 renderInspectorRegion();

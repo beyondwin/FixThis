@@ -68,9 +68,14 @@ test('hover / suppressNextClick / history drawer setters work', () => {
 
 test('focusSavedItem / setAddItemsFlowStarting / setNewHistoryAnnotateModeStarting', () => {
   const uc = make();
-  uc.focusSavedItem('item-9', 'sess-9');
+  uc.focusSavedItem('item-9', 'sess-9', 'screen-9');
   assert.equal(uc.getState().focusedSavedItemId, 'item-9');
   assert.equal(uc.getState().focusedSavedSessionId, 'sess-9');
+  assert.equal(uc.getState().focusedSavedScreenId, 'screen-9');
+  uc.focusSavedItem(null, 'sess-9', 'screen-9');
+  assert.equal(uc.getState().focusedSavedItemId, null);
+  assert.equal(uc.getState().focusedSavedSessionId, 'sess-9');
+  assert.equal(uc.getState().focusedSavedScreenId, 'screen-9');
   uc.setAddItemsFlowStarting(true);
   assert.equal(uc.getState().addItemsFlowStarting, true);
   uc.setNewHistoryAnnotateModeStarting(true);

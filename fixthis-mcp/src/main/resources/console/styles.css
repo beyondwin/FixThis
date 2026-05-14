@@ -532,6 +532,13 @@
               border-color: var(--line);
               box-shadow: inset 2px 0 0 var(--accent);
             }
+            .history-item.is-busy {
+              cursor: progress;
+              opacity: .72;
+            }
+            .history-item[aria-disabled="true"] .hi-del {
+              pointer-events: none;
+            }
             .hi-head {
               display: flex;
               align-items: flex-start;

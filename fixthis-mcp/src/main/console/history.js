@@ -78,6 +78,13 @@
               return (state.sessionSummaries || []).find(session => session.sessionId === sessionId) || null;
             }
 
+            let sessionNavigationInFlight = false;
+            let pendingSessionNavigationId = null;
+
+            function isSessionNavigationInFlight() {
+              return sessionNavigationInFlight;
+            }
+
             function toolbarAnnotationCounts() {
               if (addItemsFlow) {
                 const pending = pendingFeedbackItems;
@@ -205,7 +212,7 @@
             syncHistoryDrawerState();
 
             function historyStartAnnotatingItemHtml() {
-              if (toolModeUseCases.getState().newHistoryAnnotateModeStarting) return '';
+              if (toolModeUseCases.getState().newHistoryAnnotateModeStarting || isSessionNavigationInFlight()) return '';
               return '<button type="button" class="history-item history-add-row" data-start-new-history-annotating aria-label="Start annotating">' +
                 '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>' +
               '</button>';
@@ -215,6 +222,7 @@
             function renderSessionsListFromPayload(sessionSummaries) {
               state.sessionSummaries = sessionSummaries;
               const activeId = state.session?.sessionId;
+              const navigationBusy = isSessionNavigationInFlight();
               const activeSummaries = sessionSummaries.filter(session => session.status !== 'closed');
               const ordinalBySessionId = sessionOrdinalLookup(activeSummaries);
               const renderedActiveSummaries = stableHistorySessions(activeSummaries);
@@ -227,10 +235,11 @@
                   open > 0 ? '<span class="hi-pip open">' + escapeHtml(countLabel(open, 'open', 'open')) + '</span>' : '',
                   done > 0 ? '<span class="hi-pip done">' + escapeHtml(countLabel(done, 'resolved', 'resolved')) + '</span>' : '',
                 ].join('');
-                return '<div class="history-item session-row ' + (session.sessionId === activeId ? 'is-active' : '') + '" role="button" tabindex="0" data-session-id="' + escapeHtml(session.sessionId) + '">' +
+                const busy = navigationBusy && (session.sessionId === activeId || session.sessionId === pendingSessionNavigationId);
+                return '<div class="history-item session-row ' + (session.sessionId === activeId ? 'is-active ' : '') + (busy ? 'is-busy' : '') + '" role="button" tabindex="0" aria-busy="' + (busy ? 'true' : 'false') + '" aria-disabled="' + (navigationBusy ? 'true' : 'false') + '" data-session-id="' + escapeHtml(session.sessionId) + '">' +
                   '<span class="hi-head">' +
                     '<span class="hi-title">' + escapeHtml(label) + '</span>' +
-                    '<button type="button" class="hi-del" data-delete-session-id="' + escapeHtml(session.sessionId) + '" aria-label="Delete history item ' + escapeHtml(label) + '">×</button>' +
+                    '<button type="button" class="hi-del" data-delete-session-id="' + escapeHtml(session.sessionId) + '" aria-label="Delete history item ' + escapeHtml(label) + '"' + (navigationBusy ? ' disabled' : '') + '>×</button>' +
                   '</span>' +
                   '<span class="hi-meta">' + escapeHtml(formatSessionSummary(session)) + '</span>' +
                   '<span class="hi-stats">' + pips + '</span>' +
@@ -271,7 +280,11 @@
             function renderSessionsList() {
               const activeId = state.session?.sessionId;
               document.querySelectorAll('.session-row').forEach(row => {
+                const busy = isSessionNavigationInFlight() && (row.dataset.sessionId === activeId || row.dataset.sessionId === pendingSessionNavigationId);
                 row.classList.toggle('is-active', row.dataset.sessionId === activeId);
+                row.classList.toggle('is-busy', busy);
+                row.setAttribute('aria-busy', busy ? 'true' : 'false');
+                row.setAttribute('aria-disabled', isSessionNavigationInFlight() ? 'true' : 'false');
               });
             }
 
@@ -302,26 +315,44 @@
             }
 
             async function openSession(sessionId) {
+              if (!sessionId) return;
               error.textContent = '';
-              if (await resolvePendingBeforeBoundary('open-session', sessionId) !== 'continue') return;
-              bumpSessionMutationGeneration();
-              stopLivePreviewPolling();
-              resetAnnotationComposerState(true, false);
-              invalidatePreviewContext();
-              state.session = await withMutationLock(() => requestJson('/api/session/open', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionId: sessionId })
-              }));
-              await refresh();
-              if (!latestPersistedScreen() && shouldAutoFetchPreview()) {
-                await refreshPreview();
+              if (sessionNavigationInFlight) {
+                pendingSessionNavigationId = sessionId;
+                renderSessionsList();
+                return;
               }
-              startLivePreviewPolling();
+              sessionNavigationInFlight = true;
+              pendingSessionNavigationId = null;
+              renderSessionsList();
+              try {
+                if (await resolvePendingBeforeBoundary('open-session', sessionId) !== 'continue') return;
+                bumpSessionMutationGeneration();
+                stopLivePreviewPolling();
+                resetAnnotationComposerState(true, false);
+                invalidatePreviewContext();
+                state.session = await withMutationLock(() => requestJson('/api/session/open', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ sessionId: sessionId })
+                }));
+                await refresh();
+                if (!latestPersistedScreen() && shouldAutoFetchPreview()) {
+                  await refreshPreview();
+                }
+                startLivePreviewPolling();
+              } finally {
+                sessionNavigationInFlight = false;
+                const queuedSessionId = pendingSessionNavigationId;
+                pendingSessionNavigationId = null;
+                renderSessionsList();
+                if (queuedSessionId && queuedSessionId !== state.session?.sessionId) await openSession(queuedSessionId);
+              }
             }
 
             async function newSession() {
               error.textContent = '';
+              if (sessionNavigationInFlight) return;
               if (await resolvePendingBeforeBoundary('new-session') !== 'continue') return;
               bumpSessionMutationGeneration();
               resetAnnotationComposerState();
@@ -357,6 +388,7 @@
             async function deleteHistorySession(sessionId) {
               error.textContent = '';
               if (!sessionId) return;
+              if (sessionNavigationInFlight) return;
               if (await resolvePendingBeforeBoundary('delete-session', sessionId) !== 'continue') return;
               const isDisplayedSession = () => state.session?.sessionId === sessionId;
               const wasDisplayedSession = isDisplayedSession();

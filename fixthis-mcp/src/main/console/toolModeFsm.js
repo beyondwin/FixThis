@@ -5,7 +5,8 @@
 // state.js: toolMode, annotationSequence, hoveredAnnotationTarget,
 // dragStart, dragPreview, suppressNextClick, addItemsFlowStarting,
 // newHistoryAnnotateModeStarting, historyDrawerOpen, focusedSavedItemId,
-// focusedSavedSessionId. No DOM, fetch, timers, or globals here.
+// focusedSavedSessionId, focusedSavedScreenId. No DOM, fetch, timers, or
+// globals here.
 //
 // Modes (per console-state-machine-expansion §3.4):
 //   SELECT             — default; clicks tap-through, annotation tools off
@@ -44,6 +45,7 @@ function createEmptyToolMode() {
     suppressNextClick: false,
     focusedSavedItemId: null,
     focusedSavedSessionId: null,
+    focusedSavedScreenId: null,
     historyDrawerOpen: false,
     addItemsFlowStarting: false,
     newHistoryAnnotateModeStarting: false,
@@ -131,6 +133,7 @@ function reduceToolMode(state, action) {
         ...state,
         focusedSavedItemId: action.itemId ?? null,
         focusedSavedSessionId: action.sessionId ?? null,
+        focusedSavedScreenId: action.screenId ?? null,
       });
     case 'SET_ADD_ITEMS_FLOW_STARTING':
       return Object.freeze({

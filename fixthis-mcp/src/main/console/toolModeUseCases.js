@@ -60,7 +60,7 @@ function createToolModeUseCases(options = {}) {
     setSuppressNextClick: (value) => dispatch({ type: 'SET_SUPPRESS_NEXT_CLICK', value }),
     toggleHistoryDrawer: () => dispatch({ type: 'TOGGLE_HISTORY_DRAWER' }),
     setHistoryDrawer: (open) => dispatch({ type: 'SET_HISTORY_DRAWER', open }),
-    focusSavedItem: (itemId, sessionId) => dispatch({ type: 'FOCUS_SAVED_ITEM', itemId, sessionId }),
+    focusSavedItem: (itemId, sessionId, screenId) => dispatch({ type: 'FOCUS_SAVED_ITEM', itemId, sessionId, screenId }),
     setAddItemsFlowStarting: (value) => dispatch({ type: 'SET_ADD_ITEMS_FLOW_STARTING', value }),
     setNewHistoryAnnotateModeStarting: (value) => dispatch({ type: 'SET_NEW_HISTORY_ANNOTATE_MODE_STARTING', value }),
     nextAnnotationSeq,

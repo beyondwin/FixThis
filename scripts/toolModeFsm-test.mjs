@@ -28,6 +28,7 @@ test('initial state matches spec shape', () => {
   assert.equal(s.suppressNextClick, false);
   assert.equal(s.focusedSavedItemId, null);
   assert.equal(s.focusedSavedSessionId, null);
+  assert.equal(s.focusedSavedScreenId, null);
   assert.equal(s.historyDrawerOpen, false);
   assert.equal(s.addItemsFlowStarting, false);
   assert.equal(s.newHistoryAnnotateModeStarting, false);
@@ -136,14 +137,20 @@ test('SET_HISTORY_DRAWER sets explicit value', () => {
   assert.equal(s.historyDrawerOpen, false);
 });
 
-test('FOCUS_SAVED_ITEM sets both ids', () => {
+test('FOCUS_SAVED_ITEM preserves saved screen context independently of detail focus', () => {
   let s = m.createEmptyToolMode();
-  s = m.reduceToolMode(s, { type: 'FOCUS_SAVED_ITEM', itemId: 'item-1', sessionId: 'sess-2' });
+  s = m.reduceToolMode(s, { type: 'FOCUS_SAVED_ITEM', itemId: 'item-1', sessionId: 'sess-2', screenId: 'screen-2' });
   assert.equal(s.focusedSavedItemId, 'item-1');
   assert.equal(s.focusedSavedSessionId, 'sess-2');
+  assert.equal(s.focusedSavedScreenId, 'screen-2');
+  s = m.reduceToolMode(s, { type: 'FOCUS_SAVED_ITEM', itemId: null, sessionId: 'sess-2', screenId: 'screen-2' });
+  assert.equal(s.focusedSavedItemId, null);
+  assert.equal(s.focusedSavedSessionId, 'sess-2');
+  assert.equal(s.focusedSavedScreenId, 'screen-2');
   s = m.reduceToolMode(s, { type: 'FOCUS_SAVED_ITEM', itemId: null, sessionId: null });
   assert.equal(s.focusedSavedItemId, null);
   assert.equal(s.focusedSavedSessionId, null);
+  assert.equal(s.focusedSavedScreenId, null);
 });
 
 test('SET_ADD_ITEMS_FLOW_STARTING toggles flag', () => {

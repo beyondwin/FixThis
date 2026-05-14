@@ -37,7 +37,7 @@
             // annotationSequence, hoveredAnnotationTarget, dragStart/
             // dragPreview, suppressNextClick, addItemsFlowStarting,
             // newHistoryAnnotateModeStarting, historyDrawerOpen,
-            // focusedSavedItemId, focusedSavedSessionId.
+            // focusedSavedItemId, focusedSavedSessionId, focusedSavedScreenId.
             const consoleApp = createConsoleApp({ state });
             const connectionUseCases = consoleApp.connection;
             const previewUseCases = consoleApp.preview;
@@ -101,7 +101,8 @@
             // hoveredAnnotationTarget, dragStart, dragPreview,
             // suppressNextClick, addItemsFlowStarting,
             // newHistoryAnnotateModeStarting, historyDrawerOpen,
-            // focusedSavedItemId, focusedSavedSessionId) now lives in
+            // focusedSavedItemId, focusedSavedSessionId,
+            // focusedSavedScreenId) now lives in
             // toolModeUseCases (see toolModeFsm.js / toolModeUseCases.js).
             // Polling-owned state (sessionsPollingTimer, lastSessionsEtag,
             // lastSessionEtag, pendingMutationCount, sessionMutationGeneration,

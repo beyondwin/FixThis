@@ -46,6 +46,20 @@ test('openSession and newSession use boundary resolver instead of immediate flus
   assert.doesNotMatch(newBody, /flushPendingAnnotationsBeforeSessionChange\(\)/);
 });
 
+test('session navigation exposes in-flight state instead of silently racing clicks', () => {
+  const openBody = body(historySource, 'async function openSession(sessionId)');
+  assert.match(historySource, /let sessionNavigationInFlight = false;/);
+  assert.match(historySource, /let pendingSessionNavigationId = null;/);
+  assert.match(historySource, /function isSessionNavigationInFlight\(\)/);
+  assert.match(openBody, /if \(sessionNavigationInFlight\) \{/);
+  assert.match(openBody, /pendingSessionNavigationId = sessionId;/);
+  assert.match(openBody, /sessionNavigationInFlight = true;/);
+  assert.match(openBody, /sessionNavigationInFlight = false;/);
+  assert.match(openBody, /const queuedSessionId = pendingSessionNavigationId;/);
+  assert.match(openBody, /if \(queuedSessionId && queuedSessionId !== state\.session\?\.sessionId\)/);
+  assert.match(historySource, /aria-busy/);
+});
+
 test('closeSession uses boundary resolver before reset', () => {
   const closeBody = body(historySource, 'async function closeSession()');
   assert.match(closeBody, /await resolvePendingBeforeBoundary\('close-session'/);

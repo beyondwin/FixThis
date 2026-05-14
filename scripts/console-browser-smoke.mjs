@@ -660,6 +660,26 @@ async function runSmoke(baseUrl) {
       },
       'Focused saved annotation comment should place the caret at the end',
     );
+    const savedScreenSrcBeforeListBack = await page.$eval('#snapshotImage', image => image.src);
+    const listBackPersistResponse = page.waitForResponse(response =>
+      response.url().includes('/api/items/item-old') && response.request().method() === 'PUT'
+    );
+    await page.click('.annotation-done');
+    assert.ok((await listBackPersistResponse).ok(), 'Saved annotation back-to-list should persist before leaving detail');
+    await page.waitForFunction(expectedSrc => {
+      const image = document.getElementById('snapshotImage');
+      return document.querySelectorAll('.saved-item-row').length === 4 &&
+        image?.src === expectedSrc &&
+        document.getElementById('previewFrameStatus')?.dataset.state === 'saved';
+    }, savedScreenSrcBeforeListBack);
+    await page.waitForFunction(() =>
+      Array.from(document.querySelectorAll('#selectionOverlay .selection-label'))
+        .map(label => label.textContent)
+        .filter(Boolean)
+        .join(',') === '1,2,3,4'
+    );
+    await page.locator('.saved-item-row').nth(1).click();
+    await page.waitForFunction(() => document.activeElement?.id === 'annotationCommentInput');
     const editedHistoryComment = 'Edited history annotation';
     await page.fill('#annotationCommentInput', editedHistoryComment);
     const historyUpdateResponse = page.waitForResponse(response =>

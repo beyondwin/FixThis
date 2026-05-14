@@ -24,18 +24,19 @@ function body(source, signature) {
   assert.fail(`${signature} body did not close`);
 }
 
-test('saved overlays require focused saved item', () => {
+test('saved list overlays use saved screen context after detail focus clears', () => {
   const render = body(renderingSource, 'function renderSelectionOverlay()');
-  assert.match(render, /if \(!addItemsFlow && toolModeUseCases\.getState\(\)\.focusedSavedItemId\)/);
-  assert.doesNotMatch(render, /visibleScreenNodeUids\(visibleScreen\)/);
-  assert.doesNotMatch(render, /visibleUids\.has\(nodeUid\)/);
+  assert.match(render, /focusedSavedScreenId/);
+  assert.match(render, /sameScreenItems = savedEvidenceItems\(\)\.filter\(item => item\.screenId === savedScreenId\)/);
+  assert.doesNotMatch(render, /if \(!addItemsFlow && toolModeUseCases\.getState\(\)\.focusedSavedItemId\)/);
 });
 
-test('latestScreen uses focused saved screenshot before persisted fallback', () => {
+test('latestScreen keeps saved screen context before live preview fallback', () => {
   const latest = body(previewSource, 'function latestScreen()');
   assert.match(latest, /if \(focusedSavedItemId\)/);
   assert.match(latest, /focusedItem\.screenId/);
-  assert.match(latest, /return state\.preview\?\.screen \|\| latestPersistedScreen\(\);/);
+  assert.match(latest, /focusedSavedScreenId/);
+  assert.match(latest, /return savedScreen \|\| state\.preview\?\.screen \|\| latestPersistedScreen\(\);/);
 });
 
 test('saved rows and overlays prefer server sequenceNumber', () => {
