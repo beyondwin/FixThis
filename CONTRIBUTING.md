@@ -107,14 +107,7 @@ opening or updating a pull request.
 ./gradlew :fixthis-compose-sidekick:testDebugUnitTest --no-daemon
 
 # Pure console JavaScript changes
-node --test \
-  scripts/console-availability-test.mjs \
-  scripts/pendingItemRecovery-test.mjs \
-  scripts/beforeunloadGuard-test.mjs \
-  scripts/undoRedo-test.mjs \
-  scripts/undoKeymatch-test.mjs \
-  scripts/activityDrift-test.mjs \
-  scripts/previewStaleness-test.mjs
+npm run console:test:fast
 
 # Draft workspace state-machine changes
 npm run console:draft:test
@@ -142,22 +135,9 @@ Run these before opening a pull request:
   --no-daemon
 node scripts/build-console-assets.mjs --check
 node --check fixthis-mcp/src/main/resources/console/app.js
-node --test \
-  scripts/console-availability-test.mjs \
-  scripts/pendingItemRecovery-test.mjs \
-  scripts/beforeunloadGuard-test.mjs \
-  scripts/undoRedo-test.mjs \
-  scripts/undoKeymatch-test.mjs \
-  scripts/activityDrift-test.mjs \
-  scripts/previewStaleness-test.mjs \
-  scripts/draftWorkspace-test.mjs \
-  scripts/draftWorkspaceHistory-test.mjs \
-  scripts/draftStorageAdapter-test.mjs \
-  scripts/draftApiAdapter-test.mjs \
-  scripts/draftUseCases-test.mjs \
-  scripts/draftCommandQueue-test.mjs \
-  scripts/draftPresentationContract-test.mjs \
-  scripts/draftWorkflowInvariant-test.mjs
+# All console JS tests (single source of truth is scripts/console-tests.json).
+node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview draft session
+# Equivalent to `npm run console:test:all`; edit the JSON, not this command line.
 git diff --check
 ```
 
@@ -165,11 +145,7 @@ When touching feedback-session switching, saved overlays, pending recovery, or
 undo/redo context, also run the focused session-scope harnesses:
 
 ```bash
-node --test \
-  scripts/pendingBoundaryGuard-test.mjs \
-  scripts/sessionScopedRequests-test.mjs \
-  scripts/savedOverlayScope-test.mjs \
-  scripts/undoRedoContext-test.mjs
+npm run console:session:test
 ```
 
 If you edited any console JS module under `fixthis-mcp/src/main/console/`, rebundle the served asset before running `installDist` and the syntax check:
