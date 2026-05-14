@@ -90,3 +90,52 @@ test('late preview response cannot overwrite draft workspace', () => {
   assert.equal(result.state.workspace.context.previewId, 'preview-a');
   m.assertConsoleInvariants(result.state);
 });
+
+test('draft item focus, comment, delete, and selection clear stay inside workspace', () => {
+  let state = m.createInitialConsoleAppState({ activeSessionId: 'session-a', sessions: [session('session-a')] });
+  state = m.reduceConsoleAppState(state, { type: 'DRAFT_STARTED_FROM_PREVIEW', sessionId: 'session-a', preview: preview('a') }).state;
+  state = m.reduceConsoleAppState(state, {
+    type: 'DRAFT_TARGET_SELECTED',
+    itemId: 'item-1',
+    selection: { bounds: { left: 1, top: 2, right: 30, bottom: 40 }, label: 'Button' },
+  }).state;
+  state = m.reduceConsoleAppState(state, { type: 'DRAFT_COMMENT_CHANGED', itemId: 'item-1', comment: 'Fix copy' }).state;
+  state = m.reduceConsoleAppState(state, { type: 'DRAFT_SELECTION_CLEARED' }).state;
+
+  assert.equal(state.workspace.items[0].comment, 'Fix copy');
+  assert.equal(state.workspace.focusedItemId, 'item-1');
+  assert.equal(state.workspace.currentSelection, null);
+
+  state = m.reduceConsoleAppState(state, { type: 'DRAFT_ITEM_DELETED', itemId: 'item-1' }).state;
+  assert.deepEqual(state.workspace.items, []);
+  assert.equal(state.workspace.focusedItemId, null);
+  m.assertConsoleInvariants(state);
+});
+
+test('stale draft save failure clears in-flight only when generation matches', () => {
+  let state = m.createInitialConsoleAppState({ activeSessionId: 'session-a', sessions: [session('session-a')] });
+  state = m.reduceConsoleAppState(state, { type: 'DRAFT_STARTED_FROM_PREVIEW', sessionId: 'session-a', preview: preview('a') }).state;
+  const save = m.reduceConsoleAppState(state, { type: 'SAVE_TO_MCP_CLICKED' });
+  state = save.state;
+
+  const stale = m.reduceConsoleAppState(state, {
+    type: 'DRAFT_SAVE_FAILED',
+    requestId: 'old',
+    sessionId: 'session-a',
+    workspaceId: state.workspace.context.workspaceId,
+    generation: state.effectsGeneration - 1,
+    error: 'old failure',
+  }).state;
+  assert.equal(stale.promptAction.inFlight, true);
+
+  const current = m.reduceConsoleAppState(state, {
+    type: 'DRAFT_SAVE_FAILED',
+    requestId: save.effects[0].requestId,
+    sessionId: 'session-a',
+    workspaceId: state.workspace.context.workspaceId,
+    generation: state.effectsGeneration,
+    error: 'current failure',
+  }).state;
+  assert.equal(current.promptAction.inFlight, false);
+  assert.equal(current.status.variant, 'error');
+});

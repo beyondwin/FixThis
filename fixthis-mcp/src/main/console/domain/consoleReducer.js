@@ -23,6 +23,20 @@ function reduceConsoleAppState(state = createInitialConsoleAppState(), event = {
     case 'DRAFT_COMMENT_CHANGED':
       result = reduceDraftCommentChanged(state, event);
       break;
+    case 'DRAFT_ITEM_FOCUSED':
+      result = reduceDraftItemFocused(state, event);
+      break;
+    case 'DRAFT_ITEM_DELETED':
+      result = reduceDraftItemDeleted(state, event);
+      break;
+    case 'DRAFT_SELECTION_CLEARED':
+      result = isDraftWorkspace(state.workspace)
+        ? { state: replaceConsoleState(state, { workspace: draftWorkspaceWithPatch(state.workspace, { currentSelection: null }) }), effects: [] }
+        : { state, effects: [] };
+      break;
+    case 'DRAFT_DISCARDED':
+      result = reduceDraftDiscarded(state);
+      break;
     case 'PREVIEW_CAPTURE_SUCCEEDED':
       result = reducePreviewCaptureSucceeded(state, event);
       break;
@@ -41,6 +55,9 @@ function reduceConsoleAppState(state = createInitialConsoleAppState(), event = {
       break;
     case 'DRAFT_SAVE_SUCCEEDED':
       result = reduceDraftSaveSucceeded(state, event);
+      break;
+    case 'DRAFT_SAVE_FAILED':
+      result = reduceDraftSaveFailed(state, event);
       break;
     default:
       result = { state, effects: [] };
@@ -153,6 +170,56 @@ function reduceDraftCommentChanged(state, event) {
   };
 }
 
+function reduceDraftItemFocused(state, event) {
+  if (!isDraftWorkspace(state.workspace)) return { state, effects: [] };
+  const item = state.workspace.items.find((candidate) => candidate.itemId === event.itemId || candidate.annotationId === event.itemId);
+  if (!item) return { state, effects: [] };
+  return {
+    state: replaceConsoleState(state, {
+      workspace: draftWorkspaceWithPatch(state.workspace, {
+        focusedItemId: item.itemId,
+        currentSelection: item.selection || null,
+      }),
+    }),
+    effects: [],
+  };
+}
+
+function reduceDraftItemDeleted(state, event) {
+  if (!isDraftWorkspace(state.workspace)) return { state, effects: [] };
+  const removed = state.workspace.items.find((item) => item.itemId === event.itemId || item.annotationId === event.itemId);
+  if (!removed) return { state, effects: [] };
+  const items = state.workspace.items.filter((item) => item.itemId !== event.itemId && item.annotationId !== event.itemId);
+  const focusedItemId = state.workspace.focusedItemId === removed.itemId ? null : state.workspace.focusedItemId;
+  return {
+    state: replaceConsoleState(state, {
+      workspace: draftWorkspaceWithPatch(state.workspace, {
+        items,
+        focusedItemId,
+        currentSelection: focusedItemId ? state.workspace.currentSelection : null,
+      }),
+    }),
+    effects: [],
+  };
+}
+
+function reduceDraftDiscarded(state) {
+  if (!isDraftWorkspace(state.workspace)) return { state, effects: [] };
+  return {
+    state: replaceConsoleState(state, {
+      workspace: livePreviewWorkspace(state.workspace.context.sessionId, null),
+      pendingBoundary: null,
+      promptAction: Object.freeze({ inFlight: false }),
+      tool: Object.freeze({ mode: 'select' }),
+    }),
+    effects: [Object.freeze({
+      kind: 'deleteRecovery',
+      sessionId: state.workspace.context.sessionId,
+      workspaceId: state.workspace.context.workspaceId,
+    })],
+  };
+}
+
 function reducePreviewCaptureSucceeded(state, event) {
   if (event.generation !== state.effectsGeneration) return { state, effects: [] };
   if (event.sessionId !== state.activeSessionId) return { state, effects: [] };
@@ -226,7 +293,7 @@ function reduceDraftSaveSucceeded(state, event) {
   if (event.generation !== state.effectsGeneration) return { state, effects: [] };
   if (!isDraftWorkspace(state.workspace)) return { state, effects: [] };
   if (event.workspaceId && event.workspaceId !== state.workspace.context.workspaceId) return { state, effects: [] };
-  const nextSessionId = state.pendingBoundary?.targetSessionId || event.sessionId || state.activeSessionId;
+  const nextSessionId = state.pendingBoundary?.targetSessionId || event.targetSessionId || event.sessionId || state.activeSessionId;
   let next = event.session ? upsertSession(state, event.session) : state;
   next = replaceConsoleState(next, {
     activeSessionId: nextSessionId,
@@ -236,4 +303,17 @@ function reduceDraftSaveSucceeded(state, event) {
     tool: Object.freeze({ mode: 'select' }),
   });
   return { state: next, effects: [] };
+}
+
+function reduceDraftSaveFailed(state, event) {
+  if (event.generation !== state.effectsGeneration) return { state, effects: [] };
+  if (!isDraftWorkspace(state.workspace)) return { state, effects: [] };
+  if (event.workspaceId && event.workspaceId !== state.workspace.context.workspaceId) return { state, effects: [] };
+  return {
+    state: replaceConsoleState(state, {
+      promptAction: Object.freeze({ inFlight: false }),
+      status: Object.freeze({ message: event.error || 'Could not save draft.', variant: 'error', assertive: true }),
+    }),
+    effects: [],
+  };
 }

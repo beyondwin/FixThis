@@ -72,3 +72,31 @@ test('browser console modules do not directly mutate legacy session or preview s
     assert.doesNotMatch(content, legacyPreviewInvalidationPattern, `${file} must not orchestrate legacy preview invalidation`);
   }
 });
+
+test('save during pending boundary opens target session after draft save succeeds', () => {
+  let state = m.createInitialConsoleAppState({
+    activeSessionId: 'session-a',
+    sessions: [{ sessionId: 'session-a' }, { sessionId: 'session-b' }],
+  });
+  state = m.reduceConsoleAppState(state, { type: 'DRAFT_STARTED_FROM_PREVIEW', sessionId: 'session-a', preview: preview(1) }).state;
+  state = m.reduceConsoleAppState(state, { type: 'DRAFT_TARGET_SELECTED', itemId: 'item-1', selection: { label: 'CTA' }, comment: 'Fix' }).state;
+  state = m.reduceConsoleAppState(state, { type: 'SESSION_ROW_CLICKED', sessionId: 'session-b' }).state;
+  const save = m.reduceConsoleAppState(state, { type: 'BOUNDARY_SAVE_DRAFT_CLICKED' });
+
+  assert.equal(save.effects[0].kind, 'saveDraft');
+  assert.equal(save.effects[0].sessionId, 'session-a');
+  assert.equal(save.effects[0].targetSessionId, 'session-b');
+
+  const saved = m.reduceConsoleAppState(save.state, {
+    type: 'DRAFT_SAVE_SUCCEEDED',
+    requestId: save.effects[0].requestId,
+    sessionId: 'session-a',
+    targetSessionId: 'session-b',
+    workspaceId: save.effects[0].workspaceId,
+    generation: save.effects[0].generation,
+    session: { sessionId: 'session-a', items: [] },
+  });
+  assert.equal(saved.state.activeSessionId, 'session-b');
+  assert.equal(saved.state.workspace.kind, m.WorkspaceKind.LIVE_PREVIEW);
+  m.assertConsoleInvariants(saved.state);
+});
