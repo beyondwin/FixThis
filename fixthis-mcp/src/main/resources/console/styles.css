@@ -136,6 +136,11 @@
               border-color: rgba(184, 211, 106, .35);
               background: rgba(184, 211, 106, .08);
             }
+            .prompt-readiness[data-state="warn"] {
+              color: #d8a84f;
+              border-color: rgba(230, 180, 90, .38);
+              background: rgba(230, 180, 90, .10);
+            }
             .prompt-readiness[data-state="blocked"],
             .prompt-readiness[data-state="modified"] {
               color: #fde68a;
@@ -1013,6 +1018,32 @@
             .ann-row-comment.empty-comment {
               color: #999;
               font-style: italic;
+            }
+            .ann-row-reliability {
+              align-self: flex-start;
+              border: 1px solid var(--line);
+              border-radius: 999px;
+              color: var(--txt-2);
+              display: inline-flex;
+              font-size: 11px;
+              font-weight: 650;
+              line-height: 1;
+              margin-top: 4px;
+              max-width: 100%;
+              padding: 4px 7px;
+              white-space: normal;
+            }
+            .ann-row-reliability[data-confidence="low"] {
+              border-color: rgba(242, 109, 109, .42);
+              color: #f26d6d;
+            }
+            .ann-row-reliability[data-confidence="medium"] {
+              border-color: rgba(230, 180, 90, .38);
+              color: #d8a84f;
+            }
+            .ann-row-reliability[data-confidence="high"] {
+              border-color: rgba(91, 180, 142, .38);
+              color: #5bb48e;
             }
             .ann-row-status {
               justify-self: end;

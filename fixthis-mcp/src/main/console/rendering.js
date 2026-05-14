@@ -135,6 +135,7 @@
                     '<span class="ann-row-body">' +
                       '<span class="ann-row-title">' + escapeHtml(annotationTitle(item, index)) + '</span>' +
                       '<span class="ann-row-comment ' + (hasComment ? '' : 'empty-comment') + '">' + escapeHtml(commentText) + '</span>' +
+                      reliabilityBadgeHtml(item) +
                     '</span>' +
                     '<span class="ann-row-status ' + statusClass(item) + '">' + escapeHtml(statusLabel(item)) + '</span>' +
                   '</button>';
@@ -181,6 +182,30 @@
               const reasons = candidate.reason || candidate.matchReason || (candidate.matchReasons || []).join(', ');
               const confidence = candidate.confidence ? String(candidate.confidence).toLowerCase() : '';
               return location + (confidence ? ' · ' + confidence : '') + (reasons ? ' · ' + reasons : '');
+            }
+
+            function reliabilityWarningLabel(warning) {
+              const value = String(warning || '').toLowerCase();
+              if (value === 'possible_view_interop') return 'Possible AndroidView/WebView';
+              if (value === 'no_meaningful_compose_target') return 'No Compose target';
+              if (value === 'visual_area_only') return 'Visual only';
+              if (value === 'low_source_candidate_margin') return 'Low source margin';
+              if (value === 'source_index_stale') return 'Stale source';
+              if (value === 'screen_fingerprint_mismatch_forced') return 'Forced screen mismatch';
+              if (value === 'screen_fingerprint_unavailable') return 'No fingerprint';
+              if (value === 'sensitive_text_redacted') return 'Redacted';
+              return value.replaceAll('_', ' ');
+            }
+
+            function reliabilityBadgeHtml(item) {
+              const reliability = item?.targetReliability;
+              if (!reliability || !reliability.confidence || reliability.confidence === 'UNKNOWN') return '';
+              const confidence = String(reliability.confidence).toLowerCase();
+              const warnings = reliability.warnings || [];
+              const label = warnings.length ? reliabilityWarningLabel(warnings[0]) : confidence;
+              return '<span class="ann-row-reliability" data-confidence="' + escapeHtml(confidence) + '">' +
+                escapeHtml(label) +
+              '</span>';
             }
 
             function targetKindLabel(item) {
@@ -230,7 +255,12 @@
               ];
               const candidates = sourceCandidates.slice(1, 3).map((candidate, index) => ['Source ' + (index + 2), sourceCandidateLine(candidate)]);
               const warnings = (targetEvidence.warnings || []).map((warning, index) => ['Warning ' + (index + 1), warning]);
-              const bodyRows = evidenceRows.concat(candidates, warnings);
+              const reliability = item?.targetReliability || {};
+              const reliabilityRows = reliability.confidence
+                ? [['Target confidence', String(reliability.confidence).toLowerCase()]]
+                    .concat((reliability.warnings || []).map((warning, index) => ['Target warning ' + (index + 1), reliabilityWarningLabel(warning)]))
+                : [];
+              const bodyRows = evidenceRows.concat(reliabilityRows, candidates, warnings);
               const empty = sourceCandidates.length === 0 && !targetEvidence.identityHint && !targetEvidence.occurrence && !targetEvidence.screenshotKinds?.length;
               return '<details class="evidence-details" open>' +
                 '<summary>Evidence</summary>' +
@@ -426,6 +456,7 @@
                       '<span class="ann-row-body">' +
                         '<span class="ann-row-title">' + escapeHtml(targetLabel(item)) + '</span>' +
                         '<span class="ann-row-comment ' + (hasComment ? '' : 'empty-comment') + '">' + escapeHtml(commentText) + '</span>' +
+                        reliabilityBadgeHtml(item) +
                       '</span>' +
                       '<span class="ann-row-status ' + statusClass(item) + '">' + escapeHtml(statusLabel(item)) + '</span>' +
                     '</button>';
