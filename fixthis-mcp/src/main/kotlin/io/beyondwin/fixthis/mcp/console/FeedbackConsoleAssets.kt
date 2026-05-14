@@ -1,17 +1,18 @@
 package io.beyondwin.fixthis.mcp.console
 
 import java.io.File
+import java.util.concurrent.TimeUnit
 
-internal object FeedbackConsoleAssets {
-    private const val BasePath = "/console"
-    private const val StylesPlaceholder = "<!-- FIXTHIS_STYLES -->"
-    private const val ScriptPlaceholder = "<!-- FIXTHIS_SCRIPT -->"
+internal class FeedbackConsoleAssets(
+    private val shaResolver: () -> String? = ::defaultShaResolver,
+    private val clock: () -> Long = System::currentTimeMillis,
+    private val errSink: (String) -> Unit = { System.err.println(it) },
+) {
+    @Volatile
+    private var cachedRuntimeSha: String? = null
 
-    val indexHtml: String by lazy { buildIndexHtml(consoleAssetsDir = null) }
-
-    fun html(consoleAssetsDir: File?): String = if (consoleAssetsDir == null) indexHtml else buildIndexHtml(consoleAssetsDir)
-
-    fun html(consoleAssetsDir: File?, consoleToken: String): String = buildIndexHtml(consoleAssetsDir, consoleToken)
+    @Volatile
+    private var shaResolved: Boolean = false
 
     fun resource(path: String): ByteArray = resource(path, consoleAssetsDir = null)
 
@@ -32,27 +33,33 @@ internal object FeedbackConsoleAssets {
         }.use { input -> input.readAllBytes() }
     }
 
-    private fun consoleBuildMetaJson(): String = FeedbackConsoleAssets::class.java
-        .getResource("/console/console-build-meta.json")
-        ?.readText()
-        ?: "{\"buildEpochMs\":0,\"gitSha\":\"unknown\"}"
-
-    private fun effectiveBuildMetaJson(): String {
-        val metaJson = consoleBuildMetaJson()
-        return if (metaJson.contains("\"reproducible\"")) {
-            val runtimeSha = try {
-                Runtime.getRuntime().exec(arrayOf("git", "rev-parse", "--short", "HEAD"))
-                    .inputStream.bufferedReader().readText().trim().ifEmpty { "unknown" }
-            } catch (_: Exception) {
-                "unknown"
+    private fun resolveRuntimeShaCached(): String {
+        if (shaResolved) {
+            return cachedRuntimeSha ?: UnknownSha
+        }
+        synchronized(this) {
+            if (shaResolved) {
+                return cachedRuntimeSha ?: UnknownSha
             }
-            """{"buildEpochMs":${System.currentTimeMillis()},"gitSha":"$runtimeSha"}"""
-        } else {
-            metaJson
+            val raw = try {
+                shaResolver()
+            } catch (e: Exception) {
+                errSink("FeedbackConsoleAssets: gitSha resolution failed: ${e.message}")
+                null
+            }
+            val normalized = raw?.trim()?.takeIf { it.matches(ShaRegex) } ?: UnknownSha
+            cachedRuntimeSha = normalized
+            shaResolved = true
+            return normalized
         }
     }
 
-    private fun buildIndexHtml(consoleAssetsDir: File?, consoleToken: String = ""): String {
+    private fun effectiveBuildMetaJson(): String {
+        val sha = resolveRuntimeShaCached()
+        return """{"buildEpochMs":${clock()},"gitSha":"$sha"}"""
+    }
+
+    fun buildIndexHtml(consoleAssetsDir: File?, consoleToken: String = ""): String {
         val effectiveMeta = effectiveBuildMetaJson()
         return readText("index.html", consoleAssetsDir)
             .replace(StylesPlaceholder, "<style>\n${readText("styles.css", consoleAssetsDir)}\n</style>")
@@ -70,12 +77,55 @@ internal object FeedbackConsoleAssets {
             )
     }
 
-    private fun readText(path: String, consoleAssetsDir: File?): String = resource(path, consoleAssetsDir).toString(Charsets.UTF_8)
+    private fun readText(path: String, consoleAssetsDir: File?): String =
+        resource(path, consoleAssetsDir).toString(Charsets.UTF_8)
 
     private fun validateResourcePath(path: String) {
         require(path.isNotBlank()) { "console asset path must not be blank" }
         require(!path.contains("..")) { "path traversal not allowed: $path" }
         require(!path.startsWith("/")) { "absolute asset paths are not allowed: $path" }
+    }
+
+    companion object {
+        private const val BasePath = "/console"
+        private const val StylesPlaceholder = "<!-- FIXTHIS_STYLES -->"
+        private const val ScriptPlaceholder = "<!-- FIXTHIS_SCRIPT -->"
+        private const val UnknownSha = "unknown"
+        private val ShaRegex = Regex("^[0-9a-f]{7,40}$")
+
+        private val default: FeedbackConsoleAssets = FeedbackConsoleAssets()
+
+        val indexHtml: String
+            get() = default.buildIndexHtml(consoleAssetsDir = null, consoleToken = "")
+
+        fun html(consoleAssetsDir: File?): String =
+            default.buildIndexHtml(consoleAssetsDir, consoleToken = "")
+
+        fun html(consoleAssetsDir: File?, consoleToken: String): String =
+            default.buildIndexHtml(consoleAssetsDir, consoleToken)
+
+        fun resource(path: String): ByteArray = default.resource(path)
+
+        private fun defaultShaResolver(): String? {
+            var process: Process? = null
+            return try {
+                process = ProcessBuilder("git", "rev-parse", "--short", "HEAD")
+                    .redirectErrorStream(true)
+                    .start()
+                if (!process.waitFor(2, TimeUnit.SECONDS)) {
+                    process.destroy()
+                    return null
+                }
+                val output = process.inputStream.bufferedReader().use { it.readText() }
+                val token = output.trim().split(Regex("\\s+")).firstOrNull().orEmpty()
+                token.takeIf { it.matches(ShaRegex) }
+            } catch (e: Exception) {
+                System.err.println("FeedbackConsoleAssets: gitSha resolution failed: ${e.message}")
+                null
+            } finally {
+                process?.destroy()
+            }
+        }
     }
 }
 
