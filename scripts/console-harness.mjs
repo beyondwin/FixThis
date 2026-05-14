@@ -41,6 +41,8 @@ export function parseArgs(argv, env = process.env) {
     headed: env.FIXTHIS_HARNESS_HEADED === '1',
     trace: env.FIXTHIS_HARNESS_TRACE === '1',
     updateBaselines: env.FIXTHIS_HARNESS_UPDATE_BASELINES === '1',
+    allowSkips: false,
+    failOnSkips: false,
   };
   for (let i = 2; i < argv.length; i += 1) {
     const flag = argv[i];
@@ -51,6 +53,8 @@ export function parseArgs(argv, env = process.env) {
     else if (flag === '--headed') { args.headed = true; }
     else if (flag === '--trace') { args.trace = true; }
     else if (flag === '--update-baselines') { args.updateBaselines = true; }
+    else if (flag === '--allow-skips') { args.allowSkips = true; }
+    else if (flag === '--fail-on-skips') { args.failOnSkips = true; }
   }
   return args;
 }
@@ -82,7 +86,13 @@ async function loadPlaywright() {
 async function runCell({ playwright, scenarioKey, viewportKey, args }) {
   if (SCENARIOS[scenarioKey].status === '@blocked-pending-impl') {
     console.warn(`warn: skipping ${scenarioKey}/${viewportKey} — @blocked-pending-impl (selector missing in console bundle)`);
-    return { scenarioKey, viewportKey, ok: true, skipped: true };
+    return {
+      scenarioKey,
+      viewportKey,
+      ok: true,
+      skipped: true,
+      skipReason: '@blocked-pending-impl',
+    };
   }
   const fixture = await startFakeBridge({ scenario: 'happy-path' });
   try {
@@ -135,12 +145,16 @@ export function emitJunit(results, outputDir) {
   mkdirSync(outputDir, { recursive: true });
   const cases = results.map((r) => {
     const name = xmlEscape(`${r.scenarioKey}__${r.viewportKey}`);
+    if (r.skipped) {
+      return `    <testcase classname="console-harness" name="${name}">\n      <skipped message="${xmlEscape(r.skipReason || 'skipped')}" />\n    </testcase>`;
+    }
     if (r.ok) {
       return `    <testcase classname="console-harness" name="${name}" />`;
     }
     return `    <testcase classname="console-harness" name="${name}">\n      <failure>${xmlEscape(r.error)}</failure>\n    </testcase>`;
   }).join('\n');
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="console-harness" tests="${results.length}" failures="${results.filter((r) => !r.ok).length}">\n${cases}\n</testsuite>\n`;
+  const skipped = results.filter((r) => r.skipped).length;
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="console-harness" tests="${results.length}" failures="${results.filter((r) => !r.ok).length}" skipped="${skipped}">\n${cases}\n</testsuite>\n`;
   writeFileSync(resolve(outputDir, 'results.xml'), xml);
 }
 
@@ -164,14 +178,18 @@ async function main() {
     for (const viewportKey of viewports) {
       const result = await runCell({ playwright, scenarioKey, viewportKey, args });
       results.push(result);
-      const status = result.ok ? 'PASS' : 'FAIL';
-      console.log(`[${status}] ${result.scenarioKey} / ${result.viewportKey}${result.ok ? '' : ` — ${result.error}`}`);
+      const status = result.skipped ? 'SKIP' : result.ok ? 'PASS' : 'FAIL';
+      const suffix = result.skipped ? ` — ${result.skipReason}` : result.ok ? '' : ` — ${result.error}`;
+      console.log(`[${status}] ${result.scenarioKey} / ${result.viewportKey}${suffix}`);
     }
   }
   emitJunit(results, args.output);
   const failed = results.filter((r) => !r.ok);
+  const skipped = results.filter((r) => r.skipped);
   if (failed.length > 0) {
     process.exitCode = 1;
+  } else if (skipped.length > 0 && (args.failOnSkips || (!args.allowSkips && args.matrix !== 'all'))) {
+    process.exitCode = 2;
   }
 }
 

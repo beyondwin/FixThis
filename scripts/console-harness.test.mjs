@@ -32,6 +32,11 @@ test('parseArgs flags override env vars', () => {
   assert.equal(args.viewport, 'desktop-1280');
 });
 
+test('parseArgs supports explicit skip policy flags', () => {
+  assert.equal(parseArgs(['node', 'script', '--allow-skips'], {}).allowSkips, true);
+  assert.equal(parseArgs(['node', 'script', '--fail-on-skips'], {}).failOnSkips, true);
+});
+
 test('selectScenarios expands all and trims CSV', () => {
   const all = selectScenarios('all');
   assert.ok(all.includes('happy-path'));
@@ -50,6 +55,22 @@ test('emitJunit XML-escapes failure messages', () => {
     assert.match(xml, /name="x&lt;y__m"/);
     assert.match(xml, /bad &amp; worse &quot;&lt;&gt;&quot; &apos;q&apos;/);
     assert.doesNotMatch(xml, /<failure>bad & /);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('emitJunit records skipped cells separately from passed cells', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'harness-skip-'));
+  try {
+    emitJunit(
+      [{ scenarioKey: 'network-outage', viewportKey: 'mobile-390', ok: true, skipped: true, skipReason: '@blocked-pending-impl' }],
+      dir
+    );
+    const xml = readFileSync(join(dir, 'results.xml'), 'utf8');
+    assert.match(xml, /skipped="1"/);
+    assert.match(xml, /<skipped message="@blocked-pending-impl" \/>/);
+    assert.doesNotMatch(xml, /name="network-outage__mobile-390" \/>/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
