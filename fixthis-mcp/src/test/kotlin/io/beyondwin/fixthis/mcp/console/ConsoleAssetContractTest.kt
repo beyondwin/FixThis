@@ -203,14 +203,19 @@ class ConsoleAssetContractTest {
     fun consoleHtmlResetsAnnotationComposerStateAcrossSessionActions() {
         val html = ConsoleSourceFixtures.readAll()
 
-        assertTrue(html.contains("function resetCanonicalAnnotationComposerState(clearFlow = true, clearMirror = true)"))
+        assertTrue(
+            html.contains(
+                "function resetCanonicalAnnotationComposerState(clearFlow = true, clearMirror = true)",
+            ),
+        )
         assertTrue(
             Regex("if \\(clearMirror\\) \\{[\\s\\S]*clearPendingMirror\\(state\\.session\\?\\.sessionId\\);")
                 .containsMatchIn(html),
         )
         assertTrue(
             Regex(
-                "async function openSession\\(sessionId\\)[\\s\\S]*resetCanonicalAnnotationComposerState\\(true, false\\);" +
+                "async function openSession\\(sessionId\\)[\\s\\S]*" +
+                    "resetCanonicalAnnotationComposerState\\(true, false\\);" +
                     "[\\s\\S]*/api/session/open",
             ).containsMatchIn(html),
         )

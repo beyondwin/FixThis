@@ -146,6 +146,27 @@ npm run console:build:test          # build-console-assets unit tests
 Run these before opening a pull request:
 
 ```bash
+npm run ci:local
+```
+
+`npm run ci:local` mirrors the required CI gates locally. For faster iteration,
+use `npm run ci:local:fast` for the Node/doc/asset/whitespace checks, or
+`npm run ci:local:changed` to run the fast checks and add Gradle only when
+Kotlin, Android, or Gradle files changed.
+
+To install the tracked pre-push hook for this checkout:
+
+```bash
+npm run hooks:install
+```
+
+The hook runs `npm run ci:local:changed` before each push. To bypass it for an
+intentional emergency push, run `FIXTHIS_SKIP_PRE_PUSH=1 git push` and follow up
+with the CI result immediately.
+
+The full command set is:
+
+```bash
 ./gradlew \
   spotlessCheck \
   detekt \

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+if [[ "${FIXTHIS_SKIP_PRE_PUSH:-}" == "1" ]]; then
+    echo "[pre-push] skipped because FIXTHIS_SKIP_PRE_PUSH=1"
+    exit 0
+fi
+
+echo "[pre-push] running local CI gate; set FIXTHIS_SKIP_PRE_PUSH=1 to bypass intentionally"
+bash scripts/verify-ci-local.sh --changed-only

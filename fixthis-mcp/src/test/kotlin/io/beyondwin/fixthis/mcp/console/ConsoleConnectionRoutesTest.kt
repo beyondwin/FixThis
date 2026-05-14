@@ -609,7 +609,10 @@ class ConsoleDeviceSelectionRoutesTest {
         assertTrue(html.contains("const previousSelectedDeviceSerial = state.selectedDeviceSerial;"))
         assertTrue(html.contains("if (previousSelectedDeviceSerial !== selectedSerial) {"))
         assertFalse(
-            html.contains("setConsolePreview(null);\n              setConsoleSession(await requestJson('/api/session/open'"),
+            html.contains(
+                "setConsolePreview(null);\n" +
+                    "              setConsoleSession(await requestJson('/api/session/open'",
+            ),
         )
         assertFalse(html.contains("setConsolePreview(null);\n              await refreshSessions();"))
     }

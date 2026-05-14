@@ -158,7 +158,7 @@ class ConsolePreviewRoutesTest {
         assertTrue(html.contains("if (activeDraftFlow) return activeDraftFlow.screen;"))
         assertTrue(html.contains("if (focusedSavedItemId) {"))
         assertTrue(html.contains("return savedScreen || state.preview?.screen || latestPersistedScreen();"))
-        assertFalse(html.contains("return activeDraftFlow?.screen || latestPersistedScreen() || state.preview?.screen;"))
+        assertFalse(html.contains(legacyLatestScreenFallback()))
         assertTrue(html.contains("'/api/screens/' + encodeURIComponent(screenId) + '/screenshot/full'"))
         assertTrue(html.contains("if (!activeDraftFlow) {"))
         assertTrue(
@@ -196,6 +196,9 @@ class ConsolePreviewRoutesTest {
         assertFalse(html.contains("function persistedItemsForScreen(screenId)"))
         assertFalse(html.contains("escapeHtml(formatSavedEvidenceItemLabel(item, index))"))
     }
+
+    private fun legacyLatestScreenFallback(): String = "return activeDraftFlow?.screen || " +
+        "latestPersistedScreen() || state.preview?.screen;"
 
     @Test
     fun consoleHtmlLivePreviewImageUsesPreviewIdScopedScreenshotRoute() {

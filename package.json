@@ -7,6 +7,11 @@
     "node": ">=20.0.0"
   },
   "scripts": {
+    "ci:local": "bash scripts/verify-ci-local.sh --full",
+    "ci:local:fast": "bash scripts/verify-ci-local.sh --fast",
+    "ci:local:changed": "bash scripts/verify-ci-local.sh --changed-only",
+    "ci:local:test": "node --test scripts/verify-ci-local-test.mjs",
+    "hooks:install": "bash scripts/install-git-hooks.sh",
     "console:smoke": "node scripts/console-browser-smoke.mjs",
     "console:harness": "node scripts/console-harness.mjs",
     "console:responsive:stress": "node scripts/console-responsive-stress.mjs",
