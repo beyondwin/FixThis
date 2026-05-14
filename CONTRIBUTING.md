@@ -81,6 +81,11 @@ node --test \
 npm run console:draft:test
 ```
 
+> As of 2026-05-14, `ConsoleFeedbackItemRoutesTest.kt` was split into seven
+> focused files. If you previously pinned that class in your IDE run
+> configurations, switch to the package filter
+> `io.beyondwin.fixthis.mcp.console.*`.
+
 Run these before opening a pull request:
 
 ```bash
