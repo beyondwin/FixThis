@@ -70,6 +70,9 @@ Runtime that executes inside the target Android debug app.
   `NavigationPerformer.kt`: separate bridge DTOs, runtime singleton, Android
   inspection environment, screenshot reads, source-index asset reads, and
   debug-only navigation input.
+- `BridgeServer` serialises lifecycle transitions with a coroutine `Mutex`
+  and exposes lifecycle state via `state: StateFlow<BridgeServerState>`.
+  See ADR `2026-05-14-bridge-server-concurrency` for the rationale.
 - `BridgeStatus` availability fields: also reports nullable `screenInteractive`, `keyguardLocked`, `appForeground`, `pictureInPicture`, and `installEpochMillis` (APK last-install timestamp used by `fixthis_status` to detect source staleness). The desktop console uses the availability signals to drive the `Connected` chip's blocked sub-state (screen off, locked, backgrounded, PiP, unresponsive, no Compose UI) and the canvas overlay/input gating.
 - `lifecycle/FixThisActivityLifecycleCallbacks.kt` tracks a resumed-activity counter and last-resumed weak reference to stabilize backgrounded/foregrounded detection.
 
