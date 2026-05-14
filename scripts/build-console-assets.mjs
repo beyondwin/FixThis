@@ -6,6 +6,9 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sources = [
+  'connectionFsm.js',
+  'connectionUseCases.js',
+  'connectionBrowserAdapter.js',
   'state.js',
   'staleness.js',
   'pendingPersistence.js',

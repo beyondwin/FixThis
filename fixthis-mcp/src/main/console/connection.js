@@ -66,22 +66,34 @@
               );
             }
 
-            function recomputeInteractionBlockedReason() {
+            function computeCurrentBlockedReason(statusAvailability) {
               const annotate = toolMode === 'annotate';
-              const resolverInput = state.connection.availability
-                ? { ...state.connection.availability, unresponsive: unresponsiveTracker.isUnresponsive() }
+              const availability = statusAvailability ?? connectionUseCases.getState().availability;
+              const resolverInput = availability
+                ? { ...availability, unresponsive: unresponsiveTracker.isUnresponsive() }
                 : { unresponsive: unresponsiveTracker.isUnresponsive() };
               const rawReason = computeBlockedReason(resolverInput, annotate);
-              state.connection.interactionBlockedReason = blockedReasonDebouncer.observe(rawReason);
+              return blockedReasonDebouncer.observe(rawReason);
+            }
+
+            function recomputeInteractionBlockedReason() {
+              const reason = computeCurrentBlockedReason();
+              connectionUseCases.interactionBlocked(reason);
             }
 
             function applyConnectionStatus(status, options) {
               const connectionOptions = options || {};
-              state.connection.current = status;
-              state.connection.availability = status?.availability ?? null;
 
-              // Combine availability with the unresponsive tracker for the resolver input.
-              recomputeInteractionBlockedReason();
+              // Compute the new blocked reason from the incoming availability
+              // BEFORE dispatching, so STATUS_RECEIVED can write it atomically
+              // (avoiding a stale-availability window between dispatches).
+              const newBlockedReason = computeCurrentBlockedReason(status?.availability ?? null);
+
+              // Capture the prior previousBlockedReason for transition detection.
+              // STATUS_RECEIVED will roll it forward on dispatch.
+              const priorPreviousBlockedReason = connectionUseCases.getState().previousBlockedReason;
+
+              connectionUseCases.setStatus(status, newBlockedReason);
 
               // success → clear failure streak
               unresponsiveTracker.observeSuccess();
@@ -107,21 +119,18 @@
               }
 
               // Detect blocked → unblocked transitions for select-mode auto-resume.
-              if (
-                state.connection.previousBlockedReason !== null &&
-                state.connection.interactionBlockedReason === null
-              ) {
+              // Use the captured prior previousBlockedReason vs the new reason.
+              if (priorPreviousBlockedReason !== null && newBlockedReason === null) {
                 if (toolMode === 'select' && state.session) {
                   refreshPreview().catch(showError);
                 }
               }
-              state.connection.previousBlockedReason = state.connection.interactionBlockedReason;
+              // previousBlockedReason rolling is handled inside STATUS_RECEIVED.
 
               syncSelectedDeviceFromConnection(status);
               const viewState = userConnectionState(status);
               if (viewState === 'ready') {
-                state.connection.hasEverConnected = true;
-                state.connection.lastReadyAt = Date.now();
+                // hasEverConnected and lastReadyAt are set by STATUS_RECEIVED above.
                 if (!connectionOptions.preservePreviewStale) markPreviewStale(false);
                 startLivePreviewPolling();
               } else {
@@ -191,14 +200,17 @@
             }
 
             async function launchApp() {
-              state.connection.launchInFlight = true;
+              connectionUseCases.launchRequested();
               renderConnection(state.connection.current);
+              let succeeded = false;
               try {
                 const status = await requestJson('/api/app/launch', { method: 'POST' });
                 applyConnectionStatus(status);
                 setTimeout(() => refreshConnection().catch(showError), 800);
+                succeeded = true;
               } finally {
-                state.connection.launchInFlight = false;
+                if (succeeded) connectionUseCases.launchSucceeded();
+                else connectionUseCases.launchFailed();
                 renderConnection(state.connection.current);
               }
             }

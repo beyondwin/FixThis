@@ -7,17 +7,17 @@
               sessionSummaries: [],
               selectedDeviceSerial: null,
               devices: [],
-              connection: {
-                current: null,
-                hasEverConnected: false,
-                lastReadyAt: null,
-                launchInFlight: false,
-                availability: null,
-                interactionBlockedReason: null,
-                previousBlockedReason: null,
-                sessionsPollingPaused: false
-              }
+              connection: null, // projected from connectionUseCases below
             };
+            // Connection FSM single source of truth. The compat shim projects
+            // each new FSM state into state.connection so legacy READ sites
+            // (rendering, devices, preview, annotations) keep working. All
+            // WRITES to state.connection.* are migrated to connectionUseCases
+            // dispatches — see connectionUseCases.js / connection.js / sessions-polling.js.
+            const connectionUseCases = createBrowserConnectionUseCases((next) => {
+              state.connection = { ...next };
+            });
+            state.connection = { ...connectionUseCases.getState() };
             const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });
             const unresponsiveTracker = createUnresponsiveTracker({ threshold: 3 });
             const sessions = document.getElementById('sessions');

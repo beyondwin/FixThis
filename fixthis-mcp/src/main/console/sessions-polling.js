@@ -2,7 +2,7 @@
 
             function setSessionsPollingPaused(paused) {
               if (state.connection.sessionsPollingPaused === paused) return;
-              state.connection.sessionsPollingPaused = paused;
+              connectionUseCases.setSessionsPollingPaused(paused);
               // Re-render the connection card to surface the change.
               if (state.connection.current) renderConnection(state.connection.current);
             }

@@ -42,7 +42,8 @@ class ConsoleConnectionRoutesTest {
         assertTrue(html.contains("data-connection-state=\"none\""))
         assertTrue(html.contains("deviceControl.dataset.connectionState = uiState;"))
         assertTrue(html.contains("deviceConnectionState.textContent = decorateConnectionLabel(baseLabel, reason);"))
-        assertTrue(html.contains("connection: {"))
+        // Connection state initial shape lives in connectionFsm.js (createInitialConnectionState).
+        assertTrue(html.contains("createInitialConnectionState"))
         assertTrue(html.contains("hasEverConnected: false"))
         assertTrue(html.contains("lastReadyAt: null"))
         assertTrue(html.contains("launchInFlight: false"))
@@ -110,7 +111,9 @@ class ConsoleConnectionRoutesTest {
         assertTrue(applyConnectionBody.contains("markPreviewStale"))
         assertTrue(applyConnectionBody.contains("stopLivePreviewPolling"))
         assertTrue(applyConnectionBody.contains("startLivePreviewPolling"))
-        assertTrue(applyConnectionBody.contains("state.connection.hasEverConnected = true"))
+        // hasEverConnected is now written by the connection FSM's STATUS_RECEIVED action
+        // when the incoming status reports ready. Verify the dispatch path exists.
+        assertTrue(applyConnectionBody.contains("connectionUseCases.setStatus("))
         assertDoesNotClearDraftOrPreview("applyConnectionStatus", applyConnectionBody)
     }
 

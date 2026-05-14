@@ -1,3 +1,199 @@
+// connectionFsm.js
+// connectionFsm.js — pure reducer for the bridge connection lifecycle.
+//
+// Owns the entire state.connection.* object plus heartbeat-related fields
+// previously held as module-level lets in state.js. No DOM, fetch, timers,
+// or globals here.
+//
+// Action set (per console-state-machine-expansion §3.2):
+//   LAUNCH_REQUESTED       — user requested app launch
+//   LAUNCH_SUCCEEDED       — launch RPC returned a status
+//   LAUNCH_FAILED          — launch RPC failed
+//   HEARTBEAT_OK           — heartbeat ping succeeded
+//   HEARTBEAT_FAILED       — heartbeat ping failed (carries error message)
+//   INTERACTION_BLOCKED    — resolver decided interaction is blocked
+//   INTERACTION_UNBLOCKED  — resolver cleared the blocked reason
+//   AVAILABILITY_UPDATED   — availability snapshot arrived without a full status
+//   DISCONNECT_REQUESTED   — user/UI explicitly tore the connection down
+//
+// Plus two non-spec actions added during extraction so that **no** state.connection.*
+// mutation lives outside this reducer (R3 mitigation: FSM is the single source
+// of truth from creation):
+//   STATUS_RECEIVED         — a full /api/connection status payload arrived
+//   POLLING_PAUSED_CHANGED  — sessions polling backed off / resumed
+//
+// MaxHeartbeatFailures is exposed as a constant; consumers may import via the
+// IIFE-shared lexical scope (no module object exists at runtime).
+
+const MaxHeartbeatFailures = 3;
+
+const ConnectionLifecycle = Object.freeze({
+  WELCOME: 'welcome',
+  STARTING: 'starting',
+  READY: 'ready',
+  RECONNECT: 'reconnect',
+  ERROR: 'error',
+});
+
+function createInitialConnectionState() {
+  return Object.freeze({
+    current: null,
+    hasEverConnected: false,
+    lastReadyAt: null,
+    launchInFlight: false,
+    availability: null,
+    interactionBlockedReason: null,
+    previousBlockedReason: null,
+    sessionsPollingPaused: false,
+    heartbeatPolling: false,
+    lastHeartbeatError: null,
+  });
+}
+
+function statusIsReady(status) {
+  if (!status) return false;
+  const raw = String(status.state || '').toLowerCase();
+  return raw === 'ready';
+}
+
+function reduceConnection(state, action) {
+  if (!state) state = createInitialConnectionState();
+  if (!action || typeof action.type !== 'string') return state;
+  switch (action.type) {
+    case 'LAUNCH_REQUESTED':
+      return Object.freeze({ ...state, launchInFlight: true });
+    case 'LAUNCH_SUCCEEDED':
+    case 'LAUNCH_FAILED':
+      return Object.freeze({ ...state, launchInFlight: false });
+    case 'STATUS_RECEIVED': {
+      const status = action.status ?? null;
+      const next = {
+        ...state,
+        current: status,
+        availability: status?.availability ?? null,
+        previousBlockedReason: state.interactionBlockedReason,
+        interactionBlockedReason: action.blockedReason ?? null,
+      };
+      if (statusIsReady(status)) {
+        next.hasEverConnected = true;
+        next.lastReadyAt = typeof action.nowMs === 'number' ? action.nowMs : state.lastReadyAt;
+      }
+      return Object.freeze(next);
+    }
+    case 'AVAILABILITY_UPDATED':
+      return Object.freeze({ ...state, availability: action.availability ?? null });
+    case 'INTERACTION_BLOCKED':
+      return Object.freeze({
+        ...state,
+        previousBlockedReason: state.interactionBlockedReason,
+        interactionBlockedReason: action.reason ?? null,
+      });
+    case 'INTERACTION_UNBLOCKED':
+      return Object.freeze({
+        ...state,
+        previousBlockedReason: state.interactionBlockedReason,
+        interactionBlockedReason: null,
+      });
+    case 'HEARTBEAT_OK':
+      return Object.freeze({ ...state, lastHeartbeatError: null });
+    case 'HEARTBEAT_FAILED':
+      return Object.freeze({ ...state, lastHeartbeatError: action.error ?? null });
+    case 'POLLING_PAUSED_CHANGED':
+      return Object.freeze({ ...state, sessionsPollingPaused: !!action.paused });
+    case 'DISCONNECT_REQUESTED':
+      return Object.freeze({
+        ...state,
+        current: null,
+        availability: null,
+        heartbeatPolling: false,
+      });
+    default:
+      return state;
+  }
+}
+
+// build-header
+const ConsoleBuildEpochMs = 1778743860000;
+const ConsoleBuildGitSha = '8a7f832';
+
+// connectionUseCases.js
+// connectionUseCases.js — action dispatchers for the connection FSM.
+//
+// Pure: no DOM, fetch, timers, localStorage. Takes the reducer and an
+// onChange observer (the compat shim in state.js projects the new state
+// into the legacy state.connection object so non-FSM readers keep working).
+//
+// Factory shape:
+//   createConnectionUseCases({ initialState, onChange })
+//     -> { getState, dispatch, launchRequested, launchSucceeded, launchFailed,
+//          setStatus, availabilityUpdated, interactionBlocked,
+//          interactionUnblocked, heartbeatOk, heartbeatFailed,
+//          setSessionsPollingPaused, disconnectRequested }
+
+function createConnectionUseCases(options = {}) {
+  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
+  let current = options.initialState ?? createInitialConnectionState();
+  if (!Object.isFrozen(current)) current = Object.freeze({ ...current });
+
+  function dispatch(action) {
+    const next = reduceConnection(current, action);
+    if (next !== current) {
+      current = next;
+      onChange(current);
+    }
+    return current;
+  }
+
+  function getState() {
+    return current;
+  }
+
+  return {
+    getState,
+    dispatch,
+    launchRequested: () => dispatch({ type: 'LAUNCH_REQUESTED' }),
+    launchSucceeded: () => dispatch({ type: 'LAUNCH_SUCCEEDED' }),
+    launchFailed: () => dispatch({ type: 'LAUNCH_FAILED' }),
+    setStatus: (status, blockedReason, extras = {}) => dispatch({
+      type: 'STATUS_RECEIVED',
+      status,
+      blockedReason: blockedReason ?? null,
+      nowMs: typeof extras.nowMs === 'number' ? extras.nowMs : Date.now(),
+    }),
+    availabilityUpdated: (availability) => dispatch({
+      type: 'AVAILABILITY_UPDATED',
+      availability,
+    }),
+    interactionBlocked: (reason) => dispatch({ type: 'INTERACTION_BLOCKED', reason }),
+    interactionUnblocked: () => dispatch({ type: 'INTERACTION_UNBLOCKED' }),
+    heartbeatOk: () => dispatch({ type: 'HEARTBEAT_OK' }),
+    heartbeatFailed: (error) => dispatch({ type: 'HEARTBEAT_FAILED', error }),
+    setSessionsPollingPaused: (paused) => dispatch({
+      type: 'POLLING_PAUSED_CHANGED',
+      paused,
+    }),
+    disconnectRequested: () => dispatch({ type: 'DISCONNECT_REQUESTED' }),
+  };
+}
+
+// connectionBrowserAdapter.js
+// connectionBrowserAdapter.js — wires connectionUseCases into the browser
+// `state.connection` projection. Keeping this glue in its own file keeps
+// state.js free of FSM details and gives the use cases an explicit entry
+// point (so tests can stub it out if needed).
+//
+// Returns the use-cases object. The caller passes a mutator that copies
+// the frozen FSM state into the legacy `state.connection` object so
+// non-FSM readers (rendering, devices, preview) keep observing changes.
+
+function createBrowserConnectionUseCases(projectState) {
+  const onChange = typeof projectState === 'function' ? projectState : () => {};
+  return createConnectionUseCases({
+    initialState: createInitialConnectionState(),
+    onChange,
+  });
+}
+
 // state.js
             const DefaultLivePreviewIntervalMs = 1000;
             const MinLivePreviewIntervalMs = 1000;
@@ -8,17 +204,17 @@
               sessionSummaries: [],
               selectedDeviceSerial: null,
               devices: [],
-              connection: {
-                current: null,
-                hasEverConnected: false,
-                lastReadyAt: null,
-                launchInFlight: false,
-                availability: null,
-                interactionBlockedReason: null,
-                previousBlockedReason: null,
-                sessionsPollingPaused: false
-              }
+              connection: null, // projected from connectionUseCases below
             };
+            // Connection FSM single source of truth. The compat shim projects
+            // each new FSM state into state.connection so legacy READ sites
+            // (rendering, devices, preview, annotations) keep working. All
+            // WRITES to state.connection.* are migrated to connectionUseCases
+            // dispatches — see connectionUseCases.js / connection.js / sessions-polling.js.
+            const connectionUseCases = createBrowserConnectionUseCases((next) => {
+              state.connection = { ...next };
+            });
+            state.connection = { ...connectionUseCases.getState() };
             const blockedReasonDebouncer = createBlockedReasonDebouncer({ delayMs: 300 });
             const unresponsiveTracker = createUnresponsiveTracker({ threshold: 3 });
             const sessions = document.getElementById('sessions');
@@ -325,10 +521,6 @@
               clearStatusTimer();
               resetStatusSurface();
             }
-
-// build-header
-const ConsoleBuildEpochMs = 1778702100000;
-const ConsoleBuildGitSha = 'ac3c7b5';
 
 // staleness.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
@@ -1530,22 +1722,34 @@ function createDraftCommandQueue({ getWorkspace, setWorkspace, onStaleResponse =
               );
             }
 
-            function recomputeInteractionBlockedReason() {
+            function computeCurrentBlockedReason(statusAvailability) {
               const annotate = toolMode === 'annotate';
-              const resolverInput = state.connection.availability
-                ? { ...state.connection.availability, unresponsive: unresponsiveTracker.isUnresponsive() }
+              const availability = statusAvailability ?? connectionUseCases.getState().availability;
+              const resolverInput = availability
+                ? { ...availability, unresponsive: unresponsiveTracker.isUnresponsive() }
                 : { unresponsive: unresponsiveTracker.isUnresponsive() };
               const rawReason = computeBlockedReason(resolverInput, annotate);
-              state.connection.interactionBlockedReason = blockedReasonDebouncer.observe(rawReason);
+              return blockedReasonDebouncer.observe(rawReason);
+            }
+
+            function recomputeInteractionBlockedReason() {
+              const reason = computeCurrentBlockedReason();
+              connectionUseCases.interactionBlocked(reason);
             }
 
             function applyConnectionStatus(status, options) {
               const connectionOptions = options || {};
-              state.connection.current = status;
-              state.connection.availability = status?.availability ?? null;
 
-              // Combine availability with the unresponsive tracker for the resolver input.
-              recomputeInteractionBlockedReason();
+              // Compute the new blocked reason from the incoming availability
+              // BEFORE dispatching, so STATUS_RECEIVED can write it atomically
+              // (avoiding a stale-availability window between dispatches).
+              const newBlockedReason = computeCurrentBlockedReason(status?.availability ?? null);
+
+              // Capture the prior previousBlockedReason for transition detection.
+              // STATUS_RECEIVED will roll it forward on dispatch.
+              const priorPreviousBlockedReason = connectionUseCases.getState().previousBlockedReason;
+
+              connectionUseCases.setStatus(status, newBlockedReason);
 
               // success → clear failure streak
               unresponsiveTracker.observeSuccess();
@@ -1571,21 +1775,18 @@ function createDraftCommandQueue({ getWorkspace, setWorkspace, onStaleResponse =
               }
 
               // Detect blocked → unblocked transitions for select-mode auto-resume.
-              if (
-                state.connection.previousBlockedReason !== null &&
-                state.connection.interactionBlockedReason === null
-              ) {
+              // Use the captured prior previousBlockedReason vs the new reason.
+              if (priorPreviousBlockedReason !== null && newBlockedReason === null) {
                 if (toolMode === 'select' && state.session) {
                   refreshPreview().catch(showError);
                 }
               }
-              state.connection.previousBlockedReason = state.connection.interactionBlockedReason;
+              // previousBlockedReason rolling is handled inside STATUS_RECEIVED.
 
               syncSelectedDeviceFromConnection(status);
               const viewState = userConnectionState(status);
               if (viewState === 'ready') {
-                state.connection.hasEverConnected = true;
-                state.connection.lastReadyAt = Date.now();
+                // hasEverConnected and lastReadyAt are set by STATUS_RECEIVED above.
                 if (!connectionOptions.preservePreviewStale) markPreviewStale(false);
                 startLivePreviewPolling();
               } else {
@@ -1655,14 +1856,17 @@ function createDraftCommandQueue({ getWorkspace, setWorkspace, onStaleResponse =
             }
 
             async function launchApp() {
-              state.connection.launchInFlight = true;
+              connectionUseCases.launchRequested();
               renderConnection(state.connection.current);
+              let succeeded = false;
               try {
                 const status = await requestJson('/api/app/launch', { method: 'POST' });
                 applyConnectionStatus(status);
                 setTimeout(() => refreshConnection().catch(showError), 800);
+                succeeded = true;
               } finally {
-                state.connection.launchInFlight = false;
+                if (succeeded) connectionUseCases.launchSucceeded();
+                else connectionUseCases.launchFailed();
                 renderConnection(state.connection.current);
               }
             }
@@ -4463,7 +4667,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 
             function setSessionsPollingPaused(paused) {
               if (state.connection.sessionsPollingPaused === paused) return;
-              state.connection.sessionsPollingPaused = paused;
+              connectionUseCases.setSessionsPollingPaused(paused);
               // Re-render the connection card to surface the change.
               if (state.connection.current) renderConnection(state.connection.current);
             }

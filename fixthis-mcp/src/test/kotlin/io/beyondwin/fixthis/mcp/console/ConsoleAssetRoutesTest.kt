@@ -88,6 +88,9 @@ class ConsoleAssetRoutesTest {
             .first { File(it, "settings.gradle.kts").isFile || File(it, "settings.gradle").isFile }
         val sourceDir = File(root, "fixthis-mcp/src/main/console")
         val modules = listOf(
+            "connectionFsm.js",
+            "connectionUseCases.js",
+            "connectionBrowserAdapter.js",
             "state.js",
             "staleness.js",
             "pendingPersistence.js",
