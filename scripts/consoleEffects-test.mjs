@@ -33,7 +33,7 @@ test('store dispatch queues reducer effects with current state', () => {
   const effects = store.dispatch({ type: 'SESSION_ROW_CLICKED', sessionId: 'session-b' });
   assert.equal(effects.length, 1);
   assert.equal(effects[0].kind, 'openSession');
-  assert.deepEqual(rendered, ['session-a']);
+  assert.deepEqual(rendered, ['session-a', 'session-a']);
 });
 
 test('openSession effect dispatches success event with request context', async () => {

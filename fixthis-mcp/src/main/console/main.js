@@ -1,6 +1,30 @@
-// @requires state.js, connection.js, devices.js, preview.js, annotations.js, history.js, prompt.js, rendering.js, sessions-polling.js, shortcuts.js, draftUseCases.js, draftCommandQueue.js
+// @requires state.js, connection.js, devices.js, preview.js, annotations.js, history.js, prompt.js, rendering.js, sessions-polling.js, shortcuts.js, draftUseCases.js, draftCommandQueue.js, application/consoleStore.js, application/consoleEffects.js, adapters/browserPorts.js, adapters/browserRenderer.js
             let pendingRecovery = null;
             const activePendingMirrorSessions = new Set();
+            const canonicalPorts = createBrowserConsolePorts({
+              requestJson,
+              localStorage,
+              navigator,
+            });
+            const canonicalRenderer = createBrowserRenderer({
+              renderHistory: renderCanonicalHistoryModel,
+              renderCanvas: renderCanonicalCanvasModel,
+              renderInspector: renderCanonicalInspectorModel,
+              renderPrompt: renderCanonicalPromptModel,
+              renderBoundary: renderCanonicalBoundaryModel,
+            });
+            let store;
+            let consoleStore;
+            store = createConsoleStore({
+              render: canonicalRenderer.render,
+              onEffects: (effects) => {
+                for (const effect of effects) {
+                  runConsoleEffect(effect, { ports: canonicalPorts, dispatch: store.dispatch }).catch(showError);
+                }
+              },
+            });
+            consoleStore = store;
+            store.dispatch({ type: 'CONSOLE_BOOTSTRAPPED' });
 
             selectToolButton.addEventListener('click', enterSelectMode);
             annotateToolButton.addEventListener('click', () => enterAnnotateMode().catch(showError));

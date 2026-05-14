@@ -879,6 +879,26 @@
               updateComposerState();
             }
 
+            function renderCanonicalHistoryModel(model) {
+              if (model) renderCurrentSessionList();
+            }
+
+            function renderCanonicalCanvasModel(model) {
+              if (model) renderPreviewOnly();
+            }
+
+            function renderCanonicalInspectorModel(model) {
+              if (model) renderInspectorRegion();
+            }
+
+            function renderCanonicalPromptModel(model) {
+              if (model) renderPromptReadiness();
+            }
+
+            function renderCanonicalBoundaryModel(model) {
+              renderBoundaryFromModel(model);
+            }
+
             function attachSnapshotHandlers() {
               const image = document.getElementById('snapshotImage');
               if (!image) return;
