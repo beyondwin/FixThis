@@ -5,6 +5,7 @@ import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.beyondwin.fixthis.compose.core.model.TargetEvidence
+import io.beyondwin.fixthis.compose.core.model.TargetReliability
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -106,6 +107,7 @@ data class AnnotationDto(
     val status: AnnotationStatusDto = AnnotationStatusDto.OPEN,
     val agentSummary: String? = null,
     val targetEvidence: TargetEvidence? = null,
+    val targetReliability: TargetReliability? = null,
 )
 
 @Serializable
