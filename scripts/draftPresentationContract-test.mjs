@@ -36,13 +36,13 @@ test('state owns a draft workspace and command queue', () => {
 test('annotation creation uses addDraftItem use case instead of direct push', () => {
   const createBody = body(annotationsSource, 'function createAnnotationFromSelection(selection)');
   assert.match(createBody, /addDraftItem\(/);
-  assert.doesNotMatch(createBody, /pendingFeedbackItems\.push\(/);
+  assert.doesNotMatch(createBody, /draftFeedbackItems\.push\(/);
 });
 
 test('pending delete uses deleteDraftItem use case instead of direct splice', () => {
   const deleteBody = body(annotationsSource, 'function deletePendingFeedbackItem(index)');
   assert.match(deleteBody, /deleteDraftItem\(/);
-  assert.doesNotMatch(deleteBody, /pendingFeedbackItems\.splice\(/);
+  assert.doesNotMatch(deleteBody, /draftFeedbackItems\.splice\(/);
 });
 
 test('pending overlay renders from draft workspace selector', () => {
@@ -50,10 +50,10 @@ test('pending overlay renders from draft workspace selector', () => {
 });
 
 test('annotation presentation no longer mutates pending array directly', () => {
-  assert.doesNotMatch(annotationsSource, /pendingFeedbackItems\.push\(/);
-  assert.doesNotMatch(annotationsSource, /pendingFeedbackItems\.splice\(/);
-  assert.doesNotMatch(annotationsSource, /pendingFeedbackItems\s*=\s*\[\]/);
-  assert.doesNotMatch(annotationsSource, /pendingFeedbackItems\s*=\s*items/);
-  assert.doesNotMatch(mainSource, /pendingFeedbackItems\s*=\s*items/);
-  assert.doesNotMatch(previewSource, /pendingFeedbackItems\s*=\s*pendingItems/);
+  assert.doesNotMatch(annotationsSource, /draftFeedbackItems\.push\(/);
+  assert.doesNotMatch(annotationsSource, /draftFeedbackItems\.splice\(/);
+  assert.doesNotMatch(annotationsSource, /draftFeedbackItems\s*=\s*\[\]/);
+  assert.doesNotMatch(annotationsSource, /draftFeedbackItems\s*=\s*items/);
+  assert.doesNotMatch(mainSource, /draftFeedbackItems\s*=\s*items/);
+  assert.doesNotMatch(previewSource, /draftFeedbackItems\s*=\s*pendingItems/);
 });

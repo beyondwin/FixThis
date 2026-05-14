@@ -101,7 +101,7 @@ const CONTRACT_SYMBOLS = [
   'renderNumberedFeedbackOverlay',
   'focusPendingFeedbackItem',
   'deletePendingFeedbackItem',
-  'startAddItemsFlow',
+  'startDraftAnnotationFlow',
   'createAnnotationFromSelection',
   'savePendingFeedbackItems',
   // Canvas selection (ConsoleFeedbackItemRoutesTest)

@@ -60,7 +60,7 @@ for (const [key, fileName] of Object.entries(USE_CASE_FILES)) {
 //   - while any FSM is pending: assert <= 40 (current baseline ~35 + slack)
 //   - when PENDING_EXTRACTION is empty: assert <= 10 (the spec's
 //     aspirational <= 5 does not account for the already-migrated draft
-//     FSM's holder lets — addItemsFlow / pendingFeedbackItems /
+//     FSM's holder lets — activeDraftFlow / draftFeedbackItems /
 //     focusedPendingItemIndex / currentSelection / undoRedoHistory /
 //     draftWorkspace / draftCommandQueue — which remain module-level
 //     because the draft FSM predates this plan's closure-encapsulation

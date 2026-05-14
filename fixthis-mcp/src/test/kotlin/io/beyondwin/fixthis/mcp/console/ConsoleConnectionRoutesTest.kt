@@ -108,7 +108,7 @@ class ConsoleConnectionRoutesTest {
         val html = ConsoleSourceFixtures.readAll()
         val applyConnectionBody = javascriptFunctionBody(html, "applyConnectionStatus")
 
-        assertTrue(applyConnectionBody.contains("pendingFeedbackItems"))
+        assertTrue(applyConnectionBody.contains("draftFeedbackItems"))
         assertTrue(applyConnectionBody.contains("markPreviewStale"))
         assertTrue(applyConnectionBody.contains("stopLivePreviewPolling"))
         assertTrue(applyConnectionBody.contains("startLivePreviewPolling"))
@@ -158,7 +158,7 @@ class ConsoleConnectionRoutesTest {
         assertTrue(friendlyErrorMessageBody.contains("DEVICE_NOT_AVAILABLE"))
         assertTrue(friendlyErrorMessageBody.contains("Check your phone, then try again."))
         assertTrue(showErrorBody.contains("friendlyErrorMessage"))
-        assertTrue(html.contains("pendingFeedbackItems = [];"))
+        assertTrue(html.contains("draftFeedbackItems = [];"))
         assertDoesNotClearDraftOrPreview("refreshPreview", refreshPreviewBody)
         assertDoesNotClearDraftOrPreview("friendlyErrorMessage", friendlyErrorMessageBody)
         assertDoesNotClearDraftOrPreview("showError", showErrorBody)
@@ -584,7 +584,7 @@ class ConsoleDeviceSelectionRoutesTest {
             ).containsMatchIn(html),
         )
         assertTrue(
-            Regex("function latestScreen\\(\\) \\{\\s+if \\(addItemsFlow\\) return addItemsFlow\\.screen;")
+            Regex("function latestScreen\\(\\) \\{\\s+if \\(activeDraftFlow\\) return activeDraftFlow\\.screen;")
                 .containsMatchIn(html),
         )
         assertTrue(

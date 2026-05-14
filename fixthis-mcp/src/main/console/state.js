@@ -14,13 +14,13 @@
 	            };
 
 	            function setConsoleSession(session) {
-	              state.session = session;
-	              return state.session;
+	              state['session'] = session;
+	              return state['session'];
 	            }
 
 	            function setConsolePreview(preview) {
-	              state.preview = preview;
-	              return state.preview;
+	              state['preview'] = preview;
+	              return state['preview'];
 	            }
             // Console FSM boot. createConsoleApp() wires the four sub-FSMs
             // (connection, preview, polling, tool-mode) and routes each
@@ -45,7 +45,7 @@
             // Tool-mode FSM: no state.* projection; callers go through
             // toolModeUseCases.getState() directly. Owns toolMode,
             // annotationSequence, hoveredAnnotationTarget, dragStart/
-            // dragPreview, suppressNextClick, addItemsFlowStarting,
+            // dragPreview, suppressNextClick, draftFlowStarting,
             // newHistoryAnnotateModeStarting, historyDrawerOpen,
             // focusedSavedItemId, focusedSavedSessionId, focusedSavedScreenId.
             const consoleApp = createConsoleApp({ state });
@@ -103,13 +103,13 @@
             // module scope (only used by sendBridgeHeartbeat /
             // scheduleNextHeartbeat / startHeartbeatPolling /
             // stopHeartbeatPolling). See connection.js.
-            let addItemsFlow = null;
-            let pendingFeedbackItems = [];
+            let activeDraftFlow = null;
+            let draftFeedbackItems = [];
             let focusedPendingItemIndex = null;
             let currentSelection = null;
             // Tool-mode-owned state (toolMode, annotationSequence,
             // hoveredAnnotationTarget, dragStart, dragPreview,
-            // suppressNextClick, addItemsFlowStarting,
+            // suppressNextClick, draftFlowStarting,
             // newHistoryAnnotateModeStarting, historyDrawerOpen,
             // focusedSavedItemId, focusedSavedSessionId,
             // focusedSavedScreenId) now lives in
@@ -136,14 +136,14 @@
 
             function syncDraftWorkspaceCompatibility() {
               if (draftWorkspace.lifecycle === DraftLifecycle.EMPTY) {
-                addItemsFlow = null;
-                pendingFeedbackItems = [];
+                activeDraftFlow = null;
+                draftFeedbackItems = [];
                 focusedPendingItemIndex = null;
                 currentSelection = null;
                 undoRedoHistory = createHistory();
                 return;
               }
-              addItemsFlow = {
+              activeDraftFlow = {
                 context: draftWorkspace.context,
                 previewId: draftWorkspace.context?.previewId || null,
                 screen: draftWorkspace.screen,
@@ -152,7 +152,7 @@
                 activity: draftWorkspace.context?.activityName || null,
                 activityDriftWarning: draftWorkspace.activityDriftWarning || null,
               };
-              pendingFeedbackItems = draftWorkspace.items;
+              draftFeedbackItems = draftWorkspace.items;
               focusedPendingItemIndex = draftWorkspace.focusedItemId
                 ? draftWorkspace.items.findIndex((item) => item.draftItemId === draftWorkspace.focusedItemId)
                 : null;

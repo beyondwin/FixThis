@@ -156,7 +156,7 @@ test('null/undefined sessionId is a no-op (no throw)', () => {
 
 test('recapture forces a fresh preview before remapping recovered pending items', () => {
   const recaptureBody = extractFunctionBody(mainSource, 'async function recapturePendingRecovery()');
-  assert.match(recaptureBody, /invalidateCanonicalPreviewContext\(\);[\s\S]*?await startAddItemsFlow\(\);/);
+  assert.match(recaptureBody, /invalidateCanonicalPreviewContext\(\);[\s\S]*?await startDraftAnnotationFlow\(\);/);
   assert.match(recaptureBody, /const recoveredItems = items\.map/);
   assert.match(recaptureBody, /setDraftWorkspace\(\{[\s\S]*?items:\s*recoveredItems/);
   assert.match(recaptureBody, /persistCurrentPendingState\(\);/);
@@ -274,7 +274,7 @@ test('new pending annotations record undo history before persistence', () => {
 });
 
 test('using latest stale frame preserves pending annotations while recapturing', () => {
-  assert.match(previewSource, /const pendingItems = draftWorkspaceItems\(draftWorkspace\)\.slice\(\);[\s\S]*?invalidateCanonicalPreviewContext\(\);[\s\S]*?await startAddItemsFlow\(\);[\s\S]*?setDraftWorkspace\(\{[\s\S]*?items:\s*pendingItems[\s\S]*?persistCurrentPendingState\(\);/);
-  assert.doesNotMatch(previewSource, /data-use-latest[\s\S]*?pendingFeedbackItems\.length\s*=\s*0;/);
+  assert.match(previewSource, /const pendingItems = draftWorkspaceItems\(draftWorkspace\)\.slice\(\);[\s\S]*?invalidateCanonicalPreviewContext\(\);[\s\S]*?await startDraftAnnotationFlow\(\);[\s\S]*?setDraftWorkspace\(\{[\s\S]*?items:\s*pendingItems[\s\S]*?persistCurrentPendingState\(\);/);
+  assert.doesNotMatch(previewSource, /data-use-latest[\s\S]*?draftFeedbackItems\.length\s*=\s*0;/);
   assert.doesNotMatch(previewSource, /data-use-latest[\s\S]*?clearPendingMirror\(state\.session\?\.sessionId\);/);
 });

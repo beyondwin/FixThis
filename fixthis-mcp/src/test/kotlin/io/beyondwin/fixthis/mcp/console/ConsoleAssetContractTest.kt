@@ -313,7 +313,7 @@ class ConsoleAssetContractTest {
         val renderSelectionOverlay = javascriptFunctionBody(html, "renderSelectionOverlay")
 
         assertTrue(
-            renderSelectionOverlay.contains("if (!addItemsFlow)"),
+            renderSelectionOverlay.contains("if (!activeDraftFlow)"),
             "saved overlays should be gated outside the active add-items flow",
         )
         assertTrue(
@@ -427,7 +427,7 @@ class ConsoleAssetContractTest {
         val html = ConsoleSourceFixtures.readAll()
         val renderComposerInspector = javascriptFunctionBody(html, "renderComposerInspector")
 
-        // While `addItemsFlow` is active the composer inspector previously hid every saved
+        // While `activeDraftFlow` is active the composer inspector previously hid every saved
         // annotation, so users adding a new pin to a session that already had four saved
         // items only saw the single pending entry. The composer must surface saved
         // annotations as well so totals stay coherent across pending + saved.
@@ -437,7 +437,7 @@ class ConsoleAssetContractTest {
         )
         assertTrue(
             renderComposerInspector.contains(
-                "inspectorCount.textContent = String(pendingFeedbackItems.length + savedItems.length);",
+                "inspectorCount.textContent = String(draftFeedbackItems.length + savedItems.length);",
             ),
             "renderComposerInspector inspector count should include saved items",
         )
@@ -682,8 +682,8 @@ class ConsoleAssetContractTest {
                     "await ensureSessionForAnnotating\\(\\);\\s+" +
                     "toolModeUseCases\\.enterAnnotate\\(\\);\\s+" +
                     "renderCurrentSessionList\\(\\);\\s+" +
-                    "if \\(!addItemsFlow\\) \\{\\s+" +
-                    "await startAddItemsFlow\\(\\);",
+                    "if \\(!activeDraftFlow\\) \\{\\s+" +
+                    "await startDraftAnnotationFlow\\(\\);",
             ).containsMatchIn(html),
         )
         assertTrue(html.contains("inspectorTitle.textContent = item ? 'Annotation' : 'Annotations'"))
@@ -699,7 +699,7 @@ class ConsoleAssetContractTest {
         assertTrue(html.contains("const PreviewIntervalStorageKey = 'fixthis.previewIntervalMs.v2'"))
         assertFalse(html.contains("id=\"sessionMeta\""))
         assertFalse(html.contains("function formatSessionHeader"))
-        assertTrue(html.contains("startAddItemsFlow"))
+        assertTrue(html.contains("startDraftAnnotationFlow"))
         assertTrue(html.contains("createAnnotationFromSelection"))
         assertTrue(html.contains("savePendingFeedbackItems"))
         assertFalse(html.contains("modeSelect"))
@@ -767,8 +767,8 @@ class ConsoleAssetContractTest {
         assertTrue(enterAnnotateMode.contains("await ensureSessionForAnnotating();"))
         assertTrue(enterAnnotateMode.contains("toolModeUseCases.enterAnnotate();"))
         assertTrue(enterAnnotateMode.contains("renderCurrentSessionList();"))
-        assertTrue(enterAnnotateMode.contains("if (!addItemsFlow) {"))
-        assertTrue(enterAnnotateMode.contains("await startAddItemsFlow();"))
+        assertTrue(enterAnnotateMode.contains("if (!activeDraftFlow) {"))
+        assertTrue(enterAnnotateMode.contains("await startDraftAnnotationFlow();"))
     }
 
     @Test
@@ -873,7 +873,7 @@ class ConsoleAssetContractTest {
         assertTrue(html.contains("const item = focusedPendingSelectionSummary();"))
         assertTrue(html.contains("focusedPendingItemIndex = index;"))
         assertTrue(html.contains("currentSelection = null;"))
-        assertFalse(html.contains("const item = pendingFeedbackItems[index];\n              currentSelection = item ?"))
+        assertFalse(html.contains("const item = draftFeedbackItems[index];\n              currentSelection = item ?"))
         assertFalse(html.contains("label: item.targetType === 'node' ? 'Selected component' : 'Custom area'"))
     }
 
@@ -882,8 +882,8 @@ class ConsoleAssetContractTest {
     fun consoleHtmlImplementsSnapshotSelectionModes() {
         val html = ConsoleSourceFixtures.readAll()
 
-        assertTrue(html.contains("let addItemsFlow"))
-        assertTrue(html.contains("let pendingFeedbackItems"))
+        assertTrue(html.contains("let activeDraftFlow"))
+        assertTrue(html.contains("let draftFeedbackItems"))
         assertTrue(html.contains("let currentSelection"))
         assertTrue(html.contains("finishAreaSelection"))
         assertTrue(html.contains("selectNodeAtPoint"))

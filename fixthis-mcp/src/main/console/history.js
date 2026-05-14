@@ -27,8 +27,8 @@
             }
 
             function pendingHistoryItemsForSession(session) {
-              if (!addItemsFlow || state.session?.sessionId !== session?.sessionId) return [];
-              return pendingFeedbackItems;
+              if (!activeDraftFlow || state.session?.sessionId !== session?.sessionId) return [];
+              return draftFeedbackItems;
             }
 
             function historyOpenCount(session) {
@@ -86,8 +86,8 @@
             }
 
             function toolbarAnnotationCounts() {
-              if (addItemsFlow) {
-                const pending = pendingFeedbackItems;
+              if (activeDraftFlow) {
+                const pending = draftFeedbackItems;
                 return {
                   open: pending.filter(item => annotationStatus(item) !== 'resolved').length,
                   resolved: pending.filter(item => annotationStatus(item) === 'resolved').length
@@ -110,7 +110,7 @@
 
             function selectedAnnotation() {
               if (focusedPendingItemIndex == null) return null;
-              return pendingFeedbackItems[focusedPendingItemIndex] || null;
+              return draftFeedbackItems[focusedPendingItemIndex] || null;
             }
 
             function sourceHintLabel(item) {
@@ -148,8 +148,8 @@
               await ensureSessionForAnnotating();
               toolModeUseCases.enterAnnotate();
               renderCurrentSessionList();
-              if (!addItemsFlow) {
-                await startAddItemsFlow();
+              if (!activeDraftFlow) {
+                await startDraftAnnotationFlow();
               } else {
                 renderPreviewOnly();
                 renderInspectorRegion();

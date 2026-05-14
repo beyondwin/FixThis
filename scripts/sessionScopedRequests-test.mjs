@@ -30,7 +30,7 @@ function body(source, signature) {
 }
 
 test('annotate flow captures immutable session preview context', () => {
-  const start = body(annotationsSource, 'async function startAddItemsFlow()');
+  const start = body(annotationsSource, 'async function startDraftAnnotationFlow()');
   assert.match(start, /startDraftFreeze\(/);
   assert.match(start, /sessionId:\s*state\.session\?\.sessionId\s*\|\|\s*null/);
   assert.match(start, /selectedDeviceSerial:\s*state\.selectedDeviceSerial\s*\|\|\s*null/);

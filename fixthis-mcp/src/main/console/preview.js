@@ -25,7 +25,7 @@
             }
 
             function screenImageUrl(screen) {
-              if (addItemsFlow) return addItemsFlow.screenshotUrl;
+              if (activeDraftFlow) return activeDraftFlow.screenshotUrl;
               if (state.preview?.screen === screen && state.preview?.previewId) return previewScreenshotUrl(state.preview.previewId, state.session?.sessionId || null);
               const savedContext = toolModeUseCases.getState();
               const savedSessionId = screen?.screenId === savedContext.focusedSavedScreenId ? savedContext.focusedSavedSessionId : null;
@@ -42,7 +42,7 @@
             }
 
             function shouldPollPreview() {
-              return !document.hidden && !addItemsFlow && Boolean(state.session) && Boolean(state.selectedDeviceSerial) && userConnectionState(state.connection.current) === 'ready';
+              return !document.hidden && !activeDraftFlow && Boolean(state.session) && Boolean(state.selectedDeviceSerial) && userConnectionState(state.connection.current) === 'ready';
             }
 
             function shouldAutoFetchPreview() {
@@ -98,7 +98,7 @@
             }
 
             function latestScreen() {
-              if (addItemsFlow) return addItemsFlow.screen;
+              if (activeDraftFlow) return activeDraftFlow.screen;
               const toolModeState = toolModeUseCases.getState();
               const focusedSavedItemId = toolModeState.focusedSavedItemId;
               let savedScreen = null;
@@ -138,11 +138,11 @@
 
             async function refreshPreview() {
               error.textContent = '';
-              if (!state.session || addItemsFlow) return;
+              if (!state.session || activeDraftFlow) return;
               const requestGeneration = previewUseCases.getState().requestGeneration + 1;
               try {
                 const preview = await previewUseCases.request();
-                if (addItemsFlow || requestGeneration !== previewUseCases.getState().requestGeneration) return;
+                if (activeDraftFlow || requestGeneration !== previewUseCases.getState().requestGeneration) return;
 	                setConsolePreview({
 	                  ...preview,
 	                  activity: state.connection?.availability?.activity ?? null,
@@ -225,7 +225,7 @@
             }
 
             async function useLatestStaleFrame() {
-              const wasAnnotating = toolModeUseCases.isAnnotateMode() || Boolean(addItemsFlow);
+              const wasAnnotating = toolModeUseCases.isAnnotateMode() || Boolean(activeDraftFlow);
               flushFocusedPendingComment();
               const pendingItems = draftWorkspaceItems(draftWorkspace).slice();
               const previousWorkspace = draftWorkspace;
@@ -234,15 +234,15 @@
               if (wasAnnotating) {
                 setDraftWorkspace(createEmptyDraftWorkspace());
                 try {
-                  await startAddItemsFlow();
+                  await startDraftAnnotationFlow();
                 } catch (cause) {
                   setDraftWorkspace(previousWorkspace);
                   setConsolePreview(previousPreview);
-                  if (addItemsFlow) persistCurrentPendingState();
+                  if (activeDraftFlow) persistCurrentPendingState();
                   render();
                   throw cause;
                 }
-                if (!addItemsFlow) {
+                if (!activeDraftFlow) {
                   setDraftWorkspace(previousWorkspace);
                   setConsolePreview(previousPreview);
                   render();

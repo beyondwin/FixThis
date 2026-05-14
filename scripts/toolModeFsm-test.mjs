@@ -30,7 +30,7 @@ test('initial state matches spec shape', () => {
   assert.equal(s.focusedSavedSessionId, null);
   assert.equal(s.focusedSavedScreenId, null);
   assert.equal(s.historyDrawerOpen, false);
-  assert.equal(s.addItemsFlowStarting, false);
+  assert.equal(s.draftFlowStarting, false);
   assert.equal(s.newHistoryAnnotateModeStarting, false);
 });
 
@@ -156,9 +156,9 @@ test('FOCUS_SAVED_ITEM preserves saved screen context independently of detail fo
 test('SET_ADD_ITEMS_FLOW_STARTING toggles flag', () => {
   let s = m.createEmptyToolMode();
   s = m.reduceToolMode(s, { type: 'SET_ADD_ITEMS_FLOW_STARTING', value: true });
-  assert.equal(s.addItemsFlowStarting, true);
+  assert.equal(s.draftFlowStarting, true);
   s = m.reduceToolMode(s, { type: 'SET_ADD_ITEMS_FLOW_STARTING', value: false });
-  assert.equal(s.addItemsFlowStarting, false);
+  assert.equal(s.draftFlowStarting, false);
 });
 
 test('SET_NEW_HISTORY_ANNOTATE_MODE_STARTING toggles flag', () => {

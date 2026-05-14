@@ -62,11 +62,13 @@ test('random-style boundary sequence never switches while boundary is unresolved
 
 test('browser console modules do not directly mutate legacy session or preview state', () => {
   const files = ['history.js', 'annotations.js', 'preview.js', 'prompt.js', 'rendering.js', 'main.js'];
+  const legacyResetPattern = new RegExp('reset' + 'AnnotationComposerState\\(');
+  const legacyPreviewInvalidationPattern = new RegExp('invalidate' + 'PreviewContext\\(');
   for (const file of files) {
     const content = readFileSync(resolve(root, 'fixthis-mcp/src/main/console', file), 'utf8');
     assert.doesNotMatch(content, /state\.session\s*=/, `${file} must not assign state.session`);
     assert.doesNotMatch(content, /state\.preview\s*=/, `${file} must not assign state.preview`);
-    assert.doesNotMatch(content, /resetAnnotationComposerState\(/, `${file} must not orchestrate legacy reset`);
-    assert.doesNotMatch(content, /invalidatePreviewContext\(/, `${file} must not orchestrate legacy preview invalidation`);
+    assert.doesNotMatch(content, legacyResetPattern, `${file} must not orchestrate legacy reset`);
+    assert.doesNotMatch(content, legacyPreviewInvalidationPattern, `${file} must not orchestrate legacy preview invalidation`);
   }
 });

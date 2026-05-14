@@ -1,6 +1,6 @@
 // @requires state.js
             // undoRedo.js — ALH-2 pure undo/redo for pending feedback items.
-            // Caller passes a state shape { pendingFeedbackItems: [...] }; no
+            // Caller passes a state shape { draftFeedbackItems: [...] }; no
             // closure reference needed.
 
             const UNDO_MAX_DEPTH = 50;
@@ -87,7 +87,7 @@
             }
 
             function applyInverse(op, state) {
-              const items = state.pendingFeedbackItems;
+              const items = state.draftFeedbackItems;
               if (op.kind === 'add') {
                 const idx = items.findIndex((item) => sameHistoryItem(item, op.after));
                 if (idx >= 0) items.splice(idx, 1);
@@ -107,7 +107,7 @@
             }
 
             function applyForward(op, state) {
-              const items = state.pendingFeedbackItems;
+              const items = state.draftFeedbackItems;
               if (op.kind === 'add') {
                 items.push({ ...op.after });
               } else if (op.kind === 'delete') {
