@@ -1,3 +1,4 @@
+// @requires state.js, draftWorkspace.js, draftUseCases.js, draftCommandQueue.js
             function isInteractionBlocked() {
               return Boolean(state.connection?.interactionBlockedReason);
             }

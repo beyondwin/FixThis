@@ -1,3 +1,4 @@
+// @requires pollingFsm.js
 // pollingUseCases.js — action dispatchers for the polling FSM.
 //
 // Pure: no DOM, fetch, timers, localStorage. Takes the reducer and an

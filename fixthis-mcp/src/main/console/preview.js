@@ -1,3 +1,4 @@
+// @requires state.js, api.js, draftWorkspace.js
             // Raw HTTP fetch — the previewUseCases layer provides dedup and
             // race-fence via the FSM. Cross-caller dedup (across draft port
             // and FSM) is achieved by routing all callers through

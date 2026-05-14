@@ -1,3 +1,4 @@
+// @requires (none)
 // previewFsm.js — pure reducer for the live preview lifecycle.
 //
 // Owns the preview request/zoom/poll counters previously held as

@@ -1,3 +1,4 @@
+// @requires (none)
             const DefaultLivePreviewIntervalMs = 1000;
             const MinLivePreviewIntervalMs = 1000;
             const PreviewIntervalStorageKey = 'fixthis.previewIntervalMs.v2';

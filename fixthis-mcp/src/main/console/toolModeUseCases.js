@@ -1,3 +1,4 @@
+// @requires toolModeFsm.js
 // toolModeUseCases.js — action dispatchers for the tool-mode FSM.
 //
 // Pure synchronous transitions: no DOM, fetch, timers, localStorage.

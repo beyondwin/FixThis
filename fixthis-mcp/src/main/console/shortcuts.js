@@ -1,3 +1,4 @@
+// @requires state.js, undoRedo.js
             function isTextInputFocused(target = document.activeElement) {
               const element = target?.nodeType === Node.ELEMENT_NODE ? target : target?.parentElement || document.activeElement;
               const tag = element?.tagName;

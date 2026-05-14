@@ -1,3 +1,4 @@
+// @requires connectionFsm.js
 // connectionUseCases.js — action dispatchers for the connection FSM.
 //
 // Pure: no DOM, fetch, timers, localStorage. Takes the reducer and an

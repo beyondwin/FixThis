@@ -1,4 +1,5 @@
 // connectionFsm.js
+// @requires (none)
 // connectionFsm.js — pure reducer for the bridge connection lifecycle.
 //
 // Owns the entire state.connection.* object plus heartbeat-related fields
@@ -113,10 +114,11 @@ function reduceConnection(state, action) {
 }
 
 // build-header
-const ConsoleBuildEpochMs = 1778749020000;
-const ConsoleBuildGitSha = '05ed471';
+const ConsoleBuildEpochMs = 1778752320000;
+const ConsoleBuildGitSha = '5124d4e';
 
 // connectionUseCases.js
+// @requires connectionFsm.js
 // connectionUseCases.js — action dispatchers for the connection FSM.
 //
 // Pure: no DOM, fetch, timers, localStorage. Takes the reducer and an
@@ -177,6 +179,7 @@ function createConnectionUseCases(options = {}) {
 }
 
 // connectionBrowserAdapter.js
+// @requires connectionFsm.js, connectionUseCases.js
 // connectionBrowserAdapter.js — wires connectionUseCases into the browser
 // `state.connection` projection. Keeping this glue in its own file keeps
 // state.js free of FSM details and gives the use cases an explicit entry
@@ -195,6 +198,7 @@ function createBrowserConnectionUseCases(projectState) {
 }
 
 // previewFsm.js
+// @requires (none)
 // previewFsm.js — pure reducer for the live preview lifecycle.
 //
 // Owns the preview request/zoom/poll counters previously held as
@@ -326,6 +330,7 @@ function reducePreview(state, action) {
 }
 
 // previewUseCases.js
+// @requires previewFsm.js
 // previewUseCases.js — action dispatchers for the preview FSM.
 //
 // Pure: no DOM, fetch, timers, localStorage. Takes async primitives
@@ -433,6 +438,7 @@ function createPreviewUseCases(options = {}) {
 }
 
 // previewBrowserAdapter.js
+// @requires previewFsm.js, previewUseCases.js, preview.js
 // previewBrowserAdapter.js — wires previewUseCases into the browser
 // environment. Lives separately so state.js stays free of FSM details
 // and the use cases get an explicit entry point for tests.
@@ -456,6 +462,7 @@ function createBrowserPreviewUseCases(options = {}) {
 }
 
 // pollingFsm.js
+// @requires (none)
 // pollingFsm.js — pure reducer for the sessions-polling lifecycle.
 //
 // Owns the polling-related state previously held as module-level lets in
@@ -605,6 +612,7 @@ function reducePolling(state, action) {
 }
 
 // pollingUseCases.js
+// @requires pollingFsm.js
 // pollingUseCases.js — action dispatchers for the polling FSM.
 //
 // Pure: no DOM, fetch, timers, localStorage. Takes the reducer and an
@@ -700,6 +708,7 @@ function createPollingUseCases(options = {}) {
 }
 
 // pollingBrowserAdapter.js
+// @requires pollingFsm.js, pollingUseCases.js, state.js, history.js, rendering.js
 // pollingBrowserAdapter.js — wires pollingUseCases into the browser
 // environment. Lives separately so state.js stays free of FSM details
 // and the use cases get an explicit entry point for tests.
@@ -750,6 +759,7 @@ function createBrowserPollingUseCases(options = {}) {
 }
 
 // toolModeFsm.js
+// @requires (none)
 // toolModeFsm.js — pure reducer for the tool-mode lifecycle.
 //
 // Owns the tool-mode-related state previously held as module-level lets in
@@ -913,6 +923,7 @@ function reduceToolMode(state, action) {
 }
 
 // toolModeUseCases.js
+// @requires toolModeFsm.js
 // toolModeUseCases.js — action dispatchers for the tool-mode FSM.
 //
 // Pure synchronous transitions: no DOM, fetch, timers, localStorage.
@@ -986,6 +997,7 @@ function createToolModeUseCases(options = {}) {
 }
 
 // consoleApp.js
+// @requires connectionBrowserAdapter.js, previewBrowserAdapter.js, pollingBrowserAdapter.js, toolModeUseCases.js
             // consoleApp.js — top-level FSM boot factory.
             // Aggregates the four sub-FSMs introduced by the
             // console-state-machine-expansion plan plus the already-migrated
@@ -1016,6 +1028,7 @@ function createToolModeUseCases(options = {}) {
             }
 
 // state.js
+// @requires (none)
             const DefaultLivePreviewIntervalMs = 1000;
             const MinLivePreviewIntervalMs = 1000;
             const PreviewIntervalStorageKey = 'fixthis.previewIntervalMs.v2';
@@ -1374,6 +1387,7 @@ function createToolModeUseCases(options = {}) {
             })();
 
 // staleness.js
+// @requires state.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
             const StaleThresholdMs = 5 * 60 * 1000;
             const StalenessDismissKey = 'fixthis.console.stalenessDismissedHash';
@@ -1490,6 +1504,7 @@ function createToolModeUseCases(options = {}) {
             }
 
 // pendingPersistence.js
+// @requires state.js
             // pendingPersistence.js — write-through mirror to localStorage
             // for pending feedback state (ALH-1/STAB-5). Functions are bare so the
             // concat bundle exposes them in shared closure scope.
@@ -1571,6 +1586,7 @@ function createToolModeUseCases(options = {}) {
             }
 
 // draftWorkspace.js
+// @requires (none)
 // draftWorkspace.js - pure DraftWorkspace domain policy.
 // No DOM, fetch, localStorage, timers, or global console state in this file.
 
@@ -1727,6 +1743,7 @@ function reduceDraftWorkspace(workspace = createEmptyDraftWorkspace(), action = 
 }
 
 // draftWorkspaceHistory.js
+// @requires (none)
 // draftWorkspaceHistory.js - pure undo/redo helpers for DraftWorkspace items.
 
 const DraftHistoryMaxDepth = 50;
@@ -1827,6 +1844,7 @@ function redoDraftHistory(history, items) {
 }
 
 // draftPorts.js
+// @requires (none)
 // draftPorts.js - narrow port helpers for DraftWorkspace use cases.
 // Port shape:
 // {
@@ -1878,6 +1896,7 @@ function createFakeDraftPorts(overrides = {}) {
 }
 
 // draftStorageAdapter.js
+// @requires draftPorts.js, draftWorkspace.js
 // draftStorageAdapter.js - browser storage adapter for DraftWorkspace recovery.
 
 const DraftWorkspaceKeyPrefix = 'fixthis.workspace.';
@@ -1977,6 +1996,7 @@ function createDraftStorageAdapter(localStorageLike, ids = {}) {
 }
 
 // beforeunloadGuard.js
+// @requires (none)
 // beforeunloadGuard.js — ALH-1: pure decision helper for the
 // beforeunload prompt. The window.addEventListener call lives in
 // main.js and delegates here.
@@ -1986,6 +2006,7 @@ function shouldGuardUnload(pendingItemsCount) {
 }
 
 // undoRedo.js
+// @requires state.js
             // undoRedo.js — ALH-2 pure undo/redo for pending feedback items.
             // Caller passes a state shape { pendingFeedbackItems: [...] }; no
             // closure reference needed.
@@ -2131,6 +2152,7 @@ function shouldGuardUnload(pendingItemsCount) {
             }
 
 // undoKeymatch.js
+// @requires state.js
             // undoKeymatch.js — ALH-2 pure undo/redo keyboard match helpers.
             // The actual addEventListener('keydown', ...) wraps in main.js.
 
@@ -2159,6 +2181,7 @@ function shouldGuardUnload(pendingItemsCount) {
             }
 
 // previewStaleness.js
+// @requires state.js
 // previewStaleness.js — SIF-5: pure decision helper for time-based and
 // disconnect-based preview staleness. A frozen preview becomes stale when
 // either (a) it is older than MAX_PREVIEW_AGE_MS, or (b) the bridge is not
@@ -2183,6 +2206,7 @@ function evaluateStale(state, now) {
 }
 
 // activityDrift.js
+// @requires state.js
 // activityDrift.js — SIF-6: pure decision helper that decides whether the
 // currently foregrounded activity differs from the activity captured when
 // the addItemsFlow freeze was taken. Returning drift=true tells the caller
@@ -2206,6 +2230,7 @@ function checkActivityDrift(flow, current) {
 }
 
 // api.js
+// @requires state.js
             async function requestJson(path, options = {}) {
               const method = (options.method || 'GET').toUpperCase();
               const headers = new Headers(options.headers || {});
@@ -2245,6 +2270,7 @@ function checkActivityDrift(flow, current) {
             }
 
 // draftApiAdapter.js
+// @requires draftPorts.js, draftWorkspace.js
 // draftApiAdapter.js - explicit-session HTTP adapter for DraftWorkspace use cases.
 
 function draftItemToAnnotationDraftDto(item, options = {}) {
@@ -2319,6 +2345,7 @@ function createDraftApiAdapter({ fetchImpl = fetch, consoleToken = null } = {}) 
 }
 
 // draftUseCases.js
+// @requires draftWorkspace.js, draftWorkspaceHistory.js, draftPorts.js
 // draftUseCases.js - DraftWorkspace application workflows over narrow ports.
 
 async function startDraftFreeze(workspace, input, ports) {
@@ -2456,6 +2483,7 @@ async function resolveDraftBoundary(workspace, boundaryAction, ports) {
 }
 
 // draftCommandQueue.js
+// @requires draftUseCases.js, draftWorkspace.js
 // draftCommandQueue.js - serialize DraftWorkspace application commands.
 
 function createDraftCommandQueue({ getWorkspace, setWorkspace, onStaleResponse = () => {}, onError = () => {} }) {
@@ -2505,6 +2533,7 @@ function createDraftCommandQueue({ getWorkspace, setWorkspace, onStaleResponse =
 }
 
 // connection.js
+// @requires state.js, api.js
             // Heartbeat timer handles. These are connection-internal browser
             // timer state (not reducer state, not pure) so they live here
             // rather than in connectionFsm.js or state.js.
@@ -2800,6 +2829,7 @@ function createDraftCommandQueue({ getWorkspace, setWorkspace, onStaleResponse =
             }
 
 // availability.js
+// @requires state.js
 // availability.js
 function computeBlockedReason(status, isAnnotateMode) {
   if (!status) return null;
@@ -2864,6 +2894,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
 }
 
 // devices.js
+// @requires state.js, api.js
             const BLOCKED_SUFFIX = {
               screenOff: 'Screen off',
               locked: 'Locked',
@@ -3039,6 +3070,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
 // preview.js
+// @requires state.js, api.js, draftWorkspace.js
             // Raw HTTP fetch — the previewUseCases layer provides dedup and
             // race-fence via the FSM. Cross-caller dedup (across draft port
             // and FSM) is achieved by routing all callers through
@@ -3304,6 +3336,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             });
 
 // annotations.js
+// @requires state.js, draftWorkspace.js, draftUseCases.js, draftCommandQueue.js
             function isInteractionBlocked() {
               return Boolean(state.connection?.interactionBlockedReason);
             }
@@ -4051,6 +4084,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
 // history.js
+// @requires state.js, draftWorkspace.js
             function sessionOrdinalLookup(sessions) {
               const ordinalBySessionId = new Map();
               stableHistorySessions(sessions)
@@ -4437,6 +4471,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
 // prompt.js
+// @requires state.js, draftWorkspace.js, draftUseCases.js
             function promptUnavailableMessage() {
               if (!state.session) return 'Select a history item before copying or sending annotations.';
               const annotations = toolbarAnnotations();
@@ -4575,6 +4610,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
 // rendering.js
+// @requires state.js, annotations.js, draftWorkspace.js
             function renderOverlayBox(overlay, image, bounds, labelText, isDragPreview = false, isFocused = false, annotationIndex = null, extraClass = '', color = null, selectHandler = focusPendingFeedbackItem) {
               if (!bounds) return;
               const left = bounds.left * 100 / image.naturalWidth;
@@ -5515,6 +5551,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
 // sessions-polling.js
+// @requires state.js, api.js
             const SessionsPollIntervalMs = 2000;
 
             // sessionsPollingTimer is the setInterval handle; lives in this
@@ -5586,6 +5623,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
 // shortcuts.js
+// @requires state.js, undoRedo.js
             function isTextInputFocused(target = document.activeElement) {
               const element = target?.nodeType === Node.ELEMENT_NODE ? target : target?.parentElement || document.activeElement;
               const tag = element?.tagName;
@@ -5612,6 +5650,7 @@ function createUnresponsiveTracker({ threshold = 3 } = {}) {
             }
 
 // main.js
+// @requires state.js, connection.js, devices.js, preview.js, annotations.js, history.js, prompt.js, rendering.js, sessions-polling.js, shortcuts.js, draftUseCases.js, draftCommandQueue.js
             let pendingRecovery = null;
             const activePendingMirrorSessions = new Set();
 

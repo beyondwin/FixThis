@@ -1,3 +1,4 @@
+// @requires state.js
             // staleness.js — detects stale fixthis-mcp / sidekick by comparing build epochs.
             const StaleThresholdMs = 5 * 60 * 1000;
             const StalenessDismissKey = 'fixthis.console.stalenessDismissedHash';

@@ -1,3 +1,4 @@
+// @requires previewFsm.js, previewUseCases.js, preview.js
 // previewBrowserAdapter.js — wires previewUseCases into the browser
 // environment. Lives separately so state.js stays free of FSM details
 // and the use cases get an explicit entry point for tests.

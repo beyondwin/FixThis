@@ -1,3 +1,4 @@
+// @requires state.js, connection.js, devices.js, preview.js, annotations.js, history.js, prompt.js, rendering.js, sessions-polling.js, shortcuts.js, draftUseCases.js, draftCommandQueue.js
             let pendingRecovery = null;
             const activePendingMirrorSessions = new Set();
 

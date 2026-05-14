@@ -1,3 +1,4 @@
+// @requires connectionBrowserAdapter.js, previewBrowserAdapter.js, pollingBrowserAdapter.js, toolModeUseCases.js
             // consoleApp.js — top-level FSM boot factory.
             // Aggregates the four sub-FSMs introduced by the
             // console-state-machine-expansion plan plus the already-migrated

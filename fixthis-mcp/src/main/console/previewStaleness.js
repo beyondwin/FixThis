@@ -1,3 +1,4 @@
+// @requires state.js
 // previewStaleness.js — SIF-5: pure decision helper for time-based and
 // disconnect-based preview staleness. A frozen preview becomes stale when
 // either (a) it is older than MAX_PREVIEW_AGE_MS, or (b) the bridge is not

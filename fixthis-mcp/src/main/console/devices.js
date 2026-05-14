@@ -1,3 +1,4 @@
+// @requires state.js, api.js
             const BLOCKED_SUFFIX = {
               screenOff: 'Screen off',
               locked: 'Locked',
