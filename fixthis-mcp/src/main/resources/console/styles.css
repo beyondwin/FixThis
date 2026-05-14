@@ -136,15 +136,16 @@
               border-color: rgba(184, 211, 106, .35);
               background: rgba(184, 211, 106, .08);
             }
+            .prompt-readiness[data-state="warn"] {
+              color: #d8a84f;
+              border-color: rgba(230, 180, 90, .38);
+              background: rgba(230, 180, 90, .10);
+            }
             .prompt-readiness[data-state="blocked"],
             .prompt-readiness[data-state="modified"] {
               color: #fde68a;
               border-color: rgba(230, 180, 90, .35);
               background: rgba(230, 180, 90, .10);
-            }
-            .prompt-readiness[data-state="warn"] {
-              border-color: rgba(230, 180, 90, .38);
-              color: #d8a84f;
             }
             .prompt-readiness[data-state="busy"] {
               color: #bfdbfe;

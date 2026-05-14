@@ -32,6 +32,7 @@ private const val ANDROID_VIEW_BACKGROUND_GREEN = 79
 private const val ANDROID_VIEW_BACKGROUND_BLUE = 124
 private const val ANDROID_VIEW_HORIZONTAL_PADDING = 24
 private const val ANDROID_VIEW_VERTICAL_PADDING = 18
+private const val ANDROID_VIEW_HEIGHT_DP = 72
 
 @Composable
 fun DiagnosticsScreen(padding: PaddingValues) {
@@ -90,7 +91,7 @@ private fun androidViewInteropFixture() {
     AndroidView(
         modifier = Modifier
             .fillMaxWidth()
-            .height(72.dp),
+            .height(ANDROID_VIEW_HEIGHT_DP.dp),
         factory = { context ->
             TextView(context).apply {
                 text = "Native AndroidView target"
