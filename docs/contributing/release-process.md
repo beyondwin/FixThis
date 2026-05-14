@@ -1,12 +1,23 @@
 # Release Process
 
-How to cut a FixThis release. Until Maven Central / Gradle Plugin Portal
-publication is enabled, releases are GitHub source releases: a commit on
-`main`, an annotated `vX.Y.Z` tag, and a GitHub Release whose notes point to
-the matching CHANGELOG section. This document also serves as the working draft
-for the eventual artifact-publication playbook — see
-[`release-readiness.md`](release-readiness.md) for what's still blocking that
-publish.
+How to cut a FixThis release.
+
+FixThis currently supports **source releases**: a commit on `main`, an
+annotated `vX.Y.Z` tag, and a GitHub Release whose notes point to the matching
+CHANGELOG section. Maven Central and Gradle Plugin Portal publication are
+future **artifact releases** and must stay behind explicit maintainer approval
+until the readiness checklist is complete.
+
+See [`release-readiness.md`](release-readiness.md) before changing public
+install instructions.
+
+## Release Types
+
+| Type | What ships | Status |
+| --- | --- | --- |
+| Source release | Git tag, GitHub Release, release notes, source/composite-build usage | Supported today |
+| Artifact release | Maven Central and/or Gradle Plugin Portal artifacts | Publish-ready prep only |
+| MCP Registry release | Registry metadata pointing to a public package or remote server | Future work after an install package exists |
 
 ## Versioning
 
@@ -52,7 +63,7 @@ Before tagging:
 - [ ] No `TODO` / `FIXME` / `// TEMP` markers in code paths shipped this release (`grep -rn TODO src/main`)
 - [ ] [`release-readiness.md`](release-readiness.md) blockers all checked
 
-## Cut a release
+## Cut a Source Release
 
 1. Move CHANGELOG `Unreleased` entries under a new dated heading:
 
@@ -60,24 +71,33 @@ Before tagging:
    ## [0.2.0] - 2026-MM-DD
 
    ### Added
-   - …
+   - Release readiness documentation and validation.
    ```
 
    Leave a fresh empty `## Unreleased` block at the top.
 
-2. Create or update the matching human release note under `docs/releases/`.
+2. Create the matching human release note under `docs/releases/`:
 
-3. (Once publishing is enabled) bump `version=` in `gradle.properties`.
+   ```bash
+   cp docs/releases/unreleased.md docs/releases/v0.2.0.md
+   ```
+
+   Edit the copied file so it describes the tagged release, not current `main`.
+
+3. Run the release-readiness checks:
+
+   ```bash
+   node scripts/check-doc-consistency.mjs
+   node scripts/check-release-readiness.mjs
+   git diff --check
+   ```
 
 4. Commit:
 
    ```bash
-   git add CHANGELOG.md docs/releases
+   git add CHANGELOG.md docs/releases README.md docs/contributing
    git commit -m "release: 0.2.0"
    ```
-
-   Include `gradle.properties` in the staged files once artifact publishing is
-   enabled.
 
 5. Tag:
 
@@ -93,11 +113,41 @@ Before tagging:
    gh release create v0.2.0 --title "FixThis v0.2.0" --notes-file docs/releases/v0.2.0.md
    ```
 
-7. (Once publishing is enabled) publish artifacts:
+## Future Artifact Release Gate
+
+Do not run this section until `release-readiness.md` marks external artifact
+release prerequisites complete.
+
+Before changing README install instructions to public Gradle coordinates:
+
+1. Verify Maven Central namespace ownership for `io.beyondwin.fixthis`.
+2. Verify Gradle Plugin Portal ownership for `io.beyondwin.fixthis.compose`.
+3. Configure signing and publishing secrets outside the repository.
+4. Run local/dry-run packaging validation:
 
    ```bash
-   ./gradlew :fixthis-compose-sidekick:publish :fixthis-gradle-plugin:publishPlugins
+   ./gradlew publishToMavenLocal --dry-run
+   ./gradlew :fixthis-gradle-plugin:validatePlugins
    ```
+
+5. Publish from an explicitly approved manual workflow or local maintainer
+   machine.
+6. Verify from a clean external consumer project that:
+
+   ```kotlin
+   plugins {
+       id("io.beyondwin.fixthis.compose") version "X.Y.Z"
+   }
+
+   dependencies {
+       debugImplementation("io.beyondwin.fixthis:fixthis-compose-sidekick:X.Y.Z")
+   }
+   ```
+
+   resolves from public registries.
+
+7. Only after verification, update README and getting-started docs from
+   source/composite-build setup to published-artifact setup.
 
 ## Post-release
 

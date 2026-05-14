@@ -1,6 +1,8 @@
-# Unreleased Changes Since v0.1.0
+# Unreleased changes since v0.1.0
 
-Status: current `main`, not yet tagged.
+This page summarizes current `main`. It is not a tagged release and should not
+be used as evidence that Maven Central or Gradle Plugin Portal artifacts are
+published.
 
 These notes summarize the user-visible and contributor-facing changes that
 landed after the [v0.1.0](v0.1.0.md) GitHub source release. `CHANGELOG.md`
