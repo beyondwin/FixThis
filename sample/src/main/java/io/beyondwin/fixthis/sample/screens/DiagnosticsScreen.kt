@@ -1,9 +1,13 @@
 package io.beyondwin.fixthis.sample.screens
 
+import android.graphics.Color
+import android.widget.TextView
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -15,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import io.beyondwin.fixthis.sample.components.InfoRow
 import io.beyondwin.fixthis.sample.components.PreviewPanel
 import io.beyondwin.fixthis.sample.components.SparklineSurface
@@ -43,6 +48,21 @@ fun DiagnosticsScreen(padding: PaddingValues) {
         SparklineSurface(
             modifier = Modifier.semantics {
                 contentDescription = "Semantic signal timeline"
+            },
+        )
+        Text("AndroidView interop preview", style = MaterialTheme.typography.titleSmall)
+        AndroidView(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(72.dp),
+            factory = { context ->
+                TextView(context).apply {
+                    text = "Native AndroidView target"
+                    contentDescription = "Native AndroidView target"
+                    setTextColor(Color.WHITE)
+                    setBackgroundColor(Color.rgb(49, 79, 124))
+                    setPadding(24, 18, 24, 18)
+                }
             },
         )
         FixThisDemoData.diagnostics.forEach { signal ->
