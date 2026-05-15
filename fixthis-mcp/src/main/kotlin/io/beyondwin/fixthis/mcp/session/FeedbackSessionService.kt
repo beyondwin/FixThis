@@ -8,7 +8,6 @@ import io.beyondwin.fixthis.mcp.console.ConsoleConnectionStatus
 import io.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot
 import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import io.beyondwin.fixthis.mcp.tools.FixThisBridge
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
 import java.io.File
 
@@ -272,17 +271,14 @@ class FeedbackSessionService(
 
     fun sendDraftToAgent(sessionId: String, itemIds: List<String>): SendDraftToAgentResult {
         require(itemIds.isNotEmpty()) { "itemIds must not be empty" }
-        val session = runBlocking { refreshSourceEvidenceForHandoff(registry.getSession(sessionId)) }
+        val session = registry.getSession(sessionId)
         val prompt = CompactHandoffRenderer.render(session, itemIds = itemIds)
         val updated = feedbackDraftService.sendDraftToAgent(
             sessionId = sessionId,
             prompt = prompt,
             targetItemIds = itemIds,
         )
-        return SendDraftToAgentResult(
-            session = runBlocking { refreshSourceEvidenceForHandoff(updated) },
-            prompt = prompt,
-        )
+        return SendDraftToAgentResult(session = updated, prompt = prompt)
     }
 
     /**
