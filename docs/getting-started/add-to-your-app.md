@@ -29,6 +29,14 @@ In this repository the plugin is wired through composite build and
 directly. **External projects must reproduce that wiring** (composite build or
 project dependency) until a published plugin coordinate exists.
 
+Once Gradle Plugin Portal publication is live, the agent-friendly form becomes:
+
+```kotlin
+plugins {
+    id("io.beyondwin.fixthis.compose") version "0.2.0"
+}
+```
+
 The plugin handles source-index generation and adds the sidekick as a
 `debugImplementation` automatically. Future published sidekick wiring will look
 like this, but this snippet is not copyable until artifacts are released:
@@ -44,6 +52,19 @@ Release builds are not a supported target — the sidekick is debug-only by
 design.
 
 ## 2. Configure your AI agent
+
+For agent-first setup inside the Android app repository, run:
+
+```bash
+./gradlew fixthisSetup
+fixthis init --project-dir . --target all
+fixthis doctor --project-dir .
+```
+
+`fixthisSetup` writes `.fixthis/project.json` with the detected application id,
+plus `.fixthis/agent-setup.md` and `.fixthis/mcp.json.template` for agents that
+prefer project-scoped MCP config. If the project has flavored debug variants,
+use the variant-specific task, for example `./gradlew :app:fixthisSetupStagingDebug`.
 
 ```bash
 # Bootstrap MCP integration (build + register with Claude Code / Codex)
@@ -114,6 +135,8 @@ Your app integration is working when:
 
 - [Connect your AI agent](connect-your-agent.md) — Claude Code, Codex, Cursor,
   and chat-style agents
+- [Agent install snippet](agent-install-snippet.md) — pasteable AGENTS.md /
+  CLAUDE.md instructions
 - [Feedback console tour](../guides/feedback-console-tour.md) — visual walkthrough
 - [Working with AI agents](../guides/agents.md) — Claude Code, Codex, Cursor,
   and chat-style agents

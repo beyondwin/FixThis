@@ -45,6 +45,20 @@ needs the debug-only FixThis Gradle wiring from
 [Add FixThis to your app](add-to-your-app.md) until Maven Central and Gradle
 Plugin Portal artifacts are available.
 
+When the Gradle plugin is applied to the Android app, agents should prefer the
+project-local setup task before `fixthis init`:
+
+```bash
+./gradlew fixthisSetup
+fixthis init --project-dir . --target all
+fixthis doctor --project-dir .
+```
+
+`fixthisSetup` writes `.fixthis/project.json`, so `init`, `doctor`, `mcp`, and
+`console` can omit `--package` unless the Android project has multiple app ids.
+For pasteable `AGENTS.md` / `CLAUDE.md` instructions, use
+[Agent install snippet](agent-install-snippet.md).
+
 ## Claude Code
 
 ```bash

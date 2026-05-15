@@ -45,6 +45,17 @@ Claude Code / Codex MCP config by default. Manual setup, full CLI flags, and dry
 [`docs/reference/cli.md`](docs/reference/cli.md).
 MCP bootstrap summary for agents: [`MCP.md`](MCP.md).
 
+For external Android repos, the intended agent-first sequence is:
+
+```bash
+./gradlew fixthisSetup
+fixthis init --project-dir . --target all
+fixthis doctor --project-dir .
+```
+
+Pasteable instructions for another repo's `AGENTS.md` / `CLAUDE.md` live in
+[`docs/getting-started/agent-install-snippet.md`](docs/getting-started/agent-install-snippet.md).
+
 **Trying FixThis from scratch on the sample app?** Start at the README's
 [Quick Start](README.md#quick-start-sample-app-to-agent-handoff) for the
 human-driven flow (build → doctor → run → console → agent handoff).

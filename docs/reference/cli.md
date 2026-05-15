@@ -117,6 +117,19 @@ curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/inst
 
 Then run `fixthis init` from the Android app repository.
 
+If the FixThis Gradle plugin is already applied to the Android app, run the
+project-local setup task first:
+
+```bash
+./gradlew fixthisSetup
+fixthis init --project-dir .
+fixthis doctor --project-dir .
+```
+
+The task writes `.fixthis/project.json`, `.fixthis/agent-setup.md`, and
+`.fixthis/mcp.json.template`. For flavored debug variants, use the
+variant-specific task name such as `:app:fixthisSetupStagingDebug`.
+
 ## `fixthis setup`
 
 Generates MCP config for AI agents. Without `--write`, prints the JSON / TOML

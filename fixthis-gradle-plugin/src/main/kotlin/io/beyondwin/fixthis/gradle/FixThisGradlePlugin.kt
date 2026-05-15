@@ -2,6 +2,7 @@ package io.beyondwin.fixthis.gradle
 
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.ApplicationVariant
+import io.beyondwin.fixthis.gradle.task.FixThisSetupTask
 import io.beyondwin.fixthis.gradle.task.GenerateFixThisSourceIndexTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -32,57 +33,80 @@ class FixThisGradlePlugin : Plugin<Project> {
                 addRuntimeDependency(project, variant, extension)
             }
 
+            registerSetupTask(project, variant)
+
             if (!extension.generateSourceIndex.get() && !extension.generateProjectMetadata.get()) {
                 return@onVariants
             }
 
-            val taskProvider = project.tasks.register(
-                "generate${variant.name.capitalized()}FixThisSourceIndex",
-                GenerateFixThisSourceIndexTask::class.java,
-            ) { task ->
-                val sourceSetNames = activeSourceSetNames(
-                    variantName = variant.name,
-                    buildType = variant.buildType,
-                    productFlavorNames = variant.productFlavors.map { it.second },
-                    flavorName = variant.flavorName,
-                )
-                task.projectDirectory.set(project.layout.projectDirectory)
-                task.rootProjectDirectory.set(project.rootProject.layout.projectDirectory)
-                task.kotlinSourceFiles.from(
-                    sourceSetNames.map { sourceSetName ->
-                        project.layout.projectDirectory.dir("src/$sourceSetName")
-                            .asFileTree
-                            .matching { pattern ->
-                                pattern.include("**/*.kt")
-                                pattern.include("**/*.kts")
-                            }
-                    },
-                )
-                task.resourceXmlFiles.from(
-                    sourceSetNames.map { sourceSetName ->
-                        project.layout.projectDirectory.dir("src/$sourceSetName/res")
-                            .asFileTree
-                            .matching { pattern ->
-                                pattern.include("**/*.xml")
-                            }
-                    },
-                )
-                task.outputDirectory.set(
-                    project.layout.buildDirectory.dir("generated/fixthis/${variant.name}/assets"),
-                )
-                task.projectPath.set(project.path)
-                task.variantName.set(variant.name)
-                task.runtimeVersion.set(extension.runtimeVersion)
-                task.includeScreenshots.set(extension.includeScreenshots)
-                task.redactEditableText.set(extension.redactEditableText)
-                task.generateSourceIndex.set(extension.generateSourceIndex)
-                task.generateProjectMetadata.set(extension.generateProjectMetadata)
-            }
+            val taskProvider = registerSourceIndexTask(project, extension, variant)
 
             variant.sources.assets?.addGeneratedSourceDirectory(
                 taskProvider,
                 GenerateFixThisSourceIndexTask::outputDirectory,
             )
+        }
+    }
+
+    private fun registerSourceIndexTask(
+        project: Project,
+        extension: FixThisExtension,
+        variant: ApplicationVariant,
+    ) = project.tasks.register(
+        "generate${variant.name.capitalized()}FixThisSourceIndex",
+        GenerateFixThisSourceIndexTask::class.java,
+    ) { task ->
+        val sourceSetNames = activeSourceSetNames(
+            variantName = variant.name,
+            buildType = variant.buildType,
+            productFlavorNames = variant.productFlavors.map { it.second },
+            flavorName = variant.flavorName,
+        )
+        task.projectDirectory.set(project.layout.projectDirectory)
+        task.rootProjectDirectory.set(project.rootProject.layout.projectDirectory)
+        task.kotlinSourceFiles.from(
+            sourceSetNames.map { sourceSetName ->
+                project.layout.projectDirectory.dir("src/$sourceSetName")
+                    .asFileTree
+                    .matching { pattern ->
+                        pattern.include("**/*.kt")
+                        pattern.include("**/*.kts")
+                    }
+            },
+        )
+        task.resourceXmlFiles.from(
+            sourceSetNames.map { sourceSetName ->
+                project.layout.projectDirectory.dir("src/$sourceSetName/res")
+                    .asFileTree
+                    .matching { pattern ->
+                        pattern.include("**/*.xml")
+                    }
+            },
+        )
+        task.outputDirectory.set(project.layout.buildDirectory.dir("generated/fixthis/${variant.name}/assets"))
+        task.projectPath.set(project.path)
+        task.variantName.set(variant.name)
+        task.runtimeVersion.set(extension.runtimeVersion)
+        task.includeScreenshots.set(extension.includeScreenshots)
+        task.redactEditableText.set(extension.redactEditableText)
+        task.generateSourceIndex.set(extension.generateSourceIndex)
+        task.generateProjectMetadata.set(extension.generateProjectMetadata)
+    }
+
+    private fun registerSetupTask(
+        project: Project,
+        variant: ApplicationVariant,
+    ) {
+        project.tasks.register(
+            fixThisSetupTaskName(variant.name),
+            FixThisSetupTask::class.java,
+        ) { task ->
+            task.description = "Writes FixThis project metadata and agent setup next steps."
+            task.group = "fixthis"
+            task.rootProjectDirectory.set(project.rootProject.layout.projectDirectory)
+            task.projectPath.set(project.path)
+            task.variantName.set(variant.name)
+            task.applicationId.set(variant.applicationId)
         }
     }
 
@@ -116,3 +140,13 @@ internal fun activeSourceSetNames(
     flavorName?.takeIf { it.isNotBlank() }?.let(::add)
     variantName.takeIf { it.isNotBlank() }?.let(::add)
 }.distinct()
+
+internal fun fixThisSetupTaskName(variantName: String): String = if (variantName == "debug") {
+    "fixthisSetup"
+} else {
+    "fixthisSetup${variantName.capitalized()}"
+}
+
+private fun String.capitalized(): String = replaceFirstChar { char ->
+    if (char.isLowerCase()) char.titlecase() else char.toString()
+}
