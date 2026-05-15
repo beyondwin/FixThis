@@ -8,6 +8,7 @@ import io.beyondwin.fixthis.cli.bridge.BridgeSessionReader
 import io.beyondwin.fixthis.cli.bridge.DeviceSelectionState
 import io.beyondwin.fixthis.cli.bridge.ScreenshotArtifactDownloader
 import io.beyondwin.fixthis.cli.bridge.ScreenshotArtifactRequest
+import io.beyondwin.fixthis.cli.bridge.SidekickSession
 import io.beyondwin.fixthis.cli.bridge.sanitizedPathSegment
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -38,6 +39,8 @@ import kotlin.coroutines.resumeWithException
 // of the 4 sites lag — bump them all together. See docs/reference/bridge-protocol.md.
 private const val BridgeProtocolVersion = "1.3"
 private const val DefaultSocketTimeoutMillis = 30_000
+private const val BRIDGE_SOCKET_NAME_MAX_ATTEMPTS = 3
+private const val BRIDGE_CLOSED_BEFORE_RESPONSE = "Bridge closed before sending a response"
 
 @OptIn(ExperimentalSerializationApi::class)
 val fixThisJson: Json = Json {
@@ -119,17 +122,24 @@ class BridgeClient(
     ): JsonObject {
         ensureDeviceConnected(scope.adb, scope.selectedDeviceSerial)
         val session = sessionReader.read(scope.adb, packageName)
-        return try {
-            transport.withSocket(scope.adb, session, activeRequest) { socket ->
-                protocolClient.request(socket, session, method, params, readTimeoutMillis)
+        for (attempt in 0 until BRIDGE_SOCKET_NAME_MAX_ATTEMPTS) {
+            val attemptedSession = session.withSocketNameAttempt(attempt)
+            try {
+                return transport.withSocket(scope.adb, attemptedSession, activeRequest) { socket ->
+                    protocolClient.request(socket, attemptedSession, method, params, readTimeoutMillis)
+                }
+            } catch (error: BridgeConnectionException) {
+                activeRequest.throwIfCancelled()
+                if (!error.isClosedBeforeResponse() || attempt == BRIDGE_SOCKET_NAME_MAX_ATTEMPTS - 1) throw error
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: SocketTimeoutException) {
+                throw BridgeConnectionException("Bridge request timed out while waiting for $method response")
+            } catch (error: IOException) {
+                throw BridgeConnectionException("Could not connect to FixThis bridge: ${error.message}")
             }
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: SocketTimeoutException) {
-            throw BridgeConnectionException("Bridge request timed out while waiting for $method response")
-        } catch (error: IOException) {
-            throw BridgeConnectionException("Could not connect to FixThis bridge: ${error.message}")
         }
+        throw BridgeConnectionException(BRIDGE_CLOSED_BEFORE_RESPONSE)
     }
 
     fun resolvePackageName(packageOverride: String?): String = ProjectConfig.resolvePackageName(projectRoot, packageOverride)
@@ -204,6 +214,15 @@ class BridgeClient(
         }
     }
 }
+
+private fun SidekickSession.withSocketNameAttempt(attempt: Int): SidekickSession {
+    if (attempt == 0) return this
+    val candidate = "$socketName-$attempt"
+    return copy(socketName = candidate, socketAddress = "localabstract:$candidate")
+}
+
+private fun BridgeConnectionException.isClosedBeforeResponse(): Boolean =
+    message == BRIDGE_CLOSED_BEFORE_RESPONSE
 
 interface BridgeSocket : Closeable {
     val input: InputStream

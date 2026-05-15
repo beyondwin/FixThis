@@ -4,6 +4,7 @@ import com.sun.net.httpserver.Headers
 import com.sun.net.httpserver.HttpContext
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpPrincipal
+import io.beyondwin.fixthis.cli.BridgeConnectionException
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -12,6 +13,7 @@ import java.net.InetSocketAddress
 import java.net.URI
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class FeedbackConsoleServerErrorLoggingTest {
@@ -35,6 +37,25 @@ class FeedbackConsoleServerErrorLoggingTest {
         assertTrue(
             log.contains("boom"),
             "Expected diagnostics sink to contain 'boom', got: $log",
+        )
+    }
+
+    @Test
+    fun bridgeConnectionExceptionsReturnUnavailableWithoutDiagnosticsLog() {
+        val sink = StringBuilder()
+        val server = FeedbackConsoleServer(
+            routes = listOf(ThrowingRoute(BridgeConnectionException("Bridge closed before sending a response"))),
+            diagnosticsSink = { sink.appendLine(it) },
+        )
+        val exchange = FakeHttpExchange(method = "GET", path = "/api/preview")
+
+        server.dispatch(exchange)
+
+        assertEquals(503, exchange.statusCode)
+        assertTrue(exchange.responseText().contains("Bridge closed before sending a response"))
+        assertFalse(
+            sink.toString().contains("BridgeConnectionException"),
+            "Expected bridge connection failures to avoid diagnostics stack logs, got: $sink",
         )
     }
 
@@ -73,5 +94,6 @@ class FeedbackConsoleServerErrorLoggingTest {
         override fun setStreams(inputStream: InputStream?, outputStream: OutputStream?) = Unit
         override fun getPrincipal(): HttpPrincipal? = null
         override fun getResponseCode(): Int = statusCode
+        fun responseText(): String = responseBodyStream.toString(Charsets.UTF_8.name())
     }
 }

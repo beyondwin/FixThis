@@ -179,6 +179,7 @@ internal class ConsoleConnectionService(
                     headline = "Opening app",
                     message = "We're opening the app and connecting.",
                     primaryAction = null,
+                    details = afterLaunch.details.copy(bridgeState = "starting", rawError = null),
                 )
             } else {
                 afterLaunch

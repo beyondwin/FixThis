@@ -72,6 +72,9 @@ internal class ActiveBridgeRequest(private val adb: AdbFacade) {
     fun registerForwardPort(port: Int) {
         synchronized(lock) {
             localPort = port
+            forwardEstablished = false
+            forwardRemoved = false
+            socket = null
         }
     }
 

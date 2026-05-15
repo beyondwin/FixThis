@@ -2,6 +2,7 @@ package io.beyondwin.fixthis.mcp.console
 
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
+import io.beyondwin.fixthis.cli.BridgeConnectionException
 import io.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionException
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
@@ -12,6 +13,8 @@ import java.util.UUID
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
+
+private const val HTTP_SERVICE_UNAVAILABLE = 503
 
 private data class FeedbackConsoleServerConfig(
     val service: FeedbackSessionService,
@@ -152,6 +155,8 @@ class FeedbackConsoleServer private constructor(
         } catch (error: FeedbackSessionException) {
             val httpError = error.toConsoleHttpException()
             exchange.sendErrorJson(httpError.statusCode, httpError.message)
+        } catch (error: BridgeConnectionException) {
+            exchange.sendErrorJson(HTTP_SERVICE_UNAVAILABLE, error.message ?: "FixThis bridge is not connected")
         } catch (error: Throwable) {
             diagnosticsSink(
                 "FeedbackConsoleServer: ${error::class.java.name}: ${error.message}\n${error.stackTraceToString()}",

@@ -138,6 +138,8 @@ class FeedbackSessionServiceTest {
 
         assertEquals(listOf("io.beyondwin.fixthis.sample"), bridge.launchedPackages)
         assertEquals(ConsoleConnectionState.STARTING, status.state)
+        assertEquals("starting", status.details.bridgeState)
+        assertEquals(null, status.details.rawError)
     }
 
     @Test
