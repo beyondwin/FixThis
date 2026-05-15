@@ -15,6 +15,19 @@ Maintainers update this doc as observation windows complete. Once a row's "Ready
 | `.github/workflows/connected-tests.yml` (CI-4, nightly) | — | pending (14 consecutive green required) | no |
 | `.github/workflows/nightly-compat.yml` (BR-4, weekly scheduled) | — | pending (1 week stable required) | no |
 
+## How to Update This Table
+
+Run:
+
+```bash
+npm run checks:observation
+```
+
+The command uses `gh run list`, so it requires GitHub CLI authentication and
+repository access. Copy the computed first-green and consecutive-green counts
+into the table. Do not promote scheduled workflows to PR-required checks until
+their longer observation windows are complete.
+
 ## Notes
 
 - "First green run" should record the first observed all-green run of the workflow on `main` after the workflow was merged.
