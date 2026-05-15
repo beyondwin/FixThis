@@ -1,13 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { loadConsoleSymbols } from './console-test-loader.mjs';
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const undoRedoSrc = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/undoRedo.js'), 'utf8');
-const factory = new Function(`${undoRedoSrc}; return { createHistory, recordAdd, recordDelete, recordUpdate, undo, redo, UNDO_MAX_DEPTH };`);
-const m = factory();
+const m = loadConsoleSymbols({
+  modules: ['undoRedo.js'],
+  symbols: ['createHistory', 'recordAdd', 'recordDelete', 'recordUpdate', 'undo', 'redo', 'UNDO_MAX_DEPTH'],
+});
 
 test('undo a delete reinserts at original sequenceNumber position', () => {
   const state = { items: [{ itemId: 'i1', sequenceNumber: 1, comment: 'a' }] };

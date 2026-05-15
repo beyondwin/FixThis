@@ -1,11 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import vm from 'node:vm';
 import { parseRequires, topoSort } from './build-console-assets.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sourceDir = resolve(root, 'fixthis-mcp/src/main/console');
+const sideEffectfulTestDependencies = new Set(['state.js', 'main.js']);
 
 function readConsoleModule(name) {
   return readFileSync(resolve(sourceDir, name), 'utf8');
@@ -105,23 +105,21 @@ var createConsoleApp = typeof createConsoleApp === 'function'
     return { connection: useCases, polling: useCases, preview: useCases, toolMode: useCases };
   };
 `;
-  const contextValues = Object.fromEntries(args.map((name, index) => [name, values[index]]));
-  const context = vm.createContext(contextValues);
-  vm.runInContext(prelude, context, { filename: 'console-test-loader-prelude.js' });
-  for (const name of topoSort(graph)) {
-    try {
-      vm.runInContext(graph.get(name).content, context, { filename: name });
-    } catch (error) {
-      if (requested.has(name)) throw error;
-    }
-  }
-  const result = vm.runInContext(`
+  const source = topoSort(graph)
+    .filter((name) => requested.has(name) || !sideEffectfulTestDependencies.has(name))
+    .map((name) => `//#region ${name}\n${graph.get(name).content.trimEnd()}\n//#endregion ${name}\n`)
+    .join('\n');
+  const factory = new Function(
+    ...args,
+    `${prelude}
+${source}
 const __result = {
 ${returnObject}
 };
 for (const [name, value] of Object.entries(__result)) {
   if (typeof value === 'undefined') throw new Error('Console symbol not found: ' + name);
 }
-__result;`, context, { filename: 'console-test-loader-result.js' });
-  return result;
+return __result;`,
+  );
+  return factory(...values);
 }

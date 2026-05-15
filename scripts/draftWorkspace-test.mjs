@@ -1,21 +1,19 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { loadConsoleSymbols } from './console-test-loader.mjs';
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const src = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/draftWorkspace.js'), 'utf8');
-const factory = new Function(`${src}; return {
-  DraftLifecycle,
-  createEmptyDraftWorkspace,
-  createDraftContext,
-  createFrozenDraftWorkspace,
-  reduceDraftWorkspace,
-  draftWorkspaceItems,
-  requireDraftContext
-};`);
-const m = factory();
+const m = loadConsoleSymbols({
+  modules: ['draftWorkspace.js'],
+  symbols: [
+    'DraftLifecycle',
+    'createEmptyDraftWorkspace',
+    'createDraftContext',
+    'createFrozenDraftWorkspace',
+    'reduceDraftWorkspace',
+    'draftWorkspaceItems',
+    'requireDraftContext',
+  ],
+});
 
 const context = {
   sessionId: 'session-a',
