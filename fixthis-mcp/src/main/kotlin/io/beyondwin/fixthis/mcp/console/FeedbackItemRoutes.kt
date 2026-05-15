@@ -2,6 +2,7 @@ package io.beyondwin.fixthis.mcp.console
 
 import com.sun.net.httpserver.HttpExchange
 import io.beyondwin.fixthis.cli.fixThisJson
+import io.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.beyondwin.fixthis.mcp.session.PreviewFeedbackFingerprintCheck
 import io.beyondwin.fixthis.mcp.session.PreviewFeedbackLiveSaveRequest
@@ -12,7 +13,10 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-internal class FeedbackItemRoutes(private val service: FeedbackSessionService) : ConsoleRoute {
+internal class FeedbackItemRoutes(
+    private val service: FeedbackSessionService,
+    private val eventBus: ConsoleEventBus,
+) : ConsoleRoute {
     override fun matches(path: String): Boolean = path == "/api/items" ||
         path == "/api/items/batch" ||
         path == "/api/items/draft" ||
@@ -38,6 +42,7 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
                 } catch (error: IllegalArgumentException) {
                     throw FeedbackConsoleHttpException(400, error.message ?: "Invalid feedback item request")
                 }
+                eventBus.emitSessionUpdated(service.requireCurrentSession())
                 exchange.sendJson(200, item)
             }
             "/api/items/batch" -> exchange.requireMethod("POST") {
@@ -78,12 +83,15 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
                 result.fingerprintUnavailableReason?.let { reason ->
                     exchange.responseHeaders.set("X-FixThis-Fingerprint-Unavailable-Reason", reason)
                 }
+                eventBus.emitSessionUpdated(result.session)
                 exchange.sendJson(200, result.session)
             }
             "/api/items/draft" -> exchange.requireMethod("DELETE") {
                 val sessionId = exchange.queryParameter("sessionId")?.takeIf { it.isNotBlank() }
                     ?: service.requireCurrentSession().sessionId
-                exchange.sendJson(200, service.clearDraftItems(sessionId))
+                val session = service.clearDraftItems(sessionId)
+                eventBus.emitSessionUpdated(session)
+                exchange.sendJson(200, session)
             }
             "/api/agent-handoffs" -> exchange.requireMethod("POST") {
                 val request = exchange.decodeAgentHandoffBody()
@@ -92,6 +100,7 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
                 }
                 val sessionId = requestSessionId(request.sessionId)
                 val result = service.sendDraftToAgent(sessionId, request.itemIds)
+                eventBus.emitSessionUpdated(result.session)
                 exchange.sendJson(200, AgentHandoffResponse(session = result.session, prompt = result.prompt))
             }
             else -> {
@@ -111,16 +120,19 @@ internal class FeedbackItemRoutes(private val service: FeedbackSessionService) :
                             comment = request.comment,
                             status = request.status,
                         )
+                        eventBus.emitSessionUpdated(session)
                         exchange.sendJson(200, session)
                     }
                     "DELETE" -> {
+                        val session = service.deleteDraftFeedback(
+                            sessionId = exchange.queryParameter("sessionId")?.takeIf { it.isNotBlank() }
+                                ?: service.requireCurrentSession().sessionId,
+                            itemId = itemId,
+                        )
+                        eventBus.emitSessionUpdated(session)
                         exchange.sendJson(
                             200,
-                            service.deleteDraftFeedback(
-                                sessionId = exchange.queryParameter("sessionId")?.takeIf { it.isNotBlank() }
-                                    ?: service.requireCurrentSession().sessionId,
-                                itemId = itemId,
-                            ),
+                            session,
                         )
                     }
                     else -> exchange.requireMethod("PUT") {}

@@ -2,6 +2,7 @@ package io.beyondwin.fixthis.mcp.console
 
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
+import io.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionException
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import java.io.File
@@ -19,20 +20,22 @@ class FeedbackConsoleServer(
     private val host: String = "127.0.0.1",
     private val port: Int = 0,
     private val consoleAssetsDir: File? = null,
+    private val eventBus: ConsoleEventBus = ConsoleEventBus(),
 ) {
     private val consoleToken: String = UUID.randomUUID().toString()
     private val lock = Any()
     private val routeTable = ConsoleRouteTable(
         listOf(
             ServerVersionRoutes(),
-            SessionRoutes(service, consoleAssetsDir, consoleToken),
-            DeviceRoutes(service),
-            ConnectionRoutes(service),
-            PreviewRoutes(service),
-            FeedbackItemRoutes(service),
+            ConsoleEventRoutes(service, eventBus),
+            SessionRoutes(service, consoleAssetsDir, consoleToken, eventBus),
+            DeviceRoutes(service, eventBus),
+            ConnectionRoutes(service, eventBus),
+            PreviewRoutes(service, eventBus),
+            FeedbackItemRoutes(service, eventBus),
             ArtifactRoutes(service),
             HandoffPreviewRoutes(service),
-            MarkHandedOffRoutes(service),
+            MarkHandedOffRoutes(service, eventBus),
         ),
     )
     private var server: HttpServer? = null
@@ -40,6 +43,8 @@ class FeedbackConsoleServer(
 
     val url: String
         get() = "http://${host.toUrlHost()}:${runningServer().address.port}"
+
+    internal fun consoleTokenForTests(): String = consoleToken
 
     fun start(): String = synchronized(lock) {
         server?.let { return@synchronized url }

@@ -68,10 +68,10 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   - New `scripts/console-harness.mjs` matrix driver with pure
     `parseArgs` / `selectScenarios` / `emitJunit` helpers, JUnit XML output
     to `output/playwright/results.xml`, and a `console:harness` npm script.
-    Network-outage and slow-handoff scenarios are marked
-    `@blocked-pending-impl` (skipped pending the
-    `reconnect-banner` / `pending-recovery` / `send-button` testids in the
-    bundle) and are deferred to a follow-up phase.
+    Network-outage and slow-handoff now run as real browser checks against the
+    fake bridge fixture, using stable console `data-testid` selectors and
+    route-level outage / delayed-handoff behavior instead of skipped
+    `@blocked-pending-impl` placeholders.
   - New `.github/workflows/console-harness-nightly.yml` runs the matrix on
     `schedule` + `workflow_dispatch` only (no `pull_request` trigger, so
     PR latency is unchanged). The existing `console-js` CI job now also

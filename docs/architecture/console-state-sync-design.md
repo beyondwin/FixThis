@@ -1,7 +1,7 @@
 # Console State Sync - Current Design + SSE Migration Plan
 
-**Status:** Lockstep refresh plus ETag-conditional session polling shipped.
-SSE migration remains deferred.
+**Status:** SSE Phase 1 shipped; ETag-conditional session polling remains as
+the fallback path.
 **Owners:** `fixthis-mcp` (FeedbackConsoleServer + console JS)
 **Related code:** `fixthis-mcp/src/main/console/history.js`
 (`refreshSessions`, `refresh`), `sessions-polling.js`, `state.js`,
@@ -111,10 +111,10 @@ latency gaps are what motivate SSE.
 | Approach | Verdict | Reason |
 | --- | --- | --- |
 | **Pull on every interaction** (Option 1 foundation) | shipped | Simple and robust for local mutations, but insufficient alone for passive updates. |
-| **ETag-conditional polling** (current) | shipped | Low churn, simple fallback for passive updates, pauses around edits/mutations, but still has timer lag and no event ordering contract. |
+| **ETag-conditional polling** (fallback) | shipped | Low churn fallback for SSE failure, manual refresh, and passive updates when EventSource is unavailable. |
 | **Blind periodic polling** | rejected | Constant idle load + visible refresh churn + races with in-flight user mutations. UX feels twitchy. |
 | **WebSocket** | rejected | Bidirectional; we only need server→client. Adds connection upgrade and framing complexity for no benefit over SSE. |
-| **Server-Sent Events (SSE)** | recommended | One-way server-push over plain HTTP/1.1. Browser `EventSource` auto-reconnects with `Last-Event-ID`. Trivial to multiplex per-connection on the existing console HTTP server. Works through corporate proxies that block WebSocket upgrade. |
+| **Server-Sent Events (SSE)** | Phase 1 shipped | One-way server-push over plain HTTP/1.1. Browser `EventSource` auto-reconnects with `Last-Event-ID`; the console still keeps polling as fallback. |
 
 ### Goals
 
@@ -257,4 +257,4 @@ toast). Lockstep refresh stays as redundant defense-in-depth.
 | --- | --- | --- |
 | 2026-05-10 | Ship lockstep refresh foundation | Fixes the observed sidebar/panel drift after local mutations with a small, low-risk change. |
 | 2026-05-11 | Add ETag-conditional session polling | Covers passive agent/tab updates without blind polling churn; pauses around edits and mutations. |
-| TBD | Open SSE Phase 1 | Trigger conditions: passive-viewing stale reports recur; or `livePreviewPolling` becomes painful; or first multi-tab use case. |
+| 2026-05-15 | Ship SSE Phase 1 | Added `/api/events`, ring replay, browser `EventSource` subscription, and route emit points for session, device, connection, and preview state. Polling remains as fallback. |

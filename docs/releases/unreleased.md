@@ -43,6 +43,11 @@ remains the chronological source of truth.
   console tests, and architecture hotspot guardrails.
 - Contributor checks now cover console bundle freshness and pure JavaScript
   harnesses. The project license is MIT.
+- The feedback console now receives session, device, connection, and preview
+  updates over an SSE `/api/events` channel, with existing polling retained as
+  the fallback when the stream drops.
+- The console harness now executes the `network-outage` and `slow-handoff`
+  scenarios instead of reporting them as skipped placeholders.
 - Contributor loops are faster. The local Gradle build cache is enabled by
   default, source-index generation is cacheable, sidekick build metadata avoids
   unnecessary Kotlin recompilation, and CI separates console JavaScript checks

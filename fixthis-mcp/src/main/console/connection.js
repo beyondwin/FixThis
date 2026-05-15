@@ -156,6 +156,7 @@
             function renderConnection(status) {
               const viewState = userConnectionState(status);
               connectionCard.dataset.connectionState = viewState;
+              connectionCard.dataset.reconnectVisible = viewState === 'reconnect' || state.connection.sessionsPollingPaused ? 'true' : 'false';
               connectionHeadline.textContent = viewState === 'reconnect'
                 ? 'Reconnect'
                 : (status?.headline || 'Connect to your app');

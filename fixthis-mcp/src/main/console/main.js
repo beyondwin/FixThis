@@ -1,4 +1,4 @@
-// @requires state.js, connection.js, devices.js, preview.js, annotations.js, history.js, prompt.js, rendering.js, sessions-polling.js, shortcuts.js, draftUseCases.js, draftCommandQueue.js, application/consoleStore.js, application/consoleEffects.js, adapters/browserPorts.js, adapters/browserRenderer.js
+// @requires state.js, connection.js, devices.js, preview.js, annotations.js, history.js, prompt.js, rendering.js, sessions-polling.js, events.js, shortcuts.js, draftUseCases.js, draftCommandQueue.js, application/consoleStore.js, application/consoleEffects.js, adapters/browserPorts.js, adapters/browserRenderer.js
             let pendingRecovery = null;
             const activePendingMirrorSessions = new Set();
             const canonicalPorts = createBrowserConsolePorts({
@@ -260,6 +260,7 @@
               if (banner) return banner;
               banner = document.createElement('div');
               banner.id = 'pendingRecoveryBanner';
+              banner.setAttribute('data-testid', 'pending-recovery-banner');
               banner.className = 'annotation-banner annotation-banner-warn pending-recovery-banner';
               banner.setAttribute('role', 'status');
               banner.setAttribute('aria-live', 'polite');
@@ -386,6 +387,7 @@
                 return null;
               })
               .then(() => {
+                startConsoleEvents();
                 checkServerStaleness().catch(() => { /* silent */ });
                 startHeartbeatPolling();
                 startLivePreviewPolling();

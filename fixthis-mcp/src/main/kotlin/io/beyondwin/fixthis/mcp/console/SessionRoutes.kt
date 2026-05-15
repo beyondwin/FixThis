@@ -1,6 +1,7 @@
 package io.beyondwin.fixthis.mcp.console
 
 import com.sun.net.httpserver.HttpExchange
+import io.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
 import io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatter
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import kotlinx.serialization.Serializable
@@ -10,6 +11,7 @@ internal class SessionRoutes(
     private val service: FeedbackSessionService,
     private val consoleAssetsDir: File?,
     private val consoleToken: String,
+    private val eventBus: ConsoleEventBus,
 ) : ConsoleRoute {
     override fun matches(path: String): Boolean = path == "/" ||
         path == "/favicon.ico" ||
@@ -57,12 +59,16 @@ internal class SessionRoutes(
             }
             "/api/session/open" -> exchange.requireMethod("POST") {
                 val request = exchange.decodeOpenSessionBody()
-                exchange.sendJson(200, service.openSession(request.packageName, request.sessionId, request.newSession))
+                val session = service.openSession(request.packageName, request.sessionId, request.newSession)
+                eventBus.emitSessionUpdated(session)
+                exchange.sendJson(200, session)
             }
             "/api/session/close" -> exchange.requireMethod("POST") {
                 val request = exchange.decodeOpenSessionBody()
                 val sessionId = request.sessionId ?: service.requireCurrentSession().sessionId
-                exchange.sendJson(200, service.closeSession(sessionId))
+                val session = service.closeSession(sessionId)
+                eventBus.emitSessionUpdated(session)
+                exchange.sendJson(200, session)
             }
             "/api/export/markdown" -> exchange.requireMethod("GET") {
                 exchange.sendText(200, FeedbackQueueFormatter.toMarkdown(service.requireCurrentSession()), "text/markdown; charset=utf-8")

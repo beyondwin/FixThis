@@ -1,10 +1,14 @@
 package io.beyondwin.fixthis.mcp.console
 
 import com.sun.net.httpserver.HttpExchange
+import io.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionException
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 
-internal class MarkHandedOffRoutes(private val service: FeedbackSessionService) : ConsoleRoute {
+internal class MarkHandedOffRoutes(
+    private val service: FeedbackSessionService,
+    private val eventBus: ConsoleEventBus,
+) : ConsoleRoute {
     private val pathPrefix = "/api/sessions/"
     private val pathSuffix = "/items/mark-handed-off"
 
@@ -31,6 +35,7 @@ internal class MarkHandedOffRoutes(private val service: FeedbackSessionService) 
             } catch (error: FeedbackSessionException) {
                 throw FeedbackConsoleHttpException(404, "session not found")
             }
+            eventBus.emitSessionUpdated(session)
             exchange.sendJson(200, session)
         }
     }

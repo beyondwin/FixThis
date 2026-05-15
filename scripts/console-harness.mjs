@@ -21,12 +21,10 @@ const SCENARIOS = {
   'network-outage': {
     apply: applyNetworkOutage,
     requiredViewports: Object.keys(VIEWPORTS),
-    status: '@blocked-pending-impl',
   },
   'slow-handoff': {
     apply: applySlowHandoff,
     requiredViewports: Object.keys(VIEWPORTS),
-    status: '@blocked-pending-impl',
   },
   'multi-tab': { apply: applyMultiTab, requiredViewports: ['breakpoint-900', 'compact-1024', 'desktop-1280'] },
 };
@@ -48,6 +46,7 @@ export function parseArgs(argv, env = process.env) {
     const flag = argv[i];
     const next = argv[i + 1];
     if (flag === '--matrix') { args.matrix = next; i += 1; }
+    else if (flag === '--scenario') { args.matrix = next; i += 1; }
     else if (flag === '--viewport') { args.viewport = next; i += 1; }
     else if (flag === '--output') { args.output = next; i += 1; }
     else if (flag === '--headed') { args.headed = true; }
@@ -95,11 +94,16 @@ async function runCell({ playwright, scenarioKey, viewportKey, args }) {
     };
   }
   const fixture = await startFakeBridge({ scenario: 'happy-path' });
+  let browser;
   try {
     if (SCENARIOS[scenarioKey].apply) {
-      await SCENARIOS[scenarioKey].apply(fixture);
+      const options = scenarioKey === 'slow-handoff' ? { delayMs: 750 } : {};
+      await SCENARIOS[scenarioKey].apply(fixture, options);
     }
-    const browser = await playwright.chromium.launch({ headless: !args.headed });
+    if (scenarioKey === 'slow-handoff') {
+      fixture.seedAnnotation({ itemId: 'item-1', comment: 'Slow handoff annotation' });
+    }
+    browser = await playwright.chromium.launch({ headless: !args.headed });
     const context = await browser.newContext({ viewport: VIEWPORTS[viewportKey] });
     const page = await context.newPage();
     const consoleErrors = [];
@@ -110,9 +114,29 @@ async function runCell({ playwright, scenarioKey, viewportKey, args }) {
     await page.goto(fixture.url, { waitUntil: 'domcontentloaded' });
 
     if (scenarioKey === 'network-outage') {
-      await page.waitForSelector('[data-testid="reconnect-banner"], .pending-recovery', { timeout: 8000 });
+      const status = page.getByTestId('global-status');
+      await status.waitFor({ state: 'visible', timeout: 8000 });
+      const text = await status.textContent();
+      if (!/connection|failed|fetch|paused/i.test(text || '')) {
+        throw new Error(`network outage did not surface a connection status: ${text}`);
+      }
     } else if (scenarioKey === 'slow-handoff') {
-      await page.waitForSelector('[data-testid="send-button"], button.send', { timeout: 8000 });
+      const saveButton = page.getByTestId('save-to-mcp-button');
+      await saveButton.waitFor({ state: 'visible', timeout: 8000 });
+      await page.waitForFunction(() => {
+        const button = document.querySelector('[data-testid="save-to-mcp-button"]');
+        return button && !button.disabled;
+      });
+      await saveButton.click();
+      await page.waitForFunction(() => {
+        const button = document.querySelector('[data-testid="save-to-mcp-button"]');
+        return button && button.disabled;
+      });
+      await page.waitForFunction(() => {
+        return document.querySelector('[data-testid="global-status"]')?.textContent?.includes('Saved to MCP');
+      }, null, { timeout: 10000 });
+      const handoffs = fixture.getRequestLog().filter((entry) => entry.path === '/api/agent-handoffs');
+      if (handoffs.length !== 1) throw new Error(`expected one handoff request, saw ${handoffs.length}`);
     } else if (scenarioKey === 'multi-tab') {
       // Two Pages in the same BrowserContext share localStorage; the DOM
       // `storage` event only fires in *other* pages of the same origin, so
@@ -129,14 +153,21 @@ async function runCell({ playwright, scenarioKey, viewportKey, args }) {
     }
 
     if (consoleErrors.length > 0) {
-      throw new Error(`console errors in ${scenarioKey}/${viewportKey}: ${consoleErrors.join(' | ')}`);
+      const unexpectedConsoleErrors = scenarioKey === 'network-outage'
+        ? consoleErrors.filter((message) => !message.includes('ERR_EMPTY_RESPONSE'))
+        : consoleErrors;
+      if (unexpectedConsoleErrors.length > 0) {
+        throw new Error(`console errors in ${scenarioKey}/${viewportKey}: ${unexpectedConsoleErrors.join(' | ')}`);
+      }
     }
 
     await browser.close();
+    browser = null;
     return { scenarioKey, viewportKey, ok: true };
   } catch (error) {
     return { scenarioKey, viewportKey, ok: false, error: String(error?.message ?? error) };
   } finally {
+    if (browser) await browser.close().catch(() => {});
     await fixture.close();
   }
 }

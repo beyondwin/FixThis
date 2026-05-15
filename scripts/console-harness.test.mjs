@@ -44,6 +44,20 @@ test('selectScenarios expands all and trims CSV', () => {
   assert.deepEqual(csv, ['slow-handoff', 'multi-tab']);
 });
 
+test('slow handoff is not marked blocked', () => {
+  const all = selectScenarios('all');
+  assert.ok(all.includes('slow-handoff'));
+  const source = readFileSync('scripts/console-harness.mjs', 'utf8');
+  assert.doesNotMatch(source, /'slow-handoff'[\s\S]{0,160}@blocked-pending-impl/);
+});
+
+test('network outage is not marked blocked', () => {
+  const all = selectScenarios('all');
+  assert.ok(all.includes('network-outage'));
+  const source = readFileSync('scripts/console-harness.mjs', 'utf8');
+  assert.doesNotMatch(source, /'network-outage'[\s\S]{0,160}@blocked-pending-impl/);
+});
+
 test('emitJunit XML-escapes failure messages', () => {
   const dir = mkdtempSync(join(tmpdir(), 'harness-'));
   try {

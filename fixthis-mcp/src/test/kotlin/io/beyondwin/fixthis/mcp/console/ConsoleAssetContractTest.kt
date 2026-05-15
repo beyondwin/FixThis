@@ -44,6 +44,23 @@ class ConsoleAssetContractTest {
     }
 
     @Test
+    fun harnessSelectorsAreStable() {
+        val html = ConsoleSourceFixtures.readAll()
+
+        assertTrue(html.contains("""data-testid="connection-card""""))
+        assertTrue(html.contains("""data-testid="save-to-mcp-button""""))
+        assertTrue(html.contains("""data-testid="copy-prompt-button""""))
+        assertTrue(html.contains("""data-testid="prompt-readiness""""))
+        assertTrue(html.contains("""data-testid="global-status""""))
+        assertTrue(html.contains("""data-reconnect-visible"""))
+        assertTrue(
+            html.contains("""data-testid="pending-recovery-banner"""") ||
+                html.contains("""setAttribute('data-testid', 'pending-recovery-banner')""") ||
+                html.contains("""setAttribute("data-testid","pending-recovery-banner")"""),
+        )
+    }
+
+    @Test
     fun consoleHtmlOmitsToolbarNavigationControls() {
         val html = ConsoleSourceFixtures.readAll()
 

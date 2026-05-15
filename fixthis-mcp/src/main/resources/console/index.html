@@ -45,18 +45,18 @@
                 <button id="historyToggleButton" class="history-toggle-button" type="button" aria-controls="historyPanel" aria-expanded="false">History</button>
               </div>
               <div class="studio-actions">
-                <span id="promptReadiness" class="prompt-readiness" aria-live="polite">No annotations ready</span>
-                <button id="copyPromptButton" class="with-icon" type="button" disabled>
+                <span id="promptReadiness" class="prompt-readiness" aria-live="polite" data-testid="prompt-readiness">No annotations ready</span>
+                <button id="copyPromptButton" class="with-icon" type="button" disabled data-testid="copy-prompt-button">
                   <span class="button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></span>
                   <span>Copy Prompt</span>
                 </button>
-                <button id="sendAgentButton" class="primary with-icon" type="button" disabled>
+                <button id="sendAgentButton" class="primary with-icon" type="button" disabled data-testid="save-to-mcp-button">
                   <span class="button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg></span>
                   <span>Save to MCP</span>
                 </button>
             </div>
           </header>
-          <section id="connectionCard" class="connection-card" data-connection-state="welcome" aria-live="polite">
+          <section id="connectionCard" class="connection-card" data-connection-state="welcome" data-reconnect-visible="false" data-testid="connection-card" aria-live="polite">
             <div class="connection-main">
               <span class="connection-dot" aria-hidden="true"></span>
               <div class="connection-copy">
@@ -72,7 +72,7 @@
           </details>
         </div>
       </section>
-      <p id="error" class="global-status" role="status" aria-live="polite" hidden></p>
+      <p id="error" class="global-status" role="status" aria-live="polite" data-testid="global-status" hidden></p>
       <nav id="workflowProgress" class="workflow-progress" aria-label="FixThis feedback workflow">
         <ol>
           <li data-workflow-step="connect" data-state="active">

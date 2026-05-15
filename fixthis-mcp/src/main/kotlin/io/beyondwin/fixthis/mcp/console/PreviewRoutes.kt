@@ -2,17 +2,27 @@ package io.beyondwin.fixthis.mcp.console
 
 import com.sun.net.httpserver.HttpExchange
 import io.beyondwin.fixthis.cli.fixThisJson
+import io.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
 import io.beyondwin.fixthis.mcp.session.FeedbackNavigationRequest
+import io.beyondwin.fixthis.mcp.session.FeedbackNavigationResult
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionException
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionPaths
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.beyondwin.fixthis.mcp.session.SessionDto
+import io.beyondwin.fixthis.mcp.session.SnapshotDto
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.put
 import java.io.File
 import java.net.URLDecoder
 
-internal class PreviewRoutes(private val service: FeedbackSessionService) : ConsoleRoute {
+internal class PreviewRoutes(
+    private val service: FeedbackSessionService,
+    private val eventBus: ConsoleEventBus,
+) : ConsoleRoute {
     override fun matches(path: String): Boolean = path == "/api/capture" ||
         path == "/api/preview" ||
         path == "/api/preview/screenshot/full" ||
@@ -24,11 +34,24 @@ internal class PreviewRoutes(private val service: FeedbackSessionService) : Cons
             "/api/capture" -> exchange.requireMethod("POST") {
                 val session = service.requireCurrentSession()
                 val screen = runBlocking { service.captureScreen(session.sessionId) }
+                eventBus.emit(
+                    "capture-ready",
+                    buildJsonObject {
+                        put("screen", fixThisJson.encodeToJsonElement(SnapshotDto.serializer(), screen).jsonObject)
+                    },
+                )
                 exchange.sendJson(200, screen)
             }
             "/api/preview" -> exchange.requireMethod("GET") {
                 val session = service.requireCurrentSession()
-                exchange.sendJson(200, runBlocking { service.capturePreview(session.sessionId) })
+                val preview = runBlocking { service.capturePreview(session.sessionId) }
+                eventBus.emit(
+                    "preview-ready",
+                    buildJsonObject {
+                        put("preview", fixThisJson.encodeToJsonElement(FeedbackPreviewSnapshot.serializer(), preview).jsonObject)
+                    },
+                )
+                exchange.sendJson(200, preview)
             }
             "/api/preview/screenshot/full" -> exchange.requireMethod("GET") {
                 exchange.sendPreviewScreenshot()
@@ -41,6 +64,12 @@ internal class PreviewRoutes(private val service: FeedbackSessionService) : Cons
                 } catch (error: IllegalArgumentException) {
                     throw FeedbackConsoleHttpException(400, error.message ?: "Invalid navigation request")
                 }
+                eventBus.emit(
+                    "navigation-updated",
+                    buildJsonObject {
+                        put("navigation", fixThisJson.encodeToJsonElement(FeedbackNavigationResult.serializer(), result).jsonObject)
+                    },
+                )
                 exchange.sendJson(200, result)
             }
             else -> {
