@@ -20,7 +20,6 @@ object CompactHandoffRenderer {
         if (sourceRoot != null) {
             appendLine("- Source root: `$sourceRoot`")
         }
-        appendLine()
 
         val orderedItems = effectiveSession.items.withIndex()
             .sortedWith(
@@ -34,6 +33,21 @@ object CompactHandoffRenderer {
         }
 
         val itemsByScreen = orderedItems.groupBy { it.value.screenId }
+        var precomputedMarkerCounter = 0
+        val analysesByScreen = itemsByScreen.mapValues { (_, indexedItems) ->
+            analyzeScreen(indexedItems, precomputedMarkerCounter).also { analysis ->
+                precomputedMarkerCounter += analysis.groups.sumOf { it.size }
+            }
+        }
+        val allItems = orderedItems.map { it.value }
+        val allOverlapGroups = analysesByScreen.values.flatMap { it.groups }
+        val allDuplicateMap = analysesByScreen.values.flatMap { it.duplicateMap.entries }
+            .associate { it.key to it.value }
+        HandoffQualitySummary.render(allItems, allOverlapGroups, allDuplicateMap)?.let {
+            appendLine(it)
+        }
+        appendLine()
+
         var globalCounter = 0
         itemsByScreen.forEach { (screenId, indexedItems) ->
             val screen = effectiveSession.screens.firstOrNull { it.screenId == screenId }
@@ -53,57 +67,11 @@ object CompactHandoffRenderer {
             }
             appendLine()
 
-            val itemsForScreen = indexedItems.map { it.value }
-            val grouping = InstanceGroupingHelper.compute(itemsForScreen)
-
-            val detectorItems = indexedItems.map { entry ->
-                val isArea = entry.value.target is AnnotationTargetDto.Area
-                val hasWeakLabels = entry.value.selectedNode?.text?.isEmpty() ?: true
-                AnnotationOverlapDetector.Item(
-                    id = entry.value.itemId,
-                    bounds = when (val t = entry.value.target) {
-                        is AnnotationTargetDto.Area -> t.boundsInWindow
-                        is AnnotationTargetDto.Node -> t.boundsInWindow
-                    },
-                    isAreaSelection = isArea,
-                    hasWeakLabels = hasWeakLabels,
-                )
-            }
-            val groups = AnnotationOverlapDetector.detect(detectorItems)
-
-            val itemById = indexedItems.associate { it.value.itemId to it.value }
-
-            var preCounter = globalCounter
-            val markerByItemId = mutableMapOf<String, Int>()
-            groups.forEach { group ->
-                group.forEach { detectorItem ->
-                    if (itemById.containsKey(detectorItem.id)) {
-                        preCounter += 1
-                        markerByItemId[detectorItem.id] = preCounter
-                    }
-                }
-            }
-            val dupDetectorItems = indexedItems.mapNotNull { entry ->
-                val annotation = entry.value
-                val marker = markerByItemId[annotation.itemId] ?: return@mapNotNull null
-                val fileLine = annotation.sourceCandidates.firstOrNull()?.fileWithLine()
-                val pathLeaves = annotation.selectedNode?.path ?: emptyList()
-                val bounds = when (val t = annotation.target) {
-                    is AnnotationTargetDto.Area -> t.boundsInWindow
-                    is AnnotationTargetDto.Node -> t.boundsInWindow
-                }
-                DuplicateMarkerDetector.Item(
-                    itemId = annotation.itemId,
-                    markerNumber = marker,
-                    key = DuplicateMarkerDetector.Key(
-                        fileLine = fileLine,
-                        testTag = annotation.selectedNode?.testTag,
-                        pathLeaves = pathLeaves,
-                        bounds = bounds,
-                    ),
-                )
-            }
-            val duplicateMap = DuplicateMarkerDetector.detect(dupDetectorItems)
+            val analysis = analysesByScreen.getValue(screenId)
+            val itemById = analysis.indexedItems.associate { it.value.itemId to it.value }
+            val grouping = analysis.grouping
+            val groups = analysis.groups
+            val duplicateMap = analysis.duplicateMap
 
             var overlapGroupCounter = 0
             groups.forEach { group ->
@@ -131,6 +99,74 @@ object CompactHandoffRenderer {
         appendLine("session_id: ${effectiveSession.sessionId}")
     }
 
+    private data class ScreenHandoffAnalysis(
+        val indexedItems: List<IndexedValue<AnnotationDto>>,
+        val grouping: InstanceGrouping,
+        val groups: List<List<AnnotationOverlapDetector.Item>>,
+        val markerByItemId: Map<String, Int>,
+        val duplicateMap: Map<String, Int>,
+    )
+
+    private fun analyzeScreen(
+        indexedItems: List<IndexedValue<AnnotationDto>>,
+        startingMarker: Int,
+    ): ScreenHandoffAnalysis {
+        val itemsForScreen = indexedItems.map { it.value }
+        val grouping = InstanceGroupingHelper.compute(itemsForScreen)
+        val detectorItems = indexedItems.map { entry ->
+            val isArea = entry.value.target is AnnotationTargetDto.Area
+            val hasWeakLabels = entry.value.selectedNode?.text?.isEmpty() ?: true
+            AnnotationOverlapDetector.Item(
+                id = entry.value.itemId,
+                bounds = when (val target = entry.value.target) {
+                    is AnnotationTargetDto.Area -> target.boundsInWindow
+                    is AnnotationTargetDto.Node -> target.boundsInWindow
+                },
+                isAreaSelection = isArea,
+                hasWeakLabels = hasWeakLabels,
+            )
+        }
+        val groups = AnnotationOverlapDetector.detect(detectorItems)
+        val itemById = indexedItems.associate { it.value.itemId to it.value }
+        var preCounter = startingMarker
+        val markerByItemId = mutableMapOf<String, Int>()
+        groups.forEach { group ->
+            group.forEach { detectorItem ->
+                if (itemById.containsKey(detectorItem.id)) {
+                    preCounter += 1
+                    markerByItemId[detectorItem.id] = preCounter
+                }
+            }
+        }
+        val dupDetectorItems = indexedItems.mapNotNull { entry ->
+            val annotation = entry.value
+            val marker = markerByItemId[annotation.itemId] ?: return@mapNotNull null
+            val fileLine = annotation.sourceCandidates.firstOrNull()?.fileWithLine()
+            val pathLeaves = annotation.selectedNode?.path ?: emptyList()
+            val bounds = when (val target = annotation.target) {
+                is AnnotationTargetDto.Area -> target.boundsInWindow
+                is AnnotationTargetDto.Node -> target.boundsInWindow
+            }
+            DuplicateMarkerDetector.Item(
+                itemId = annotation.itemId,
+                markerNumber = marker,
+                key = DuplicateMarkerDetector.Key(
+                    fileLine = fileLine,
+                    testTag = annotation.selectedNode?.testTag,
+                    pathLeaves = pathLeaves,
+                    bounds = bounds,
+                ),
+            )
+        }
+        return ScreenHandoffAnalysis(
+            indexedItems = indexedItems,
+            grouping = grouping,
+            groups = groups,
+            markerByItemId = markerByItemId,
+            duplicateMap = DuplicateMarkerDetector.detect(dupDetectorItems),
+        )
+    }
+
     private fun StringBuilder.appendCompactItem(
         number: Int,
         item: AnnotationDto,
@@ -145,6 +181,7 @@ object CompactHandoffRenderer {
         val prefix = if (item.severity == AnnotationSeverityDto.HIGH) "[!] " else ""
         appendLine("[$number] ${prefix}${title.inlineSafe()}")
         appendLine("  id: ${item.itemId}")
+        appendLine("  ${TargetSummaryFormatter.render(item)}")
         appendLine(compactUiLine(item, isOverlap, instanceLabel, dupRefMarker))
         item.screenshotCrop?.desktopCropPath?.let { appendLine("crop: ${it.inlineSafe()}") }
         appendCandidatesBlock(item, sourceRoot)

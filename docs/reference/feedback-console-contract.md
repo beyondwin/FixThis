@@ -115,11 +115,12 @@ Rule: source hints are candidates; verify screenshot, target, and code before ed
 ### v2 prompt grammar (BNF-ish)
 
 ```
-prompt        = header rule package_line source_root_line? "" screen_block+
+prompt        = header rule package_line source_root_line? quality_line? "" screen_block+
 header        = "# FixThis Feedback Handoff" ""
 rule          = "Rule: source hints are candidates; verify screenshot, target, and code before editing." ""
 package_line   = "- Package: `" pkg "`"
 source_root_line = "- Source root: `" prefix "`"           ; emitted iff ≥2 distinct candidate paths share a directory-boundary prefix ≥10 chars
+quality_line  = "Handoff quality: " quality_token (", " quality_token)*
 screen_block  = screen_header screenshot_line? viewport_line? activity_line? "" (overlap_block | item_block)+
 screen_header = "Screen " short_id ": " display_name
 short_id      = first 8 chars of UUID
@@ -127,9 +128,10 @@ screenshot_line = "screenshot: " path
 viewport_line   = "viewport: " width "×" height          ; emitted iff screenshot has dims
 activity_line   = "activity: " activity_name             ; emitted iff != display_name
 overlap_block = "Overlap group " N " (resolve one marker at a time):" item_block+
-item_block    = item_header id_line target_line crop_line? source_block reliability_block? ""
+item_block    = item_header id_line target_summary_line target_line crop_line? source_block reliability_block? ""
 item_header   = "[" N "] " title                         ; title may include severity prefix
 id_line       = "  id: " item_id
+target_summary_line = "  target: " target_summary
 target_line   = "  " [ "role=" role "  " ] [ "tag=" tag "  " ] "box=(" x1 "," y1 ")-(" x2 "," y2 ")"
                  [ "  instance " i "/" total ]
                  [ "; targetRisk=overlap" ]
@@ -156,6 +158,15 @@ When no source candidates are available for the item, the source block consists 
 - `viewport:` — screen dimensions in pixels; emitted only when the screenshot artifact has width and height metadata.
 - `activity:` — Android activity name; emitted only when it differs from `display_name`.
 - `Source root:` — directory-boundary common prefix of all candidate file paths in the session, with trailing `/`. Emitted only when at least two distinct candidate paths share a prefix of ≥10 chars; otherwise omitted and candidate paths are written verbatim. When emitted, the prefix is removed from every candidate line so each candidate appears as a relative path.
+- `Handoff quality:` — optional aggregate warning summary for the rendered item
+  set. It is emitted only when at least one low-confidence target, warning,
+  overlap group, duplicate marker, visual area, redacted target, stale source
+  candidate, or item without source candidates exists.
+- `target:` — redaction-safe semantic target summary derived from the selected
+  node when available. It may include `tag="..."`, `text="..."`,
+  `contentDescription="..."`, and `role=...` in that order. For visual-area
+  selections it renders `target: visual area`; for sensitive/editable/password
+  targets it omits text-like values and renders `redacted sensitive target`.
 - target line — emits only the tokens that have content. `role=` and `tag=` are dropped when the corresponding `selectedNode` field is blank; the line collapses to bare `box=` for area selections.
 - `[!]` severity prefix — prepended to the title when item severity is `HIGH`; absent for `MED` and `LOW`.
 - `id:` — feedback item id. Agents should use this with
@@ -202,7 +213,7 @@ When two or more annotations on the same screen have targets that overlap (visua
 Overlap group N (resolve one marker at a time):
 ```
 
-Each item in the group carries `targetRisk=overlap` on its `ui:` line. Resolve the group one marker at a time to avoid editing the wrong composable. Coordinate space is window pixels at default density 1.0; the 24dp center-distance fallback is conservative on high-density screens.
+Each item in the group carries `targetRisk=overlap` on its coordinate target line. Resolve the group one marker at a time to avoid editing the wrong composable. Coordinate space is window pixels at default density 1.0; the 24dp center-distance fallback is conservative on high-density screens.
 
 ### v1 → v2 token migration
 
@@ -218,6 +229,8 @@ Tool-using agents that parsed the v1 compact prompt format must update the follo
 | Screen UUID `<full-uuid>` | `<first-8-chars>` (short-id) | Reduces visual noise; 8 hex chars are unique enough for disambiguation within a session. |
 | (absent) | `viewport: W×H` | New: lets agents interpret pixel bounds without opening the screenshot. |
 | (absent) | `activity: <name>` | New: emitted when Android activity name differs from `displayName`. |
+| (absent) | `Handoff quality: ...` | New: summarizes aggregate target/source warning signals for the rendered item set. |
+| (absent) | `target: ...` | New: gives a redaction-safe semantic summary of the selected UI target before source candidates. |
 | (absent) | `instance i/N` on `ui:` line | New: disambiguates list-rendered widgets that share a call site. |
 | (absent) | `note: N markers map to same call site — likely list-rendered; disambiguate by instance index` | New: collision signal on the first item of each instance group. |
 | (absent) | `targetRisk=duplicate-of-marker-M` | New: surfaces true marker duplication so agents do not double-resolve. |

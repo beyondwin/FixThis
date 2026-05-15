@@ -2001,4 +2001,337 @@ class CompactHandoffRendererTest {
             "expected first item directly after overlap header, got: '$nextLine'\nfull:\n$markdown",
         )
     }
+
+    @Test
+    fun renderAddsTargetSummaryBeforeBoxLine() {
+        val session = SessionDto(
+            sessionId = "session-target-summary",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(
+                SnapshotDto(
+                    screenId = "screen-1",
+                    capturedAtEpochMillis = 1L,
+                    displayName = "Review",
+                ),
+            ),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node("node-1", FixThisRect(42f, 184f, 436f, 252f)),
+                    selectedNode = FixThisNode(
+                        uid = "node-1",
+                        composeNodeId = 1,
+                        rootIndex = 0,
+                        treeKind = TreeKind.MERGED,
+                        boundsInWindow = FixThisRect(42f, 184f, 436f, 252f),
+                        text = listOf("Review request"),
+                    ),
+                    comment = "Make heading clearer",
+                    sequenceNumber = 1,
+                ),
+            ),
+        )
+
+        val lines = CompactHandoffRenderer.render(session).lines()
+        val idIndex = lines.indexOf("  id: item-1")
+        val targetIndex = lines.indexOf("""  target: text="Review request"""")
+        val boxIndex = lines.indexOf("  box=(42.0,184.0)-(436.0,252.0)")
+
+        assertTrue(idIndex >= 0, "Expected id line in:\n${lines.joinToString("\n")}")
+        assertTrue(targetIndex > idIndex, "target: line should come after id:")
+        assertTrue(boxIndex > targetIndex, "box line should come after target:")
+    }
+
+    @Test
+    fun renderTargetSummaryIncludesTagTextContentDescriptionAndRoleInStableOrder() {
+        val session = oneItemSession(
+            item = AnnotationDto(
+                itemId = "item-1",
+                screenId = "screen-1",
+                createdAtEpochMillis = 1L,
+                updatedAtEpochMillis = 1L,
+                target = AnnotationTargetDto.Node("node-1", FixThisRect(0f, 0f, 100f, 50f)),
+                selectedNode = FixThisNode(
+                    uid = "node-1",
+                    composeNodeId = 1,
+                    rootIndex = 0,
+                    treeKind = TreeKind.MERGED,
+                    boundsInWindow = FixThisRect(0f, 0f, 100f, 50f),
+                    text = listOf("Submit request"),
+                    contentDescription = listOf("Submit handoff request"),
+                    role = "Button",
+                    testTag = "comp:ReviewScreen:submit",
+                ),
+                comment = "Increase tap affordance",
+                sequenceNumber = 1,
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+
+        assertTrue(
+            markdown.contains(
+                """  target: tag="comp:ReviewScreen:submit"; text="Submit request"; contentDescription="Submit handoff request"; role=Button""",
+            ),
+            markdown,
+        )
+    }
+
+    @Test
+    fun renderTargetSummaryForVisualAreaWithoutSelectedNode() {
+        val session = oneItemSession(
+            item = AnnotationDto(
+                itemId = "item-1",
+                screenId = "screen-1",
+                createdAtEpochMillis = 1L,
+                updatedAtEpochMillis = 1L,
+                target = AnnotationTargetDto.Area(FixThisRect(10f, 20f, 120f, 80f)),
+                selectedNode = null,
+                comment = "Adjust chart spacing",
+                sequenceNumber = 1,
+            ),
+        )
+
+        assertTrue(CompactHandoffRenderer.render(session).contains("  target: visual area"))
+    }
+
+    @Test
+    fun renderTargetSummaryRedactsSensitiveEditableAndPasswordText() {
+        val sensitiveNode = FixThisNode(
+            uid = "node-1",
+            composeNodeId = 1,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = FixThisRect(0f, 0f, 100f, 50f),
+            text = listOf("agent-context-token"),
+            editableText = "agent-context-token",
+            role = "TextField",
+            isPassword = true,
+            isSensitive = true,
+        )
+        val session = oneItemSession(
+            item = AnnotationDto(
+                itemId = "item-1",
+                screenId = "screen-1",
+                createdAtEpochMillis = 1L,
+                updatedAtEpochMillis = 1L,
+                target = AnnotationTargetDto.Node("node-1", FixThisRect(0f, 0f, 100f, 50f)),
+                selectedNode = sensitiveNode,
+                comment = "Token field layout",
+                sequenceNumber = 1,
+                targetReliability = TargetReliability(
+                    confidence = TargetConfidence.MEDIUM,
+                    warnings = listOf(TargetReliabilityWarning.SENSITIVE_TEXT_REDACTED),
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+
+        assertTrue(markdown.contains("  target: redacted sensitive target; role=TextField"), markdown)
+        assertTrue(!markdown.contains("agent-context-token"), markdown)
+    }
+
+    @Test
+    fun renderAddsHandoffQualitySummaryForRiskSignals() {
+        val session = SessionDto(
+            sessionId = "session-quality",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Review")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-low",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(10f, 10f, 120f, 120f)),
+                    comment = "Visual area feedback",
+                    sequenceNumber = 1,
+                    targetReliability = TargetReliability(
+                        confidence = TargetConfidence.LOW,
+                        warnings = listOf(TargetReliabilityWarning.VISUAL_AREA_ONLY),
+                    ),
+                    sourceCandidates = emptyList(),
+                ),
+                AnnotationDto(
+                    itemId = "item-redacted",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node("node-redacted", FixThisRect(130f, 10f, 240f, 120f)),
+                    selectedNode = FixThisNode(
+                        uid = "node-redacted",
+                        composeNodeId = 2,
+                        rootIndex = 0,
+                        treeKind = TreeKind.MERGED,
+                        boundsInWindow = FixThisRect(130f, 10f, 240f, 120f),
+                        text = listOf("secret"),
+                        editableText = "secret",
+                        isSensitive = true,
+                    ),
+                    comment = "Sensitive field",
+                    sequenceNumber = 2,
+                    targetReliability = TargetReliability(
+                        confidence = TargetConfidence.MEDIUM,
+                        warnings = listOf(TargetReliabilityWarning.SENSITIVE_TEXT_REDACTED),
+                    ),
+                    sourceCandidates = listOf(
+                        SourceCandidate(
+                            file = "sample/src/main/java/ReviewScreen.kt",
+                            line = 70,
+                            score = 0.9,
+                            confidence = SelectionConfidence.HIGH,
+                            stale = true,
+                            staleReason = "excerpt mismatch",
+                        ),
+                    ),
+                ),
+                AnnotationDto(
+                    itemId = "item-overlap",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node("node-overlap", FixThisRect(20f, 20f, 100f, 100f)),
+                    selectedNode = FixThisNode(
+                        uid = "node-overlap",
+                        composeNodeId = 3,
+                        rootIndex = 0,
+                        treeKind = TreeKind.MERGED,
+                        boundsInWindow = FixThisRect(20f, 20f, 100f, 100f),
+                        text = listOf("Overlap"),
+                    ),
+                    comment = "Overlapping node",
+                    sequenceNumber = 3,
+                    sourceCandidates = listOf(
+                        SourceCandidate(
+                            file = "sample/src/main/java/ReviewScreen.kt",
+                            line = 90,
+                            score = 0.8,
+                            confidence = SelectionConfidence.MEDIUM,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+
+        assertTrue(markdown.contains("Handoff quality:"), markdown)
+        assertTrue(markdown.contains("1 low-confidence target"), markdown)
+        assertTrue(markdown.contains("2 warning targets"), markdown)
+        assertTrue(markdown.contains("1 overlap group"), markdown)
+        assertTrue(markdown.contains("1 visual area"), markdown)
+        assertTrue(markdown.contains("1 redacted target"), markdown)
+        assertTrue(markdown.contains("1 stale source candidate"), markdown)
+        assertTrue(markdown.contains("1 item without source candidates"), markdown)
+    }
+
+    @Test
+    fun renderOmitsHandoffQualitySummaryWhenNoSignalsExist() {
+        val session = oneItemSession(
+            item = AnnotationDto(
+                itemId = "item-clean",
+                screenId = "screen-1",
+                createdAtEpochMillis = 1L,
+                updatedAtEpochMillis = 1L,
+                target = AnnotationTargetDto.Node("node-clean", FixThisRect(0f, 0f, 100f, 50f)),
+                selectedNode = FixThisNode(
+                    uid = "node-clean",
+                    composeNodeId = 1,
+                    rootIndex = 0,
+                    treeKind = TreeKind.MERGED,
+                    boundsInWindow = FixThisRect(0f, 0f, 100f, 50f),
+                    text = listOf("Clean target"),
+                ),
+                comment = "Clean feedback",
+                sequenceNumber = 1,
+                targetReliability = TargetReliability(confidence = TargetConfidence.HIGH),
+                sourceCandidates = listOf(
+                    SourceCandidate(
+                        file = "sample/src/main/java/ReviewScreen.kt",
+                        line = 56,
+                        score = 0.95,
+                        confidence = SelectionConfidence.HIGH,
+                    ),
+                ),
+            ),
+        )
+
+        assertTrue(!CompactHandoffRenderer.render(session).contains("Handoff quality:"))
+    }
+
+    @Test
+    fun renderHandoffQualitySummaryUsesFilteredItemSet() {
+        val session = SessionDto(
+            sessionId = "session-filtered-quality",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Review")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-clean",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node("node-clean", FixThisRect(0f, 0f, 100f, 50f)),
+                    comment = "Clean feedback",
+                    sequenceNumber = 1,
+                    sourceCandidates = listOf(
+                        SourceCandidate(
+                            file = "sample/src/main/java/ReviewScreen.kt",
+                            line = 56,
+                            score = 0.95,
+                            confidence = SelectionConfidence.HIGH,
+                        ),
+                    ),
+                ),
+                AnnotationDto(
+                    itemId = "item-low",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(10f, 10f, 120f, 120f)),
+                    comment = "Low confidence feedback",
+                    sequenceNumber = 2,
+                    targetReliability = TargetReliability(
+                        confidence = TargetConfidence.LOW,
+                        warnings = listOf(TargetReliabilityWarning.VISUAL_AREA_ONLY),
+                    ),
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session, itemIds = listOf("item-clean"))
+
+        assertTrue(!markdown.contains("Handoff quality:"), markdown)
+        assertTrue(markdown.contains("[1] Clean feedback"), markdown)
+        assertTrue(!markdown.contains("Low confidence feedback"), markdown)
+    }
+
+    private fun oneItemSession(item: AnnotationDto): SessionDto = SessionDto(
+        sessionId = "session-one-item",
+        packageName = "io.beyondwin.fixthis.sample",
+        projectRoot = "/repo",
+        createdAtEpochMillis = 1L,
+        updatedAtEpochMillis = 1L,
+        screens = listOf(
+            SnapshotDto(
+                screenId = "screen-1",
+                capturedAtEpochMillis = 1L,
+                displayName = "Review",
+            ),
+        ),
+        items = listOf(item),
+    )
 }

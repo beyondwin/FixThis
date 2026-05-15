@@ -16,6 +16,15 @@ internal fun FixThisRect.formatBox(): String = "($left,$top)-($right,$bottom)"
 
 internal fun String.inlineSafe(): String = lineSequence().joinToString(" ").replace("`", "'")
 
+internal fun String.compactQuotedValue(maxLength: Int = 80): String {
+    val normalized = inlineSafe().replace("\"", "'")
+    return if (normalized.length <= maxLength) {
+        normalized
+    } else {
+        normalized.take(maxLength - 3) + "..."
+    }
+}
+
 /**
  * Computes the longest directory-boundary common prefix across all candidate file paths
  * in the session, returning the prefix with a trailing "/" if it is at least

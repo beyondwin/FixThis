@@ -260,6 +260,16 @@ present. Low-confidence or warning items remain actionable, but agents should
 verify them before editing. JSON output includes the complete optional
 `targetReliability` object on each item.
 
+Compact Markdown may include a `Handoff quality:` line near the top of the
+prompt. This is an aggregate warning summary for the rendered item set; it is
+not a blocker. Agents should use it to decide how much screenshot/code
+verification is needed before editing.
+
+Each compact item includes a `target:` line before the coordinate `box=` line.
+The target line is a redaction-safe semantic summary of what the user selected.
+Source candidates remain hints; the target line and screenshot are the primary
+evidence for what the user meant.
+
 The compact Markdown handoff also emits a per-item `id:` token (the feedback item id) and ends with an `agent_protocol:` footer that documents the claim/resolve contract inline. The same compact text is what the `Copy Prompt` button puts on the clipboard, so an agent that only sees the pasted prompt can still reference items by id and call `fixthis_claim_feedback` / `fixthis_resolve_feedback` over MCP.
 
 `fixthis_claim_feedback`
