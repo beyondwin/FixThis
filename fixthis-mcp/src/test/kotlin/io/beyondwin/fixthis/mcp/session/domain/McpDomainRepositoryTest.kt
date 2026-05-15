@@ -10,7 +10,7 @@ import io.beyondwin.fixthis.compose.core.domain.session.SessionStatus
 import io.beyondwin.fixthis.compose.core.domain.snapshot.ScreenOrientation
 import io.beyondwin.fixthis.compose.core.domain.snapshot.Snapshot
 import io.beyondwin.fixthis.compose.core.domain.snapshot.WindowMode
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.compose.core.domain.ui.DomainRect
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -54,7 +54,7 @@ class McpDomainRepositoryTest {
             snapshotId = snapshot.id,
             createdAtEpochMillis = 40L,
             updatedAtEpochMillis = 50L,
-            target = AnnotationTarget.Area(FixThisRect(1f, 2f, 30f, 40f)),
+            target = AnnotationTarget.Area(DomainRect(1f, 2f, 30f, 40f)),
             comment = "Tighten the checkout button spacing",
             sequenceNumber = 7,
         )

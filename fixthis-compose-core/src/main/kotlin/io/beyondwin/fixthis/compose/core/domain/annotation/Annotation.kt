@@ -3,11 +3,11 @@ package io.beyondwin.fixthis.compose.core.domain.annotation
 import io.beyondwin.fixthis.compose.core.domain.common.AnnotationId
 import io.beyondwin.fixthis.compose.core.domain.common.SessionId
 import io.beyondwin.fixthis.compose.core.domain.common.SnapshotId
-import io.beyondwin.fixthis.compose.core.model.FixThisNode
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.beyondwin.fixthis.compose.core.model.SourceCandidate
-import io.beyondwin.fixthis.compose.core.model.TargetEvidence
-import io.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.beyondwin.fixthis.compose.core.domain.evidence.AnnotationEvidence
+import io.beyondwin.fixthis.compose.core.domain.evidence.SourceHint
+import io.beyondwin.fixthis.compose.core.domain.evidence.TargetReliabilityAssessment
+import io.beyondwin.fixthis.compose.core.domain.ui.DomainRect
+import io.beyondwin.fixthis.compose.core.domain.ui.SemanticsNodeSnapshot
 
 data class Annotation(
     val id: AnnotationId,
@@ -16,9 +16,9 @@ data class Annotation(
     val createdAtEpochMillis: Long,
     val updatedAtEpochMillis: Long,
     val target: AnnotationTarget,
-    val selectedNode: FixThisNode? = null,
-    val nearbyNodes: List<FixThisNode> = emptyList(),
-    val sourceCandidates: List<SourceCandidate> = emptyList(),
+    val selectedNode: SemanticsNodeSnapshot? = null,
+    val nearbyNodes: List<SemanticsNodeSnapshot> = emptyList(),
+    val sourceCandidates: List<SourceHint> = emptyList(),
     val screenshotCrop: SnapshotScreenshot? = null,
     val comment: String,
     val sequenceNumber: Int? = null,
@@ -27,13 +27,13 @@ data class Annotation(
     val sentAtEpochMillis: Long? = null,
     val status: AnnotationStatus = AnnotationStatus.OPEN,
     val agentSummary: String? = null,
-    val targetEvidence: TargetEvidence? = null,
-    val targetReliability: TargetReliability? = null,
+    val targetEvidence: AnnotationEvidence? = null,
+    val targetReliability: TargetReliabilityAssessment? = null,
 )
 
 sealed interface AnnotationTarget {
-    data class Node(val nodeUid: String, val boundsInWindow: FixThisRect) : AnnotationTarget
-    data class Area(val boundsInWindow: FixThisRect) : AnnotationTarget
+    data class Node(val nodeUid: String, val boundsInWindow: DomainRect) : AnnotationTarget
+    data class Area(val boundsInWindow: DomainRect) : AnnotationTarget
 }
 
 enum class AnnotationDelivery {
