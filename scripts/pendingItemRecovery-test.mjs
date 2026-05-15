@@ -226,7 +226,8 @@ test('switching sessions keeps the previous session pending recovery mirror', ()
   const resetBody = extractFunctionBody(annotationsSource, 'function resetComposer');
   const openBody = extractFunctionBody(historySource, 'async function openSession(sessionId)');
   assert.match(annotationsSource, /function resetComposer\(clearFlow\s*=\s*true,\s*clearMirror\s*=\s*true\)/);
-  assert.match(resetBody, /if\s*\(clearMirror\)\s*\{[\s\S]*?clearPendingMirror\(state\.session\?\.sessionId\);/);
+  assert.match(resetBody, /const composerSessionId = draftWorkspace\?\.context\?\.sessionId \|\| state\.session\?\.sessionId;/);
+  assert.match(resetBody, /if\s*\(clearMirror\)\s*\{[\s\S]*?clearPendingMirror\(composerSessionId\);/);
   assert.match(openBody, /resetComposer\(true,\s*false\);/);
   assert.doesNotMatch(openBody, /resetComposer\(\);/);
 });
@@ -252,7 +253,7 @@ test('returning to a session with pending mirror loads draft workspace recovery'
   assert.match(mainSource, /function loadDraftRecoveryForSession\(sessionId\)/);
   assert.match(mainSource, /storage\.loadWorkspacesForSession\(sessionId\)/);
   assert.match(mainSource, /storage\.migrateLegacyPending\(sessionId\)/);
-  assert.match(resetBody, /activePendingMirrorSessions\.delete\(state\.session\?\.sessionId\);/);
+  assert.match(resetBody, /activePendingMirrorSessions\.delete\(composerSessionId\);/);
   assert.match(loadBody, /loadDraftRecoveryForSession\(sessionId\) \|\| restorePendingState\(sessionId\)/);
   assert.match(loadBody, /pendingRecovery = restoredSummary\.total \? restored : null;/);
 });
