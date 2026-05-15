@@ -56,6 +56,31 @@ class SourceCandidateStalenessCheckerTest {
     }
 
     @Test
+    fun `marks legacy module relative candidate fresh through unique suffix and fills repo file`() {
+        val tmp = tempDir()
+        val file = File(tmp, "sample/src/main/java/Sample.kt")
+        file.parentFile.mkdirs()
+        file.writeText("package x\n\nfun greet() = \"hi\"\n")
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(
+                    file = "src/main/java/Sample.kt",
+                    line = 3,
+                    excerpt = "fun greet() = \"hi\"",
+                ),
+            ),
+        )
+        val candidate = candidate(file = "src/main/java/Sample.kt", line = 3)
+        val checker = SourceCandidateStalenessChecker(tmp)
+
+        val result = checker.annotate(listOf(candidate), index).single()
+
+        assertEquals(false, result.stale)
+        assertNull(result.staleReason)
+        assertEquals("sample/src/main/java/Sample.kt", result.repoFile)
+    }
+
+    @Test
     fun `marks candidate stale when excerpt does not match`() {
         val tmp = tempDir()
         val file = File(tmp, "Sample.kt")

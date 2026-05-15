@@ -184,6 +184,7 @@ internal class FixThisToolOperations(
         val session = baseSession
             .focusedOn(itemId)
             .filteredForAgent(showAll = includeAll || itemId != null)
+            .let { services.feedbackService.refreshSourceEvidenceForHandoff(it) }
         toolResult(
             content = listOf(
                 textContent(FeedbackQueueFormatter.toJson(session), "application/json"),

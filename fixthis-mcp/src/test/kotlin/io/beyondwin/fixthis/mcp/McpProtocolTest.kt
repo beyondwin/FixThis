@@ -1,6 +1,9 @@
 package io.beyondwin.fixthis.mcp
 
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.compose.core.source.SourceIndex
+import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
+import io.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import io.beyondwin.fixthis.mcp.session.AnnotationStatusDto
 import io.beyondwin.fixthis.mcp.session.FakeFixThisBridge
 import io.beyondwin.fixthis.mcp.session.FeedbackNavigationRequest
@@ -1000,6 +1003,68 @@ class McpProtocolTest {
         assertEquals("sent", item.getValue("delivery").jsonPrimitive.content)
         assertEquals(true, item.getValue("staleAfterHandoff").jsonPrimitive.boolean)
         assertEquals(200L, item.getValue("lastHandedOffAtEpochMillis").jsonPrimitive.long)
+    }
+
+    @Test
+    fun readFeedbackRefreshesPersistedFileNotFoundSourceCandidateWhenHostPathNowResolves() = runBlocking {
+        val projectRoot = tempDir("fixthis-read-feedback-refresh-")
+        val sourceIndex = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(
+                    file = "src/main/java/Sample.kt",
+                    line = 3,
+                    text = listOf("Email address"),
+                    testTags = listOf("emailField"),
+                    excerpt = "Text(\"Email address\")",
+                ),
+            ),
+        )
+        val bridge = FakeFixThisBridge(
+            packageName = "io.beyondwin.fixthis.sample",
+            sourceIndex = sourceIndex,
+        )
+        val service = FeedbackSessionService(
+            bridge = bridge,
+            store = FeedbackSessionStore(
+                clock = { 100L },
+                idGenerator = FakeIds("session-1", "screen-1", "item-1", "batch-1").next,
+            ),
+            projectRoot = projectRoot.absolutePath,
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val screen = service.captureScreen(session.sessionId)
+        val item = service.addFeedbackItem(
+            sessionId = session.sessionId,
+            screenId = screen.screenId,
+            targetType = FeedbackTargetType.NODE,
+            bounds = FixThisRect(28f, 77f, 692f, 186f),
+            nodeUid = "email-label",
+            comment = "Needs source check",
+        )
+        service.sendDraftToAgent(session.sessionId, listOf(item.itemId))
+        projectRoot.resolve("sample/src/main/java/Sample.kt").apply {
+            parentFile.mkdirs()
+            writeText("package x\n\nText(\"Email address\")\n")
+        }
+        val server = server(bridge, projectRoot = projectRoot, feedbackService = service)
+
+        val content = runToolCallContentTexts(
+            server,
+            "fixthis_read_feedback",
+            """{"sessionId":"${session.sessionId}","itemId":"${item.itemId}"}""",
+        )
+        val payload = parse(content[0]).jsonObject
+        val candidate = payload.getValue("items").jsonArray
+            .single()
+            .jsonObject
+            .getValue("sourceCandidates").jsonArray
+            .single()
+            .jsonObject
+
+        assertEquals("sample/src/main/java/Sample.kt", candidate.getValue("repoFile").jsonPrimitive.content)
+        assertEquals(false, candidate.getValue("stale").jsonPrimitive.boolean)
+        assertFalse(candidate.containsKey("staleReason"))
     }
 
     @Test

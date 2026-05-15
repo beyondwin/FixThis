@@ -38,7 +38,8 @@ class ConsoleEventsRoutesTest {
             assertTrue(lines.contains("event: snapshot"))
             val dataLines = lines.filter { it.startsWith("data: ") }
             assertEquals(1, dataLines.size, "SSE event data must be one JSON payload, not pretty-printed lines")
-            assertTrue(Json.parseToJsonElement(dataLines.single().removePrefix("data: ")).jsonObject.containsKey("devices"))
+            val payload = Json.parseToJsonElement(dataLines.single().removePrefix("data: ")).jsonObject
+            assertTrue(payload.containsKey("devices"))
         } finally {
             server.stop()
             fixture.close()

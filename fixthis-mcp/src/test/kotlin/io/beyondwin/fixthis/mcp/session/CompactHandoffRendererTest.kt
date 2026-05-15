@@ -1718,7 +1718,9 @@ class CompactHandoffRendererTest {
             "Expected repoFile display path but got:\n$markdown",
         )
         assertTrue(
-            !markdown.lines().any { it.trim().startsWith("src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt:44") },
+            !markdown.lines().any {
+                it.trim().startsWith("src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt:44")
+            },
             "Expected module-relative file path to be hidden when repoFile is present:\n$markdown",
         )
     }

@@ -51,19 +51,23 @@ class HostSourcePathResolver(projectRoot: File) {
     ): HostSourcePathResolution {
         val resolved = runCatching { File(canonicalRoot, relativePath).canonicalFile }
             .getOrNull()
-            ?: return unresolved("file not found on host")
-        if (!resolved.isInsideProjectRoot()) {
-            return unresolved("$PATH_ESCAPE_PREFIX: $relativePath")
+        val failureReason = when {
+            resolved == null -> "file not found on host"
+            !resolved.isInsideProjectRoot() -> "$PATH_ESCAPE_PREFIX: $relativePath"
+            !resolved.isFile -> "file not found on host"
+            else -> null
         }
-        if (!resolved.isFile) {
-            return unresolved("file not found on host")
+        return if (failureReason != null) {
+            unresolved(failureReason)
+        } else {
+            val file = requireNotNull(resolved)
+            HostSourcePathResolution(
+                file = file,
+                displayPath = file.relativeTo(canonicalRoot).invariantSeparatorsPath,
+                reason = reason,
+                failureReason = null,
+            )
         }
-        return HostSourcePathResolution(
-            file = resolved,
-            displayPath = resolved.relativeTo(canonicalRoot).invariantSeparatorsPath,
-            reason = reason,
-            failureReason = null,
-        )
     }
 
     private fun uniqueSuffix(rawPath: String, hadSourceRoot: Boolean): HostSourcePathResolution {

@@ -218,6 +218,53 @@ class TargetEvidenceService(
         )
     }
 
+    fun refreshSourceEvidence(item: AnnotationDto, screen: SnapshotDto, sourceIndex: SourceIndex): AnnotationDto {
+        var refreshed = item
+        if (item.sourceCandidates.isNotEmpty()) {
+            val sourceCandidates = stalenessChecker.annotate(item.sourceCandidates, sourceIndex)
+            if (sourceCandidates != item.sourceCandidates) {
+                refreshed = item.withRefreshedSourceEvidence(screen, sourceCandidates)
+            }
+        }
+        return refreshed
+    }
+
+    private fun AnnotationDto.withRefreshedSourceEvidence(
+        screen: SnapshotDto,
+        sourceCandidates: List<SourceCandidate>,
+    ): AnnotationDto {
+        val targetType = when (target) {
+            is AnnotationTargetDto.Area -> FeedbackTargetType.AREA
+            is AnnotationTargetDto.Node -> FeedbackTargetType.NODE
+        }
+        val bounds = when (val annotationTarget = target) {
+            is AnnotationTargetDto.Area -> annotationTarget.boundsInWindow
+            is AnnotationTargetDto.Node -> annotationTarget.boundsInWindow
+        }
+        val evidence = targetEvidenceFor(
+            targetType = targetType,
+            selectedNode = selectedNode,
+            screen = screen,
+            sourceCandidates = sourceCandidates,
+        )
+        val reliability = targetReliabilityFor(
+            screen = screen,
+            validatedTarget = ValidatedFeedbackTarget(
+                targetType = targetType,
+                selectedNode = selectedNode,
+                storedBounds = bounds,
+                evidenceNodes = nearbyNodes,
+            ),
+            sourceCandidates = sourceCandidates,
+            targetEvidence = evidence,
+        )
+        return copy(
+            sourceCandidates = sourceCandidates,
+            targetEvidence = evidence,
+            targetReliability = reliability,
+        )
+    }
+
     private fun selectedNodeFor(
         screen: SnapshotDto,
         targetType: FeedbackTargetType,

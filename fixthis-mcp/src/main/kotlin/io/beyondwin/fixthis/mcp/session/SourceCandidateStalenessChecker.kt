@@ -34,20 +34,31 @@ class SourceCandidateStalenessChecker(private val projectRoot: File) {
         sourceIndex: SourceIndex,
         resolver: HostSourcePathResolver,
     ): SourceCandidate {
-        val expected = entry?.excerpt?.takeIf { it.isNotBlank() } ?: return candidate
-        val line = candidate.line ?: return candidate
+        if (entry?.excerpt.isNullOrBlank() || candidate.line == null) return candidate
+        val expected = requireNotNull(entry?.excerpt)
+        val line = requireNotNull(candidate.line)
 
         val resolution = resolver.resolve(entry, sourceIndex)
-        val resolved = resolution.file ?: return candidate.flagStale(
-            resolution.failureReason ?: "file not found on host",
-        )
-        if (resolved.length() > MaxBytesToRead) return candidate.flagStale("file too large to verify")
-
-        val live = readLine(resolved, line) ?: return candidate.flagStale("line out of range")
-        return if (live.trim() == expected.trim()) {
-            candidate.copy(stale = false, staleReason = null)
+        return if (resolution.file == null) {
+            candidate.flagStale(resolution.failureReason ?: "file not found on host")
         } else {
-            candidate.flagStale("excerpt mismatch")
+            candidate.annotateResolvedSource(resolution, expected, line)
+        }
+    }
+
+    private fun SourceCandidate.annotateResolvedSource(
+        resolution: HostSourcePathResolution,
+        expected: String,
+        line: Int,
+    ): SourceCandidate {
+        val resolved = requireNotNull(resolution.file)
+        val resolvedCandidate = withResolvedRepoFile(resolution)
+        val live = if (resolved.length() > MaxBytesToRead) null else readLine(resolved, line)
+        return when {
+            resolved.length() > MaxBytesToRead -> resolvedCandidate.flagStale("file too large to verify")
+            live == null -> resolvedCandidate.flagStale("line out of range")
+            live.trim() == expected.trim() -> resolvedCandidate.copy(stale = false, staleReason = null)
+            else -> resolvedCandidate.flagStale("excerpt mismatch")
         }
     }
 
@@ -64,6 +75,15 @@ class SourceCandidateStalenessChecker(private val projectRoot: File) {
     }
 
     private fun SourceCandidate.flagStale(reason: String): SourceCandidate = copy(stale = true, staleReason = reason)
+
+    private fun SourceCandidate.withResolvedRepoFile(resolution: HostSourcePathResolution): SourceCandidate {
+        val displayPath = resolution.displayPath?.takeIf { it.isNotBlank() }
+        return if (displayPath == null || !repoFile.isNullOrBlank() || displayPath == file) {
+            this
+        } else {
+            copy(repoFile = displayPath)
+        }
+    }
 
     private fun entryKey(file: String, line: Int?): String = "$file::${line ?: -1}"
 

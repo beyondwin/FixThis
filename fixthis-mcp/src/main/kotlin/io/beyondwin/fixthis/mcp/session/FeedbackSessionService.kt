@@ -101,6 +101,24 @@ class FeedbackSessionService(
 
     fun closeSession(sessionId: String): SessionDto = registry.closeSession(sessionId)
 
+    suspend fun refreshSourceEvidenceForHandoff(session: SessionDto): SessionDto {
+        val screenById = session.screens.associateBy { it.screenId }
+        val sourceScreen = session.screens.firstOrNull { it.sourceIndexAvailable }
+        val sourceIndex = sourceScreen?.let {
+            targetEvidenceService.readSourceIndexOrNull(session.packageName, it)
+        }
+        return if (sourceIndex != null && session.items.any { it.sourceCandidates.isNotEmpty() }) {
+            session.copy(
+                items = session.items.map { item ->
+                    val screen = screenById[item.screenId] ?: return@map item
+                    targetEvidenceService.refreshSourceEvidence(item, screen, sourceIndex)
+                },
+            )
+        } else {
+            session
+        }
+    }
+
     // --- Device / connection pass-throughs ---
 
     fun devices(): List<AdbDevice> = connectionService.devices()
