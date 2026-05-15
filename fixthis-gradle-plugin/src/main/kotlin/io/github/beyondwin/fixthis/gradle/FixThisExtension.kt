@@ -11,7 +11,7 @@ abstract class FixThisExtension @Inject constructor(
         objects.property(Boolean::class.java).convention(true)
 
     val runtimeVersion: Property<String> =
-        objects.property(String::class.java).convention("0.1.0")
+        objects.property(String::class.java).convention(DefaultFixThisRuntimeVersion)
 
     val addDebugRuntime: Property<Boolean> =
         objects.property(Boolean::class.java).convention(true)
@@ -28,3 +28,5 @@ abstract class FixThisExtension @Inject constructor(
     val redactEditableText: Property<Boolean> =
         objects.property(Boolean::class.java).convention(true)
 }
+
+internal const val DefaultFixThisRuntimeVersion = "0.2.1"

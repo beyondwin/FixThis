@@ -28,17 +28,17 @@ broader Android UI stacks or packaged distribution.
 
 ### Maven Central and Gradle Plugin Portal release
 
-External projects should eventually install FixThis with published artifacts
-instead of a source checkout, Gradle composite build, or local repository setup.
+External projects install FixThis with the published Gradle plugin and Maven
+artifacts instead of a source checkout, Gradle composite build, or local
+repository setup.
 The release readiness tracker is the live source of truth:
 [Release readiness](../contributing/release-readiness.md).
 
 ### CLI/MCP package for agent-first installation
 
-The next source release can attach a CLI/MCP package so agents can install the
-desktop tooling with `scripts/install-fixthis.sh` and then run `fixthis init`.
-Android app Gradle wiring remains source/composite-build until public Gradle
-artifacts are available.
+GitHub Releases attach a CLI/MCP package so agents can install the desktop
+tooling with `scripts/install-fixthis.sh` and then run
+`fixthis install-agent` or `fixthis init`.
 
 ### Deeper AndroidView and interop awareness
 

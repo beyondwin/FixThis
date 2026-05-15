@@ -11,7 +11,12 @@ When asked to add FixThis to this Android app:
 1. Find the Android application module and its `applicationId`.
 2. Ensure the FixThis CLI is installed. Prefer the published package manager
    path when available; otherwise install from the GitHub Release CLI/MCP
-   package.
+   package:
+
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
+     | bash -s -- --version v0.2.1
+   ```
 3. Run `fixthis install-agent --project-dir . --target all`. This patches the
    detected app module with Gradle plugin `io.github.beyondwin.fixthis.compose`,
    writes MCP config for Claude Code / Codex, and writes `.fixthis/agent-setup.*`
@@ -23,7 +28,7 @@ When asked to add FixThis to this Android app:
 
    ```kotlin
    plugins {
-       id("io.github.beyondwin.fixthis.compose") version "0.2.0"
+       id("io.github.beyondwin.fixthis.compose") version "0.2.1"
    }
    ```
 
@@ -36,7 +41,3 @@ When asked to add FixThis to this Android app:
 Never add FixThis to release builds. The sidekick is debug-only.
 Do not commit `.fixthis/feedback-sessions/`, screenshots, or local artifacts.
 ```
-
-Until Maven Central and the Gradle Plugin Portal publication are live, step 2
-must use the source/composite-build wiring documented in
-[`add-to-your-app.md`](add-to-your-app.md).

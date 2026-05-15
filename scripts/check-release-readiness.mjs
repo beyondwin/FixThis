@@ -42,24 +42,21 @@ function requireRegex(rule, file, regex, description) {
   }
 }
 
-function forbidPublishedGradleClaims(rule, file) {
+function forbidStalePrePublicationClaims(rule, file) {
   const text = read(file);
-  const riskyPatterns = [
-    /published\s+to\s+Maven\s+Central/i,
-    /available\s+on\s+Maven\s+Central/i,
-    /available\s+from\s+the\s+Gradle\s+Plugin\s+Portal/i,
-    /install\s+from\s+Maven\s+Central/i,
+  const stalePatterns = [
+    /pre-publication status/i,
+    /not\s+yet\s+on\s+Maven\s+Central\s+or\s+the\s+Gradle\s+Plugin\s+Portal/i,
+    /Maven\s+Central\s+and\s+Gradle\s+Plugin\s+Portal\s+coordinates\s+are\s+not\s+published\s+yet/i,
+    /External\s+Gradle\s+artifacts\s+are\s+not\s+published\s+yet/i,
+    /until\s+artifacts\s+are\s+released/i,
+    /source\/composite-build\s+wiring\s+until\s+registry\s+verification\s+passes/i,
   ];
-  const allowedContext =
-    /not\s+published/i.test(text) ||
-    /future/i.test(text) ||
-    /not\s+yet/i.test(text) ||
-    /do\s+not/i.test(text);
-  const matched = riskyPatterns.find((pattern) => pattern.test(text));
-  if (!matched || allowedContext) {
+  const matched = stalePatterns.find((pattern) => pattern.test(text ?? ''));
+  if (!matched) {
     pass(rule);
   } else {
-    fail(rule, `${file} contains an unqualified published-artifact claim matching ${matched}`);
+    fail(rule, `${file} still contains stale pre-publication wording matching ${matched}`);
   }
 }
 
@@ -86,10 +83,10 @@ function forbidTextInRepository(rule, forbiddenText) {
 }
 
 requireRegex(
-  'R1.readme-not-published',
+  'R1.readme-agent-first-install',
   'README.md',
-  /not\s+yet[\s>]+on\s+Maven\s+Central\s+or\s+the\s+Gradle\s+Plugin\s+Portal/i,
-  'an explicit not-yet-published Maven Central and Gradle Plugin Portal status',
+  /fixthis\s+install-agent[\s\S]*io\.github\.beyondwin\.fixthis\.compose[\s\S]*version\s+"0\.2\.1"/,
+  'the published agent-first install path and Gradle Plugin Portal id',
 );
 requireIncludes(
   'R2.readiness-release-process',
@@ -114,8 +111,8 @@ requireIncludes(
 requireRegex(
   'R6.release-process-types',
   'docs/contributing/release-process.md',
-  /Source release[\s\S]*Artifact release[\s\S]*MCP Registry release/,
-  'separate Source release, Artifact release, and MCP Registry release rows',
+  /GitHub release[\s\S]*Artifact release[\s\S]*MCP Registry release/,
+  'separate GitHub release, Artifact release, and MCP Registry release rows',
 );
 requireIncludes(
   'R7.unreleased-warning',
@@ -168,7 +165,7 @@ for (const file of [
   'docs/contributing/release-readiness.md',
   'docs/contributing/release-process.md',
 ]) {
-  forbidPublishedGradleClaims(`R16.no-unqualified-published-claims:${file}`, file);
+  forbidStalePrePublicationClaims(`R16.no-stale-prepublication-claims:${file}`, file);
 }
 
 if (failures.length > 0) {

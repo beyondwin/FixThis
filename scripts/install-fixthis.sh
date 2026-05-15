@@ -14,7 +14,7 @@ Default install:
   curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh | bash
 
 Agent-first setup from an Android app repo:
-  scripts/install-fixthis.sh --version v0.2.0 --init --target codex --project-dir .
+  scripts/install-fixthis.sh --version v0.2.1 --init --target codex --project-dir .
 USAGE
 }
 

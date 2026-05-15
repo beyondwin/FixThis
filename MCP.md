@@ -36,18 +36,17 @@ fixthis init
 unique Android `applicationId` from Gradle build files when `.fixthis/project.json`
 does not exist. Use `fixthis init --dry-run` to preview the writes.
 
-After a GitHub Release includes the CLI/MCP package asset, an agent can install
-the desktop tools before running `fixthis init`:
+An agent can install the CLI/MCP package from GitHub Releases before running
+`fixthis init`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-  | bash -s -- --version vX.Y.Z --init --target codex --project-dir .
+  | bash -s -- --version v0.2.1 --init --target codex --project-dir .
 ```
 
-Use `--target claude` or `--target all` for other MCP clients. This only
-installs the desktop CLI/MCP tools; external Android apps still need the
-debug-only Gradle wiring described in the getting-started docs until Maven
-Central and Gradle Plugin Portal artifacts exist.
+Use `--target claude` or `--target all` for other MCP clients. For a new
+Android app integration, agents should run `fixthis install-agent --project-dir
+. --target all` so Gradle wiring and MCP config are handled together.
 
 Useful variants:
 

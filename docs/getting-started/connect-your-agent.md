@@ -29,21 +29,25 @@ For the fastest sample setup, use the shortcut:
 
 ## Agent-First Desktop Install
 
-After a GitHub Release includes the CLI/MCP package asset, an agent can install
-the desktop tools and register MCP from inside an Android app repository:
+An agent can install the desktop CLI/MCP package from GitHub Releases and
+register MCP from inside an Android app repository:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-  | bash -s -- --version vX.Y.Z --init --target codex --project-dir .
+  | bash -s -- --version v0.2.1 --init --target codex --project-dir .
 ```
 
 Use `--target claude` for Claude Code or `--target all` for both. If package
 detection is ambiguous, add `--package <applicationId>`.
 
-This install path covers the desktop CLI and MCP server. The Android app still
-needs the debug-only FixThis Gradle wiring from
-[Add FixThis to your app](add-to-your-app.md) until Maven Central and Gradle
-Plugin Portal artifacts are available.
+For a new Android app integration, prefer the single agent command:
+
+```bash
+fixthis install-agent --project-dir . --target all
+```
+
+It applies the published Gradle plugin, writes Claude Code / Codex MCP config,
+and leaves `.fixthis/agent-setup.*` handoff files for follow-up agents.
 
 When the Gradle plugin is applied to the Android app, agents should prefer the
 project-local setup task before `fixthis init`:
@@ -56,8 +60,6 @@ fixthis doctor --project-dir .
 
 `fixthisSetup` writes `.fixthis/project.json`, so `init`, `doctor`, `mcp`, and
 `console` can omit `--package` unless the Android project has multiple app ids.
-Agents may use `fixthis install-agent --project-dir . --target all` as the
-same CLI path.
 For pasteable `AGENTS.md` / `CLAUDE.md` instructions, use
 [Agent install snippet](agent-install-snippet.md).
 

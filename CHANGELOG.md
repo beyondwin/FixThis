@@ -33,6 +33,20 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   External source map; build aborts on size budget overflow or missing
   contract symbol.
 
+## [0.2.1] - 2026-05-15
+
+### Fixed
+
+- **Agent-first public install path (cli/gradle-plugin/docs, 2026-05-15):**
+  - Updated generated `.fixthis/agent-setup.*` handoff files so agents continue
+    with `./gradlew fixthisSetup`, `fixthis init --agent --project-dir .`, and
+    `fixthis doctor --project-dir . --json` instead of re-running
+    `fixthis install-agent`.
+  - Updated the Gradle plugin's default sidekick runtime version and CLI
+    installer default to the current public patch release.
+  - Refreshed public docs from source/composite-build setup to the published
+    GitHub Release + Gradle Plugin Portal + Maven Central flow.
+
 ### Added
 
 - **Agent-first Gradle setup task (gradle-plugin/docs, 2026-05-15):**

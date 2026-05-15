@@ -37,7 +37,9 @@ class InitAgentCommandTest {
         val setupGuide = projectRoot.resolve(".fixthis/agent-setup.md")
         assertTrue(setupGuide.isFile)
         val setupText = setupGuide.readText()
-        assertTrue(setupText.contains("fixthis install-agent --project-dir . --target all"))
+        assertTrue(!setupText.contains("1. Run `fixthis install-agent --project-dir . --target all`"))
+        assertTrue(setupText.contains("./gradlew fixthisSetup"))
+        assertTrue(setupText.contains("fixthis init --agent --project-dir ."))
         assertTrue(setupText.contains("fixthis doctor --project-dir . --json"))
         assertTrue(setupText.contains("fixthis_open_feedback_console"))
 

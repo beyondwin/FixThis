@@ -2,11 +2,9 @@
 
 How to cut a FixThis release.
 
-FixThis currently supports **source releases**: a commit on `main`, an
-annotated `vX.Y.Z` tag, and a GitHub Release whose notes point to the matching
-CHANGELOG section. Maven Central and Gradle Plugin Portal publication are
-future **artifact releases** and must stay behind explicit maintainer approval
-until the readiness checklist is complete.
+FixThis releases can ship GitHub release assets, Maven Central artifacts, and
+Gradle Plugin Portal artifacts. Publishing still requires explicit maintainer
+approval because it uses signing keys and registry tokens.
 
 See [`release-readiness.md`](release-readiness.md) before changing public
 install instructions.
@@ -15,8 +13,8 @@ install instructions.
 
 | Type | What ships | Status |
 | --- | --- | --- |
-| Source release | Git tag, GitHub Release, release notes, source/composite-build usage | Supported today |
-| Artifact release | Maven Central and/or Gradle Plugin Portal artifacts | Publish-ready prep only |
+| GitHub release | Git tag, GitHub Release, release notes, CLI/MCP tarball | Supported today |
+| Artifact release | Maven Central and/or Gradle Plugin Portal artifacts | Supported through manual workflows |
 | MCP Registry release | Registry metadata pointing to a public package or remote server | Future work after an install package exists |
 
 ## Versioning
@@ -30,20 +28,14 @@ independent of the package version — bumped per the checklist in
 
 ## Where the version lives
 
-For source-only GitHub releases, the annotated tag and CHANGELOG heading are
-the public version source of truth. When Gradle artifact publishing is enabled,
-the package version will also be set in the root build configuration:
+The annotated tag and CHANGELOG heading are the public version source of truth.
+Gradle artifact workflows receive the same version through `-PFIXTHIS_VERSION`.
 
 | Location | Bumped on | Notes |
 |----------|-----------|-------|
 | `gradle.properties` (`FIXTHIS_VERSION=…`) | every release | The local artifact version source of truth for root publications such as `:fixthis-compose-sidekick` and `:fixthis-compose-core`. |
 | `BridgeProtocol.VERSION` | wire-visible bridge changes only | Independent of package version. |
 | `CHANGELOG.md` | every release | Move "Unreleased" entries under a new dated heading. |
-
-> The `gradle.properties` `FIXTHIS_VERSION` value supports local packaging
-> rehearsal only. Until external artifact publishing is explicitly enabled,
-> consumers still wire FixThis via source or composite build. GitHub source
-> releases remain versioned by annotated tags.
 
 ## Pre-release checklist
 
@@ -64,7 +56,7 @@ Before tagging:
 - [ ] No `TODO` / `FIXME` / `// TEMP` markers in code paths shipped this release (`grep -rn TODO src/main`)
 - [ ] [`release-readiness.md`](release-readiness.md) blockers all checked
 
-## Cut a Source Release
+## Cut a GitHub Release
 
 1. Move CHANGELOG `Unreleased` entries under a new dated heading:
 
@@ -123,12 +115,9 @@ Before tagging:
    gh release create v0.2.0 --title "FixThis v0.2.0" --notes-file docs/releases/v0.2.0.md
    ```
 
-## Future Artifact Release Gate
+## Artifact Release Gate
 
-Do not run this section until `release-readiness.md` marks external artifact
-release prerequisites complete.
-
-Before changing README install instructions to public Gradle coordinates:
+Before publishing Maven Central or Gradle Plugin Portal artifacts:
 
 1. Verify Maven Central namespace ownership for `io.github.beyondwin`.
 2. Verify Gradle Plugin Portal ownership for `io.github.beyondwin.fixthis.compose`.
@@ -160,8 +149,8 @@ Before changing README install instructions to public Gradle coordinates:
 
    resolves from public registries.
 
-7. Only after verification, update README and getting-started docs from
-   source/composite-build setup to published-artifact setup.
+7. After verification, update README and getting-started docs if the public
+   install command changes.
 
 ### Publish Prep Validation
 
@@ -180,8 +169,8 @@ covers the included plugin build without enabling remote publication.
 ## Post-release
 
 - Verify the GitHub Release appears on the repository Releases page.
-- If artifact publishing is enabled, verify Maven Central / Plugin Portal
-  listings appear and are installable.
+- Verify Maven Central / Plugin Portal listings appear and are installable when
+  artifact workflows were run.
 - Bump README compatibility matrix if needed for the next development cycle.
 - File follow-up issues for anything deferred from this release.
 
@@ -197,8 +186,8 @@ For urgent fixes against a released version:
 ## See also
 
 - [`CONTRIBUTING.md`](../../CONTRIBUTING.md) — local PR checks.
-- [`release-readiness.md`](release-readiness.md) — what's still blocking the
-  first external publish.
+- [`release-readiness.md`](release-readiness.md) — current publication and
+  registry status.
 - [`docs/reference/bridge-protocol.md`](../reference/bridge-protocol.md) —
   bridge-version bump procedure (independent of package version).
 - [`CHANGELOG.md`](../../CHANGELOG.md) — versioning policy and history.

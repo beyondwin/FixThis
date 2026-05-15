@@ -1,8 +1,7 @@
-# Unreleased changes since v0.1.0
+# Unreleased changes
 
-This page summarizes current `main`. It is not a tagged release and should not
-be used as evidence that Maven Central or Gradle Plugin Portal artifacts are
-published.
+This page summarizes current `main`. It is not a tagged release; use the
+GitHub Release page and registry listings as release evidence.
 
 These notes summarize the user-visible and contributor-facing changes that
 landed after the [v0.1.0](v0.1.0.md) GitHub source release. `CHANGELOG.md`
@@ -77,16 +76,16 @@ remains the chronological source of truth.
 - Agent-first setup is simpler. `fixthis init` writes Claude Code / Codex MCP
   config by default and can infer the Android `applicationId` from Gradle build
   files when `.fixthis/project.json` is not present.
-- The next source release can include an agent-first CLI/MCP package. Release
-  automation now builds `fixthis-cli-mcp-vX.Y.Z.tar.gz`, and
-  `scripts/install-fixthis.sh` can install it and run `fixthis init` from an
-  Android app repository.
+- Agent-first install is available through the GitHub Release CLI/MCP package,
+  the Gradle Plugin Portal plugin, and Maven Central sidekick/core artifacts.
+  Agents can install the desktop tools with `scripts/install-fixthis.sh` and
+  run `fixthis install-agent` from an Android app repository.
 
 ## Compatibility Notes
 
-- External Gradle artifacts are still not published. Consumers should continue
-  to use a Gradle composite build until release readiness marks Maven Central
-  and Gradle Plugin Portal publication complete.
+- External Android apps should use Gradle plugin
+  `io.github.beyondwin.fixthis.compose` and let it resolve the debug-only
+  sidekick from Maven Central.
 - Persisted MCP JSON field names remain compatibility contracts:
   `items`, `screens`, `itemId`, `screenId`, `targetEvidence`,
   `targetReliability`, and `sourceCandidates`.

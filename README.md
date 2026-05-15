@@ -23,11 +23,48 @@ room, interop content, or another region that is not a clean component.
 ## Works Today
 
 - Try the bundled sample app in about five minutes.
+- Install the published desktop CLI/MCP package from GitHub Releases.
+- Add FixThis to an external Android app with the published Gradle plugin:
+  `io.github.beyondwin.fixthis.compose`.
 - Let Claude Code or Codex configure the sample MCP server with `./scripts/bootstrap-mcp.sh --sample`.
+- Let an agent configure your Android app with `fixthis install-agent`.
 - Use **Copy Prompt** with Cursor, ChatGPT, or any chat-style coding agent.
 - Use **Save to MCP** with Claude Code or Codex after running the bootstrap script.
 - Runs locally over ADB and `127.0.0.1`; FixThis makes no external API calls.
 - Debug builds only. Jetpack Compose only.
+
+## Quick Start: Agent Installs FixThis in Your App
+
+From the root of a Jetpack Compose Android app, ask Claude Code or Codex:
+
+```text
+Install FixThis in this project and configure it for this agent.
+```
+
+The agent should run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
+  | bash -s -- --version v0.2.1
+
+fixthis install-agent --project-dir . --target all
+./gradlew fixthisSetup
+fixthis doctor --project-dir . --json
+```
+
+`fixthis install-agent` patches the detected Android app module with the
+published Gradle plugin:
+
+```kotlin
+plugins {
+    id("io.github.beyondwin.fixthis.compose") version "0.2.1"
+}
+```
+
+The plugin adds the debug-only sidekick dependency automatically, generates
+FixThis project metadata, and keeps release builds out of scope. Restart Claude
+Code or Codex after MCP config is written, then call
+`fixthis_open_feedback_console`.
 
 ## Quick Start: Sample App to Agent Handoff
 
@@ -116,28 +153,20 @@ Product and architecture details live in
 
 ## Status
 
-> ⚠️ **Source release available.** FixThis has GitHub Releases for source
-> snapshots, starting with [v0.1.0](docs/releases/v0.1.0.md), but it is not yet
-> on Maven Central or the Gradle Plugin Portal. Current `main` can be tried
-> directly from source.
+FixThis has public artifacts for the agent-first path:
 
-The next source release can also attach a CLI/MCP package for agent-first
-desktop installation. Agents can then run `scripts/install-fixthis.sh` and
-`fixthis init`; Android app Gradle wiring still remains source/composite-build
-until public Gradle artifacts are available.
+- Gradle plugin: `io.github.beyondwin.fixthis.compose`
+- Maven artifacts: `io.github.beyondwin:fixthis-compose-sidekick` and
+  `io.github.beyondwin:fixthis-compose-core`
+- CLI/MCP package: GitHub Release asset `fixthis-cli-mcp-vX.Y.Z.tar.gz`
 
-External projects currently wire this repository via Gradle composite build
-(`includeBuild`) or local repository setup until artifacts are released.
+The live release dashboard is
+[Release readiness](docs/contributing/release-readiness.md). It lists current
+coordinates, verification commands, and registry follow-ups.
 
-The live readiness dashboard is
-[Release readiness](docs/contributing/release-readiness.md). It lists the
-supported install paths today, future artifact coordinates, and the checks
-required before public artifact instructions can replace source/composite
-setup.
-
-Current `main` also contains unreleased hardening after v0.1.0. See
-[Unreleased changes since v0.1.0](docs/releases/unreleased.md) and
-[`CHANGELOG.md`](CHANGELOG.md#unreleased) before cutting the next tag.
+Current `main` may contain changes after the latest tag. See
+[`CHANGELOG.md`](CHANGELOG.md#unreleased) and
+[release notes](docs/releases/README.md) before cutting another release.
 
 Agents working inside this repository should also read [AGENTS.md](AGENTS.md).
 

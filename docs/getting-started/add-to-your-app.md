@@ -1,11 +1,5 @@
 # Add FixThis to Your Own App
 
-> ⚠️ **Pre-publication status:** The bundled sample works now. A separate app can
-> use FixThis today through Gradle composite-build or local project wiring.
-> Maven Central and Gradle Plugin Portal coordinates are not published yet. See
-> [Release readiness](../contributing/release-readiness.md) for the publishing
-> checklist.
-
 ## Requirements
 
 Same as the sample: JDK 21 toolchain, AGP 9.1.1, Kotlin 2.2.21, Compose BOM
@@ -16,35 +10,34 @@ full supported / minimum-that-compiles version axes.
 
 ## 1. Apply the Gradle plugin
 
-In your `app/build.gradle.kts`:
+The agent-first path should do this automatically:
 
-```kotlin
-plugins {
-    id("io.github.beyondwin.fixthis.compose")
-}
+```bash
+curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
+  | bash -s -- --version v0.2.1
+
+fixthis install-agent --project-dir . --target all
 ```
 
-In this repository the plugin is wired through composite build and
-`pluginManagement` in `settings.gradle.kts`, so the bundled sample applies it
-directly. **External projects must reproduce that wiring** (composite build or
-project dependency) until a published plugin coordinate exists.
+`fixthis install-agent` detects the Android app module by `applicationId`,
+writes Claude Code / Codex MCP config, creates `.fixthis/agent-setup.*`
+handoff files, and applies the published Gradle plugin.
 
-Once Gradle Plugin Portal publication is live, the agent-friendly form becomes:
+Manual equivalent in your app module `build.gradle.kts`:
 
 ```kotlin
 plugins {
-    id("io.github.beyondwin.fixthis.compose") version "0.2.0"
+    id("io.github.beyondwin.fixthis.compose") version "0.2.1"
 }
 ```
 
 The plugin handles source-index generation and adds the sidekick as a
-`debugImplementation` automatically. Future published sidekick wiring will look
-like this, but this snippet is not copyable until artifacts are released:
+`debugImplementation` automatically. You usually do not need to add this
+dependency yourself, but the resolved Maven artifact is:
 
 ```kotlin
-// Future, once published. Until then, use composite build.
 dependencies {
-    debugImplementation("io.github.beyondwin:fixthis-compose-sidekick:0.2.0")
+    debugImplementation("io.github.beyondwin:fixthis-compose-sidekick:0.2.1")
 }
 ```
 
@@ -53,19 +46,15 @@ design.
 
 ## 2. Configure your AI agent
 
-For agent-first setup inside the Android app repository, run:
+After the plugin is applied, refresh project metadata and verify:
 
 ```bash
-fixthis install-agent --project-dir . --target all
 ./gradlew fixthisSetup
 fixthis doctor --project-dir . --json
 ```
 
-`fixthis install-agent` detects the app module by `applicationId`, applies the
-published `io.github.beyondwin.fixthis.compose` Gradle plugin, writes Claude Code /
-Codex MCP config, and creates `.fixthis/agent-setup.*` handoff files. Use
-`--dry-run` to preview the Gradle patch and config writes, or
-`--skip-gradle-plugin` if the plugin is already applied.
+Use `fixthis install-agent --dry-run` to preview the Gradle patch and config
+writes, or `--skip-gradle-plugin` if the plugin is already applied.
 
 `fixthisSetup` writes `.fixthis/project.json` with the detected application id
 and refreshes project metadata after Gradle sync. If the project has flavored
@@ -90,16 +79,15 @@ Code or Codex so the new MCP server is picked up.
 For Cursor, ChatGPT, or any chat-style agent without first-class MCP support,
 use **Copy Prompt** in the console — no setup required.
 
-If the CLI/MCP package is available from a GitHub Release, agents may install
-the desktop tools first and then run `fixthis init`:
+Agents may combine desktop install and MCP registration:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-  | bash -s -- --version vX.Y.Z --init --target codex --project-dir . --package <applicationId>
+  | bash -s -- --version v0.2.1 --init --target codex --project-dir . --package <applicationId>
 ```
 
-This does not replace the Gradle app wiring above; it only removes the need to
-build the desktop CLI/MCP tools from source.
+If the Gradle plugin is not applied yet, prefer `fixthis install-agent` because
+it handles both Gradle wiring and MCP config.
 
 ### Manual setup (Windows or no shell script)
 
