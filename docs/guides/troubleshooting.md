@@ -269,7 +269,9 @@ Fix:
 
 Cold-launch the app once so the sidekick re-reads the new index. `fixthis_status` will then report `installStale: false`. Per-candidate `stale: true` flags also clear.
 
-If `fixthis_status` reports `installStaleReason: "projectRoot may be misconfigured: 0 of <N> indexed files exist on host"`, the MCP CLI was likely launched from the wrong directory. Re-run from the project root (the directory containing `settings.gradle.kts`).
+If `fixthis_status` reports `installStaleReason: "projectRoot may be misconfigured: 0 of <N> indexed files exist on host"`, FixThis could not resolve any indexed source file against the MCP project root. Re-run from the repository root first. If you are using an older debug APK, reinstall so the source index includes `sourceRoot` and `repoFile` metadata for module paths such as `sample/src/main/...`. If the warning remains after reinstall, check that the MCP `projectRoot` points at the repository containing the app sources.
+
+Per-candidate `staleReason` values are more specific for host path problems: `file not found on host; sourceRoot unresolved` means root metadata was present but did not resolve to a file, and `file not found on host; multiple suffix matches` means the compatibility fallback found more than one possible file.
 
 To verify the round-trip end-to-end on a connected device, run `./scripts/fixthis-smoke.sh --check-staleness`. The smoke script asserts `installStale: false` after install, bumps a tracked source file's mtime to assert `installStale: true` (with `newerSourceFiles` referencing the touched file), then reinstalls and asserts `installStale: false` again. The original mtime is restored before the reinstall step and again via an exit `trap` so failures do not leave the workspace dirty.
 
