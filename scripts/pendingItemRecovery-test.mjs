@@ -303,13 +303,20 @@ test('history separates commented draft and pin-only recovery counts', () => {
   assert.match(summaryBody, /pins without comments/);
 });
 
-test('handoff blocks mixed commented and pin-only draft items', () => {
+test('prompt persistence allows residual pin-only items when written comments exist', () => {
   const persistCollectBody = extractFunctionBody(promptSource, 'async function persistAndCollectItemIds(options = {})');
-  assert.match(persistCollectBody, /const writtenDraftItems = commentedDraftItems\(draftItemList\(\)\);/);
-  assert.match(persistCollectBody, /draftItemList\(\)\.some\(item => !hasWrittenAnnotationComment\(item\)\)/);
-  assert.match(persistCollectBody, /Add a comment to every annotation before saving\./);
-  assert.match(persistCollectBody, /if \(writtenDraftItems\.length === 0\)/);
-  assert.match(persistCollectBody, /await persistPendingFeedbackItems\(\{[\s\S]*?onlyWrittenComments: true[\s\S]*?keepResidualDraftActive: options\.keepResidualDraftActive !== false[\s\S]*?\}\);/);
+  assert.doesNotMatch(
+    persistCollectBody,
+    /draftItemList\(\)\.some\(item => !hasWrittenAnnotationComment\(item\)\)[\s\S]*?throw new Error\('Add a comment to every annotation before saving\.'\);/,
+  );
+  assert.match(
+    persistCollectBody,
+    /const writtenDraftItems = commentedDraftItems\(draftItemList\(\)\);[\s\S]*?if \(writtenDraftItems\.length === 0\)/,
+  );
+  assert.match(
+    persistCollectBody,
+    /persistPendingFeedbackItems\(\{[\s\S]*?onlyWrittenComments: true[\s\S]*?keepResidualDraftActive: options\.keepResidualDraftActive !== false[\s\S]*?\}\);/,
+  );
 
   const persistPendingBody = extractFunctionBody(annotationsSource, 'async function persistPendingFeedbackItems(options = {})');
   assert.match(persistPendingBody, /const residualPinOnlyItems = onlyWrittenComments \? pinOnlyDraftItems\(items\) : \[\];/);
