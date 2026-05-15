@@ -2,6 +2,7 @@ package io.beyondwin.fixthis.cli.commands
 
 import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.CoreCliktCommand
+import com.github.ajalt.clikt.core.parse
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
@@ -119,6 +120,44 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         val configFile: File,
         val content: String,
     )
+}
+
+class InitCommand : CoreCliktCommand(name = "init") {
+    private val packageName by option("--package", help = "Android application id for generated MCP config")
+    private val projectDir by option("--project-dir", help = "Android project root").default(".")
+    private val dryRun by option("--dry-run", help = "Print planned writes without modifying files").flag(default = false)
+    private val target by option("--target", help = "Agent config target").choice("codex", "claude", "all").default("all")
+    private val serverName by option("--server-name", help = "MCP server name to write").default("fixthis")
+    private val verbose by option("--verbose", "-v", help = "Print full stack trace on failure").flag(default = false)
+
+    override fun run() {
+        SetupCommand().parse(
+            buildList {
+                packageName?.let {
+                    add("--package")
+                    add(it)
+                }
+                add("--project-dir")
+                add(projectDir)
+                add("--write")
+                add("--target")
+                add(target)
+                add("--server-name")
+                add(serverName)
+                if (dryRun) {
+                    add("--dry-run")
+                }
+                if (verbose) {
+                    add("--verbose")
+                }
+            },
+        )
+        echo("")
+        echo("Next for agents:")
+        echo("  1. Restart Claude Code or Codex so the MCP config is reloaded.")
+        echo("  2. Run `fixthis doctor --project-dir ${File(projectDir).canonicalFile.absolutePath}`.")
+        echo("  3. Open the console with `fixthis_open_feedback_console`.")
+    }
 }
 
 internal fun buildMcpClientConfig(resolvedPackage: String, root: File): JsonObject = buildJsonObject {

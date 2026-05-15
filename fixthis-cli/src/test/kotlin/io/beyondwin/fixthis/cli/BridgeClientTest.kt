@@ -56,6 +56,51 @@ class BridgeClientTest {
     }
 
     @Test
+    fun resolvesPackageFromGradleKotlinApplicationIdWhenProjectConfigIsMissing() {
+        val root = temporaryFolder.newFolder()
+        root.resolve("settings.gradle.kts").writeText("""include(":app")""")
+        root.resolve("app").mkdirs()
+        root.resolve("app/build.gradle.kts").writeText(
+            """
+            plugins {
+                id("com.android.application")
+                id("io.beyondwin.fixthis.compose")
+            }
+
+            android {
+                namespace = "com.example.agent"
+                defaultConfig {
+                    applicationId = "com.example.agent.debug"
+                }
+            }
+            """.trimIndent(),
+        )
+
+        assertEquals("com.example.agent.debug", ProjectConfig.resolvePackageName(root, null))
+    }
+
+    @Test
+    fun projectConfigStillWinsOverGradleApplicationId() {
+        val root = temporaryFolder.newFolder()
+        root.resolve(".fixthis").mkdirs()
+        root.resolve(".fixthis/project.json").writeText(
+            """{"schemaVersion":"1.0","applicationId":"io.beyondwin.fixthis.fromfile"}""",
+        )
+        root.resolve("app").mkdirs()
+        root.resolve("app/build.gradle.kts").writeText(
+            """
+            android {
+                defaultConfig {
+                    applicationId = "com.example.agent.debug"
+                }
+            }
+            """.trimIndent(),
+        )
+
+        assertEquals("io.beyondwin.fixthis.fromfile", ProjectConfig.resolvePackageName(root, null))
+    }
+
+    @Test
     fun parsesDeviceMetadataFromAdbDevicesLongOutput() {
         val adb = FakeAdbFacade(
             sessionJson = sessionJson(protocol = "1.3"),

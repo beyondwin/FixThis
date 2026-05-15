@@ -33,6 +33,7 @@ class MainCommandTest {
             assertEquals(stderr, 0, process.exitValue())
             assertEquals("", stderr)
             assertTrue(stdout, stdout.contains("Usage: fixthis"))
+            assertTrue(stdout, stdout.contains("init"))
         } finally {
             if (process.isAlive) {
                 process.destroyForcibly()

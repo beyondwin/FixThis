@@ -64,6 +64,9 @@ remains the chronological source of truth.
   publish dry-run validation, tightening session-store compaction lock scope,
   registering current architecture hotspots, asserting multi-tab draft
   recovery, and closing console mutation auth hardening.
+- Agent-first setup is simpler. `fixthis init` writes Claude Code / Codex MCP
+  config by default and can infer the Android `applicationId` from Gradle build
+  files when `.fixthis/project.json` is not present.
 
 ## Compatibility Notes
 

@@ -52,13 +52,64 @@ object ProjectConfig {
     fun resolvePackageName(projectRoot: File, packageOverride: String?): String {
         packageOverride?.takeIf { it.isNotBlank() }?.let { return it }
         val projectConfig = projectRoot.resolve(".fixthis/project.json")
-        require(projectConfig.exists()) {
-            "No package was provided and ${projectConfig.path} does not exist"
+        if (projectConfig.exists()) {
+            val config = fixThisJson.decodeFromString(ProjectMetadata.serializer(), projectConfig.readText())
+            return config.applicationId.takeIf { it.isNotBlank() }
+                ?: error("${projectConfig.path} does not contain applicationId")
         }
-        val config = fixThisJson.decodeFromString(ProjectMetadata.serializer(), projectConfig.readText())
-        return config.applicationId.takeIf { it.isNotBlank() }
-            ?: error("${projectConfig.path} does not contain applicationId")
+        GradleApplicationIdDetector.find(projectRoot)?.let { return it }
+        error(
+            "No package was provided, ${projectConfig.path} does not exist, " +
+                "and no unique Android applicationId was found in Gradle build files",
+        )
     }
+}
+
+object GradleApplicationIdDetector {
+    private val applicationIdRegex =
+        Regex("""(?m)\bapplicationId\b\s*(?:=|\s)\s*["']([^"']+)["']""")
+
+    fun find(projectRoot: File): String? {
+        val matches = projectRoot.canonicalFile
+            .walkTopDown()
+            .onEnter { directory -> shouldEnter(directory, projectRoot.canonicalFile) }
+            .filter { file -> file.isFile && file.name in GradleBuildFileNames }
+            .mapNotNull(::applicationIdFrom)
+            .distinct()
+            .toList()
+
+        return when (matches.size) {
+            0 -> null
+            1 -> matches.single()
+            else -> error(
+                "Multiple Android applicationId values found in Gradle build files: " +
+                    matches.joinToString(", ") +
+                    ". Pass --package explicitly.",
+            )
+        }
+    }
+
+    private fun shouldEnter(directory: File, root: File): Boolean {
+        if (directory == root) return true
+        return directory.name !in SkippedDirectoryNames
+    }
+
+    private fun applicationIdFrom(file: File): String? {
+        val text = file.readText()
+        if (!text.contains("applicationId")) return null
+        if (!text.contains("com.android.application") && !text.contains("android {")) return null
+        return applicationIdRegex.find(text)?.groupValues?.get(1)
+    }
+
+    private val GradleBuildFileNames = setOf("build.gradle", "build.gradle.kts")
+    private val SkippedDirectoryNames = setOf(
+        ".git",
+        ".gradle",
+        ".fixthis",
+        ".worktrees",
+        "build",
+        "node_modules",
+    )
 }
 
 class BridgeClient(

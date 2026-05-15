@@ -11,6 +11,7 @@ Subcommands:
   status      Show ADB bridge / package / source-index status
   run         Install the debug app, launch it, attach the bridge, open the console
   doctor      Diagnose ADB / JDK / device / package wiring
+  init        Agent-first setup: write Claude Code / Codex MCP config
   setup       Generate or write MCP config for Claude Code / Codex
   mcp         Run the FixThis MCP server (stdio JSON-RPC, used by agents)
   console     Open the local feedback console without launching anything else
@@ -19,8 +20,9 @@ Subcommands:
 
 `--package` is the Android applicationId of the debug app you are running
 FixThis against. If omitted, every subcommand reads
-`<projectDir>/.fixthis/project.json` field `applicationId` to discover the
-package, and fails with a clear error if neither is provided.
+`<projectDir>/.fixthis/project.json` field `applicationId`, then scans Gradle
+`build.gradle(.kts)` files for a unique Android `applicationId`. It fails with
+a clear error if none or more than one candidate is found.
 
 `--project-dir` defaults to `.` (the current working directory).
 
@@ -73,6 +75,38 @@ fixthis doctor --package io.beyondwin.fixthis.sample
 |------|---------|-------------|
 | `--package` | — | Android applicationId to diagnose. |
 | `--project-dir` | `.` | Project root containing `.fixthis/project.json`. |
+
+## `fixthis init`
+
+Agent-first setup command. It writes MCP config for Claude Code and/or Codex by
+default, using the same merge logic as `fixthis setup --write`, then prints the
+next commands an agent should run.
+
+Use this when an agent has already added the FixThis Gradle plugin to an
+Android app repository and needs to register MCP without asking the user for
+manual JSON/TOML edits.
+
+```bash
+# Detect applicationId from .fixthis/project.json or Gradle build files.
+fixthis init
+
+# Explicit package when detection is ambiguous.
+fixthis init --package <applicationId>
+
+# Preview without writing.
+fixthis init --target codex --dry-run
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--package` | — | Android applicationId for the generated MCP config. |
+| `--project-dir` | `.` | Android project root. |
+| `--dry-run` | off | Print planned writes without modifying files. |
+| `--target` | `all` | Agent target: `claude`, `codex`, or `all`. |
+| `--server-name` | `fixthis` | MCP server name to write. |
+| `--verbose`, `-v` | off | Print the full Java stack trace on failure. |
+
+After `init`, restart your agent so the new MCP server is picked up.
 
 ## `fixthis setup`
 
@@ -194,7 +228,9 @@ Every subcommand resolves the package and project root in this order:
 
 1. `--package` flag, if given.
 2. `<projectDir>/.fixthis/project.json` field `applicationId`.
-3. Fail with a usage error.
+3. Unique Android `applicationId` in Gradle `build.gradle` / `build.gradle.kts`
+   files under `<projectDir>`.
+4. Fail with a usage error.
 
 `<projectDir>` is `--project-dir` (default `.`) or whatever the agent invoked
 the command with.

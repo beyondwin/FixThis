@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.core.subcommands
 import io.beyondwin.fixthis.cli.commands.CleanCommand
 import io.beyondwin.fixthis.cli.commands.ConsoleCommand
 import io.beyondwin.fixthis.cli.commands.DoctorCommand
+import io.beyondwin.fixthis.cli.commands.InitCommand
 import io.beyondwin.fixthis.cli.commands.McpCommand
 import io.beyondwin.fixthis.cli.commands.RunCommand
 import io.beyondwin.fixthis.cli.commands.SetupCommand
@@ -28,6 +29,7 @@ internal fun buildRootCommand(): CoreNoOpCliktCommand = CoreNoOpCliktCommand(nam
         StatusCommand(),
         RunCommand(),
         DoctorCommand(),
+        InitCommand(),
         SetupCommand(),
         McpCommand(),
         ConsoleCommand(),

@@ -27,6 +27,9 @@ points to canonical docs rather than restating them — update those, not this.
 
 # Or bootstrap MCP integration for your own debug app.
 ./scripts/bootstrap-mcp.sh --package <applicationId>
+
+# In a published/installable CLI flow inside an Android app repo.
+fixthis init
 ```
 
 `--sample` uses the bundled sample package (`io.beyondwin.fixthis.sample`).
@@ -36,7 +39,9 @@ against. The script writes Claude Code config to project-local
 `--target claude` / `--target codex` to limit targets, or `--dry-run` to
 preview. Restart your agent after the script finishes.
 
-Manual setup, full CLI flags, and dry-run examples:
+`fixthis init` is the agent-first entry point once the CLI is installed. It can
+detect a unique Android `applicationId` from Gradle build files and writes
+Claude Code / Codex MCP config by default. Manual setup, full CLI flags, and dry-run examples:
 [`docs/reference/cli.md`](docs/reference/cli.md).
 MCP bootstrap summary for agents: [`MCP.md`](MCP.md).
 

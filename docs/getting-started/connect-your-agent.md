@@ -15,7 +15,8 @@ agent can read, claim, and resolve feedback items.
 ## Prerequisites
 
 - Run the bundled sample or a Compose debug build with FixThis installed.
-- Know the Android `applicationId` for the app you want to inspect.
+- Know the Android `applicationId` for the app you want to inspect, or run from
+  a Gradle project where FixThis can detect a unique Android `applicationId`.
 - Keep ADB on your PATH and use an unlocked device or emulator.
 
 For the sample app, the package is `io.beyondwin.fixthis.sample`.
@@ -37,6 +38,8 @@ Claude Code settings under `.claude/settings.json`. Restart Claude Code after
 the script finishes.
 
 For your own debug app, use `--package <applicationId>` instead of `--sample`.
+If the CLI is already installed and you are running inside the Android app
+repository, agents can use `fixthis init --target claude` instead.
 
 In Claude Code, open the console:
 
@@ -60,6 +63,8 @@ The script builds the local CLI/MCP distributions and writes Codex MCP config
 to `~/.codex/config.toml`. Restart Codex after the script finishes.
 
 For your own debug app, use `--package <applicationId>` instead of `--sample`.
+If the CLI is already installed and you are running inside the Android app
+repository, agents can use `fixthis init --target codex` instead.
 
 In Codex, open the console:
 

@@ -58,6 +58,14 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
     [`docs/reference/privacy.md`](docs/reference/privacy.md), and
     [`docs/reference/feedback-console-contract.md`](docs/reference/feedback-console-contract.md).
 
+- **Agent-first setup command (cli/docs, 2026-05-15):**
+  - New `fixthis init` command wraps `fixthis setup --write` with agent-first
+    defaults for Claude Code and Codex MCP registration.
+  - CLI package resolution now falls back from `.fixthis/project.json` to a
+    unique Android `applicationId` found in Gradle `build.gradle(.kts)` files,
+    so agents can configure MCP from a normal Android repo without asking the
+    user for the package name first.
+
 - **Target reliability handoffs — confidence + warning metadata for agents (core/mcp/console, 2026-05-15):**
   - Persisted feedback items can now carry optional `targetReliability`
     metadata alongside `targetEvidence`. The confidence level (`HIGH`,
