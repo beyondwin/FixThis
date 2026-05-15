@@ -1,0 +1,79 @@
+name: Promote Maven Central Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      namespace:
+        description: "Central Portal namespace, for example io.github.beyondwin"
+        required: true
+        default: "io.github.beyondwin"
+        type: string
+      repository_key:
+        description: "Optional OSSRH staging repository key. If omitted, the workflow promotes the newest open repository for the namespace."
+        required: false
+        type: string
+      publishing_type:
+        description: "Central publishing type"
+        required: true
+        default: "automatic"
+        type: choice
+        options:
+          - automatic
+          - user_managed
+          - portal_api
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    name: Promote OSSRH staging repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+      MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+
+    steps:
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in MAVEN_CENTRAL_USERNAME MAVEN_CENTRAL_PASSWORD; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error title=Missing secret::$name is required for Maven Central staging promotion"
+              exit 1
+            fi
+          done
+
+      - name: Promote staging repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          namespace="${{ inputs.namespace }}"
+          repository_key="${{ inputs.repository_key }}"
+          publishing_type="${{ inputs.publishing_type }}"
+          token="$(printf '%s:%s' "$MAVEN_CENTRAL_USERNAME" "$MAVEN_CENTRAL_PASSWORD" | base64 -w0)"
+
+          if [[ -z "$repository_key" ]]; then
+            curl -fsSL \
+              -H "Authorization: Bearer $token" \
+              "https://ossrh-staging-api.central.sonatype.com/manual/search/repositories?ip=any&profile_id=$namespace" \
+              -o repositories.json
+            repository_key="$(
+              node -e '
+                const fs = require("fs");
+                const payload = JSON.parse(fs.readFileSync("repositories.json", "utf8"));
+                const repositories = [...(payload.repositories || [])].reverse();
+                const repo = repositories.find((candidate) => candidate.state === "open") || repositories[0];
+                if (!repo?.key) process.exit(1);
+                console.log(repo.key);
+              '
+            )"
+          fi
+
+          echo "Promoting repository: $repository_key"
+          curl -fsSL \
+            -X POST \
+            -H "Authorization: Bearer $token" \
+            "https://ossrh-staging-api.central.sonatype.com/manual/upload/repository/$repository_key?publishing_type=$publishing_type"
