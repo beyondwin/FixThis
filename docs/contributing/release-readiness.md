@@ -61,10 +61,13 @@ consumer project.
       `io.beyondwin.fixthis:fixthis-compose-sidekick` and
       `io.beyondwin.fixthis:fixthis-compose-core` if core is published.
 - [ ] Gradle plugin id remains `io.beyondwin.fixthis.compose`.
-- [ ] One version source of truth is established for all published modules.
-- [ ] Gradle publishing plugins are configured for local dry-run validation.
-- [ ] `publishToMavenLocal` or equivalent dry-run packaging is verified.
-- [ ] `./gradlew publishToMavenLocal --dry-run` succeeds.
+- [x] One local version source of truth is established for root published
+      modules: `FIXTHIS_GROUP` and `FIXTHIS_VERSION` in `gradle.properties`.
+- [x] Gradle publishing plugins are configured for local dry-run validation.
+- [x] Local dry-run packaging is verified:
+      `./gradlew publishToMavenLocal --dry-run --no-daemon` for root artifacts
+      and `./gradlew -p fixthis-gradle-plugin publishToMavenLocal --dry-run
+      --no-daemon` for the included Gradle plugin build.
 - [ ] Gradle Plugin Portal validation passes for `:fixthis-gradle-plugin`.
 - [ ] `./gradlew :fixthis-gradle-plugin:validatePlugins` succeeds.
 - [ ] Maven Central namespace ownership is verified by the maintainer.

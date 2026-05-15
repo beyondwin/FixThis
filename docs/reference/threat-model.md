@@ -100,8 +100,7 @@ Paths are repository-root relative.
 | Boundary | Control | Implementation |
 | --- | --- | --- |
 | Host ↔ console | Bind to `127.0.0.1` by default (loopback only) | `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` |
-| Browser ↔ console | `Origin` header allow-list (`127.0.0.1` / `localhost`) for mutating routes | `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` |
-| Browser ↔ console | Per-server `X-FixThis-Console-Token` required on mutating `/api/*` requests, injected into the served local HTML | `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` |
+| Browser ↔ console | Mutating `/api/*` routes require a local console `Origin`, local `Host` pinned to the running loopback port, and the per-server `X-FixThis-Console-Token` | `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleRequestAuth.kt` |
 | App ↔ bridge | Shared session token; bridge rejects requests with a missing or mismatched token (`UNAUTHORIZED`) | `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` |
 | App ↔ bridge | Screenshot path validation — canonicalize and require the file is under the FixThis screenshot cache, with explicit client-supplied paths rejected | `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/PathSafety.kt`, `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeScreenshotReader.kt` |
 | App ↔ bridge | Transport is an abstract-namespace `LocalSocket` (app-sandbox scoped, reachable via `adb run-as`) | `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` |
@@ -117,12 +116,13 @@ tracked these as gaps; they are now implemented and covered by tests.
   centralized in `PathSafety` and applied at screenshot read time.
 - **SEC-3 — Stale-socket recovery.** Bridge startup retries bounded suffix
   candidates and reports the resolved socket name to the host.
+- **SEC-4 — Console mutation auth hardening.** Mutating console requests are
+  guarded in `ConsoleRequestAuth`: read-only `GET` routes do not require the
+  token, while mutating `/api/*` routes require a local `Origin` when present,
+  a local `Host` pinned to the running loopback port when present, and a
+  constant-time comparison against the per-server
+  `X-FixThis-Console-Token`.
 
 ### Deferred follow-up
 
-- **SEC-4 — Host-header pinning, dedicated console-auth module, and contract
-  doc.** Tighten the console origin gate to also check `Host`, extract the
-  token / origin / Host logic into a dedicated console-auth module so each
-  mutating route reads from a single source of truth, and document the
-  resulting contract. Not in the current plan; tracked as a deferred
-  follow-up.
+- None currently tracked from the original security-hardening plan.

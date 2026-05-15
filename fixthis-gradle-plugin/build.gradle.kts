@@ -4,7 +4,11 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.spotless)
     alias(libs.plugins.detekt) apply false
+    `maven-publish`
 }
+
+group = providers.gradleProperty("FIXTHIS_GROUP").orElse("io.beyondwin.fixthis").get()
+version = providers.gradleProperty("FIXTHIS_VERSION").orElse("0.2.0-SNAPSHOT").get()
 
 kotlin {
     jvmToolchain(21)

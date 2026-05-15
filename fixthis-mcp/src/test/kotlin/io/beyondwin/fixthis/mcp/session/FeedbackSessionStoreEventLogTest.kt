@@ -2,6 +2,7 @@ package io.beyondwin.fixthis.mcp.session
 
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogCheckpoint
+import io.beyondwin.fixthis.mcp.session.eventlog.EventLogCompactionTask
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogException
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
@@ -13,6 +14,10 @@ import kotlinx.serialization.json.put
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -271,6 +276,52 @@ class FeedbackSessionStoreEventLogTest {
             assertTrue("epsilon" in comments)
         } finally {
             tmp.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun storeReadsAreNotBlockedBySlowPostMutationCompaction() {
+        val root = Files.createTempDirectory("store-compaction-lock").toFile()
+        try {
+            val paths = FeedbackSessionPaths(root)
+            val persistence = FeedbackSessionPersistence(paths)
+            val compactionStarted = CountDownLatch(1)
+            val releaseCompaction = CountDownLatch(1)
+            val ids = sequentialIdGenerator()
+            lateinit var store: FeedbackSessionStore
+            store = FeedbackSessionStore(
+                clock = { 100L },
+                idGenerator = ids,
+                persistence = persistence,
+                eventLogWriterProvider = writerFor(root),
+                eventLogReaderProvider = readerFor(root),
+                eventLogCompactorProvider = {
+                    EventLogCompactionTask {
+                        compactionStarted.countDown()
+                        assertTrue(releaseCompaction.await(5, TimeUnit.SECONDS))
+                    }
+                },
+                eventLogCompactionThreshold = 0,
+            )
+            val session = store.openSession("com.test", root.absolutePath)
+            val screen = makeScreen()
+
+            val mutation = thread(start = true) {
+                store.addScreen(session.sessionId, screen)
+            }
+            assertTrue(compactionStarted.await(5, TimeUnit.SECONDS))
+
+            val read = AtomicReference<SessionDto>()
+            val reader = thread(start = true) {
+                read.set(store.getSession(session.sessionId))
+            }
+            reader.join(1_000)
+            assertEquals(session.sessionId, read.get()?.sessionId)
+
+            releaseCompaction.countDown()
+            mutation.join(5_000)
+        } finally {
+            root.deleteRecursively()
         }
     }
 

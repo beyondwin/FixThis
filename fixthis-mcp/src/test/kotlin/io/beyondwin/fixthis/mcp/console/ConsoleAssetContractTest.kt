@@ -681,6 +681,9 @@ class ConsoleAssetContractTest {
     fun consoleHtmlRendersSwitchedSessionAnnotationsBeforeFullRefresh() {
         val html = ConsoleSourceFixtures.readAll()
         val openSession = javascriptFunctionBody(html, "openSession")
+        val repaintBeforeRefreshMessage =
+            "Switching sessions should repaint the annotation list from the opened session " +
+                "before slower device/connection refresh work."
 
         assertTrue(
             Regex(
@@ -690,7 +693,7 @@ class ConsoleAssetContractTest {
                     "renderInspectorRegion\\(\\);\\s+" +
                     "await refresh\\(\\);",
             ).containsMatchIn(openSession),
-            "Switching sessions should repaint the annotation list from the opened session before slower device/connection refresh work.",
+            repaintBeforeRefreshMessage,
         )
     }
 

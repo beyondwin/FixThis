@@ -2074,13 +2074,11 @@ class CompactHandoffRendererTest {
         )
 
         val markdown = CompactHandoffRenderer.render(session)
+        val expectedTarget =
+            "  target: tag=\"comp:ReviewScreen:submit\"; text=\"Submit request\"; " +
+                "contentDescription=\"Submit handoff request\"; role=Button"
 
-        assertTrue(
-            markdown.contains(
-                """  target: tag="comp:ReviewScreen:submit"; text="Submit request"; contentDescription="Submit handoff request"; role=Button""",
-            ),
-            markdown,
-        )
+        assertTrue(markdown.contains(expectedTarget), markdown)
     }
 
     @Test
@@ -2140,90 +2138,7 @@ class CompactHandoffRendererTest {
 
     @Test
     fun renderAddsHandoffQualitySummaryForRiskSignals() {
-        val session = SessionDto(
-            sessionId = "session-quality",
-            packageName = "io.beyondwin.fixthis.sample",
-            projectRoot = "/repo",
-            createdAtEpochMillis = 1L,
-            updatedAtEpochMillis = 1L,
-            screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Review")),
-            items = listOf(
-                AnnotationDto(
-                    itemId = "item-low",
-                    screenId = "screen-1",
-                    createdAtEpochMillis = 1L,
-                    updatedAtEpochMillis = 1L,
-                    target = AnnotationTargetDto.Area(FixThisRect(10f, 10f, 120f, 120f)),
-                    comment = "Visual area feedback",
-                    sequenceNumber = 1,
-                    targetReliability = TargetReliability(
-                        confidence = TargetConfidence.LOW,
-                        warnings = listOf(TargetReliabilityWarning.VISUAL_AREA_ONLY),
-                    ),
-                    sourceCandidates = emptyList(),
-                ),
-                AnnotationDto(
-                    itemId = "item-redacted",
-                    screenId = "screen-1",
-                    createdAtEpochMillis = 1L,
-                    updatedAtEpochMillis = 1L,
-                    target = AnnotationTargetDto.Node("node-redacted", FixThisRect(130f, 10f, 240f, 120f)),
-                    selectedNode = FixThisNode(
-                        uid = "node-redacted",
-                        composeNodeId = 2,
-                        rootIndex = 0,
-                        treeKind = TreeKind.MERGED,
-                        boundsInWindow = FixThisRect(130f, 10f, 240f, 120f),
-                        text = listOf("secret"),
-                        editableText = "secret",
-                        isSensitive = true,
-                    ),
-                    comment = "Sensitive field",
-                    sequenceNumber = 2,
-                    targetReliability = TargetReliability(
-                        confidence = TargetConfidence.MEDIUM,
-                        warnings = listOf(TargetReliabilityWarning.SENSITIVE_TEXT_REDACTED),
-                    ),
-                    sourceCandidates = listOf(
-                        SourceCandidate(
-                            file = "sample/src/main/java/ReviewScreen.kt",
-                            line = 70,
-                            score = 0.9,
-                            confidence = SelectionConfidence.HIGH,
-                            stale = true,
-                            staleReason = "excerpt mismatch",
-                        ),
-                    ),
-                ),
-                AnnotationDto(
-                    itemId = "item-overlap",
-                    screenId = "screen-1",
-                    createdAtEpochMillis = 1L,
-                    updatedAtEpochMillis = 1L,
-                    target = AnnotationTargetDto.Node("node-overlap", FixThisRect(20f, 20f, 100f, 100f)),
-                    selectedNode = FixThisNode(
-                        uid = "node-overlap",
-                        composeNodeId = 3,
-                        rootIndex = 0,
-                        treeKind = TreeKind.MERGED,
-                        boundsInWindow = FixThisRect(20f, 20f, 100f, 100f),
-                        text = listOf("Overlap"),
-                    ),
-                    comment = "Overlapping node",
-                    sequenceNumber = 3,
-                    sourceCandidates = listOf(
-                        SourceCandidate(
-                            file = "sample/src/main/java/ReviewScreen.kt",
-                            line = 90,
-                            score = 0.8,
-                            confidence = SelectionConfidence.MEDIUM,
-                        ),
-                    ),
-                ),
-            ),
-        )
-
-        val markdown = CompactHandoffRenderer.render(session)
+        val markdown = CompactHandoffRenderer.render(handoffQualityRiskSignalSession())
 
         assertTrue(markdown.contains("Handoff quality:"), markdown)
         assertTrue(markdown.contains("1 low-confidence target"), markdown)
@@ -2333,5 +2248,94 @@ class CompactHandoffRendererTest {
             ),
         ),
         items = listOf(item),
+    )
+
+    private fun handoffQualityRiskSignalSession(): SessionDto = SessionDto(
+        sessionId = "session-quality",
+        packageName = "io.beyondwin.fixthis.sample",
+        projectRoot = "/repo",
+        createdAtEpochMillis = 1L,
+        updatedAtEpochMillis = 1L,
+        screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Review")),
+        items = listOf(
+            qualityVisualAreaItem(),
+            qualityRedactedNodeItem(),
+            qualityOverlapNodeItem(),
+        ),
+    )
+
+    private fun qualityVisualAreaItem(): AnnotationDto = AnnotationDto(
+        itemId = "item-low",
+        screenId = "screen-1",
+        createdAtEpochMillis = 1L,
+        updatedAtEpochMillis = 1L,
+        target = AnnotationTargetDto.Area(FixThisRect(10f, 10f, 120f, 120f)),
+        comment = "Visual area feedback",
+        sequenceNumber = 1,
+        targetReliability = TargetReliability(
+            confidence = TargetConfidence.LOW,
+            warnings = listOf(TargetReliabilityWarning.VISUAL_AREA_ONLY),
+        ),
+        sourceCandidates = emptyList(),
+    )
+
+    private fun qualityRedactedNodeItem(): AnnotationDto = AnnotationDto(
+        itemId = "item-redacted",
+        screenId = "screen-1",
+        createdAtEpochMillis = 1L,
+        updatedAtEpochMillis = 1L,
+        target = AnnotationTargetDto.Node("node-redacted", FixThisRect(130f, 10f, 240f, 120f)),
+        selectedNode = FixThisNode(
+            uid = "node-redacted",
+            composeNodeId = 2,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = FixThisRect(130f, 10f, 240f, 120f),
+            text = listOf("secret"),
+            editableText = "secret",
+            isSensitive = true,
+        ),
+        comment = "Sensitive field",
+        sequenceNumber = 2,
+        targetReliability = TargetReliability(
+            confidence = TargetConfidence.MEDIUM,
+            warnings = listOf(TargetReliabilityWarning.SENSITIVE_TEXT_REDACTED),
+        ),
+        sourceCandidates = listOf(
+            SourceCandidate(
+                file = "sample/src/main/java/ReviewScreen.kt",
+                line = 70,
+                score = 0.9,
+                confidence = SelectionConfidence.HIGH,
+                stale = true,
+                staleReason = "excerpt mismatch",
+            ),
+        ),
+    )
+
+    private fun qualityOverlapNodeItem(): AnnotationDto = AnnotationDto(
+        itemId = "item-overlap",
+        screenId = "screen-1",
+        createdAtEpochMillis = 1L,
+        updatedAtEpochMillis = 1L,
+        target = AnnotationTargetDto.Node("node-overlap", FixThisRect(20f, 20f, 100f, 100f)),
+        selectedNode = FixThisNode(
+            uid = "node-overlap",
+            composeNodeId = 3,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = FixThisRect(20f, 20f, 100f, 100f),
+            text = listOf("Overlap"),
+        ),
+        comment = "Overlapping node",
+        sequenceNumber = 3,
+        sourceCandidates = listOf(
+            SourceCandidate(
+                file = "sample/src/main/java/ReviewScreen.kt",
+                line = 90,
+                score = 0.8,
+                confidence = SelectionConfidence.MEDIUM,
+            ),
+        ),
     )
 }

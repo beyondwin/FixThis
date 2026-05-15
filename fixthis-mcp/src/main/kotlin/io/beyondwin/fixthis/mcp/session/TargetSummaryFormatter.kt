@@ -43,9 +43,8 @@ internal object TargetSummaryFormatter {
 
     fun isRedacted(item: AnnotationDto): Boolean = item.selectedNode?.let { shouldRedact(it, item) } ?: false
 
-    private fun shouldRedact(node: FixThisNode, item: AnnotationDto): Boolean =
-        node.isPassword ||
-            node.isSensitive ||
-            !node.editableText.isNullOrBlank() ||
-            item.targetReliability?.warnings.orEmpty().contains(TargetReliabilityWarning.SENSITIVE_TEXT_REDACTED)
+    private fun shouldRedact(node: FixThisNode, item: AnnotationDto): Boolean = node.isPassword ||
+        node.isSensitive ||
+        !node.editableText.isNullOrBlank() ||
+        item.targetReliability?.warnings.orEmpty().contains(TargetReliabilityWarning.SENSITIVE_TEXT_REDACTED)
 }

@@ -10,6 +10,9 @@ plugins {
     alias(libs.plugins.versions)
 }
 
+val fixthisGroup = providers.gradleProperty("FIXTHIS_GROUP").orElse("io.beyondwin.fixthis")
+val fixthisVersion = providers.gradleProperty("FIXTHIS_VERSION").orElse("0.2.0-SNAPSHOT")
+
 // Filter unstable releases (alpha/beta/RC/snapshot/milestone) out of the
 // `dependencyUpdates` report so we only see candidates we'd actually adopt.
 tasks.named<com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask>(
@@ -79,6 +82,9 @@ allprojects {
 }
 
 subprojects {
+    group = fixthisGroup.get()
+    version = fixthisVersion.get()
+
     if (requestedDetekt) {
         apply(plugin = "io.gitlab.arturbosch.detekt")
         extensions.configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {

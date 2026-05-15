@@ -15,6 +15,19 @@ Maintainers update this doc as observation windows complete. Once a row's "Ready
 | `.github/workflows/connected-tests.yml` (CI-4, nightly) | — | pending (14 consecutive green required) | no |
 | `.github/workflows/nightly-compat.yml` (BR-4, weekly scheduled) | — | pending (1 week stable required) | no |
 
+## How to Update This Table
+
+Run:
+
+```bash
+npm run checks:observation
+```
+
+The command uses `gh run list`, so it requires GitHub CLI authentication and
+repository access. Copy the computed first-green and consecutive-green counts
+into the table. Do not promote scheduled workflows to PR-required checks until
+their longer observation windows are complete.
+
 ## Notes
 
 - "First green run" should record the first observed all-green run of the workflow on `main` after the workflow was merged.
@@ -23,3 +36,8 @@ Maintainers update this doc as observation windows complete. Once a row's "Ready
   value with the date the streak was confirmed.
 - Scheduled device and compatibility workflows (CI-4, BR-4) have longer windows reflecting their lower cadence; do not promote them to PR-required checks without a separate discussion (they currently run on `schedule:` only).
 - The CodeQL row is also gated on the first analysis successfully landing in the GitHub Security tab.
+- Gradle 9.3.1 reports a Gradle 10 deprecation from Detekt 1.23.7 during
+  `./gradlew :fixthis-mcp:detekt --warning-mode all --stacktrace --no-daemon`:
+  `io.gitlab.arturbosch.detekt.DetektPlugin.apply` calls the deprecated
+  `ReportingExtension.file(String)`. Owner: build maintainers; upgrade path:
+  re-check on the next Detekt version before Gradle 10 adoption.
