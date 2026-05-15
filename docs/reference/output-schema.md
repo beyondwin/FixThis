@@ -38,6 +38,7 @@ These fields can be absent or empty depending on runtime context:
 - `scopeCandidates`
 - `nearbyNodes`
 - `sourceCandidates`
+- `editSurfaceCandidates`
 - `targetEvidence`
 - `targetReliability`
 - `searchHints`
@@ -183,6 +184,9 @@ Feedback items represent human comments on a persisted evidence snapshot. When a
 - `selectedNode`: selected Compose node when available.
 - `nearbyNodes`: nearby context nodes.
 - `sourceCandidates`: best-effort source hints.
+- `editSurfaceCandidates`: optional list of likely rendering/edit surfaces for
+  style, typography, spacing, or component-renderer feedback. Legacy sessions
+  omit it.
 - `screenshotCrop`: crop artifact metadata when available.
 - `comment`: human feedback text.
 - `sequenceNumber`: monotonic, stable human-readable item number within the
@@ -197,6 +201,29 @@ Feedback items represent human comments on a persisted evidence snapshot. When a
 - `targetReliability`: optional target confidence and warning metadata. When present, it follows the annotation `targetReliability` shape above.
 
 `ready` is retained for persisted/session JSON compatibility. Domain mappers normalize legacy `ready` values to `AnnotationStatus.OPEN`; this is not a JSON field migration.
+
+### `editSurfaceCandidates`
+
+`editSurfaceCandidates` is an additive MCP/session-local field. It separates
+source-origin evidence from likely rendering surfaces for visual, style,
+typography, spacing, and component-renderer requests.
+
+Each entry can include:
+
+- `kind`: one of `CONTAINER_COLOR`, `TEXT_COLOR`, `TYPOGRAPHY`, `SPACING`,
+  `CHIP_COLOR`, `COMPONENT_RENDERER`, or `UNKNOWN`.
+- `file`: likely rendering/edit surface file.
+- `repoFile`: optional repository-root-relative file path.
+- `line`: optional line hint.
+- `confidence`: `HIGH`, `MEDIUM`, `LOW`, or `NONE`.
+- `reasons`: machine-readable derivation reasons, such as `STYLE_INTENT`,
+  `LAYOUT_INTENT`, `TYPOGRAPHY_INTENT`, `TARGET_OWNER`,
+  `SELECTED_TEXT_RENDERER`, `COMPONENT_DEFINITION`, `CALL_SITE`,
+  `LIST_ITEM_SPACING`, or `COMPONENT_CONTAINER`.
+- `note`: optional human-readable caveat for compact handoffs.
+
+Agents should treat these as inspection hints. They do not rename or replace
+`sourceCandidates`, and they are absent from older persisted sessions.
 
 ## Feedback Delivery
 

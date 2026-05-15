@@ -4,7 +4,7 @@ import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 
 internal object TargetSummaryFormatter {
-    fun render(item: AnnotationDto): String {
+    fun render(item: AnnotationDto, owner: TargetOwner? = null): String {
         val node = item.selectedNode
         if (node == null) {
             return when (item.target) {
@@ -31,6 +31,10 @@ internal object TargetSummaryFormatter {
 
         node.role?.takeIf { it.isNotBlank() }?.let { role ->
             parts += "role=${role.inlineSafe()}"
+        }
+
+        owner?.node?.testTag?.takeIf { it.isNotBlank() && it != node.testTag }?.let { tag ->
+            parts += "inside tag=\"${tag.compactQuotedValue()}\""
         }
 
         return when {

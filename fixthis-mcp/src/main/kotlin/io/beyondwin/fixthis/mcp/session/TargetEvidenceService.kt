@@ -141,7 +141,7 @@ class TargetEvidenceService(
                 )
             }
         }
-        return AnnotationDto(
+        val item = AnnotationDto(
             itemId = "pending",
             screenId = screen.screenId,
             createdAtEpochMillis = 0L,
@@ -155,6 +155,7 @@ class TargetEvidenceService(
             targetEvidence = targetEvidence,
             targetReliability = targetReliability,
         )
+        return item.copy(editSurfaceCandidates = EditSurfaceCandidateService.build(item, screen))
     }
 
     fun targetEvidenceFor(
@@ -258,11 +259,12 @@ class TargetEvidenceService(
             sourceCandidates = sourceCandidates,
             targetEvidence = evidence,
         )
-        return copy(
+        val refreshed = copy(
             sourceCandidates = sourceCandidates,
             targetEvidence = evidence,
             targetReliability = reliability,
         )
+        return refreshed.copy(editSurfaceCandidates = EditSurfaceCandidateService.build(refreshed, screen))
     }
 
     private fun selectedNodeFor(

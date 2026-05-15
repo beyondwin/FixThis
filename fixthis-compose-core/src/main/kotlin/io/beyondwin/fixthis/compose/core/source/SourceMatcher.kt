@@ -18,7 +18,8 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             .map { entry -> score(entry, selectedNode, nearbyNodes, activityName) }
             .filter { it.rawScore > 0.0 }
             .sortedWith(
-                compareByDescending<MatchScore> { it.rawScore }
+                compareByDescending<MatchScore> { it.sourceRankingTier }
+                    .thenByDescending { it.rawScore }
                     .thenBy { it.entry.file }
                     .thenBy { it.entry.line ?: Int.MAX_VALUE },
             )
@@ -398,6 +399,18 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         val matchedTerms: List<String>,
         val matchReasons: List<SourceMatchReason>,
     )
+
+    private val MatchScore.sourceRankingTier: Int get() = matchReasons.toSet().let { reasons ->
+        when {
+            reasons.hasAny(SourceMatchReason.SELECTED_TEST_TAG, SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE) -> 50
+            reasons.hasAny(SourceMatchReason.SELECTED_TEXT, SourceMatchReason.SELECTED_CONTENT_DESCRIPTION, SourceMatchReason.SELECTED_STRING_RESOURCE, SourceMatchReason.SELECTED_ROLE) -> 40
+            reasons.hasAny(SourceMatchReason.NEARBY_TEXT, SourceMatchReason.NEARBY_CONTENT_DESCRIPTION, SourceMatchReason.NEARBY_TEST_TAG, SourceMatchReason.NEARBY_ROLE) -> 20
+            SourceMatchReason.ACTIVITY in reasons -> 10
+            else -> 0
+        }
+    }
+
+    private fun Set<SourceMatchReason>.hasAny(vararg reasons: SourceMatchReason): Boolean = reasons.any { it in this }
 
     private fun MatchScore.toCandidate(
         index: Int,

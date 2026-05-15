@@ -185,6 +185,61 @@ class SourceMatcherTest {
     }
 
     @Test
+    fun selectedTextCandidateOutranksHigherRawNearbyOnlyAggregate() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt",
+                        line = 50,
+                        text = listOf("Open queue"),
+                        signals = listOf(
+                            SourceSignal(
+                                kind = SourceSignalKind.UI_TEXT,
+                                value = "Open queue",
+                                confidenceWeight = 1.0,
+                            ),
+                        ),
+                    ),
+                    SourceIndexEntry(
+                        file = "sample/src/main/java/io/beyondwin/fixthis/sample/model/FixThisDemoData.kt",
+                        line = 122,
+                        text = listOf("Diagnostics", "Review"),
+                        signals = listOf(
+                            SourceSignal(
+                                kind = SourceSignalKind.UI_TEXT,
+                                value = "Diagnostics",
+                                confidenceWeight = 1.0,
+                            ),
+                            SourceSignal(
+                                kind = SourceSignalKind.UI_TEXT,
+                                value = "Review",
+                                confidenceWeight = 1.0,
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val matches = matcher.match(
+            selectedNode = node(uid = "open-queue", text = listOf("Open queue")),
+            nearbyNodes = listOf(
+                node(uid = "diagnostics-tab", text = listOf("Diagnostics")),
+                node(uid = "review-tab", text = listOf("Review")),
+            ),
+            activityName = null,
+        )
+
+        assertEquals(
+            "sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt",
+            matches.first().file,
+        )
+        assertTrue(matches.first().matchReasons.contains("selected text"))
+        assertTrue(matches[1].matchReasons.all { it.startsWith("nearby ") })
+    }
+
+    @Test
     fun conventionTestTagLiteralAndComposableMatchesDoNotStackScore() {
         val matcher = SourceMatcher(
             SourceIndex(

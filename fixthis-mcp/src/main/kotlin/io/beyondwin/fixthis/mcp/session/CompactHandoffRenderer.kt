@@ -87,7 +87,7 @@ object CompactHandoffRenderer {
                     val label = if (dupRefMarker == null) grouping.labels[annotation.itemId] else null
                     val isLeader = annotation.itemId in grouping.leaderItemIds
                     val groupSize = label?.total ?: 0
-                    appendCompactItem(globalCounter, annotation, isOverlapGroup, label, isLeader, groupSize, dupRefMarker, sourceRoot)
+                    appendCompactItem(globalCounter, annotation, screen, isOverlapGroup, label, isLeader, groupSize, dupRefMarker, sourceRoot)
                 }
             }
         }
@@ -170,6 +170,7 @@ object CompactHandoffRenderer {
     private fun StringBuilder.appendCompactItem(
         number: Int,
         item: AnnotationDto,
+        screen: SnapshotDto?,
         isOverlap: Boolean,
         instanceLabel: InstanceLabel? = null,
         isInstanceLeader: Boolean = false,
@@ -181,15 +182,41 @@ object CompactHandoffRenderer {
         val prefix = if (item.severity == AnnotationSeverityDto.HIGH) "[!] " else ""
         appendLine("[$number] ${prefix}${title.inlineSafe()}")
         appendLine("  id: ${item.itemId}")
-        appendLine("  ${TargetSummaryFormatter.render(item)}")
+        val owner = TargetOwnerResolver.resolve(item, screen)
+        appendLine("  ${TargetSummaryFormatter.render(item, owner)}")
         appendLine(compactUiLine(item, isOverlap, instanceLabel, dupRefMarker))
         item.screenshotCrop?.desktopCropPath?.let { appendLine("crop: ${it.inlineSafe()}") }
+        appendEditSurfaceBlock(item)
         appendCandidatesBlock(item, sourceRoot)
         appendReliabilityBlock(item.targetReliability)
         if (isInstanceLeader && groupSize >= 2 && !isOverlap) {
             appendLine("  note: $groupSize markers map to same call site — likely list-rendered; disambiguate by instance index")
         }
         appendLine()
+    }
+
+    private fun StringBuilder.appendEditSurfaceBlock(item: AnnotationDto) {
+        item.editSurfaceCandidates.take(2).forEach { candidate ->
+            appendLine("  ${candidate.formatEditSurfaceLine()}")
+            candidate.note?.takeIf { it.isNotBlank() }?.let { note ->
+                appendLine("  note: ${note.inlineSafe()}")
+            }
+        }
+    }
+
+    private fun EditSurfaceCandidateDto.formatEditSurfaceLine(): String {
+        val kindToken = when (kind) {
+            EditSurfaceKindDto.CONTAINER_COLOR -> "containerColor"
+            EditSurfaceKindDto.TEXT_COLOR -> "textColor"
+            EditSurfaceKindDto.TYPOGRAPHY -> "typography"
+            EditSurfaceKindDto.SPACING -> "spacing"
+            EditSurfaceKindDto.CHIP_COLOR -> "chipColor"
+            EditSurfaceKindDto.COMPONENT_RENDERER -> "componentRenderer"
+            EditSurfaceKindDto.UNKNOWN -> "unknown"
+        }
+        val fileLine = if (line != null) "$file:$line" else file
+        val reasonTokens = reasons.joinToString(",") { it.name.lowercase().replace("_", "-") }
+        return "editSurface: $kindToken -> ${fileLine.inlineSafe()}  conf=${confidence.name.lowercase()}  why=[$reasonTokens]"
     }
 
     private fun StringBuilder.appendReliabilityBlock(reliability: TargetReliability?) {
