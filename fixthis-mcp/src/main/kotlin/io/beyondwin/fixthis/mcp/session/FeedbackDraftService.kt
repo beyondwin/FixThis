@@ -136,6 +136,7 @@ class FeedbackDraftService(
         return store.addItem(sessionId, item)
     }
 
+    @Suppress("LongParameterList")
     fun savePreviewFeedbackItems(
         sessionId: String,
         previewId: String,
@@ -149,15 +150,16 @@ class FeedbackDraftService(
     ): SessionDto = savePreviewFeedbackItemsWithMetadata(
         sessionId = sessionId,
         previewId = previewId,
-            items = items,
-            fallbackScreen = fallbackScreen,
-            allowBlankComments = allowBlankComments,
-            workspaceId = workspaceId,
-            frozenFingerprint = frozenFingerprint,
+        items = items,
+        fallbackScreen = fallbackScreen,
+        allowBlankComments = allowBlankComments,
+        workspaceId = workspaceId,
+        frozenFingerprint = frozenFingerprint,
         currentFingerprint = currentFingerprint,
         forceMismatchOverride = forceMismatchOverride,
     ).session
 
+    @Suppress("LongParameterList")
     internal fun savePreviewFeedbackItemsWithMetadata(
         sessionId: String,
         previewId: String,
@@ -187,6 +189,7 @@ class FeedbackDraftService(
         )
     }
 
+    @Suppress("LongParameterList")
     internal fun preparePreviewFeedbackSave(
         sessionId: String,
         previewId: String,

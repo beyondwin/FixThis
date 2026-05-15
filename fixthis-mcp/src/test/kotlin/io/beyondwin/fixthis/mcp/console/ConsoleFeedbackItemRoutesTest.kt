@@ -27,11 +27,11 @@ import io.beyondwin.fixthis.mcp.session.SnapshotDto
 import io.beyondwin.fixthis.mcp.session.SnapshotRootDto
 import io.beyondwin.fixthis.mcp.session.SnapshotScreenshotDto
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.encodeToString
 import java.net.HttpURLConnection
 import java.nio.file.Files
 import java.util.concurrent.LinkedBlockingQueue

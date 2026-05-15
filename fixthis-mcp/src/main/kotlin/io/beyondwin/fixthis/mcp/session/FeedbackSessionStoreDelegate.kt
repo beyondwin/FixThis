@@ -217,37 +217,22 @@ internal class FeedbackSessionStoreDelegate(
             item.clientDraftKey()?.let { it in existingClientKeys } == true
         }
         if (newItems.isEmpty()) {
-            val duplicateItems = items.mapNotNull { item ->
-                val key = item.clientDraftKey() ?: return@mapNotNull null
-                session.items.firstOrNull { it.clientDraftKey() == key }
-            }
-            val duplicateScreen = duplicateItems.firstOrNull()?.screenId
-                ?.let { screenId -> session.screens.firstOrNull { it.screenId == screenId } }
-                ?: session.screens.firstOrNull { it.screenId == screen.screenId }
-                ?: screen
-            return@withEventBackedMutation buildJsonObject {
-                put("sessionId", sessionId)
-                eventMetadata.forEach { (key, value) -> put(key, value) }
-                put("screen", eventLogJson.encodeToJsonElement(SnapshotDto.serializer(), duplicateScreen))
-                putItems(duplicateItems)
-            } to { session }
+            val duplicateItems = matchingClientDraftItems(session, items)
+            val duplicateScreen = duplicateScreenFor(session, duplicateItems, screen)
+            return@withEventBackedMutation addScreenWithItemsPayload(
+                sessionId = sessionId,
+                eventMetadata = eventMetadata,
+                screen = duplicateScreen,
+                items = duplicateItems,
+            ) to { session }
         }
         val now = clock()
         val captured = screen.copy(
             screenId = if (screen.screenId == "pending") idGenerator() else screen.screenId,
             capturedAtEpochMillis = now,
         )
+        val createdItems = createScreenItems(session, captured, newItems, now, idGenerator)
         val firstSequence = session.migratedNextItemSequenceNumber()
-        val createdItems = newItems.mapIndexed { index, item ->
-            item.copy(
-                itemId = if (item.itemId == "pending") idGenerator() else item.itemId,
-                screenId = captured.screenId,
-                createdAtEpochMillis = now,
-                updatedAtEpochMillis = now,
-                sequenceNumber = item.sequenceNumber ?: firstSequence + index,
-                delivery = FeedbackDelivery.DRAFT,
-            )
-        }
         val nextSequence = createdItems.mapNotNull { it.sequenceNumber }.maxOrNull()?.plus(1) ?: firstSequence
         val screens = if (session.screens.any { it.screenId == captured.screenId }) {
             session.screens
@@ -260,20 +245,26 @@ internal class FeedbackSessionStoreDelegate(
             nextItemSequenceNumber = maxOf(firstSequence, nextSequence),
             updatedAtEpochMillis = now,
         )
-        buildJsonObject {
-            put("sessionId", sessionId)
-            eventMetadata.forEach { (key, value) -> put(key, value) }
-            put("screen", eventLogJson.encodeToJsonElement(SnapshotDto.serializer(), captured))
-            putItems(createdItems)
-        } to {
+        addScreenWithItemsPayload(
+            sessionId = sessionId,
+            eventMetadata = eventMetadata,
+            screen = captured,
+            items = createdItems,
+        ) to {
             commitSessionMutation(session, updated)
         }
     }
 
-    private fun AnnotationDto.clientDraftKey(): String? {
-        val workspaceId = clientWorkspaceId?.takeIf { it.isNotBlank() } ?: return null
-        val draftItemId = clientDraftItemId?.takeIf { it.isNotBlank() } ?: return null
-        return "$workspaceId\u0000$draftItemId"
+    private fun addScreenWithItemsPayload(
+        sessionId: String,
+        eventMetadata: JsonObject,
+        screen: SnapshotDto,
+        items: List<AnnotationDto>,
+    ): JsonObject = buildJsonObject {
+        put("sessionId", sessionId)
+        eventMetadata.forEach { (key, value) -> put(key, value) }
+        put("screen", eventLogJson.encodeToJsonElement(SnapshotDto.serializer(), screen))
+        putItems(items)
     }
 
     fun deleteScreen(sessionId: String, screenId: String): SessionDto = withEventBackedMutation(sessionId, "deleteScreen") {
