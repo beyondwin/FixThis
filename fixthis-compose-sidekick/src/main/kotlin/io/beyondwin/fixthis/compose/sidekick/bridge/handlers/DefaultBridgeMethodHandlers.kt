@@ -1,3 +1,5 @@
+@file:Suppress("MaxLineLength")
+
 package io.beyondwin.fixthis.compose.sidekick.bridge.handlers
 
 import io.beyondwin.fixthis.compose.sidekick.bridge.BridgeConnectionState
@@ -13,6 +15,8 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
+
+private inline fun <reified T> T.toBridgeJsonElement(): JsonElement = BridgeProtocol.json.encodeToJsonElement(this)
 
 internal fun defaultBridgeMethodHandlers(
     environment: BridgeEnvironment,
@@ -47,8 +51,9 @@ private class StatusBridgeHandler(
 ) : BridgeMethodHandler {
     override val method: String = "status"
 
-    override suspend fun handle(params: JsonObject): JsonElement =
-        BridgeProtocol.json.encodeToJsonElement(environment.status().copy(socketName = socketNameProvider()))
+    override suspend fun handle(params: JsonObject): JsonElement = environment.status()
+        .copy(socketName = socketNameProvider())
+        .toBridgeJsonElement()
 }
 
 private class InspectCurrentScreenBridgeHandler(
@@ -56,8 +61,7 @@ private class InspectCurrentScreenBridgeHandler(
 ) : BridgeMethodHandler {
     override val method: String = "inspectCurrentScreen"
 
-    override suspend fun handle(params: JsonObject): JsonElement =
-        BridgeProtocol.json.encodeToJsonElement(environment.inspectCurrentScreen())
+    override suspend fun handle(params: JsonObject): JsonElement = environment.inspectCurrentScreen().toBridgeJsonElement()
 }
 
 private class CaptureScreenSnapshotBridgeHandler(
@@ -65,8 +69,7 @@ private class CaptureScreenSnapshotBridgeHandler(
 ) : BridgeMethodHandler {
     override val method: String = "captureScreenSnapshot"
 
-    override suspend fun handle(params: JsonObject): JsonElement =
-        BridgeProtocol.json.encodeToJsonElement(environment.captureScreenSnapshot())
+    override suspend fun handle(params: JsonObject): JsonElement = environment.captureScreenSnapshot().toBridgeJsonElement()
 }
 
 private class ReadSourceIndexBridgeHandler(
@@ -74,8 +77,7 @@ private class ReadSourceIndexBridgeHandler(
 ) : BridgeMethodHandler {
     override val method: String = "readSourceIndex"
 
-    override suspend fun handle(params: JsonObject): JsonElement =
-        BridgeProtocol.json.encodeToJsonElement(environment.readSourceIndex())
+    override suspend fun handle(params: JsonObject): JsonElement = environment.readSourceIndex().toBridgeJsonElement()
 }
 
 private class VerifyUiChangeBridgeHandler(
@@ -83,8 +85,7 @@ private class VerifyUiChangeBridgeHandler(
 ) : BridgeMethodHandler {
     override val method: String = "verifyUiChange"
 
-    override suspend fun handle(params: JsonObject): JsonElement =
-        BridgeProtocol.json.encodeToJsonElement(verifyUiChange(params))
+    override suspend fun handle(params: JsonObject): JsonElement = verifyUiChange(params).toBridgeJsonElement()
 
     private suspend fun verifyUiChange(params: JsonObject): BridgeUiVerificationResult {
         val expectedText = params.stringParam("expectedText")?.takeIf { it.isNotBlank() }
@@ -111,8 +112,7 @@ private class ReadScreenshotBridgeHandler(
 ) : BridgeMethodHandler {
     override val method: String = "readScreenshot"
 
-    override suspend fun handle(params: JsonObject): JsonElement =
-        BridgeProtocol.json.encodeToJsonElement(screenshotReader.read(params))
+    override suspend fun handle(params: JsonObject): JsonElement = screenshotReader.read(params).toBridgeJsonElement()
 }
 
 private class PerformNavigationBridgeHandler(
@@ -120,10 +120,9 @@ private class PerformNavigationBridgeHandler(
 ) : BridgeMethodHandler {
     override val method: String = "performNavigation"
 
-    override suspend fun handle(params: JsonObject): JsonElement =
-        BridgeProtocol.json.encodeToJsonElement(
-            environment.performNavigation(
-                BridgeProtocol.json.decodeFromJsonElement(BridgeNavigationRequest.serializer(), params),
-            ),
-        )
+    override suspend fun handle(params: JsonObject): JsonElement = BridgeProtocol.json.encodeToJsonElement(
+        environment.performNavigation(
+            BridgeProtocol.json.decodeFromJsonElement(BridgeNavigationRequest.serializer(), params),
+        ),
+    )
 }

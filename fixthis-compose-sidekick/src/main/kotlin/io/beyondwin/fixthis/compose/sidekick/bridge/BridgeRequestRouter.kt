@@ -8,6 +8,5 @@ internal class BridgeRequestRouter(
 ) {
     private val handlersByMethod = handlers.associateBy { it.method }
 
-    suspend fun route(method: String, params: JsonObject): JsonElement? =
-        handlersByMethod[method]?.handle(params)
+    suspend fun route(method: String, params: JsonObject): JsonElement? = handlersByMethod[method]?.handle(params)
 }

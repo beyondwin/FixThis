@@ -38,5 +38,7 @@ class SavePreviewFeedbackUseCase(
     }
 }
 
-internal fun Session.nextAnnotationSequenceNumber(): Int =
-    (annotations.mapNotNull(Annotation::sequenceNumber).maxOrNull() ?: 0) + 1
+internal fun Session.nextAnnotationSequenceNumber(): Int {
+    val maxSequence = annotations.mapNotNull(Annotation::sequenceNumber).maxOrNull() ?: 0
+    return maxSequence + 1
+}

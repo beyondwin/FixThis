@@ -89,7 +89,12 @@ internal class SessionMutationService(
         status: AnnotationStatusDto,
         summary: String?,
     ): Pair<SessionDto, AnnotationDto> {
-        require(status in setOf(AnnotationStatusDto.RESOLVED, AnnotationStatusDto.NEEDS_CLARIFICATION, AnnotationStatusDto.WONT_FIX)) {
+        val allowedStatuses = setOf(
+            AnnotationStatusDto.RESOLVED,
+            AnnotationStatusDto.NEEDS_CLARIFICATION,
+            AnnotationStatusDto.WONT_FIX,
+        )
+        require(status in allowedStatuses) {
             "Agent resolution status is not allowed: $status"
         }
         val now = clock()

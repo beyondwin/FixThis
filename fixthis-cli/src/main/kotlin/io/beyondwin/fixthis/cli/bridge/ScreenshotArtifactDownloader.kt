@@ -14,31 +14,37 @@ internal class ScreenshotArtifactDownloader(
 ) {
     suspend fun readScreenshotArtifact(
         scope: BridgeRequestScope,
-        packageName: String,
-        kind: String,
-        androidPath: String?,
-        destination: File,
-        source: String = "annotation",
+        artifact: ScreenshotArtifactRequest,
     ): String? {
-        androidPath?.takeIf { it.isNotBlank() } ?: return null
+        artifact.androidPath?.takeIf { it.isNotBlank() } ?: return null
         val result = request(
             scope,
-            packageName,
+            artifact.packageName,
             "readScreenshot",
             buildJsonObject {
-                put("kind", kind)
-                if (source != "annotation") {
-                    put("source", source)
+                put("kind", artifact.kind)
+                if (artifact.source != "annotation") {
+                    put("source", artifact.source)
                 }
             },
         )
         val mimeType = result["mimeType"]?.jsonPrimitive?.contentOrNull
-        require(mimeType == "image/png") { "Bridge returned unsupported screenshot MIME type for $kind: $mimeType" }
+        require(mimeType == "image/png") {
+            "Bridge returned unsupported screenshot MIME type for ${artifact.kind}: $mimeType"
+        }
         val base64 = result["base64"]?.jsonPrimitive?.contentOrNull
-            ?: throw BridgeProtocolException("Bridge readScreenshot response omitted base64 for $kind")
-        destination.writeBytes(Base64.getDecoder().decode(base64))
-        return destination.absolutePath
+            ?: throw BridgeProtocolException("Bridge readScreenshot response omitted base64 for ${artifact.kind}")
+        artifact.destination.writeBytes(Base64.getDecoder().decode(base64))
+        return artifact.destination.absolutePath
     }
 }
+
+internal data class ScreenshotArtifactRequest(
+    val packageName: String,
+    val kind: String,
+    val androidPath: String?,
+    val destination: File,
+    val source: String = "annotation",
+)
 
 internal fun String.sanitizedPathSegment(): String = replace(Regex("[^A-Za-z0-9._-]"), "_")

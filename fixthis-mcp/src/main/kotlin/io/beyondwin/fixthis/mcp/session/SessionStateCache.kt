@@ -1,3 +1,5 @@
+@file:Suppress("MaxLineLength")
+
 package io.beyondwin.fixthis.mcp.session
 
 internal class SessionStateCache {
@@ -14,8 +16,7 @@ internal class SessionStateCache {
         sessions[session.sessionId] = session
     }
 
-    fun get(sessionId: String): SessionDto =
-        sessions[sessionId] ?: throw FeedbackSessionException("Unknown feedback session: $sessionId")
+    fun get(sessionId: String): SessionDto = sessions[sessionId] ?: throw FeedbackSessionException("Unknown feedback session: $sessionId")
 
     fun find(sessionId: String): SessionDto? = sessions[sessionId]
 

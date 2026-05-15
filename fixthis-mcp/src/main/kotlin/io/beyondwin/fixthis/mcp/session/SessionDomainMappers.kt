@@ -205,12 +205,18 @@ private fun SessionStatus.toSessionStatusDto(): SessionStatusDto = when (this) {
 
 private fun AnnotationTargetDto.toDomainTarget(): AnnotationTarget = when (this) {
     is AnnotationTargetDto.Area -> AnnotationTarget.Area(boundsInWindow.toDomainRect())
-    is AnnotationTargetDto.Node -> AnnotationTarget.Node(nodeUid = nodeUid, boundsInWindow = boundsInWindow.toDomainRect())
+    is AnnotationTargetDto.Node -> AnnotationTarget.Node(
+        nodeUid = nodeUid,
+        boundsInWindow = boundsInWindow.toDomainRect(),
+    )
 }
 
 private fun AnnotationTarget.toAnnotationTargetDto(): AnnotationTargetDto = when (this) {
     is AnnotationTarget.Area -> AnnotationTargetDto.Area(boundsInWindow.toFixThisRect())
-    is AnnotationTarget.Node -> AnnotationTargetDto.Node(nodeUid = nodeUid, boundsInWindow = boundsInWindow.toFixThisRect())
+    is AnnotationTarget.Node -> AnnotationTargetDto.Node(
+        nodeUid = nodeUid,
+        boundsInWindow = boundsInWindow.toFixThisRect(),
+    )
 }
 
 private fun SnapshotScreenshotDto.toDomainScreenshot(): SnapshotScreenshot = SnapshotScreenshot(

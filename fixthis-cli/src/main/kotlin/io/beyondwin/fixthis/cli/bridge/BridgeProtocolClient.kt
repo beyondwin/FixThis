@@ -30,8 +30,7 @@ internal class BridgeProtocolClient(
             params = params,
         )
         BridgeFrames.writeFrame(socket.output, fixThisJson.encodeToString(BridgeRequest.serializer(), request))
-        val responsePayload = BridgeFrames.readFrame(socket.input)
-            ?: throw BridgeConnectionException("Bridge closed before sending a response")
+        val responsePayload = readRequiredResponse(socket)
         val response = fixThisJson.decodeFromString(BridgeResponse.serializer(), responsePayload)
         if (!response.ok) {
             val error = response.error
@@ -45,6 +44,9 @@ internal class BridgeProtocolClient(
         validateProtocol(result["bridgeProtocolVersion"]?.jsonPrimitive?.contentOrNull ?: expectedProtocolVersion)
         return result
     }
+
+    private fun readRequiredResponse(socket: BridgeSocket): String = BridgeFrames.readFrame(socket.input)
+        ?: throw BridgeConnectionException("Bridge closed before sending a response")
 
     private fun validateProtocol(protocolVersion: String) {
         if (protocolVersion != expectedProtocolVersion) {

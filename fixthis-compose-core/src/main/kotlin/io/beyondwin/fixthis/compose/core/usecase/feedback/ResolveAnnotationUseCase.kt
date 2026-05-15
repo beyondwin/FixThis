@@ -9,7 +9,9 @@ class ResolveAnnotationUseCase(
     private val clock: () -> Long,
 ) {
     suspend operator fun invoke(command: ResolveAnnotationCommand): Session {
-        require(command.status in AllowedResolutionStatuses) { "Agent resolution status is not allowed: ${command.status}" }
+        require(command.status in AllowedResolutionStatuses) {
+            "Agent resolution status is not allowed: ${command.status}"
+        }
         val session = sessions.find(command.sessionId)
             ?: throw IllegalArgumentException("Unknown session: ${command.sessionId.value}")
         val now = clock()

@@ -5,6 +5,9 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class DispatchArchitectureTest {
+    private val sidekickHandlerPath =
+        "fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/handlers"
+
     private val root: File = generateSequence(File("").absoluteFile) { it.parentFile }
         .first { File(it, "settings.gradle.kts").isFile || File(it, "settings.gradle").isFile }
 
@@ -25,11 +28,14 @@ class DispatchArchitectureTest {
 
     @Test
     fun sidekickBridgeHandlersDoNotUseCentralMethodSwitches() {
-        val offenders = kotlinFiles(
-            "fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/handlers",
-        ).flatMap { file ->
+        val offenders = kotlinFiles(sidekickHandlerPath).flatMap { file ->
             file.readLines().mapIndexedNotNull { index, line ->
-                if (Regex("""when\s*\(\s*method\s*\)|"(heartbeat|status|inspectCurrentScreen)"\s*->""").containsMatchIn(line)) {
+                val centralMethodSwitch = Regex(
+                    """"(heartbeat|status|inspectCurrentScreen)"\s*->""",
+                )
+                if (Regex("""when\s*\(\s*method\s*\)""").containsMatchIn(line) ||
+                    centralMethodSwitch.containsMatchIn(line)
+                ) {
                     "${file.relativeTo(root)}:${index + 1}: $line"
                 } else {
                     null

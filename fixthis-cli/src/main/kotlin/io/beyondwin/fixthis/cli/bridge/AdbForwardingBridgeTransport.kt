@@ -6,7 +6,7 @@ import io.beyondwin.fixthis.cli.BridgeSocket
 import kotlinx.coroutines.CancellationException
 import java.io.IOException
 
-private const val BridgeSocketNameMaxAttempts = 3
+private const val BRIDGE_SOCKET_NAME_MAX_ATTEMPTS = 3
 
 internal class AdbForwardingBridgeTransport(
     private val portAllocator: () -> Int,
@@ -38,23 +38,20 @@ internal class AdbForwardingBridgeTransport(
         activeRequest: ActiveBridgeRequest,
     ): BridgeSocket {
         var lastError: Throwable? = null
-        for (attempt in 0 until BridgeSocketNameMaxAttempts) {
+        for (attempt in 0 until BRIDGE_SOCKET_NAME_MAX_ATTEMPTS) {
             val candidate = if (attempt == 0) sessionSocketName else "$sessionSocketName-$attempt"
             val address = "localabstract:$candidate"
-            try {
-                adb.forward(localPort, address)
-            } catch (error: IOException) {
-                lastError = error
-                continue
-            }
-            activeRequest.markForwardEstablished()
             val socket = try {
+                adb.forward(localPort, address)
+                activeRequest.markForwardEstablished()
                 socketConnector(localPort)
             } catch (error: IOException) {
                 lastError = error
-                continue
+                null
             }
-            return socket
+            if (socket != null) {
+                return socket
+            }
         }
         throw BridgeConnectionException(
             "Could not connect to FixThis bridge socket $sessionSocketName " +

@@ -1,3 +1,5 @@
+@file:Suppress("MaxLineLength")
+
 package io.beyondwin.fixthis.mcp.session
 
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogCompactor
@@ -26,34 +28,27 @@ class FeedbackSessionStore(
         eventLogCompactionThreshold = eventLogCompactionThreshold,
     )
 
-    fun openSession(packageName: String, projectRoot: String): SessionDto =
-        delegate.openSession(packageName, projectRoot)
+    fun openSession(packageName: String, projectRoot: String): SessionDto = delegate.openSession(packageName, projectRoot)
 
     fun currentSession(): SessionDto? = delegate.currentSession()
 
     fun getSession(sessionId: String): SessionDto = delegate.getSession(sessionId)
 
-    fun replaceSessionForDomain(session: SessionDto): SessionDto =
-        delegate.replaceSessionForDomain(session)
+    fun replaceSessionForDomain(session: SessionDto): SessionDto = delegate.replaceSessionForDomain(session)
 
-    fun addOrReplaceScreenForDomain(sessionId: String, screen: SnapshotDto): SessionDto =
-        delegate.addOrReplaceScreenForDomain(sessionId, screen)
+    fun addOrReplaceScreenForDomain(sessionId: String, screen: SnapshotDto): SessionDto = delegate.addOrReplaceScreenForDomain(sessionId, screen)
 
-    fun addOrReplaceAnnotationForDomain(sessionId: String, annotation: AnnotationDto): SessionDto =
-        delegate.addOrReplaceAnnotationForDomain(sessionId, annotation)
+    fun addOrReplaceAnnotationForDomain(sessionId: String, annotation: AnnotationDto): SessionDto = delegate.addOrReplaceAnnotationForDomain(sessionId, annotation)
 
     fun nextId(): String = delegate.nextId()
 
-    fun listSessions(packageName: String? = null, includeClosed: Boolean = false): FeedbackSessionList =
-        delegate.listSessions(packageName, includeClosed)
+    fun listSessions(packageName: String? = null, includeClosed: Boolean = false): FeedbackSessionList = delegate.listSessions(packageName, includeClosed)
 
-    fun openExistingSession(sessionId: String): SessionDto =
-        delegate.openExistingSession(sessionId)
+    fun openExistingSession(sessionId: String): SessionDto = delegate.openExistingSession(sessionId)
 
     fun closeSession(sessionId: String): SessionDto = delegate.closeSession(sessionId)
 
-    fun addScreen(sessionId: String, screen: SnapshotDto): SnapshotDto =
-        delegate.addScreen(sessionId, screen)
+    fun addScreen(sessionId: String, screen: SnapshotDto): SnapshotDto = delegate.addScreen(sessionId, screen)
 
     fun addScreenWithItems(
         sessionId: String,
@@ -62,11 +57,9 @@ class FeedbackSessionStore(
         eventMetadata: JsonObject = JsonObject(emptyMap()),
     ): SessionDto = delegate.addScreenWithItems(sessionId, screen, items, eventMetadata)
 
-    fun deleteScreen(sessionId: String, screenId: String): SessionDto =
-        delegate.deleteScreen(sessionId, screenId)
+    fun deleteScreen(sessionId: String, screenId: String): SessionDto = delegate.deleteScreen(sessionId, screenId)
 
-    fun addItem(sessionId: String, item: AnnotationDto): AnnotationDto =
-        delegate.addItem(sessionId, item)
+    fun addItem(sessionId: String, item: AnnotationDto): AnnotationDto = delegate.addItem(sessionId, item)
 
     fun clearDraftItems(sessionId: String): SessionDto = delegate.clearDraftItems(sessionId)
 
@@ -76,8 +69,7 @@ class FeedbackSessionStore(
         targetItemIds: List<String>? = null,
     ): SessionDto = delegate.sendDraftToAgent(sessionId, markdownSnapshot, targetItemIds)
 
-    fun markItemsHandedOff(sessionId: String, itemIds: List<String>): SessionDto =
-        delegate.markItemsHandedOff(sessionId, itemIds)
+    fun markItemsHandedOff(sessionId: String, itemIds: List<String>): SessionDto = delegate.markItemsHandedOff(sessionId, itemIds)
 
     fun markReadyForAgent(sessionId: String): SessionDto = delegate.markReadyForAgent(sessionId)
 
@@ -88,8 +80,7 @@ class FeedbackSessionStore(
         agentSummary: String?,
     ): AnnotationDto = delegate.updateItemStatus(sessionId, itemId, status, agentSummary)
 
-    fun claimFeedback(sessionId: String, itemId: String, agentNote: String?): AnnotationDto =
-        delegate.claimFeedback(sessionId, itemId, agentNote)
+    fun claimFeedback(sessionId: String, itemId: String, agentNote: String?): AnnotationDto = delegate.claimFeedback(sessionId, itemId, agentNote)
 
     fun updateDraftItem(
         sessionId: String,
@@ -100,6 +91,5 @@ class FeedbackSessionStore(
         status: AnnotationStatusDto?,
     ): SessionDto = delegate.updateDraftItem(sessionId, itemId, label, severity, comment, status)
 
-    fun deleteDraftItem(sessionId: String, itemId: String): SessionDto =
-        delegate.deleteDraftItem(sessionId, itemId)
+    fun deleteDraftItem(sessionId: String, itemId: String): SessionDto = delegate.deleteDraftItem(sessionId, itemId)
 }

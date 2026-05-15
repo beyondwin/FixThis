@@ -1,3 +1,5 @@
+@file:Suppress("MaxLineLength")
+
 package io.beyondwin.fixthis.mcp.architecture
 
 import java.io.File
@@ -54,6 +56,5 @@ class ArchitectureHotspotBudgetTest {
         assertTrue(offenders.isEmpty(), offenders.joinToString(separator = "\n"))
     }
 
-    private fun remediationBudgetEnabled(path: String): Boolean =
-        File(root, path).isFile && System.getenv("FIXTHIS_STRICT_ARCH_BUDGETS") == "true"
+    private fun remediationBudgetEnabled(path: String): Boolean = File(root, path).isFile && System.getenv("FIXTHIS_STRICT_ARCH_BUDGETS") == "true"
 }

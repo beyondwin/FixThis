@@ -16,7 +16,9 @@ class CreateHandoffBatchUseCase(
         val session = sessions.find(command.sessionId)
             ?: throw IllegalArgumentException("Unknown session: ${command.sessionId.value}")
         val targetIds = command.annotationIds.map { it.value }.toSet()
-        val annotations = session.annotations.filter { it.id.value in targetIds && it.delivery == AnnotationDelivery.DRAFT }
+        val annotations = session.annotations.filter {
+            it.id.value in targetIds && it.delivery == AnnotationDelivery.DRAFT
+        }
         require(annotations.isNotEmpty()) { "No matching draft annotations to hand off" }
         val now = clock()
         val batchId = idGenerator()

@@ -33,7 +33,7 @@ private val eventLogJson = Json {
  * preserving backward compatibility for the ~482 existing tests.
  */
 // LargeClass suppressed: split into smaller responsibilities once the event-log API stabilises — see #ALH-followup
-@Suppress("LargeClass", "LongParameterList")
+@Suppress("LargeClass", "LongParameterList", "TooManyFunctions")
 internal class FeedbackSessionStoreDelegate(
     private val clock: () -> Long = { System.currentTimeMillis() },
     private val idGenerator: () -> String = { UUID.randomUUID().toString() },
@@ -151,7 +151,10 @@ internal class FeedbackSessionStoreDelegate(
 
     fun nextId(): String = synchronized(lock) { idGenerator() }
 
-    fun listSessions(packageName: String? = null, includeClosed: Boolean = false): FeedbackSessionList = synchronized(lock) {
+    fun listSessions(
+        packageName: String? = null,
+        includeClosed: Boolean = false,
+    ): FeedbackSessionList = synchronized(lock) {
         val replaySkipped = replaySkippedSessionList(packageName, includeClosed)
         persistence?.list(packageName, includeClosed)
             ?.let { list -> list.copy(skippedSessions = list.skippedSessions + replaySkipped) }
@@ -656,7 +659,10 @@ internal class FeedbackSessionStoreDelegate(
         replaySkippedSessions[sessionId] = SkippedFeedbackSession(path = path, message = message)
     }
 
-    private fun replaySkippedSessionList(packageName: String?, includeClosed: Boolean): List<SkippedFeedbackSession> = replaySkippedSessions
+    private fun replaySkippedSessionList(
+        packageName: String?,
+        includeClosed: Boolean,
+    ): List<SkippedFeedbackSession> = replaySkippedSessions
         .filter { (sessionId, _) ->
             val session = sessions[sessionId]
             session != null &&

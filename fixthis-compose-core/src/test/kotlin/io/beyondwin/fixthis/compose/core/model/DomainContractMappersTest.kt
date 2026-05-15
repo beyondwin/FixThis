@@ -1,5 +1,6 @@
 package io.beyondwin.fixthis.compose.core.model
 
+import io.beyondwin.fixthis.compose.core.domain.evidence.AnnotationEvidence
 import io.beyondwin.fixthis.compose.core.domain.evidence.EvidenceQuality
 import io.beyondwin.fixthis.compose.core.domain.evidence.IdentityEvidence
 import io.beyondwin.fixthis.compose.core.domain.evidence.IdentityEvidenceConfidence
@@ -16,7 +17,6 @@ import io.beyondwin.fixthis.compose.core.domain.evidence.TargetConfidence
 import io.beyondwin.fixthis.compose.core.domain.evidence.TargetReliabilityAssessment
 import io.beyondwin.fixthis.compose.core.domain.evidence.TargetReliabilityReason
 import io.beyondwin.fixthis.compose.core.domain.evidence.TargetReliabilityWarning
-import io.beyondwin.fixthis.compose.core.domain.evidence.AnnotationEvidence
 import io.beyondwin.fixthis.compose.core.domain.snapshot.DomainError
 import io.beyondwin.fixthis.compose.core.domain.ui.DomainRect
 import io.beyondwin.fixthis.compose.core.domain.ui.SemanticsNodeSnapshot

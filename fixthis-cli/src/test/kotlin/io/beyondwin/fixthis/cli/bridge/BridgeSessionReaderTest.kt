@@ -38,7 +38,10 @@ class BridgeSessionReaderTest {
         }.exceptionOrNull()
 
         assertTrue(error is BridgeConnectionException)
-        assertTrue(error?.message.orEmpty().startsWith("Could not read FixThis bridge session via adb shell run-as io.app cat"))
+        assertTrue(
+            error?.message.orEmpty()
+                .startsWith("Could not read FixThis bridge session via adb shell run-as io.app cat"),
+        )
     }
 
     private class FakeAdb(private val sessionJson: String) : AdbFacade {

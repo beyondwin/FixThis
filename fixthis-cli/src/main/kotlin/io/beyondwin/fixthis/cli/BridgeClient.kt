@@ -7,6 +7,7 @@ import io.beyondwin.fixthis.cli.bridge.BridgeRequestScope
 import io.beyondwin.fixthis.cli.bridge.BridgeSessionReader
 import io.beyondwin.fixthis.cli.bridge.DeviceSelectionState
 import io.beyondwin.fixthis.cli.bridge.ScreenshotArtifactDownloader
+import io.beyondwin.fixthis.cli.bridge.ScreenshotArtifactRequest
 import io.beyondwin.fixthis.cli.bridge.sanitizedPathSegment
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -147,11 +148,9 @@ class BridgeClient(
 
     fun resolvePackageName(packageOverride: String?): String = ProjectConfig.resolvePackageName(projectRoot, packageOverride)
 
-    suspend fun performNavigation(packageName: String, request: JsonObject): JsonObject =
-        request(packageName = packageName, method = "performNavigation", params = request)
+    suspend fun performNavigation(packageName: String, request: JsonObject): JsonObject = request(packageName = packageName, method = "performNavigation", params = request)
 
-    suspend fun readSourceIndex(packageName: String): JsonObject =
-        request(packageName = packageName, method = "readSourceIndex")
+    suspend fun readSourceIndex(packageName: String): JsonObject = request(packageName = packageName, method = "readSourceIndex")
 
     fun launchApp(packageName: String) {
         val scope = requestScope()
@@ -176,11 +175,13 @@ class BridgeClient(
 
         val fullDesktopPath = artifactDownloader.readScreenshotArtifact(
             scope = scope,
-            packageName = packageName,
-            kind = "full",
-            androidPath = screenshot["fullPath"]?.jsonPrimitive?.contentOrNull,
-            destination = artifactDirectory.resolve("$artifactId-full.png"),
-            source = "screenSnapshot",
+            artifact = ScreenshotArtifactRequest(
+                packageName = packageName,
+                kind = "full",
+                androidPath = screenshot["fullPath"]?.jsonPrimitive?.contentOrNull,
+                destination = artifactDirectory.resolve("$artifactId-full.png"),
+                source = "screenSnapshot",
+            ),
         )
         val rewrittenScreenshot = buildJsonObject {
             screenshot.forEach { (key, value) -> put(key, value) }
