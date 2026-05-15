@@ -134,3 +134,10 @@ test('deleteHistorySession clears local recovery for the deleted session', () =>
   assert.match(deleteBody, /clearPendingMirror\(sessionId\)/);
   assert.match(deleteBody, /activePendingMirrorSessions\.delete\(sessionId\)/);
 });
+
+test('deleteHistorySession resets a draft workspace even when no session is displayed', () => {
+  const deleteBody = body(historySource, 'async function deleteHistorySession(sessionId)');
+  assert.match(deleteBody, /const hasDisplayedDraftForDeletedSession = \(\) => draftWorkspace\?\.context\?\.sessionId === sessionId;/);
+  assert.match(deleteBody, /const wasDisplayedDraft = hasDisplayedDraftForDeletedSession\(\);/);
+  assert.match(deleteBody, /if \(wasDisplayedSession \|\| wasDisplayedDraft\) \{/);
+});

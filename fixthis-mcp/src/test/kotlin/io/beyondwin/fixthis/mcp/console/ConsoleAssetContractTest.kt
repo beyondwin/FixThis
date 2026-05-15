@@ -252,15 +252,18 @@ class ConsoleAssetContractTest {
         assertTrue(
             Regex(
                 "async function deleteHistorySession\\(sessionId\\)[\\s\\S]*const isDisplayedSession = " +
-                    "\\(\\) => state\\.session\\?\\.sessionId === sessionId;[\\s\\S]*const wasDisplayedSession = " +
-                    "isDisplayedSession\\(\\);[\\s\\S]*if \\(wasDisplayedSession\\) \\{\\s+" +
+                    "\\(\\) => state\\.session\\?\\.sessionId === sessionId;[\\s\\S]*" +
+                    "const hasDisplayedDraftForDeletedSession = " +
+                    "\\(\\) => draftWorkspace\\?\\.context\\?\\.sessionId === sessionId;[\\s\\S]*" +
+                    "const wasDisplayedDraft = hasDisplayedDraftForDeletedSession\\(\\);[\\s\\S]*" +
+                    "if \\(wasDisplayedSession \\|\\| wasDisplayedDraft\\) \\{\\s+" +
                     "resetComposer\\(\\);",
             ).containsMatchIn(html),
         )
         assertTrue(
             Regex(
                 "async function deleteHistorySession\\(sessionId\\)[\\s\\S]*if " +
-                    "\\(wasDisplayedSession\\) \\{[\\s\\S]*setConsoleSession\\(null\\);[\\s\\S]*" +
+                    "\\(wasDisplayedSession \\|\\| wasDisplayedDraft\\) \\{[\\s\\S]*setConsoleSession\\(null\\);[\\s\\S]*" +
                     "await refreshSessions\\(\\);\\s+render\\(\\);\\s+await refreshDevices\\(\\);",
             ).containsMatchIn(html),
         )

@@ -475,7 +475,12 @@
               if (sessionNavigationInFlight) return;
               if (await resolvePendingBeforeBoundary('delete-session', sessionId) !== 'continue') return;
               const isDisplayedSession = () => state.session?.sessionId === sessionId;
+              const hasDisplayedDraftForDeletedSession = () => draftWorkspace?.context?.sessionId === sessionId;
+              const hasPendingRecoveryForDeletedSession = () =>
+                (pendingRecovery?.sessionId || pendingRecovery?.context?.sessionId) === sessionId;
               const wasDisplayedSession = isDisplayedSession();
+              const wasDisplayedDraft = hasDisplayedDraftForDeletedSession();
+              const hadPendingRecovery = hasPendingRecoveryForDeletedSession();
               bumpSessionMutationGeneration();
               await withMutationLock(() => requestJson('/api/session/close', {
                 method: 'POST',
@@ -485,7 +490,8 @@
               createBrowserDraftPorts().storage.deleteWorkspacesForSession(sessionId);
               clearPendingMirror(sessionId);
               activePendingMirrorSessions.delete(sessionId);
-              if (wasDisplayedSession) {
+              if (hadPendingRecovery) pendingRecovery = null;
+              if (wasDisplayedSession || wasDisplayedDraft) {
                 resetComposer();
                 clearPreview();
                 setConsoleSession(null);
