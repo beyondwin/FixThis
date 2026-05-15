@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    id("maven-publish")
 }
 
 android {
@@ -20,6 +21,12 @@ android {
 
     testOptions {
         unitTests.isIncludeAndroidResources = true
+    }
+
+    publishing {
+        singleVariant("debug") {
+            withSourcesJar()
+        }
     }
 }
 
@@ -121,5 +128,33 @@ androidComponents {
             generateBuildInfoResources,
             GenerateSidekickBuildInfoResourcesTask::outputDir,
         )
+    }
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            create<MavenPublication>("debug") {
+                from(components["debug"])
+                artifactId = "fixthis-compose-sidekick"
+
+                pom {
+                    name.set("FixThis Compose Sidekick")
+                    description.set("Debug-only Jetpack Compose runtime sidekick for FixThis local MCP feedback workflows.")
+                    url.set("https://github.com/beyondwin/FixThis")
+                    licenses {
+                        license {
+                            name.set("MIT License")
+                            url.set("https://opensource.org/licenses/MIT")
+                        }
+                    }
+                    scm {
+                        connection.set("scm:git:https://github.com/beyondwin/FixThis.git")
+                        developerConnection.set("scm:git:https://github.com/beyondwin/FixThis.git")
+                        url.set("https://github.com/beyondwin/FixThis")
+                    }
+                }
+            }
+        }
     }
 }

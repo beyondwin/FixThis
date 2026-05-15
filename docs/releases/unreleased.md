@@ -52,6 +52,10 @@ remains the chronological source of truth.
   default, source-index generation is cacheable, sidekick build metadata avoids
   unnecessary Kotlin recompilation, and CI separates console JavaScript checks
   from Gradle verification for faster failures.
+- External Gradle artifacts are still not public, but local publish-prep is now
+  wired: the Compose core and debug-only sidekick can publish to Maven Local,
+  the Gradle plugin has Plugin Portal metadata, and release-readiness checks
+  guard against advertising registry availability too early.
 
 ## Compatibility Notes
 

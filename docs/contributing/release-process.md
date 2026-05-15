@@ -36,14 +36,14 @@ the package version will also be set in the root build configuration:
 
 | Location | Bumped on | Notes |
 |----------|-----------|-------|
-| `gradle.properties` (`version=…`) | every release | The single source of truth for `:fixthis-compose-sidekick`, `:fixthis-gradle-plugin`, `:fixthis-cli`, `:fixthis-mcp`. |
+| `gradle.properties` (`fixthis.version=…`) | every release | The single source of truth for `:fixthis-compose-core`, `:fixthis-compose-sidekick`, and `:fixthis-gradle-plugin`. |
 | `BridgeProtocol.VERSION` | wire-visible bridge changes only | Independent of package version. |
 | `CHANGELOG.md` | every release | Move "Unreleased" entries under a new dated heading. |
 
-> The `gradle.properties` `version` line is added as part of the publish-to-Maven
-> work. Until then, the repo carries no externally-visible Gradle package
-> version string and consumers wire FixThis via composite build. GitHub source
-> releases are still versioned by annotated tags.
+> The `gradle.properties` `fixthis.version` line exists for local publish-prep
+> validation. It is not an external availability claim; consumers still wire
+> FixThis via composite build until the artifacts are visible in their public
+> registries. GitHub source releases are still versioned by annotated tags.
 
 ## Pre-release checklist
 

@@ -1,13 +1,77 @@
+import java.util.Properties
+
 plugins {
     `java-gradle-plugin`
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.gradle.plugin.publish)
     alias(libs.plugins.spotless)
     alias(libs.plugins.detekt) apply false
 }
 
+val releaseProperties =
+    Properties().also { properties ->
+        rootProject.projectDir
+            .resolve("../gradle.properties")
+            .inputStream()
+            .use(properties::load)
+    }
+
+fun releaseProperty(name: String): String =
+    releaseProperties.getProperty(name)
+        ?: error("Missing $name in ../gradle.properties")
+
+group = releaseProperty("fixthis.group")
+version = releaseProperty("fixthis.version")
+
+abstract class GenerateFixThisPluginVersionTask : org.gradle.api.DefaultTask() {
+    @get:org.gradle.api.tasks.Input
+    abstract val pluginVersion: org.gradle.api.provider.Property<String>
+
+    @get:org.gradle.api.tasks.OutputDirectory
+    abstract val outputDir: org.gradle.api.file.DirectoryProperty
+
+    @org.gradle.api.tasks.TaskAction
+    fun generate() {
+        val versionLiteral =
+            pluginVersion
+                .get()
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+        val target =
+            outputDir
+                .get()
+                .file("io/beyondwin/fixthis/gradle/FixThisPluginVersion.kt")
+                .asFile
+        target.parentFile.mkdirs()
+        target.writeText(
+            """
+            package io.beyondwin.fixthis.gradle
+
+            internal object FixThisPluginVersion {
+                const val VERSION = "$versionLiteral"
+
+                fun defaultRuntimeVersion(): String =
+                    FixThisPluginVersion::class.java.`package`.implementationVersion
+                        ?.takeIf { it.isNotBlank() }
+                        ?: VERSION
+            }
+            """.trimIndent(),
+        )
+    }
+}
+
+val generateFixThisPluginVersion =
+    tasks.register<GenerateFixThisPluginVersionTask>("generateFixThisPluginVersion") {
+        pluginVersion.set(project.version.toString())
+        outputDir.set(layout.buildDirectory.dir("generated/source/fixthisVersion/main/kotlin"))
+    }
+
 kotlin {
     jvmToolchain(21)
+    sourceSets.named("main") {
+        kotlin.srcDir(generateFixThisPluginVersion)
+    }
 }
 
 val ktlintVersion = libs.versions.ktlint.get()
@@ -64,11 +128,23 @@ if (gradle.startParameter.taskNames.any(::requestedDetektTask)) {
 }
 
 gradlePlugin {
+    website.set("https://github.com/beyondwin/FixThis")
+    vcsUrl.set("https://github.com/beyondwin/FixThis.git")
+
     plugins {
         create("fixThisCompose") {
             id = "io.beyondwin.fixthis.compose"
             implementationClass = "io.beyondwin.fixthis.gradle.FixThisGradlePlugin"
+            displayName = "FixThis Compose"
+            description = "Adds the FixThis debug-only Jetpack Compose sidekick and source index generation."
+            tags.set(listOf("android", "compose", "debugging", "mcp", "ai"))
         }
+    }
+}
+
+tasks.named<Jar>("jar") {
+    manifest {
+        attributes("Implementation-Version" to project.version.toString())
     }
 }
 

@@ -32,6 +32,11 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   (`// @requires` directives). Raw 275 KiB → 160 KiB / gzip 55 KiB → 37 KiB.
   External source map; build aborts on size budget overflow or missing
   contract symbol.
+- Publish-prep Gradle wiring for local artifact validation:
+  `fixthis.version` / `fixthis.group` now drive the Compose core, debug-only
+  sidekick, and Gradle plugin coordinates; core and sidekick can publish to
+  Maven Local; and the Gradle plugin carries Plugin Portal metadata without
+  enabling remote publication.
 
 ### Added
 

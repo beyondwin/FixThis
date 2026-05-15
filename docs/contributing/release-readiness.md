@@ -16,7 +16,7 @@ Plugin Portal installation.
 | Current `main` | Unreleased hardening after `v0.1.0` | Users can try latest docs/code from source. |
 | Sample app | Available | Users can verify the workflow before touching their app. |
 | Claude Code / Codex MCP bootstrap | Available from source | `./scripts/bootstrap-mcp.sh --sample` configures local MCP for the sample. |
-| External Gradle artifacts | Not published | External apps must use source/composite-build wiring for now. |
+| External Gradle artifacts | Local publish prep only | Maintainers can validate local Maven artifacts, but external apps must use source/composite-build wiring for now. |
 | MCP Registry entry | Not published | Discovery remains through the GitHub repository and docs. |
 
 ## Supported Install Paths Today
@@ -57,16 +57,16 @@ consumer project.
 
 ## Required Before External Artifact Release
 
-- [ ] Public group and artifact coordinates are final:
+- [x] Public group and artifact coordinates are final:
       `io.beyondwin.fixthis:fixthis-compose-sidekick` and
       `io.beyondwin.fixthis:fixthis-compose-core` if core is published.
-- [ ] Gradle plugin id remains `io.beyondwin.fixthis.compose`.
-- [ ] One version source of truth is established for all published modules.
-- [ ] Gradle publishing plugins are configured for local dry-run validation.
-- [ ] `publishToMavenLocal` or equivalent dry-run packaging is verified.
-- [ ] `./gradlew publishToMavenLocal --dry-run` succeeds.
-- [ ] Gradle Plugin Portal validation passes for `:fixthis-gradle-plugin`.
-- [ ] `./gradlew :fixthis-gradle-plugin:validatePlugins` succeeds.
+- [x] Gradle plugin id remains `io.beyondwin.fixthis.compose`.
+- [x] One version source of truth is established for all published modules.
+- [x] Gradle publishing plugins are configured for local dry-run validation.
+- [x] `publishToMavenLocal` or equivalent dry-run packaging is verified.
+- [x] `./gradlew publishToMavenLocal --dry-run` succeeds.
+- [x] Gradle Plugin Portal validation passes for `:fixthis-gradle-plugin`.
+- [x] `./gradlew :fixthis-gradle-plugin:validatePlugins` succeeds.
 - [ ] Maven Central namespace ownership is verified by the maintainer.
 - [ ] Gradle Plugin Portal account ownership is verified by the maintainer.
 - [ ] Signing and publishing secrets are configured outside the repository.
@@ -79,7 +79,7 @@ consumer project.
 | Surface | Future coordinate / id | Registry |
 | --- | --- | --- |
 | Gradle plugin | `io.beyondwin.fixthis.compose` | Gradle Plugin Portal |
-| Compose sidekick | `io.beyondwin.fixthis:fixthis-compose-sidekick` | Maven Central |
+| Compose sidekick | `io.beyondwin.fixthis:fixthis-compose-sidekick` | Maven Central; debug variant only |
 | Compose core | `io.beyondwin.fixthis:fixthis-compose-core` | Maven Central, only if needed by consumers |
 | MCP server | no package coordinate yet | Future MCP Registry metadata after an install package exists |
 

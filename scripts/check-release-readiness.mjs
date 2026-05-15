@@ -94,6 +94,36 @@ requireIncludes(
   'docs/releases/unreleased.md',
   'It is not a tagged release',
 );
+requireRegex(
+  'R8.gradle-version-source',
+  'gradle.properties',
+  /^fixthis\.version=.+$/m,
+  'fixthis.version as the release version source of truth',
+);
+requireRegex(
+  'R9.core-maven-publish',
+  'fixthis-compose-core/build.gradle.kts',
+  /id\("maven-publish"\)[\s\S]*artifactId = "fixthis-compose-core"/,
+  'maven-publish configuration for io.beyondwin.fixthis:fixthis-compose-core',
+);
+requireRegex(
+  'R10.sidekick-debug-maven-publish',
+  'fixthis-compose-sidekick/build.gradle.kts',
+  /id\("maven-publish"\)[\s\S]*singleVariant\("debug"\)[\s\S]*artifactId = "fixthis-compose-sidekick"/,
+  'debug-variant maven-publish configuration for io.beyondwin.fixthis:fixthis-compose-sidekick',
+);
+requireRegex(
+  'R11.gradle-plugin-portal-metadata',
+  'fixthis-gradle-plugin/build.gradle.kts',
+  /alias\(libs\.plugins\.gradle\.plugin\.publish\)[\s\S]*website\.set\([\s\S]*vcsUrl\.set\([\s\S]*tags\.set\(/,
+  'Gradle Plugin Portal metadata',
+);
+requireRegex(
+  'R12.plugin-runtime-version-not-hardcoded',
+  'fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/FixThisExtension.kt',
+  /FixThisPluginVersion\.defaultRuntimeVersion\(\)/,
+  'runtimeVersion default derived from plugin build metadata',
+);
 
 for (const file of [
   'README.md',
@@ -102,7 +132,7 @@ for (const file of [
   'docs/contributing/release-readiness.md',
   'docs/contributing/release-process.md',
 ]) {
-  forbidPublishedGradleClaims(`R8.no-unqualified-published-claims:${file}`, file);
+  forbidPublishedGradleClaims(`R13.no-unqualified-published-claims:${file}`, file);
 }
 
 if (failures.length > 0) {

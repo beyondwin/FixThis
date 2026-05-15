@@ -30,15 +30,19 @@ directly. **External projects must reproduce that wiring** (composite build or
 project dependency) until a published plugin coordinate exists.
 
 The plugin handles source-index generation and adds the sidekick as a
-`debugImplementation` automatically. Future published sidekick wiring will look
+`debugImplementation` automatically. Future published plugin wiring will look
 like this, but this snippet is not copyable until artifacts are released:
 
 ```kotlin
 // Future, once published. Until then, use composite build.
-dependencies {
-    debugImplementation("io.beyondwin.fixthis:fixthis-compose-sidekick:0.1.0")
+plugins {
+    id("io.beyondwin.fixthis.compose") version "X.Y.Z"
 }
 ```
+
+The matching sidekick runtime coordinate is
+`io.beyondwin.fixthis:fixthis-compose-sidekick:X.Y.Z`; the plugin adds it for
+debuggable variants unless `fixthis.addDebugRuntime` is disabled.
 
 Release builds are not a supported target — the sidekick is debug-only by
 design.

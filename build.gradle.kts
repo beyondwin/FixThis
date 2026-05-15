@@ -23,6 +23,8 @@ tasks.named<com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask>(
 }
 
 val ktlintVersion = libs.versions.ktlint.get()
+val fixthisGroup = providers.gradleProperty("fixthis.group").get()
+val fixthisVersion = providers.gradleProperty("fixthis.version").get()
 
 fun requestedDetektTask(taskName: String): Boolean {
     val task = taskName.substringAfterLast(":")
@@ -34,6 +36,9 @@ fun requestedDetektTask(taskName: String): Boolean {
 val requestedDetekt = gradle.startParameter.taskNames.any(::requestedDetektTask)
 
 allprojects {
+    group = fixthisGroup
+    version = fixthisVersion
+
     apply(plugin = "com.diffplug.spotless")
     extensions.configure<com.diffplug.gradle.spotless.SpotlessExtension> {
         kotlin {
