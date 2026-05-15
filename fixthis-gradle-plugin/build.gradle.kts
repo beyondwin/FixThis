@@ -86,6 +86,8 @@ gradlePlugin {
 publishing {
     publications.withType<MavenPublication>().configureEach {
         pom {
+            name.set("FixThis ${artifactId.orEmpty()}")
+            description.set("Debug-only Jetpack Compose feedback sidekick for AI coding agents.")
             url.set("https://github.com/beyondwin/FixThis")
             licenses {
                 license {
@@ -118,6 +120,7 @@ signing {
         providers
             .gradleProperty("signingPassword")
             .orElse(providers.environmentVariable("SIGNING_PASSWORD"))
+    isRequired = signingKey.isPresent && signingPassword.isPresent
     if (signingKey.isPresent && signingPassword.isPresent) {
         useInMemoryPgpKeys(signingKey.get(), signingPassword.get())
         sign(publishing.publications)
