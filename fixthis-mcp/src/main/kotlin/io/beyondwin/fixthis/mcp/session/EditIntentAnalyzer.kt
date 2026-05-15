@@ -29,16 +29,18 @@ internal object EditIntentAnalyzer {
         sourceCandidates: List<SourceCandidate>,
     ): EditIntent {
         val signals = EditIntentLexicon.classify(comment)
-        if (signals.isEmpty()) return unknown()
-        if (signals == setOf(RawEditIntentSignal.CONTENT_ONLY)) return unknown()
-
-        return when {
-            RawEditIntentSignal.SPACING in signals ->
-                EditIntent(EditSurfaceKindDto.SPACING, listOf(EditSurfaceReasonDto.LAYOUT_INTENT))
-            RawEditIntentSignal.TYPOGRAPHY in signals && (selectedNode == null || selectedNode.isTextLike()) ->
-                EditIntent(EditSurfaceKindDto.TYPOGRAPHY, listOf(EditSurfaceReasonDto.TYPOGRAPHY_INTENT))
-            RawEditIntentSignal.COLOR_STYLE in signals -> colorIntent(signals, selectedNode, ownerTag, sourceCandidates)
-            else -> unknown()
+        return if (signals.isEmpty() || signals == setOf(RawEditIntentSignal.CONTENT_ONLY)) {
+            unknown()
+        } else {
+            when {
+                RawEditIntentSignal.SPACING in signals ->
+                    EditIntent(EditSurfaceKindDto.SPACING, listOf(EditSurfaceReasonDto.LAYOUT_INTENT))
+                RawEditIntentSignal.TYPOGRAPHY in signals && (selectedNode == null || selectedNode.isTextLike()) ->
+                    EditIntent(EditSurfaceKindDto.TYPOGRAPHY, listOf(EditSurfaceReasonDto.TYPOGRAPHY_INTENT))
+                RawEditIntentSignal.COLOR_STYLE in signals ->
+                    colorIntent(signals, selectedNode, ownerTag, sourceCandidates)
+                else -> unknown()
+            }
         }
     }
 
@@ -77,11 +79,12 @@ internal object EditIntentAnalyzer {
         }
     }
 
-    private fun FixThisNode?.isTextLike(): Boolean = this != null && (
-        text.isNotEmpty() ||
-            editableText?.isNotBlank() == true ||
-            role.equals("Text", ignoreCase = true)
-        )
+    private fun FixThisNode?.isTextLike(): Boolean = this != null &&
+        (
+            text.isNotEmpty() ||
+                editableText?.isNotBlank() == true ||
+                role.equals("Text", ignoreCase = true)
+            )
 
     private fun unknown(): EditIntent = EditIntent(EditSurfaceKindDto.UNKNOWN, emptyList())
 }

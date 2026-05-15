@@ -26,10 +26,43 @@ internal object EditIntentLexicon {
         } else if (RawEditIntentSignal.COLOR_STYLE in signals && normalized.hasAny("글자", "label")) {
             signals += RawEditIntentSignal.TEXT_STYLE
         }
-        if (normalized.hasAny("크게", "작게", "폰트", "글씨", "글자 크기", "텍스트 크기", "더크게", "더 크게", "font", "type", "text size", "bigger", "smaller", "larger")) {
+        if (
+            normalized.hasAny(
+                "크게",
+                "작게",
+                "폰트",
+                "글씨",
+                "글자 크기",
+                "텍스트 크기",
+                "더크게",
+                "더 크게",
+                "font",
+                "type",
+                "text size",
+                "bigger",
+                "smaller",
+                "larger",
+            )
+        ) {
             signals += RawEditIntentSignal.TYPOGRAPHY
         }
-        if (normalized.hasAny("마진", "패딩", "간격", "바텀마진", "아래", "여백", "dp", "margin", "padding", "spacing", "gap", "bottom", "top")) {
+        if (
+            normalized.hasAny(
+                "마진",
+                "패딩",
+                "간격",
+                "바텀마진",
+                "아래",
+                "여백",
+                "dp",
+                "margin",
+                "padding",
+                "spacing",
+                "gap",
+                "bottom",
+                "top",
+            )
+        ) {
             signals += RawEditIntentSignal.SPACING
         }
         if (normalized.hasAny("문구", "텍스트를", "이름", "바꿔", "변경", "rename", "change text", "copy", "label to", "text to")) {
