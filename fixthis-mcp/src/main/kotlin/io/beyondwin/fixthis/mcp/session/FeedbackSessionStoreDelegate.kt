@@ -245,15 +245,12 @@ internal class FeedbackSessionStoreDelegate(
                 nextItemSequenceNumber = maxOf(firstSequence, nextSequence),
                 updatedAtEpochMillis = now,
             )
-            EventBackedMutation(
-                payload = addScreenWithItemsPayload(
-                    sessionId = sessionId,
-                    eventMetadata = eventMetadata,
-                    screen = captured,
-                    items = createdItems,
-                ),
-                mutate = { commitSessionMutation(session, updated) },
-            )
+            addScreenWithItemsPayload(
+                sessionId = sessionId,
+                eventMetadata = eventMetadata,
+                screen = captured,
+                items = createdItems,
+            ) to { commitSessionMutation(session, updated) }
         },
     )
 
@@ -556,11 +553,6 @@ internal class FeedbackSessionStoreDelegate(
     // Event log helpers
     // ------------------------------------------------------------------
 
-    private data class EventBackedMutation<T>(
-        val payload: JsonObject,
-        val mutate: () -> T,
-    )
-
     private fun <T> withEventBackedMutation(
         sessionId: String,
         type: String,
@@ -579,13 +571,13 @@ internal class FeedbackSessionStoreDelegate(
     private fun <T> withOptionalEventBackedMutation(
         sessionId: String,
         type: String,
-        prepare: () -> EventBackedMutation<T>?,
+        prepare: () -> Pair<JsonObject, () -> T>?,
         noop: () -> T,
     ): T {
         val result = synchronized(lock) {
-            val prepared = prepare() ?: return@synchronized noop()
-            journal.append(sessionId = sessionId, type = type, payload = prepared.payload)
-            prepared.mutate()
+            val (payload, mutate) = prepare() ?: return@synchronized noop()
+            journal.append(sessionId = sessionId, type = type, payload = payload)
+            mutate()
         }
         compactEventLogAfterMutation(sessionId)
         return result
