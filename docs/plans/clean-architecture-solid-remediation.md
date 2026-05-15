@@ -634,8 +634,8 @@ interface SessionRepository {
 ```
 
 Use immutable `Session.copy(...)` updates. Preserve current behavior:
-blank comments are rejected unless the outer MCP path explicitly saved pin-only
-drafts before handoff.
+blank comments are rejected; handoff paths persist only written draft items and
+leave pin-only recovery handling to the console boundary.
 
 - [ ] **Step 3: Implement handoff and resolve use cases**
 

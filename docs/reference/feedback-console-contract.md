@@ -81,8 +81,14 @@
   session, including schema-v2 workspace entries and the legacy
   `fixthis.pending.<sessionId>` mirror.
 - `Copy Prompt` / `Save to MCP` can persist the subset of pending annotations
-  that have written comments; pin-only residual annotations remain local only
-  when the initiating action keeps residual drafts active.
+  that have written comments. `Copy Prompt` keeps pin-only residual annotations
+  browser-local so the user can resume them later. `Save to MCP` completes the
+  handoff and discards residual pin-only annotations instead of carrying them
+  into local recovery or session history.
+- History row counts include persisted session items plus browser-local
+  draft/recovery items for that session. Completing `Save to MCP` must clear the
+  residual local draft state for that action so the history count does not
+  double-count saved items plus stale recovery items.
 - Async save, update, delete, undo/redo, and session refresh responses are
   fenced by the annotation context that issued them. If the user switches
   sessions while a mutation is in flight, stale responses are discarded or
@@ -104,8 +110,10 @@
 ## Privacy Semantics
 
 - `Save to MCP` stores a local handoff batch.
-- Pending recovery envelopes remain browser-local until `Copy Prompt` or
-  `Save to MCP` persists the items into `.fixthis/feedback-sessions/`.
+- Pending recovery envelopes remain browser-local until a handoff action
+  persists written items into `.fixthis/feedback-sessions/`. `Copy Prompt` may
+  leave residual pin-only recovery browser-local; `Save to MCP` clears residual
+  pin-only draft state after the local handoff batch is created.
 - FixThis does not upload screenshots, comments, prompt text, source hints, or target evidence by default.
 
 ## Compact handoff schema

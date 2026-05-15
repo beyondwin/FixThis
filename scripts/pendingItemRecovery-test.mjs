@@ -304,7 +304,7 @@ test('history separates commented draft and pin-only recovery counts', () => {
   assert.match(summaryBody, /pins without comments/);
 });
 
-test('prompt persistence allows residual pin-only items when written comments exist', () => {
+test('prompt persistence keeps residual pin-only items for copy but discards them for Save to MCP', () => {
   const persistCollectBody = extractFunctionBody(promptSource, 'async function persistAndCollectItemIds(options = {})');
   assert.doesNotMatch(
     persistCollectBody,
@@ -321,7 +321,10 @@ test('prompt persistence allows residual pin-only items when written comments ex
 
   const persistPendingBody = extractFunctionBody(annotationsSource, 'async function persistPendingFeedbackItems(options = {})');
   assert.match(persistPendingBody, /const residualPinOnlyItems = onlyWrittenComments \? pinOnlyDraftItems\(items\) : \[\];/);
-  assert.match(persistPendingBody, /saveResidualPinOnlyDraft\(residualPinOnlyItems,\s*\{ keepActive: keepResidualDraftActive \}\);/);
+  assert.match(
+    persistPendingBody,
+    /if \(onlyWrittenComments && keepResidualDraftActive\) saveResidualPinOnlyDraft\(residualPinOnlyItems,\s*\{ keepActive: true \}\);/,
+  );
   assert.match(annotationsSource, /workspaceId: ports\.ids\.nextWorkspaceId\(\)/);
 
   const copyBody = extractFunctionBody(promptSource, 'async function copyPrompt()');

@@ -85,8 +85,11 @@ On Copy Prompt or Save to MCP:
 
 1. The console flushes the focused comment input.
 2. Only commented items are included in the persist/send path.
-3. Pin-only items remain browser-local unless the user later adds comments or
-   explicitly clears the draft.
+3. Copy Prompt keeps pin-only residual items browser-local unless the user later
+   adds comments or explicitly clears the draft.
+4. Save to MCP discards pin-only residual items after the handoff batch is
+   created, so history does not count saved items plus a stale local recovery
+   draft.
 
 ## Error Handling
 

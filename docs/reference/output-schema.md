@@ -227,7 +227,7 @@ Agents should treat these as inspection hints. They do not rename or replace
 
 ## Feedback Delivery
 
-The feedback console defaults to navigation. `Annotate` freezes the latest preview so the user can select a target or drag a visual area, write a comment, and create one or more pending UI-only items with `Add annotation`. Pending items are numbered in the Studio UI and support Focus and Delete until `Copy Prompt` or `Save to MCP` persists written pending annotations when needed. That persistence promotes the frozen preview once into one persisted evidence snapshot, stores all pending items, and connects them to the same `screenId`. Later `Annotate` work on the same visible app screen creates a new evidence snapshot when pending annotations are persisted.
+The feedback console defaults to navigation. `Annotate` freezes the latest preview so the user can select a target or drag a visual area, write a comment, and create one or more pending UI-only items with `Add annotation`. Pending items are numbered in the Studio UI and support Focus and Delete until `Copy Prompt` or `Save to MCP` persists written pending annotations when needed. That persistence promotes the frozen preview once into one persisted evidence snapshot, stores written pending items, and connects them to the same `screenId`. In a mixed draft, pin-only residual items stay browser-local for `Copy Prompt` and are discarded for `Save to MCP`. Later `Annotate` work on the same visible app screen creates a new evidence snapshot when pending annotations are persisted.
 
 `Save to MCP` creates a persisted handoff batch, changes saved items to `delivery: "sent"`, sets `handoffBatchId` and `sentAtEpochMillis`, and records those items in `handoffBatches`. It does not create a new external AI API payload; MCP tools read the persisted session data.
 
@@ -240,8 +240,10 @@ workspace ids for that session. Each envelope carries `workspaceId`,
 `screenId`, `screenFingerprint`, `deviceSerial`, `frozenAtEpochMillis`, and
 `activityName`), frozen `screen`, `screenshotUrl`, browser-local `items`, and
 undo/redo `history`. The persisted MCP `FeedbackSession` JSON remains
-unchanged; workspaces are only a browser recovery mirror until Copy Prompt or
-Save to MCP persists items into `.fixthis/feedback-sessions/`.
+unchanged; workspaces are only a browser recovery mirror until written items are
+persisted into `.fixthis/feedback-sessions/`. After `Save to MCP`, residual
+pin-only browser recovery is cleared instead of being promoted into persisted
+session JSON.
 
 Delivery values:
 

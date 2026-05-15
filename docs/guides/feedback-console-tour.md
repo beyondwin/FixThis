@@ -203,6 +203,9 @@ the console reloads and finds a recoverable frozen preview, it shows a
 Recover / Recapture / Discard banner before exposing the pending rows again.
 Recover keeps the frozen screenshot and pending comments; Recapture maps the
 comments onto a fresh preview; Discard clears the local mirror.
+`Save to MCP` is the exception for pin-only residuals: after it creates the
+local handoff batch for written comments, it discards residual pin-only targets
+instead of restoring them later from browser recovery.
 Deleting a session from History also clears that session's browser-local draft
 recovery, including older pending mirrors, so a deleted session cannot reappear
 as a recovery card later.

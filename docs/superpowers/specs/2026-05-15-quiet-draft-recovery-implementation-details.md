@@ -217,7 +217,8 @@ The handoff path is where mixed drafts need the most care. Today,
 That is correct for "persist the entire draft", but wrong for "send actionable
 feedback to an agent".
 
-For Copy Prompt and Save to MCP:
+For Copy Prompt and Save to MCP, the written subset is persisted. Residual
+pin-only handling differs by action:
 
 1. Flush the focused comment input.
 2. Require at least one commented item.
@@ -225,12 +226,14 @@ For Copy Prompt and Save to MCP:
    onlyWrittenComments: true,
    keepResidualDraftActive: ...,
    })`.
-4. Preserve pin-only residual items locally.
+4. Preserve pin-only residual items locally only when the initiating action
+   keeps residual drafts active.
 
 `copyPrompt()` should keep residual pin-only items active, because the user stays
-on the page and may continue editing. `sendAgentPrompt()` resets the composer
-after successful handoff, so it should save residual pins in a separate local
-workspace and then allow the reset to proceed.
+on the page and may continue editing. `sendAgentPrompt()` completes the handoff,
+so residual pin-only items should be discarded after written items are persisted.
+Keeping them as browser-local recovery makes the history row count server-saved
+items plus a stale local draft.
 
 Use an option on `persistAndCollectItemIds`:
 
@@ -256,12 +259,12 @@ const itemIds = await persistAndCollectItemIds({ keepResidualDraftActive: false 
 
 ## 8. Residual Pin-Only Drafts
 
-Do not reuse the just-persisted workspace ID for residual pin-only drafts after
-Save to MCP. `sendAgentPrompt()` calls `resetComposer()`, which deletes current
-workspace storage. A residual draft saved under the same workspace ID can be
-deleted immediately.
+Do not save residual pin-only drafts after Save to MCP. `sendAgentPrompt()`
+calls `resetComposer()` after creating the local handoff batch, and that action
+is the user's explicit completion point for the draft.
 
-Create a fresh workspace ID for residual pin-only items:
+When residual pin-only items are kept for Copy Prompt, create a fresh workspace
+ID for them instead of reusing the just-persisted workspace ID:
 
 ```js
 function saveResidualPinOnlyDraft(items, options = {}) {
@@ -287,8 +290,8 @@ function saveResidualPinOnlyDraft(items, options = {}) {
 This keeps both flows coherent:
 
 - Copy Prompt: residual pins remain active in the inspector.
-- Save to MCP: residual pins are saved as passive local draft metadata and can be
-  found later from history, without being handed to the agent.
+- Save to MCP: residual pins are discarded after written items are saved and
+  marked for agent handoff.
 
 ## 9. Test Strategy
 
@@ -303,7 +306,9 @@ Add tests for:
 - banner copy using "Resume draft" and split counts;
 - handoff using `onlyWrittenComments: true`;
 - Save to MCP passing `keepResidualDraftActive: false`;
-- residual pin-only draft creation with a fresh workspace ID.
+- residual pin-only draft creation with a fresh workspace ID only when
+  `keepResidualDraftActive` is true;
+- no residual pin-only workspace is created after Save to MCP.
 
 Run these during implementation:
 

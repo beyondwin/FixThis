@@ -589,7 +589,7 @@
               if (result?.result?.session) {
                 setConsoleSession(result.result.session);
                 setConsolePreview(null);
-                if (onlyWrittenComments) saveResidualPinOnlyDraft(residualPinOnlyItems, { keepActive: keepResidualDraftActive });
+                if (onlyWrittenComments && keepResidualDraftActive) saveResidualPinOnlyDraft(residualPinOnlyItems, { keepActive: true });
                 return state.session;
               }
               await refreshSessions();
