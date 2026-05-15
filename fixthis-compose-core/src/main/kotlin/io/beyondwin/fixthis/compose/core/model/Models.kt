@@ -115,6 +115,7 @@ data class SourceCandidate(
     val caution: String? = null,
     val stale: Boolean? = null,
     val staleReason: String? = null,
+    val ownerComposable: String? = null,
 )
 
 @Serializable

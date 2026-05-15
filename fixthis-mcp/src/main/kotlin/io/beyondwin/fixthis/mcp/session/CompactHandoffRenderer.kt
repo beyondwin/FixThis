@@ -278,6 +278,9 @@ object CompactHandoffRenderer {
         val sb = StringBuilder()
         sb.append("${candidate.relativeFileWithLine(sourceRoot)}  conf=${candidate.confidence.name.lowercase()}")
         if (rank == 1) {
+            candidate.ownerComposable?.takeIf { it.isNotBlank() }?.let { owner ->
+                sb.append("  owner=$owner")
+            }
             val effectiveMargin = candidate.scoreMargin ?: computedMargin
             effectiveMargin?.let { margin ->
                 sb.append("  margin=${"%.2f".format(margin)}")
@@ -299,6 +302,7 @@ object CompactHandoffRenderer {
         "selected testTag" -> "tag"
         "selected testTag convention composable" -> "compTag"
         "selected role" -> "role"
+        "selected resolved stringResource" -> "resolvedStringRes"
         "nearby text" -> "nearbyText"
         "nearby contentDescription" -> "nearbyContentDescription"
         "nearby testTag" -> "nearbyTag"

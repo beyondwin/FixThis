@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class SourceIndex(
-    val schemaVersion: String = "1.0",
+    val schemaVersion: String = "1.2",
     val sourceRoot: SourceRoot? = null,
     val entries: List<SourceIndexEntry> = emptyList(),
 )
@@ -52,4 +52,6 @@ enum class SourceSignalKind {
     ROLE,
     ACTIVITY_NAME,
     ARBITRARY_STRING_LITERAL,
+    STRING_RESOURCE_RESOLVED,
+    LAMBDA_OWNER_FUNCTION,
 }

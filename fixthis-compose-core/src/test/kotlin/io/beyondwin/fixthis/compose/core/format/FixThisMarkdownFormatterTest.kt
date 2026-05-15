@@ -83,6 +83,7 @@ class FixThisMarkdownFormatterTest {
                         matchedTerms = listOf("Pay"),
                         matchReasons = listOf("text match", "role match"),
                         confidence = SelectionConfidence.HIGH,
+                        ownerComposable = "CheckoutScreen",
                     ),
                 ),
                 searchHints = listOf("Pay now Button"),
@@ -95,7 +96,7 @@ class FixThisMarkdownFormatterTest {
             ),
         )
 
-        assertTrue(markdown.contains("`sample/src/main/java/CheckoutScreen.kt:42`"))
+        assertTrue(markdown.contains("`sample/src/main/java/CheckoutScreen.kt:42 inside fun CheckoutScreen`"))
         assertTrue(markdown.contains("score: 0.91"))
         assertTrue(markdown.contains("text match, role match"))
         assertTrue(markdown.contains("/tmp/fixthis/full.png"))

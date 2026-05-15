@@ -71,6 +71,7 @@ class DomainContractMappersTest {
             caution = "ambiguous source match",
             stale = true,
             staleReason = "index older than source",
+            ownerComposable = "FooScreen",
         )
 
         val roundTrip = hint.toSourceCandidate().toSourceHint()

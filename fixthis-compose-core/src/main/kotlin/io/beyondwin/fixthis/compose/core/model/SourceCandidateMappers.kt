@@ -20,6 +20,7 @@ fun SourceHint.toSourceCandidate(): SourceCandidate = SourceCandidate(
     caution = caution,
     stale = stale,
     staleReason = staleReason,
+    ownerComposable = ownerComposable,
 )
 
 fun SourceCandidate.toSourceHint(): SourceHint = SourceHint(
@@ -37,6 +38,7 @@ fun SourceCandidate.toSourceHint(): SourceHint = SourceHint(
     caution = caution,
     stale = stale,
     staleReason = staleReason,
+    ownerComposable = ownerComposable,
 )
 
 private fun SourceHintConfidence.toSelectionConfidence(): SelectionConfidence = when (this) {

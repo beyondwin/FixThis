@@ -11,9 +11,15 @@ internal class KotlinSourceScanner(
     private val projectDirectory = projectDirectory.canonicalFile
     private val rootProjectDirectory = rootProjectDirectory.canonicalFile
 
-    fun scan(file: File): List<SourceIndexEntryAsset> = scanKotlinFile(file)
+    fun scan(
+        file: File,
+        stringResourceResolver: Map<String, String> = emptyMap(),
+    ): List<SourceIndexEntryAsset> = scanKotlinFile(file, stringResourceResolver)
 
-    private fun scanKotlinFile(file: File): List<SourceIndexEntryAsset> {
+    private fun scanKotlinFile(
+        file: File,
+        stringResourceResolver: Map<String, String>,
+    ): List<SourceIndexEntryAsset> {
         val source = file.readText()
         val lines = source.lineSequence().toList()
         val lineStartOffsets = source.lineStartOffsets()
@@ -78,6 +84,7 @@ internal class KotlinSourceScanner(
             entriesByLine = entriesByLine,
             packageName = packageName,
             classDeclarations = classDeclarations,
+            resolver = stringResourceResolver,
         )
         collectModifierSignals(
             file = file,
@@ -88,6 +95,13 @@ internal class KotlinSourceScanner(
             packageName = packageName,
             classDeclarations = classDeclarations,
         )
+
+        val ownersByLine = composableOwnerByLine(lines)
+        entriesByLine.forEach { (lineNumber, builder) ->
+            ownersByLine.getOrNull(lineNumber - 1)?.let { ownerName ->
+                builder.addSignal(SourceSignalKindAsset.LAMBDA_OWNER_FUNCTION, ownerName)
+            }
+        }
 
         return entriesByLine.values.map { it.toAsset() }
     }
@@ -153,6 +167,7 @@ internal class KotlinSourceScanner(
         entriesByLine: MutableMap<Int, SourceIndexEntryBuilder>,
         packageName: String?,
         classDeclarations: List<Pair<Int, String>>,
+        resolver: Map<String, String>,
     ) {
         stringResourceRegex.findAll(source).forEach { match ->
             val resourceName = match.groupValues[1]
@@ -166,6 +181,10 @@ internal class KotlinSourceScanner(
                 .apply {
                     stringResources += resourceName
                     addSignal(SourceSignalKindAsset.STRING_RESOURCE, resourceName)
+                    resolver[resourceName]?.let { resolved ->
+                        text += resolved
+                        addSignal(SourceSignalKindAsset.STRING_RESOURCE_RESOLVED, resolved)
+                    }
                 }
         }
     }

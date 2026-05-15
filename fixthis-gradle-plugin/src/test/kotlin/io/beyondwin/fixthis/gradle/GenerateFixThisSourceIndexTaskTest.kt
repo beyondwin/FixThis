@@ -69,7 +69,7 @@ class GenerateFixThisSourceIndexTaskTest {
             entry.jsonObject.getValue("symbols").jsonArray.map { it.jsonPrimitive.content }
         }
 
-        assertEquals("1.1", index.getValue("schemaVersion").jsonPrimitive.content)
+        assertEquals("1.2", index.getValue("schemaVersion").jsonPrimitive.content)
         assertTrue(textValues.contains("Checkout title"))
         assertTrue(textValues.contains("Pay now"))
         assertTrue(stringResources.contains("checkout_total"))
@@ -126,7 +126,7 @@ class GenerateFixThisSourceIndexTaskTest {
                 }
             }
 
-        assertEquals("1.1", index.getValue("schemaVersion").jsonPrimitive.content)
+        assertEquals("1.2", index.getValue("schemaVersion").jsonPrimitive.content)
         assertEquals("gradle-project", sourceRoot.getValue("kind").jsonPrimitive.content)
         assertEquals(":app", sourceRoot.getValue("gradlePath").jsonPrimitive.content)
         assertEquals("sample", sourceRoot.getValue("projectDir").jsonPrimitive.content)
@@ -266,6 +266,8 @@ class GenerateFixThisSourceIndexTaskTest {
         assertTrue(signals.contains("UI_TEXT" to "Pay now"))
         assertTrue(signals.contains("UI_TEXT" to "Total due"))
         assertTrue(signals.contains("STRING_RESOURCE" to "checkout_total"))
+        assertTrue(signals.contains("STRING_RESOURCE_RESOLVED" to "Total due"))
+        assertTrue(signals.contains("LAMBDA_OWNER_FUNCTION" to "CheckoutScreen"))
         assertTrue(signals.contains("STRICT_COMP_TEST_TAG" to "comp:CheckoutScreen:primary"))
         assertTrue(signals.contains("TEST_TAG" to "comp:CheckoutScreen:primary"))
         assertTrue(signals.contains("TEST_TAG" to "plain_tag"))

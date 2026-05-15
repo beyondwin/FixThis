@@ -7,6 +7,7 @@ internal enum class SourceMatchReason(val wireLabel: String) {
     SELECTED_TEST_TAG_CONVENTION_COMPOSABLE("selected testTag convention composable"),
     SELECTED_ROLE("selected role"),
     SELECTED_STRING_RESOURCE("selected stringResource"),
+    SELECTED_RESOLVED_STRING_RESOURCE("selected resolved stringResource"),
     NEARBY_TEXT("nearby text"),
     NEARBY_CONTENT_DESCRIPTION("nearby contentDescription"),
     NEARBY_TEST_TAG("nearby testTag"),
