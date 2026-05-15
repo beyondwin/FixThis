@@ -209,10 +209,10 @@ test('session refresh reloads pending recovery without blocking passive drafts',
   assert.match(resolveBody, /if \(pendingRecoveryItems\(pendingRecovery\)\.length && !hasActivePending\) \{[\s\S]*?renderPendingRecoveryBanner\(\);[\s\S]*?return 'continue';[\s\S]*?\}/);
 });
 
-test('pending recovery banner appears only for commented draft items and uses resume copy', () => {
+test('pending recovery banner appears for recoverable drafts and uses resume copy', () => {
   const bannerBody = extractFunctionBody(mainSource, 'function renderPendingRecoveryBanner()');
   assert.match(bannerBody, /const summary = draftRecoverySummary\(pendingRecovery\);/);
-  assert.match(bannerBody, /summary\.commented === 0/);
+  assert.doesNotMatch(bannerBody, /summary\.commented === 0/);
   assert.match(bannerBody, /Resume draft/);
   assert.match(bannerBody, /pins without comments/);
   assert.doesNotMatch(bannerBody, /Recover restores the frozen preview and pins from this session\./);
@@ -251,7 +251,7 @@ test('returning to a session with pending mirror loads draft workspace recovery'
   assert.match(mainSource, /storage\.migrateLegacyPending\(sessionId\)/);
   assert.match(resetBody, /activePendingMirrorSessions\.delete\(state\.session\?\.sessionId\);/);
   assert.match(loadBody, /loadDraftRecoveryForSession\(sessionId\) \|\| restorePendingState\(sessionId\)/);
-  assert.match(loadBody, /pendingRecovery = pendingRecoveryItems\(restored\)\.length \? restored : null;/);
+  assert.match(loadBody, /pendingRecovery = restoredSummary\.total \? restored : null;/);
 });
 
 test('returning to an active pending mirror auto-restores instead of re-showing recovery banner', () => {
@@ -267,6 +267,16 @@ test('returning to an active pending mirror auto-restores instead of re-showing 
   assert.match(
     loadBody,
     /restorePendingRecoveryContext\(restored\);[\s\S]*?pendingRecovery = null;[\s\S]*?renderPendingRecoveryBanner\(\);[\s\S]*?return;/,
+  );
+});
+
+test('returning to a recoverable pin-only draft restores it into the selected session view', () => {
+  const loadBody = extractFunctionBody(mainSource, 'function loadPendingRecoveryForCurrentSession()');
+
+  assert.match(loadBody, /const restoredSummary = draftRecoverySummary\(restored\);/);
+  assert.match(
+    loadBody,
+    /if \(restoredSummary\.total && restoredSummary\.commented === 0 && hasRecoverablePreviewContext\(restored\)\) \{[\s\S]*?restorePendingRecoveryContext\(restored\);[\s\S]*?pendingRecovery = null;[\s\S]*?renderPendingRecoveryBanner\(\);[\s\S]*?return;/,
   );
 });
 

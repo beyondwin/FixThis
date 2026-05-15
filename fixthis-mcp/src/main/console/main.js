@@ -276,22 +276,21 @@
             function renderPendingRecoveryBanner() {
               const banner = ensurePendingRecoveryBanner();
               const summary = draftRecoverySummary(pendingRecovery);
-              if (!pendingRecovery || !summary.total || summary.commented === 0 || draftFlow() || draftItemList().length) {
+              if (!pendingRecovery || !summary.total || draftFlow() || draftItemList().length) {
                 banner.hidden = true;
                 return;
               }
               const canResume = hasRecoverablePreviewContext(pendingRecovery);
-              const commentLabel = countLabel(summary.commented, 'draft comment', 'draft comments');
-              const pins = summary.pinOnly > 0
-                ? ' · ' + countLabel(summary.pinOnly, 'pin without comment', 'pins without comments')
-                : '';
+              const summaryParts = [];
+              if (summary.commented) summaryParts.push(countLabel(summary.commented, 'draft comment', 'draft comments'));
+              if (summary.pinOnly) summaryParts.push(countLabel(summary.pinOnly, 'pin without comment', 'pins without comments'));
               const detail = canResume
                 ? 'Resume the local draft for this session.'
                 : 'Recapture the current app screen to continue this local draft.';
               banner.hidden = false;
               banner.innerHTML =
                 '<div class="pending-recovery-copy" data-pending-recovery-copy>' +
-                  '<strong>' + escapeHtml(commentLabel + pins) + '</strong>' +
+                  '<strong>' + escapeHtml(summaryParts.join(' · ')) + '</strong>' +
                   '<div>' + escapeHtml(detail) + '</div>' +
                 '</div>' +
                 '<div class="annotation-actions pending-recovery-actions">' +
@@ -334,13 +333,20 @@
                 return;
               }
               const restored = loadDraftRecoveryForSession(sessionId) || restorePendingState(sessionId);
+              const restoredSummary = draftRecoverySummary(restored);
               if (activePendingMirrorSessions.has(sessionId) && pendingRecoveryItems(restored).length && hasRecoverablePreviewContext(restored)) {
                 restorePendingRecoveryContext(restored);
                 pendingRecovery = null;
                 renderPendingRecoveryBanner();
                 return;
               }
-              pendingRecovery = pendingRecoveryItems(restored).length ? restored : null;
+              if (restoredSummary.total && restoredSummary.commented === 0 && hasRecoverablePreviewContext(restored)) {
+                restorePendingRecoveryContext(restored);
+                pendingRecovery = null;
+                renderPendingRecoveryBanner();
+                return;
+              }
+              pendingRecovery = restoredSummary.total ? restored : null;
               renderPendingRecoveryBanner();
             }
 
