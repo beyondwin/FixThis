@@ -64,10 +64,11 @@ function sessionSummary(session) {
   };
 }
 
-function fakePreview() {
+function fakePreview(sessionId = 'session-1') {
   const now = Date.now();
   return {
     previewId: 'preview-1',
+    sessionId,
     capturedAtEpochMillis: now,
     screen: {
       screenId: 'screen-1',
@@ -108,8 +109,46 @@ export async function startFakeBridge(options = {}) {
   }
   let activeScenario = initial;
   let scenarioState = SCENARIOS[activeScenario]();
-  const session = initialSession();
+  let session = initialSession();
+  const sessionsById = new Map([[session.sessionId, session]]);
+  const previewDelays = new Map();
   const requestLog = [];
+
+  function createSession({ sessionId, title } = {}) {
+    const now = Date.now();
+    const id = sessionId || `session-${sessionsById.size + 1}`;
+    const next = {
+      ...initialSession(),
+      sessionId: id,
+      title: title || id,
+      ordinal: sessionsById.size + 1,
+      createdAtEpochMillis: now,
+      updatedAtEpochMillis: now,
+    };
+    sessionsById.set(id, next);
+    return next;
+  }
+
+  function activeSession() {
+    return session;
+  }
+
+  function openSession(sessionId) {
+    const next = sessionsById.get(sessionId);
+    if (next) {
+      session = next;
+    }
+    return activeSession();
+  }
+
+  function delayPreviewForSession(sessionId, delayMs) {
+    previewDelays.set(sessionId, Number(delayMs) || 0);
+  }
+
+  async function maybeDelayPreview(sessionId) {
+    const delayMs = previewDelays.get(sessionId) || 0;
+    if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
 
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
@@ -146,8 +185,20 @@ export async function startFakeBridge(options = {}) {
       json(res, session);
       return;
     }
+    if (url.pathname === '/api/session/open' && req.method === 'POST') {
+      const body = await readJson(req);
+      if (body.newSession) {
+        const next = createSession();
+        session = next;
+      } else if (body.sessionId) {
+        openSession(body.sessionId);
+      }
+      session.updatedAtEpochMillis = Date.now();
+      json(res, session);
+      return;
+    }
     if (url.pathname === '/api/sessions' && req.method === 'GET') {
-      json(res, { sessions: [sessionSummary(session)] });
+      json(res, { sessions: Array.from(sessionsById.values()).map(sessionSummary) });
       return;
     }
     if (url.pathname === '/api/connection' && req.method === 'GET') {
@@ -179,7 +230,9 @@ export async function startFakeBridge(options = {}) {
       return;
     }
     if (url.pathname === '/api/preview' && req.method === 'GET') {
-      json(res, fakePreview());
+      const previewSessionId = url.searchParams.get('sessionId') || session.sessionId;
+      await maybeDelayPreview(previewSessionId);
+      json(res, fakePreview(previewSessionId));
       return;
     }
     if (url.pathname === '/api/agent-handoffs' && req.method === 'POST') {
@@ -235,7 +288,10 @@ export async function startFakeBridge(options = {}) {
 
     const fixture = {
     url,
+    consoleUrl: url,
     getRequestLog: () => requestLog.slice(),
+    createSession,
+    delayPreviewForSession,
     seedAnnotation: (overrides = {}) => {
       const now = Date.now();
       const screen = {

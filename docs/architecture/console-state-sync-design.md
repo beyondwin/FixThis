@@ -300,6 +300,14 @@ surface remains the visible fallback indicator.
 - Remove happy-path `refreshSessions()` calls once SSE and fallback coverage are strong enough.
 - Add lightweight event-stream observability before relying on SSE as the only passive sync path.
 
+## Transport And Session Resilience Contract
+
+The console treats browser request cancellation as a normal transport event. Server routes must route response writes through `ConsoleHttp` helpers so `connection reset`, `broken pipe`, closed streams, and fixed-length close errors are closed quietly rather than logged as server defects.
+
+The active session is the ownership boundary for preview state. Any server-driven current-session change, user session switch, device switch, or draft context reset must invalidate `state.preview` through `clearPreview()`. Async preview completions may update UI only when both the captured `sessionId` and preview `contextGeneration` still match the current console state.
+
+SSE `/api/events` must compute its initial snapshot before sending streaming headers. After headers are committed, keep-alive write failures caused by client disconnect close the subscription quietly; server-side snapshot failures remain normal JSON errors before the stream begins.
+
 ---
 
 ## Decision log
