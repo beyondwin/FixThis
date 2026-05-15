@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -102,11 +102,11 @@ test('parseRequires accepts nested module paths', async () => {
   assert.deepEqual(deps, ['domain/consoleReducer.js', 'adapters/browserPorts.js']);
 });
 
-test('every console module (except entry point) carries a // @requires header', () => {
+test('every console module except entry point carries a // @requires header', async () => {
+  const { consoleSourceFiles } = await import('../scripts/build-console-assets.mjs');
   const sourceDir = resolve(root, 'fixthis-mcp/src/main/console');
-  const ENTRY_POINT = 'main.js';
-  const files = readdirSync(sourceDir).filter((f) => f.endsWith('.js') && f !== ENTRY_POINT);
-  assert.ok(files.length >= 26, `expected >=26 non-entry modules, found ${files.length}`);
+  const files = consoleSourceFiles(sourceDir).filter((name) => name !== 'main.js');
+  assert.ok(files.length >= 40, `expected >=40 non-entry modules, found ${files.length}`);
   const missing = [];
   for (const name of files) {
     const text = readFileSync(resolve(sourceDir, name), 'utf8');
