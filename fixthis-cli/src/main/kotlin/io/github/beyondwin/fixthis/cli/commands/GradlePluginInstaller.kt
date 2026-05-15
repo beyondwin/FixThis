@@ -6,7 +6,7 @@ import java.io.File
 
 internal object GradlePluginInstaller {
     const val PluginId = "io.github.beyondwin.fixthis.compose"
-    const val DefaultPluginVersion = "0.2.1"
+    const val DefaultPluginVersion = "0.2.2"
 
     fun apply(
         projectRoot: File,

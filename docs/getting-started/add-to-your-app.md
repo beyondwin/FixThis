@@ -14,7 +14,7 @@ The agent-first path should do this automatically:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-  | bash -s -- --version v0.2.1
+  | bash -s -- --version v0.2.2
 
 fixthis install-agent --project-dir . --target all
 ```
@@ -27,7 +27,7 @@ Manual equivalent in your app module `build.gradle.kts`:
 
 ```kotlin
 plugins {
-    id("io.github.beyondwin.fixthis.compose") version "0.2.1"
+    id("io.github.beyondwin.fixthis.compose") version "0.2.2"
 }
 ```
 
@@ -37,7 +37,7 @@ dependency yourself, but the resolved Maven artifact is:
 
 ```kotlin
 dependencies {
-    debugImplementation("io.github.beyondwin:fixthis-compose-sidekick:0.2.1")
+    debugImplementation("io.github.beyondwin:fixthis-compose-sidekick:0.2.2")
 }
 ```
 
@@ -83,7 +83,7 @@ Agents may combine desktop install and MCP registration:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-  | bash -s -- --version v0.2.1 --init --target codex --project-dir . --package <applicationId>
+  | bash -s -- --version v0.2.2 --init --target codex --project-dir . --package <applicationId>
 ```
 
 If the Gradle plugin is not applied yet, prefer `fixthis install-agent` because

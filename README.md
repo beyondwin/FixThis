@@ -45,7 +45,7 @@ The agent should run:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-  | bash -s -- --version v0.2.1
+  | bash -s -- --version v0.2.2
 
 fixthis install-agent --project-dir . --target all
 ./gradlew fixthisSetup
@@ -57,7 +57,7 @@ published Gradle plugin:
 
 ```kotlin
 plugins {
-    id("io.github.beyondwin.fixthis.compose") version "0.2.1"
+    id("io.github.beyondwin.fixthis.compose") version "0.2.2"
 }
 ```
 
@@ -159,7 +159,6 @@ FixThis has public artifacts for the agent-first path:
 - Maven artifacts: `io.github.beyondwin:fixthis-compose-sidekick` and
   `io.github.beyondwin:fixthis-compose-core`
 - CLI/MCP package: GitHub Release asset `fixthis-cli-mcp-vX.Y.Z.tar.gz`
-- Homebrew tap: `brew tap beyondwin/fixthis && brew install fixthis`
 
 The live release dashboard is
 [Release readiness](docs/contributing/release-readiness.md). It lists current

@@ -33,6 +33,16 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   External source map; build aborts on size budget overflow or missing
   contract symbol.
 
+## [0.2.2] - 2026-05-15
+
+### Fixed
+
+- **Maven Central publish automation (ci, 2026-05-15):**
+  - The Maven Central workflow now promotes the OSSRH staging compatibility
+    repository to Central Portal automatically after uploading artifacts.
+  - Added a manual staging-promotion workflow for recovery when uploads reach
+    OSSRH staging but are not yet visible from Maven Central.
+
 ## [0.2.1] - 2026-05-15
 
 ### Fixed

@@ -27,7 +27,7 @@ test("npm wrapper package exposes FixThis metadata for public install and MCP re
   const manifest = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
 
   assert.equal(manifest.name, "fixthis");
-  assert.equal(manifest.version, "0.2.1");
+  assert.equal(manifest.version, "0.2.2");
   assert.equal(manifest.private, undefined);
   assert.equal(manifest.mcpName, "io.github.beyondwin/fixthis");
   assert.deepEqual(manifest.bin, {
