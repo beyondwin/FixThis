@@ -1,4 +1,10 @@
 // @requires connectionFsm.js, previewFsm.js, pollingFsm.js, toolModeFsm.js, connectionUseCases.js, previewUseCases.js, pollingUseCases.js, toolModeUseCases.js
+            // Console teardown registry: each module that registers global
+            // listeners (document/window) returns a `{ dispose }` slot from
+            // its `init({...deps})` factory and pushes it here. main.js
+            // exposes `window.__fixthisDispose()` so tests can confirm every
+            // registered listener is removable. See history.js initHistory.
+            const __fixthisDisposers = [];
             const DefaultLivePreviewIntervalMs = 1000;
             const MinLivePreviewIntervalMs = 1000;
             const PreviewIntervalStorageKey = 'fixthis.previewIntervalMs.v2';

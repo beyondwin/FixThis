@@ -387,6 +387,12 @@
               getState: () => state,
             });
 
+            // Debug-only teardown hook for the per-module dispose convention
+            // (see state.js __fixthisDisposers, history.js initHistory).
+            window.__fixthisDispose = () => {
+              for (const slot of __fixthisDisposers) slot?.dispose?.();
+            };
+
             initializePreviewIntervalSelect();
             applyPreviewZoom();
             refresh()

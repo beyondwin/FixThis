@@ -233,15 +233,54 @@
               if (wasOpen && options.returnFocus !== false) historyToggleButton?.focus({ preventScroll: true });
             }
 
-            historyToggleButton?.addEventListener('click', openHistoryDrawer);
-            historyDrawerScrim?.addEventListener('click', () => closeHistoryDrawer());
-            document.addEventListener('keydown', event => {
-              if (event.key === 'Escape' && toolMode.getState().historyDrawerOpen) {
-                event.preventDefault();
-                closeHistoryDrawer();
+            // Wraps the history module's global listeners so the boot
+            // controller (main.js) can dispose them via __fixthisDisposers.
+            // Per-row listeners attached inside renderSessionsListFromPayload
+            // re-attach on every render and are out of scope for dispose().
+            function initHistory({
+              document,
+              historyToggleButton,
+              historyDrawerScrim,
+              openHistoryDrawer,
+              closeHistoryDrawer,
+              syncHistoryDrawerState,
+              toolMode,
+            }) {
+              const handlers = [];
+              function on(target, type, fn) {
+                if (!target) return;
+                target.addEventListener(type, fn);
+                handlers.push([target, type, fn]);
               }
-            });
-            syncHistoryDrawerState();
+              on(historyToggleButton, 'click', openHistoryDrawer);
+              const scrimHandler = () => closeHistoryDrawer();
+              on(historyDrawerScrim, 'click', scrimHandler);
+              const keydownHandler = (event) => {
+                if (event.key === 'Escape' && toolMode.getState().historyDrawerOpen) {
+                  event.preventDefault();
+                  closeHistoryDrawer();
+                }
+              };
+              on(document, 'keydown', keydownHandler);
+              syncHistoryDrawerState();
+              return {
+                dispose() {
+                  for (const [target, type, fn] of handlers) {
+                    target.removeEventListener(type, fn);
+                  }
+                  handlers.length = 0;
+                },
+              };
+            }
+            __fixthisDisposers.push(initHistory({
+              document,
+              historyToggleButton,
+              historyDrawerScrim,
+              openHistoryDrawer,
+              closeHistoryDrawer,
+              syncHistoryDrawerState,
+              toolMode,
+            }));
 
             function historyStartAnnotatingItemHtml() {
               if (toolMode.getState().newHistoryAnnotateModeStarting || isSessionNavigationInFlight()) return '';
