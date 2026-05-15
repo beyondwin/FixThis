@@ -27,7 +27,7 @@ class ArchitectureHotspotBudgetTest {
             "${sidekickBridge}BridgeModels.kt" to 220,
             "${sidekickBridge}AndroidBridgeEnvironment.kt" to 180,
             "fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt" to 560,
-            "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt" to 560,
+            "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt" to 260,
             "${gradlePlugin}task/GenerateFixThisSourceIndexTask.kt" to 130,
             "${gradlePlugin}source/KotlinSourceScanner.kt" to 330,
         )
