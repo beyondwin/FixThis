@@ -1,4 +1,4 @@
-// @requires state.js, annotations.js, draftWorkspace.js
+// @requires state.js, annotations.js, draftWorkspace.js, domain/targetReliabilityViewModel.js
             function renderOverlayBox(overlay, image, bounds, labelText, isDragPreview = false, isFocused = false, annotationIndex = null, extraClass = '', color = null, selectHandler = focusPendingFeedbackItem) {
               if (!bounds) return;
               const left = bounds.left * 100 / image.naturalWidth;
@@ -197,13 +197,11 @@
             }
 
             function reliabilityBadgeHtml(item) {
-              const reliability = item?.targetReliability;
-              if (!reliability || !reliability.confidence || reliability.confidence === 'UNKNOWN') return '';
-              const confidence = String(reliability.confidence).toLowerCase();
-              const warnings = reliability.warnings || [];
-              const label = warnings.length ? reliabilityWarningLabel(warnings[0]) : confidence;
-              return '<span class="ann-row-reliability" data-confidence="' + escapeHtml(confidence) + '">' +
-                escapeHtml(label) +
+              const model = targetReliabilityBadgeModel(item?.targetReliability);
+              if (model.tone === 'muted') return '';
+              return '<span class="ann-row-reliability" data-confidence="' + escapeHtml(model.confidence) + '">' +
+                escapeHtml(model.label) +
+                (model.scoreLabel ? ' · ' + escapeHtml(model.scoreLabel) : '') +
               '</span>';
             }
 
