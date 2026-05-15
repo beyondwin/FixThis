@@ -74,6 +74,15 @@
 - Mutating saved/draft item APIs and preview/screen artifact URLs must carry
   the session that created the item, preview, or screen. They must not fall
   back to "current active session" when an explicit session id is available.
+- Server-sent `session-updated` and `preview-ready` events carry top-level
+  `sessionId`. The browser applies them to detail/preview state only when that
+  session is currently active, except for the initial `snapshot` event.
+- Deleting a feedback session clears browser-local draft recovery for that
+  session, including schema-v2 workspace entries and the legacy
+  `fixthis.pending.<sessionId>` mirror.
+- `Copy Prompt` / `Save to MCP` can persist the subset of pending annotations
+  that have written comments; pin-only residual annotations remain local only
+  when the initiating action keeps residual drafts active.
 - Async save, update, delete, undo/redo, and session refresh responses are
   fenced by the annotation context that issued them. If the user switches
   sessions while a mutation is in flight, stale responses are discarded or

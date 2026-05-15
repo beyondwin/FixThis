@@ -47,21 +47,25 @@ class ConsoleSessionsPollingContractTest {
     }
 
     @Test
-    fun promptActionsDoNotSilentlyDropUncommentedPendingAnnotations() {
+    fun promptActionsPersistCommentedSubsetWithoutDroppingResidualPins() {
         val html = ConsoleSourceFixtures.readAll()
         val persistAndCollect = javascriptFunctionBody(html, "persistAndCollectItemIds")
 
-        assertTrue(
-            persistAndCollect.contains("draftItemList().some(item => !hasWrittenAnnotationComment(item))"),
-            "Prompt actions must detect partially-commented pending batches before persistence",
-        )
-        assertTrue(
-            persistAndCollect.contains("Add a comment to every annotation before saving."),
-            "Prompt actions must keep all pending annotations visible instead of saving a partial batch",
-        )
         assertFalse(
-            persistAndCollect.contains("persistPendingFeedbackItems({ onlyWrittenComments: true })"),
-            "Persisting only written comments clears the entire pending flow and silently drops uncommented pins",
+            persistAndCollect.contains("Add a comment to every annotation before saving."),
+            "Prompt actions must not reject residual pin-only items when at least one draft item has a written comment",
+        )
+        assertTrue(
+            persistAndCollect.contains("const writtenDraftItems = commentedDraftItems(draftItemList());"),
+            "Prompt actions must compute the written subset before persistence",
+        )
+        assertTrue(
+            persistAndCollect.contains("onlyWrittenComments: true"),
+            "Prompt actions must persist only written comments so residual pin-only items stay on the recovery path",
+        )
+        assertTrue(
+            persistAndCollect.contains("keepResidualDraftActive: options.keepResidualDraftActive !== false"),
+            "Copy Prompt keeps residual drafts active while Save to MCP can discard them intentionally",
         )
     }
 
