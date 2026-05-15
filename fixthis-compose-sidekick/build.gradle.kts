@@ -50,7 +50,10 @@ dependencies {
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.foundation)
     androidTestImplementation(libs.compose.ui.test.junit4)
-    debugImplementation(libs.compose.ui.test.manifest)
+}
+
+val emptyJavadocJar by tasks.registering(Jar::class) {
+    archiveClassifier.set("javadoc")
 }
 
 abstract class GenerateSidekickBuildInfoResourcesTask : org.gradle.api.DefaultTask() {
@@ -137,6 +140,7 @@ afterEvaluate {
             create<org.gradle.api.publish.maven.MavenPublication>("debug") {
                 from(components["debug"])
                 artifactId = "fixthis-compose-sidekick"
+                artifact(emptyJavadocJar)
             }
         }
     }

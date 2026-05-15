@@ -7,7 +7,8 @@ const root = process.cwd();
 const failures = [];
 
 function read(file) {
-  return fs.readFileSync(path.join(root, file), 'utf8');
+  const absolutePath = path.join(root, file);
+  return fs.existsSync(absolutePath) ? fs.readFileSync(absolutePath, 'utf8') : null;
 }
 
 function pass(rule) {
@@ -20,8 +21,10 @@ function fail(rule, message) {
 
 function requireIncludes(rule, file, needle) {
   const text = read(file);
-  if (text.includes(needle)) {
+  if (text?.includes(needle)) {
     pass(rule);
+  } else if (text === null) {
+    fail(rule, `${file} must exist`);
   } else {
     fail(rule, `${file} must include ${JSON.stringify(needle)}`);
   }
@@ -29,8 +32,10 @@ function requireIncludes(rule, file, needle) {
 
 function requireRegex(rule, file, regex, description) {
   const text = read(file);
-  if (regex.test(text)) {
+  if (regex.test(text ?? '')) {
     pass(rule);
+  } else if (text === null) {
+    fail(rule, `${file} must exist`);
   } else {
     fail(rule, `${file} must include ${description}`);
   }
@@ -94,6 +99,21 @@ requireIncludes(
   'docs/releases/unreleased.md',
   'It is not a tagged release',
 );
+requireIncludes(
+  'R8.maven-publish-workflow',
+  '.github/workflows/publish-maven-central.yml',
+  'publishMavenPublicationToCentralPortalRepository',
+);
+requireIncludes(
+  'R9.maven-central-repository',
+  'build.gradle.kts',
+  'https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/',
+);
+requireIncludes(
+  'R10.maven-signing-secrets',
+  'build.gradle.kts',
+  'SIGNING_KEY',
+);
 
 for (const file of [
   'README.md',
@@ -102,7 +122,7 @@ for (const file of [
   'docs/contributing/release-readiness.md',
   'docs/contributing/release-process.md',
 ]) {
-  forbidPublishedGradleClaims(`R8.no-unqualified-published-claims:${file}`, file);
+  forbidPublishedGradleClaims(`R11.no-unqualified-published-claims:${file}`, file);
 }
 
 if (failures.length > 0) {

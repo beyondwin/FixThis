@@ -142,7 +142,10 @@ Before changing README install instructions to public Gradle coordinates:
    ```
 
 5. Publish from an explicitly approved manual workflow or local maintainer
-   machine.
+   machine. Maven Central artifacts are published through
+   `.github/workflows/publish-maven-central.yml`, which uploads
+   `:fixthis-compose-core` and `:fixthis-compose-sidekick` with the requested
+   release version.
 6. Verify from a clean external consumer project that:
 
    ```kotlin

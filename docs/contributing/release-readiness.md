@@ -17,7 +17,7 @@ Plugin Portal installation.
 | Sample app | Available | Users can verify the workflow before touching their app. |
 | Claude Code / Codex MCP bootstrap | Available from source | `./scripts/bootstrap-mcp.sh --sample` configures local MCP for the sample. |
 | CLI/MCP GitHub Release package | Prepared for next release | `scripts/package-cli-release.sh` builds the asset; `scripts/install-fixthis.sh` installs it. |
-| External Gradle artifacts | Not published | External apps must use source/composite-build wiring for now. |
+| External Gradle artifacts | Maven Central workflow prepared; not published | External apps must use source/composite-build wiring until registry verification passes. |
 | MCP Registry entry | Not published | Discovery remains through the GitHub repository and docs. |
 
 ## Supported Install Paths Today
@@ -74,6 +74,8 @@ consumer project.
       `./gradlew publishToMavenLocal --dry-run --no-daemon` for root artifacts
       and `./gradlew -p fixthis-gradle-plugin publishToMavenLocal --dry-run
       --no-daemon` for the included Gradle plugin build.
+- [x] Maven Central manual workflow exists for `fixthis-compose-core` and
+      `fixthis-compose-sidekick`.
 - [ ] Gradle Plugin Portal validation passes for `:fixthis-gradle-plugin`.
 - [ ] `./gradlew :fixthis-gradle-plugin:validatePlugins` succeeds.
 - [ ] Maven Central namespace ownership is verified by the maintainer.

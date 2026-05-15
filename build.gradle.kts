@@ -1,3 +1,7 @@
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.plugins.signing.SigningExtension
+
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
@@ -84,6 +88,72 @@ allprojects {
 subprojects {
     group = fixthisGroup.get()
     version = fixthisVersion.get()
+
+    plugins.withId("maven-publish") {
+        apply(plugin = "signing")
+
+        extensions.configure<PublishingExtension> {
+            repositories {
+                maven {
+                    name = "CentralPortal"
+                    url = uri("https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/")
+                    credentials {
+                        username =
+                            providers
+                                .gradleProperty("mavenCentralUsername")
+                                .orElse(providers.environmentVariable("MAVEN_CENTRAL_USERNAME"))
+                                .orNull
+                        password =
+                            providers
+                                .gradleProperty("mavenCentralPassword")
+                                .orElse(providers.environmentVariable("MAVEN_CENTRAL_PASSWORD"))
+                                .orNull
+                    }
+                }
+            }
+
+            publications.withType<MavenPublication>().configureEach {
+                pom {
+                    name.set("FixThis ${artifactId.orEmpty()}")
+                    description.set("Debug-only Jetpack Compose feedback sidekick for AI coding agents.")
+                    url.set("https://github.com/beyondwin/FixThis")
+                    licenses {
+                        license {
+                            name.set("MIT License")
+                            url.set("https://opensource.org/licenses/MIT")
+                        }
+                    }
+                    developers {
+                        developer {
+                            id.set("beyondwin")
+                            name.set("BeyondWin")
+                            url.set("https://github.com/beyondwin")
+                        }
+                    }
+                    scm {
+                        connection.set("scm:git:https://github.com/beyondwin/FixThis.git")
+                        developerConnection.set("scm:git:ssh://git@github.com/beyondwin/FixThis.git")
+                        url.set("https://github.com/beyondwin/FixThis")
+                    }
+                }
+            }
+        }
+
+        extensions.configure<SigningExtension> {
+            val signingKey =
+                providers
+                    .gradleProperty("signingKey")
+                    .orElse(providers.environmentVariable("SIGNING_KEY"))
+            val signingPassword =
+                providers
+                    .gradleProperty("signingPassword")
+                    .orElse(providers.environmentVariable("SIGNING_PASSWORD"))
+            if (signingKey.isPresent && signingPassword.isPresent) {
+                useInMemoryPgpKeys(signingKey.get(), signingPassword.get())
+                sign(extensions.getByType<PublishingExtension>().publications)
+            }
+        }
+    }
 
     if (requestedDetekt) {
         apply(plugin = "io.gitlab.arturbosch.detekt")
