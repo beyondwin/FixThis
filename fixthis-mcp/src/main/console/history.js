@@ -418,6 +418,8 @@
 	                  headers: { 'Content-Type': 'application/json' },
 	                  body: JSON.stringify({ sessionId: sessionId })
 	                })));
+                renderCurrentSessionList();
+                renderInspectorRegion();
                 await refresh();
                 if (!latestPersistedScreen() && shouldAutoFetchPreview()) {
                   await refreshPreview();

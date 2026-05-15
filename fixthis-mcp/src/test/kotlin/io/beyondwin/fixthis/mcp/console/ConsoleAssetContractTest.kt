@@ -678,6 +678,23 @@ class ConsoleAssetContractTest {
     }
 
     @Test
+    fun consoleHtmlRendersSwitchedSessionAnnotationsBeforeFullRefresh() {
+        val html = ConsoleSourceFixtures.readAll()
+        val openSession = javascriptFunctionBody(html, "openSession")
+
+        assertTrue(
+            Regex(
+                "setConsoleSession\\(await withMutationLock\\(\\(\\) => requestJson\\('/api/session/open',[\\s\\S]*" +
+                    "\\)\\)\\);\\s+" +
+                    "renderCurrentSessionList\\(\\);\\s+" +
+                    "renderInspectorRegion\\(\\);\\s+" +
+                    "await refresh\\(\\);",
+            ).containsMatchIn(openSession),
+            "Switching sessions should repaint the annotation list from the opened session before slower device/connection refresh work.",
+        )
+    }
+
+    @Test
     fun consoleUsesOptionASelectAnnotateToolsAndSimpleLabels() {
         val html = ConsoleSourceFixtures.readAll()
 
