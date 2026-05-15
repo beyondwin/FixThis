@@ -7,8 +7,8 @@ import io.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionList
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonObject
@@ -16,6 +16,10 @@ import kotlinx.serialization.json.put
 import java.io.OutputStream
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+
+private const val HTTP_OK = 200
+private const val INITIAL_EVENT_ID = 0L
+private const val KEEP_ALIVE_TIMEOUT_SECONDS = 15L
 
 internal class ConsoleEventRoutes(
     private val service: FeedbackSessionService,
@@ -28,7 +32,7 @@ internal class ConsoleEventRoutes(
             exchange.responseHeaders.set("Content-Type", "text/event-stream; charset=utf-8")
             exchange.responseHeaders.set("Cache-Control", "no-store")
             exchange.responseHeaders.set("Connection", "keep-alive")
-            exchange.sendResponseHeaders(200, 0)
+            exchange.sendResponseHeaders(HTTP_OK, 0)
 
             val output = exchange.responseBody
             val subscriberClosed = CountDownLatch(1)
@@ -40,7 +44,7 @@ internal class ConsoleEventRoutes(
                 output.writeSseEvent("snapshot", null, snapshot())
                 val lastEventId = exchange.requestHeaders.getFirst("Last-Event-ID")?.toLongOrNull()
                     ?: exchange.queryParameter("lastEventId")?.toLongOrNull()
-                    ?: 0L
+                    ?: INITIAL_EVENT_ID
                 val replay = eventBus.eventsAfter(lastEventId)
                 if (replay.overflow) {
                     output.writeSseEvent(
@@ -57,7 +61,7 @@ internal class ConsoleEventRoutes(
                     runCatching { send(event) }.onFailure { subscriberClosed.countDown() }
                 }
                 try {
-                    while (!subscriberClosed.await(15, TimeUnit.SECONDS)) {
+                    while (!subscriberClosed.await(KEEP_ALIVE_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                         output.write(": keep-alive\n\n".toByteArray(Charsets.UTF_8))
                         output.flush()
                     }
@@ -83,7 +87,10 @@ internal class ConsoleEventRoutes(
             put("session", currentSession?.let { fixThisJson.encodeToJsonElement(it).jsonObject } ?: JsonNull)
             put("sessions", fixThisJson.encodeToJsonElement(FeedbackSessionList.serializer(), sessions).jsonObject)
             put("devices", fixThisJson.encodeToJsonElement(ConsoleDeviceList.serializer(), devices).jsonObject)
-            put("connection", fixThisJson.encodeToJsonElement(ConsoleConnectionStatus.serializer(), connection).jsonObject)
+            put(
+                "connection",
+                fixThisJson.encodeToJsonElement(ConsoleConnectionStatus.serializer(), connection).jsonObject,
+            )
         }
     }
 }

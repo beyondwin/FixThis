@@ -17,9 +17,7 @@ class FeedbackConsoleAssetsTest {
     }
 
     private class ThrowingShaResolver(private val error: Throwable) : () -> String? {
-        override fun invoke(): String? {
-            throw error
-        }
+        override fun invoke(): String? = throw error
     }
 
     private class StaticShaResolver(private val value: String?) : () -> String? {

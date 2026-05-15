@@ -15,6 +15,15 @@ import java.util.concurrent.atomic.AtomicInteger
 
 internal const val ConsoleTokenHeader = "X-FixThis-Console-Token"
 
+private data class FeedbackConsoleServerConfig(
+    val service: FeedbackSessionService,
+    val host: String,
+    val port: Int,
+    val consoleAssetsDir: File?,
+    val eventBus: ConsoleEventBus,
+    val consoleToken: String = UUID.randomUUID().toString(),
+)
+
 class FeedbackConsoleServer private constructor(
     private val host: String,
     private val port: Int,
@@ -30,41 +39,24 @@ class FeedbackConsoleServer private constructor(
         eventBus: ConsoleEventBus = ConsoleEventBus(),
         diagnosticsSink: (String) -> Unit = { System.err.print(it) },
     ) : this(
-        service = service,
-        host = host,
-        port = port,
-        consoleAssetsDir = consoleAssetsDir,
-        eventBus = eventBus,
-        consoleToken = UUID.randomUUID().toString(),
+        config = FeedbackConsoleServerConfig(
+            service = service,
+            host = host,
+            port = port,
+            consoleAssetsDir = consoleAssetsDir,
+            eventBus = eventBus,
+        ),
         diagnosticsSink = diagnosticsSink,
     )
 
     private constructor(
-        service: FeedbackSessionService,
-        host: String,
-        port: Int,
-        consoleAssetsDir: File?,
-        eventBus: ConsoleEventBus,
-        consoleToken: String,
+        config: FeedbackConsoleServerConfig,
         diagnosticsSink: (String) -> Unit,
     ) : this(
-        host = host,
-        port = port,
-        consoleToken = consoleToken,
-        routeTable = ConsoleRouteTable(
-            listOf(
-                ServerVersionRoutes(),
-                ConsoleEventRoutes(service, eventBus),
-                SessionRoutes(service, consoleAssetsDir, consoleToken, eventBus),
-                DeviceRoutes(service, eventBus),
-                ConnectionRoutes(service, eventBus),
-                PreviewRoutes(service, eventBus),
-                FeedbackItemRoutes(service, eventBus),
-                ArtifactRoutes(service),
-                HandoffPreviewRoutes(service),
-                MarkHandedOffRoutes(service, eventBus),
-            ),
-        ),
+        host = config.host,
+        port = config.port,
+        consoleToken = config.consoleToken,
+        routeTable = consoleRouteTable(config),
         diagnosticsSink = diagnosticsSink,
     )
 
@@ -115,6 +107,23 @@ class FeedbackConsoleServer private constructor(
 
     private fun runningServer(): HttpServer = synchronized(lock) {
         server ?: throw IllegalStateException("Feedback console server is not running")
+    }
+
+    private companion object {
+        fun consoleRouteTable(config: FeedbackConsoleServerConfig) = ConsoleRouteTable(
+            listOf(
+                ServerVersionRoutes(),
+                ConsoleEventRoutes(config.service, config.eventBus),
+                SessionRoutes(config.service, config.consoleAssetsDir, config.consoleToken, config.eventBus),
+                DeviceRoutes(config.service, config.eventBus),
+                ConnectionRoutes(config.service, config.eventBus),
+                PreviewRoutes(config.service, config.eventBus),
+                FeedbackItemRoutes(config.service, config.eventBus),
+                ArtifactRoutes(config.service),
+                HandoffPreviewRoutes(config.service),
+                MarkHandedOffRoutes(config.service, config.eventBus),
+            ),
+        )
     }
 
     internal fun dispatch(exchange: HttpExchange) {

@@ -21,6 +21,9 @@
                 if (draftFlow()) {
                     flushFocusedPendingComment();
                     const writtenDraftItems = commentedDraftItems(draftItemList());
+                    if (draftItemList().some(item => !hasWrittenAnnotationComment(item))) {
+                        throw new Error('Add a comment to every annotation before saving.');
+                    }
                     if (writtenDraftItems.length === 0) {
                         throw new Error('Add a comment to at least one annotation before sending.');
                     }

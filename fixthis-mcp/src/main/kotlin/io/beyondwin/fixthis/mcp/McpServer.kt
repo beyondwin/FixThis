@@ -55,11 +55,14 @@ class McpServer(private val protocol: McpProtocol = McpProtocol()) {
                             continue
                         }
                         trackRequest(
-                            scope = this,
                             message = message,
-                            registry = registry,
-                            writeResponse = ::writeResponse,
-                            diagnosticsLog = { diagnostics.writeDiagnostic(it) },
+                            context = RequestTrackerContext(
+                                scope = this,
+                                registry = registry,
+                                writeResponse = ::writeResponse,
+                                diagnosticsLog = { diagnostics.writeDiagnostic(it) },
+                                handleRequest = { protocol.handleRequest(it) },
+                            ),
                         )
                     }
                 }
@@ -80,27 +83,23 @@ class McpServer(private val protocol: McpProtocol = McpProtocol()) {
      * remove a stale entry that the `finally` block raced past.
      */
     internal suspend fun trackRequest(
-        scope: CoroutineScope,
         message: McpRequest,
-        registry: InFlightRegistry,
-        writeResponse: suspend (String) -> Unit,
-        diagnosticsLog: (String) -> Unit,
-        handleRequest: suspend (McpRequest) -> String? = { protocol.handleRequest(it) },
+        context: RequestTrackerContext,
     ) {
-        val requestJob = scope.launch(Dispatchers.IO, start = CoroutineStart.UNDISPATCHED) {
+        val requestJob = context.scope.launch(Dispatchers.IO, start = CoroutineStart.UNDISPATCHED) {
             try {
-                val response = handleRequest(message) ?: return@launch
-                writeResponse(response)
+                val response = context.handleRequest(message) ?: return@launch
+                context.writeResponse(response)
             } catch (error: CancellationException) {
-                diagnosticsLog("Cancelled MCP request ${message.idKey}")
+                context.diagnosticsLog("Cancelled MCP request ${message.idKey}")
             } finally {
-                registry.remove(message.idKey)
+                context.registry.remove(message.idKey)
             }
         }
         if (requestJob.isActive) {
-            registry.register(message.idKey, InFlightRequest(message.method, requestJob))
+            context.registry.register(message.idKey, InFlightRequest(message.method, requestJob))
             if (!requestJob.isActive) {
-                registry.remove(message.idKey)
+                context.registry.remove(message.idKey)
             }
         }
     }
@@ -113,8 +112,25 @@ class McpServer(private val protocol: McpProtocol = McpProtocol()) {
         handleRequest: suspend (McpRequest) -> String? = { protocol.handleRequest(it) },
         diagnosticsLog: (String) -> Unit = { /* test no-op */ },
     ) = coroutineScope {
-        trackRequest(this, message, registry, writeResponse, diagnosticsLog, handleRequest)
+        trackRequest(
+            message = message,
+            context = RequestTrackerContext(
+                scope = this,
+                registry = registry,
+                writeResponse = writeResponse,
+                diagnosticsLog = diagnosticsLog,
+                handleRequest = handleRequest,
+            ),
+        )
     }
+
+    internal data class RequestTrackerContext(
+        val scope: CoroutineScope,
+        val registry: InFlightRegistry,
+        val writeResponse: suspend (String) -> Unit,
+        val diagnosticsLog: (String) -> Unit,
+        val handleRequest: suspend (McpRequest) -> String?,
+    )
 
     private fun OutputStream.writeDiagnostic(message: String) {
         write((message + "\n").toByteArray(Charsets.UTF_8))

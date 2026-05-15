@@ -42,36 +42,11 @@ internal class PreviewRoutes(
                 )
                 exchange.sendJson(200, screen)
             }
-            "/api/preview" -> exchange.requireMethod("GET") {
-                val session = service.requireCurrentSession()
-                val preview = runBlocking { service.capturePreview(session.sessionId) }
-                eventBus.emit(
-                    "preview-ready",
-                    buildJsonObject {
-                        put("preview", fixThisJson.encodeToJsonElement(FeedbackPreviewSnapshot.serializer(), preview).jsonObject)
-                    },
-                )
-                exchange.sendJson(200, preview)
-            }
+            "/api/preview" -> exchange.handlePreviewCapture()
             "/api/preview/screenshot/full" -> exchange.requireMethod("GET") {
                 exchange.sendPreviewScreenshot()
             }
-            "/api/navigation" -> exchange.requireMethod("POST") {
-                val request = exchange.decodeNavigationBody()
-                val session = service.requireCurrentSession()
-                val result = try {
-                    runBlocking { service.navigate(session.sessionId, request) }
-                } catch (error: IllegalArgumentException) {
-                    throw FeedbackConsoleHttpException(400, error.message ?: "Invalid navigation request")
-                }
-                eventBus.emit(
-                    "navigation-updated",
-                    buildJsonObject {
-                        put("navigation", fixThisJson.encodeToJsonElement(FeedbackNavigationResult.serializer(), result).jsonObject)
-                    },
-                )
-                exchange.sendJson(200, result)
-            }
+            "/api/navigation" -> exchange.handleNavigation()
             else -> {
                 if (exchange.requestURI.path.isPreviewFullScreenshotPath()) {
                     exchange.requireMethod("GET") {
@@ -80,6 +55,47 @@ internal class PreviewRoutes(
                 }
             }
         }
+    }
+
+    private fun HttpExchange.handlePreviewCapture() = requireMethod("GET") {
+        val session = service.requireCurrentSession()
+        val preview = runBlocking { service.capturePreview(session.sessionId) }
+        eventBus.emit(
+            "preview-ready",
+            buildJsonObject {
+                put(
+                    "preview",
+                    fixThisJson.encodeToJsonElement(
+                        FeedbackPreviewSnapshot.serializer(),
+                        preview,
+                    ).jsonObject,
+                )
+            },
+        )
+        sendJson(200, preview)
+    }
+
+    private fun HttpExchange.handleNavigation() = requireMethod("POST") {
+        val request = decodeNavigationBody()
+        val session = service.requireCurrentSession()
+        val result = try {
+            runBlocking { service.navigate(session.sessionId, request) }
+        } catch (error: IllegalArgumentException) {
+            throw FeedbackConsoleHttpException(400, error.message ?: "Invalid navigation request")
+        }
+        eventBus.emit(
+            "navigation-updated",
+            buildJsonObject {
+                put(
+                    "navigation",
+                    fixThisJson.encodeToJsonElement(
+                        FeedbackNavigationResult.serializer(),
+                        result,
+                    ).jsonObject,
+                )
+            },
+        )
+        sendJson(200, result)
     }
 
     private fun HttpExchange.sendPreviewScreenshot(previewId: String) {

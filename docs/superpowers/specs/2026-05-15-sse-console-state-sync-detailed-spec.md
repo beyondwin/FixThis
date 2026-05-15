@@ -267,4 +267,3 @@ node scripts/build-console-assets.mjs --check
 | Browser reconnect loops noisily | Use native `EventSource` reconnect and show reconnect status only after 2 seconds. |
 | Event payload grows too broad | Use full session/session list only for session events; preview event remains the current preview snapshot. |
 | Hidden tab receives events while editing | Subscriber checks active editing and uses existing render guards. |
-

@@ -40,9 +40,7 @@ class FeedbackConsoleServerErrorLoggingTest {
 
     private class ThrowingRoute(private val error: Throwable) : ConsoleRoute {
         override fun matches(path: String): Boolean = true
-        override fun handle(exchange: HttpExchange) {
-            throw error
-        }
+        override fun handle(exchange: HttpExchange): Unit = throw error
     }
 
     private class FakeHttpExchange(

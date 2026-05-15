@@ -8,6 +8,7 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardWatchEventKinds
+import java.nio.file.WatchKey
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -275,15 +276,14 @@ class AdbTest {
             assertTrue("marker did not arrive within timeout", remaining > 0)
             val key = watchService.poll(remaining, TimeUnit.NANOSECONDS) ?: continue
             try {
-                for (event in key.pollEvents()) {
-                    val name = event.context() as? Path ?: continue
-                    if (name == markerName) return
-                }
+                if (key.hasMarker(markerName)) return
             } finally {
                 key.reset()
             }
         }
     }
+
+    private fun WatchKey.hasMarker(markerName: Path): Boolean = pollEvents().any { it.context() == markerName }
 
     private class RecordingAdbRunner(
         private val result: AdbResult = AdbResult(exitCode = 0, stdout = "", stderr = ""),

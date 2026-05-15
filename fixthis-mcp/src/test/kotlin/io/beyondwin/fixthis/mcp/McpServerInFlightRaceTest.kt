@@ -27,7 +27,9 @@ class McpServerInFlightRaceTest {
             message = message,
             registry = registry,
             writeResponse = { /* noop */ },
-            handleRequest = { _ -> null /* completes immediately, no response written */ },
+            handleRequest = { _ ->
+                null /* completes immediately, no response written */
+            },
         )
 
         // After immediate completion, registry must not retain the entry.

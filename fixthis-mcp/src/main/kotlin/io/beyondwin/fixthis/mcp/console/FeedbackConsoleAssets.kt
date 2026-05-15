@@ -1,6 +1,7 @@
 package io.beyondwin.fixthis.mcp.console
 
 import java.io.File
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 internal class FeedbackConsoleAssets(
@@ -34,24 +35,21 @@ internal class FeedbackConsoleAssets(
     }
 
     private fun resolveRuntimeShaCached(): String {
-        if (shaResolved) {
-            return cachedRuntimeSha ?: UnknownSha
-        }
-        synchronized(this) {
-            if (shaResolved) {
-                return cachedRuntimeSha ?: UnknownSha
+        if (!shaResolved) {
+            synchronized(this) {
+                if (!shaResolved) {
+                    val raw = try {
+                        shaResolver()
+                    } catch (error: IOException) {
+                        errSink("FeedbackConsoleAssets: gitSha resolution failed: ${error.message}")
+                        null
+                    }
+                    cachedRuntimeSha = raw?.trim()?.takeIf { it.matches(ShaRegex) } ?: UnknownSha
+                    shaResolved = true
+                }
             }
-            val raw = try {
-                shaResolver()
-            } catch (e: Exception) {
-                errSink("FeedbackConsoleAssets: gitSha resolution failed: ${e.message}")
-                null
-            }
-            val normalized = raw?.trim()?.takeIf { it.matches(ShaRegex) } ?: UnknownSha
-            cachedRuntimeSha = normalized
-            shaResolved = true
-            return normalized
         }
+        return cachedRuntimeSha ?: UnknownSha
     }
 
     private fun effectiveBuildMetaJson(): String {
@@ -77,8 +75,7 @@ internal class FeedbackConsoleAssets(
             )
     }
 
-    private fun readText(path: String, consoleAssetsDir: File?): String =
-        resource(path, consoleAssetsDir).toString(Charsets.UTF_8)
+    private fun readText(path: String, consoleAssetsDir: File?): String = resource(path, consoleAssetsDir).toString(Charsets.UTF_8)
 
     private fun validateResourcePath(path: String) {
         require(path.isNotBlank()) { "console asset path must not be blank" }
@@ -98,11 +95,9 @@ internal class FeedbackConsoleAssets(
         val indexHtml: String
             get() = default.buildIndexHtml(consoleAssetsDir = null, consoleToken = "")
 
-        fun html(consoleAssetsDir: File?): String =
-            default.buildIndexHtml(consoleAssetsDir, consoleToken = "")
+        fun html(consoleAssetsDir: File?): String = default.buildIndexHtml(consoleAssetsDir, consoleToken = "")
 
-        fun html(consoleAssetsDir: File?, consoleToken: String): String =
-            default.buildIndexHtml(consoleAssetsDir, consoleToken)
+        fun html(dir: File?, token: String): String = default.buildIndexHtml(dir, token)
 
         fun resource(path: String): ByteArray = default.resource(path)
 
@@ -119,8 +114,12 @@ internal class FeedbackConsoleAssets(
                 val output = process.inputStream.bufferedReader().use { it.readText() }
                 val token = output.trim().split(Regex("\\s+")).firstOrNull().orEmpty()
                 token.takeIf { it.matches(ShaRegex) }
-            } catch (e: Exception) {
-                System.err.println("FeedbackConsoleAssets: gitSha resolution failed: ${e.message}")
+            } catch (error: IOException) {
+                System.err.println("FeedbackConsoleAssets: gitSha resolution failed: ${error.message}")
+                null
+            } catch (error: InterruptedException) {
+                Thread.currentThread().interrupt()
+                System.err.println("FeedbackConsoleAssets: gitSha resolution failed: ${error.message}")
                 null
             } finally {
                 process?.destroy()
