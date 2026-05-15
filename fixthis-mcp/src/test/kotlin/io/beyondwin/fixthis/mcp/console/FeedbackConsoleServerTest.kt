@@ -134,6 +134,60 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun mutatingApiRejectsForbiddenHostEvenWithConsoleToken() {
+        val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            service.openSession(null, newSession = true)
+            val token = consoleTokenFrom(ConsoleHttpTestClient(server.url).get())
+
+            assertEquals(
+                403,
+                rawHttpResponseCodeWithHost(
+                    server.url,
+                    host = "example.invalid",
+                    method = "DELETE",
+                    path = "/api/items/draft",
+                    headers = mapOf(
+                        ConsoleTokenHeader to token,
+                        "Origin" to server.url,
+                    ),
+                ),
+            )
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun mutatingApiAllowsLocalHostOriginAndToken() {
+        val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            service.openSession(null, newSession = true)
+            val token = consoleTokenFrom(ConsoleHttpTestClient(server.url).get())
+
+            assertEquals(
+                200,
+                rawHttpResponseCodeWithHost(
+                    server.url,
+                    host = URI.create(server.url).authority,
+                    method = "DELETE",
+                    path = "/api/items/draft",
+                    headers = mapOf(
+                        ConsoleTokenHeader to token,
+                        "Origin" to server.url,
+                    ),
+                ),
+            )
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
     fun getApiDoesNotRequireConsoleToken() {
         val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")
         val server = FeedbackConsoleServer(service = service, port = 0)
@@ -190,6 +244,28 @@ class FeedbackConsoleServerTest {
             button!!.contains(label),
             "Expected button id=\"$id\" to contain contract label \"$label\"",
         )
+    }
+
+    private fun rawHttpResponseCodeWithHost(
+        baseUrl: String,
+        host: String,
+        method: String,
+        path: String,
+        headers: Map<String, String>,
+    ): Int {
+        val uri = URI.create(baseUrl)
+        java.net.Socket(uri.host, uri.port).use { socket ->
+            val writer = socket.getOutputStream().bufferedWriter(Charsets.UTF_8)
+            writer.write("$method $path HTTP/1.1\r\n")
+            writer.write("Host: $host\r\n")
+            writer.write("Connection: close\r\n")
+            writer.write("Content-Length: 0\r\n")
+            headers.forEach { (name, value) -> writer.write("$name: $value\r\n") }
+            writer.write("\r\n")
+            writer.flush()
+            val statusLine = socket.getInputStream().bufferedReader(Charsets.UTF_8).readLine()
+            return statusLine.split(" ")[1].toInt()
+        }
     }
 
     @Test

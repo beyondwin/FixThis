@@ -13,8 +13,6 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 
-internal const val ConsoleTokenHeader = "X-FixThis-Console-Token"
-
 private data class FeedbackConsoleServerConfig(
     val service: FeedbackSessionService,
     val host: String,
@@ -138,7 +136,13 @@ class FeedbackConsoleServer private constructor(
     internal fun dispatch(exchange: HttpExchange) {
         try {
             if (exchange.requiresConsoleMutationGuard()) {
-                exchange.requireConsoleMutationAllowed(consoleToken)
+                exchange.requireConsoleMutationAllowed(
+                    ConsoleRequestAuthConfig(
+                        token = consoleToken,
+                        host = host,
+                        port = runningServer().address.port,
+                    ),
+                )
             }
             if (!routeTable.handle(exchange)) {
                 exchange.sendErrorJson(404, "Not found")
@@ -156,27 +160,6 @@ class FeedbackConsoleServer private constructor(
         }
     }
 }
-
-private val ConsoleMutatingMethods = setOf("POST", "PUT", "PATCH", "DELETE")
-
-private fun HttpExchange.requiresConsoleMutationGuard(): Boolean = requestURI.path.startsWith("/api/") && requestMethod.uppercase() in ConsoleMutatingMethods
-
-private fun HttpExchange.requireConsoleMutationAllowed(token: String) {
-    val origin = requestHeaders.getFirst("Origin")
-    if (origin != null && !origin.isLocalConsoleOrigin()) {
-        throw FeedbackConsoleHttpException(403, "Forbidden origin")
-    }
-    val supplied = requestHeaders.getFirst(ConsoleTokenHeader)
-    if (supplied != token) {
-        throw FeedbackConsoleHttpException(403, "Missing console token")
-    }
-}
-
-private fun String.isLocalConsoleOrigin(): Boolean = startsWith("http://127.0.0.1:") ||
-    startsWith("http://localhost:") ||
-    startsWith("http://[::1]:")
-
-private fun String.toUrlHost(): String = if (contains(':') && !startsWith("[")) "[$this]" else this
 
 private fun consoleHttpExecutor(): ExecutorService {
     val requestIds = AtomicInteger(0)
