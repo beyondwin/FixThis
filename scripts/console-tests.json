@@ -6,7 +6,8 @@
     "scripts/consoleSelectors-test.mjs",
     "scripts/consoleCanonicalWorkflow-test.mjs",
     "scripts/consoleCanonicalRuntimeContract-test.mjs",
-    "scripts/consoleBoundary-test.mjs"
+    "scripts/consoleBoundary-test.mjs",
+    "scripts/consoleEventsFactory-test.mjs"
   ],
   "pending": ["scripts/pendingItemRecovery-test.mjs"],
   "beforeunload": ["scripts/beforeunloadGuard-test.mjs"],
