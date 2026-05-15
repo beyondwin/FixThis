@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { startFakeBridge } from './fakeBridgeServer.mjs';
 import { applyNetworkOutage } from './scenarios/networkOutage.mjs';
 import { applySlowHandoff } from './scenarios/slowHandoff.mjs';
-import { applyMultiTab } from './scenarios/multiTab.mjs';
+import { applyMultiTab, rapidSessionSwitchCancelsOldPreview } from './scenarios/multiTab.mjs';
 
 test('network outage scenario blocks /api/handoff with 503', async () => {
   const fixture = await startFakeBridge({ scenario: 'happy-path' });
@@ -39,6 +39,40 @@ test('multi-tab scenario records request log across two simulated tabs', async (
     const log = fixture.getRequestLog();
     const sessionHits = log.filter((entry) => entry.path.startsWith('/api/session/'));
     assert.equal(sessionHits.length, 2);
+  } finally {
+    await fixture.close();
+  }
+});
+
+test('rapid session switching fixture can delay stale previews by session', async () => {
+  assert.equal(typeof rapidSessionSwitchCancelsOldPreview, 'function');
+  const fixture = await startFakeBridge({ scenario: 'happy-path' });
+  try {
+    await fixture.createSession({ sessionId: 'session-a', title: 'Session A' });
+    await fixture.createSession({ sessionId: 'session-b', title: 'Session B' });
+    await fixture.delayPreviewForSession('session-a', 80);
+
+    await fetch(`${fixture.url}/api/session/open`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sessionId: 'session-a' }),
+    });
+    const delayedStart = Date.now();
+    const delayed = await fetch(`${fixture.url}/api/preview`).then((response) => response.json());
+    const delayedElapsed = Date.now() - delayedStart;
+    assert.equal(delayed.sessionId, 'session-a');
+    assert.ok(delayedElapsed >= 60, `expected delayed session-a preview, got ${delayedElapsed} ms`);
+
+    await fetch(`${fixture.url}/api/session/open`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sessionId: 'session-b' }),
+    });
+    const fastStart = Date.now();
+    const fast = await fetch(`${fixture.url}/api/preview`).then((response) => response.json());
+    const fastElapsed = Date.now() - fastStart;
+    assert.equal(fast.sessionId, 'session-b');
+    assert.ok(fastElapsed < 60, `expected session-b preview without stale delay, got ${fastElapsed} ms`);
   } finally {
     await fixture.close();
   }

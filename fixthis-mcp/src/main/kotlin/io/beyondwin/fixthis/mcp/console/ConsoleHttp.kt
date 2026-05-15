@@ -43,6 +43,54 @@ internal fun HttpExchange.sendErrorJson(
     )
 }
 
+internal fun Throwable.isClientDisconnect(): Boolean {
+    val messages = sequenceOf(this) + suppressed.asSequence() + generateSequence(cause) { it.cause }
+    return messages.any { error ->
+        val message = error.message?.lowercase().orEmpty()
+        message.contains("connection reset") ||
+            message.contains("broken pipe") ||
+            message.contains("stream is closed") ||
+            message.contains("insufficient bytes written to stream")
+    }
+}
+
+internal fun HttpExchange.closeQuietly() {
+    runCatching { close() }
+}
+
+internal fun HttpExchange.trySendErrorJson(status: Int, message: String) {
+    runCatching { sendErrorJson(status, message) }
+        .onFailure { error ->
+            if (error.isClientDisconnect()) {
+                closeQuietly()
+            } else {
+                throw error
+            }
+        }
+}
+
+internal fun HttpExchange.trySendErrorJson(
+    status: Int,
+    error: String,
+    message: String? = null,
+    action: String? = null,
+) {
+    runCatching {
+        sendErrorJson(
+            status = status,
+            error = error,
+            message = message,
+            action = action,
+        )
+    }.onFailure { cause ->
+        if (cause.isClientDisconnect()) {
+            closeQuietly()
+        } else {
+            throw cause
+        }
+    }
+}
+
 internal fun HttpExchange.requireMethod(method: String, block: () -> Unit) {
     if (requestMethod != method) {
         responseHeaders.add("Allow", method)

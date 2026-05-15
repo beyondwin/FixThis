@@ -543,7 +543,8 @@ class ConsoleAssetContractTest {
         assertTrue(html.contains("/api/items/draft"))
         assertTrue(html.contains("/api/agent-handoffs"))
         assertTrue(html.contains("function clearSelection"))
-        assertTrue(html.contains("function clearDraft"))
+        assertTrue(html.contains("function clearLocalDraft"))
+        assertTrue(html.contains("function clearServerDrafts"))
         assertTrue(html.contains("function sendAgentPrompt"))
         assertTrue(html.contains("selectionSummary.textContent = draftSelection()"))
         assertTrue(html.contains("sendAgentButton.disabled = promptDisabled;"))
@@ -675,8 +676,9 @@ class ConsoleAssetContractTest {
 
         assertTrue(html.contains("async function resolvePendingBeforeBoundary(action, sessionId = null)"))
         assertTrue(
-            html.contains("resolveDraftBoundary(workspace, { kind: action, sessionId }, createBrowserDraftPorts())"),
+            html.contains("resolveLifecycleBoundary({"),
         )
+        assertTrue(html.contains("ports: createBrowserDraftPorts(),"))
         assertTrue(html.contains("ensureDraftCommandQueue().enqueue"))
         assertTrue(openSession.contains("await resolvePendingBeforeBoundary('open-session', sessionId)"))
         assertTrue(newSession.contains("await resolvePendingBeforeBoundary('new-session')"))
@@ -735,7 +737,6 @@ class ConsoleAssetContractTest {
                     "toolMode\\.enterAnnotate\\(\\);\\s+" +
                     "renderCurrentSessionList\\(\\);\\s+" +
                     "if \\(!draftFlow\\(\\)\\) \\{\\s+" +
-                    "requestCanonicalPreviewCapture\\(\\);\\s+" +
                     "await startDraftAnnotationFlow\\(\\);",
             ).containsMatchIn(html),
         )
@@ -916,7 +917,7 @@ class ConsoleAssetContractTest {
         assertTrue(createAnnotationFromSelection.contains("renderCurrentSessionList();"))
         assertTrue(deletePendingFeedbackItem.contains("renderCurrentSessionList();"))
         assertTrue(
-            Regex("item\\.status = button\\.dataset\\.setStatus;[\\s\\S]*renderCurrentSessionList\\(\\);")
+            Regex("updatePendingDraftItem\\(item\\.draftItemId, \\{ status: button\\.dataset\\.setStatus }[\\s\\S]*renderCurrentSessionList\\(\\);")
                 .containsMatchIn(renderAnnotationDetail),
         )
     }
@@ -1027,7 +1028,7 @@ class ConsoleAssetContractTest {
         assertTrue(createAnnotationFromSelection.contains("replaceDraftWorkspace(nextWorkspace);"))
         assertTrue(html.contains("toolMode.setSuppressNextClick(true);"))
         assertTrue(html.contains("function updateSelectedAnnotationComment"))
-        assertTrue(html.contains("item.comment = comment.value;"))
+        assertTrue(html.contains("updatePendingDraftItem(item.draftItemId, { comment: comment.value }, { recordHistory: false });"))
         assertTrue(html.contains("Add a comment to every annotation before saving."))
         assertTrue(html.contains("Select a component or area first."))
     }

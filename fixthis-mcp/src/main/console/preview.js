@@ -16,6 +16,19 @@
               setConsolePreview(null);
             }
 
+            function capturePreviewContext() {
+              return {
+                sessionId: state.session?.sessionId || null,
+                contextGeneration: previewUseCases.getState().contextGeneration,
+              };
+            }
+
+            function previewContextStillCurrent(context) {
+              return Boolean(context) &&
+                context.sessionId === (state.session?.sessionId || null) &&
+                context.contextGeneration === previewUseCases.getState().contextGeneration;
+            }
+
             function scopedQuery(sessionId) {
               return sessionId ? '?sessionId=' + encodeURIComponent(sessionId) : '';
             }
@@ -143,11 +156,10 @@
             async function refreshPreview() {
               error.textContent = '';
               if (!state.session || draftFlow()) return;
-              const previewSessionId = state.session.sessionId;
-              const previewContextGeneration = previewUseCases.getState().contextGeneration;
+              const previewContext = capturePreviewContext();
               try {
                 const preview = await previewUseCases.request();
-                if (draftFlow() || previewSessionId !== state.session?.sessionId || previewContextGeneration !== previewUseCases.getState().contextGeneration) return;
+                if (draftFlow() || !previewContextStillCurrent(previewContext)) return;
                 if (preview?.screen?.systemUiVisible && state.preview) {
                   state.preview.stale = true;
                   state.preview.obstructedBySystemUi = preview.screen.systemUiKind || 'system_ui';
@@ -155,12 +167,12 @@
                   renderPreviewOnly();
                   return;
                 }
-	                setConsolePreview({
-	                  ...preview,
-	                  activity: state.connection?.availability?.activity ?? null,
-	                  frozenAtEpochMillis: Date.now(),
-	                  stale: false,
-	                });
+                setConsolePreview({
+                  ...preview,
+                  activity: state.connection?.availability?.activity ?? null,
+                  frozenAtEpochMillis: Date.now(),
+                  stale: false,
+                });
                 if (userConnectionState(state.connection.current) === 'ready') markPreviewStale(false);
                 renderPreviewOnly();
               } catch (cause) {

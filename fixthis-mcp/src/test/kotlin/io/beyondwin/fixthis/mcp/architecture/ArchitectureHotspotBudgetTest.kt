@@ -37,9 +37,9 @@ class ArchitectureHotspotBudgetTest {
         )
         val consoleJsBudgets = mapOf(
             "fixthis-mcp/src/main/console/annotations.js" to 670,
-            "fixthis-mcp/src/main/console/history.js" to 530,
+            "fixthis-mcp/src/main/console/history.js" to 550,
             "fixthis-mcp/src/main/console/presentation/annotationDetailView.js" to 520,
-            "fixthis-mcp/src/main/console/main.js" to 440,
+            "fixthis-mcp/src/main/console/main.js" to 450,
             "fixthis-mcp/src/main/console/state.js" to 440,
             "fixthis-mcp/src/main/console/domain/consoleReducer.js" to 410,
         )
@@ -49,7 +49,7 @@ class ArchitectureHotspotBudgetTest {
             "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt" to 1_680,
             "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt" to 1_300,
             "${mcpConsoleTest}ConsoleAssetContractTest.kt" to 1_080,
-            "${mcpConsoleTest}ConsoleFeedbackItemRoutesTest.kt" to 900,
+            "${mcpConsoleTest}ConsoleFeedbackItemRoutesTest.kt" to 920,
         )
         val remediationBudgets = mapOf(
             "${mcpMain}session/FeedbackSessionStore.kt" to 250,

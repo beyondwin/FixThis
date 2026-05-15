@@ -82,6 +82,40 @@ class FeedbackConsoleServerErrorLoggingTest {
         )
     }
 
+    @Test
+    fun clientDisconnectsDuringErrorResponseWriteAreNotRethrownOrLogged() {
+        val sink = StringBuilder()
+        val server = FeedbackConsoleServer(
+            routes = listOf(ThrowingRoute(FeedbackConsoleHttpException(400, "bad request"))),
+            diagnosticsSink = { sink.appendLine(it) },
+        )
+        val exchange = FakeHttpExchange(
+            method = "GET",
+            path = "/api/session",
+            responseBody = DisconnectingOutputStream(),
+        )
+
+        server.dispatch(exchange)
+
+        assertEquals(400, exchange.statusCode)
+        assertFalse(
+            sink.toString().contains("Connection reset by peer"),
+            "Client disconnects while sending error JSON must not produce diagnostics logs: $sink",
+        )
+    }
+
+    @Test
+    fun serverVersionRouteUsesSharedSafeResponseWriter() {
+        val source = java.nio.file.Files.readString(
+            java.nio.file.Paths.get(
+                "src/main/kotlin/io/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt",
+            ),
+        )
+
+        assertTrue(source.contains("exchange.sendText(200, payload, \"application/json; charset=utf-8\")"))
+        assertFalse(source.contains("exchange.responseBody.use"))
+    }
+
     private class ThrowingRoute(private val error: Throwable) : ConsoleRoute {
         override fun matches(path: String): Boolean = true
         override fun handle(exchange: HttpExchange): Unit = throw error

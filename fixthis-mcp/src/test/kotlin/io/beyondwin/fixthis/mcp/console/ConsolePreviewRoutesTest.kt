@@ -141,12 +141,12 @@ class ConsolePreviewRoutesTest {
         // via previewUseCases.request().
         assertTrue(html.contains("createInitialPreviewState"))
         assertTrue(html.contains("const preview = await previewUseCases.request();"))
-        assertTrue(html.contains("const previewSessionId = state.session.sessionId"))
-        assertTrue(html.contains("const previewContextGeneration = previewUseCases.getState().contextGeneration"))
+        assertTrue(html.contains("function capturePreviewContext()"))
+        assertTrue(html.contains("function previewContextStillCurrent(context)"))
+        assertTrue(html.contains("const previewContext = capturePreviewContext();"))
         assertTrue(
             html.contains(
-                "if (draftFlow() || previewSessionId !== state.session?.sessionId || " +
-                    "previewContextGeneration !== previewUseCases.getState().contextGeneration) return;",
+                "if (draftFlow() || !previewContextStillCurrent(previewContext)) return;",
             ),
         )
         assertTrue(
@@ -251,10 +251,11 @@ class ConsolePreviewRoutesTest {
         assertTrue(html.contains("stopLivePreviewPolling();"))
         assertTrue(html.contains("try {"))
         // Preview FSM owns request/context counters — addFlow captures the
-        // contextGeneration before awaiting and bails if it advances.
+        // preview context before awaiting and bails if the session or
+        // contextGeneration changes.
         assertTrue(
             html.contains(
-                "const addFlowContextGeneration = previewUseCases.getState().contextGeneration;",
+                "const previewContext = capturePreviewContext();",
             ),
         )
         assertTrue(html.contains("let preview = state.preview;"))
@@ -262,11 +263,11 @@ class ConsolePreviewRoutesTest {
         assertTrue(html.contains("preview = await previewUseCases.request();"))
         assertTrue(
             html.contains(
-                "if (addFlowContextGeneration !== previewUseCases.getState().contextGeneration) return;",
+                "if (!previewContextStillCurrent(previewContext)) return;",
             ),
         )
         assertTrue(html.contains("setConsolePreview(preview);"))
-        assertTrue(html.contains("if (!state.preview) {"))
+        assertTrue(html.contains("if (!previewContextStillCurrent(previewContext) || !state.preview) {"))
         assertTrue(html.contains("startDraftFreeze(draftWorkspace"))
         assertTrue(html.contains("capture: async () => state.preview"))
         assertTrue(html.contains("sessionId: state.session?.sessionId || null"))

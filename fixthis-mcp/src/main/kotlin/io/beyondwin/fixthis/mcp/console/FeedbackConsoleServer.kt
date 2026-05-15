@@ -148,10 +148,10 @@ class FeedbackConsoleServer private constructor(
                 )
             }
             if (!routeTable.handle(exchange)) {
-                exchange.sendErrorJson(404, "Not found")
+                exchange.trySendErrorJson(404, "Not found")
             }
         } catch (error: FeedbackConsoleHttpException) {
-            exchange.sendErrorJson(
+            exchange.trySendErrorJson(
                 status = error.statusCode,
                 error = error.errorCode ?: error.message,
                 message = error.message,
@@ -159,23 +159,23 @@ class FeedbackConsoleServer private constructor(
             )
         } catch (error: FeedbackSessionException) {
             val httpError = error.toConsoleHttpException()
-            exchange.sendErrorJson(
+            exchange.trySendErrorJson(
                 status = httpError.statusCode,
                 error = httpError.errorCode ?: httpError.message,
                 message = httpError.message,
                 action = httpError.action,
             )
         } catch (error: BridgeConnectionException) {
-            exchange.sendErrorJson(HTTP_SERVICE_UNAVAILABLE, error.message ?: "FixThis bridge is not connected")
+            exchange.trySendErrorJson(HTTP_SERVICE_UNAVAILABLE, error.message ?: "FixThis bridge is not connected")
         } catch (error: Throwable) {
             if (error.isClientDisconnect()) {
-                exchange.close()
+                exchange.closeQuietly()
                 return
             }
             diagnosticsSink(
                 "FeedbackConsoleServer: ${error::class.java.name}: ${error.message}\n${error.stackTraceToString()}",
             )
-            exchange.sendErrorJson(500, error.message ?: error::class.java.simpleName)
+            exchange.trySendErrorJson(500, error.message ?: error::class.java.simpleName)
         }
     }
 }
@@ -204,15 +204,4 @@ private fun FeedbackSessionException.toConsoleHttpException(): FeedbackConsoleHt
         else -> 500 to null
     }
     return FeedbackConsoleHttpException(statusCode, text, errorCode = errorCode)
-}
-
-private fun Throwable.isClientDisconnect(): Boolean {
-    val messages = sequenceOf(this) + suppressed.asSequence() + generateSequence(cause) { it.cause }
-    return messages.any { error ->
-        val message = error.message?.lowercase().orEmpty()
-        message.contains("connection reset") ||
-            message.contains("broken pipe") ||
-            message.contains("stream is closed") ||
-            message.contains("insufficient bytes written to stream")
-    }
 }

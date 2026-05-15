@@ -31,6 +31,12 @@ internal class ConsoleEventRoutes(
 
     override fun handle(exchange: HttpExchange) {
         exchange.requireMethod("GET") {
+            val initialSnapshot = snapshot()
+            val lastEventId = exchange.requestHeaders.getFirst("Last-Event-ID")?.toLongOrNull()
+                ?: exchange.queryParameter("lastEventId")?.toLongOrNull()
+                ?: INITIAL_EVENT_ID
+            val replay = eventBus.eventsAfter(lastEventId)
+
             exchange.responseHeaders.set("Content-Type", "text/event-stream; charset=utf-8")
             exchange.responseHeaders.set("Cache-Control", "no-store")
             exchange.responseHeaders.set("Connection", "keep-alive")
@@ -43,11 +49,7 @@ internal class ConsoleEventRoutes(
             }
 
             try {
-                output.writeSseEvent("snapshot", null, snapshot())
-                val lastEventId = exchange.requestHeaders.getFirst("Last-Event-ID")?.toLongOrNull()
-                    ?: exchange.queryParameter("lastEventId")?.toLongOrNull()
-                    ?: INITIAL_EVENT_ID
-                val replay = eventBus.eventsAfter(lastEventId)
+                output.writeSseEvent("snapshot", null, initialSnapshot)
                 if (replay.overflow) {
                     output.writeSseEvent(
                         "replay-overflow",
@@ -64,14 +66,22 @@ internal class ConsoleEventRoutes(
                 }
                 try {
                     while (!subscriberClosed.await(KEEP_ALIVE_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-                        output.write(": keep-alive\n\n".toByteArray(Charsets.UTF_8))
-                        output.flush()
+                        runCatching {
+                            output.write(": keep-alive\n\n".toByteArray(Charsets.UTF_8))
+                            output.flush()
+                        }.onFailure { error ->
+                            if (error.isClientDisconnect()) {
+                                subscriberClosed.countDown()
+                            } else {
+                                throw error
+                            }
+                        }
                     }
                 } finally {
                     subscription.close()
                 }
             } finally {
-                output.close()
+                runCatching { output.close() }
             }
         }
     }
