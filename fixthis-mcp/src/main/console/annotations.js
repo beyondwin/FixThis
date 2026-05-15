@@ -602,14 +602,13 @@
               }
               const message = 'The screen may have changed since it was captured.\n\n' +
                 'OK = Recapture the current screen\n' +
-                'Cancel = Continue to the next step (ask whether to force save)';
+                'Cancel = Cancel';
               if (typeof window === 'undefined' || typeof window.confirm !== 'function') {
                 return Promise.resolve('cancel');
               }
               const recapture = window.confirm(message);
               if (recapture) return Promise.resolve('recapture');
-              const force = window.confirm('Force save anyway?\nOK = Force save\nCancel = Cancel');
-              return Promise.resolve(force ? 'force' : 'cancel');
+              return Promise.resolve('cancel');
             }
 
             async function savePendingFeedbackItems() {

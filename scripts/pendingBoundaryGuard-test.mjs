@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const mainSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/main.js'), 'utf8');
 const historySource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/history.js'), 'utf8');
+const annotationsSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/annotations.js'), 'utf8');
 
 function body(source, signature) {
   const start = source.indexOf(signature);
@@ -42,6 +43,10 @@ function functionText(source, signature) {
 
 function promptPendingBoundaryChoiceWithWindow(windowLike) {
   return new Function('window', `${functionText(mainSource, 'function promptPendingBoundaryChoice(action, count)')}; return promptPendingBoundaryChoice;`)(windowLike);
+}
+
+function promptScreenFingerprintMismatchWithWindow(windowLike) {
+  return new Function('window', `${functionText(annotationsSource, 'function promptScreenFingerprintMismatch(frozenFingerprint, currentFingerprint)')}; return promptScreenFingerprintMismatch;`)(windowLike);
 }
 
 test('shared pending boundary resolver exists', () => {
@@ -87,6 +92,38 @@ test('new session draft boundary cancel keeps editing after one confirmation', a
   assert.equal(choice, 'cancel');
   assert.equal(prompts.length, 1);
   assert.match(prompts[0], /Save draft before starting a new session/i);
+});
+
+test('default session draft boundary cancel keeps editing after one confirmation', async () => {
+  const prompts = [];
+  const promptPendingBoundaryChoice = promptPendingBoundaryChoiceWithWindow({
+    confirm: (message) => {
+      prompts.push(message);
+      return false;
+    },
+  });
+
+  const choice = await promptPendingBoundaryChoice('close-session', 2);
+
+  assert.equal(choice, 'cancel');
+  assert.equal(prompts.length, 1);
+  assert.match(prompts[0], /Save draft before changing sessions/i);
+});
+
+test('fingerprint mismatch cancel stops after one confirmation', async () => {
+  const prompts = [];
+  const promptScreenFingerprintMismatch = promptScreenFingerprintMismatchWithWindow({
+    confirm: (message) => {
+      prompts.push(message);
+      return false;
+    },
+  });
+
+  const choice = await promptScreenFingerprintMismatch('frozen-fp', 'current-fp');
+
+  assert.equal(choice, 'cancel');
+  assert.equal(prompts.length, 1);
+  assert.match(prompts[0], /screen may have changed/i);
 });
 
 test('openSession and newSession use boundary resolver instead of immediate flush', () => {
