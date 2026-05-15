@@ -23,6 +23,9 @@ abstract class GenerateFixThisSourceIndexTask : DefaultTask() {
     @get:Internal
     abstract val projectDirectory: DirectoryProperty
 
+    @get:Internal
+    abstract val rootProjectDirectory: DirectoryProperty
+
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val kotlinSourceFiles: ConfigurableFileCollection
@@ -65,7 +68,12 @@ abstract class GenerateFixThisSourceIndexTask : DefaultTask() {
         assetRoot.mkdirs()
 
         if (generateSourceIndex.get()) {
-            val generator = SourceIndexGenerator(projectDirectory.get().asFile, json)
+            val generator = SourceIndexGenerator(
+                projectDirectory = projectDirectory.get().asFile,
+                rootProjectDirectory = rootProjectDirectory.get().asFile,
+                projectPath = projectPath.get(),
+                json = json,
+            )
             val entries = generator.generate(
                 kotlinFiles = kotlinSourceFiles.files.flatMap { it.kotlinFiles() },
                 xmlFiles = resourceXmlFiles.files.flatMap { it.xmlFiles() },

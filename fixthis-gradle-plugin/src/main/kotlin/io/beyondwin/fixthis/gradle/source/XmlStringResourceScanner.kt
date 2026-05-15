@@ -6,13 +6,18 @@ import javax.xml.XMLConstants
 import javax.xml.parsers.DocumentBuilderFactory
 
 internal class XmlStringResourceScanner(
-    private val projectDirectory: File,
+    projectDirectory: File,
+    rootProjectDirectory: File,
 ) {
+    private val projectDirectory = projectDirectory.canonicalFile
+    private val rootProjectDirectory = rootProjectDirectory.canonicalFile
+
     fun scan(file: File): List<SourceIndexEntryAsset> {
+        val sourceFile = file.canonicalFile
         val document = runCatching {
-            newDocumentBuilderFactory().newDocumentBuilder().parse(file)
+            newDocumentBuilderFactory().newDocumentBuilder().parse(sourceFile)
         }.getOrNull() ?: return emptyList()
-        val lines = file.readLines()
+        val lines = sourceFile.readLines()
         val strings = document.getElementsByTagName("string")
 
         return buildList {
@@ -26,7 +31,8 @@ internal class XmlStringResourceScanner(
                 }.takeIf { it >= 0 }
                 add(
                     SourceIndexEntryAsset(
-                        file = file.relativeToOrSelf(projectDirectory).invariantSeparatorsPath,
+                        file = sourceFile.relativeToOrSelf(projectDirectory).invariantSeparatorsPath,
+                        repoFile = sourceFile.relativeToOrSelf(rootProjectDirectory).invariantSeparatorsPath,
                         line = lineIndex?.plus(1),
                         text = listOf(value),
                         stringResources = listOf(name),

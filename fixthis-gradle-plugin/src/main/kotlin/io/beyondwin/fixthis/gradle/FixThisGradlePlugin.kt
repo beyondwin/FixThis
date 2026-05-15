@@ -47,6 +47,7 @@ class FixThisGradlePlugin : Plugin<Project> {
                     flavorName = variant.flavorName,
                 )
                 task.projectDirectory.set(project.layout.projectDirectory)
+                task.rootProjectDirectory.set(project.rootProject.layout.projectDirectory)
                 task.kotlinSourceFiles.from(
                     sourceSetNames.map { sourceSetName ->
                         project.layout.projectDirectory.dir("src/$sourceSetName")

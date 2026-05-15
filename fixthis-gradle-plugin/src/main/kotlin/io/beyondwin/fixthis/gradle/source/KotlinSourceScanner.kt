@@ -4,9 +4,13 @@ import kotlinx.serialization.json.Json
 import java.io.File
 
 internal class KotlinSourceScanner(
-    private val projectDirectory: File,
+    projectDirectory: File,
+    rootProjectDirectory: File,
     private val json: Json,
 ) {
+    private val projectDirectory = projectDirectory.canonicalFile
+    private val rootProjectDirectory = rootProjectDirectory.canonicalFile
+
     fun scan(file: File): List<SourceIndexEntryAsset> = scanKotlinFile(file)
 
     private fun scanKotlinFile(file: File): List<SourceIndexEntryAsset> {
@@ -224,8 +228,10 @@ internal class KotlinSourceScanner(
         packageName: String? = null,
         className: String? = null,
     ): SourceIndexEntryBuilder = getOrPut(lineNumber) {
+        val sourceFile = file.canonicalFile
         SourceIndexEntryBuilder(
-            file = file.relativeToOrSelf(projectDirectory).invariantSeparatorsPath,
+            file = sourceFile.relativeToOrSelf(projectDirectory).invariantSeparatorsPath,
+            repoFile = sourceFile.relativeToOrSelf(rootProjectDirectory).invariantSeparatorsPath,
             line = lineNumber,
             excerpt = line.trim(),
             packageName = packageName,

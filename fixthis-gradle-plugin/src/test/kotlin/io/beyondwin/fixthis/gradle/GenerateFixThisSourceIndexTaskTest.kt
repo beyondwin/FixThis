@@ -69,7 +69,7 @@ class GenerateFixThisSourceIndexTaskTest {
             entry.jsonObject.getValue("symbols").jsonArray.map { it.jsonPrimitive.content }
         }
 
-        assertEquals("1.0", index.getValue("schemaVersion").jsonPrimitive.content)
+        assertEquals("1.1", index.getValue("schemaVersion").jsonPrimitive.content)
         assertTrue(textValues.contains("Checkout title"))
         assertTrue(textValues.contains("Pay now"))
         assertTrue(stringResources.contains("checkout_total"))
@@ -83,6 +83,55 @@ class GenerateFixThisSourceIndexTaskTest {
                     json.getValue("excerpt").jsonPrimitive.content.contains("Text(\"Pay now\"")
             },
         )
+    }
+
+    @Test
+    fun `writes source root and repo relative source paths for module project`() {
+        val rootDir = temporaryFolder.newFolder("repo")
+        val projectDir = rootDir.resolve("sample")
+        val sourceFile = projectDir.resolve("src/main/java/io/example/Sample.kt")
+        sourceFile.parentFile.mkdirs()
+        sourceFile.writeText(
+            """
+            package io.example
+
+            import androidx.compose.material3.Text
+            import androidx.compose.runtime.Composable
+
+            @Composable
+            fun Sample() {
+                Text("Hello")
+            }
+            """.trimIndent(),
+        )
+        val outputDir = projectDir.resolve("build/generated/fixthis/debug/assets")
+
+        runTask(
+            projectDir = projectDir,
+            rootProjectDir = rootDir,
+            kotlinSources = listOf(sourceFile),
+            resourceXmlFiles = emptyList(),
+            outputDir = outputDir,
+        )
+
+        val index = Json.parseToJsonElement(
+            outputDir.resolve("fixthis/fixthis-source-index.json").readText(),
+        ).jsonObject
+        val sourceRoot = index.getValue("sourceRoot").jsonObject
+        val entry = index.getValue("entries").jsonArray
+            .map { it.jsonObject }
+            .single { entry ->
+                entry.getValue("symbols").jsonArray.any { symbol ->
+                    symbol.jsonPrimitive.content == "Sample"
+                }
+            }
+
+        assertEquals("1.1", index.getValue("schemaVersion").jsonPrimitive.content)
+        assertEquals("gradle-project", sourceRoot.getValue("kind").jsonPrimitive.content)
+        assertEquals(":app", sourceRoot.getValue("gradlePath").jsonPrimitive.content)
+        assertEquals("sample", sourceRoot.getValue("projectDir").jsonPrimitive.content)
+        assertEquals("src/main/java/io/example/Sample.kt", entry.getValue("file").jsonPrimitive.content)
+        assertEquals("sample/src/main/java/io/example/Sample.kt", entry.getValue("repoFile").jsonPrimitive.content)
     }
 
     @Test
@@ -396,6 +445,8 @@ class GenerateFixThisSourceIndexTaskTest {
 
     private fun runTask(
         projectDir: File,
+        rootProjectDir: File = projectDir,
+        projectPath: String = ":app",
         kotlinSources: List<File>,
         resourceXmlFiles: List<File>,
         outputDir: File,
@@ -410,10 +461,11 @@ class GenerateFixThisSourceIndexTaskTest {
             GenerateFixThisSourceIndexTask::class.java,
         ).get()
         task.projectDirectory.set(project.layout.projectDirectory)
+        task.rootProjectDirectory.set(rootProjectDir)
         task.kotlinSourceFiles.from(kotlinSources)
         task.resourceXmlFiles.from(resourceXmlFiles)
         task.outputDirectory.set(outputDir)
-        task.projectPath.set(":app")
+        task.projectPath.set(projectPath)
         task.variantName.set("debug")
         task.runtimeVersion.set("0.1.0-test")
         task.includeScreenshots.set(true)

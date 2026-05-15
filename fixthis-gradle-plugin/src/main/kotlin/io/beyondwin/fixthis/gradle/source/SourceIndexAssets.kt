@@ -4,13 +4,22 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 internal data class SourceIndexAsset(
-    val schemaVersion: String = "1.0",
+    val schemaVersion: String = "1.1",
+    val sourceRoot: SourceRootAsset? = null,
     val entries: List<SourceIndexEntryAsset> = emptyList(),
+)
+
+@Serializable
+internal data class SourceRootAsset(
+    val kind: String = "gradle-project",
+    val gradlePath: String? = null,
+    val projectDir: String? = null,
 )
 
 @Serializable
 internal data class SourceIndexEntryAsset(
     val file: String,
+    val repoFile: String? = null,
     val line: Int? = null,
     val symbols: List<String> = emptyList(),
     val text: List<String> = emptyList(),
@@ -59,6 +68,7 @@ internal data class FixThisBuildInfoAsset(
 
 internal data class SourceIndexEntryBuilder(
     val file: String,
+    val repoFile: String? = null,
     val line: Int,
     val symbols: LinkedHashSet<String> = linkedSetOf(),
     val text: LinkedHashSet<String> = linkedSetOf(),
@@ -78,6 +88,7 @@ internal data class SourceIndexEntryBuilder(
 
     fun toAsset(): SourceIndexEntryAsset = SourceIndexEntryAsset(
         file = file,
+        repoFile = repoFile,
         line = line,
         symbols = symbols.toList(),
         text = text.toList(),
