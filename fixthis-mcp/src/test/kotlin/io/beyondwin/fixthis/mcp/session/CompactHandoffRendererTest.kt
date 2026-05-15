@@ -1679,6 +1679,51 @@ class CompactHandoffRendererTest {
     }
 
     @Test
+    fun renderUsesRepoFileForSourceCandidateDisplayPath() {
+        val session = SessionDto(
+            sessionId = "session-repofile",
+            packageName = "io.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto("screen-1", 1L, displayName = "Home")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "i-repofile",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                    comment = "fix path",
+                    sequenceNumber = 1,
+                    sourceCandidates = listOf(
+                        SourceCandidate(
+                            file = "src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt",
+                            repoFile = "sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt",
+                            line = 44,
+                            score = 0.9,
+                            matchedTerms = emptyList(),
+                            matchReasons = emptyList(),
+                            confidence = SelectionConfidence.HIGH,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+
+        assertTrue(
+            markdown.contains("sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt:44"),
+            "Expected repoFile display path but got:\n$markdown",
+        )
+        assertTrue(
+            !markdown.lines().any { it.trim().startsWith("src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt:44") },
+            "Expected module-relative file path to be hidden when repoFile is present:\n$markdown",
+        )
+    }
+
+    @Test
     fun rendersIdTokenForEachItem() {
         val session = SessionDto(
             sessionId = "session-id-token",

@@ -3,7 +3,12 @@ package io.beyondwin.fixthis.mcp.session
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
 
-internal fun SourceCandidate.fileWithLine(): String = line?.let { "$file:$it" } ?: file
+internal fun SourceCandidate.displayFile(): String = repoFile?.takeIf { it.isNotBlank() } ?: file
+
+internal fun SourceCandidate.fileWithLine(): String {
+    val displayFile = displayFile()
+    return line?.let { "$displayFile:$it" } ?: displayFile
+}
 
 internal fun FixThisRect.formatBounds(): String = "$left,$top,$right,$bottom"
 
@@ -21,7 +26,7 @@ internal fun String.inlineSafe(): String = lineSequence().joinToString(" ").repl
  * keeps its filename. Returns null when the prefix would not pay for itself.
  */
 internal fun computeSourceRoot(session: SessionDto): String? {
-    val files = session.items.flatMap { it.sourceCandidates }.map { it.file }.distinct()
+    val files = session.items.flatMap { it.sourceCandidates }.map { it.displayFile() }.distinct()
     if (files.size < 2) return null
     val splits = files.map { it.split('/') }
     val first = splits.first()
@@ -43,7 +48,12 @@ internal fun computeSourceRoot(session: SessionDto): String? {
 }
 
 internal fun SourceCandidate.relativeFileWithLine(prefix: String?): String {
-    val relativeFile = if (prefix != null && file.startsWith(prefix)) file.removePrefix(prefix) else file
+    val displayFile = displayFile()
+    val relativeFile = if (prefix != null && displayFile.startsWith(prefix)) {
+        displayFile.removePrefix(prefix)
+    } else {
+        displayFile
+    }
     return line?.let { "$relativeFile:$it" } ?: relativeFile
 }
 
