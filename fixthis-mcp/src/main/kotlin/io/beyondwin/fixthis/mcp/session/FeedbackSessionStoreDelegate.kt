@@ -1,3 +1,5 @@
+@file:Suppress("MaxLineLength")
+
 package io.beyondwin.fixthis.mcp.session
 
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogCompactionTask
@@ -189,19 +191,18 @@ internal class FeedbackSessionStoreDelegate(
     // Spec'd mutations — each wraps with event-log write-ahead
     // ------------------------------------------------------------------
 
-    fun addScreen(sessionId: String, screen: SnapshotDto): SnapshotDto =
-        withEventBackedMutation(sessionId, "addScreen") {
-            val session = getSessionLocked(sessionId)
-            val (updated, captured) = mutations.addScreen(session, screen)
-            buildJsonObject {
-                put("sessionId", sessionId)
-                put("screen", eventLogJson.encodeToJsonElement(SnapshotDto.serializer(), captured))
-            } to {
-                save(updated)
-                sessions[sessionId] = updated
-                captured
-            }
+    fun addScreen(sessionId: String, screen: SnapshotDto): SnapshotDto = withEventBackedMutation(sessionId, "addScreen") {
+        val session = getSessionLocked(sessionId)
+        val (updated, captured) = mutations.addScreen(session, screen)
+        buildJsonObject {
+            put("sessionId", sessionId)
+            put("screen", eventLogJson.encodeToJsonElement(SnapshotDto.serializer(), captured))
+        } to {
+            save(updated)
+            sessions[sessionId] = updated
+            captured
         }
+    }
 
     fun addScreenWithItems(
         sessionId: String,
@@ -250,49 +251,46 @@ internal class FeedbackSessionStoreDelegate(
         }
     }
 
-    fun deleteScreen(sessionId: String, screenId: String): SessionDto =
-        withEventBackedMutation(sessionId, "deleteScreen") {
-            val session = getSessionLocked(sessionId)
-            val updated = mutations.deleteScreen(session, screenId)
-            buildJsonObject {
-                put("sessionId", sessionId)
-                put("screenId", screenId)
-            } to {
-                // Note: disk artifact deletion is NOT replayed on boot (replay is SessionDto-only).
-                commitSessionMutation(session, updated).also {
-                    artifactJanitor.deleteScreenArtifacts(sessionId, screenId)
-                }
+    fun deleteScreen(sessionId: String, screenId: String): SessionDto = withEventBackedMutation(sessionId, "deleteScreen") {
+        val session = getSessionLocked(sessionId)
+        val updated = mutations.deleteScreen(session, screenId)
+        buildJsonObject {
+            put("sessionId", sessionId)
+            put("screenId", screenId)
+        } to {
+            // Note: disk artifact deletion is NOT replayed on boot (replay is SessionDto-only).
+            commitSessionMutation(session, updated).also {
+                artifactJanitor.deleteScreenArtifacts(sessionId, screenId)
             }
         }
+    }
 
-    fun addItem(sessionId: String, item: AnnotationDto): AnnotationDto =
-        withEventBackedMutation(sessionId, "addItem") {
-            val session = getSessionLocked(sessionId)
-            val (updated, created) = mutations.addItem(session, item)
-            buildJsonObject {
-                put("sessionId", sessionId)
-                put("item", eventLogJson.encodeToJsonElement(AnnotationDto.serializer(), created))
-            } to {
-                save(updated)
-                sessions[sessionId] = updated
-                created
-            }
+    fun addItem(sessionId: String, item: AnnotationDto): AnnotationDto = withEventBackedMutation(sessionId, "addItem") {
+        val session = getSessionLocked(sessionId)
+        val (updated, created) = mutations.addItem(session, item)
+        buildJsonObject {
+            put("sessionId", sessionId)
+            put("item", eventLogJson.encodeToJsonElement(AnnotationDto.serializer(), created))
+        } to {
+            save(updated)
+            sessions[sessionId] = updated
+            created
         }
+    }
 
-    fun clearDraftItems(sessionId: String): SessionDto =
-        withEventBackedMutation(sessionId, "clearDraftItems") {
-            val session = getSessionLocked(sessionId)
-            val updated = session.copy(
-                items = session.items.filter { it.delivery != FeedbackDelivery.DRAFT },
-                updatedAtEpochMillis = clock(),
-            )
-            buildJsonObject {
-                put("sessionId", sessionId)
-                putItems(updated.items)
-            } to {
-                commitSessionMutation(session, updated)
-            }
+    fun clearDraftItems(sessionId: String): SessionDto = withEventBackedMutation(sessionId, "clearDraftItems") {
+        val session = getSessionLocked(sessionId)
+        val updated = session.copy(
+            items = session.items.filter { it.delivery != FeedbackDelivery.DRAFT },
+            updatedAtEpochMillis = clock(),
+        )
+        buildJsonObject {
+            put("sessionId", sessionId)
+            putItems(updated.items)
+        } to {
+            commitSessionMutation(session, updated)
         }
+    }
 
     fun sendDraftToAgent(
         sessionId: String,
@@ -322,15 +320,15 @@ internal class FeedbackSessionStoreDelegate(
             updatedAtEpochMillis = now,
         )
         buildJsonObject {
-                put("sessionId", sessionId)
-                put("batch", eventLogJson.encodeToJsonElement(FeedbackHandoffBatch.serializer(), batch))
-                put(
-                    "items",
-                    eventLogJson.encodeToJsonElement(
-                        kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
-                        updatedItems,
-                    ),
-                )
+            put("sessionId", sessionId)
+            put("batch", eventLogJson.encodeToJsonElement(FeedbackHandoffBatch.serializer(), batch))
+            put(
+                "items",
+                eventLogJson.encodeToJsonElement(
+                    kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
+                    updatedItems,
+                ),
+            )
         } to {
             commitSessionMutation(session, updated)
         }
@@ -379,35 +377,34 @@ internal class FeedbackSessionStoreDelegate(
         }
     }
 
-    fun markItemsHandedOff(sessionId: String, itemIds: List<String>): SessionDto =
-        withEventBackedMutation(sessionId, "markItemsHandedOff") {
-            if (itemIds.isEmpty()) {
-                throw FeedbackSessionException("itemIds must not be empty")
-            }
-            val session = getSessionLocked(sessionId)
-            val targetSet = itemIds.toSet()
-            val now = clock()
-            val updatedItems = session.items.map { item ->
-                if (item.itemId in targetSet) {
-                    item.copy(
-                        lastHandedOffAtEpochMillis = now,
-                        updatedAtEpochMillis = now,
-                    )
-                } else {
-                    item
-                }
-            }
-            val updated = session.copy(
-                items = updatedItems,
-                updatedAtEpochMillis = now,
-            )
-            buildJsonObject {
-                put("sessionId", sessionId)
-                putItems(updatedItems)
-            } to {
-                commitSessionMutation(session, updated)
+    fun markItemsHandedOff(sessionId: String, itemIds: List<String>): SessionDto = withEventBackedMutation(sessionId, "markItemsHandedOff") {
+        if (itemIds.isEmpty()) {
+            throw FeedbackSessionException("itemIds must not be empty")
+        }
+        val session = getSessionLocked(sessionId)
+        val targetSet = itemIds.toSet()
+        val now = clock()
+        val updatedItems = session.items.map { item ->
+            if (item.itemId in targetSet) {
+                item.copy(
+                    lastHandedOffAtEpochMillis = now,
+                    updatedAtEpochMillis = now,
+                )
+            } else {
+                item
             }
         }
+        val updated = session.copy(
+            items = updatedItems,
+            updatedAtEpochMillis = now,
+        )
+        buildJsonObject {
+            put("sessionId", sessionId)
+            putItems(updatedItems)
+        } to {
+            commitSessionMutation(session, updated)
+        }
+    }
 
     fun markReadyForAgent(sessionId: String): SessionDto = synchronized(lock) {
         val session = getSessionLocked(sessionId)
@@ -427,8 +424,8 @@ internal class FeedbackSessionStoreDelegate(
         val session = getSessionLocked(sessionId)
         val (updated, item) = mutations.updateItemStatus(session, itemId, status, agentSummary)
         buildJsonObject {
-                put("sessionId", sessionId)
-                putItems(updated.items)
+            put("sessionId", sessionId)
+            putItems(updated.items)
         } to {
             commitSessionMutation(session, updated)
             item
@@ -440,35 +437,34 @@ internal class FeedbackSessionStoreDelegate(
         AnnotationStatusDto.WONT_FIX,
     )
 
-    fun claimFeedback(sessionId: String, itemId: String, agentNote: String?): AnnotationDto =
-        withEventBackedMutation(sessionId, "claimFeedback") {
-            val session = getSessionLocked(sessionId)
-            val now = clock()
-            var updatedItem: AnnotationDto? = null
-            val updatedItems = session.items.map { item ->
-                if (item.itemId != itemId) return@map item
-                if (item.status in resolvedStatusSet) {
-                    throw FeedbackSessionException(
-                        "ITEM_ALREADY_RESOLVED: Cannot claim resolved feedback item: $itemId",
-                    )
-                }
-                item.copy(
-                    status = AnnotationStatusDto.IN_PROGRESS,
-                    agentSummary = agentNote ?: item.agentSummary,
-                    updatedAtEpochMillis = now,
-                ).also { updatedItem = it }
+    fun claimFeedback(sessionId: String, itemId: String, agentNote: String?): AnnotationDto = withEventBackedMutation(sessionId, "claimFeedback") {
+        val session = getSessionLocked(sessionId)
+        val now = clock()
+        var updatedItem: AnnotationDto? = null
+        val updatedItems = session.items.map { item ->
+            if (item.itemId != itemId) return@map item
+            if (item.status in resolvedStatusSet) {
+                throw FeedbackSessionException(
+                    "ITEM_ALREADY_RESOLVED: Cannot claim resolved feedback item: $itemId",
+                )
             }
-            val item = updatedItem
-                ?: throw FeedbackSessionException("Unknown feedback item: $itemId")
-            val updated = session.copy(items = updatedItems, updatedAtEpochMillis = now)
-            buildJsonObject {
-                put("sessionId", sessionId)
-                putItems(updatedItems)
-            } to {
-                commitSessionMutation(session, updated)
-                item
-            }
+            item.copy(
+                status = AnnotationStatusDto.IN_PROGRESS,
+                agentSummary = agentNote ?: item.agentSummary,
+                updatedAtEpochMillis = now,
+            ).also { updatedItem = it }
         }
+        val item = updatedItem
+            ?: throw FeedbackSessionException("Unknown feedback item: $itemId")
+        val updated = session.copy(items = updatedItems, updatedAtEpochMillis = now)
+        buildJsonObject {
+            put("sessionId", sessionId)
+            putItems(updatedItems)
+        } to {
+            commitSessionMutation(session, updated)
+            item
+        }
+    }
 
     fun updateDraftItem(
         sessionId: String,
@@ -498,14 +494,14 @@ internal class FeedbackSessionStoreDelegate(
         if (!found) throw FeedbackSessionException("Unknown feedback item: $itemId")
         val updated = session.copy(items = updatedItems, updatedAtEpochMillis = now)
         buildJsonObject {
-                put("sessionId", sessionId)
-                put(
-                    "items",
-                    eventLogJson.encodeToJsonElement(
-                        kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
-                        updatedItems,
-                    ),
-                )
+            put("sessionId", sessionId)
+            put(
+                "items",
+                eventLogJson.encodeToJsonElement(
+                    kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
+                    updatedItems,
+                ),
+            )
         } to {
             save(updated)
             sessions[sessionId] = updated
@@ -513,31 +509,30 @@ internal class FeedbackSessionStoreDelegate(
         }
     }
 
-    fun deleteDraftItem(sessionId: String, itemId: String): SessionDto =
-        withEventBackedMutation(sessionId, "deleteDraftItem") {
-            val session = getSessionLocked(sessionId)
-            val item = session.items.find { it.itemId == itemId }
-                ?: throw FeedbackSessionException("Unknown feedback item: $itemId")
-            if (isLockedForEdit(item)) {
-                throw FeedbackSessionException("ITEM_NOT_EDITABLE: Agent has claimed this item: $itemId")
-            }
-            val updatedBatches = session.handoffBatches
-                .map { batch -> batch.copy(itemIds = batch.itemIds.filterNot { it == itemId }) }
-                .filter { it.itemIds.isNotEmpty() }
-            val updated = session.copy(
-                items = session.items.filterNot { it.itemId == itemId },
-                handoffBatches = updatedBatches,
-                updatedAtEpochMillis = clock(),
-            )
-            buildJsonObject {
-                put("sessionId", sessionId)
-                put("itemId", itemId)
-            } to {
-                save(updated)
-                sessions[sessionId] = updated
-                updated
-            }
+    fun deleteDraftItem(sessionId: String, itemId: String): SessionDto = withEventBackedMutation(sessionId, "deleteDraftItem") {
+        val session = getSessionLocked(sessionId)
+        val item = session.items.find { it.itemId == itemId }
+            ?: throw FeedbackSessionException("Unknown feedback item: $itemId")
+        if (isLockedForEdit(item)) {
+            throw FeedbackSessionException("ITEM_NOT_EDITABLE: Agent has claimed this item: $itemId")
         }
+        val updatedBatches = session.handoffBatches
+            .map { batch -> batch.copy(itemIds = batch.itemIds.filterNot { it == itemId }) }
+            .filter { it.itemIds.isNotEmpty() }
+        val updated = session.copy(
+            items = session.items.filterNot { it.itemId == itemId },
+            handoffBatches = updatedBatches,
+            updatedAtEpochMillis = clock(),
+        )
+        buildJsonObject {
+            put("sessionId", sessionId)
+            put("itemId", itemId)
+        } to {
+            save(updated)
+            sessions[sessionId] = updated
+            updated
+        }
+    }
 
     // ------------------------------------------------------------------
     // Event log helpers

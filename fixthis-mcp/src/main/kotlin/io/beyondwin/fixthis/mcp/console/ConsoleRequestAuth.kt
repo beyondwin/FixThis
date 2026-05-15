@@ -1,3 +1,5 @@
+@file:Suppress("MaxLineLength")
+
 package io.beyondwin.fixthis.mcp.console
 
 import com.sun.net.httpserver.HttpExchange
@@ -16,8 +18,7 @@ internal data class ConsoleRequestAuthConfig(
 
 private val ConsoleMutatingMethods = setOf("POST", "PUT", "PATCH", "DELETE")
 
-internal fun HttpExchange.requiresConsoleMutationGuard(): Boolean =
-    requestURI.path.startsWith("/api/") && requestMethod.uppercase() in ConsoleMutatingMethods
+internal fun HttpExchange.requiresConsoleMutationGuard(): Boolean = requestURI.path.startsWith("/api/") && requestMethod.uppercase() in ConsoleMutatingMethods
 
 internal fun HttpExchange.requireConsoleMutationAllowed(config: ConsoleRequestAuthConfig) {
     val failure = consoleMutationAuthFailure(config)
@@ -37,17 +38,15 @@ private fun HttpExchange.consoleMutationAuthFailure(config: ConsoleRequestAuthCo
     }
 }
 
-private fun String.isAllowedConsoleOrigin(config: ConsoleRequestAuthConfig): Boolean =
-    this == "http://127.0.0.1:${config.port}" ||
-        this == "http://localhost:${config.port}" ||
-        this == "http://[::1]:${config.port}" ||
-        this == "http://${config.host.toUrlHost()}:${config.port}"
+private fun String.isAllowedConsoleOrigin(config: ConsoleRequestAuthConfig): Boolean = this == "http://127.0.0.1:${config.port}" ||
+    this == "http://localhost:${config.port}" ||
+    this == "http://[::1]:${config.port}" ||
+    this == "http://${config.host.toUrlHost()}:${config.port}"
 
-private fun String.isAllowedConsoleHost(config: ConsoleRequestAuthConfig): Boolean =
-    this == "127.0.0.1:${config.port}" ||
-        this == "localhost:${config.port}" ||
-        this == "[::1]:${config.port}" ||
-        this == "${config.host.toUrlHost()}:${config.port}"
+private fun String.isAllowedConsoleHost(config: ConsoleRequestAuthConfig): Boolean = this == "127.0.0.1:${config.port}" ||
+    this == "localhost:${config.port}" ||
+    this == "[::1]:${config.port}" ||
+    this == "${config.host.toUrlHost()}:${config.port}"
 
 private fun constantTimeEquals(expected: String, supplied: String?): Boolean {
     if (supplied == null) return false

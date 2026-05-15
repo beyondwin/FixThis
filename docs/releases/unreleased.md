@@ -60,6 +60,10 @@ remains the chronological source of truth.
   default, source-index generation is cacheable, sidekick build metadata avoids
   unnecessary Kotlin recompilation, and CI separates console JavaScript checks
   from Gradle verification for faster failures.
+- Stabilized the release gate by restoring detekt, adding local artifact
+  publish dry-run validation, tightening session-store compaction lock scope,
+  registering current architecture hotspots, asserting multi-tab draft
+  recovery, and closing console mutation auth hardening.
 
 ## Compatibility Notes
 
