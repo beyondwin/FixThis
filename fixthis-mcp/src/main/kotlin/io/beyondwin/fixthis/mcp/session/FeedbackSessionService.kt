@@ -16,6 +16,7 @@ data class SendDraftToAgentResult(val session: SessionDto, val prompt: String)
 internal data class PreviewFeedbackLiveSaveRequest(
     val sessionId: String,
     val previewId: String,
+    val workspaceId: String? = null,
     val items: List<AnnotationDraftDto>,
     val fallbackScreen: SnapshotDto? = null,
     val fingerprintCheck: PreviewFeedbackFingerprintCheck = PreviewFeedbackFingerprintCheck(),
@@ -176,6 +177,7 @@ class FeedbackSessionService(
         previewId: String,
         items: List<AnnotationDraftDto>,
         fallbackScreen: SnapshotDto? = null,
+        workspaceId: String? = null,
         frozenFingerprint: String? = null,
         currentFingerprint: String? = null,
         forceMismatchOverride: Boolean = false,
@@ -184,6 +186,7 @@ class FeedbackSessionService(
         previewId = previewId,
         items = items,
         fallbackScreen = fallbackScreen,
+        workspaceId = workspaceId,
         frozenFingerprint = frozenFingerprint,
         currentFingerprint = currentFingerprint,
         forceMismatchOverride = forceMismatchOverride,
@@ -194,6 +197,7 @@ class FeedbackSessionService(
         previewId: String,
         items: List<AnnotationDraftDto>,
         fallbackScreen: SnapshotDto? = null,
+        workspaceId: String? = null,
         frozenFingerprint: String? = null,
         currentFingerprint: String? = null,
         forceMismatchOverride: Boolean = false,
@@ -202,6 +206,7 @@ class FeedbackSessionService(
         previewId = previewId,
         items = items,
         fallbackScreen = fallbackScreen,
+        workspaceId = workspaceId,
         frozenFingerprint = frozenFingerprint,
         currentFingerprint = currentFingerprint,
         forceMismatchOverride = forceMismatchOverride,
@@ -214,6 +219,7 @@ class FeedbackSessionService(
         val reservation = annotations.preparePreviewFeedbackSave(
             sessionId = request.sessionId,
             previewId = request.previewId,
+            workspaceId = request.workspaceId,
             items = request.items,
             fallbackScreen = request.fallbackScreen,
         )

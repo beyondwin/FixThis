@@ -212,13 +212,33 @@ internal class FeedbackSessionStoreDelegate(
     ): SessionDto = withEventBackedMutation(sessionId, "addScreenWithItems") {
         require(items.isNotEmpty()) { "At least one feedback item is required" }
         val session = getSessionLocked(sessionId)
+        val existingClientKeys = session.items.mapNotNull { it.clientDraftKey() }.toSet()
+        val newItems = items.filterNot { item ->
+            item.clientDraftKey()?.let { it in existingClientKeys } == true
+        }
+        if (newItems.isEmpty()) {
+            val duplicateItems = items.mapNotNull { item ->
+                val key = item.clientDraftKey() ?: return@mapNotNull null
+                session.items.firstOrNull { it.clientDraftKey() == key }
+            }
+            val duplicateScreen = duplicateItems.firstOrNull()?.screenId
+                ?.let { screenId -> session.screens.firstOrNull { it.screenId == screenId } }
+                ?: session.screens.firstOrNull { it.screenId == screen.screenId }
+                ?: screen
+            return@withEventBackedMutation buildJsonObject {
+                put("sessionId", sessionId)
+                eventMetadata.forEach { (key, value) -> put(key, value) }
+                put("screen", eventLogJson.encodeToJsonElement(SnapshotDto.serializer(), duplicateScreen))
+                putItems(duplicateItems)
+            } to { session }
+        }
         val now = clock()
         val captured = screen.copy(
             screenId = if (screen.screenId == "pending") idGenerator() else screen.screenId,
             capturedAtEpochMillis = now,
         )
         val firstSequence = session.migratedNextItemSequenceNumber()
-        val createdItems = items.mapIndexed { index, item ->
+        val createdItems = newItems.mapIndexed { index, item ->
             item.copy(
                 itemId = if (item.itemId == "pending") idGenerator() else item.itemId,
                 screenId = captured.screenId,
@@ -229,8 +249,13 @@ internal class FeedbackSessionStoreDelegate(
             )
         }
         val nextSequence = createdItems.mapNotNull { it.sequenceNumber }.maxOrNull()?.plus(1) ?: firstSequence
+        val screens = if (session.screens.any { it.screenId == captured.screenId }) {
+            session.screens
+        } else {
+            session.screens + captured
+        }
         val updated = session.copy(
-            screens = session.screens + captured,
+            screens = screens,
             items = session.items + createdItems,
             nextItemSequenceNumber = maxOf(firstSequence, nextSequence),
             updatedAtEpochMillis = now,
@@ -239,16 +264,16 @@ internal class FeedbackSessionStoreDelegate(
             put("sessionId", sessionId)
             eventMetadata.forEach { (key, value) -> put(key, value) }
             put("screen", eventLogJson.encodeToJsonElement(SnapshotDto.serializer(), captured))
-            put(
-                "items",
-                eventLogJson.encodeToJsonElement(
-                    kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
-                    createdItems,
-                ),
-            )
+            putItems(createdItems)
         } to {
             commitSessionMutation(session, updated)
         }
+    }
+
+    private fun AnnotationDto.clientDraftKey(): String? {
+        val workspaceId = clientWorkspaceId?.takeIf { it.isNotBlank() } ?: return null
+        val draftItemId = clientDraftItemId?.takeIf { it.isNotBlank() } ?: return null
+        return "$workspaceId\u0000$draftItemId"
     }
 
     fun deleteScreen(sessionId: String, screenId: String): SessionDto = withEventBackedMutation(sessionId, "deleteScreen") {

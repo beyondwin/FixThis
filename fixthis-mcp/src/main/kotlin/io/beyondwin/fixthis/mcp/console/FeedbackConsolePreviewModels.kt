@@ -17,6 +17,7 @@ data class FeedbackPreviewSnapshot(
 data class SaveSnapshotRequest(
     val sessionId: String? = null,
     val previewId: String,
+    val workspaceId: String? = null,
     val items: List<AnnotationDraftDto>,
     val screen: SnapshotDto? = null,
     val frozenFingerprint: String? = null,
@@ -37,6 +38,7 @@ data class AgentHandoffResponse(
 
 @Serializable
 data class AnnotationDraftDto(
+    val draftItemId: String? = null,
     val targetType: FeedbackTargetType,
     val bounds: FixThisRect,
     val nodeUid: String? = null,

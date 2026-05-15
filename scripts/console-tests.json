@@ -17,6 +17,7 @@
   "draft": [
     "scripts/draftWorkspace-test.mjs",
     "scripts/draftWorkspaceHistory-test.mjs",
+    "scripts/historyPendingDedupe-test.mjs",
     "scripts/draftStorageAdapter-test.mjs",
     "scripts/draftApiAdapter-test.mjs",
     "scripts/draftUseCases-test.mjs",

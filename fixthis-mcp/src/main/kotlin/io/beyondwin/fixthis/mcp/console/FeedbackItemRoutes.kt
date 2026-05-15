@@ -54,6 +54,7 @@ internal class FeedbackItemRoutes(
                             PreviewFeedbackLiveSaveRequest(
                                 sessionId = sessionId,
                                 previewId = request.previewId,
+                                workspaceId = request.workspaceId,
                                 items = request.items,
                                 fallbackScreen = request.screen,
                                 fingerprintCheck = PreviewFeedbackFingerprintCheck(

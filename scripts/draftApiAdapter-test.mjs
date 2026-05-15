@@ -37,7 +37,9 @@ test('save request includes explicit session context', () => {
   const request = m.buildDraftWorkspaceSaveRequest(workspace);
   assert.equal(request.sessionId, 'session-a');
   assert.equal(request.previewId, 'preview-a');
+  assert.equal(request.workspaceId, 'ws-a');
   assert.equal(request.frozenFingerprint, 'fp-a');
+  assert.equal(request.items[0].draftItemId, 'draft-1');
   assert.equal(request.items[0].comment, 'fix');
 });
 

@@ -13,6 +13,7 @@ import kotlinx.serialization.json.put
 internal data class PreviewFeedbackSaveReservation(
     val sessionId: String,
     val previewId: String,
+    val workspaceId: String?,
     val items: List<AnnotationDraftDto>,
     val allowBlankComments: Boolean,
     val inFlightKey: String,
@@ -141,16 +142,18 @@ class FeedbackDraftService(
         items: List<AnnotationDraftDto>,
         fallbackScreen: SnapshotDto? = null,
         allowBlankComments: Boolean = true,
+        workspaceId: String? = null,
         frozenFingerprint: String? = null,
         currentFingerprint: String? = null,
         forceMismatchOverride: Boolean = false,
     ): SessionDto = savePreviewFeedbackItemsWithMetadata(
         sessionId = sessionId,
         previewId = previewId,
-        items = items,
-        fallbackScreen = fallbackScreen,
-        allowBlankComments = allowBlankComments,
-        frozenFingerprint = frozenFingerprint,
+            items = items,
+            fallbackScreen = fallbackScreen,
+            allowBlankComments = allowBlankComments,
+            workspaceId = workspaceId,
+            frozenFingerprint = frozenFingerprint,
         currentFingerprint = currentFingerprint,
         forceMismatchOverride = forceMismatchOverride,
     ).session
@@ -161,6 +164,7 @@ class FeedbackDraftService(
         items: List<AnnotationDraftDto>,
         fallbackScreen: SnapshotDto? = null,
         allowBlankComments: Boolean = true,
+        workspaceId: String? = null,
         frozenFingerprint: String? = null,
         currentFingerprint: String? = null,
         forceMismatchOverride: Boolean = false,
@@ -171,6 +175,7 @@ class FeedbackDraftService(
             items = items,
             fallbackScreen = fallbackScreen,
             allowBlankComments = allowBlankComments,
+            workspaceId = workspaceId,
         )
         return commitPreviewFeedbackSaveWithMetadata(
             reservation = reservation,
@@ -188,6 +193,7 @@ class FeedbackDraftService(
         items: List<AnnotationDraftDto>,
         fallbackScreen: SnapshotDto? = null,
         allowBlankComments: Boolean = true,
+        workspaceId: String? = null,
     ): PreviewFeedbackSaveReservation {
         requirePreviewFeedbackRequest(items.isNotEmpty()) { "At least one feedback item is required" }
         if (!allowBlankComments) {
@@ -209,6 +215,7 @@ class FeedbackDraftService(
             PreviewFeedbackSaveReservation(
                 sessionId = sessionId,
                 previewId = previewId,
+                workspaceId = workspaceId?.takeIf { it.isNotBlank() },
                 items = items,
                 allowBlankComments = allowBlankComments,
                 inFlightKey = slot.inFlightKey,
@@ -313,6 +320,8 @@ class FeedbackDraftService(
             ).copy(
                 label = pending.label?.takeIf { it.isNotBlank() },
                 severity = pending.severity,
+                clientWorkspaceId = reservation.workspaceId,
+                clientDraftItemId = pending.draftItemId?.takeIf { it.isNotBlank() },
             )
         }
         val reliabilityWarnings = previewReliabilityWarnings(fingerprintCheck, fingerprintUnavailableReason)

@@ -1,4 +1,4 @@
-// @requires state.js, draftWorkspace.js, annotations.js, domain/consoleEvents.js
+// @requires state.js, draftWorkspace.js, annotations.js, historyPendingDedupe.js, domain/consoleEvents.js
             function sessionOrdinalLookup(sessions) {
               const ordinalBySessionId = new Map();
               stableHistorySessions(sessions)
@@ -27,7 +27,9 @@
             }
 
             function pendingHistoryItemsForSession(session) {
-              if (draftFlow() && state.session?.sessionId === session?.sessionId) return draftItemList();
+              if (draftFlow() && state.session?.sessionId === session?.sessionId) {
+                return dedupePendingHistoryItemsForSession(session, draftItemList(), draftWorkspace?.workspaceId);
+              }
               return historyRecoveryItemsForSession(session);
             }
 
@@ -46,7 +48,7 @@
                 const stored = storage.loadWorkspacesForSession(sessionId);
                 const legacy = restorePendingState(sessionId);
                 const recovery = newestHistoryRecovery(stored.concat(legacy ? [legacy] : []));
-                return draftItemsFromValue(recovery);
+                return dedupePendingHistoryItemsForSession(session, draftItemsFromValue(recovery), recovery?.workspaceId || null);
               } catch (_) {
                 return [];
               }

@@ -895,11 +895,14 @@ class ConsoleAssetContractTest {
         val html = ConsoleSourceFixtures.readAll()
         val historyOpenCount = javascriptFunctionBody(html, "historyOpenCount")
         val historyDoneCount = javascriptFunctionBody(html, "historyDoneCount")
+        val pendingHistoryItemsForSession = javascriptFunctionBody(html, "pendingHistoryItemsForSession")
         val createAnnotationFromSelection = javascriptFunctionBody(html, "createAnnotationFromSelection")
         val deletePendingFeedbackItem = javascriptFunctionBody(html, "deletePendingFeedbackItem")
         val renderAnnotationDetail = javascriptFunctionBody(html, "renderAnnotationDetail")
 
         assertTrue(html.contains("function pendingHistoryItemsForSession(session)"))
+        assertTrue(html.contains("function dedupePendingHistoryItemsForSession(session, pendingItems, workspaceId)"))
+        assertTrue(pendingHistoryItemsForSession.contains("dedupePendingHistoryItemsForSession("))
         assertTrue(historyOpenCount.contains("pendingHistoryItemsForSession(session)"))
         assertTrue(
             historyOpenCount.contains(

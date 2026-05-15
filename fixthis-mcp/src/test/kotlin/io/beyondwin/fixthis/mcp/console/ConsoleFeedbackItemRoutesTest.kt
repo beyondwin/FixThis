@@ -31,6 +31,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.encodeToString
 import java.net.HttpURLConnection
 import java.nio.file.Files
 import java.util.concurrent.LinkedBlockingQueue
@@ -482,6 +483,51 @@ class ConsoleFeedbackItemRoutesTest {
                 val item = session.getValue("items").jsonArray.single().jsonObject
                 assertEquals("", item.getValue("comment").jsonPrimitive.content)
                 assertEquals("open", item.getValue("status").jsonPrimitive.content)
+            }
+        }
+    }
+
+    @Test
+    fun batchItemsApiDoesNotDuplicateSameWorkspaceDraftItemWhenPreviewFallsBackToScreen() {
+        withTempProject("fixthis-console-idempotent-batch") { projectRoot ->
+            val service = FeedbackSessionService(
+                bridge = FakeFixThisBridge(),
+                store = FeedbackSessionStore(
+                    clock = FakeLongs(100L, 200L, 300L, 400L, 500L, 600L).next,
+                    idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1", "item-1", "item-2").next,
+                ),
+                projectRoot = projectRoot.absolutePath,
+                defaultPackageName = "io.beyondwin.fixthis.sample",
+            )
+            service.openSession(null, newSession = true)
+            val preview = runBlocking { service.capturePreview("session-1") }
+            val screenJson = fixThisJson.encodeToString(preview.screen)
+
+            withConsoleServer(service) { server ->
+                val body = """
+                    {
+                      "workspaceId": "workspace-a",
+                      "previewId": "${preview.previewId}",
+                      "screen": $screenJson,
+                      "items": [{
+                        "draftItemId": "draft-a",
+                        "targetType": "area",
+                        "bounds": {"left":1.0,"top":2.0,"right":30.0,"bottom":40.0},
+                        "comment": "save once"
+                      }]
+                    }
+                """.trimIndent()
+
+                val first = ConsoleHttpTestClient(server.url).postJson("/api/items/batch", body)
+                val second = ConsoleHttpTestClient(server.url).postJson("/api/items/batch", body)
+
+                assertEquals(200, first.statusCode)
+                assertEquals(200, second.statusCode)
+                val stored = service.getSession("session-1")
+                assertEquals(1, stored.screens.size)
+                assertEquals(1, stored.items.size)
+                assertEquals("workspace-a", stored.items.single().clientWorkspaceId)
+                assertEquals("draft-a", stored.items.single().clientDraftItemId)
             }
         }
     }

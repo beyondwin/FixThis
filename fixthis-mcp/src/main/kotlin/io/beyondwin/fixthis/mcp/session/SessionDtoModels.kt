@@ -103,6 +103,8 @@ data class AnnotationDto(
     val comment: String,
     val sequenceNumber: Int? = null,
     val delivery: FeedbackDelivery = FeedbackDelivery.DRAFT,
+    val clientWorkspaceId: String? = null,
+    val clientDraftItemId: String? = null,
     val handoffBatchId: String? = null,
     val sentAtEpochMillis: Long? = null,
     val lastHandedOffAtEpochMillis: Long? = null,

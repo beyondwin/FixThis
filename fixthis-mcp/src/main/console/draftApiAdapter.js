@@ -5,6 +5,7 @@ function draftItemToAnnotationDraftDto(item, options = {}) {
   const rawComment = String(item.comment || '');
   const fallbackComment = String(item.label || '').trim() || (item.targetType === 'node' ? 'Component target' : 'Custom area');
   return {
+    draftItemId: item.draftItemId || null,
     targetType: item.targetType,
     bounds: item.bounds,
     nodeUid: item.nodeUid,
@@ -23,6 +24,7 @@ function buildDraftWorkspaceSaveRequest(workspace, options = {}) {
   return {
     sessionId: context.sessionId,
     previewId: context.previewId,
+    workspaceId: workspace.workspaceId || null,
     screen: workspace.screen || null,
     items: (workspace.items || [])
       .filter((item) => options.allowBlankComments || options.allowFallbackComments || String(item.comment || '').trim())
