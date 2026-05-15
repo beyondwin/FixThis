@@ -141,10 +141,12 @@ class ConsolePreviewRoutesTest {
         // via previewUseCases.request().
         assertTrue(html.contains("createInitialPreviewState"))
         assertTrue(html.contains("const preview = await previewUseCases.request();"))
-        assertTrue(html.contains("const requestGeneration = previewUseCases.getState().requestGeneration + 1"))
+        assertTrue(html.contains("const previewSessionId = state.session.sessionId"))
+        assertTrue(html.contains("const previewContextGeneration = previewUseCases.getState().contextGeneration"))
         assertTrue(
             html.contains(
-                "if (draftFlow() || requestGeneration !== previewUseCases.getState().requestGeneration) return;",
+                "if (draftFlow() || previewSessionId !== state.session?.sessionId || " +
+                    "previewContextGeneration !== previewUseCases.getState().contextGeneration) return;",
             ),
         )
         assertTrue(

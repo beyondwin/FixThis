@@ -7,6 +7,7 @@ import com.sun.net.httpserver.HttpPrincipal
 import io.beyondwin.fixthis.cli.BridgeConnectionException
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.InetSocketAddress
@@ -59,19 +60,58 @@ class FeedbackConsoleServerErrorLoggingTest {
         )
     }
 
+    @Test
+    fun clientDisconnectsDuringResponseWriteAreNotLoggedAsServerErrors() {
+        val sink = StringBuilder()
+        val server = FeedbackConsoleServer(
+            routes = listOf(BytesRoute()),
+            diagnosticsSink = { sink.appendLine(it) },
+        )
+        val exchange = FakeHttpExchange(
+            method = "GET",
+            path = "/api/preview/preview-1/screenshot/full",
+            responseBody = DisconnectingOutputStream(),
+        )
+
+        server.dispatch(exchange)
+
+        assertEquals(200, exchange.statusCode)
+        assertFalse(
+            sink.toString().contains("Connection reset by peer"),
+            "Expected cancelled browser image requests to avoid diagnostics stack logs, got: $sink",
+        )
+    }
+
     private class ThrowingRoute(private val error: Throwable) : ConsoleRoute {
         override fun matches(path: String): Boolean = true
         override fun handle(exchange: HttpExchange): Unit = throw error
     }
 
+    private class BytesRoute : ConsoleRoute {
+        override fun matches(path: String): Boolean = true
+        override fun handle(exchange: HttpExchange) {
+            exchange.sendBytes(200, byteArrayOf(1, 2, 3), "image/png")
+        }
+    }
+
+    private class DisconnectingOutputStream : OutputStream() {
+        override fun write(b: Int) {
+            throw IOException("Connection reset by peer")
+        }
+
+        override fun write(b: ByteArray, off: Int, len: Int) {
+            throw IOException("Connection reset by peer")
+        }
+    }
+
     private class FakeHttpExchange(
         private val method: String,
         path: String,
+        private val responseBody: OutputStream = ByteArrayOutputStream(),
     ) : HttpExchange() {
         private val uri = URI.create(path)
         private val requestHeaders = Headers()
         private val responseHeaders = Headers()
-        private val responseBodyStream = ByteArrayOutputStream()
         var statusCode: Int = -1
             private set
 
@@ -80,7 +120,7 @@ class FeedbackConsoleServerErrorLoggingTest {
         override fun getRequestHeaders(): Headers = requestHeaders
         override fun getResponseHeaders(): Headers = responseHeaders
         override fun getRequestBody(): InputStream = ByteArrayInputStream(ByteArray(0))
-        override fun getResponseBody(): OutputStream = responseBodyStream
+        override fun getResponseBody(): OutputStream = responseBody
         override fun sendResponseHeaders(responseCode: Int, responseLength: Long) {
             statusCode = responseCode
         }
@@ -94,6 +134,6 @@ class FeedbackConsoleServerErrorLoggingTest {
         override fun setStreams(inputStream: InputStream?, outputStream: OutputStream?) = Unit
         override fun getPrincipal(): HttpPrincipal? = null
         override fun getResponseCode(): Int = statusCode
-        fun responseText(): String = responseBodyStream.toString(Charsets.UTF_8.name())
+        fun responseText(): String = (responseBody as? ByteArrayOutputStream)?.toString(Charsets.UTF_8.name()).orEmpty()
     }
 }

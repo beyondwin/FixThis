@@ -158,6 +158,10 @@ class FeedbackConsoleServer private constructor(
         } catch (error: BridgeConnectionException) {
             exchange.sendErrorJson(HTTP_SERVICE_UNAVAILABLE, error.message ?: "FixThis bridge is not connected")
         } catch (error: Throwable) {
+            if (error.isClientDisconnect()) {
+                exchange.close()
+                return
+            }
             diagnosticsSink(
                 "FeedbackConsoleServer: ${error::class.java.name}: ${error.message}\n${error.stackTraceToString()}",
             )
@@ -189,4 +193,15 @@ private fun FeedbackSessionException.toConsoleHttpException(): FeedbackConsoleHt
         else -> 500
     }
     return FeedbackConsoleHttpException(statusCode, text)
+}
+
+private fun Throwable.isClientDisconnect(): Boolean {
+    val messages = sequenceOf(this) + suppressed.asSequence() + generateSequence(cause) { it.cause }
+    return messages.any { error ->
+        val message = error.message?.lowercase().orEmpty()
+        message.contains("connection reset") ||
+            message.contains("broken pipe") ||
+            message.contains("stream is closed") ||
+            message.contains("insufficient bytes written to stream")
+    }
 }

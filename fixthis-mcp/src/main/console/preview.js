@@ -143,10 +143,11 @@
             async function refreshPreview() {
               error.textContent = '';
               if (!state.session || draftFlow()) return;
-              const requestGeneration = previewUseCases.getState().requestGeneration + 1;
+              const previewSessionId = state.session.sessionId;
+              const previewContextGeneration = previewUseCases.getState().contextGeneration;
               try {
                 const preview = await previewUseCases.request();
-                if (draftFlow() || requestGeneration !== previewUseCases.getState().requestGeneration) return;
+                if (draftFlow() || previewSessionId !== state.session?.sessionId || previewContextGeneration !== previewUseCases.getState().contextGeneration) return;
                 if (preview?.screen?.systemUiVisible && state.preview) {
                   state.preview.stale = true;
                   state.preview.obstructedBySystemUi = preview.screen.systemUiKind || 'system_ui';
