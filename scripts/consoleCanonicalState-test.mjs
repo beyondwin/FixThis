@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sources = [
+  'domain/consoleEvents.js',
   'domain/workspaceState.js',
   'domain/consoleAppState.js',
   'domain/consoleInvariants.js',
@@ -16,6 +17,7 @@ const factory = new Function(`${sources}; return {
   createInitialConsoleAppState,
   reduceConsoleAppState,
   assertConsoleInvariants,
+  ConsoleEvents,
   WorkspaceKind
 };`);
 const m = factory();
@@ -49,6 +51,25 @@ test('same active session click is a no-op', () => {
   assert.equal(JSON.stringify(result.state), before);
   assert.deepEqual(result.effects, []);
   m.assertConsoleInvariants(result.state);
+});
+
+test('factory-created session row event opens session through reducer effect', () => {
+  const state = m.createInitialConsoleAppState({
+    activeSessionId: 'session-a',
+    sessions: [
+      { sessionId: 'session-a', status: 'open' },
+      { sessionId: 'session-b', status: 'open' },
+    ],
+  });
+
+  const result = m.reduceConsoleAppState(
+    state,
+    m.ConsoleEvents.sessionRowClicked('session-b'),
+  );
+
+  assert.equal(result.effects.length, 1);
+  assert.equal(result.effects[0].kind, 'openSession');
+  assert.equal(result.effects[0].sessionId, 'session-b');
 });
 
 test('different session click with draft creates boundary without switching active session', () => {

@@ -1,4 +1,4 @@
-// @requires state.js, draftWorkspace.js, annotations.js
+// @requires state.js, draftWorkspace.js, annotations.js, domain/consoleEvents.js
             function sessionOrdinalLookup(sessions) {
               const ordinalBySessionId = new Map();
               stableHistorySessions(sessions)
@@ -392,7 +392,7 @@
             }
 
             async function openSession(sessionId) {
-              store.dispatch({ type: 'SESSION_ROW_CLICKED', sessionId });
+              store.dispatch(ConsoleEvents.sessionRowClicked(sessionId));
               if (!sessionId) return;
               error.textContent = '';
               if (sessionId === state.session?.sessionId) {
