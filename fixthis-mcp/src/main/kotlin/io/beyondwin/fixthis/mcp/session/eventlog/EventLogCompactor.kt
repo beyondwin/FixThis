@@ -9,15 +9,25 @@ private val compactorJson = Json {
     ignoreUnknownKeys = true
 }
 
+private const val DEFAULT_COMPACTION_THRESHOLD = 1000
+
 private data class EventLogFile(val file: File, val event: SessionEvent)
+
+fun interface EventLogCompactionTask {
+    fun runOnce(threshold: Int)
+}
 
 class EventLogCompactor(
     private val directory: File,
     private val snapshotProvider: () -> SessionDto,
     private val snapshotWriter: (SessionDto) -> Unit,
     private val clock: () -> Long = { System.currentTimeMillis() },
-) {
-    fun runOnce(threshold: Int = 1000) {
+) : EventLogCompactionTask {
+    fun runOnce() {
+        runOnce(DEFAULT_COMPACTION_THRESHOLD)
+    }
+
+    override fun runOnce(threshold: Int) {
         val files = directory.listFiles { f -> f.isFile && f.extension == "jsonl" }
             ?.map { file -> EventLogFile(file, readEvent(file)) }
             ?.sortedBy { it.event.sequenceNumber }

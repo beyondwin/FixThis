@@ -2,7 +2,7 @@
 
 package io.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.mcp.session.eventlog.EventLogCompactor
+import io.beyondwin.fixthis.mcp.session.eventlog.EventLogCompactionTask
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 import io.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
 import kotlinx.serialization.json.JsonObject
@@ -15,7 +15,7 @@ class FeedbackSessionStore(
     persistence: FeedbackSessionPersistence? = null,
     eventLogWriterProvider: ((sessionId: String) -> EventLogWriter)? = null,
     eventLogReaderProvider: ((sessionId: String) -> EventLogReader)? = null,
-    eventLogCompactorProvider: ((sessionId: String) -> EventLogCompactor)? = null,
+    eventLogCompactorProvider: ((sessionId: String) -> EventLogCompactionTask)? = null,
     eventLogCompactionThreshold: Int = 1000,
 ) {
     private val delegate = FeedbackSessionStoreDelegate(
