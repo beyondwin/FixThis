@@ -2,6 +2,7 @@ plugins {
     `java-gradle-plugin`
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.gradle.plugin.publish)
     alias(libs.plugins.spotless)
     alias(libs.plugins.detekt) apply false
     `maven-publish`
@@ -68,9 +69,14 @@ if (gradle.startParameter.taskNames.any(::requestedDetektTask)) {
 }
 
 gradlePlugin {
+    website.set("https://github.com/beyondwin/FixThis")
+    vcsUrl.set("https://github.com/beyondwin/FixThis")
     plugins {
         create("fixThisCompose") {
             id = "io.github.beyondwin.fixthis.compose"
+            displayName = "FixThis Compose"
+            description = "Adds the debug-only FixThis sidekick and source index to Jetpack Compose Android apps."
+            tags.set(listOf("android", "compose", "debugging", "mcp", "ai"))
             implementationClass = "io.github.beyondwin.fixthis.gradle.FixThisGradlePlugin"
         }
     }

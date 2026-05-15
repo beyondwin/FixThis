@@ -142,12 +142,22 @@ requireIncludes(
   'gradle.properties',
   'FIXTHIS_GROUP=io.github.beyondwin',
 );
+requireIncludes(
+  'R12.gradle-plugin-portal-workflow',
+  '.github/workflows/publish-gradle-plugin.yml',
+  'publishPlugins',
+);
+requireIncludes(
+  'R13.gradle-plugin-publish-plugin',
+  'fixthis-gradle-plugin/build.gradle.kts',
+  'alias(libs.plugins.gradle.plugin.publish)',
+);
 forbidTextInRepository(
-  'R12.github-namespace',
+  'R14.github-namespace',
   'io.beyondwin' + '.fixthis',
 );
 forbidTextInRepository(
-  'R13.github-namespace-paths',
+  'R15.github-namespace-paths',
   'io/beyondwin' + '/fixthis',
 );
 
@@ -158,7 +168,7 @@ for (const file of [
   'docs/contributing/release-readiness.md',
   'docs/contributing/release-process.md',
 ]) {
-  forbidPublishedGradleClaims(`R14.no-unqualified-published-claims:${file}`, file);
+  forbidPublishedGradleClaims(`R16.no-unqualified-published-claims:${file}`, file);
 }
 
 if (failures.length > 0) {

@@ -1,0 +1,56 @@
+name: Publish Gradle Plugin
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, for example v0.2.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish Gradle Plugin Portal artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+      GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in GRADLE_PUBLISH_KEY GRADLE_PUBLISH_SECRET; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error title=Missing secret::$name is required for Gradle Plugin Portal publication"
+              exit 1
+            fi
+          done
+
+      - name: Publish Gradle plugin
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ inputs.version }}"
+          version="${version#v}"
+          ./gradlew \
+            :fixthis-gradle-plugin:publishPlugins \
+            -PFIXTHIS_VERSION="$version" \
+            --no-daemon
