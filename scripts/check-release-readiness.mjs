@@ -149,12 +149,37 @@ requireIncludes(
   'fixthis-gradle-plugin/build.gradle.kts',
   'alias(libs.plugins.gradle.plugin.publish)',
 );
+requireIncludes(
+  'R14.homebrew-install-doc',
+  'README.md',
+  'brew tap beyondwin/fixthis && brew install fixthis',
+);
+requireIncludes(
+  'R15.npm-wrapper-package',
+  'npm/fixthis/package.json',
+  '"mcpName": "io.github.beyondwin/fixthis"',
+);
+requireIncludes(
+  'R16.mcp-registry-metadata',
+  'server.json',
+  '"name": "io.github.beyondwin/fixthis"',
+);
+requireIncludes(
+  'R17.npm-mcp-publish-workflow',
+  '.github/workflows/publish-npm-mcp.yml',
+  'mcp-publisher login github-oidc',
+);
+requireIncludes(
+  'R18.npm-wrapper-test-script',
+  'package.json',
+  '"release:npm:test"',
+);
 forbidTextInRepository(
-  'R14.github-namespace',
+  'R19.github-namespace',
   'io.beyondwin' + '.fixthis',
 );
 forbidTextInRepository(
-  'R15.github-namespace-paths',
+  'R20.github-namespace-paths',
   'io/beyondwin' + '/fixthis',
 );
 
@@ -165,7 +190,7 @@ for (const file of [
   'docs/contributing/release-readiness.md',
   'docs/contributing/release-process.md',
 ]) {
-  forbidStalePrePublicationClaims(`R16.no-stale-prepublication-claims:${file}`, file);
+  forbidStalePrePublicationClaims(`R21.no-stale-prepublication-claims:${file}`, file);
 }
 
 if (failures.length > 0) {

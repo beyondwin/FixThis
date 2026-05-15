@@ -159,6 +159,7 @@ FixThis has public artifacts for the agent-first path:
 - Maven artifacts: `io.github.beyondwin:fixthis-compose-sidekick` and
   `io.github.beyondwin:fixthis-compose-core`
 - CLI/MCP package: GitHub Release asset `fixthis-cli-mcp-vX.Y.Z.tar.gz`
+- Homebrew tap: `brew tap beyondwin/fixthis && brew install fixthis`
 
 The live release dashboard is
 [Release readiness](docs/contributing/release-readiness.md). It lists current

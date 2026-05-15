@@ -1,0 +1,54 @@
+name: Publish npm wrapper and MCP Registry metadata
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without v prefix, for example 0.2.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish npm package and MCP metadata
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "lts/*"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Verify requested version
+        working-directory: npm/fixthis
+        run: |
+          test "$(node -p 'require("./package.json").version')" = "${{ inputs.version }}"
+          test "$(node -p 'require("./package.json").mcpName')" = "io.github.beyondwin/fixthis"
+
+      - name: Test npm wrapper and registry metadata
+        run: node --test scripts/npm-wrapper-test.mjs scripts/mcp-registry-metadata-test.mjs
+
+      - name: Publish package to npm
+        working-directory: npm/fixthis
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Authenticate to MCP Registry
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish to MCP Registry
+        run: ./mcp-publisher publish

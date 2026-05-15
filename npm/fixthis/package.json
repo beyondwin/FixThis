@@ -1,0 +1,37 @@
+{
+  "name": "fixthis",
+  "version": "0.2.1",
+  "description": "Agent-first installer wrapper for the FixThis Android Compose CLI and MCP server.",
+  "license": "MIT",
+  "type": "module",
+  "mcpName": "io.github.beyondwin/fixthis",
+  "homepage": "https://github.com/beyondwin/FixThis#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/beyondwin/FixThis.git",
+    "directory": "npm/fixthis"
+  },
+  "bugs": {
+    "url": "https://github.com/beyondwin/FixThis/issues"
+  },
+  "bin": {
+    "fixthis": "bin/fixthis.js",
+    "fixthis-mcp": "bin/fixthis-mcp.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js"
+  },
+  "files": [
+    "bin/",
+    "scripts/",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ]
+}
