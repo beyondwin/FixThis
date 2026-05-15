@@ -37,8 +37,8 @@ class InitAgentCommandTest {
         val setupGuide = projectRoot.resolve(".fixthis/agent-setup.md")
         assertTrue(setupGuide.isFile)
         val setupText = setupGuide.readText()
-        assertTrue(setupText.contains("fixthis init --agent --project-dir ."))
-        assertTrue(setupText.contains("fixthis doctor --project-dir ."))
+        assertTrue(setupText.contains("fixthis install-agent --project-dir . --target all"))
+        assertTrue(setupText.contains("fixthis doctor --project-dir . --json"))
         assertTrue(setupText.contains("fixthis_open_feedback_console"))
 
         val mcpTemplate = projectRoot.resolve(".fixthis/mcp.json.template")
@@ -79,6 +79,82 @@ class InitAgentCommandTest {
         assertTrue(projectRoot.resolve(".fixthis/agent-setup.md").isFile)
         assertTrue(projectRoot.resolve(".fixthis/agent-setup.json").isFile)
         assertTrue(projectRoot.resolve(".fixthis/mcp.json.template").isFile)
+    }
+
+    @Test
+    fun installAgentAppliesGradlePluginToDetectedAppModule() {
+        val projectRoot = androidProject("com.example.patch")
+        val buildFile = projectRoot.resolve("app/build.gradle.kts")
+
+        withUserHome(temporaryFolder.newFolder("home")) {
+            buildRootCommand().parse(
+                listOf(
+                    "install-agent",
+                    "--package",
+                    "com.example.patch",
+                    "--project-dir",
+                    projectRoot.absolutePath,
+                    "--target",
+                    "claude",
+                    "--plugin-version",
+                    "0.2.0",
+                ),
+            )
+        }
+
+        val buildText = buildFile.readText()
+        assertTrue(buildText.contains("""id("io.beyondwin.fixthis.compose") version "0.2.0""""))
+    }
+
+    @Test
+    fun installAgentDryRunDoesNotPatchGradlePlugin() {
+        val projectRoot = androidProject("com.example.dryrun")
+        val buildFile = projectRoot.resolve("app/build.gradle.kts")
+        val originalBuildText = buildFile.readText()
+
+        withUserHome(temporaryFolder.newFolder("home")) {
+            buildRootCommand().parse(
+                listOf(
+                    "install-agent",
+                    "--package",
+                    "com.example.dryrun",
+                    "--project-dir",
+                    projectRoot.absolutePath,
+                    "--target",
+                    "claude",
+                    "--dry-run",
+                    "--plugin-version",
+                    "0.2.0",
+                ),
+            )
+        }
+
+        assertEquals(originalBuildText, buildFile.readText())
+    }
+
+    @Test
+    fun initCanApplyGradlePluginWithoutAgentFiles() {
+        val projectRoot = androidProject("com.example.initpatch")
+        val buildFile = projectRoot.resolve("app/build.gradle.kts")
+
+        withUserHome(temporaryFolder.newFolder("home")) {
+            InitCommand().parse(
+                listOf(
+                    "--package",
+                    "com.example.initpatch",
+                    "--project-dir",
+                    projectRoot.absolutePath,
+                    "--target",
+                    "claude",
+                    "--apply-gradle-plugin",
+                    "--plugin-version",
+                    "0.2.0",
+                ),
+            )
+        }
+
+        assertTrue(buildFile.readText().contains("""id("io.beyondwin.fixthis.compose") version "0.2.0""""))
+        assertTrue(!projectRoot.resolve(".fixthis/agent-setup.md").exists())
     }
 
     private fun androidProject(applicationId: String): File {

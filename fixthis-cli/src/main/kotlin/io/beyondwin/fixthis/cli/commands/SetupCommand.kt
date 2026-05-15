@@ -129,6 +129,14 @@ class InitCommand : CoreCliktCommand(name = "init") {
         "--agent",
         help = "Write project-scoped agent handoff files under .fixthis",
     ).flag(default = false)
+    private val applyGradlePlugin by option(
+        "--apply-gradle-plugin",
+        help = "Apply the FixThis Gradle plugin to the detected Android app module",
+    ).flag(default = false)
+    private val pluginVersion by option(
+        "--plugin-version",
+        help = "FixThis Gradle plugin version to apply",
+    ).default(GradlePluginInstaller.DefaultPluginVersion)
     private val dryRun by option("--dry-run", help = "Print planned writes without modifying files")
         .flag(default = false)
     private val target by option("--target", help = "Agent config target")
@@ -159,18 +167,29 @@ class InitCommand : CoreCliktCommand(name = "init") {
                 }
             },
         )
-        if (agent) {
+        if (agent || applyGradlePlugin) {
             val root = File(projectDir).canonicalFile
             val resolvedPackage = failAsCliError {
                 BridgeClient(projectRoot = root).resolvePackageName(packageName)
             }
-            AgentSetupFiles.write(
-                projectRoot = root,
-                packageName = resolvedPackage,
-                serverName = validateMcpServerName(serverName),
-                dryRun = dryRun,
-                echo = ::echo,
-            )
+            if (applyGradlePlugin) {
+                GradlePluginInstaller.apply(
+                    projectRoot = root,
+                    packageName = resolvedPackage,
+                    pluginVersion = pluginVersion,
+                    dryRun = dryRun,
+                    echo = ::echo,
+                )
+            }
+            if (agent) {
+                AgentSetupFiles.write(
+                    projectRoot = root,
+                    packageName = resolvedPackage,
+                    serverName = validateMcpServerName(serverName),
+                    dryRun = dryRun,
+                    echo = ::echo,
+                )
+            }
         }
         echo("")
         echo("Next for agents:")
@@ -189,12 +208,25 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
         .choice("codex", "claude", "all")
         .default("all")
     private val serverName by option("--server-name", help = "MCP server name to write").default("fixthis")
+    private val skipGradlePlugin by option(
+        "--skip-gradle-plugin",
+        help = "Do not modify the detected Android app module build file",
+    ).flag(default = false)
+    private val pluginVersion by option(
+        "--plugin-version",
+        help = "FixThis Gradle plugin version to apply",
+    ).default(GradlePluginInstaller.DefaultPluginVersion)
     private val verbose by option("--verbose", "-v", help = "Print full stack trace on failure").flag(default = false)
 
     override fun run() {
         InitCommand().parse(
             buildList {
                 add("--agent")
+                if (!skipGradlePlugin) {
+                    add("--apply-gradle-plugin")
+                    add("--plugin-version")
+                    add(pluginVersion)
+                }
                 packageName?.let {
                     add("--package")
                     add(it)

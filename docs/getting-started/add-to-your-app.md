@@ -56,16 +56,21 @@ design.
 For agent-first setup inside the Android app repository, run:
 
 ```bash
+fixthis install-agent --project-dir . --target all
 ./gradlew fixthisSetup
-fixthis init --agent --project-dir . --target all
-fixthis doctor --project-dir .
+fixthis doctor --project-dir . --json
 ```
 
-`fixthisSetup` writes `.fixthis/project.json` with the detected application id,
-plus `.fixthis/agent-setup.md` and `.fixthis/mcp.json.template` for agents that
-prefer project-scoped MCP config. If the project has flavored debug variants,
-use the variant-specific task, for example `./gradlew :app:fixthisSetupStagingDebug`.
-`fixthis install-agent --project-dir . --target all` is the equivalent CLI alias.
+`fixthis install-agent` detects the app module by `applicationId`, applies the
+published `io.beyondwin.fixthis.compose` Gradle plugin, writes Claude Code /
+Codex MCP config, and creates `.fixthis/agent-setup.*` handoff files. Use
+`--dry-run` to preview the Gradle patch and config writes, or
+`--skip-gradle-plugin` if the plugin is already applied.
+
+`fixthisSetup` writes `.fixthis/project.json` with the detected application id
+and refreshes project metadata after Gradle sync. If the project has flavored
+debug variants, use the variant-specific task, for example
+`./gradlew :app:fixthisSetupStagingDebug`.
 
 ```bash
 # Bootstrap MCP integration (build + register with Claude Code / Codex)

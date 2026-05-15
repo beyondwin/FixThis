@@ -50,12 +50,14 @@ internal object AgentSetupFiles {
 
         Agent sequence from the project root:
 
-        1. Run `fixthis init --agent --project-dir .`.
-        2. Restart Claude Code or Codex so MCP config is reloaded.
-        3. Run `fixthis doctor --project-dir .`.
-        4. Use MCP tool `fixthis_open_feedback_console`.
+        1. Run `fixthis install-agent --project-dir . --target all`.
+        2. Run `./gradlew fixthisSetup`.
+        3. Restart Claude Code or Codex so MCP config is reloaded.
+        4. Run `fixthis doctor --project-dir . --json`.
+        5. Use MCP tool `fixthis_open_feedback_console`.
 
-        If the Gradle plugin is applied, refresh metadata with `./gradlew fixthisSetup`.
+        If the Gradle plugin is already applied, pass `--skip-gradle-plugin`
+        to avoid editing the app module build file.
     """.trimIndent() + "\n"
 
     private fun projectScopedMcpTemplate(serverName: String) = buildJsonObject {
@@ -87,9 +89,10 @@ internal object AgentSetupFiles {
         put(
             "commands",
             buildJsonArray {
+                addCommand("installAgent", "fixthis install-agent --project-dir . --target all")
                 addCommand("refreshGradleMetadata", "./gradlew fixthisSetup")
                 addCommand("registerMcp", "fixthis init --agent --project-dir .")
-                addCommand("verify", "fixthis doctor --project-dir .")
+                addCommand("verify", "fixthis doctor --project-dir . --json")
             },
         )
         put("openConsoleTool", "fixthis_open_feedback_console")

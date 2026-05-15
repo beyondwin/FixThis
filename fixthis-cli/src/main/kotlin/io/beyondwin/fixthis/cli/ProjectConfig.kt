@@ -25,14 +25,9 @@ object GradleApplicationIdDetector {
         Regex("""(?m)\bapplicationId\b\s*(?:=|\s)\s*["']([^"']+)["']""")
 
     fun find(projectRoot: File): String? {
-        val root = projectRoot.canonicalFile
-        val matches = root
-            .walkTopDown()
-            .onEnter { directory -> shouldEnter(directory, root) }
-            .filter { file -> file.isFile && file.name in GradleBuildFileNames }
-            .mapNotNull(::applicationIdFrom)
+        val matches = androidApplications(projectRoot)
+            .map { it.applicationId }
             .distinct()
-            .toList()
 
         return when (matches.size) {
             0 -> null
@@ -45,18 +40,46 @@ object GradleApplicationIdDetector {
         }
     }
 
+    fun findApplication(projectRoot: File, applicationId: String): GradleAndroidApplication? {
+        val matches = androidApplications(projectRoot)
+            .filter { it.applicationId == applicationId }
+            .distinctBy { it.buildFile.canonicalFile }
+
+        return when (matches.size) {
+            0 -> null
+            1 -> matches.single()
+            else -> error(
+                "Multiple Android app modules declare applicationId $applicationId: " +
+                    matches.joinToString(", ") { it.buildFile.path } +
+                    ". Apply the FixThis Gradle plugin manually.",
+            )
+        }
+    }
+
+    private fun androidApplications(projectRoot: File): List<GradleAndroidApplication> {
+        val root = projectRoot.canonicalFile
+        return root
+            .walkTopDown()
+            .onEnter { directory -> shouldEnter(directory, root) }
+            .filter { file -> file.isFile && file.name in GradleBuildFileNames }
+            .mapNotNull(::androidApplicationFrom)
+            .toList()
+    }
+
     private fun shouldEnter(directory: File, root: File): Boolean {
         if (directory == root) return true
         return directory.name !in SkippedDirectoryNames
     }
 
-    private fun applicationIdFrom(file: File): String? {
+    private fun androidApplicationFrom(file: File): GradleAndroidApplication? {
         val text = file.readText()
         return if (
             text.contains("applicationId") &&
             (text.contains("com.android.application") || text.contains("android {"))
         ) {
-            applicationIdRegex.find(text)?.groupValues?.get(1)
+            applicationIdRegex.find(text)?.groupValues?.get(1)?.let { applicationId ->
+                GradleAndroidApplication(applicationId = applicationId, buildFile = file.canonicalFile)
+            }
         } else {
             null
         }
@@ -72,6 +95,11 @@ object GradleApplicationIdDetector {
         "node_modules",
     )
 }
+
+data class GradleAndroidApplication(
+    val applicationId: String,
+    val buildFile: File,
+)
 
 @Serializable
 private data class ProjectMetadata(

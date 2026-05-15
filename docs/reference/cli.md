@@ -12,6 +12,7 @@ Subcommands:
   run         Install the debug app, launch it, attach the bridge, open the console
   doctor      Diagnose ADB / JDK / device / package wiring
   init        Agent-first setup: write Claude Code / Codex MCP config
+  install-agent  Patch the app Gradle file, write MCP config, and create agent handoff files
   setup       Generate or write MCP config for Claude Code / Codex
   mcp         Run the FixThis MCP server (stdio JSON-RPC, used by agents)
   console     Open the local feedback console without launching anything else
@@ -104,6 +105,8 @@ fixthis init --target codex --dry-run
 | `--package` | — | Android applicationId for the generated MCP config. |
 | `--project-dir` | `.` | Android project root. |
 | `--agent` | off | Also write `.fixthis/agent-setup.md`, `.fixthis/agent-setup.json`, and `.fixthis/mcp.json.template`. |
+| `--apply-gradle-plugin` | off | Also apply `io.beyondwin.fixthis.compose` to the detected Android app module. |
+| `--plugin-version` | `0.2.0` | FixThis Gradle plugin version to apply when `--apply-gradle-plugin` is set. |
 | `--dry-run` | off | Print planned writes without modifying files. |
 | `--target` | `all` | Agent target: `claude`, `codex`, or `all`. |
 | `--server-name` | `fixthis` | MCP server name to write. |
@@ -135,12 +138,28 @@ variant-specific task name such as `:app:fixthisSetupStagingDebug`.
 
 ## `fixthis install-agent`
 
-Alias for `fixthis init --agent`. Use this when an agent is asked to attach
-FixThis to an Android repo and should leave project-scoped handoff files behind.
+Agent-first installer for Android app repositories. It applies the published
+FixThis Gradle plugin to the detected app module, writes Claude Code / Codex MCP
+config, and leaves project-scoped handoff files under `.fixthis/`.
 
 ```bash
 fixthis install-agent --project-dir . --target all
+fixthis install-agent --project-dir . --target all --dry-run
 ```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--package` | — | Android applicationId. If omitted, FixThis scans Gradle build files for a unique value. |
+| `--project-dir` | `.` | Android project root. |
+| `--dry-run` | off | Print planned writes, including the patched Gradle file, without modifying files. |
+| `--target` | `all` | Agent target: `claude`, `codex`, or `all`. |
+| `--server-name` | `fixthis` | MCP server name to write. |
+| `--skip-gradle-plugin` | off | Do not modify the app module build file. |
+| `--plugin-version` | `0.2.0` | FixThis Gradle plugin version to apply. |
+| `--verbose`, `-v` | off | Print the full Java stack trace on failure. |
+
+After it patches the Gradle file, run `./gradlew fixthisSetup` to generate
+`.fixthis/project.json`, then run `fixthis doctor --project-dir . --json`.
 
 ## `fixthis setup`
 

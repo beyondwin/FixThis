@@ -49,6 +49,9 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   - `fixthis init --agent` and the `fixthis install-agent` alias now write
     project-scoped agent handoff files under `.fixthis/`, including a
     machine-readable `agent-setup.json` and MCP template for agent discovery.
+  - `fixthis install-agent` now patches the detected Android app module with
+    `io.beyondwin.fixthis.compose` by default, supports `--dry-run` for preview,
+    and offers `--skip-gradle-plugin` for repos that already applied the plugin.
   - `fixthis doctor --json` now emits stable check names, status, messages, and
     remediation hints so coding agents can parse failures and take the next
     repair step.
