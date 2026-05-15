@@ -480,6 +480,9 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: sessionId })
               }));
+              createBrowserDraftPorts().storage.deleteWorkspacesForSession(sessionId);
+              clearPendingMirror(sessionId);
+              activePendingMirrorSessions.delete(sessionId);
               if (wasDisplayedSession) {
                 resetComposer();
                 clearPreview();

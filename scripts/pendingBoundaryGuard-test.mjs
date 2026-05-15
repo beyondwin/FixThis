@@ -127,3 +127,10 @@ test('deleteHistorySession uses boundary resolver before reset', () => {
   assert.match(deleteBody, /await resolvePendingBeforeBoundary\('delete-session',\s*sessionId\)/);
   assert.doesNotMatch(deleteBody, /if \(isDisplayedSession\(\)\) \{\s*resetComposer\(\);/);
 });
+
+test('deleteHistorySession clears local recovery for the deleted session', () => {
+  const deleteBody = body(historySource, 'async function deleteHistorySession(sessionId)');
+  assert.match(deleteBody, /deleteWorkspacesForSession\(sessionId\)/);
+  assert.match(deleteBody, /clearPendingMirror\(sessionId\)/);
+  assert.match(deleteBody, /activePendingMirrorSessions\.delete\(sessionId\)/);
+});

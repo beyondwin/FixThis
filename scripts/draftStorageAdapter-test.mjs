@@ -59,6 +59,31 @@ test('deleteWorkspace removes stored workspace and index entry', () => {
   assert.deepEqual(adapter.loadWorkspacesForSession('session-a'), []);
 });
 
+test('deleteWorkspacesForSession removes every indexed workspace and the index', () => {
+  const localStorage = fakeLocalStorage();
+  const adapter = m.createDraftStorageAdapter(localStorage);
+  adapter.saveWorkspace({
+    schemaVersion: 2,
+    sessionId: 'session-a',
+    workspaceId: 'workspace-1',
+    context: { sessionId: 'session-a', previewId: 'preview-a' },
+    items: [{ draftItemId: 'draft-1', comment: 'one' }],
+  });
+  adapter.saveWorkspace({
+    schemaVersion: 2,
+    sessionId: 'session-a',
+    workspaceId: 'workspace-2',
+    context: { sessionId: 'session-a', previewId: 'preview-b' },
+    items: [{ draftItemId: 'draft-2', comment: 'two' }],
+  });
+
+  adapter.deleteWorkspacesForSession('session-a');
+
+  assert.equal(localStorage.getItem('fixthis.workspace.session-a.workspace-1'), null);
+  assert.equal(localStorage.getItem('fixthis.workspace.session-a.workspace-2'), null);
+  assert.equal(localStorage.getItem('fixthis.workspace.index.session-a'), null);
+});
+
 test('loadWorkspacesForSession drops malformed indexed workspace payloads', () => {
   const localStorage = fakeLocalStorage({
     'fixthis.workspace.index.session-a': JSON.stringify(['ws-bad']),
