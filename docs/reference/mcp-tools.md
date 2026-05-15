@@ -86,6 +86,14 @@ Top bar actions are short session-level controls: device selection, connection s
 
 `Copy Prompt` and `Save to MCP` persist written pending annotations when needed, promote the frozen preview into one persisted evidence snapshot, and connect those items to the same `screenId`. If a draft contains written comments plus pin-only residual targets, only the written subset is persisted; Copy Prompt keeps residual pins browser-local, while Save to MCP discards them as part of completing the handoff. The item's `screenId` field points to the evidence snapshot saved with that item batch, so multiple saved items can share one `screenId`. During persistence, FixThis derives optional `targetEvidence` and `targetReliability` for each item from the frozen preview's captured merged semantics nodes, source-index candidates, and save-time screen integrity checks. Later `Annotate` work on the same visible app screen can create another evidence snapshot when pending annotations are persisted. Live preview frames are not session history: `FeedbackSession.screens` contains persisted evidence snapshots, not every preview frame.
 
+Batch persistence is retry-safe. The browser includes a DraftWorkspace
+`workspaceId` and per-item `draftItemId`; persisted items retain those as
+`clientWorkspaceId` and `clientDraftItemId`. Reposting the same batch is a
+server no-op, and reposting a superset appends only new draft items while
+reusing the original evidence screen. Legacy saved items without these client
+ids are deduplicated on the same screen by semantic target key plus non-blank
+comment.
+
 The History row count is a console view count: it can include browser-local
 draft/recovery items in addition to persisted session items. After `Save to MCP`
 succeeds, that action should not leave a residual pin-only recovery workspace;

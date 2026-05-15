@@ -85,6 +85,19 @@
   browser-local so the user can resume them later. `Save to MCP` completes the
   handoff and discards residual pin-only annotations instead of carrying them
   into local recovery or session history.
+- Draft batch persistence is idempotent. The browser sends `workspaceId` and
+  per-item `draftItemId` values to `/api/items/batch`; the server stores those
+  values as `clientWorkspaceId` and `clientDraftItemId` and uses the pair as
+  the primary duplicate key. A full duplicate save must be a no-op and must not
+  append a new event-log entry. A partial retry must append only the new draft
+  items and reuse the already-persisted evidence screen when any incoming item
+  matches by client draft key.
+- Legacy persisted draft items that predate client draft keys are protected by
+  a same-screen semantic duplicate key. For those items, a retry with a
+  browser draft key is skipped when target type, node uid, rounded bounds, and
+  non-blank trimmed comment match an existing item on the requested screen or a
+  screen with the same fingerprint. Blank comments do not participate in this
+  legacy semantic dedupe path.
 - History row counts include persisted session items plus browser-local
   draft/recovery items for that session. Completing `Save to MCP` must clear the
   residual local draft state for that action so the history count does not
@@ -101,6 +114,13 @@
   current capture when both fingerprints exist. HTTP 409 with
   `error: "screen_fingerprint_mismatch"` is recoverable UI state: prompt for
   re-capture, force-save, or cancel.
+- Browser request cancellation is normal local transport behavior. Console HTTP
+  routes must use `ConsoleHttp` response helpers so client disconnects during
+  response writes are closed quietly while unrelated server failures still
+  surface as errors.
+- SSE `/api/events` computes its initial snapshot before committing streaming
+  headers. Once the stream is open, keep-alive or event write failures caused by
+  client disconnect close the subscription quietly.
 
 ## Device Semantics
 

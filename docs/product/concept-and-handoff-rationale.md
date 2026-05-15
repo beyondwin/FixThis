@@ -60,6 +60,11 @@ and handoff persistence are owned by the desktop console.
 This structure keeps the app sidekick small and lets the desktop process manage
 the local artifacts and queue state that agents actually read.
 
+Handoff saves are retry-safe. The browser draft workspace assigns stable draft
+item ids before persistence; the server stores those ids on saved feedback
+items and treats duplicate save attempts as idempotent retries instead of new
+agent work.
+
 ## Why Compose-only
 
 FixThis's core job is to connect a running UI target to source candidates.

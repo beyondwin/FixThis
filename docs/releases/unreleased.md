@@ -51,9 +51,19 @@ remains the chronological source of truth.
 - `Copy Prompt` and `Save to MCP` now persist the written-comment subset of a
   draft batch. Pin-only residual annotations remain browser-local for Copy
   Prompt and are intentionally discarded for Save to MCP.
+- Draft saves are retry-safe. The server deduplicates browser drafts by
+  `workspaceId` + `draftItemId`, full duplicate retries are no-ops, and partial
+  retries append only the new items while keeping the original evidence screen.
+  Older saved items without browser draft ids are still protected by a
+  same-screen semantic key made from target type, rounded bounds, node uid, and
+  non-blank comment.
 - Deleting a feedback session now removes browser-local draft recovery for that
   session, including schema-v2 DraftWorkspace entries and the legacy
   `fixthis.pending.<sessionId>` mirror.
+- Console transport handling is quieter and more session-safe. Browser request
+  cancellation is treated as a normal local disconnect, preview state is cleared
+  only when session ownership changes, and the SSE initial snapshot is computed
+  before streaming headers are committed so startup failures remain recoverable.
 - The console harness now executes the `network-outage` and `slow-handoff`
   scenarios instead of reporting them as skipped placeholders.
 - Contributor loops are faster. The local Gradle build cache is enabled by

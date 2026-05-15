@@ -318,3 +318,4 @@ SSE `/api/events` must compute its initial snapshot before sending streaming hea
 | 2026-05-11 | Add ETag-conditional session polling | Covers passive agent/tab updates without blind polling churn; pauses around edits and mutations. |
 | 2026-05-15 | Ship SSE Phase 1 | Added `/api/events`, ring replay, browser `EventSource` subscription, and route emit points for session, device, connection, and preview state. Polling remains as fallback. |
 | 2026-05-15 | Fence session and preview SSE events by active session | Prevents stale async updates from replacing the visible session detail or preview after explicit session CRUD or History navigation. |
+| 2026-05-15 | Treat browser disconnects as normal transport and snapshot SSE before headers | Prevents client cancellations from looking like server defects while keeping initial snapshot failures recoverable as ordinary HTTP errors. |

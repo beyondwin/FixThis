@@ -193,6 +193,12 @@ Feedback items represent human comments on a persisted evidence snapshot. When a
   session. Saved items are not renumbered after deletes, session switches, or
   MCP/console restarts.
 - `delivery`: `draft` before handoff or `sent` after a handoff batch records the item for agent reading.
+- `clientWorkspaceId`: optional browser DraftWorkspace id that created the
+  item. New console saves populate it so retry deduplication can survive
+  browser/server round trips.
+- `clientDraftItemId`: optional browser-local draft item id. Together with
+  `clientWorkspaceId`, it forms the primary idempotency key for
+  `/api/items/batch`.
 - `handoffBatchId`: batch id that sent the item, present for sent items when available.
 - `sentAtEpochMillis`: time the item was sent to a handoff batch, present for sent items.
 - `status`: `open`, `ready`, `in_progress`, `resolved`, `needs_clarification`, or `wont_fix`.
@@ -249,6 +255,15 @@ Delivery values:
 
 - `draft`: item is still in the current draft queue.
 - `sent`: item is part of a persisted handoff batch.
+
+Draft batch persistence is idempotent. When `/api/items/batch` receives
+browser `workspaceId` and `draftItemId` values, persisted items retain them as
+`clientWorkspaceId` and `clientDraftItemId`. Retrying the same batch does not
+append duplicate items or duplicate event-log entries. If a retry contains
+already-saved items plus new items from the same workspace, only the new items
+are appended and they share the already-persisted evidence screen. Older items
+without client draft ids are deduplicated only when they have a non-blank
+comment and match the same screen by target type, node uid, and rounded bounds.
 
 ## Feedback Handoff Batch
 

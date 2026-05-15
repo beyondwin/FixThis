@@ -50,6 +50,13 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   - Deleting a feedback session clears its browser-local draft recovery,
     including schema-v2 DraftWorkspace entries and the legacy
     `fixthis.pending.<sessionId>` mirror.
+  - Draft batch persistence is idempotent across retries. `POST /api/items/batch`
+    deduplicates by browser `workspaceId` + `draftItemId`, treats full duplicate
+    saves as a no-op without appending event-log entries, and reuses the
+    existing evidence screen when a later retry contains a mix of already-saved
+    and new draft items. Legacy saved items without client draft ids are still
+    deduplicated on the same screen by target type, rounded bounds, node uid,
+    and non-blank comment.
   - Documented in
     [`docs/architecture/console-state-sync-design.md`](docs/architecture/console-state-sync-design.md),
     [`docs/guides/feedback-console-tour.md`](docs/guides/feedback-console-tour.md),
@@ -220,6 +227,25 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
     remain). Wire protocol unchanged; all HTTP routes and persisted JSON
     shapes preserved. See FSM table in
     [`docs/reference/feedback-console-contract.md`](docs/reference/feedback-console-contract.md).
+
+- **Console transport/session resilience (console/mcp, 2026-05-15):**
+  - Browser request cancellation is now treated as a normal local-transport
+    condition. Console routes route response writes through `ConsoleHttp`
+    helpers so `connection reset`, `broken pipe`, closed streams, and
+    fixed-length close errors close quietly instead of being logged as server
+    defects.
+  - Preview state is cleared only when the active session ownership boundary
+    changes, such as server-driven current-session changes, user session
+    switches, device switches, or draft context resets. Async preview
+    completions must still match both `sessionId` and preview context
+    generation before they render.
+  - `/api/events` computes the initial SSE snapshot before streaming headers
+    are committed. Snapshot failures remain normal HTTP errors; disconnects
+    after the stream opens close the subscription quietly.
+  - Documented in
+    [`docs/architecture/console-state-sync-design.md`](docs/architecture/console-state-sync-design.md)
+    and
+    [`docs/superpowers/specs/2026-05-15-console-transport-session-resilience-detailed-spec.md`](docs/superpowers/specs/2026-05-15-console-transport-session-resilience-detailed-spec.md).
 
 - **Bridge server concurrency model (sidekick, 2026-05-14):**
   - `BridgeServer.start()` / `stop()` are now `suspend fun` serialised by a

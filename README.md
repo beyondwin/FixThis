@@ -90,6 +90,9 @@ Modern coding agents already accept screenshots and accessibility trees. FixThis
 - **Honest target confidence.** Handoffs can mark visual-only, stale, or
   possible AndroidView/WebView targets so agents know when to verify rather
   than trust source hints directly.
+- **Retry-safe local batches.** Slow or retried `Copy Prompt` / `Save to MCP`
+  saves reuse browser draft ids, so duplicate requests do not create duplicate
+  agent work.
 - **Batched, structured handoff.** One prompt can carry many annotations across many screens, each with its own bounds, severity, and source pin.
 
 If your screen has a single obvious target with clear text, a plain screenshot may already be enough. FixThis pays off when the UI is dense, list-rendered, or labeled mostly by composable name.

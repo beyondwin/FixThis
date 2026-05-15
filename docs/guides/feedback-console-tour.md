@@ -148,6 +148,10 @@ If a frozen draft contains a mix of written comments and pin-only targets,
 FixThis persists only the written items. For **Copy Prompt**, pin-only
 residuals stay recoverable in the browser draft. For **Save to MCP**, residual
 pin-only draft items are discarded because the action completes the handoff.
+If the browser retries the same save after a reconnect or slow response, the
+server recognizes the draft item ids and does not create duplicate saved
+annotations. If the retry contains one additional written annotation, only that
+new item is added to the same evidence screen.
 
 ### Copy Prompt — for any chat-style agent
 

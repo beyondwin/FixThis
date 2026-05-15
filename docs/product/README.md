@@ -44,6 +44,7 @@ FixThis adds runtime evidence around the human selection:
 - source candidates ranked from the Gradle source index
 - target confidence and warning signals
 - stable item IDs for MCP claim/resolve workflows
+- browser draft ids that make retried handoff saves idempotent
 - batching across multiple annotations on one frozen screen
 
 ## Product Principles

@@ -103,6 +103,11 @@ tools.
   Save to MCP, every pending annotation on the frozen preview that has a
   written comment lands in the same batch. Pin-only residual annotations stay
   local for Copy Prompt and are discarded for Save to MCP.
+- **Draft saves are idempotent.** If the browser or agent-side console retries
+  a slow `Copy Prompt` / `Save to MCP` persistence request, FixThis reuses the
+  browser draft ids and avoids duplicate saved items. Agents should still work
+  from `itemId` values returned by `fixthis_read_feedback`, not browser
+  `draftItemId` values.
 - **Screen mismatch is guarded.** If the frozen preview fingerprint differs
   from the current app screen when you save, the console asks whether to
   re-capture, force-save, or cancel.

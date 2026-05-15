@@ -174,6 +174,19 @@ session files. The console does not call an external AI API.
 **Why:** Screenshots and UI text can be sensitive. Local-first behavior keeps
 trust boundaries clear and makes `.fixthis/` the explicit artifact location.
 
+## Idempotent Draft Handoff
+
+**Decision:** Browser draft workspaces assign stable draft item ids, and the
+server persists them as a retry key for `Copy Prompt` / `Save to MCP` saves.
+
+**Why:** Local browser requests can be retried after reconnects, slow handoffs,
+or tab lifecycle races. Duplicate saves should not create duplicate agent work,
+extra event-log entries, or a second evidence screen for the same frozen draft.
+
+**Trade-off:** Browser draft ids are storage internals, not agent workflow ids.
+Agents should claim and resolve persisted `itemId` values from
+`fixthis_read_feedback`.
+
 ## Current Source Of Truth
 
 Use these documents first:
