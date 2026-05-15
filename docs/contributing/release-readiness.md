@@ -36,7 +36,7 @@ Plugin Portal installation.
 
 The following install paths are intentionally not advertised as ready:
 
-- Maven Central dependency for `io.beyondwin.fixthis:fixthis-compose-sidekick`.
+- Maven Central dependency for `io.github.beyondwin:fixthis-compose-sidekick`.
 - Gradle Plugin Portal entry for `io.beyondwin.fixthis.compose`.
 - npm/PyPI/Docker package for the MCP server.
 - MCP Registry metadata entry.
@@ -64,8 +64,8 @@ consumer project.
 ## Required Before External Artifact Release
 
 - [ ] Public group and artifact coordinates are final:
-      `io.beyondwin.fixthis:fixthis-compose-sidekick` and
-      `io.beyondwin.fixthis:fixthis-compose-core` if core is published.
+      `io.github.beyondwin:fixthis-compose-sidekick` and
+      `io.github.beyondwin:fixthis-compose-core` if core is published.
 - [ ] Gradle plugin id remains `io.beyondwin.fixthis.compose`.
 - [x] One local version source of truth is established for root published
       modules: `FIXTHIS_GROUP` and `FIXTHIS_VERSION` in `gradle.properties`.
@@ -90,8 +90,8 @@ consumer project.
 | Surface | Future coordinate / id | Registry |
 | --- | --- | --- |
 | Gradle plugin | `io.beyondwin.fixthis.compose` | Gradle Plugin Portal |
-| Compose sidekick | `io.beyondwin.fixthis:fixthis-compose-sidekick` | Maven Central |
-| Compose core | `io.beyondwin.fixthis:fixthis-compose-core` | Maven Central, only if needed by consumers |
+| Compose sidekick | `io.github.beyondwin:fixthis-compose-sidekick` | Maven Central |
+| Compose core | `io.github.beyondwin:fixthis-compose-core` | Maven Central, only if needed by consumers |
 | MCP server | GitHub Release asset `fixthis-cli-mcp-vX.Y.Z.tar.gz` | Future MCP Registry metadata after the package is verified |
 
 ## Required Maintainer Secrets

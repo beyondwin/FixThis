@@ -14,7 +14,7 @@ plugins {
     alias(libs.plugins.versions)
 }
 
-val fixthisGroup = providers.gradleProperty("FIXTHIS_GROUP").orElse("io.beyondwin.fixthis")
+val fixthisGroup = providers.gradleProperty("FIXTHIS_GROUP").orElse("io.github.beyondwin")
 val fixthisVersion = providers.gradleProperty("FIXTHIS_VERSION").orElse("0.2.0-SNAPSHOT")
 
 // Filter unstable releases (alpha/beta/RC/snapshot/milestone) out of the

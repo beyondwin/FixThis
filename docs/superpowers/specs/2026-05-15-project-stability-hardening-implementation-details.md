@@ -148,8 +148,8 @@ release rehearsal.
 Implement a safe local publication dry-run without enabling remote publishing.
 The dry-run must cover:
 
-- `io.beyondwin.fixthis:fixthis-compose-core`;
-- `io.beyondwin.fixthis:fixthis-compose-sidekick`, published as the debug
+- `io.github.beyondwin:fixthis-compose-core`;
+- `io.github.beyondwin:fixthis-compose-sidekick`, published as the debug
   sidekick artifact because the AndroidX Startup initializer lives under
   `src/debug`;
 - the Gradle plugin build through the included build at

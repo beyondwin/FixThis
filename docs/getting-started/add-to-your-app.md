@@ -44,7 +44,7 @@ like this, but this snippet is not copyable until artifacts are released:
 ```kotlin
 // Future, once published. Until then, use composite build.
 dependencies {
-    debugImplementation("io.beyondwin.fixthis:fixthis-compose-sidekick:0.1.0")
+    debugImplementation("io.github.beyondwin:fixthis-compose-sidekick:0.2.0")
 }
 ```
 

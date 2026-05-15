@@ -118,7 +118,7 @@ class FixThisGradlePlugin : Plugin<Project> {
         val configurationName = "${variant.name}Implementation"
         val dependency = project.rootProject.findProject(":fixthis-compose-sidekick")
             ?.let { sidekickProject -> project.dependencies.project(mapOf("path" to sidekickProject.path)) }
-            ?: "io.beyondwin.fixthis:fixthis-compose-sidekick:${extension.runtimeVersion.get()}"
+            ?: fixThisSidekickCoordinate(extension.runtimeVersion.get())
 
         project.dependencies.add(configurationName, dependency)
     }
@@ -146,6 +146,8 @@ internal fun fixThisSetupTaskName(variantName: String): String = if (variantName
 } else {
     "fixthisSetup${variantName.capitalized()}"
 }
+
+internal fun fixThisSidekickCoordinate(runtimeVersion: String): String = "io.github.beyondwin:fixthis-compose-sidekick:$runtimeVersion"
 
 private fun String.capitalized(): String = replaceFirstChar { char ->
     if (char.isLowerCase()) char.titlecase() else char.toString()

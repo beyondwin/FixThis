@@ -130,7 +130,7 @@ release prerequisites complete.
 
 Before changing README install instructions to public Gradle coordinates:
 
-1. Verify Maven Central namespace ownership for `io.beyondwin.fixthis`.
+1. Verify Maven Central namespace ownership for `io.github.beyondwin`.
 2. Verify Gradle Plugin Portal ownership for `io.beyondwin.fixthis.compose`.
 3. Configure signing and publishing secrets outside the repository.
 4. Run local/dry-run packaging validation:
@@ -154,7 +154,7 @@ Before changing README install instructions to public Gradle coordinates:
    }
 
    dependencies {
-       debugImplementation("io.beyondwin.fixthis:fixthis-compose-sidekick:X.Y.Z")
+       debugImplementation("io.github.beyondwin:fixthis-compose-sidekick:X.Y.Z")
    }
    ```
 

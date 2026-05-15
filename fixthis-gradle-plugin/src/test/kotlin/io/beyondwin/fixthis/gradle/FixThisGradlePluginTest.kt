@@ -44,4 +44,12 @@ class FixThisGradlePluginTest {
             ),
         )
     }
+
+    @Test
+    fun `external runtime dependency uses github maven namespace`() {
+        assertEquals(
+            "io.github.beyondwin:fixthis-compose-sidekick:0.2.0",
+            fixThisSidekickCoordinate("0.2.0"),
+        )
+    }
 }

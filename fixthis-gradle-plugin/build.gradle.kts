@@ -7,7 +7,7 @@ plugins {
     `maven-publish`
 }
 
-group = providers.gradleProperty("FIXTHIS_GROUP").orElse("io.beyondwin.fixthis").get()
+group = providers.gradleProperty("FIXTHIS_GROUP").orElse("io.github.beyondwin").get()
 version = providers.gradleProperty("FIXTHIS_VERSION").orElse("0.2.0-SNAPSHOT").get()
 
 kotlin {

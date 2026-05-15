@@ -114,6 +114,11 @@ requireIncludes(
   'build.gradle.kts',
   'SIGNING_KEY',
 );
+requireIncludes(
+  'R11.maven-group',
+  'gradle.properties',
+  'FIXTHIS_GROUP=io.github.beyondwin',
+);
 
 for (const file of [
   'README.md',
@@ -122,7 +127,7 @@ for (const file of [
   'docs/contributing/release-readiness.md',
   'docs/contributing/release-process.md',
 ]) {
-  forbidPublishedGradleClaims(`R11.no-unqualified-published-claims:${file}`, file);
+  forbidPublishedGradleClaims(`R12.no-unqualified-published-claims:${file}`, file);
 }
 
 if (failures.length > 0) {
