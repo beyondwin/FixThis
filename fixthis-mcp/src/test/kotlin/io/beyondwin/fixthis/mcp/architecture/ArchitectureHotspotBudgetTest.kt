@@ -18,20 +18,38 @@ class ArchitectureHotspotBudgetTest {
 
     @Test
     fun handwrittenKotlinFilesStayUnderBudgetUnlessExplicitlyAllowed() {
-        val legacyBudgets = mapOf(
-            "${mcpMain}session/FeedbackSessionStore.kt" to 250,
+        // These are ratchets. When a file shrinks, lower its budget in the same commit.
+        // Separate maps keep production source growth from being hidden by large tests.
+        val productionKotlinBudgets = mapOf(
+            "${mcpMain}session/FeedbackSessionStoreDelegate.kt" to 700,
             "${mcpMain}session/SessionReplayEngine.kt" to 340,
-            "${mcpMain}tools/FixThisTools.kt" to 230,
-            "${mcpMain}tools/FixThisToolDispatcher.kt" to 540,
+            "${mcpMain}tools/FixThisToolDispatcher.kt" to 520,
+            "${mcpMain}session/FeedbackDraftService.kt" to 500,
+            "${mcpMain}session/TargetEvidenceService.kt" to 440,
             "${mcpMain}tools/McpToolRegistry.kt" to 290,
-            "${mcpConsoleTest}ConsoleFeedbackItemRoutesTest.kt" to 2_900,
             "${sidekickBridge}BridgeServer.kt" to 180,
             "${sidekickBridge}BridgeModels.kt" to 220,
             "${sidekickBridge}AndroidBridgeEnvironment.kt" to 180,
-            "fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt" to 560,
+            "fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt" to 540,
             "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt" to 260,
             "${gradlePlugin}task/GenerateFixThisSourceIndexTask.kt" to 130,
             "${gradlePlugin}source/KotlinSourceScanner.kt" to 330,
+        )
+        val consoleJsBudgets = mapOf(
+            "fixthis-mcp/src/main/console/annotations.js" to 670,
+            "fixthis-mcp/src/main/console/history.js" to 530,
+            "fixthis-mcp/src/main/console/presentation/annotationDetailView.js" to 520,
+            "fixthis-mcp/src/main/console/main.js" to 440,
+            "fixthis-mcp/src/main/console/state.js" to 440,
+            "fixthis-mcp/src/main/console/domain/consoleReducer.js" to 410,
+        )
+        val testBudgets = mapOf(
+            "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt" to 2_400,
+            "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt" to 1_750,
+            "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt" to 1_680,
+            "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt" to 1_300,
+            "${mcpConsoleTest}ConsoleAssetContractTest.kt" to 1_080,
+            "${mcpConsoleTest}ConsoleFeedbackItemRoutesTest.kt" to 900,
         )
         val remediationBudgets = mapOf(
             "${mcpMain}session/FeedbackSessionStore.kt" to 250,
@@ -39,10 +57,11 @@ class ArchitectureHotspotBudgetTest {
             "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt" to 260,
             "fixthis-mcp/src/main/console/rendering.js" to 200,
         )
-        val budgets = legacyBudgets + remediationBudgets.mapNotNull { (path, budget) ->
+        val currentBudgets = productionKotlinBudgets + consoleJsBudgets + testBudgets
+        val budgets = currentBudgets + remediationBudgets.mapNotNull { (path, budget) ->
             when {
                 remediationBudgetEnabled(path) -> path to budget
-                path in legacyBudgets -> path to legacyBudgets.getValue(path)
+                path in currentBudgets -> path to currentBudgets.getValue(path)
                 else -> null
             }
         }.toMap()
