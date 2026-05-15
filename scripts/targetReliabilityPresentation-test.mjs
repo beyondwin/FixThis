@@ -29,14 +29,14 @@ test('annotation rows render target reliability badges', () => {
   assert.match(renderingSource, /targetReliability/);
 });
 
-test('target reliability badge model maps confidence to stable label', () => {
+test('target reliability badge model labels confidence as reliability, not severity', () => {
   assert.deepEqual(
     reliabilityModel.targetReliabilityBadgeModel({ confidence: 'high', score: 0.93 }),
-    { confidence: 'high', label: 'High', tone: 'good', scoreLabel: '93%' },
+    { confidence: 'high', label: 'Reliability High', tone: 'good', scoreLabel: '93%' },
   );
   assert.deepEqual(
     reliabilityModel.targetReliabilityBadgeModel({ confidence: 'unknown' }),
-    { confidence: 'unknown', label: 'Unknown', tone: 'muted', scoreLabel: '' },
+    { confidence: 'unknown', label: 'Reliability Unknown', tone: 'muted', scoreLabel: '' },
   );
 });
 
