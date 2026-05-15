@@ -2,18 +2,25 @@ package io.beyondwin.fixthis.mcp.console
 
 import java.io.File
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 internal class FeedbackConsoleAssets(
     private val shaResolver: () -> String? = ::defaultShaResolver,
     private val clock: () -> Long = System::currentTimeMillis,
     private val errSink: (String) -> Unit = { System.err.println(it) },
+    private val classpathResourceLoader: (String) -> ByteArray? = { path ->
+        FeedbackConsoleAssets::class.java.getResourceAsStream("/console/$path")
+            ?.use { input -> input.readAllBytes() }
+    },
 ) {
     @Volatile
     private var cachedRuntimeSha: String? = null
 
     @Volatile
     private var shaResolved: Boolean = false
+
+    private val bundledResourceCache = ConcurrentHashMap<String, ByteArray>()
 
     fun resource(path: String): ByteArray = resource(path, consoleAssetsDir = null)
 
@@ -29,9 +36,12 @@ internal class FeedbackConsoleAssets(
                 "console asset not found: $safePath"
             }
         }
-        return checkNotNull(javaClass.getResourceAsStream("$BasePath/$safePath")) {
-            "console asset not found: $safePath"
-        }.use { input -> input.readAllBytes() }
+        val cached = bundledResourceCache.computeIfAbsent(safePath) {
+            checkNotNull(classpathResourceLoader(it)) {
+                "console asset not found: $safePath"
+            }
+        }
+        return cached.copyOf()
     }
 
     private fun resolveRuntimeShaCached(): String {

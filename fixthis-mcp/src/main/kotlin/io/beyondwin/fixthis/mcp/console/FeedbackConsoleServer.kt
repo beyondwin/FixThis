@@ -22,7 +22,10 @@ private data class FeedbackConsoleServerConfig(
     val consoleAssetsDir: File?,
     val eventBus: ConsoleEventBus,
     val consoleToken: String = UUID.randomUUID().toString(),
-)
+) {
+    val packagedIndexHtml: String? =
+        if (consoleAssetsDir == null) FeedbackConsoleAssets.html(null, consoleToken) else null
+}
 
 class FeedbackConsoleServer private constructor(
     private val host: String,
@@ -114,7 +117,13 @@ class FeedbackConsoleServer private constructor(
             listOf(
                 ServerVersionRoutes(),
                 ConsoleEventRoutes(config.service, config.eventBus),
-                SessionRoutes(config.service, config.consoleAssetsDir, config.consoleToken, config.eventBus),
+                SessionRoutes(
+                    service = config.service,
+                    consoleAssetsDir = config.consoleAssetsDir,
+                    consoleToken = config.consoleToken,
+                    eventBus = config.eventBus,
+                    packagedIndexHtml = config.packagedIndexHtml,
+                ),
                 DeviceRoutes(config.service, config.eventBus),
                 ConnectionRoutes(config.service, config.eventBus),
                 PreviewRoutes(config.service, config.eventBus),

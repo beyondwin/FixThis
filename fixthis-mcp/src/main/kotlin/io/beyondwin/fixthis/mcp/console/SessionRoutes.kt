@@ -12,6 +12,7 @@ internal class SessionRoutes(
     private val consoleAssetsDir: File?,
     private val consoleToken: String,
     private val eventBus: ConsoleEventBus,
+    private val packagedIndexHtml: String? = null,
 ) : ConsoleRoute {
     override fun matches(path: String): Boolean = path == "/" ||
         path == "/favicon.ico" ||
@@ -24,7 +25,8 @@ internal class SessionRoutes(
     override fun handle(exchange: HttpExchange) {
         when (exchange.requestURI.path) {
             "/" -> exchange.requireMethod("GET") {
-                exchange.sendText(200, FeedbackConsoleAssets.html(consoleAssetsDir, consoleToken), "text/html; charset=utf-8")
+                val html = packagedIndexHtml ?: FeedbackConsoleAssets.html(consoleAssetsDir, consoleToken)
+                exchange.sendText(200, html, "text/html; charset=utf-8")
             }
             "/favicon.ico" -> exchange.requireMethod("GET") {
                 exchange.sendNoContent()

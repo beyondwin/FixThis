@@ -52,4 +52,25 @@ class FeedbackConsoleAssetsTest {
         val html = assets.buildIndexHtml(consoleAssetsDir = null, consoleToken = "")
         assertContains(html, "\"gitSha\":\"unknown\"")
     }
+
+    @Test
+    fun bundledClasspathResourcesAreCachedAfterFirstRead() {
+        var reads = 0
+        val assets = FeedbackConsoleAssets(
+            shaResolver = StaticShaResolver(value = "abcdef1"),
+            clock = { 1000L },
+            classpathResourceLoader = {
+                reads += 1
+                if (reads == 1) {
+                    "cached-resource".toByteArray()
+                } else {
+                    throw IOException("jar was replaced while the console was running")
+                }
+            },
+        )
+
+        assertEquals("cached-resource", assets.resource("index.html").toString(Charsets.UTF_8))
+        assertEquals("cached-resource", assets.resource("index.html").toString(Charsets.UTF_8))
+        assertEquals(1, reads)
+    }
 }
