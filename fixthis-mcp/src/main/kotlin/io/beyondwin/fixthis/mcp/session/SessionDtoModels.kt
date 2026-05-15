@@ -3,6 +3,7 @@ package io.beyondwin.fixthis.mcp.session
 import io.beyondwin.fixthis.compose.core.model.FixThisError
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.beyondwin.fixthis.compose.core.model.TargetEvidence
 import io.beyondwin.fixthis.compose.core.model.TargetReliability
@@ -95,6 +96,7 @@ data class AnnotationDto(
     val selectedNode: FixThisNode? = null,
     val nearbyNodes: List<FixThisNode> = emptyList(),
     val sourceCandidates: List<SourceCandidate> = emptyList(),
+    val editSurfaceCandidates: List<EditSurfaceCandidateDto> = emptyList(),
     val screenshotCrop: SnapshotScreenshotDto? = null,
     val label: String? = null,
     val severity: AnnotationSeverityDto = AnnotationSeverityDto.MED,
@@ -109,6 +111,41 @@ data class AnnotationDto(
     val targetEvidence: TargetEvidence? = null,
     val targetReliability: TargetReliability? = null,
 )
+
+@Serializable
+data class EditSurfaceCandidateDto(
+    val kind: EditSurfaceKindDto,
+    val file: String,
+    val repoFile: String? = null,
+    val line: Int? = null,
+    val confidence: SelectionConfidence,
+    val reasons: List<EditSurfaceReasonDto> = emptyList(),
+    val note: String? = null,
+)
+
+@Serializable
+enum class EditSurfaceKindDto {
+    CONTAINER_COLOR,
+    TEXT_COLOR,
+    TYPOGRAPHY,
+    SPACING,
+    CHIP_COLOR,
+    COMPONENT_RENDERER,
+    UNKNOWN,
+}
+
+@Serializable
+enum class EditSurfaceReasonDto {
+    STYLE_INTENT,
+    LAYOUT_INTENT,
+    TYPOGRAPHY_INTENT,
+    TARGET_OWNER,
+    SELECTED_TEXT_RENDERER,
+    COMPONENT_DEFINITION,
+    CALL_SITE,
+    LIST_ITEM_SPACING,
+    COMPONENT_CONTAINER,
+}
 
 @Serializable
 enum class AnnotationSeverityDto {

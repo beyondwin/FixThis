@@ -270,6 +270,11 @@ The target line is a redaction-safe semantic summary of what the user selected.
 Source candidates remain hints; the target line and screenshot are the primary
 evidence for what the user meant.
 
+Compact Markdown may also include up to two `editSurface:` lines before source
+candidate lines. For style/layout requests, agents should inspect `editSurface`
+before editing a source-origin data candidate. Source candidates remain useful
+for identifying which repeated item or data value the user selected.
+
 The compact Markdown handoff also emits a per-item `id:` token (the feedback item id) and ends with an `agent_protocol:` footer that documents the claim/resolve contract inline. The same compact text is what the `Copy Prompt` button puts on the clipboard, so an agent that only sees the pasted prompt can still reference items by id and call `fixthis_claim_feedback` / `fixthis_resolve_feedback` over MCP.
 
 `fixthis_claim_feedback`
@@ -298,6 +303,11 @@ Arguments:
 ### Optional SourceCandidate fields
 
 `SourceCandidate` objects appear in the JSON payload returned by `fixthis_read_feedback` under each feedback item's `sourceCandidates` list. The following fields are optional and were added to carry confidence and risk metadata. Older persisted sessions (written before this feature was introduced) deserialize correctly because all new fields are optional; the formatter emits them only when they are present.
+
+Saved feedback items may also include `editSurfaceCandidates`, an optional
+additive list of likely rendering/edit surfaces for visual, typography, spacing,
+or component-renderer feedback. These entries are MCP/session hints, not bridge
+protocol fields and not automatic edit instructions.
 
 | Field | Type | Description |
 | --- | --- | --- |

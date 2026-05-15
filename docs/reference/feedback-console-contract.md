@@ -128,7 +128,7 @@ screenshot_line = "screenshot: " path
 viewport_line   = "viewport: " width "×" height          ; emitted iff screenshot has dims
 activity_line   = "activity: " activity_name             ; emitted iff != display_name
 overlap_block = "Overlap group " N " (resolve one marker at a time):" item_block+
-item_block    = item_header id_line target_summary_line target_line crop_line? source_block reliability_block? ""
+item_block    = item_header id_line target_summary_line target_line crop_line? edit_surface_block source_block reliability_block? ""
 item_header   = "[" N "] " title                         ; title may include severity prefix
 id_line       = "  id: " item_id
 target_summary_line = "  target: " target_summary
@@ -137,6 +137,8 @@ target_line   = "  " [ "role=" role "  " ] [ "tag=" tag "  " ] "box=(" x1 "," y1
                  [ "; targetRisk=overlap" ]
                  [ "; targetRisk=duplicate-of-marker-" M ]
 crop_line     = "crop: " path
+edit_surface_block = edit_surface_line{0,2}
+edit_surface_line  = "  editSurface: " kind " -> " file [ ":" line ] "  conf=" lvl "  why=[" terms "]"
 source_block  = candidate_line{1,3} caution_line?
 candidate_line= "  " file ":" line "  conf=" lvl "  margin=" margin "  matched=[" terms "]"
                                                                           ↑ first line only; runner-ups omit margin/matched
@@ -175,6 +177,12 @@ When no source candidates are available for the item, the source block consists 
 - `instance i/N` — emitted on the target line when multiple items on the same screen share the same `(top_candidate file:line, testTag)`; index assigned by `path`-leaf string sort order.
 - `targetRisk=overlap` — present when the target participates in an overlap group (see below).
 - `targetRisk=duplicate-of-marker-M` — present when this item is an exact duplicate of an earlier item (same source, testTag, path leaves, and bounds).
+- `editSurface:` — optional inspection hint for visual/style/layout feedback.
+  It is derived from the user comment, selected target, target owner, and source
+  candidates. It does not replace source candidates and is not an auto-edit
+  instruction.
+- `sourceCandidates` identify where selected or nearby strings came from.
+  `editSurface` identifies where a style/layout change is likely rendered.
 - candidate lines — up to 3 in score order. Rank 1 includes `margin=` (score gap to rank 2, formatted to 2 decimal places) and `matched=[...]` (up to 4 reason tokens). Runner-up lines include only `conf=`.
 - `note:` — emitted when the rank-1 candidate has a `caution` field, or when multiple items in an instance group share the same call site (collision note on the first item only).
 - Confidence is lowercase: `high`, `medium`, `low`, or `none`.
