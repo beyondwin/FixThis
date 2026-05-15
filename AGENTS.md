@@ -49,7 +49,7 @@ For external Android repos, the intended agent-first sequence is:
 
 ```bash
 ./gradlew fixthisSetup
-fixthis init --project-dir . --target all
+fixthis init --agent --project-dir . --target all
 fixthis doctor --project-dir .
 ```
 

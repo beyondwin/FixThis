@@ -125,6 +125,10 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
 class InitCommand : CoreCliktCommand(name = "init") {
     private val packageName by option("--package", help = "Android application id for generated MCP config")
     private val projectDir by option("--project-dir", help = "Android project root").default(".")
+    private val agent by option(
+        "--agent",
+        help = "Write project-scoped agent handoff files under .fixthis",
+    ).flag(default = false)
     private val dryRun by option("--dry-run", help = "Print planned writes without modifying files")
         .flag(default = false)
     private val target by option("--target", help = "Agent config target")
@@ -155,11 +159,60 @@ class InitCommand : CoreCliktCommand(name = "init") {
                 }
             },
         )
+        if (agent) {
+            val root = File(projectDir).canonicalFile
+            val resolvedPackage = failAsCliError {
+                BridgeClient(projectRoot = root).resolvePackageName(packageName)
+            }
+            AgentSetupFiles.write(
+                projectRoot = root,
+                packageName = resolvedPackage,
+                serverName = validateMcpServerName(serverName),
+                dryRun = dryRun,
+                echo = ::echo,
+            )
+        }
         echo("")
         echo("Next for agents:")
         echo("  1. Restart Claude Code or Codex so the MCP config is reloaded.")
         echo("  2. Run `fixthis doctor --project-dir ${File(projectDir).canonicalFile.absolutePath}`.")
         echo("  3. Open the console with `fixthis_open_feedback_console`.")
+    }
+}
+
+class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
+    private val packageName by option("--package", help = "Android application id for generated MCP config")
+    private val projectDir by option("--project-dir", help = "Android project root").default(".")
+    private val dryRun by option("--dry-run", help = "Print planned writes without modifying files")
+        .flag(default = false)
+    private val target by option("--target", help = "Agent config target")
+        .choice("codex", "claude", "all")
+        .default("all")
+    private val serverName by option("--server-name", help = "MCP server name to write").default("fixthis")
+    private val verbose by option("--verbose", "-v", help = "Print full stack trace on failure").flag(default = false)
+
+    override fun run() {
+        InitCommand().parse(
+            buildList {
+                add("--agent")
+                packageName?.let {
+                    add("--package")
+                    add(it)
+                }
+                add("--project-dir")
+                add(projectDir)
+                add("--target")
+                add(target)
+                add("--server-name")
+                add(serverName)
+                if (dryRun) {
+                    add("--dry-run")
+                }
+                if (verbose) {
+                    add("--verbose")
+                }
+            },
+        )
     }
 }
 

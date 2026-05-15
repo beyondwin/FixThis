@@ -24,7 +24,8 @@ When asked to add FixThis to this Android app:
 4. Ensure the FixThis CLI is installed. Prefer the published package manager
    path when available; otherwise install from the GitHub Release CLI/MCP
    package.
-5. Run `fixthis init --project-dir . --target all`.
+5. Run `fixthis init --agent --project-dir . --target all`
+   or `fixthis install-agent --project-dir . --target all`.
 6. Run `fixthis doctor --project-dir .`.
 7. Open the console with MCP tool `fixthis_open_feedback_console`.
 

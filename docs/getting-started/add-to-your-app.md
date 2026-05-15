@@ -57,7 +57,7 @@ For agent-first setup inside the Android app repository, run:
 
 ```bash
 ./gradlew fixthisSetup
-fixthis init --project-dir . --target all
+fixthis init --agent --project-dir . --target all
 fixthis doctor --project-dir .
 ```
 
@@ -65,6 +65,7 @@ fixthis doctor --project-dir .
 plus `.fixthis/agent-setup.md` and `.fixthis/mcp.json.template` for agents that
 prefer project-scoped MCP config. If the project has flavored debug variants,
 use the variant-specific task, for example `./gradlew :app:fixthisSetupStagingDebug`.
+`fixthis install-agent --project-dir . --target all` is the equivalent CLI alias.
 
 ```bash
 # Bootstrap MCP integration (build + register with Claude Code / Codex)

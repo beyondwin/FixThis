@@ -101,6 +101,7 @@ fixthis init --target codex --dry-run
 |------|---------|-------------|
 | `--package` | — | Android applicationId for the generated MCP config. |
 | `--project-dir` | `.` | Android project root. |
+| `--agent` | off | Also write `.fixthis/agent-setup.md`, `.fixthis/agent-setup.json`, and `.fixthis/mcp.json.template`. |
 | `--dry-run` | off | Print planned writes without modifying files. |
 | `--target` | `all` | Agent target: `claude`, `codex`, or `all`. |
 | `--server-name` | `fixthis` | MCP server name to write. |
@@ -122,13 +123,22 @@ project-local setup task first:
 
 ```bash
 ./gradlew fixthisSetup
-fixthis init --project-dir .
+fixthis init --agent --project-dir .
 fixthis doctor --project-dir .
 ```
 
 The task writes `.fixthis/project.json`, `.fixthis/agent-setup.md`, and
 `.fixthis/mcp.json.template`. For flavored debug variants, use the
 variant-specific task name such as `:app:fixthisSetupStagingDebug`.
+
+## `fixthis install-agent`
+
+Alias for `fixthis init --agent`. Use this when an agent is asked to attach
+FixThis to an Android repo and should leave project-scoped handoff files behind.
+
+```bash
+fixthis install-agent --project-dir . --target all
+```
 
 ## `fixthis setup`
 

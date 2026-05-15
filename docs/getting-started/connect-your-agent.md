@@ -50,12 +50,14 @@ project-local setup task before `fixthis init`:
 
 ```bash
 ./gradlew fixthisSetup
-fixthis init --project-dir . --target all
+fixthis init --agent --project-dir . --target all
 fixthis doctor --project-dir .
 ```
 
 `fixthisSetup` writes `.fixthis/project.json`, so `init`, `doctor`, `mcp`, and
 `console` can omit `--package` unless the Android project has multiple app ids.
+Agents may use `fixthis install-agent --project-dir . --target all` as the
+same CLI path.
 For pasteable `AGENTS.md` / `CLAUDE.md` instructions, use
 [Agent install snippet](agent-install-snippet.md).
 

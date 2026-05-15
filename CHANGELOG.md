@@ -39,11 +39,16 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   - The Compose Gradle plugin now registers `fixthisSetup` for the standard
     debug variant and variant-specific setup tasks for flavored debug builds.
     The task writes `.fixthis/project.json`, `.fixthis/agent-setup.md`, and
-    `.fixthis/mcp.json.template` so agents can run `fixthis init --project-dir .`
+    `.fixthis/mcp.json.template` so agents can run `fixthis init --agent --project-dir .`
     and `fixthis doctor --project-dir .` without asking for the package name.
   - Added pasteable `AGENTS.md` / `CLAUDE.md` install instructions for external
     Android repos, centered on `./gradlew fixthisSetup` rather than a
     human-first README flow.
+
+- **Agent-first CLI init (cli/docs, 2026-05-15):**
+  - `fixthis init --agent` and the `fixthis install-agent` alias now write
+    project-scoped agent handoff files under `.fixthis/`, including a
+    machine-readable `agent-setup.json` and MCP template for agent discovery.
 
 - **Console session/preview sync hardening — session-scoped SSE, explicit-session mutation events, partial draft handoff, and deleted-session cleanup (console/mcp, 2026-05-15):**
   - `session-updated` and `preview-ready` SSE payloads now carry top-level
