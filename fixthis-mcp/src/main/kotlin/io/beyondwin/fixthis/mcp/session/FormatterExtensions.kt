@@ -16,12 +16,14 @@ internal fun FixThisRect.formatBox(): String = "($left,$top)-($right,$bottom)"
 
 internal fun String.inlineSafe(): String = lineSequence().joinToString(" ").replace("`", "'")
 
+private const val COMPACT_TRUNCATION_SUFFIX = "..."
+
 internal fun String.compactQuotedValue(maxLength: Int = 80): String {
     val normalized = inlineSafe().replace("\"", "'")
     return if (normalized.length <= maxLength) {
         normalized
     } else {
-        normalized.take(maxLength - 3) + "..."
+        normalized.take(maxLength - COMPACT_TRUNCATION_SUFFIX.length) + COMPACT_TRUNCATION_SUFFIX
     }
 }
 
