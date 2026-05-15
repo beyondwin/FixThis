@@ -232,7 +232,7 @@ async function main() {
   const RAW_BUDGET_BYTES = 200 * 1024;
   const GZIP_BUDGET_BYTES = 45 * 1024;
   if (jsBytes.byteLength > RAW_BUDGET_BYTES) {
-    console.error(`Bundle (raw) is ${jsBytes.byteLength} bytes, exceeds raw budget of ${RAW_BUDGET_BYTES} bytes (192 KiB).`);
+    console.error(`Bundle (raw) is ${jsBytes.byteLength} bytes, exceeds raw budget of ${RAW_BUDGET_BYTES} bytes (200 KiB).`);
     process.exit(1);
   }
   const gzBytes = gzipSync(Buffer.from(jsBytes), { level: 9 }).byteLength;

@@ -574,6 +574,13 @@
               color: var(--txt-2);
               font-size: 11px;
             }
+            .session-pending-summary {
+              margin-top: 3px;
+              color: var(--txt-1);
+              font-size: 11px;
+              line-height: 1.25;
+              overflow-wrap: anywhere;
+            }
             .hi-stats {
               display: flex;
               flex-wrap: wrap;
