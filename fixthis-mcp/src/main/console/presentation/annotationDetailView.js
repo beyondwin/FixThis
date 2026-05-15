@@ -147,27 +147,23 @@
               const labelInput = document.getElementById('annotationLabelInput');
               const commentInput = document.getElementById('annotationCommentInput');
               labelInput.addEventListener('input', event => {
-                item.label = event.target.value;
-                persistCurrentPendingState();
+                updatePendingDraftItem(item.draftItemId, { label: event.target.value }, { recordHistory: false });
                 updateComposerState();
                 renderPreviewOnly();
               });
               commentInput.addEventListener('input', event => {
-                item.comment = event.target.value;
-                persistCurrentPendingState();
+                updatePendingDraftItem(item.draftItemId, { comment: event.target.value }, { recordHistory: false });
                 updateComposerState();
               });
               pendingItems.querySelectorAll('[data-set-severity]').forEach(button => {
                 button.addEventListener('click', () => {
-                  item.severity = button.dataset.setSeverity;
-                  persistCurrentPendingState();
+                  updatePendingDraftItem(item.draftItemId, { severity: button.dataset.setSeverity }, { recordHistory: true });
                   renderInspectorRegion();
                 });
               });
               pendingItems.querySelectorAll('[data-set-status]').forEach(button => {
                 button.addEventListener('click', () => {
-                  item.status = button.dataset.setStatus;
-                  persistCurrentPendingState();
+                  updatePendingDraftItem(item.draftItemId, { status: button.dataset.setStatus }, { recordHistory: true });
                   renderPreviewOnly();
                   renderInspectorRegion();
                   renderCurrentSessionList();

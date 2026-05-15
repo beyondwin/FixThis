@@ -93,7 +93,7 @@ internal class PreviewRoutes(
         val screenshotFile = try {
             service.previewScreenshotFile(session.sessionId, previewId)
         } catch (error: FeedbackSessionException) {
-            throw FeedbackConsoleHttpException(404, "Screenshot not found", error)
+            throw FeedbackConsoleHttpException(404, "Screenshot not found", cause = error)
         }
         sendBytes(200, screenshotFile.readBytes(), "image/png")
     }

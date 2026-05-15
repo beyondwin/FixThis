@@ -151,10 +151,20 @@ class FeedbackConsoleServer private constructor(
                 exchange.sendErrorJson(404, "Not found")
             }
         } catch (error: FeedbackConsoleHttpException) {
-            exchange.sendErrorJson(error.statusCode, error.message)
+            exchange.sendErrorJson(
+                status = error.statusCode,
+                error = error.errorCode ?: error.message,
+                message = error.message,
+                action = error.action,
+            )
         } catch (error: FeedbackSessionException) {
             val httpError = error.toConsoleHttpException()
-            exchange.sendErrorJson(httpError.statusCode, httpError.message)
+            exchange.sendErrorJson(
+                status = httpError.statusCode,
+                error = httpError.errorCode ?: httpError.message,
+                message = httpError.message,
+                action = httpError.action,
+            )
         } catch (error: BridgeConnectionException) {
             exchange.sendErrorJson(HTTP_SERVICE_UNAVAILABLE, error.message ?: "FixThis bridge is not connected")
         } catch (error: Throwable) {
@@ -179,20 +189,21 @@ private fun consoleHttpExecutor(): ExecutorService {
 
 private fun FeedbackSessionException.toConsoleHttpException(): FeedbackConsoleHttpException {
     val text = message ?: "Feedback session request failed"
-    val statusCode = when {
-        text.startsWith("SESSION_NOT_FOUND:") -> 404
-        text.startsWith("Unknown feedback session:") -> 404
-        text.startsWith("PREVIEW_NOT_FOUND:") -> 404
-        text.startsWith("PREVIEW_SCREENSHOT_NOT_FOUND:") -> 404
-        text.startsWith("SCREEN_NOT_FOUND:") -> 400
-        text.startsWith("NO_DRAFT_FEEDBACK:") -> 409
-        text.startsWith("NO_ACTIVE_SESSION:") -> 409
-        text.startsWith("ITEM_NOT_EDITABLE:") -> 409
-        text.startsWith("DEVICE_NOT_AVAILABLE:") -> 409
-        text.startsWith("PREVIEW_SAVE_IN_PROGRESS:") -> 409
-        else -> 500
+    val (statusCode, errorCode) = when {
+        text.startsWith("SESSION_NOT_FOUND:") -> 404 to "unknown_feedback_session"
+        text.startsWith("Unknown feedback session:") -> 404 to "unknown_feedback_session"
+        text.startsWith("Unknown feedback item:") -> 404 to "unknown_feedback_item"
+        text.startsWith("PREVIEW_NOT_FOUND:") -> 404 to "preview_not_found"
+        text.startsWith("PREVIEW_SCREENSHOT_NOT_FOUND:") -> 404 to "preview_not_found"
+        text.startsWith("SCREEN_NOT_FOUND:") -> 400 to "preview_not_found"
+        text.startsWith("NO_DRAFT_FEEDBACK:") -> 409 to "no_draft_feedback"
+        text.startsWith("NO_ACTIVE_SESSION:") -> 409 to "unknown_feedback_session"
+        text.startsWith("ITEM_NOT_EDITABLE:") -> 409 to "item_not_editable"
+        text.startsWith("DEVICE_NOT_AVAILABLE:") -> 409 to "device_not_available"
+        text.startsWith("PREVIEW_SAVE_IN_PROGRESS:") -> 409 to "preview_save_in_progress"
+        else -> 500 to null
     }
-    return FeedbackConsoleHttpException(statusCode, text)
+    return FeedbackConsoleHttpException(statusCode, text, errorCode = errorCode)
 }
 
 private fun Throwable.isClientDisconnect(): Boolean {

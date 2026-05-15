@@ -44,11 +44,12 @@ function addDraftItem(workspace, selection, ports) {
   return { ...next, history: recordDraftAdd(next.history, draftItem) };
 }
 
-function updateDraftItem(workspace, draftItemId, patch) {
+function updateDraftItem(workspace, draftItemId, patch, options = {}) {
   const before = (workspace.items || []).find((item) => item.draftItemId === draftItemId);
   const next = reduceDraftWorkspace(workspace, { type: 'UPDATE_ITEM', workspaceId: workspace.workspaceId, draftItemId, patch });
   const after = (next.items || []).find((item) => item.draftItemId === draftItemId);
-  return before && after ? { ...next, history: recordDraftUpdate(next.history, before, after) } : next;
+  if (!before || !after || options.recordHistory === false) return next;
+  return { ...next, history: recordDraftUpdate(next.history, before, after) };
 }
 
 function deleteDraftItem(workspace, draftItemId) {
@@ -117,6 +118,23 @@ function recoverDraftWorkspaceFromEnvelope(envelope) {
   };
 }
 
+function recoverySessionId(recovery) {
+  return recovery?.sessionId || recovery?.context?.sessionId || null;
+}
+
+function recoveryWorkspaceId(recovery) {
+  return recovery?.workspaceId || recovery?.context?.workspaceId || null;
+}
+
+function recoveryItems(recovery) {
+  if (Array.isArray(recovery?.items)) return recovery.items;
+  return [];
+}
+
+function hasCommentedRecovery(recovery) {
+  return recoveryItems(recovery).some((item) => String(item?.comment || '').trim());
+}
+
 async function resolveDraftBoundary(workspace, boundaryAction, ports) {
   if (!workspace?.workspaceId || !(workspace.items || []).length) return { choice: 'continue', workspace };
   const choice = await ports.boundaryPrompt.choose(workspace, boundaryAction);
@@ -133,4 +151,62 @@ async function resolveDraftBoundary(workspace, boundaryAction, ports) {
     return { choice, ...result };
   }
   return { choice: 'cancel', workspace };
+}
+
+async function resolveLifecycleBoundary({
+  action,
+  targetSessionId = null,
+  activeWorkspace,
+  pendingRecovery,
+  ports,
+}) {
+  requireDraftPort(ports, 'storage');
+  const boundaryAction = { kind: action, sessionId: targetSessionId };
+  let nextWorkspace = activeWorkspace || createEmptyDraftWorkspace();
+  let nextPendingRecovery = pendingRecovery || null;
+  let savedSession = null;
+  const activeItems = nextWorkspace?.workspaceId ? (nextWorkspace.items || []) : [];
+
+  if (activeItems.length) {
+    const activeCommented = activeItems.some((item) => String(item?.comment || '').trim());
+    if (!activeCommented && action !== 'delete-session' && action !== 'clear-local-draft' && action !== 'clear-server-drafts') {
+      ports.storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(nextWorkspace));
+      nextWorkspace = createEmptyDraftWorkspace();
+    } else {
+      const result = await resolveDraftBoundary(nextWorkspace, boundaryAction, ports);
+      nextWorkspace = result.workspace || nextWorkspace;
+      savedSession = result.session || null;
+      if (result.choice === 'cancel' || result.conflict) {
+        return { outcome: 'cancel', nextWorkspace, nextPendingRecovery, savedSession, targetSessionId };
+      }
+      if (result.choice === 'save' || result.choice === 'discard' || result.choice === 'keep') {
+        nextWorkspace = result.workspace || createEmptyDraftWorkspace();
+        if (result.choice === 'keep') nextWorkspace = createEmptyDraftWorkspace();
+      }
+    }
+  }
+
+  if (!recoveryItems(nextPendingRecovery).length) {
+    return { outcome: 'continue', nextWorkspace, nextPendingRecovery: null, savedSession, targetSessionId };
+  }
+
+  requireDraftPort(ports, 'recoveryPrompt');
+  const choice = await ports.recoveryPrompt.choose(nextPendingRecovery, boundaryAction);
+  if (choice === 'clear') {
+    ports.storage.deleteWorkspace(recoverySessionId(nextPendingRecovery), recoveryWorkspaceId(nextPendingRecovery));
+    return { outcome: 'continue', nextWorkspace, nextPendingRecovery: null, savedSession, targetSessionId };
+  }
+  if (choice === 'resume') {
+    return {
+      outcome: 'cancel',
+      nextWorkspace: recoverDraftWorkspaceFromEnvelope(nextPendingRecovery),
+      nextPendingRecovery: null,
+      savedSession,
+      targetSessionId,
+    };
+  }
+  if (choice === 'recapture') {
+    return { outcome: 'cancel', nextWorkspace, nextPendingRecovery, savedSession, targetSessionId };
+  }
+  return { outcome: 'cancel', nextWorkspace, nextPendingRecovery, savedSession, targetSessionId };
 }

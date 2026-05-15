@@ -132,3 +132,35 @@ test('save conflict keeps items and moves lifecycle to conflict', () => {
   assert.equal(workspace.items.length, 1);
   assert.equal(workspace.lastError.error, 'screen_fingerprint_mismatch');
 });
+
+test('every draft item update advances revision and keeps immutable context', () => {
+  let workspace = m.createFrozenDraftWorkspace({
+    workspaceId: 'ws-update',
+    context,
+    screen: { screenId: 'screen-a' },
+    screenshotUrl: '/screenshot.png',
+  });
+  workspace = m.reduceDraftWorkspace(workspace, {
+    type: 'ADD_ITEM',
+    workspaceId: 'ws-update',
+    draftItem: {
+      draftItemId: 'draft-1',
+      targetType: 'area',
+      bounds: { left: 1, top: 1, right: 20, bottom: 20 },
+      comment: '',
+    },
+  });
+  const beforeContext = JSON.stringify(workspace.context);
+  const beforeRevision = workspace.revision;
+
+  workspace = m.reduceDraftWorkspace(workspace, {
+    type: 'UPDATE_ITEM',
+    workspaceId: 'ws-update',
+    draftItemId: 'draft-1',
+    patch: { comment: 'updated text' },
+  });
+
+  assert.equal(workspace.revision, beforeRevision + 1);
+  assert.equal(JSON.stringify(workspace.context), beforeContext);
+  assert.equal(workspace.items[0].comment, 'updated text');
+});

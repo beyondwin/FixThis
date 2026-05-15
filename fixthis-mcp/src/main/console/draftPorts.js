@@ -9,6 +9,7 @@
 //   storage: { saveWorkspace(envelope): void, deleteWorkspace(sessionId, workspaceId): void, loadWorkspacesForSession(sessionId): object[], migrateLegacyPending(sessionId): object[] },
 //   clipboard: { writeText(text): Promise<void> },
 //   boundaryPrompt: { choose(workspace, boundaryAction): Promise<'save'|'keep'|'discard'|'cancel'> },
+//   recoveryPrompt: { choose(recovery, boundaryAction): Promise<'resume'|'recapture'|'clear'|'cancel'> },
 //   refresh: { sessions(): Promise<void> }
 // }
 
@@ -44,6 +45,7 @@ function createFakeDraftPorts(overrides = {}) {
     },
     clipboard: { writeText: async () => {} },
     boundaryPrompt: { choose: async () => 'cancel' },
+    recoveryPrompt: { choose: async () => 'cancel' },
     refresh: { sessions: async () => {} },
     ...overrides,
   };

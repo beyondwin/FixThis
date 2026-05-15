@@ -8,7 +8,7 @@
             }
 
             function requestCanonicalPreviewCapture() {
-              store.dispatch({ type: 'ANNOTATE_CLICKED' });
+              // Canonical preview effects are disabled while legacy draft freeze owns runtime capture.
             }
 
             function clearPreview() {

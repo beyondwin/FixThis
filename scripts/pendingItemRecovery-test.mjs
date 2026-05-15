@@ -209,7 +209,8 @@ test('session refresh reloads pending recovery without blocking passive drafts',
 
   const resolveBody = extractFunctionBody(mainSource, 'async function resolvePendingBeforeBoundary(action, sessionId = null)');
   assert.doesNotMatch(resolveBody, /Recover, recapture, or discard unsaved annotations before changing sessions\./);
-  assert.match(resolveBody, /if \(pendingRecoveryItems\(pendingRecovery\)\.length && !hasActivePending\) \{[\s\S]*?renderPendingRecoveryBanner\(\);[\s\S]*?return 'continue';[\s\S]*?\}/);
+  assert.match(resolveBody, /resolveLifecycleBoundary\(\{/);
+  assert.doesNotMatch(resolveBody, /pendingRecoveryItems\(pendingRecovery\)\.length && !hasActivePending[\s\S]*?return 'continue';/);
 });
 
 test('pending recovery banner appears for recoverable drafts and uses resume copy', () => {
@@ -262,7 +263,7 @@ test('returning to an active pending mirror auto-restores instead of re-showing 
   const resolveBody = extractFunctionBody(mainSource, 'async function resolvePendingBeforeBoundary(action, sessionId = null)');
   const loadBody = extractFunctionBody(mainSource, 'function loadPendingRecoveryForCurrentSession()');
   const bannerBody = extractFunctionBody(mainSource, 'function renderPendingRecoveryBanner()');
-  assert.match(resolveBody, /activePendingMirrorSessions\.add\(pendingSessionId\);/);
+  assert.match(resolveBody, /activePendingMirrorSessions\.add\(activeSessionId\);/);
   assert.match(bannerBody, /activePendingMirrorSessions\.add\(recoverySessionId\);/);
   assert.match(
     loadBody,
@@ -335,10 +336,10 @@ test('prompt persistence keeps residual pin-only items for copy but discards the
 
 test('pending annotation detail edits write through to recovery envelope', () => {
   const detailBody = extractFunctionBody(renderingSource, 'function renderAnnotationDetail(item, index)');
-  assert.match(detailBody, /item\.label\s*=\s*event\.target\.value;[\s\S]*?persistCurrentPendingState\(\);/);
-  assert.match(detailBody, /item\.comment\s*=\s*event\.target\.value;[\s\S]*?persistCurrentPendingState\(\);/);
-  assert.match(detailBody, /item\.severity\s*=\s*button\.dataset\.setSeverity;[\s\S]*?persistCurrentPendingState\(\);/);
-  assert.match(detailBody, /item\.status\s*=\s*button\.dataset\.setStatus;[\s\S]*?persistCurrentPendingState\(\);/);
+  assert.match(detailBody, /updatePendingDraftItem\(item\.draftItemId,\s*\{ label: event\.target\.value \},\s*\{ recordHistory: false \}\);/);
+  assert.match(detailBody, /updatePendingDraftItem\(item\.draftItemId,\s*\{ comment: event\.target\.value \},\s*\{ recordHistory: false \}\);/);
+  assert.match(detailBody, /updatePendingDraftItem\(item\.draftItemId,\s*\{ severity: button\.dataset\.setSeverity \},\s*\{ recordHistory: true \}\);/);
+  assert.match(detailBody, /updatePendingDraftItem\(item\.draftItemId,\s*\{ status: button\.dataset\.setStatus \},\s*\{ recordHistory: true \}\);/);
 });
 
 test('annotation detail selection does not steal focus into the comment textarea', () => {
@@ -370,7 +371,8 @@ test('saved annotation back navigation does not wait for persistence', () => {
 test('pending detail comments are not overwritten by the hidden composer before persistence', () => {
   const flushBody = extractFunctionBody(annotationsSource, 'function flushFocusedPendingComment()');
   assert.match(flushBody, /pendingItems\.querySelector\('#annotationCommentInput'\)/);
-  assert.match(flushBody, /item\.comment\s*=\s*commentInput\s*\?\s*commentInput\.value\s*:\s*comment\.value;/);
+  assert.match(flushBody, /const nextComment = commentInput \? commentInput\.value : comment\.value;/);
+  assert.match(flushBody, /updatePendingDraftItem\(item\.draftItemId,\s*\{ comment: nextComment \},\s*\{ recordHistory: false \}\);/);
 });
 
 test('new pending annotations record undo history before persistence', () => {

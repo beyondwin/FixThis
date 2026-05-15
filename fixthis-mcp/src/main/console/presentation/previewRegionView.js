@@ -39,7 +39,7 @@
               clearSelectionButton.hidden = true;
               cancelAddFlowButton.hidden = true;
               addItemButton.hidden = true;
-              clearDraftButton.hidden = savedItems.length === 0;
+              clearDraftButton.hidden = !(draftItemList().length || pendingRecoveryItems(pendingRecovery).length || savedItems.length);
               renderPendingItems();
               if (savedItems.length) renderSavedEvidenceGroups();
             }

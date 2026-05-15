@@ -58,7 +58,7 @@ test('shared pending boundary resolver exists', () => {
 
 test('shared pending boundary resolver delegates to draft boundary use case', () => {
   assert.match(mainSource, /async function resolvePendingBeforeBoundary\(action,\s*sessionId = null\)/);
-  assert.match(mainSource, /resolveDraftBoundary\(/);
+  assert.match(mainSource, /resolveLifecycleBoundary\(/);
   assert.match(mainSource, /ensureDraftCommandQueue\(\)\.enqueue/);
 });
 
@@ -200,4 +200,26 @@ test('resetComposer clears mirrors using draft context when displayed session is
   assert.match(annotationsBody, /const composerSessionId = draftWorkspace\?\.context\?\.sessionId \|\| state\.session\?\.sessionId;/);
   assert.match(annotationsBody, /clearPendingMirror\(composerSessionId\)/);
   assert.match(annotationsBody, /activePendingMirrorSessions\.delete\(composerSessionId\)/);
+});
+
+test('pending recovery only path does not silently continue past lifecycle boundary', () => {
+  const mainSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/main.js'), 'utf8');
+  const resolveBody = body(mainSource, 'async function resolvePendingBeforeBoundary(action, sessionId = null)');
+  assert.doesNotMatch(
+    resolveBody,
+    /if \(pendingRecoveryItems\(pendingRecovery\)\.length && !hasActivePending\) \{[\s\S]*?return 'continue';[\s\S]*?\}/,
+  );
+  assert.match(resolveBody, /resolveLifecycleBoundary\(/);
+});
+
+test('clear draft button dispatches local or server clear by current context', () => {
+  assert.match(mainSource, /clearDraftButton\.addEventListener\('click',\s*\(\) => \{/);
+  assert.match(mainSource, /if \(draftFlow\(\) \|\| pendingRecoveryItems\(pendingRecovery\)\.length\) clearLocalDraft\(\)\.catch\(showError\);/);
+  assert.match(mainSource, /else clearServerDrafts\(\)\.catch\(showError\);/);
+});
+
+test('clear draft control is visible for local drafts even without saved items', () => {
+  const previewRegion = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/presentation/previewRegionView.js'), 'utf8');
+  const composerBody = body(previewRegion, 'function renderComposerInspector()');
+  assert.match(composerBody, /clearDraftButton\.hidden = !\(draftItemList\(\)\.length \|\| pendingRecoveryItems\(pendingRecovery\)\.length \|\| savedItems\.length\);/);
 });

@@ -1,4 +1,4 @@
-// @requires (none)
+// @requires draftStorageAdapter.js
 function createBrowserConsolePorts(options = {}) {
   const requestJson_ = options.requestJson;
   const localStorage_ = options.localStorage || localStorage;
@@ -11,25 +11,26 @@ function createBrowserConsolePorts(options = {}) {
       }),
       listSessions: async () => requestJson_('/api/sessions'),
       currentSession: async () => requestJson_('/api/session'),
-      saveDraft: async (sessionId, items) => requestJson_('/api/feedback/items', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, items }),
-      }),
+      saveDraft: async () => {
+        throw new Error('Canonical saveDraft effect is disabled until DraftWorkspace save request construction is canonical.');
+      },
     }),
     previewApi: Object.freeze({
       capturePreview: async () => requestJson_('/api/preview'),
     }),
     draftStorage: Object.freeze({
       saveRecovery: async (sessionId, workspace) => {
-        localStorage_.setItem('fixthis.recovery.' + sessionId, JSON.stringify(workspace));
+        const adapter = createDraftStorageAdapter(localStorage_);
+        adapter.saveWorkspace({
+          ...workspace,
+          schemaVersion: 2,
+          sessionId: sessionId || workspace?.context?.sessionId,
+          workspaceId: workspace?.workspaceId || workspace?.context?.workspaceId,
+        });
       },
       deleteRecovery: async (sessionId, workspaceId) => {
-        const prefix = 'fixthis.draftWorkspace.' + sessionId + '.';
-        if (workspaceId) {
-          localStorage_.removeItem(prefix + workspaceId);
-        }
-        localStorage_.removeItem('fixthis.recovery.' + sessionId);
+        const adapter = createDraftStorageAdapter(localStorage_);
+        adapter.deleteWorkspace(sessionId, workspaceId);
       },
     }),
     clipboard: Object.freeze({

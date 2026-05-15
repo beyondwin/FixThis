@@ -8,6 +8,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const annotationsSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/annotations.js'), 'utf8');
 const previewSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/preview.js'), 'utf8');
 const promptSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/prompt.js'), 'utf8');
+const historySource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/history.js'), 'utf8');
 const persistenceSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/pendingPersistence.js'), 'utf8');
 const stateSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/state.js'), 'utf8');
 const pollingBrowserAdapterSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/pollingBrowserAdapter.js'), 'utf8');
@@ -90,10 +91,23 @@ test('copy prompt refreshes session summaries after marking items handed off', (
 });
 
 test('history open count does not double-count in-progress items', () => {
-  const historySource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/history.js'), 'utf8');
   const historyOpenCount = body(historySource, 'function historyOpenCount(session)');
   assert.match(historyOpenCount, /session\.unresolvedItemsCount/);
   assert.doesNotMatch(historyOpenCount, /session\.inProgressItemsCount/);
+});
+
+test('local draft clear does not delete persisted server drafts', () => {
+  const localBody = body(historySource, 'async function clearLocalDraft()');
+  assert.doesNotMatch(localBody, /\/api\/items\/draft/);
+  assert.match(localBody, /deleteCurrentDraftWorkspaceStorage\(\)/);
+  assert.match(localBody, /replaceDraftWorkspace\(createEmptyDraftWorkspace\(\)\)/);
+});
+
+test('server draft clear uses explicit session id and lifecycle boundary', () => {
+  const serverBody = body(historySource, 'async function clearServerDrafts()');
+  assert.match(serverBody, /const sessionId = state\.session\?\.sessionId;/);
+  assert.match(serverBody, /resolvePendingBeforeBoundary\('clear-server-drafts',\s*sessionId\)/);
+  assert.match(serverBody, /\/api\/items\/draft\?sessionId=' \+ encodeURIComponent\(sessionId\)/);
 });
 
 test('draft command queue fences stale pending save responses', () => {

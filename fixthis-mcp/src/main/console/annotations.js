@@ -315,6 +315,15 @@
               persistCurrentDraftWorkspaceIfNeeded();
             }
 
+            function updatePendingDraftItem(draftItemId, patch, options = {}) {
+              if (!draftWorkspace?.workspaceId || !draftItemId) return draftWorkspace;
+              const nextWorkspace = updateDraftItem(draftWorkspace, draftItemId, patch, {
+                recordHistory: options.recordHistory === true,
+              });
+              replaceDraftWorkspace(nextWorkspace);
+              return nextWorkspace;
+            }
+
             function releaseSnapshotPointerCapture(image, event) {
               try {
                 if (image.hasPointerCapture?.(event.pointerId)) {
@@ -388,7 +397,8 @@
               const item = draftItemList()[draftFocusIndex()];
               if (!item) return;
               const commentInput = pendingItems.querySelector('#annotationCommentInput');
-              item.comment = commentInput ? commentInput.value : comment.value;
+              const nextComment = commentInput ? commentInput.value : comment.value;
+              updatePendingDraftItem(item.draftItemId, { comment: nextComment }, { recordHistory: false });
             }
 
             function createAnnotationFromSelection(selection) {
@@ -519,8 +529,7 @@
             function updateSelectedAnnotationComment() {
               const item = selectedAnnotation();
               if (!item) return;
-              item.comment = comment.value;
-              if (draftFlow()) persistCurrentPendingState();
+              updatePendingDraftItem(item.draftItemId, { comment: comment.value }, { recordHistory: false });
               renderPendingItems();
               updateComposerState();
             }
