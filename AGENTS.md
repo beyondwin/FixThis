@@ -88,7 +88,7 @@ Full signatures and return shapes:
 - **Jetpack Compose only.** No View-based or Flutter targets in V1.
 - **Local-first.** FixThis makes no external API calls. **Save to MCP** is local file persistence.
 - **Do not commit `.fixthis/`** — screenshots, session metadata, local artifacts.
-- **Do not rename persisted MCP JSON fields.** `items`, `screens`, `itemId`, `screenId`, `targetEvidence`, `sourceCandidates` are compatibility contracts — see [`docs/reference/output-schema.md`](docs/reference/output-schema.md).
+- **Do not rename persisted MCP JSON fields.** `items`, `screens`, `itemId`, `screenId`, `targetEvidence`, `targetReliability`, `sourceCandidates` are compatibility contracts — see [`docs/reference/output-schema.md`](docs/reference/output-schema.md).
 - **`:fixthis-compose-core` has no dependency on MCP, CLI, Android UI, or `.fixthis/` paths.** Outer modules translate at the boundary.
 - **Bridge protocol changes are coordinated.** See [`docs/reference/bridge-protocol.md`](docs/reference/bridge-protocol.md).
 

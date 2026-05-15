@@ -11,7 +11,7 @@
   "beforeunload": ["scripts/beforeunloadGuard-test.mjs"],
   "undo": ["scripts/undoRedo-test.mjs", "scripts/undoKeymatch-test.mjs"],
   "activity": ["scripts/activityDrift-test.mjs"],
-  "preview": ["scripts/previewStaleness-test.mjs"],
+  "preview": ["scripts/previewStaleness-test.mjs", "scripts/canvasStatusBadgesLayout-test.mjs"],
   "draft": [
     "scripts/draftWorkspace-test.mjs",
     "scripts/draftWorkspaceHistory-test.mjs",

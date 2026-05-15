@@ -147,7 +147,7 @@ MCP stdio server and local feedback console server.
 - `session/domain/McpSessionRepository.kt`, `McpSnapshotRepository.kt`, and
   `McpAnnotationRepository.kt`: MCP adapters for the pure
   `compose-core` session, snapshot, and annotation repository ports.
-- `session/SessionDtoModels.kt`, `console/AnnotationRequestModels.kt`: MCP/local-console DTOs and persisted JSON field names. Existing field names such as `items`, `screens`, `itemId`, and `screenId` are compatibility contracts.
+- `session/SessionDtoModels.kt`, `console/AnnotationRequestModels.kt`: MCP/local-console DTOs and persisted JSON field names. Existing field names such as `items`, `screens`, `itemId`, `screenId`, `targetEvidence`, and `targetReliability` are compatibility contracts.
 - `session/SessionDomainMappers.kt`: explicit mapper between DTOs and `compose-core` domain models. Legacy `"ready"` item status is normalized to `AnnotationStatus.OPEN` in the domain.
 - `console/ConsoleConnectionModels.kt`: browser console recovery card contract. Serializes `WELCOME`, `READY`, `OPEN_APP`, `STARTING`, `RECONNECT`, `CHOOSE_DEVICE`, `CHECK_PHONE`, `UNSUPPORTED_BUILD` states and primary actions.
 - `session/PreviewSnapshotCache.kt`, `SourceIndexRegistry.kt`, `ScreenshotArtifactPromoter.kt`: separates transient preview cache, source-index caching, and frozen preview screenshot promotion from the service.
@@ -178,10 +178,14 @@ MCP tools:
 - `fixthis_claim_feedback`
 - `fixthis_resolve_feedback`
 
-Stable Target Evidence v1:
+Stable target evidence and reliability:
 
-- Saved feedback items may include nullable `targetEvidence`.
+- Saved feedback items may include nullable `targetEvidence` and
+  `targetReliability`.
 - Evidence is derived from captured merged semantics nodes, strict `comp:<ComposableName>:<variant>` tags when present, occurrence over the captured merged node set, existing source candidates, and available screenshot artifacts.
+- Reliability is derived from semantic coverage, source-candidate strength,
+  stale-index state, screen-fingerprint checks, and redaction constraints. It
+  is rendered as target confidence plus warning metadata for agents.
 - `BridgeProtocol.VERSION` is `1.3`; the bridge advertises additive
   capabilities (`targetEvidence`, `detailModes`, `composableIdentity=false`)
   and screen-integrity metadata used to compute nullable fingerprints.

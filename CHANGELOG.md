@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **MAJOR** (`X.y.z`) — breaking changes to the public Gradle plugin API,
   the persisted MCP JSON schema (`items`, `screens`, `itemId`, `screenId`,
-  `targetEvidence`, `sourceCandidates`), or the CLI flag surface documented in
-  [`docs/reference/cli.md`](docs/reference/cli.md).
+  `targetEvidence`, `targetReliability`, `sourceCandidates`), or the CLI flag
+  surface documented in [`docs/reference/cli.md`](docs/reference/cli.md).
 - **MINOR** (`x.Y.z`) — additive features, new MCP tools, new CLI flags with
   safe defaults, or wire-protocol bumps that remain backward-compatible at
   the persisted-JSON layer.

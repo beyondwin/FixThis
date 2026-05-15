@@ -35,7 +35,8 @@ pitch, scope, and sample-to-agent Quick Start.
 - [Architecture Decision Records](architecture/adr/README.md) — durable
   decisions and their rationale
 - [Console state sync](architecture/console-state-sync-design.md) — shipped
-  lockstep refresh + ETag polling design, plus deferred SSE migration plan
+  `/api/events` SSE Phase 1, with ETag polling retained as fallback and
+  remaining preview-polling follow-ups
 
 ## Contribute and Release
 

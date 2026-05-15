@@ -59,8 +59,8 @@ remains the chronological source of truth.
   to use a Gradle composite build until release readiness marks Maven Central
   and Gradle Plugin Portal publication complete.
 - Persisted MCP JSON field names remain compatibility contracts:
-  `items`, `screens`, `itemId`, `screenId`, `targetEvidence`, and
-  `sourceCandidates`.
+  `items`, `screens`, `itemId`, `screenId`, `targetEvidence`,
+  `targetReliability`, and `sourceCandidates`.
 - Session JSON now also carries additive `nextItemSequenceNumber` state for
   stable saved annotation numbering. Older sessions are migrated from existing
   item `sequenceNumber` values when they are reopened.
@@ -89,7 +89,7 @@ Before tagging the next release, run the current contributor checklist:
 node scripts/build-console-assets.mjs --check
 node --check fixthis-mcp/src/main/resources/console/app.js
 node scripts/check-doc-consistency.mjs
-node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview draft session harness
+node scripts/run-console-tests.mjs availability canonical pending beforeunload undo activity preview draft session harness
 git diff --check
 ```
 

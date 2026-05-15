@@ -191,7 +191,7 @@ Supported JSON-RPC methods:
 
 `fixthis_status`
 
-Checks whether the debug app sidekick bridge is reachable. Returns package, activity, root count, source-index availability, and bridge status. Bridge status includes sidekick and bridge protocol versions plus `capabilities`, currently `targetEvidence`, supported `detailModes`, and whether experimental composable identity is enabled.
+Checks whether the debug app sidekick bridge is reachable. Returns package, activity, root count, source-index availability, and bridge status. Bridge status includes sidekick and bridge protocol versions plus `capabilities`, currently `targetEvidence`, supported `detailModes`, and whether experimental composable identity is enabled. `targetReliability` is derived by the MCP/session layer from saved evidence; it is not a separate bridge capability.
 
 Responses also include an `installStale` boolean and `installStaleReason` string. When `true`, the host has source files modified after the device APK's last install time, so source coordinates returned by other tools may not match what you can edit; reinstall the debug APK before trusting them. `newerSourceFiles` lists up to three example paths. When `installEpochMillis` is unavailable (older sidekick), the check is skipped and `installStale` is `false` with an explanatory reason.
 
@@ -262,7 +262,7 @@ The compact Markdown handoff also emits a per-item `id:` token (the feedback ite
 
 `fixthis_claim_feedback`
 
-Marks a feedback item as `in_progress` to signal that an agent has begun working on it. Call this after `fixthis_read_feedback` and before making any code changes. The browser console reflects the state change within roughly two seconds via ETag-conditional polling on `/api/sessions` and `/api/session`.
+Marks a feedback item as `in_progress` to signal that an agent has begun working on it. Call this after `fixthis_read_feedback` and before making any code changes. The browser console reflects the state change over the `/api/events` SSE stream when available, with ETag-conditional polling on `/api/sessions` and `/api/session` retained as fallback.
 
 Arguments:
 
@@ -309,8 +309,8 @@ output to an agent), the agent calls:
 2. `fixthis_read_feedback({itemId})` for the item it intends to work on.
 3. `fixthis_claim_feedback({itemId, agentNote?})` BEFORE making any code
    change. This sets the item's `status` to `in_progress`. The user's
-   browser console reflects the change within ~2 seconds via ETag
-   polling.
+   browser console reflects the change over `/api/events` when available,
+   with ETag polling as fallback.
 4. After completing the work, `fixthis_resolve_feedback({itemId, status,
    summary})` with `status` of `resolved`, `wont_fix`, or
    `needs_clarification`.
