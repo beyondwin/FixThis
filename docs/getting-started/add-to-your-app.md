@@ -63,6 +63,17 @@ Code or Codex so the new MCP server is picked up.
 For Cursor, ChatGPT, or any chat-style agent without first-class MCP support,
 use **Copy Prompt** in the console — no setup required.
 
+If the CLI/MCP package is available from a GitHub Release, agents may install
+the desktop tools first and then run `fixthis init`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
+  | bash -s -- --version vX.Y.Z --init --target codex --project-dir . --package <applicationId>
+```
+
+This does not replace the Gradle app wiring above; it only removes the need to
+build the desktop CLI/MCP tools from source.
+
 ### Manual setup (Windows or no shell script)
 
 ```bash

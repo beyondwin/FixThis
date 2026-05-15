@@ -67,6 +67,10 @@ remains the chronological source of truth.
 - Agent-first setup is simpler. `fixthis init` writes Claude Code / Codex MCP
   config by default and can infer the Android `applicationId` from Gradle build
   files when `.fixthis/project.json` is not present.
+- The next source release can include an agent-first CLI/MCP package. Release
+  automation now builds `fixthis-cli-mcp-vX.Y.Z.tar.gz`, and
+  `scripts/install-fixthis.sh` can install it and run `fixthis init` from an
+  Android app repository.
 
 ## Compatibility Notes
 

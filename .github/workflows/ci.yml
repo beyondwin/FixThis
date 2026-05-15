@@ -44,6 +44,9 @@ jobs:
       - name: Run smoke script tests
         run: node --test scripts/fixthis-smoke-test.mjs
 
+      - name: Run release package script tests
+        run: npm run release:package:test
+
   gradle-verification:
     name: Gradle verification
     runs-on: ubuntu-latest

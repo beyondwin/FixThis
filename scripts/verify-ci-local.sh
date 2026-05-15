@@ -123,6 +123,7 @@ run_step "node scripts/build-console-assets.mjs --check"
 run_step "node --check fixthis-mcp/src/main/resources/console/app.js"
 run_step "npm run console:test:all"
 run_step "node --test scripts/fixthis-smoke-test.mjs"
+run_step "npm run release:package:test"
 if [[ "$RUN_GRADLE" -eq 1 ]]; then
     run_step "./gradlew spotlessCheck detekt :fixthis-compose-core:test :fixthis-cli:test :fixthis-mcp:test :fixthis-compose-sidekick:testDebugUnitTest :fixthis-gradle-plugin:test :app:assembleDebug :fixthis-cli:installDist :fixthis-mcp:installDist --no-daemon"
 fi

@@ -16,6 +16,7 @@ Plugin Portal installation.
 | Current `main` | Unreleased hardening after `v0.1.0` | Users can try latest docs/code from source. |
 | Sample app | Available | Users can verify the workflow before touching their app. |
 | Claude Code / Codex MCP bootstrap | Available from source | `./scripts/bootstrap-mcp.sh --sample` configures local MCP for the sample. |
+| CLI/MCP GitHub Release package | Prepared for next release | `scripts/package-cli-release.sh` builds the asset; `scripts/install-fixthis.sh` installs it. |
 | External Gradle artifacts | Not published | External apps must use source/composite-build wiring for now. |
 | MCP Registry entry | Not published | Discovery remains through the GitHub repository and docs. |
 
@@ -24,6 +25,9 @@ Plugin Portal installation.
 - Clone the repository and run the sample app.
 - Use `./scripts/bootstrap-mcp.sh --sample` to register the local MCP server
   with Claude Code or Codex.
+- Build a local CLI/MCP package with `scripts/package-cli-release.sh --version
+  <version>` and test agent installation with `scripts/install-fixthis.sh
+  --archive <tarball>`.
 - Use Gradle composite-build or local repository wiring for an external debug
   Compose app.
 - Use **Copy Prompt** for chat-style agents without MCP.
@@ -52,6 +56,8 @@ consumer project.
 - [ ] `docs/releases/unreleased.md` is reset for the next cycle after tagging.
 - [ ] Connected smoke is run on a real device or unlocked emulator, or the
       release notes explicitly say it was not run.
+- [ ] CLI/MCP package workflow has produced the release tarball, or the release
+      notes explicitly say no desktop package is attached.
 - [ ] Security, privacy, compatibility, and troubleshooting docs still match
       the release claims.
 
@@ -84,7 +90,7 @@ consumer project.
 | Gradle plugin | `io.beyondwin.fixthis.compose` | Gradle Plugin Portal |
 | Compose sidekick | `io.beyondwin.fixthis:fixthis-compose-sidekick` | Maven Central |
 | Compose core | `io.beyondwin.fixthis:fixthis-compose-core` | Maven Central, only if needed by consumers |
-| MCP server | no package coordinate yet | Future MCP Registry metadata after an install package exists |
+| MCP server | GitHub Release asset `fixthis-cli-mcp-vX.Y.Z.tar.gz` | Future MCP Registry metadata after the package is verified |
 
 ## Required Maintainer Secrets
 

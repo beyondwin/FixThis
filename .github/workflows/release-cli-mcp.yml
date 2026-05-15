@@ -1,0 +1,59 @@
+name: Release CLI/MCP Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release tag or version, for example v0.2.0"
+        required: true
+        type: string
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Build CLI/MCP package
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      FIXTHIS_RELEASE_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make scripts executable
+        run: chmod +x ./gradlew ./scripts/package-cli-release.sh
+
+      - name: Build package
+        run: ./scripts/package-cli-release.sh --version "$FIXTHIS_RELEASE_VERSION"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixthis-cli-mcp-${{ env.FIXTHIS_RELEASE_VERSION }}
+          path: build/release/fixthis-cli-mcp-${{ env.FIXTHIS_RELEASE_VERSION }}.tar.gz
+          if-no-files-found: error
+
+      - name: Attach to draft GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.FIXTHIS_RELEASE_VERSION }}
+          draft: true
+          fail_on_unmatched_files: true
+          files: build/release/fixthis-cli-mcp-${{ env.FIXTHIS_RELEASE_VERSION }}.tar.gz

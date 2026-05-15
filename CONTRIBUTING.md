@@ -183,6 +183,7 @@ node scripts/build-console-assets.mjs --check
 node scripts/check-doc-consistency.mjs
 node scripts/check-release-readiness.mjs
 node --check fixthis-mcp/src/main/resources/console/app.js
+npm run release:package:test
 # All console JS tests (single source of truth is scripts/console-tests.json).
 node scripts/run-console-tests.mjs availability canonical pending beforeunload undo activity preview draft session harness
 # Equivalent to `npm run console:test:all`; edit the JSON, not this command line.

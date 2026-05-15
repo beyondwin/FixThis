@@ -66,6 +66,15 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
     so agents can configure MCP from a normal Android repo without asking the
     user for the package name first.
 
+- **Agent-first CLI/MCP release package (scripts/ci/docs, 2026-05-15):**
+  - Added `scripts/package-cli-release.sh` to bundle the desktop `fixthis` CLI
+    and `fixthis-mcp` server into a sibling-layout GitHub Release tarball.
+  - Added `scripts/install-fixthis.sh` so agents can install that package,
+    link `fixthis` into a local bin directory, and optionally run
+    `fixthis init` from an Android app repository.
+  - Added a manual/tagged `Release CLI/MCP Package` workflow plus Node tests
+    for the package and install scripts.
+
 - **Target reliability handoffs — confidence + warning metadata for agents (core/mcp/console, 2026-05-15):**
   - Persisted feedback items can now carry optional `targetReliability`
     metadata alongside `targetEvidence`. The confidence level (`HIGH`,

@@ -108,6 +108,15 @@ fixthis init --target codex --dry-run
 
 After `init`, restart your agent so the new MCP server is picked up.
 
+When using the GitHub Release CLI/MCP package, install the desktop tools first:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
+  | bash -s -- --version vX.Y.Z
+```
+
+Then run `fixthis init` from the Android app repository.
+
 ## `fixthis setup`
 
 Generates MCP config for AI agents. Without `--write`, prints the JSON / TOML

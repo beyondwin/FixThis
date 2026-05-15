@@ -36,6 +36,7 @@ test("--fast lists the quick CI mirror without Gradle", () => {
     "node --check fixthis-mcp/src/main/resources/console/app.js",
     "npm run console:test:all",
     "node --test scripts/fixthis-smoke-test.mjs",
+    "npm run release:package:test",
     "git diff --check HEAD..HEAD",
     "git diff --check",
   ]);

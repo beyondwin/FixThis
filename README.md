@@ -113,6 +113,11 @@ Architecture details live in [Architecture overview](docs/architecture/overview.
 > on Maven Central or the Gradle Plugin Portal. Current `main` can be tried
 > directly from source.
 
+The next source release can also attach a CLI/MCP package for agent-first
+desktop installation. Agents can then run `scripts/install-fixthis.sh` and
+`fixthis init`; Android app Gradle wiring still remains source/composite-build
+until public Gradle artifacts are available.
+
 External projects currently wire this repository via Gradle composite build
 (`includeBuild`) or local repository setup until artifacts are released.
 

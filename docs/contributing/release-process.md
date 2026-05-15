@@ -55,6 +55,7 @@ Before tagging:
 - [ ] Console JS harnesses pass: `npm run console:test:all` (the group-to-file source of truth is `scripts/console-tests.json`)
 - [ ] Console browser smoke passes when console layout, connection, or handoff UI changed: `npm run console:smoke`
 - [ ] Console responsive stress passes when layout, global status, activity-drift, or agent-state UI changed: `npm run console:responsive:stress`
+- [ ] CLI/MCP package script tests pass: `npm run release:package:test`
 - [ ] Whitespace clean: `git diff --check`
 - [ ] Gradle help has no deprecation warnings when build logic changed: `./gradlew help --warning-mode all --no-daemon`
 - [ ] Connected smoke harness on a real device or unlocked emulator: `scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample`
@@ -106,7 +107,16 @@ Before tagging:
    git push origin main v0.2.0
    ```
 
-6. Create the GitHub Release from the tag using the new CHANGELOG section as
+6. Build and attach the CLI/MCP package. The `Release CLI/MCP Package`
+   workflow runs on `v*.*.*` tags and creates a draft release asset named
+   `fixthis-cli-mcp-v0.2.0.tar.gz`. If running locally instead:
+
+   ```bash
+   ./scripts/package-cli-release.sh --version v0.2.0
+   gh release upload v0.2.0 build/release/fixthis-cli-mcp-v0.2.0.tar.gz --clobber
+   ```
+
+7. Create or update the GitHub Release from the tag using the new CHANGELOG section as
    the release body:
 
    ```bash

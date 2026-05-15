@@ -27,6 +27,24 @@ For the fastest sample setup, use the shortcut:
 ./scripts/bootstrap-mcp.sh --sample
 ```
 
+## Agent-First Desktop Install
+
+After a GitHub Release includes the CLI/MCP package asset, an agent can install
+the desktop tools and register MCP from inside an Android app repository:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
+  | bash -s -- --version vX.Y.Z --init --target codex --project-dir .
+```
+
+Use `--target claude` for Claude Code or `--target all` for both. If package
+detection is ambiguous, add `--package <applicationId>`.
+
+This install path covers the desktop CLI and MCP server. The Android app still
+needs the debug-only FixThis Gradle wiring from
+[Add FixThis to your app](add-to-your-app.md) until Maven Central and Gradle
+Plugin Portal artifacts are available.
+
 ## Claude Code
 
 ```bash

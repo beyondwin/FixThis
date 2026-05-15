@@ -26,8 +26,7 @@ For a real app, replace the sample shortcut with the app's Android
 ./scripts/bootstrap-mcp.sh --package <applicationId>
 ```
 
-For published / installed CLI usage inside an Android app repo, agents should
-prefer:
+For installed CLI usage inside an Android app repo, agents should prefer:
 
 ```bash
 fixthis init
@@ -36,6 +35,19 @@ fixthis init
 `fixthis init` writes Claude Code / Codex MCP config by default and can infer a
 unique Android `applicationId` from Gradle build files when `.fixthis/project.json`
 does not exist. Use `fixthis init --dry-run` to preview the writes.
+
+After a GitHub Release includes the CLI/MCP package asset, an agent can install
+the desktop tools before running `fixthis init`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
+  | bash -s -- --version vX.Y.Z --init --target codex --project-dir .
+```
+
+Use `--target claude` or `--target all` for other MCP clients. This only
+installs the desktop CLI/MCP tools; external Android apps still need the
+debug-only Gradle wiring described in the getting-started docs until Maven
+Central and Gradle Plugin Portal artifacts exist.
 
 Useful variants:
 
