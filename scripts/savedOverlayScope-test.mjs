@@ -5,7 +5,10 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const renderingSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/rendering.js'), 'utf8');
+const renderingSource = [
+  'fixthis-mcp/src/main/console/presentation/selectionOverlayView.js',
+  'fixthis-mcp/src/main/console/presentation/annotationDetailView.js',
+].map(file => readFileSync(resolve(root, file), 'utf8')).join('\n');
 const previewSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/preview.js'), 'utf8');
 
 function body(source, signature) {

@@ -9,7 +9,7 @@ const stateSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/sta
 const annotationsSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/annotations.js'), 'utf8');
 const mainSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/main.js'), 'utf8');
 const previewSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/preview.js'), 'utf8');
-const renderingSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/rendering.js'), 'utf8');
+const renderingSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/presentation/selectionOverlayView.js'), 'utf8');
 
 function body(source, signature) {
   const start = source.indexOf(signature);
