@@ -26,12 +26,14 @@ import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 import io.beyondwin.fixthis.mcp.session.SnapshotDto
 import io.beyondwin.fixthis.mcp.session.SnapshotRootDto
 import io.beyondwin.fixthis.mcp.session.SnapshotScreenshotDto
+import io.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.io.File
 import java.net.HttpURLConnection
 import java.nio.file.Files
 import java.util.concurrent.LinkedBlockingQueue
@@ -65,6 +67,16 @@ private inline fun withConsoleServer(service: FeedbackSessionService, block: (Fe
         block(server)
     } finally {
         server.stop()
+    }
+}
+
+private fun eventLogByteCount(root: File): Long {
+    if (!root.exists()) return 0L
+    return Files.walk(root.toPath()).use { paths ->
+        paths
+            .filter { Files.isRegularFile(it) }
+            .mapToLong { Files.size(it) }
+            .sum()
     }
 }
 
@@ -528,6 +540,50 @@ class ConsoleFeedbackItemRoutesTest {
                 assertEquals(1, stored.items.size)
                 assertEquals("workspace-a", stored.items.single().clientWorkspaceId)
                 assertEquals("draft-a", stored.items.single().clientDraftItemId)
+            }
+        }
+    }
+
+    @Test
+    fun batchItemsApiDoesNotAppendEventForFullWorkspaceDuplicate() {
+        withTempProject("fixthis-console-noop-event-log") { projectRoot ->
+            val eventRoot = File(projectRoot, "events")
+            val service = FeedbackSessionService(
+                bridge = FakeFixThisBridge(),
+                store = FeedbackSessionStore(
+                    clock = FakeLongs(100L, 200L, 300L, 400L, 500L, 600L).next,
+                    idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1", "item-1", "item-2").next,
+                    eventLogWriterProvider = { sessionId -> EventLogWriter(File(eventRoot, "$sessionId/events")) },
+                ),
+                projectRoot = projectRoot.absolutePath,
+                defaultPackageName = "io.beyondwin.fixthis.sample",
+            )
+            service.openSession(null, newSession = true)
+            val preview = runBlocking { service.capturePreview("session-1") }
+            val screenJson = fixThisJson.encodeToString(preview.screen)
+            val body = """
+                {
+                  "workspaceId": "workspace-a",
+                  "previewId": "${preview.previewId}",
+                  "screen": $screenJson,
+                  "items": [{
+                    "draftItemId": "draft-a",
+                    "targetType": "area",
+                    "bounds": {"left":1.0,"top":2.0,"right":30.0,"bottom":40.0},
+                    "comment": "save once"
+                  }]
+                }
+            """.trimIndent()
+
+            withConsoleServer(service) { server ->
+                val client = ConsoleHttpTestClient(server.url)
+                assertEquals(200, client.postJson("/api/items/batch", body).statusCode)
+                val eventLogBytesAfterFirstSave = eventLogByteCount(eventRoot)
+
+                assertEquals(200, client.postJson("/api/items/batch", body).statusCode)
+                val eventLogBytesAfterDuplicateSave = eventLogByteCount(eventRoot)
+
+                assertEquals(eventLogBytesAfterFirstSave, eventLogBytesAfterDuplicateSave)
             }
         }
     }

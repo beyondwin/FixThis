@@ -209,51 +209,50 @@ internal class FeedbackSessionStoreDelegate(
         screen: SnapshotDto,
         items: List<AnnotationDto>,
         eventMetadata: JsonObject = JsonObject(emptyMap()),
-    ): SessionDto = withEventBackedMutation(sessionId, "addScreenWithItems") {
-        require(items.isNotEmpty()) { "At least one feedback item is required" }
-        val session = getSessionLocked(sessionId)
-        val existingClientKeys = session.items.mapNotNull { it.clientDraftKey() }.toSet()
-        val newItems = items.filterNot { item ->
-            item.clientDraftKey()?.let { it in existingClientKeys } == true
-        }
-        if (newItems.isEmpty()) {
+    ): SessionDto = withOptionalEventBackedMutation(
+        sessionId = sessionId,
+        type = "addScreenWithItems",
+        noop = { getSessionLocked(sessionId) },
+        prepare = {
+            require(items.isNotEmpty()) { "At least one feedback item is required" }
+            val session = getSessionLocked(sessionId)
+            val existingClientKeys = session.items.mapNotNull { it.clientDraftKey() }.toSet()
+            val newItems = items.filterNot { item ->
+                item.clientDraftKey()?.let { it in existingClientKeys } == true
+            }
+            if (newItems.isEmpty()) {
+                return@withOptionalEventBackedMutation null
+            }
             val duplicateItems = matchingClientDraftItems(session, items)
-            val duplicateScreen = duplicateScreenFor(session, duplicateItems, screen)
-            return@withEventBackedMutation addScreenWithItemsPayload(
-                sessionId = sessionId,
-                eventMetadata = eventMetadata,
-                screen = duplicateScreen,
-                items = duplicateItems,
-            ) to { session }
-        }
-        val duplicateItems = matchingClientDraftItems(session, items)
-        val now = clock()
-        val captured = screenForIncomingBatch(
-            session = session,
-            duplicateItems = duplicateItems,
-            requestedScreen = screen,
-            idGenerator = idGenerator,
-            now = now,
-        )
-        val createdItems = createScreenItems(session, captured, newItems, now, idGenerator)
-        val firstSequence = session.migratedNextItemSequenceNumber()
-        val nextSequence = createdItems.mapNotNull { it.sequenceNumber }.maxOrNull()?.plus(1) ?: firstSequence
-        val screens = appendScreenIfMissing(session, captured)
-        val updated = session.copy(
-            screens = screens,
-            items = session.items + createdItems,
-            nextItemSequenceNumber = maxOf(firstSequence, nextSequence),
-            updatedAtEpochMillis = now,
-        )
-        addScreenWithItemsPayload(
-            sessionId = sessionId,
-            eventMetadata = eventMetadata,
-            screen = captured,
-            items = createdItems,
-        ) to {
-            commitSessionMutation(session, updated)
-        }
-    }
+            val now = clock()
+            val captured = screenForIncomingBatch(
+                session = session,
+                duplicateItems = duplicateItems,
+                requestedScreen = screen,
+                idGenerator = idGenerator,
+                now = now,
+            )
+            val createdItems = createScreenItems(session, captured, newItems, now, idGenerator)
+            val firstSequence = session.migratedNextItemSequenceNumber()
+            val nextSequence = createdItems.mapNotNull { it.sequenceNumber }.maxOrNull()?.plus(1) ?: firstSequence
+            val screens = appendScreenIfMissing(session, captured)
+            val updated = session.copy(
+                screens = screens,
+                items = session.items + createdItems,
+                nextItemSequenceNumber = maxOf(firstSequence, nextSequence),
+                updatedAtEpochMillis = now,
+            )
+            EventBackedMutation(
+                payload = addScreenWithItemsPayload(
+                    sessionId = sessionId,
+                    eventMetadata = eventMetadata,
+                    screen = captured,
+                    items = createdItems,
+                ),
+                mutate = { commitSessionMutation(session, updated) },
+            )
+        },
+    )
 
     private fun addScreenWithItemsPayload(
         sessionId: String,
@@ -554,6 +553,11 @@ internal class FeedbackSessionStoreDelegate(
     // Event log helpers
     // ------------------------------------------------------------------
 
+    private data class EventBackedMutation<T>(
+        val payload: JsonObject,
+        val mutate: () -> T,
+    )
+
     private fun <T> withEventBackedMutation(
         sessionId: String,
         type: String,
@@ -564,6 +568,21 @@ internal class FeedbackSessionStoreDelegate(
             // Throws EventLogException on failure, so mutate() is never reached.
             journal.append(sessionId = sessionId, type = type, payload = payload)
             mutate()
+        }
+        compactEventLogAfterMutation(sessionId)
+        return result
+    }
+
+    private fun <T> withOptionalEventBackedMutation(
+        sessionId: String,
+        type: String,
+        prepare: () -> EventBackedMutation<T>?,
+        noop: () -> T,
+    ): T {
+        val result = synchronized(lock) {
+            val prepared = prepare() ?: return@synchronized noop()
+            journal.append(sessionId = sessionId, type = type, payload = prepared.payload)
+            prepared.mutate()
         }
         compactEventLogAfterMutation(sessionId)
         return result
