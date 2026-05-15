@@ -5,6 +5,8 @@
               const source = consoleEventsSource = new EventSource('/api/events');
               const json = (event) => { try { return JSON.parse(event.data || '{}'); } catch (_) { return {}; } };
               const on = (name, fn) => source.addEventListener(name, (event) => fn(json(event)));
+              const activeSessionId = () => state.session?.sessionId || null;
+              const matchesActiveSession = (data) => Boolean(data?.sessionId && data.sessionId === state.session?.sessionId);
               on('snapshot', (data) => {
                 if ('session' in data) setConsoleSession(data.session || null);
                 if (data.sessions?.sessions) renderSessionsListFromPayload(data.sessions.sessions);
@@ -14,14 +16,25 @@
               });
               on('session-updated', (data) => {
                 if (!data.session) return;
-                setConsoleSession(data.session);
+                if (activeSessionId() && !matchesActiveSession(data)) {
+                  refreshSessions().catch(showError);
+                  return;
+                }
+                const session = data.session;
+                setConsoleSession(session);
                 loadPendingRecoveryForCurrentSession();
                 render();
               });
               on('sessions-updated', (data) => data.sessions?.sessions ? renderSessionsListFromPayload(data.sessions.sessions) : refreshSessions().catch(showError));
               on('preview-ready', (data) => {
                 if (!data.preview || draftFlow()) return;
-                setConsolePreview({ ...data.preview, activity: state.connection?.availability?.activity ?? null, frozenAtEpochMillis: Date.now(), stale: false });
+                if (data.sessionId !== state.session?.sessionId) return;
+                setConsolePreview({
+                  ...data.preview,
+                  activity: state.connection?.availability?.activity ?? null,
+                  frozenAtEpochMillis: Date.now(),
+                  stale: false
+                });
                 renderPreviewOnly();
               });
               on('devices-updated', (data) => renderDeviceList(data.devices || data));

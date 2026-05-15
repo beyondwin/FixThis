@@ -60,18 +60,7 @@ internal class PreviewRoutes(
     private fun HttpExchange.handlePreviewCapture() = requireMethod("GET") {
         val session = service.requireCurrentSession()
         val preview = runBlocking { service.capturePreview(session.sessionId) }
-        eventBus.emit(
-            "preview-ready",
-            buildJsonObject {
-                put(
-                    "preview",
-                    fixThisJson.encodeToJsonElement(
-                        FeedbackPreviewSnapshot.serializer(),
-                        preview,
-                    ).jsonObject,
-                )
-            },
-        )
+        eventBus.emitPreviewReady(session.sessionId, preview)
         sendJson(200, preview)
     }
 

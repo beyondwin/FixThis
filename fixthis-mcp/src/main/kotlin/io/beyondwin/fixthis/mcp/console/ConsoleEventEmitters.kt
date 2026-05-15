@@ -12,6 +12,7 @@ internal fun ConsoleEventBus.emitSessionUpdated(session: SessionDto) {
     emit(
         "session-updated",
         buildJsonObject {
+            put("sessionId", session.sessionId)
             put("session", fixThisJson.encodeToJsonElement(SessionDto.serializer(), session).jsonObject)
         },
     )
@@ -19,6 +20,25 @@ internal fun ConsoleEventBus.emitSessionUpdated(session: SessionDto) {
         "sessions-updated",
         buildJsonObject {
             put("sessionId", session.sessionId)
+        },
+    )
+}
+
+internal fun ConsoleEventBus.emitPreviewReady(
+    sessionId: String,
+    preview: FeedbackPreviewSnapshot,
+) {
+    emit(
+        "preview-ready",
+        buildJsonObject {
+            put("sessionId", sessionId)
+            put(
+                "preview",
+                fixThisJson.encodeToJsonElement(
+                    FeedbackPreviewSnapshot.serializer(),
+                    preview,
+                ).jsonObject,
+            )
         },
     )
 }

@@ -1,8 +1,10 @@
 package io.beyondwin.fixthis.mcp.console
 
+import io.beyondwin.fixthis.mcp.console.events.ConsoleEvent
 import io.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
 import io.beyondwin.fixthis.mcp.fixtures.ConsoleRouteTestFixtures.newConsoleSessionFixtureWithTempRoot
 import io.beyondwin.fixthis.mcp.fixtures.FakeIds
+import kotlinx.serialization.json.jsonPrimitive
 import java.net.HttpURLConnection
 import java.net.URI
 import java.util.concurrent.LinkedBlockingQueue
@@ -83,6 +85,30 @@ class ConsoleEventsRoutesTest {
             assertTrue(names.contains("connection-updated"), names.toString())
             assertTrue(names.contains("devices-updated"), names.toString())
             assertTrue(names.contains("preview-ready"), names.toString())
+        } finally {
+            server.stop()
+            fixture.close()
+        }
+    }
+
+    @Test
+    fun previewReadyEventIncludesSessionId() {
+        val fixture = newConsoleSessionFixtureWithTempRoot(
+            idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1").next,
+        )
+        val bus = ConsoleEventBus(clock = { 1L })
+        val seen = LinkedBlockingQueue<ConsoleEvent>()
+        bus.subscribe { event -> seen += event }
+        val server = FeedbackConsoleServer(fixture.service, eventBus = bus)
+        try {
+            fixture.service.openSession(null, newSession = true)
+            server.start()
+
+            get(server.url, "/api/preview")
+
+            val previewEvent = generateSequence { seen.poll(1, TimeUnit.SECONDS) }
+                .first { it.name == "preview-ready" }
+            assertEquals("session-1", previewEvent.data.getValue("sessionId").jsonPrimitive.content)
         } finally {
             server.stop()
             fixture.close()
