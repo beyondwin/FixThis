@@ -125,16 +125,17 @@ Before publishing Maven Central or Gradle Plugin Portal artifacts:
 4. Run local/dry-run packaging validation:
 
    ```bash
-   ./gradlew publishToMavenLocal --dry-run --no-daemon
+   scripts/create-central-portal-bundle.sh X.Y.Z build/central-repo build/central-bundle.zip
    ./gradlew -p fixthis-gradle-plugin publishToMavenLocal --dry-run --no-daemon
    ./gradlew :fixthis-gradle-plugin:validatePlugins --no-daemon
    ```
 
 5. Publish from an explicitly approved manual workflow or local maintainer
    machine. Maven Central artifacts are published through
-   `.github/workflows/publish-maven-central.yml`, which uploads
-   `:fixthis-compose-core` and `:fixthis-compose-sidekick` with the requested
-   release version.
+   `.github/workflows/publish-maven-central.yml`, which builds a signed Central
+   Portal bundle for `:fixthis-compose-core` and
+   `:fixthis-compose-sidekick`, uploads it to the Publisher API, and waits for
+   the deployment to reach `PUBLISHED`.
 6. Verify from a clean external consumer project that:
 
    ```kotlin

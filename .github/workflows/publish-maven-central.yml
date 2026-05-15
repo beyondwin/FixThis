@@ -47,24 +47,74 @@ jobs:
           done
 
       - name: Publish Maven artifacts
+        id: bundle
         shell: bash
         run: |
           set -euo pipefail
           version="${{ inputs.version }}"
           version="${version#v}"
-          ./gradlew \
-            :fixthis-compose-core:publishMavenPublicationToCentralPortalRepository \
-            :fixthis-compose-sidekick:publishDebugPublicationToCentralPortalRepository \
-            -PFIXTHIS_VERSION="$version" \
-            --no-daemon
+          bundle="$RUNNER_TEMP/fixthis-maven-central-$version.zip"
+          REQUIRE_SIGNATURES=1 ./scripts/create-central-portal-bundle.sh "$version" "$RUNNER_TEMP/central-repo" "$bundle"
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+          echo "bundle=$bundle" >>"$GITHUB_OUTPUT"
 
-      - name: Promote Maven staging repository
+      - name: Upload Maven Central deployment
+        id: upload
         shell: bash
         run: |
           set -euo pipefail
-          namespace="io.github.beyondwin"
           token="$(printf '%s:%s' "$MAVEN_CENTRAL_USERNAME" "$MAVEN_CENTRAL_PASSWORD" | base64 -w0)"
-          curl -fsSL \
-            -X POST \
-            -H "Authorization: Bearer $token" \
-            "https://ossrh-staging-api.central.sonatype.com/manual/upload/defaultRepository/$namespace?publishing_type=automatic"
+          response="$RUNNER_TEMP/maven-central-upload-response.txt"
+          status="$(
+            curl -sS \
+              -o "$response" \
+              -w "%{http_code}" \
+              -X POST \
+              -H "Authorization: Bearer $token" \
+              --form "bundle=@${{ steps.bundle.outputs.bundle }};type=application/octet-stream" \
+              "https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC&name=fixthis-${{ steps.bundle.outputs.version }}"
+          )"
+          if [[ "$status" != 2* ]]; then
+            echo "::error title=Maven Central upload failed::HTTP $status"
+            cat "$response"
+            exit 1
+          fi
+          deployment_id="$(tr -d '\r\n' <"$response")"
+          echo "deployment_id=$deployment_id" >>"$GITHUB_OUTPUT"
+          echo "Maven Central deployment: $deployment_id"
+
+      - name: Wait for Maven Central publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(printf '%s:%s' "$MAVEN_CENTRAL_USERNAME" "$MAVEN_CENTRAL_PASSWORD" | base64 -w0)"
+          deployment_id="${{ steps.upload.outputs.deployment_id }}"
+          for attempt in {1..60}; do
+            response="$(
+              curl -fsSL \
+                -X POST \
+                -H "Authorization: Bearer $token" \
+                "https://central.sonatype.com/api/v1/publisher/status?id=$deployment_id"
+            )"
+            state="$(printf '%s' "$response" | jq -r '.deploymentState')"
+            echo "Maven Central deployment state: $state"
+            case "$state" in
+              PUBLISHED)
+                exit 0
+                ;;
+              FAILED)
+                printf '%s\n' "$response" | jq .
+                exit 1
+                ;;
+              PENDING|VALIDATING|VALIDATED|PUBLISHING)
+                sleep 10
+                ;;
+              *)
+                printf '%s\n' "$response" | jq .
+                echo "::error title=Unknown Maven Central deployment state::$state"
+                exit 1
+                ;;
+            esac
+          done
+          echo "::error title=Maven Central publication timed out::Deployment $deployment_id did not publish in time"
+          exit 1

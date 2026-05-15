@@ -122,7 +122,7 @@ requireIncludes(
 requireIncludes(
   'R8.maven-publish-workflow',
   '.github/workflows/publish-maven-central.yml',
-  'publishMavenPublicationToCentralPortalRepository',
+  'https://central.sonatype.com/api/v1/publisher/upload',
 );
 requireIncludes(
   'R9.maven-central-repository',
