@@ -4,6 +4,7 @@ import io.beyondwin.fixthis.cli.BridgeClient
 import io.beyondwin.fixthis.mcp.tools.CliFixThisBridge
 import io.beyondwin.fixthis.mcp.tools.FixThisTools
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
@@ -53,27 +54,66 @@ class McpServer(private val protocol: McpProtocol = McpProtocol()) {
                             protocol.handleRequest(message)?.let { response -> writeResponse(response) }
                             continue
                         }
-                        val requestJob = launch(Dispatchers.IO, start = CoroutineStart.UNDISPATCHED) {
-                            try {
-                                val response = protocol.handleRequest(message) ?: return@launch
-                                writeResponse(response)
-                            } catch (error: CancellationException) {
-                                diagnostics.writeDiagnostic("Cancelled MCP request ${message.idKey}")
-                            } finally {
-                                registry.remove(message.idKey)
-                            }
-                        }
-                        if (requestJob.isActive) {
-                            registry.register(message.idKey, InFlightRequest(message.method, requestJob))
-                            if (!requestJob.isActive) {
-                                registry.remove(message.idKey)
-                            }
-                        }
+                        trackRequest(
+                            scope = this,
+                            message = message,
+                            registry = registry,
+                            writeResponse = ::writeResponse,
+                            diagnosticsLog = { diagnostics.writeDiagnostic(it) },
+                        )
                     }
                 }
             }
             cancelInFlightRequests(registry)
         }
+    }
+
+    /**
+     * Launch the handler for a cancellable [message] and register the resulting
+     * [Job] under the request id so that `notifications/cancelled` can find it.
+     *
+     * The launch uses [CoroutineStart.UNDISPATCHED] so the body starts on the
+     * caller's thread, but if it suspends or completes immediately the job may
+     * already be inactive by the time we reach [InFlightRegistry.register].
+     * The double `isActive` check below preserves the original behaviour: skip
+     * registration entirely when the job has already terminated, and otherwise
+     * remove a stale entry that the `finally` block raced past.
+     */
+    internal suspend fun trackRequest(
+        scope: CoroutineScope,
+        message: McpRequest,
+        registry: InFlightRegistry,
+        writeResponse: suspend (String) -> Unit,
+        diagnosticsLog: (String) -> Unit,
+        handleRequest: suspend (McpRequest) -> String? = { protocol.handleRequest(it) },
+    ) {
+        val requestJob = scope.launch(Dispatchers.IO, start = CoroutineStart.UNDISPATCHED) {
+            try {
+                val response = handleRequest(message) ?: return@launch
+                writeResponse(response)
+            } catch (error: CancellationException) {
+                diagnosticsLog("Cancelled MCP request ${message.idKey}")
+            } finally {
+                registry.remove(message.idKey)
+            }
+        }
+        if (requestJob.isActive) {
+            registry.register(message.idKey, InFlightRequest(message.method, requestJob))
+            if (!requestJob.isActive) {
+                registry.remove(message.idKey)
+            }
+        }
+    }
+
+    /** Test-only entry point that exposes [trackRequest] without touching production diagnostics. */
+    internal suspend fun trackRequestForTest(
+        message: McpRequest,
+        registry: InFlightRegistry,
+        writeResponse: suspend (String) -> Unit,
+        handleRequest: suspend (McpRequest) -> String? = { protocol.handleRequest(it) },
+        diagnosticsLog: (String) -> Unit = { /* test no-op */ },
+    ) = coroutineScope {
+        trackRequest(this, message, registry, writeResponse, diagnosticsLog, handleRequest)
     }
 
     private fun OutputStream.writeDiagnostic(message: String) {

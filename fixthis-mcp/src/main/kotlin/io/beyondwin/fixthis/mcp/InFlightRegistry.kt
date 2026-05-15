@@ -41,4 +41,10 @@ internal class InFlightRegistry {
 
     /** Current number of registered requests. Exposed for tests. */
     suspend fun size(): Int = mutex.withLock { requests.size }
+
+    /**
+     * Read-only snapshot of currently registered requests. Exposed for tests
+     * exercising race conditions around register/remove ordering.
+     */
+    suspend fun snapshot(): Map<String, InFlightRequest> = mutex.withLock { requests.toMap() }
 }
