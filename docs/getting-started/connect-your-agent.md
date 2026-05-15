@@ -34,7 +34,7 @@ register MCP from inside an Android app repository:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-  | bash -s -- --version v0.2.2 --init --target codex --project-dir .
+  | bash -s -- --version v0.2.3 --init --target codex --project-dir .
 ```
 
 Use `--target claude` for Claude Code or `--target all` for both. If package

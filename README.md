@@ -45,7 +45,7 @@ The agent should run:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-  | bash -s -- --version v0.2.2
+  | bash -s -- --version v0.2.3
 
 fixthis install-agent --project-dir . --target all
 ./gradlew fixthisSetup
@@ -57,7 +57,7 @@ published Gradle plugin:
 
 ```kotlin
 plugins {
-    id("io.github.beyondwin.fixthis.compose") version "0.2.2"
+    id("io.github.beyondwin.fixthis.compose") version "0.2.3"
 }
 ```
 

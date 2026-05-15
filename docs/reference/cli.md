@@ -106,7 +106,7 @@ fixthis init --target codex --dry-run
 | `--project-dir` | `.` | Android project root. |
 | `--agent` | off | Also write `.fixthis/agent-setup.md`, `.fixthis/agent-setup.json`, and `.fixthis/mcp.json.template`. |
 | `--apply-gradle-plugin` | off | Also apply `io.github.beyondwin.fixthis.compose` to the detected Android app module. |
-| `--plugin-version` | `0.2.2` | FixThis Gradle plugin version to apply when `--apply-gradle-plugin` is set. |
+| `--plugin-version` | `0.2.3` | FixThis Gradle plugin version to apply when `--apply-gradle-plugin` is set. |
 | `--dry-run` | off | Print planned writes without modifying files. |
 | `--target` | `all` | Agent target: `claude`, `codex`, or `all`. |
 | `--server-name` | `fixthis` | MCP server name to write. |
@@ -118,7 +118,7 @@ When using the GitHub Release CLI/MCP package, install the desktop tools first:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-  | bash -s -- --version v0.2.2
+  | bash -s -- --version v0.2.3
 ```
 
 Then run `fixthis init` from the Android app repository.
@@ -155,7 +155,7 @@ fixthis install-agent --project-dir . --target all --dry-run
 | `--target` | `all` | Agent target: `claude`, `codex`, or `all`. |
 | `--server-name` | `fixthis` | MCP server name to write. |
 | `--skip-gradle-plugin` | off | Do not modify the app module build file. |
-| `--plugin-version` | `0.2.2` | FixThis Gradle plugin version to apply. |
+| `--plugin-version` | `0.2.3` | FixThis Gradle plugin version to apply. |
 | `--verbose`, `-v` | off | Print the full Java stack trace on failure. |
 
 After it patches the Gradle file, run `./gradlew fixthisSetup` to generate

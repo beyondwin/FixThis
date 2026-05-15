@@ -33,4 +33,4 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "fixthis-gradle-plugin-build"
+rootProject.name = "fixthis-gradle-plugin"

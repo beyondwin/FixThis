@@ -9,7 +9,7 @@ plugins {
 }
 
 group = providers.gradleProperty("FIXTHIS_GROUP").orElse("io.github.beyondwin").get()
-version = providers.gradleProperty("FIXTHIS_VERSION").orElse("0.2.2-SNAPSHOT").get()
+version = providers.gradleProperty("FIXTHIS_VERSION").orElse("0.2.3-SNAPSHOT").get()
 
 kotlin {
     jvmToolchain(21)

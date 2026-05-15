@@ -33,6 +33,18 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   External source map; build aborts on size budget overflow or missing
   contract symbol.
 
+## [0.2.3] - 2026-05-15
+
+### Fixed
+
+- **Verified public install coordinates (release, 2026-05-15):**
+  - Maven Central publication now includes the Gradle plugin implementation and
+    plugin marker publication in addition to compose core and sidekick.
+  - The Maven Central workflow now uses the Central Portal Publisher API bundle
+    upload path and waits for the deployment to reach `PUBLISHED`.
+  - Public install docs, CLI defaults, npm wrapper metadata, and MCP Registry
+    metadata now point agents at `0.2.3`.
+
 ## [0.2.2] - 2026-05-15
 
 ### Fixed

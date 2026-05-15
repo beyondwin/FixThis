@@ -17,7 +17,7 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   exit 0
 fi
 
-version="${1:?version is required, for example 0.2.2}"
+version="${1:?version is required, for example 0.2.3}"
 repo_dir="${2:?repo dir is required}"
 bundle_path="${3:?bundle path is required}"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -46,6 +46,8 @@ mkdir -p "$repo_dir" "$(dirname "$bundle_path")"
   ./gradlew \
     :fixthis-compose-core:publishMavenPublicationToMavenLocal \
     :fixthis-compose-sidekick:publishDebugPublicationToMavenLocal \
+    :fixthis-gradle-plugin:publishPluginMavenPublicationToMavenLocal \
+    :fixthis-gradle-plugin:publishFixThisComposePluginMarkerMavenPublicationToMavenLocal \
     -Dmaven.repo.local="$repo_dir" \
     -PFIXTHIS_VERSION="$version" \
     --no-daemon

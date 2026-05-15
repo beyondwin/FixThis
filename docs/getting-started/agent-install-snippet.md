@@ -15,7 +15,7 @@ When asked to add FixThis to this Android app:
 
    ```bash
    curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-     | bash -s -- --version v0.2.2
+     | bash -s -- --version v0.2.3
    ```
 3. Run `fixthis install-agent --project-dir . --target all`. This patches the
    detected app module with Gradle plugin `io.github.beyondwin.fixthis.compose`,
@@ -28,7 +28,7 @@ When asked to add FixThis to this Android app:
 
    ```kotlin
    plugins {
-       id("io.github.beyondwin.fixthis.compose") version "0.2.2"
+       id("io.github.beyondwin.fixthis.compose") version "0.2.3"
    }
    ```
 

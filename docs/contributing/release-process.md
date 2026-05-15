@@ -133,9 +133,9 @@ Before publishing Maven Central or Gradle Plugin Portal artifacts:
 5. Publish from an explicitly approved manual workflow or local maintainer
    machine. Maven Central artifacts are published through
    `.github/workflows/publish-maven-central.yml`, which builds a signed Central
-   Portal bundle for `:fixthis-compose-core` and
-   `:fixthis-compose-sidekick`, uploads it to the Publisher API, and waits for
-   the deployment to reach `PUBLISHED`.
+   Portal bundle for `:fixthis-compose-core`, `:fixthis-compose-sidekick`,
+   `:fixthis-gradle-plugin`, and the Gradle plugin marker publication, uploads
+   it to the Publisher API, and waits for the deployment to reach `PUBLISHED`.
 6. Verify from a clean external consumer project that:
 
    ```kotlin
