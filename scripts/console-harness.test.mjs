@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseArgs, selectScenarios, emitJunit } from './console-harness.mjs';
+import { parseArgs, selectScenarios, emitJunit, multiTabDraftEnvelope } from './console-harness.mjs';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -42,6 +42,15 @@ test('selectScenarios expands all and trims CSV', () => {
   assert.ok(all.includes('happy-path'));
   const csv = selectScenarios(' slow-handoff , multi-tab ');
   assert.deepEqual(csv, ['slow-handoff', 'multi-tab']);
+});
+
+test('multiTabDraftEnvelope writes a schema v2 recoverable workspace', () => {
+  const envelope = multiTabDraftEnvelope();
+  assert.equal(envelope.schemaVersion, 2);
+  assert.equal(envelope.sessionId, 'session-1');
+  assert.equal(envelope.context.sessionId, 'session-1');
+  assert.equal(envelope.items.length, 1);
+  assert.equal(envelope.items[0].comment, 'Cross-tab draft');
 });
 
 test('slow handoff is not marked blocked', () => {

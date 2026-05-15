@@ -350,6 +350,14 @@
               renderPendingRecoveryBanner();
             }
 
+            function refreshPendingRecoveryFromExternalStorageChange() {
+              if (!state.session?.sessionId) return;
+              if (draftFlow() || draftItemList().length) return;
+              loadPendingRecoveryForCurrentSession();
+              renderCurrentSessionList();
+              renderInspectorRegion();
+            }
+
             async function recapturePendingRecovery() {
               const recovery = pendingRecovery;
               const items = pendingRecoveryItems(recovery).slice();
@@ -380,6 +388,13 @@
               persistCurrentPendingState();
               renderPendingRecoveryBanner();
               render();
+            }
+
+            if (typeof window !== 'undefined') {
+              window.addEventListener('storage', (event) => {
+                if (!event.key || !event.key.startsWith(DraftWorkspaceKeyPrefix)) return;
+                refreshPendingRecoveryFromExternalStorageChange();
+              });
             }
 
             window.FixThisConsoleDebug = Object.freeze({

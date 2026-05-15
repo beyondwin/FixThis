@@ -72,6 +72,50 @@ export function selectScenarios(matrixArg) {
   return matrixArg.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
+export function multiTabDraftEnvelope() {
+  const now = Date.now();
+  return {
+    schemaVersion: 2,
+    sessionId: 'session-1',
+    workspaceId: 'multi-tab-workspace',
+    revision: 1,
+    lifecycle: 'editing',
+    context: {
+      sessionId: 'session-1',
+      previewId: 'preview-1',
+      screenId: 'screen-1',
+      screenFingerprint: 'fake-fingerprint',
+      deviceSerial: 'fake-device',
+      frozenAtEpochMillis: now,
+      activityName: 'FakeActivity',
+    },
+    screen: {
+      screenId: 'screen-1',
+      capturedAtEpochMillis: now,
+      displayName: 'Fake screen',
+      roots: [],
+      sourceIndexAvailable: false,
+    },
+    screenshotUrl: '/api/preview/preview-1/screenshot/full',
+    items: [{
+      draftItemId: 'draft-multi-tab-1',
+      itemId: 'draft-multi-tab-1',
+      screenId: 'screen-1',
+      createdAtEpochMillis: now,
+      updatedAtEpochMillis: now,
+      target: {
+        type: 'visual_area',
+        boundsInWindow: { left: 10, top: 10, right: 80, bottom: 80 },
+      },
+      comment: 'Cross-tab draft',
+      sequenceNumber: 1,
+      status: 'open',
+    }],
+    history: { undoStack: [], redoStack: [] },
+    updatedAtEpochMillis: now,
+  };
+}
+
 function selectViewports(viewportArg, scenarioKey) {
   const allowed = SCENARIOS[scenarioKey].requiredViewports;
   if (viewportArg === 'all') return allowed;
@@ -144,9 +188,19 @@ async function runCell({ playwright, scenarioKey, viewportKey, args }) {
       // signals on the *receiver* page (here: `second`).
       const second = await context.newPage();
       await second.goto(fixture.url, { waitUntil: 'domcontentloaded' });
-      // TODO: trigger a draft write on `page` and assert that `second`
-      // observes the change (storage event or polling fallback). Receiver
-      // must be `second`, never `page`.
+      await second.getByTestId('connection-card').waitFor({ state: 'attached', timeout: 8000 });
+      await page.evaluate((envelope) => {
+        localStorage.setItem('fixthis.workspace.index.session-1', JSON.stringify([envelope.workspaceId]));
+        localStorage.setItem(
+          `fixthis.workspace.session-1.${envelope.workspaceId}`,
+          JSON.stringify(envelope),
+        );
+      }, multiTabDraftEnvelope());
+      await second.getByTestId('pending-recovery-banner').waitFor({ state: 'visible', timeout: 8000 });
+      const recoveryText = await second.getByTestId('pending-recovery-banner').textContent();
+      if (!/Cross-tab draft|draft comment/i.test(recoveryText || '')) {
+        throw new Error(`receiver tab did not render cross-tab draft recovery: ${recoveryText}`);
+      }
       await second.close();
     } else {
       await page.waitForSelector('body');
