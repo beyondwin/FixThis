@@ -59,7 +59,7 @@ class ConsoleEventsRoutesTest {
             server.start()
             val connection = URI("${server.url}/api/session/open").toURL().openConnection() as HttpURLConnection
             connection.requestMethod = "POST"
-            connection.setRequestProperty(ConsoleTokenHeader, server.consoleTokenForTests())
+            connection.setRequestProperty(CONSOLE_TOKEN_HEADER, server.consoleTokenForTests())
             connection.setRequestProperty("content-type", "application/json")
             connection.doOutput = true
             connection.outputStream.use { it.write("""{"newSession":true}""".toByteArray()) }

@@ -123,7 +123,7 @@ class FeedbackConsoleServerTest {
                     method = "DELETE",
                     path = "/api/items/draft",
                     headers = mapOf(
-                        ConsoleTokenHeader to token,
+                        CONSOLE_TOKEN_HEADER to token,
                         "Origin" to "https://example.invalid",
                     ),
                 ),
@@ -150,7 +150,7 @@ class FeedbackConsoleServerTest {
                     method = "DELETE",
                     path = "/api/items/draft",
                     headers = mapOf(
-                        ConsoleTokenHeader to token,
+                        CONSOLE_TOKEN_HEADER to token,
                         "Origin" to server.url,
                     ),
                 ),
@@ -177,7 +177,7 @@ class FeedbackConsoleServerTest {
                     method = "DELETE",
                     path = "/api/items/draft",
                     headers = mapOf(
-                        ConsoleTokenHeader to token,
+                        CONSOLE_TOKEN_HEADER to token,
                         "Origin" to server.url,
                     ),
                 ),

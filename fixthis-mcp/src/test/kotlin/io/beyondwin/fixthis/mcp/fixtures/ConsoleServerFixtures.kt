@@ -2,7 +2,7 @@ package io.beyondwin.fixthis.mcp.fixtures
 
 import io.beyondwin.fixthis.cli.AdbDevice
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.beyondwin.fixthis.mcp.console.ConsoleTokenHeader
+import io.beyondwin.fixthis.mcp.console.CONSOLE_TOKEN_HEADER
 import io.beyondwin.fixthis.mcp.session.AnnotationDto
 import io.beyondwin.fixthis.mcp.session.AnnotationTargetDto
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
@@ -485,7 +485,7 @@ internal class ConsoleHttpTestClient(
         val connection = java.net.URI(baseUrl + path).toURL().openConnection() as java.net.HttpURLConnection
         connection.requestMethod = "GET"
         if (path.startsWith("/api/")) {
-            consoleToken?.let { connection.setRequestProperty(ConsoleTokenHeader, it) }
+            consoleToken?.let { connection.setRequestProperty(CONSOLE_TOKEN_HEADER, it) }
         }
         for ((name, value) in headers) {
             connection.setRequestProperty(name, value)
@@ -506,7 +506,7 @@ internal class ConsoleHttpTestClient(
         val connection = java.net.URI(baseUrl + path).toURL().openConnection() as java.net.HttpURLConnection
         connection.requestMethod = method
         if (path.startsWith("/api/")) {
-            consoleToken?.let { connection.setRequestProperty(ConsoleTokenHeader, it) }
+            consoleToken?.let { connection.setRequestProperty(CONSOLE_TOKEN_HEADER, it) }
         }
         if (body != null) {
             connection.doOutput = true
@@ -522,7 +522,7 @@ internal class ConsoleHttpTestClient(
         conn.doOutput = true
         conn.setRequestProperty("Content-Type", "application/json")
         if (path.startsWith("/api/")) {
-            consoleToken?.let { conn.setRequestProperty(ConsoleTokenHeader, it) }
+            consoleToken?.let { conn.setRequestProperty(CONSOLE_TOKEN_HEADER, it) }
         }
         conn.outputStream.use { output -> output.write(body.toByteArray(Charsets.UTF_8)) }
         val statusCode = conn.responseCode

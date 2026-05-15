@@ -4,7 +4,9 @@ import com.sun.net.httpserver.HttpExchange
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 
-internal const val ConsoleTokenHeader = "X-FixThis-Console-Token"
+internal const val CONSOLE_TOKEN_HEADER = "X-FixThis-Console-Token"
+
+private const val FORBIDDEN_STATUS = 403
 
 internal data class ConsoleRequestAuthConfig(
     val token: String,
@@ -18,16 +20,20 @@ internal fun HttpExchange.requiresConsoleMutationGuard(): Boolean =
     requestURI.path.startsWith("/api/") && requestMethod.uppercase() in ConsoleMutatingMethods
 
 internal fun HttpExchange.requireConsoleMutationAllowed(config: ConsoleRequestAuthConfig) {
+    val failure = consoleMutationAuthFailure(config)
+    if (failure != null) {
+        throw FeedbackConsoleHttpException(FORBIDDEN_STATUS, failure)
+    }
+}
+
+private fun HttpExchange.consoleMutationAuthFailure(config: ConsoleRequestAuthConfig): String? {
     val origin = requestHeaders.getFirst("Origin")
-    if (origin != null && !origin.isAllowedConsoleOrigin(config)) {
-        throw FeedbackConsoleHttpException(403, "Forbidden origin")
-    }
     val host = requestHeaders.getFirst("Host")
-    if (host != null && !host.isAllowedConsoleHost(config)) {
-        throw FeedbackConsoleHttpException(403, "Forbidden host")
-    }
-    if (!constantTimeEquals(config.token, requestHeaders.getFirst(ConsoleTokenHeader))) {
-        throw FeedbackConsoleHttpException(403, "Missing console token")
+    return when {
+        origin != null && !origin.isAllowedConsoleOrigin(config) -> "Forbidden origin"
+        host != null && !host.isAllowedConsoleHost(config) -> "Forbidden host"
+        !constantTimeEquals(config.token, requestHeaders.getFirst(CONSOLE_TOKEN_HEADER)) -> "Missing console token"
+        else -> null
     }
 }
 
