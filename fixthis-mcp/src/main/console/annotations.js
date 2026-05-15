@@ -1,4 +1,4 @@
-// @requires state.js, draftWorkspace.js, draftUseCases.js, draftCommandQueue.js
+// @requires state.js, draftWorkspace.js, draftUseCases.js, draftCommandQueue.js, viewmodel/reliabilityPresentation.js, viewmodel/annotationPresentation.js
             function isInteractionBlocked() {
               return Boolean(state.connection?.interactionBlockedReason);
             }
@@ -25,29 +25,6 @@
               return item.label || pendingTargetLabel(item) + ' #' + (index + 1);
             }
 
-            function annotationSeverity(item) {
-              return item.severity || 'med';
-            }
-
-            function annotationStatus(item) {
-              return String(item.status || 'open').replace('_', '-');
-            }
-
-            function reliabilityWarnings(item) {
-              return item?.targetReliability?.warnings || [];
-            }
-
-            function reliabilityConfidence(item) {
-              return String(item?.targetReliability?.confidence || 'unknown').toLowerCase();
-            }
-
-            function reliabilityLabel(item) {
-              const confidence = reliabilityConfidence(item);
-              if (confidence === 'unknown') return '';
-              const warnings = reliabilityWarnings(item);
-              return warnings.length ? confidence + ' · ' + countLabel(warnings.length, 'warning', 'warnings') : confidence;
-            }
-
             function severityColor(severity) {
               if (severity === 'high') return '#f26d6d';
               if (severity === 'low') return '#5bb4e8';
@@ -62,43 +39,6 @@
               const green = parseInt(hex.slice(2, 4), 16);
               const blue = parseInt(hex.slice(4, 6), 16);
               return 'rgba(' + red + ', ' + green + ', ' + blue + ', ' + alpha + ')';
-            }
-
-            function lifecyclePhase(item) {
-              const status = String(item?.status || 'open').replace('-', '_');
-              if (status === 'resolved') return 'resolved';
-              if (status === 'wont_fix') return 'wont_fix';
-              if (status === 'needs_clarification') return 'needs_clarification';
-              if (status === 'in_progress') return 'in_progress';
-              if (item?.delivery === 'sent') {
-                return item?.staleAfterHandoff ? 'sent_modified' : 'sent';
-              }
-              return 'draft';
-            }
-
-            function statusLabel(item) {
-              switch (lifecyclePhase(item)) {
-                case 'resolved': return 'Resolved';
-                case 'wont_fix': return 'Won\'t Fix';
-                case 'needs_clarification': return 'Needs Clarification';
-                case 'in_progress': return 'In Progress';
-                case 'sent_modified': return 'Sent · Modified';
-                case 'sent': return 'Sent';
-                default: return 'Draft';
-              }
-            }
-
-            function statusClass(item) {
-              return 'st-' + lifecyclePhase(item).replace('_', '-');
-            }
-
-            function statusValueLabel(value) {
-              const normalized = String(value || 'open').replace('-', '_');
-              if (normalized === 'in_progress') return 'In Progress';
-              if (normalized === 'needs_clarification') return 'Needs Clarification';
-              if (normalized === 'wont_fix') return 'Won\'t Fix';
-              if (normalized === 'resolved') return 'Resolved';
-              return 'Open';
             }
 
             // Display-side annotations for the toolbar counter and the right Annotations panel.
@@ -149,77 +89,6 @@
                 .filter(item => item.delivery !== 'sent')
                 .filter(hasWrittenAnnotationComment);
             }
-
-            function promptReadinessState() {
-              if (pollingUseCases.getState().promptActionInFlight) {
-                return {
-                  state: 'busy',
-                  label: 'Preparing handoff...',
-                  title: 'Preparing the local handoff. Buttons are disabled until this finishes.',
-                };
-              }
-              const annotations = toolbarAnnotations();
-              if (!state.session || annotations.length === 0) {
-                return {
-                  state: 'empty',
-                  label: 'No annotations ready',
-                  title: 'Add an annotation to prepare an agent handoff.',
-                };
-              }
-              const unsent = annotations.filter(item => item.delivery !== 'sent');
-              const ready = unsent.filter(hasWrittenAnnotationComment);
-              const missing = unsent.length - ready.length;
-              const warningCount = annotations.reduce((total, item) => total + reliabilityWarnings(item).length, 0);
-              if (ready.length > 0) {
-                const itemKind = draftFlow() ? 'draft' : 'saved';
-                return {
-                  state: missing > 0 ? 'blocked' : (warningCount > 0 ? 'warn' : 'ready'),
-                  label: countLabel(ready.length, 'ready', 'ready') +
-                    (missing > 0 ? ' · ' + countLabel(missing, 'missing comment', 'missing comments') : '') +
-                    (missing === 0 && warningCount > 0 ? ' · ' + countLabel(warningCount, 'target warning', 'target warnings') : ''),
-                  title: 'Ready to hand off ' + countLabel(ready.length, itemKind + ' annotation', itemKind + ' annotations') +
-                    (missing > 0 ? '. ' + countLabel(missing, 'annotation needs', 'annotations need') + ' a comment.' : '') +
-                    (missing === 0 && warningCount > 0 ? ' Reliability warnings will be included in the handoff.' : '.'),
-                };
-              }
-              if (missing > 0) {
-                return {
-                  state: 'blocked',
-                  label: countLabel(missing, 'missing comment', 'missing comments'),
-                  title: 'Add a comment before copying or saving feedback.',
-                };
-              }
-              if (annotations.some(item => lifecyclePhase(item) === 'sent_modified')) {
-                return {
-                  state: 'modified',
-                  label: 'Re-save needed',
-                  title: 'Edits changed after handoff. Re-save before agent work.',
-                };
-              }
-              if (annotations.some(item => item.delivery === 'sent')) {
-                return {
-                  state: 'sent',
-                  label: 'Saved to MCP',
-                  title: 'Saved to MCP. Agent can read this local queue.',
-                };
-              }
-              return {
-                state: 'empty',
-                label: 'No annotations ready',
-                title: 'Annotate a UI target and add a comment to enable handoff.',
-              };
-            }
-
-            function renderPromptReadiness() {
-              if (!promptReadiness) return;
-              const readiness = promptReadinessState();
-              promptReadiness.dataset.state = readiness.state;
-              promptReadiness.textContent = readiness.label;
-              promptReadiness.title = readiness.title;
-              copyPromptButton.title = readiness.title;
-              sendAgentButton.title = readiness.title;
-            }
-
 
             function naturalPointFromEvent(event, image) {
               const rect = image.getBoundingClientRect();

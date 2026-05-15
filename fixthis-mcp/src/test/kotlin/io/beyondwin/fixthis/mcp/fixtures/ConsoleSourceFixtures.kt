@@ -12,7 +12,7 @@ object ConsoleSourceFixtures {
     fun readAll(): String = buildString {
         appendLine(Files.readString(resourcesDir.resolve("index.html")))
         appendLine(Files.readString(resourcesDir.resolve("styles.css")))
-        Files.list(jsSourceDir).use { paths ->
+        Files.walk(jsSourceDir).use { paths ->
             paths.filter { it.toString().endsWith(".js") }
                 .sorted()
                 .forEach { appendLine(Files.readString(it)) }

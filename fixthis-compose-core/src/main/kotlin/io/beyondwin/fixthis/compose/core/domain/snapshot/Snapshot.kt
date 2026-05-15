@@ -2,9 +2,8 @@ package io.beyondwin.fixthis.compose.core.domain.snapshot
 
 import io.beyondwin.fixthis.compose.core.domain.annotation.SnapshotScreenshot
 import io.beyondwin.fixthis.compose.core.domain.common.SnapshotId
-import io.beyondwin.fixthis.compose.core.model.FixThisError
-import io.beyondwin.fixthis.compose.core.model.FixThisNode
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.compose.core.domain.ui.DomainRect
+import io.beyondwin.fixthis.compose.core.domain.ui.SemanticsNodeSnapshot
 
 data class Snapshot(
     val id: SnapshotId,
@@ -14,7 +13,7 @@ data class Snapshot(
     val screenshot: SnapshotScreenshot? = null,
     val roots: List<SnapshotRoot> = emptyList(),
     val sourceIndexAvailable: Boolean = false,
-    val errors: List<FixThisError> = emptyList(),
+    val errors: List<DomainError> = emptyList(),
     val orientation: ScreenOrientation? = null,
     val widthPx: Int? = null,
     val heightPx: Int? = null,
@@ -27,7 +26,7 @@ data class Snapshot(
 
 data class SnapshotRoot(
     val rootIndex: Int,
-    val boundsInWindow: FixThisRect,
-    val mergedNodes: List<FixThisNode> = emptyList(),
-    val unmergedNodes: List<FixThisNode> = emptyList(),
+    val boundsInWindow: DomainRect,
+    val mergedNodes: List<SemanticsNodeSnapshot> = emptyList(),
+    val unmergedNodes: List<SemanticsNodeSnapshot> = emptyList(),
 )

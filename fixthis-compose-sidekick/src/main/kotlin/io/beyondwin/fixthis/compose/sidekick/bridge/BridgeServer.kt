@@ -4,6 +4,7 @@ import android.net.LocalServerSocket
 import android.net.LocalSocket
 import android.util.Log
 import androidx.annotation.VisibleForTesting
+import io.beyondwin.fixthis.compose.sidekick.bridge.handlers.defaultBridgeMethodHandlers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -19,19 +20,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.json.encodeToJsonElement
-import kotlinx.serialization.json.jsonPrimitive
-import java.io.File
 import java.io.IOException
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 class BridgeServer(
-    // @VisibleForTesting: tests construct BridgeServer directly to drive the
-    // socket path. Production callers go through FixThisBridgeRuntime which
-    // only consumes resolvedSocketName(). Do not read this outside tests.
     @VisibleForTesting
     internal val session: SidekickSession,
     private val environment: BridgeEnvironment,
@@ -41,6 +34,14 @@ class BridgeServer(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
     private val screenshotReader = BridgeScreenshotReader(environment, ioDispatcher)
+    private val router = BridgeRequestRouter(
+        defaultBridgeMethodHandlers(
+            environment = environment,
+            connectionState = connectionState,
+            screenshotReader = screenshotReader,
+            socketNameProvider = { resolvedSocketName() ?: session.socketName },
+        ),
+    )
 
     private val _state = MutableStateFlow<BridgeServerState>(BridgeServerState.Idle)
     val state: StateFlow<BridgeServerState> = _state.asStateFlow()
@@ -53,12 +54,6 @@ class BridgeServer(
     @Volatile
     private var acceptJob: Job? = null
 
-    /**
-     * The actual socket name [start] bound to (may differ from the session's
-     * configured name if a stale prior binding forced a suffix fallback;
-     * see [BridgeSocketNameNegotiator]). `null` before [start] succeeds or
-     * after [stop].
-     */
     fun resolvedSocketName(): String? = when (val s = _state.value) {
         is BridgeServerState.Running -> s.socketName
         else -> null
@@ -94,15 +89,13 @@ class BridgeServer(
     }
 
     suspend fun stop() = lifecycleMutex.withLock {
-        // Idempotent for Idle/Stopping — re-entrant callers do not wait.
         when (_state.value) {
             BridgeServerState.Idle, BridgeServerState.Stopping -> return@withLock
             else -> Unit
         }
         _state.value = BridgeServerState.Stopping
-        runCatching { serverSocket?.close() } // unblocks accept()
+        runCatching { serverSocket?.close() }
 
-        // Bounded drain. If a handler hangs, log loudly and leak rather than block forever.
         val drained = withTimeoutOrNull(StopDrainTimeout) {
             acceptJob?.cancelAndJoin()
             scope.coroutineContext[Job]?.cancelAndJoin()
@@ -117,7 +110,6 @@ class BridgeServer(
         serverSocket = null
         acceptJob = null
         _state.value = BridgeServerState.Idle
-        // Single-use: scope is now cancelled. Reuse requires a fresh instance.
     }
 
     internal suspend fun handleRequestForTest(payload: String): String = handleRequest(payload)
@@ -164,29 +156,8 @@ class BridgeServer(
             return BridgeProtocol.error(request.id, "UNAUTHORIZED", "Missing or mismatched FixThis bridge token")
         }
         return try {
-            val result = when (request.method) {
-                "heartbeat" -> {
-                    connectionState.markAuthorizedRequest()
-                    BridgeProtocol.json.encodeToJsonElement(BridgeHeartbeatResult())
-                }
-                "status" -> BridgeProtocol.json.encodeToJsonElement(
-                    environment.status().copy(socketName = resolvedSocketName() ?: session.socketName),
-                )
-                "inspectCurrentScreen" -> BridgeProtocol.json.encodeToJsonElement(environment.inspectCurrentScreen())
-                "captureScreenSnapshot" -> BridgeProtocol.json.encodeToJsonElement(environment.captureScreenSnapshot())
-                "readSourceIndex" -> BridgeProtocol.json.encodeToJsonElement(environment.readSourceIndex())
-                "verifyUiChange" -> BridgeProtocol.json.encodeToJsonElement(verifyUiChange(request.params))
-                "readScreenshot" -> BridgeProtocol.json.encodeToJsonElement(screenshotReader.read(request.params))
-                "performNavigation" -> BridgeProtocol.json.encodeToJsonElement(
-                    environment.performNavigation(
-                        BridgeProtocol.json.decodeFromJsonElement(
-                            BridgeNavigationRequest.serializer(),
-                            request.params,
-                        ),
-                    ),
-                )
-                else -> return BridgeProtocol.error(request.id, "UNKNOWN_METHOD", "Unknown bridge method: ${request.method}")
-            }
+            val result = router.route(request.method, request.params)
+                ?: return BridgeProtocol.error(request.id, "UNKNOWN_METHOD", "Unknown bridge method: ${request.method}")
             BridgeProtocol.success(request.id, result)
         } catch (error: CancellationException) {
             throw error
@@ -199,25 +170,6 @@ class BridgeServer(
         }
     }
 
-    private suspend fun verifyUiChange(params: JsonObject): BridgeUiVerificationResult {
-        val expectedText = params.stringParam("expectedText")?.takeIf { it.isNotBlank() }
-            ?: return BridgeUiVerificationResult(
-                verified = false,
-                message = "No expectedText parameter was provided",
-            )
-        val inspection = environment.inspectCurrentScreen()
-        val matched = inspection.roots
-            .flatMap { it.mergedNodes + it.unmergedNodes }
-            .flatMap { node -> node.text + node.contentDescription }
-            .firstOrNull { value -> value.contains(expectedText, ignoreCase = true) }
-        return BridgeUiVerificationResult(
-            verified = matched != null,
-            expectedText = expectedText,
-            matchedText = matched,
-            message = if (matched == null) "Expected text was not found on the current screen" else null,
-        )
-    }
-
     internal companion object {
         const val BridgeServerLogTag = "FixThisBridge"
 
@@ -225,15 +177,3 @@ class BridgeServer(
         internal val StopDrainTimeout: Duration = 5.seconds
     }
 }
-
-interface BridgeEnvironment {
-    suspend fun status(): BridgeStatus
-    suspend fun inspectCurrentScreen(): BridgeScreenInspection
-    suspend fun captureScreenSnapshot(): BridgeScreenSnapshot
-    suspend fun readSourceIndex(): BridgeSourceIndexResult
-    suspend fun getLastScreenSnapshot(): BridgeScreenSnapshot?
-    suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult
-    fun screenshotCacheDirectory(): File
-}
-
-internal fun JsonObject.stringParam(name: String): String? = get(name)?.jsonPrimitive?.content

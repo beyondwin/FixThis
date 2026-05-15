@@ -15,6 +15,18 @@ import io.beyondwin.fixthis.compose.core.domain.snapshot.ScreenOrientation
 import io.beyondwin.fixthis.compose.core.domain.snapshot.Snapshot
 import io.beyondwin.fixthis.compose.core.domain.snapshot.SnapshotRoot
 import io.beyondwin.fixthis.compose.core.domain.snapshot.WindowMode
+import io.beyondwin.fixthis.compose.core.model.toAnnotationEvidence
+import io.beyondwin.fixthis.compose.core.model.toDomainError
+import io.beyondwin.fixthis.compose.core.model.toDomainRect
+import io.beyondwin.fixthis.compose.core.model.toDomainSemanticsNode
+import io.beyondwin.fixthis.compose.core.model.toFixThisError
+import io.beyondwin.fixthis.compose.core.model.toFixThisNode
+import io.beyondwin.fixthis.compose.core.model.toFixThisRect
+import io.beyondwin.fixthis.compose.core.model.toSourceCandidate
+import io.beyondwin.fixthis.compose.core.model.toSourceHint
+import io.beyondwin.fixthis.compose.core.model.toTargetEvidence
+import io.beyondwin.fixthis.compose.core.model.toTargetReliability
+import io.beyondwin.fixthis.compose.core.model.toTargetReliabilityAssessment
 
 fun SessionDto.toDomainSession(): Session = Session(
     id = SessionId(sessionId),
@@ -65,13 +77,13 @@ fun SnapshotDto.toDomainSnapshot(): Snapshot = Snapshot(
     roots = roots.map { root ->
         SnapshotRoot(
             rootIndex = root.rootIndex,
-            boundsInWindow = root.boundsInWindow,
-            mergedNodes = root.mergedNodes,
-            unmergedNodes = root.unmergedNodes,
+            boundsInWindow = root.boundsInWindow.toDomainRect(),
+            mergedNodes = root.mergedNodes.map { node -> node.toDomainSemanticsNode() },
+            unmergedNodes = root.unmergedNodes.map { node -> node.toDomainSemanticsNode() },
         )
     },
     sourceIndexAvailable = sourceIndexAvailable,
-    errors = errors,
+    errors = errors.map { error -> error.toDomainError() },
     orientation = orientation.toScreenOrientationOrNull(),
     widthPx = widthPx,
     heightPx = heightPx,
@@ -91,13 +103,13 @@ fun Snapshot.toSnapshotDto(): SnapshotDto = SnapshotDto(
     roots = roots.map { root ->
         SnapshotRootDto(
             rootIndex = root.rootIndex,
-            boundsInWindow = root.boundsInWindow,
-            mergedNodes = root.mergedNodes,
-            unmergedNodes = root.unmergedNodes,
+            boundsInWindow = root.boundsInWindow.toFixThisRect(),
+            mergedNodes = root.mergedNodes.map { node -> node.toFixThisNode() },
+            unmergedNodes = root.unmergedNodes.map { node -> node.toFixThisNode() },
         )
     },
     sourceIndexAvailable = sourceIndexAvailable,
-    errors = errors,
+    errors = errors.map { error -> error.toFixThisError() },
     orientation = orientation?.name,
     widthPx = widthPx,
     heightPx = heightPx,
@@ -115,9 +127,9 @@ fun AnnotationDto.toDomainAnnotation(sessionId: String): Annotation = Annotation
     createdAtEpochMillis = createdAtEpochMillis,
     updatedAtEpochMillis = updatedAtEpochMillis,
     target = target.toDomainTarget(),
-    selectedNode = selectedNode,
-    nearbyNodes = nearbyNodes,
-    sourceCandidates = sourceCandidates,
+    selectedNode = selectedNode?.toDomainSemanticsNode(),
+    nearbyNodes = nearbyNodes.map { node -> node.toDomainSemanticsNode() },
+    sourceCandidates = sourceCandidates.map { candidate -> candidate.toSourceHint() },
     screenshotCrop = screenshotCrop?.toDomainScreenshot(),
     comment = comment,
     sequenceNumber = sequenceNumber,
@@ -126,8 +138,8 @@ fun AnnotationDto.toDomainAnnotation(sessionId: String): Annotation = Annotation
     sentAtEpochMillis = sentAtEpochMillis,
     status = status.toDomainStatus(),
     agentSummary = agentSummary,
-    targetEvidence = targetEvidence,
-    targetReliability = targetReliability,
+    targetEvidence = targetEvidence?.toAnnotationEvidence(),
+    targetReliability = targetReliability?.toTargetReliabilityAssessment(),
 )
 
 fun Annotation.toAnnotationDto(): AnnotationDto = AnnotationDto(
@@ -136,9 +148,9 @@ fun Annotation.toAnnotationDto(): AnnotationDto = AnnotationDto(
     createdAtEpochMillis = createdAtEpochMillis,
     updatedAtEpochMillis = updatedAtEpochMillis,
     target = target.toAnnotationTargetDto(),
-    selectedNode = selectedNode,
-    nearbyNodes = nearbyNodes,
-    sourceCandidates = sourceCandidates,
+    selectedNode = selectedNode?.toFixThisNode(),
+    nearbyNodes = nearbyNodes.map { node -> node.toFixThisNode() },
+    sourceCandidates = sourceCandidates.map { hint -> hint.toSourceCandidate() },
     screenshotCrop = screenshotCrop?.toSnapshotScreenshotDto(),
     comment = comment,
     sequenceNumber = sequenceNumber,
@@ -147,8 +159,8 @@ fun Annotation.toAnnotationDto(): AnnotationDto = AnnotationDto(
     sentAtEpochMillis = sentAtEpochMillis,
     status = status.toAnnotationStatusDto(),
     agentSummary = agentSummary,
-    targetEvidence = targetEvidence,
-    targetReliability = targetReliability,
+    targetEvidence = targetEvidence?.toTargetEvidence(),
+    targetReliability = targetReliability?.toTargetReliability(),
 )
 
 private fun AnnotationStatusDto.toDomainStatus(): AnnotationStatus = when (this) {
@@ -192,13 +204,19 @@ private fun SessionStatus.toSessionStatusDto(): SessionStatusDto = when (this) {
 }
 
 private fun AnnotationTargetDto.toDomainTarget(): AnnotationTarget = when (this) {
-    is AnnotationTargetDto.Area -> AnnotationTarget.Area(boundsInWindow)
-    is AnnotationTargetDto.Node -> AnnotationTarget.Node(nodeUid = nodeUid, boundsInWindow = boundsInWindow)
+    is AnnotationTargetDto.Area -> AnnotationTarget.Area(boundsInWindow.toDomainRect())
+    is AnnotationTargetDto.Node -> AnnotationTarget.Node(
+        nodeUid = nodeUid,
+        boundsInWindow = boundsInWindow.toDomainRect(),
+    )
 }
 
 private fun AnnotationTarget.toAnnotationTargetDto(): AnnotationTargetDto = when (this) {
-    is AnnotationTarget.Area -> AnnotationTargetDto.Area(boundsInWindow)
-    is AnnotationTarget.Node -> AnnotationTargetDto.Node(nodeUid = nodeUid, boundsInWindow = boundsInWindow)
+    is AnnotationTarget.Area -> AnnotationTargetDto.Area(boundsInWindow.toFixThisRect())
+    is AnnotationTarget.Node -> AnnotationTargetDto.Node(
+        nodeUid = nodeUid,
+        boundsInWindow = boundsInWindow.toFixThisRect(),
+    )
 }
 
 private fun SnapshotScreenshotDto.toDomainScreenshot(): SnapshotScreenshot = SnapshotScreenshot(

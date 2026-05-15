@@ -269,6 +269,7 @@ function screenshotSvg() {
 
 async function handleApi(request, response, url) {
   if (request.method === 'GET' && url.pathname === '/api/session') return jsonResponse(response, currentSession());
+  if (request.method === 'GET' && url.pathname === '/api/events') return textResponse(response, '', 204);
   if (request.method === 'GET' && url.pathname === '/api/server-version') {
     return jsonResponse(response, {
       serverBuildEpochMs: 1_778_639_340_000,
@@ -451,6 +452,9 @@ function createServer() {
       fake.requestedPaths.push(url.pathname + url.search);
       if (request.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
         return textResponse(response, pageHtml, 200, 'text/html; charset=utf-8');
+      }
+      if (request.method === 'GET' && url.pathname === '/favicon.ico') {
+        return textResponse(response, '', 204, 'image/x-icon');
       }
       if (request.method === 'GET' && url.pathname.endsWith('/screenshot/full')) {
         return textResponse(response, screenshotSvg(), 200, 'image/svg+xml; charset=utf-8');
@@ -664,7 +668,7 @@ async function runSmoke(baseUrl) {
     const listBackPersistResponse = page.waitForResponse(response =>
       response.url().includes('/api/items/item-old') && response.request().method() === 'PUT'
     );
-    await page.click('.annotation-done');
+    await page.click('.annotation-detail .annotation-done');
     assert.ok((await listBackPersistResponse).ok(), 'Saved annotation back-to-list should persist before leaving detail');
     await page.waitForFunction(expectedSrc => {
       const image = document.getElementById('snapshotImage');
@@ -685,7 +689,7 @@ async function runSmoke(baseUrl) {
     const historyUpdateResponse = page.waitForResponse(response =>
       response.url().includes('/api/items/item-old') && response.request().method() === 'PUT'
     );
-    await page.click('.annotation-done');
+    await page.click('.annotation-detail .annotation-done');
     await page.locator('#sessions .session-row[data-session-id="session-1"]').click();
     assert.ok((await historyUpdateResponse).ok(), 'Saved annotation edit should persist');
     await page.waitForFunction(() => document.querySelector('#sessions .session-row.is-active')?.dataset.sessionId === 'session-1');
@@ -822,9 +826,11 @@ async function runSmoke(baseUrl) {
       await page.click('#annotateToolButton');
       await page.waitForSelector('#snapshot[data-tool-mode="annotate"]');
     }
-    await page.mouse.move(imageBox.x + 40, imageBox.y + 40);
+    const areaImageBox = await page.locator('#snapshotImage').boundingBox();
+    assert.ok(areaImageBox, 'Expected preview image to be visible before area annotation');
+    await page.mouse.move(areaImageBox.x + 40, areaImageBox.y + 40);
     await page.mouse.down();
-    await page.mouse.move(imageBox.x + 120, imageBox.y + 90);
+    await page.mouse.move(areaImageBox.x + 120, areaImageBox.y + 90);
     await page.mouse.up();
     await waitForPendingPins(page, 2, 'Area annotation was not added');
     await page.waitForSelector('#annotationCommentInput');

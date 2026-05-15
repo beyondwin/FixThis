@@ -57,7 +57,7 @@ test('runtime modules do not mutate legacy draft globals', () => {
 });
 
 test('rendering bridge functions accept models and do not read legacy globals', () => {
-  const rendering = source('fixthis-mcp/src/main/console/rendering.js');
+  const rendering = source('fixthis-mcp/src/main/console/presentation/canonicalRenderingView.js');
   for (const fn of [
     'renderCanonicalHistoryModel',
     'renderCanonicalCanvasModel',
@@ -86,6 +86,11 @@ test('runtime draft helpers use readable canonical names', () => {
     'fixthis-mcp/src/main/console/preview.js',
     'fixthis-mcp/src/main/console/history.js',
     'fixthis-mcp/src/main/console/rendering.js',
+    'fixthis-mcp/src/main/console/presentation/canonicalRenderingView.js',
+    'fixthis-mcp/src/main/console/presentation/previewRegionView.js',
+    'fixthis-mcp/src/main/console/presentation/selectionOverlayView.js',
+    'fixthis-mcp/src/main/console/presentation/annotationListView.js',
+    'fixthis-mcp/src/main/console/presentation/annotationDetailView.js',
     'fixthis-mcp/src/main/console/prompt.js',
     'fixthis-mcp/src/main/console/shortcuts.js',
     'scripts/draftPresentationContract-test.mjs',

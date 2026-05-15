@@ -6,8 +6,11 @@ import { fileURLToPath } from 'node:url';
 import { loadConsoleSymbols } from './console-test-loader.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const annotationsSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/annotations.js'), 'utf8');
-const renderingSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/rendering.js'), 'utf8');
+const annotationsSource = [
+  'fixthis-mcp/src/main/console/viewmodel/reliabilityPresentation.js',
+  'fixthis-mcp/src/main/console/presentation/promptReadinessView.js',
+].map(file => readFileSync(resolve(root, file), 'utf8')).join('\n');
+const renderingSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/presentation/annotationDetailView.js'), 'utf8');
 const stylesSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/resources/console/styles.css'), 'utf8');
 const reliabilityModel = loadConsoleSymbols({
   modules: ['domain/targetReliabilityViewModel.js'],

@@ -11,7 +11,10 @@ const promptSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/pr
 const persistenceSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/pendingPersistence.js'), 'utf8');
 const stateSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/state.js'), 'utf8');
 const pollingBrowserAdapterSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/pollingBrowserAdapter.js'), 'utf8');
-const renderingSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/rendering.js'), 'utf8');
+const renderingSource = [
+  'fixthis-mcp/src/main/console/presentation/previewRegionView.js',
+  'fixthis-mcp/src/main/console/presentation/canonicalRenderingView.js',
+].map(file => readFileSync(resolve(root, file), 'utf8')).join('\n');
 
 function body(source, signature) {
   const start = source.indexOf(signature);

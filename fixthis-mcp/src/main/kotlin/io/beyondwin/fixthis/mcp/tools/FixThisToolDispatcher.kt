@@ -21,6 +21,8 @@ import io.beyondwin.fixthis.mcp.session.SessionDto
 import io.beyondwin.fixthis.mcp.session.SnapshotDto
 import io.beyondwin.fixthis.mcp.textContent
 import io.beyondwin.fixthis.mcp.toolResult
+import io.beyondwin.fixthis.mcp.tools.handlers.McpToolHandler
+import io.beyondwin.fixthis.mcp.tools.handlers.defaultMcpToolHandlers
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -41,8 +43,6 @@ import java.io.File
 private const val INSTALL_STALE_HINT = "Run ./gradlew :app:installDebug then cold-launch the app"
 private val resolvedStatuses = setOf(AnnotationStatusDto.RESOLVED, AnnotationStatusDto.WONT_FIX)
 
-private typealias ToolHandler = suspend (JsonObject) -> JsonObject
-
 internal data class FixThisToolBridgePorts(
     val packageResolver: PackageResolver,
     val screenBridge: ScreenBridge,
@@ -58,32 +58,33 @@ internal data class FixThisToolDispatcherServices(
     val consoleManager: ConsoleServerManager,
 )
 
-@Suppress("TooManyFunctions")
 internal class FixThisToolDispatcher(
+    handlers: List<McpToolHandler>,
+) {
+    private val handlersByName = handlers.associateBy { it.name }
+
+    suspend fun call(name: String, arguments: JsonObject): JsonObject {
+        val handler = handlersByName[name] ?: throw FixThisToolException("Unknown FixThis tool: $name")
+        return handler.handle(arguments)
+    }
+}
+
+internal fun FixThisToolDispatcher(
+    ports: FixThisToolBridgePorts,
+    services: FixThisToolDispatcherServices,
+): FixThisToolDispatcher {
+    val operations = FixThisToolOperations(ports, services)
+    return FixThisToolDispatcher(defaultMcpToolHandlers(operations))
+}
+
+@Suppress("TooManyFunctions")
+internal class FixThisToolOperations(
     private val ports: FixThisToolBridgePorts,
     private val services: FixThisToolDispatcherServices,
 ) {
     private val openConsoleLock = Any()
-    private val handlers: Map<String, ToolHandler> = mapOf(
-        "fixthis_status" to ::status,
-        "fixthis_get_current_screen" to ::getCurrentScreen,
-        "fixthis_verify_ui_change" to ::verifyUiChange,
-        "fixthis_open_feedback_console" to ::openFeedbackConsole,
-        "fixthis_list_feedback_sessions" to ::listFeedbackSessions,
-        "fixthis_capture_screen" to ::captureScreen,
-        "fixthis_navigate_app" to ::navigateApp,
-        "fixthis_list_feedback" to ::listFeedback,
-        "fixthis_read_feedback" to ::readFeedback,
-        "fixthis_resolve_feedback" to ::resolveFeedback,
-        "fixthis_claim_feedback" to ::claimFeedback,
-    )
 
-    suspend fun call(name: String, arguments: JsonObject): JsonObject {
-        val handler = handlers[name] ?: throw FixThisToolException("Unknown FixThis tool: $name")
-        return handler(arguments)
-    }
-
-    private suspend fun status(arguments: JsonObject): JsonObject = bridgeToolResult {
+    internal suspend fun status(arguments: JsonObject): JsonObject = bridgeToolResult {
         val packageName = resolvePackageName(arguments)
         val status = ports.screenBridge.status(packageName)
         services.cache.cacheStatus(packageName, status)
@@ -91,7 +92,7 @@ internal class FixThisToolDispatcher(
         jsonToolResult(statusPayload(packageName, status, freshness))
     }
 
-    private suspend fun getCurrentScreen(arguments: JsonObject): JsonObject = bridgeToolResult {
+    internal suspend fun getCurrentScreen(arguments: JsonObject): JsonObject = bridgeToolResult {
         val packageName = resolvePackageName(arguments)
         val screen = ports.screenBridge.inspectCurrentScreen(packageName)
         services.cache.cacheScreen(packageName, screen)
@@ -102,7 +103,7 @@ internal class FixThisToolDispatcher(
         )
     }
 
-    private suspend fun verifyUiChange(arguments: JsonObject): JsonObject = bridgeToolResult {
+    internal suspend fun verifyUiChange(arguments: JsonObject): JsonObject = bridgeToolResult {
         val packageName = resolvePackageName(arguments)
         val expectedText = arguments.stringParam("expectedText")?.takeIf { it.isNotBlank() }
             ?: throw FixThisToolException("fixthis_verify_ui_change requires expectedText")
@@ -111,7 +112,7 @@ internal class FixThisToolDispatcher(
         jsonToolResult(normalizeVerifyUiChangeResult(bridgeResult, role))
     }
 
-    private suspend fun openFeedbackConsole(arguments: JsonObject): JsonObject = bridgeToolResult {
+    internal suspend fun openFeedbackConsole(arguments: JsonObject): JsonObject = bridgeToolResult {
         val opened = openConsole(
             packageName = arguments.stringParam("packageName"),
             sessionId = arguments.stringParam("sessionId"),
@@ -120,7 +121,7 @@ internal class FixThisToolDispatcher(
         jsonToolResult(openFeedbackConsolePayload(opened))
     }
 
-    private suspend fun listFeedbackSessions(arguments: JsonObject): JsonObject = bridgeToolResult {
+    internal suspend fun listFeedbackSessions(arguments: JsonObject): JsonObject = bridgeToolResult {
         val sessions = services.feedbackService.listSessions(
             packageNameOverride = arguments.stringParam("packageName"),
             includeClosed = arguments.booleanParam("includeClosed") == true,
@@ -135,7 +136,7 @@ internal class FixThisToolDispatcher(
         )
     }
 
-    private suspend fun captureScreen(arguments: JsonObject): JsonObject = bridgeToolResult {
+    internal suspend fun captureScreen(arguments: JsonObject): JsonObject = bridgeToolResult {
         val session = requestedSession(arguments)
         val screen = services.feedbackService.captureScreen(session.sessionId)
         services.cache.cacheSnapshot(session.packageName, screen)
@@ -147,7 +148,7 @@ internal class FixThisToolDispatcher(
         )
     }
 
-    private suspend fun navigateApp(arguments: JsonObject): JsonObject = bridgeToolResult {
+    internal suspend fun navigateApp(arguments: JsonObject): JsonObject = bridgeToolResult {
         val request = arguments.navigationRequest()
         val session = requestedSession(arguments)
         val result = services.feedbackService.navigate(session.sessionId, request)
@@ -162,7 +163,7 @@ internal class FixThisToolDispatcher(
         )
     }
 
-    private suspend fun listFeedback(arguments: JsonObject): JsonObject = bridgeToolResult {
+    internal suspend fun listFeedback(arguments: JsonObject): JsonObject = bridgeToolResult {
         val session = requestedSession(arguments)
         val includeAll = arguments.booleanParam("includeAll") ?: false
         val visibleItems = if (includeAll) {
@@ -175,7 +176,7 @@ internal class FixThisToolDispatcher(
         jsonToolResult(listFeedbackPayload(session, visibleItems))
     }
 
-    private suspend fun readFeedback(arguments: JsonObject): JsonObject = bridgeToolResult {
+    internal suspend fun readFeedback(arguments: JsonObject): JsonObject = bridgeToolResult {
         val detailMode = DetailMode.fromWire(arguments.stringParam("detailMode"))
         val itemId = arguments.stringParam("itemId")?.takeIf { it.isNotBlank() }
         val includeAll = arguments.booleanParam("includeAll") ?: false
@@ -191,7 +192,7 @@ internal class FixThisToolDispatcher(
         )
     }
 
-    private suspend fun resolveFeedback(arguments: JsonObject): JsonObject = bridgeToolResult {
+    internal suspend fun resolveFeedback(arguments: JsonObject): JsonObject = bridgeToolResult {
         val session = requestedSession(arguments)
         val itemId = arguments.stringParam("itemId")?.takeIf { it.isNotBlank() }
             ?: throw FixThisToolException("fixthis_resolve_feedback requires itemId")
@@ -202,7 +203,7 @@ internal class FixThisToolDispatcher(
         jsonToolResult(McpProtocol.json.encodeToJsonElement(AnnotationDto.serializer(), item).jsonObject)
     }
 
-    private suspend fun claimFeedback(arguments: JsonObject): JsonObject = bridgeToolResult {
+    internal suspend fun claimFeedback(arguments: JsonObject): JsonObject = bridgeToolResult {
         val session = requestedSession(arguments)
         val itemId = arguments.stringParam("itemId")?.takeIf { it.isNotBlank() }
             ?: throw FixThisToolException("fixthis_claim_feedback requires itemId")

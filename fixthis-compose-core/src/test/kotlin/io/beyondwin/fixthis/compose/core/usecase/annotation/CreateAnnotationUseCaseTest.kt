@@ -9,7 +9,7 @@ import io.beyondwin.fixthis.compose.core.domain.common.SessionId
 import io.beyondwin.fixthis.compose.core.domain.common.SnapshotId
 import io.beyondwin.fixthis.compose.core.domain.session.Session
 import io.beyondwin.fixthis.compose.core.domain.session.SessionRepository
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.compose.core.domain.ui.DomainRect
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -23,7 +23,7 @@ class CreateAnnotationUseCaseTest {
     fun createsOpenAnnotationInActiveSession() = runSuspend {
         val sessionId = SessionId("session-1")
         val snapshotId = SnapshotId("screen-1")
-        val target = AnnotationTarget.Area(FixThisRect(1f, 2f, 3f, 4f))
+        val target = AnnotationTarget.Area(DomainRect(1f, 2f, 3f, 4f))
         val comment = "Fix spacing"
         val sessions = FakeSessionRepository(
             Session(
@@ -85,7 +85,7 @@ class CreateAnnotationUseCaseTest {
                 useCase(
                     sessionId = SessionId("session-1"),
                     snapshotId = SnapshotId("screen-1"),
-                    target = AnnotationTarget.Area(FixThisRect(1f, 2f, 3f, 4f)),
+                    target = AnnotationTarget.Area(DomainRect(1f, 2f, 3f, 4f)),
                     comment = " ",
                 )
             }
