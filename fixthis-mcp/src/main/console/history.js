@@ -64,7 +64,7 @@
 
             function historyOpenCount(session) {
               const pending = pendingHistoryItemsForSession(session);
-              return (session.unresolvedItemsCount || 0) + (session.inProgressItemsCount || 0) + pending.filter(item => annotationStatus(item) !== 'resolved').length;
+              return (session.unresolvedItemsCount || 0) + pending.filter(item => annotationStatus(item) !== 'resolved').length;
             }
 
             function historyDoneCount(session) {

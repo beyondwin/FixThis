@@ -894,10 +894,11 @@ class ConsoleAssetContractTest {
         assertTrue(historyOpenCount.contains("pendingHistoryItemsForSession(session)"))
         assertTrue(
             historyOpenCount.contains(
-                "(session.unresolvedItemsCount || 0) + (session.inProgressItemsCount || 0) + " +
+                "(session.unresolvedItemsCount || 0) + " +
                     "pending.filter(item => annotationStatus(item) !== 'resolved').length",
             ),
         )
+        assertFalse(historyOpenCount.contains("session.inProgressItemsCount"))
         assertTrue(historyDoneCount.contains("pending.filter(item => annotationStatus(item) === 'resolved').length"))
         assertTrue(html.contains("function renderCurrentSessionList()"))
         assertTrue(createAnnotationFromSelection.contains("renderCurrentSessionList();"))

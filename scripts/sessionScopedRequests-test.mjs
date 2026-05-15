@@ -82,6 +82,13 @@ test('copy prompt refreshes session summaries after marking items handed off', (
   assert.match(copy, /const updated = await markItemsHandedOff\(sessionId,\s*itemIds\);[\s\S]*?setConsoleSession\(updated\);[\s\S]*?await refreshSessions\(\);[\s\S]*?renderInspectorRegion\(\);/);
 });
 
+test('history open count does not double-count in-progress items', () => {
+  const historySource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/history.js'), 'utf8');
+  const historyOpenCount = body(historySource, 'function historyOpenCount(session)');
+  assert.match(historyOpenCount, /session\.unresolvedItemsCount/);
+  assert.doesNotMatch(historyOpenCount, /session\.inProgressItemsCount/);
+});
+
 test('draft command queue fences stale pending save responses', () => {
   // sessionMutationGeneration migrated into pollingFsm.js (mutationGeneration
   // field on the polling FSM, bumped by bumpSessionMutationGeneration() via

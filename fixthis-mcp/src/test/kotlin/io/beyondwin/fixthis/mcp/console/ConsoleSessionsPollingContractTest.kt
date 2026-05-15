@@ -34,8 +34,12 @@ class ConsoleSessionsPollingContractTest {
         )
         val historyOpenCount = javascriptFunctionBody(html, "historyOpenCount")
         assertTrue(
+            historyOpenCount.contains("(session.unresolvedItemsCount || 0)"),
+            "historyOpenCount must use unresolvedItemsCount as the persisted open total",
+        )
+        assertFalse(
             historyOpenCount.contains("(session.inProgressItemsCount || 0)"),
-            "historyOpenCount must include in-progress items so WIP collapses into the open count",
+            "unresolvedItemsCount already includes in-progress items; adding inProgressItemsCount double-counts WIP",
         )
     }
 
