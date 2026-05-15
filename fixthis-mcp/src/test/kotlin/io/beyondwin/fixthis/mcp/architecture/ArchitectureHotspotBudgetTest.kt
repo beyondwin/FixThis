@@ -16,7 +16,7 @@ class ArchitectureHotspotBudgetTest {
 
     @Test
     fun handwrittenKotlinFilesStayUnderBudgetUnlessExplicitlyAllowed() {
-        val budgets = mapOf(
+        val legacyBudgets = mapOf(
             "${mcpMain}session/FeedbackSessionStore.kt" to 780,
             "${mcpMain}session/SessionReplayEngine.kt" to 340,
             "${mcpMain}tools/FixThisTools.kt" to 230,
@@ -31,6 +31,20 @@ class ArchitectureHotspotBudgetTest {
             "${gradlePlugin}task/GenerateFixThisSourceIndexTask.kt" to 130,
             "${gradlePlugin}source/KotlinSourceScanner.kt" to 330,
         )
+        val remediationBudgets = mapOf(
+            "${mcpMain}session/FeedbackSessionStore.kt" to 250,
+            "${sidekickBridge}BridgeServer.kt" to 180,
+            "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt" to 260,
+            "fixthis-mcp/src/main/console/rendering.js" to 200,
+        )
+        val budgets = legacyBudgets + remediationBudgets.mapNotNull { (path, budget) ->
+            when {
+                remediationBudgetEnabled(path) -> path to budget
+                path in legacyBudgets -> path to legacyBudgets.getValue(path)
+                else -> null
+            }
+        }.toMap()
+
         val offenders = budgets.mapNotNull { (path, maxLines) ->
             val file = File(root, path)
             val lines = file.readLines().size
@@ -39,4 +53,7 @@ class ArchitectureHotspotBudgetTest {
 
         assertTrue(offenders.isEmpty(), offenders.joinToString(separator = "\n"))
     }
+
+    private fun remediationBudgetEnabled(path: String): Boolean =
+        File(root, path).isFile && System.getenv("FIXTHIS_STRICT_ARCH_BUDGETS") == "true"
 }

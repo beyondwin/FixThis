@@ -24,6 +24,19 @@ class ModuleBoundaryTest {
     }
 
     @Test
+    fun composeCoreDomainDoesNotImportContractModels() {
+        val forbidden = Regex("""^import io\.beyondwin\.fixthis\.compose\.core\.model\.""")
+        val offenders = kotlinFiles("fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain")
+            .flatMap { file ->
+                file.readLines().mapIndexedNotNull { index, line ->
+                    if (forbidden.containsMatchIn(line)) "${file.relativeTo(root)}:${index + 1}: $line" else null
+                }
+            }
+
+        assertTrue(offenders.isEmpty(), offenders.joinToString(separator = "\n"))
+    }
+
+    @Test
     fun sidekickGradlePluginAndSampleDoNotImportMcpOrCli() {
         val forbidden = Regex("""^import io\.beyondwin\.fixthis\.(mcp|cli)""")
         val offenders = listOf(
