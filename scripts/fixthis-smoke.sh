@@ -288,16 +288,45 @@ call_mcp_status() {
     echo "[staleness] MCP binary not found at ${mcp_bin}; run ./gradlew :fixthis-mcp:installDist" >&2
     return 1
   fi
-  local raw
-  raw="$(printf '%s\n%s\n%s\n' \
+  local tmp_dir stdin_fifo stdout_file stderr_file mcp_pid payload deadline
+  tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/fixthis-smoke-mcp.XXXXXX")" || return 1
+  stdin_fifo="${tmp_dir}/stdin"
+  stdout_file="${tmp_dir}/stdout.jsonl"
+  stderr_file="${tmp_dir}/stderr.log"
+  if ! mkfifo "${stdin_fifo}"; then
+    rm -rf "${tmp_dir}"
+    return 1
+  fi
+
+  "${mcp_bin}" --project-dir "${ROOT_DIR}" --package "${PACKAGE_NAME}" \
+    < "${stdin_fifo}" > "${stdout_file}" 2> "${stderr_file}" &
+  mcp_pid="$!"
+
+  exec 3<>"${stdin_fifo}"
+  printf '%s\n%s\n%s\n' \
     '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","clientInfo":{"name":"fixthis-smoke","version":"0"},"capabilities":{}}}' \
     '{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}' \
     "$(jq -nc --arg pkg "${PACKAGE_NAME}" '{jsonrpc:"2.0",id:2,method:"tools/call",params:{name:"fixthis_status",arguments:{packageName:$pkg}}}')" \
-    | "${mcp_bin}" --project-dir "${ROOT_DIR}" --package "${PACKAGE_NAME}" 2>/dev/null)"
-  # Each line is one JSON-RPC response; pick the one with id == 2.
-  printf '%s\n' "${raw}" \
-    | jq -c 'select(type=="object" and .id==2) | .result.content[0].text | fromjson' 2>/dev/null \
-    | head -n 1
+    >&3
+
+  payload=""
+  deadline=$((SECONDS + 30))
+  while [[ "${SECONDS}" -lt "${deadline}" ]]; do
+    payload="$(jq -c 'select(type=="object" and .id==2) | .result.content[0].text | fromjson' "${stdout_file}" 2>/dev/null | head -n 1 || true)"
+    if [[ -n "${payload}" ]]; then
+      break
+    fi
+    if ! kill -0 "${mcp_pid}" 2>/dev/null; then
+      break
+    fi
+    sleep 0.1
+  done
+
+  exec 3>&-
+  kill "${mcp_pid}" 2>/dev/null || true
+  wait "${mcp_pid}" 2>/dev/null || true
+  rm -rf "${tmp_dir}"
+  printf '%s\n' "${payload}"
 }
 
 assert_install_stale() {
