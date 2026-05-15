@@ -102,6 +102,7 @@ data class ScopeCandidate(val label: String, val nodeUid: String, val boundsInWi
 @Serializable
 data class SourceCandidate(
     val file: String,
+    val repoFile: String? = null,
     val line: Int? = null,
     val score: Double,
     val matchedTerms: List<String> = emptyList(),

@@ -97,4 +97,33 @@ class SourceIndexTest {
 
         assertEquals(1.0, index.entries.single().signals.single().confidenceWeight, 0.0)
     }
+
+    @Test
+    fun decodesV11RootMetadataAndRepoFile() {
+        val index = json.decodeFromString<SourceIndex>(
+            """
+            {
+              "schemaVersion": "1.1",
+              "sourceRoot": {
+                "kind": "gradle-project",
+                "gradlePath": ":app",
+                "projectDir": "sample"
+              },
+              "entries": [
+                {
+                  "file": "src/main/java/Sample.kt",
+                  "repoFile": "sample/src/main/java/Sample.kt",
+                  "line": 7
+                }
+              ]
+            }
+            """.trimIndent(),
+        )
+
+        assertEquals("1.1", index.schemaVersion)
+        assertEquals("gradle-project", index.sourceRoot?.kind)
+        assertEquals(":app", index.sourceRoot?.gradlePath)
+        assertEquals("sample", index.sourceRoot?.projectDir)
+        assertEquals("sample/src/main/java/Sample.kt", index.entries.single().repoFile)
+    }
 }

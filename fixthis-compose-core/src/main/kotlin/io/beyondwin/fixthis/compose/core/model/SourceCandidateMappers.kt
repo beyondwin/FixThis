@@ -7,6 +7,7 @@ import io.beyondwin.fixthis.compose.core.domain.evidence.SourceHintStrength
 
 fun SourceHint.toSourceCandidate(): SourceCandidate = SourceCandidate(
     file = file,
+    repoFile = repoFile,
     line = line,
     score = score,
     matchedTerms = matchedTerms,
@@ -23,6 +24,7 @@ fun SourceHint.toSourceCandidate(): SourceCandidate = SourceCandidate(
 
 fun SourceCandidate.toSourceHint(): SourceHint = SourceHint(
     file = file,
+    repoFile = repoFile,
     line = line,
     score = score,
     matchedTerms = matchedTerms,

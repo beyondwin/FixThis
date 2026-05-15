@@ -25,6 +25,7 @@ enum class SourceHintRisk {
 
 data class SourceHint(
     val file: String,
+    val repoFile: String? = null,
     val line: Int? = null,
     val score: Double,
     val matchedTerms: List<String> = emptyList(),

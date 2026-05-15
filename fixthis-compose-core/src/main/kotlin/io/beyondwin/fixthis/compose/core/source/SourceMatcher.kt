@@ -427,6 +427,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         }
         return SourceCandidate(
             file = entry.file,
+            repoFile = entry.repoFile,
             line = entry.line,
             score = (rawScore / SourceScoringPolicy.highConfidenceScore).coerceIn(0.0, 1.0),
             matchedTerms = matchedTerms,
