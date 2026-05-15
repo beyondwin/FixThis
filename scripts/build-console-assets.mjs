@@ -217,7 +217,7 @@ async function main() {
     minify: false,
     minifyWhitespace: true,
     minifySyntax: true,
-    minifyIdentifiers: false,
+    minifyIdentifiers: true,
     target: ['es2020'],
     sourcemap: 'linked',
     legalComments: 'inline',

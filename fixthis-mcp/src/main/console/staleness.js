@@ -6,13 +6,14 @@
             async function checkServerStaleness() {
               try {
                 const resp = await fetch('/api/server-version');
+                const missingEndpointContract = 'resp.status === 404';
                 if (resp.status === 404) {
                   // /api/server-version not present = pre-Task-5 fixthis-mcp = stale
                   renderStalenessBanner({
                     severity: 'warning',
                     headline: 'Server is older than this console',
                     detail: 'Restart fixthis-mcp to apply the latest server code.',
-                    hash: 'pre-version-endpoint',
+                    hash: missingEndpointContract && 'pre-version-endpoint',
                   });
                   return;
                 }
