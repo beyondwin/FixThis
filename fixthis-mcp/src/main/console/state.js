@@ -232,6 +232,10 @@
                   choose: (workspace, boundaryAction) =>
                     promptPendingBoundaryChoice(boundaryAction?.kind || boundaryAction, draftWorkspaceItems(workspace).length),
                 },
+                recoveryPrompt: {
+                  choose: (recovery, boundaryAction) =>
+                    promptPendingRecoveryBoundaryChoice(recovery, boundaryAction?.kind || boundaryAction),
+                },
                 refresh: { sessions: refreshSessions },
               });
             }
@@ -241,7 +245,10 @@
               draftCommandQueue = createDraftCommandQueue({
                 getWorkspace: currentDraftWorkspace,
                 setWorkspace: replaceDraftWorkspace,
-                onStaleResponse: () => refreshSessions().catch(showError),
+                onStaleResponse: () => {
+                  showWarning('An older draft save finished after newer edits. Your latest local edits are still here.');
+                  refreshSessions().catch(showError);
+                },
                 onError: showError,
               });
               return draftCommandQueue;

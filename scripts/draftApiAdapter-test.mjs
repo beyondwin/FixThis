@@ -88,3 +88,47 @@ test('browser API adapter posts explicit session payloads', async () => {
   assert.equal(JSON.parse(calls[0].init.body).sessionId, 'session-a');
   assert.equal(calls[0].init.headers.get('X-FixThis-Console-Token'), 'token');
 });
+
+test('browser API adapter preserves typed validation errors', async () => {
+  const adapter = m.createDraftApiAdapter({
+    fetchImpl: async () => ({
+      ok: false,
+      status: 400,
+      json: async () => ({
+        error: 'selected_node_missing',
+        message: 'Selected node does not exist on preview: compose:0:merged:73',
+        action: 'recapture_or_convert_to_area',
+      }),
+      text: async () => '{"error":"selected_node_missing"}',
+    }),
+  });
+
+  await assert.rejects(
+    () => adapter.saveDraftWorkspace(m.buildDraftWorkspaceSaveRequest(workspace)),
+    (error) => {
+      assert.equal(error.code, 'selected_node_missing');
+      assert.match(error.message, /Selected node/);
+      assert.equal(error.action, 'recapture_or_convert_to_area');
+      return true;
+    },
+  );
+});
+
+test('save request rejects invalid area bounds client-side', () => {
+  assert.throws(
+    () => m.buildDraftWorkspaceSaveRequest({
+      ...workspace,
+      items: [{
+        draftItemId: 'draft-bad-bounds',
+        targetType: 'area',
+        bounds: { left: 10, top: 20, right: 10, bottom: 21 },
+        comment: 'bad bounds',
+      }],
+    }),
+    (error) => {
+      assert.equal(error.code, 'invalid_selection_bounds');
+      assert.equal(error.action, 'recapture_or_select_area');
+      return true;
+    },
+  );
+});

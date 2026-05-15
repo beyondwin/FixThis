@@ -81,7 +81,10 @@
             });
             clearSelectionButton.addEventListener('click', clearSelection);
             cancelAddFlowButton.addEventListener('click', cancelAddItemsFlow);
-            clearDraftButton.addEventListener('click', () => clearDraft().catch(showError));
+            clearDraftButton.addEventListener('click', () => {
+              if (draftFlow() || pendingRecoveryItems(pendingRecovery).length) clearLocalDraft().catch(showError);
+              else clearServerDrafts().catch(showError);
+            });
             comment.addEventListener('input', updateSelectedAnnotationComment);
 
             function friendlyErrorMessage(message) {
@@ -145,38 +148,45 @@
             }
 
             async function resolvePendingBeforeBoundary(action, sessionId = null) {
-              const hasActivePending = Boolean(draftWorkspace?.workspaceId && draftWorkspaceItems(draftWorkspace).length);
-              if (!hasActivePending && !pendingRecoveryItems(pendingRecovery).length) return 'continue';
-              if (pendingRecoveryItems(pendingRecovery).length && !hasActivePending) {
-                renderPendingRecoveryBanner();
-                return 'continue';
-              }
-              const pendingSessionId = draftWorkspace?.context?.sessionId || null;
-              const activeCommented = commentedDraftItems(draftWorkspaceItems(draftWorkspace));
-              if (hasActivePending && activeCommented.length === 0) {
-                createBrowserDraftPorts().storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(draftWorkspace));
-                if (pendingSessionId) activePendingMirrorSessions.add(pendingSessionId);
-                replaceDraftWorkspace(createEmptyDraftWorkspace());
-                return 'continue';
-              }
-              if (sessionId && pendingSessionId && sessionId !== pendingSessionId) {
-                createBrowserDraftPorts().storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(draftWorkspace));
-                activePendingMirrorSessions.add(pendingSessionId);
-                replaceDraftWorkspace(createEmptyDraftWorkspace());
-                return 'continue';
-              }
-              const result = await ensureDraftCommandQueue().enqueue({
+              const activeWorkspace = draftWorkspace;
+              const activeSessionId = activeWorkspace?.context?.sessionId || null;
+              const recoverySessionId = pendingRecovery?.sessionId || pendingRecovery?.context?.sessionId || state.session?.sessionId || null;
+              const hadPendingRecovery = pendingRecoveryItems(pendingRecovery).length > 0;
+              const meta = {
                 kind: 'session-boundary',
-                workspaceId: draftWorkspace.workspaceId,
-                expectedRevision: draftWorkspace.revision,
-              }, async (workspace) => {
-                return await resolveDraftBoundary(workspace, { kind: action, sessionId }, createBrowserDraftPorts());
+              };
+              if (activeWorkspace?.workspaceId) {
+                meta.workspaceId = activeWorkspace.workspaceId;
+                meta.expectedRevision = activeWorkspace.revision;
+              }
+              const result = await ensureDraftCommandQueue().enqueue(meta, async (workspace) => {
+                const boundaryResult = await resolveLifecycleBoundary({
+                  action,
+                  targetSessionId: sessionId,
+                  activeWorkspace: workspace,
+                  pendingRecovery,
+                  ports: createBrowserDraftPorts(),
+                });
+                return { ...boundaryResult, workspace: boundaryResult.nextWorkspace };
               });
-              if (result?.result?.conflict) {
+              const boundary = result?.result;
+              if (boundary?.nextPendingRecovery !== pendingRecovery) {
+                pendingRecovery = boundary?.nextPendingRecovery || null;
+              }
+              if (activeSessionId && activeWorkspace?.workspaceId && boundary?.nextWorkspace?.lifecycle === DraftLifecycle.EMPTY) {
+                activePendingMirrorSessions.add(activeSessionId);
+              }
+              if (hadPendingRecovery && recoverySessionId && pendingRecovery == null) {
+                clearPendingMirror(recoverySessionId);
+                activePendingMirrorSessions.delete(recoverySessionId);
+                createBrowserDraftPorts().storage.clearLegacyPending?.(recoverySessionId);
+              }
+              renderPendingRecoveryBanner();
+              if (boundary?.conflict) {
                 showError('Resolve the draft save conflict before changing sessions.');
                 return 'cancel';
               }
-              return result?.result?.choice === 'cancel' ? 'cancel' : 'continue';
+              return boundary?.outcome === 'cancel' ? 'cancel' : 'continue';
             }
 
             function promptPendingBoundaryChoice(action, count) {
@@ -194,6 +204,15 @@
               }
               const save = window.confirm('Save draft before changing sessions?\nOK = Save draft\nCancel = Keep editing');
               return Promise.resolve(save ? 'save' : 'cancel');
+            }
+
+            function promptPendingRecoveryBoundaryChoice(recovery, action) {
+              if (typeof window !== 'undefined' && typeof window.fixThisPromptPendingRecoveryBoundary === 'function') {
+                return Promise.resolve(window.fixThisPromptPendingRecoveryBoundary({ recovery, action }));
+              }
+              if (typeof window === 'undefined' || typeof window.confirm !== 'function') return Promise.resolve('cancel');
+              const clear = window.confirm('A local draft from this session must be resolved before changing sessions.\nOK = Clear local draft\nCancel = Keep it');
+              return Promise.resolve(clear ? 'clear' : 'cancel');
             }
 
             function hasRecoverablePreviewContext(recovery) {

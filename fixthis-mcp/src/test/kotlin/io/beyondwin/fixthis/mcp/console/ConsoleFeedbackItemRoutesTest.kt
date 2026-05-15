@@ -627,7 +627,55 @@ class ConsoleFeedbackItemRoutesTest {
                 )
 
                 assertEquals(400, connection.responseCode)
-                assertTrue(connection.errorStream.bufferedReader().readText().contains("Selection bounds"))
+                val payload = fixThisJson.parseToJsonElement(connection.errorStream.bufferedReader().readText()).jsonObject
+                assertEquals("invalid_selection_bounds", payload.getValue("error").jsonPrimitive.content)
+                assertEquals("recapture_or_select_area", payload.getValue("action").jsonPrimitive.content)
+                assertEquals(1, bridge.captureCount)
+            }
+        }
+    }
+
+    @Test
+    fun batchItemsApiReturnsTypedValidationErrorForMissingPreviewNode() {
+        val bridge = FakeFixThisBridge()
+        withTempProject("fixthis-console-missing-preview-node") { projectRoot ->
+            val service = FeedbackSessionService(
+                bridge = bridge,
+                store = FeedbackSessionStore(
+                    clock = { 100L },
+                    idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1").next,
+                ),
+                projectRoot = projectRoot.absolutePath,
+                defaultPackageName = "io.beyondwin.fixthis.sample",
+            )
+            withConsoleServer(service) { server ->
+                service.openSession(null, newSession = true)
+                val preview = ConsoleHttpTestClient(server.url).getJsonObject("/api/preview")
+                val previewId = preview.getValue("previewId").jsonPrimitive.content
+
+                val connection = ConsoleHttpTestClient(server.url).connection(
+                    "/api/items/batch",
+                    method = "POST",
+                    body = """
+                    {
+                      "previewId": "$previewId",
+                      "items": [
+                        {
+                          "targetType": "node",
+                          "nodeUid": "compose:0:merged:missing",
+                          "bounds": {"left":10.0,"top":20.0,"right":110.0,"bottom":80.0},
+                          "comment": "Change headline"
+                        }
+                      ]
+                    }
+                    """.trimIndent(),
+                )
+
+                assertEquals(400, connection.responseCode)
+                val payload = fixThisJson.parseToJsonElement(connection.errorStream.bufferedReader().readText()).jsonObject
+                assertEquals("selected_node_missing", payload.getValue("error").jsonPrimitive.content)
+                assertEquals("recapture_or_convert_to_area", payload.getValue("action").jsonPrimitive.content)
+                assertTrue(payload.getValue("message").jsonPrimitive.content.contains("Selected node"))
                 assertEquals(1, bridge.captureCount)
             }
         }

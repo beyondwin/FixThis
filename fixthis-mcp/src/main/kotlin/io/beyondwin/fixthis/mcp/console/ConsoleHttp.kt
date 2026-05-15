@@ -15,10 +15,32 @@ import kotlinx.serialization.json.jsonObject
 import java.net.URLDecoder
 
 @Serializable
-internal data class ConsoleErrorBody(val error: String)
+internal data class ConsoleErrorBody(
+    val error: String,
+    val message: String? = null,
+    val action: String? = null,
+    val frozenFingerprint: String? = null,
+    val currentFingerprint: String? = null,
+)
 
 internal fun HttpExchange.sendErrorJson(status: Int, message: String) {
-    sendText(status, fixThisJson.encodeToString(ConsoleErrorBody.serializer(), ConsoleErrorBody(message)), "application/json; charset=utf-8")
+    sendErrorJson(status = status, error = message, message = message)
+}
+
+internal fun HttpExchange.sendErrorJson(
+    status: Int,
+    error: String,
+    message: String? = null,
+    action: String? = null,
+) {
+    sendText(
+        status,
+        fixThisJson.encodeToString(
+            ConsoleErrorBody.serializer(),
+            ConsoleErrorBody(error = error, message = message, action = action),
+        ),
+        "application/json; charset=utf-8",
+    )
 }
 
 internal fun HttpExchange.requireMethod(method: String, block: () -> Unit) {
@@ -128,6 +150,8 @@ internal fun <T> HttpExchange.decodeJsonBody(
 internal class FeedbackConsoleHttpException(
     val statusCode: Int,
     override val message: String,
+    val errorCode: String? = null,
+    val action: String? = null,
     cause: Throwable? = null,
 ) : RuntimeException(message, cause)
 

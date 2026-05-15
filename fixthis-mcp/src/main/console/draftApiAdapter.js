@@ -16,6 +16,33 @@ function draftItemToAnnotationDraftDto(item, options = {}) {
   };
 }
 
+function createDraftApiError({ error, message, action, status }) {
+  const typed = new Error(message || error || ('HTTP ' + status));
+  typed.code = error || 'http_error';
+  typed.action = action || null;
+  typed.status = status || null;
+  return typed;
+}
+
+function isValidSelectionBounds(bounds) {
+  return Number.isFinite(bounds?.left) &&
+    Number.isFinite(bounds?.top) &&
+    Number.isFinite(bounds?.right) &&
+    Number.isFinite(bounds?.bottom) &&
+    bounds.right > bounds.left &&
+    bounds.bottom > bounds.top;
+}
+
+function requireValidSelectionBounds(item) {
+  if (item?.targetType !== 'area' && item?.targetType !== 'node') return;
+  if (isValidSelectionBounds(item.bounds)) return;
+  throw createDraftApiError({
+    error: 'invalid_selection_bounds',
+    message: 'Selection bounds are invalid for draft item: ' + (item?.draftItemId || 'unknown'),
+    action: 'recapture_or_select_area',
+  });
+}
+
 function screenHasNodeUid(screen, nodeUid) {
   if (!screen || !nodeUid) return false;
   return (screen.roots || []).some((root) => {
@@ -47,6 +74,10 @@ function buildDraftWorkspaceSaveRequest(workspace, options = {}) {
     screen: workspace.screen || null,
     items: (workspace.items || [])
       .filter((item) => options.allowBlankComments || options.allowFallbackComments || String(item.comment || '').trim())
+      .map((item) => {
+        requireValidSelectionBounds(item);
+        return item;
+      })
       .map((item) => normalizeDraftItemForScreen(item, workspace.screen))
       .map((item) => draftItemToAnnotationDraftDto(item, options)),
     frozenFingerprint: context.screenFingerprint,
@@ -61,6 +92,13 @@ function createDraftApiHeaders(consoleToken) {
 }
 
 function createDraftApiAdapter({ fetchImpl = fetch, consoleToken = null } = {}) {
+  async function readErrorBody(response) {
+    const parsed = await response.json?.().catch(() => null);
+    if (parsed && typeof parsed === 'object') return parsed;
+    const message = await response.text?.().catch(() => '') || 'HTTP ' + response.status;
+    return { error: 'http_error', message };
+  }
+
   async function requestJson(path, body) {
     const response = await fetchImpl(path, {
       method: 'POST',
@@ -72,7 +110,8 @@ function createDraftApiAdapter({ fetchImpl = fetch, consoleToken = null } = {}) 
         const conflict = await response.json().catch(() => ({}));
         return { conflict };
       }
-      throw new Error(await response.text?.() || 'HTTP ' + response.status);
+      const errorBody = await readErrorBody(response);
+      throw createDraftApiError({ ...errorBody, status: response.status });
     }
     return await response.json();
   }

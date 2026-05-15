@@ -10,6 +10,21 @@ function source(path) {
   return readFileSync(resolve(root, path), 'utf8');
 }
 
+function extractFunctionBody(sourceText, signature) {
+  const start = sourceText.indexOf(signature);
+  assert.notEqual(start, -1, `${signature} not found`);
+  const bodyStart = sourceText.indexOf('{', sourceText.indexOf(')', start));
+  let depth = 0;
+  for (let i = bodyStart; i < sourceText.length; i += 1) {
+    if (sourceText[i] === '{') depth += 1;
+    if (sourceText[i] === '}') {
+      depth -= 1;
+      if (depth === 0) return sourceText.slice(bodyStart + 1, i);
+    }
+  }
+  assert.fail(`${signature} body did not close`);
+}
+
 test('console:test:all includes the canonical group', () => {
   const pkg = JSON.parse(source('package.json'));
   assert.match(pkg.scripts['console:test:all'], /canonical/);
@@ -114,4 +129,47 @@ test('runtime draft helpers use readable canonical names', () => {
   assert.match(state, /function draftSelection\(\)/);
   assert.match(state, /function replaceDraftWorkspace\(nextWorkspace\)/);
   assert.match(state, /let draftWorkspace = createEmptyDraftWorkspace\(\);/);
+});
+
+test('legacy session navigation does not also dispatch canonical session effects', () => {
+  const history = source('fixthis-mcp/src/main/console/history.js');
+  const openBody = extractFunctionBody(history, 'async function openSession(sessionId)');
+  assert.doesNotMatch(openBody, /store\.dispatch\(ConsoleEvents\.sessionRowClicked/);
+  assert.match(openBody, /resolvePendingBeforeBoundary\('open-session',\s*sessionId\)/);
+  assert.match(openBody, /requestJson\('\/api\/session\/open'/);
+});
+
+test('legacy annotate flow does not dispatch duplicate canonical preview capture', () => {
+  const history = source('fixthis-mcp/src/main/console/history.js');
+  const enterBody = extractFunctionBody(history, 'async function enterAnnotateMode()');
+  assert.doesNotMatch(enterBody, /requestCanonicalPreviewCapture\(\)/);
+  assert.match(enterBody, /await startDraftAnnotationFlow\(\)/);
+});
+
+test('browser console ports do not reference dead draft endpoints or obsolete recovery namespaces', () => {
+  const ports = source('fixthis-mcp/src/main/console/adapters/browserPorts.js');
+  assert.doesNotMatch(ports, /\/api\/feedback\/items/);
+  assert.doesNotMatch(ports, /fixthis\.recovery\./);
+  assert.doesNotMatch(ports, /fixthis\.draftWorkspace\./);
+});
+
+test('pending annotation detail edits route through draft workspace update use case', () => {
+  const detail = source('fixthis-mcp/src/main/console/presentation/annotationDetailView.js');
+  const pendingBody = extractFunctionBody(detail, 'function renderAnnotationDetail(item, index)');
+  assert.doesNotMatch(pendingBody, /\bitem\.(label|comment|severity|status)\s*=/);
+  assert.match(pendingBody, /updatePendingDraftItem\(/);
+});
+
+test('focused pending comment flush does not mutate draft item directly', () => {
+  const annotations = source('fixthis-mcp/src/main/console/annotations.js');
+  const flushBody = extractFunctionBody(annotations, 'function flushFocusedPendingComment()');
+  assert.doesNotMatch(flushBody, /\bitem\.comment\s*=/);
+  assert.match(flushBody, /updatePendingDraftItem\(/);
+});
+
+test('composer comment input does not mutate focused draft item directly', () => {
+  const annotations = source('fixthis-mcp/src/main/console/annotations.js');
+  const updateBody = extractFunctionBody(annotations, 'function updateSelectedAnnotationComment()');
+  assert.doesNotMatch(updateBody, /\bitem\.comment\s*=/);
+  assert.match(updateBody, /updatePendingDraftItem\(/);
 });

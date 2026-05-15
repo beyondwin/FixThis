@@ -22,6 +22,7 @@ const fake = {
   navigationCalls: 0,
   handoffPrompts: [],
   requestedPaths: [],
+  batchSaveDelayMs: 0,
   devices: [
     { serial: 'device-1', model: 'Pixel Smoke', state: 'device' },
     { serial: 'device-2', model: 'Fold Offline', state: 'offline' },
@@ -334,6 +335,7 @@ async function handleApi(request, response, url) {
     if (validationError) {
       return jsonResponse(response, { error: validationError }, 400);
     }
+    if (fake.batchSaveDelayMs > 0) await delay(fake.batchSaveDelayMs);
     const session = currentSession();
     const screen = body.screen || makeScreen('screen-batch');
     session.screens = [screen];
@@ -788,8 +790,14 @@ async function runSmoke(baseUrl) {
     const firstAnnotationComment = 'Make the checkout heading clearer';
     await page.fill('#annotationCommentInput', firstAnnotationComment);
     await assertPromptReadiness(page, '1 ready');
+    await page.evaluate(() => {
+      window.fixThisPromptPendingBoundary = () => 'keep';
+    });
     await page.locator('#sessions .session-row[data-session-id="session-2"]').click();
     await page.waitForFunction(() => document.querySelector('#sessions .session-row.is-active')?.dataset.sessionId === 'session-2');
+    await page.evaluate(() => {
+      delete window.fixThisPromptPendingBoundary;
+    });
     await page.locator('#sessions .session-row[data-session-id="session-1"]').click();
     await page.waitForFunction(() => document.querySelector('#sessions .session-row.is-active')?.dataset.sessionId === 'session-1');
     await waitForPendingPins(page, 1, 'Recovered active pending draft should auto-restore after session round-trip');
@@ -832,8 +840,32 @@ async function runSmoke(baseUrl) {
     const annotationComment = 'Make the checkout button clearer';
     await page.fill('#annotationCommentInput', annotationComment);
     await page.waitForFunction(() => !document.getElementById('copyPromptButton').disabled);
+    fake.batchSaveDelayMs = 250;
+    const delayedSaveResponse = page.waitForResponse(response =>
+      response.url().includes('/api/items/batch') && response.request().method() === 'POST'
+    );
     await page.click('#copyPromptButton');
-    await page.waitForFunction(() => window.__fixthisCopiedText?.includes('Make the checkout button clearer'));
+    const newerLocalEdit = 'Newer local edit after save started';
+    await page.fill('#annotationCommentInput', newerLocalEdit);
+    assert.ok((await delayedSaveResponse).ok(), 'Delayed draft save should complete');
+    fake.batchSaveDelayMs = 0;
+    try {
+      await page.waitForFunction(
+        comment => document.getElementById('pendingItems')?.textContent.includes(comment),
+        newerLocalEdit,
+        { timeout: 10_000 },
+      );
+    } catch (_) {
+      throw new Error('Newer local edit did not remain visible after stale save: ' + JSON.stringify(await pendingDiagnostics(page)));
+    }
+    await page.fill('#annotationCommentInput', annotationComment);
+    await page.waitForFunction(() => !document.getElementById('copyPromptButton').disabled);
+    await page.click('#copyPromptButton');
+    try {
+      await page.waitForFunction(() => window.__fixthisCopiedText?.includes('Make the checkout button clearer'), { timeout: 10_000 });
+    } catch (_) {
+      throw new Error('Second copy after stale save did not produce copied prompt: ' + JSON.stringify(await pendingDiagnostics(page)));
+    }
     const copiedText = await page.evaluate(() => window.__fixthisCopiedText);
     assert.match(copiedText, /Make the checkout heading clearer/);
     assert.match(copiedText, /Make the checkout button clearer/);
@@ -919,6 +951,7 @@ try {
   console.log('Console browser smoke passed.');
 } catch (error) {
   console.error(`${browserBlocker(error)}: ${error?.message || error}`);
+  if (error?.stack) console.error(error.stack);
   process.exitCode = 1;
 } finally {
   await new Promise(resolve => server.close(resolve));

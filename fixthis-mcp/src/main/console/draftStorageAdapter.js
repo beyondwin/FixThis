@@ -72,6 +72,11 @@ function createDraftStorageAdapter(localStorageLike, ids = {}) {
     localStorageLike.removeItem(draftWorkspaceIndexKey(sessionId));
   }
 
+  function clearLegacyPending(sessionId) {
+    if (!sessionId) return;
+    localStorageLike.removeItem(LegacyPendingKeyPrefix + sessionId);
+  }
+
   function migrateLegacyPending(sessionId) {
     const raw = localStorageLike.getItem(LegacyPendingKeyPrefix + sessionId);
     const legacy = parseDraftStorageJson(raw);
@@ -107,9 +112,9 @@ function createDraftStorageAdapter(localStorageLike, ids = {}) {
       updatedAtEpochMillis: Date.now(),
     };
     saveWorkspace(envelope);
-    localStorageLike.removeItem(LegacyPendingKeyPrefix + sessionId);
+    clearLegacyPending(sessionId);
     return [envelope];
   }
 
-  return { saveWorkspace, loadWorkspacesForSession, deleteWorkspace, deleteWorkspacesForSession, migrateLegacyPending };
+  return { saveWorkspace, loadWorkspacesForSession, deleteWorkspace, deleteWorkspacesForSession, clearLegacyPending, migrateLegacyPending };
 }

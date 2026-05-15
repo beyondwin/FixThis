@@ -22,9 +22,9 @@ function createDraftCommandQueue({ getWorkspace, setWorkspace, onStaleResponse =
         }
         const result = await run(before);
         const current = getWorkspace();
-        if (!matchesMeta(current, meta) && result?.workspace?.workspaceId !== current?.workspaceId) {
+        if (!matchesMeta(current, meta)) {
           onStaleResponse(meta, result);
-          return { applied: false, reason: 'stale_after' };
+          return { applied: false, reason: 'stale_after', result };
         }
         if (result?.workspace) setWorkspace(result.workspace);
         return { applied: true, result };

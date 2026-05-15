@@ -65,11 +65,7 @@ internal class FeedbackItemRoutes(
                         )
                     }
                 } catch (error: PreviewFeedbackRequestValidationException) {
-                    throw FeedbackConsoleHttpException(
-                        400,
-                        error.message ?: "Invalid feedback item request",
-                        error,
-                    )
+                    throw error.toConsoleHttpException()
                 } catch (error: ScreenFingerprintMismatch) {
                     exchange.sendJson(
                         HTTP_STATUS_CONFLICT,
@@ -176,5 +172,24 @@ private val allowedAddFeedbackItemRequestKeys = setOf(
     "bounds",
     "nodeUid",
 )
+
+private fun PreviewFeedbackRequestValidationException.toConsoleHttpException(): FeedbackConsoleHttpException {
+    val text = message ?: "Invalid feedback item request"
+    val (code, action) = when {
+        text.startsWith("Selected node does not exist on preview:") ->
+            "selected_node_missing" to "recapture_or_convert_to_area"
+        text.startsWith("Selection bounds") ->
+            "invalid_selection_bounds" to "recapture_or_select_area"
+        else ->
+            "invalid_feedback_item" to null
+    }
+    return FeedbackConsoleHttpException(
+        statusCode = 400,
+        message = text,
+        errorCode = code,
+        action = action,
+        cause = this,
+    )
+}
 
 private const val HTTP_STATUS_CONFLICT = 409
