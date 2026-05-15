@@ -628,6 +628,7 @@ class CompactHandoffRendererTest {
                         matchReasons = rank1MatchReasons,
                         confidence = SelectionConfidence.MEDIUM,
                         scoreMargin = rank1ScoreMargin,
+                        ownerComposable = "HomeScreen",
                     ),
                     SourceCandidate(
                         file = "Other.kt",
@@ -656,7 +657,8 @@ class CompactHandoffRendererTest {
         val markdown = CompactHandoffRenderer.render(session)
         val lines = markdown.lines()
 
-        val expectedLine = "  src/.../HomeScreen.kt:44  conf=medium  margin=0.30  matched=[tag, compTag, nearbyTag]"
+        val expectedLine = "  src/.../HomeScreen.kt:44  conf=medium  owner=HomeScreen  margin=0.30" +
+            "  matched=[tag, compTag, nearbyTag]"
         assertTrue(
             lines.any { it == expectedLine },
             "Expected to find rank-1 enriched line:\n  '$expectedLine'\nin:\n$markdown",

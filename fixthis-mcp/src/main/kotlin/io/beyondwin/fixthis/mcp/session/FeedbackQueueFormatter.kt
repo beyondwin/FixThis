@@ -124,7 +124,10 @@ object FeedbackQueueFormatter {
             } else {
                 ""
             }
-            appendLine("${index + 1}. `${candidate.fileWithLine()}` ${candidate.markdownConfidence(target)} confidence$staleSuffix")
+            appendLine(
+                "${index + 1}. `${candidate.fileWithLineAndOwner()}` " +
+                    "${candidate.markdownConfidence(target)} confidence$staleSuffix",
+            )
             if (candidate.matchedTerms.isNotEmpty()) {
                 appendLine("   - matched: ${candidate.matchedTerms.joinToString(", ") { "`${it.inlineSafe()}`" }}")
             }

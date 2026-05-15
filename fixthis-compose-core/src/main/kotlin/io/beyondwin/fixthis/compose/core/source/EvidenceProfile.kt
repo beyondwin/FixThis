@@ -12,6 +12,7 @@ internal data class EvidenceProfile(
     val hasSelectedContentDescription: Boolean = SourceMatchReason.SELECTED_CONTENT_DESCRIPTION in reasons
     val hasSelectedRole: Boolean = SourceMatchReason.SELECTED_ROLE in reasons
     val hasSelectedStringResource: Boolean = SourceMatchReason.SELECTED_STRING_RESOURCE in reasons
+    val hasSelectedResolvedStringResource: Boolean = SourceMatchReason.SELECTED_RESOLVED_STRING_RESOURCE in reasons
     val hasArbitraryLiteral: Boolean = SourceMatchReason.ARBITRARY_LITERAL in reasons
     val hasLegacyFallback: Boolean = SourceMatchReason.LEGACY_FALLBACK in reasons
     val hasActivity: Boolean = SourceMatchReason.ACTIVITY in reasons
@@ -21,7 +22,8 @@ internal data class EvidenceProfile(
             hasSelectedUiText ||
             hasSelectedContentDescription ||
             hasSelectedRole ||
-            hasSelectedStringResource
+            hasSelectedStringResource ||
+            hasSelectedResolvedStringResource
     val hasAnyNearby: Boolean = reasons.any { it in NEARBY_REASONS }
 
     val isTextOnly: Boolean = reasons == setOf(SourceMatchReason.SELECTED_TEXT)
@@ -33,6 +35,7 @@ internal data class EvidenceProfile(
             !hasSelectedTestTag &&
             !hasStrictCompTag &&
             !hasSelectedStringResource &&
+            !hasSelectedResolvedStringResource &&
             !hasAnyNearby &&
             !hasActivity
     val isLegacyFallbackOnly: Boolean =
@@ -41,6 +44,7 @@ internal data class EvidenceProfile(
             !hasSelectedTestTag &&
             !hasStrictCompTag &&
             !hasSelectedStringResource &&
+            !hasSelectedResolvedStringResource &&
             !hasAnyNearby &&
             !hasActivity
 
@@ -48,7 +52,7 @@ internal data class EvidenceProfile(
     val distinctSelectedMediumKinds: Int =
         (if (hasSelectedUiText) 1 else 0) +
             (if (hasSelectedContentDescription) 1 else 0) +
-            (if (hasSelectedStringResource) 1 else 0) +
+            (if (hasSelectedStringResource || hasSelectedResolvedStringResource) 1 else 0) +
             (if (hasSelectedRole && hasAnySelected && reasons != setOf(SourceMatchReason.SELECTED_ROLE)) 1 else 0)
 
     fun strength(): SourceEvidenceStrength = when {
@@ -69,6 +73,7 @@ internal data class EvidenceProfile(
             SourceMatchReason.SELECTED_TEXT,
             SourceMatchReason.SELECTED_CONTENT_DESCRIPTION,
             SourceMatchReason.SELECTED_ROLE,
+            SourceMatchReason.SELECTED_RESOLVED_STRING_RESOURCE,
             SourceMatchReason.ARBITRARY_LITERAL,
             SourceMatchReason.LEGACY_FALLBACK,
         )

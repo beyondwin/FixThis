@@ -10,6 +10,11 @@ internal fun SourceCandidate.fileWithLine(): String {
     return line?.let { "$displayFile:$it" } ?: displayFile
 }
 
+internal fun SourceCandidate.fileWithLineAndOwner(): String {
+    val ownerSegment = ownerComposable?.takeIf { it.isNotBlank() }?.let { " inside fun $it" }.orEmpty()
+    return "${fileWithLine()}$ownerSegment"
+}
+
 internal fun FixThisRect.formatBounds(): String = "$left,$top,$right,$bottom"
 
 internal fun FixThisRect.formatBox(): String = "($left,$top)-($right,$bottom)"

@@ -679,6 +679,66 @@ class SourceMatcherTest {
         assertTrue("Expected empty result list when no index entries", results.isEmpty())
     }
 
+    @Test
+    fun selectsKotlinCallSiteOverStringsXmlWhenOnlyResolvedTextMatches() {
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(
+                    file = "src/main/kotlin/com/example/LoginScreen.kt",
+                    line = 42,
+                    stringResources = listOf("login_button"),
+                    signals = listOf(
+                        SourceSignal(SourceSignalKind.STRING_RESOURCE, "login_button"),
+                        SourceSignal(SourceSignalKind.STRING_RESOURCE_RESOLVED, "로그인"),
+                    ),
+                ),
+                SourceIndexEntry(
+                    file = "src/main/res/values/strings.xml",
+                    line = 5,
+                    text = listOf("로그인"),
+                    stringResources = listOf("login_button"),
+                    signals = listOf(
+                        SourceSignal(SourceSignalKind.UI_TEXT, "로그인"),
+                        SourceSignal(SourceSignalKind.STRING_RESOURCE, "login_button"),
+                    ),
+                ),
+            ),
+        )
+
+        val candidates = SourceMatcher(index).match(
+            selectedNode = node(uid = "login-button", text = listOf("로그인")),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        )
+
+        assertEquals("src/main/kotlin/com/example/LoginScreen.kt", candidates.first().file)
+        assertTrue(candidates.first().matchReasons.contains("selected resolved stringResource"))
+    }
+
+    @Test
+    fun sourceCandidateCarriesEnclosingComposableOwner() {
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(
+                    file = "sample/src/main/kotlin/LoginScreen.kt",
+                    line = 42,
+                    signals = listOf(
+                        SourceSignal(SourceSignalKind.UI_TEXT, "로그인"),
+                        SourceSignal(SourceSignalKind.LAMBDA_OWNER_FUNCTION, "LoginScreen"),
+                    ),
+                ),
+            ),
+        )
+
+        val candidates = SourceMatcher(index).match(
+            selectedNode = node(uid = "login-button", text = listOf("로그인")),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        )
+
+        assertEquals("LoginScreen", candidates.single().ownerComposable)
+    }
+
     private fun node(
         uid: String,
         text: List<String> = emptyList(),

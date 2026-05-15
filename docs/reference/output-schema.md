@@ -304,10 +304,11 @@ The item's `screenId` field points to the evidence snapshot saved with the item 
 - `caution`: optional human-readable caveat. Surfaced on the rank-1 candidate as a `note:` line in compact handoff.
 - `stale`: optional `true`, `false`, or `null`. `true` means the host source line no longer matches the index excerpt (do not edit by file:line); `false` means the line-accurate match was verified; `null` means the candidate could not be verified (no excerpt, no line, or an XML resource entry).
 - `staleReason`: optional string explaining the staleness verdict, e.g. `"excerpt mismatch"`, `"file not found on host"`, `"file not found on host; sourceRoot unresolved"`, `"file not found on host; multiple suffix matches"`, `"line out of range"`, `"path escapes project root"`, or `"file too large to verify"`.
+- `ownerComposable`: optional simple name of the enclosing `@Composable fun` for the indexed source entry. Markdown handoffs render this as `inside fun <name>` or compact `owner=<name>` when present.
 
-Generated source-index entries now include additive v2 typed `signals` while preserving the v1 fields (`symbols`, `text`, `contentDescriptions`, `testTags`, `stringResources`, `roles`, and `activityNames`). Current signal kinds are `COMPOSABLE_SYMBOL`, `UI_TEXT`, `STRING_RESOURCE`, `TEST_TAG`, `STRICT_COMP_TEST_TAG`, `CONTENT_DESCRIPTION`, `ROLE`, `ACTIVITY_NAME`, and `ARBITRARY_STRING_LITERAL`; each signal has a `value` and optional `confidenceWeight` defaulting to `1.0`. Readers that do not understand `signals` can continue using v1 fields, and FixThis matching falls back to those v1 fields when no typed signal matches.
+Generated source-index entries now include additive v2 typed `signals` while preserving the v1 fields (`symbols`, `text`, `contentDescriptions`, `testTags`, `stringResources`, `roles`, and `activityNames`). Current signal kinds are `COMPOSABLE_SYMBOL`, `UI_TEXT`, `STRING_RESOURCE`, `STRING_RESOURCE_RESOLVED`, `TEST_TAG`, `STRICT_COMP_TEST_TAG`, `CONTENT_DESCRIPTION`, `ROLE`, `ACTIVITY_NAME`, `ARBITRARY_STRING_LITERAL`, and `LAMBDA_OWNER_FUNCTION`; each signal has a `value` and optional `confidenceWeight` defaulting to `1.0`. `STRING_RESOURCE_RESOLVED` is emitted on Kotlin `stringResource(R.string.name)` call sites when the default-locale value is available from `res/values/strings.xml`; `LAMBDA_OWNER_FUNCTION` records the enclosing composable function for indexed Kotlin entries.
 
-Generated source indexes also include additive root metadata starting with source-index `schemaVersion: "1.1"`:
+Generated source indexes also include additive root metadata starting with source-index `schemaVersion: "1.1"`. Current generated source indexes use `schemaVersion: "1.2"` for resolved string-resource and owner-composable signals:
 
 - `sourceRoot.kind`: source-root kind. Current value is `"gradle-project"`.
 - `sourceRoot.gradlePath`: Gradle project path that generated the index, such as `":app"`.
@@ -322,6 +323,8 @@ Implemented match reasons include:
 - `selected contentDescription`
 - `selected testTag`
 - `selected role`
+- `selected stringResource`
+- `selected resolved stringResource`
 - `nearby text`
 - `nearby contentDescription`
 - `nearby testTag`

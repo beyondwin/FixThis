@@ -56,6 +56,7 @@ object FixThisMarkdownFormatter {
         "selected testTag" -> "tag"
         "selected testTag convention composable" -> "compTag"
         "selected role" -> "role"
+        "selected resolved stringResource" -> "resolvedStringRes"
         "nearby text" -> "nearbyText"
         "nearby contentDescription" -> "nearbyContentDescription"
         "nearby testTag" -> "nearbyTag"
@@ -295,7 +296,10 @@ object FixThisMarkdownFormatter {
         return "${role?.markdownInline() ?: "Node"} \"${label.markdownInline()}\""
     }
 
-    private fun SourceCandidate.location(): String = file + (line?.let { ":$it" } ?: "")
+    private fun SourceCandidate.location(): String {
+        val ownerSegment = ownerComposable?.takeIf { it.isNotBlank() }?.let { " inside fun $it" }.orEmpty()
+        return file + (line?.let { ":$it" } ?: "") + ownerSegment
+    }
 
     private fun SourceCandidateSummary.location(): String = file + (line?.let { ":$it" } ?: "")
 

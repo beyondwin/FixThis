@@ -47,6 +47,26 @@ internal class XmlStringResourceScanner(
         }
     }
 
+    fun resolveDefaults(files: List<File>): Map<String, String> {
+        val out = linkedMapOf<String, String>()
+        for (file in files) {
+            val sourceFile = file.canonicalFile
+            if (sourceFile.parentFile?.name != "values") continue
+            val document = runCatching {
+                newDocumentBuilderFactory().newDocumentBuilder().parse(sourceFile)
+            }.getOrNull() ?: continue
+            val strings = document.getElementsByTagName("string")
+            for (index in 0 until strings.length) {
+                val element = strings.item(index) as? Element ?: continue
+                val name = element.getAttribute("name").takeIf { it.isNotBlank() } ?: continue
+                val value = element.textContent?.trim().orEmpty()
+                if (value.isEmpty()) continue
+                out.putIfAbsent(name, value)
+            }
+        }
+        return out
+    }
+
     private fun newDocumentBuilderFactory(): DocumentBuilderFactory = DocumentBuilderFactory.newInstance().apply {
         setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
         setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)

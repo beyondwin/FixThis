@@ -102,6 +102,7 @@ class FeedbackQueueFormatterTest {
                             matchedTerms = listOf("Email address", "emailField"),
                             matchReasons = listOf("selected text", "selected testTag"),
                             confidence = SelectionConfidence.HIGH,
+                            ownerComposable = "FormScreen",
                         ),
                     ),
                     comment = "Give this field 20 more px of left margin",
@@ -116,7 +117,7 @@ class FeedbackQueueFormatterTest {
         assertTrue(markdown.contains("Request:"))
         assertTrue(markdown.contains("Give this field 20 more px of left margin"))
         assertTrue(markdown.contains("Likely Source:"))
-        assertTrue(markdown.contains("FormScreen.kt:37"))
+        assertTrue(markdown.contains("FormScreen.kt:37 inside fun FormScreen"))
         assertTrue(markdown.contains("Text: `Email address`"))
         assertTrue(markdown.contains("Test Tag: `emailField`"))
         assertFalse(markdown.contains("Delivery:"))

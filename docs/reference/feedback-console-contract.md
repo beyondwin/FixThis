@@ -140,8 +140,8 @@ crop_line     = "crop: " path
 edit_surface_block = edit_surface_line{0,2}
 edit_surface_line  = "  editSurface: " kind " -> " file [ ":" line ] "  conf=" lvl "  why=[" terms "]"
 source_block  = candidate_line{1,3} caution_line?
-candidate_line= "  " file ":" line "  conf=" lvl "  margin=" margin "  matched=[" terms "]"
-                                                                          ↑ first line only; runner-ups omit margin/matched
+candidate_line= "  " file ":" line "  conf=" lvl [ "  owner=" composable ] "  margin=" margin "  matched=[" terms "]"
+                                                                          ↑ owner/margin/matched are first line only; runner-ups omit them
                                                                           ; file is stripped of source_root prefix when present
 caution_line  = "  note: " text                          ; emitted iff caution OR collision
 reliability_block = target_confidence_line warning_line*
@@ -193,7 +193,7 @@ When no source candidates are available for the item, the source block consists 
   instruction.
 - `sourceCandidates` identify where selected or nearby strings came from.
   `editSurface` identifies where a style/layout change is likely rendered.
-- candidate lines — up to 3 in score order. Rank 1 includes `margin=` (score gap to rank 2, formatted to 2 decimal places) and `matched=[...]` (up to 4 reason tokens). Runner-up lines include only `conf=`.
+- candidate lines — up to 3 in score order. Rank 1 includes optional `owner=<Composable>` when the source index knows the enclosing `@Composable fun`, `margin=` (score gap to rank 2, formatted to 2 decimal places), and `matched=[...]` (up to 4 reason tokens). Runner-up lines include only `conf=`.
 - `note:` — emitted when the rank-1 candidate has a `caution` field, or when multiple items in an instance group share the same call site (collision note on the first item only).
 - Confidence is lowercase: `high`, `medium`, `low`, or `none`.
 - `targetConfidence=` — optional target-level reliability. It describes how
@@ -212,6 +212,7 @@ When no source candidates are available for the item, the source block consists 
 | `selected testTag` | `tag` |
 | `selected testTag convention composable` | `compTag` |
 | `selected role` | `role` |
+| `selected resolved stringResource` | `resolvedStringRes` |
 | `nearby text` | `nearbyText` |
 | `nearby contentDescription` | `nearbyContentDescription` |
 | `nearby testTag` | `nearbyTag` |
@@ -222,6 +223,9 @@ When no source candidates are available for the item, the source block consists 
 | `legacy fallback` | `legacy` |
 
 These tokens appear in `matched=[...]` on rank-1 candidate lines.
+
+Precise and full Markdown handoffs render owner-aware source candidates as
+`<file>:<line> inside fun <Composable>` when `ownerComposable` is present.
 
 ### Overlap groups
 

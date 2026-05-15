@@ -222,9 +222,17 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         cleaned: String,
         isNearby: Boolean,
     ): Double {
+        val effectiveReason = if (
+            hit.signalKind == SourceSignalKind.STRING_RESOURCE_RESOLVED &&
+            reason == SourceMatchReason.SELECTED_TEXT
+        ) {
+            SourceMatchReason.SELECTED_RESOLVED_STRING_RESOURCE
+        } else {
+            reason
+        }
         matchedTerms.add(cleaned)
-        matchReasons.add(reason)
-        trackOrigin(hit, reason, isNearby)
+        matchReasons.add(effectiveReason)
+        trackOrigin(hit, effectiveReason, isNearby)
         if (hit.signalKind == SourceSignalKind.STRING_RESOURCE &&
             (
                 reason == SourceMatchReason.SELECTED_TEXT ||
@@ -233,9 +241,9 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         ) {
             matchReasons.add(SourceMatchReason.SELECTED_STRING_RESOURCE)
         }
-        val evidenceKey = "${reason.wireLabel}${cleaned.normalizedForMatch()}"
+        val evidenceKey = "${effectiveReason.wireLabel}${cleaned.normalizedForMatch()}"
         return if (scoredEvidence.add(evidenceKey)) {
-            SourceScoringPolicy.bucketScore(reason) * hit.weight
+            SourceScoringPolicy.bucketScore(effectiveReason) * hit.weight
         } else {
             0.0
         }
@@ -278,6 +286,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         term = term,
         kinds = setOf(
             SourceSignalKind.UI_TEXT,
+            SourceSignalKind.STRING_RESOURCE_RESOLVED,
             SourceSignalKind.STRING_RESOURCE,
             SourceSignalKind.ARBITRARY_STRING_LITERAL,
         ),
@@ -366,10 +375,12 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
     private val SourceSignalKind.baseMatchWeight: Double
         get() = when (this) {
             SourceSignalKind.STRICT_COMP_TEST_TAG -> 1.15
+            SourceSignalKind.STRING_RESOURCE_RESOLVED,
             SourceSignalKind.UI_TEXT,
             SourceSignalKind.TEST_TAG,
             SourceSignalKind.CONTENT_DESCRIPTION,
             SourceSignalKind.COMPOSABLE_SYMBOL,
+            SourceSignalKind.LAMBDA_OWNER_FUNCTION,
             -> 1.0
             SourceSignalKind.STRING_RESOURCE,
             SourceSignalKind.ROLE,
@@ -442,6 +453,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             evidenceStrength = profile.strength(),
             riskFlags = flags,
             caution = caution,
+            ownerComposable = entry.ownerComposable,
         )
     }
 

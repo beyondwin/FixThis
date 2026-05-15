@@ -25,7 +25,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 class BridgeServer(
-    @VisibleForTesting
+    @get:VisibleForTesting
     internal val session: SidekickSession,
     private val environment: BridgeEnvironment,
     private val connectionState: BridgeConnectionState = BridgeConnectionState(),
