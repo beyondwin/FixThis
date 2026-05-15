@@ -217,8 +217,11 @@ internal class FeedbackSessionStoreDelegate(
             require(items.isNotEmpty()) { "At least one feedback item is required" }
             val session = getSessionLocked(sessionId)
             val existingClientKeys = session.items.mapNotNull { it.clientDraftKey() }.toSet()
+            val existingLegacySemanticKeys = existingLegacySemanticKeysForScreen(session, screen)
             val newItems = items.filterNot { item ->
-                item.clientDraftKey()?.let { it in existingClientKeys } == true
+                val clientDuplicate = item.clientDraftKey()?.let { it in existingClientKeys } == true
+                val legacyDuplicate = incomingSemanticDraftKey(item)?.let { it in existingLegacySemanticKeys } == true
+                clientDuplicate || legacyDuplicate
             }
             if (newItems.isEmpty()) {
                 return@withOptionalEventBackedMutation null

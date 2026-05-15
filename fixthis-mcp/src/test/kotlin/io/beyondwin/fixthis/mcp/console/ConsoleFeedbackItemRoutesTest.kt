@@ -676,6 +676,114 @@ class ConsoleFeedbackItemRoutesTest {
     }
 
     @Test
+    fun batchItemsApiDedupeLegacyServerItemWithSameTargetAndComment() {
+        withTempProject("fixthis-console-legacy-idempotent-batch") { projectRoot ->
+            val store = FeedbackSessionStore(
+                clock = FakeLongs(100L, 200L, 300L, 400L, 500L, 600L).next,
+                idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1", "legacy-item", "new-item").next,
+            )
+            val service = FeedbackSessionService(
+                bridge = FakeFixThisBridge(),
+                store = store,
+                projectRoot = projectRoot.absolutePath,
+                defaultPackageName = "io.beyondwin.fixthis.sample",
+            )
+            service.openSession(null, newSession = true)
+            val preview = runBlocking { service.capturePreview("session-1") }
+            store.addScreenWithItems(
+                sessionId = "session-1",
+                screen = preview.screen,
+                items = listOf(
+                    AnnotationDto(
+                        itemId = "pending",
+                        screenId = preview.screen.screenId,
+                        createdAtEpochMillis = 0L,
+                        updatedAtEpochMillis = 0L,
+                        target = AnnotationTargetDto.Area(FixThisRect(1f, 2f, 30f, 40f)),
+                        comment = "legacy saved comment",
+                    ),
+                ),
+            )
+            val screenJson = fixThisJson.encodeToString(preview.screen)
+
+            withConsoleServer(service) { server ->
+                val body = """
+                    {
+                      "workspaceId": "workspace-a",
+                      "previewId": "${preview.previewId}",
+                      "screen": $screenJson,
+                      "items": [{
+                        "draftItemId": "draft-a",
+                        "targetType": "area",
+                        "bounds": {"left":1.0,"top":2.0,"right":30.0,"bottom":40.0},
+                        "comment": "legacy saved comment"
+                      }]
+                    }
+                """.trimIndent()
+
+                assertEquals(200, ConsoleHttpTestClient(server.url).postJson("/api/items/batch", body).statusCode)
+                val stored = service.getSession("session-1")
+                assertEquals(1, stored.items.size)
+                assertEquals(1, stored.screens.size)
+            }
+        }
+    }
+
+    @Test
+    fun batchItemsApiKeepsBlankLegacyServerItemWithSameTarget() {
+        withTempProject("fixthis-console-legacy-blank-batch") { projectRoot ->
+            val store = FeedbackSessionStore(
+                clock = FakeLongs(100L, 200L, 300L, 400L, 500L, 600L).next,
+                idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1", "legacy-item", "new-item").next,
+            )
+            val service = FeedbackSessionService(
+                bridge = FakeFixThisBridge(),
+                store = store,
+                projectRoot = projectRoot.absolutePath,
+                defaultPackageName = "io.beyondwin.fixthis.sample",
+            )
+            service.openSession(null, newSession = true)
+            val preview = runBlocking { service.capturePreview("session-1") }
+            store.addScreenWithItems(
+                sessionId = "session-1",
+                screen = preview.screen,
+                items = listOf(
+                    AnnotationDto(
+                        itemId = "pending",
+                        screenId = preview.screen.screenId,
+                        createdAtEpochMillis = 0L,
+                        updatedAtEpochMillis = 0L,
+                        target = AnnotationTargetDto.Area(FixThisRect(1f, 2f, 30f, 40f)),
+                        comment = "",
+                    ),
+                ),
+            )
+            val screenJson = fixThisJson.encodeToString(preview.screen)
+
+            withConsoleServer(service) { server ->
+                val body = """
+                    {
+                      "workspaceId": "workspace-a",
+                      "previewId": "${preview.previewId}",
+                      "screen": $screenJson,
+                      "items": [{
+                        "draftItemId": "draft-a",
+                        "targetType": "area",
+                        "bounds": {"left":1.0,"top":2.0,"right":30.0,"bottom":40.0},
+                        "comment": ""
+                      }]
+                    }
+                """.trimIndent()
+
+                assertEquals(200, ConsoleHttpTestClient(server.url).postJson("/api/items/batch", body).statusCode)
+                val stored = service.getSession("session-1")
+                assertEquals(2, stored.items.size)
+                assertEquals(1, stored.screens.size)
+            }
+        }
+    }
+
+    @Test
     fun batchItemsApiReturnsBadRequestForEmptyItemList() {
         val bridge = FakeFixThisBridge()
         val service = FeedbackSessionService(
