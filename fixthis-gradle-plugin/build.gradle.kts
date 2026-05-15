@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.spotless)
     alias(libs.plugins.detekt) apply false
     `maven-publish`
+    signing
 }
 
 group = providers.gradleProperty("FIXTHIS_GROUP").orElse("io.github.beyondwin").get()
@@ -79,6 +80,47 @@ gradlePlugin {
             tags.set(listOf("android", "compose", "debugging", "mcp", "ai"))
             implementationClass = "io.github.beyondwin.fixthis.gradle.FixThisGradlePlugin"
         }
+    }
+}
+
+publishing {
+    publications.withType<MavenPublication>().configureEach {
+        pom {
+            url.set("https://github.com/beyondwin/FixThis")
+            licenses {
+                license {
+                    name.set("MIT License")
+                    url.set("https://opensource.org/licenses/MIT")
+                }
+            }
+            developers {
+                developer {
+                    id.set("beyondwin")
+                    name.set("BeyondWin")
+                    url.set("https://github.com/beyondwin")
+                }
+            }
+            scm {
+                connection.set("scm:git:https://github.com/beyondwin/FixThis.git")
+                developerConnection.set("scm:git:ssh://git@github.com/beyondwin/FixThis.git")
+                url.set("https://github.com/beyondwin/FixThis")
+            }
+        }
+    }
+}
+
+signing {
+    val signingKey =
+        providers
+            .gradleProperty("signingKey")
+            .orElse(providers.environmentVariable("SIGNING_KEY"))
+    val signingPassword =
+        providers
+            .gradleProperty("signingPassword")
+            .orElse(providers.environmentVariable("SIGNING_PASSWORD"))
+    if (signingKey.isPresent && signingPassword.isPresent) {
+        useInMemoryPgpKeys(signingKey.get(), signingPassword.get())
+        sign(publishing.publications)
     }
 }
 
