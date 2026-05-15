@@ -62,6 +62,7 @@ copied compact Markdown or saved a local MCP handoff.
 | Connect Claude Code, Codex, Cursor, or a chat agent | [Connect your agent](docs/getting-started/connect-your-agent.md) |
 | Let an agent bootstrap MCP from the repo | [MCP bootstrap](MCP.md) |
 | Learn the browser console workflow | [Feedback console tour](docs/guides/feedback-console-tour.md) |
+| Understand the product concept and handoff rationale | [Concept and handoff rationale](docs/product/concept-and-handoff-rationale.md) |
 | Diagnose setup problems | [Troubleshooting](docs/guides/troubleshooting.md) |
 | Inspect CLI, MCP, or JSON contracts | [Documentation index](docs/index.md) |
 | Contribute | [Contributing guide](CONTRIBUTING.md) |
@@ -104,7 +105,11 @@ If your screen has a single obvious target with clear text, a plain screenshot m
 | `:fixthis-cli` | Desktop CLI |
 | `:fixthis-mcp` | stdio MCP server and local HTTP feedback console |
 
-Architecture details live in [Architecture overview](docs/architecture/overview.md).
+Product and architecture details live in
+[Concept and handoff rationale](docs/product/concept-and-handoff-rationale.md),
+[Product concept](docs/product/README.md),
+[Decision rationale](docs/product/decision-rationale.md), and
+[Architecture overview](docs/architecture/overview.md).
 
 ## Status
 

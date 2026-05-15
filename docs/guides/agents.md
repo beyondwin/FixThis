@@ -95,9 +95,10 @@ tools.
   MCP** persists `.fixthis/feedback-sessions/<id>/` files; **Copy Prompt** writes
   to the clipboard.
 - **JSON is always complete.** Agent-facing Markdown is intentionally compact
-  and omits internal IDs and storage metadata. JSON kept on disk preserves all
-  IDs, paths, and MCP contracts — see the
-  [Output schema](../reference/output-schema.md).
+  but includes the item and session IDs needed for claim/resolve workflows. JSON
+  kept on disk preserves all IDs, paths, and MCP contracts — see the
+  [Output schema](../reference/output-schema.md) and
+  [handoff prompt rationale](../design/handoff-prompt-rationale.md).
 - **Written annotations batch into one handoff.** Whether you Copy Prompt or
   Save to MCP, every pending annotation on the frozen preview that has a
   written comment lands in the same batch. Pin-only residual annotations stay

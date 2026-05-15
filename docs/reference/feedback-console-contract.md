@@ -115,7 +115,7 @@ Rule: source hints are candidates; verify screenshot, target, and code before ed
 ### v2 prompt grammar (BNF-ish)
 
 ```
-prompt        = header rule package_line source_root_line? quality_line? "" screen_block+
+prompt        = header rule package_line source_root_line? quality_line? "" screen_block+ footer
 header        = "# FixThis Feedback Handoff" ""
 rule          = "Rule: source hints are candidates; verify screenshot, target, and code before editing." ""
 package_line   = "- Package: `" pkg "`"
@@ -147,6 +147,12 @@ caution_line  = "  note: " text                          ; emitted iff caution O
 reliability_block = target_confidence_line warning_line*
 target_confidence_line = "  targetConfidence=" ("high" | "medium" | "low" | "unknown")
 warning_line   = "  warning: " text
+footer         = "---"
+                 "agent_protocol:"
+                 "  before_work: fixthis_claim_feedback({sessionId, itemId})"
+                 "  on_complete: fixthis_resolve_feedback({sessionId, itemId, status: resolved|wont_fix|needs_clarification, summary})"
+                 "  user_console_reflects_within: 2s"
+                 "session_id: " session_id
 ```
 
 The `screenshot:` line is optional and omitted when no screenshot artifact is available for the screen.
@@ -174,6 +180,10 @@ When no source candidates are available for the item, the source block consists 
 - `id:` — feedback item id. Agents should use this with
   `fixthis_claim_feedback` before editing and `fixthis_resolve_feedback` after
   finishing.
+- `agent_protocol:` — footer that repeats the queue contract inline for agents
+  that only see copied Markdown.
+- `session_id:` — feedback session id to pass with item ids when the agent needs
+  to avoid relying on the active session default.
 - `instance i/N` — emitted on the target line when multiple items on the same screen share the same `(top_candidate file:line, testTag)`; index assigned by `path`-leaf string sort order.
 - `targetRisk=overlap` — present when the target participates in an overlap group (see below).
 - `targetRisk=duplicate-of-marker-M` — present when this item is an exact duplicate of an earlier item (same source, testTag, path leaves, and bounds).
@@ -233,13 +243,13 @@ Tool-using agents that parsed the v1 compact prompt format must update the follo
 | `bounds=L,T - R,B` | `box=(L,T)-(R,B)` | Matches typical `(x,y)` notation. The earlier `[W×H]` size suffix was dropped — derivable from the box, and agents can compute it on demand. |
 | `target: Node "tag"` | `[role=<role>  ][tag=<tag>  ]box=...` (with `role=`/`tag=` dropped when blank) | Drops unvarying `Node`/`Area` fallback role and the `tag=(none)` placeholder. Each token is keyed and only emitted when it carries information. |
 | `why=<token>+<token>` | `matched=[<token>, <token>]` | Renamed for clarity: `matched` describes what evidence was found; `why` was ambiguous metadata. The same reason-token vocabulary is reused. |
-| `risk=<token>` (on source line) | `targetRisk=<token>` (on `ui:` line) and `note: <text>` (after candidates block) | Splits target-level risk (`overlap`, `duplicate-of-marker-N`) from source-level caution; v1 conflated them on one line. |
+| `risk=<token>` (on source line) | `targetRisk=<token>` (on the target coordinate line) and `note: <text>` (after candidate lines) | Splits target-level risk (`overlap`, `duplicate-of-marker-N`) from source-level caution; v1 conflated them on one line. |
 | Screen UUID `<full-uuid>` | `<first-8-chars>` (short-id) | Reduces visual noise; 8 hex chars are unique enough for disambiguation within a session. |
 | (absent) | `viewport: W×H` | New: lets agents interpret pixel bounds without opening the screenshot. |
 | (absent) | `activity: <name>` | New: emitted when Android activity name differs from `displayName`. |
 | (absent) | `Handoff quality: ...` | New: summarizes aggregate target/source warning signals for the rendered item set. |
 | (absent) | `target: ...` | New: gives a redaction-safe semantic summary of the selected UI target before source candidates. |
-| (absent) | `instance i/N` on `ui:` line | New: disambiguates list-rendered widgets that share a call site. |
+| (absent) | `instance i/N` on the target coordinate line | New: disambiguates list-rendered widgets that share a call site. |
 | (absent) | `note: N markers map to same call site — likely list-rendered; disambiguate by instance index` | New: collision signal on the first item of each instance group. |
 | (absent) | `targetRisk=duplicate-of-marker-M` | New: surfaces true marker duplication so agents do not double-resolve. |
 | (absent) | `- Source root: \`<prefix>\`` header + relative candidate paths | New (2026-05-10 trim): hoist the directory-boundary common prefix of all candidate paths once, strip from each candidate line. Net token saving on long monorepo paths; absent for sessions whose candidates do not share a prefix. |

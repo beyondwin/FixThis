@@ -1,8 +1,11 @@
-<!-- Current source of truth. Korean original archived at ../archive/project-overview-ko-2026-05.md -->
-
 # FixThis Project Overview
 
-This document is an onboarding reference based on the current repository code. For product requirements and long-term design rationale, see [Product requirements (archived, Korean)](../archive/prd-v1-2026-05-03.md) and [Technical design (archived, Korean)](../archive/technical-design-v1-2026-05-03.md).
+This document is an onboarding reference based on the current repository code.
+For product concept and maintained rationale, see
+[Concept and handoff rationale](../product/concept-and-handoff-rationale.md),
+[Product concept](../product/README.md),
+[Decision rationale](../product/decision-rationale.md), and
+[Handoff prompt rationale](../design/handoff-prompt-rationale.md).
 
 ## One-Line Summary
 
@@ -347,19 +350,16 @@ Android instrumentation tests require an unlocked interactive emulator or device
 Recommended order for a developer seeing this project for the first time:
 
 1. [README](../../README.md): product summary and quick start.
-2. This document: current code structure and runtime flow.
-3. [MCP tools](../reference/mcp-tools.md): feedback console and MCP tool contracts.
-4. [Output schema](../reference/output-schema.md): annotation/session JSON fields.
-5. [Privacy](../reference/privacy.md): local-first, redaction, screenshot caution.
-6. [Troubleshooting](../guides/troubleshooting.md): ADB/sidekick/MCP failure diagnosis.
-7. [Technical design (archived, Korean)](../archive/technical-design-v1-2026-05-03.md): longer design rationale and module-by-module design.
-8. [Architecture Decision Records](adr/README.md): durable architecture decisions that the current code upholds.
-
-`docs/superpowers/plans/` and `docs/superpowers/specs/` contain
-implementation history and work-order records. Companion design records under
-`docs/plans/` and `docs/specs/` are retained for traceability. For current
-architecture, the above documents, reference docs, CHANGELOG entries, tests,
-and ADRs take precedence.
+2. [Concept and handoff rationale](../product/concept-and-handoff-rationale.md): product concept, key choices, and prompt design in one place.
+3. [Product concept](../product/README.md): current scope, users, principles, and non-goals.
+4. [Decision rationale](../product/decision-rationale.md): why the major product and technical trade-offs were chosen.
+5. This document: current code structure and runtime flow.
+6. [MCP tools](../reference/mcp-tools.md): feedback console and MCP tool contracts.
+7. [Output schema](../reference/output-schema.md): annotation/session JSON fields.
+8. [Handoff prompt rationale](../design/handoff-prompt-rationale.md): why the compact prompt includes its current fields.
+9. [Privacy](../reference/privacy.md): local-first, redaction, screenshot caution.
+10. [Troubleshooting](../guides/troubleshooting.md): ADB/sidekick/MCP failure diagnosis.
+11. [Architecture Decision Records](adr/README.md): durable architecture decisions that the current code upholds.
 
 ## Common Confusions
 
@@ -380,8 +380,7 @@ and ADRs take precedence.
   against the current active session after a user switches workspaces.
 - Persisted MCP JSON field names are a compatibility contract. They may differ from domain model names; check the mapper boundary.
 - A `Connected` chip does not always mean the device is interactable. Screen off / locked / backgrounded / PiP / unresponsive / no-Compose-UI all stay `Connected` but report a blocked sub-state.
-- Compact handoff output uses the v2 format. Instead of a single `src?` line, it emits a `candidates:` block (rank-1 by default, capped at 3) and `viewport:`, `activity:`, `instance i/N`, and collision/duplicate-marker note lines. PRECISE/FULL detail modes and the JSON wire format are unchanged.
-
----
-
-See also: [Korean original (archived)](../archive/project-overview-ko-2026-05.md)
+- Compact handoff output uses the v2 format. Instead of a single `src?` line,
+  it emits indented candidate lines (rank-1 by default, capped at 3) and
+  `viewport:`, `activity:`, `instance i/N`, and collision/duplicate-marker note
+  lines. PRECISE/FULL detail modes and the JSON wire format are unchanged.

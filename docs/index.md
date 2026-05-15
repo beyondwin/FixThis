@@ -16,7 +16,25 @@ pitch, scope, and sample-to-agent Quick Start.
 | Add FixThis to my Compose debug build | [Add FixThis to your app](getting-started/add-to-your-app.md) |
 | Connect Claude Code, Codex, Cursor, or ChatGPT | [Connect your AI agent](getting-started/connect-your-agent.md) |
 | Learn the browser annotation workflow | [Feedback console tour](guides/feedback-console-tour.md) |
+| Understand the product and prompt rationale in one place | [Concept and handoff rationale](product/concept-and-handoff-rationale.md) |
+| Understand what FixThis is and is not | [Product concept](product/README.md) |
+| Understand why key product/technical choices were made | [Decision rationale](product/decision-rationale.md) |
 | Fix setup or device problems | [Troubleshooting](guides/troubleshooting.md) |
+
+## Product and Design
+
+- [Concept and handoff rationale](product/concept-and-handoff-rationale.md) —
+  self-contained Korean overview of the product concept, major trade-offs, and
+  compact prompt design.
+- [Product concept](product/README.md) — current concept, target users,
+  principles, scope, and non-goals.
+- [Decision rationale](product/decision-rationale.md) — maintained summary of
+  the major product and architecture trade-offs.
+- [Design rationale](design/README.md) — maintained explanations for important
+  workflow designs that are not API contracts.
+- [Handoff prompt rationale](design/handoff-prompt-rationale.md) — why compact
+  prompts include target summaries, source candidates, IDs, confidence, warning
+  signals, and server-rendered parity.
 
 ## Reference Contracts
 
@@ -51,17 +69,6 @@ pitch, scope, and sample-to-agent Quick Start.
   windows before advisory checks become branch-protection requirements
 - [Connected test triage](contributing/connected-tests.md) — nightly
   instrumented-test policy and flake handling
-
-## Historical / archived
-
-- [`archive/`](archive/README.md) — original Korean PRD, decisions log, and
-  technical design (2026-05-03 era). Preserved for the design-trail history;
-  no longer reflects current behavior.
-- [`superpowers/`](superpowers/) — implementation plans and design specs
-  produced by the maintainers' AI-assisted workflow. Companion specs and
-  plans for hardening tracks live under [`specs/`](specs/) and
-  [`plans/`](plans/). These are design records, not current API contracts;
-  reference docs, release notes, and tests take precedence when they differ.
 
 ---
 
