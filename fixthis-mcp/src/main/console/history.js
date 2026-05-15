@@ -382,10 +382,13 @@
             // (driven by state.session) cannot drift behind the sidebar (driven by summaries).
             // Both endpoints fetched in parallel; if one fails the call rejects as before.
             async function refreshSessions() {
+              const previousSessionId = state.session?.sessionId || null;
               const [response, currentSession] = await Promise.all([
                 requestJson('/api/sessions'),
                 requestJson('/api/session'),
               ]);
+              const nextSessionId = currentSession?.sessionId || null;
+              if (previousSessionId !== nextSessionId) clearPreview();
               setConsoleSession(currentSession || null);
               renderSessionsListFromPayload(response.sessions || []);
               return response.sessions || [];

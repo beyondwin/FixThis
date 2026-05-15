@@ -7,11 +7,17 @@
               const on = (name, fn) => source.addEventListener(name, (event) => fn(json(event)));
               const activeSessionId = () => state.session?.sessionId || null;
               const matchesActiveSession = (data) => Boolean(data?.sessionId && data.sessionId === state.session?.sessionId);
+              function applySessionFromServer(session) {
+                const previousSessionId = state.session?.sessionId || null;
+                const nextSessionId = session?.sessionId || null;
+                if (previousSessionId !== nextSessionId) clearPreview();
+                setConsoleSession(session || null);
+              }
               on('snapshot', (data) => {
                 const previousDisplayedSessionId = displayedSessionId();
                 if ('session' in data) {
                   if (!data.session && previousDisplayedSessionId) clearDisplayedSessionState();
-                  else setConsoleSession(data.session || null);
+                  else applySessionFromServer(data.session || null);
                 }
                 if (data.sessions?.sessions) renderSessionsListFromPayload(data.sessions.sessions);
                 if (data.devices) renderDeviceList(data.devices);
@@ -30,7 +36,7 @@
                   return;
                 }
                 const session = data.session;
-                setConsoleSession(session);
+                applySessionFromServer(session);
                 loadPendingRecoveryForCurrentSession();
                 render();
               });

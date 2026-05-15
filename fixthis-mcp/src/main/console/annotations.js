@@ -344,11 +344,11 @@
               updateComposerState();
               stopLivePreviewPolling();
               try {
-                const addFlowContextGeneration = previewUseCases.getState().contextGeneration;
+                const previewContext = capturePreviewContext();
                 let preview = state.preview;
                 if (previewUseCases.getState().inFlight || !preview) {
                   preview = await previewUseCases.request();
-                  if (addFlowContextGeneration !== previewUseCases.getState().contextGeneration) return;
+                  if (!previewContextStillCurrent(previewContext)) return;
                   preview = {
                     ...preview,
                     activity: state.connection?.availability?.activity ?? null,
@@ -357,7 +357,7 @@
                   };
                   setConsolePreview(preview);
                 }
-                if (!state.preview) {
+                if (!previewContextStillCurrent(previewContext) || !state.preview) {
                   return;
                 }
                 const ports = createBrowserDraftPorts();
