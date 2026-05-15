@@ -4,6 +4,7 @@ import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
+import io.beyondwin.fixthis.compose.core.source.SourceRoot
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -21,6 +22,31 @@ class SourceCandidateStalenessCheckerTest {
             entries = listOf(SourceIndexEntry(file = "Sample.kt", line = 3, excerpt = "fun greet() = \"hi\"")),
         )
         val candidate = candidate(file = "Sample.kt", line = 3)
+        val checker = SourceCandidateStalenessChecker(tmp)
+
+        val result = checker.annotate(listOf(candidate), index).single()
+
+        assertEquals(false, result.stale)
+        assertNull(result.staleReason)
+    }
+
+    @Test
+    fun `marks module relative candidate fresh through source root metadata`() {
+        val tmp = tempDir()
+        val file = File(tmp, "sample/src/main/java/Sample.kt")
+        file.parentFile.mkdirs()
+        file.writeText("package x\n\nfun greet() = \"hi\"\n")
+        val index = SourceIndex(
+            sourceRoot = SourceRoot(gradlePath = ":app", projectDir = "sample"),
+            entries = listOf(
+                SourceIndexEntry(
+                    file = "src/main/java/Sample.kt",
+                    line = 3,
+                    excerpt = "fun greet() = \"hi\"",
+                ),
+            ),
+        )
+        val candidate = candidate(file = "src/main/java/Sample.kt", line = 3)
         val checker = SourceCandidateStalenessChecker(tmp)
 
         val result = checker.annotate(listOf(candidate), index).single()

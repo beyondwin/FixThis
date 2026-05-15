@@ -2,6 +2,7 @@ package io.beyondwin.fixthis.mcp.session
 
 import io.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
+import io.beyondwin.fixthis.compose.core.source.SourceRoot
 import org.junit.Test
 import java.io.File
 import kotlin.test.assertEquals
@@ -132,6 +133,31 @@ class HostSourceFreshnessProbeTest {
         val result = probe.evaluate(index, installEpochMillis = installed)
 
         assertFalse(result.installStale)
+        assertFalse(result.reason?.startsWith("projectRoot may be misconfigured") == true)
+    }
+
+    @Test
+    fun `resolves module source root paths before reporting project root misconfiguration`() {
+        val tmp = tempDir()
+        val installed = 1_700_000_000_000L
+        val file = File(tmp, "sample/src/main/java/Sample.kt").also {
+            it.parentFile.mkdirs()
+            it.writeText("fun sample() {}")
+        }
+        file.setLastModified(installed - 60_000)
+        val index = SourceIndex(
+            sourceRoot = SourceRoot(gradlePath = ":app", projectDir = "sample"),
+            entries = listOf(
+                SourceIndexEntry(file = "src/main/java/Sample.kt", line = 1, excerpt = "fun sample() {}"),
+            ),
+        )
+        val probe = HostSourceFreshnessProbe(tmp)
+
+        val result = probe.evaluate(index, installEpochMillis = installed)
+
+        assertFalse(result.installStale)
+        assertEquals(1, result.totalIndexedFiles)
+        assertEquals(0, result.newerFileCount)
         assertFalse(result.reason?.startsWith("projectRoot may be misconfigured") == true)
     }
 

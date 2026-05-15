@@ -20,25 +20,19 @@ data class HostSourceFreshnessResult(
 class HostSourceFreshnessProbe(private val projectRoot: File) {
 
     fun evaluate(sourceIndex: SourceIndex, installEpochMillis: Long?): HostSourceFreshnessResult {
+        val files = resolvedFiles(sourceIndex)
         if (installEpochMillis == null) {
             return HostSourceFreshnessResult(
                 installStale = false,
                 newerFileCount = 0,
-                totalIndexedFiles = sourceIndex.entries.map { it.file }.distinct().size,
+                totalIndexedFiles = files.size,
                 installedAtEpochMillis = null,
                 sampleNewerFiles = emptyList(),
                 reason = "install epoch unavailable; older sidekick",
             )
         }
-        val canonicalRoot = projectRoot.canonicalFile
-        val files = sourceIndex.entries.map { it.file }.distinct()
         if (files.isNotEmpty()) {
-            val existsCount = files.count { relative ->
-                val resolved = runCatching { File(canonicalRoot, relative).canonicalFile }.getOrNull()
-                resolved != null &&
-                    resolved.path.startsWith(canonicalRoot.path + File.separator) &&
-                    resolved.isFile
-            }
+            val existsCount = files.count { it.resolution.found }
             if (existsCount == 0) {
                 return HostSourceFreshnessResult(
                     installStale = false,
@@ -50,12 +44,9 @@ class HostSourceFreshnessProbe(private val projectRoot: File) {
                 )
             }
         }
-        val newer = files.mapNotNull { relative ->
-            val resolved = runCatching { File(canonicalRoot, relative).canonicalFile }.getOrNull()
-                ?: return@mapNotNull null
-            if (!resolved.path.startsWith(canonicalRoot.path + File.separator)) return@mapNotNull null
-            if (!resolved.isFile) return@mapNotNull null
-            if (resolved.lastModified() > installEpochMillis) relative else null
+        val newer = files.mapNotNull { resolvedFile ->
+            val file = resolvedFile.resolution.file ?: return@mapNotNull null
+            if (file.lastModified() > installEpochMillis) resolvedFile.displayPath else null
         }
         val stale = newer.isNotEmpty()
         return HostSourceFreshnessResult(
@@ -71,6 +62,24 @@ class HostSourceFreshnessProbe(private val projectRoot: File) {
             },
         )
     }
+
+    private fun resolvedFiles(sourceIndex: SourceIndex): List<ResolvedIndexedFile> {
+        val resolver = HostSourcePathResolver(projectRoot)
+        return sourceIndex.entries
+            .map { entry ->
+                val resolution = resolver.resolve(entry, sourceIndex)
+                ResolvedIndexedFile(
+                    displayPath = resolution.displayPath ?: entry.file,
+                    resolution = resolution,
+                )
+            }
+            .distinctBy { it.displayPath }
+    }
+
+    private data class ResolvedIndexedFile(
+        val displayPath: String,
+        val resolution: HostSourcePathResolution,
+    )
 
     private companion object {
         const val SampleSize = 3

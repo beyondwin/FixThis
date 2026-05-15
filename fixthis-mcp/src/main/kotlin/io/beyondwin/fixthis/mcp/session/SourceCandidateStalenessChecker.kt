@@ -14,24 +14,33 @@ class SourceCandidateStalenessChecker(private val projectRoot: File) {
 
     fun annotate(candidates: List<SourceCandidate>, sourceIndex: SourceIndex): List<SourceCandidate> {
         if (candidates.isEmpty()) return candidates
-        val byKey = sourceIndex.entries.associateBy { entryKey(it.file, it.line) }
-        val canonicalRoot = projectRoot.canonicalFile
+        val byFileKey = sourceIndex.entries.associateBy { entryKey(it.file, it.line) }
+        val byRepoFileKey = sourceIndex.entries
+            .mapNotNull { entry -> entry.repoFile?.let { entryKey(it, entry.line) to entry } }
+            .toMap()
+        val resolver = HostSourcePathResolver(projectRoot)
         return candidates.map { candidate ->
-            val entry = byKey[entryKey(candidate.file, candidate.line)]
-            annotate(candidate, entry, canonicalRoot)
+            val entry = candidate.repoFile
+                ?.let { byRepoFileKey[entryKey(it, candidate.line)] }
+                ?: byFileKey[entryKey(candidate.file, candidate.line)]
+                ?: byRepoFileKey[entryKey(candidate.file, candidate.line)]
+            annotate(candidate, entry, sourceIndex, resolver)
         }
     }
 
-    private fun annotate(candidate: SourceCandidate, entry: SourceIndexEntry?, canonicalRoot: File): SourceCandidate {
+    private fun annotate(
+        candidate: SourceCandidate,
+        entry: SourceIndexEntry?,
+        sourceIndex: SourceIndex,
+        resolver: HostSourcePathResolver,
+    ): SourceCandidate {
         val expected = entry?.excerpt?.takeIf { it.isNotBlank() } ?: return candidate
         val line = candidate.line ?: return candidate
 
-        val resolved = runCatching { File(canonicalRoot, candidate.file).canonicalFile }.getOrNull()
-            ?: return candidate.flagStale("file not found on host")
-        if (!resolved.path.startsWith(canonicalRoot.path + File.separator) && resolved != canonicalRoot) {
-            return candidate.flagStale("path escapes project root: ${candidate.file}")
-        }
-        if (!resolved.isFile) return candidate.flagStale("file not found on host")
+        val resolution = resolver.resolve(entry, sourceIndex)
+        val resolved = resolution.file ?: return candidate.flagStale(
+            resolution.failureReason ?: "file not found on host",
+        )
         if (resolved.length() > MaxBytesToRead) return candidate.flagStale("file too large to verify")
 
         val live = readLine(resolved, line) ?: return candidate.flagStale("line out of range")
