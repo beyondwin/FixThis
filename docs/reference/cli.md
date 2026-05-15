@@ -69,12 +69,14 @@ package installed, source index up to date.
 
 ```bash
 fixthis doctor --package io.beyondwin.fixthis.sample
+fixthis doctor --project-dir . --json
 ```
 
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--package` | — | Android applicationId to diagnose. |
 | `--project-dir` | `.` | Project root containing `.fixthis/project.json`. |
+| `--json` | off | Print a structured report with stable check names, status, message, and fix fields. |
 
 ## `fixthis init`
 
@@ -252,7 +254,8 @@ All subcommands follow standard CLI convention:
 - `2` — invalid argument (e.g. unknown `--target` value)
 
 `fixthis doctor` returns non-zero when any check fails, so it's safe to wire
-into CI as a smoke test.
+into CI as a smoke test. Agents should prefer `fixthis doctor --json` when
+they need structured remediation hints.
 
 ## Where commands look for state
 

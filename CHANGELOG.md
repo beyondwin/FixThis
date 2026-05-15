@@ -49,6 +49,9 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   - `fixthis init --agent` and the `fixthis install-agent` alias now write
     project-scoped agent handoff files under `.fixthis/`, including a
     machine-readable `agent-setup.json` and MCP template for agent discovery.
+  - `fixthis doctor --json` now emits stable check names, status, messages, and
+    remediation hints so coding agents can parse failures and take the next
+    repair step.
 
 - **Console session/preview sync hardening — session-scoped SSE, explicit-session mutation events, partial draft handoff, and deleted-session cleanup (console/mcp, 2026-05-15):**
   - `session-updated` and `preview-ready` SSE payloads now carry top-level

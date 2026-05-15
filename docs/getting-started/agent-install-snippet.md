@@ -26,7 +26,7 @@ When asked to add FixThis to this Android app:
    package.
 5. Run `fixthis init --agent --project-dir . --target all`
    or `fixthis install-agent --project-dir . --target all`.
-6. Run `fixthis doctor --project-dir .`.
+6. Run `fixthis doctor --project-dir . --json` and fix any failed checks.
 7. Open the console with MCP tool `fixthis_open_feedback_console`.
 
 Never add FixThis to release builds. The sidekick is debug-only.
