@@ -125,8 +125,11 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
 class InitCommand : CoreCliktCommand(name = "init") {
     private val packageName by option("--package", help = "Android application id for generated MCP config")
     private val projectDir by option("--project-dir", help = "Android project root").default(".")
-    private val dryRun by option("--dry-run", help = "Print planned writes without modifying files").flag(default = false)
-    private val target by option("--target", help = "Agent config target").choice("codex", "claude", "all").default("all")
+    private val dryRun by option("--dry-run", help = "Print planned writes without modifying files")
+        .flag(default = false)
+    private val target by option("--target", help = "Agent config target")
+        .choice("codex", "claude", "all")
+        .default("all")
     private val serverName by option("--server-name", help = "MCP server name to write").default("fixthis")
     private val verbose by option("--verbose", "-v", help = "Print full stack trace on failure").flag(default = false)
 

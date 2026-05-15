@@ -24,7 +24,9 @@ internal object EditSurfaceCandidateService {
                 candidates += source.toEditSurface(
                     kind = intent.primaryKind,
                     confidence = SelectionConfidence.MEDIUM,
-                    reasons = intent.reasons + EditSurfaceReasonDto.TARGET_OWNER + EditSurfaceReasonDto.COMPONENT_DEFINITION,
+                    reasons = intent.reasons +
+                        EditSurfaceReasonDto.TARGET_OWNER +
+                        EditSurfaceReasonDto.COMPONENT_DEFINITION,
                 )
             }
         }

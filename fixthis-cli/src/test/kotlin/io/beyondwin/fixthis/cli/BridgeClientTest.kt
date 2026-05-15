@@ -724,6 +724,7 @@ class BridgeClientTest {
         }
     }
 
+    @Suppress("LongParameterList")
     private class FakeAdbFacade(
         private val sessionJson: String,
         private val devices: List<AdbDevice> = listOf(AdbDevice("emulator-5554", "device")),

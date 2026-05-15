@@ -4,6 +4,34 @@ internal object SourceScoringPolicy {
     const val maxCandidates: Int = 5
     const val highConfidenceScore: Double = 100.0
     const val minPartialMatchLength: Int = 3
+    const val selectedTestTagRankingTier: Int = 50
+    const val selectedTextRankingTier: Int = 40
+    const val nearbyContextRankingTier: Int = 20
+    const val activityRankingTier: Int = 10
+
+    fun rankingTier(matchReasons: List<SourceMatchReason>): Int {
+        val reasons = matchReasons.toSet()
+        return when {
+            reasons.hasAny(
+                SourceMatchReason.SELECTED_TEST_TAG,
+                SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE,
+            ) -> selectedTestTagRankingTier
+            reasons.hasAny(
+                SourceMatchReason.SELECTED_TEXT,
+                SourceMatchReason.SELECTED_CONTENT_DESCRIPTION,
+                SourceMatchReason.SELECTED_STRING_RESOURCE,
+                SourceMatchReason.SELECTED_ROLE,
+            ) -> selectedTextRankingTier
+            reasons.hasAny(
+                SourceMatchReason.NEARBY_TEXT,
+                SourceMatchReason.NEARBY_CONTENT_DESCRIPTION,
+                SourceMatchReason.NEARBY_TEST_TAG,
+                SourceMatchReason.NEARBY_ROLE,
+            ) -> nearbyContextRankingTier
+            SourceMatchReason.ACTIVITY in reasons -> activityRankingTier
+            else -> 0
+        }
+    }
 
     fun bucketScore(reason: SourceMatchReason): Double = when (reason) {
         SourceMatchReason.SELECTED_TEXT -> SELECTED_TEXT_SCORE
@@ -32,4 +60,6 @@ internal object SourceScoringPolicy {
     private const val NEARBY_TEST_TAG_SCORE: Double = 18.0
     private const val NEARBY_ROLE_SCORE: Double = 8.0
     private const val ACTIVITY_SCORE: Double = 15.0
+
+    private fun Set<SourceMatchReason>.hasAny(vararg reasons: SourceMatchReason): Boolean = reasons.any { it in this }
 }

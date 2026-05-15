@@ -87,7 +87,19 @@ object CompactHandoffRenderer {
                     val label = if (dupRefMarker == null) grouping.labels[annotation.itemId] else null
                     val isLeader = annotation.itemId in grouping.leaderItemIds
                     val groupSize = label?.total ?: 0
-                    appendCompactItem(globalCounter, annotation, screen, isOverlapGroup, label, isLeader, groupSize, dupRefMarker, sourceRoot)
+                    appendCompactItem(
+                        CompactItemRenderContext(
+                            number = globalCounter,
+                            item = annotation,
+                            screen = screen,
+                            isOverlap = isOverlapGroup,
+                            instanceLabel = label,
+                            isInstanceLeader = isLeader,
+                            groupSize = groupSize,
+                            dupRefMarker = dupRefMarker,
+                            sourceRoot = sourceRoot,
+                        ),
+                    )
                 }
             }
         }
@@ -105,6 +117,18 @@ object CompactHandoffRenderer {
         val groups: List<List<AnnotationOverlapDetector.Item>>,
         val markerByItemId: Map<String, Int>,
         val duplicateMap: Map<String, Int>,
+    )
+
+    private data class CompactItemRenderContext(
+        val number: Int,
+        val item: AnnotationDto,
+        val screen: SnapshotDto?,
+        val isOverlap: Boolean,
+        val instanceLabel: InstanceLabel? = null,
+        val isInstanceLeader: Boolean = false,
+        val groupSize: Int = 0,
+        val dupRefMarker: Int? = null,
+        val sourceRoot: String? = null,
     )
 
     private fun analyzeScreen(
@@ -167,30 +191,24 @@ object CompactHandoffRenderer {
         )
     }
 
-    private fun StringBuilder.appendCompactItem(
-        number: Int,
-        item: AnnotationDto,
-        screen: SnapshotDto?,
-        isOverlap: Boolean,
-        instanceLabel: InstanceLabel? = null,
-        isInstanceLeader: Boolean = false,
-        groupSize: Int = 0,
-        dupRefMarker: Int? = null,
-        sourceRoot: String? = null,
-    ) {
+    private fun StringBuilder.appendCompactItem(context: CompactItemRenderContext) {
+        val item = context.item
         val title = item.comment.lineSequence().firstOrNull()?.takeIf { it.isNotBlank() } ?: "(No request provided)"
         val prefix = if (item.severity == AnnotationSeverityDto.HIGH) "[!] " else ""
-        appendLine("[$number] ${prefix}${title.inlineSafe()}")
+        appendLine("[${context.number}] ${prefix}${title.inlineSafe()}")
         appendLine("  id: ${item.itemId}")
-        val owner = TargetOwnerResolver.resolve(item, screen)
+        val owner = TargetOwnerResolver.resolve(item, context.screen)
         appendLine("  ${TargetSummaryFormatter.render(item, owner)}")
-        appendLine(compactUiLine(item, isOverlap, instanceLabel, dupRefMarker))
+        appendLine(compactUiLine(item, context.isOverlap, context.instanceLabel, context.dupRefMarker))
         item.screenshotCrop?.desktopCropPath?.let { appendLine("crop: ${it.inlineSafe()}") }
         appendEditSurfaceBlock(item)
-        appendCandidatesBlock(item, sourceRoot)
+        appendCandidatesBlock(item, context.sourceRoot)
         appendReliabilityBlock(item.targetReliability)
-        if (isInstanceLeader && groupSize >= 2 && !isOverlap) {
-            appendLine("  note: $groupSize markers map to same call site — likely list-rendered; disambiguate by instance index")
+        if (context.isInstanceLeader && context.groupSize >= 2 && !context.isOverlap) {
+            appendLine(
+                "  note: ${context.groupSize} markers map to same call site — " +
+                    "likely list-rendered; disambiguate by instance index",
+            )
         }
         appendLine()
     }
@@ -216,7 +234,8 @@ object CompactHandoffRenderer {
         }
         val fileLine = if (line != null) "$file:$line" else file
         val reasonTokens = reasons.joinToString(",") { it.name.lowercase().replace("_", "-") }
-        return "editSurface: $kindToken -> ${fileLine.inlineSafe()}  conf=${confidence.name.lowercase()}  why=[$reasonTokens]"
+        return "editSurface: $kindToken -> ${fileLine.inlineSafe()}  " +
+            "conf=${confidence.name.lowercase()}  why=[$reasonTokens]"
     }
 
     private fun StringBuilder.appendReliabilityBlock(reliability: TargetReliability?) {

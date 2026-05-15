@@ -14,7 +14,12 @@ internal object TargetOwnerResolver {
             .flatMap { it.mergedNodes }
             .filter { it.uid != selected.uid }
             .filter { candidate -> candidate.contains(selected) || candidate.path.isPrefixOf(selected.path) }
-            .filter { it.testTag?.isNotBlank() == true || it.text.isNotEmpty() || it.contentDescription.isNotEmpty() || it.role != null }
+            .filter {
+                it.testTag?.isNotBlank() == true ||
+                    it.text.isNotEmpty() ||
+                    it.contentDescription.isNotEmpty() ||
+                    it.role != null
+            }
             .sortedWith(
                 compareByDescending<FixThisNode> { it.testTag?.startsWith("comp:") == true }
                     .thenBy { it.boundsInWindow.area() },
@@ -22,15 +27,23 @@ internal object TargetOwnerResolver {
         return candidates.firstOrNull()?.let(::TargetOwner)
     }
 
-    private fun FixThisNode.contains(other: FixThisNode): Boolean =
-        boundsInWindow.left <= other.boundsInWindow.left &&
-            boundsInWindow.top <= other.boundsInWindow.top &&
-            boundsInWindow.right >= other.boundsInWindow.right &&
-            boundsInWindow.bottom >= other.boundsInWindow.bottom
+    private fun FixThisNode.contains(other: FixThisNode): Boolean {
+        val outer = boundsInWindow
+        val inner = other.boundsInWindow
+        return outer.left <= inner.left &&
+            outer.top <= inner.top &&
+            outer.right >= inner.right &&
+            outer.bottom >= inner.bottom
+    }
 
-    private fun List<String>.isPrefixOf(other: List<String>): Boolean =
-        size < other.size && other.take(size) == this
+    private fun List<String>.isPrefixOf(other: List<String>): Boolean {
+        val prefix = other.take(size)
+        return size < other.size && prefix == this
+    }
 }
 
-private fun FixThisRect.area(): Float =
-    ((right - left).coerceAtLeast(0f)) * ((bottom - top).coerceAtLeast(0f))
+private fun FixThisRect.area(): Float {
+    val width = (right - left).coerceAtLeast(0f)
+    val height = (bottom - top).coerceAtLeast(0f)
+    return width * height
+}

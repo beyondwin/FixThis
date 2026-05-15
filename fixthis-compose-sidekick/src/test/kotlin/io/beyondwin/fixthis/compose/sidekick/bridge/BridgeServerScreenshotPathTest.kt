@@ -110,8 +110,7 @@ class BridgeServerScreenshotPathTest {
 
         override suspend fun inspectCurrentScreen(): BridgeScreenInspection = BridgeScreenInspection(activity = "MainActivity")
 
-        override suspend fun captureScreenSnapshot(currentFocusOutput: String?): BridgeScreenSnapshot =
-            screenSnapshot
+        override suspend fun captureScreenSnapshot(currentFocusOutput: String?): BridgeScreenSnapshot = screenSnapshot
 
         override suspend fun readSourceIndex(): BridgeSourceIndexResult = BridgeSourceIndexResult(sourceIndexAvailable = false)
 

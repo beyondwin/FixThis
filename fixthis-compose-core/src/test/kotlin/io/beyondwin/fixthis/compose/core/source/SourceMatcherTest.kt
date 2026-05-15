@@ -11,6 +11,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+@Suppress("LargeClass")
 class SourceMatcherTest {
     @Test
     fun ranksSelectedNodeTextTagRoleAndActivityMatches() {

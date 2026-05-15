@@ -15,7 +15,21 @@ internal object EditIntentClassifier {
                 EditIntent(EditSurfaceKindDto.SPACING, listOf(EditSurfaceReasonDto.LAYOUT_INTENT))
             normalized.hasAny("크게", "작게", "폰트", "글씨", "더크게", "bigger", "smaller", "font", "text size", "typography") ->
                 EditIntent(EditSurfaceKindDto.TYPOGRAPHY, listOf(EditSurfaceReasonDto.TYPOGRAPHY_INTENT))
-            normalized.hasAny("글자", "텍스트", "컬러", "색", "파란", "빨간", "보라", "text", "label", "color", "blue", "red", "purple") ->
+            normalized.hasAny(
+                "글자",
+                "텍스트",
+                "컬러",
+                "색",
+                "파란",
+                "빨간",
+                "보라",
+                "text",
+                "label",
+                "color",
+                "blue",
+                "red",
+                "purple",
+            ) ->
                 EditIntent(EditSurfaceKindDto.TEXT_COLOR, listOf(EditSurfaceReasonDto.STYLE_INTENT))
             else ->
                 EditIntent(EditSurfaceKindDto.UNKNOWN, emptyList())

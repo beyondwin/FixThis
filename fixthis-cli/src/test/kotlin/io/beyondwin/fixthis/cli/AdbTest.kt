@@ -34,6 +34,7 @@ class AdbTest {
                 "launchApp",
                 "runAsCat",
                 "pull",
+                "currentFocusOutput",
             ),
             publicMethods,
         )

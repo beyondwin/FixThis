@@ -134,7 +134,8 @@ class ConsoleConnectionRoutesTest {
         assertTrue(applyConnectionBody.contains("const connectionOptions = options || {};"))
         assertTrue(
             applyConnectionBody.contains(
-                "if (!connectionOptions.preservePreviewStale && !state.preview?.obstructedBySystemUi) markPreviewStale(false);",
+                "if (!connectionOptions.preservePreviewStale " +
+                    "&& !state.preview?.obstructedBySystemUi) markPreviewStale(false);",
             ),
         )
         assertTrue(friendlyErrorMessageBody.contains("Connection paused. Your work is saved."))
@@ -175,13 +176,18 @@ class ConsoleConnectionRoutesTest {
         val applyConnectionBody = javascriptFunctionBody(html, "applyConnectionStatus")
 
         assertTrue(refreshPreviewBody.contains("preview?.screen?.systemUiVisible && state.preview"))
-        assertTrue(refreshPreviewBody.contains("state.preview.obstructedBySystemUi = preview.screen.systemUiKind || 'system_ui';"))
+        assertTrue(
+            refreshPreviewBody.contains(
+                "state.preview.obstructedBySystemUi = preview.screen.systemUiKind || 'system_ui';",
+            ),
+        )
         assertTrue(refreshPreviewBody.contains("return;"))
         assertTrue(applyConnectionBody.contains("if (state.preview?.obstructedBySystemUi)"))
         assertTrue(applyConnectionBody.contains("state.preview.stale = true;"))
         assertTrue(
             applyConnectionBody.contains(
-                "if (!connectionOptions.preservePreviewStale && !state.preview?.obstructedBySystemUi) markPreviewStale(false);",
+                "if (!connectionOptions.preservePreviewStale " +
+                    "&& !state.preview?.obstructedBySystemUi) markPreviewStale(false);",
             ),
         )
         assertDoesNotClearDraftOrPreview("refreshPreview", refreshPreviewBody)

@@ -218,6 +218,7 @@ class ConsoleAssetContractTest {
     }
 
     @Test
+    @Suppress("LongMethod")
     fun consoleHtmlResetsAnnotationComposerStateAcrossSessionActions() {
         val html = ConsoleSourceFixtures.readAll()
 
@@ -267,7 +268,8 @@ class ConsoleAssetContractTest {
         assertTrue(
             Regex(
                 "async function deleteHistorySession\\(sessionId\\)[\\s\\S]*if " +
-                    "\\(wasDisplayedSession \\|\\| wasDisplayedDraft\\) \\{[\\s\\S]*clearDisplayedSessionState\\(\\);[\\s\\S]*" +
+                    "\\(wasDisplayedSession \\|\\| wasDisplayedDraft\\) \\{" +
+                    "[\\s\\S]*clearDisplayedSessionState\\(\\);[\\s\\S]*" +
                     "await refreshSessions\\(\\);\\s+render\\(\\);\\s+await refreshDevices\\(\\);",
             ).containsMatchIn(html),
         )
