@@ -31,7 +31,7 @@ function loadModule(localStorage) {
 function extractFunctionBody(sourceText, signature) {
   const start = sourceText.indexOf(signature);
   assert.notEqual(start, -1, `${signature} not found`);
-  const bodyStart = sourceText.indexOf('{', start);
+  const bodyStart = sourceText.indexOf('{', sourceText.indexOf(')', start));
   assert.notEqual(bodyStart, -1, `${signature} body not found`);
   let depth = 0;
   for (let i = bodyStart; i < sourceText.length; i += 1) {
@@ -206,7 +206,7 @@ test('session refresh reloads pending recovery without blocking passive drafts',
 
   const resolveBody = extractFunctionBody(mainSource, 'async function resolvePendingBeforeBoundary(action, sessionId = null)');
   assert.doesNotMatch(resolveBody, /Recover, recapture, or discard unsaved annotations before changing sessions\./);
-  assert.doesNotMatch(resolveBody, /return 'cancel';/);
+  assert.match(resolveBody, /if \(pendingRecoveryItems\(pendingRecovery\)\.length && !hasActivePending\) \{[\s\S]*?renderPendingRecoveryBanner\(\);[\s\S]*?return 'continue';[\s\S]*?\}/);
 });
 
 test('pending recovery banner appears only for commented draft items and uses resume copy', () => {
@@ -291,7 +291,7 @@ test('history separates commented draft and pin-only recovery counts', () => {
 });
 
 test('handoff persists written draft items without failing on pin-only items', () => {
-  const persistCollectBody = extractFunctionBody(promptSource, 'async function persistAndCollectItemIds()');
+  const persistCollectBody = extractFunctionBody(promptSource, 'async function persistAndCollectItemIds(options = {})');
   assert.match(persistCollectBody, /const writtenDraftItems = commentedDraftItems\(draftItemList\(\)\);/);
   assert.match(persistCollectBody, /if \(writtenDraftItems\.length === 0\)/);
   assert.match(persistCollectBody, /await persistPendingFeedbackItems\(\{[\s\S]*?onlyWrittenComments: true[\s\S]*?keepResidualDraftActive: options\.keepResidualDraftActive !== false[\s\S]*?\}\);/);

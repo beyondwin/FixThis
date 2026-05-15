@@ -1,4 +1,4 @@
-// @requires state.js, draftWorkspace.js, draftUseCases.js
+// @requires state.js, draftWorkspace.js, draftUseCases.js, annotations.js
             function promptUnavailableMessage() {
               if (!state.session) return 'Select a history item before copying or sending annotations.';
               const annotations = toolbarAnnotations();
@@ -15,15 +15,19 @@
               throw new Error(message);
             }
 
-            async function persistAndCollectItemIds() {
+            async function persistAndCollectItemIds(options = {}) {
                 const before = (state.session && Array.isArray(state.session.items)) ? state.session.items : [];
                 const beforeIds = new Set(before.map(item => item.itemId));
                 if (draftFlow()) {
                     flushFocusedPendingComment();
-                    if (draftItemList().some(item => !hasWrittenAnnotationComment(item))) {
-                        throw new Error('Add a comment to every annotation before saving.');
+                    const writtenDraftItems = commentedDraftItems(draftItemList());
+                    if (writtenDraftItems.length === 0) {
+                        throw new Error('Add a comment to at least one annotation before sending.');
                     }
-                    await persistPendingFeedbackItems();
+                    await persistPendingFeedbackItems({
+                        onlyWrittenComments: true,
+                        keepResidualDraftActive: options.keepResidualDraftActive !== false,
+                    });
                 }
                 const after = (state.session && Array.isArray(state.session.items)) ? state.session.items : [];
                 const newlyPersisted = after.filter(item => !beforeIds.has(item.itemId)).map(item => item.itemId);
@@ -112,7 +116,7 @@
                     updateComposerState();
                     let sent = false;
                     try {
-                        const itemIds = await persistAndCollectItemIds();
+                        const itemIds = await persistAndCollectItemIds({ keepResidualDraftActive: false });
                         const sessionId = draftWorkspace?.context?.sessionId || state.session?.sessionId;
                         if (!sessionId) throw new Error('Feedback session context is missing. Re-capture and try again.');
                         const result = await requestJson('/api/agent-handoffs', {

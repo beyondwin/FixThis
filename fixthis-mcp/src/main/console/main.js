@@ -139,26 +139,26 @@
               return Array.isArray(recovery?.items) ? recovery.items : [];
             }
 
-            function hasPendingRecoveryItems() {
-              return pendingRecoveryItems(pendingRecovery).length > 0;
-            }
-
             function requirePendingRecoveryChoiceBeforeSessionChange() {
-              if (!hasPendingRecoveryItems()) return true;
-              renderPendingRecoveryBanner();
-              showError('Recover, recapture, or discard unsaved annotations before changing sessions.');
-              return false;
+              if (hasCommentedDraftItems(pendingRecovery)) renderPendingRecoveryBanner();
+              return true;
             }
 
             async function resolvePendingBeforeBoundary(action, sessionId = null) {
               const hasActivePending = Boolean(draftWorkspace?.workspaceId && draftWorkspaceItems(draftWorkspace).length);
-              if (!hasActivePending && !hasPendingRecoveryItems()) return 'continue';
-              if (hasPendingRecoveryItems() && !hasActivePending) {
+              if (!hasActivePending && !pendingRecoveryItems(pendingRecovery).length) return 'continue';
+              if (pendingRecoveryItems(pendingRecovery).length && !hasActivePending) {
                 renderPendingRecoveryBanner();
-                showError('Recover, recapture, or discard unsaved annotations before changing sessions.');
-                return 'cancel';
+                return 'continue';
               }
               const pendingSessionId = draftWorkspace?.context?.sessionId || null;
+              const activeCommented = commentedDraftItems(draftWorkspaceItems(draftWorkspace));
+              if (hasActivePending && activeCommented.length === 0) {
+                createBrowserDraftPorts().storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(draftWorkspace));
+                if (pendingSessionId) activePendingMirrorSessions.add(pendingSessionId);
+                replaceDraftWorkspace(createEmptyDraftWorkspace());
+                return 'continue';
+              }
               if (sessionId && pendingSessionId && sessionId !== pendingSessionId) {
                 createBrowserDraftPorts().storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(draftWorkspace));
                 activePendingMirrorSessions.add(pendingSessionId);
@@ -274,28 +274,31 @@
 
             function renderPendingRecoveryBanner() {
               const banner = ensurePendingRecoveryBanner();
-              const recoveryItems = pendingRecoveryItems(pendingRecovery);
-              if (!pendingRecovery || !recoveryItems.length || draftFlow() || draftItemList().length) {
+              const summary = draftRecoverySummary(pendingRecovery);
+              if (!pendingRecovery || !summary.total || summary.commented === 0 || draftFlow() || draftItemList().length) {
                 banner.hidden = true;
                 return;
               }
-              const canRecover = hasRecoverablePreviewContext(pendingRecovery);
-              const itemLabel = countLabel(recoveryItems.length, 'annotation', 'annotations');
-              const detail = canRecover
-                ? 'Recover restores the frozen preview and pins from this session.'
-                : 'This older saved draft has pins only. Recapture to attach them to a new frozen preview, or discard it.';
+              const canResume = hasRecoverablePreviewContext(pendingRecovery);
+              const commentLabel = countLabel(summary.commented, 'draft comment', 'draft comments');
+              const pins = summary.pinOnly > 0
+                ? ' · ' + countLabel(summary.pinOnly, 'pin without comment', 'pins without comments')
+                : '';
+              const detail = canResume
+                ? 'Resume the local draft for this session.'
+                : 'Recapture the current app screen to continue this local draft.';
               banner.hidden = false;
               banner.innerHTML =
                 '<div class="pending-recovery-copy" data-pending-recovery-copy>' +
-                  '<strong>Unsaved ' + escapeHtml(itemLabel) + ' found</strong>' +
+                  '<strong>' + escapeHtml(commentLabel + pins) + '</strong>' +
                   '<div>' + escapeHtml(detail) + '</div>' +
                 '</div>' +
                 '<div class="annotation-actions pending-recovery-actions">' +
-                  (canRecover ? '<button type="button" class="annotation-done" data-recover-pending>Recover</button>' : '') +
+                  (canResume ? '<button type="button" class="annotation-done" data-resume-pending>Resume draft</button>' : '') +
                   '<button type="button" class="annotation-done" data-recapture-pending>Recapture</button>' +
-                  '<button type="button" class="annotation-danger" data-discard-pending>Discard</button>' +
+                  '<button type="button" class="annotation-danger" data-clear-pending>Clear local draft</button>' +
                 '</div>';
-              banner.querySelector('[data-recover-pending]')?.addEventListener('click', () => {
+              banner.querySelector('[data-resume-pending]')?.addEventListener('click', () => {
                 if (!hasRecoverablePreviewContext(pendingRecovery)) return;
                 const recoverySessionId = pendingRecovery?.sessionId || pendingRecovery?.context?.sessionId || state.session?.sessionId;
                 restorePendingRecoveryContext(pendingRecovery);
@@ -307,7 +310,7 @@
               banner.querySelector('[data-recapture-pending]')?.addEventListener('click', () => {
                 recapturePendingRecovery().catch(showError);
               });
-              banner.querySelector('[data-discard-pending]')?.addEventListener('click', () => {
+              banner.querySelector('[data-clear-pending]')?.addEventListener('click', () => {
                 if (pendingRecovery?.schemaVersion === 2) {
                   createBrowserDraftPorts().storage.deleteWorkspace(pendingRecovery.sessionId || pendingRecovery.context?.sessionId, pendingRecovery.workspaceId);
                 }

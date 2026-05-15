@@ -115,6 +115,34 @@
               return Boolean(String(item?.comment || '').trim());
             }
 
+            function draftItemsFromValue(value) {
+              if (Array.isArray(value)) return value;
+              return Array.isArray(value?.items) ? value.items : [];
+            }
+
+            function commentedDraftItems(value) {
+              return draftItemsFromValue(value).filter(hasWrittenAnnotationComment);
+            }
+
+            function pinOnlyDraftItems(value) {
+              return draftItemsFromValue(value).filter(item => !hasWrittenAnnotationComment(item));
+            }
+
+            function draftRecoverySummary(value) {
+              const items = draftItemsFromValue(value);
+              const commented = commentedDraftItems(items);
+              const pinOnly = pinOnlyDraftItems(items);
+              return {
+                total: items.length,
+                commented: commented.length,
+                pinOnly: pinOnly.length,
+              };
+            }
+
+            function hasCommentedDraftItems(value) {
+              return draftRecoverySummary(value).commented > 0;
+            }
+
             function currentPromptAnnotations() {
               if (!state.session) return [];
               return toolbarAnnotations()
@@ -413,17 +441,6 @@
               clearDragState();
             }
 
-            function currentPendingStateEnvelope(items = draftItemList()) {
-              return {
-                context: draftFlow()?.context ?? null,
-                previewId: draftFlow()?.previewId ?? draftFlow()?.context?.previewId ?? null,
-                screen: draftFlow()?.screen ?? null,
-                screenshotUrl: draftFlow()?.screenshotUrl ?? null,
-                frozenAtEpochMillis: draftFlow()?.frozenAtEpochMillis ?? draftFlow()?.context?.frozenAtEpochMillis ?? null,
-                items: items,
-              };
-            }
-
             function persistCurrentPendingState() {
               persistCurrentDraftWorkspaceIfNeeded();
             }
@@ -638,22 +655,23 @@
               updateComposerState();
             }
 
-            function pendingPayloadItems(options = {}) {
-              const allowFallbackComments = Boolean(options.allowFallbackComments);
-              const onlyWrittenComments = Boolean(options.onlyWrittenComments);
-              const allowBlankComments = Boolean(options.allowBlankComments);
-              const items = onlyWrittenComments ? draftItemList().filter(hasWrittenAnnotationComment) : draftItemList();
-              return items.map(item => ({
-                targetType: item.targetType,
-                bounds: item.bounds,
-                nodeUid: item.nodeUid,
-                label: String(item.label || '').trim() || null,
-                severity: annotationSeverity(item),
-                status: normalizedPersistedStatus(annotationStatus(item)),
-                comment: allowFallbackComments
-                  ? (String(item.comment || '').trim() || item.label || pendingTargetLabel(item))
-                  : (allowBlankComments ? String(item.comment || '') : item.comment)
-              }));
+            function saveResidualPinOnlyDraft(items, options = {}) {
+              if (!draftWorkspace?.workspaceId || !items.length) return;
+              const ports = createBrowserDraftPorts();
+              const workspace = {
+                ...draftWorkspace,
+                workspaceId: ports.ids.nextWorkspaceId(),
+                revision: 1,
+                items,
+                history: { undoStack: [], redoStack: [] },
+              };
+              ports.storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(workspace));
+              activePendingMirrorSessions.add(workspace.context?.sessionId);
+              if (options.keepActive) {
+                replaceDraftWorkspace(workspace);
+                persistCurrentPendingState();
+              }
+              return workspace;
             }
 
             async function persistPendingFeedbackItems(options = {}) {
@@ -663,9 +681,11 @@
               const onlyWrittenComments = Boolean(options.onlyWrittenComments);
               const allowBlankComments = Boolean(options.allowBlankComments);
               const forceMismatchOverride = Boolean(options.forceMismatchOverride);
+              const keepResidualDraftActive = options.keepResidualDraftActive !== false;
               const items = draftWorkspaceItems(draftWorkspace);
+              const residualPinOnlyItems = onlyWrittenComments ? pinOnlyDraftItems(items) : [];
               if (!allowFallbackComments && !onlyWrittenComments && !allowBlankComments && items.some(item => !String(item.comment || '').trim())) throw new Error('Add a comment to every annotation before saving.');
-              if (onlyWrittenComments && !items.some(hasWrittenAnnotationComment)) throw new Error('Add a comment to at least one annotation before sending.');
+              if (onlyWrittenComments && !commentedDraftItems(items).length) throw new Error('Add a comment to at least one annotation before sending.');
               const meta = {
                 kind: 'persist-draft-workspace',
                 workspaceId: draftWorkspace.workspaceId,
@@ -699,36 +719,11 @@
               if (result?.result?.session) {
                 setConsoleSession(result.result.session);
                 setConsolePreview(null);
+                if (onlyWrittenComments) saveResidualPinOnlyDraft(residualPinOnlyItems, { keepActive: keepResidualDraftActive });
                 return state.session;
               }
               await refreshSessions();
               return state.session;
-            }
-
-            async function savePreviewBatchOrConflict(body) {
-              const headers = new Headers({ 'Content-Type': 'application/json' });
-              const token = window.FixThisConsoleConfig?.consoleToken;
-              if (token) headers.set('X-FixThis-Console-Token', token);
-              const response = await fetch('/api/items/batch', {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify(body)
-              });
-              if (response.status === 409) {
-                const conflict = await response.json().catch(() => ({}));
-                if (conflict && conflict.error === 'screen_fingerprint_mismatch') {
-                  return {
-                    conflict: 'screen_fingerprint_mismatch',
-                    frozenFingerprint: conflict.frozenFingerprint || null,
-                    currentFingerprint: conflict.currentFingerprint || null
-                  };
-                }
-                throw new Error('Save conflict: ' + JSON.stringify(conflict));
-              }
-              if (!response.ok) {
-                throw new Error(await response.text() || 'HTTP ' + response.status);
-              }
-              return { session: await response.json() };
             }
 
             function promptScreenFingerprintMismatch(frozenFingerprint, currentFingerprint) {
@@ -745,11 +740,6 @@
               if (recapture) return Promise.resolve('recapture');
               const force = window.confirm('강제로 저장하시겠습니까?\n확인 = 강제 저장\n취소 = 취소');
               return Promise.resolve(force ? 'force' : 'cancel');
-            }
-
-            async function flushPendingAnnotationsBeforeSessionChange() {
-              if (!draftFlow() || !draftItemList().length) return;
-              await persistPendingFeedbackItems({ allowBlankComments: true });
             }
 
             async function savePendingFeedbackItems() {

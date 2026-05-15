@@ -1,4 +1,4 @@
-// @requires state.js, draftWorkspace.js
+// @requires state.js, draftWorkspace.js, annotations.js
             function sessionOrdinalLookup(sessions) {
               const ordinalBySessionId = new Map();
               stableHistorySessions(sessions)
@@ -31,13 +31,9 @@
               return historyRecoveryItemsForSession(session);
             }
 
-            function historyRecoveryEnvelopeItems(envelope) {
-              return Array.isArray(envelope?.items) ? envelope.items : [];
-            }
-
             function newestHistoryRecovery(workspaces) {
               return [...(workspaces || [])]
-                .filter((workspace) => historyRecoveryEnvelopeItems(workspace).length)
+                .filter((workspace) => draftItemsFromValue(workspace).length)
                 .sort((left, right) => (left.updatedAtEpochMillis || 0) - (right.updatedAtEpochMillis || 0))
                 .at(-1) || null;
             }
@@ -50,10 +46,20 @@
                 const stored = storage.loadWorkspacesForSession(sessionId);
                 const legacy = restorePendingState(sessionId);
                 const recovery = newestHistoryRecovery(stored.concat(legacy ? [legacy] : []));
-                return historyRecoveryEnvelopeItems(recovery);
+                return draftItemsFromValue(recovery);
               } catch (_) {
                 return [];
               }
+            }
+
+            function pendingHistorySummaryForSession(session) {
+              const items = pendingHistoryItemsForSession(session);
+              const summary = draftRecoverySummary(items);
+              if (!summary.total) return '';
+              const parts = [];
+              if (summary.commented) parts.push(countLabel(summary.commented, 'draft comment', 'draft comments'));
+              if (summary.pinOnly) parts.push(countLabel(summary.pinOnly, 'pin without comment', 'pins without comments'));
+              return parts.join(' · ');
             }
 
             function historyOpenCount(session) {
@@ -257,6 +263,7 @@
                 const open = historyOpenCount(session);
                 const done = historyDoneCount(session);
                 const label = formatSessionLabel(session, ordinalBySessionId.get(session.sessionId) || index + 1);
+                const pendingSummary = pendingHistorySummaryForSession(session);
                 const pips = [
                   open > 0 ? '<span class="hi-pip open">' + escapeHtml(countLabel(open, 'open', 'open')) + '</span>' : '',
                   done > 0 ? '<span class="hi-pip done">' + escapeHtml(countLabel(done, 'resolved', 'resolved')) + '</span>' : '',
@@ -268,6 +275,7 @@
                     '<button type="button" class="hi-del" data-delete-session-id="' + escapeHtml(session.sessionId) + '" aria-label="Delete history item ' + escapeHtml(label) + '"' + (navigationBusy ? ' disabled' : '') + '>×</button>' +
                   '</span>' +
                   '<span class="hi-meta">' + escapeHtml(formatSessionSummary(session)) + '</span>' +
+                  (pendingSummary ? '<div class="session-pending-summary">' + escapeHtml(pendingSummary) + '</div>' : '') +
                   '<span class="hi-stats">' + pips + '</span>' +
                   '<span class="hi-strip">' + renderHistoryStrip(session) + '</span>' +
                 '</div>';
