@@ -72,8 +72,9 @@ jobs:
             )"
           fi
 
+          encoded_repository_key="$(node -e 'console.log(encodeURIComponent(process.argv[1]))' "$repository_key")"
           echo "Promoting repository: $repository_key"
           curl -fsSL \
             -X POST \
             -H "Authorization: Bearer $token" \
-            "https://ossrh-staging-api.central.sonatype.com/manual/upload/repository/$repository_key?publishing_type=$publishing_type"
+            "https://ossrh-staging-api.central.sonatype.com/manual/upload/repository/$encoded_repository_key?publishing_type=$publishing_type"
