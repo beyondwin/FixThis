@@ -5,8 +5,9 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const boundarySrc = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/domain/consoleBoundary.js'), 'utf8');
 const storageSrc = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/draftStorageAdapter.js'), 'utf8');
-const factory = new Function(`${storageSrc}; return {
+const factory = new Function(`${boundarySrc}\n${storageSrc}; return {
   draftWorkspaceKey,
   draftWorkspaceIndexKey,
   createDraftStorageAdapter
@@ -56,6 +57,17 @@ test('deleteWorkspace removes stored workspace and index entry', () => {
 
   assert.equal(localStorage.getItem(m.draftWorkspaceKey('session-a', 'ws-a')), null);
   assert.deepEqual(adapter.loadWorkspacesForSession('session-a'), []);
+});
+
+test('loadWorkspacesForSession drops malformed indexed workspace payloads', () => {
+  const localStorage = fakeLocalStorage({
+    'fixthis.workspace.index.session-a': JSON.stringify(['ws-bad']),
+    'fixthis.workspace.session-a.ws-bad': '{bad json',
+  });
+  const adapter = m.createDraftStorageAdapter(localStorage);
+
+  assert.deepEqual(adapter.loadWorkspacesForSession('session-a'), []);
+  assert.equal(localStorage.getItem('fixthis.workspace.session-a.ws-bad'), null);
 });
 
 test('schema v1 pending envelope migrates into schema v2 workspace recovery', () => {

@@ -1,4 +1,4 @@
-// @requires draftPorts.js, draftWorkspace.js
+// @requires draftPorts.js, draftWorkspace.js, domain/consoleBoundary.js
 // draftStorageAdapter.js - browser storage adapter for DraftWorkspace recovery.
 
 const DraftWorkspaceKeyPrefix = 'fixthis.workspace.';
@@ -47,7 +47,15 @@ function createDraftStorageAdapter(localStorageLike, ids = {}) {
 
   function loadWorkspacesForSession(sessionId) {
     return readIndex(sessionId)
-      .map((workspaceId) => parseDraftStorageJson(localStorageLike.getItem(draftWorkspaceKey(sessionId, workspaceId))))
+      .map((workspaceId) => {
+        const key = draftWorkspaceKey(sessionId, workspaceId);
+        const parsed = normalizeStoredJson(localStorageLike.getItem(key));
+        if (!parsed.ok) {
+          localStorageLike.removeItem(key);
+          return null;
+        }
+        return parsed.value;
+      })
       .filter((value) => value?.schemaVersion === 2 && value?.context?.sessionId === sessionId);
   }
 
