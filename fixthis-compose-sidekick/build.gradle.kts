@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    `maven-publish`
 }
 
 android {
@@ -20,6 +21,12 @@ android {
 
     testOptions {
         unitTests.isIncludeAndroidResources = true
+    }
+
+    publishing {
+        singleVariant("debug") {
+            withSourcesJar()
+        }
     }
 }
 
@@ -121,5 +128,16 @@ androidComponents {
             generateBuildInfoResources,
             GenerateSidekickBuildInfoResourcesTask::outputDir,
         )
+    }
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            create<org.gradle.api.publish.maven.MavenPublication>("debug") {
+                from(components["debug"])
+                artifactId = "fixthis-compose-sidekick"
+            }
+        }
     }
 }

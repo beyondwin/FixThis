@@ -36,14 +36,14 @@ the package version will also be set in the root build configuration:
 
 | Location | Bumped on | Notes |
 |----------|-----------|-------|
-| `gradle.properties` (`version=…`) | every release | The single source of truth for `:fixthis-compose-sidekick`, `:fixthis-gradle-plugin`, `:fixthis-cli`, `:fixthis-mcp`. |
+| `gradle.properties` (`FIXTHIS_VERSION=…`) | every release | The local artifact version source of truth for root publications such as `:fixthis-compose-sidekick` and `:fixthis-compose-core`. |
 | `BridgeProtocol.VERSION` | wire-visible bridge changes only | Independent of package version. |
 | `CHANGELOG.md` | every release | Move "Unreleased" entries under a new dated heading. |
 
-> The `gradle.properties` `version` line is added as part of the publish-to-Maven
-> work. Until then, the repo carries no externally-visible Gradle package
-> version string and consumers wire FixThis via composite build. GitHub source
-> releases are still versioned by annotated tags.
+> The `gradle.properties` `FIXTHIS_VERSION` value supports local packaging
+> rehearsal only. Until external artifact publishing is explicitly enabled,
+> consumers still wire FixThis via source or composite build. GitHub source
+> releases remain versioned by annotated tags.
 
 ## Pre-release checklist
 
@@ -126,8 +126,9 @@ Before changing README install instructions to public Gradle coordinates:
 4. Run local/dry-run packaging validation:
 
    ```bash
-   ./gradlew publishToMavenLocal --dry-run
-   ./gradlew :fixthis-gradle-plugin:validatePlugins
+   ./gradlew publishToMavenLocal --dry-run --no-daemon
+   ./gradlew -p fixthis-gradle-plugin publishToMavenLocal --dry-run --no-daemon
+   ./gradlew :fixthis-gradle-plugin:validatePlugins --no-daemon
    ```
 
 5. Publish from an explicitly approved manual workflow or local maintainer
@@ -154,13 +155,14 @@ Before changing README install instructions to public Gradle coordinates:
 These commands are safe because they do not publish remote artifacts:
 
 ```bash
-./gradlew publishToMavenLocal --dry-run
-./gradlew :fixthis-gradle-plugin:validatePlugins
+./gradlew publishToMavenLocal --dry-run --no-daemon
+./gradlew -p fixthis-gradle-plugin publishToMavenLocal --dry-run --no-daemon
+./gradlew :fixthis-gradle-plugin:validatePlugins --no-daemon
 ```
 
-If either task does not exist yet, keep the command documented here as the
-target validation contract and track the missing Gradle publishing setup as an
-artifact-release blocker in `release-readiness.md`.
+The root command covers `fixthis-compose-core` and the debug
+`fixthis-compose-sidekick` AAR. The separate `-p fixthis-gradle-plugin` command
+covers the included plugin build without enabling remote publication.
 
 ## Post-release
 
