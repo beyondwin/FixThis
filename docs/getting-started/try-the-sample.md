@@ -29,10 +29,10 @@ git clone <this-repo> && cd FixThis
 ./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
 
 # 3. Verify your environment (ADB on PATH, JDK 21, device reachable)
-fixthis-cli/build/install/fixthis/bin/fixthis doctor --package io.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis doctor --package io.github.beyondwin.fixthis.sample
 
 # 4. With a device or emulator connected, install + run sample + open the browser console
-fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis run --package io.github.beyondwin.fixthis.sample
 ```
 
 `fixthis run` installs the sample debug APK, launches it, attaches the sidekick

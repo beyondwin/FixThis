@@ -23,7 +23,7 @@ Create or replace these main areas:
 - `fixthis-compose-core/`: pure Kotlin models, selection, redaction, formatting, source matching.
 - `fixthis-compose-overlay/`: Android Compose overlay UI and Smart Select UI state.
 - `fixthis-compose-sidekick/`: debug app runtime, AndroidX Startup, Activity hooks, root discovery, screenshot, bridge.
-- `fixthis-gradle-plugin/`: plugin id `io.beyondwin.fixthis.compose`, debug runtime injection, source index generation.
+- `fixthis-gradle-plugin/`: plugin id `io.github.beyondwin.fixthis.compose`, debug runtime injection, source index generation.
 - `fixthis-cli/`: desktop CLI commands and ADB bridge client.
 - `fixthis-mcp/`: stdio MCP server wrapping the CLI bridge client.
 - `docs/`: README, privacy, troubleshooting, MCP guide, output schema.
@@ -180,11 +180,11 @@ plugins {
 }
 
 android {
-    namespace = "io.beyondwin.fixthis.sample"
+    namespace = "io.github.beyondwin.fixthis.sample"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "io.beyondwin.fixthis.sample"
+        applicationId = "io.github.beyondwin.fixthis.sample"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -252,7 +252,7 @@ Create `sample/src/main/res/values/styles.xml`:
 Create `sample/src/main/java/io/github/fixthis/sample/MainActivity.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample
+package io.github.beyondwin.fixthis.sample
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -273,7 +273,7 @@ class MainActivity : ComponentActivity() {
 Create `sample/src/main/java/io/github/fixthis/sample/SampleApp.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample
+package io.github.beyondwin.fixthis.sample
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
@@ -286,12 +286,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import io.beyondwin.fixthis.sample.screens.CanvasScreen
-import io.beyondwin.fixthis.sample.screens.CheckoutScreen
-import io.beyondwin.fixthis.sample.screens.DialogScreen
-import io.beyondwin.fixthis.sample.screens.EdgeCasesScreen
-import io.beyondwin.fixthis.sample.screens.FeedScreen
-import io.beyondwin.fixthis.sample.screens.FormScreen
+import io.github.beyondwin.fixthis.sample.screens.CanvasScreen
+import io.github.beyondwin.fixthis.sample.screens.CheckoutScreen
+import io.github.beyondwin.fixthis.sample.screens.DialogScreen
+import io.github.beyondwin.fixthis.sample.screens.EdgeCasesScreen
+import io.github.beyondwin.fixthis.sample.screens.FeedScreen
+import io.github.beyondwin.fixthis.sample.screens.FormScreen
 
 private enum class SampleTab(val label: String) {
     Checkout("Checkout"),
@@ -340,7 +340,7 @@ fun SampleApp() {
 Create `sample/src/main/java/io/github/fixthis/sample/screens/CheckoutScreen.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample.screens
+package io.github.beyondwin.fixthis.sample.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -399,7 +399,7 @@ fun CheckoutScreen(padding: PaddingValues) {
 Create `sample/src/main/java/io/github/fixthis/sample/screens/FeedScreen.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample.screens
+package io.github.beyondwin.fixthis.sample.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -457,7 +457,7 @@ fun FeedScreen(padding: PaddingValues) {
 Create `sample/src/main/java/io/github/fixthis/sample/screens/FormScreen.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample.screens
+package io.github.beyondwin.fixthis.sample.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -523,7 +523,7 @@ fun FormScreen(padding: PaddingValues) {
 Create `sample/src/main/java/io/github/fixthis/sample/screens/DialogScreen.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample.screens
+package io.github.beyondwin.fixthis.sample.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -578,7 +578,7 @@ fun DialogScreen(padding: PaddingValues) {
 Create `sample/src/main/java/io/github/fixthis/sample/screens/CanvasScreen.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample.screens
+package io.github.beyondwin.fixthis.sample.screens
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
@@ -631,7 +631,7 @@ fun CanvasScreen(padding: PaddingValues) {
 Create `sample/src/main/java/io/github/fixthis/sample/screens/EdgeCasesScreen.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample.screens
+package io.github.beyondwin.fixthis.sample.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -681,7 +681,7 @@ fun EdgeCasesScreen(padding: PaddingValues) {
 Create `sample/src/androidTest/java/io/github/fixthis/sample/SampleAppSmokeTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample
+package io.github.beyondwin.fixthis.sample
 
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -755,7 +755,7 @@ dependencies {
 Create `Models.kt` with:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.model
+package io.github.beyondwin.fixthis.compose.core.model
 
 import kotlinx.serialization.Serializable
 
@@ -880,7 +880,7 @@ data class FixThisError(val code: String, val message: String, val details: Map<
 Create `RedactionPolicy.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.redaction
+package io.github.beyondwin.fixthis.compose.core.redaction
 
 data class RedactedText(
     val text: List<String>,
@@ -911,9 +911,9 @@ object RedactionPolicy {
 Create `FixThisJsonFormatter.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.format
+package io.github.beyondwin.fixthis.compose.core.format
 
-import io.beyondwin.fixthis.compose.core.model.FixThisAnnotation
+import io.github.beyondwin.fixthis.compose.core.model.FixThisAnnotation
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -931,10 +931,10 @@ object FixThisJsonFormatter {
 Create `FixThisMarkdownFormatter.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.format
+package io.github.beyondwin.fixthis.compose.core.format
 
-import io.beyondwin.fixthis.compose.core.model.FixThisAnnotation
-import io.beyondwin.fixthis.compose.core.model.FixThisNode
+import io.github.beyondwin.fixthis.compose.core.model.FixThisAnnotation
+import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 
 object FixThisMarkdownFormatter {
     fun format(annotation: FixThisAnnotation): String = buildString {
@@ -1197,7 +1197,7 @@ On resumed activity, add a `FixThisOverlayHostLayout` to decorView if one is not
 
 - [x] **Step 6: Implement ComposeRootFinder**
 
-Traverse decorView, skip any view tagged with `io.beyondwin.fixthis.compose.overlay.HOST`, collect views implementing `androidx.compose.ui.node.RootForTest`, and record bounds in window.
+Traverse decorView, skip any view tagged with `io.github.beyondwin.fixthis.compose.overlay.HOST`, collect views implementing `androidx.compose.ui.node.RootForTest`, and record bounds in window.
 
 - [x] **Step 7: Add sample debug dependency**
 
@@ -1215,7 +1215,7 @@ Run:
 
 ```bash
 ./gradlew :app:installDebug
-adb shell monkey -p io.beyondwin.fixthis.sample 1
+adb shell monkey -p io.github.beyondwin.fixthis.sample 1
 ```
 
 Expected: app launches and FixThis toolbar is visible.
@@ -1340,8 +1340,8 @@ Use `java-gradle-plugin`, Kotlin JVM, and serialization. Register plugin id:
 gradlePlugin {
     plugins {
         create("fixthisCompose") {
-            id = "io.beyondwin.fixthis.compose"
-            implementationClass = "io.beyondwin.fixthis.gradle.FixThisGradlePlugin"
+            id = "io.github.beyondwin.fixthis.compose"
+            implementationClass = "io.github.beyondwin.fixthis.gradle.FixThisGradlePlugin"
         }
     }
 }
@@ -1374,7 +1374,7 @@ Replace temporary debug dependency with:
 
 ```kotlin
 plugins {
-    id("io.beyondwin.fixthis.compose")
+    id("io.github.beyondwin.fixthis.compose")
 }
 ```
 
@@ -1433,7 +1433,7 @@ Environment-blocked on 2026-05-04: `adb devices` reported no attached devices, s
 Run sample, then:
 
 ```bash
-adb shell run-as io.beyondwin.fixthis.sample cat files/fixthis/session.json
+adb shell run-as io.github.beyondwin.fixthis.sample cat files/fixthis/session.json
 ```
 
 Expected: JSON session file with token and socket name.
@@ -1459,7 +1459,7 @@ git commit -m "sidekick: add local bridge protocol"
 
 - [x] **Step 1: Configure CLI module**
 
-Use Kotlin JVM, application plugin, serialization, coroutines, and Clikt. Main class: `io.beyondwin.fixthis.cli.MainKt`.
+Use Kotlin JVM, application plugin, serialization, coroutines, and Clikt. Main class: `io.github.beyondwin.fixthis.cli.MainKt`.
 
 - [x] **Step 2: Implement ADB wrapper**
 
@@ -1493,13 +1493,13 @@ When bridge returns Android-local screenshot paths for the latest annotation, CL
 
 and rewrites `desktopFullPath` / `desktopCropPath`.
 
-- [ ] **Step 6: Run CLI status** — Environment-blocked on 2026-05-04: after `:fixthis-cli:installDist`, `fixthis status --package io.beyondwin.fixthis.sample` reported `No connected Android device or emulator found` and exited 1. This honestly verified the no-device environment, but could not verify a connected sidekick status.
+- [ ] **Step 6: Run CLI status** — Environment-blocked on 2026-05-04: after `:fixthis-cli:installDist`, `fixthis status --package io.github.beyondwin.fixthis.sample` reported `No connected Android device or emulator found` and exited 1. This honestly verified the no-device environment, but could not verify a connected sidekick status.
 
 Run:
 
 ```bash
 ./gradlew :fixthis-cli:installDist
-./fixthis-cli/build/install/fixthis/bin/fixthis status --package io.beyondwin.fixthis.sample
+./fixthis-cli/build/install/fixthis/bin/fixthis status --package io.github.beyondwin.fixthis.sample
 ```
 
 Expected: reports device, package, app running, sidekick connected, current activity, roots count.

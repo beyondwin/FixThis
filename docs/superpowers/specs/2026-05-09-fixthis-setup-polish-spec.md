@@ -25,7 +25,7 @@ All changes are in `:fixthis-cli`. No other module is touched.
 
 ### File
 
-`fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt`
+`fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt`
 
 ### Problem
 
@@ -86,7 +86,7 @@ assertTrue(
 
 ### File
 
-`fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt`
+`fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt`
 
 ### Problem
 
@@ -190,7 +190,7 @@ fun claudeMergeAcceptsNullMcpServers() {
 
 ### File
 
-`fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt`
+`fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt`
 
 ### Problem
 
@@ -242,10 +242,10 @@ The warning text is a plain string change. Existing behavior (write proceeds wit
 
 ### Files
 
-- `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/AgentConfigWriter.kt`
-- `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt`
-- `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/CodexConfigWriter.kt`
-- `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt`
+- `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/AgentConfigWriter.kt`
+- `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt`
+- `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/CodexConfigWriter.kt`
+- `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt`
 
 ### Problem
 

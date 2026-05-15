@@ -39,18 +39,18 @@ Merge commit `03e7fde Merge branch 'codex/build-optimization'` brought the chain
 
 ### Task 2 — Source index task cacheability (Done)
 
-- **Evidence file:** `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt` now opens with `@CacheableTask` and clears `outputDirectory` before each generation.
-- **Test evidence:** `fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt` includes `task is explicitly cacheable`, `removes stale source index output when source index generation is disabled`, and `removes stale build info output when metadata generation is disabled`.
+- **Evidence file:** `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt` now opens with `@CacheableTask` and clears `outputDirectory` before each generation.
+- **Test evidence:** `fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt` includes `task is explicitly cacheable`, `removes stale source index output when source index generation is disabled`, and `removes stale build info output when metadata generation is disabled`.
 - **Verification:** Plan Step 5 confirmed cacheability via `--info` (the previous "Caching disabled" message is gone).
 - **Commit:** `2a044fb`.
 
 ### Task 3 — Sidekick `BuildInfo` to resources (Done)
 
 - **Evidence files:**
-  - `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/SidekickBuildInfo.kt` defines `SidekickBuildInfo`, `SidekickBuildInfoProvider`, `AndroidResourceSidekickBuildInfoProvider`, and `parseSidekickBuildInfo`.
+  - `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/SidekickBuildInfo.kt` defines `SidekickBuildInfo`, `SidekickBuildInfoProvider`, `AndroidResourceSidekickBuildInfoProvider`, and `parseSidekickBuildInfo`.
   - `fixthis-compose-sidekick/build.gradle.kts` registers `GenerateSidekickBuildInfoResourcesTask` and wires it through `androidComponents.onVariants { variant.sources.res?.addGeneratedSourceDirectory(…) }`. The old Kotlin generated-source wiring is gone.
   - `AndroidBridgeEnvironment` consumes the provider via its constructor parameter.
-  - `BridgeServerTest` no longer imports `io.beyondwin.fixthis.compose.sidekick.BuildInfo`.
+  - `BridgeServerTest` no longer imports `io.github.beyondwin.fixthis.compose.sidekick.BuildInfo`.
 - **Behavior preserved:** When the working tree is dirty or the git commit epoch cannot be resolved, `buildEpoch` falls back to `System.currentTimeMillis()`, and `parseSidekickBuildInfo` returns `0L` / `"unknown"` for malformed inputs.
 - **Commit:** `0f84e7a`.
 
@@ -92,7 +92,7 @@ Merge commit `03e7fde Merge branch 'codex/build-optimization'` brought the chain
 - [x] All six plan tasks merged into `main`.
 - [x] `gradle.properties` contains `org.gradle.caching=true` and omits `configuration-cache=true`.
 - [x] `GenerateFixThisSourceIndexTask` carries `@CacheableTask` and is covered by stale-output tests.
-- [x] Sidekick `BuildInfo` resources are generated via `GenerateSidekickBuildInfoResourcesTask`; no Kotlin file imports `io.beyondwin.fixthis.compose.sidekick.BuildInfo`.
+- [x] Sidekick `BuildInfo` resources are generated via `GenerateSidekickBuildInfoResourcesTask`; no Kotlin file imports `io.github.beyondwin.fixthis.compose.sidekick.BuildInfo`.
 - [x] `settings.gradle.kts` and `fixthis-gradle-plugin/settings.gradle.kts` honor all four override properties.
 - [x] `nightly-compat.yml` exercises at least one Compose UI test lower-bound override.
 - [x] CI console pre-check ordering — see [`2026-05-14-ci-console-precheck-merge-gate-design.md`](2026-05-14-ci-console-precheck-merge-gate-design.md) §4 (authoritative).

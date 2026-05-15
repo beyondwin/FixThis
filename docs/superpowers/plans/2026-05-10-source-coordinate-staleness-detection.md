@@ -35,21 +35,21 @@
 
 **Created:**
 
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SourceCandidateStalenessChecker.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt`
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/SourceCandidateStalenessCheckerTest.kt`
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt`
-- `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusInstallEpochTest.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SourceCandidateStalenessChecker.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/SourceCandidateStalenessCheckerTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt`
+- `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusInstallEpochTest.kt`
 
 **Modified:**
 
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt` — `SourceCandidate`에 `stale`, `staleReason` 추가
-- `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/ModelsTest.kt` — 직렬화 라운드트립 보강 (없으면 만들고, 있으면 추가 케이스만)
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` — `BridgeStatus`에 `installEpochMillis` 추가 + `AndroidBridgeEnvironment.status()`에서 채움
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt` — checker 결합
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceServiceTest.kt` — stale 케이스 추가
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt` — `fixthis_status`에서 probe 호출
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisToolsTest.kt` — installStale 케이스 추가 (파일이 없으면 새로 만든다)
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt` — `SourceCandidate`에 `stale`, `staleReason` 추가
+- `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/model/ModelsTest.kt` — 직렬화 라운드트립 보강 (없으면 만들고, 있으면 추가 케이스만)
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` — `BridgeStatus`에 `installEpochMillis` 추가 + `AndroidBridgeEnvironment.status()`에서 채움
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt` — checker 결합
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceServiceTest.kt` — stale 케이스 추가
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt` — `fixthis_status`에서 probe 호출
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisToolsTest.kt` — installStale 케이스 추가 (파일이 없으면 새로 만든다)
 - `docs/mcp.md` — `stale`, `installStale` 필드 문서화
 - `docs/troubleshooting.md` — "코드는 바꿨는데 결과가 옛 좌표" 가이드 한 섹션
 - `CHANGELOG.md` — 항목 추가
@@ -60,17 +60,17 @@
 
 **Files:**
 
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt:97-110`
-- Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/SourceCandidateSerializationTest.kt` (create)
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt:97-110`
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/model/SourceCandidateSerializationTest.kt` (create)
 
 **Goal:** `SourceCandidate`에 nullable `stale: Boolean?`, `staleReason: String?` 필드를 추가하고, 옛 JSON(필드 없음)이 안전하게 디코드되는지 검증한다.
 
 - [ ] **Step 1: 실패하는 테스트 작성**
 
-  Create `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/SourceCandidateSerializationTest.kt`:
+  Create `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/model/SourceCandidateSerializationTest.kt`:
 
   ```kotlin
-  package io.beyondwin.fixthis.compose.core.model
+  package io.github.beyondwin.fixthis.compose.core.model
 
   import kotlinx.serialization.json.Json
   import kotlin.test.Test
@@ -127,7 +127,7 @@
 
 - [ ] **Step 3: `SourceCandidate`에 필드 추가**
 
-  Edit `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt:97-110`:
+  Edit `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt:97-110`:
 
   ```kotlin
   @Serializable
@@ -163,8 +163,8 @@
 - [ ] **Step 6: 커밋**
 
   ```bash
-  git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt \
-          fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/SourceCandidateSerializationTest.kt
+  git add fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt \
+          fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/model/SourceCandidateSerializationTest.kt
   git commit -m "core: add nullable stale fields to SourceCandidate"
   ```
 
@@ -174,8 +174,8 @@
 
 **Files:**
 
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SourceCandidateStalenessChecker.kt`
-- Create: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/SourceCandidateStalenessCheckerTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SourceCandidateStalenessChecker.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/SourceCandidateStalenessCheckerTest.kt`
 
 **Goal:** `(SourceIndex, projectRoot, candidates)`을 받아, 각 candidate의 `(file, line)`에 해당하는 라이브 소스 라인을 trim해서 `SourceIndex`의 `excerpt`(이미 trim 저장)와 비교한다. 다음 5가지 경우를 분리해 처리:
 
@@ -189,15 +189,15 @@
 
 - [ ] **Step 1: 실패하는 테스트 작성**
 
-  Create `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/SourceCandidateStalenessCheckerTest.kt`:
+  Create `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/SourceCandidateStalenessCheckerTest.kt`:
 
   ```kotlin
-  package io.beyondwin.fixthis.mcp.session
+  package io.github.beyondwin.fixthis.mcp.session
 
-  import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
-  import io.beyondwin.fixthis.compose.core.model.SourceCandidate
-  import io.beyondwin.fixthis.compose.core.source.SourceIndex
-  import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
+  import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
+  import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
+  import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
+  import io.github.beyondwin.fixthis.compose.core.source.SourceIndexEntry
   import org.junit.jupiter.api.Test
   import org.junit.jupiter.api.io.TempDir
   import java.nio.file.Path
@@ -318,14 +318,14 @@
 
 - [ ] **Step 3: 구현**
 
-  Create `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SourceCandidateStalenessChecker.kt`:
+  Create `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SourceCandidateStalenessChecker.kt`:
 
   ```kotlin
-  package io.beyondwin.fixthis.mcp.session
+  package io.github.beyondwin.fixthis.mcp.session
 
-  import io.beyondwin.fixthis.compose.core.model.SourceCandidate
-  import io.beyondwin.fixthis.compose.core.source.SourceIndex
-  import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
+  import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
+  import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
+  import io.github.beyondwin.fixthis.compose.core.source.SourceIndexEntry
   import java.io.File
 
   /**
@@ -397,8 +397,8 @@
 - [ ] **Step 5: 커밋**
 
   ```bash
-  git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SourceCandidateStalenessChecker.kt \
-          fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/SourceCandidateStalenessCheckerTest.kt
+  git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SourceCandidateStalenessChecker.kt \
+          fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/SourceCandidateStalenessCheckerTest.kt
   git commit -m "mcp: add SourceCandidateStalenessChecker"
   ```
 
@@ -408,15 +408,15 @@
 
 **Files:**
 
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt:20-23,264-272`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceServiceTest.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt` (생성자에 `projectRoot` 전달; 이미 있을 가능성 큼)
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt:20-23,264-272`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceServiceTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt` (생성자에 `projectRoot` 전달; 이미 있을 가능성 큼)
 
 **Goal:** `TargetEvidenceService`가 candidates를 만든 직후 staleness checker를 통과시키도록 한다. 생성자에 `projectRoot: File`를 받고, 기본값은 `File(".").canonicalFile`로 둔다.
 
 - [ ] **Step 1: 실패하는 테스트 추가**
 
-  Open `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceServiceTest.kt`. 기존 테스트 클래스 끝에 다음 케이스를 추가한다 (이미 존재하는 import는 중복 없이):
+  Open `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceServiceTest.kt`. 기존 테스트 클래스 끝에 다음 케이스를 추가한다 (이미 존재하는 import는 중복 없이):
 
   ```kotlin
   @Test
@@ -466,7 +466,7 @@
 
 - [ ] **Step 3: `TargetEvidenceService` 시그니처 + 결합 구현**
 
-  Edit `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt:20-23`:
+  Edit `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt:20-23`:
 
   ```kotlin
   class TargetEvidenceService(
@@ -483,7 +483,7 @@
   import java.io.File
   ```
 
-  Edit `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt:264-272`:
+  Edit `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt:264-272`:
 
   ```kotlin
   private fun sourceCandidatesFor(
@@ -526,9 +526,9 @@
 - [ ] **Step 7: 커밋**
 
   ```bash
-  git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt \
-          fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt \
-          fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceServiceTest.kt
+  git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt \
+          fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt \
+          fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceServiceTest.kt
   # 다른 호출부 파일이 변경됐다면 함께 add
   git commit -m "mcp: flag stale source candidates against host source"
   ```
@@ -539,8 +539,8 @@
 
 **Files:**
 
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt:209-240,370-387`
-- Create: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusInstallEpochTest.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt:209-240,370-387`
+- Create: `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusInstallEpochTest.kt`
 
 **Goal:** `BridgeStatus`에 `installEpochMillis: Long?`를 추가하고, `AndroidBridgeEnvironment.status()`에서 `PackageManager.getPackageInfo(packageName, 0).lastUpdateTime`을 채운다. 옛 페이로드(필드 없음)는 `null`로 디코드되어야 한다.
 
@@ -548,10 +548,10 @@
 
 - [ ] **Step 1: 실패하는 테스트 작성**
 
-  Create `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusInstallEpochTest.kt`:
+  Create `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusInstallEpochTest.kt`:
 
   ```kotlin
-  package io.beyondwin.fixthis.compose.sidekick.bridge
+  package io.github.beyondwin.fixthis.compose.sidekick.bridge
 
   import org.junit.Test
   import kotlinx.serialization.json.Json
@@ -605,7 +605,7 @@
 
 - [ ] **Step 3: 데이터 클래스 갱신**
 
-  Edit `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt:209-240`:
+  Edit `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt:209-240`:
 
   ```kotlin
   @Serializable
@@ -652,7 +652,7 @@
 
 - [ ] **Step 5: status()에서 lastUpdateTime 채움**
 
-  Edit `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt:370-387`:
+  Edit `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt:370-387`:
 
   ```kotlin
   override suspend fun status(): BridgeStatus {
@@ -691,8 +691,8 @@
 - [ ] **Step 7: 커밋**
 
   ```bash
-  git add fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt \
-          fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusInstallEpochTest.kt
+  git add fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt \
+          fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusInstallEpochTest.kt
   git commit -m "sidekick: expose APK install epoch on BridgeStatus"
   ```
 
@@ -702,8 +702,8 @@
 
 **Files:**
 
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt`
-- Create: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt`
 
 **Goal:** SourceIndex와 `installEpochMillis`를 받아, index에 등재된 파일들의 `lastModified()`를 stat하고 `installEpochMillis`보다 새로운 파일을 카운트한다. 결과는 다음 데이터 클래스로 노출한다:
 
@@ -722,13 +722,13 @@ data class HostSourceFreshnessResult(
 
 - [ ] **Step 1: 실패하는 테스트 작성**
 
-  Create `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt`:
+  Create `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt`:
 
   ```kotlin
-  package io.beyondwin.fixthis.mcp.session
+  package io.github.beyondwin.fixthis.mcp.session
 
-  import io.beyondwin.fixthis.compose.core.source.SourceIndex
-  import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
+  import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
+  import io.github.beyondwin.fixthis.compose.core.source.SourceIndexEntry
   import org.junit.jupiter.api.Test
   import org.junit.jupiter.api.io.TempDir
   import java.nio.file.Path
@@ -816,12 +816,12 @@ data class HostSourceFreshnessResult(
 
 - [ ] **Step 3: 구현**
 
-  Create `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt`:
+  Create `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt`:
 
   ```kotlin
-  package io.beyondwin.fixthis.mcp.session
+  package io.github.beyondwin.fixthis.mcp.session
 
-  import io.beyondwin.fixthis.compose.core.source.SourceIndex
+  import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
   import java.io.File
 
   data class HostSourceFreshnessResult(
@@ -890,8 +890,8 @@ data class HostSourceFreshnessResult(
 - [ ] **Step 5: 커밋**
 
   ```bash
-  git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt \
-          fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt
+  git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt \
+          fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt
   git commit -m "mcp: add HostSourceFreshnessProbe"
   ```
 
@@ -901,8 +901,8 @@ data class HostSourceFreshnessResult(
 
 **Files:**
 
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt:45-65,87-101`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisToolsTest.kt` (없으면 신규 생성; 기존 테스트 디렉토리에 다른 tools 테스트가 있는지 먼저 확인)
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt:45-65,87-101`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisToolsTest.kt` (없으면 신규 생성; 기존 테스트 디렉토리에 다른 tools 테스트가 있는지 먼저 확인)
 
 **Goal:** `fixthis_status`가 다음 필드를 추가로 노출:
 
@@ -925,19 +925,19 @@ probe는 sourceIndex 페치를 트리거할 수 있으므로, `bridge.readSource
   먼저 기존 위치 확인:
 
   ```bash
-  ls fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/tools/ 2>/dev/null
+  ls fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/tools/ 2>/dev/null
   ```
 
   존재하지 않으면 디렉토리를 만들고, 다음 파일을 생성한다:
 
-  Create/append `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisToolsStatusTest.kt`:
+  Create/append `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisToolsStatusTest.kt`:
 
   ```kotlin
-  package io.beyondwin.fixthis.mcp.tools
+  package io.github.beyondwin.fixthis.mcp.tools
 
-  import io.beyondwin.fixthis.compose.core.source.SourceIndex
-  import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
-  import io.beyondwin.fixthis.mcp.session.FakeFixThisBridge
+  import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
+  import io.github.beyondwin.fixthis.compose.core.source.SourceIndexEntry
+  import io.github.beyondwin.fixthis.mcp.session.FakeFixThisBridge
   import kotlinx.coroutines.runBlocking
   import kotlinx.serialization.json.JsonObject
   import kotlinx.serialization.json.JsonPrimitive
@@ -981,7 +981,7 @@ probe는 sourceIndex 페치를 트리거할 수 있으므로, `bridge.readSource
           )
           val tools = FixThisTools(
               bridge = bridge,
-              defaultPackageName = "io.beyondwin.fixthis.sample",
+              defaultPackageName = "io.github.beyondwin.fixthis.sample",
               projectRoot = tmp.toFile(),
           )
 
@@ -1011,7 +1011,7 @@ probe는 sourceIndex 페치를 트리거할 수 있으므로, `bridge.readSource
           )
           val tools = FixThisTools(
               bridge = bridge,
-              defaultPackageName = "io.beyondwin.fixthis.sample",
+              defaultPackageName = "io.github.beyondwin.fixthis.sample",
               projectRoot = tmp.toFile(),
           )
 
@@ -1036,7 +1036,7 @@ probe는 sourceIndex 페치를 트리거할 수 있으므로, `bridge.readSource
   }
   ```
 
-  > `FakeFixThisBridge`는 이미 `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FakeFixThisBridge.kt`에 존재한다. 거기에 `statusOverride`/`sourceIndexOverride` 매개변수가 없다면 추가한다 — 기존 status를 그대로 돌려주던 곳에 override 값이 있으면 그걸 우선 반환하는 식이다. 변경 시 같은 커밋에 묶는다.
+  > `FakeFixThisBridge`는 이미 `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FakeFixThisBridge.kt`에 존재한다. 거기에 `statusOverride`/`sourceIndexOverride` 매개변수가 없다면 추가한다 — 기존 status를 그대로 돌려주던 곳에 override 값이 있으면 그걸 우선 반환하는 식이다. 변경 시 같은 커밋에 묶는다.
 
 - [ ] **Step 2: 테스트 실패 확인**
 
@@ -1046,7 +1046,7 @@ probe는 sourceIndex 페치를 트리거할 수 있으므로, `bridge.readSource
 
 - [ ] **Step 3: `FixThisTools` 갱신**
 
-  Edit `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt:45-65`:
+  Edit `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt:45-65`:
 
   ```kotlin
   class FixThisTools(
@@ -1067,7 +1067,7 @@ probe는 sourceIndex 페치를 트리거할 수 있으므로, `bridge.readSource
   ) {
   ```
 
-  Edit `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt:87-101`:
+  Edit `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt:87-101`:
 
   ```kotlin
   "fixthis_status" -> bridgeToolResult {
@@ -1133,9 +1133,9 @@ probe는 sourceIndex 페치를 트리거할 수 있으므로, `bridge.readSource
   Import 보강 (이미 있는 것은 무시):
 
   ```kotlin
-  import io.beyondwin.fixthis.compose.core.source.SourceIndex
-  import io.beyondwin.fixthis.mcp.session.HostSourceFreshnessProbe
-  import io.beyondwin.fixthis.mcp.session.HostSourceFreshnessResult
+  import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
+  import io.github.beyondwin.fixthis.mcp.session.HostSourceFreshnessProbe
+  import io.github.beyondwin.fixthis.mcp.session.HostSourceFreshnessResult
   import kotlinx.serialization.json.booleanOrNull
   import kotlinx.serialization.json.buildJsonArray
   import kotlinx.serialization.json.decodeFromJsonElement
@@ -1157,9 +1157,9 @@ probe는 sourceIndex 페치를 트리거할 수 있으므로, `bridge.readSource
 - [ ] **Step 6: 커밋**
 
   ```bash
-  git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt \
-          fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisToolsStatusTest.kt \
-          fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FakeFixThisBridge.kt
+  git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt \
+          fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisToolsStatusTest.kt \
+          fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FakeFixThisBridge.kt
   git commit -m "mcp: surface install-stale hint on fixthis_status"
   ```
 

@@ -11,7 +11,7 @@ screens/HomeScreen.kt:44  conf=high  ... stale: file not found on host
 The underlying `SourceIndexEntry.file` value is generated relative to the Android Gradle project directory:
 
 ```text
-src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt
+src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt
 ```
 
 The MCP server, however, verifies host source files relative to the MCP `projectRoot`, which is the repository root:
@@ -23,7 +23,7 @@ The MCP server, however, verifies host source files relative to the MCP `project
 For the bundled sample app, the real file is:
 
 ```text
-sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt
+sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt
 ```
 
 That mismatch causes false `file not found on host` warnings, false `projectRoot may be misconfigured` status output, and Copy Prompt paths that are harder for agents to open.
@@ -70,8 +70,8 @@ The canonical model becomes:
   },
   "entries": [
     {
-      "file": "src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt",
-      "repoFile": "sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt",
+      "file": "src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt",
+      "repoFile": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt",
       "line": 44
     }
   ]
@@ -147,7 +147,7 @@ Update these consumers to use the same resolver:
 - Compact handoff rendering: display host-resolvable paths when available. With the sample app, Copy Prompt should show:
 
 ```text
-sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt:44
+sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt:44
 ```
 
 The existing compact `Source root:` optimization can still shorten repeated paths, but it should be based on display paths after host resolution, not raw module-relative `file` values.

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the current basic Compose validation app with the branded FixThis Studio sample app at package `io.beyondwin.fixthis.sample`.
+**Goal:** Replace the current basic Compose validation app with the branded FixThis Studio sample app at package `io.github.beyondwin.fixthis.sample`.
 
 **Architecture:** Keep the work scoped to the Android sample app and package-specific sample references. First migrate the sample package/app identity with a minimal compiling app, then add deterministic demo data, shared Compose components, five product-like screens, and updated tests/docs.
 
@@ -25,7 +25,7 @@ Do not rename FixThis library, CLI, MCP, Gradle plugin modules, plugin ids, or p
 Create this sample app structure:
 
 ```text
-sample/src/main/java/io/beyondwin/fixthis/sample/
+sample/src/main/java/io/github/beyondwin/fixthis/sample/
   MainActivity.kt
   FixThisStudioApp.kt
   FixThisTheme.kt
@@ -46,7 +46,7 @@ sample/src/main/java/io/beyondwin/fixthis/sample/
 Move android tests to:
 
 ```text
-sample/src/androidTest/java/io/beyondwin/fixthis/sample/
+sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/
   SampleAppSmokeTest.kt
   SemanticsInspectorSampleAppTest.kt
 ```
@@ -64,9 +64,9 @@ sample/src/androidTest/java/io/github/fixthis/sample/
 
 - Modify: `sample/build.gradle.kts`
 - Modify: `sample/src/main/AndroidManifest.xml`
-- Create: `sample/src/main/java/io/beyondwin/fixthis/sample/MainActivity.kt`
-- Create: `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisStudioApp.kt`
-- Create: `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisTheme.kt`
+- Create: `sample/src/main/java/io/github/beyondwin/fixthis/sample/MainActivity.kt`
+- Create: `sample/src/main/java/io/github/beyondwin/fixthis/sample/FixThisStudioApp.kt`
+- Create: `sample/src/main/java/io/github/beyondwin/fixthis/sample/FixThisTheme.kt`
 - Delete in Step 6: `sample/src/main/java/io/github/fixthis/sample/MainActivity.kt`
 - Delete in Step 6: `sample/src/main/java/io/github/fixthis/sample/SampleApp.kt`
 
@@ -76,11 +76,11 @@ Change `sample/build.gradle.kts`:
 
 ```kotlin
 android {
-    namespace = "io.beyondwin.fixthis.sample"
+    namespace = "io.github.beyondwin.fixthis.sample"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "io.beyondwin.fixthis.sample"
+        applicationId = "io.github.beyondwin.fixthis.sample"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -119,10 +119,10 @@ Change `sample/src/main/AndroidManifest.xml`:
 
 - [x] **Step 3: Create the new MainActivity**
 
-Create `sample/src/main/java/io/beyondwin/fixthis/sample/MainActivity.kt`:
+Create `sample/src/main/java/io/github/beyondwin/fixthis/sample/MainActivity.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample
+package io.github.beyondwin.fixthis.sample
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -140,10 +140,10 @@ class MainActivity : ComponentActivity() {
 
 - [x] **Step 4: Create the sample theme**
 
-Create `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisTheme.kt`:
+Create `sample/src/main/java/io/github/beyondwin/fixthis/sample/FixThisTheme.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample
+package io.github.beyondwin.fixthis.sample
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
@@ -197,10 +197,10 @@ fun FixThisTheme(content: @Composable () -> Unit) {
 
 - [x] **Step 5: Create a temporary five-tab app shell**
 
-Create `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisStudioApp.kt`:
+Create `sample/src/main/java/io/github/beyondwin/fixthis/sample/FixThisStudioApp.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample
+package io.github.beyondwin.fixthis.sample
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -293,7 +293,7 @@ Expected: `BUILD SUCCESSFUL`.
 Run:
 
 ```bash
-git add sample/build.gradle.kts sample/src/main/AndroidManifest.xml sample/src/main/java/io/beyondwin/fixthis/sample sample/src/main/java/io/github/fixthis/sample/MainActivity.kt sample/src/main/java/io/github/fixthis/sample/SampleApp.kt
+git add sample/build.gradle.kts sample/src/main/AndroidManifest.xml sample/src/main/java/io/github/beyondwin/fixthis/sample sample/src/main/java/io/github/fixthis/sample/MainActivity.kt sample/src/main/java/io/github/fixthis/sample/SampleApp.kt
 git commit -m "feat: rename sample app to FixThis"
 ```
 
@@ -301,14 +301,14 @@ git commit -m "feat: rename sample app to FixThis"
 
 **Files:**
 
-- Create: `sample/src/main/java/io/beyondwin/fixthis/sample/model/FixThisDemoData.kt`
+- Create: `sample/src/main/java/io/github/beyondwin/fixthis/sample/model/FixThisDemoData.kt`
 
 - [x] **Step 1: Create deterministic sample data**
 
-Create `sample/src/main/java/io/beyondwin/fixthis/sample/model/FixThisDemoData.kt`:
+Create `sample/src/main/java/io/github/beyondwin/fixthis/sample/model/FixThisDemoData.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample.model
+package io.github.beyondwin.fixthis.sample.model
 
 enum class FeedbackSeverity(val label: String) {
     Critical("Critical"),
@@ -435,7 +435,7 @@ Expected: `BUILD SUCCESSFUL`.
 Run:
 
 ```bash
-git add sample/src/main/java/io/beyondwin/fixthis/sample/model/FixThisDemoData.kt
+git add sample/src/main/java/io/github/beyondwin/fixthis/sample/model/FixThisDemoData.kt
 git commit -m "feat: add FixThis demo data"
 ```
 
@@ -443,17 +443,17 @@ git commit -m "feat: add FixThis demo data"
 
 **Files:**
 
-- Create: `sample/src/main/java/io/beyondwin/fixthis/sample/components/StatusChip.kt`
-- Create: `sample/src/main/java/io/beyondwin/fixthis/sample/components/SectionHeader.kt`
-- Create: `sample/src/main/java/io/beyondwin/fixthis/sample/components/MetricCard.kt`
-- Create: `sample/src/main/java/io/beyondwin/fixthis/sample/components/FeedbackCard.kt`
+- Create: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StatusChip.kt`
+- Create: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/SectionHeader.kt`
+- Create: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/MetricCard.kt`
+- Create: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/FeedbackCard.kt`
 
 - [x] **Step 1: Create status chip**
 
-Create `sample/src/main/java/io/beyondwin/fixthis/sample/components/StatusChip.kt`:
+Create `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StatusChip.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample.components
+package io.github.beyondwin.fixthis.sample.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -465,9 +465,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import io.beyondwin.fixthis.sample.FixThisColors
-import io.beyondwin.fixthis.sample.model.FeedbackSeverity
-import io.beyondwin.fixthis.sample.model.FeedbackState
+import io.github.beyondwin.fixthis.sample.FixThisColors
+import io.github.beyondwin.fixthis.sample.model.FeedbackSeverity
+import io.github.beyondwin.fixthis.sample.model.FeedbackState
 
 @Composable
 fun StatusChip(
@@ -515,10 +515,10 @@ fun StateChip(state: FeedbackState, modifier: Modifier = Modifier) {
 
 - [x] **Step 2: Create section header**
 
-Create `sample/src/main/java/io/beyondwin/fixthis/sample/components/SectionHeader.kt`:
+Create `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/SectionHeader.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample.components
+package io.github.beyondwin.fixthis.sample.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -554,10 +554,10 @@ fun SectionHeader(
 
 - [x] **Step 3: Create metric card**
 
-Create `sample/src/main/java/io/beyondwin/fixthis/sample/components/MetricCard.kt`:
+Create `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/MetricCard.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample.components
+package io.github.beyondwin.fixthis.sample.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -570,7 +570,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import io.beyondwin.fixthis.sample.model.ProjectMetric
+import io.github.beyondwin.fixthis.sample.model.ProjectMetric
 
 @Composable
 fun MetricCard(metric: ProjectMetric, modifier: Modifier = Modifier) {
@@ -597,10 +597,10 @@ fun MetricCard(metric: ProjectMetric, modifier: Modifier = Modifier) {
 
 - [x] **Step 4: Create feedback card**
 
-Create `sample/src/main/java/io/beyondwin/fixthis/sample/components/FeedbackCard.kt`:
+Create `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/FeedbackCard.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample.components
+package io.github.beyondwin.fixthis.sample.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -623,7 +623,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.beyondwin.fixthis.sample.model.FeedbackItem
+import io.github.beyondwin.fixthis.sample.model.FeedbackItem
 
 @Composable
 fun FeedbackCard(
@@ -713,7 +713,7 @@ Expected: `BUILD SUCCESSFUL`.
 Run:
 
 ```bash
-git add sample/src/main/java/io/beyondwin/fixthis/sample/components
+git add sample/src/main/java/io/github/beyondwin/fixthis/sample/components
 git commit -m "feat: add FixThis sample components"
 ```
 
@@ -721,20 +721,20 @@ git commit -m "feat: add FixThis sample components"
 
 **Files:**
 
-- Create: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt`
-- Create: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/QueueScreen.kt`
-- Create: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/ProjectScreen.kt`
-- Create: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt`
-- Create: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt`
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisStudioApp.kt`
+- Create: `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt`
+- Create: `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/QueueScreen.kt`
+- Create: `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ProjectScreen.kt`
+- Create: `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ReviewScreen.kt`
+- Create: `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/FixThisStudioApp.kt`
 - Delete after replacement: `sample/src/main/java/io/github/fixthis/sample/screens/*.kt`
 
 - [x] **Step 1: Create Home screen**
 
-Create `sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt`:
+Create `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample.screens
+package io.github.beyondwin.fixthis.sample.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -750,10 +750,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import io.beyondwin.fixthis.sample.components.FeedbackCard
-import io.beyondwin.fixthis.sample.components.MetricCard
-import io.beyondwin.fixthis.sample.components.SectionHeader
-import io.beyondwin.fixthis.sample.model.FixThisDemoData
+import io.github.beyondwin.fixthis.sample.components.FeedbackCard
+import io.github.beyondwin.fixthis.sample.components.MetricCard
+import io.github.beyondwin.fixthis.sample.components.SectionHeader
+import io.github.beyondwin.fixthis.sample.model.FixThisDemoData
 
 @Composable
 fun HomeScreen(padding: PaddingValues) {
@@ -805,10 +805,10 @@ fun HomeScreen(padding: PaddingValues) {
 
 - [x] **Step 2: Create Queue screen**
 
-Create `sample/src/main/java/io/beyondwin/fixthis/sample/screens/QueueScreen.kt`:
+Create `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/QueueScreen.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample.screens
+package io.github.beyondwin.fixthis.sample.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -822,9 +822,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import io.beyondwin.fixthis.sample.components.FeedbackCard
-import io.beyondwin.fixthis.sample.components.SectionHeader
-import io.beyondwin.fixthis.sample.model.FixThisDemoData
+import io.github.beyondwin.fixthis.sample.components.FeedbackCard
+import io.github.beyondwin.fixthis.sample.components.SectionHeader
+import io.github.beyondwin.fixthis.sample.model.FixThisDemoData
 
 @Composable
 fun QueueScreen(padding: PaddingValues) {
@@ -864,10 +864,10 @@ fun QueueScreen(padding: PaddingValues) {
 
 - [x] **Step 3: Create Project screen**
 
-Create `sample/src/main/java/io/beyondwin/fixthis/sample/screens/ProjectScreen.kt`:
+Create `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ProjectScreen.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample.screens
+package io.github.beyondwin.fixthis.sample.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -895,10 +895,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import io.beyondwin.fixthis.sample.components.SectionHeader
-import io.beyondwin.fixthis.sample.components.SeverityChip
-import io.beyondwin.fixthis.sample.components.StateChip
-import io.beyondwin.fixthis.sample.model.FixThisDemoData
+import io.github.beyondwin.fixthis.sample.components.SectionHeader
+import io.github.beyondwin.fixthis.sample.components.SeverityChip
+import io.github.beyondwin.fixthis.sample.components.StateChip
+import io.github.beyondwin.fixthis.sample.model.FixThisDemoData
 
 @Composable
 fun ProjectScreen(padding: PaddingValues) {
@@ -987,10 +987,10 @@ fun ProjectScreen(padding: PaddingValues) {
 
 - [x] **Step 4: Create Review screen**
 
-Create `sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt`:
+Create `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ReviewScreen.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample.screens
+package io.github.beyondwin.fixthis.sample.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -1086,10 +1086,10 @@ fun ReviewScreen(padding: PaddingValues) {
 
 - [x] **Step 5: Create Diagnostics screen**
 
-Create `sample/src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt`:
+Create `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.sample.screens
+package io.github.beyondwin.fixthis.sample.screens
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -1114,8 +1114,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import io.beyondwin.fixthis.sample.components.SectionHeader
-import io.beyondwin.fixthis.sample.model.FixThisDemoData
+import io.github.beyondwin.fixthis.sample.components.SectionHeader
+import io.github.beyondwin.fixthis.sample.model.FixThisDemoData
 
 @Composable
 fun DiagnosticsScreen(padding: PaddingValues) {
@@ -1202,10 +1202,10 @@ fun DiagnosticsScreen(padding: PaddingValues) {
 
 - [x] **Step 6: Wire screens into app shell**
 
-Replace `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisStudioApp.kt` with:
+Replace `sample/src/main/java/io/github/beyondwin/fixthis/sample/FixThisStudioApp.kt` with:
 
 ```kotlin
-package io.beyondwin.fixthis.sample
+package io.github.beyondwin.fixthis.sample
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -1217,11 +1217,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import io.beyondwin.fixthis.sample.screens.DiagnosticsScreen
-import io.beyondwin.fixthis.sample.screens.HomeScreen
-import io.beyondwin.fixthis.sample.screens.ProjectScreen
-import io.beyondwin.fixthis.sample.screens.QueueScreen
-import io.beyondwin.fixthis.sample.screens.ReviewScreen
+import io.github.beyondwin.fixthis.sample.screens.DiagnosticsScreen
+import io.github.beyondwin.fixthis.sample.screens.HomeScreen
+import io.github.beyondwin.fixthis.sample.screens.ProjectScreen
+import io.github.beyondwin.fixthis.sample.screens.QueueScreen
+import io.github.beyondwin.fixthis.sample.screens.ReviewScreen
 
 enum class FixThisTab(val label: String) {
     Home("Home"),
@@ -1272,7 +1272,7 @@ rm -r sample/src/main/java/io/github/fixthis/sample/screens
 rmdir sample/src/main/java/io/github/fixthis/sample || true
 ```
 
-Expected: old `io.beyondwin.fixthis.sample` source package is gone from main sample source.
+Expected: old `io.github.beyondwin.fixthis.sample` source package is gone from main sample source.
 
 - [x] **Step 8: Build product screens**
 
@@ -1289,7 +1289,7 @@ Expected: `BUILD SUCCESSFUL`.
 Run:
 
 ```bash
-git add sample/src/main/java/io/beyondwin/fixthis/sample sample/src/main/java/io/github/fixthis/sample
+git add sample/src/main/java/io/github/beyondwin/fixthis/sample sample/src/main/java/io/github/fixthis/sample
 git commit -m "feat: build FixThis Studio sample UI"
 ```
 
@@ -1299,26 +1299,26 @@ git commit -m "feat: build FixThis Studio sample UI"
 
 - Move: `sample/src/androidTest/java/io/github/fixthis/sample/SampleAppSmokeTest.kt`
 - Move: `sample/src/androidTest/java/io/github/fixthis/sample/SemanticsInspectorSampleAppTest.kt`
-- Modify: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
-- Modify: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt`
+- Modify: `sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
+- Modify: `sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt`
 
 - [x] **Step 1: Move test package directory**
 
 Run:
 
 ```bash
-mkdir -p sample/src/androidTest/java/io/beyondwin/fixthis/sample
-git mv sample/src/androidTest/java/io/github/fixthis/sample/SampleAppSmokeTest.kt sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt
-git mv sample/src/androidTest/java/io/github/fixthis/sample/SemanticsInspectorSampleAppTest.kt sample/src/androidTest/java/io/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt
+mkdir -p sample/src/androidTest/java/io/github/beyondwin/fixthis/sample
+git mv sample/src/androidTest/java/io/github/fixthis/sample/SampleAppSmokeTest.kt sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SampleAppSmokeTest.kt
+git mv sample/src/androidTest/java/io/github/fixthis/sample/SemanticsInspectorSampleAppTest.kt sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt
 rmdir sample/src/androidTest/java/io/github/fixthis/sample || true
 ```
 
 - [x] **Step 2: Update smoke test**
 
-Replace `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt` with:
+Replace `sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SampleAppSmokeTest.kt` with:
 
 ```kotlin
-package io.beyondwin.fixthis.sample
+package io.github.beyondwin.fixthis.sample
 
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -1345,15 +1345,15 @@ class SampleAppSmokeTest {
 
 - [x] **Step 3: Update semantics inspector test**
 
-Replace `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt` with:
+Replace `sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt` with:
 
 ```kotlin
-package io.beyondwin.fixthis.sample
+package io.github.beyondwin.fixthis.sample
 
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import io.beyondwin.fixthis.compose.sidekick.inspect.SemanticsInspector
+import io.github.beyondwin.fixthis.compose.sidekick.inspect.SemanticsInspector
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -1410,7 +1410,7 @@ If no device is available, record in the implementation final answer: `connected
 Run:
 
 ```bash
-git add sample/src/androidTest/java/io/beyondwin/fixthis/sample sample/src/androidTest/java/io/github/fixthis/sample
+git add sample/src/androidTest/java/io/github/beyondwin/fixthis/sample sample/src/androidTest/java/io/github/fixthis/sample
 git commit -m "test: update FixThis sample tests"
 ```
 
@@ -1427,13 +1427,13 @@ git commit -m "test: update FixThis sample tests"
 Change the smoke command in `README.md` from:
 
 ```bash
-fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis run --package io.github.beyondwin.fixthis.sample
 ```
 
 to:
 
 ```bash
-fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis run --package io.github.beyondwin.fixthis.sample
 ```
 
 Keep the repo/module wording as `FixThis` and `:app`.
@@ -1456,17 +1456,17 @@ Expected: results fall into two groups:
 In `fixthis-compose-core/src/test/kotlin/io/github/fixthis/compose/core/source/SourceMatcherTest.kt`, update package/path examples that are meant to represent current sample source:
 
 ```kotlin
-file = "sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt"
+file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ReviewScreen.kt"
 ```
 
 Use visible text anchors from the new app, for example:
 
 ```kotlin
 text = listOf("Submit request")
-activityName = "io.beyondwin.fixthis.sample.MainActivity"
+activityName = "io.github.beyondwin.fixthis.sample.MainActivity"
 ```
 
-Do not bulk-rewrite every `io.beyondwin.fixthis.sample` fixture across MCP/sidekick tests unless the test explicitly claims to model the real sample app path.
+Do not bulk-rewrite every `io.github.beyondwin.fixthis.sample` fixture across MCP/sidekick tests unless the test explicitly claims to model the real sample app path.
 
 - [x] **Step 4: Update Gradle plugin source index test only if it asserts old sample app text**
 
@@ -1535,7 +1535,7 @@ Expected:
 - `sample/build.gradle.kts` contains namespace and applicationId
 - `sample/src/main/AndroidManifest.xml` contains label `FixThis`
 - new Kotlin and androidTest package declarations are present
-- README run command names `io.beyondwin.fixthis.sample`
+- README run command names `io.github.beyondwin.fixthis.sample`
 
 - [x] **Step 3: Run broad build verification**
 
@@ -1570,7 +1570,7 @@ git diff -- sample/build.gradle.kts sample/src/main/AndroidManifest.xml sample/s
 
 Expected:
 
-- sample app package is `io.beyondwin.fixthis.sample`
+- sample app package is `io.github.beyondwin.fixthis.sample`
 - no implementation touches FixThis library packages
 - five screens are present
 - old developer-only screen labels are removed from the visible sample UI
@@ -1589,7 +1589,7 @@ Expected: create this commit only when `git status --short` shows verification f
 
 ## Completion Note
 
-Implementation finished with the sample namespace/application id set to `io.beyondwin.fixthis.sample`, launcher label `FixThis`, and product UI branded as FixThis Studio with five bottom tabs: Home, Queue, Project, Review, and Diagnostics.
+Implementation finished with the sample namespace/application id set to `io.github.beyondwin.fixthis.sample`, launcher label `FixThis`, and product UI branded as FixThis Studio with five bottom tabs: Home, Queue, Project, Review, and Diagnostics.
 
 Final local verification passed:
 
@@ -1615,5 +1615,5 @@ Connected instrumentation tests were not run because `adb` was not on `PATH` and
   - No `TBD`, `TODO`, `implement later`, or unspecified validation steps.
   - Each code-changing task includes concrete file paths and code snippets.
 - Scope guard:
-  - No task renames `io.beyondwin.fixthis.*` library packages.
+  - No task renames `io.github.beyondwin.fixthis.*` library packages.
   - No task adds networking, persistence, auth, ViewModels, or new external dependencies.

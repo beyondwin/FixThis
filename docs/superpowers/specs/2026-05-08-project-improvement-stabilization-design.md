@@ -284,9 +284,9 @@ For HTTP tests:
 
 ### Files
 
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/*Test.kt`
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt`
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/*Test.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 ### Done When
 
@@ -361,9 +361,9 @@ Writers:
 
 ### Files
 
-- `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt`
-- New writer/locator files under `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/`
-- CLI tests under `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/`
+- `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt`
+- New writer/locator files under `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/`
+- CLI tests under `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/`
 - `README.md`, `docs/mcp.md`, `docs/design-zero-setup.md`,
   `docs/troubleshooting.md`
 
@@ -381,8 +381,8 @@ Writers:
 ```bash
 ./gradlew :fixthis-cli:test
 ./gradlew :fixthis-cli:installDist
-fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.beyondwin.fixthis.sample --project-dir "$PWD"
-fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.beyondwin.fixthis.sample --project-dir "$PWD" --write --target codex --dry-run
+fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.github.beyondwin.fixthis.sample --project-dir "$PWD"
+fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.github.beyondwin.fixthis.sample --project-dir "$PWD" --write --target codex --dry-run
 git diff --check
 ```
 
@@ -403,7 +403,7 @@ with explicit categories.
 Recommended command:
 
 ```bash
-scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample
+scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample
 ```
 
 Smoke phases:
@@ -440,8 +440,8 @@ The `.fixthis` directory is already ignored, so reports stay local.
 ### Validation
 
 ```bash
-scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample --host-only
-scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample
+scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample --host-only
+scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample
 git diff --check
 ```
 
@@ -516,7 +516,7 @@ Keep Java `HttpServer` and endpoint paths stable, but split route ownership.
 Proposed structure:
 
 ```text
-fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/
+fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/
   FeedbackConsoleServer.kt       // lifecycle, context registration
   ConsoleHttp.kt                 // response, decoding, method helpers
   ConsoleRoutes.kt               // route interface and route table

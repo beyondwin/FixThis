@@ -44,19 +44,19 @@ Console verification:
 
 MCP session policy:
 
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` so `WONT_FIX` is edit-locked.
-- Modify `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt` to cover `NEEDS_CLARIFICATION` editable and `WONT_FIX` locked behavior.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` so `WONT_FIX` is edit-locked.
+- Modify `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt` to cover `NEEDS_CLARIFICATION` editable and `WONT_FIX` locked behavior.
 
 Android sample and overlay:
 
-- Modify `sample/src/main/java/io/beyondwin/fixthis/sample/components/StudioHeader.kt`.
-- Modify `sample/src/main/java/io/beyondwin/fixthis/sample/components/FeedbackCard.kt`.
-- Modify `sample/src/main/java/io/beyondwin/fixthis/sample/components/InfoRow.kt`.
-- Modify `sample/src/main/java/io/beyondwin/fixthis/sample/screens/ProjectScreen.kt`.
-- Modify `sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt`.
-- Modify `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`.
-- Modify `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayout.kt`.
-- Modify `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayoutTest.kt`.
+- Modify `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StudioHeader.kt`.
+- Modify `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/FeedbackCard.kt`.
+- Modify `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/InfoRow.kt`.
+- Modify `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ProjectScreen.kt`.
+- Modify `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ReviewScreen.kt`.
+- Modify `sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`.
+- Modify `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayout.kt`.
+- Modify `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayoutTest.kt`.
 
 ## Conventions
 
@@ -251,7 +251,7 @@ Android sample and overlay:
 
   async function injectStressState(page) {
     await page.evaluate(() => {
-      const longPath = '/Users/kws/source/android/FixThis/sample/src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt:63:VeryLongComposableNameWithoutNaturalBreakpoints'.repeat(2);
+      const longPath = '/Users/kws/source/android/FixThis/sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt:63:VeryLongComposableNameWithoutNaturalBreakpoints'.repeat(2);
       const stalenessBanner = document.getElementById('stalenessBanner');
       stalenessBanner.hidden = false;
       stalenessBanner.dataset.severity = 'critical';
@@ -275,7 +275,7 @@ Android sample and overlay:
         '<div class="activity-drift-warning" role="status" aria-live="polite" data-activity-drift>' +
           '<div class="activity-drift-warning-body">' +
             '<div class="activity-drift-warning-title">Activity changed during freeze</div>' +
-            '<div class="activity-drift-warning-detail">Frozen: io.beyondwin.fixthis.sample.MainActivity · Now: io.beyondwin.fixthis.sample.DeepLinkReviewActivityWithLongName</div>' +
+            '<div class="activity-drift-warning-detail">Frozen: io.github.beyondwin.fixthis.sample.MainActivity · Now: io.github.beyondwin.fixthis.sample.DeepLinkReviewActivityWithLongName</div>' +
           '</div>' +
           '<button type="button" class="activity-drift-warning-button" data-activity-drift-restart>Start new freeze</button>' +
         '</div>';
@@ -683,8 +683,8 @@ Android sample and overlay:
 - Modify: `fixthis-mcp/src/main/console/rendering.js`
 - Modify: `fixthis-mcp/src/main/resources/console/styles.css`
 - Modify: `fixthis-mcp/src/main/resources/console/app.js`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
 - Modify: `scripts/console-browser-smoke.mjs`
 
 - [ ] **Step 1: Add failing backend lock tests**
@@ -697,7 +697,7 @@ Android sample and overlay:
       val clock = MutableClock(1000L)
       val ids = FakeIds("session-1", "screen-1", "item-1", "batch-1")
       val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
-      val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+      val session = store.openSession("io.github.beyondwin.fixthis.sample", "/repo")
       val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
       store.addItem(
           session.sessionId,
@@ -737,7 +737,7 @@ Android sample and overlay:
       val clock = MutableClock(1000L)
       val ids = FakeIds("session-1", "screen-1", "item-1", "batch-1")
       val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
-      val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+      val session = store.openSession("io.github.beyondwin.fixthis.sample", "/repo")
       val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
       store.addItem(
           session.sessionId,
@@ -1014,7 +1014,7 @@ Android sample and overlay:
 - [ ] **Step 9: Commit**
 
   ```bash
-  git add fixthis-mcp/src/main/console/annotations.js fixthis-mcp/src/main/console/rendering.js fixthis-mcp/src/main/resources/console/styles.css fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt scripts/console-browser-smoke.mjs
+  git add fixthis-mcp/src/main/console/annotations.js fixthis-mcp/src/main/console/rendering.js fixthis-mcp/src/main/resources/console/styles.css fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt scripts/console-browser-smoke.mjs
   git commit -m "feat(console): render agent terminal feedback states"
   ```
 
@@ -1166,12 +1166,12 @@ Android sample and overlay:
 
 **Files:**
 
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/components/StudioHeader.kt`
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/components/FeedbackCard.kt`
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/components/InfoRow.kt`
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/ProjectScreen.kt`
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt`
-- Modify: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StudioHeader.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/FeedbackCard.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/InfoRow.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ProjectScreen.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ReviewScreen.kt`
+- Modify: `sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
 
 - [ ] **Step 1: Update `StudioHeader` to let text and status share width safely**
 
@@ -1385,7 +1385,7 @@ Android sample and overlay:
 - [ ] **Step 8: Commit**
 
   ```bash
-  git add sample/src/main/java/io/beyondwin/fixthis/sample/components/StudioHeader.kt sample/src/main/java/io/beyondwin/fixthis/sample/components/FeedbackCard.kt sample/src/main/java/io/beyondwin/fixthis/sample/components/InfoRow.kt sample/src/main/java/io/beyondwin/fixthis/sample/screens/ProjectScreen.kt sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt
+  git add sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StudioHeader.kt sample/src/main/java/io/github/beyondwin/fixthis/sample/components/FeedbackCard.kt sample/src/main/java/io/github/beyondwin/fixthis/sample/components/InfoRow.kt sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ProjectScreen.kt sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ReviewScreen.kt sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SampleAppSmokeTest.kt
   git commit -m "fix(sample): make demo rows adapt to narrow screens"
   ```
 
@@ -1395,8 +1395,8 @@ Android sample and overlay:
 
 **Files:**
 
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayout.kt`
-- Modify: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayoutTest.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayout.kt`
+- Modify: `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayoutTest.kt`
 
 - [ ] **Step 1: Add failing overlay max-width test**
 
@@ -1469,7 +1469,7 @@ Android sample and overlay:
 - [ ] **Step 5: Commit**
 
   ```bash
-  git add fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayout.kt fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayoutTest.kt
+  git add fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayout.kt fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayoutTest.kt
   git commit -m "fix(sidekick): constrain connection status pill width"
   ```
 

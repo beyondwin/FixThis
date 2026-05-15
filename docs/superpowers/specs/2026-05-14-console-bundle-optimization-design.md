@@ -452,7 +452,7 @@ comments*. Tests that assert on whitespace-bearing patterns
 assert on the function *name* only (`expect.contains("withMutationLock")`).
 
 The cleanest re-implementation is to introduce a helper in
-`io.beyondwin.fixthis.mcp.fixtures` that reads the **unbundled** source
+`io.github.beyondwin.fixthis.mcp.fixtures` that reads the **unbundled** source
 files from `src/main/console/<name>.js` directly instead of grepping the
 minified bundle:
 
@@ -705,9 +705,9 @@ the build silently treats it as a root.
 - Build script: `scripts/build-console-assets.mjs:1-101`
 - Output bundle: `fixthis-mcp/src/main/resources/console/app.js`
 - Source modules: `fixthis-mcp/src/main/console/*.js`
-- Kotlin asset server: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt`
+- Kotlin asset server: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt`
 - Asset contract tests (post Item 3 split):
-  `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt`
+  `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt`
 - Existing console-rebundle docs:
   `CONTRIBUTING.md` (search for `build-console-assets`)
   `docs/reference/feedback-console-contract.md`

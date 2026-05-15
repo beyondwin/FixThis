@@ -73,7 +73,7 @@ live preview frames.
 
 ## Event Model
 
-Add these serializable event models under `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/events/`.
+Add these serializable event models under `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/events/`.
 
 ```kotlin
 @Serializable

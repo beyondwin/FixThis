@@ -28,7 +28,7 @@
 - `fixthis-mcp/src/main/resources/console/app.js` — auto-regenerated bundle
 
 **Test (modify):**
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 ### Phase B — Highlight burst guard
 
@@ -37,7 +37,7 @@
 - `fixthis-mcp/src/main/resources/console/app.js` — auto-regenerated
 
 **Test (modify):**
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 ### Phase C — Plan/spec correction notes
 
@@ -63,7 +63,7 @@
 **Files:**
 - Modify: `fixthis-mcp/src/main/console/sessions-polling.js`
 - Modify: `fixthis-mcp/src/main/console/state.js`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Write failing tests**
 
@@ -200,7 +200,7 @@ Expected: green for the new assertions. Other FeedbackConsoleServerTest tests st
 git add fixthis-mcp/src/main/console/sessions-polling.js \
         fixthis-mcp/src/main/console/state.js \
         fixthis-mcp/src/main/resources/console/app.js \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat(console): polling failure backoff with 5-failure threshold
 
 Task: 1 (followups)
@@ -215,7 +215,7 @@ Files: sessions-polling.js, state.js, app.js, FeedbackConsoleServerTest.kt"
 **Files:**
 - Modify: `fixthis-mcp/src/main/console/state.js`
 - Modify: `fixthis-mcp/src/main/console/sessions-polling.js` (or `connection.js` — wherever the helper makes most sense)
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Write failing tests**
 
@@ -277,7 +277,7 @@ Expected: green.
 git add fixthis-mcp/src/main/console/state.js \
         fixthis-mcp/src/main/console/sessions-polling.js \
         fixthis-mcp/src/main/resources/console/app.js \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat(console): sessionsPollingPaused state flag and helper
 
 Task: 2 (followups)
@@ -291,7 +291,7 @@ Files: state.js, sessions-polling.js, app.js, FeedbackConsoleServerTest.kt"
 
 **Files:**
 - Modify: `fixthis-mcp/src/main/console/connection.js`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Write failing test**
 
@@ -357,7 +357,7 @@ Expected: green.
 ```bash
 git add fixthis-mcp/src/main/console/connection.js \
         fixthis-mcp/src/main/resources/console/app.js \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat(console): surface sessions-polling paused state on connection card
 
 Task: 3 (followups)
@@ -372,7 +372,7 @@ Files: connection.js, app.js, FeedbackConsoleServerTest.kt"
 **Files:**
 - Modify: `fixthis-mcp/src/main/console/main.js`
 - Modify: `fixthis-mcp/src/main/console/state.js` (the `withMutationLock` helper)
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Write failing tests**
 
@@ -487,7 +487,7 @@ Expected: green.
 git add fixthis-mcp/src/main/console/main.js \
         fixthis-mcp/src/main/console/state.js \
         fixthis-mcp/src/main/resources/console/app.js \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat(console): recover sessions polling on visibility-change and mutation success
 
 Task: 4 (followups)
@@ -503,7 +503,7 @@ Files: main.js, state.js, app.js, FeedbackConsoleServerTest.kt"
 
 **Files:**
 - Modify: `fixthis-mcp/src/main/console/rendering.js`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Write failing test**
 
@@ -590,7 +590,7 @@ Expected: green. Existing `mergeSessionIntoStatePreservesUserState` test still p
 ```bash
 git add fixthis-mcp/src/main/console/rendering.js \
         fixthis-mcp/src/main/resources/console/app.js \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat(console): suppress highlight cascade on bulk status change
 
 Task: 5 (followups)

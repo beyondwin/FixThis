@@ -37,16 +37,16 @@
 ## Current Baseline
 
 - Branch: `main`. Recent commit at plan creation: `15be25f feat(console): merge console-uiux-fixes - 12 UI/UX defects fixed`.
-- v1 compact renderer: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt:1-125` (entire file, 125 lines).
+- v1 compact renderer: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt:1-125` (entire file, 125 lines).
 - v1 JS prompt: `fixthis-mcp/src/main/console/prompt.js:120-253` (compact functions); v1 reason map at lines 132-146.
-- `SourceCandidate` fields: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt:98-110` (declared `scoreMargin`, `evidenceStrength`, `riskFlags`, `caution`, `matchedTerms`, `ranking` — `scoreMargin` is empirically `null` on every wire candidate, see Phase 0.4).
+- `SourceCandidate` fields: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt:98-110` (declared `scoreMargin`, `evidenceStrength`, `riskFlags`, `caution`, `matchedTerms`, `ranking` — `scoreMargin` is empirically `null` on every wire candidate, see Phase 0.4).
 - `FixThisNode.path`: `Models.kt:83`. Empirically populated as `["root", "node:2", "node:61", "node:73"]` style — opaque numerics, distinct leaves per Composable instance.
 - `SnapshotScreenshotDto.width / height`: `SessionDtoModels.kt:63-64`.
 - `SnapshotDto.activityName`: `SessionDtoModels.kt:41`.
 - v1 Kotlin tests:
-  - `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
-  - `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationOverlapDetectorTest.kt`
-  - `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/PromptParityTest.kt`
+  - `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
+  - `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/AnnotationOverlapDetectorTest.kt`
+  - `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/PromptParityTest.kt`
 - v1 JS prompt-parity Node harness: `fixthis-mcp/src/test/resources/parity/run-prompt.js`
 - v1 prompt-budget test: relative guard `compact.length < precise.length` in `FeedbackQueueFormatterTest.kt:585-593` (`compactPromptIsShorterThanPreciseForRepresentativeSession`); no absolute char-count assertion exists (see Phase 0.3 findings).
 
@@ -68,27 +68,27 @@ The Kotlin `FixThisRect.formatBounds()` emits floats with a `.0` suffix (`10.0,2
 
 ### Modify (Kotlin sources)
 
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt` — replace `compactTargetSummary()` and `compactSourceLine()`; add `viewport:` and `activity:` lines in `render()`; integrate `InstanceGroupingHelper` and `DuplicateMarkerDetector` outputs; render `candidates:` block.
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FormatterExtensions.kt` — add `FixThisRect.formatBox(): String` returning `"(L,T)-(R,B) [W×H]"`. Keep existing `formatBounds()` for PRECISE/FULL formatters.
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt` — populate `scoreMargin` on rank-1 `SourceCandidate` (single-line addition in `toCandidate()`/result-list assembly).
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt` — replace `compactTargetSummary()` and `compactSourceLine()`; add `viewport:` and `activity:` lines in `render()`; integrate `InstanceGroupingHelper` and `DuplicateMarkerDetector` outputs; render `candidates:` block.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FormatterExtensions.kt` — add `FixThisRect.formatBox(): String` returning `"(L,T)-(R,B) [W×H]"`. Keep existing `formatBounds()` for PRECISE/FULL formatters.
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt` — populate `scoreMargin` on rank-1 `SourceCandidate` (single-line addition in `toCandidate()`/result-list assembly).
 - `fixthis-mcp/src/main/console/prompt.js` — mirror Kotlin renderer: replace `compactSourceLine` and `compactTargetLine`; add `compactViewportLine`, `compactActivityLine`, `computeInstanceLabels`, `computeDuplicateMarkers`, `compactCandidatesBlock`.
 - `fixthis-mcp/src/main/resources/console/app.js` — bundled equivalent regenerated from the source files in `fixthis-mcp/src/main/console/`. (Inspect to confirm whether `prompt.js` is concatenated by `build-console-assets.mjs` or hand-edited; mirror changes in both if hand-edited. v1 plan task 7.4 left a note that this is concatenated; verify in Phase 0.5.)
 
 ### Create (Kotlin sources)
 
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/InstanceGroupingHelper.kt` — pure helper that takes `List<AnnotationDto>` for one screen and returns `Map<itemId, InstanceLabel>` plus the set of group-leader item IDs (used to decide where to emit the collision note).
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/DuplicateMarkerDetector.kt` — pure helper that takes ordered `List<AnnotationDto>` and returns `Map<itemId, Int /* refers-to marker number */>`.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/InstanceGroupingHelper.kt` — pure helper that takes `List<AnnotationDto>` for one screen and returns `Map<itemId, InstanceLabel>` plus the set of group-leader item IDs (used to decide where to emit the collision note).
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/DuplicateMarkerDetector.kt` — pure helper that takes ordered `List<AnnotationDto>` and returns `Map<itemId, Int /* refers-to marker number */>`.
 
 ### Modify (tests)
 
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` — add v2 assertions for AC-1..AC-5; existing v1 assertions either updated (where shape changes) or kept as-is (where unchanged: `Rule:` line, package/items lines, screenshot reference, overlap-group structure, crop line).
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/PromptParityTest.kt` — extend to compare v2 candidate/instance/note/risk content between Kotlin and JS for a fixture with multi-candidate, instance grouping, and duplicate items.
-- `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt` — add a test that `scoreMargin` is populated when ≥2 candidates exist; assert remains `null` when 0 or 1 candidate exists.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` — add v2 assertions for AC-1..AC-5; existing v1 assertions either updated (where shape changes) or kept as-is (where unchanged: `Rule:` line, package/items lines, screenshot reference, overlap-group structure, crop line).
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/PromptParityTest.kt` — extend to compare v2 candidate/instance/note/risk content between Kotlin and JS for a fixture with multi-candidate, instance grouping, and duplicate items.
+- `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt` — add a test that `scoreMargin` is populated when ≥2 candidates exist; assert remains `null` when 0 or 1 candidate exists.
 
 ### Create (tests)
 
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/InstanceGroupingHelperTest.kt`
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/DuplicateMarkerDetectorTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/InstanceGroupingHelperTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/DuplicateMarkerDetectorTest.kt`
 
 ### Create or extend (test resources)
 
@@ -576,7 +576,7 @@ Goal: lock the v2 contract with cross-language parity and a token-budget regress
 
 ### Kotlin renderer (`CompactHandoffRenderer.kt`)
 
-File: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt` (125 lines total)
+File: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt` (125 lines total)
 
 | Function | Line range | What it does today |
 |---|---|---|
@@ -608,7 +608,7 @@ File: `fixthis-mcp/src/main/console/prompt.js`
 
 ### Tests to update in `CompactHandoffRendererTest.kt`
 
-File: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` (34 lines total)
+File: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` (34 lines total)
 
 The test file currently contains **one test** (`renderEmitsTopLevelRuleAndScreenHeader`, lines 9–33). It makes two assertions:
 
@@ -635,7 +635,7 @@ The test file currently contains **one test** (`renderEmitsTopLevelRuleAndScreen
 
 | File | Function | Line(s) | Exact assertion |
 |---|---|---|---|
-| `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt` | `compactPromptIsShorterThanPreciseForRepresentativeSession` | 585–593 | `assertTrue(compact.length < precise.length, "expected COMPACT (${compact.length}) shorter than PRECISE (${precise.length})")` |
+| `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt` | `compactPromptIsShorterThanPreciseForRepresentativeSession` | 585–593 | `assertTrue(compact.length < precise.length, "expected COMPACT (${compact.length}) shorter than PRECISE (${precise.length})")` |
 
 The test session is `sessionWithTargetEvidenceAndSources()` — **1 item, 4 source candidates** (scores 0.95/0.75/0.60/0.40). There is no absolute char budget stored anywhere in the codebase.
 
@@ -728,7 +728,7 @@ For the original collision case (4 items, 1 screen, 3 instance-grouped + 1 dupli
 
 Rule: source hints are candidates; verify screenshot, target, and code before editing.
 
-- Package: `io.beyondwin.fixthis.sample`
+- Package: `io.github.beyondwin.fixthis.sample`
 - Feedback Items: `4`
 
 Screen 4ce1eaa3: MainActivity

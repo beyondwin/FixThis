@@ -323,7 +323,7 @@ Use after edits to `fixthis-mcp/src/main/console/*` that you rebundle with `node
 
 ```bash
 scripts/fixthis-console-dev.sh                                # default package
-scripts/fixthis-console-dev.sh io.beyondwin.fixthis.sample    # explicit package
+scripts/fixthis-console-dev.sh io.github.beyondwin.fixthis.sample    # explicit package
 ```
 
 Stop with Ctrl-C; re-running kills any stale `fixthis console` process before starting a new one.
@@ -341,10 +341,10 @@ Expected: at least one line beginning with `DRY: ` (e.g., `DRY: pkill -f 'fixthi
 - [ ] **Step 4: Run `fixthis-console-dev.sh` with a fake package and immediate Ctrl-C**
 
 ```bash
-timeout 3 bash scripts/fixthis-console-dev.sh io.beyondwin.fixthis.sample 2>&1 | head -5 || true
+timeout 3 bash scripts/fixthis-console-dev.sh io.github.beyondwin.fixthis.sample 2>&1 | head -5 || true
 ```
 
-Expected: prints at least the line `Starting fixthis console for io.beyondwin.fixthis.sample…` before `timeout` kills it. If the CLI is not built yet (`fixthis-cli/build/install/fixthis/bin/fixthis` missing), the script prints `CLI not built. Run: ./gradlew …` and exits 1 — that is acceptable for the verification (it proves the doc example is accurate).
+Expected: prints at least the line `Starting fixthis console for io.github.beyondwin.fixthis.sample…` before `timeout` kills it. If the CLI is not built yet (`fixthis-cli/build/install/fixthis/bin/fixthis` missing), the script prints `CLI not built. Run: ./gradlew …` and exits 1 — that is acceptable for the verification (it proves the doc example is accurate).
 
 - [ ] **Step 5: Verify the anchors render**
 

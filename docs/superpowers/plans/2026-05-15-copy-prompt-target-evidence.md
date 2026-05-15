@@ -19,15 +19,15 @@ or console JavaScript UI changes.
 
 ## File Structure
 
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`.
   Owns compact Markdown ordering and calls the new helpers.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FormatterExtensions.kt`.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FormatterExtensions.kt`.
   Owns small string helpers shared by compact formatter code.
-- Create `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetSummaryFormatter.kt`.
+- Create `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetSummaryFormatter.kt`.
   Owns redaction-safe per-item `target:` summary rendering.
-- Create `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/HandoffQualitySummary.kt`.
+- Create `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/HandoffQualitySummary.kt`.
   Owns aggregate quality counts and pluralized summary text.
-- Modify `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`.
+- Modify `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`.
   Adds focused coverage for new prompt lines and compatibility tokens.
 - Modify `docs/reference/feedback-console-contract.md`.
   Updates compact handoff grammar and definitions.
@@ -37,9 +37,9 @@ or console JavaScript UI changes.
 ## Task 1: Add Target Summary Formatter
 
 **Files:**
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetSummaryFormatter.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FormatterExtensions.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetSummaryFormatter.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FormatterExtensions.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
 
 - [ ] **Step 1: Add failing tests for target summary lines**
 
@@ -50,7 +50,7 @@ Append these tests to `CompactHandoffRendererTest`:
     fun renderAddsTargetSummaryBeforeBoxLine() {
         val session = SessionDto(
             sessionId = "session-target-summary",
-            packageName = "io.beyondwin.fixthis.sample",
+            packageName = "io.github.beyondwin.fixthis.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 1L,
             updatedAtEpochMillis = 1L,
@@ -184,7 +184,7 @@ Append these tests to `CompactHandoffRendererTest`:
 
     private fun oneItemSession(item: AnnotationDto): SessionDto = SessionDto(
         sessionId = "session-one-item",
-        packageName = "io.beyondwin.fixthis.sample",
+        packageName = "io.github.beyondwin.fixthis.sample",
         projectRoot = "/repo",
         createdAtEpochMillis = 1L,
         updatedAtEpochMillis = 1L,
@@ -232,10 +232,10 @@ preview of long values.
 Create `TargetSummaryFormatter.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.model.FixThisNode
-import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 
 internal object TargetSummaryFormatter {
     fun render(item: AnnotationDto): String {
@@ -305,19 +305,19 @@ Expected: PASS for all four target summary tests.
 - [ ] **Step 7: Commit target summary formatter**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FormatterExtensions.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetSummaryFormatter.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FormatterExtensions.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetSummaryFormatter.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt
 git commit -m "feat: add target summaries to compact handoff"
 ```
 
 ## Task 2: Add Handoff Quality Summary
 
 **Files:**
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/HandoffQualitySummary.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/HandoffQualitySummary.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
 
 - [ ] **Step 1: Add failing tests for quality summary**
 
@@ -328,7 +328,7 @@ Append these tests to `CompactHandoffRendererTest`:
     fun renderAddsHandoffQualitySummaryForRiskSignals() {
         val session = SessionDto(
             sessionId = "session-quality",
-            packageName = "io.beyondwin.fixthis.sample",
+            packageName = "io.github.beyondwin.fixthis.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 1L,
             updatedAtEpochMillis = 1L,
@@ -451,7 +451,7 @@ Append these tests to `CompactHandoffRendererTest`:
     fun renderHandoffQualitySummaryUsesFilteredItemSet() {
         val session = SessionDto(
             sessionId = "session-filtered-quality",
-            packageName = "io.beyondwin.fixthis.sample",
+            packageName = "io.github.beyondwin.fixthis.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 1L,
             updatedAtEpochMillis = 1L,
@@ -514,9 +514,9 @@ line is rendered.
 Create `HandoffQualitySummary.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.model.TargetConfidence
+import io.github.beyondwin.fixthis.compose.core.model.TargetConfidence
 
 internal object HandoffQualitySummary {
     fun render(
@@ -654,7 +654,7 @@ Add helper:
 ```
 
 `InstanceGrouping` is the current return type of `InstanceGroupingHelper.compute`
-and is already package-visible in `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/InstanceGroupingHelper.kt`.
+and is already package-visible in `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/InstanceGroupingHelper.kt`.
 
 - [ ] **Step 5: Render quality line in header**
 
@@ -710,9 +710,9 @@ contract tokens are still present.
 - [ ] **Step 8: Commit quality summary**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/HandoffQualitySummary.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/HandoffQualitySummary.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt
 git commit -m "feat: summarize compact handoff quality"
 ```
 
@@ -804,9 +804,9 @@ Expected: output includes:
 ```text
 docs/reference/feedback-console-contract.md
 docs/reference/mcp-tools.md
-fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetSummaryFormatter.kt
-fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/HandoffQualitySummary.kt
-fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt
+fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetSummaryFormatter.kt
+fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/HandoffQualitySummary.kt
+fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt
 ```
 
 - [ ] **Step 3: Review compact output manually**
@@ -841,7 +841,7 @@ Run:
 ```bash
 git diff --check
 git diff --stat
-git diff -- fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session docs/reference
+git diff -- fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session docs/reference
 ```
 
 Expected:
@@ -857,11 +857,11 @@ When executing this plan as one batch instead of using the per-task commits
 above, commit the complete change:
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FormatterExtensions.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetSummaryFormatter.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/HandoffQualitySummary.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt \
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FormatterExtensions.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetSummaryFormatter.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/HandoffQualitySummary.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt \
   docs/reference/feedback-console-contract.md \
   docs/reference/mcp-tools.md
 git commit -m "feat: make compact handoffs target-first"

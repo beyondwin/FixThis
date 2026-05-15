@@ -749,7 +749,7 @@ easy to regress:
 Server/service tests protect behavior outside the HTML shell:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest --tests io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest --tests io.github.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
 ```
 
 Final required checks:

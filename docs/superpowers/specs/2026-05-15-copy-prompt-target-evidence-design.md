@@ -60,13 +60,13 @@ The current compact handoff begins with:
 
 Rule: source hints are candidates; verify screenshot, target, and code before editing.
 
-- Package: `io.beyondwin.fixthis.sample`
-- Source root: `sample/src/main/java/io/beyondwin/fixthis/sample/`
+- Package: `io.github.beyondwin.fixthis.sample`
+- Source root: `sample/src/main/java/io/github/beyondwin/fixthis/sample/`
 
 Screen 9196a35b: MainActivity
 screenshot: /path/to/screen.png
 viewport: 1080x2424
-activity: io.beyondwin.fixthis.sample.MainActivity
+activity: io.github.beyondwin.fixthis.sample.MainActivity
 
 [1] Increase contrast
   id: item-1

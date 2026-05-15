@@ -41,7 +41,7 @@ All commits land in main via the merge commit `a6abe8a` from
 ### Task 2 — `AnnotationWorkflow` rename
 - **Status:** COMPLETE.
 - **Evidence:**
-  - File `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationWorkflow.kt` exists.
+  - File `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/AnnotationWorkflow.kt` exists.
   - The pre-rename file `AnnotationRepository.kt` no longer exists.
   - `FeedbackSessionService` constructs `AnnotationWorkflow(store = ..., draftService = ...)`.
 - **Caveat:** None.
@@ -49,7 +49,7 @@ All commits land in main via the merge commit `a6abe8a` from
 ### Task 3 — MCP domain repository adapters
 - **Status:** COMPLETE.
 - **Evidence:**
-  - Three adapter classes exist under `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/domain/`:
+  - Three adapter classes exist under `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/domain/`:
     `McpSessionRepository.kt`, `McpSnapshotRepository.kt`, `McpAnnotationRepository.kt`.
   - `FeedbackSessionStore` exposes the new public methods
     `replaceSessionForDomain`, `addOrReplaceScreenForDomain`,
@@ -232,7 +232,7 @@ Grep-able commands that must remain green for this slice not to regress structur
 ### Test gates
 
 - [x] `SessionReducerTest` passes (`./gradlew :fixthis-mcp:test --tests
-      "io.beyondwin.fixthis.mcp.session.SessionReducerTest"`).
+      "io.github.beyondwin.fixthis.mcp.session.SessionReducerTest"`).
 - [x] `McpDomainRepositoryTest` passes.
 - [x] `FeedbackSessionStoreEventLogTest`, `SigkillReplayTest`, and
       `EventLogCompactorTest` pass.
@@ -275,8 +275,8 @@ Grep-able commands that must remain green for this slice not to regress structur
 Run before flipping the unchecked boxes above:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.session.*"
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.architecture.*"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.session.*"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.architecture.*"
 ./gradlew detekt --no-daemon
 git diff --check
 ```
@@ -373,9 +373,9 @@ depends on the reducer being complete.
 
 - Merged plan: [`2026-05-13-architecture-solid-remediation-implementation.md`](../plans/2026-05-13-architecture-solid-remediation-implementation.md)
 - Merged spec: [`2026-05-13-architecture-solid-remediation-detailed-spec.md`](2026-05-13-architecture-solid-remediation-detailed-spec.md)
-- Current store: [`fixthis-mcp/.../session/FeedbackSessionStore.kt`](../../../fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt) (748 lines)
-- Reducer: [`fixthis-mcp/.../session/SessionReducer.kt`](../../../fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionReducer.kt)
-- Journal: [`fixthis-mcp/.../session/SessionEventJournal.kt`](../../../fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionEventJournal.kt)
-- Replay engine: [`fixthis-mcp/.../session/SessionReplayEngine.kt`](../../../fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionReplayEngine.kt)
-- Domain adapters: [`fixthis-mcp/.../session/domain/`](../../../fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/domain/)
+- Current store: [`fixthis-mcp/.../session/FeedbackSessionStore.kt`](../../../fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt) (748 lines)
+- Reducer: [`fixthis-mcp/.../session/SessionReducer.kt`](../../../fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionReducer.kt)
+- Journal: [`fixthis-mcp/.../session/SessionEventJournal.kt`](../../../fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionEventJournal.kt)
+- Replay engine: [`fixthis-mcp/.../session/SessionReplayEngine.kt`](../../../fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionReplayEngine.kt)
+- Domain adapters: [`fixthis-mcp/.../session/domain/`](../../../fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/domain/)
 - Merge commit: `a6abe8a Merge branch 'codex/architecture-solid-remediation'`

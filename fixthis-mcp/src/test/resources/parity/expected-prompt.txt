@@ -2,7 +2,7 @@
 
 Rule: source hints are candidates; verify screenshot, target, and code before editing.
 
-- Package: `io.beyondwin.fixthis.sample`
+- Package: `io.github.beyondwin.fixthis.sample`
 
 Screen screen-1: Checkout
 

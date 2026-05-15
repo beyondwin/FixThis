@@ -299,7 +299,7 @@ fixthis-compose-overlay/.../studio/theme/
 ### 3.2 `StudioSpacing`
 
 ```kotlin
-package io.beyondwin.fixthis.compose.console.studio.theme
+package io.github.beyondwin.fixthis.compose.console.studio.theme
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.Dp
@@ -473,7 +473,7 @@ fixthis-mcp/
 ### 4.3 로더 코드 (After)
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
 object FeedbackConsoleAssets {
     private const val BASE = "/console"

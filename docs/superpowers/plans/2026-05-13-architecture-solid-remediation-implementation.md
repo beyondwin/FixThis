@@ -19,13 +19,13 @@ Detailed analysis and rationale:
 
 Current hotspots from source line counts:
 
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`: 993 lines.
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt`: 869 lines.
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`: 698 lines.
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`: 578 lines.
-- `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt`: 531 lines.
-- `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`: 442 lines.
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`: 4,736 lines.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`: 993 lines.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt`: 869 lines.
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`: 698 lines.
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`: 578 lines.
+- `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt`: 531 lines.
+- `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`: 442 lines.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`: 4,736 lines.
 
 Current boundary check result:
 
@@ -40,61 +40,61 @@ Current boundary check result:
 
 Create:
 
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/architecture/ModuleBoundaryTest.kt`
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationWorkflow.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/domain/McpSessionRepository.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/domain/McpSnapshotRepository.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/domain/McpAnnotationRepository.kt`
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/domain/McpDomainRepositoryTest.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionMutation.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionReducer.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionEventJournal.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionReplayEngine.kt`
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/SessionReducerTest.kt`
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeModels.kt`
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeRuntime.kt`
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/AndroidBridgeEnvironment.kt`
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeScreenshotReader.kt`
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeSourceIndexReader.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/McpToolRegistry.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisToolDispatcher.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisResourceDispatcher.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/BridgeResultCache.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/ConsoleServerManager.kt`
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatchReason.kt`
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceScoringPolicy.kt`
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceConfidencePolicy.kt`
-- `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt`
-- `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/XmlStringResourceScanner.kt`
-- `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/SourceIndexGenerator.kt`
-- `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/SourceIndexAssets.kt`
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/fixtures/ConsoleServerFixtures.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ModuleBoundaryTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/AnnotationWorkflow.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/domain/McpSessionRepository.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/domain/McpSnapshotRepository.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/domain/McpAnnotationRepository.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/domain/McpDomainRepositoryTest.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionMutation.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionReducer.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionEventJournal.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionReplayEngine.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionReducerTest.kt`
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeModels.kt`
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeRuntime.kt`
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/AndroidBridgeEnvironment.kt`
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeScreenshotReader.kt`
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeSourceIndexReader.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/McpToolRegistry.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisToolDispatcher.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisResourceDispatcher.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/BridgeResultCache.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/ConsoleServerManager.kt`
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatchReason.kt`
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceScoringPolicy.kt`
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceConfidencePolicy.kt`
+- `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt`
+- `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/XmlStringResourceScanner.kt`
+- `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/SourceIndexGenerator.kt`
+- `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/SourceIndexAssets.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/fixtures/ConsoleServerFixtures.kt`
 
 Modify:
 
 - `CONTRIBUTING.md`
 - `docs/architecture/overview.md`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
-- `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt`
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt`
-- `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
+- `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt`
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt`
+- `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 Delete after replacement:
 
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationRepository.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/AnnotationRepository.kt`
 
 ## Task 1: Add Architecture Guardrails
 
 **Files:**
-- Create: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/architecture/ModuleBoundaryTest.kt`
-- Create: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ModuleBoundaryTest.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt`
 - Modify: `CONTRIBUTING.md`
 
 - [ ] **Step 1: Add module boundary test**
@@ -102,7 +102,7 @@ Delete after replacement:
 Create `ModuleBoundaryTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.architecture
+package io.github.beyondwin.fixthis.mcp.architecture
 
 import java.io.File
 import kotlin.test.Test
@@ -114,7 +114,7 @@ class ModuleBoundaryTest {
 
     @Test
     fun composeCoreDoesNotImportOuterModulesOrAndroid() {
-        val forbidden = Regex("""^import (android|androidx|io\.beyondwin\.fixthis\.(mcp|cli|gradle|compose\.sidekick))""")
+        val forbidden = Regex("""^import (android|androidx|io\.github\.beyondwin\.fixthis\.(mcp|cli|gradle|compose\.sidekick))""")
         val offenders = kotlinFiles("fixthis-compose-core/src/main")
             .flatMap { file ->
                 file.readLines().mapIndexedNotNull { index, line ->
@@ -127,7 +127,7 @@ class ModuleBoundaryTest {
 
     @Test
     fun sidekickGradlePluginAndSampleDoNotImportMcpOrCli() {
-        val forbidden = Regex("""^import io\.beyondwin\.fixthis\.(mcp|cli)""")
+        val forbidden = Regex("""^import io\.github\.beyondwin\.fixthis\.(mcp|cli)""")
         val offenders = listOf(
             "fixthis-compose-sidekick/src/main",
             "fixthis-gradle-plugin/src/main",
@@ -154,7 +154,7 @@ class ModuleBoundaryTest {
 Create `ArchitectureHotspotBudgetTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.architecture
+package io.github.beyondwin.fixthis.mcp.architecture
 
 import java.io.File
 import kotlin.test.Test
@@ -167,12 +167,12 @@ class ArchitectureHotspotBudgetTest {
     @Test
     fun handwrittenKotlinFilesStayUnderBudgetUnlessExplicitlyAllowed() {
         val budgets = mapOf(
-            "fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt" to 1_050,
-            "fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt" to 920,
-            "fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt" to 740,
-            "fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt" to 620,
-            "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt" to 560,
-            "fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt" to 470,
+            "fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt" to 1_050,
+            "fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt" to 920,
+            "fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt" to 740,
+            "fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt" to 620,
+            "fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt" to 560,
+            "fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt" to 470,
         )
         val offenders = budgets.mapNotNull { (path, maxLines) ->
             val file = File(root, path)
@@ -202,7 +202,7 @@ architecture change needs a new dependency direction, record the decision in
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.architecture.*"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.architecture.*"
 ```
 
 Expected: PASS.
@@ -212,16 +212,16 @@ Expected: PASS.
 ```bash
 git add \
   CONTRIBUTING.md \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/architecture/ModuleBoundaryTest.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ModuleBoundaryTest.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt
 git commit -m "test: add architecture boundary guardrails"
 ```
 
 ## Task 2: Rename MCP Annotation Facade Before Adding Domain Adapters
 
 **Files:**
-- Move: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationRepository.kt` to `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationWorkflow.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
+- Move: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/AnnotationRepository.kt` to `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/AnnotationWorkflow.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
 - Modify: tests that refer to `AnnotationRepository`
 
 - [ ] **Step 1: Move the file and rename the class**
@@ -230,8 +230,8 @@ Use `git mv`:
 
 ```bash
 git mv \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationRepository.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationWorkflow.kt
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/AnnotationRepository.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/AnnotationWorkflow.kt
 ```
 
 In the moved file, change the class declaration and KDoc opening:
@@ -273,7 +273,7 @@ Run:
 
 ```bash
 rg -n "class AnnotationRepository|AnnotationRepository\\(" fixthis-mcp/src/main fixthis-mcp/src/test
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.session.*"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.session.*"
 ```
 
 Expected:
@@ -285,33 +285,33 @@ Expected:
 
 ```bash
 git add \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationWorkflow.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/AnnotationWorkflow.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt
 git commit -m "refactor(mcp): rename annotation workflow facade"
 ```
 
 ## Task 3: Add MCP Adapters For Core Domain Ports
 
 **Files:**
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/domain/McpSessionRepository.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/domain/McpSnapshotRepository.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/domain/McpAnnotationRepository.kt`
-- Create: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/domain/McpDomainRepositoryTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/domain/McpSessionRepository.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/domain/McpSnapshotRepository.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/domain/McpAnnotationRepository.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/domain/McpDomainRepositoryTest.kt`
 
 - [ ] **Step 1: Add repository adapters**
 
 Create `McpSessionRepository.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session.domain
+package io.github.beyondwin.fixthis.mcp.session.domain
 
-import io.beyondwin.fixthis.compose.core.domain.common.SessionId
-import io.beyondwin.fixthis.compose.core.domain.session.Session
-import io.beyondwin.fixthis.compose.core.domain.session.SessionRepository
-import io.beyondwin.fixthis.mcp.session.FeedbackSessionException
-import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
-import io.beyondwin.fixthis.mcp.session.toDomainSession
-import io.beyondwin.fixthis.mcp.session.toSessionDto
+import io.github.beyondwin.fixthis.compose.core.domain.common.SessionId
+import io.github.beyondwin.fixthis.compose.core.domain.session.Session
+import io.github.beyondwin.fixthis.compose.core.domain.session.SessionRepository
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionException
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.session.toDomainSession
+import io.github.beyondwin.fixthis.mcp.session.toSessionDto
 
 class McpSessionRepository(
     private val store: FeedbackSessionStore,
@@ -332,14 +332,14 @@ class McpSessionRepository(
 Create `McpSnapshotRepository.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session.domain
+package io.github.beyondwin.fixthis.mcp.session.domain
 
-import io.beyondwin.fixthis.compose.core.domain.common.SnapshotId
-import io.beyondwin.fixthis.compose.core.domain.snapshot.Snapshot
-import io.beyondwin.fixthis.compose.core.domain.snapshot.SnapshotRepository
-import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
-import io.beyondwin.fixthis.mcp.session.toDomainSnapshot
-import io.beyondwin.fixthis.mcp.session.toSnapshotDto
+import io.github.beyondwin.fixthis.compose.core.domain.common.SnapshotId
+import io.github.beyondwin.fixthis.compose.core.domain.snapshot.Snapshot
+import io.github.beyondwin.fixthis.compose.core.domain.snapshot.SnapshotRepository
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.session.toDomainSnapshot
+import io.github.beyondwin.fixthis.mcp.session.toSnapshotDto
 
 class McpSnapshotRepository(
     private val store: FeedbackSessionStore,
@@ -361,13 +361,13 @@ class McpSnapshotRepository(
 Create `McpAnnotationRepository.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session.domain
+package io.github.beyondwin.fixthis.mcp.session.domain
 
-import io.beyondwin.fixthis.compose.core.domain.annotation.Annotation
-import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationRepository
-import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
-import io.beyondwin.fixthis.mcp.session.toAnnotationDto
-import io.beyondwin.fixthis.mcp.session.toDomainAnnotation
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.Annotation
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.AnnotationRepository
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.session.toAnnotationDto
+import io.github.beyondwin.fixthis.mcp.session.toDomainAnnotation
 
 class McpAnnotationRepository(
     private val store: FeedbackSessionStore,
@@ -427,16 +427,16 @@ session persistence boundary.
 Create `McpDomainRepositoryTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session.domain
+package io.github.beyondwin.fixthis.mcp.session.domain
 
-import io.beyondwin.fixthis.compose.core.domain.annotation.Annotation
-import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationTarget
-import io.beyondwin.fixthis.compose.core.domain.common.AnnotationId
-import io.beyondwin.fixthis.compose.core.domain.common.SessionId
-import io.beyondwin.fixthis.compose.core.domain.common.SnapshotId
-import io.beyondwin.fixthis.compose.core.domain.snapshot.Snapshot
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.Annotation
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.AnnotationTarget
+import io.github.beyondwin.fixthis.compose.core.domain.common.AnnotationId
+import io.github.beyondwin.fixthis.compose.core.domain.common.SessionId
+import io.github.beyondwin.fixthis.compose.core.domain.common.SnapshotId
+import io.github.beyondwin.fixthis.compose.core.domain.snapshot.Snapshot
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -449,7 +449,7 @@ class McpDomainRepositoryTest {
             clock = { 100L },
             idGenerator = sequenceOf("session-1").iterator()::next,
         )
-        store.openSession("io.beyondwin.fixthis.sample", "/repo")
+        store.openSession("io.github.beyondwin.fixthis.sample", "/repo")
 
         val sessions = McpSessionRepository(store)
         val snapshots = McpSnapshotRepository(store) { "session-1" }
@@ -489,7 +489,7 @@ class McpDomainRepositoryTest {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.session.domain.McpDomainRepositoryTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.session.domain.McpDomainRepositoryTest"
 ```
 
 Expected: PASS.
@@ -498,26 +498,26 @@ Expected: PASS.
 
 ```bash
 git add \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/domain \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/domain/McpDomainRepositoryTest.kt
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/domain \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/domain/McpDomainRepositoryTest.kt
 git commit -m "refactor(mcp): adapt feedback store to core domain ports"
 ```
 
 ## Task 4: Introduce A Pure Session Reducer Before Splitting The Store
 
 **Files:**
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionMutation.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionReducer.kt`
-- Create: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/SessionReducerTest.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionMutation.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionReducer.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionReducerTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
 
 - [ ] **Step 1: Add mutation model and reducer**
 
 Create `SessionMutation.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
 sealed interface SessionMutation {
     data class AddScreen(val screen: SnapshotDto, val now: Long) : SessionMutation
@@ -542,7 +542,7 @@ sealed interface SessionMutation {
 Create `SessionReducer.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
 object SessionReducer {
     fun reduce(session: SessionDto, mutation: SessionMutation): SessionDto = when (mutation) {
@@ -608,9 +608,9 @@ Create `SessionReducerTest.kt` with tests for screen deletion, item deletion,
 handoff addition, and close mutation:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -651,7 +651,7 @@ class SessionReducerTest {
 
     private fun baseSession(): SessionDto = SessionDto(
         sessionId = "session-1",
-        packageName = "io.beyondwin.fixthis.sample",
+        packageName = "io.github.beyondwin.fixthis.sample",
         projectRoot = "/repo",
         createdAtEpochMillis = 100L,
         updatedAtEpochMillis = 100L,
@@ -701,8 +701,8 @@ val updated = SessionReducer.reduce(session, SessionMutation.MarkReadyForAgent(n
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.session.SessionReducerTest"
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.session.SessionReducerTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest"
 ```
 
 Expected: PASS.
@@ -711,19 +711,19 @@ Expected: PASS.
 
 ```bash
 git add \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionMutation.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionReducer.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/SessionReducerTest.kt
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionMutation.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionReducer.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionReducerTest.kt
 git commit -m "refactor(mcp): introduce pure session reducer"
 ```
 
 ## Task 5: Split Event Journal And Replay Engine Out Of `FeedbackSessionStore`
 
 **Files:**
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionEventJournal.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionReplayEngine.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionEventJournal.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionReplayEngine.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
 - Test: existing event-log tests
 
 - [ ] **Step 1: Extract event append sequencing**
@@ -731,11 +731,11 @@ git commit -m "refactor(mcp): introduce pure session reducer"
 Create `SessionEventJournal.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
-import io.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
-import io.beyondwin.fixthis.mcp.session.eventlog.SessionEvent
+import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
+import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
+import io.github.beyondwin.fixthis.mcp.session.eventlog.SessionEvent
 import kotlinx.serialization.json.JsonObject
 
 class SessionEventJournal(
@@ -794,9 +794,9 @@ functions from `FeedbackSessionStore`. Keep the same event type strings and
 payload decoding. The public API should be:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
+import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 
 class SessionReplayEngine(
     private val journal: SessionEventJournal,
@@ -869,9 +869,9 @@ sessions[sid] = replayed
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreEventLogTest"
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.session.SigkillReplayTest"
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.session.eventlog.EventLogCompactorTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreEventLogTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.session.SigkillReplayTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogCompactorTest"
 ```
 
 Expected: PASS.
@@ -880,21 +880,21 @@ Expected: PASS.
 
 ```bash
 git add \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionEventJournal.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionReplayEngine.kt
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionEventJournal.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionReplayEngine.kt
 git commit -m "refactor(mcp): split session event replay from store"
 ```
 
 ## Task 6: Split Sidekick Bridge File Without Changing Protocol
 
 **Files:**
-- Create: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeModels.kt`
-- Create: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeRuntime.kt`
-- Create: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/AndroidBridgeEnvironment.kt`
-- Create: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeScreenshotReader.kt`
-- Create: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeSourceIndexReader.kt`
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeModels.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeRuntime.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/AndroidBridgeEnvironment.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeScreenshotReader.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeSourceIndexReader.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
 
 - [ ] **Step 1: Move serializable DTOs to `BridgeModels.kt`**
 
@@ -916,7 +916,7 @@ Move these declarations unchanged:
 Keep package:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.sidekick.bridge
+package io.github.beyondwin.fixthis.compose.sidekick.bridge
 ```
 
 - [ ] **Step 2: Move runtime singleton to `BridgeRuntime.kt`**
@@ -935,7 +935,7 @@ method bodies unchanged.
 Create `BridgeScreenshotReader.kt` with:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.sidekick.bridge
+package io.github.beyondwin.fixthis.compose.sidekick.bridge
 
 import android.util.Base64
 import kotlinx.coroutines.CoroutineDispatcher
@@ -1013,8 +1013,8 @@ Then route `"readScreenshot"` to:
 Run:
 
 ```bash
-./gradlew :fixthis-compose-sidekick:testDebugUnitTest --tests "io.beyondwin.fixthis.compose.sidekick.bridge.*"
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.BridgeProtocolVersionSyncTest"
+./gradlew :fixthis-compose-sidekick:testDebugUnitTest --tests "io.github.beyondwin.fixthis.compose.sidekick.bridge.*"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.BridgeProtocolVersionSyncTest"
 ```
 
 Expected: PASS. `BridgeProtocol.VERSION` stays `1.3`.
@@ -1022,19 +1022,19 @@ Expected: PASS. `BridgeProtocol.VERSION` stays `1.3`.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge
+git add fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge
 git commit -m "refactor(sidekick): split bridge runtime files"
 ```
 
 ## Task 7: Split MCP Tool Dispatch From Registry And Cache
 
 **Files:**
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/McpToolRegistry.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/BridgeResultCache.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/ConsoleServerManager.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisResourceDispatcher.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisToolDispatcher.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/McpToolRegistry.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/BridgeResultCache.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/ConsoleServerManager.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisResourceDispatcher.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisToolDispatcher.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
 
 - [ ] **Step 1: Move tool and resource definitions**
 
@@ -1063,10 +1063,10 @@ internal object McpToolRegistry {
 Create `BridgeResultCache.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.tools
+package io.github.beyondwin.fixthis.mcp.tools
 
-import io.beyondwin.fixthis.mcp.McpProtocol
-import io.beyondwin.fixthis.mcp.session.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.McpProtocol
+import io.github.beyondwin.fixthis.mcp.session.SnapshotDto
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.encodeToJsonElement
 
@@ -1121,11 +1121,11 @@ internal class BridgeResultCache(
 Create `ConsoleServerManager.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.tools
+package io.github.beyondwin.fixthis.mcp.tools
 
-import io.beyondwin.fixthis.mcp.console.FeedbackConsoleServer
-import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
-import io.beyondwin.fixthis.mcp.session.SessionDto
+import io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServer
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
+import io.github.beyondwin.fixthis.mcp.session.SessionDto
 import java.io.File
 
 internal class ConsoleServerManager(
@@ -1183,8 +1183,8 @@ suspend fun readResource(uri: String): JsonObject = resourceDispatcher.read(uri)
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.McpProtocolTest"
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.tools.*"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.McpProtocolTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.tools.*"
 ```
 
 Expected: PASS.
@@ -1192,25 +1192,25 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools
 git commit -m "refactor(mcp): split tool registry and dispatch"
 ```
 
 ## Task 8: Split Source Matching Policy Without Changing Output Strings
 
 **Files:**
-- Create: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatchReason.kt`
-- Create: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceScoringPolicy.kt`
-- Create: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceConfidencePolicy.kt`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatchReason.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceScoringPolicy.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceConfidencePolicy.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt`
 
 - [ ] **Step 1: Add typed reason labels**
 
 Create `SourceMatchReason.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.source
+package io.github.beyondwin.fixthis.compose.core.source
 
 internal enum class SourceMatchReason(val wireLabel: String) {
     SELECTED_TEXT("selected text"),
@@ -1234,7 +1234,7 @@ internal enum class SourceMatchReason(val wireLabel: String) {
 Create `SourceScoringPolicy.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.source
+package io.github.beyondwin.fixthis.compose.core.source
 
 internal object SourceScoringPolicy {
     const val maxCandidates: Int = 5
@@ -1265,10 +1265,10 @@ internal object SourceScoringPolicy {
 Create `SourceConfidencePolicy.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.source
+package io.github.beyondwin.fixthis.compose.core.source
 
-import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
-import io.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
+import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
 
 internal object SourceConfidencePolicy {
     fun cautionFor(
@@ -1335,8 +1335,8 @@ SourceConfidencePolicy.cautionFor(top.confidence, top.riskFlags)
 Run:
 
 ```bash
-./gradlew :fixthis-compose-core:test --tests "io.beyondwin.fixthis.compose.core.source.SourceMatcherTest"
-./gradlew :fixthis-compose-core:test --tests "io.beyondwin.fixthis.compose.core.source.SourceInterpretationFactoryTest"
+./gradlew :fixthis-compose-core:test --tests "io.github.beyondwin.fixthis.compose.core.source.SourceMatcherTest"
+./gradlew :fixthis-compose-core:test --tests "io.github.beyondwin.fixthis.compose.core.source.SourceInterpretationFactoryTest"
 ```
 
 Expected: PASS with no changed `matchReasons` strings.
@@ -1344,23 +1344,23 @@ Expected: PASS with no changed `matchReasons` strings.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source
+git add fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source
 git commit -m "refactor(core): split source matching policy"
 ```
 
 ## Task 9: Extract Gradle Source Scanners From The Task
 
 **Files:**
-- Create: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/SourceIndexAssets.kt`
-- Create: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt`
-- Create: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/XmlStringResourceScanner.kt`
-- Create: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/SourceIndexGenerator.kt`
-- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`
-- Modify: `fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt`
+- Create: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/SourceIndexAssets.kt`
+- Create: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt`
+- Create: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/XmlStringResourceScanner.kt`
+- Create: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/SourceIndexGenerator.kt`
+- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`
+- Modify: `fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt`
 
 - [ ] **Step 1: Move asset DTOs**
 
-Create `SourceIndexAssets.kt` under `io.beyondwin.fixthis.gradle.source` and
+Create `SourceIndexAssets.kt` under `io.github.beyondwin.fixthis.gradle.source` and
 move these declarations from the task file:
 
 - `SourceIndexAsset`
@@ -1378,7 +1378,7 @@ Make `SourceIndexEntryAsset`, `SourceSignalAsset`, `SourceSignalKindAsset`,
 Create `KotlinSourceScanner.kt` with this shape:
 
 ```kotlin
-package io.beyondwin.fixthis.gradle.source
+package io.github.beyondwin.fixthis.gradle.source
 
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -1465,7 +1465,7 @@ internal class XmlStringResourceScanner(
 Create `SourceIndexGenerator.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.gradle.source
+package io.github.beyondwin.fixthis.gradle.source
 
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -1508,7 +1508,7 @@ Keep Gradle properties and output paths unchanged.
 Run:
 
 ```bash
-./gradlew :fixthis-gradle-plugin:test --tests "io.beyondwin.fixthis.gradle.GenerateFixThisSourceIndexTaskTest"
+./gradlew :fixthis-gradle-plugin:test --tests "io.github.beyondwin.fixthis.gradle.GenerateFixThisSourceIndexTaskTest"
 ./gradlew :fixthis-gradle-plugin:functionalTest
 ```
 
@@ -1518,21 +1518,21 @@ Expected: PASS.
 
 ```bash
 git add \
-  fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt \
-  fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source \
-  fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt
+  fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt \
+  fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source \
+  fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt
 git commit -m "refactor(gradle): extract source index scanners"
 ```
 
 ## Task 10: Split `FeedbackConsoleServerTest` Fixtures And Route Tests
 
 **Files:**
-- Create: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/fixtures/ConsoleServerFixtures.kt`
-- Create: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetRoutesTest.kt`
-- Create: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleConnectionRoutesTest.kt`
-- Create: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsolePreviewRoutesTest.kt`
-- Create: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/fixtures/ConsoleServerFixtures.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetRoutesTest.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleConnectionRoutesTest.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsolePreviewRoutesTest.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Extract shared fixtures**
 
@@ -1555,7 +1555,7 @@ Move these nested helpers from `FeedbackConsoleServerTest.kt` into
 Use package:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.fixtures
+package io.github.beyondwin.fixthis.mcp.fixtures
 ```
 
 Keep behavior unchanged and make classes `internal`.
@@ -1597,7 +1597,7 @@ server index smoke, CSRF smoke, and unsupported method behavior.
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.*"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.*"
 ```
 
 Expected: PASS.
@@ -1606,8 +1606,8 @@ Expected: PASS.
 
 ```bash
 git add \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/fixtures/ConsoleServerFixtures.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/fixtures/ConsoleServerFixtures.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console
 git commit -m "test(mcp): split console server route tests"
 ```
 

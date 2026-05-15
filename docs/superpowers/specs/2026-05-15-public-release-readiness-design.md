@@ -106,7 +106,7 @@ start to depend on them:
 
 | Surface | Future coordinate / id | Notes |
 | --- | --- | --- |
-| Gradle plugin | `io.beyondwin.fixthis.compose` | Existing plugin id. Published through Gradle Plugin Portal later. |
+| Gradle plugin | `io.github.beyondwin.fixthis.compose` | Existing plugin id. Published through Gradle Plugin Portal later. |
 | Sidekick artifact | `io.github.beyondwin:fixthis-compose-sidekick` | Debug-only dependency for external apps. |
 | Core artifact | `io.github.beyondwin:fixthis-compose-core` | Publish only if needed by sidekick consumers or plugin internals. Keep independent. |
 | CLI distribution | no Maven requirement for first external Gradle release | Current local installDist path is enough until binary packaging is chosen. |

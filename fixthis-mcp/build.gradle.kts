@@ -9,7 +9,7 @@ kotlin {
 }
 
 application {
-    mainClass.set("io.beyondwin.fixthis.mcp.McpServerKt")
+    mainClass.set("io.github.beyondwin.fixthis.mcp.McpServerKt")
     applicationName = "fixthis-mcp"
 }
 
@@ -65,11 +65,12 @@ val generateBuildInfo by tasks.registering {
     inputs.property("gitSha", sha)
     inputs.property("buildEpoch", epoch)
     doLast {
-        val target = outputDir.get().file("io/beyondwin/fixthis/mcp/BuildInfo.kt").asFile
+        outputDir.get().asFile.deleteRecursively()
+        val target = outputDir.get().file("io/github/beyondwin/fixthis/mcp/BuildInfo.kt").asFile
         target.parentFile.mkdirs()
         target.writeText(
             """
-            package io.beyondwin.fixthis.mcp
+            package io.github.beyondwin.fixthis.mcp
             object BuildInfo {
                 const val BUILD_EPOCH_MS: Long = ${epoch}L
                 const val GIT_SHA: String = "$sha"

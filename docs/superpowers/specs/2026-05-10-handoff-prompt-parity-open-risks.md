@@ -51,9 +51,9 @@
 
 **검증 방법:**
 ```bash
-./scripts/bootstrap-mcp.sh --package io.beyondwin.fixthis.sample
+./scripts/bootstrap-mcp.sh --package io.github.beyondwin.fixthis.sample
 fixthis-cli/build/install/fixthis/bin/fixthis console \
-  --package io.beyondwin.fixthis.sample \
+  --package io.github.beyondwin.fixthis.sample \
   --console-assets-dir "$PWD/fixthis-mcp/src/main/resources/console"
 ```
 

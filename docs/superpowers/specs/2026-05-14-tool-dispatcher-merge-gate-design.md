@@ -39,7 +39,7 @@ All commits reach main via the same merge commit `a6abe8a`.
 ### Task 7 Step 1 — `McpToolRegistry`
 - **Status:** COMPLETE.
 - **Evidence:**
-  - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/McpToolRegistry.kt`
+  - `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/McpToolRegistry.kt`
     exists.
   - `FixThisTools.kt` is now 206 lines (down from the 869-line baseline)
     and references the registry for `listTools()` / `listResources()`.
@@ -213,10 +213,10 @@ Grep-able commands that must remain green for this slice not to regress structur
 
 ### Test gates
 
-- [x] `:fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.tools.*"`
+- [x] `:fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.tools.*"`
       passes.
 - [x] `:fixthis-mcp:test --tests
-      "io.beyondwin.fixthis.mcp.McpProtocolTest"` passes.
+      "io.github.beyondwin.fixthis.mcp.McpProtocolTest"` passes.
 - [ ] A `BridgeResultCacheEvictionTest` asserts that the LRU eviction
       pops the oldest non-default package once
       `maxRecentOverridePackages` is exceeded (R6).
@@ -243,9 +243,9 @@ Grep-able commands that must remain green for this slice not to regress structur
 ### Verification commands
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.tools.*"
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.architecture.*"
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.McpProtocolTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.tools.*"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.architecture.*"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.McpProtocolTest"
 ./gradlew detekt --no-daemon
 git diff --check
 ```
@@ -319,9 +319,9 @@ evicted. This is purely a regression net; no behaviour change.
 
 - Merged plan: [`2026-05-13-architecture-solid-remediation-implementation.md`](../plans/2026-05-13-architecture-solid-remediation-implementation.md), Task 7
 - Merged spec: [`2026-05-13-architecture-solid-remediation-detailed-spec.md`](2026-05-13-architecture-solid-remediation-detailed-spec.md), Finding F4
-- Current dispatcher: [`fixthis-mcp/.../tools/FixThisToolDispatcher.kt`](../../../fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisToolDispatcher.kt) (494 lines)
-- Current registry: [`fixthis-mcp/.../tools/McpToolRegistry.kt`](../../../fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/McpToolRegistry.kt)
-- Cache: [`fixthis-mcp/.../tools/BridgeResultCache.kt`](../../../fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/BridgeResultCache.kt)
-- Console manager: [`fixthis-mcp/.../tools/ConsoleServerManager.kt`](../../../fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/ConsoleServerManager.kt)
+- Current dispatcher: [`fixthis-mcp/.../tools/FixThisToolDispatcher.kt`](../../../fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisToolDispatcher.kt) (494 lines)
+- Current registry: [`fixthis-mcp/.../tools/McpToolRegistry.kt`](../../../fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/McpToolRegistry.kt)
+- Cache: [`fixthis-mcp/.../tools/BridgeResultCache.kt`](../../../fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/BridgeResultCache.kt)
+- Console manager: [`fixthis-mcp/.../tools/ConsoleServerManager.kt`](../../../fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/ConsoleServerManager.kt)
 - Companion merge gate: [`2026-05-14-feedback-session-store-merge-gate-design.md`](2026-05-14-feedback-session-store-merge-gate-design.md)
 - Merge commit: `a6abe8a Merge branch 'codex/architecture-solid-remediation'`

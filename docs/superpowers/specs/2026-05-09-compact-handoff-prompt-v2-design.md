@@ -70,7 +70,7 @@ Three signals visible in the data but absent from the prompt:
 
 Rule: source hints are candidates; verify screenshot, target, and code before editing.
 
-- Package: `io.beyondwin.fixthis.sample`
+- Package: `io.github.beyondwin.fixthis.sample`
 - Feedback Items: `3`
 
 Screen 4ce1eaa3-1e20-4da0-b3be-1a5c806fa934: MainActivity
@@ -166,7 +166,7 @@ caution_line  = "  note: " text                          ; emitted iff caution O
 
 Rule: source hints are candidates; verify screenshot, target, and code before editing.
 
-- Package: `io.beyondwin.fixthis.sample`
+- Package: `io.github.beyondwin.fixthis.sample`
 - Feedback Items: `4`
 
 Screen 4ce1eaa3: MainActivity

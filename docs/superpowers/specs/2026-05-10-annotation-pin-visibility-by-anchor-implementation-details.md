@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-10
 **Status:** Implementation reference (companion to `plans/2026-05-10-annotation-pin-visibility-by-anchor.md`)
-**Primary modules:** `fixthis-mcp/src/main/console/preview.js`, `fixthis-mcp/src/main/console/rendering.js`, `fixthis-mcp/src/main/resources/console/app.js`, `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+**Primary modules:** `fixthis-mcp/src/main/console/preview.js`, `fixthis-mcp/src/main/console/rendering.js`, `fixthis-mcp/src/main/resources/console/app.js`, `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 This document is the deep technical companion to the plan. It exists to answer "why each line changes and why nothing else needs to" and to give a future debugger the exact mental model. Read it before editing if you have not previously worked on the console JS bundle.
 
@@ -40,7 +40,7 @@ This document is the deep technical companion to the plan. It exists to answer "
 // <filename>\n<file content with trailing whitespace stripped>\n
 ```
 
-그리고 모듈들 사이를 단일 `\n` 로 join 한다. 결과적으로 두 모듈 사이에 빈 줄 한 줄이 들어가고, 각 모듈은 자신의 파일명 주석으로 시작한다. `FeedbackConsoleServerTest.generatedConsoleAppMatchesConsoleSourceModules` (`fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt:480-507`) 가 byte-equal 비교를 수행하므로:
+그리고 모듈들 사이를 단일 `\n` 로 join 한다. 결과적으로 두 모듈 사이에 빈 줄 한 줄이 들어가고, 각 모듈은 자신의 파일명 주석으로 시작한다. `FeedbackConsoleServerTest.generatedConsoleAppMatchesConsoleSourceModules` (`fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt:480-507`) 가 byte-equal 비교를 수행하므로:
 
 - 직접 `app.js` 를 손으로 편집하면 안 된다. 항상 `node scripts/build-console-assets.mjs` 결과를 그대로 커밋한다.
 - 모듈 마지막 줄에 trailing newline 이 있어도 `trimEnd()` 가 제거한 뒤 단일 `\n` 만 남는다. 즉 source 파일의 trailing whitespace 는 영향을 주지 않는다.
@@ -54,7 +54,7 @@ This document is the deep technical companion to the plan. It exists to answer "
 
 ## 2. 데이터 모델 — 어노테이션 target 의 두 형태
 
-서버 와이어 포맷은 `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt:103-112` 의 `AnnotationTargetDto` sealed interface 다:
+서버 와이어 포맷은 `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt:103-112` 의 `AnnotationTargetDto` sealed interface 다:
 
 ```kotlin
 @Serializable
@@ -85,7 +85,7 @@ if (target.type === 'visual_area' || target.boundsInWindow) { ... area case ... 
 
 ### nodeUid 의 형식과 안정성
 
-nodeUid 는 사이드킥의 `SemanticsNodeMapper.uidFor` (`fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/inspect/SemanticsNodeMapper.kt:47-48`) 가 발급한다:
+nodeUid 는 사이드킥의 `SemanticsNodeMapper.uidFor` (`fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/inspect/SemanticsNodeMapper.kt:47-48`) 가 발급한다:
 
 ```kotlin
 private fun uidFor(rootIndex: Int, treeKind: TreeKind, node: SemanticsNode): String =
@@ -114,7 +114,7 @@ data class SnapshotRootDto(
 )
 ```
 
-`FixThisNode.uid` (`fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt:67`) 가 위에서 본 nodeUid 와 동일 형식이다. 본 변경이 도입하는 헬퍼는 이 두 리스트(merged + unmerged) 를 모두 훑어 uid 를 모은다.
+`FixThisNode.uid` (`fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt:67`) 가 위에서 본 nodeUid 와 동일 형식이다. 본 변경이 도입하는 헬퍼는 이 두 리스트(merged + unmerged) 를 모두 훑어 uid 를 모은다.
 
 ---
 

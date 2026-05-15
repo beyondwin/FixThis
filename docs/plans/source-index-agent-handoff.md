@@ -20,26 +20,26 @@
 
 | Path | Change |
 |---|---|
-| `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/SourceIndexAssets.kt` | Add `STRING_RESOURCE_RESOLVED`, `LAMBDA_OWNER_FUNCTION` to `SourceSignalKindAsset`; bump `schemaVersion` to `"1.2"`. |
-| `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/XmlStringResourceScanner.kt` | Add `resolveDefaults(files: List<File>): Map<String, String>` returning resId → default-locale value. |
-| `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/SourceIndexGenerator.kt` | Build resolver from `xmlFiles`; pass into Kotlin scanner. |
-| `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt` | Accept `StringResourceResolver`; emit `STRING_RESOURCE_RESOLVED` signal + `text` enrichment in `collectStringResourceSignals`; track enclosing `@Composable fun` via brace-depth scope and emit `LAMBDA_OWNER_FUNCTION` on every entry inside it. |
-| `fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/source/KotlinSourceScannerTest.kt` (extend) and `XmlStringResourceScannerTest.kt` (extend) | New unit cases. |
-| `fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt` (extend) | Asset-shape golden: schemaVersion 1.2, new signals present. |
-| `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceIndex.kt` | Add the two new enum values to `SourceSignalKind`; bump `schemaVersion` default to `"1.2"`. |
-| `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatchReason.kt` | Add `SELECTED_RESOLVED_STRING_RESOURCE`. |
-| `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceScoringPolicy.kt` | Add `SELECTED_RESOLVED_STRING_RESOURCE -> 48.0` to `bucketScore`; extend `rankingTier` SELECTED_TEXT clause to include the new reason. |
-| `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt` | Match selected element text against `STRING_RESOURCE_RESOLVED` signal values; emit `SELECTED_RESOLVED_STRING_RESOURCE`; populate `ownerComposable` from `LAMBDA_OWNER_FUNCTION` while building `SourceCandidate`. |
-| `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/EvidenceProfile.kt` | Treat `SELECTED_RESOLVED_STRING_RESOURCE` as selected medium evidence. |
-| `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt` (extend) | Golden case: resolved-only call site matches over `strings.xml` line. |
-| `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt` | Add `ownerComposable: String? = null` to `SourceCandidate` (line ~103). |
-| `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/evidence/SourceHint.kt` | Add `ownerComposable` so persisted/domain session round-trips keep the field. |
-| `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/SourceCandidateMappers.kt` | Map `ownerComposable` in both `SourceCandidate` ↔ `SourceHint` directions. |
-| `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/DomainContractMappersTest.kt` (extend) | Owner survives source-candidate/domain-source-hint round-trip. |
-| `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FormatterExtensions.kt` | Add owner-aware source-location helper for Markdown renderers. |
-| `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt` | Inject `inside fun <owner>` segment in precise/full feedback Markdown source-candidate lines. |
-| `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt` | Include compact owner token (`owner=<name>`) for the top candidate when present. |
-| `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt` | Include `inside fun <owner>` in annotation Markdown source-candidate locations. |
+| `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/SourceIndexAssets.kt` | Add `STRING_RESOURCE_RESOLVED`, `LAMBDA_OWNER_FUNCTION` to `SourceSignalKindAsset`; bump `schemaVersion` to `"1.2"`. |
+| `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/XmlStringResourceScanner.kt` | Add `resolveDefaults(files: List<File>): Map<String, String>` returning resId → default-locale value. |
+| `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/SourceIndexGenerator.kt` | Build resolver from `xmlFiles`; pass into Kotlin scanner. |
+| `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt` | Accept `StringResourceResolver`; emit `STRING_RESOURCE_RESOLVED` signal + `text` enrichment in `collectStringResourceSignals`; track enclosing `@Composable fun` via brace-depth scope and emit `LAMBDA_OWNER_FUNCTION` on every entry inside it. |
+| `fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/source/KotlinSourceScannerTest.kt` (extend) and `XmlStringResourceScannerTest.kt` (extend) | New unit cases. |
+| `fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt` (extend) | Asset-shape golden: schemaVersion 1.2, new signals present. |
+| `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceIndex.kt` | Add the two new enum values to `SourceSignalKind`; bump `schemaVersion` default to `"1.2"`. |
+| `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatchReason.kt` | Add `SELECTED_RESOLVED_STRING_RESOURCE`. |
+| `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceScoringPolicy.kt` | Add `SELECTED_RESOLVED_STRING_RESOURCE -> 48.0` to `bucketScore`; extend `rankingTier` SELECTED_TEXT clause to include the new reason. |
+| `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt` | Match selected element text against `STRING_RESOURCE_RESOLVED` signal values; emit `SELECTED_RESOLVED_STRING_RESOURCE`; populate `ownerComposable` from `LAMBDA_OWNER_FUNCTION` while building `SourceCandidate`. |
+| `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/EvidenceProfile.kt` | Treat `SELECTED_RESOLVED_STRING_RESOURCE` as selected medium evidence. |
+| `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt` (extend) | Golden case: resolved-only call site matches over `strings.xml` line. |
+| `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt` | Add `ownerComposable: String? = null` to `SourceCandidate` (line ~103). |
+| `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/evidence/SourceHint.kt` | Add `ownerComposable` so persisted/domain session round-trips keep the field. |
+| `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/SourceCandidateMappers.kt` | Map `ownerComposable` in both `SourceCandidate` ↔ `SourceHint` directions. |
+| `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/model/DomainContractMappersTest.kt` (extend) | Owner survives source-candidate/domain-source-hint round-trip. |
+| `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FormatterExtensions.kt` | Add owner-aware source-location helper for Markdown renderers. |
+| `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt` | Inject `inside fun <owner>` segment in precise/full feedback Markdown source-candidate lines. |
+| `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt` | Include compact owner token (`owner=<name>`) for the top candidate when present. |
+| `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt` | Include `inside fun <owner>` in annotation Markdown source-candidate locations. |
 | Formatter tests under `fixthis-mcp/src/test/...` and `fixthis-compose-core/src/test/...` | Assert owner text is rendered in each handoff format. |
 | `docs/reference/source-matching.md` (create if absent, otherwise extend) | Document the two new signal kinds and the resolver behavior. |
 | `docs/reference/output-schema.md` and `docs/reference/feedback-console-contract.md` | Document `ownerComposable`, the compact owner token, and the new signal kinds. |
@@ -53,16 +53,16 @@
 The compose-core runtime deserializes the asset; `kotlinx.serialization` rejects unknown enum values by default. Add the enum values to both modules in the same commit so the writer and reader stay in sync at every checkpoint.
 
 **Files:**
-- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/SourceIndexAssets.kt:45-55`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceIndex.kt:46-56`
-- Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceIndexSerializationTest.kt` (create)
+- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/SourceIndexAssets.kt:45-55`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceIndex.kt:46-56`
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceIndexSerializationTest.kt` (create)
 
 - [ ] **Step 1: Write a failing serialization round-trip test**
 
-Create `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceIndexSerializationTest.kt`:
+Create `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceIndexSerializationTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.source
+package io.github.beyondwin.fixthis.compose.core.source
 
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
@@ -149,9 +149,9 @@ Expected: PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceIndex.kt \
-        fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceIndexSerializationTest.kt \
-        fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/SourceIndexAssets.kt
+git add fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceIndex.kt \
+        fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceIndexSerializationTest.kt \
+        fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/SourceIndexAssets.kt
 git commit -m "feat(source-index): add resolved-string and lambda-owner signal kinds (schema 1.2)"
 ```
 
@@ -162,8 +162,8 @@ git commit -m "feat(source-index): add resolved-string and lambda-owner signal k
 Add a method to `XmlStringResourceScanner` that, given the list of XML inputs the task already passes in, returns a `Map<String, String>` from resId to default-locale value. Only `**/values/strings.xml` (no qualifier suffix) contributes.
 
 **Files:**
-- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/XmlStringResourceScanner.kt`
-- Test: `fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/source/XmlStringResourceScannerTest.kt` (extend)
+- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/XmlStringResourceScanner.kt`
+- Test: `fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/source/XmlStringResourceScannerTest.kt` (extend)
 
 - [ ] **Step 1: Write the failing test**
 
@@ -243,8 +243,8 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/XmlStringResourceScanner.kt \
-        fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/source/XmlStringResourceScannerTest.kt
+git add fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/XmlStringResourceScanner.kt \
+        fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/source/XmlStringResourceScannerTest.kt
 git commit -m "feat(source-index): expose default-locale string resolver from XML scanner"
 ```
 
@@ -255,9 +255,9 @@ git commit -m "feat(source-index): expose default-locale string resolver from XM
 Thread the resolver into the Kotlin scanner; in `collectStringResourceSignals`, when a resId is in the resolver map, append the resolved value to the entry's `text` list and add a `STRING_RESOURCE_RESOLVED` signal.
 
 **Files:**
-- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt:148-172`
-- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/SourceIndexGenerator.kt`
-- Test: `fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/source/KotlinSourceScannerTest.kt` (extend)
+- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt:148-172`
+- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/SourceIndexGenerator.kt`
+- Test: `fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/source/KotlinSourceScannerTest.kt` (extend)
 
 - [ ] **Step 1: Write the failing test**
 
@@ -360,9 +360,9 @@ Expected: PASS, including the new case.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt \
-        fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/SourceIndexGenerator.kt \
-        fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/source/KotlinSourceScannerTest.kt
+git add fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt \
+        fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/SourceIndexGenerator.kt \
+        fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/source/KotlinSourceScannerTest.kt
 git commit -m "feat(source-index): cross-link Kotlin stringResource calls to resolved default text"
 ```
 
@@ -373,8 +373,8 @@ git commit -m "feat(source-index): cross-link Kotlin stringResource calls to res
 Track a stack of enclosing `@Composable fun` declarations by walking braces. The scanner already iterates `lines.forEachIndexed`; extend that pass to maintain `(name, openBraceDepth, closeAtDepth)` and tag every entry created on a line inside the active function.
 
 **Files:**
-- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt`
-- Test: `fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/source/KotlinSourceScannerTest.kt` (extend)
+- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt`
+- Test: `fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/source/KotlinSourceScannerTest.kt` (extend)
 
 - [ ] **Step 1: Write the failing test**
 
@@ -510,8 +510,8 @@ Run and confirm PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt \
-        fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/source/KotlinSourceScannerTest.kt
+git add fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt \
+        fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/source/KotlinSourceScannerTest.kt
 git commit -m "feat(source-index): record enclosing @Composable fun for indexed call sites"
 ```
 
@@ -522,11 +522,11 @@ git commit -m "feat(source-index): record enclosing @Composable fun for indexed 
 Add a new `SourceMatchReason`, score it, and have `SourceMatcher` emit it when the selected element's text matches a `STRING_RESOURCE_RESOLVED` signal on an entry.
 
 **Files:**
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatchReason.kt`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceScoringPolicy.kt`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/EvidenceProfile.kt`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
-- Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt` (extend)
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatchReason.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceScoringPolicy.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/EvidenceProfile.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt` (extend)
 
 - [ ] **Step 1: Write the failing matcher golden case**
 
@@ -624,7 +624,7 @@ bag so selected node text can match `STRING_RESOURCE_RESOLVED` signal values.
 Locate the existing block by:
 
 ```bash
-git grep -n "SELECTED_STRING_RESOURCE\|SELECTED_TEXT" fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt
+git grep -n "SELECTED_STRING_RESOURCE\|SELECTED_TEXT" fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt
 ```
 
 Add the new signal kind to the selected text-like evidence path:
@@ -720,11 +720,11 @@ Expected: PASS. Inspect any goldens that shifted; if one is unintended, file a f
 - [ ] **Step 7: Commit**
 
 ```bash
-git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatchReason.kt \
-        fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceScoringPolicy.kt \
-        fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/EvidenceProfile.kt \
-        fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt \
-        fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt
+git add fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatchReason.kt \
+        fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceScoringPolicy.kt \
+        fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/EvidenceProfile.kt \
+        fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt \
+        fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt
 git commit -m "feat(source-match): score resolved string-resource matches at 48"
 ```
 
@@ -737,12 +737,12 @@ git commit -m "feat(source-match): score resolved string-resource matches at 48"
 re-looking up entries later in MCP session code.
 
 **Files:**
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt:103-118`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/evidence/SourceHint.kt`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/SourceCandidateMappers.kt`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
-- Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt` (extend)
-- Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/DomainContractMappersTest.kt` (extend)
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt:103-118`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/evidence/SourceHint.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/SourceCandidateMappers.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt` (extend)
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/model/DomainContractMappersTest.kt` (extend)
 
 - [ ] **Step 1: Write the failing matcher owner test**
 
@@ -905,12 +905,12 @@ Expected: PASS.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt \
-        fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/evidence/SourceHint.kt \
-        fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/SourceCandidateMappers.kt \
-        fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt \
-        fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt \
-        fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/DomainContractMappersTest.kt
+git add fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt \
+        fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/evidence/SourceHint.kt \
+        fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/SourceCandidateMappers.kt \
+        fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt \
+        fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt \
+        fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/model/DomainContractMappersTest.kt
 git commit -m "feat(source-match): surface enclosing Composable on SourceCandidate"
 ```
 
@@ -923,12 +923,12 @@ source-candidate text is rendered by the feedback handoff formatters, so this
 task updates those renderers directly.
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt` (extend)
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` (extend)
-- Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt` (extend)
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt` (extend)
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` (extend)
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt` (extend)
 
 - [ ] **Step 1: Write failing formatter assertions**
 
@@ -957,7 +957,7 @@ Expected: FAIL — the owner is serialized in JSON but absent from Markdown.
 
 - [ ] **Step 3: Add source-location formatter helpers**
 
-In `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FormatterExtensions.kt`,
+In `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FormatterExtensions.kt`,
 add:
 
 ```kotlin
@@ -1024,13 +1024,13 @@ Expected: PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FormatterExtensions.kt \
-        fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt \
-        fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
-        fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt \
-        fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FormatterExtensions.kt \
+        fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt \
+        fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
+        fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt \
+        fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt
 git commit -m "feat(handoff): include enclosing Composable in source candidate text"
 ```
 

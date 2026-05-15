@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "applicationId": "io.beyondwin.fixthis.sample",
+  "applicationId": "io.github.beyondwin.fixthis.sample",
   "scenes": [
     {
       "name": "strict_comp_tags",

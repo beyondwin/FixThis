@@ -1,15 +1,15 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    id("io.beyondwin.fixthis.compose")
+    id("io.github.beyondwin.fixthis.compose")
 }
 
 android {
-    namespace = "io.beyondwin.fixthis.sample"
+    namespace = "io.github.beyondwin.fixthis.sample"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "io.beyondwin.fixthis.sample"
+        applicationId = "io.github.beyondwin.fixthis.sample"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

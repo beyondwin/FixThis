@@ -46,10 +46,10 @@ grep -oE '[a-zA-Z0-9_/.-]+\.(kt|kts|xml|md|js|toml)(:[0-9]+)?' docs/reference/th
 ### Task 1: SEC-2 — Path validation hardening
 
 **Files:**
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/PathSafety.kt` (new — extract `isUnder`)
-- `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/PathSafetyTest.kt` (new)
-- `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerScreenshotPathTest.kt` (new)
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/PathSafety.kt` (new — extract `isUnder`)
+- `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/PathSafetyTest.kt` (new)
+- `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerScreenshotPathTest.kt` (new)
 
 **Steps**
 1. Extract `isUnder` into `PathSafety.isUnder(child: File, parent: File): Boolean`
@@ -63,21 +63,21 @@ grep -oE '[a-zA-Z0-9_/.-]+\.(kt|kts|xml|md|js|toml)(:[0-9]+)?' docs/reference/th
 #### Acceptance Criteria
 ```bash
 ./gradlew :fixthis-compose-sidekick:testDebugUnitTest --no-daemon
-test -f fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/PathSafety.kt
-test -f fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/PathSafetyTest.kt
-test -f fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerScreenshotPathTest.kt
+test -f fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/PathSafety.kt
+test -f fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/PathSafetyTest.kt
+test -f fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerScreenshotPathTest.kt
 ```
 
 ### Task 2: SEC-3 — `LocalServerSocket` resilience
 
 **Files:**
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeSocketNameNegotiator.kt` (new)
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt` (bump VERSION; source of truth)
-- `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt` (accept negotiated suffix; mirror VERSION constant)
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt` (mirror VERSION constant)
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeSocketNameNegotiator.kt` (new)
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt` (bump VERSION; source of truth)
+- `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt` (accept negotiated suffix; mirror VERSION constant)
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt` (mirror VERSION constant)
 - `fixthis-mcp/src/main/console/staleness.js` (mirror VERSION constant — JS-side)
-- `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerStartupTest.kt` (new)
+- `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerStartupTest.kt` (new)
 
 Note: the protocol-version sync test (`fixthis-mcp/src/test/.../BridgeProtocolVersionSyncTest.kt`) enforces equality across all 4 mirror sites (BridgeProtocol.kt, BridgeClient.kt, ServerVersionRoutes.kt, staleness.js). All 4 must bump together. `BridgeClient.kt` lives under `:fixthis-cli`, not `:fixthis-mcp`.
 
@@ -96,8 +96,8 @@ Note: the protocol-version sync test (`fixthis-mcp/src/test/.../BridgeProtocolVe
 ```bash
 ./gradlew :fixthis-compose-sidekick:testDebugUnitTest --no-daemon
 ./gradlew :fixthis-mcp:test --tests '*BridgeProtocolVersionSync*' --no-daemon
-test -f fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeSocketNameNegotiator.kt
-test -f fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerStartupTest.kt
+test -f fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeSocketNameNegotiator.kt
+test -f fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerStartupTest.kt
 ```
 
 ## Rollout

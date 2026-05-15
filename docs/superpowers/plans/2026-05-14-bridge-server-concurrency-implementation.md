@@ -28,16 +28,16 @@
 
 Create:
 
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerState.kt`
-- `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerConcurrencyTest.kt`
-- `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerConcurrencyStressTest.kt`
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerState.kt`
+- `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerConcurrencyTest.kt`
+- `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerConcurrencyStressTest.kt`
 - `docs/architecture/adr/2026-05-14-bridge-server-concurrency.md`
 
 Modify:
 
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeRuntime.kt`
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt`
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeRuntime.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt`
 - `docs/architecture/overview.md`
 
 ## Task 1: Reproduce The Concurrency Races With Failing Tests
@@ -45,15 +45,15 @@ Modify:
 > **Phase A+B bundle.** This task and Task 2 land in the same commit (spec §4). The tests below reference `BridgeServerState` / `state.value`, which are introduced by Task 2; building Task 1 in isolation would fail to compile. Do **not** commit between Step 3 of Task 1 and Step 6 of Task 2 — defer the single bundle commit to the end of Task 2.
 
 **Files:**
-- Create: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerConcurrencyTest.kt`
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` (visibility only)
+- Create: `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerConcurrencyTest.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` (visibility only)
 
 - [ ] **Step 0: Audit and expand fixture visibility**
 
 Tests in this task (and T2 in particular) need to read `BridgeServer.session.token`. Run:
 
 ```bash
-grep -n "val session" fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt
+grep -n "val session" fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt
 ```
 
 If `session` is `private`, expose it as `@VisibleForTesting internal val session` (NOT public). Add an inline comment:
@@ -80,7 +80,7 @@ Output should be empty (besides unrelated `.session` substrings such as `session
 Create `BridgeServerConcurrencyTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.sidekick.bridge
+package io.github.beyondwin.fixthis.compose.sidekick.bridge
 
 import android.net.LocalServerSocket
 import kotlinx.coroutines.CompletableDeferred
@@ -195,7 +195,7 @@ class BridgeServerConcurrencyTest {
     // === fixtures ===
 
     private fun newServerWithCountingSocketFactory(counter: AtomicInteger): BridgeServer {
-        val session = TestSessions.fixed("io.beyondwin.fixthis.sample")
+        val session = TestSessions.fixed("io.github.beyondwin.fixthis.sample")
         val env = StubBridgeEnvironment()
         return BridgeServer(
             session = session,
@@ -212,7 +212,7 @@ class BridgeServerConcurrencyTest {
         gate: CompletableDeferred<Unit>,
         finished: CompletableDeferred<Unit>,
     ): BridgeServer {
-        val session = TestSessions.fixed("io.beyondwin.fixthis.sample")
+        val session = TestSessions.fixed("io.github.beyondwin.fixthis.sample")
         val env = object : BridgeEnvironment by StubBridgeEnvironment() {
             override suspend fun status(): BridgeStatus {
                 entered.complete(Unit)   // signal observation
@@ -242,7 +242,7 @@ The fixtures `TestSessions.fixed(...)` and `StubBridgeEnvironment` already exist
 
 ```bash
 ./gradlew :fixthis-compose-sidekick:testDebugUnitTest \
-  --tests "io.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerConcurrencyTest"
+  --tests "io.github.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerConcurrencyTest"
 ```
 
 Expected: at least one of the three tests FAILS or hangs (`withTimeout` catches the hang). The most reliable failure is `concurrentStartReturnsTrueOnceAndBindsOnlyOnce` reporting `bindCount` > 1 or `results.count { it }` > 1. Capture the failure output for the eventual Phase A+B commit message.
@@ -256,8 +256,8 @@ Add `@Ignore("Reproduces concurrency hazards; un-ignored in Task 4 (Phase D)")` 
 ## Task 2: Introduce BridgeServerState And StateFlow Surface
 
 **Files:**
-- Create: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerState.kt`
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerState.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
 
 - [ ] **Step 1: Write a failing test for the state flow surface**
 
@@ -284,7 +284,7 @@ fun stateTransitionsThroughIdleStartingRunningStoppingIdle() = runBlocking {
 
 ```bash
 ./gradlew :fixthis-compose-sidekick:testDebugUnitTest \
-  --tests "io.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerTest.stateTransitionsThroughIdleStartingRunningStoppingIdle"
+  --tests "io.github.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerTest.stateTransitionsThroughIdleStartingRunningStoppingIdle"
 ```
 
 Expected: FAIL with `unresolved reference: state` (the property doesn't exist yet).
@@ -294,7 +294,7 @@ Expected: FAIL with `unresolved reference: state` (the property doesn't exist ye
 Create `BridgeServerState.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.sidekick.bridge
+package io.github.beyondwin.fixthis.compose.sidekick.bridge
 
 /**
  * Observable lifecycle of [BridgeServer]. Exposed via [BridgeServer.state] so
@@ -392,7 +392,7 @@ _state.value = BridgeServerState.Idle
 
 ```bash
 ./gradlew :fixthis-compose-sidekick:testDebugUnitTest \
-  --tests "io.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerTest"
+  --tests "io.github.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerTest"
 ```
 
 Expected: PASS, including the new state-transition test. `BridgeServerStartupTest` and `BridgeServerScreenshotPathTest` must also still pass.
@@ -401,12 +401,12 @@ Expected: PASS, including the new state-transition test. `BridgeServerStartupTes
 
 ```bash
 git add \
-  fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerState.kt \
-  fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt \
-  fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt \
-  fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerConcurrencyTest.kt
+  fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerState.kt \
+  fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt \
+  fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt \
+  fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerConcurrencyTest.kt
 
-./gradlew :fixthis-compose-sidekick:testDebugUnitTest --tests "io.beyondwin.fixthis.compose.sidekick.bridge.*"
+./gradlew :fixthis-compose-sidekick:testDebugUnitTest --tests "io.github.beyondwin.fixthis.compose.sidekick.bridge.*"
 ./gradlew :fixthis-mcp:test --tests "*BridgeProtocolVersionSyncTest"
 
 git commit -m "feat(sidekick): expose bridge server state as flow and document concurrency races"
@@ -417,7 +417,7 @@ This is the single commit for Phase A+B. The three concurrency tests are present
 ## Task 3: Convert start() And stop() To Suspending With Mutex
 
 **Files:**
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
 
 - [ ] **Step 1: Write a failing idempotency assertion**
 
@@ -642,7 +642,7 @@ If the artifact is missing, add an explicit `implementation` entry to
 
 ```bash
 ./gradlew :fixthis-compose-sidekick:testDebugUnitTest \
-  --tests "io.beyondwin.fixthis.compose.sidekick.bridge.*"
+  --tests "io.github.beyondwin.fixthis.compose.sidekick.bridge.*"
 ./gradlew :fixthis-mcp:test --tests "*BridgeProtocolVersionSyncTest"
 grep -rn "runBlocking" fixthis-compose-sidekick/src/main/ | grep -v stopForTest
 # expected: empty (runBlocking only in stopForTest or in test sources)
@@ -654,17 +654,17 @@ Expected: gradle tests PASS, `grep` returns empty. The previously `@Ignore`d con
 
 ```bash
 git add \
-  fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt \
-  fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeRuntime.kt \
-  fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt
+  fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt \
+  fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeRuntime.kt \
+  fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt
 git commit -m "refactor(sidekick): serialize bridge lifecycle with coroutine mutex"
 ```
 
 ## Task 4: Un-Ignore Concurrency Tests, Tighten Budget, And Confirm Green (Phase D)
 
 **Files:**
-- Modify: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerConcurrencyTest.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt`
+- Modify: `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerConcurrencyTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt`
 
 > **Phase D — merged commit.** Spec §4 requires that the un-ignore and the hotspot budget tightening land in **one commit** so no intermediate `main` state exists where the file has been refactored but the budget is stale (which would break `git bisect` across the budget step). Former Task 7 is folded in here.
 
@@ -685,13 +685,13 @@ No additional rewrites are required.
 In `ArchitectureHotspotBudgetTest.kt`, change:
 
 ```kotlin
-"fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt" to 740,
+"fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt" to 740,
 ```
 
 to:
 
 ```kotlin
-"fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt" to 260,
+"fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt" to 260,
 ```
 
 The post-concurrency file is ~210 lines; 260 gives a small headroom for future doc comments.
@@ -700,8 +700,8 @@ The post-concurrency file is ~210 lines; 260 gives a small headroom for future d
 
 ```bash
 ./gradlew :fixthis-compose-sidekick:testDebugUnitTest \
-  --tests "io.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerConcurrencyTest"
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.architecture.ArchitectureHotspotBudgetTest"
+  --tests "io.github.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerConcurrencyTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.architecture.ArchitectureHotspotBudgetTest"
 ./gradlew :fixthis-mcp:test --tests "*BridgeProtocolVersionSyncTest"
 ```
 
@@ -711,16 +711,16 @@ Expected: all PASS. Each concurrency test completes in well under 5 seconds. `Br
 
 ```bash
 git add \
-  fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerConcurrencyTest.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt
+  fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerConcurrencyTest.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt
 git commit -m "test(sidekick): confirm bridge server is race-free and tighten hotspot budget"
 ```
 
 ## Task 5: BridgeRuntime currentActivity As StateFlow
 
 **Files:**
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeRuntime.kt`
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/AndroidBridgeEnvironment.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeRuntime.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/AndroidBridgeEnvironment.kt`
 
 - [ ] **Step 1: Write a failing test for ordered activity updates**
 
@@ -766,9 +766,9 @@ fun onActivityDestroyed(activity: Activity) {
 
 ```bash
 ./gradlew :fixthis-compose-sidekick:testDebugUnitTest \
-  --tests "io.beyondwin.fixthis.compose.sidekick.bridge.FixThisBridgeRuntimeTest"
+  --tests "io.github.beyondwin.fixthis.compose.sidekick.bridge.FixThisBridgeRuntimeTest"
 ./gradlew :fixthis-compose-sidekick:testDebugUnitTest \
-  --tests "io.beyondwin.fixthis.compose.sidekick.bridge.BridgeStatusAvailabilityTest"
+  --tests "io.github.beyondwin.fixthis.compose.sidekick.bridge.BridgeStatusAvailabilityTest"
 ```
 
 Expected: PASS for both.
@@ -777,16 +777,16 @@ Expected: PASS for both.
 
 ```bash
 git add \
-  fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeRuntime.kt \
-  fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/AndroidBridgeEnvironment.kt \
-  fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/FixThisBridgeRuntimeTest.kt
+  fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeRuntime.kt \
+  fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/AndroidBridgeEnvironment.kt \
+  fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/FixThisBridgeRuntimeTest.kt
 git commit -m "refactor(sidekick): atomicize current activity reference"
 ```
 
 ## Task 6: Concurrency Stress Test (Optional Gating)
 
 **Files:**
-- Create: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerConcurrencyStressTest.kt`
+- Create: `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerConcurrencyStressTest.kt`
 
 - [ ] **Step 1: Write the stress test**
 
@@ -829,7 +829,7 @@ class BridgeServerConcurrencyStressTest {
 
 ```bash
 ./gradlew :fixthis-compose-sidekick:testDebugUnitTest \
-  --tests "io.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerConcurrencyStressTest"
+  --tests "io.github.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerConcurrencyStressTest"
 ```
 
 Expected: PASS within ~3 seconds wall clock.
@@ -837,7 +837,7 @@ Expected: PASS within ~3 seconds wall clock.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerConcurrencyStressTest.kt
+git add fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerConcurrencyStressTest.kt
 git commit -m "test(sidekick): stress bridge lifecycle under concurrent load"
 ```
 
@@ -919,8 +919,8 @@ section and add:
 
 ```bash
 git diff --check
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.architecture.*"
-./gradlew :fixthis-compose-sidekick:testDebugUnitTest --tests "io.beyondwin.fixthis.compose.sidekick.bridge.*"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.architecture.*"
+./gradlew :fixthis-compose-sidekick:testDebugUnitTest --tests "io.github.beyondwin.fixthis.compose.sidekick.bridge.*"
 node scripts/build-console-assets.mjs --check
 ```
 

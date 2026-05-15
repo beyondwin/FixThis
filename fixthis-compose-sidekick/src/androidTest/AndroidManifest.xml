@@ -7,7 +7,7 @@
             android:authorities="${applicationId}.androidx-startup"
             tools:node="merge">
             <meta-data
-                android:name="io.beyondwin.fixthis.compose.sidekick.init.FixThisInitializer"
+                android:name="io.github.beyondwin.fixthis.compose.sidekick.init.FixThisInitializer"
                 tools:node="remove" />
         </provider>
     </application>

@@ -27,37 +27,37 @@ Spec: [`../specs/clean-architecture-solid-remediation.md`](../specs/clean-archit
 ### `:fixthis-compose-core`
 
 - Create:
-  - `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/ui/DomainRect.kt`
-  - `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/ui/SemanticsNodeSnapshot.kt`
-  - `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/evidence/AnnotationEvidence.kt`
-  - `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/evidence/SourceHint.kt`
-  - `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/evidence/TargetReliabilityAssessment.kt`
-  - `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/DomainContractMappers.kt`
-  - `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/usecase/feedback/*.kt`
+  - `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/ui/DomainRect.kt`
+  - `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/ui/SemanticsNodeSnapshot.kt`
+  - `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/evidence/AnnotationEvidence.kt`
+  - `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/evidence/SourceHint.kt`
+  - `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/evidence/TargetReliabilityAssessment.kt`
+  - `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/DomainContractMappers.kt`
+  - `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/usecase/feedback/*.kt`
 - Modify:
-  - `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt`
-  - `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/snapshot/Snapshot.kt`
+  - `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt`
+  - `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/snapshot/Snapshot.kt`
   - existing selection/source/target callers only where they cross the new
     mapper boundary.
 - Test:
-  - `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/DomainContractMappersTest.kt`
-  - `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/usecase/feedback/*Test.kt`
+  - `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/model/DomainContractMappersTest.kt`
+  - `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/usecase/feedback/*Test.kt`
 
 ### `:fixthis-mcp`
 
 - Create:
-  - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionStateCache.kt`
-  - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionMutationService.kt`
-  - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionWriteAheadLog.kt`
-  - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionRecoveryService.kt`
-  - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionArtifactJanitor.kt`
-  - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/handlers/*.kt`
+  - `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionStateCache.kt`
+  - `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionMutationService.kt`
+  - `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionWriteAheadLog.kt`
+  - `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionRecoveryService.kt`
+  - `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionArtifactJanitor.kt`
+  - `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/handlers/*.kt`
 - Modify:
-  - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
-  - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDomainMappers.kt`
-  - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisToolDispatcher.kt`
-  - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
-  - architecture tests under `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/architecture/`
+  - `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
+  - `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDomainMappers.kt`
+  - `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisToolDispatcher.kt`
+  - `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
+  - architecture tests under `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/`
 - Test:
   - focused tests for new session collaborators
   - handler tests for representative MCP tools
@@ -65,25 +65,25 @@ Spec: [`../specs/clean-architecture-solid-remediation.md`](../specs/clean-archit
 ### `:fixthis-compose-sidekick`
 
 - Create:
-  - `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeRequestRouter.kt`
-  - `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeMethodHandler.kt`
-  - `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/handlers/*.kt`
+  - `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeRequestRouter.kt`
+  - `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeMethodHandler.kt`
+  - `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/handlers/*.kt`
 - Modify:
-  - `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
+  - `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
 - Test:
   - existing bridge tests plus router tests for unknown method and token flow.
 
 ### `:fixthis-cli`
 
 - Create:
-  - `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/bridge/BridgeSessionReader.kt`
-  - `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/bridge/BridgeProtocolClient.kt`
-  - `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/bridge/BridgeTransport.kt`
-  - `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/bridge/AdbForwardingBridgeTransport.kt`
-  - `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/bridge/ScreenshotArtifactDownloader.kt`
-  - `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/bridge/DeviceSelectionState.kt`
+  - `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/bridge/BridgeSessionReader.kt`
+  - `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/bridge/BridgeProtocolClient.kt`
+  - `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/bridge/BridgeTransport.kt`
+  - `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/bridge/AdbForwardingBridgeTransport.kt`
+  - `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/bridge/ScreenshotArtifactDownloader.kt`
+  - `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/bridge/DeviceSelectionState.kt`
 - Modify:
-  - `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt`
+  - `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt`
 - Test:
   - split existing `BridgeClientTest` scenarios into collaborator tests.
 
@@ -108,9 +108,9 @@ Spec: [`../specs/clean-architecture-solid-remediation.md`](../specs/clean-archit
 ### Task 0: Characterization and Architecture Guardrails
 
 **Files:**
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/architecture/ModuleBoundaryTest.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt`
-- Create: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/architecture/DispatchArchitectureTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ModuleBoundaryTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/DispatchArchitectureTest.kt`
 
 - [ ] **Step 1: Add failing domain/contract boundary test**
 
@@ -119,8 +119,8 @@ Add this test to `ModuleBoundaryTest`:
 ```kotlin
 @Test
 fun composeCoreDomainDoesNotImportContractModels() {
-    val forbidden = Regex("""^import io\.beyondwin\.fixthis\.compose\.core\.model\.""")
-    val offenders = kotlinFiles("fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain")
+    val forbidden = Regex("""^import io\.github\.beyondwin\.fixthis\.compose\.core\.model\.""")
+    val offenders = kotlinFiles("fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain")
         .flatMap { file ->
             file.readLines().mapIndexedNotNull { index, line ->
                 if (forbidden.containsMatchIn(line)) "${file.relativeTo(root)}:${index + 1}: $line" else null
@@ -146,9 +146,9 @@ Expected: FAIL with imports from `Annotation.kt` and `Snapshot.kt`.
 In `ArchitectureHotspotBudgetTest`, add or update the target budgets:
 
 ```kotlin
-"fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt" to 250,
-"fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt" to 180,
-"fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt" to 260,
+"fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt" to 250,
+"fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt" to 180,
+"fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt" to 260,
 "fixthis-mcp/src/main/console/rendering.js" to 200,
 ```
 
@@ -166,7 +166,7 @@ Use strict budgets in CI only after the matching task lands.
 Create `DispatchArchitectureTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.architecture
+package io.github.beyondwin.fixthis.mcp.architecture
 
 import java.io.File
 import kotlin.test.Test
@@ -178,7 +178,7 @@ class DispatchArchitectureTest {
 
     @Test
     fun mcpToolHandlersDoNotUseCentralToolSwitches() {
-        val offenders = kotlinFiles("fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/handlers")
+        val offenders = kotlinFiles("fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/handlers")
             .flatMap { file ->
                 file.readLines().mapIndexedNotNull { index, line ->
                     if (Regex("""when\s*\(\s*name\s*\)|"fixthis_[a-z_]+\"\s*->""").containsMatchIn(line)) {
@@ -194,7 +194,7 @@ class DispatchArchitectureTest {
     @Test
     fun sidekickBridgeHandlersDoNotUseCentralMethodSwitches() {
         val offenders = kotlinFiles(
-            "fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/handlers",
+            "fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/handlers",
         ).flatMap { file ->
             file.readLines().mapIndexedNotNull { index, line ->
                 if (Regex("""when\s*\(\s*method\s*\)|"(heartbeat|status|inspectCurrentScreen)"\s*->""").containsMatchIn(line)) {
@@ -229,7 +229,7 @@ Expected: all existing tests pass except the intentionally failing
 - [ ] **Step 6: Commit guardrails**
 
 ```bash
-git add fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/architecture
+git add fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture
 git commit -m "test: add architecture guardrails for clean layering"
 ```
 
@@ -237,7 +237,7 @@ git commit -m "test: add architecture guardrails for clean layering"
 
 **Files:**
 - Create: core domain UI/evidence files listed in File Map
-- Create: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/DomainContractMappers.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/DomainContractMappers.kt`
 - Modify: `Annotation.kt`, `Snapshot.kt`, `SessionDomainMappers.kt`
 - Test: `DomainContractMappersTest.kt`, existing formatter and mapper tests
 
@@ -246,7 +246,7 @@ git commit -m "test: add architecture guardrails for clean layering"
 Create `DomainRect.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.domain.ui
+package io.github.beyondwin.fixthis.compose.core.domain.ui
 
 data class DomainRect(
     val left: Float,
@@ -264,7 +264,7 @@ data class DomainRect(
 Create `SemanticsNodeSnapshot.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.domain.ui
+package io.github.beyondwin.fixthis.compose.core.domain.ui
 
 enum class SemanticsTreeKind {
     MERGED,
@@ -306,7 +306,7 @@ data class SemanticsNodeSnapshot(
 Create `SourceHint.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.domain.evidence
+package io.github.beyondwin.fixthis.compose.core.domain.evidence
 
 enum class SourceHintConfidence {
     HIGH,
@@ -334,7 +334,7 @@ Create `AnnotationEvidence.kt` and
 contract values:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.domain.evidence
+package io.github.beyondwin.fixthis.compose.core.domain.evidence
 
 data class AnnotationEvidence(
     val identity: IdentityEvidence? = null,
@@ -386,7 +386,7 @@ data class SourceHintSummary(
 ```
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.domain.evidence
+package io.github.beyondwin.fixthis.compose.core.domain.evidence
 
 data class TargetReliabilityAssessment(
     val confidence: TargetConfidence = TargetConfidence.UNKNOWN,
@@ -423,11 +423,11 @@ enum class TargetReliabilityWarning {
 In `Annotation.kt`, replace contract imports with domain imports:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.core.domain.evidence.AnnotationEvidence
-import io.beyondwin.fixthis.compose.core.domain.evidence.SourceHint
-import io.beyondwin.fixthis.compose.core.domain.evidence.TargetReliabilityAssessment
-import io.beyondwin.fixthis.compose.core.domain.ui.DomainRect
-import io.beyondwin.fixthis.compose.core.domain.ui.SemanticsNodeSnapshot
+import io.github.beyondwin.fixthis.compose.core.domain.evidence.AnnotationEvidence
+import io.github.beyondwin.fixthis.compose.core.domain.evidence.SourceHint
+import io.github.beyondwin.fixthis.compose.core.domain.evidence.TargetReliabilityAssessment
+import io.github.beyondwin.fixthis.compose.core.domain.ui.DomainRect
+import io.github.beyondwin.fixthis.compose.core.domain.ui.SemanticsNodeSnapshot
 ```
 
 Change the relevant properties:
@@ -451,13 +451,13 @@ with `SemanticsNodeSnapshot`, `DomainRect`, and a new `DomainError`.
 Create `DomainContractMappers.kt` with total, explicit enum mapping. Example:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.model
+package io.github.beyondwin.fixthis.compose.core.model
 
-import io.beyondwin.fixthis.compose.core.domain.evidence.SourceHint
-import io.beyondwin.fixthis.compose.core.domain.evidence.SourceHintConfidence
-import io.beyondwin.fixthis.compose.core.domain.ui.DomainRect
-import io.beyondwin.fixthis.compose.core.domain.ui.SemanticsNodeSnapshot
-import io.beyondwin.fixthis.compose.core.domain.ui.SemanticsTreeKind
+import io.github.beyondwin.fixthis.compose.core.domain.evidence.SourceHint
+import io.github.beyondwin.fixthis.compose.core.domain.evidence.SourceHintConfidence
+import io.github.beyondwin.fixthis.compose.core.domain.ui.DomainRect
+import io.github.beyondwin.fixthis.compose.core.domain.ui.SemanticsNodeSnapshot
+import io.github.beyondwin.fixthis.compose.core.domain.ui.SemanticsTreeKind
 
 fun DomainRect.toFixThisRect(): FixThisRect = FixThisRect(left, top, right, bottom)
 
@@ -568,9 +568,9 @@ git commit -m "refactor: separate domain models from contract models"
 ### Task 2: Promote Session and Annotation Policies into Core Use Cases
 
 **Files:**
-- Create: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/usecase/feedback/*.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationWorkflow.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/usecase/feedback/*.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/AnnotationWorkflow.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt`
 - Test: core use-case tests plus existing MCP workflow tests
 
 - [ ] **Step 1: Add use-case input/result models**
@@ -578,14 +578,14 @@ git commit -m "refactor: separate domain models from contract models"
 Create `FeedbackUseCaseModels.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.usecase.feedback
+package io.github.beyondwin.fixthis.compose.core.usecase.feedback
 
-import io.beyondwin.fixthis.compose.core.domain.annotation.Annotation
-import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationStatus
-import io.beyondwin.fixthis.compose.core.domain.common.AnnotationId
-import io.beyondwin.fixthis.compose.core.domain.common.SessionId
-import io.beyondwin.fixthis.compose.core.domain.common.SnapshotId
-import io.beyondwin.fixthis.compose.core.domain.snapshot.Snapshot
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.Annotation
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.AnnotationStatus
+import io.github.beyondwin.fixthis.compose.core.domain.common.AnnotationId
+import io.github.beyondwin.fixthis.compose.core.domain.common.SessionId
+import io.github.beyondwin.fixthis.compose.core.domain.common.SnapshotId
+import io.github.beyondwin.fixthis.compose.core.domain.snapshot.Snapshot
 
 data class SaveCapturedSnapshotCommand(
     val sessionId: SessionId,
@@ -745,7 +745,7 @@ git commit -m "refactor: move feedback policies into core use cases"
 Create:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
 internal class SessionStateCache {
     private val sessions = linkedMapOf<String, SessionDto>()
@@ -884,14 +884,14 @@ guard once the file is below target.
 - [ ] **Step 9: Commit store split**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/architecture
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture
 git commit -m "refactor: split feedback session store responsibilities"
 ```
 
 ### Task 4: Replace MCP Tool Dispatcher with Handlers
 
 **Files:**
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/handlers/McpToolHandler.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/handlers/McpToolHandler.kt`
 - Create: one handler file per MCP tool
 - Modify: `FixThisToolDispatcher.kt`, `FixThisTools.kt`, `McpToolRegistry.kt` if metadata wiring needs handler names
 - Test: MCP tool tests and new handler tests
@@ -899,7 +899,7 @@ git commit -m "refactor: split feedback session store responsibilities"
 - [ ] **Step 1: Add handler interface and context**
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.tools.handlers
+package io.github.beyondwin.fixthis.mcp.tools.handlers
 
 import kotlinx.serialization.json.JsonObject
 
@@ -1001,7 +1001,7 @@ Expected: PASS.
 - [ ] **Step 6: Commit MCP handlers**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp
 git commit -m "refactor: route MCP tools through handlers"
 ```
 
@@ -1016,7 +1016,7 @@ git commit -m "refactor: route MCP tools through handlers"
 - [ ] **Step 1: Add method handler interface**
 
 ```kotlin
-package io.beyondwin.fixthis.compose.sidekick.bridge
+package io.github.beyondwin.fixthis.compose.sidekick.bridge
 
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -1114,7 +1114,7 @@ Set strict budget to 180 lines once the switch is removed.
 - [ ] **Step 7: Commit bridge handlers**
 
 ```bash
-git add fixthis-compose-sidekick/src/main/kotlin fixthis-compose-sidekick/src/test/kotlin fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/architecture
+git add fixthis-compose-sidekick/src/main/kotlin fixthis-compose-sidekick/src/test/kotlin fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture
 git commit -m "refactor: route sidekick bridge methods through handlers"
 ```
 
@@ -1122,7 +1122,7 @@ git commit -m "refactor: route sidekick bridge methods through handlers"
 
 **Files:**
 - Create: bridge collaborator files listed in File Map
-- Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt`
 - Test: split bridge client tests
 
 - [ ] **Step 1: Extract device selection**
@@ -1130,7 +1130,7 @@ git commit -m "refactor: route sidekick bridge methods through handlers"
 Create:
 
 ```kotlin
-package io.beyondwin.fixthis.cli.bridge
+package io.github.beyondwin.fixthis.cli.bridge
 
 class DeviceSelectionState {
     @Volatile
@@ -1236,7 +1236,7 @@ Set strict budget to 260 lines once the facade is below target.
 - [ ] **Step 9: Commit CLI split**
 
 ```bash
-git add fixthis-cli/src/main/kotlin fixthis-cli/src/test/kotlin fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/architecture
+git add fixthis-cli/src/main/kotlin fixthis-cli/src/test/kotlin fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture
 git commit -m "refactor: split CLI bridge transport responsibilities"
 ```
 

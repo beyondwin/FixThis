@@ -19,7 +19,7 @@
 ## Conventions
 
 - **테스트 러너:**
-  - 콘솔 자산 동등성 + 라우팅: `./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest"`
+  - 콘솔 자산 동등성 + 라우팅: `./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest"`
   - 회귀 한 줄 (이 변경에는 충분):
     ```bash
     ./gradlew :fixthis-mcp:test
@@ -45,7 +45,7 @@
 
 **Touched but not edited (참고용 기준):**
 
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` — `generatedConsoleAppMatchesConsoleSourceModules` 가 자동으로 변경된 번들을 검증한다. 새 테스트는 추가하지 않는다(JS 로직 단위 테스트 인프라 없음).
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` — `generatedConsoleAppMatchesConsoleSourceModules` 가 자동으로 변경된 번들을 검증한다. 새 테스트는 추가하지 않는다(JS 로직 단위 테스트 인프라 없음).
 - `fixthis-mcp/src/main/console/sessions-polling.js`, `annotations.js` — 이미 다른 이슈로 수정된 상태(코멘트 textarea 폴링 가드 등)에 의존하지만, 본 플랜에서 추가 수정은 하지 않는다.
 
 ---
@@ -92,7 +92,7 @@ function latestScreen() {
 - `Node(nodeUid: String, boundsInWindow)` — `target.type = "semantics_node"`, `target.nodeUid` 보유.
 - `Area(boundsInWindow)` — `target.type = "visual_area"`, anchor 없음.
 
-`nodeUid` 는 `compose:<rootIndex>:<treeKind>:<SemanticsNode.id>` 형식으로 사이드킥에서 발급한다(`fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/inspect/SemanticsNodeMapper.kt:47-48`). 같은 Compose 컴포지션이 살아있는 동안 SemanticsNode 의 id 는 안정적이므로, 같은 화면을 재캡처하면 uid 가 보존된다. 다른 화면으로 네비게이트하면 컴포지션이 갈리며 uid 도 달라진다. 즉 uid presence 자체가 "anchor 가 현재 캡처에 살아있는가" 를 직접 답한다.
+`nodeUid` 는 `compose:<rootIndex>:<treeKind>:<SemanticsNode.id>` 형식으로 사이드킥에서 발급한다(`fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/inspect/SemanticsNodeMapper.kt:47-48`). 같은 Compose 컴포지션이 살아있는 동안 SemanticsNode 의 id 는 안정적이므로, 같은 화면을 재캡처하면 uid 가 보존된다. 다른 화면으로 네비게이트하면 컴포지션이 갈리며 uid 도 달라진다. 즉 uid presence 자체가 "anchor 가 현재 캡처에 살아있는가" 를 직접 답한다.
 
 `Area` 는 anchor 가 없어 같은 판정이 불가능하다. 사용자 워크플로 상 area 는 컴포넌트가 잡히지 않을 때의 fallback 이므로, 보수적으로 "원본 캡처에서만 표시" 를 유지한다.
 
@@ -227,7 +227,7 @@ if (!addItemsFlow) {
 ```bash
 node scripts/build-console-assets.mjs
 node --check fixthis-mcp/src/main/resources/console/app.js
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.generatedConsoleAppMatchesConsoleSourceModules"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.generatedConsoleAppMatchesConsoleSourceModules"
 ```
 
 ### Validation
@@ -254,7 +254,7 @@ node --check fixthis-mcp/src/main/resources/console/app.js
 ```bash
 ./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
 fixthis-cli/build/install/fixthis/bin/fixthis console \
-  --package io.beyondwin.fixthis.sample \
+  --package io.github.beyondwin.fixthis.sample \
   --console-assets-dir "$PWD/fixthis-mcp/src/main/resources/console"
 ```
 

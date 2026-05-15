@@ -19,7 +19,7 @@
 
 | File | Change |
 |------|--------|
-| `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` | Update 3 assertions (lines ~1608, ~1611, ~1760) so they fail until the source/bundle changes land |
+| `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` | Update 3 assertions (lines ~1608, ~1611, ~1760) so they fail until the source/bundle changes land |
 | `fixthis-mcp/src/main/console/preview.js` | Rewrite `latestScreen()` body (lines 87–89) |
 | `fixthis-mcp/src/main/console/rendering.js` | Replace unconditional saved-overlay block (lines 73–76) with `focusedSavedItemId` + `screenId` filter |
 | `fixthis-mcp/src/main/resources/console/app.js` | Mirror both source changes verbatim |
@@ -31,7 +31,7 @@ No production Kotlin files change. No new state, no new endpoints, no server cha
 ## Task 1: Update Kotlin structural tests to reflect new behavior (TDD — failing first)
 
 **Files:**
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 The three existing assertions lock in the buggy behavior. Update them now so they describe the corrected contract. They will fail (and the bundle-equality test will pass) until Tasks 2–4 are complete.
 
@@ -101,9 +101,9 @@ Replace with:
 
 ```bash
 ./gradlew :fixthis-mcp:test \
-  --tests "io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlKeepsFrozenPreviewStableAndShowsPersistedScreenHistory" \
-  --tests "io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlKeepsSavedAnnotationPreviewsInCenterDeviceOnly" \
-  --tests "io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlResetsPreviewContextOnSessionOrDeviceChange" 2>&1 | tail -40
+  --tests "io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlKeepsFrozenPreviewStableAndShowsPersistedScreenHistory" \
+  --tests "io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlKeepsSavedAnnotationPreviewsInCenterDeviceOnly" \
+  --tests "io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlResetsPreviewContextOnSessionOrDeviceChange" 2>&1 | tail -40
 ```
 
 **Expected output (excerpt):**
@@ -269,7 +269,7 @@ Replace with:
 
 ```bash
 ./gradlew :fixthis-mcp:test \
-  --tests "io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.generatedConsoleAppMatchesConsoleSourceModules" 2>&1 | tail -20
+  --tests "io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.generatedConsoleAppMatchesConsoleSourceModules" 2>&1 | tail -20
 ```
 
 **Expected output:**
@@ -288,7 +288,7 @@ If this test FAILS, the assertion error prints the first differing line of the c
 ### Step 5.1: Run the focused console suite
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest" 2>&1 | tail -40
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest" 2>&1 | tail -40
 ```
 
 **Expected output:**
@@ -319,7 +319,7 @@ BUILD SUCCESSFUL in <n>s
 git add fixthis-mcp/src/main/console/preview.js \
         fixthis-mcp/src/main/console/rendering.js \
         fixthis-mcp/src/main/resources/console/app.js \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "fix(console): show live preview after screen change, only overlay focused annotation's screen"
 ```
 

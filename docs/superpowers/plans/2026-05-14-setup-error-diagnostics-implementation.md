@@ -14,15 +14,15 @@
 
 | Action | Path |
 |---|---|
-| Create | `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/DiagnosticContext.kt` |
-| Create | `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRedactor.kt` |
-| Create | `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRedactorTest.kt` |
-| Create | `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRendering.kt` |
-| Create | `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRenderingTest.kt` |
-| Create | `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/MainPrintTest.kt` |
-| Modify | `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt` |
-| Modify | `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/Main.kt` |
-| Modify | `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommandTest.kt` |
+| Create | `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/DiagnosticContext.kt` |
+| Create | `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupErrorRedactor.kt` |
+| Create | `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupErrorRedactorTest.kt` |
+| Create | `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupErrorRendering.kt` |
+| Create | `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupErrorRenderingTest.kt` |
+| Create | `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/MainPrintTest.kt` |
+| Modify | `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt` |
+| Modify | `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/Main.kt` |
+| Modify | `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommandTest.kt` |
 | Modify | `docs/reference/cli.md` |
 | Modify | `docs/guides/troubleshooting.md` |
 | Modify | `docs/superpowers/specs/2026-05-09-fixthis-setup-polish-spec.md` (one-line supersession note) |
@@ -34,15 +34,15 @@
 ### Task 1: Introduce DiagnosticContext + write the first failing renderer test
 
 **Files:**
-- Create: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/DiagnosticContext.kt`
-- Create: `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRenderingTest.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/DiagnosticContext.kt`
+- Create: `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupErrorRenderingTest.kt`
 
 - [ ] **Step 1: Create DiagnosticContext.kt**
 
 Write the file with exactly:
 
 ```kotlin
-package io.beyondwin.fixthis.cli
+package io.github.beyondwin.fixthis.cli
 
 /**
  * Per-thread diagnostic flag. Wraps a [ThreadLocal] so Gradle's parallel test
@@ -68,9 +68,9 @@ internal object DiagnosticContext {
 - [ ] **Step 2: Create SetupErrorRenderingTest.kt with the first failing test**
 
 ```kotlin
-package io.beyondwin.fixthis.cli.commands
+package io.github.beyondwin.fixthis.cli.commands
 
-import io.beyondwin.fixthis.cli.DiagnosticContext
+import io.github.beyondwin.fixthis.cli.DiagnosticContext
 import kotlinx.serialization.json.Json
 import org.junit.After
 import org.junit.Before
@@ -114,7 +114,7 @@ class SetupErrorRenderingTest {
 - [ ] **Step 3: Run the test and verify it fails to compile**
 
 ```bash
-./gradlew :fixthis-cli:test --tests "io.beyondwin.fixthis.cli.commands.SetupErrorRenderingTest.rendersMalformedJsonCategoryForJsonDecodingException" --no-daemon
+./gradlew :fixthis-cli:test --tests "io.github.beyondwin.fixthis.cli.commands.SetupErrorRenderingTest.rendersMalformedJsonCategoryForJsonDecodingException" --no-daemon
 ```
 
 Expected: BUILD FAILED with `Unresolved reference: renderMergeFailure`. This is the intended failing state.
@@ -122,8 +122,8 @@ Expected: BUILD FAILED with `Unresolved reference: renderMergeFailure`. This is 
 - [ ] **Step 4: Commit the failing test + DiagnosticContext**
 
 ```bash
-git add fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/DiagnosticContext.kt \
-        fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRenderingTest.kt
+git add fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/DiagnosticContext.kt \
+        fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupErrorRenderingTest.kt
 git commit -m "test(setup): failing test for renderMergeFailure + DiagnosticContext skeleton"
 ```
 
@@ -132,15 +132,15 @@ git commit -m "test(setup): failing test for renderMergeFailure + DiagnosticCont
 ### Task 1B: Introduce SetupErrorRedactor (secret-leakage mitigation, spec §6.3)
 
 **Files:**
-- Create: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRedactor.kt`
-- Create: `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRedactorTest.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupErrorRedactor.kt`
+- Create: `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupErrorRedactorTest.kt`
 
 - [ ] **Step 1: Write the redactor**
 
 Create `SetupErrorRedactor.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.cli.commands
+package io.github.beyondwin.fixthis.cli.commands
 
 /**
  * Best-effort scrubbing of secrets and home paths out of error messages and
@@ -180,7 +180,7 @@ internal object SetupErrorRedactor {
 Create `SetupErrorRedactorTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.cli.commands
+package io.github.beyondwin.fixthis.cli.commands
 
 import org.junit.Test
 import kotlin.test.assertFalse
@@ -244,7 +244,7 @@ class SetupErrorRedactorTest {
 - [ ] **Step 3: Run the redactor tests**
 
 ```bash
-./gradlew :fixthis-cli:test --tests "io.beyondwin.fixthis.cli.commands.SetupErrorRedactorTest" --no-daemon
+./gradlew :fixthis-cli:test --tests "io.github.beyondwin.fixthis.cli.commands.SetupErrorRedactorTest" --no-daemon
 ```
 
 Expected: BUILD SUCCESSFUL, 7 tests pass.
@@ -252,8 +252,8 @@ Expected: BUILD SUCCESSFUL, 7 tests pass.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRedactor.kt \
-        fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRedactorTest.kt
+git add fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupErrorRedactor.kt \
+        fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupErrorRedactorTest.kt
 git commit -m "feat(setup): SetupErrorRedactor masks secrets, tokens, and home paths"
 ```
 
@@ -267,14 +267,14 @@ steps below.
 ### Task 2: Implement renderMergeFailure to make Task 1's test pass
 
 **Files:**
-- Create: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRendering.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupErrorRendering.kt`
 
 - [ ] **Step 1: Create SetupErrorRendering.kt**
 
 ```kotlin
-package io.beyondwin.fixthis.cli.commands
+package io.github.beyondwin.fixthis.cli.commands
 
-import io.beyondwin.fixthis.cli.DiagnosticContext
+import io.github.beyondwin.fixthis.cli.DiagnosticContext
 import kotlinx.serialization.SerializationException
 import java.io.File
 import java.io.IOException
@@ -403,7 +403,7 @@ private fun causeChain(top: Throwable): Sequence<Throwable> {
 - [ ] **Step 2: Re-run the failing test to confirm it now passes**
 
 ```bash
-./gradlew :fixthis-cli:test --tests "io.beyondwin.fixthis.cli.commands.SetupErrorRenderingTest.rendersMalformedJsonCategoryForJsonDecodingException" --no-daemon
+./gradlew :fixthis-cli:test --tests "io.github.beyondwin.fixthis.cli.commands.SetupErrorRenderingTest.rendersMalformedJsonCategoryForJsonDecodingException" --no-daemon
 ```
 
 Expected: BUILD SUCCESSFUL. Exactly one test executed and passed.
@@ -411,7 +411,7 @@ Expected: BUILD SUCCESSFUL. Exactly one test executed and passed.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRendering.kt
+git add fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupErrorRendering.kt
 git commit -m "feat(setup): renderMergeFailure with category classification + cause chain"
 ```
 
@@ -420,7 +420,7 @@ git commit -m "feat(setup): renderMergeFailure with category classification + ca
 ### Task 3: Cover the remaining categories + cause-chain edge cases
 
 **Files:**
-- Modify: `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRenderingTest.kt`
+- Modify: `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupErrorRenderingTest.kt`
 
 - [ ] **Step 1: Append the remaining seven tests to SetupErrorRenderingTest**
 
@@ -530,7 +530,7 @@ import kotlin.test.assertEquals
 - [ ] **Step 2: Run all renderer tests**
 
 ```bash
-./gradlew :fixthis-cli:test --tests "io.beyondwin.fixthis.cli.commands.SetupErrorRenderingTest" --no-daemon
+./gradlew :fixthis-cli:test --tests "io.github.beyondwin.fixthis.cli.commands.SetupErrorRenderingTest" --no-daemon
 ```
 
 Expected: BUILD SUCCESSFUL, 8 tests run, 8 pass.
@@ -538,7 +538,7 @@ Expected: BUILD SUCCESSFUL, 8 tests run, 8 pass.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRenderingTest.kt
+git add fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupErrorRenderingTest.kt
 git commit -m "test(setup): cover all SetupFailureCategory branches + cause-chain edges"
 ```
 
@@ -547,8 +547,8 @@ git commit -m "test(setup): cover all SetupFailureCategory branches + cause-chai
 ### Task 4: Wire renderMergeFailure into SetupCommand and add --verbose flag
 
 **Files:**
-- Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt`
-- Modify: `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommandTest.kt`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt`
+- Modify: `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommandTest.kt`
 
 - [ ] **Step 1: Write failing test in SetupCommandTest**
 
@@ -567,7 +567,7 @@ fun mergeErrorIncludesCategoryAndFixForMalformedJson() {
         assertThrows(CliktError::class.java) {
             SetupCommand().parse(
                 listOf(
-                    "--package", "io.beyondwin.fixthis.sample",
+                    "--package", "io.github.beyondwin.fixthis.sample",
                     "--project-dir", projectRoot.absolutePath,
                     "--write",
                     "--target", "claude",
@@ -598,7 +598,7 @@ fun verboseFlagSetsDiagnosticContext() {
         runCatching {
             SetupCommand().parse(
                 listOf(
-                    "--package", "io.beyondwin.fixthis.sample",
+                    "--package", "io.github.beyondwin.fixthis.sample",
                     "--project-dir", projectRoot.absolutePath,
                     "--write",
                     "--target", "claude",
@@ -615,7 +615,7 @@ fun verboseFlagSetsDiagnosticContext() {
 Add the import at the top of the file (or confirm it is present):
 
 ```kotlin
-import io.beyondwin.fixthis.cli.DiagnosticContext
+import io.github.beyondwin.fixthis.cli.DiagnosticContext
 ```
 
 - [ ] **Step 2: Update the existing assertion that pins the old colon-style suffix**
@@ -641,8 +641,8 @@ assertTrue(
 - [ ] **Step 3: Run the two new tests — they should fail**
 
 ```bash
-./gradlew :fixthis-cli:test --tests "io.beyondwin.fixthis.cli.commands.SetupCommandTest.mergeErrorIncludesCategoryAndFixForMalformedJson" \
-  --tests "io.beyondwin.fixthis.cli.commands.SetupCommandTest.verboseFlagSetsDiagnosticContext" --no-daemon
+./gradlew :fixthis-cli:test --tests "io.github.beyondwin.fixthis.cli.commands.SetupCommandTest.mergeErrorIncludesCategoryAndFixForMalformedJson" \
+  --tests "io.github.beyondwin.fixthis.cli.commands.SetupCommandTest.verboseFlagSetsDiagnosticContext" --no-daemon
 ```
 
 Expected: both FAIL. First fails because the message lacks `Category:` (still uses Polish-era format). Second fails because `--verbose` is not a recognized option yet (Clikt parser will throw `NoSuchOption`).
@@ -658,7 +658,7 @@ private val verbose by option("--verbose", "-v", help = "Print full stack trace 
 Add a `DiagnosticContext` import at the top of the file:
 
 ```kotlin
-import io.beyondwin.fixthis.cli.DiagnosticContext
+import io.github.beyondwin.fixthis.cli.DiagnosticContext
 ```
 
 At the top of `override fun run()`, before the existing first statement (`val root = File(projectDir).canonicalFile`), insert:
@@ -694,7 +694,7 @@ with:
 - [ ] **Step 5: Run all SetupCommandTest tests**
 
 ```bash
-./gradlew :fixthis-cli:test --tests "io.beyondwin.fixthis.cli.commands.SetupCommandTest" --no-daemon
+./gradlew :fixthis-cli:test --tests "io.github.beyondwin.fixthis.cli.commands.SetupCommandTest" --no-daemon
 ```
 
 Expected: BUILD SUCCESSFUL. Both new tests pass. The previously-updated assertion (Step 2) passes. All other SetupCommandTest tests pass unchanged.
@@ -702,8 +702,8 @@ Expected: BUILD SUCCESSFUL. Both new tests pass. The previously-updated assertio
 - [ ] **Step 6: Commit**
 
 ```bash
-git add fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt \
-        fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommandTest.kt
+git add fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt \
+        fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommandTest.kt
 git commit -m "feat(setup): --verbose flag + categorized merge-failure output"
 ```
 
@@ -712,15 +712,15 @@ git commit -m "feat(setup): --verbose flag + categorized merge-failure output"
 ### Task 5: Print cause stack trace at the Main.kt boundary when verbose is on
 
 **Files:**
-- Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/Main.kt`
-- Create: `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/MainPrintTest.kt`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/Main.kt`
+- Create: `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/MainPrintTest.kt`
 
 - [ ] **Step 1: Write the failing test for the new printing helper**
 
-Create `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/MainPrintTest.kt`:
+Create `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/MainPrintTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.cli
+package io.github.beyondwin.fixthis.cli
 
 import com.github.ajalt.clikt.core.CliktError
 import org.junit.After
@@ -765,7 +765,7 @@ class MainPrintTest {
         val errOut = errBuf.toString()
         assertTrue("Expected outer message", errOut.contains("outer message"))
         // Use a regex that matches an actual JVM stack-frame line (e.g.
-        // `at io.beyondwin.fixthis.cli.MainPrintTest.foo(MainPrintTest.kt:42)`)
+        // `at io.github.beyondwin.fixthis.cli.MainPrintTest.foo(MainPrintTest.kt:42)`)
         // instead of the bare substring "at ", which appears in the outer
         // message text and gives a false positive.
         val stackFrameRegex = Regex("""at .+\(.+\.kt:\d+\)""")
@@ -794,7 +794,7 @@ class MainPrintTest {
 - [ ] **Step 2: Run the failing test — it should fail to compile**
 
 ```bash
-./gradlew :fixthis-cli:test --tests "io.beyondwin.fixthis.cli.MainPrintTest" --no-daemon
+./gradlew :fixthis-cli:test --tests "io.github.beyondwin.fixthis.cli.MainPrintTest" --no-daemon
 ```
 
 Expected: BUILD FAILED with `Unresolved reference: renderCliktErrorForTest`.
@@ -835,19 +835,19 @@ fun main(args: Array<String>) {
 Replace the entire file with:
 
 ```kotlin
-package io.beyondwin.fixthis.cli
+package io.github.beyondwin.fixthis.cli
 
 import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.CoreNoOpCliktCommand
 import com.github.ajalt.clikt.core.parse
 import com.github.ajalt.clikt.core.subcommands
-import io.beyondwin.fixthis.cli.commands.CleanCommand
-import io.beyondwin.fixthis.cli.commands.ConsoleCommand
-import io.beyondwin.fixthis.cli.commands.DoctorCommand
-import io.beyondwin.fixthis.cli.commands.McpCommand
-import io.beyondwin.fixthis.cli.commands.RunCommand
-import io.beyondwin.fixthis.cli.commands.SetupCommand
-import io.beyondwin.fixthis.cli.commands.StatusCommand
+import io.github.beyondwin.fixthis.cli.commands.CleanCommand
+import io.github.beyondwin.fixthis.cli.commands.ConsoleCommand
+import io.github.beyondwin.fixthis.cli.commands.DoctorCommand
+import io.github.beyondwin.fixthis.cli.commands.McpCommand
+import io.github.beyondwin.fixthis.cli.commands.RunCommand
+import io.github.beyondwin.fixthis.cli.commands.SetupCommand
+import io.github.beyondwin.fixthis.cli.commands.StatusCommand
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
@@ -886,7 +886,7 @@ internal fun printCliktError(command: CoreNoOpCliktCommand, error: CliktError) {
             // Defense-in-depth: stack traces can contain home paths or echoed
             // settings.json fragments. Route through SetupErrorRedactor before
             // printing.
-            System.err.println(io.beyondwin.fixthis.cli.commands.SetupErrorRedactor.redact(it.stackTraceToString()))
+            System.err.println(io.github.beyondwin.fixthis.cli.commands.SetupErrorRedactor.redact(it.stackTraceToString()))
         }
     }
 }
@@ -900,7 +900,7 @@ internal fun renderCliktErrorForTest(error: CliktError) {
 - [ ] **Step 4: Re-run the test — it should now pass**
 
 ```bash
-./gradlew :fixthis-cli:test --tests "io.beyondwin.fixthis.cli.MainPrintTest" --no-daemon
+./gradlew :fixthis-cli:test --tests "io.github.beyondwin.fixthis.cli.MainPrintTest" --no-daemon
 ```
 
 Expected: BUILD SUCCESSFUL, 2 tests pass.
@@ -916,8 +916,8 @@ Expected: BUILD SUCCESSFUL. No previously green test regresses.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/Main.kt \
-        fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/MainPrintTest.kt
+git add fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/Main.kt \
+        fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/MainPrintTest.kt
 git commit -m "feat(setup): print cause stack trace at Main when --verbose set"
 ```
 
@@ -1010,7 +1010,7 @@ Expected: BUILD SUCCESSFUL.
 ```bash
 SCRATCH="$(mktemp -d)"
 mkdir -p "$SCRATCH/.fixthis" "$SCRATCH/.claude"
-printf '{"applicationId":"io.beyondwin.fixthis.sample"}' > "$SCRATCH/.fixthis/project.json"
+printf '{"applicationId":"io.github.beyondwin.fixthis.sample"}' > "$SCRATCH/.fixthis/project.json"
 printf '{"mcpServers":' > "$SCRATCH/.claude/settings.json"
 echo "$SCRATCH"
 ```
@@ -1019,7 +1019,7 @@ echo "$SCRATCH"
 
 ```bash
 ./fixthis-cli/build/install/fixthis/bin/fixthis setup \
-    --package io.beyondwin.fixthis.sample \
+    --package io.github.beyondwin.fixthis.sample \
     --project-dir "$SCRATCH" \
     --write --target claude 2>&1 | tee "$SCRATCH/out.txt"
 ```
@@ -1048,7 +1048,7 @@ Both should print `PASS`.
 
 ```bash
 ./fixthis-cli/build/install/fixthis/bin/fixthis setup \
-    --package io.beyondwin.fixthis.sample \
+    --package io.github.beyondwin.fixthis.sample \
     --project-dir "$SCRATCH" \
     --write --target claude --verbose 2>&1 | tee "$SCRATCH/out-verbose.txt"
 ```
@@ -1068,7 +1068,7 @@ All three should print `PASS`.
 ```bash
 rm -f "$SCRATCH/.claude/settings.json"
 ./fixthis-cli/build/install/fixthis/bin/fixthis setup \
-    --package io.beyondwin.fixthis.sample \
+    --package io.github.beyondwin.fixthis.sample \
     --project-dir "$SCRATCH" \
     --write --target claude 2>&1 | tee "$SCRATCH/out-ok.txt"
 echo "exit=$?"

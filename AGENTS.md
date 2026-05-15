@@ -32,7 +32,7 @@ points to canonical docs rather than restating them — update those, not this.
 fixthis init
 ```
 
-`--sample` uses the bundled sample package (`io.beyondwin.fixthis.sample`).
+`--sample` uses the bundled sample package (`io.github.beyondwin.fixthis.sample`).
 `--package` is the Android applicationId of the app you are running FixThis
 against. The script writes Claude Code config to project-local
 `.claude/settings.json` and Codex config to `~/.codex/config.toml`. Pass

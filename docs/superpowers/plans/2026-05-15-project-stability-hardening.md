@@ -16,18 +16,18 @@
 
 Likely modified Kotlin files:
 
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` - split long fixture setup and line-length offenders.
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt` - split long assertion message.
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FormatterExtensions.kt` - replace truncation magic number with a named suffix constant.
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactor.kt` - implement a small compaction interface.
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` - accept the compaction interface provider.
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt` - move compaction outside the store monitor.
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactorTest.kt` - keep existing production wiring tests.
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreEventLogTest.kt` - add lock-scope regression coverage.
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt` - register current source and test hotspots.
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` - delegate mutation auth to a dedicated module.
-- Create `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleRequestAuth.kt` - central auth policy for console mutation requests.
-- Test `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` or create `ConsoleRequestAuthTest.kt`.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` - split long fixture setup and line-length offenders.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt` - split long assertion message.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FormatterExtensions.kt` - replace truncation magic number with a named suffix constant.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactor.kt` - implement a small compaction interface.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` - accept the compaction interface provider.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt` - move compaction outside the store monitor.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactorTest.kt` - keep existing production wiring tests.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreEventLogTest.kt` - add lock-scope regression coverage.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt` - register current source and test hotspots.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` - delegate mutation auth to a dedicated module.
+- Create `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleRequestAuth.kt` - central auth policy for console mutation requests.
+- Test `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` or create `ConsoleRequestAuthTest.kt`.
 
 Likely modified Gradle files:
 
@@ -61,9 +61,9 @@ Guardrails:
 ### Task 1: Restore Full Local CI Readiness
 
 **Files:**
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FormatterExtensions.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FormatterExtensions.kt`
 
 - [ ] **Step 1: Capture the current detekt failure**
 
@@ -122,7 +122,7 @@ the other test helpers:
 ```kotlin
 private fun handoffQualityRiskSignalSession(): SessionDto = SessionDto(
     sessionId = "session-quality",
-    packageName = "io.beyondwin.fixthis.sample",
+    packageName = "io.github.beyondwin.fixthis.sample",
     projectRoot = "/repo",
     createdAtEpochMillis = 1L,
     updatedAtEpochMillis = 1L,
@@ -238,9 +238,9 @@ Expected: complete success.
 
 ```bash
 git add \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FormatterExtensions.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FormatterExtensions.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt \
   docs/contributing/required-checks.md
 git commit -m "test(mcp): restore detekt gate"
 ```
@@ -282,7 +282,7 @@ Append to `gradle.properties`:
 ```properties
 
 # Local artifact publication metadata. Public remote publishing is not enabled.
-FIXTHIS_GROUP=io.beyondwin.fixthis
+FIXTHIS_GROUP=io.github.beyondwin.fixthis
 FIXTHIS_VERSION=0.2.0-SNAPSHOT
 ```
 
@@ -292,7 +292,7 @@ In `build.gradle.kts`, after plugin declarations and before task configuration,
 add:
 
 ```kotlin
-val fixthisGroup = providers.gradleProperty("FIXTHIS_GROUP").orElse("io.beyondwin.fixthis")
+val fixthisGroup = providers.gradleProperty("FIXTHIS_GROUP").orElse("io.github.beyondwin.fixthis")
 val fixthisVersion = providers.gradleProperty("FIXTHIS_VERSION").orElse("0.2.0-SNAPSHOT")
 
 subprojects {
@@ -440,11 +440,11 @@ If `fixthis-gradle-plugin/build.gradle.kts` was not changed, omit it.
 ### Task 3: Move Event-Log Compaction Outside Store Lock
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactor.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreEventLogTest.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactorTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactor.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreEventLogTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactorTest.kt`
 
 - [ ] **Step 1: Add an injectable compaction interface**
 
@@ -662,11 +662,11 @@ Expected: all tests pass.
 
 ```bash
 git add \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactor.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreEventLogTest.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactorTest.kt
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactor.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreEventLogTest.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactorTest.kt
 git commit -m "fix(mcp): run event compaction outside store lock"
 ```
 
@@ -675,7 +675,7 @@ git commit -m "fix(mcp): run event compaction outside store lock"
 ### Task 4: Register Current Architecture Hotspots
 
 **Files:**
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt`
 
 - [ ] **Step 1: Update budget maps**
 
@@ -693,8 +693,8 @@ val productionKotlinBudgets = mapOf(
     "${sidekickBridge}BridgeServer.kt" to 180,
     "${sidekickBridge}BridgeModels.kt" to 220,
     "${sidekickBridge}AndroidBridgeEnvironment.kt" to 180,
-    "fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt" to 540,
-    "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt" to 260,
+    "fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt" to 540,
+    "fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt" to 260,
     "${gradlePlugin}task/GenerateFixThisSourceIndexTask.kt" to 130,
     "${gradlePlugin}source/KotlinSourceScanner.kt" to 330,
 )
@@ -707,10 +707,10 @@ val consoleJsBudgets = mapOf(
     "fixthis-mcp/src/main/console/domain/consoleReducer.js" to 410,
 )
 val testBudgets = mapOf(
-    "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt" to 2_400,
-    "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt" to 1_750,
-    "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt" to 1_680,
-    "fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt" to 1_300,
+    "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt" to 2_400,
+    "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt" to 1_750,
+    "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt" to 1_680,
+    "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt" to 1_300,
     "${mcpConsoleTest}ConsoleAssetContractTest.kt" to 1_080,
     "${mcpConsoleTest}ConsoleFeedbackItemRoutesTest.kt" to 900,
 )
@@ -742,7 +742,7 @@ Expected: pass.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt
+git add fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt
 git commit -m "test(architecture): register current hotspots"
 ```
 
@@ -1040,9 +1040,9 @@ git commit -m "chore(ci): document required-check observation flow"
 ### Task 7: Harden Console Mutation Auth
 
 **Files:**
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleRequestAuth.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleRequestAuth.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 - Modify: `docs/reference/threat-model.md`
 - Optional modify: `docs/reference/feedback-console-contract.md`
 
@@ -1051,7 +1051,7 @@ git commit -m "chore(ci): document required-check observation flow"
 Create `ConsoleRequestAuth.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
 import com.sun.net.httpserver.HttpExchange
 import java.nio.charset.StandardCharsets
@@ -1173,10 +1173,10 @@ Expected: all commands pass.
 
 ```bash
 git add \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleRequestAuth.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleRequestAuthTest.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleRequestAuth.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleRequestAuthTest.kt \
   docs/reference/threat-model.md \
   docs/reference/feedback-console-contract.md
 git commit -m "fix(console): pin mutation auth to local host"

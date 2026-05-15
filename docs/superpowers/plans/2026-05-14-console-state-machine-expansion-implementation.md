@@ -637,7 +637,7 @@ const sources = [
 node --test scripts/connectionFsm-test.mjs scripts/connectionUseCases-test.mjs
 node scripts/build-console-assets.mjs
 node scripts/build-console-assets.mjs --check
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.*"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.*"
 ```
 
 Expected: PASS for all.
@@ -984,7 +984,7 @@ reducer state).
 node --test scripts/previewFsm-test.mjs scripts/previewUseCases-test.mjs
 node scripts/build-console-assets.mjs
 node scripts/build-console-assets.mjs --check
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.*"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.*"
 ```
 
 Expected: PASS.
@@ -1376,7 +1376,7 @@ state).
 - [ ] **Step 6: Run the contract test for asset symbols**
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleSessionsPollingContractTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleSessionsPollingContractTest"
 ```
 
 Expected: PASS for all 13 tests. If any fails on a grep, capture the
@@ -1389,7 +1389,7 @@ identifier in `sessions-polling.js`.
 node --test scripts/pollingFsm-test.mjs scripts/pollingUseCases-test.mjs
 node scripts/build-console-assets.mjs
 node scripts/build-console-assets.mjs --check
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.*"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.*"
 ```
 
 Expected: PASS.
@@ -1648,7 +1648,7 @@ seq.
 node --test scripts/toolModeFsm-test.mjs scripts/toolModeUseCases-test.mjs
 node scripts/build-console-assets.mjs
 node scripts/build-console-assets.mjs --check
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.*"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.*"
 ```
 
 Expected: PASS.
@@ -1891,7 +1891,7 @@ This is a verification step only; no commit.
   - §3.6 Cross-FSM coordination via `consoleApp.js`: Task 6.
 - [ ] Every FSM has a reducer test, a use-case test, and an asset
       contract check (Task 4 Step 6 for polling; Tasks 2/3/5 verify via
-      `--tests "io.beyondwin.fixthis.mcp.console.*"`).
+      `--tests "io.github.beyondwin.fixthis.mcp.console.*"`).
 - [ ] All public function names grep'd by the asset contract tests
       (`withMutationLock`, `pollSessionsTick`, `startSessionsPolling`,
       `mergeSessionIntoState`, `MaxConsecutivePollFailures`,

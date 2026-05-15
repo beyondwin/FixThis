@@ -14,7 +14,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-PACKAGE="${1:-io.beyondwin.fixthis.sample}"
+PACKAGE="${1:-io.github.beyondwin.fixthis.sample}"
 CLI=fixthis-cli/build/install/fixthis/bin/fixthis
 ASSETS_DIR="$PWD/fixthis-mcp/src/main/resources/console"
 

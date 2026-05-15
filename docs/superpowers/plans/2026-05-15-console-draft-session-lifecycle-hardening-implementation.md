@@ -34,10 +34,10 @@
 
 ### Kotlin Server
 
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleHttp.kt`: support typed JSON error bodies while preserving simple error responses.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`: map known session exceptions to stable error codes.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt`: map draft validation failures to typed 400/409 JSON.
-- Keep `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt` strict. Do not make the server accept missing node ids as node targets.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleHttp.kt`: support typed JSON error bodies while preserving simple error responses.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`: map known session exceptions to stable error codes.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt`: map draft validation failures to typed 400/409 JSON.
+- Keep `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt` strict. Do not make the server accept missing node ids as node targets.
 
 ### Tests
 
@@ -49,8 +49,8 @@
 - Modify `scripts/pendingBoundaryGuard-test.mjs`: all lifecycle callers use the shared resolver.
 - Modify `scripts/sessionScopedRequests-test.mjs`: explicit session id checks.
 - Modify `scripts/console-browser-smoke.mjs`: browser scenarios for save-while-editing and delete-session-with-recovery.
-- Modify or create Kotlin tests in `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`.
-- Modify or create Kotlin tests in `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackDraftServiceTest.kt`.
+- Modify or create Kotlin tests in `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`.
+- Modify or create Kotlin tests in `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackDraftServiceTest.kt`.
 
 ## Conventions
 
@@ -1228,11 +1228,11 @@ git commit -m "fix(console): decode typed draft API errors"
 ## Task 9: Return Typed Server Validation Errors
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleHttp.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackDraftServiceTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleHttp.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackDraftServiceTest.kt`
 
 - [ ] **Step 1: Add typed error body**
 
@@ -1385,8 +1385,8 @@ Run:
 
 ```bash
 ./gradlew :fixthis-mcp:test \
-  --tests 'io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest' \
-  --tests 'io.beyondwin.fixthis.mcp.session.FeedbackDraftServiceTest'
+  --tests 'io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest' \
+  --tests 'io.github.beyondwin.fixthis.mcp.session.FeedbackDraftServiceTest'
 ```
 
 Expected: PASS.
@@ -1394,11 +1394,11 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleHttp.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackDraftServiceTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleHttp.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackDraftServiceTest.kt
 git commit -m "fix(console): return typed draft validation errors"
 ```
 
@@ -1554,8 +1554,8 @@ Run:
 
 ```bash
 ./gradlew :fixthis-mcp:test \
-  --tests 'io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest' \
-  --tests 'io.beyondwin.fixthis.mcp.session.FeedbackDraftServiceTest'
+  --tests 'io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest' \
+  --tests 'io.github.beyondwin.fixthis.mcp.session.FeedbackDraftServiceTest'
 ```
 
 Expected: PASS.
@@ -1634,8 +1634,8 @@ npm run console:draft:test
 FIXTHIS_BUNDLE_REPRODUCIBLE=1 node scripts/build-console-assets.mjs --check
 node --check fixthis-mcp/src/main/resources/console/app.js
 ./gradlew :fixthis-mcp:test \
-  --tests 'io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest' \
-  --tests 'io.beyondwin.fixthis.mcp.session.FeedbackDraftServiceTest'
+  --tests 'io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest' \
+  --tests 'io.github.beyondwin.fixthis.mcp.session.FeedbackDraftServiceTest'
 git diff --check
 ```
 

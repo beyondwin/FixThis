@@ -135,8 +135,8 @@ Replace the current `## Quick Start (sample app, ~5 min)` section with:
 ```bash
 git clone <this-repo> && cd FixThis
 ./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
-fixthis-cli/build/install/fixthis/bin/fixthis doctor --package io.beyondwin.fixthis.sample
-fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis doctor --package io.github.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis run --package io.github.beyondwin.fixthis.sample
 ```
 
 `fixthis run` installs the sample debug APK, launches it, attaches the
@@ -253,7 +253,7 @@ agent can read, claim, and resolve feedback items.
 - Know the Android `applicationId` for the app you want to inspect.
 - Keep ADB on your PATH and use an unlocked device or emulator.
 
-For the sample app, the package is `io.beyondwin.fixthis.sample`.
+For the sample app, the package is `io.github.beyondwin.fixthis.sample`.
 
 ## Claude Code
 

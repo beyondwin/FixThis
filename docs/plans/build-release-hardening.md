@@ -66,7 +66,7 @@ test -z "$(git grep -nE '"[^"]+:[^"]+:[0-9]+\.[^"]*"' -- '*build.gradle.kts' | g
    - `androidx.compose.ui.platform.AndroidComposeView` and `RootForTest`
      entry points the sidekick reflects on;
    - public sidekick types referenced from the bridge protocol
-     (`io.beyondwin.fixthis.compose.sidekick.bridge.**`).
+     (`io.github.beyondwin.fixthis.compose.sidekick.bridge.**`).
 2. Wire them via `defaultConfig { consumerProguardFiles("consumer-rules.pro") }`.
 3. Add a smoke test under `fixthis-gradle-plugin/src/functionalTest/` that
    assembles a release variant of a fixture app with minify on and asserts
@@ -85,7 +85,7 @@ grep -q 'consumerProguardFiles' fixthis-compose-sidekick/build.gradle.kts
 **Files:**
 - `fixthis-compose-sidekick/src/debug/AndroidManifest.xml` (new — move startup entry here)
 - `fixthis-compose-sidekick/src/main/AndroidManifest.xml` (remove startup entry)
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/FixThisInitializer.kt` (keep `FLAG_DEBUGGABLE` early-return as defence-in-depth)
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/FixThisInitializer.kt` (keep `FLAG_DEBUGGABLE` early-return as defence-in-depth)
 - `fixthis-gradle-plugin/src/functionalTest/kotlin/.../ReleaseGuardTest.kt` (new)
 
 **Steps**

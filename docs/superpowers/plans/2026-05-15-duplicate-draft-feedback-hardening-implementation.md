@@ -14,9 +14,9 @@
 
 ## File Structure
 
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDraftDeduplication.kt` for reusable screen selection, partial duplicate item creation, and narrow legacy semantic matching helpers.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt` to reuse existing screens on partial duplicates and skip event-log writes for full duplicate no-ops.
-- Modify `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt` for HTTP-level regression tests.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDraftDeduplication.kt` for reusable screen selection, partial duplicate item creation, and narrow legacy semantic matching helpers.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt` to reuse existing screens on partial duplicates and skip event-log writes for full duplicate no-ops.
+- Modify `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt` for HTTP-level regression tests.
 - Modify `fixthis-mcp/src/main/console/historyPendingDedupe.js` to gate semantic dedupe to legacy recovery only.
 - Modify `fixthis-mcp/src/main/console/history.js` to dedupe each recovery candidate with its own workspace id before selecting the newest non-empty recovery.
 - Modify `scripts/historyPendingDedupe-test.mjs` for browser dedupe regression tests.
@@ -25,7 +25,7 @@
 ## Task 1: Lock Partial Duplicate Screen Reuse With A Failing Test
 
 **Files:**
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
 
 - [ ] **Step 1: Add the failing partial duplicate test**
 
@@ -50,7 +50,7 @@ fun batchItemsApiReusesExistingScreenForPartialWorkspaceDuplicate() {
                 ).next,
             ),
             projectRoot = projectRoot.absolutePath,
-            defaultPackageName = "io.beyondwin.fixthis.sample",
+            defaultPackageName = "io.github.beyondwin.fixthis.sample",
         )
         service.openSession(null, newSession = true)
         val preview = runBlocking { service.capturePreview("session-1") }
@@ -124,7 +124,7 @@ fun batchItemsApiReusesExistingScreenForPartialWorkspaceDuplicate() {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchItemsApiReusesExistingScreenForPartialWorkspaceDuplicate"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchItemsApiReusesExistingScreenForPartialWorkspaceDuplicate"
 ```
 
 Expected: FAIL because the stored session has two screens or because `draft-3.screenId` differs from the first persisted screen.
@@ -132,8 +132,8 @@ Expected: FAIL because the stored session has two screens or because `draft-3.sc
 ## Task 2: Reuse Existing Screen For Partial Duplicate Batches
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDraftDeduplication.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDraftDeduplication.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt`
 
 - [ ] **Step 1: Add screen reuse helpers**
 
@@ -190,7 +190,7 @@ Keep the `newItems.isEmpty()` branch for now. Task 3 changes its event logging b
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchItemsApiReusesExistingScreenForPartialWorkspaceDuplicate"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchItemsApiReusesExistingScreenForPartialWorkspaceDuplicate"
 ```
 
 Expected: PASS.
@@ -200,7 +200,7 @@ Expected: PASS.
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchItemsApiDoesNotDuplicateSameWorkspaceDraftItemWhenPreviewFallsBackToScreen"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchItemsApiDoesNotDuplicateSameWorkspaceDraftItemWhenPreviewFallsBackToScreen"
 ```
 
 Expected: PASS.
@@ -208,17 +208,17 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDraftDeduplication.kt \
-        fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDraftDeduplication.kt \
+        fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt
 git commit -m "Fix partial duplicate draft screen reuse"
 ```
 
 ## Task 3: Stop Writing Event-Log Entries For Full Duplicate No-Ops
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
 
 - [ ] **Step 1: Add the failing event-log no-op test**
 
@@ -236,7 +236,7 @@ fun batchItemsApiDoesNotAppendEventForFullWorkspaceDuplicate() {
                 projectRoot = projectRoot.toPath(),
             ),
             projectRoot = projectRoot.absolutePath,
-            defaultPackageName = "io.beyondwin.fixthis.sample",
+            defaultPackageName = "io.github.beyondwin.fixthis.sample",
         )
         service.openSession(null, newSession = true)
         val preview = runBlocking { service.capturePreview("session-1") }
@@ -284,7 +284,7 @@ If `FeedbackSessionStore` does not accept `projectRoot` in this exact constructo
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchItemsApiDoesNotAppendEventForFullWorkspaceDuplicate"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchItemsApiDoesNotAppendEventForFullWorkspaceDuplicate"
 ```
 
 Expected: FAIL because the duplicate request appends an `addScreenWithItems` event.
@@ -366,7 +366,7 @@ EventBackedMutation(
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchItemsApiDoesNotAppendEventForFullWorkspaceDuplicate"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchItemsApiDoesNotAppendEventForFullWorkspaceDuplicate"
 ```
 
 Expected: PASS.
@@ -376,7 +376,7 @@ Expected: PASS.
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchItemsApi*Workspace*"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchItemsApi*Workspace*"
 ```
 
 Expected: PASS.
@@ -384,8 +384,8 @@ Expected: PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt
 git commit -m "Skip event log writes for duplicate draft retries"
 ```
 
@@ -632,9 +632,9 @@ git commit -m "Dedupe history recovery by workspace"
 ## Task 6: Add Narrow Legacy Server Dedupe
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDraftDeduplication.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDraftDeduplication.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
 
 - [ ] **Step 1: Add failing legacy server dedupe test**
 
@@ -651,7 +651,7 @@ fun batchItemsApiDedupeLegacyServerItemWithSameTargetAndComment() {
                 idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1", "legacy-item", "new-item").next,
             ),
             projectRoot = projectRoot.absolutePath,
-            defaultPackageName = "io.beyondwin.fixthis.sample",
+            defaultPackageName = "io.github.beyondwin.fixthis.sample",
         )
         service.openSession(null, newSession = true)
         val preview = runBlocking { service.capturePreview("session-1") }
@@ -707,7 +707,7 @@ If the direct `savePreviewFeedbackItems` call sets client ids in this checkout, 
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchItemsApiDedupeLegacyServerItemWithSameTargetAndComment"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchItemsApiDedupeLegacyServerItemWithSameTargetAndComment"
 ```
 
 Expected: FAIL because the server appends the incoming keyed item next to the legacy unkeyed item.
@@ -783,8 +783,8 @@ val newItems = items.filterNot { item ->
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchItemsApiDedupeLegacyServerItemWithSameTargetAndComment" \
-  --tests "io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchItemsApiReusesExistingScreenForPartialWorkspaceDuplicate"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchItemsApiDedupeLegacyServerItemWithSameTargetAndComment" \
+  --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchItemsApiReusesExistingScreenForPartialWorkspaceDuplicate"
 ```
 
 Expected: PASS.
@@ -792,9 +792,9 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDraftDeduplication.kt \
-        fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDraftDeduplication.kt \
+        fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt
 git commit -m "Add conservative legacy draft dedupe"
 ```
 

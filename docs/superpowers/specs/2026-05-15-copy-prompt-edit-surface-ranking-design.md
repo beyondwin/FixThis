@@ -36,7 +36,7 @@ also telling agents which rendering surface to inspect first.
 ## Concrete Evidence
 
 Session `be03fb71-aefe-4346-bb47-69357400eff6`, package
-`io.beyondwin.fixthis.sample`, screen `MainActivity`, showed six annotations:
+`io.github.beyondwin.fixthis.sample`, screen `MainActivity`, showed six annotations:
 
 | item | user request | target | current top source behavior | correct agent interpretation |
 | --- | --- | --- | --- | --- |

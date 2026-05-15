@@ -46,14 +46,14 @@ Sample app:
 
 - Modify `gradle/libs.versions.toml` to add Compose material icons.
 - Modify `sample/build.gradle.kts` to use the icons dependency.
-- Modify `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisStudioApp.kt` for real navigation icons.
-- Modify `sample/src/main/java/io/beyondwin/fixthis/sample/components/FeedbackCard.kt` to replace the text-only save glyph with an icon and stable content description.
-- Modify `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt` for navigation and content-description assertions.
+- Modify `sample/src/main/java/io/github/beyondwin/fixthis/sample/FixThisStudioApp.kt` for real navigation icons.
+- Modify `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/FeedbackCard.kt` to replace the text-only save glyph with an icon and stable content description.
+- Modify `sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SampleAppSmokeTest.kt` for navigation and content-description assertions.
 
 Sidekick overlay:
 
-- Modify `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayout.kt`.
-- Modify `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayoutTest.kt`.
+- Modify `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayout.kt`.
+- Modify `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayoutTest.kt`.
 
 Docs:
 
@@ -1073,9 +1073,9 @@ Docs:
 
 - Modify: `gradle/libs.versions.toml`
 - Modify: `sample/build.gradle.kts`
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisStudioApp.kt`
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/components/FeedbackCard.kt`
-- Modify: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/FixThisStudioApp.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/FeedbackCard.kt`
+- Modify: `sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
 
 **Goal:** Replace one-letter navigation glyphs with familiar icons and keep stable semantics for FixThis targeting.
 
@@ -1217,9 +1217,9 @@ Docs:
   ```bash
   git add gradle/libs.versions.toml \
           sample/build.gradle.kts \
-          sample/src/main/java/io/beyondwin/fixthis/sample/FixThisStudioApp.kt \
-          sample/src/main/java/io/beyondwin/fixthis/sample/components/FeedbackCard.kt \
-          sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt
+          sample/src/main/java/io/github/beyondwin/fixthis/sample/FixThisStudioApp.kt \
+          sample/src/main/java/io/github/beyondwin/fixthis/sample/components/FeedbackCard.kt \
+          sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SampleAppSmokeTest.kt
   git commit -m "feat(sample): replace text glyphs with navigation icons"
   ```
 
@@ -1229,8 +1229,8 @@ Docs:
 
 **Files:**
 
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayout.kt`
-- Modify: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayoutTest.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayout.kt`
+- Modify: `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayoutTest.kt`
 
 **Goal:** Keep the overlay debug-only and minimal, but avoid exposing MCP jargon directly on top of the target app UI.
 
@@ -1303,8 +1303,8 @@ Docs:
 - [ ] **Step 5: Commit**
 
   ```bash
-  git add fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayout.kt \
-          fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayoutTest.kt
+  git add fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayout.kt \
+          fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisConnectionStatusHostLayoutTest.kt
   git commit -m "feat(sidekick): use product language in status pill"
   ```
 

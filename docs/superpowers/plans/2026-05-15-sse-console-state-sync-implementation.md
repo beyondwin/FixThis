@@ -14,33 +14,33 @@
 
 ## File Structure
 
-- Create `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/events/ConsoleEventModels.kt` for serializable event payloads.
-- Create `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/events/ConsoleEventBus.kt` for monotonic IDs, ring replay, and fan-out.
-- Create `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventRoutes.kt` for `/api/events`.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` to construct and register the event bus route.
+- Create `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/events/ConsoleEventModels.kt` for serializable event payloads.
+- Create `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/events/ConsoleEventBus.kt` for monotonic IDs, ring replay, and fan-out.
+- Create `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventRoutes.kt` for `/api/events`.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` to construct and register the event bus route.
 - Modify `SessionRoutes.kt`, `FeedbackItemRoutes.kt`, `MarkHandedOffRoutes.kt`, `PreviewRoutes.kt`, `DeviceRoutes.kt`, and `ConnectionRoutes.kt` to emit events after successful mutations or state transitions.
 - Create `fixthis-mcp/src/main/console/events.js` for browser `EventSource` subscription.
 - Modify `scripts/build-console-assets.mjs` to include `events.js` after state/render helpers and before `main.js` startup.
 - Modify `fixthis-mcp/src/main/console/main.js` to call `startConsoleEvents()`.
 - Add `scripts/consoleEvents-test.mjs` for browser module contract tests.
-- Add `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventBusTest.kt`.
-- Add `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventsRoutesTest.kt`.
+- Add `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventBusTest.kt`.
+- Add `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventsRoutesTest.kt`.
 
 ## Task 1: Event Models And Ring Buffer
 
 **Files:**
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/events/ConsoleEventModels.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/events/ConsoleEventBus.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventBusTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/events/ConsoleEventModels.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/events/ConsoleEventBus.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventBusTest.kt`
 
 - [ ] **Step 1: Write event bus tests**
 
 Create `ConsoleEventBusTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
-import io.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
+import io.github.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlin.test.Test
@@ -79,7 +79,7 @@ class ConsoleEventBusTest {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleEventBusTest" --no-daemon
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleEventBusTest" --no-daemon
 ```
 
 Expected: FAIL with unresolved `ConsoleEventBus`.
@@ -89,7 +89,7 @@ Expected: FAIL with unresolved `ConsoleEventBus`.
 Create `ConsoleEventModels.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console.events
+package io.github.beyondwin.fixthis.mcp.console.events
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
@@ -112,7 +112,7 @@ internal data class ConsoleEventReplay(
 Create `ConsoleEventBus.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console.events
+package io.github.beyondwin.fixthis.mcp.console.events
 
 import kotlinx.serialization.json.JsonObject
 import java.util.ArrayDeque
@@ -169,7 +169,7 @@ internal class ConsoleEventBus(
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleEventBusTest" --no-daemon
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleEventBusTest" --no-daemon
 ```
 
 Expected: PASS.
@@ -177,26 +177,26 @@ Expected: PASS.
 Commit:
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/events fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventBusTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/events fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventBusTest.kt
 git commit -m "feat(console): add event bus for SSE sync"
 ```
 
 ## Task 2: SSE Endpoint
 
 **Files:**
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventRoutes.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventsRoutesTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventRoutes.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventsRoutesTest.kt`
 
 - [ ] **Step 1: Add route tests for snapshot and headers**
 
 Create `ConsoleEventsRoutesTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
-import io.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
-import io.beyondwin.fixthis.mcp.fixtures.ConsoleRouteTestFixtures.newConsoleSessionFixture
+import io.github.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
+import io.github.beyondwin.fixthis.mcp.fixtures.ConsoleRouteTestFixtures.newConsoleSessionFixture
 import java.net.HttpURLConnection
 import java.net.URI
 import kotlin.test.Test
@@ -231,7 +231,7 @@ class ConsoleEventsRoutesTest {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleEventsRoutesTest.eventsEndpointStreamsInitialSnapshot" --no-daemon
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleEventsRoutesTest.eventsEndpointStreamsInitialSnapshot" --no-daemon
 ```
 
 Expected: FAIL because `FeedbackConsoleServer(eventBus = ...)` and `/api/events` do not exist.
@@ -241,13 +241,13 @@ Expected: FAIL because `FeedbackConsoleServer(eventBus = ...)` and `/api/events`
 Create `ConsoleEventRoutes.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
 import com.sun.net.httpserver.HttpExchange
-import io.beyondwin.fixthis.cli.fixThisJson
-import io.beyondwin.fixthis.mcp.console.events.ConsoleEvent
-import io.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
-import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
+import io.github.beyondwin.fixthis.cli.fixThisJson
+import io.github.beyondwin.fixthis.mcp.console.events.ConsoleEvent
+import io.github.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement
@@ -342,7 +342,7 @@ class FeedbackConsoleServer(
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleEventsRoutesTest" --no-daemon
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleEventsRoutesTest" --no-daemon
 ```
 
 Expected: PASS.
@@ -350,7 +350,7 @@ Expected: PASS.
 Commit:
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventRoutes.kt fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventsRoutesTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventRoutes.kt fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventsRoutesTest.kt
 git commit -m "feat(console): expose SSE events endpoint"
 ```
 
@@ -393,12 +393,12 @@ fun itemMutationEmitsSessionAndSummaryEvents() {
 Create a small helper in a new file `ConsoleEventEmitters.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
-import io.beyondwin.fixthis.cli.fixThisJson
-import io.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
-import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
-import io.beyondwin.fixthis.mcp.session.SessionDto
+import io.github.beyondwin.fixthis.cli.fixThisJson
+import io.github.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
+import io.github.beyondwin.fixthis.mcp.session.SessionDto
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonObject
 
@@ -440,7 +440,7 @@ Apply the same pattern to `FeedbackItemRoutes` and `MarkHandedOffRoutes`.
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleEventsRoutesTest.itemMutationEmitsSessionAndSummaryEvents" --no-daemon
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleEventsRoutesTest.itemMutationEmitsSessionAndSummaryEvents" --no-daemon
 ```
 
 Expected: PASS.
@@ -448,7 +448,7 @@ Expected: PASS.
 Commit:
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventsRoutesTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventsRoutesTest.kt
 git commit -m "feat(console): emit session SSE events"
 ```
 
@@ -624,7 +624,7 @@ eventBus.emit("connection-updated", fixThisJson.encodeToJsonElement(connection).
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleEventsRoutesTest" --no-daemon
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleEventsRoutesTest" --no-daemon
 npm run console:test:all
 ```
 
@@ -633,7 +633,7 @@ Expected: PASS.
 Commit:
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventsRoutesTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventsRoutesTest.kt
 git commit -m "feat(console): emit preview device and connection events"
 ```
 

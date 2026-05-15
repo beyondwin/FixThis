@@ -16,7 +16,7 @@ contracts is not part of this phase.
 
 ## Approved Direction
 
-Use a complete FixThis rename with `io.beyondwin.fixthis` as the new package
+Use a complete FixThis rename with `io.github.beyondwin.fixthis` as the new package
 prefix.
 
 The project already renamed the sample app to FixThis. This design extends that
@@ -32,8 +32,8 @@ FixThis                         -> FixThis
 fixthis                         -> fixthis
 fixThis                         -> fixThis
 
-io.beyondwin.fixthis.*             -> io.beyondwin.fixthis.*
-io.beyondwin.fixthis.compose       -> io.beyondwin.fixthis.compose
+io.github.beyondwin.fixthis.*             -> io.github.beyondwin.fixthis.*
+io.github.beyondwin.fixthis.compose       -> io.github.beyondwin.fixthis.compose
 
 :fixthis-compose-core           -> :fixthis-compose-core
 :fixthis-compose-overlay        -> :fixthis-compose-overlay
@@ -125,14 +125,14 @@ not missing projects.
 Move source packages after the Gradle graph resolves.
 
 - Move `src/main/kotlin/io/github/fixthis/...` to
-  `src/main/kotlin/io/beyondwin/fixthis/...`.
+  `src/main/kotlin/io/github/beyondwin/fixthis/...`.
 - Move matching test and androidTest paths.
 - Replace package declarations and imports.
 - Rename public identifiers from `FixThis` to `FixThis`.
 - Rename lower camel identifiers from `fixThis` to `fixThis`.
-- Update Android library namespaces to `io.beyondwin.fixthis.compose.*`.
+- Update Android library namespaces to `io.github.beyondwin.fixthis.compose.*`.
 
-The sample app already uses `io.beyondwin.fixthis.sample`; keep that package and
+The sample app already uses `io.github.beyondwin.fixthis.sample`; keep that package and
 application id.
 
 ### 3. Rename Runtime and Persistence Contracts
@@ -175,8 +175,8 @@ Finally, update documentation and fixtures.
   paths.
 - Add a short migration note that the project was previously named FixThis
   and that old public contracts are not preserved.
-- Test fixtures should use `io.beyondwin.fixthis.sample` or
-  `io.beyondwin.fixthis.*` as appropriate.
+- Test fixtures should use `io.github.beyondwin.fixthis.sample` or
+  `io.github.beyondwin.fixthis.*` as appropriate.
 - Historical specs can keep old wording if they are clearly historical and not
   active instructions.
 
@@ -190,8 +190,8 @@ The implementation should not preserve:
 - `fixthis-cli` generated script.
 - any replacement secondary `fixthis-cli` generated script.
 - `fixthis-mcp` executable.
-- `io.beyondwin.fixthis.compose` Gradle plugin id.
-- `io.beyondwin.fixthis.*` Kotlin packages.
+- `io.github.beyondwin.fixthis.compose` Gradle plugin id.
+- `io.github.beyondwin.fixthis.*` Kotlin packages.
 - `fixthis_*` MCP tool names.
 - `fixthis://` MCP resources.
 - `.fixthis/` local storage path.
@@ -211,7 +211,7 @@ Minimum verification:
 ./gradlew :app:assembleDebug
 ./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
 fixthis-cli/build/install/fixthis/bin/fixthis --help
-fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.github.beyondwin.fixthis.sample
 ```
 
 Additional verification when an Android device or emulator is available:
@@ -235,9 +235,9 @@ design/spec records.
 
 - The root project is named `FixThis`.
 - Repository modules use `fixthis-*` names.
-- Kotlin packages use `io.beyondwin.fixthis.*`.
-- Library Android namespaces use `io.beyondwin.fixthis.compose.*`.
-- The Gradle plugin id is `io.beyondwin.fixthis.compose`.
+- Kotlin packages use `io.github.beyondwin.fixthis.*`.
+- Library Android namespaces use `io.github.beyondwin.fixthis.compose.*`.
+- The Gradle plugin id is `io.github.beyondwin.fixthis.compose`.
 - CLI command examples and generated binaries use `fixthis`.
 - MCP tools use `fixthis_*`.
 - MCP resources use `fixthis://`.

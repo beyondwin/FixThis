@@ -43,10 +43,10 @@ The current detekt findings are:
 
 | File | Line | Rule | Required correction |
 | --- | ---: | --- | --- |
-| `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` | 2142 | `LongMethod` | Extract the large fixture for handoff quality risk signals into a helper. |
-| `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FormatterExtensions.kt` | 24 | `MagicNumber` | Replace the `3` truncation offset with a named suffix length. |
-| `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt` | 693 | `MaxLineLength` | Split the assertion message. |
-| `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` | 2080 | `MaxLineLength` | Split the expected target summary string. |
+| `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` | 2142 | `LongMethod` | Extract the large fixture for handoff quality risk signals into a helper. |
+| `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FormatterExtensions.kt` | 24 | `MagicNumber` | Replace the `3` truncation offset with a named suffix length. |
+| `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt` | 693 | `MaxLineLength` | Split the assertion message. |
+| `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` | 2080 | `MaxLineLength` | Split the expected target summary string. |
 
 Gradle also reports:
 
@@ -159,7 +159,7 @@ Use a single repository package version source, preferably in
 `gradle.properties`, for example:
 
 ```properties
-FIXTHIS_GROUP=io.beyondwin.fixthis
+FIXTHIS_GROUP=io.github.beyondwin.fixthis
 FIXTHIS_VERSION=0.2.0-SNAPSHOT
 ```
 
@@ -244,13 +244,13 @@ largest files consistently. Current hotspots include:
 
 | File | Current lines |
 | --- | ---: |
-| `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt` | 714 |
+| `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt` | 714 |
 | `fixthis-mcp/src/main/console/annotations.js` | 635 |
 | `fixthis-mcp/src/main/console/history.js` | 504 |
 | `fixthis-mcp/src/main/console/presentation/annotationDetailView.js` | 493 |
-| `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisToolDispatcher.kt` | 496 |
-| `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt` | 467 |
-| `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt` | 417 |
+| `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisToolDispatcher.kt` | 496 |
+| `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt` | 467 |
+| `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt` | 417 |
 | `fixthis-mcp/src/main/console/main.js` | 411 |
 | `fixthis-mcp/src/main/console/state.js` | 410 |
 | `fixthis-mcp/src/main/console/domain/consoleReducer.js` | 378 |
@@ -259,11 +259,11 @@ Large test files are also legitimate maintenance risks:
 
 | File | Current lines |
 | --- | ---: |
-| `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` | 2337 |
-| `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt` | 1696 |
-| `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt` | 1629 |
-| `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt` | 1254 |
-| `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt` | 1044 |
+| `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` | 2337 |
+| `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt` | 1696 |
+| `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt` | 1629 |
+| `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt` | 1254 |
+| `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt` | 1044 |
 
 ### Required Changes
 

@@ -70,8 +70,8 @@ if (gradle.startParameter.taskNames.any(::requestedDetektTask)) {
 gradlePlugin {
     plugins {
         create("fixThisCompose") {
-            id = "io.beyondwin.fixthis.compose"
-            implementationClass = "io.beyondwin.fixthis.gradle.FixThisGradlePlugin"
+            id = "io.github.beyondwin.fixthis.compose"
+            implementationClass = "io.github.beyondwin.fixthis.gradle.FixThisGradlePlugin"
         }
     }
 }
@@ -94,7 +94,7 @@ val sidekickDebugManifestFile = sidekickDir.resolve("src/debug/AndroidManifest.x
 val sidekickMainManifestFile = sidekickDir.resolve("src/main/AndroidManifest.xml")
 val sidekickInitializerSourceFile =
     sidekickDir.resolve(
-        "src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/init/FixThisInitializer.kt",
+        "src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/init/FixThisInitializer.kt",
     )
 
 val functionalTest =

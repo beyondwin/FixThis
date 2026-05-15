@@ -35,7 +35,7 @@
 ```bash
 ./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
 fixthis-cli/build/install/fixthis/bin/fixthis console \
-  --package io.beyondwin.fixthis.sample \
+  --package io.github.beyondwin.fixthis.sample \
   --console-assets-dir "$PWD/fixthis-mcp/src/main/resources/console"
 ```
 

@@ -16,49 +16,49 @@ The approved spec spans core models, MCP persistence/rendering, console presenta
 
 ## File Structure
 
-- Create `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/target/TargetReliabilityCalculator.kt` for pure confidence/warning calculation.
-- Create `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/target/TargetReliabilityCalculatorTest.kt` for core coverage.
-- Modify `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt` to add serializable reliability models and optional `FixThisAnnotation.targetReliability`.
-- Modify `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt` so the domain annotation carries the same optional reliability object.
-- Modify `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt` to render reliability for direct core formatting.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt` and `SessionDomainMappers.kt` to persist and map `targetReliability`.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt` to derive reliability when items are built.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt` to add force-save and fingerprint-unavailable warnings at commit time.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt` and `FeedbackQueueFormatter.kt` to render concise reliability lines.
+- Create `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/target/TargetReliabilityCalculator.kt` for pure confidence/warning calculation.
+- Create `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/target/TargetReliabilityCalculatorTest.kt` for core coverage.
+- Modify `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt` to add serializable reliability models and optional `FixThisAnnotation.targetReliability`.
+- Modify `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt` so the domain annotation carries the same optional reliability object.
+- Modify `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt` to render reliability for direct core formatting.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt` and `SessionDomainMappers.kt` to persist and map `targetReliability`.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt` to derive reliability when items are built.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt` to add force-save and fingerprint-unavailable warnings at commit time.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt` and `FeedbackQueueFormatter.kt` to render concise reliability lines.
 - Modify `fixthis-mcp/src/main/console/annotations.js`, `fixthis-mcp/src/main/console/rendering.js`, and `fixthis-mcp/src/main/resources/console/styles.css` to show compact warning badges.
-- Modify `sample/src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt` to include an AndroidView interop fixture.
+- Modify `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt` to include an AndroidView interop fixture.
 - Modify `docs/guides/agents.md`, `docs/reference/output-schema.md`, and `docs/reference/mcp-tools.md` to explain `targetReliability`.
 
 ## Task 1: Core Reliability Model And Calculator
 
 **Files:**
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt`
-- Create: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/target/TargetReliabilityCalculator.kt`
-- Create: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/target/TargetReliabilityCalculatorTest.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/target/TargetReliabilityCalculator.kt`
+- Create: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/target/TargetReliabilityCalculatorTest.kt`
 
 - [ ] **Step 1: Write the failing core calculator test**
 
-Create `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/target/TargetReliabilityCalculatorTest.kt`:
+Create `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/target/TargetReliabilityCalculatorTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.target
+package io.github.beyondwin.fixthis.compose.core.target
 
-import io.beyondwin.fixthis.compose.core.model.EvidenceQuality
-import io.beyondwin.fixthis.compose.core.model.FixThisNode
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.beyondwin.fixthis.compose.core.model.IdentityHint
-import io.beyondwin.fixthis.compose.core.model.IdentityHintConfidence
-import io.beyondwin.fixthis.compose.core.model.IdentityHintSource
-import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
-import io.beyondwin.fixthis.compose.core.model.SourceCandidate
-import io.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
-import io.beyondwin.fixthis.compose.core.model.TargetConfidence
-import io.beyondwin.fixthis.compose.core.model.TargetEvidence
-import io.beyondwin.fixthis.compose.core.model.TargetKind
-import io.beyondwin.fixthis.compose.core.model.TargetReliabilityInput
-import io.beyondwin.fixthis.compose.core.model.TargetReliabilityReason
-import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
-import io.beyondwin.fixthis.compose.core.model.TreeKind
+import io.github.beyondwin.fixthis.compose.core.model.EvidenceQuality
+import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.compose.core.model.IdentityHint
+import io.github.beyondwin.fixthis.compose.core.model.IdentityHintConfidence
+import io.github.beyondwin.fixthis.compose.core.model.IdentityHintSource
+import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
+import io.github.beyondwin.fixthis.compose.core.model.TargetConfidence
+import io.github.beyondwin.fixthis.compose.core.model.TargetEvidence
+import io.github.beyondwin.fixthis.compose.core.model.TargetKind
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityInput
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityReason
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+import io.github.beyondwin.fixthis.compose.core.model.TreeKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -197,7 +197,7 @@ Expected: FAIL with unresolved references for `TargetReliabilityCalculator`, `Ta
 
 - [ ] **Step 3: Add reliability models**
 
-In `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt`, add `targetReliability` to `FixThisAnnotation` immediately after `targetEvidence`:
+In `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt`, add `targetReliability` to `FixThisAnnotation` immediately after `targetEvidence`:
 
 ```kotlin
     val targetEvidence: TargetEvidence? = null,
@@ -292,26 +292,26 @@ private fun TargetReliabilityWarning.reducesConfidence(): Boolean = when (this) 
 
 - [ ] **Step 4: Add the calculator**
 
-Create `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/target/TargetReliabilityCalculator.kt`:
+Create `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/target/TargetReliabilityCalculator.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.target
+package io.github.beyondwin.fixthis.compose.core.target
 
-import io.beyondwin.fixthis.compose.core.model.FixThisNode
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.beyondwin.fixthis.compose.core.model.IdentityHintConfidence
-import io.beyondwin.fixthis.compose.core.model.IdentityHintSource
-import io.beyondwin.fixthis.compose.core.model.SemanticCoverage
-import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
-import io.beyondwin.fixthis.compose.core.model.SourceCandidate
-import io.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
-import io.beyondwin.fixthis.compose.core.model.TargetConfidence
-import io.beyondwin.fixthis.compose.core.model.TargetKind
-import io.beyondwin.fixthis.compose.core.model.TargetReliability
-import io.beyondwin.fixthis.compose.core.model.TargetReliabilityInput
-import io.beyondwin.fixthis.compose.core.model.TargetReliabilityReason
-import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
-import io.beyondwin.fixthis.compose.core.model.withWarnings
+import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.compose.core.model.IdentityHintConfidence
+import io.github.beyondwin.fixthis.compose.core.model.IdentityHintSource
+import io.github.beyondwin.fixthis.compose.core.model.SemanticCoverage
+import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
+import io.github.beyondwin.fixthis.compose.core.model.TargetConfidence
+import io.github.beyondwin.fixthis.compose.core.model.TargetKind
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityInput
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityReason
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+import io.github.beyondwin.fixthis.compose.core.model.withWarnings
 import kotlin.math.sqrt
 
 object TargetReliabilityCalculator {
@@ -477,23 +477,23 @@ Expected: PASS.
 - [ ] **Step 6: Commit Task 1**
 
 ```bash
-git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt \
-  fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/target/TargetReliabilityCalculator.kt \
-  fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/target/TargetReliabilityCalculatorTest.kt
+git add fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt \
+  fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/target/TargetReliabilityCalculator.kt \
+  fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/target/TargetReliabilityCalculatorTest.kt
 git commit -m "feat(core): add target reliability calculator"
 ```
 
 ## Task 2: Core Annotation And Markdown Formatting
 
 **Files:**
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt`
-- Modify: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt`
-- Modify: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/TargetEvidenceModelTest.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt`
+- Modify: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt`
+- Modify: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/model/TargetEvidenceModelTest.kt`
 
 - [ ] **Step 1: Write serialization and formatter tests**
 
-Append these tests to `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/TargetEvidenceModelTest.kt`, before `baseAnnotation()`:
+Append these tests to `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/model/TargetEvidenceModelTest.kt`, before `baseAnnotation()`:
 
 ```kotlin
     @Test
@@ -536,7 +536,7 @@ Append these tests to `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis
     }
 ```
 
-Append this test to `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt`:
+Append this test to `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt`:
 
 ```kotlin
     @Test
@@ -569,10 +569,10 @@ Expected: serialization test compiles after Task 1, formatter test FAILS because
 
 - [ ] **Step 3: Add reliability to the domain annotation**
 
-In `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt`, add the import:
+In `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt`, add the import:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliability
 ```
 
 Add the field immediately after `targetEvidence`:
@@ -588,9 +588,9 @@ Add the field immediately after `targetEvidence`:
 In `FixThisMarkdownFormatter.kt`, add imports:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.core.model.TargetConfidence
-import io.beyondwin.fixthis.compose.core.model.TargetReliability
-import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+import io.github.beyondwin.fixthis.compose.core.model.TargetConfidence
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 ```
 
 In `formatCompact`, call reliability rendering after `appendCompactTarget(annotation)`:
@@ -659,33 +659,33 @@ Expected: PASS.
 - [ ] **Step 6: Commit Task 2**
 
 ```bash
-git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt \
-  fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt \
-  fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt \
-  fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/TargetReliabilitySerializationTest.kt
+git add fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt \
+  fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt \
+  fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt \
+  fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/model/TargetReliabilitySerializationTest.kt
 git commit -m "feat(core): render target reliability in markdown"
 ```
 
 ## Task 3: MCP DTO, Mapping, And Legacy Session Compatibility
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDomainMappers.kt`
-- Create: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/TargetReliabilityDtoTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDomainMappers.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetReliabilityDtoTest.kt`
 
 - [ ] **Step 1: Write failing MCP DTO tests**
 
-Create `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/TargetReliabilityDtoTest.kt`:
+Create `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetReliabilityDtoTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.cli.fixThisJson
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.beyondwin.fixthis.compose.core.model.TargetConfidence
-import io.beyondwin.fixthis.compose.core.model.TargetReliability
-import io.beyondwin.fixthis.compose.core.model.TargetReliabilityReason
-import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+import io.github.beyondwin.fixthis.cli.fixThisJson
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.compose.core.model.TargetConfidence
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityReason
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -773,7 +773,7 @@ Expected: FAIL with unresolved `targetReliability` properties and mapper mismatc
 In `SessionDtoModels.kt`, add the import:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliability
 ```
 
 Add this field to `AnnotationDto` immediately after `targetEvidence`:
@@ -815,19 +815,19 @@ Expected: PASS.
 - [ ] **Step 6: Commit Task 3**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDomainMappers.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/TargetReliabilityDtoTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDomainMappers.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetReliabilityDtoTest.kt
 git commit -m "feat(mcp): persist target reliability metadata"
 ```
 
 ## Task 4: Derive Reliability During Item Creation
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceServiceTest.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackDraftServiceMismatchTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceServiceTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackDraftServiceMismatchTest.kt`
 
 - [ ] **Step 1: Add failing service tests**
 
@@ -888,8 +888,8 @@ Append these tests to `TargetEvidenceServiceTest.kt`. They use the existing priv
 Add required imports to the test file:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.core.model.TargetConfidence
-import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+import io.github.beyondwin.fixthis.compose.core.model.TargetConfidence
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 ```
 
 Append this test to `FeedbackDraftServiceMismatchTest.kt`:
@@ -901,7 +901,7 @@ Append this test to `FeedbackDraftServiceMismatchTest.kt`:
             ids = arrayOf("session-1", "preview-1", "screen-1", "item-1"),
             prefix = "fixthis-draft-mismatch-reliability-",
         )
-        val session = fixture.store.openSession("io.beyondwin.fixthis.sample", fixture.root.absolutePath)
+        val session = fixture.store.openSession("io.github.beyondwin.fixthis.sample", fixture.root.absolutePath)
         val preview = fixture.previewCaptureService.capturePreview(session)
         val reservation = fixture.draftService.preparePreviewFeedbackSave(
             sessionId = session.sessionId,
@@ -931,7 +931,7 @@ Append this test to `FeedbackDraftServiceMismatchTest.kt`:
 Add required imports to `FeedbackDraftServiceMismatchTest.kt`:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import kotlin.test.assertTrue
 ```
 
@@ -950,10 +950,10 @@ Expected: FAIL because item creation does not set `targetReliability`.
 In `TargetEvidenceService.kt`, add imports:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.core.model.TargetKind
-import io.beyondwin.fixthis.compose.core.model.TargetReliability
-import io.beyondwin.fixthis.compose.core.model.TargetReliabilityInput
-import io.beyondwin.fixthis.compose.core.target.TargetReliabilityCalculator
+import io.github.beyondwin.fixthis.compose.core.model.TargetKind
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityInput
+import io.github.beyondwin.fixthis.compose.core.target.TargetReliabilityCalculator
 ```
 
 Add a constructor parameter:
@@ -1029,8 +1029,8 @@ Add this method near `targetEvidenceFor`:
 In `FeedbackDraftService.kt`, add imports:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
-import io.beyondwin.fixthis.compose.core.target.TargetReliabilityCalculator
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+import io.github.beyondwin.fixthis.compose.core.target.TargetReliabilityCalculator
 ```
 
 Inside `commitPreviewFeedbackSaveWithMetadata`, after `feedbackItems` is built, replace the `val feedbackItems = ...` block with:
@@ -1087,20 +1087,20 @@ Expected: PASS.
 - [ ] **Step 6: Commit Task 4**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceServiceTest.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackDraftServiceMismatchTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceServiceTest.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackDraftServiceMismatchTest.kt
 git commit -m "feat(mcp): derive target reliability for feedback items"
 ```
 
 ## Task 5: Handoff Markdown And JSON Output
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`
 
 - [ ] **Step 1: Write failing handoff renderer tests**
 
@@ -1111,7 +1111,7 @@ Append this test to `CompactHandoffRendererTest.kt`:
     fun compactHandoffRendersTargetReliabilityWarnings() {
         val session = SessionDto(
             sessionId = "session-1",
-            packageName = "io.beyondwin.fixthis.sample",
+            packageName = "io.github.beyondwin.fixthis.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 1L,
             updatedAtEpochMillis = 1L,
@@ -1154,7 +1154,7 @@ Append this test to `FeedbackQueueFormatterTest.kt`:
     fun preciseMarkdownRendersTargetReliabilityWarnings() {
         val session = SessionDto(
             sessionId = "session-1",
-            packageName = "io.beyondwin.fixthis.sample",
+            packageName = "io.github.beyondwin.fixthis.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 1L,
             updatedAtEpochMillis = 1L,
@@ -1191,18 +1191,18 @@ Append this test to `FeedbackQueueFormatterTest.kt`:
 Add imports to `CompactHandoffRendererTest.kt`:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.core.model.TargetConfidence
-import io.beyondwin.fixthis.compose.core.model.TargetReliability
-import io.beyondwin.fixthis.compose.core.model.TargetReliabilityReason
-import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+import io.github.beyondwin.fixthis.compose.core.model.TargetConfidence
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityReason
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 ```
 
 Add imports to `FeedbackQueueFormatterTest.kt`:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.core.model.TargetConfidence
-import io.beyondwin.fixthis.compose.core.model.TargetReliability
-import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+import io.github.beyondwin.fixthis.compose.core.model.TargetConfidence
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 ```
 
 - [ ] **Step 2: Run handoff tests to verify they fail**
@@ -1220,8 +1220,8 @@ Expected: FAIL because no reliability lines are rendered.
 In `CompactHandoffRenderer.kt`, add imports:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.core.model.TargetReliability
-import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 ```
 
 Inside `appendCompactItem`, call reliability rendering after `appendCandidatesBlock(item, sourceRoot)`:
@@ -1264,9 +1264,9 @@ Add these helpers:
 In `FeedbackQueueFormatter.kt`, add imports:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.core.model.TargetConfidence
-import io.beyondwin.fixthis.compose.core.model.TargetReliability
-import io.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+import io.github.beyondwin.fixthis.compose.core.model.TargetConfidence
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 ```
 
 Inside `appendTarget`, after `appendTargetEvidence(item)` for both target branches, call:
@@ -1319,10 +1319,10 @@ Expected: PASS.
 - [ ] **Step 6: Commit Task 5**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt
 git commit -m "feat(mcp): render target reliability in handoffs"
 ```
 
@@ -1546,7 +1546,7 @@ git commit -m "feat(console): show target reliability warnings"
 ## Task 7: AndroidView-Like Sample Fixture
 
 **Files:**
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt`
 - Modify: `docs/getting-started/try-the-sample.md`
 
 - [ ] **Step 1: Add a failing sample-source assertion**
@@ -1554,7 +1554,7 @@ git commit -m "feat(console): show target reliability warnings"
 Create a temporary focused check by running:
 
 ```bash
-rg -n "Native AndroidView target|AndroidView interop preview" sample/src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt
+rg -n "Native AndroidView target|AndroidView interop preview" sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt
 ```
 
 Expected: exit 1 with no matches.
@@ -1605,7 +1605,7 @@ Add this note to `docs/getting-started/try-the-sample.md` in the sample coverage
 Run:
 
 ```bash
-rg -n "Native AndroidView target|AndroidView interop preview" sample/src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt
+rg -n "Native AndroidView target|AndroidView interop preview" sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt
 ./gradlew :app:assembleDebug --no-daemon
 ```
 
@@ -1614,7 +1614,7 @@ Expected: `rg` prints two matches and Gradle PASS.
 - [ ] **Step 4: Commit Task 7**
 
 ```bash
-git add sample/src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt \
+git add sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt \
   docs/getting-started/try-the-sample.md
 git commit -m "test(sample): add AndroidView interop fixture"
 ```

@@ -84,14 +84,14 @@ Main source line-count hotspots:
 | File | Lines | Why it matters |
 | --- | ---: | --- |
 | `fixthis-mcp/src/main/resources/console/app.js` | 3,707 | Generated bundle; acceptable as output, but should not be hand-edited. |
-| `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` | 993 | Real SRP risk; not generated. |
-| `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt` | 869 | Real OCP/ISP risk; all tool changes touch one class. |
+| `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` | 993 | Real SRP risk; not generated. |
+| `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt` | 869 | Real OCP/ISP risk; all tool changes touch one class. |
 | `fixthis-mcp/src/main/console/rendering.js` | 766 | UI rendering still broad. |
-| `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` | 698 | Runtime, protocol, socket, DTO, and Android environment are together. |
+| `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` | 698 | Runtime, protocol, socket, DTO, and Android environment are together. |
 | `fixthis-mcp/src/main/console/annotations.js` | 678 | Annotation flow is broad and stateful. |
-| `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt` | 578 | Scoring policy and explanation generation are coupled. |
-| `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt` | 531 | ADB forwarding, protocol framing, artifact copy, and package resolution are together. |
-| `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt` | 442 | Gradle task and source scanner are coupled. |
+| `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt` | 578 | Scoring policy and explanation generation are coupled. |
+| `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt` | 531 | ADB forwarding, protocol framing, artifact copy, and package resolution are together. |
+| `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt` | 442 | Gradle task and source scanner are coupled. |
 
 Detekt baseline confirms these are not cosmetic. `baseline-fixthis-mcp.xml`
 contains 6 `LargeClass`, 10 `TooManyFunctions`, 23 `LongMethod`, 14
@@ -108,7 +108,7 @@ Severity: P1
 
 Evidence:
 
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/*`
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/*`
   defines `Annotation`, `Session`, `Snapshot`, repository ports, and use cases.
 - `SessionDomainMappers.kt` maps `SessionDto` to domain models.
 - The active MCP session path still flows through `FeedbackSessionStore`,
@@ -408,7 +408,7 @@ Recommended direction:
 
 - Split by route/contract: assets, connection, devices, preview, feedback item,
   session, handoff, security token, and HTML smoke.
-- Move shared fakes to `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/fixtures/`.
+- Move shared fakes to `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/fixtures/`.
 - Move pure JS behavior assertions to Node tests where possible.
 
 ## What Is Not A Problem Right Now
@@ -591,7 +591,7 @@ git diff --check
 For bridge protocol changes, also run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.BridgeProtocolVersionSyncTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.BridgeProtocolVersionSyncTest"
 ```
 
 For Gradle plugin scanner changes, also run:

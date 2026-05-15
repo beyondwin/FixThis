@@ -30,7 +30,7 @@
 - Modify: `fixthis-mcp/src/main/resources/console/index.html`
 - Modify: `fixthis-mcp/src/main/console/connection.js`
 - Modify: `fixthis-mcp/src/main/console/main.js`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt`
 
 - [ ] **Step 1: Add failing asset contract test**
 
@@ -55,7 +55,7 @@ fun harnessSelectorsAreStable() {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleAssetContractTest.harnessSelectorsAreStable" --no-daemon
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleAssetContractTest.harnessSelectorsAreStable" --no-daemon
 ```
 
 Expected: FAIL because the attributes are not present.
@@ -92,7 +92,7 @@ Run:
 
 ```bash
 node scripts/build-console-assets.mjs
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleAssetContractTest.harnessSelectorsAreStable" --no-daemon
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleAssetContractTest.harnessSelectorsAreStable" --no-daemon
 node scripts/build-console-assets.mjs --check
 ```
 
@@ -101,7 +101,7 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/resources/console/index.html fixthis-mcp/src/main/console/connection.js fixthis-mcp/src/main/console/main.js fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/main/resources/console/app.js.map fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt
+git add fixthis-mcp/src/main/resources/console/index.html fixthis-mcp/src/main/console/connection.js fixthis-mcp/src/main/console/main.js fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/main/resources/console/app.js.map fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt
 git commit -m "test(console): add stable harness selectors"
 ```
 

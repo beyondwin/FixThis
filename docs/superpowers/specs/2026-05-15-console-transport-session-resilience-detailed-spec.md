@@ -55,8 +55,8 @@ The reported stack fails while writing PNG bytes:
 ```text
 FeedbackConsoleServer: java.io.IOException: Connection reset by peer
 ...
-io.beyondwin.fixthis.mcp.console.ConsoleHttpKt.sendBytes(ConsoleHttp.kt:105)
-io.beyondwin.fixthis.mcp.console.PreviewRoutes.sendPreviewScreenshot(PreviewRoutes.kt:98)
+io.github.beyondwin.fixthis.mcp.console.ConsoleHttpKt.sendBytes(ConsoleHttp.kt:105)
+io.github.beyondwin.fixthis.mcp.console.PreviewRoutes.sendPreviewScreenshot(PreviewRoutes.kt:98)
 ```
 
 `sendBytes()` writes a fixed-length response body. If the browser closes the request early, `HttpServer` can throw:
@@ -507,7 +507,7 @@ if (data.sessionId !== state.session?.sessionId) return;
 Focused command:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerErrorLoggingTest" --tests "io.beyondwin.fixthis.mcp.console.ConsoleEventsRoutesTest" --no-daemon
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerErrorLoggingTest" --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleEventsRoutesTest" --no-daemon
 ```
 
 ### Browser Source Tests

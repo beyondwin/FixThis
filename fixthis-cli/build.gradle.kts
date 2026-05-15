@@ -9,7 +9,7 @@ kotlin {
 }
 
 application {
-    mainClass.set("io.beyondwin.fixthis.cli.MainKt")
+    mainClass.set("io.github.beyondwin.fixthis.cli.MainKt")
     applicationName = "fixthis"
 }
 

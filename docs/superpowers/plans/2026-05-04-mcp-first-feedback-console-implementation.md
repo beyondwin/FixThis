@@ -60,10 +60,10 @@ Testing files:
 Create `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStoreTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.cli.fixThisJson
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.cli.fixThisJson
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -73,7 +73,7 @@ class FeedbackSessionStoreTest {
     fun feedbackSessionRoundTripsThroughJson() {
         val session = FeedbackSession(
             sessionId = "session-1",
-            packageName = "io.beyondwin.fixthis.sample",
+            packageName = "io.github.beyondwin.fixthis.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 10L,
             updatedAtEpochMillis = 20L,
@@ -115,7 +115,7 @@ class FeedbackSessionStoreTest {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest.feedbackSessionRoundTripsThroughJson
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest.feedbackSessionRoundTripsThroughJson
 ```
 
 Expected: compilation fails because `FeedbackSession` and related models do not exist.
@@ -125,12 +125,12 @@ Expected: compilation fails because `FeedbackSession` and related models do not 
 Create `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionModels.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.model.FixThisError
-import io.beyondwin.fixthis.compose.core.model.FixThisNode
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.github.beyondwin.fixthis.compose.core.model.FixThisError
+import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -244,7 +244,7 @@ enum class FeedbackItemStatus {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest.feedbackSessionRoundTripsThroughJson
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest.feedbackSessionRoundTripsThroughJson
 ```
 
 Expected: PASS.
@@ -274,7 +274,7 @@ Append to `FeedbackSessionStoreTest`:
         val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
 
         val session = store.openSession(
-            packageName = "io.beyondwin.fixthis.sample",
+            packageName = "io.github.beyondwin.fixthis.sample",
             projectRoot = "/repo",
         )
         val screen = store.addScreen(
@@ -311,7 +311,7 @@ Append to `FeedbackSessionStoreTest`:
         val clock = FakeClock(100L)
         val ids = FakeIds("session-1", "screen-1", "item-1")
         val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
-        val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+        val session = store.openSession("io.github.beyondwin.fixthis.sample", "/repo")
         val screen = store.addScreen(session.sessionId, CapturedScreen("ignored", -1L, displayName = "Checkout"))
         store.addItem(
             session.sessionId,
@@ -352,7 +352,7 @@ Append to `FeedbackSessionStoreTest`:
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest
 ```
 
 Expected: compilation fails because `FeedbackSessionStore` does not exist.
@@ -362,7 +362,7 @@ Expected: compilation fails because `FeedbackSessionStore` does not exist.
 Create `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionStore.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
 import java.util.UUID
 
@@ -484,7 +484,7 @@ class FeedbackSessionException(message: String) : RuntimeException(message)
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest
 ```
 
 Expected: PASS.
@@ -507,9 +507,9 @@ git commit -m "mcp: store feedback sessions in memory"
 Create `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -518,7 +518,7 @@ class FeedbackQueueFormatterTest {
     fun markdownIncludesScreensItemsAndWarnings() {
         val session = FeedbackSession(
             sessionId = "session-1",
-            packageName = "io.beyondwin.fixthis.sample",
+            packageName = "io.github.beyondwin.fixthis.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 1L,
             updatedAtEpochMillis = 2L,
@@ -546,7 +546,7 @@ class FeedbackQueueFormatterTest {
         val markdown = FeedbackQueueFormatter.toMarkdown(session)
 
         assertTrue(markdown.contains("# FixThis Feedback Queue"))
-        assertTrue(markdown.contains("io.beyondwin.fixthis.sample"))
+        assertTrue(markdown.contains("io.github.beyondwin.fixthis.sample"))
         assertTrue(markdown.contains("Checkout"))
         assertTrue(markdown.contains("Increase button contrast"))
         assertTrue(markdown.contains("Screenshots are local debug artifacts"))
@@ -559,7 +559,7 @@ class FeedbackQueueFormatterTest {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
 ```
 
 Expected: compilation fails because `FeedbackQueueFormatter` does not exist.
@@ -569,9 +569,9 @@ Expected: compilation fails because `FeedbackQueueFormatter` does not exist.
 Create `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackQueueFormatter.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.cli.fixThisJson
+import io.github.beyondwin.fixthis.cli.fixThisJson
 
 object FeedbackQueueFormatter {
     fun toJson(session: FeedbackSession): String =
@@ -629,7 +629,7 @@ object FeedbackQueueFormatter {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
 ```
 
 Expected: PASS.
@@ -694,7 +694,7 @@ override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot = screenSnaps
 Run:
 
 ```bash
-./gradlew :fixthis-compose-sidekick:testDebugUnitTest --tests io.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerTest.captureScreenSnapshotReturnsSnapshotResult
+./gradlew :fixthis-compose-sidekick:testDebugUnitTest --tests io.github.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerTest.captureScreenSnapshotReturnsSnapshotResult
 ```
 
 Expected: compilation fails because `BridgeScreenSnapshot` and `captureScreenSnapshot` do not exist.
@@ -767,7 +767,7 @@ override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot =
 Run:
 
 ```bash
-./gradlew :fixthis-compose-sidekick:testDebugUnitTest --tests io.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerTest
+./gradlew :fixthis-compose-sidekick:testDebugUnitTest --tests io.github.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerTest
 ```
 
 Expected: PASS.
@@ -826,7 +826,7 @@ Add to `BridgeClientTest`:
             socketConnector = { socket },
         )
 
-        val result = client.captureScreenSnapshot("io.beyondwin.fixthis.sample")
+        val result = client.captureScreenSnapshot("io.github.beyondwin.fixthis.sample")
 
         val screenshot = result.getValue("screenshot").jsonObject
         assertTrue(screenshot.getValue("desktopFullPath").jsonPrimitive.content.endsWith("-full.png"))
@@ -839,7 +839,7 @@ Add to `BridgeClientTest`:
 Run:
 
 ```bash
-./gradlew :fixthis-cli:test --tests io.beyondwin.fixthis.cli.BridgeClientTest.captureScreenSnapshotPullsFullScreenshotArtifact
+./gradlew :fixthis-cli:test --tests io.github.beyondwin.fixthis.cli.BridgeClientTest.captureScreenSnapshotPullsFullScreenshotArtifact
 ```
 
 Expected: compilation fails because `captureScreenSnapshot` does not exist.
@@ -879,7 +879,7 @@ suspend fun captureScreenSnapshot(packageName: String): JsonObject {
 Run:
 
 ```bash
-./gradlew :fixthis-cli:test --tests io.beyondwin.fixthis.cli.BridgeClientTest
+./gradlew :fixthis-cli:test --tests io.github.beyondwin.fixthis.cli.BridgeClientTest
 ```
 
 Expected: PASS.
@@ -919,10 +919,10 @@ override suspend fun captureScreenSnapshot(packageName: String): JsonObject =
 Create `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FeedbackSessionServiceTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.beyondwin.fixthis.mcp.tools.FixThisBridge
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -941,7 +941,7 @@ class FeedbackSessionServiceTest {
             bridge = bridge,
             store = store,
             projectRoot = "/repo",
-            defaultPackageName = "io.beyondwin.fixthis.sample",
+            defaultPackageName = "io.github.beyondwin.fixthis.sample",
         )
 
         val session = service.openSession(null)
@@ -955,7 +955,7 @@ class FeedbackSessionServiceTest {
     @Test
     fun addAreaFeedbackStoresItemForScreen() = runBlocking {
         val store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1", "item-1").next)
-        val service = FeedbackSessionService(FakeFixThisBridge(), store, "/repo", "io.beyondwin.fixthis.sample")
+        val service = FeedbackSessionService(FakeFixThisBridge(), store, "/repo", "io.github.beyondwin.fixthis.sample")
         val session = service.openSession(null)
         val screen = service.captureScreen(session.sessionId)
 
@@ -981,9 +981,9 @@ class FeedbackSessionServiceTest {
 Create `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/session/FakeFixThisBridge.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.mcp.tools.FixThisBridge
+import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -991,7 +991,7 @@ import kotlinx.serialization.json.put
 
 internal class FakeFixThisBridge : FixThisBridge {
     override fun resolvePackageName(packageOverride: String?): String =
-        packageOverride ?: "io.beyondwin.fixthis.sample"
+        packageOverride ?: "io.github.beyondwin.fixthis.sample"
 
     override suspend fun status(packageName: String): JsonObject = JsonObject(emptyMap())
     override suspend fun inspectCurrentScreen(packageName: String): JsonObject = JsonObject(emptyMap())
@@ -1017,7 +1017,7 @@ internal class FakeFixThisBridge : FixThisBridge {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
 ```
 
 Expected: compilation fails because `FeedbackSessionService` does not exist.
@@ -1027,11 +1027,11 @@ Expected: compilation fails because `FeedbackSessionService` does not exist.
 Create `fixthis-mcp/src/main/kotlin/io/github/fixthis/mcp/session/FeedbackSessionService.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.beyondwin.fixthis.mcp.McpProtocol
-import io.beyondwin.fixthis.mcp.tools.FixThisBridge
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.mcp.McpProtocol
+import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
@@ -1115,7 +1115,7 @@ class FeedbackSessionService(
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
 ```
 
 Expected: PASS.
@@ -1153,7 +1153,7 @@ Add tests to `McpProtocolTest`:
     fun listFeedbackReturnsCurrentSessionQueue() = runBlocking {
         val tools = FixThisTools(
             bridge = FakeFixThisBridge(),
-            defaultPackageName = "io.beyondwin.fixthis.sample",
+            defaultPackageName = "io.github.beyondwin.fixthis.sample",
             projectRoot = File("/repo"),
         )
         val protocol = McpProtocol(tools)
@@ -1164,7 +1164,7 @@ Add tests to `McpProtocolTest`:
         ).orEmpty()
 
         assertTrue(response.contains("sessionId"))
-        assertTrue(response.contains("io.beyondwin.fixthis.sample"))
+        assertTrue(response.contains("io.github.beyondwin.fixthis.sample"))
     }
 ```
 
@@ -1173,7 +1173,7 @@ Add tests to `McpProtocolTest`:
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.McpProtocolTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.McpProtocolTest
 ```
 
 Expected: FAIL because new tools are not registered.
@@ -1321,7 +1321,7 @@ ToolDefinition(
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.McpProtocolTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.McpProtocolTest
 ```
 
 Expected: PASS.
@@ -1346,11 +1346,11 @@ git commit -m "mcp: expose feedback queue tools"
 Create `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
-import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
-import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
-import io.beyondwin.fixthis.mcp.session.FakeFixThisBridge
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.session.FakeFixThisBridge
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.test.Test
@@ -1364,7 +1364,7 @@ class FeedbackConsoleServerTest {
             bridge = FakeFixThisBridge(),
             store = FeedbackSessionStore(clock = { 100L }, idGenerator = { "session-1" }),
             projectRoot = "/repo",
-            defaultPackageName = "io.beyondwin.fixthis.sample",
+            defaultPackageName = "io.github.beyondwin.fixthis.sample",
         )
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
@@ -1373,7 +1373,7 @@ class FeedbackConsoleServerTest {
             assertTrue(index.contains("FixThis Feedback Console"))
 
             val session = URL("${server.url}/api/session").readText()
-            assertTrue(session.contains("io.beyondwin.fixthis.sample"))
+            assertTrue(session.contains("io.github.beyondwin.fixthis.sample"))
         } finally {
             server.stop()
         }
@@ -1381,7 +1381,7 @@ class FeedbackConsoleServerTest {
 
     @Test
     fun rejectsUnsupportedMethods() {
-        val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")
+        val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.github.beyondwin.fixthis.sample")
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
@@ -1400,7 +1400,7 @@ class FeedbackConsoleServerTest {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: compilation fails because console server files do not exist.
@@ -1410,7 +1410,7 @@ Expected: compilation fails because console server files do not exist.
 Create `FeedbackConsoleAssets.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
 internal object FeedbackConsoleAssets {
     val indexHtml: String = """
@@ -1493,15 +1493,15 @@ internal object FeedbackConsoleAssets {
 Create `FeedbackConsoleServer.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
-import io.beyondwin.fixthis.cli.fixThisJson
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatter
-import io.beyondwin.fixthis.mcp.session.FeedbackSession
-import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
+import io.github.beyondwin.fixthis.cli.fixThisJson
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.mcp.session.FeedbackQueueFormatter
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSession
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import java.net.InetSocketAddress
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
@@ -1597,7 +1597,7 @@ private data class BoundsRequest(val left: Float, val top: Float, val right: Flo
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: PASS.
@@ -1653,7 +1653,7 @@ git commit -m "mcp: serve feedback console"
 Create `ConsoleCommandTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.cli.commands
+package io.github.beyondwin.fixthis.cli.commands
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -1665,7 +1665,7 @@ class ConsoleCommandTest {
         val executable = java.io.File("/tmp/fixthis-mcp")
         val command = buildConsoleProcessCommand(
             executable = executable,
-            packageName = "io.beyondwin.fixthis.sample",
+            packageName = "io.github.beyondwin.fixthis.sample",
             projectDir = "/repo",
         )
 
@@ -1674,7 +1674,7 @@ class ConsoleCommandTest {
                 "/tmp/fixthis-mcp",
                 "--console",
                 "--package",
-                "io.beyondwin.fixthis.sample",
+                "io.github.beyondwin.fixthis.sample",
                 "--project-dir",
                 "/repo",
             ),
@@ -1701,7 +1701,7 @@ class ConsoleCommandTest {
 Run:
 
 ```bash
-./gradlew :fixthis-cli:test --tests io.beyondwin.fixthis.cli.commands.ConsoleCommandTest
+./gradlew :fixthis-cli:test --tests io.github.beyondwin.fixthis.cli.commands.ConsoleCommandTest
 ```
 
 Expected: compilation fails because `ConsoleCommand` helpers do not exist.
@@ -1757,7 +1757,7 @@ Import `jsonArray`, `jsonObject`, and `content`.
 Create `ConsoleCommand.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.cli.commands
+package io.github.beyondwin.fixthis.cli.commands
 
 import com.github.ajalt.clikt.core.CoreCliktCommand
 import com.github.ajalt.clikt.parameters.options.default
@@ -1853,7 +1853,7 @@ Add to `McpProtocolTest`:
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.McpProtocolTest.oldGetUiFeedbackStillReturnsAnnotationAndMarkdown
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.McpProtocolTest.oldGetUiFeedbackStillReturnsAnnotationAndMarkdown
 ```
 
 Expected: PASS with the existing path before refactoring.
@@ -2034,7 +2034,7 @@ fixthis-mcp/build/install/fixthis-mcp/bin/fixthis-mcp
 Run:
 
 ```bash
-fixthis-cli/build/install/fixthis/bin/fixthis console --package io.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis console --package io.github.beyondwin.fixthis.sample
 ```
 
 Expected without a connected device: command starts the console server and the console shows a clear no-device or sidekick-unreachable state when capture is attempted. Stop the process with Ctrl-C after confirming the URL prints.
@@ -2045,8 +2045,8 @@ Run:
 
 ```bash
 ./gradlew :app:installDebug
-fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
-fixthis-cli/build/install/fixthis/bin/fixthis console --package io.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis run --package io.github.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis console --package io.github.beyondwin.fixthis.sample
 ```
 
 Expected:

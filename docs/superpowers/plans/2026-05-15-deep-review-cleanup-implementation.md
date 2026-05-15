@@ -16,20 +16,20 @@
 
 Modify these Kotlin files:
 
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt` — Process lifecycle 정리, stderr drain, 모듈 수명 캐시, 예외 stderr 로그.
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` — 광역 catch에서 diagnostics sink 호출(주입 가능).
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/McpServer.kt` — in-flight 등록 헬퍼 `trackRequest(...)` 추출.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt` — Process lifecycle 정리, stderr drain, 모듈 수명 캐시, 예외 stderr 로그.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` — 광역 catch에서 diagnostics sink 호출(주입 가능).
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/McpServer.kt` — in-flight 등록 헬퍼 `trackRequest(...)` 추출.
 
 Add these Kotlin files:
 
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleAssetsTest.kt` — 캐시·git-missing·stderr drain 단위 테스트.
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerErrorLoggingTest.kt` — diagnostics sink 단위 테스트.
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpServerInFlightRaceTest.kt` — UNDISPATCHED launch가 register 전에 완료되는 경로 검증.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleAssetsTest.kt` — 캐시·git-missing·stderr drain 단위 테스트.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerErrorLoggingTest.kt` — diagnostics sink 단위 테스트.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpServerInFlightRaceTest.kt` — UNDISPATCHED launch가 register 전에 완료되는 경로 검증.
 
 Modify these CLI test files:
 
-- `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/AdbTest.kt` — `Thread.sleep` 폴링 → `CountDownLatch.await`.
-- `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/.../<fixture>` — fixture가 마커 생성 시 latch.countDown() 호출(파일은 task에서 확정).
+- `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/AdbTest.kt` — `Thread.sleep` 폴링 → `CountDownLatch.await`.
+- `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/.../<fixture>` — fixture가 마커 생성 시 latch.countDown() 호출(파일은 task에서 확정).
 
 Modify these console JS files:
 
@@ -54,8 +54,8 @@ Add these console JS test files:
 ### Task 1: 콘솔 자산 git fork 정리 + 캐시
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt`
-- Add test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleAssetsTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt`
+- Add test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleAssetsTest.kt`
 
 - [ ] **Step 1.1: 실패하는 테스트 추가**
 
@@ -126,8 +126,8 @@ fun shaResolverRejectsNonHexOutput() {
 ### Task 2: 콘솔 자산/서버 예외 로깅
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
-- Add test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerErrorLoggingTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
+- Add test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerErrorLoggingTest.kt`
 
 - [ ] **Step 2.1: 실패하는 테스트 추가**
 
@@ -170,7 +170,7 @@ fun handlerExceptionsAreLoggedToDiagnosticsSink() {
 ### Task 3: AdbTest sleep 폴링 제거
 
 **Files:**
-- Modify: `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/AdbTest.kt`
+- Modify: `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/AdbTest.kt`
 - Modify: (Task 시작 시 확정) fixture가 마커를 생성하는 위치.
 
 - [ ] **Step 3.1: 현 코드 위치 확인**
@@ -263,8 +263,8 @@ npm run console:test:all
 ### Task 5: McpServer in-flight 등록 헬퍼 + race 테스트
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/McpServer.kt`
-- Add test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpServerInFlightRaceTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/McpServer.kt`
+- Add test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpServerInFlightRaceTest.kt`
 
 - [ ] **Step 5.1: 실패하는 race 테스트 추가**
 

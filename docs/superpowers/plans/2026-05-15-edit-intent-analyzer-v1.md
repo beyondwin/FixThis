@@ -12,41 +12,41 @@
 
 ## File Structure
 
-- Create `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentLexicon.kt`
+- Create `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentLexicon.kt`
   - Owns Korean/English trigger matching only.
   - Returns a set of raw intent signals.
-- Create `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentAnalyzer.kt`
+- Create `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentAnalyzer.kt`
   - Combines raw signals with `AnnotationDto`, `SnapshotDto?`, `FixThisNode`, target owner tags, and `SourceCandidate.ownerComposable`.
   - Returns the existing `EditIntent` data class.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentClassifier.kt`
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentClassifier.kt`
   - Keep `EditIntent`.
   - Keep `EditIntentClassifier.classify(comment)` as a compatibility wrapper.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditSurfaceCandidateService.kt`
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditSurfaceCandidateService.kt`
   - Replace comment-only classification with analyzer.
   - Derive component owner from selected node tag first, then resolved owner tag.
-- Add `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentLexiconTest.kt`
+- Add `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentLexiconTest.kt`
   - Tests Korean/English trigger matching and content-only suppression inputs.
-- Add `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentAnalyzerTest.kt`
+- Add `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentAnalyzerTest.kt`
   - Tests Compose-aware classification.
-- Add `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/EditSurfaceCandidateServiceTest.kt`
+- Add `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/EditSurfaceCandidateServiceTest.kt`
   - Tests candidate service routing with analyzer output.
-- Modify `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentClassifierTest.kt`
+- Modify `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentClassifierTest.kt`
   - Keep legacy wrapper behavior covered.
 
 ## Task 1: Add Pure Text Lexicon
 
 **Files:**
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentLexicon.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentLexiconTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentLexicon.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentLexiconTest.kt`
 
 - [ ] **Step 1: Write the failing lexicon test**
 
-Create `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentLexiconTest.kt`:
+Create `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentLexiconTest.kt`:
 
 ```kotlin
 @file:Suppress("MaxLineLength")
 
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -106,10 +106,10 @@ Expected: FAIL because `RawEditIntentSignal` and `EditIntentLexicon` are unresol
 
 - [ ] **Step 3: Implement the lexicon**
 
-Create `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentLexicon.kt`:
+Create `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentLexicon.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
 internal enum class RawEditIntentSignal {
     COLOR_STYLE,
@@ -164,32 +164,32 @@ Expected: PASS.
 - [ ] **Step 5: Commit Task 1**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentLexicon.kt fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentLexiconTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentLexicon.kt fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentLexiconTest.kt
 git commit -m "feat(mcp): add edit intent lexicon"
 ```
 
 ## Task 2: Add Compose-Aware Analyzer
 
 **Files:**
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentAnalyzer.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentClassifier.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentAnalyzerTest.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentClassifierTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentAnalyzer.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentClassifier.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentAnalyzerTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentClassifierTest.kt`
 
 - [ ] **Step 1: Write the failing analyzer test**
 
-Create `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentAnalyzerTest.kt`:
+Create `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentAnalyzerTest.kt`:
 
 ```kotlin
 @file:Suppress("LongParameterList", "MaxLineLength")
 
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.model.FixThisNode
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
-import io.beyondwin.fixthis.compose.core.model.SourceCandidate
-import io.beyondwin.fixthis.compose.core.model.TreeKind
+import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.github.beyondwin.fixthis.compose.core.model.TreeKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -306,7 +306,7 @@ class EditIntentAnalyzerTest {
     )
 
     private fun sourceCandidate(owner: String): SourceCandidate = SourceCandidate(
-        file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/$owner.kt",
+        file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/$owner.kt",
         line = 20,
         score = 0.8,
         confidence = SelectionConfidence.MEDIUM,
@@ -326,13 +326,13 @@ Expected: FAIL because `EditIntentAnalyzer` is unresolved.
 
 - [ ] **Step 3: Implement the analyzer**
 
-Create `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentAnalyzer.kt`:
+Create `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentAnalyzer.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.model.FixThisNode
-import io.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
 
 internal object EditIntentAnalyzer {
     fun analyze(item: AnnotationDto, screen: SnapshotDto?): EditIntent {
@@ -420,10 +420,10 @@ internal object EditIntentAnalyzer {
 
 - [ ] **Step 4: Convert the legacy classifier into a wrapper**
 
-Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentClassifier.kt`:
+Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentClassifier.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
 internal data class EditIntent(
     val primaryKind: EditSurfaceKindDto,
@@ -448,30 +448,30 @@ Expected: PASS.
 - [ ] **Step 6: Commit Task 2**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentAnalyzer.kt fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentClassifier.kt fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentAnalyzerTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentAnalyzer.kt fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentClassifier.kt fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentAnalyzerTest.kt
 git commit -m "feat(mcp): analyze edit intent with compose evidence"
 ```
 
 ## Task 3: Route Edit Surface Candidate Service Through Analyzer
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditSurfaceCandidateService.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/EditSurfaceCandidateServiceTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditSurfaceCandidateService.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/EditSurfaceCandidateServiceTest.kt`
 
 - [ ] **Step 1: Write the failing service test**
 
-Create `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/EditSurfaceCandidateServiceTest.kt`:
+Create `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/EditSurfaceCandidateServiceTest.kt`:
 
 ```kotlin
 @file:Suppress("LongParameterList", "MaxLineLength")
 
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.model.FixThisNode
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
-import io.beyondwin.fixthis.compose.core.model.SourceCandidate
-import io.beyondwin.fixthis.compose.core.model.TreeKind
+import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.github.beyondwin.fixthis.compose.core.model.TreeKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -485,7 +485,7 @@ class EditSurfaceCandidateServiceTest {
             selectedNode = chip,
             sourceCandidates = listOf(
                 sourceCandidate(
-                    file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/StatusChip.kt",
+                    file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StatusChip.kt",
                     matchedTerms = listOf("StatusChip"),
                     ownerComposable = "StatusChip",
                 ),
@@ -509,7 +509,7 @@ class EditSurfaceCandidateServiceTest {
             selectedNode = button,
             sourceCandidates = listOf(
                 sourceCandidate(
-                    file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/PrimaryButton.kt",
+                    file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/PrimaryButton.kt",
                     matchedTerms = listOf("PrimaryButton"),
                     ownerComposable = "PrimaryButton",
                 ),
@@ -530,7 +530,7 @@ class EditSurfaceCandidateServiceTest {
             selectedNode = label,
             sourceCandidates = listOf(
                 sourceCandidate(
-                    file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/MetricCard.kt",
+                    file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/MetricCard.kt",
                     matchedTerms = listOf("MetricCard"),
                     ownerComposable = "MetricCard",
                 ),
@@ -611,14 +611,14 @@ Expected: FAIL on the chip case because the service currently calls the comment-
 
 - [ ] **Step 3: Route service through analyzer and selected-node component identity**
 
-Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditSurfaceCandidateService.kt`:
+Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditSurfaceCandidateService.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.identity.TestTagConvention
-import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
-import io.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.github.beyondwin.fixthis.compose.core.identity.TestTagConvention
+import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
 
 internal object EditSurfaceCandidateService {
     fun build(
@@ -705,18 +705,18 @@ Expected: PASS.
 - [ ] **Step 5: Commit Task 3**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditSurfaceCandidateService.kt fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/EditSurfaceCandidateServiceTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditSurfaceCandidateService.kt fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/EditSurfaceCandidateServiceTest.kt
 git commit -m "feat(mcp): route edit surface candidates through analyzer"
 ```
 
 ## Task 4: Run Focused Regression Suite
 
 **Files:**
-- Verify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentLexicon.kt`
-- Verify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentAnalyzer.kt`
-- Verify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentClassifier.kt`
-- Verify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditSurfaceCandidateService.kt`
-- Verify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CopyPromptEditSurfaceRendererTest.kt`
+- Verify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentLexicon.kt`
+- Verify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentAnalyzer.kt`
+- Verify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentClassifier.kt`
+- Verify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditSurfaceCandidateService.kt`
+- Verify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CopyPromptEditSurfaceRendererTest.kt`
 
 - [ ] **Step 1: Run focused MCP session tests**
 
@@ -760,7 +760,7 @@ Run:
 
 ```bash
 git diff --stat HEAD
-git diff -- fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session
+git diff -- fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session
 ```
 
 Expected: diff contains only lexicon/analyzer additions, classifier wrapper simplification, candidate service routing, and related tests.
@@ -770,7 +770,7 @@ Expected: diff contains only lexicon/analyzer additions, classifier wrapper simp
 If Step 1 or Step 2 required small test corrections, commit only those corrections:
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session
 git commit -m "test(mcp): cover edit intent analyzer regressions"
 ```
 

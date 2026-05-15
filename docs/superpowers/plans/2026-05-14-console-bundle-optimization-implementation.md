@@ -25,8 +25,8 @@ Modify these existing files:
 - `scripts/build-console-assets.mjs` — rewrite for graph-driven, minified, sidecar output.
 - `fixthis-mcp/src/main/console/*.js` (all 27) — add `// @requires` header.
 - `fixthis-mcp/src/main/console/state.js` — remove `ConsoleBuildEpochMs` / `ConsoleBuildGitSha` references; read from `FixThisConsoleConfig.buildMeta` instead.
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt` — read `console-build-meta.json` and inline as `window.FixThisConsoleConfig.buildMeta`.
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt` (post-Item-3) — switch from bundled `app.js` to unbundled `src/main/console/*.js` reads.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt` — read `console-build-meta.json` and inline as `window.FixThisConsoleConfig.buildMeta`.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt` (post-Item-3) — switch from bundled `app.js` to unbundled `src/main/console/*.js` reads.
 - `CONTRIBUTING.md` — note size budget and source-map dev affordance.
 - `docs/reference/feedback-console-contract.md` — note sidecar + minification.
 
@@ -501,7 +501,7 @@ EOF
 **Files:**
 - Modify: `scripts/build-console-assets.mjs`
 - Modify: `fixthis-mcp/src/main/console/state.js`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt`
 - Create: `fixthis-mcp/src/main/resources/console/console-build-meta.json`
 
 - [ ] **Step 1: Find all in-source consumers of the legacy header**
@@ -571,7 +571,7 @@ Remove the legacy `buildHeader` injection block (`scripts/build-console-assets.m
 
 - [ ] **Step 4: Update Kotlin asset server to inline meta**
 
-Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt`.
+Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt`.
 Locate the existing `window.FixThisConsoleConfig = ...` inlining block. Add
 a sibling read of the JSON resource and inline the meta:
 
@@ -619,7 +619,7 @@ Expected: sidecar test PASSES. Size-budget test still FAILS.
 - [ ] **Step 7: Run Gradle tests to confirm no Kotlin regression**
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.*"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.*"
 ```
 
 Expected: all PASS.
@@ -630,7 +630,7 @@ Expected: all PASS.
 git add scripts/build-console-assets.mjs \
         scripts/build-console-assets-test.mjs \
         fixthis-mcp/src/main/console/state.js \
-        fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt \
+        fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt \
         fixthis-mcp/src/main/resources/console/console-build-meta.json \
         fixthis-mcp/src/main/resources/console/app.js
 git commit -m "$(cat <<'EOF'
@@ -784,7 +784,7 @@ If a sibling task name is more idiomatic in this module
 behavior is the same.
 
 Add a verification assertion in
-`fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt`
+`fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt`
 (or a new sibling test) that enumerates the console resources visible to
 the classloader and rejects any `.map` entry:
 
@@ -809,7 +809,7 @@ Expected: no output (no `.map` files in the staged resources).
 - [ ] **Step 6: Run the full Gradle matrix to confirm asset-contract tests survive**
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.*"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.*"
 ```
 
 Expected: PASS. If any test fails on a substring that the minifier rewrote
@@ -820,7 +820,7 @@ or removed, capture the failing assertions; they get migrated in Task 7.
 ```bash
 git add scripts/build-console-assets.mjs \
         fixthis-mcp/build.gradle.kts \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt \
         fixthis-mcp/src/main/resources/console/app.js \
         fixthis-mcp/src/main/resources/console/app.js.map
 git commit -m "$(cat <<'EOF'
@@ -847,12 +847,12 @@ EOF
 - [ ] **Step 1: Enumerate contract symbols**
 
 Read the asset-contract tests (post-Item-3 split:
-`fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt`)
+`fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt`)
 and extract every JS symbol they grep for. Concretely:
 
 ```bash
 grep -oE '"[a-zA-Z][a-zA-Z0-9]*"' \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt \
   | sort -u | head -50
 ```
 
@@ -1032,8 +1032,8 @@ EOF
 ### Task 7: Migrate Asset Contract Tests to Unbundled Source
 
 **Files:**
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/fixtures/` (helper file)
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/fixtures/` (helper file)
 
 - [ ] **Step 1: Add a fixture helper that reads unbundled sources**
 
@@ -1041,8 +1041,8 @@ Create or extend a fixtures helper. If `ConsoleRouteTestFixtures.kt` (from
 Item 3) is already present, add a top-level function alongside the class:
 
 ```kotlin
-// fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/fixtures/ConsoleSourceFixtures.kt
-package io.beyondwin.fixthis.mcp.fixtures
+// fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/fixtures/ConsoleSourceFixtures.kt
+package io.github.beyondwin.fixthis.mcp.fixtures
 
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -1066,7 +1066,7 @@ object ConsoleSourceFixtures {
 - [ ] **Step 2: Audit which contract tests fail after minification**
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleAssetContractTest" 2>&1 | tee /tmp/contract-failures.log
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleAssetContractTest" 2>&1 | tee /tmp/contract-failures.log
 grep "FAILED" /tmp/contract-failures.log
 ```
 
@@ -1093,7 +1093,7 @@ For tests that don't know which module their symbol lives in, use `readAll()`.
 - [ ] **Step 4: Run only the asset contract tests to verify GREEN**
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleAssetContractTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleAssetContractTest"
 ```
 
 Expected: all PASS.
@@ -1109,8 +1109,8 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/fixtures/ConsoleSourceFixtures.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt
+git add fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/fixtures/ConsoleSourceFixtures.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt
 git commit -m "$(cat <<'EOF'
 test(console): read unbundled console source for contract assertions
 

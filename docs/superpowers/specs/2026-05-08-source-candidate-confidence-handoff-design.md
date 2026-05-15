@@ -398,7 +398,7 @@ Add failing tests before implementation:
 
 Primary test file:
 
-- `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`
+- `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`
 
 ### Phase 2: Source Candidate Metadata
 
@@ -408,8 +408,8 @@ serialization remains additive. Update any tests that construct
 
 Primary files:
 
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt`
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/TargetEvidenceModels.kt`
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt`
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/TargetEvidenceModels.kt`
 - `docs/output-schema.md`
 
 ### Phase 3: Evidence Profile And Margin-Based Confidence
@@ -427,7 +427,7 @@ Then compute rank and margin after sorting.
 
 Primary file:
 
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
 
 ### Phase 4: Source Interpretation Cautions
 
@@ -437,8 +437,8 @@ confidence, text-only matches, area selections, and missing source candidates.
 
 Primary files:
 
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt`
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceServiceTest.kt`
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceServiceTest.kt`
 
 ### Phase 5: Compact Handoff Formatter
 
@@ -458,8 +458,8 @@ The compact formatter should:
 
 Primary files:
 
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt`
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`
 
 ### Phase 6: Console Prompt Parity
 
@@ -490,9 +490,9 @@ confuses multiple annotations on one screen.
 
 Primary files for first slice:
 
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/ScreenshotArtifactPromoter.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/ScreenshotArtifactPromoter.kt`
 
 Overlay generation can be added later as a focused artifact utility if needed.
 
@@ -519,8 +519,8 @@ Validate:
 Primary files:
 
 - `sample/fixthis-coverage.json`
-- `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`
+- `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`
 
 ### Phase 9: Agent A/B Smoke Benchmark
 

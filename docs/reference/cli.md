@@ -50,7 +50,7 @@ opens the FixThis Studio console in your default browser. The all-in-one
 quick-start command.
 
 ```bash
-fixthis run --package io.beyondwin.fixthis.sample
+fixthis run --package io.github.beyondwin.fixthis.sample
 ```
 
 | Flag | Default | Description |
@@ -69,7 +69,7 @@ Diagnoses the local environment: ADB on PATH, JDK toolchain, device reachable,
 package installed, source index up to date.
 
 ```bash
-fixthis doctor --package io.beyondwin.fixthis.sample
+fixthis doctor --package io.github.beyondwin.fixthis.sample
 fixthis doctor --project-dir . --json
 ```
 
@@ -105,7 +105,7 @@ fixthis init --target codex --dry-run
 | `--package` | — | Android applicationId for the generated MCP config. |
 | `--project-dir` | `.` | Android project root. |
 | `--agent` | off | Also write `.fixthis/agent-setup.md`, `.fixthis/agent-setup.json`, and `.fixthis/mcp.json.template`. |
-| `--apply-gradle-plugin` | off | Also apply `io.beyondwin.fixthis.compose` to the detected Android app module. |
+| `--apply-gradle-plugin` | off | Also apply `io.github.beyondwin.fixthis.compose` to the detected Android app module. |
 | `--plugin-version` | `0.2.0` | FixThis Gradle plugin version to apply when `--apply-gradle-plugin` is set. |
 | `--dry-run` | off | Print planned writes without modifying files. |
 | `--target` | `all` | Agent target: `claude`, `codex`, or `all`. |
@@ -294,7 +294,7 @@ Minimal local metadata example:
 ```json
 {
   "schemaVersion": "1.0",
-  "applicationId": "io.beyondwin.fixthis.sample"
+  "applicationId": "io.github.beyondwin.fixthis.sample"
 }
 ```
 

@@ -12,27 +12,27 @@
 
 ## File Structure
 
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleHttp.kt` to expose safe response helpers and a shared client-disconnect classifier.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` so all error response writes use the safe helpers and no catch path can rethrow a client disconnect.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt` to use the shared `sendJson`/`sendText` path rather than handwritten response writes.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventRoutes.kt` to compute the initial snapshot before committing SSE headers and to treat keep-alive/client disconnect as normal stream closure.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleHttp.kt` to expose safe response helpers and a shared client-disconnect classifier.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` so all error response writes use the safe helpers and no catch path can rethrow a client disconnect.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt` to use the shared `sendJson`/`sendText` path rather than handwritten response writes.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventRoutes.kt` to compute the initial snapshot before committing SSE headers and to treat keep-alive/client disconnect as normal stream closure.
 - Modify `fixthis-mcp/src/main/console/preview.js` to add a reusable session preview context helper instead of ad hoc fences.
 - Modify `fixthis-mcp/src/main/console/history.js` so session refresh/open/new/delete paths invalidate preview state when the displayed session changes.
 - Modify `fixthis-mcp/src/main/console/annotations.js` so draft annotation freeze uses the same session-context fence as live preview refresh.
 - Modify `fixthis-mcp/src/main/console/events.js` so snapshot/session event application clears preview context when the active session changes.
 - Modify `scripts/sessionScopedRequests-test.mjs`, `scripts/pendingBoundaryGuard-test.mjs`, or create `scripts/transportSessionResilience-test.mjs` for browser source-level regression tests.
 - Modify `scripts/console-tests.json` to include the new browser regression test in the `session` group.
-- Modify `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerErrorLoggingTest.kt` for safe error-response write coverage.
-- Modify `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventsRoutesTest.kt` for SSE snapshot-before-headers behavior.
+- Modify `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerErrorLoggingTest.kt` for safe error-response write coverage.
+- Modify `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventsRoutesTest.kt` for SSE snapshot-before-headers behavior.
 - Modify `docs/architecture/console-state-sync-design.md` to record the session/preview transport contract.
 
 ## Task 1: Make All HTTP Response Writes Client-Disconnect Safe
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleHttp.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerErrorLoggingTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleHttp.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerErrorLoggingTest.kt`
 
 - [ ] **Step 1: Write failing tests for disconnects while writing error responses**
 
@@ -69,7 +69,7 @@ Add this companion test to verify handwritten response routes do not regress:
 fun serverVersionRouteUsesSharedSafeResponseWriter() {
     val source = java.nio.file.Files.readString(
         java.nio.file.Paths.get(
-            "src/main/kotlin/io/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt",
+            "src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt",
         ),
     )
 
@@ -83,7 +83,7 @@ fun serverVersionRouteUsesSharedSafeResponseWriter() {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerErrorLoggingTest" --no-daemon
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerErrorLoggingTest" --no-daemon
 ```
 
 Expected: FAIL because `FeedbackConsoleHttpException` catch currently calls `sendErrorJson()` directly and `ServerVersionRoutes.kt` writes to `responseBody` by hand.
@@ -165,7 +165,7 @@ override fun handle(exchange: HttpExchange) {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerErrorLoggingTest" --no-daemon
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerErrorLoggingTest" --no-daemon
 ```
 
 Expected: PASS.
@@ -173,18 +173,18 @@ Expected: PASS.
 Commit:
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleHttp.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerErrorLoggingTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleHttp.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerErrorLoggingTest.kt
 git commit -m "Harden console HTTP response disconnect handling"
 ```
 
 ## Task 2: Make SSE Snapshot And Keep-Alive Failure-Aware
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventRoutes.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventsRoutesTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventRoutes.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventsRoutesTest.kt`
 
 - [ ] **Step 1: Write a failing test for snapshot failure before SSE headers**
 
@@ -201,7 +201,7 @@ fun eventsEndpointReturnsJsonErrorWhenSnapshotFailsBeforeStreamStarts() {
         },
         store = FeedbackSessionStore(),
         projectRoot = "/repo",
-        defaultPackageName = "io.beyondwin.fixthis.sample",
+        defaultPackageName = "io.github.beyondwin.fixthis.sample",
     )
     val server = FeedbackConsoleServer(service)
     try {
@@ -221,10 +221,10 @@ fun eventsEndpointReturnsJsonErrorWhenSnapshotFailsBeforeStreamStarts() {
 Add imports:
 
 ```kotlin
-import io.beyondwin.fixthis.cli.AdbDevice
-import io.beyondwin.fixthis.mcp.session.FakeFixThisBridge
-import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
-import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.github.beyondwin.fixthis.cli.AdbDevice
+import io.github.beyondwin.fixthis.mcp.session.FakeFixThisBridge
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 ```
 
 - [ ] **Step 2: Run the focused SSE test and verify it fails**
@@ -232,7 +232,7 @@ import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleEventsRoutesTest.eventsEndpointReturnsJsonErrorWhenSnapshotFailsBeforeStreamStarts" --no-daemon
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleEventsRoutesTest.eventsEndpointReturnsJsonErrorWhenSnapshotFailsBeforeStreamStarts" --no-daemon
 ```
 
 Expected: FAIL because `/api/events` currently sends HTTP 200 headers before calling `snapshot()`.
@@ -309,7 +309,7 @@ Add to `ConsoleEventsRoutesTest.kt`:
 fun eventsRouteTreatsKeepAliveClientDisconnectAsNormalClosure() {
     val source = java.nio.file.Files.readString(
         java.nio.file.Paths.get(
-            "src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventRoutes.kt",
+            "src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventRoutes.kt",
         ),
     )
 
@@ -324,7 +324,7 @@ fun eventsRouteTreatsKeepAliveClientDisconnectAsNormalClosure() {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleEventsRoutesTest" --no-daemon
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleEventsRoutesTest" --no-daemon
 ```
 
 Expected: PASS.
@@ -332,8 +332,8 @@ Expected: PASS.
 Commit:
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventRoutes.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventsRoutesTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventRoutes.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventsRoutesTest.kt
 git commit -m "Harden console SSE lifecycle"
 ```
 

@@ -37,19 +37,19 @@ C1은 `scripts/fixthis-smoke.sh`에 `--check-staleness` 플래그를 더한다 (
 
 **Created:**
 
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/SourceCandidateStaleRenderingTest.kt` (선택 — 기존 테스트 파일 확장으로 충분하면 생성하지 않음)
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/SourceCandidateStaleRenderingTest.kt` (선택 — 기존 테스트 파일 확장으로 충분하면 생성하지 않음)
 
 **Modified:**
 
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt` — projectRoot 오설정 감지 (C2)
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt` — C2 단위 테스트 + C5 advisory 정리
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/SourceCandidateStalenessCheckerTest.kt` — C5: 1MB cap 테스트 + import/네이밍 정리
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceServiceTest.kt` — C5: prefix 오타 수정
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisToolsStatusTest.kt` — C5: 테스트 명 수정
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt` — stale 마커 (C6)
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt` — stale 마커 (C6)
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` — C6 렌더 검증
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt` — C6 렌더 검증
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt` — projectRoot 오설정 감지 (C2)
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt` — C2 단위 테스트 + C5 advisory 정리
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/SourceCandidateStalenessCheckerTest.kt` — C5: 1MB cap 테스트 + import/네이밍 정리
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceServiceTest.kt` — C5: prefix 오타 수정
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisToolsStatusTest.kt` — C5: 테스트 명 수정
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt` — stale 마커 (C6)
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt` — stale 마커 (C6)
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` — C6 렌더 검증
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt` — C6 렌더 검증
 - `scripts/fixthis-smoke.sh` — `--check-staleness` 플래그 (C1)
 - `docs/troubleshooting.md` — C2 새 reason 문구를 진단 가이드에 추가
 - `CHANGELOG.md` — 항목 추가
@@ -60,10 +60,10 @@ C1은 `scripts/fixthis-smoke.sh`에 `--check-staleness` 플래그를 더한다 (
 
 **Files:**
 
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/SourceCandidateStalenessCheckerTest.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceServiceTest.kt:91`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisToolsStatusTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/SourceCandidateStalenessCheckerTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceServiceTest.kt:91`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisToolsStatusTest.kt`
 
 **Goal:** 부모 plan 실행 중 Reviewer가 자문(advisory)으로만 남긴 6개 코드 품질 항목을 일괄 정리. 기능 변경 없음, 순수 테스트 정리.
 
@@ -176,10 +176,10 @@ C1은 `scripts/fixthis-smoke.sh`에 `--check-staleness` 플래그를 더한다 (
 - [ ] **Step 7: 커밋**
 
   ```bash
-  git add fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/SourceCandidateStalenessCheckerTest.kt \
-          fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceServiceTest.kt \
-          fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt \
-          fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisToolsStatusTest.kt
+  git add fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/SourceCandidateStalenessCheckerTest.kt \
+          fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceServiceTest.kt \
+          fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt \
+          fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisToolsStatusTest.kt
   git commit -m "test(mcp): clean up staleness reviewer advisories"
   ```
 
@@ -189,8 +189,8 @@ C1은 `scripts/fixthis-smoke.sh`에 `--check-staleness` 플래그를 더한다 (
 
 **Files:**
 
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt`
 - Modify: `docs/troubleshooting.md`
 
 **Goal:** 모든 인덱스 등재 파일이 호스트에 존재하지 않을 때 (zero-of-N) projectRoot 오설정으로 추정되는 distinct inconclusive 결과를 반환. 정상 stale 시그널을 가짜 misconfig로 오인하지 않도록 임계는 *완전 부재* 0%.
@@ -254,7 +254,7 @@ C1은 `scripts/fixthis-smoke.sh`에 `--check-staleness` 플래그를 더한다 (
 
 - [ ] **Step 3: probe에 가드 추가**
 
-  Edit `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt`. `evaluate(...)` 본문에서 `installEpochMillis == null` 분기 다음, `canonicalRoot`/`files` 계산 다음에:
+  Edit `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt`. `evaluate(...)` 본문에서 `installEpochMillis == null` 분기 다음, `canonicalRoot`/`files` 계산 다음에:
 
   ```kotlin
   fun evaluate(sourceIndex: SourceIndex, installEpochMillis: Long?): HostSourceFreshnessResult {
@@ -327,8 +327,8 @@ C1은 `scripts/fixthis-smoke.sh`에 `--check-staleness` 플래그를 더한다 (
 - [ ] **Step 7: 커밋**
 
   ```bash
-  git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt \
-          fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt \
+  git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt \
+          fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt \
           docs/troubleshooting.md
   git commit -m "mcp: detect projectRoot misconfiguration in freshness probe"
   ```
@@ -339,10 +339,10 @@ C1은 `scripts/fixthis-smoke.sh`에 `--check-staleness` 플래그를 더한다 (
 
 **Files:**
 
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt:110`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt:110`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`
 
 **Goal:** 에이전트가 markdown handoff만 보고도 stale 후보를 인지할 수 있도록, `stale = true`인 후보에 `⚠ stale: <reason>` 마커를 추가한다. `false` / `null`은 출력 변경 없음.
 
@@ -421,7 +421,7 @@ C1은 `scripts/fixthis-smoke.sh`에 `--check-staleness` 플래그를 더한다 (
 
 - [ ] **Step 3: `CompactHandoffRenderer.formatCandidateLine`에 마커 추가**
 
-  Edit `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt:169`. 현재 `formatCandidateLine` 함수가 candidate 라인을 만든다. 끝부분에 stale 마커를 append:
+  Edit `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt:169`. 현재 `formatCandidateLine` 함수가 candidate 라인을 만든다. 끝부분에 stale 마커를 append:
 
   ```kotlin
   private fun formatCandidateLine(
@@ -445,7 +445,7 @@ C1은 `scripts/fixthis-smoke.sh`에 `--check-staleness` 플래그를 더한다 (
 
 - [ ] **Step 4: `FeedbackQueueFormatter`에도 동일 마커 추가**
 
-  Edit `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt:110`. 현재:
+  Edit `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt:110`. 현재:
 
   ```kotlin
   appendLine("${index + 1}. `${candidate.fileWithLine()}` ${candidate.markdownConfidence(target)} confidence")
@@ -475,10 +475,10 @@ C1은 `scripts/fixthis-smoke.sh`에 `--check-staleness` 플래그를 더한다 (
 - [ ] **Step 7: 커밋**
 
   ```bash
-  git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
-          fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt \
-          fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt \
-          fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt
+  git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
+          fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt \
+          fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt \
+          fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt
   git commit -m "mcp: render stale candidates with ⚠ marker in handoff Markdown"
   ```
 
@@ -533,9 +533,9 @@ C1은 `scripts/fixthis-smoke.sh`에 `--check-staleness` 플래그를 더한다 (
 
       # 0) 깨끗한 baseline 보장 — 빌드 + 설치 + cold launch
       ./gradlew :app:installDebug
-      adb shell am force-stop "${PACKAGE:-io.beyondwin.fixthis.sample}"
+      adb shell am force-stop "${PACKAGE:-io.github.beyondwin.fixthis.sample}"
       sleep 1
-      adb shell am start -n "${PACKAGE:-io.beyondwin.fixthis.sample}/.MainActivity" || true
+      adb shell am start -n "${PACKAGE:-io.github.beyondwin.fixthis.sample}/.MainActivity" || true
       sleep 2
 
       local baseline_status
@@ -544,7 +544,7 @@ C1은 `scripts/fixthis-smoke.sh`에 `--check-staleness` 플래그를 더한다 (
           "[staleness] baseline expected installStale=false"
 
       # 1) 추적 파일 mtime을 미래로 밀어 stale 유발
-      local touched_file="sample/src/main/kotlin/io/beyondwin/fixthis/sample/MainActivity.kt"
+      local touched_file="sample/src/main/kotlin/io/github/beyondwin/fixthis/sample/MainActivity.kt"
       local original_mtime
       original_mtime=$(stat -f "%m" "$touched_file")
       trap "touch -t $(date -r "$original_mtime" '+%Y%m%d%H%M.%S') '$touched_file'" EXIT
@@ -561,9 +561,9 @@ C1은 `scripts/fixthis-smoke.sh`에 `--check-staleness` 플래그를 더한다 (
 
       # 2) 재설치로 복구
       ./gradlew :app:installDebug
-      adb shell am force-stop "${PACKAGE:-io.beyondwin.fixthis.sample}"
+      adb shell am force-stop "${PACKAGE:-io.github.beyondwin.fixthis.sample}"
       sleep 1
-      adb shell am start -n "${PACKAGE:-io.beyondwin.fixthis.sample}/.MainActivity" || true
+      adb shell am start -n "${PACKAGE:-io.github.beyondwin.fixthis.sample}/.MainActivity" || true
       sleep 2
 
       local restored_status
@@ -575,7 +575,7 @@ C1은 `scripts/fixthis-smoke.sh`에 `--check-staleness` 플래그를 더한다 (
   }
 
   call_mcp_status() {
-      ./gradlew :fixthis-cli:run --quiet --args="status --json --package ${PACKAGE:-io.beyondwin.fixthis.sample}" 2>/dev/null
+      ./gradlew :fixthis-cli:run --quiet --args="status --json --package ${PACKAGE:-io.github.beyondwin.fixthis.sample}" 2>/dev/null
   }
 
   assert_json_field() {

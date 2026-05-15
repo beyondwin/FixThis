@@ -22,12 +22,12 @@
 
 - `fixthis-mcp/src/main/console/staleness.js` — replace `checkProtocolCompat`, add `parseProtocolVersion` + `compareProtocolVersion`.
 - `fixthis-mcp/src/main/resources/console/app.js` — auto-regenerated.
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` — replace `applyConnectionStatusCallsCheckProtocolCompat` (still ok), add a directional-wording substring test.
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` — add KDoc on the two epoch fields of `BridgeStatus` (no semantic change).
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` — replace `applyConnectionStatusCallsCheckProtocolCompat` (still ok), add a directional-wording substring test.
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` — add KDoc on the two epoch fields of `BridgeStatus` (no semantic change).
 
 ### Create
 
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/BridgeProtocolVersionSyncTest.kt` — new Kotlin unit test enforcing the 4-site mirror sync.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/BridgeProtocolVersionSyncTest.kt` — new Kotlin unit test enforcing the 4-site mirror sync.
 
 ### Run (no commit, validation only)
 
@@ -43,7 +43,7 @@
 **Files:**
 - Modify: `fixthis-mcp/src/main/console/staleness.js`
 - Modify (auto-regenerated): `fixthis-mcp/src/main/resources/console/app.js`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Write failing tests**
 
@@ -172,7 +172,7 @@ Expected: green. Both new tests PASS, the existing `applyConnectionStatusCallsCh
 ```bash
 git add fixthis-mcp/src/main/console/staleness.js \
         fixthis-mcp/src/main/resources/console/app.js \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "$(cat <<'EOF'
 feat(console): direction-aware protocol-version mismatch banner
 
@@ -198,15 +198,15 @@ EOF
 # Task 2 — Mirror-site sync test (R2)
 
 **Files:**
-- Create: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/BridgeProtocolVersionSyncTest.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/BridgeProtocolVersionSyncTest.kt`
 
 - [ ] **Step 1: Verify the four current values**
 
 ```bash
 grep -rn "BridgeProtocolVersion\|MinimumSupportedProtocolVersion\|VERSION:.*String" \
-  fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt \
-  fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt \
+  fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt \
+  fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt \
   fixthis-mcp/src/main/console/staleness.js
 ```
 
@@ -223,10 +223,10 @@ If any value differs from the others, halt — do not proceed; the sync test wil
 
 - [ ] **Step 2: Create the test file**
 
-Write `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/BridgeProtocolVersionSyncTest.kt` with this exact body:
+Write `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/BridgeProtocolVersionSyncTest.kt` with this exact body:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
 import java.io.File
 import kotlin.test.Test
@@ -243,20 +243,20 @@ class BridgeProtocolVersionSyncTest {
                 "BridgeProtocol.kt",
                 File(
                     root,
-                    "fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt",
+                    "fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt",
                 ),
                 Regex("""const val VERSION: String = "([^"]+)""""),
             ),
             MirrorSite(
                 "BridgeClient.kt",
-                File(root, "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt"),
+                File(root, "fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt"),
                 Regex("""const val BridgeProtocolVersion = "([^"]+)""""),
             ),
             MirrorSite(
                 "ServerVersionRoutes.kt",
                 File(
                     root,
-                    "fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt",
+                    "fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt",
                 ),
                 Regex("""const val BridgeProtocolVersion = "([^"]+)""""),
             ),
@@ -327,7 +327,7 @@ Revert.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/BridgeProtocolVersionSyncTest.kt
+git add fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/BridgeProtocolVersionSyncTest.kt
 git commit -m "$(cat <<'EOF'
 test(mcp): enforce bridge-protocol-version mirror-site sync at CI time
 
@@ -352,13 +352,13 @@ EOF
 # Task 3 — KDoc on BridgeStatus epoch fields (R3)
 
 **Files:**
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
 
 - [ ] **Step 1: Locate the BridgeStatus data class (line ~210)**
 
 ```bash
 grep -n "data class BridgeStatus\|installEpochMillis\|sidekickBuildEpochMs" \
-  fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt
+  fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt
 ```
 
 Expected: lines around 210-225 (primary constructor) and 240-247 (secondary constructor pass-through).
@@ -409,7 +409,7 @@ Open `BridgeStatus` in the IDE, hover over `installEpochMillis` — confirm the 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt
+git add fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt
 git commit -m "$(cat <<'EOF'
 docs(sidekick): clarify BridgeStatus.installEpochMillis vs sidekickBuildEpochMs
 

@@ -51,11 +51,11 @@ Redesign all five tabs and the common component system:
 
 The redesign should primarily touch:
 
-- `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisTheme.kt`
-- `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisStudioApp.kt`
-- `sample/src/main/java/io/beyondwin/fixthis/sample/model/FixThisDemoData.kt`
-- `sample/src/main/java/io/beyondwin/fixthis/sample/components/*`
-- `sample/src/main/java/io/beyondwin/fixthis/sample/screens/*`
+- `sample/src/main/java/io/github/beyondwin/fixthis/sample/FixThisTheme.kt`
+- `sample/src/main/java/io/github/beyondwin/fixthis/sample/FixThisStudioApp.kt`
+- `sample/src/main/java/io/github/beyondwin/fixthis/sample/model/FixThisDemoData.kt`
+- `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/*`
+- `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/*`
 - sample instrumentation tests only if stable text anchors need adjustment
 
 Do not add a ViewModel, backend, repository, database, login flow, network

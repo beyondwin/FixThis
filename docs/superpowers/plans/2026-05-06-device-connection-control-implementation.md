@@ -113,7 +113,7 @@ fun consoleHtmlShortensWifiAdbSerialsForNormalDeviceLabels() {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlIncludesSelectionHandoffWorkspace --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlShowsReadableDeviceConnectionStates --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlShortensWifiAdbSerialsForNormalDeviceLabels
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlIncludesSelectionHandoffWorkspace --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlShowsReadableDeviceConnectionStates --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlShortensWifiAdbSerialsForNormalDeviceLabels
 ```
 
 Expected result: tests fail because `deviceControl`, connection state helpers, and serial shortening are not implemented yet.
@@ -189,7 +189,7 @@ const deviceConnectionState = document.getElementById('deviceConnectionState');
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlIncludesSelectionHandoffWorkspace
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlIncludesSelectionHandoffWorkspace
 ```
 
 Expected result: this test still fails until CSS and JS helper assertions are implemented.
@@ -354,7 +354,7 @@ with:
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlIncludesSelectionHandoffWorkspace
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlIncludesSelectionHandoffWorkspace
 ```
 
 Expected result: failures remain only for JS helper/state assertions.
@@ -459,7 +459,7 @@ function deviceBySerial(devices, serial) {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlShowsReadableDeviceConnectionStates --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlShortensWifiAdbSerialsForNormalDeviceLabels
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlShowsReadableDeviceConnectionStates --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlShortensWifiAdbSerialsForNormalDeviceLabels
 ```
 
 Expected result: helper-focused tests pass; render behavior may still fail in the broader workspace test if `renderDeviceList` has not been updated.
@@ -610,7 +610,7 @@ async function disconnectDevice() {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlIncludesSelectionHandoffWorkspace --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlShowsReadableDeviceConnectionStates --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlShortensWifiAdbSerialsForNormalDeviceLabels
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlIncludesSelectionHandoffWorkspace --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlShowsReadableDeviceConnectionStates --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlShortensWifiAdbSerialsForNormalDeviceLabels
 ```
 
 Expected result: all three focused static tests pass.
@@ -627,7 +627,7 @@ Expected result: all three focused static tests pass.
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.devicesApiListsAndSelectsActiveDevice --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.deviceSelectApiReturnsBadRequestForBlankSerial --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.deviceSelectApiReturnsConflictForMissingSerialWithoutChangingSelection --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.deviceSelectApiReturnsConflictForOfflineDeviceWithoutChangingSelection
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.devicesApiListsAndSelectsActiveDevice --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.deviceSelectApiReturnsBadRequestForBlankSerial --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.deviceSelectApiReturnsConflictForMissingSerialWithoutChangingSelection --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.deviceSelectApiReturnsConflictForOfflineDeviceWithoutChangingSelection
 ```
 
 Expected result: pass. The implementation must not change server selection behavior.
@@ -637,7 +637,7 @@ Expected result: pass. The implementation must not change server selection behav
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected result: pass. If tests fail because old visible copy such as `Devices`, `Disconnect`, or `Selected ` is asserted elsewhere, update those tests to the new spec copy rather than restoring old UI text.

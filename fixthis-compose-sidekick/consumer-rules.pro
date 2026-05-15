@@ -24,13 +24,13 @@
 # kotlinx-serialization plugin already ships keep rules for `$serializer`
 # companions, but we keep the public types themselves so reflective access
 # from consumer integrations (and stack-trace class names) survives minify.
--keep class io.beyondwin.fixthis.compose.sidekick.bridge.** { *; }
--keep interface io.beyondwin.fixthis.compose.sidekick.bridge.** { *; }
+-keep class io.github.beyondwin.fixthis.compose.sidekick.bridge.** { *; }
+-keep interface io.github.beyondwin.fixthis.compose.sidekick.bridge.** { *; }
 
 # --- Sidekick entry point ---------------------------------------------------
 # FixThisInitializer is referenced from the merged manifest's androidx.startup
 # provider. Keep its no-arg constructor so reflection-based instantiation by
 # androidx.startup continues to work when consumers minify their app.
--keep class io.beyondwin.fixthis.compose.sidekick.init.FixThisInitializer {
+-keep class io.github.beyondwin.fixthis.compose.sidekick.init.FixThisInitializer {
     public <init>();
 }

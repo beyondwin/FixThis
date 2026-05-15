@@ -218,7 +218,7 @@ Response:
     {
       "screenId": "screen-1",
       "title": "MainActivity",
-      "activityName": "io.beyondwin.fixthis.MainActivity",
+      "activityName": "io.github.beyondwin.fixthis.MainActivity",
       "createdAtEpochMillis": 1715000000000,
       "updatedAtEpochMillis": 1715000001000,
       "annotationCount": 3,
@@ -360,11 +360,11 @@ Response: updated `FeedbackSession`.
 Add `FeedbackConsoleAnnotationModels.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.beyondwin.fixthis.mcp.session.FeedbackAnnotationSeverity
-import io.beyondwin.fixthis.mcp.session.FeedbackItemStatus
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.mcp.session.FeedbackAnnotationSeverity
+import io.github.beyondwin.fixthis.mcp.session.FeedbackItemStatus
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -836,7 +836,7 @@ fields have serializer defaults.
 Targeted model/persistence tests:
 
 ```text
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionPersistenceTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionPersistenceTest
 ```
 
 Required assertions:
@@ -848,7 +848,7 @@ Required assertions:
 Service tests:
 
 ```text
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
 ```
 
 Required assertions:
@@ -867,7 +867,7 @@ Required assertions:
 Console server/API tests:
 
 ```text
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Required assertions:
@@ -890,7 +890,7 @@ Required assertions:
 Formatter tests:
 
 ```text
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
 ```
 
 Required assertions:

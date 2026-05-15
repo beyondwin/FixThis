@@ -42,7 +42,7 @@ Symptoms observed: the `.claude/settings.json` written by `ClaudeConfigWriter.kt
 Single Bash script at `scripts/bootstrap-mcp.sh`. ~30-40 lines. No subcommands, no plugin model.
 
 ```
-$ ./scripts/bootstrap-mcp.sh --package io.beyondwin.fixthis.sample
+$ ./scripts/bootstrap-mcp.sh --package io.github.beyondwin.fixthis.sample
 [bootstrap] cwd → /Users/kws/source/android/FixThis
 [bootstrap] step 1/2 — building :fixthis-cli and :fixthis-mcp installDist
 > Task :fixthis-cli:installDist UP-TO-DATE
@@ -125,7 +125,7 @@ echo "[bootstrap] complete — restart Claude Code or Codex to pick up the new M
 The script is too thin to merit a custom test harness. Verification is two checks:
 
 1. **Bash syntax:** `bash -n scripts/bootstrap-mcp.sh` exits 0.
-2. **Manual end-to-end:** in a clean checkout (or after `rm -rf fixthis-cli/build fixthis-mcp/build`), running `./scripts/bootstrap-mcp.sh --package io.beyondwin.fixthis.sample` succeeds and produces `.claude/settings.json` (or `~/.codex/config.toml`).
+2. **Manual end-to-end:** in a clean checkout (or after `rm -rf fixthis-cli/build fixthis-mcp/build`), running `./scripts/bootstrap-mcp.sh --package io.github.beyondwin.fixthis.sample` succeeds and produces `.claude/settings.json` (or `~/.codex/config.toml`).
 
 Optional, only if `shellcheck` is in the contributor's PATH: `shellcheck scripts/bootstrap-mcp.sh`. The plan does not require this — `shellcheck` is not installed by default on macOS.
 
@@ -136,7 +136,7 @@ No automated CI test for the script — the existing 5-module gradle test comman
 The follow-up is done when **all** of:
 
 1. `scripts/bootstrap-mcp.sh` exists, is executable, and `bash -n` passes.
-2. `./scripts/bootstrap-mcp.sh --package io.beyondwin.fixthis.sample` succeeds in a clean checkout (no pre-existing `build/install/...` directories) and writes `.claude/settings.json` with the expected `mcpServers.fixthis` entry.
+2. `./scripts/bootstrap-mcp.sh --package io.github.beyondwin.fixthis.sample` succeeds in a clean checkout (no pre-existing `build/install/...` directories) and writes `.claude/settings.json` with the expected `mcpServers.fixthis` entry.
 3. `./scripts/bootstrap-mcp.sh` (no arguments) prints usage and exits with code 2.
 4. `./scripts/bootstrap-mcp.sh --bogus` exits with code 2 and a `[bootstrap] unknown flag` message.
 5. `AGENTS.md` Quick Start uses the wrapper as the primary path; manual two-step preserved as fallback.
@@ -161,7 +161,7 @@ The follow-up is done when **all** of:
 ## 10. Future work (intentionally deferred)
 
 - `fixthis doctor` post-bootstrap call to verify the MCP server is reachable.
-- Auto-detect `--package` from `sample/build.gradle.kts` (`namespace = "io.beyondwin.fixthis.sample"` is parseable). Spares one CLI argument; minor convenience.
+- Auto-detect `--package` from `sample/build.gradle.kts` (`namespace = "io.github.beyondwin.fixthis.sample"` is parseable). Spares one CLI argument; minor convenience.
 - Cross-shell wrapper (`bootstrap-mcp.cmd` for Windows). Open if a contributor asks.
 - Optional `--restart-claude-code` flag that sends a `kill -USR1` (or platform-equivalent) to running Claude Code processes so the user does not need to manually restart.
 

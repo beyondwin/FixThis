@@ -38,7 +38,7 @@ function initialSession() {
   return {
     schemaVersion: '1.0',
     sessionId: 'session-1',
-    packageName: 'io.beyondwin.fixthis.sample',
+    packageName: 'io.github.beyondwin.fixthis.sample',
     projectRoot: '/repo',
     ordinal: 1,
     status: 'active',

@@ -30,7 +30,7 @@ FixThis는 현재 기능 단위로는 잘 작동하지만, feedback console, MCP
 | `fixthis-compose-overlay/src/main/kotlin/io/github/fixthis/compose/console/studio/canvas/CanvasToolbar.kt` | tool switch, status, zoom, layout | 358 lines, 하위 컨트롤 분리 부족 |
 | `fixthis-mcp/src/test/kotlin/io/github/fixthis/mcp/console/FeedbackConsoleServerTest.kt` | console HTML, API, session flow 테스트 | 2,184 lines, 테스트 fixture와 assertion이 한 파일에 집중 |
 
-추가로 `compose-core`에는 이미 `FixThisAnnotation`이 존재한다. 이 모델은 sidekick capture payload이며, 새 feedback-domain `Annotation`과 의미가 다르다. 따라서 새 도메인 모델은 `io.beyondwin.fixthis.compose.core.domain.annotation.Annotation`으로 두고, 기존 `FixThisAnnotation`은 첫 번째 도메인 PR에서 건드리지 않는다.
+추가로 `compose-core`에는 이미 `FixThisAnnotation`이 존재한다. 이 모델은 sidekick capture payload이며, 새 feedback-domain `Annotation`과 의미가 다르다. 따라서 새 도메인 모델은 `io.github.beyondwin.fixthis.compose.core.domain.annotation.Annotation`으로 두고, 기존 `FixThisAnnotation`은 첫 번째 도메인 PR에서 건드리지 않는다.
 
 ## 3. 범위
 
@@ -127,7 +127,7 @@ compose-core -> no project module dependency
 ### 7.1 ID value class
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.domain.common
+package io.github.beyondwin.fixthis.compose.core.domain.common
 
 @JvmInline
 value class AnnotationId(val value: String) {

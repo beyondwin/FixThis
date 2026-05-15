@@ -37,10 +37,10 @@
 
 ### Kotlin Routes
 
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/PreviewRoutes.kt`: accept optional `sessionId` on preview and navigation routes.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsolePreviewModels.kt` only if a response needs session id added.
-- Modify `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsolePreviewRoutesTest.kt`: verify explicit session scoping.
-- Modify `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleNavigationRoutesTest.kt`: verify navigation uses explicit session id.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/PreviewRoutes.kt`: accept optional `sessionId` on preview and navigation routes.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsolePreviewModels.kt` only if a response needs session id added.
+- Modify `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsolePreviewRoutesTest.kt`: verify explicit session scoping.
+- Modify `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleNavigationRoutesTest.kt`: verify navigation uses explicit session id.
 
 ### Tests
 
@@ -56,9 +56,9 @@
 ## Task 1: Server Preview and Navigation Session Scope
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/PreviewRoutes.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsolePreviewRoutesTest.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleNavigationRoutesTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/PreviewRoutes.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsolePreviewRoutesTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleNavigationRoutesTest.kt`
 
 - [ ] **Step 1: Write failing Kotlin tests for explicit preview session id**
 
@@ -182,9 +182,9 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/PreviewRoutes.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsolePreviewRoutesTest.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleNavigationRoutesTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/PreviewRoutes.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsolePreviewRoutesTest.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleNavigationRoutesTest.kt
 git commit -m "fix(console): scope preview and navigation routes by session"
 ```
 

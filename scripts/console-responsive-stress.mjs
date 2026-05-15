@@ -37,7 +37,7 @@ async function loadPlaywright() {
 
 async function injectStressState(page) {
   await page.evaluate(() => {
-    const longPath = '/Users/kws/source/android/FixThis/sample/src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt:63:VeryLongComposableNameWithoutNaturalBreakpoints'.repeat(2);
+    const longPath = '/Users/kws/source/android/FixThis/sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt:63:VeryLongComposableNameWithoutNaturalBreakpoints'.repeat(2);
     const stalenessBanner = document.getElementById('stalenessBanner');
     stalenessBanner.hidden = false;
     stalenessBanner.dataset.severity = 'critical';
@@ -125,7 +125,7 @@ async function injectStressState(page) {
       '<div class="activity-drift-warning" role="status" aria-live="polite" data-activity-drift>' +
         '<div class="activity-drift-warning-body">' +
           '<div class="activity-drift-warning-title">Activity changed during freeze</div>' +
-          '<div class="activity-drift-warning-detail">Frozen: io.beyondwin.fixthis.sample.MainActivity · Now: io.beyondwin.fixthis.sample.DeepLinkReviewActivityWithLongName</div>' +
+          '<div class="activity-drift-warning-detail">Frozen: io.github.beyondwin.fixthis.sample.MainActivity · Now: io.github.beyondwin.fixthis.sample.DeepLinkReviewActivityWithLongName</div>' +
         '</div>' +
         '<button type="button" class="activity-drift-warning-button" data-activity-drift-restart>Start new freeze</button>' +
       '</div>';

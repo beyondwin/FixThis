@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PACKAGE_NAME="io.beyondwin.fixthis.sample"
+PACKAGE_NAME="io.github.beyondwin.fixthis.sample"
 HOST_ONLY="false"
 NO_BUILD="false"
 DEVICE_SERIAL="${ANDROID_SERIAL:-}"
@@ -242,7 +242,7 @@ record_doctor_with_retry() {
 }
 
 staleness_target_file() {
-  printf '%s\n' "${ROOT_DIR}/sample/src/main/java/io/beyondwin/fixthis/sample/MainActivity.kt"
+  printf '%s\n' "${ROOT_DIR}/sample/src/main/java/io/github/beyondwin/fixthis/sample/MainActivity.kt"
 }
 
 staleness_get_mtime() {

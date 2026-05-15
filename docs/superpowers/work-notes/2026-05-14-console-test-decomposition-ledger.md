@@ -1,6 +1,6 @@
 # Console Test Decomposition Ledger (2026-05-14)
 
-Source: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
+Source: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
 Baseline total: 100 `@Test` methods
 
 | Test method | Destination file |

@@ -2113,7 +2113,7 @@ npm run console:draft:test
 node --test scripts/draftWorkflowInvariant-test.mjs scripts/draftPresentationContract-test.mjs
 node --test scripts/sessionScopedRequests-test.mjs scripts/pendingBoundaryGuard-test.mjs scripts/undoRedoContext-test.mjs scripts/savedOverlayScope-test.mjs scripts/pendingItemRecovery-test.mjs scripts/console-availability-test.mjs scripts/beforeunloadGuard-test.mjs scripts/undoRedo-test.mjs scripts/undoKeymatch-test.mjs scripts/activityDrift-test.mjs scripts/previewStaleness-test.mjs
 node scripts/build-console-assets.mjs --check
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.*"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.*"
 ```
 
 Expected: PASS for every command.

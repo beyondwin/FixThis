@@ -19,7 +19,7 @@ agent can read, claim, and resolve feedback items.
   a Gradle project where FixThis can detect a unique Android `applicationId`.
 - Keep ADB on your PATH and use an unlocked device or emulator.
 
-For the sample app, the package is `io.beyondwin.fixthis.sample`.
+For the sample app, the package is `io.github.beyondwin.fixthis.sample`.
 
 For the fastest sample setup, use the shortcut:
 

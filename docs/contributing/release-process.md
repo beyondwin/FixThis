@@ -58,7 +58,7 @@ Before tagging:
 - [ ] CLI/MCP package script tests pass: `npm run release:package:test`
 - [ ] Whitespace clean: `git diff --check`
 - [ ] Gradle help has no deprecation warnings when build logic changed: `./gradlew help --warning-mode all --no-daemon`
-- [ ] Connected smoke harness on a real device or unlocked emulator: `scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample`
+- [ ] Connected smoke harness on a real device or unlocked emulator: `scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample`
 - [ ] CI green on `main` for the commit you're about to tag: see `.github/workflows/ci.yml`
 - [ ] `CHANGELOG.md` "Unreleased" section reviewed for accuracy
 - [ ] No `TODO` / `FIXME` / `// TEMP` markers in code paths shipped this release (`grep -rn TODO src/main`)
@@ -131,7 +131,7 @@ release prerequisites complete.
 Before changing README install instructions to public Gradle coordinates:
 
 1. Verify Maven Central namespace ownership for `io.github.beyondwin`.
-2. Verify Gradle Plugin Portal ownership for `io.beyondwin.fixthis.compose`.
+2. Verify Gradle Plugin Portal ownership for `io.github.beyondwin.fixthis.compose`.
 3. Configure signing and publishing secrets outside the repository.
 4. Run local/dry-run packaging validation:
 
@@ -150,7 +150,7 @@ Before changing README install instructions to public Gradle coordinates:
 
    ```kotlin
    plugins {
-       id("io.beyondwin.fixthis.compose") version "X.Y.Z"
+       id("io.github.beyondwin.fixthis.compose") version "X.Y.Z"
    }
 
    dependencies {

@@ -7,7 +7,7 @@
 ## 1. Problem
 
 The single test file
-`fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
+`fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
 has grown to **2897 lines / 100 `@Test` methods** while the production code it
 exercises has already been split across many route modules:
 
@@ -46,7 +46,7 @@ function signatures, and CSS class names. They live with
 ### Evidence
 
 - File line count:
-  `wc -l fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
+  `wc -l fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
   → `2897`
 - Total `@Test` count: `grep -c "@Test" ConsoleFeedbackItemRoutesTest.kt` → `100`
 - `consoleHtml*` cluster:
@@ -96,13 +96,13 @@ function signatures, and CSS class names. They live with
   separate `ConsoleSessionsPollingContractTest.kt` (these are JS-source string
   assertions, not HTTP tests).
 - Extract shared setup into a single reusable `ConsoleRouteTestFixtures.kt`
-  helper inside the existing `io.beyondwin.fixthis.mcp.fixtures` package so
+  helper inside the existing `io.github.beyondwin.fixthis.mcp.fixtures` package so
   no duplication regresses.
 - Preserve **every** `@Test` (no consolidation, no deletion, no renaming) — the
   goal is structural, not behavioral.
-- Keep the existing package (`io.beyondwin.fixthis.mcp.console`) so that
+- Keep the existing package (`io.github.beyondwin.fixthis.mcp.console`) so that
   Gradle filter expressions used in CI (`--tests
-  "io.beyondwin.fixthis.mcp.console.*"`) continue to match.
+  "io.github.beyondwin.fixthis.mcp.console.*"`) continue to match.
 - Reduce per-file size to ≤ 800 lines so a developer can scan a whole file
   in one screen-scroll session.
 
@@ -144,7 +144,7 @@ function signatures, and CSS class names. They live with
 
 ### 3.1 Target file layout
 
-After the refactor, `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/`
+After the refactor, `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/`
 contains:
 
 ```
@@ -180,7 +180,7 @@ is itself a signal to split again rather than to relax the budget.
 Helper file:
 
 ```
-fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/fixtures/ConsoleRouteTestFixtures.kt
+fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/fixtures/ConsoleRouteTestFixtures.kt
   fun newConsoleSessionFixture(...): ConsoleSessionFixture
   data class ConsoleSessionFixture(
       val service: FeedbackSessionService,
@@ -233,14 +233,14 @@ Reading the existing 100 tests reveals four boilerplate shapes repeated
 verbatim. The new helper exposes one factory per shape:
 
 ```kotlin
-// io.beyondwin.fixthis.mcp.fixtures
+// io.github.beyondwin.fixthis.mcp.fixtures
 object ConsoleRouteTestFixtures {
     /** Minimal in-memory session + service + started server. */
     fun newConsoleSessionFixture(
         clock: () -> Long = FakeLongs(100L, 200L, 300L, 400L, 500L).next,
         idGenerator: () -> String = FakeIds("session-1", "item-1").next,
         bridge: FixThisBridge = FakeFixThisBridge(),
-        defaultPackageName: String = "io.beyondwin.fixthis.sample",
+        defaultPackageName: String = "io.github.beyondwin.fixthis.sample",
         projectRoot: String = "/repo",
     ): ConsoleSessionFixture
 
@@ -314,7 +314,7 @@ review diff small):
 6. Asset contract (34 tests) → `ConsoleAssetContractTest.kt`
 
 After each move:
-- Run `./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.*"`
+- Run `./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.*"`
 - Verify the test count emitted by Gradle equals the pre-move count.
 
 ### Phase 3 — Rename + slim down (Task 9)
@@ -334,8 +334,8 @@ references that point to the legacy file path (search both for
 
 - No public API is touched. All test moves are file-internal.
 - The Kotlin package
-  (`io.beyondwin.fixthis.mcp.console`) is preserved, so any CI filter
-  `--tests "io.beyondwin.fixthis.mcp.console.*"` keeps working.
+  (`io.github.beyondwin.fixthis.mcp.console`) is preserved, so any CI filter
+  `--tests "io.github.beyondwin.fixthis.mcp.console.*"` keeps working.
 - The test class names referenced in any IDE bookmarks, run configurations,
   or scripts will change. We do not migrate IDE state; contributors re-pin.
 
@@ -348,7 +348,7 @@ This refactor is purely structural, so the verification strategy is:
 Before any change:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.*" --info \
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.*" --info \
   | grep -cE "^(.*ConsoleFeedbackItemRoutesTest|.*passed)$"
 ```
 
@@ -368,7 +368,7 @@ the ledger appears in exactly one new file:
 ```bash
 while read name dest; do
   count=$(grep -rE "fun $name\(" \
-    fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ | wc -l)
+    fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ | wc -l)
   [ "$count" -eq 1 ] || echo "DUPLICATE or MISSING: $name (found $count)"
 done < ledger.tsv
 ```
@@ -394,7 +394,7 @@ investigated.
 After each move, run only the new file:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleNavigationRoutesTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleNavigationRoutesTest"
 ```
 
 Expected: 2 tests passed (for the navigation example).
@@ -467,7 +467,7 @@ miss regressions in the extracted ones.
 **Mitigation:**
 - Add a one-line note to `CONTRIBUTING.md` ("If you previously ran
   `ConsoleFeedbackItemRoutesTest` directly, run
-  `io.beyondwin.fixthis.mcp.console.*` after this refactor.")
+  `io.github.beyondwin.fixthis.mcp.console.*` after this refactor.")
 - The Gradle CI configuration already runs the whole package; no automated
   process degrades.
 
@@ -498,17 +498,17 @@ in isolation, they may see false failures.
 ### Code locations
 
 - Test file under refactor:
-  `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
+  `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
 - Production route modules already split (target alignment):
-  - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt`
-  - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/SessionRoutes.kt`
-  - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/HandoffPreviewRoutes.kt`
-  - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/MarkHandedOffRoutes.kt`
-  - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt`
+  - `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt`
+  - `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/SessionRoutes.kt`
+  - `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/HandoffPreviewRoutes.kt`
+  - `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/MarkHandedOffRoutes.kt`
+  - `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt`
 - Existing decomposed siblings (style reference):
-  - `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetRoutesTest.kt`
-  - `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleConnectionRoutesTest.kt`
-  - `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsolePreviewRoutesTest.kt`
-  - `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleHttpEtagTest.kt`
+  - `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetRoutesTest.kt`
+  - `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleConnectionRoutesTest.kt`
+  - `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsolePreviewRoutesTest.kt`
+  - `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleHttpEtagTest.kt`
 - Shared fixtures package (helper destination):
-  `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/fixtures/`
+  `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/fixtures/`

@@ -12,7 +12,7 @@
 
 ## File Structure
 
-- Modify `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt`
+- Modify `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt`
   - Tighten the existing top-bar contract around `disconnectDeviceButton`: it remains present and accessible, but no longer renders visible `Clear selection` text.
 - Modify `fixthis-mcp/src/main/resources/console/index.html`
   - Move `disconnectDeviceButton` inside `#deviceControl` as a trailing icon segment.
@@ -26,7 +26,7 @@
 ## Task 1: Update the Console Contract Test First
 
 **Files:**
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt`
 
 - [ ] **Step 1: Replace the existing text-label assertion with icon/button assertions**
 
@@ -55,7 +55,7 @@ assertFalse(html.contains("class=\"clear-device-button\""))
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests 'io.beyondwin.fixthis.mcp.console.ConsoleAssetContractTest.consoleHtmlIncludesSelectionHandoffWorkspace'
+./gradlew :fixthis-mcp:test --tests 'io.github.beyondwin.fixthis.mcp.console.ConsoleAssetContractTest.consoleHtmlIncludesSelectionHandoffWorkspace'
 ```
 
 Expected: FAIL because the current HTML still renders `class="clear-device-button"` and visible `Clear selection` text, and does not include `class="device-clear-button"` or `&times;`.
@@ -63,7 +63,7 @@ Expected: FAIL because the current HTML still renders `class="clear-device-butto
 - [ ] **Step 3: Commit the failing test**
 
 ```bash
-git add fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt
+git add fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt
 git commit -m "test: specify device clear icon control"
 ```
 
@@ -242,7 +242,7 @@ Delete the whole `@media (max-width: 900px)` block for `.clear-device-button`:
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests 'io.beyondwin.fixthis.mcp.console.ConsoleAssetContractTest.consoleHtmlIncludesSelectionHandoffWorkspace'
+./gradlew :fixthis-mcp:test --tests 'io.github.beyondwin.fixthis.mcp.console.ConsoleAssetContractTest.consoleHtmlIncludesSelectionHandoffWorkspace'
 ```
 
 Expected: PASS.
@@ -294,7 +294,7 @@ with:
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests 'io.beyondwin.fixthis.mcp.console.ConsoleAssetContractTest.consoleHtmlIncludesSelectionHandoffWorkspace'
+./gradlew :fixthis-mcp:test --tests 'io.github.beyondwin.fixthis.mcp.console.ConsoleAssetContractTest.consoleHtmlIncludesSelectionHandoffWorkspace'
 node scripts/check-doc-consistency.mjs
 ```
 
@@ -320,7 +320,7 @@ git commit -m "docs: describe device clear icon"
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests 'io.beyondwin.fixthis.mcp.console.ConsoleAssetContractTest'
+./gradlew :fixthis-mcp:test --tests 'io.github.beyondwin.fixthis.mcp.console.ConsoleAssetContractTest'
 ```
 
 Expected: PASS.

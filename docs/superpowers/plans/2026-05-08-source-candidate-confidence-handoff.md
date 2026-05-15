@@ -35,20 +35,20 @@
 ## Current Baseline
 
 - Branch: `main`. Recent commit at plan creation: `66b7ee6 fix: keep saved annotations tied to sessions`.
-- `SourceCandidate` is in `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt` and has the fields documented in the spec; it has no risk/margin/evidence-strength fields yet.
-- `SourceMatcher` (`fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`) currently classifies confidence purely from `rawScore` thresholds (`HIGH >= 100.0`, `MEDIUM >= 55.0`, else `LOW`).
-- `SourceInterpretationFactory` (`fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt`) emits a fixed caution string only for `LOW`/`NONE`.
-- `FeedbackQueueFormatter.toMarkdown` (`fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt`) emits `Likely Source:` plus `matched:` and `reasons:` sub-bullets in all `DetailMode` values.
-- `FixThisMarkdownFormatter` (`fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt`) emits `## Top Source` (COMPACT) / `## Source Candidates` (PRECISE) / `## Source candidates` (FULL).
+- `SourceCandidate` is in `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt` and has the fields documented in the spec; it has no risk/margin/evidence-strength fields yet.
+- `SourceMatcher` (`fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`) currently classifies confidence purely from `rawScore` thresholds (`HIGH >= 100.0`, `MEDIUM >= 55.0`, else `LOW`).
+- `SourceInterpretationFactory` (`fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt`) emits a fixed caution string only for `LOW`/`NONE`.
+- `FeedbackQueueFormatter.toMarkdown` (`fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt`) emits `Likely Source:` plus `matched:` and `reasons:` sub-bullets in all `DetailMode` values.
+- `FixThisMarkdownFormatter` (`fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt`) emits `## Top Source` (COMPACT) / `## Source Candidates` (PRECISE) / `## Source candidates` (FULL).
 - Console JS prompt (`fixthis-mcp/src/main/console/prompt.js`) emits `'   Likely Source:'` followed by `promptLikelySources(...)`.
 - Existing test files asserting `SelectionConfidence.HIGH`/`MEDIUM` (full inventory locked in Phase 0):
-  - `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`
-  - `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceInterpretationFactoryTest.kt`
-  - `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/TargetEvidenceModelTest.kt`
-  - `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt`
-  - `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/selection/NodeSelectorTest.kt` (reads `SelectionInfo.confidence`, NOT `SourceCandidate.confidence`; out of scope for this plan)
-  - `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`
-  - `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
+  - `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`
+  - `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceInterpretationFactoryTest.kt`
+  - `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/model/TargetEvidenceModelTest.kt`
+  - `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt`
+  - `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/selection/NodeSelectorTest.kt` (reads `SelectionInfo.confidence`, NOT `SourceCandidate.confidence`; out of scope for this plan)
+  - `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`
+  - `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
 
 ## Execution Order Preamble
 
@@ -71,39 +71,39 @@ The Kotlin `FixThisRect.formatBounds()` emits floats with a `.0` suffix (`10.0,2
 
 ### Modify (Kotlin sources)
 
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt` - extend `SourceCandidate` with optional `ranking`, `scoreMargin`, `evidenceStrength`, `riskFlags`, `caution` fields.
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt` - add `EvidenceProfile`/`MarginContext`, classify confidence by profile + margin, emit new reason tokens (`selected stringResource`, `arbitrary literal`, `legacy fallback`), populate new optional candidate fields.
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt` - generate caution from precedence-resolved risk flag + confidence.
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt` - add COMPACT-only `appendCompactLikelySource` and screen-level grouping (overlay/screenshot reference, top-level verification rule, overlap groups).
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt` - COMPACT-only switch to `src?` token line; PRECISE/FULL untouched.
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt` - extend `SourceCandidate` with optional `ranking`, `scoreMargin`, `evidenceStrength`, `riskFlags`, `caution` fields.
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt` - add `EvidenceProfile`/`MarginContext`, classify confidence by profile + margin, emit new reason tokens (`selected stringResource`, `arbitrary literal`, `legacy fallback`), populate new optional candidate fields.
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt` - generate caution from precedence-resolved risk flag + confidence.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt` - add COMPACT-only `appendCompactLikelySource` and screen-level grouping (overlay/screenshot reference, top-level verification rule, overlap groups).
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt` - COMPACT-only switch to `src?` token line; PRECISE/FULL untouched.
 - `fixthis-mcp/src/main/console/prompt.js` - mirror COMPACT formatter behavior (`src?`, `why=`, `risk=`, top-level rule, overlap groups, lowercase confidence).
 - `fixthis-mcp/src/main/resources/console/app.js` - bundled equivalent regenerated from the source files in `fixthis-mcp/src/main/console/`. (Inspect to confirm whether `prompt.js` is concatenated or if `app.js` is hand-edited; mirror changes in both if hand-edited.)
 
 ### Create (Kotlin sources)
 
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/SourceEvidenceStrength.kt`
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/SourceCandidateRisk.kt`
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/EvidenceProfile.kt` (internal)
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/MarginContext.kt` (internal)
-- `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceCandidateRiskPrecedence.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationOverlapDetector.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/SourceEvidenceStrength.kt`
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/SourceCandidateRisk.kt`
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/EvidenceProfile.kt` (internal)
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/MarginContext.kt` (internal)
+- `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceCandidateRiskPrecedence.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/AnnotationOverlapDetector.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`
 
 ### Modify or create (tests)
 
-- `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/SourceCandidateSerializationTest.kt` (create) - JSON round-trip for old and new fields.
-- `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt` (modify) - update existing assertions and add ambiguity/text-only/nearby-only/activity-only/literal-only/strict-comp tests.
-- `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceInterpretationFactoryTest.kt` (modify) - update caution behavior tests.
-- `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceCandidateRiskPrecedenceTest.kt` (create).
-- `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/EvidenceProfileTest.kt` (create).
-- `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/MarginContextTest.kt` (create).
-- `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt` (modify) - keep PRECISE/FULL assertions, add COMPACT `src?` assertions.
-- `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/TargetEvidenceModelTest.kt` (modify) - update HIGH-confidence fixtures so they still classify HIGH under new rules (single-candidate strict-comp evidence).
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt` (modify) - keep PRECISE assertions; add COMPACT compact-token tests, screen-level overlay test, prompt-size budget test.
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationOverlapDetectorTest.kt` (create).
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` (create).
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/PromptParityTest.kt` (create) - JS/Kotlin parity test driven by Node, gated on Node availability.
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt` (modify, optional) - confirm sessions deserialize when JSON contains old `SourceCandidate` shape (no behavioral change beyond confirming round-trip).
+- `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/model/SourceCandidateSerializationTest.kt` (create) - JSON round-trip for old and new fields.
+- `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt` (modify) - update existing assertions and add ambiguity/text-only/nearby-only/activity-only/literal-only/strict-comp tests.
+- `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceInterpretationFactoryTest.kt` (modify) - update caution behavior tests.
+- `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceCandidateRiskPrecedenceTest.kt` (create).
+- `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/EvidenceProfileTest.kt` (create).
+- `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/MarginContextTest.kt` (create).
+- `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt` (modify) - keep PRECISE/FULL assertions, add COMPACT `src?` assertions.
+- `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/model/TargetEvidenceModelTest.kt` (modify) - update HIGH-confidence fixtures so they still classify HIGH under new rules (single-candidate strict-comp evidence).
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt` (modify) - keep PRECISE assertions; add COMPACT compact-token tests, screen-level overlay test, prompt-size budget test.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/AnnotationOverlapDetectorTest.kt` (create).
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` (create).
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/PromptParityTest.kt` (create) - JS/Kotlin parity test driven by Node, gated on Node availability.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt` (modify, optional) - confirm sessions deserialize when JSON contains old `SourceCandidate` shape (no behavioral change beyond confirming round-trip).
 
 ### Create (test resources)
 
@@ -383,12 +383,12 @@ Goal: introduce `SourceEvidenceStrength` and `SourceCandidateRisk` enums and ext
 
 ### Step 1.1 - Add `SourceCandidateSerializationTest` (TDD; will fail until 1.4)
 
-- [ ] Locate the canonical `Json` instance used by the project. Check `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/` and `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/`. The existing import `io.beyondwin.fixthis.cli.fixThisJson` (used in `FeedbackQueueFormatter.kt`) is the project-wide instance. Use it from the test.
+- [ ] Locate the canonical `Json` instance used by the project. Check `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/` and `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/`. The existing import `io.github.beyondwin.fixthis.cli.fixThisJson` (used in `FeedbackQueueFormatter.kt`) is the project-wide instance. Use it from the test.
 
-- [ ] Create `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/SourceCandidateSerializationTest.kt`:
+- [ ] Create `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/model/SourceCandidateSerializationTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.model
+package io.github.beyondwin.fixthis.compose.core.model
 
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
@@ -479,10 +479,10 @@ Commit: `test(compose-core): assert SourceCandidate JSON round-trip safety`.
 
 ### Step 1.2 - Add `SourceEvidenceStrength` enum
 
-- [ ] Create `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/SourceEvidenceStrength.kt`:
+- [ ] Create `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/SourceEvidenceStrength.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.model
+package io.github.beyondwin.fixthis.compose.core.model
 
 import kotlinx.serialization.Serializable
 
@@ -500,10 +500,10 @@ Commit: `feat(compose-core): add SourceEvidenceStrength enum`.
 
 ### Step 1.3 - Add `SourceCandidateRisk` enum
 
-- [ ] Create `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/SourceCandidateRisk.kt`:
+- [ ] Create `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/SourceCandidateRisk.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.model
+package io.github.beyondwin.fixthis.compose.core.model
 
 import kotlinx.serialization.Serializable
 
@@ -525,7 +525,7 @@ Commit: `feat(compose-core): add SourceCandidateRisk enum`.
 
 ### Step 1.4 - Extend `SourceCandidate` with optional fields
 
-- [ ] Edit `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt`. Replace the existing `SourceCandidate` data class with:
+- [ ] Edit `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt`. Replace the existing `SourceCandidate` data class with:
 
 ```kotlin
 @Serializable
@@ -552,7 +552,7 @@ Commit: `feat(compose-core): extend SourceCandidate with optional ranking/margin
 
 ### Step 1.5 - Add legacy persisted fixture round-trip test
 
-- [ ] Open `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt` and confirm the discriminator value used by `AnnotationTargetDto.Area`. The current value is `@SerialName("visual_area")`. Use this exact string in the fixture below.
+- [ ] Open `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt` and confirm the discriminator value used by `AnnotationTargetDto.Area`. The current value is `@SerialName("visual_area")`. Use this exact string in the fixture below.
 
 - [ ] Create `fixthis-mcp/src/test/resources/legacy/source-candidate-v1.json` (an annotation list element shape persisted prior to this work, with no new optional fields):
 
@@ -560,7 +560,7 @@ Commit: `feat(compose-core): extend SourceCandidate with optional ranking/margin
 {
   "schemaVersion": "1.0",
   "sessionId": "session-legacy-1",
-  "packageName": "io.beyondwin.fixthis.sample",
+  "packageName": "io.github.beyondwin.fixthis.sample",
   "projectRoot": "/repo",
   "createdAtEpochMillis": 1,
   "updatedAtEpochMillis": 2,
@@ -587,7 +587,7 @@ Commit: `feat(compose-core): extend SourceCandidate with optional ranking/margin
 }
 ```
 
-- [ ] Add a new test to `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`:
+- [ ] Add a new test to `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`:
 
 ```kotlin
 @Test
@@ -603,7 +603,7 @@ fun deserializesLegacySessionJsonWithoutNewSourceCandidateFields() {
 }
 ```
 
-Add the `import` lines required at the top of the file (`io.beyondwin.fixthis.cli.fixThisJson`, `io.beyondwin.fixthis.compose.core.model.SelectionConfidence`, plus `kotlin.test.assertTrue`/`assertEquals`).
+Add the `import` lines required at the top of the file (`io.github.beyondwin.fixthis.cli.fixThisJson`, `io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence`, plus `kotlin.test.assertTrue`/`assertEquals`).
 
 - [ ] Run: `./gradlew :fixthis-mcp:test --tests "*FeedbackSessionStoreTest.deserializesLegacySessionJsonWithoutNewSourceCandidateFields*"`. Confirm pass.
 
@@ -617,12 +617,12 @@ Goal: introduce internal-only helpers as plain Kotlin data classes/functions. No
 
 ### Step 2.1 - `SourceCandidateRiskPrecedence` (TDD)
 
-- [ ] Create `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceCandidateRiskPrecedenceTest.kt`:
+- [ ] Create `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceCandidateRiskPrecedenceTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.source
+package io.github.beyondwin.fixthis.compose.core.source
 
-import io.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -667,12 +667,12 @@ class SourceCandidateRiskPrecedenceTest {
 
 - [ ] Run: `./gradlew :fixthis-compose-core:test --tests "*SourceCandidateRiskPrecedenceTest*"`. Confirm compilation failure.
 
-- [ ] Create `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceCandidateRiskPrecedence.kt`:
+- [ ] Create `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceCandidateRiskPrecedence.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.source
+package io.github.beyondwin.fixthis.compose.core.source
 
-import io.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
 
 object SourceCandidateRiskPrecedence {
     val orderedHighestFirst: List<SourceCandidateRisk> = listOf(
@@ -705,12 +705,12 @@ Commit: `feat(compose-core): add SourceCandidateRiskPrecedence helper`.
 
 ### Step 2.2 - `EvidenceProfile` (TDD)
 
-- [ ] Create `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/EvidenceProfileTest.kt`:
+- [ ] Create `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/EvidenceProfileTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.source
+package io.github.beyondwin.fixthis.compose.core.source
 
-import io.beyondwin.fixthis.compose.core.model.SourceEvidenceStrength
+import io.github.beyondwin.fixthis.compose.core.model.SourceEvidenceStrength
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -808,12 +808,12 @@ class EvidenceProfileTest {
 
 - [ ] Run: `./gradlew :fixthis-compose-core:test --tests "*EvidenceProfileTest*"`. Confirm compilation failure.
 
-- [ ] Create `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/EvidenceProfile.kt`:
+- [ ] Create `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/EvidenceProfile.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.source
+package io.github.beyondwin.fixthis.compose.core.source
 
-import io.beyondwin.fixthis.compose.core.model.SourceEvidenceStrength
+import io.github.beyondwin.fixthis.compose.core.model.SourceEvidenceStrength
 
 internal data class EvidenceProfile(
     val rawScore: Double,
@@ -893,10 +893,10 @@ Commit: `feat(compose-core): add internal EvidenceProfile helper`.
 
 ### Step 2.3 - `MarginContext` (TDD)
 
-- [ ] Create `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/MarginContextTest.kt`:
+- [ ] Create `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/MarginContextTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.source
+package io.github.beyondwin.fixthis.compose.core.source
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -961,10 +961,10 @@ class MarginContextTest {
 
 - [ ] Run: `./gradlew :fixthis-compose-core:test --tests "*MarginContextTest*"`. Confirm compilation failure.
 
-- [ ] Create `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/MarginContext.kt`:
+- [ ] Create `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/MarginContext.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.source
+package io.github.beyondwin.fixthis.compose.core.source
 
 internal data class MarginContext(
     val ranking: Int,
@@ -1010,7 +1010,7 @@ Goal: change `SourceMatcher.toCandidate` and emission paths so confidence is det
 
 ### Step 3.1 - Update `SourceMatcherTest.conventionTestTagLiteralAndComposableMatchesDoNotStackScore` to expect `HIGH`
 
-- [ ] Edit `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`. Replace the assertion at line 208:
+- [ ] Edit `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`. Replace the assertion at line 208:
 
 ```kotlin
 assertEquals(SelectionConfidence.MEDIUM, match.confidence)
@@ -1022,7 +1022,7 @@ with:
 assertEquals(SelectionConfidence.HIGH, match.confidence)
 assertEquals(1, match.ranking)
 assertEquals(1.0, match.scoreMargin!!, 0.0)
-assertEquals(io.beyondwin.fixthis.compose.core.model.SourceEvidenceStrength.STRONG, match.evidenceStrength)
+assertEquals(io.github.beyondwin.fixthis.compose.core.model.SourceEvidenceStrength.STRONG, match.evidenceStrength)
 assertTrue(match.riskFlags.isEmpty())
 ```
 
@@ -1065,7 +1065,7 @@ fun ambiguousTopTwoMarginAttachesAmbiguousRiskAndDowngrades() {
     assertTrue(matches.size >= 2)
     val top = matches.first()
     assertTrue(top.confidence != SelectionConfidence.HIGH)
-    assertTrue(io.beyondwin.fixthis.compose.core.model.SourceCandidateRisk.AMBIGUOUS in top.riskFlags)
+    assertTrue(io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk.AMBIGUOUS in top.riskFlags)
 }
 
 @Test
@@ -1091,7 +1091,7 @@ fun textOnlyMatchIsCappedAtMedium() {
     assertTrue(
         match.confidence == SelectionConfidence.MEDIUM || match.confidence == SelectionConfidence.LOW,
     )
-    assertTrue(io.beyondwin.fixthis.compose.core.model.SourceCandidateRisk.TEXT_ONLY in match.riskFlags)
+    assertTrue(io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk.TEXT_ONLY in match.riskFlags)
 }
 
 @Test
@@ -1116,7 +1116,7 @@ fun nearbyOnlyMatchIsCappedAtLow() {
 
     if (match != null) {
         assertEquals(SelectionConfidence.LOW, match.confidence)
-        assertTrue(io.beyondwin.fixthis.compose.core.model.SourceCandidateRisk.NEARBY_ONLY in match.riskFlags)
+        assertTrue(io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk.NEARBY_ONLY in match.riskFlags)
     }
 }
 
@@ -1137,12 +1137,12 @@ fun activityOnlyMatchIsCappedAtLow() {
     val match = matcher.match(
         selectedNode = node(uid = "x"),
         nearbyNodes = emptyList(),
-        activityName = "io.beyondwin.fixthis.sample.MainActivity",
+        activityName = "io.github.beyondwin.fixthis.sample.MainActivity",
     ).singleOrNull()
 
     if (match != null) {
         assertEquals(SelectionConfidence.LOW, match.confidence)
-        assertTrue(io.beyondwin.fixthis.compose.core.model.SourceCandidateRisk.ACTIVITY_ONLY in match.riskFlags)
+        assertTrue(io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk.ACTIVITY_ONLY in match.riskFlags)
     }
 }
 
@@ -1173,7 +1173,7 @@ fun arbitraryLiteralOnlyMatchIsCappedAtLow() {
     ).single()
 
     assertEquals(SelectionConfidence.LOW, match.confidence)
-    assertTrue(io.beyondwin.fixthis.compose.core.model.SourceCandidateRisk.ARBITRARY_LITERAL in match.riskFlags)
+    assertTrue(io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk.ARBITRARY_LITERAL in match.riskFlags)
     assertTrue("arbitrary literal" in match.matchReasons)
 }
 
@@ -1201,7 +1201,7 @@ fun legacyFallbackOnlyMatchEmitsLegacyReasonAndCapsAtLow() {
     // fires and dominates over the text-only cap (legacy fallback is more
     // specific / stronger evidence about candidate quality).
     assertEquals(SelectionConfidence.LOW, match.confidence)
-    assertTrue(io.beyondwin.fixthis.compose.core.model.SourceCandidateRisk.LEGACY_FALLBACK in match.riskFlags)
+    assertTrue(io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk.LEGACY_FALLBACK in match.riskFlags)
     assertTrue("legacy fallback" in match.matchReasons)
 }
 
@@ -1244,7 +1244,7 @@ Commit: `test(compose-core): add ambiguity, cap, and clear-margin matcher tests`
 
 ### Step 3.3 - Implement matcher changes (the production change)
 
-- [ ] Edit `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`.
+- [ ] Edit `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`.
 
   1. Track in `score()` which signal kinds fired per matched term so we can emit `selected stringResource`, `arbitrary literal`, and `legacy fallback` reasons. The simplest approach is to thread a `Set<SourceSignalKind>` into the match call chain. Modify `signalOrLegacyWeight` to return a small data carrier:
 
@@ -1504,7 +1504,7 @@ Goal: caution text comes from the factory using the precedence-resolved risk fla
 
 ### Step 4.1 - Update `SourceInterpretationFactoryTest`
 
-- [ ] Edit `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceInterpretationFactoryTest.kt`. Add three more granular tests. Add `import io.beyondwin.fixthis.compose.core.model.SourceCandidateRisk`.
+- [ ] Edit `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceInterpretationFactoryTest.kt`. Add three more granular tests. Add `import io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk`.
 
 ```kotlin
 @Test
@@ -1565,16 +1565,16 @@ Commit: `test(compose-core): pin SourceInterpretation caution generator wiring`.
 
 ### Step 4.2 - Implement `SourceInterpretationFactory` change
 
-- [ ] Edit `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt`:
+- [ ] Edit `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.source
+package io.github.beyondwin.fixthis.compose.core.source
 
-import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
-import io.beyondwin.fixthis.compose.core.model.SourceCandidate
-import io.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
-import io.beyondwin.fixthis.compose.core.model.SourceCandidateSummary
-import io.beyondwin.fixthis.compose.core.model.SourceInterpretation
+import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidateSummary
+import io.github.beyondwin.fixthis.compose.core.model.SourceInterpretation
 
 object SourceInterpretationFactory {
     fun from(sourceCandidates: List<SourceCandidate>): SourceInterpretation {
@@ -1635,7 +1635,7 @@ Goal: only `DetailMode.COMPACT` (and the default-PRECISE-replacement only when c
 
 ### Step 5.1 - Add COMPACT format tests to `FeedbackQueueFormatterTest`
 
-- [ ] Append the following tests to `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`. Add `import kotlin.test.assertNotNull` if not already present.
+- [ ] Append the following tests to `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`. Add `import kotlin.test.assertNotNull` if not already present.
 
 ```kotlin
 @Test
@@ -1698,7 +1698,7 @@ fun compactMarkdownIncludesScreenshotAndOverlayWhenAvailable() {
 
 private fun sessionWithScreenshotAndOverlay(): SessionDto = SessionDto(
     sessionId = "session-1",
-    packageName = "io.beyondwin.fixthis.sample",
+    packageName = "io.github.beyondwin.fixthis.sample",
     projectRoot = "/repo",
     createdAtEpochMillis = 1L,
     updatedAtEpochMillis = 5L,
@@ -1734,7 +1734,7 @@ Commit: `test(mcp): pin COMPACT formatter shape and PRECISE wire stability`.
 
 ### Step 5.2 - Implement `FeedbackQueueFormatter` COMPACT path
 
-- [ ] Edit `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt`. Add a separate COMPACT rendering branch driven from `toMarkdown`:
+- [ ] Edit `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt`. Add a separate COMPACT rendering branch driven from `toMarkdown`:
 
 ```kotlin
 fun toMarkdown(session: SessionDto, detailMode: DetailMode): String =
@@ -1850,7 +1850,7 @@ Commit: `feat(mcp): COMPACT FeedbackQueueFormatter emits src? token shape`.
 
 ### Step 5.3 - Add COMPACT-only test to `FixThisMarkdownFormatterTest`
 
-- [ ] Edit `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt`. Add a focused COMPACT test:
+- [ ] Edit `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt`. Add a focused COMPACT test:
 
 ```kotlin
 @Test
@@ -1873,7 +1873,7 @@ fun compactFormatEmitsSrcTokenLineWithLowercaseConfidence() {
 
 Add a helper `annotationWithSingleSource(confidence, reasons, risk)` to the same file. Use the existing fixture builder pattern in the file (the test file already constructs `FixThisAnnotation` instances inline; copy the smallest one and parameterize source candidate fields).
 
-Required imports: `io.beyondwin.fixthis.compose.core.model.SourceCandidateRisk`.
+Required imports: `io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk`.
 
 - [ ] Run: `./gradlew :fixthis-compose-core:test --tests "*FixThisMarkdownFormatterTest*"`. Confirm new test fails. Confirm pre-existing PRECISE/FULL tests still pass (their wire format must not change).
 
@@ -1881,7 +1881,7 @@ Commit: `test(compose-core): pin COMPACT FixThisMarkdownFormatter token shape`.
 
 ### Step 5.4 - Implement `FixThisMarkdownFormatter` COMPACT change
 
-- [ ] Edit `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt`. Replace the COMPACT branch's source-candidate rendering only:
+- [ ] Edit `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt`. Replace the COMPACT branch's source-candidate rendering only:
 
 ```kotlin
 private fun formatCompact(annotation: FixThisAnnotation): String = buildString {
@@ -1947,12 +1947,12 @@ Goal: detect overlapping persisted items per screen and split them into explicit
 
 ### Step 6.1 - `AnnotationOverlapDetector` (TDD)
 
-- [ ] Create `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationOverlapDetectorTest.kt`:
+- [ ] Create `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/AnnotationOverlapDetectorTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -2017,12 +2017,12 @@ class AnnotationOverlapDetectorTest {
 
 - [ ] Run: `./gradlew :fixthis-mcp:test --tests "*AnnotationOverlapDetectorTest*"`. Confirm compilation failure.
 
-- [ ] Create `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationOverlapDetector.kt`:
+- [ ] Create `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/AnnotationOverlapDetector.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import kotlin.math.hypot
 
 object AnnotationOverlapDetector {
@@ -2111,7 +2111,7 @@ Commit: `feat(mcp): add AnnotationOverlapDetector with IoSA and dp-aware fallbac
 fun compactMarkdownSplitsOverlappingItemsIntoExplicitGroups() {
     val session = SessionDto(
         sessionId = "session-1",
-        packageName = "io.beyondwin.fixthis.sample",
+        packageName = "io.github.beyondwin.fixthis.sample",
         projectRoot = "/repo",
         createdAtEpochMillis = 1L,
         updatedAtEpochMillis = 5L,
@@ -2192,14 +2192,14 @@ Commit: `feat(mcp): split overlapping items into explicit COMPACT groups`.
 
 ### Step 6.3 - Add `CompactHandoffRenderer` (extraction)
 
-- [ ] Extract the COMPACT helpers (`appendCompactItem`, `compactTargetSummary`, `compactSourceLine`, `reasonTokenFor`, screen-grouping orchestration) into a new file `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`. `FeedbackQueueFormatter.toCompactMarkdown(session)` becomes a one-liner that delegates to `CompactHandoffRenderer.render(session)`.
+- [ ] Extract the COMPACT helpers (`appendCompactItem`, `compactTargetSummary`, `compactSourceLine`, `reasonTokenFor`, screen-grouping orchestration) into a new file `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`. `FeedbackQueueFormatter.toCompactMarkdown(session)` becomes a one-liner that delegates to `CompactHandoffRenderer.render(session)`.
 
-- [ ] Add `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` with one focused test:
+- [ ] Add `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` with one focused test:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -2208,7 +2208,7 @@ class CompactHandoffRendererTest {
     fun renderEmitsTopLevelRuleAndScreenHeader() {
         val session = SessionDto(
             sessionId = "session-1",
-            packageName = "io.beyondwin.fixthis.sample",
+            packageName = "io.github.beyondwin.fixthis.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 1L,
             updatedAtEpochMillis = 1L,
@@ -2506,7 +2506,7 @@ Goal: prove JS and Kotlin emit equivalent COMPACT prompts; assert prompt size sh
 {
   "schemaVersion": "1.0",
   "sessionId": "session-parity",
-  "packageName": "io.beyondwin.fixthis.sample",
+  "packageName": "io.github.beyondwin.fixthis.sample",
   "projectRoot": "/repo",
   "createdAtEpochMillis": 1,
   "updatedAtEpochMillis": 2,
@@ -2550,7 +2550,7 @@ FixThis feedback handoff
 
 Rule: source hints are candidates; verify screenshot, target, and code before editing.
 
-Package: io.beyondwin.fixthis.sample
+Package: io.github.beyondwin.fixthis.sample
 Annotations: 1
 
 Screen screen-1: Checkout
@@ -2624,13 +2624,13 @@ Commit: `test(mcp): add JS/Kotlin compact prompt parity fixture`.
 
 ### Step 8.2 - `PromptParityTest`
 
-- [ ] Create `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/PromptParityTest.kt`:
+- [ ] Create `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/PromptParityTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.cli.fixThisJson
-import io.beyondwin.fixthis.compose.core.format.DetailMode
+import io.github.beyondwin.fixthis.cli.fixThisJson
+import io.github.beyondwin.fixthis.compose.core.format.DetailMode
 import org.junit.Assert.assertEquals
 import org.junit.Assume.assumeTrue
 import org.junit.Test

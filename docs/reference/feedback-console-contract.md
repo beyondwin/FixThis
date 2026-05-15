@@ -326,5 +326,5 @@ asset-contract tests grep for stable function names. A `CONTRACT_SYMBOLS`
 list in the build script guards each test-asserted symbol against
 accidental minifier elimination. Tests now read unbundled JS from
 `fixthis-mcp/src/main/console/*.js` via `ConsoleSourceFixtures` (see
-`fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/fixtures/ConsoleSourceFixtures.kt`)
+`fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/fixtures/ConsoleSourceFixtures.kt`)
 rather than the minified `app.js`.

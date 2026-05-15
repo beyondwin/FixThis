@@ -17,7 +17,7 @@ test('fixthis-smoke staleness MCP call keeps stdin open until status payload arr
   const root = mkdtempSync(join(tmpdir(), 'fixthis-smoke-'));
   try {
     mkdirSync(join(root, 'scripts'), { recursive: true });
-    mkdirSync(join(root, 'sample/src/main/java/io/beyondwin/fixthis/sample'), { recursive: true });
+    mkdirSync(join(root, 'sample/src/main/java/io/github/beyondwin/fixthis/sample'), { recursive: true });
     mkdirSync(join(root, 'fixthis-cli/build/install/fixthis/bin'), { recursive: true });
     mkdirSync(join(root, 'fixthis-mcp/build/install/fixthis-mcp/bin'), { recursive: true });
     mkdirSync(join(root, 'bin'), { recursive: true });
@@ -25,8 +25,8 @@ test('fixthis-smoke staleness MCP call keeps stdin open until status payload arr
     copyFileSync(join(repoRoot, 'scripts/fixthis-smoke.sh'), join(root, 'scripts/fixthis-smoke.sh'));
     chmodSync(join(root, 'scripts/fixthis-smoke.sh'), 0o755);
     writeFileSync(
-      join(root, 'sample/src/main/java/io/beyondwin/fixthis/sample/MainActivity.kt'),
-      'package io.beyondwin.fixthis.sample\n',
+      join(root, 'sample/src/main/java/io/github/beyondwin/fixthis/sample/MainActivity.kt'),
+      'package io.github.beyondwin.fixthis.sample\n',
     );
 
     writeExecutable(
@@ -80,7 +80,7 @@ const readline = require('node:readline');
 
 const args = process.argv.slice(2);
 const projectDir = args[args.indexOf('--project-dir') + 1];
-const source = projectDir + '/sample/src/main/java/io/beyondwin/fixthis/sample/MainActivity.kt';
+const source = projectDir + '/sample/src/main/java/io/github/beyondwin/fixthis/sample/MainActivity.kt';
 const marker = projectDir + '/.fake-install-marker';
 let pendingStatus = null;
 
@@ -89,7 +89,7 @@ function statusPayload() {
   const markerMtime = fs.statSync(marker).mtimeMs;
   const installStale = sourceMtime > markerMtime;
   return {
-    packageName: 'io.beyondwin.fixthis.sample',
+    packageName: 'io.github.beyondwin.fixthis.sample',
     installStale,
     newerSourceFiles: installStale ? [source] : [],
   };

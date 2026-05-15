@@ -20,7 +20,7 @@ In your `app/build.gradle.kts`:
 
 ```kotlin
 plugins {
-    id("io.beyondwin.fixthis.compose")
+    id("io.github.beyondwin.fixthis.compose")
 }
 ```
 
@@ -33,7 +33,7 @@ Once Gradle Plugin Portal publication is live, the agent-friendly form becomes:
 
 ```kotlin
 plugins {
-    id("io.beyondwin.fixthis.compose") version "0.2.0"
+    id("io.github.beyondwin.fixthis.compose") version "0.2.0"
 }
 ```
 
@@ -62,7 +62,7 @@ fixthis doctor --project-dir . --json
 ```
 
 `fixthis install-agent` detects the app module by `applicationId`, applies the
-published `io.beyondwin.fixthis.compose` Gradle plugin, writes Claude Code /
+published `io.github.beyondwin.fixthis.compose` Gradle plugin, writes Claude Code /
 Codex MCP config, and creates `.fixthis/agent-setup.*` handoff files. Use
 `--dry-run` to preview the Gradle patch and config writes, or
 `--skip-gradle-plugin` if the plugin is already applied.

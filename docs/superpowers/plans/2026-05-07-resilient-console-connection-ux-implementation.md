@@ -30,7 +30,7 @@
   - a saved-work disconnect banner
   - explicit stale/failed bridge classification
 - Current working tree contains an unrelated modified test file:
-  - `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+  - `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
   - The diff adds assertions for prompt target evidence helpers. Do not revert it. If this plan touches the same test file, preserve those assertions.
 
 ## UX Contract
@@ -75,7 +75,7 @@ Details should include:
 
 ```text
 Device: SM_G986N · device
-Package: io.beyondwin.fixthis.sample
+Package: io.github.beyondwin.fixthis.sample
 Bridge: no response
 Last connected: 12s ago
 Raw error: Bridge closed before sending a response
@@ -83,25 +83,25 @@ Raw error: Bridge closed before sending a response
 
 ## File Structure
 
-- Modify `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/Adb.kt`
+- Modify `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/Adb.kt`
   - Add `launchApp(packageName)` to `AdbFacade` and implement it with existing `monkey`.
-- Modify `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt`
+- Modify `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt`
   - Add selected-device-scoped `launchApp(packageName)`.
-- Modify `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/BridgeClientTest.kt`
+- Modify `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/BridgeClientTest.kt`
   - Test app launch scopes to selected device and rejects unavailable devices.
-- Create `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleConnectionModels.kt`
+- Create `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleConnectionModels.kt`
   - Serializable DTOs for `/api/connection` and `/api/app/launch`.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
   - Expose `launchApp(packageName)` through `FixThisBridge` and `CliFixThisBridge`.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
   - Add `connectionStatus()` and `launchAppForCurrentSession()`.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
   - Add `GET /api/connection` and `POST /api/app/launch`.
-- Modify `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FakeFixThisBridge.kt`
+- Modify `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FakeFixThisBridge.kt`
   - Add controllable launch and heartbeat failure behavior for tests.
-- Modify `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt`
+- Modify `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt`
   - Test connection status mapping and launch flow.
-- Modify `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
   - Test new APIs and browser asset behavior. Preserve existing uncommitted prompt evidence assertions if present.
 - Modify `fixthis-mcp/src/main/resources/console/index.html`
   - Add simple recovery card and stale preview indicator anchors.
@@ -120,9 +120,9 @@ Raw error: Bridge closed before sending a response
 ## Task 1: Add ADB App Launch To The Bridge Layer
 
 **Files:**
-- Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/Adb.kt`
-- Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt`
-- Modify: `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/BridgeClientTest.kt`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/Adb.kt`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt`
+- Modify: `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/BridgeClientTest.kt`
 
 - [x] **Step 1: Write failing BridgeClient launch tests**
 
@@ -138,9 +138,9 @@ fun launchAppScopesAdbCommandToSelectedDevice() {
     val client = BridgeClient(adb = adb, projectRoot = temporaryFolder.newFolder())
 
     client.selectDevice("device-1")
-    client.launchApp("io.beyondwin.fixthis.sample")
+    client.launchApp("io.github.beyondwin.fixthis.sample")
 
-    assertEquals(listOf("device-1" to "io.beyondwin.fixthis.sample"), adb.launchedApps)
+    assertEquals(listOf("device-1" to "io.github.beyondwin.fixthis.sample"), adb.launchedApps)
 }
 
 @Test
@@ -153,7 +153,7 @@ fun launchAppRejectsUnavailableSelectedDevice() {
 
     client.selectDevice("device-1")
     val error = kotlin.runCatching {
-        client.launchApp("io.beyondwin.fixthis.sample")
+        client.launchApp("io.github.beyondwin.fixthis.sample")
     }.exceptionOrNull()
 
     assertTrue(error is NoDeviceException)
@@ -178,7 +178,7 @@ Make sure `forDevice(serial)` passes the shared `launchedApps` list to child fak
 Run:
 
 ```bash
-./gradlew :fixthis-cli:test --tests io.beyondwin.fixthis.cli.BridgeClientTest
+./gradlew :fixthis-cli:test --tests io.github.beyondwin.fixthis.cli.BridgeClientTest
 ```
 
 Expected: fails because `AdbFacade.launchApp` and `BridgeClient.launchApp` do not exist.
@@ -222,7 +222,7 @@ fun launchApp(packageName: String) {
 Run:
 
 ```bash
-./gradlew :fixthis-cli:test --tests io.beyondwin.fixthis.cli.BridgeClientTest
+./gradlew :fixthis-cli:test --tests io.github.beyondwin.fixthis.cli.BridgeClientTest
 ```
 
 Expected: PASS.
@@ -230,7 +230,7 @@ Expected: PASS.
 - [x] **Step 5: Commit**
 
 ```bash
-git add fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/Adb.kt fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/BridgeClientTest.kt
+git add fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/Adb.kt fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/BridgeClientTest.kt
 git commit -m "feat: let bridge client launch selected app"
 ```
 
@@ -239,11 +239,11 @@ git commit -m "feat: let bridge client launch selected app"
 ## Task 2: Add Console Connection DTOs And Service Diagnosis
 
 **Files:**
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleConnectionModels.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FakeFixThisBridge.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleConnectionModels.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FakeFixThisBridge.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt`
 
 - [x] **Step 1: Add failing service tests**
 
@@ -306,7 +306,7 @@ fun launchAppForCurrentSessionDelegatesToBridgeAndReturnsStartingState() = runBl
 
     val status = service.launchAppForCurrentSession()
 
-    assertEquals(listOf("io.beyondwin.fixthis.sample"), bridge.launchedPackages)
+    assertEquals(listOf("io.github.beyondwin.fixthis.sample"), bridge.launchedPackages)
     assertEquals(ConsoleConnectionState.STARTING, status.state)
 }
 ```
@@ -314,8 +314,8 @@ fun launchAppForCurrentSessionDelegatesToBridgeAndReturnsStartingState() = runBl
 Add imports:
 
 ```kotlin
-import io.beyondwin.fixthis.cli.AdbDevice
-import io.beyondwin.fixthis.mcp.console.ConsoleConnectionState
+import io.github.beyondwin.fixthis.cli.AdbDevice
+import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionState
 ```
 
 If `serviceWithBridge` does not already exist, add this helper in the test class:
@@ -326,7 +326,7 @@ private fun serviceWithBridge(bridge: FakeFixThisBridge): FeedbackSessionService
         bridge = bridge,
         store = FeedbackSessionStore(),
         projectRoot = temporaryFolder.newFolder().absolutePath,
-        defaultPackageName = "io.beyondwin.fixthis.sample",
+        defaultPackageName = "io.github.beyondwin.fixthis.sample",
     )
 ```
 
@@ -335,7 +335,7 @@ private fun serviceWithBridge(bridge: FakeFixThisBridge): FeedbackSessionService
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
 ```
 
 Expected: fails because the connection DTOs and service methods do not exist.
@@ -345,9 +345,9 @@ Expected: fails because the connection DTOs and service methods do not exist.
 Create `ConsoleConnectionModels.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
-import io.beyondwin.fixthis.cli.AdbDevice
+import io.github.beyondwin.fixthis.cli.AdbDevice
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -464,11 +464,11 @@ override fun launchApp(packageName: String) {
 In `FeedbackSessionService.kt`, add imports:
 
 ```kotlin
-import io.beyondwin.fixthis.mcp.console.ConsoleConnectionAction
-import io.beyondwin.fixthis.mcp.console.ConsoleConnectionDetails
-import io.beyondwin.fixthis.mcp.console.ConsoleConnectionState
-import io.beyondwin.fixthis.mcp.console.ConsoleConnectionStatus
-import io.beyondwin.fixthis.mcp.console.toConnectionDevice
+import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionAction
+import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionDetails
+import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionState
+import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionStatus
+import io.github.beyondwin.fixthis.mcp.console.toConnectionDevice
 ```
 
 Add:
@@ -597,7 +597,7 @@ suspend fun launchAppForCurrentSession(): ConsoleConnectionStatus {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
 ```
 
 Expected: PASS.
@@ -605,7 +605,7 @@ Expected: PASS.
 - [x] **Step 7: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleConnectionModels.kt fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FakeFixThisBridge.kt fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleConnectionModels.kt fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FakeFixThisBridge.kt fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt
 git commit -m "feat: diagnose console connection state"
 ```
 
@@ -614,8 +614,8 @@ git commit -m "feat: diagnose console connection state"
 ## Task 3: Add Console Connection And Launch APIs
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [x] **Step 1: Add failing console API tests**
 
@@ -653,7 +653,7 @@ fun launchAppApiLaunchesSelectedPackageAndReturnsStartingStatus() {
         assertEquals(200, connection.responseCode)
         val json = fixThisJson.parseToJsonElement(connection.inputStream.bufferedReader().readText()).jsonObject
         assertEquals("STARTING", json.getValue("state").jsonPrimitive.content)
-        assertEquals(listOf("io.beyondwin.fixthis.sample"), bridge.launchedPackages)
+        assertEquals(listOf("io.github.beyondwin.fixthis.sample"), bridge.launchedPackages)
     }
 }
 ```
@@ -670,7 +670,7 @@ import kotlinx.serialization.json.getValue
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: fails because routes and `sendJson(ConsoleConnectionStatus)` do not exist.
@@ -680,7 +680,7 @@ Expected: fails because routes and `sendJson(ConsoleConnectionStatus)` do not ex
 In `FeedbackConsoleServer.kt`, add import:
 
 ```kotlin
-import io.beyondwin.fixthis.mcp.console.ConsoleConnectionStatus
+import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionStatus
 ```
 
 Add cases in `handle` before `/api/heartbeat`:
@@ -707,7 +707,7 @@ private fun HttpExchange.sendJson(statusCode: Int, value: ConsoleConnectionStatu
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: PASS. If the existing uncommitted prompt evidence assertions are present, they must still pass.
@@ -715,7 +715,7 @@ Expected: PASS. If the existing uncommitted prompt evidence assertions are prese
 - [x] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat: expose console connection recovery APIs"
 ```
 
@@ -727,7 +727,7 @@ git commit -m "feat: expose console connection recovery APIs"
 - Modify: `fixthis-mcp/src/main/resources/console/index.html`
 - Modify: `fixthis-mcp/src/main/resources/console/styles.css`
 - Modify: `fixthis-mcp/src/main/resources/console/app.js`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [x] **Step 1: Add failing asset tests**
 
@@ -773,7 +773,7 @@ fun connectionDropPreservesDraftWorkAndMarksPreviewStale() {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: fails because the new DOM and JS functions do not exist.
@@ -1106,7 +1106,7 @@ applyConnectionStatus({
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: PASS.
@@ -1114,7 +1114,7 @@ Expected: PASS.
 - [x] **Step 8: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/resources/console/index.html fixthis-mcp/src/main/resources/console/styles.css fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/main/resources/console/index.html fixthis-mcp/src/main/resources/console/styles.css fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat: add resilient console recovery UI"
 ```
 
@@ -1124,7 +1124,7 @@ git commit -m "feat: add resilient console recovery UI"
 
 **Files:**
 - Modify: `fixthis-mcp/src/main/resources/console/app.js`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [x] **Step 1: Add failing tests for preview and pending preservation**
 
@@ -1151,7 +1151,7 @@ The last assertion documents that drafts are only cleared by explicit draft life
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: fails until preview error handling marks stale previews and refreshes connection status.
@@ -1210,7 +1210,7 @@ Expected: clearing happens only on explicit user flow boundaries such as cancel,
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: PASS.
@@ -1218,7 +1218,7 @@ Expected: PASS.
 - [x] **Step 6: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "fix: preserve console work during disconnects"
 ```
 
@@ -1364,7 +1364,7 @@ Run:
 
 ```bash
 fixthis-cli/build/install/fixthis/bin/fixthis console \
-  --package io.beyondwin.fixthis.sample \
+  --package io.github.beyondwin.fixthis.sample \
   --console-assets-dir "$PWD/fixthis-mcp/src/main/resources/console"
 ```
 

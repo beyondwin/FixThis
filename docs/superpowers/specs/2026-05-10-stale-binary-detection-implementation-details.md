@@ -5,8 +5,8 @@
 **Primary modules:**
 - `scripts/build-console-assets.mjs`
 - `fixthis-mcp/build.gradle.kts`, `fixthis-compose-sidekick/build.gradle.kts`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/BuildInfo.kt` (generated)
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/BuildInfo.kt` (generated)
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/BuildInfo.kt` (generated)
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/BuildInfo.kt` (generated)
 - `fixthis-mcp/src/main/console/staleness.js` (new)
 - `fixthis-mcp/src/main/console/main.js`, `connection.js` (touched)
 - `fixthis-mcp/src/main/resources/console/index.html`, `styles.css`, `app.js`
@@ -40,7 +40,7 @@
 13. main.js
 ```
 
-`FeedbackConsoleServerTest.generatedConsoleAppMatchesConsoleSourceModules` (`fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt:480-507` 부근) 가 byte-equal 비교를 수행한다.
+`FeedbackConsoleServerTest.generatedConsoleAppMatchesConsoleSourceModules` (`fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt:480-507` 부근) 가 byte-equal 비교를 수행한다.
 
 ### 본 변경의 진입점 (Phase 2)
 
@@ -523,7 +523,7 @@ screen -ls 2>/dev/null | grep fixthis-console
 git checkout <pre-Phase-2-commit>
 ./gradlew :fixthis-mcp:installDist
 fixthis-mcp/build/install/fixthis-mcp/bin/fixthis-mcp \
-  --console --package io.beyondwin.fixthis.sample &
+  --console --package io.github.beyondwin.fixthis.sample &
 OLD_MCP_PID=$!
 
 # 2. Phase 2 머지로 돌아옴

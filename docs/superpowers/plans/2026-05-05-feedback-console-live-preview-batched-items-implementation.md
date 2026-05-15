@@ -122,7 +122,7 @@ Expected: branch is understood, HEAD is recorded, and only known unrelated untra
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest --tests io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest --tests io.github.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -163,11 +163,11 @@ fun addScreenWithItemsPersistsOneScreenAndMultipleDraftItemsAtomically() {
         clock = sequenceClock(1_000L, 2_000L),
         idGenerator = sequenceIds("session-1", "screen-1", "item-1", "item-2"),
     )
-    val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+    val session = store.openSession("io.github.beyondwin.fixthis.sample", "/repo")
     val screen = CapturedScreen(
         screenId = "pending",
         capturedAtEpochMillis = 0L,
-        activityName = "io.beyondwin.fixthis.sample.MainActivity",
+        activityName = "io.github.beyondwin.fixthis.sample.MainActivity",
         displayName = "MainActivity",
         screenshot = FeedbackScreenshot(width = 720, height = 1600),
     )
@@ -218,7 +218,7 @@ private fun sequenceIds(vararg values: String): () -> String {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest
 ```
 
 Expected: FAIL because `addScreenWithItems` does not exist.
@@ -262,7 +262,7 @@ fun addScreenWithItems(sessionId: String, screen: CapturedScreen, items: List<Fe
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -290,10 +290,10 @@ git commit -m "feat: persist batched feedback items with one snapshot"
 Create `FeedbackConsolePreviewModels.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.beyondwin.fixthis.mcp.session.CapturedScreen
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.mcp.session.CapturedScreen
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -336,7 +336,7 @@ fun savingFrozenPreviewPersistsOneScreenForMultipleItems() = runBlocking {
         idGenerator = sequenceIds("session-1", "preview-1", "screen-1", "item-1", "item-2"),
     )
     val service = FeedbackSessionService(bridge = bridge, store = store, projectRoot = "/repo")
-    val session = service.openSession("io.beyondwin.fixthis.sample", newSession = true)
+    val session = service.openSession("io.github.beyondwin.fixthis.sample", newSession = true)
 
     val preview = service.capturePreview(session.sessionId)
     assertTrue(store.getSession(session.sessionId).screens.isEmpty())
@@ -372,7 +372,7 @@ fun savingFrozenPreviewPersistsOneScreenForMultipleItems() = runBlocking {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
 ```
 
 Expected: FAIL because preview promotion APIs do not exist.
@@ -449,7 +449,7 @@ Implement `buildFeedbackItemForDraft(screen, pending)` so:
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -531,7 +531,7 @@ fun savingDraftItemsAppendsOneScreenAndTwoItems() {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: FAIL because preview and batched save routes do not exist.
@@ -575,7 +575,7 @@ Only serve PNG files under FixThis-owned preview cache or persisted artifact dir
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -641,7 +641,7 @@ assertTrue(html.contains("savePendingFeedbackItems"))
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: FAIL because the old mode UI is still present.
@@ -912,7 +912,7 @@ Source: sample/src/main/java/.../FormScreen.kt:37
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -953,11 +953,11 @@ fun markdownFocusesOnRequestTargetEvidenceAndLikelySource() {
     )
     val session = FeedbackSession(
         sessionId = "session-1",
-        packageName = "io.beyondwin.fixthis.sample",
+        packageName = "io.github.beyondwin.fixthis.sample",
         projectRoot = "/repo",
         createdAtEpochMillis = 1L,
         updatedAtEpochMillis = 2L,
-        screens = listOf(CapturedScreen("screen-1", 2L, activityName = "io.beyondwin.fixthis.sample.MainActivity", displayName = "MainActivity")),
+        screens = listOf(CapturedScreen("screen-1", 2L, activityName = "io.github.beyondwin.fixthis.sample.MainActivity", displayName = "MainActivity")),
         items = listOf(
             FeedbackItem(
                 itemId = "item-1",
@@ -1003,7 +1003,7 @@ fun markdownFocusesOnRequestTargetEvidenceAndLikelySource() {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
 ```
 
 Expected: FAIL because the current Markdown still includes repeated metadata.
@@ -1067,7 +1067,7 @@ In `FeedbackSessionService`, source evidence rules are:
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest --tests io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest --tests io.github.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -1187,7 +1187,7 @@ Expected: if `SM_G986N` is connected in `device` state, continue to Step 4. If n
 Run:
 
 ```bash
-ANDROID_HOME=/Users/kws/Library/Android/sdk PATH=/Users/kws/Library/Android/sdk/platform-tools:$PATH fixthis-cli/build/install/fixthis/bin/fixthis console --package io.beyondwin.fixthis.sample
+ANDROID_HOME=/Users/kws/Library/Android/sdk PATH=/Users/kws/Library/Android/sdk/platform-tools:$PATH fixthis-cli/build/install/fixthis/bin/fixthis console --package io.github.beyondwin.fixthis.sample
 ```
 
 Record the console URL. Do not kill unrelated processes.

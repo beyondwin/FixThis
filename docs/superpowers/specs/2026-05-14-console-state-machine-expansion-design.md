@@ -768,5 +768,5 @@ to fail its grep for `heartbeatTimer`.
 - Existing reducer test (style template):
   `scripts/draftWorkspace-test.mjs`
 - Asset contract tests that grep for FSM symbols:
-  `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
+  `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
   (will be `ConsoleSessionsPollingContractTest.kt` after Item 3 lands).

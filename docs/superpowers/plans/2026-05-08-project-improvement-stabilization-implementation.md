@@ -25,7 +25,7 @@
 
 - Use a new implementation branch or worktree, preferably `codex/project-improvement-stabilization`.
 - Keep each task independently reviewable and commit after each task.
-- Preserve unrelated local changes. If `fixthis-mcp/src/main/resources/console/app.js` or `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` contains unrelated uncommitted work, read and preserve it before editing.
+- Preserve unrelated local changes. If `fixthis-mcp/src/main/resources/console/app.js` or `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` contains unrelated uncommitted work, read and preserve it before editing.
 - Update checkbox state in this file as tasks complete.
 - After each task, run the listed validation command and record PASS, FAIL, or SKIPPED with the reason.
 - For connected-device checks, SKIPPED is acceptable only with an explicit category. Connected-device state categories include `SKIPPED_NO_DEVICE`, `SKIPPED_UNAUTHORIZED_DEVICE`, `SKIPPED_OFFLINE_DEVICE`, `SKIPPED_LOCKED_DEVICE`, `SKIPPED_WIRELESS_ADB_LOST`, or `SKIPPED_MULTIPLE_DEVICES`; use `SKIPPED_HOST_ONLY` only for intentional host-only/manual smoke skips.
@@ -42,9 +42,9 @@
 - Largest hot spots:
   - `fixthis-mcp/src/main/resources/console/app.js`
   - `fixthis-mcp/src/main/resources/console/styles.css`
-  - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
-  - `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
-  - `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+  - `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
+  - `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
+  - `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 ## Target File Structure
 
@@ -64,33 +64,33 @@
 
 ### CLI Setup And Cleanup
 
-- Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/Main.kt`
-- Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt`
-- Create: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/AndroidSdkLocator.kt`
-- Create: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/McpConfigEntry.kt`
-- Create: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/AgentConfigWriter.kt`
-- Create: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/CodexConfigWriter.kt`
-- Create: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt`
-- Create: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/CleanCommand.kt`
-- Create or modify tests under `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/Main.kt`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/AndroidSdkLocator.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/McpConfigEntry.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/AgentConfigWriter.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/CodexConfigWriter.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/CleanCommand.kt`
+- Create or modify tests under `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/`
 
 ### MCP Session And Console
 
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/ConsoleConnectionService.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/PreviewCaptureService.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleHttp.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleRoutes.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/SessionRoutes.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/DeviceRoutes.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConnectionRoutes.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/PreviewRoutes.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ArtifactRoutes.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
-- Modify tests under `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/ConsoleConnectionService.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/PreviewCaptureService.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleHttp.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleRoutes.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/SessionRoutes.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/DeviceRoutes.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConnectionRoutes.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/PreviewRoutes.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ArtifactRoutes.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
+- Modify tests under `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/`
 
 ### Console Assets
 
@@ -110,13 +110,13 @@
 
 ### Evidence And Sample Coverage
 
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceIndex.kt`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt`
-- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`
-- Modify: `fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceIndex.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt`
+- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`
+- Modify: `fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt`
 - Create: `sample/fixthis-coverage.json`
-- Modify: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
+- Modify: `sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
 
 ---
 
@@ -197,7 +197,7 @@ Expected: no commit for Task 0 unless a workspace handoff note is intentionally 
 - Modify: `docs/mcp.md`
 - Modify: `docs/design-feedback-console-ux.md`
 - Modify: `docs/fixthis_prd.md`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [x] **Step 1: Add the contract document**
 
@@ -305,7 +305,7 @@ Expected: PASS.
 - [x] **Step 5: Commit**
 
 ```bash
-git add docs/feedback-console-contract.md README.md docs/mcp.md docs/design-feedback-console-ux.md docs/fixthis_prd.md fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+git add docs/feedback-console-contract.md README.md docs/mcp.md docs/design-feedback-console-ux.md docs/fixthis_prd.md fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "docs: align feedback console contract"
 ```
 
@@ -472,11 +472,11 @@ HANDOFF CHECKPOINT:
 ## Task 3: Remove Project-Owned Test Deprecation Warnings
 
 **Files:**
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionPersistenceTest.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionPersistenceTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [x] **Step 1: Add temp directory helpers in affected test files**
 
@@ -537,7 +537,7 @@ Validation notes:
 - [x] **Step 4: Commit**
 
 ```bash
-git add fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md
+git add fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md
 git commit -m "test: remove mcp deprecation warnings"
 ```
 
@@ -554,13 +554,13 @@ HANDOFF CHECKPOINT:
 ## Task 4: Implement Zero-Setup MCP Config Writers
 
 **Files:**
-- Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt`
-- Create: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/AndroidSdkLocator.kt`
-- Create: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/McpConfigEntry.kt`
-- Create: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/AgentConfigWriter.kt`
-- Create: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/CodexConfigWriter.kt`
-- Create: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt`
-- Create: tests under `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/AndroidSdkLocator.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/McpConfigEntry.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/AgentConfigWriter.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/CodexConfigWriter.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt`
+- Create: tests under `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/`
 - Modify: `README.md`
 - Modify: `docs/mcp.md`
 - Modify: `docs/design-zero-setup.md`
@@ -568,10 +568,10 @@ HANDOFF CHECKPOINT:
 
 - [x] **Step 1: Add writer model tests**
 
-Create `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/AgentConfigWriterTest.kt`:
+Create `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/AgentConfigWriterTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.cli.commands
+package io.github.beyondwin.fixthis.cli.commands
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -581,7 +581,7 @@ class AgentConfigWriterTest {
     private val entry = McpConfigEntry(
         serverName = "fixthis",
         command = "/repo/fixthis-cli/build/install/fixthis/bin/fixthis",
-        args = listOf("mcp", "--package", "io.beyondwin.fixthis.sample", "--project-dir", "/repo"),
+        args = listOf("mcp", "--package", "io.github.beyondwin.fixthis.sample", "--project-dir", "/repo"),
         env = mapOf("ANDROID_HOME" to "/Users/kws/Library/Android/sdk"),
     )
 
@@ -649,7 +649,7 @@ RED notes:
 Create `McpConfigEntry.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.cli.commands
+package io.github.beyondwin.fixthis.cli.commands
 
 internal data class McpConfigEntry(
     val serverName: String,
@@ -662,7 +662,7 @@ internal data class McpConfigEntry(
 Create `AgentConfigWriter.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.cli.commands
+package io.github.beyondwin.fixthis.cli.commands
 
 import java.io.File
 
@@ -678,7 +678,7 @@ internal interface AgentConfigWriter {
 Create `CodexConfigWriter.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.cli.commands
+package io.github.beyondwin.fixthis.cli.commands
 
 import java.io.File
 
@@ -734,9 +734,9 @@ internal class CodexConfigWriter : AgentConfigWriter {
 Create `ClaudeConfigWriter.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.cli.commands
+package io.github.beyondwin.fixthis.cli.commands
 
-import io.beyondwin.fixthis.cli.fixThisJson
+import io.github.beyondwin.fixthis.cli.fixThisJson
 import java.io.File
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -780,7 +780,7 @@ internal class ClaudeConfigWriter : AgentConfigWriter {
 Create `AndroidSdkLocator.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.cli.commands
+package io.github.beyondwin.fixthis.cli.commands
 
 import java.io.File
 
@@ -826,8 +826,8 @@ Run:
 ```bash
 ./gradlew :fixthis-cli:test
 ./gradlew :fixthis-cli:installDist
-fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.beyondwin.fixthis.sample --project-dir "$PWD"
-fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.beyondwin.fixthis.sample --project-dir "$PWD" --write --target codex --dry-run
+fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.github.beyondwin.fixthis.sample --project-dir "$PWD"
+fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.github.beyondwin.fixthis.sample --project-dir "$PWD" --write --target codex --dry-run
 git diff --check
 ```
 
@@ -838,8 +838,8 @@ Validation notes:
 - Quality-review focused revalidation `./gradlew :fixthis-cli:test --tests '*AgentConfigWriterTest' --tests '*SetupCommandTest'`: PASS.
 - `./gradlew :fixthis-cli:test`: PASS.
 - `./gradlew :fixthis-cli:installDist`: PASS.
-- `fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.beyondwin.fixthis.sample --project-dir "$PWD"`: PASS; default JSON output remained `command = "fixthis"` with `args = ["mcp", ...]`.
-- `fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.beyondwin.fixthis.sample --project-dir "$PWD" --write --target codex --dry-run`: PASS; printed target path `/Users/kws/.codex/config.toml` and rendered merged config with `ANDROID_HOME`.
+- `fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.github.beyondwin.fixthis.sample --project-dir "$PWD"`: PASS; default JSON output remained `command = "fixthis"` with `args = ["mcp", ...]`.
+- `fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.github.beyondwin.fixthis.sample --project-dir "$PWD" --write --target codex --dry-run`: PASS; printed target path `/Users/kws/.codex/config.toml` and rendered merged config with `ANDROID_HOME`.
 - `git diff --check`: PASS.
 - Durability/doc review validation `./gradlew :fixthis-cli:test --tests '*SetupCommandTest' --tests '*AgentConfigWriterTest'`: PASS.
 - Durability/doc review validation `./gradlew :fixthis-cli:installDist`: PASS.
@@ -862,7 +862,7 @@ HANDOFF CHECKPOINT:
 - [x] **Step 9: Commit**
 
 ```bash
-git add fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands README.md docs/mcp.md docs/design-zero-setup.md docs/troubleshooting.md docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md
+git add fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands README.md docs/mcp.md docs/design-zero-setup.md docs/troubleshooting.md docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md
 git commit -m "feat: add zero setup mcp config writers"
 ```
 
@@ -881,7 +881,7 @@ Create `scripts/fixthis-smoke.sh`:
 #!/usr/bin/env bash
 set -euo pipefail
 
-PACKAGE_NAME="io.beyondwin.fixthis.sample"
+PACKAGE_NAME="io.github.beyondwin.fixthis.sample"
 HOST_ONLY="false"
 NO_BUILD="false"
 
@@ -970,7 +970,7 @@ chmod +x scripts/fixthis-smoke.sh
 Run:
 
 ```bash
-scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample --host-only
+scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample --host-only
 ```
 
 Expected: report is created under `.fixthis/smoke-reports/` and result is `SKIPPED_HOST_ONLY`.
@@ -983,7 +983,7 @@ Update `CONTRIBUTING.md` and `docs/troubleshooting.md` with the command and cate
 Connected smoke:
 
 ```bash
-scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample
+scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample
 ```
 
 Expected connected-device skip categories include `SKIPPED_NO_DEVICE`, `SKIPPED_UNAUTHORIZED_DEVICE`, `SKIPPED_OFFLINE_DEVICE`, and `SKIPPED_HOST_ONLY`.
@@ -999,16 +999,16 @@ git commit -m "test: add connected smoke harness"
 Task 5 validation notes:
 
 - `bash -n scripts/fixthis-smoke.sh`: PASS.
-- `scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample --host-only`: PASS, report `/Users/kws/.config/superpowers/worktrees/FixThis/project-improvement-stabilization/.fixthis/smoke-reports/20260507T190913Z.md`, result `SKIPPED_HOST_ONLY`.
-- Review cleanup validation: `scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample --host-only --no-build` passed with `SKIPPED_HOST_ONLY` and wrote suffixed reports under `.fixthis/smoke-reports/`; two parallel runs in the same second wrote distinct JSON reports `20260507T191410Z-pid14289-1500025148.json` and `20260507T191410Z-pid14309-240865872.json`.
+- `scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample --host-only`: PASS, report `/Users/kws/.config/superpowers/worktrees/FixThis/project-improvement-stabilization/.fixthis/smoke-reports/20260507T190913Z.md`, result `SKIPPED_HOST_ONLY`.
+- Review cleanup validation: `scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample --host-only --no-build` passed with `SKIPPED_HOST_ONLY` and wrote suffixed reports under `.fixthis/smoke-reports/`; two parallel runs in the same second wrote distinct JSON reports `20260507T191410Z-pid14289-1500025148.json` and `20260507T191410Z-pid14309-240865872.json`.
 - Connected-device smoke was not run for Task 5 because no authorized, unlocked device was established before validation. Residual risk: ready-device install, launch, lockscreen detection, and `fixthis doctor` paths still need one connected-device run and may report `SKIPPED_NO_DEVICE`, `SKIPPED_UNAUTHORIZED_DEVICE`, `SKIPPED_OFFLINE_DEVICE`, `SKIPPED_LOCKED_DEVICE`, `SKIPPED_WIRELESS_ADB_LOST`, or `SKIPPED_MULTIPLE_DEVICES` depending on local ADB state.
 
 ## Task 6: Extract ConsoleConnectionService From FeedbackSessionService
 
 **Files:**
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/ConsoleConnectionService.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/ConsoleConnectionServiceTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/ConsoleConnectionService.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/ConsoleConnectionServiceTest.kt`
 
 - [x] **Step 1: Add focused connection service tests**
 
@@ -1052,7 +1052,7 @@ fun launchAppSelectsOnlyReadyDeviceForWelcomeState() = runTest {
 
     service.launchAppForSession(session())
 
-    assertEquals(listOf("io.beyondwin.fixthis.sample"), bridge.launchedPackages)
+    assertEquals(listOf("io.github.beyondwin.fixthis.sample"), bridge.launchedPackages)
     assertEquals("device-1", bridge.selectedDeviceSerial())
 }
 ```
@@ -1105,18 +1105,18 @@ Actual: PASS on 2026-05-08 with:
 - [x] **Step 4: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/ConsoleConnectionService.kt fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/ConsoleConnectionServiceTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/ConsoleConnectionService.kt fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/ConsoleConnectionServiceTest.kt
 git commit -m "refactor: extract console connection service"
 ```
 
 ## Task 7: Extract Preview, Draft, And Target Evidence Services
 
 **Files:**
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/PreviewCaptureService.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
-- Test: new focused service tests under `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/PreviewCaptureService.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
+- Test: new focused service tests under `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/`
 
 - [x] **Step 1: Extract PreviewCaptureService with existing behavior pinned**
 
@@ -1176,7 +1176,7 @@ Validation: PASS on `./gradlew :fixthis-mcp:test --tests '*PreviewCaptureService
 - [x] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session
 git commit -m "refactor: split feedback session services"
 ```
 
@@ -1193,9 +1193,9 @@ Final review-fix GREEN: fallback preview saves now prevalidate pending items wit
 ## Task 8: Split FeedbackConsoleServer Into Route Families
 
 **Files:**
-- Create route and HTTP helper files under `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Create route and HTTP helper files under `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [x] **Step 1: Add ConsoleHttp helpers**
 
@@ -1217,7 +1217,7 @@ internal fun HttpExchange.sendNoContent()
 Create `ConsoleRoutes.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
 import com.sun.net.httpserver.HttpExchange
 
@@ -1267,7 +1267,7 @@ Task 8 notes:
 - [x] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "refactor: split feedback console routes"
 ```
 
@@ -1278,7 +1278,7 @@ git commit -m "refactor: split feedback console routes"
 - Create: `scripts/build-console-assets.mjs`
 - Create: `scripts/console-browser-smoke.mjs`
 - Modify generated: `fixthis-mcp/src/main/resources/console/app.js`
-- Modify tests as needed under `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/`
+- Modify tests as needed under `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/`
 
 - [x] **Step 1: Add deterministic asset build script**
 
@@ -1396,18 +1396,18 @@ Expected: PASS.
 - [x] **Step 4: Commit**
 
 ```bash
-git add scripts/build-console-assets.mjs scripts/console-browser-smoke.mjs fixthis-mcp/src/main/console fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console
+git add scripts/build-console-assets.mjs scripts/console-browser-smoke.mjs fixthis-mcp/src/main/console fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console
 git commit -m "refactor: modularize console javascript assets"
 ```
 
 ## Task 10: Add Source Index v2 Typed Signals
 
 **Files:**
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceIndex.kt`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt`
-- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`
-- Modify: `fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceIndex.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt`
+- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`
+- Modify: `fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt`
 
 - [x] **Step 1: Add model tests for additive decode**
 
@@ -1473,19 +1473,19 @@ In `SourceMatcher.kt`, prefer `signals` when present. Lower the weight of `ARBIT
 Expected: PASS.
 
 Task 10 notes:
-- RED core: `./gradlew :fixthis-compose-core:test --tests 'io.beyondwin.fixthis.compose.core.source.SourceIndexTest' --tests 'io.beyondwin.fixthis.compose.core.source.SourceMatcherTest'` failed at `:fixthis-compose-core:compileTestKotlin` because `signals`, `packageName`, `className`, `SourceSignal`, and `SourceSignalKind` were not defined.
-- RED Gradle task: `./gradlew :fixthis-gradle-plugin:test --tests 'io.beyondwin.fixthis.gradle.GenerateFixThisSourceIndexTaskTest'` failed in `emits typed source index signals while preserving v1 fields` with `NoSuchElementException` when reading missing generated `signals`.
-- Focused GREEN: `./gradlew :fixthis-compose-core:test --tests 'io.beyondwin.fixthis.compose.core.source.SourceIndexTest' --tests 'io.beyondwin.fixthis.compose.core.source.SourceMatcherTest' :fixthis-gradle-plugin:test --tests 'io.beyondwin.fixthis.gradle.GenerateFixThisSourceIndexTaskTest'` passed.
+- RED core: `./gradlew :fixthis-compose-core:test --tests 'io.github.beyondwin.fixthis.compose.core.source.SourceIndexTest' --tests 'io.github.beyondwin.fixthis.compose.core.source.SourceMatcherTest'` failed at `:fixthis-compose-core:compileTestKotlin` because `signals`, `packageName`, `className`, `SourceSignal`, and `SourceSignalKind` were not defined.
+- RED Gradle task: `./gradlew :fixthis-gradle-plugin:test --tests 'io.github.beyondwin.fixthis.gradle.GenerateFixThisSourceIndexTaskTest'` failed in `emits typed source index signals while preserving v1 fields` with `NoSuchElementException` when reading missing generated `signals`.
+- Focused GREEN: `./gradlew :fixthis-compose-core:test --tests 'io.github.beyondwin.fixthis.compose.core.source.SourceIndexTest' --tests 'io.github.beyondwin.fixthis.compose.core.source.SourceMatcherTest' :fixthis-gradle-plugin:test --tests 'io.github.beyondwin.fixthis.gradle.GenerateFixThisSourceIndexTaskTest'` passed.
 - Validation GREEN: `./gradlew :fixthis-gradle-plugin:test :fixthis-compose-core:test :fixthis-mcp:test` passed.
 - Whitespace validation: `git diff --check 4811396..HEAD` passed.
-- Quality-review RED: after adding focused coverage for v2 signals without `confidenceWeight` and mixed v2 entries with preserved legacy role/activity fields, `./gradlew :fixthis-compose-core:test --tests 'io.beyondwin.fixthis.compose.core.source.SourceIndexTest' --tests 'io.beyondwin.fixthis.compose.core.source.SourceMatcherTest'` failed as expected with `MissingFieldException` in `decodesV2SignalWithoutConfidenceWeightWithDefaultWeight` and an assertion failure in `mixedV2EntryFallsBackToLegacyRoleAndActivityMatches`.
+- Quality-review RED: after adding focused coverage for v2 signals without `confidenceWeight` and mixed v2 entries with preserved legacy role/activity fields, `./gradlew :fixthis-compose-core:test --tests 'io.github.beyondwin.fixthis.compose.core.source.SourceIndexTest' --tests 'io.github.beyondwin.fixthis.compose.core.source.SourceMatcherTest'` failed as expected with `MissingFieldException` in `decodesV2SignalWithoutConfidenceWeightWithDefaultWeight` and an assertion failure in `mixedV2EntryFallsBackToLegacyRoleAndActivityMatches`.
 - Quality-review GREEN: `SourceSignal.confidenceWeight` now defaults to `1.0`; `SourceMatcher` uses positive signal matches first and falls back to the preserved v1 field candidates when signal weight is `0.0`. The same focused command passed.
-- Quality-review validation: `./gradlew :fixthis-compose-core:test --tests 'io.beyondwin.fixthis.compose.core.source.SourceIndexTest' --tests 'io.beyondwin.fixthis.compose.core.source.SourceMatcherTest'` passed; `./gradlew :fixthis-gradle-plugin:test :fixthis-compose-core:test :fixthis-mcp:test` passed; `git diff --check 4811396..HEAD` passed.
+- Quality-review validation: `./gradlew :fixthis-compose-core:test --tests 'io.github.beyondwin.fixthis.compose.core.source.SourceIndexTest' --tests 'io.github.beyondwin.fixthis.compose.core.source.SourceMatcherTest'` passed; `./gradlew :fixthis-gradle-plugin:test :fixthis-compose-core:test :fixthis-mcp:test` passed; `git diff --check 4811396..HEAD` passed.
 
 - [x] **Step 6: Commit**
 
 ```bash
-git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt
+git add fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt
 git commit -m "feat: add typed source index signals"
 ```
 
@@ -1493,7 +1493,7 @@ git commit -m "feat: add typed source index signals"
 
 **Files:**
 - Create: `sample/fixthis-coverage.json`
-- Modify: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
+- Modify: `sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
 - Modify: `README.md`
 - Modify: `docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md`
 
@@ -1504,7 +1504,7 @@ Create `sample/fixthis-coverage.json`:
 ```json
 {
   "schemaVersion": "1.0",
-  "applicationId": "io.beyondwin.fixthis.sample",
+  "applicationId": "io.github.beyondwin.fixthis.sample",
   "scenes": [
     {
       "name": "strict_comp_tags",
@@ -1581,7 +1581,7 @@ If a connected device is available, run:
 Expected: assemble and Gradle plugin tests pass. Connected test may be SKIPPED with a device category.
 
 Validation notes:
-- `sample/fixthis-coverage.json`: PASS, created with schemaVersion `1.0`, application id `io.beyondwin.fixthis.sample`, and all seven coverage categories. Planned placeholder text was adjusted to exact current sample strings: `Search feedback`, `More actions` / `Assign reviewer`, `Close issue`, `Close FX-1042 and keep this feedback in the project history?`, `Nested row target remains selectable while the disabled action communicates blocked state.`, `Disabled action`, `Weak semantic preview`, and the long diagnostics row label.
+- `sample/fixthis-coverage.json`: PASS, created with schemaVersion `1.0`, application id `io.github.beyondwin.fixthis.sample`, and all seven coverage categories. Planned placeholder text was adjusted to exact current sample strings: `Search feedback`, `More actions` / `Assign reviewer`, `Close issue`, `Close FX-1042 and keep this feedback in the project history?`, `Nested row target remains selectable while the disabled action communicates blocked state.`, `Disabled action`, `Weak semantic preview`, and the long diagnostics row label.
 - `./gradlew :app:compileDebugAndroidTestKotlin`: PASS, Android test source compiles. Existing Compose rule deprecation warnings remain.
 - `./gradlew :app:assembleDebug :fixthis-gradle-plugin:test`: PASS.
 - `/Users/kws/Library/Android/sdk/platform-tools/adb devices`: PASS, found one authorized device, `adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp device`.
@@ -1590,19 +1590,19 @@ Validation notes:
 - [x] **Step 4: Commit**
 
 ```bash
-git add sample/fixthis-coverage.json sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt README.md docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md
+git add sample/fixthis-coverage.json sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SampleAppSmokeTest.kt README.md docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md
 git commit -m "test: add sample evidence coverage fixture"
 ```
 
 ## Task 12: Harden Local Console Mutations And Add Artifact Cleanup
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
-- Modify or create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleHttp.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
+- Modify or create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleHttp.kt`
 - Modify: `fixthis-mcp/src/main/resources/console/app.js`
 - Modify JS source modules if Task 9 has landed
-- Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/Main.kt`
-- Create: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/CleanCommand.kt`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/Main.kt`
+- Create: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/CleanCommand.kt`
 - Test: CLI and MCP console tests
 - Modify: `docs/privacy.md`
 - Modify: `docs/troubleshooting.md`
@@ -1688,7 +1688,7 @@ Task 12 notes:
 - [x] **Step 6: Commit**
 
 ```bash
-git add fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console fixthis-mcp/src/main/resources/console fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console docs/privacy.md docs/troubleshooting.md
+git add fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console fixthis-mcp/src/main/resources/console fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console docs/privacy.md docs/troubleshooting.md
 git commit -m "feat: harden console mutations and clean artifacts"
 ```
 
@@ -1699,7 +1699,7 @@ git commit -m "feat: harden console mutations and clean artifacts"
 - Create: `SECURITY.md`
 - Create or modify: `CHANGELOG.md`
 - Modify: `README.md`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt`
 - Modify: `docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md`
 
 - [x] **Step 1: Add release readiness doc**
@@ -1801,15 +1801,15 @@ git diff --check faf77cf..HEAD
 Expected: PASS.
 
 Task 13 notes:
-- RED fixture helper: `./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.McpProtocolTest.mcpCompatibilityFixtureInitialize` failed in `:fixthis-mcp:compileTestKotlin` because `runCompatibilityTranscript` was unresolved.
-- GREEN focused fixtures: `./gradlew :fixthis-mcp:test --tests 'io.beyondwin.fixthis.mcp.McpProtocolTest.mcpCompatibilityFixture*'` passed after adding the transcript helper and aligning the `tools/call` fixture with the existing `fixthis_status` payload.
+- RED fixture helper: `./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.McpProtocolTest.mcpCompatibilityFixtureInitialize` failed in `:fixthis-mcp:compileTestKotlin` because `runCompatibilityTranscript` was unresolved.
+- GREEN focused fixtures: `./gradlew :fixthis-mcp:test --tests 'io.github.beyondwin.fixthis.mcp.McpProtocolTest.mcpCompatibilityFixture*'` passed after adding the transcript helper and aligning the `tools/call` fixture with the existing `fixthis_status` payload.
 - Full Gradle validation: `./gradlew :fixthis-mcp:test :fixthis-cli:test :fixthis-gradle-plugin:test` passed.
 - Whitespace validation: `git diff --check faf77cf..HEAD` passed.
 
 - [x] **Step 6: Commit**
 
 ```bash
-git add docs/release-readiness.md SECURITY.md CHANGELOG.md README.md fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md
+git add docs/release-readiness.md SECURITY.md CHANGELOG.md README.md fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt docs/superpowers/plans/2026-05-08-project-improvement-stabilization-implementation.md
 git commit -m "docs: add release readiness and mcp fixtures"
 ```
 
@@ -1864,14 +1864,14 @@ Run:
 ./gradlew :app:assembleDebug :fixthis-cli:installDist :fixthis-mcp:installDist
 node scripts/build-console-assets.mjs --check
 node --check fixthis-mcp/src/main/resources/console/app.js
-scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample --host-only
+scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample --host-only
 git diff --check
 ```
 
 If a connected Android device is available, also run:
 
 ```bash
-scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample
+scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample
 ```
 
 Expected: full local checks pass. Connected smoke may report an explicit SKIPPED category.
@@ -1885,7 +1885,7 @@ Task 14 final verification results:
 - `./gradlew :app:assembleDebug :fixthis-cli:installDist :fixthis-mcp:installDist`: PASS.
 - `node scripts/build-console-assets.mjs --check`: PASS.
 - `node --check fixthis-mcp/src/main/resources/console/app.js`: PASS.
-- `scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample --host-only`: PASS for host checks; smoke result `SKIPPED_HOST_ONLY`, report `.fixthis/smoke-reports/20260507T221743Z-pid25984-94698613.json`.
+- `scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample --host-only`: PASS for host checks; smoke result `SKIPPED_HOST_ONLY`, report `.fixthis/smoke-reports/20260507T221743Z-pid25984-94698613.json`.
 - Connected smoke: SKIPPED_LOCKED_DEVICE. One authorized device was present (`adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp device`), but `dumpsys window` showed `isKeyguardShowing=true`, `mDreamingLockscreen=true`, and focus on `NotificationShade`.
 - `git diff --check`: PASS after final docs and plan updates.
 - Residual risk: connected install/launch/doctor/feedback smoke remains unproven on an unlocked interactive device. External release remains blocked by missing root `LICENSE` and unpublished plugin/library artifacts.

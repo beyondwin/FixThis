@@ -181,7 +181,7 @@ fun selectedDeviceSerialScopesBridgeAdbCommands() = runBlocking {
     )
 
     client.selectDevice("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp")
-    client.request("io.beyondwin.fixthis.sample", "status")
+    client.request("io.github.beyondwin.fixthis.sample", "status")
 
     assertEquals("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp", client.selectedDeviceSerial())
     assertEquals(listOf("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp"), adb.runAsSerials)
@@ -233,7 +233,7 @@ private class FakeAdbFacade(
 
     override fun runAsCat(packageName: String, path: String): String {
         runAsSerials += selectedSerial
-        assertEquals("io.beyondwin.fixthis.sample", packageName)
+        assertEquals("io.github.beyondwin.fixthis.sample", packageName)
         assertEquals("files/fixthis/session.json", path)
         return sessionJson
     }
@@ -259,7 +259,7 @@ private class FakeAdbFacade(
 Run:
 
 ```bash
-./gradlew :fixthis-cli:test --tests io.beyondwin.fixthis.cli.BridgeClientTest
+./gradlew :fixthis-cli:test --tests io.github.beyondwin.fixthis.cli.BridgeClientTest
 ```
 
 Expected: FAIL because `AdbDevice` lacks metadata, `AdbFacade.forDevice` is not
@@ -413,7 +413,7 @@ private fun readSidekickSession(adb: AdbFacade, packageName: String): SidekickSe
 Run:
 
 ```bash
-./gradlew :fixthis-cli:test --tests io.beyondwin.fixthis.cli.BridgeClientTest
+./gradlew :fixthis-cli:test --tests io.github.beyondwin.fixthis.cli.BridgeClientTest
 ```
 
 Expected: PASS.
@@ -444,7 +444,7 @@ Add tests to `FeedbackSessionStoreTest`:
 fun feedbackSessionRoundTripsDeliveryAndHandoffHistory() {
     val session = FeedbackSession(
         sessionId = "session-1",
-        packageName = "io.beyondwin.fixthis.sample",
+        packageName = "io.github.beyondwin.fixthis.sample",
         projectRoot = "/repo",
         createdAtEpochMillis = 10L,
         updatedAtEpochMillis = 20L,
@@ -486,7 +486,7 @@ fun storeAssignsItemSequenceNumbersAndSendsDraftBatch() {
     val clock = FakeClock(100L)
     val ids = FakeIds("session-1", "screen-1", "item-1", "item-2", "batch-1")
     val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
-    val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+    val session = store.openSession("io.github.beyondwin.fixthis.sample", "/repo")
     val screen = store.addScreen(session.sessionId, CapturedScreen("pending", 0L, displayName = "Checkout"))
     store.addItem(
         session.sessionId,
@@ -526,7 +526,7 @@ fun clearDraftItemsKeepsSentHistory() {
     val clock = FakeClock(100L)
     val ids = FakeIds("session-1", "screen-1", "item-1", "batch-1", "item-2")
     val store = FeedbackSessionStore(clock = clock::now, idGenerator = ids::next)
-    val session = store.openSession("io.beyondwin.fixthis.sample", "/repo")
+    val session = store.openSession("io.github.beyondwin.fixthis.sample", "/repo")
     val screen = store.addScreen(session.sessionId, CapturedScreen("pending", 0L, displayName = "Checkout"))
     store.addItem(session.sessionId, FeedbackItem("pending", screen.screenId, 0L, 0L, FeedbackTarget.Area(FixThisRect(0f, 0f, 10f, 10f)), comment = "Sent"))
     store.sendDraftToAgent(session.sessionId, markdownSnapshot = "sent")
@@ -545,7 +545,7 @@ fun clearDraftItemsKeepsSentHistory() {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest
 ```
 
 Expected: FAIL because delivery and handoff models and store methods do not exist.
@@ -555,7 +555,7 @@ Expected: FAIL because delivery and handoff models and store methods do not exis
 Create `FeedbackHandoffModels.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -715,7 +715,7 @@ val created = item.copy(
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest
 ```
 
 Expected: PASS.
@@ -746,7 +746,7 @@ fun addSelectedNodeFeedbackStoresSelectedNode() {
         bridge = FakeFixThisBridge(),
         store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1", "item-1").next),
         projectRoot = "/repo",
-        defaultPackageName = "io.beyondwin.fixthis.sample",
+        defaultPackageName = "io.github.beyondwin.fixthis.sample",
     )
     val session = service.openSession(null, newSession = true)
     val node = FixThisNode(
@@ -789,7 +789,7 @@ fun addCustomAreaFeedbackRejectsBoundsOutsideScreenshot() {
         bridge = FakeFixThisBridge(),
         store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1").next),
         projectRoot = "/repo",
-        defaultPackageName = "io.beyondwin.fixthis.sample",
+        defaultPackageName = "io.github.beyondwin.fixthis.sample",
     )
     val session = service.openSession(null, newSession = true)
     service.addCapturedScreenForTest(
@@ -833,7 +833,7 @@ private fun FeedbackSessionService.addCapturedScreenForTest(sessionId: String, s
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
 ```
 
 Expected: FAIL because `FeedbackTargetType` and `addFeedbackItem` do not exist.
@@ -843,9 +843,9 @@ Expected: FAIL because `FeedbackTargetType` and `addFeedbackItem` do not exist.
 Create `FeedbackConsoleItemModels.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -952,7 +952,7 @@ it does today.
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
 ```
 
 Expected: PASS.
@@ -982,7 +982,7 @@ Add tests to `FeedbackConsoleServerTest`:
 @Test
 fun devicesApiListsAndSelectsActiveDevice() {
     val bridge = FakeFixThisBridge()
-    val service = FeedbackSessionService(bridge, FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")
+    val service = FeedbackSessionService(bridge, FeedbackSessionStore(), "/repo", "io.github.beyondwin.fixthis.sample")
     val server = FeedbackConsoleServer(service = service, port = 0)
     server.start()
     try {
@@ -1009,7 +1009,7 @@ fun agentHandoffApiSendsDraftAndClearsDraftList() {
         bridge = FakeFixThisBridge(),
         store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1", "item-1", "batch-1").next),
         projectRoot = "/repo",
-        defaultPackageName = "io.beyondwin.fixthis.sample",
+        defaultPackageName = "io.github.beyondwin.fixthis.sample",
     )
     val session = service.openSession(null, newSession = true)
     val screen = service.captureFakeScreenForTest(session.sessionId)
@@ -1038,7 +1038,7 @@ fun clearDraftApiKeepsSentItems() {
         bridge = FakeFixThisBridge(),
         store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1", "item-1", "batch-1", "item-2").next),
         projectRoot = "/repo",
-        defaultPackageName = "io.beyondwin.fixthis.sample",
+        defaultPackageName = "io.github.beyondwin.fixthis.sample",
     )
     val session = service.openSession(null, newSession = true)
     val screen = service.captureFakeScreenForTest(session.sessionId)
@@ -1073,7 +1073,7 @@ private fun FeedbackSessionService.captureFakeScreenForTest(sessionId: String): 
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: FAIL because device, draft clear, and handoff APIs do not exist.
@@ -1083,9 +1083,9 @@ Expected: FAIL because device, draft clear, and handoff APIs do not exist.
 Create `FeedbackConsoleDeviceModels.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
-import io.beyondwin.fixthis.cli.AdbDevice
+import io.github.beyondwin.fixthis.cli.AdbDevice
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -1276,7 +1276,7 @@ private fun HttpExchange.decodeAddFeedbackItemBody(): AddFeedbackItemRequest {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: PASS.
@@ -1302,9 +1302,9 @@ git commit -m "mcp: add console handoff and device APIs"
 Create `FeedbackQueueFormatterTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -1313,7 +1313,7 @@ class FeedbackQueueFormatterTest {
     fun markdownGroupsDraftAndSentHandoffHistory() {
         val session = FeedbackSession(
             sessionId = "session-1",
-            packageName = "io.beyondwin.fixthis.sample",
+            packageName = "io.github.beyondwin.fixthis.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 1L,
             updatedAtEpochMillis = 5L,
@@ -1375,7 +1375,7 @@ fun listFeedbackIncludesDraftAndSentCounts() = runBlocking {
     val tools = FixThisTools(
         bridge = FakeFixThisBridge(),
         projectRoot = createTempDir(prefix = "fixthis-handoff-list-"),
-        defaultPackageName = "io.beyondwin.fixthis.sample",
+        defaultPackageName = "io.github.beyondwin.fixthis.sample",
     )
     tools.call("fixthis_open_feedback_console", jsonObject("newSession" to true))
 
@@ -1391,7 +1391,7 @@ fun listFeedbackIncludesDraftAndSentCounts() = runBlocking {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest --tests io.beyondwin.fixthis.mcp.McpProtocolTest.listFeedbackIncludesDraftAndSentCounts
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest --tests io.github.beyondwin.fixthis.mcp.McpProtocolTest.listFeedbackIncludesDraftAndSentCounts
 ```
 
 Expected: FAIL because formatter output does not group sent history and list
@@ -1490,7 +1490,7 @@ private val resolvedStatuses = setOf(FeedbackItemStatus.RESOLVED, FeedbackItemSt
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.McpProtocolTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.McpProtocolTest
 ```
 
 Expected: PASS.
@@ -1539,7 +1539,7 @@ fun consoleHtmlIncludesSelectionHandoffWorkspace() {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlIncludesSelectionHandoffWorkspace
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlIncludesSelectionHandoffWorkspace
 ```
 
 Expected: FAIL because the console HTML has the old layout.
@@ -1659,7 +1659,7 @@ UUIDs must appear only in a secondary `<span>` line.
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlIncludesSelectionHandoffWorkspace
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlIncludesSelectionHandoffWorkspace
 ```
 
 Expected: PASS.
@@ -1703,7 +1703,7 @@ fun consoleHtmlImplementsSnapshotSelectionModes() {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlImplementsSnapshotSelectionModes
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlImplementsSnapshotSelectionModes
 ```
 
 Expected: FAIL until overlay and mode JavaScript is added.
@@ -1964,7 +1964,7 @@ setMode(Mode.SELECT);
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: PASS.
@@ -2124,8 +2124,8 @@ Run:
 ```bash
 /Users/kws/Library/Android/sdk/platform-tools/adb devices -l
 ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :app:installDebug
-PATH=/Users/kws/Library/Android/sdk/platform-tools:$PATH fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
-PATH=/Users/kws/Library/Android/sdk/platform-tools:$PATH fixthis-cli/build/install/fixthis/bin/fixthis console --package io.beyondwin.fixthis.sample
+PATH=/Users/kws/Library/Android/sdk/platform-tools:$PATH fixthis-cli/build/install/fixthis/bin/fixthis run --package io.github.beyondwin.fixthis.sample
+PATH=/Users/kws/Library/Android/sdk/platform-tools:$PATH fixthis-cli/build/install/fixthis/bin/fixthis console --package io.github.beyondwin.fixthis.sample
 ```
 
 Expected:

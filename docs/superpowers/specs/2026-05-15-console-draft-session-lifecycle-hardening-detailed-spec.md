@@ -475,13 +475,13 @@ needs at least one behavioral test.
 
 ### Server
 
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt`
   - Maps draft validation failures to typed HTTP errors.
 
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt`
   - Keeps strict validation and idempotent save behavior.
 
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt`
   - Remains the source of truth for node and bounds validation.
 
 ## Lifecycle Flows
@@ -766,8 +766,8 @@ Run focused Kotlin console tests:
 
 ```bash
 ./gradlew :fixthis-mcp:test \
-  --tests 'io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest' \
-  --tests 'io.beyondwin.fixthis.mcp.session.FeedbackDraftServiceTest'
+  --tests 'io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest' \
+  --tests 'io.github.beyondwin.fixthis.mcp.session.FeedbackDraftServiceTest'
 ```
 
 Run whitespace check:

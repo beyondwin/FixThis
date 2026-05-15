@@ -16,13 +16,13 @@
 
 Server request/route scope:
 
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsolePreviewModels.kt` to add `sessionId` to `SaveSnapshotRequest` and `AgentHandoffRequest`.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/AnnotationRequestModels.kt` to add `sessionId` to `AddAnnotationRequest`.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt` to resolve explicit request session IDs for add, batch-save, clear-draft, and handoff routes.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/PreviewRoutes.kt` to read preview screenshots from an explicit `sessionId` query parameter.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ArtifactRoutes.kt` to read/delete screen artifacts from an explicit `sessionId` query parameter.
-- Test in `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`.
-- Test in `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleArtifactRoutesSessionScopeTest.kt`.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsolePreviewModels.kt` to add `sessionId` to `SaveSnapshotRequest` and `AgentHandoffRequest`.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/AnnotationRequestModels.kt` to add `sessionId` to `AddAnnotationRequest`.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt` to resolve explicit request session IDs for add, batch-save, clear-draft, and handoff routes.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/PreviewRoutes.kt` to read preview screenshots from an explicit `sessionId` query parameter.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ArtifactRoutes.kt` to read/delete screen artifacts from an explicit `sessionId` query parameter.
+- Test in `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`.
+- Test in `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleArtifactRoutesSessionScopeTest.kt`.
 
 Console state/context:
 
@@ -38,11 +38,11 @@ Console state/context:
 
 Server sequence counter:
 
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt` to add `nextItemSequenceNumber`.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` to allocate from the durable counter and migrate legacy sessions on mutation.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionReplayEngine.kt` if replay bypasses the store reducer for sequence allocation.
-- Test in `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`.
-- Test in `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreEventLogTest.kt`.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt` to add `nextItemSequenceNumber`.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` to allocate from the durable counter and migrate legacy sessions on mutation.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionReplayEngine.kt` if replay bypasses the store reducer for sequence allocation.
+- Test in `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`.
+- Test in `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreEventLogTest.kt`.
 
 JavaScript tests:
 
@@ -71,10 +71,10 @@ JavaScript tests:
 
 **Files:**
 
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsolePreviewModels.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/AnnotationRequestModels.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsolePreviewModels.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/AnnotationRequestModels.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
 
 - [ ] **Step 1: Add failing test for batch save using request `sessionId`**
 
@@ -91,7 +91,7 @@ fun batchSaveUsesRequestedSessionWhenCurrentSessionChanged() {
         bridge = SequencedFingerprintBridge("fp-a", "fp-a"),
         store = store,
         projectRoot = Files.createTempDirectory("fixthis-session-scope").toString(),
-        defaultPackageName = "io.beyondwin.fixthis.sample",
+        defaultPackageName = "io.github.beyondwin.fixthis.sample",
     )
     val sessionA = service.openSession(null, newSession = true)
     val preview = runBlocking { service.capturePreview(sessionA.sessionId) }
@@ -139,7 +139,7 @@ fun agentHandoffUsesRequestedSessionWhenCurrentSessionChanged() {
         bridge = FakeFixThisBridge(),
         store = store,
         projectRoot = "/repo",
-        defaultPackageName = "io.beyondwin.fixthis.sample",
+        defaultPackageName = "io.github.beyondwin.fixthis.sample",
     )
     val sessionA = service.openSession(null, newSession = true)
     store.addScreen(sessionA.sessionId, SnapshotDto("screen-a", 100L, displayName = "A"))
@@ -173,7 +173,7 @@ fun agentHandoffUsesRequestedSessionWhenCurrentSessionChanged() {
 - [ ] **Step 3: Run focused tests and confirm failure**
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchSaveUsesRequestedSessionWhenCurrentSessionChanged" --tests "io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.agentHandoffUsesRequestedSessionWhenCurrentSessionChanged"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchSaveUsesRequestedSessionWhenCurrentSessionChanged" --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.agentHandoffUsesRequestedSessionWhenCurrentSessionChanged"
 ```
 
 Expected before implementation: FAIL because `SaveSnapshotRequest` and `AgentHandoffRequest` do not decode `sessionId`, or the route ignores it.
@@ -271,7 +271,7 @@ Update `allowedAddFeedbackItemRequestKeys` to include `"sessionId"` if that set 
 - [ ] **Step 6: Run focused tests**
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchSaveUsesRequestedSessionWhenCurrentSessionChanged" --tests "io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.agentHandoffUsesRequestedSessionWhenCurrentSessionChanged"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.batchSaveUsesRequestedSessionWhenCurrentSessionChanged" --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.agentHandoffUsesRequestedSessionWhenCurrentSessionChanged"
 ```
 
 Expected after implementation: PASS.
@@ -280,10 +280,10 @@ Expected after implementation: PASS.
 
 ```bash
 git add \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsolePreviewModels.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/AnnotationRequestModels.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsolePreviewModels.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/AnnotationRequestModels.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt
 git commit -m "fix(console): scope annotation routes to request session"
 ```
 
@@ -291,23 +291,23 @@ git commit -m "fix(console): scope annotation routes to request session"
 
 **Files:**
 
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/PreviewRoutes.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ArtifactRoutes.kt`
-- Create: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleArtifactRoutesSessionScopeTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/PreviewRoutes.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ArtifactRoutes.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleArtifactRoutesSessionScopeTest.kt`
 
 - [ ] **Step 1: Create failing artifact route tests**
 
 Create `ConsoleArtifactRoutesSessionScopeTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
-import io.beyondwin.fixthis.mcp.fixtures.ConsoleHttpTestClient
-import io.beyondwin.fixthis.mcp.fixtures.FakeIds
-import io.beyondwin.fixthis.mcp.fixtures.FakeLongs
-import io.beyondwin.fixthis.mcp.fixtures.SessionScreenshotBridge
-import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
-import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.fixtures.ConsoleHttpTestClient
+import io.github.beyondwin.fixthis.mcp.fixtures.FakeIds
+import io.github.beyondwin.fixthis.mcp.fixtures.FakeLongs
+import io.github.beyondwin.fixthis.mcp.fixtures.SessionScreenshotBridge
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 import java.net.URLEncoder
 import java.nio.file.Files
 import kotlin.test.Test
@@ -326,7 +326,7 @@ class ConsoleArtifactRoutesSessionScopeTest {
                 idGenerator = FakeIds("session-a", "preview-a", "session-b").next,
             ),
             projectRoot = root.absolutePath,
-            defaultPackageName = "io.beyondwin.fixthis.sample",
+            defaultPackageName = "io.github.beyondwin.fixthis.sample",
         )
         val sessionA = service.openSession(null, newSession = true)
         val preview = kotlinx.coroutines.runBlocking { service.capturePreview(sessionA.sessionId) }
@@ -355,7 +355,7 @@ class ConsoleArtifactRoutesSessionScopeTest {
                 idGenerator = FakeIds("session-a", "preview-a", "session-b").next,
             ),
             projectRoot = root.absolutePath,
-            defaultPackageName = "io.beyondwin.fixthis.sample",
+            defaultPackageName = "io.github.beyondwin.fixthis.sample",
         )
         val sessionA = service.openSession(null, newSession = true)
         val preview = kotlinx.coroutines.runBlocking { service.capturePreview(sessionA.sessionId) }
@@ -380,7 +380,7 @@ class ConsoleArtifactRoutesSessionScopeTest {
 - [ ] **Step 2: Run focused tests and confirm failure**
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleArtifactRoutesSessionScopeTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleArtifactRoutesSessionScopeTest"
 ```
 
 Expected before implementation: FAIL because preview/screen routes use `requireCurrentSession()`.
@@ -441,7 +441,7 @@ private fun HttpExchange.sendScreenshot(screenId: String) {
 - [ ] **Step 5: Run artifact route tests**
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleArtifactRoutesSessionScopeTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleArtifactRoutesSessionScopeTest"
 ```
 
 Expected after implementation: PASS.
@@ -450,9 +450,9 @@ Expected after implementation: PASS.
 
 ```bash
 git add \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/PreviewRoutes.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ArtifactRoutes.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleArtifactRoutesSessionScopeTest.kt
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/PreviewRoutes.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ArtifactRoutes.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleArtifactRoutesSessionScopeTest.kt
 git commit -m "fix(console): scope preview artifacts to request session"
 ```
 
@@ -1142,7 +1142,7 @@ git commit -m "fix(console): scope undo history to annotation context"
 
 - Modify: `fixthis-mcp/src/main/console/rendering.js`
 - Modify: `fixthis-mcp/src/main/console/preview.js`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
 - Regenerate: `fixthis-mcp/src/main/resources/console/app.js`
 - Create: `scripts/savedOverlayScope-test.mjs`
 
@@ -1220,7 +1220,7 @@ test('latestScreen uses focused saved screenshot before persisted fallback', () 
 
 ```bash
 node scripts/savedOverlayScope-test.mjs
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.consoleHtmlDoesNotRenderSavedAnnotationPinsOnLivePreviewWithoutFocus"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.consoleHtmlDoesNotRenderSavedAnnotationPinsOnLivePreviewWithoutFocus"
 ```
 
 Expected before implementation: FAIL because rendering currently uses `visibleScreenNodeUids`.
@@ -1264,7 +1264,7 @@ function latestScreen() {
 ```bash
 node scripts/build-console-assets.mjs
 node scripts/savedOverlayScope-test.mjs
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.consoleHtmlDoesNotRenderSavedAnnotationPinsOnLivePreviewWithoutFocus"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.consoleHtmlDoesNotRenderSavedAnnotationPinsOnLivePreviewWithoutFocus"
 node scripts/build-console-assets.mjs --check
 ```
 
@@ -1277,7 +1277,7 @@ git add \
   fixthis-mcp/src/main/console/rendering.js \
   fixthis-mcp/src/main/console/preview.js \
   fixthis-mcp/src/main/resources/console/app.js \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt \
   scripts/savedOverlayScope-test.mjs
 git commit -m "fix(console): avoid saved overlay leakage on live preview"
 ```
@@ -1286,10 +1286,10 @@ git commit -m "fix(console): avoid saved overlay leakage on live preview"
 
 **Files:**
 
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreEventLogTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreEventLogTest.kt`
 
 - [ ] **Step 1: Add failing monotonic sequence test**
 
@@ -1302,7 +1302,7 @@ fun itemSequenceCounterDoesNotReuseNumbersAfterDelete() {
         clock = FakeLongs(100L, 200L, 300L, 400L, 500L, 600L, 700L, 800L).next,
         idGenerator = FakeIds("session-1", "screen-1", "item-1", "item-2", "item-3", "item-4").next,
     )
-    val session = store.openSession(packageName = "io.beyondwin.fixthis.sample", projectRoot = "/repo")
+    val session = store.openSession(packageName = "io.github.beyondwin.fixthis.sample", projectRoot = "/repo")
     val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Checkout"))
     fun draft(comment: String) = AnnotationDto(
         itemId = "pending",
@@ -1329,7 +1329,7 @@ fun itemSequenceCounterDoesNotReuseNumbersAfterDelete() {
 - [ ] **Step 2: Run test and confirm failure**
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest.itemSequenceCounterDoesNotReuseNumbersAfterDelete"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest.itemSequenceCounterDoesNotReuseNumbersAfterDelete"
 ```
 
 Expected before implementation: FAIL because `SessionDto.nextItemSequenceNumber` does not exist.
@@ -1432,7 +1432,7 @@ Keep `nextItemSequenceNumber(session)` only if other code needs it; otherwise de
 Run the existing event replay tests:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreEventLogTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreEventLogTest"
 ```
 
 If replay creates sessions with the default counter after applying item events, update replay completion to call `sessionWithMigratedSequenceCounter(replayed)` before storing the replayed session.
@@ -1440,8 +1440,8 @@ If replay creates sessions with the default counter after applying item events, 
 - [ ] **Step 6: Run sequence tests**
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest.itemSequenceCounterDoesNotReuseNumbersAfterDelete"
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreEventLogTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest.itemSequenceCounterDoesNotReuseNumbersAfterDelete"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreEventLogTest"
 ```
 
 Expected after implementation: PASS.
@@ -1450,10 +1450,10 @@ Expected after implementation: PASS.
 
 ```bash
 git add \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreEventLogTest.kt
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreEventLogTest.kt
 git commit -m "fix(session): persist monotonic annotation sequence counter"
 ```
 
@@ -1645,10 +1645,10 @@ Expected: every command exits 0.
 - [ ] **Step 2: Run focused Kotlin verification**
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest"
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleArtifactRoutesSessionScopeTest"
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest"
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreEventLogTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleArtifactRoutesSessionScopeTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreEventLogTest"
 ```
 
 Expected: every command exits 0.

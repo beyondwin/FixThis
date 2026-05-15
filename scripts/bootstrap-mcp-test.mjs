@@ -41,7 +41,7 @@ test("--sample bootstraps the bundled sample application id", () => {
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.match(
     fs.readFileSync(path.join(root, "fixthis-args.txt"), "utf8"),
-    /setup\n--package\nio\.beyondwin\.fixthis\.sample\n--write\n--target\ncodex\n--dry-run\n/,
+    /setup\n--package\nio\.github\.beyondwin\.fixthis\.sample\n--write\n--target\ncodex\n--dry-run\n/,
   );
 });
 

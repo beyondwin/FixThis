@@ -58,8 +58,8 @@ There is no script for the three additional harnesses that CONTRIBUTING.md recom
 ```bash
 git clone <this-repo> && cd FixThis
 ./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
-fixthis-cli/build/install/fixthis/bin/fixthis doctor --package io.beyondwin.fixthis.sample
-fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis doctor --package io.github.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis run --package io.github.beyondwin.fixthis.sample
 ```
 
 `bootstrap-mcp.sh` is mentioned only obliquely in line 17:
@@ -191,7 +191,7 @@ Use after edits to `fixthis-mcp/src/main/console/*` that you rebundle with `node
 
 ```bash
 scripts/fixthis-console-dev.sh                                # default package
-scripts/fixthis-console-dev.sh io.beyondwin.fixthis.sample    # explicit package
+scripts/fixthis-console-dev.sh io.github.beyondwin.fixthis.sample    # explicit package
 ```
 
 Stop with Ctrl-C; re-running kills any stale `fixthis console` process before starting a new one.
@@ -553,6 +553,6 @@ Adding a fourth badge makes the row wrap on narrow screens. Mitigation: visual; 
 - `package.json` lines 6–14 (scripts), absence of `engines` — current state.
 - `node_modules/playwright/package.json` engines field — pinning rationale for Node 18.18.
 - `scripts/restart-console.sh` — flags `--with-app`, `--dry-run`, `--no-open`, `--port`, default port `9876`.
-- `scripts/fixthis-console-dev.sh` — accepts optional package argument, defaults to `io.beyondwin.fixthis.sample`.
+- `scripts/fixthis-console-dev.sh` — accepts optional package argument, defaults to `io.github.beyondwin.fixthis.sample`.
 - `scripts/bootstrap-mcp.sh` — already canonical in `docs/guides/agents.md` flow; not touched.
 - `docs/guides/agents.md` — canonical agent-setup file; remains untouched.

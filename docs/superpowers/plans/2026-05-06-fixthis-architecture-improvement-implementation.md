@@ -15,7 +15,7 @@
 The source proposal is directionally right, but the implementation order needs tightening for this repository:
 
 - `FeedbackConsoleAssets.kt` should be split before broad renames. It is a 3,198-line Kotlin raw string and can be made reviewable with behavior-preserving resource loading before touching domain names.
-- `FixThisAnnotation` already exists in `compose-core/src/main/kotlin/io/github/fixthis/compose/core/model/Models.kt` as a capture payload. The new feedback-domain `Annotation` must live under `io.beyondwin.fixthis.compose.core.domain.annotation` and must not replace `FixThisAnnotation` in the first domain PR.
+- `FixThisAnnotation` already exists in `compose-core/src/main/kotlin/io/github/fixthis/compose/core/model/Models.kt` as a capture payload. The new feedback-domain `Annotation` must live under `io.github.beyondwin.fixthis.compose.core.domain.annotation` and must not replace `FixThisAnnotation` in the first domain PR.
 - `FeedbackItemStatus.READY` removal is a data migration, not a mechanical rename. Decode compatibility for persisted `"ready"` values must be locked before writing new normalized statuses.
 - Repository interfaces can live in `compose-core`, but file-backed implementations and JSON DTOs stay in `fixthis-mcp`; `compose-core` must not know about MCP wire names, `.fixthis` paths, or HTTP.
 - `synchronized` to `Mutex` should happen after service decomposition creates small lock scopes. Replacing all locks first would make the code async-shaped without reducing responsibility.
@@ -86,10 +86,10 @@ The source proposal is directionally right, but the implementation order needs t
 - [x] **Step 1: Write JSON and status compatibility tests**
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.cli.fixThisJson
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.cli.fixThisJson
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -127,7 +127,7 @@ class ArchitectureCompatibilityTest {
     fun sessionWireFormatKeepsExistingFieldNames() {
         val session = FeedbackSession(
             sessionId = "session-1",
-            packageName = "io.beyondwin.fixthis.sample",
+            packageName = "io.github.beyondwin.fixthis.sample",
             projectRoot = "/repo",
             createdAtEpochMillis = 10L,
             updatedAtEpochMillis = 20L,
@@ -170,7 +170,7 @@ class ArchitectureCompatibilityTest {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.ArchitectureCompatibilityTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.ArchitectureCompatibilityTest
 ```
 
 Expected: PASS before any refactor.
@@ -229,7 +229,7 @@ import kotlin.test.assertFailsWith
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: the traversal test fails because `FeedbackConsoleAssets.resource` does not exist yet.
@@ -248,7 +248,7 @@ The resulting `index.html` must still contain the same DOM nodes and IDs after `
 - [x] **Step 4: Replace the Kotlin asset object with a loader**
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
 internal object FeedbackConsoleAssets {
     private const val BasePath = "/console"
@@ -284,7 +284,7 @@ internal object FeedbackConsoleAssets {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: PASS. Existing HTML contract tests still see `FeedbackConsoleAssets.indexHtml` with inline CSS and JavaScript.
@@ -341,8 +341,8 @@ Add imports:
 
 ```kotlin
 import androidx.compose.ui.unit.dp
-import io.beyondwin.fixthis.compose.console.studio.theme.StudioSpacing
-import io.beyondwin.fixthis.compose.console.studio.theme.darkStudioSemanticColors
+import io.github.beyondwin.fixthis.compose.console.studio.theme.StudioSpacing
+import io.github.beyondwin.fixthis.compose.console.studio.theme.darkStudioSemanticColors
 ```
 
 - [x] **Step 2: Run the tests and confirm they are red**
@@ -350,7 +350,7 @@ import io.beyondwin.fixthis.compose.console.studio.theme.darkStudioSemanticColor
 Run:
 
 ```bash
-./gradlew :fixthis-compose-overlay:testDebugUnitTest --tests io.beyondwin.fixthis.compose.console.studio.StudioModelAndThemeTest
+./gradlew :fixthis-compose-overlay:testDebugUnitTest --tests io.github.beyondwin.fixthis.compose.console.studio.StudioModelAndThemeTest
 ```
 
 Expected: compile failure because `StudioSpacing` and `darkStudioSemanticColors` do not exist.
@@ -358,7 +358,7 @@ Expected: compile failure because `StudioSpacing` and `darkStudioSemanticColors`
 - [x] **Step 3: Add spacing, shapes, and elevation**
 
 ```kotlin
-package io.beyondwin.fixthis.compose.console.studio.theme
+package io.github.beyondwin.fixthis.compose.console.studio.theme
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.Dp
@@ -376,7 +376,7 @@ internal data class StudioSpacing(
 ```
 
 ```kotlin
-package io.beyondwin.fixthis.compose.console.studio.theme
+package io.github.beyondwin.fixthis.compose.console.studio.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Immutable
@@ -395,7 +395,7 @@ internal data class StudioShapes(
 ```
 
 ```kotlin
-package io.beyondwin.fixthis.compose.console.studio.theme
+package io.github.beyondwin.fixthis.compose.console.studio.theme
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.Dp
@@ -413,7 +413,7 @@ internal data class StudioElevation(
 - [x] **Step 4: Add semantic colors and theme object**
 
 ```kotlin
-package io.beyondwin.fixthis.compose.console.studio.theme
+package io.github.beyondwin.fixthis.compose.console.studio.theme
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
@@ -458,7 +458,7 @@ internal fun darkStudioSemanticColors(): StudioSemanticColors =
 ```
 
 ```kotlin
-package io.beyondwin.fixthis.compose.console.studio.theme
+package io.github.beyondwin.fixthis.compose.console.studio.theme
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -516,7 +516,7 @@ internal object StudioThemeTokens {
 Run:
 
 ```bash
-./gradlew :fixthis-compose-overlay:testDebugUnitTest --tests io.beyondwin.fixthis.compose.console.studio.StudioModelAndThemeTest
+./gradlew :fixthis-compose-overlay:testDebugUnitTest --tests io.github.beyondwin.fixthis.compose.console.studio.StudioModelAndThemeTest
 ```
 
 Expected: PASS.
@@ -540,7 +540,7 @@ git commit -m "feat: add studio theme tokens"
 - [x] **Step 1: Write a domain status test**
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.domain.annotation
+package io.github.beyondwin.fixthis.compose.core.domain.annotation
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -562,7 +562,7 @@ class AnnotationStatusTest {
 Run:
 
 ```bash
-./gradlew :fixthis-compose-core:test --tests io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationStatusTest
+./gradlew :fixthis-compose-core:test --tests io.github.beyondwin.fixthis.compose.core.domain.annotation.AnnotationStatusTest
 ```
 
 Expected: compile failure because the domain package does not exist.
@@ -570,7 +570,7 @@ Expected: compile failure because the domain package does not exist.
 - [x] **Step 3: Add stable value IDs**
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.domain.common
+package io.github.beyondwin.fixthis.compose.core.domain.common
 
 @JvmInline
 value class AnnotationId(val value: String) {
@@ -597,14 +597,14 @@ value class SnapshotId(val value: String) {
 - [x] **Step 4: Add annotation domain model**
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.domain.annotation
+package io.github.beyondwin.fixthis.compose.core.domain.annotation
 
-import io.beyondwin.fixthis.compose.core.domain.common.AnnotationId
-import io.beyondwin.fixthis.compose.core.domain.common.SessionId
-import io.beyondwin.fixthis.compose.core.domain.common.SnapshotId
-import io.beyondwin.fixthis.compose.core.model.FixThisNode
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.github.beyondwin.fixthis.compose.core.domain.common.AnnotationId
+import io.github.beyondwin.fixthis.compose.core.domain.common.SessionId
+import io.github.beyondwin.fixthis.compose.core.domain.common.SnapshotId
+import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
 
 data class Annotation(
     val id: AnnotationId,
@@ -664,11 +664,11 @@ data class SnapshotScreenshot(
 - [x] **Step 5: Add session and snapshot domain models**
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.domain.session
+package io.github.beyondwin.fixthis.compose.core.domain.session
 
-import io.beyondwin.fixthis.compose.core.domain.annotation.Annotation
-import io.beyondwin.fixthis.compose.core.domain.common.SessionId
-import io.beyondwin.fixthis.compose.core.domain.snapshot.Snapshot
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.Annotation
+import io.github.beyondwin.fixthis.compose.core.domain.common.SessionId
+import io.github.beyondwin.fixthis.compose.core.domain.snapshot.Snapshot
 
 data class Session(
     val id: SessionId,
@@ -698,13 +698,13 @@ enum class SessionStatus {
 ```
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.domain.snapshot
+package io.github.beyondwin.fixthis.compose.core.domain.snapshot
 
-import io.beyondwin.fixthis.compose.core.domain.annotation.SnapshotScreenshot
-import io.beyondwin.fixthis.compose.core.domain.common.SnapshotId
-import io.beyondwin.fixthis.compose.core.model.FixThisError
-import io.beyondwin.fixthis.compose.core.model.FixThisNode
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.SnapshotScreenshot
+import io.github.beyondwin.fixthis.compose.core.domain.common.SnapshotId
+import io.github.beyondwin.fixthis.compose.core.model.FixThisError
+import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 
 data class Snapshot(
     val id: SnapshotId,
@@ -767,14 +767,14 @@ fun legacyReadyStatusMapsToOpenDomainStatus() {
 
     val domain = dto.toDomainAnnotation(sessionId = "session-1")
 
-    assertEquals(io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationStatus.OPEN, domain.status)
+    assertEquals(io.github.beyondwin.fixthis.compose.core.domain.annotation.AnnotationStatus.OPEN, domain.status)
 }
 
 @Test
 fun domainSessionMapsBackToExistingWireFieldNames() {
     val dto = FeedbackSession(
         sessionId = "session-1",
-        packageName = "io.beyondwin.fixthis.sample",
+        packageName = "io.github.beyondwin.fixthis.sample",
         projectRoot = "/repo",
         createdAtEpochMillis = 10L,
         updatedAtEpochMillis = 20L,
@@ -794,7 +794,7 @@ fun domainSessionMapsBackToExistingWireFieldNames() {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.ArchitectureCompatibilityTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.ArchitectureCompatibilityTest
 ```
 
 Expected: compile failure because the mapper functions do not exist.
@@ -802,21 +802,21 @@ Expected: compile failure because the mapper functions do not exist.
 - [x] **Step 3: Add the mapper file**
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.domain.annotation.Annotation
-import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationDelivery
-import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationStatus
-import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationTarget
-import io.beyondwin.fixthis.compose.core.domain.annotation.SnapshotScreenshot
-import io.beyondwin.fixthis.compose.core.domain.common.AnnotationId
-import io.beyondwin.fixthis.compose.core.domain.common.SessionId
-import io.beyondwin.fixthis.compose.core.domain.common.SnapshotId
-import io.beyondwin.fixthis.compose.core.domain.session.Session
-import io.beyondwin.fixthis.compose.core.domain.session.SessionHandoffBatch
-import io.beyondwin.fixthis.compose.core.domain.session.SessionStatus
-import io.beyondwin.fixthis.compose.core.domain.snapshot.Snapshot
-import io.beyondwin.fixthis.compose.core.domain.snapshot.SnapshotRoot
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.Annotation
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.AnnotationDelivery
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.AnnotationStatus
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.AnnotationTarget
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.SnapshotScreenshot
+import io.github.beyondwin.fixthis.compose.core.domain.common.AnnotationId
+import io.github.beyondwin.fixthis.compose.core.domain.common.SessionId
+import io.github.beyondwin.fixthis.compose.core.domain.common.SnapshotId
+import io.github.beyondwin.fixthis.compose.core.domain.session.Session
+import io.github.beyondwin.fixthis.compose.core.domain.session.SessionHandoffBatch
+import io.github.beyondwin.fixthis.compose.core.domain.session.SessionStatus
+import io.github.beyondwin.fixthis.compose.core.domain.snapshot.Snapshot
+import io.github.beyondwin.fixthis.compose.core.domain.snapshot.SnapshotRoot
 
 fun FeedbackSession.toDomainSession(): Session =
     Session(
@@ -1049,18 +1049,18 @@ git commit -m "feat: map session dto models to domain models"
 - [x] **Step 1: Write the first use case test**
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.usecase.annotation
+package io.github.beyondwin.fixthis.compose.core.usecase.annotation
 
-import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationStatus
-import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationTarget
-import io.beyondwin.fixthis.compose.core.domain.annotation.Annotation
-import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationRepository
-import io.beyondwin.fixthis.compose.core.domain.common.AnnotationId
-import io.beyondwin.fixthis.compose.core.domain.common.SessionId
-import io.beyondwin.fixthis.compose.core.domain.common.SnapshotId
-import io.beyondwin.fixthis.compose.core.domain.session.Session
-import io.beyondwin.fixthis.compose.core.domain.session.SessionRepository
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.AnnotationStatus
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.AnnotationTarget
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.Annotation
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.AnnotationRepository
+import io.github.beyondwin.fixthis.compose.core.domain.common.AnnotationId
+import io.github.beyondwin.fixthis.compose.core.domain.common.SessionId
+import io.github.beyondwin.fixthis.compose.core.domain.common.SnapshotId
+import io.github.beyondwin.fixthis.compose.core.domain.session.Session
+import io.github.beyondwin.fixthis.compose.core.domain.session.SessionRepository
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -1071,7 +1071,7 @@ class CreateAnnotationUseCaseTest {
         val sessions = FakeSessionRepository(
             Session(
                 id = SessionId("session-1"),
-                packageName = "io.beyondwin.fixthis.sample",
+                packageName = "io.github.beyondwin.fixthis.sample",
                 projectRoot = "/repo",
                 createdAtEpochMillis = 10L,
                 updatedAtEpochMillis = 10L,
@@ -1124,7 +1124,7 @@ private class FakeAnnotationRepository : AnnotationRepository {
 Run:
 
 ```bash
-./gradlew :fixthis-compose-core:test --tests io.beyondwin.fixthis.compose.core.usecase.annotation.CreateAnnotationUseCaseTest
+./gradlew :fixthis-compose-core:test --tests io.github.beyondwin.fixthis.compose.core.usecase.annotation.CreateAnnotationUseCaseTest
 ```
 
 Expected: compile failure because repositories and use case do not exist.
@@ -1132,9 +1132,9 @@ Expected: compile failure because repositories and use case do not exist.
 - [x] **Step 3: Add repository interfaces**
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.domain.session
+package io.github.beyondwin.fixthis.compose.core.domain.session
 
-import io.beyondwin.fixthis.compose.core.domain.common.SessionId
+import io.github.beyondwin.fixthis.compose.core.domain.common.SessionId
 
 interface SessionRepository {
     suspend fun find(id: SessionId): Session?
@@ -1143,7 +1143,7 @@ interface SessionRepository {
 ```
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.domain.annotation
+package io.github.beyondwin.fixthis.compose.core.domain.annotation
 
 interface AnnotationRepository {
     suspend fun save(annotation: Annotation): Annotation
@@ -1151,9 +1151,9 @@ interface AnnotationRepository {
 ```
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.domain.snapshot
+package io.github.beyondwin.fixthis.compose.core.domain.snapshot
 
-import io.beyondwin.fixthis.compose.core.domain.common.SnapshotId
+import io.github.beyondwin.fixthis.compose.core.domain.common.SnapshotId
 
 interface SnapshotRepository {
     suspend fun find(id: SnapshotId): Snapshot?
@@ -1164,16 +1164,16 @@ interface SnapshotRepository {
 - [x] **Step 4: Add `CreateAnnotationUseCase`**
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.usecase.annotation
+package io.github.beyondwin.fixthis.compose.core.usecase.annotation
 
-import io.beyondwin.fixthis.compose.core.domain.annotation.Annotation
-import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationRepository
-import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationStatus
-import io.beyondwin.fixthis.compose.core.domain.annotation.AnnotationTarget
-import io.beyondwin.fixthis.compose.core.domain.common.AnnotationId
-import io.beyondwin.fixthis.compose.core.domain.common.SessionId
-import io.beyondwin.fixthis.compose.core.domain.common.SnapshotId
-import io.beyondwin.fixthis.compose.core.domain.session.SessionRepository
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.Annotation
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.AnnotationRepository
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.AnnotationStatus
+import io.github.beyondwin.fixthis.compose.core.domain.annotation.AnnotationTarget
+import io.github.beyondwin.fixthis.compose.core.domain.common.AnnotationId
+import io.github.beyondwin.fixthis.compose.core.domain.common.SessionId
+import io.github.beyondwin.fixthis.compose.core.domain.common.SnapshotId
+import io.github.beyondwin.fixthis.compose.core.domain.session.SessionRepository
 
 class CreateAnnotationUseCase(
     private val sessions: SessionRepository,
@@ -1235,7 +1235,7 @@ git commit -m "feat: add feedback repositories and create annotation use case"
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.ArchitectureCompatibilityTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.ArchitectureCompatibilityTest
 ```
 
 Expected: PASS.
@@ -1321,9 +1321,9 @@ git commit -m "refactor: rename feedback wire models to annotation dto names"
 - [x] **Step 1: Write cache tests**
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot
+import io.github.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -1375,7 +1375,7 @@ private fun previewRecord(previewId: String): PreviewRecord =
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.PreviewSnapshotCacheTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.PreviewSnapshotCacheTest
 ```
 
 Expected: compile failure because the cache and top-level `PreviewRecord` do not exist.
@@ -1383,10 +1383,10 @@ Expected: compile failure because the cache and top-level `PreviewRecord` do not
 - [x] **Step 3: Add cache and top-level record**
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.source.SourceIndex
-import io.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot
+import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
+import io.github.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot
 
 data class PreviewRecord(
     val sessionId: String,
@@ -1427,9 +1427,9 @@ class PreviewSnapshotCache(
 - [x] **Step 4: Add source index registry**
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.source.SourceIndex
+import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -1471,7 +1471,7 @@ Replace `previewSnapshots` and `previewSavesInFlight` access in small increments
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: PASS.
@@ -1493,7 +1493,7 @@ git commit -m "refactor: split preview cache from session service"
 - [x] **Step 1: Write artifact promotion test**
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
 import java.io.File
 import kotlin.test.Test
@@ -1534,7 +1534,7 @@ class ScreenshotArtifactPromoterTest {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.ScreenshotArtifactPromoterTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.ScreenshotArtifactPromoterTest
 ```
 
 Expected: compile failure because `ScreenshotArtifactPromoter` does not exist.
@@ -1542,7 +1542,7 @@ Expected: compile failure because `ScreenshotArtifactPromoter` does not exist.
 - [x] **Step 3: Add promoter**
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
 import java.io.File
 
@@ -1636,7 +1636,7 @@ git commit -m "refactor: extract screenshot artifact promotion"
 - [x] **Step 1: Write state transition tests**
 
 ```kotlin
-package io.beyondwin.fixthis.compose.overlay
+package io.github.beyondwin.fixthis.compose.overlay
 
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
@@ -1683,7 +1683,7 @@ class OverlayStateMachineTest {
 Run:
 
 ```bash
-./gradlew :fixthis-compose-overlay:testDebugUnitTest --tests io.beyondwin.fixthis.compose.overlay.OverlayStateMachineTest
+./gradlew :fixthis-compose-overlay:testDebugUnitTest --tests io.github.beyondwin.fixthis.compose.overlay.OverlayStateMachineTest
 ```
 
 Expected: compile failure because `OverlayStateMachine`, `Select`, `Loading`, and `Error` do not exist.
@@ -1719,7 +1719,7 @@ sealed interface OverlayMode {
 - [x] **Step 4: Add state machine**
 
 ```kotlin
-package io.beyondwin.fixthis.compose.overlay
+package io.github.beyondwin.fixthis.compose.overlay
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

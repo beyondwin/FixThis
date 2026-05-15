@@ -12,51 +12,51 @@
 
 ## File Structure
 
-- Modify: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
+- Modify: `sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
   - Responsibility: navigation smoke test and stable redesigned text anchors.
-- Leave unchanged unless compile anchors change: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt`
+- Leave unchanged unless compile anchors change: `sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt`
   - Responsibility: verify `Submit request` remains visible to semantics inspection.
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisTheme.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/FixThisTheme.kt`
   - Responsibility: sample-only colors, typography, and Material scheme.
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisStudioApp.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/FixThisStudioApp.kt`
   - Responsibility: app shell, tab state, bottom navigation labels.
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/model/FixThisDemoData.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/model/FixThisDemoData.kt`
   - Responsibility: deterministic sample data for all product scenes.
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/components/SectionHeader.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/SectionHeader.kt`
   - Responsibility: compact section title and optional action label.
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/components/StatusChip.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StatusChip.kt`
   - Responsibility: shared severity/state/status chips.
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/components/MetricCard.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/MetricCard.kt`
   - Responsibility: compact metric tiles.
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/components/FeedbackCard.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/FeedbackCard.kt`
   - Responsibility: repeated feedback cards with metadata and card actions.
-- Create: `sample/src/main/java/io/beyondwin/fixthis/sample/components/StudioHeader.kt`
+- Create: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StudioHeader.kt`
   - Responsibility: screen-level product header.
-- Create: `sample/src/main/java/io/beyondwin/fixthis/sample/components/PreviewPanel.kt`
+- Create: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/PreviewPanel.kt`
   - Responsibility: product preview, chart preview, and weak-semantics surfaces.
-- Create: `sample/src/main/java/io/beyondwin/fixthis/sample/components/InfoRow.kt`
+- Create: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/InfoRow.kt`
   - Responsibility: timeline, activity, and diagnostic rows.
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt`
   - Responsibility: overview dashboard scene.
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/QueueScreen.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/QueueScreen.kt`
   - Responsibility: triage inbox scene.
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/ProjectScreen.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ProjectScreen.kt`
   - Responsibility: selected feedback detail scene.
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ReviewScreen.kt`
   - Responsibility: agent handoff composer scene.
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt`
   - Responsibility: diagnostics and semantics inspection scene.
 
 ## Task 1: Lock Test Anchors
 
 **Files:**
-- Modify: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
-- Inspect: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt`
+- Modify: `sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
+- Inspect: `sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt`
 
 - [x] **Step 1: Replace the smoke test with redesigned anchors**
 
 ```kotlin
-package io.beyondwin.fixthis.sample
+package io.github.beyondwin.fixthis.sample
 
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -97,7 +97,7 @@ class SampleAppSmokeTest {
 Run:
 
 ```bash
-sed -n '1,220p' sample/src/androidTest/java/io/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt
+sed -n '1,220p' sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt
 ```
 
 Expected: output includes `rule.onNodeWithText("Review").performClick()` and `Submit request`.
@@ -115,22 +115,22 @@ Expected: Android test APK compiles. Connected execution can fail before impleme
 - [x] **Step 4: Commit**
 
 ```bash
-git add sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt
+git add sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SampleAppSmokeTest.kt
 git commit -m "test: lock FixThis redesign anchors"
 ```
 
 ## Task 2: Expand Demo Data And Theme
 
 **Files:**
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/model/FixThisDemoData.kt`
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisTheme.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/model/FixThisDemoData.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/FixThisTheme.kt`
 
 - [x] **Step 1: Replace demo data with richer local product data**
 
 Use this exact shape so later screen tasks can rely on stable property names:
 
 ```kotlin
-package io.beyondwin.fixthis.sample.model
+package io.github.beyondwin.fixthis.sample.model
 
 enum class FeedbackSeverity(val label: String) {
     Critical("Critical"),
@@ -262,7 +262,7 @@ object FixThisDemoData {
 - [x] **Step 2: Replace the sample theme**
 
 ```kotlin
-package io.beyondwin.fixthis.sample
+package io.github.beyondwin.fixthis.sample
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
@@ -348,25 +348,25 @@ Expected: PASS.
 - [x] **Step 4: Commit**
 
 ```bash
-git add sample/src/main/java/io/beyondwin/fixthis/sample/model/FixThisDemoData.kt sample/src/main/java/io/beyondwin/fixthis/sample/FixThisTheme.kt
+git add sample/src/main/java/io/github/beyondwin/fixthis/sample/model/FixThisDemoData.kt sample/src/main/java/io/github/beyondwin/fixthis/sample/FixThisTheme.kt
 git commit -m "feat: refresh FixThis sample data and theme"
 ```
 
 ## Task 3: Build The Shared Component System
 
 **Files:**
-- Create: `sample/src/main/java/io/beyondwin/fixthis/sample/components/StudioHeader.kt`
-- Create: `sample/src/main/java/io/beyondwin/fixthis/sample/components/PreviewPanel.kt`
-- Create: `sample/src/main/java/io/beyondwin/fixthis/sample/components/InfoRow.kt`
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/components/SectionHeader.kt`
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/components/StatusChip.kt`
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/components/MetricCard.kt`
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/components/FeedbackCard.kt`
+- Create: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StudioHeader.kt`
+- Create: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/PreviewPanel.kt`
+- Create: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/InfoRow.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/SectionHeader.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StatusChip.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/MetricCard.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/FeedbackCard.kt`
 
 - [x] **Step 1: Add `StudioHeader.kt`**
 
 ```kotlin
-package io.beyondwin.fixthis.sample.components
+package io.github.beyondwin.fixthis.sample.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -420,7 +420,7 @@ fun StudioHeader(
 - [x] **Step 2: Add `PreviewPanel.kt`**
 
 ```kotlin
-package io.beyondwin.fixthis.sample.components
+package io.github.beyondwin.fixthis.sample.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -512,7 +512,7 @@ fun SparklineSurface(
 - [x] **Step 3: Add `InfoRow.kt`**
 
 ```kotlin
-package io.beyondwin.fixthis.sample.components
+package io.github.beyondwin.fixthis.sample.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -708,16 +708,16 @@ Expected: PASS.
 - [x] **Step 6: Commit**
 
 ```bash
-git add sample/src/main/java/io/beyondwin/fixthis/sample/components
+git add sample/src/main/java/io/github/beyondwin/fixthis/sample/components
 git commit -m "feat: add FixThis sample component system"
 ```
 
 ## Task 4: Refresh App Shell And Home/Queue Scenes
 
 **Files:**
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/FixThisStudioApp.kt`
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt`
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/QueueScreen.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/FixThisStudioApp.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/QueueScreen.kt`
 
 - [x] **Step 1: Replace the app shell**
 
@@ -813,15 +813,15 @@ Expected: PASS.
 - [x] **Step 5: Commit**
 
 ```bash
-git add sample/src/main/java/io/beyondwin/fixthis/sample/FixThisStudioApp.kt sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt sample/src/main/java/io/beyondwin/fixthis/sample/screens/QueueScreen.kt
+git add sample/src/main/java/io/github/beyondwin/fixthis/sample/FixThisStudioApp.kt sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/QueueScreen.kt
 git commit -m "feat: redesign FixThis home and queue"
 ```
 
 ## Task 5: Refresh Project And Review Scenes
 
 **Files:**
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/ProjectScreen.kt`
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ProjectScreen.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ReviewScreen.kt`
 
 - [x] **Step 1: Replace `ProjectScreen.kt` structure**
 
@@ -940,14 +940,14 @@ Expected: PASS.
 - [x] **Step 4: Commit**
 
 ```bash
-git add sample/src/main/java/io/beyondwin/fixthis/sample/screens/ProjectScreen.kt sample/src/main/java/io/beyondwin/fixthis/sample/screens/ReviewScreen.kt
+git add sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ProjectScreen.kt sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ReviewScreen.kt
 git commit -m "feat: redesign FixThis project and review"
 ```
 
 ## Task 6: Refresh Diagnostics Scene
 
 **Files:**
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt`
 
 - [x] **Step 1: Replace diagnostics layout**
 
@@ -1007,7 +1007,7 @@ Expected: PASS.
 - [x] **Step 3: Commit**
 
 ```bash
-git add sample/src/main/java/io/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt
+git add sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt
 git commit -m "feat: redesign FixThis diagnostics"
 ```
 
@@ -1064,14 +1064,14 @@ Run:
 git diff -- sample README.md fixthis-compose-core fixthis-compose-sidekick fixthis-gradle-plugin fixthis-cli fixthis-mcp
 ```
 
-Expected: only sample UI/test changes unless a test anchor required a targeted update. No package rename under `io.beyondwin.fixthis.*`.
+Expected: only sample UI/test changes unless a test anchor required a targeted update. No package rename under `io.github.beyondwin.fixthis.*`.
 
 - [x] **Step 5: Commit final adjustments**
 
 If Task 7 required fixes:
 
 ```bash
-git add sample/src/main/java/io/beyondwin/fixthis/sample sample/src/androidTest/java/io/beyondwin/fixthis/sample
+git add sample/src/main/java/io/github/beyondwin/fixthis/sample sample/src/androidTest/java/io/github/beyondwin/fixthis/sample
 git commit -m "fix: stabilize FixThis product scene sample"
 ```
 

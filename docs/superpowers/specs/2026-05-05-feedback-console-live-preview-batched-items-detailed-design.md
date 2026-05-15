@@ -158,7 +158,7 @@ Returns a transient preview.
   "screen": {
     "screenId": "screen-1",
     "displayName": "MainActivity",
-    "activityName": "io.beyondwin.fixthis.sample.MainActivity",
+    "activityName": "io.github.beyondwin.fixthis.sample.MainActivity",
     "screenshot": {
       "desktopFullPath": "/repo/.fixthis/preview-cache/session-1/preview-1/screen-1-full.png",
       "width": 720,
@@ -425,7 +425,7 @@ Markdown should be compact and actionable.
 ```markdown
 # FixThis Feedback Handoff
 
-- Package: `io.beyondwin.fixthis.sample`
+- Package: `io.github.beyondwin.fixthis.sample`
 - Feedback Items: `2`
 - Screenshots: local debug artifacts available through FixThis tooling
 
@@ -481,7 +481,7 @@ surface. Deleting old screens remains a separate existing operation.
 Targeted tests:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest --tests io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest --tests io.github.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Broader tests before completion:

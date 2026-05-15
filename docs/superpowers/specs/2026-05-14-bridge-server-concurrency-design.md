@@ -23,7 +23,7 @@ BridgeServer.handleRequestForTest(payload: String) -> String  (internal)
 ```
 
 The current implementation
-([`fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`](../../../fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt))
+([`fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`](../../../fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt))
 relies on two `@Volatile` fields for shared state:
 
 ```kotlin
@@ -98,7 +98,7 @@ which generation a returned name belongs to.
 ### 1.4. BridgeRuntime synchronization is informal
 
 `FixThisBridgeRuntime`
-([`BridgeRuntime.kt`](../../../fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeRuntime.kt))
+([`BridgeRuntime.kt`](../../../fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeRuntime.kt))
 uses `synchronized(lock)` to guard `start` and `stopForTest`, but:
 
 - `onActivityResumed` / `onActivityDestroyed` are *not* synchronized; they
@@ -702,12 +702,12 @@ T3/T4 use Job join, not wall-clock. We avoid all `Thread.sleep` and
 
 ## 7. References
 
-- [`BridgeServer.kt`](../../../fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt) — current implementation (195 lines, post-split)
-- [`BridgeRuntime.kt`](../../../fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeRuntime.kt) — `FixThisBridgeRuntime` singleton (74 lines)
-- [`BridgeConnectionState.kt`](../../../fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeConnectionState.kt) — heartbeat freshness tracker (22 lines)
-- [`BridgeSocketNameNegotiator.kt`](../../../fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeSocketNameNegotiator.kt) — bind retry policy (30 lines)
-- [`BridgeServerTest.kt`](../../../fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt) — request-handling coverage
-- [`BridgeServerStartupTest.kt`](../../../fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerStartupTest.kt) — bind-retry coverage
+- [`BridgeServer.kt`](../../../fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt) — current implementation (195 lines, post-split)
+- [`BridgeRuntime.kt`](../../../fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeRuntime.kt) — `FixThisBridgeRuntime` singleton (74 lines)
+- [`BridgeConnectionState.kt`](../../../fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeConnectionState.kt) — heartbeat freshness tracker (22 lines)
+- [`BridgeSocketNameNegotiator.kt`](../../../fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeSocketNameNegotiator.kt) — bind retry policy (30 lines)
+- [`BridgeServerTest.kt`](../../../fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt) — request-handling coverage
+- [`BridgeServerStartupTest.kt`](../../../fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerStartupTest.kt) — bind-retry coverage
 - [`2026-05-13-architecture-solid-remediation-detailed-spec.md`](2026-05-13-architecture-solid-remediation-detailed-spec.md) §F3 — the structural split that preceded this concurrency fix
 - [`2026-05-13-architecture-solid-remediation-implementation.md`](../plans/2026-05-13-architecture-solid-remediation-implementation.md) Task 6 — landed via commit `c6c0524`, merged in `a6abe8a`
 - [`docs/reference/bridge-protocol.md`](../../reference/bridge-protocol.md) — bridge wire contract (unchanged by this design)

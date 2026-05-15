@@ -158,7 +158,7 @@ fun consoleHtmlRefreshPreviewOnlyRendersPreviewRegion() {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: the three new tests fail because the current console still uses the light layout, `queue-pane`, and full `render()` on preview refresh.
@@ -477,7 +477,7 @@ button:disabled { opacity: .4; cursor: default; }
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlUsesOptionAStudioShell --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlKeepsFixThisTopLevelActionsInStudioTopbar
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlUsesOptionAStudioShell --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlKeepsFixThisTopLevelActionsInStudioTopbar
 ```
 
 Expected: the two tests added in Task 1 pass.
@@ -630,7 +630,7 @@ function focusPendingFeedbackItem(index) {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlRefreshPreviewOnlyRendersPreviewRegion
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlRefreshPreviewOnlyRendersPreviewRegion
 ```
 
 Expected: pass. The test proves preview polling no longer calls the full `render()`.
@@ -752,7 +752,7 @@ Replace green/orange overlay colors with Studio colors while retaining focused s
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlRendersStudioCanvasModesAndNavigation
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlRendersStudioCanvasModesAndNavigation
 ```
 
 Expected: pass.
@@ -945,7 +945,7 @@ function hydrateSavedEvidencePreviews() {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlUsesModeAwareStudioInspector
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlUsesModeAwareStudioInspector
 ```
 
 Expected: pass.
@@ -1067,7 +1067,7 @@ async function refreshSessions() {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlRendersStudioSessionHistoryWithoutInternalIds
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlRendersStudioSessionHistoryWithoutInternalIds
 ```
 
 Expected: pass.
@@ -1170,7 +1170,7 @@ In `ensurePreviewFrame()`, use:
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlAddsStudioKeyboardAndAccessibilityGuards
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest.consoleHtmlAddsStudioKeyboardAndAccessibilityGuards
 ```
 
 Expected: pass.
@@ -1192,7 +1192,7 @@ git commit -m "feat: add studio console shortcuts"
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
 ```
 
 Expected: pass. If an older string-contract test fails because it expects the old light layout, update only that assertion to the Studio equivalent while keeping the behavioral contract.
@@ -1202,7 +1202,7 @@ Expected: pass. If an older string-contract test fails because it expects the ol
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest --tests io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest --tests io.github.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest
 ```
 
 Expected: pass. No persisted JSON schema, preview save, or handoff behavior should change.
@@ -1285,7 +1285,7 @@ List of devices attached
 Run:
 
 ```bash
-ANDROID_HOME=/Users/kws/Library/Android/sdk PATH=/Users/kws/Library/Android/sdk/platform-tools:$PATH ./fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
+ANDROID_HOME=/Users/kws/Library/Android/sdk PATH=/Users/kws/Library/Android/sdk/platform-tools:$PATH ./fixthis-cli/build/install/fixthis/bin/fixthis run --package io.github.beyondwin.fixthis.sample
 ```
 
 Expected: CLI prints a local console URL and `sidekick: connected` when the device is usable.

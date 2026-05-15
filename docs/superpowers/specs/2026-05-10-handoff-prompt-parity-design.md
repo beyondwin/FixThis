@@ -9,7 +9,7 @@
 
 ## 1. Problem
 
-The browser console produces handoff prompt text via JS in `fixthis-mcp/src/main/console/prompt.js` (`currentAnnotationsPromptCompact()` and ~500 LoC of helpers). The MCP server has a parallel Kotlin implementation in `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt` used by `fixthis_read_feedback`. Despite copy-paste origins, the two have **drifted**.
+The browser console produces handoff prompt text via JS in `fixthis-mcp/src/main/console/prompt.js` (`currentAnnotationsPromptCompact()` and ~500 LoC of helpers). The MCP server has a parallel Kotlin implementation in `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt` used by `fixthis_read_feedback`. Despite copy-paste origins, the two have **drifted**.
 
 Concretely, the JS renderer is missing — relative to Kotlin:
 
@@ -197,13 +197,13 @@ async function sendAgentPrompt() {
 
 | Layer | File | Change kind |
 |-------|------|-------------|
-| Server route | `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` (or routing module nearby) | Add `POST /api/sessions/{sid}/handoff-preview`; modify `POST /api/agent-handoffs` body shape and response |
-| Server service | `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` (`sendDraftToAgent` already exists) | Caller change only — `/api/agent-handoffs` now passes a server-rendered prompt instead of one supplied by the client |
-| Renderer | `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt` | Two cosmetic adjustments per §4.3 |
+| Server route | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` (or routing module nearby) | Add `POST /api/sessions/{sid}/handoff-preview`; modify `POST /api/agent-handoffs` body shape and response |
+| Server service | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` (`sendDraftToAgent` already exists) | Caller change only — `/api/agent-handoffs` now passes a server-rendered prompt instead of one supplied by the client |
+| Renderer | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt` | Two cosmetic adjustments per §4.3 |
 | Browser composer | `fixthis-mcp/src/main/console/prompt.js` | Delete ~500 LoC of helpers; rewrite `copyPrompt` and `sendAgentPrompt`; add `persistAndCollectItemIds` + `fetchHandoffPreview` helpers |
 | Bundled output | `fixthis-mcp/src/main/resources/console/app.js` | Rebundle via `node scripts/build-console-assets.mjs` |
-| Tests (Kotlin) | `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` | New tests for §4.3 (screenshot fallback; no blank line after overlap header) |
-| Tests (server) | `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` | New tests: `/api/sessions/{sid}/handoff-preview` happy path + 400/404; `/api/agent-handoffs` new shape; old shape rejected with 400 |
+| Tests (Kotlin) | `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` | New tests for §4.3 (screenshot fallback; no blank line after overlap header) |
+| Tests (server) | `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` | New tests: `/api/sessions/{sid}/handoff-preview` happy path + 400/404; `/api/agent-handoffs` new shape; old shape rejected with 400 |
 | Tests (JS) | `fixthis-mcp/src/test/console/prompt.test.mjs` (new) | Unit-test rewritten `copyPrompt` / `sendAgentPrompt` against `fetch`-mocked server (or document why a JS test harness is intentionally deferred — see §6.1) |
 
 ## 6. Testing strategy

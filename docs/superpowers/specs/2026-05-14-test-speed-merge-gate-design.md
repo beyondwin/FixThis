@@ -43,13 +43,13 @@
 
 ### Task 2 — Event log fast mode (Done)
 
-- **Evidence file:** `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogWriter.kt` now exports `enum class EventLogDurability { Durable, Fast }` and the constructor signature is `EventLogWriter(directory, onWriteHook, durability)` with `Durable` as the default. The `Fast` branch skips `RandomAccessFile("rwd")` and `channel.force(true)` in favor of `tmp.writeText(line, Charsets.UTF_8)`.
-- **Test evidence:** `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogWriterTest.kt` contains `fastDurabilityWritesReadableEvents()` and `defaultConstructorUsesDurableWrites()`.
+- **Evidence file:** `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogWriter.kt` now exports `enum class EventLogDurability { Durable, Fast }` and the constructor signature is `EventLogWriter(directory, onWriteHook, durability)` with `Durable` as the default. The `Fast` branch skips `RandomAccessFile("rwd")` and `channel.force(true)` in favor of `tmp.writeText(line, Charsets.UTF_8)`.
+- **Test evidence:** `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogWriterTest.kt` contains `fastDurabilityWritesReadableEvents()` and `defaultConstructorUsesDurableWrites()`.
 - **Commit:** `e5e4cfa`.
 
 ### Task 3 — Compactor fixture shrink (Done)
 
-- **Evidence file:** `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactorTest.kt`. The helper `fastEventWriterFor(paths)` is in place; loops `repeat(24)`, `repeat(12)`, `repeat(5)` replace the previous `repeat(1200)` / `repeat(1100)` / `repeat(50)` patterns; `runOnce(threshold = 10)` replaces `threshold = 1000`.
+- **Evidence file:** `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactorTest.kt`. The helper `fastEventWriterFor(paths)` is in place; loops `repeat(24)`, `repeat(12)`, `repeat(5)` replace the previous `repeat(1200)` / `repeat(1100)` / `repeat(50)` patterns; `runOnce(threshold = 10)` replaces `threshold = 1000`.
 - **Behavior preserved:** The remaining-files assertion is `assertEquals(10, remainingFiles.size, …)` and the archive assertion is `assertEquals(2, archiveFiles.size, …)`; replay still goes through `EventLogReader`. The compactor's invariant (retain the newest N, archive the rest, advance the checkpoint sequence number) is unchanged.
 - **Commit:** `f06d471`.
 

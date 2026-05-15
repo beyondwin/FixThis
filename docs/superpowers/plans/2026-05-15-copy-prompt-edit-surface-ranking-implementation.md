@@ -19,25 +19,25 @@ or sample app UI.
 
 ## File Structure
 
-- Modify `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`.
+- Modify `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`.
   Adds evidence-tier sorting so selected target evidence beats nearby-only aggregate matches.
-- Modify `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`.
+- Modify `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`.
   Adds ranking regression tests.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt`.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt`.
   Adds optional `editSurfaceCandidates` DTOs on `AnnotationDto`.
-- Create `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentClassifier.kt`.
+- Create `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentClassifier.kt`.
   Owns deterministic Korean/English style/layout intent detection.
-- Create `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetOwnerResolver.kt`.
+- Create `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetOwnerResolver.kt`.
   Owns nearest containing/overlapping owner derivation from persisted snapshot roots.
-- Create `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditSurfaceCandidateService.kt`.
+- Create `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditSurfaceCandidateService.kt`.
   Combines intent, target owner, and source candidates into up to two edit-surface hints.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt`.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt`.
   Calls the new service when enriching saved items.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetSummaryFormatter.kt`.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetSummaryFormatter.kt`.
   Renders owner context on the `target:` line when available.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`.
   Renders `editSurface:` lines and actionable warnings.
-- Modify `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`.
+- Modify `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`.
   Adds compact output and golden regression coverage.
 - Modify `docs/reference/feedback-console-contract.md`, `docs/reference/output-schema.md`, and `docs/reference/mcp-tools.md`.
   Documents source-vs-edit-surface interpretation.
@@ -45,8 +45,8 @@ or sample app UI.
 ## Task 1: Add Source Ranking Guardrail
 
 **Files:**
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
-- Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`
 
 - [ ] **Step 1: Add failing regression test for selected text outranking nearby-only aggregate**
 
@@ -59,7 +59,7 @@ Append this test to `SourceMatcherTest`:
             SourceIndex(
                 entries = listOf(
                     SourceIndexEntry(
-                        file = "sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt",
+                        file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt",
                         line = 50,
                         text = listOf("Open queue"),
                         signals = listOf(
@@ -71,7 +71,7 @@ Append this test to `SourceMatcherTest`:
                         ),
                     ),
                     SourceIndexEntry(
-                        file = "sample/src/main/java/io/beyondwin/fixthis/sample/model/FixThisDemoData.kt",
+                        file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/model/FixThisDemoData.kt",
                         line = 122,
                         text = listOf("Diagnostics", "Review"),
                         signals = listOf(
@@ -101,7 +101,7 @@ Append this test to `SourceMatcherTest`:
         )
 
         assertEquals(
-            "sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt",
+            "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt",
             matches.first().file,
         )
         assertTrue(matches.first().matchReasons.contains("selected text"))
@@ -176,16 +176,16 @@ Expected: PASS.
 ## Task 2: Add Edit Surface DTOs and Intent Classifier
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentClassifier.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/EditIntentClassifierTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentClassifier.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntentClassifierTest.kt`
 
 - [ ] **Step 1: Add failing classifier tests**
 
 Create `EditIntentClassifierTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -259,7 +259,7 @@ enum class EditSurfaceReasonDto {
 Create `EditIntentClassifier.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
 internal data class EditIntent(
     val primaryKind: EditSurfaceKindDto,
@@ -300,9 +300,9 @@ Expected: PASS.
 ## Task 3: Resolve Target Owner Context
 
 **Files:**
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetOwnerResolver.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetSummaryFormatter.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetOwnerResolver.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetSummaryFormatter.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
 
 - [ ] **Step 1: Add failing renderer test for owner context**
 
@@ -359,7 +359,7 @@ If the existing `oneItemSession` helper only accepts an item, add an overload in
 ```kotlin
     private fun oneItemSession(screen: SnapshotDto, item: AnnotationDto): SessionDto = SessionDto(
         sessionId = "session-one-item",
-        packageName = "io.beyondwin.fixthis.sample",
+        packageName = "io.github.beyondwin.fixthis.sample",
         projectRoot = "/repo",
         createdAtEpochMillis = 1L,
         updatedAtEpochMillis = 1L,
@@ -373,9 +373,9 @@ If the existing `oneItemSession` helper only accepts an item, add an overload in
 Create `TargetOwnerResolver.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.model.FixThisNode
+import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 
 internal data class TargetOwner(
     val node: FixThisNode,
@@ -450,10 +450,10 @@ Expected: PASS.
 ## Task 4: Build and Render Edit Surface Candidates
 
 **Files:**
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EditSurfaceCandidateService.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditSurfaceCandidateService.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
 
 - [ ] **Step 1: Add failing compact renderer test for source/edit-surface split**
 
@@ -478,7 +478,7 @@ Append this test to `CompactHandoffRendererTest`:
             ),
             sourceCandidates = listOf(
                 SourceCandidate(
-                    file = "sample/src/main/java/io/beyondwin/fixthis/sample/model/FixThisDemoData.kt",
+                    file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/model/FixThisDemoData.kt",
                     line = 59,
                     score = 0.49,
                     matchedTerms = listOf("Resolved this week"),
@@ -489,7 +489,7 @@ Append this test to `CompactHandoffRendererTest`:
             editSurfaceCandidates = listOf(
                 EditSurfaceCandidateDto(
                     kind = EditSurfaceKindDto.TEXT_COLOR,
-                    file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/MetricCard.kt",
+                    file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/MetricCard.kt",
                     line = 26,
                     confidence = SelectionConfidence.MEDIUM,
                     reasons = listOf(EditSurfaceReasonDto.STYLE_INTENT, EditSurfaceReasonDto.TARGET_OWNER),
@@ -515,11 +515,11 @@ Append this test to `CompactHandoffRendererTest`:
 Create `EditSurfaceCandidateService.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.identity.TestTagConvention
-import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
-import io.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.github.beyondwin.fixthis.compose.core.identity.TestTagConvention
+import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
 
 internal object EditSurfaceCandidateService {
     fun build(
@@ -649,7 +649,7 @@ Expected: PASS.
 ## Task 5: Add Golden Regression for the Six Failure Modes
 
 **Files:**
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
 
 - [ ] **Step 1: Add synthetic six-item golden test**
 
@@ -667,11 +667,11 @@ Assert these substrings:
 
 ```kotlin
 assertTrue(markdown.contains("""inside tag="comp:MetricCard:summary""""))
-assertTrue(markdown.contains("editSurface: textColor -> sample/src/main/java/io/beyondwin/fixthis/sample/components/MetricCard.kt:26"))
-assertTrue(markdown.contains("editSurface: typography -> sample/src/main/java/io/beyondwin/fixthis/sample/components/SectionHeader.kt:24"))
-assertTrue(markdown.contains("editSurface: textColor -> sample/src/main/java/io/beyondwin/fixthis/sample/components/SectionHeader.kt:29"))
-assertTrue(markdown.contains("editSurface: spacing -> sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt:51"))
-assertTrue(markdown.contains("editSurface: chipColor -> sample/src/main/java/io/beyondwin/fixthis/sample/components/StatusChip.kt:45"))
+assertTrue(markdown.contains("editSurface: textColor -> sample/src/main/java/io/github/beyondwin/fixthis/sample/components/MetricCard.kt:26"))
+assertTrue(markdown.contains("editSurface: typography -> sample/src/main/java/io/github/beyondwin/fixthis/sample/components/SectionHeader.kt:24"))
+assertTrue(markdown.contains("editSurface: textColor -> sample/src/main/java/io/github/beyondwin/fixthis/sample/components/SectionHeader.kt:29"))
+assertTrue(markdown.contains("editSurface: spacing -> sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt:51"))
+assertTrue(markdown.contains("editSurface: chipColor -> sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StatusChip.kt:45"))
 ```
 
 - [ ] **Step 2: Run the golden test**

@@ -69,7 +69,7 @@ is a stable machine-readable string; `error.message` is human-readable.
 
 A single `VERSION` string identifies the protocol surface. **Current value:
 `"1.3"`** (defined in
-`fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt`).
+`fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt`).
 
 The same value is **mirrored** in three other places that must stay in sync.
 A `BridgeProtocolVersionSyncTest` in `:fixthis-mcp:test` enforces equality

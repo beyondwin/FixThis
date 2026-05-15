@@ -166,7 +166,7 @@ and export contract models. Add explicit mappers between the two layers.
 **Acceptance**
 
 1. `fixthis-compose-core/src/main/kotlin/.../domain/**` no longer imports
-   `io.beyondwin.fixthis.compose.core.model.*`.
+   `io.github.beyondwin.fixthis.compose.core.model.*`.
 2. Existing serialized MCP/session/output JSON remains byte-for-byte compatible
    for representative fixtures, except for ordering or formatting already
    tolerated by tests.
@@ -275,7 +275,7 @@ internal interface McpToolHandler {
 ```
 
 Create one handler per public MCP tool under
-`fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/handlers/`.
+`fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/handlers/`.
 Shared argument parsing can live in small helpers, but individual handlers own
 their request contract and response payload.
 

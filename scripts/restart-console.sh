@@ -91,5 +91,5 @@ exec "$MCP_BIN" \
   --console \
   --console-port "$CONSOLE_PORT" \
   --project-dir "$ROOT" \
-  --package io.beyondwin.fixthis.sample \
+  --package io.github.beyondwin.fixthis.sample \
   "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"

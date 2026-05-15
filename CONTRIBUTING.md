@@ -70,7 +70,7 @@ Use after edits to `fixthis-mcp/src/main/console/*` that you rebundle with `node
 
 ```bash
 scripts/fixthis-console-dev.sh                                # default package
-scripts/fixthis-console-dev.sh io.beyondwin.fixthis.sample    # explicit package
+scripts/fixthis-console-dev.sh io.github.beyondwin.fixthis.sample    # explicit package
 ```
 
 Stop with Ctrl-C; re-running kills any stale `fixthis console` process before starting a new one.
@@ -141,7 +141,7 @@ npm run console:build:test          # build-console-assets unit tests
 > As of 2026-05-14, `ConsoleFeedbackItemRoutesTest.kt` was split into seven
 > focused files. If you previously pinned that class in your IDE run
 > configurations, switch to the package filter
-> `io.beyondwin.fixthis.mcp.console.*`.
+> `io.github.beyondwin.fixthis.mcp.console.*`.
 
 Run these before opening a pull request:
 
@@ -289,13 +289,13 @@ status messages, activity-drift warnings, or agent-state rendering.
 Connected-device verification is manual until the project has a reliable device or emulator runner. Run the smoke harness when validating device behavior:
 
 ```bash
-scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample
+scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample
 ```
 
 For host-only validation, use:
 
 ```bash
-scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample --host-only
+scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample --host-only
 ```
 
 Smoke reports are written under ignored `.fixthis/smoke-reports/` as Markdown and JSON. When connected smoke is skipped, record one of these categories in the pull request:

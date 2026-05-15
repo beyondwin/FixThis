@@ -37,18 +37,18 @@
 
 **Created:**
 
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/HandoffPreviewRoutes.kt` — new `POST /api/sessions/{sid}/handoff-preview` route.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/HandoffPreviewRoutes.kt` — new `POST /api/sessions/{sid}/handoff-preview` route.
 
 **Modified:**
 
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt` — accept optional `itemIds` filter; screenshot fallback; remove blank line after overlap header.
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` — new tests + 1-2 small adjustments to existing assertions for the cosmetic changes.
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt` — `sendDraftToAgent` builds prompt server-side from itemIds.
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` — `sendDraftToAgent` signature accepts itemIds; markdown snapshot still persisted.
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/AnnotationRequestModels.kt` — change `AgentHandoffRequest` shape from `{prompt}` to `{itemIds}`; add `HandoffPreviewRequest`.
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt` — adapt `/api/agent-handoffs` decoder + handler.
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` (or wherever routes are registered) — register `HandoffPreviewRoutes`.
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` — new acceptance tests.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt` — accept optional `itemIds` filter; screenshot fallback; remove blank line after overlap header.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt` — new tests + 1-2 small adjustments to existing assertions for the cosmetic changes.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt` — `sendDraftToAgent` builds prompt server-side from itemIds.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` — `sendDraftToAgent` signature accepts itemIds; markdown snapshot still persisted.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/AnnotationRequestModels.kt` — change `AgentHandoffRequest` shape from `{prompt}` to `{itemIds}`; add `HandoffPreviewRequest`.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt` — adapt `/api/agent-handoffs` decoder + handler.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` (or wherever routes are registered) — register `HandoffPreviewRoutes`.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` — new acceptance tests.
 - `fixthis-mcp/src/main/console/prompt.js` — delete the JS renderer; rewrite `copyPrompt` / `sendAgentPrompt`; add `persistAndCollectItemIds` + `fetchHandoffPreview` helpers.
 - `fixthis-mcp/src/main/console/annotations.js` — minor: ensure `currentPromptAnnotations()` (already exists) is still the selection source.
 - `fixthis-mcp/src/main/resources/console/app.js` — rebundled output of the JS module changes.
@@ -60,8 +60,8 @@
 
 **Files:**
 
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
 
 **Goal:** Add optional itemIds filter. Apply two cosmetic JS-parity adjustments. All tests in CompactHandoffRendererTest continue to pass after assertion adjustments for the cosmetic changes.
 
@@ -69,8 +69,8 @@
 
 ```bash
 cd /<worktree>
-sed -n '1,50p' fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt
-wc -l fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt
+sed -n '1,50p' fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt
+wc -l fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt
 ```
 
 Confirm `fun render(session: SessionDto): String` is the single entry point; locate the `Overlap group` line emit and the `screenshot:` line emit.
@@ -84,7 +84,7 @@ Append to `CompactHandoffRendererTest.kt` (just before the closing `}`):
 fun renderFiltersItemsByItemIdsWhenProvided() {
     val session = SessionDto(
         sessionId = "session-filter",
-        packageName = "io.beyondwin.fixthis.sample",
+        packageName = "io.github.beyondwin.fixthis.sample",
         projectRoot = "/repo",
         createdAtEpochMillis = 1L,
         updatedAtEpochMillis = 1L,
@@ -264,8 +264,8 @@ All tests pass.
 - [ ] **Step 11: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt
 git commit -m "$(cat <<'EOF'
 mcp: filter handoff renderer by itemIds; cosmetic JS parity
 
@@ -286,18 +286,18 @@ EOF
 
 **Files:**
 
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/HandoffPreviewRoutes.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/AnnotationRequestModels.kt` (add `HandoffPreviewRequest`)
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` (or sibling that registers routes)
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/HandoffPreviewRoutes.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/AnnotationRequestModels.kt` (add `HandoffPreviewRequest`)
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` (or sibling that registers routes)
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 **Goal:** Expose Kotlin-rendered handoff Markdown via a stateless endpoint. Browser uses it for "Copy Prompt".
 
 - [ ] **Step 1: Read existing route registrations**
 
 ```bash
-sed -n '1,50p' fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt
-grep -n "registerRoute\|listOf<ConsoleRoute>\|: ConsoleRoute" fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/*.kt | head -20
+sed -n '1,50p' fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt
+grep -n "registerRoute\|listOf<ConsoleRoute>\|: ConsoleRoute" fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/*.kt | head -20
 ```
 
 Confirm where `ConsoleRoute` instances are wired into the server and how matching by path works (the existing `FeedbackItemRoutes.matches(path)` returns boolean).
@@ -368,11 +368,11 @@ Run — all three tests FAIL.
 Create `HandoffPreviewRoutes.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
 import com.sun.net.httpserver.HttpExchange
-import io.beyondwin.fixthis.mcp.session.CompactHandoffRenderer
-import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
+import io.github.beyondwin.fixthis.mcp.session.CompactHandoffRenderer
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 
 internal class HandoffPreviewRoutes(private val service: FeedbackSessionService) : ConsoleRoute {
     private val pathPrefix = "/api/sessions/"
@@ -421,10 +421,10 @@ The three new tests PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/HandoffPreviewRoutes.kt \
-        fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/AnnotationRequestModels.kt \
-        fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/HandoffPreviewRoutes.kt \
+        fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/AnnotationRequestModels.kt \
+        fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "$(cat <<'EOF'
 mcp: add /api/sessions/{sid}/handoff-preview endpoint
 
@@ -444,11 +444,11 @@ EOF
 
 **Files:**
 
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/AnnotationRequestModels.kt` (`AgentHandoffRequest`)
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt` (`sendDraftToAgent`)
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` (`sendDraftToAgent` signature)
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/AnnotationRequestModels.kt` (`AgentHandoffRequest`)
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt` (`sendDraftToAgent`)
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` (`sendDraftToAgent` signature)
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 **Goal:** Server renders the prompt itself; old `{prompt}` body is rejected. Existing flow (DRAFT→SENT, persistence) unchanged.
 
@@ -608,11 +608,11 @@ All pass.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/AnnotationRequestModels.kt \
-        fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt \
-        fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt \
-        fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/AnnotationRequestModels.kt \
+        fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt \
+        fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt \
+        fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "$(cat <<'EOF'
 mcp: agent-handoffs accepts {itemIds}, renders prompt server-side
 
@@ -802,7 +802,7 @@ Per `CLAUDE.md`:
 ```bash
 ./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
 fixthis-cli/build/install/fixthis/bin/fixthis console \
-  --package io.beyondwin.fixthis.sample \
+  --package io.github.beyondwin.fixthis.sample \
   --console-assets-dir "$PWD/fixthis-mcp/src/main/resources/console"
 ```
 

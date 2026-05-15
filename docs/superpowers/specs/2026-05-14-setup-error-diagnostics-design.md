@@ -22,7 +22,7 @@
 ### 1.1 Current state
 
 `fixthis setup --write` registers FixThis with Claude Code and Codex by merging the FixThis MCP entry into `.claude/settings.json` and `~/.codex/config.toml`. The merge can fail for many reasons (malformed pre-existing JSON, malformed TOML, an `mcpServers` key with a non-object value, a transient `IOException`, an unexpected key shape). All those failures pass through one catch block in
-`fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt`, lines 82–90:
+`fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt`, lines 82–90:
 
 ```kotlin
 val merged = try {
@@ -224,12 +224,12 @@ Alternative considered: thread the flag through the throw site as a new `Diagnos
 
 | File | Change |
 |---|---|
-| `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt` | Add `verbose` option. Replace simple `${e.message}` interpolation with a call to new `renderMergeFailure(writer, configFile, e)`. Set `DiagnosticContext.verbose` when verbose is on. |
-| `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRendering.kt` (new) | Holds `renderMergeFailure`, the category-classification logic, and `renderCauseChain`. Internal visibility. |
-| `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/DiagnosticContext.kt` (new) | `internal object DiagnosticContext { var verbose: Boolean = false }`. |
-| `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/Main.kt` | After `command.getFormattedHelp(error)`, if `DiagnosticContext.verbose`, print `error.cause?.stackTraceToString()` to stderr. |
-| `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommandTest.kt` | Update one existing assertion; add five new tests (one per category). |
-| `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRenderingTest.kt` (new) | Unit tests for `renderMergeFailure` and `renderCauseChain` in isolation. |
+| `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt` | Add `verbose` option. Replace simple `${e.message}` interpolation with a call to new `renderMergeFailure(writer, configFile, e)`. Set `DiagnosticContext.verbose` when verbose is on. |
+| `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupErrorRendering.kt` (new) | Holds `renderMergeFailure`, the category-classification logic, and `renderCauseChain`. Internal visibility. |
+| `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/DiagnosticContext.kt` (new) | `internal object DiagnosticContext { var verbose: Boolean = false }`. |
+| `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/Main.kt` | After `command.getFormattedHelp(error)`, if `DiagnosticContext.verbose`, print `error.cause?.stackTraceToString()` to stderr. |
+| `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommandTest.kt` | Update one existing assertion; add five new tests (one per category). |
+| `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupErrorRenderingTest.kt` (new) | Unit tests for `renderMergeFailure` and `renderCauseChain` in isolation. |
 
 ---
 
@@ -294,32 +294,32 @@ Single-PR migration. No feature flag. Risk is low because the output change is s
 
 ### 5.2 Manual verification
 
-After implementation, perform these manual scenarios on a sample project (`io.beyondwin.fixthis.sample`):
+After implementation, perform these manual scenarios on a sample project (`io.github.beyondwin.fixthis.sample`):
 
 1. **Truncated JSON:**
    ```bash
    mkdir -p .claude && printf '{"mcpServers":' > .claude/settings.json
-   ./fixthis-cli/build/install/fixthis/bin/fixthis setup --write --target claude --package io.beyondwin.fixthis.sample
+   ./fixthis-cli/build/install/fixthis/bin/fixthis setup --write --target claude --package io.github.beyondwin.fixthis.sample
    ```
    Expect: exit non-zero. Stderr shows prefix line, `Category: MALFORMED_JSON`, a `caused by` line, a `Fix:` line, a `Re-run with --verbose` hint.
 
 2. **Same scenario with `--verbose`:**
    ```bash
-   ./fixthis-cli/build/install/fixthis/bin/fixthis setup --write --target claude --verbose --package io.beyondwin.fixthis.sample
+   ./fixthis-cli/build/install/fixthis/bin/fixthis setup --write --target claude --verbose --package io.github.beyondwin.fixthis.sample
    ```
    Expect: same message as above *minus* the `Re-run with --verbose` hint, *plus* a Java stack trace section.
 
 3. **`mcpServers` is a JSON array:**
    ```bash
    printf '{"mcpServers":[]}' > .claude/settings.json
-   ./fixthis-cli/build/install/fixthis/bin/fixthis setup --write --target claude --package io.beyondwin.fixthis.sample
+   ./fixthis-cli/build/install/fixthis/bin/fixthis setup --write --target claude --package io.github.beyondwin.fixthis.sample
    ```
    Expect: `Category: MALFORMED_MCPSERVERS_SHAPE`. Fix line names the file and mentions `{}`.
 
 4. **Filesystem error on Codex path:**
    ```bash
    chmod 000 ~/.codex/config.toml   # make unreadable
-   ./fixthis-cli/build/install/fixthis/bin/fixthis setup --write --target codex --package io.beyondwin.fixthis.sample
+   ./fixthis-cli/build/install/fixthis/bin/fixthis setup --write --target codex --package io.github.beyondwin.fixthis.sample
    chmod 600 ~/.codex/config.toml   # restore
    ```
    Expect: `Category: FILESYSTEM_ERROR`.
@@ -327,7 +327,7 @@ After implementation, perform these manual scenarios on a sample project (`io.be
 5. **Healthy run unchanged:**
    ```bash
    rm -f .claude/settings.json
-   ./fixthis-cli/build/install/fixthis/bin/fixthis setup --write --target claude --package io.beyondwin.fixthis.sample
+   ./fixthis-cli/build/install/fixthis/bin/fixthis setup --write --target claude --package io.github.beyondwin.fixthis.sample
    ```
    Expect: exit 0. Output starts with `Wrote claude MCP config (project-local): <path>`.
 
@@ -353,7 +353,7 @@ After implementation, perform these manual scenarios on a sample project (`io.be
 Exception messages from `kotlinx-serialization` typically include offending JSON fragments. If a user's `settings.json` contains a secret in another key (e.g., an `OPENAI_API_KEY`), the parser may echo it as `Unexpected token near "…"`. The default render *and* `--verbose` will surface this on stderr.
 
 **Mitigation (code-based, not just documentation):** introduce
-`fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupErrorRedactor.kt`
+`fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupErrorRedactor.kt`
 with `redact(text: String): String`. The renderer routes every cause message and
 every Java stack-trace line through `redact()` before emitting. Rules:
 
@@ -393,10 +393,10 @@ If we later add `--verbose` to the root `fixthis` command, the Clikt parser will
 
 ## 7. References
 
-- `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt` lines 82–90 — current catch block (post-Polish).
-- `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/Main.kt` lines 27–40 — current CliktError print path.
-- `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt` lines 25–32 — explicit `IllegalArgumentException` for non-object `mcpServers` (Polish Change 2 source).
-- `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/CodexConfigWriter.kt` — TOML parsing surface (manual regex-based; failures bubble as `IllegalStateException`/`IllegalArgumentException`).
+- `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt` lines 82–90 — current catch block (post-Polish).
+- `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/Main.kt` lines 27–40 — current CliktError print path.
+- `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt` lines 25–32 — explicit `IllegalArgumentException` for non-object `mcpServers` (Polish Change 2 source).
+- `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/CodexConfigWriter.kt` — TOML parsing surface (manual regex-based; failures bubble as `IllegalStateException`/`IllegalArgumentException`).
 - Clikt 5.0.3 source `BaseCliktCommand.getFormattedHelp` — confirms only `error.message` is returned for non-`ContextCliktError`.
 - `docs/superpowers/specs/2026-05-09-fixthis-setup-polish-spec.md` — predecessor; this spec extends Change 1.
 - `docs/superpowers/plans/2026-05-09-fixthis-setup-polish.md` — predecessor implementation, completed.

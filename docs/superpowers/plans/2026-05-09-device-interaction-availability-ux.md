@@ -41,16 +41,16 @@ See `docs/superpowers/specs/2026-05-09-device-interaction-availability-ux-design
 **Created:**
 - `fixthis-mcp/src/main/console/availability.js` — pure module: `computeBlockedReason`, `createBlockedReasonDebouncer`, `unresponsiveTracker`
 - `scripts/console-availability-test.mjs` — Node `node --test` for the pure module
-- `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacksTest.kt` — counter + lastResumed weak ref
-- `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusAvailabilityTest.kt` — JSON round-trip + signal wiring (Robolectric)
+- `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacksTest.kt` — counter + lastResumed weak ref
+- `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusAvailabilityTest.kt` — JSON round-trip + signal wiring (Robolectric)
 
 **Modified:**
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` — `BridgeStatus` data class
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacks.kt` — counter + last-resumed weak ref
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/FixThisBridgeRuntime.kt` — populate availability fields in `BridgeEnvironment.status()`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleConnectionModels.kt` — add `availability` payload
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/ConsoleConnectionService.kt` — query `bridge.status()` on READY and surface fields
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` — extend connection-status assertions
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` — `BridgeStatus` data class
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacks.kt` — counter + last-resumed weak ref
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/FixThisBridgeRuntime.kt` — populate availability fields in `BridgeEnvironment.status()`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleConnectionModels.kt` — add `availability` payload
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/ConsoleConnectionService.kt` — query `bridge.status()` on READY and surface fields
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` — extend connection-status assertions
 - `fixthis-mcp/src/main/console/state.js` — new sub-state shape
 - `fixthis-mcp/src/main/console/connection.js` — call availability tracker, integrate failure streak, drive backoff
 - `fixthis-mcp/src/main/console/annotations.js` — gate click/drag, suppress "No component found"
@@ -68,17 +68,17 @@ See `docs/superpowers/specs/2026-05-09-device-interaction-availability-ux-design
 
 **Files:**
 
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt:206-229`
-- Create: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusAvailabilityTest.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt:206-229`
+- Create: `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusAvailabilityTest.kt`
 
 **Goal:** Extend the `BridgeStatus` data class with four nullable Booleans. Keep the legacy 5-arg constructor for source compatibility. Verify JSON round-trip (encode + decode) preserves new fields and round-trips an old payload (without the fields) into all-null defaults.
 
 - [ ] **Step 1: Write the failing test**
 
-  Create `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusAvailabilityTest.kt`:
+  Create `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusAvailabilityTest.kt`:
 
   ```kotlin
-  package io.beyondwin.fixthis.compose.sidekick.bridge
+  package io.github.beyondwin.fixthis.compose.sidekick.bridge
 
   import kotlinx.serialization.json.Json
   import org.junit.Assert.assertEquals
@@ -155,7 +155,7 @@ See `docs/superpowers/specs/2026-05-09-device-interaction-availability-ux-design
 
 - [ ] **Step 3: Implement the data class change**
 
-  In `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` replace the existing `BridgeStatus` data class (currently lines 206-229) with:
+  In `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` replace the existing `BridgeStatus` data class (currently lines 206-229) with:
 
   ```kotlin
   @Serializable
@@ -202,8 +202,8 @@ See `docs/superpowers/specs/2026-05-09-device-interaction-availability-ux-design
 - [ ] **Step 5: Commit**
 
   ```bash
-  git add fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt \
-          fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusAvailabilityTest.kt
+  git add fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt \
+          fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusAvailabilityTest.kt
   git commit -m "feat(sidekick): add nullable availability fields to BridgeStatus"
   ```
 
@@ -213,17 +213,17 @@ See `docs/superpowers/specs/2026-05-09-device-interaction-availability-ux-design
 
 **Files:**
 
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacks.kt`
-- Create: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacksTest.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacks.kt`
+- Create: `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacksTest.kt`
 
 **Goal:** Track a resumed-activity counter (atomic int) and a `WeakReference<Activity>` to the most recent resumed activity. Expose `isAppForeground()` and `lastResumedActivity()` for the runtime to read.
 
 - [ ] **Step 1: Write the failing test**
 
-  Create `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacksTest.kt`:
+  Create `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacksTest.kt`:
 
   ```kotlin
-  package io.beyondwin.fixthis.compose.sidekick.lifecycle
+  package io.github.beyondwin.fixthis.compose.sidekick.lifecycle
 
   import android.app.Activity
   import org.junit.Assert.assertFalse
@@ -283,16 +283,16 @@ See `docs/superpowers/specs/2026-05-09-device-interaction-availability-ux-design
 
 - [ ] **Step 3: Implement counter + weak ref**
 
-  Replace the current contents of `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacks.kt` with:
+  Replace the current contents of `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacks.kt` with:
 
   ```kotlin
-  package io.beyondwin.fixthis.compose.sidekick.lifecycle
+  package io.github.beyondwin.fixthis.compose.sidekick.lifecycle
 
   import android.app.Activity
   import android.app.Application
   import android.os.Bundle
-  import io.beyondwin.fixthis.compose.sidekick.bridge.FixThisBridgeRuntime
-  import io.beyondwin.fixthis.compose.sidekick.overlay.FixThisConnectionStatusHostLayout
+  import io.github.beyondwin.fixthis.compose.sidekick.bridge.FixThisBridgeRuntime
+  import io.github.beyondwin.fixthis.compose.sidekick.overlay.FixThisConnectionStatusHostLayout
   import java.lang.ref.WeakReference
   import java.util.concurrent.atomic.AtomicInteger
 
@@ -341,8 +341,8 @@ See `docs/superpowers/specs/2026-05-09-device-interaction-availability-ux-design
 - [ ] **Step 5: Commit**
 
   ```bash
-  git add fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacks.kt \
-          fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacksTest.kt
+  git add fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacks.kt \
+          fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacksTest.kt
   git commit -m "feat(sidekick): track resumed activity counter and last-resumed weak ref"
   ```
 
@@ -352,21 +352,21 @@ See `docs/superpowers/specs/2026-05-09-device-interaction-availability-ux-design
 
 **Files:**
 
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` (the `BridgeEnvironment` interface and its `FixThisBridgeRuntime` impl around line 354)
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/FixThis.kt` (init wiring — pass the lifecycle callbacks instance into `FixThisBridgeRuntime`)
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` (the `BridgeEnvironment` interface and its `FixThisBridgeRuntime` impl around line 354)
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/FixThis.kt` (init wiring — pass the lifecycle callbacks instance into `FixThisBridgeRuntime`)
 
 **Goal:** On every `status()` call, evaluate `PowerManager.isInteractive`, `KeyguardManager.isKeyguardLocked`, the lifecycle counter, and `Activity.isInPictureInPictureMode()` for the last resumed activity, and surface them on `BridgeStatus`.
 
 - [ ] **Step 1: Read the existing runtime to find the `status()` impl**
 
   ```bash
-  grep -n "override suspend fun status\|FixThisBridgeRuntime\|class FixThisBridgeEnvironment" fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt | head -10
+  grep -n "override suspend fun status\|FixThisBridgeRuntime\|class FixThisBridgeEnvironment" fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt | head -10
   ```
   Expected: a line near 354 like `override suspend fun status(): BridgeStatus {` inside the runtime, plus the surrounding holder for `Application` / lifecycle callbacks.
 
 - [ ] **Step 2: Write the failing test**
 
-  Append the following tests to `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusAvailabilityTest.kt` (extend the file from Task 1; do not duplicate the existing test class declaration):
+  Append the following tests to `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusAvailabilityTest.kt` (extend the file from Task 1; do not duplicate the existing test class declaration):
 
   ```kotlin
   // Add inside the same BridgeStatusAvailabilityTest class
@@ -408,7 +408,7 @@ See `docs/superpowers/specs/2026-05-09-device-interaction-availability-ux-design
   import android.app.KeyguardManager
   import android.content.Context
   import android.os.PowerManager
-  import io.beyondwin.fixthis.compose.sidekick.lifecycle.FixThisActivityLifecycleCallbacks
+  import io.github.beyondwin.fixthis.compose.sidekick.lifecycle.FixThisActivityLifecycleCallbacks
   import kotlinx.coroutines.runBlocking
   import org.junit.runner.RunWith
   import org.mockito.Mockito.mock
@@ -455,7 +455,7 @@ See `docs/superpowers/specs/2026-05-09-device-interaction-availability-ux-design
   }
   ```
 
-  In `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/FixThis.kt`, ensure the same `FixThisActivityLifecycleCallbacks` instance is passed both to `Application.registerActivityLifecycleCallbacks(...)` and into the runtime initializer (extract a single `val callbacks = FixThisActivityLifecycleCallbacks()` into the existing `init` block and pass it into `FixThisBridgeRuntime.start(application, callbacks)`).
+  In `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/FixThis.kt`, ensure the same `FixThisActivityLifecycleCallbacks` instance is passed both to `Application.registerActivityLifecycleCallbacks(...)` and into the runtime initializer (extract a single `val callbacks = FixThisActivityLifecycleCallbacks()` into the existing `init` block and pass it into `FixThisBridgeRuntime.start(application, callbacks)`).
 
 - [ ] **Step 5: Run all sidekick tests**
 
@@ -467,9 +467,9 @@ See `docs/superpowers/specs/2026-05-09-device-interaction-availability-ux-design
 - [ ] **Step 6: Commit**
 
   ```bash
-  git add fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt \
-          fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/FixThis.kt \
-          fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusAvailabilityTest.kt
+  git add fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt \
+          fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/FixThis.kt \
+          fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeStatusAvailabilityTest.kt
   git commit -m "feat(sidekick): emit screenInteractive/keyguardLocked/appForeground/pictureInPicture in status()"
   ```
 
@@ -479,15 +479,15 @@ See `docs/superpowers/specs/2026-05-09-device-interaction-availability-ux-design
 
 **Files:**
 
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleConnectionModels.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/ConsoleConnectionService.kt:111-124`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleConnectionModels.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/ConsoleConnectionService.kt:111-124`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 **Goal:** On the READY branch of `connectionStatus()`, call `bridge.status(packageName)` (the bridge already exposes it), parse the four boolean signals plus `rootsCount`, and add them to `ConsoleConnectionStatus.availability`. Pass-through is null-safe so older sidekicks omit the fields.
 
 - [ ] **Step 1: Add the model**
 
-  Append to `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleConnectionModels.kt`:
+  Append to `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleConnectionModels.kt`:
 
   ```kotlin
   @Serializable
@@ -508,7 +508,7 @@ See `docs/superpowers/specs/2026-05-09-device-interaction-availability-ux-design
 
 - [ ] **Step 2: Write the failing test**
 
-  Open `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`. Find an existing test that hits `/api/connection` with a fake bridge (search for `"/api/connection"`) and either extend it or add a sibling test:
+  Open `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`. Find an existing test that hits `/api/connection` with a fake bridge (search for `"/api/connection"`) and either extend it or add a sibling test:
 
   ```kotlin
   @Test
@@ -625,7 +625,7 @@ See `docs/superpowers/specs/2026-05-09-device-interaction-availability-ux-design
 
   Add imports:
   ```kotlin
-  import io.beyondwin.fixthis.mcp.console.ConsoleAvailabilitySignals
+  import io.github.beyondwin.fixthis.mcp.console.ConsoleAvailabilitySignals
   import kotlinx.serialization.json.JsonObject
   import kotlinx.serialization.json.JsonPrimitive
   import kotlinx.serialization.json.booleanOrNull
@@ -642,9 +642,9 @@ See `docs/superpowers/specs/2026-05-09-device-interaction-availability-ux-design
 - [ ] **Step 6: Commit**
 
   ```bash
-  git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleConnectionModels.kt \
-          fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/ConsoleConnectionService.kt \
-          fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+  git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleConnectionModels.kt \
+          fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/ConsoleConnectionService.kt \
+          fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
   git commit -m "feat(mcp): surface bridge availability signals on console connection status"
   ```
 
@@ -1317,7 +1317,7 @@ See `docs/superpowers/specs/2026-05-09-device-interaction-availability-ux-design
 
 - [ ] **Step 2: Add `activity` to `ConsoleAvailabilitySignals` and to the frozen preview**
 
-  Extend the model created in Task 4. In `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleConnectionModels.kt` add the field to `ConsoleAvailabilitySignals`:
+  Extend the model created in Task 4. In `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleConnectionModels.kt` add the field to `ConsoleAvailabilitySignals`:
 
   ```kotlin
   val activity: String? = null,
@@ -1536,7 +1536,7 @@ See `docs/superpowers/specs/2026-05-09-device-interaction-availability-ux-design
 
   ```bash
   fixthis-cli/build/install/fixthis/bin/fixthis console \
-    --package io.beyondwin.fixthis.sample \
+    --package io.github.beyondwin.fixthis.sample \
     --console-assets-dir "$PWD/fixthis-mcp/src/main/resources/console"
   ```
 
@@ -1555,7 +1555,7 @@ See `docs/superpowers/specs/2026-05-09-device-interaction-availability-ux-design
   2. Home button (background → return)
   3. Lock device (locked → unlock)
   4. Picture-in-Picture (enter → exit)
-  5. ANR (`adb shell kill -STOP $(adb shell pidof io.beyondwin.fixthis.sample)` → `kill -CONT`)
+  5. ANR (`adb shell kill -STOP $(adb shell pidof io.github.beyondwin.fixthis.sample)` → `kill -CONT`)
   6. Switch to a non-Compose activity (if the sample includes one; otherwise document as N/A)
   7. Pull USB → reconnect with same activity → reconnect with different activity
   8. Rapid rotation × 2 (no overlay flicker)

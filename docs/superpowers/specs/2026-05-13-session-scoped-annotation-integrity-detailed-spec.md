@@ -466,9 +466,9 @@ UI behavior:
 
 Files:
 
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsolePreviewModels.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/AnnotationRequestModels.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsolePreviewModels.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/AnnotationRequestModels.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt`
 - `fixthis-mcp/src/main/console/annotations.js`
 - `fixthis-mcp/src/main/console/prompt.js`
 
@@ -483,8 +483,8 @@ Deliverables:
 
 Files:
 
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/PreviewRoutes.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ArtifactRoutes.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/PreviewRoutes.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ArtifactRoutes.kt`
 - `fixthis-mcp/src/main/console/preview.js`
 - `fixthis-mcp/src/main/console/rendering.js`
 
@@ -530,9 +530,9 @@ Files:
 
 - `fixthis-mcp/src/main/console/rendering.js`
 - `fixthis-mcp/src/main/console/preview.js`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionReplayEngine.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionReplayEngine.kt`
 
 Deliverables:
 

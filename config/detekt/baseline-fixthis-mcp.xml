@@ -42,7 +42,7 @@
     <ID>LongParameterList:AnnotationRepository.kt$AnnotationRepository$( sessionId: String, previewId: String, items: List&lt;AnnotationDraftDto&gt;, fallbackScreen: SnapshotDto? = null, frozenFingerprint: String? = null, currentFingerprint: String? = null, forceMismatchOverride: Boolean = false, )</ID>
     <ID>LongParameterList:AnnotationRepository.kt$AnnotationRepository$( sessionId: String, screenId: String, targetType: FeedbackTargetType, bounds: FixThisRect, nodeUid: String?, comment: String, )</ID>
     <ID>LongParameterList:CompactHandoffRenderer.kt$CompactHandoffRenderer$( number: Int, item: AnnotationDto, isOverlap: Boolean, instanceLabel: InstanceLabel? = null, isInstanceLeader: Boolean = false, groupSize: Int = 0, dupRefMarker: Int? = null, sourceRoot: String? = null, )</ID>
-    <ID>LongParameterList:FakeFixThisBridge.kt$FakeFixThisBridge$( private val packageName: String = "io.beyondwin.fixthis.sample", private val captureError: Throwable? = null, private val captureRoots: List&lt;SnapshotRootDto&gt; = defaultCaptureRoots(), private val sourceIndexAvailable: Boolean = true, private val sourceIndex: SourceIndex? = defaultSourceIndex(), private val sourceIndexReadError: String? = null, private val devicesOverride: List&lt;AdbDevice&gt;? = null, private val devicesError: Throwable? = null, private val heartbeatError: Throwable? = null, private val statusProvider: (() -&gt; JsonObject)? = null, )</ID>
+    <ID>LongParameterList:FakeFixThisBridge.kt$FakeFixThisBridge$( private val packageName: String = "io.github.beyondwin.fixthis.sample", private val captureError: Throwable? = null, private val captureRoots: List&lt;SnapshotRootDto&gt; = defaultCaptureRoots(), private val sourceIndexAvailable: Boolean = true, private val sourceIndex: SourceIndex? = defaultSourceIndex(), private val sourceIndexReadError: String? = null, private val devicesOverride: List&lt;AdbDevice&gt;? = null, private val devicesError: Throwable? = null, private val heartbeatError: Throwable? = null, private val statusProvider: (() -&gt; JsonObject)? = null, )</ID>
     <ID>LongParameterList:FeedbackDraftService.kt$FeedbackDraftService$( sessionId: String, previewId: String, items: List&lt;AnnotationDraftDto&gt;, fallbackScreen: SnapshotDto? = null, allowBlankComments: Boolean = true, frozenFingerprint: String? = null, currentFingerprint: String? = null, forceMismatchOverride: Boolean = false, )</ID>
     <ID>LongParameterList:FeedbackDraftService.kt$FeedbackDraftService$( sessionId: String, screenId: String, targetType: FeedbackTargetType, bounds: FixThisRect, nodeUid: String?, comment: String, )</ID>
     <ID>LongParameterList:FeedbackSessionService.kt$FeedbackSessionService$( sessionId: String, itemId: String, label: String?, severity: AnnotationSeverityDto?, comment: String?, status: AnnotationStatusDto?, )</ID>
@@ -107,7 +107,7 @@
     <ID>MaxLineLength:AnnotationRepository.kt$AnnotationRepository$fun markItemsHandedOff(sessionId: String, itemIds: List&lt;String&gt;): SessionDto</ID>
     <ID>MaxLineLength:AnnotationRepositoryTest.kt$AnnotationRepositoryTest.Fixture$fun openSession(): SessionDto</ID>
     <ID>MaxLineLength:ArtifactRoutes.kt$private fun String.isFullScreenshotPath(): Boolean</ID>
-    <ID>MaxLineLength:BridgeProtocolVersionSyncTest.kt$BridgeProtocolVersionSyncTest$"fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt"</ID>
+    <ID>MaxLineLength:BridgeProtocolVersionSyncTest.kt$BridgeProtocolVersionSyncTest$"fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt"</ID>
     <ID>MaxLineLength:CompactHandoffRenderer.kt$CompactHandoffRenderer$appendCompactItem(globalCounter, annotation, isOverlapGroup, label, isLeader, groupSize, dupRefMarker, sourceRoot)</ID>
     <ID>MaxLineLength:CompactHandoffRenderer.kt$CompactHandoffRenderer$appendLine(" note: $groupSize markers map to same call site — likely list-rendered; disambiguate by instance index")</ID>
     <ID>MaxLineLength:CompactHandoffRenderer.kt$CompactHandoffRenderer$appendLine(" on_complete: fixthis_resolve_feedback({sessionId, itemId, status: resolved|wont_fix|needs_clarification, summary})")</ID>
@@ -231,9 +231,9 @@
     <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val preview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject</ID>
     <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val secondConnection = ConsoleHttpTestClient(server.url).connection("/api/preview/$secondPreviewId/screenshot/full")</ID>
     <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val secondPreview = fixThisJson.parseToJsonElement(ConsoleHttpTestClient(server.url).get("/api/preview")).jsonObject</ID>
-    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.beyondwin.fixthis.sample")</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.github.beyondwin.fixthis.sample")</ID>
     <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val session = fixThisJson.parseToJsonElement(connection.inputStream.bufferedReader().readText()).jsonObject</ID>
-    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val sessions = ConsoleHttpTestClient(server.url).get("/api/sessions?packageName=io.beyondwin.fixthis.sample")</ID>
+    <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest$val sessions = ConsoleHttpTestClient(server.url).get("/api/sessions?packageName=io.github.beyondwin.fixthis.sample")</ID>
     <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest.BlockingCaptureBridge$override fun resolvePackageName(packageOverride: String?): String</ID>
     <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest.BlockingCaptureBridge$override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject</ID>
     <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest.DeviceListBridge$override fun resolvePackageName(packageOverride: String?): String</ID>
@@ -245,7 +245,7 @@
     <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest.SessionScreenshotBridge$override fun resolvePackageName(packageOverride: String?): String</ID>
     <ID>MaxLineLength:FeedbackConsoleServerTest.kt$FeedbackConsoleServerTest.SessionScreenshotBridge$override suspend fun verifyUiChange(packageName: String, expectedText: String, role: String?): JsonObject</ID>
     <ID>MaxLineLength:FeedbackDraftService.kt$FeedbackDraftService$markdownSnapshot = prompt?.takeIf { it.isNotBlank() } ?: FeedbackQueueFormatter.toMarkdown(store.getSession(sessionId))</ID>
-    <ID>MaxLineLength:FeedbackDraftService.kt$FeedbackDraftService$snapshot = io.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot(previewId = previewId, screen = sanitizedScreen)</ID>
+    <ID>MaxLineLength:FeedbackDraftService.kt$FeedbackDraftService$snapshot = io.github.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot(previewId = previewId, screen = sanitizedScreen)</ID>
     <ID>MaxLineLength:FeedbackDraftService.kt$FeedbackDraftService$val sourceIndex = runBlocking { targetEvidenceService.readSourceIndexOrNull(session.packageName, sanitizedScreen) }</ID>
     <ID>MaxLineLength:FeedbackDraftServiceTest.kt$FeedbackDraftServiceTest$assertTrue(updated.screens.single().screenshot?.desktopFullPath.orEmpty().contains("artifacts/screens/screen-1"))</ID>
     <ID>MaxLineLength:FeedbackDraftServiceMismatchTest.kt$FeedbackDraftServiceMismatchTest$private fun tempDir(prefix: String): File</ID>
@@ -325,7 +325,7 @@
     <ID>MaxLineLength:McpProtocol.kt$McpProtocol$return McpIncoming.ImmediateResponse(response(id = null, error = errorObject(-32700, "Parse error: ${it.message}")))</ID>
     <ID>MaxLineLength:McpProtocol.kt$internal</ID>
     <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$"""{"jsonrpc":"2.0","id":"init","method":"initialize","params":{"protocolVersion":"2025-06-18","clientInfo":{"name":"fixture","version":"1"}}}"""</ID>
-    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$"""{"jsonrpc":"2.0","id":"status","method":"tools/call","params":{"name":"fixthis_status","arguments":{"packageName":"io.beyondwin.fixthis.sample"}}}"""</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$"""{"jsonrpc":"2.0","id":"status","method":"tools/call","params":{"name":"fixthis_status","arguments":{"packageName":"io.github.beyondwin.fixthis.sample"}}}"""</ID>
     <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$"""{"jsonrpc":"2.0","id":"tool","method":"tools/call","params":{"name":"$name","arguments":$argumentsJson}}"""</ID>
     <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$"""{"jsonrpc":"2.0","id":"tool","method":"tools/call","params":{"name":"fixthis_get_current_screen","arguments":{"packageName":"com.explicit"}}}"""</ID>
     <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$"""{"jsonrpc":"2.0","id":"tool","method":"tools/call","params":{"name":"fixthis_open_feedback_console","arguments":{"packageName":"com.explicit"}}}"""</ID>
@@ -333,7 +333,7 @@
     <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$"""{"sessionId":"${sessionA.sessionId}","itemId":"${itemA.itemId}","status":"resolved","summary":"Fixed"}"""</ID>
     <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$)</ID>
     <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$assertEquals("com.explicit", payload.getValue("screen").jsonObject.getValue("packageName").jsonPrimitive.content)</ID>
-    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$assertEquals("io.beyondwin.fixthis.sample.MainActivity", payload.getValue("currentActivity").jsonPrimitive.content)</ID>
+    <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$assertEquals("io.github.beyondwin.fixthis.sample.MainActivity", payload.getValue("currentActivity").jsonPrimitive.content)</ID>
     <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$assertEquals(listOf("ping-after-cancel"), lines.map { parse(it).jsonObject.getValue("id").jsonPrimitive.content })</ID>
     <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$assertEquals(listOf("ping-after-resource-cancel"), lines.map { parse(it).jsonObject.getValue("id").jsonPrimitive.content })</ID>
     <ID>MaxLineLength:McpProtocolTest.kt$McpProtocolTest$assertEquals(readyItem.itemId, result.getValue("items").jsonArray[0].jsonObject.getValue("itemId").jsonPrimitive.content)</ID>
@@ -399,7 +399,7 @@
     <ID>TooGenericExceptionCaught:FeedbackDraftService.kt$FeedbackDraftService$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FixThisTools.kt$FixThisTools$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:McpProtocol.kt$McpProtocol$error: Throwable</ID>
-    <ID>TooManyFunctions:ConsoleHttp.kt$io.beyondwin.fixthis.mcp.console.ConsoleHttp.kt</ID>
+    <ID>TooManyFunctions:ConsoleHttp.kt$io.github.beyondwin.fixthis.mcp.console.ConsoleHttp.kt</ID>
     <ID>TooManyFunctions:FeedbackDraftService.kt$FeedbackDraftService</ID>
     <ID>TooManyFunctions:FeedbackQueueFormatter.kt$FeedbackQueueFormatter</ID>
     <ID>TooManyFunctions:FeedbackSessionService.kt$FeedbackSessionService</ID>
@@ -407,7 +407,7 @@
     <ID>TooManyFunctions:FixThisTools.kt$CliFixThisBridge : FixThisBridge</ID>
     <ID>TooManyFunctions:FixThisTools.kt$FixThisBridge</ID>
     <ID>TooManyFunctions:FixThisTools.kt$FixThisTools</ID>
-    <ID>TooManyFunctions:SessionDomainMappers.kt$io.beyondwin.fixthis.mcp.session.SessionDomainMappers.kt</ID>
+    <ID>TooManyFunctions:SessionDomainMappers.kt$io.github.beyondwin.fixthis.mcp.session.SessionDomainMappers.kt</ID>
     <ID>TooManyFunctions:TargetEvidenceService.kt$TargetEvidenceService</ID>
     <ID>TopLevelPropertyNaming:FeedbackConsoleServer.kt$internal const val ConsoleTokenHeader = "X-FixThis-Console-Token"</ID>
     <ID>TopLevelPropertyNaming:FixThisTools.kt$private const val MaxRecentOverridePackages = 8</ID>

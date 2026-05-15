@@ -78,10 +78,10 @@ fixthis setup --package <applicationId> --write --target all --dry-run
 ./gradlew :app:assembleDebug :fixthis-cli:installDist :fixthis-mcp:installDist
 
 # Smoke tests (requires connected unlocked device or emulator)
-scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample
+scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample
 
 # Host-only smoke validation (no device required)
-scripts/fixthis-smoke.sh --package io.beyondwin.fixthis.sample --host-only
+scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample --host-only
 ```
 
 ## Module Map
@@ -153,7 +153,7 @@ pluginManagement {
 
 // In app/build.gradle.kts
 plugins {
-    id("io.beyondwin.fixthis.compose") version "<version>"
+    id("io.github.beyondwin.fixthis.compose") version "<version>"
 }
 ```
 ```
@@ -217,7 +217,7 @@ Pass `--console-assets-dir` to read HTML/CSS/JS directly from source instead of 
 
 ```bash
 fixthis-cli/build/install/fixthis/bin/fixthis console \
-  --package io.beyondwin.fixthis.sample \
+  --package io.github.beyondwin.fixthis.sample \
   --console-assets-dir "$PWD/fixthis-mcp/src/main/resources/console"
 ```
 

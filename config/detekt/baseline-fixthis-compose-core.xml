@@ -46,10 +46,10 @@
     <ID>MaxLineLength:NodeSelectorTest.kt$NodeSelectorTest$assertTrue(result.candidatesAtPoint.map { it.node.uid }.containsAll(listOf("root", "empty-card", "details-button")))</ID>
     <ID>MaxLineLength:NodeSelectorTest.kt$NodeSelectorTest$private fun rect(left: Float, top: Float, right: Float, bottom: Float): FixThisRect</ID>
     <ID>MaxLineLength:SourceCandidateRiskPrecedenceTest.kt$SourceCandidateRiskPrecedenceTest$val flags = listOf(SourceCandidateRisk.TEXT_ONLY, SourceCandidateRisk.AMBIGUOUS, SourceCandidateRisk.LEGACY_FALLBACK)</ID>
-    <ID>MaxLineLength:SourceInterpretationFactoryTest.kt$SourceInterpretationFactoryTest$assertEquals("sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt", interpretation.topCandidate?.file)</ID>
+    <ID>MaxLineLength:SourceInterpretationFactoryTest.kt$SourceInterpretationFactoryTest$assertEquals("sample/src/main/java/io/github/beyondwin/fixthis/sample/components/AppPrimaryButton.kt", interpretation.topCandidate?.file)</ID>
     <ID>MaxLineLength:SourceMatcher.kt$SourceMatcher$private</ID>
     <ID>MaxLineLength:SourceMatcher.kt$SourceMatcher.WeightHit$// Weight-hit carrier: weight from the winning signal, its kind (null = legacy), and whether it came from legacy path</ID>
-    <ID>MaxLineLength:SourceMatcherTest.kt$SourceMatcherTest$assertEquals("sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt", matches.first().file)</ID>
+    <ID>MaxLineLength:SourceMatcherTest.kt$SourceMatcherTest$assertEquals("sample/src/main/java/io/github/beyondwin/fixthis/sample/components/AppPrimaryButton.kt", matches.first().file)</ID>
     <ID>MaxLineLength:SourceMatcherTest.kt$SourceMatcherTest$assertEquals(listOf("Screen1.kt", "Screen2.kt", "Screen3.kt", "Screen4.kt", "Screen5.kt"), matches.map { it.file })</ID>
     <ID>NestedBlockDepth:SourceMatcher.kt$SourceMatcher$private fun SourceIndexEntry.bestSignalHit( terms: List&lt;String&gt;, kinds: Set&lt;SourceSignalKind&gt;, ): Pair&lt;Double, SourceSignalKind?&gt;</ID>
     <ID>ReturnCount:IdentityHintFactory.kt$IdentityHintFactory$fun from(node: FixThisNode?): IdentityHint?</ID>

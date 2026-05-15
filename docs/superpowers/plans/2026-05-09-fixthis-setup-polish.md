@@ -16,12 +16,12 @@
 
 | Action | Path |
 |--------|------|
-| Modify | `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt` |
-| Modify | `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt` |
-| Modify | `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/AgentConfigWriter.kt` |
-| Modify | `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/CodexConfigWriter.kt` |
-| Modify | `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/AgentConfigWriterTest.kt` |
-| Modify | `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommandTest.kt` |
+| Modify | `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt` |
+| Modify | `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt` |
+| Modify | `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/AgentConfigWriter.kt` |
+| Modify | `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/CodexConfigWriter.kt` |
+| Modify | `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/AgentConfigWriterTest.kt` |
+| Modify | `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommandTest.kt` |
 
 Test command (run after every task): `./gradlew :fixthis-cli:test`
 
@@ -30,8 +30,8 @@ Test command (run after every task): `./gradlew :fixthis-cli:test`
 ### Task 1: Preserve Exception Cause in SetupCommand Error Message
 
 **Files:**
-- Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt`
-- Modify: `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommandTest.kt`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt`
+- Modify: `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommandTest.kt`
 
 - [ ] **Step 1: Write the failing test first**
 
@@ -56,7 +56,7 @@ fun mergeErrorIncludesCauseMessageForDebugging() {
         assertThrows(CliktError::class.java) {
             SetupCommand().parse(
                 listOf(
-                    "--package", "io.beyondwin.fixthis.sample",
+                    "--package", "io.github.beyondwin.fixthis.sample",
                     "--project-dir", projectRoot.absolutePath,
                     "--write",
                     "--target", "claude",
@@ -80,7 +80,7 @@ fun mergeErrorIncludesCauseMessageForDebugging() {
 - [ ] **Step 2: Run new test to verify it fails**
 
 ```bash
-./gradlew :fixthis-cli:test --tests "io.beyondwin.fixthis.cli.commands.SetupCommandTest.mergeErrorIncludesCauseMessageForDebugging"
+./gradlew :fixthis-cli:test --tests "io.github.beyondwin.fixthis.cli.commands.SetupCommandTest.mergeErrorIncludesCauseMessageForDebugging"
 ```
 
 Expected: FAILED — message does not contain cause detail (current code uses `catch (_: Exception)` which discards cause).
@@ -134,8 +134,8 @@ Expected: BUILD SUCCESSFUL, all tests pass including `mergeErrorIncludesCauseMes
 - [ ] **Step 6: Commit**
 
 ```bash
-git add fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt \
-        fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommandTest.kt
+git add fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt \
+        fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommandTest.kt
 git commit -m "fix(setup): preserve exception cause in merge error message"
 ```
 
@@ -144,8 +144,8 @@ git commit -m "fix(setup): preserve exception cause in merge error message"
 ### Task 2: Explicit mcpServers Type Validation in ClaudeConfigWriter
 
 **Files:**
-- Modify: `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/AgentConfigWriterTest.kt`
-- Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt`
+- Modify: `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/AgentConfigWriterTest.kt`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt`
 
 - [ ] **Step 1: Write three failing tests**
 
@@ -195,9 +195,9 @@ Note: `entry` is already defined at the class level in `AgentConfigWriterTest`.
 - [ ] **Step 2: Run new tests to verify they fail correctly**
 
 ```bash
-./gradlew :fixthis-cli:test --tests "io.beyondwin.fixthis.cli.commands.AgentConfigWriterTest.claudeMergeThrowsWhenMcpServersIsArray" \
-  --tests "io.beyondwin.fixthis.cli.commands.AgentConfigWriterTest.claudeMergeThrowsWhenMcpServersIsString" \
-  --tests "io.beyondwin.fixthis.cli.commands.AgentConfigWriterTest.claudeMergeAcceptsAbsentMcpServers"
+./gradlew :fixthis-cli:test --tests "io.github.beyondwin.fixthis.cli.commands.AgentConfigWriterTest.claudeMergeThrowsWhenMcpServersIsArray" \
+  --tests "io.github.beyondwin.fixthis.cli.commands.AgentConfigWriterTest.claudeMergeThrowsWhenMcpServersIsString" \
+  --tests "io.github.beyondwin.fixthis.cli.commands.AgentConfigWriterTest.claudeMergeAcceptsAbsentMcpServers"
 ```
 
 Expected: `claudeMergeThrowsWhenMcpServersIsArray` and `claudeMergeThrowsWhenMcpServersIsString` FAIL (currently `jsonObject` throws a different exception without the expected message). `claudeMergeAcceptsAbsentMcpServers` may PASS already.
@@ -247,8 +247,8 @@ Expected: BUILD SUCCESSFUL, all three new tests pass, all existing tests pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt \
-        fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/AgentConfigWriterTest.kt
+git add fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt \
+        fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/AgentConfigWriterTest.kt
 git commit -m "fix(setup): explicit type check for mcpServers in ClaudeConfigWriter"
 ```
 
@@ -257,7 +257,7 @@ git commit -m "fix(setup): explicit type check for mcpServers in ClaudeConfigWri
 ### Task 3: Actionable fixthis-mcp Not-Found Warning
 
 **Files:**
-- Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt`
 
 - [ ] **Step 1: Locate the warning (no test for this — string-only change)**
 
@@ -298,7 +298,7 @@ Expected: BUILD SUCCESSFUL, same pass count as before.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt
+git add fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt
 git commit -m "fix(setup): expand fixthis-mcp not-found warning with actionable steps"
 ```
 
@@ -307,11 +307,11 @@ git commit -m "fix(setup): expand fixthis-mcp not-found warning with actionable 
 ### Task 4: Scope Annotation in AgentConfigWriter Output
 
 **Files:**
-- Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/AgentConfigWriter.kt`
-- Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt`
-- Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/CodexConfigWriter.kt`
-- Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt`
-- Modify: `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/AgentConfigWriterTest.kt`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/AgentConfigWriter.kt`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/CodexConfigWriter.kt`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt`
+- Modify: `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/AgentConfigWriterTest.kt`
 
 - [ ] **Step 1: Write failing tests for scope property**
 
@@ -332,8 +332,8 @@ fun codexWriterScopeIsGlobal() {
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-./gradlew :fixthis-cli:test --tests "io.beyondwin.fixthis.cli.commands.AgentConfigWriterTest.claudeWriterScopeIsProjectLocal" \
-  --tests "io.beyondwin.fixthis.cli.commands.AgentConfigWriterTest.codexWriterScopeIsGlobal"
+./gradlew :fixthis-cli:test --tests "io.github.beyondwin.fixthis.cli.commands.AgentConfigWriterTest.claudeWriterScopeIsProjectLocal" \
+  --tests "io.github.beyondwin.fixthis.cli.commands.AgentConfigWriterTest.codexWriterScopeIsGlobal"
 ```
 
 Expected: FAILED — `scope` property does not exist yet (compilation error).
@@ -449,11 +449,11 @@ Expected: BUILD SUCCESSFUL. Both new scope tests pass. All existing tests pass (
 - [ ] **Step 8: Commit**
 
 ```bash
-git add fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/AgentConfigWriter.kt \
-        fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt \
-        fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/CodexConfigWriter.kt \
-        fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt \
-        fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/AgentConfigWriterTest.kt
+git add fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/AgentConfigWriter.kt \
+        fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/ClaudeConfigWriter.kt \
+        fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/CodexConfigWriter.kt \
+        fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt \
+        fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/AgentConfigWriterTest.kt
 git commit -m "feat(setup): surface project-local/global scope in setup output"
 ```
 

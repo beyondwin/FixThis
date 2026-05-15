@@ -17,9 +17,9 @@
 - `docs/superpowers/plans/2026-05-14-test-speed-optimization-implementation.md` - this execution plan.
 
 **Modify:**
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogWriter.kt` - add explicit durable vs fast write mode.
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogWriterTest.kt` - cover fast mode and default durable mode.
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactorTest.kt` - use fast writers and smaller thresholds.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogWriter.kt` - add explicit durable vs fast write mode.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogWriterTest.kt` - cover fast mode and default durable mode.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactorTest.kt` - use fast writers and smaller thresholds.
 - `fixthis-mcp/build.gradle.kts` - use stable build epoch for verification tasks.
 - `.github/workflows/ci.yml` - split fast console checks from Gradle verification while preserving the aggregate baseline check name.
 - `CONTRIBUTING.md` - document focused test-speed loops.
@@ -55,7 +55,7 @@ perl -nE 'if(/<testsuite[^>]*name="([^"]+)"[^>]*tests="([^"]+)".*time="([^"]+)"/
   | sed -n '1,30p'
 ```
 
-Expected: `io.beyondwin.fixthis.mcp.session.eventlog.EventLogCompactorTest`
+Expected: `io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogCompactorTest`
 appears near the top before this plan is implemented.
 
 - [ ] **Step 3: Print module totals**
@@ -78,8 +78,8 @@ what matters.
 ## Task 2: Add Explicit Event Log Durability Modes
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogWriter.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogWriterTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogWriter.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogWriterTest.kt`
 
 - [ ] **Step 1: Add failing tests for fast mode and default durable mode**
 
@@ -199,8 +199,8 @@ the default constructor.
 
 ```bash
 git add \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogWriter.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogWriterTest.kt
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogWriter.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogWriterTest.kt
 git commit -m "test: add fast event log writer mode"
 ```
 
@@ -209,7 +209,7 @@ git commit -m "test: add fast event log writer mode"
 ## Task 3: Shrink EventLogCompactorTest Fixtures
 
 **Files:**
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactorTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactorTest.kt`
 
 - [ ] **Step 1: Add a fast writer helper**
 
@@ -385,7 +385,7 @@ Expected: PASS.
 - [ ] **Step 9: Commit Task 3**
 
 ```bash
-git add fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactorTest.kt
+git add fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactorTest.kt
 git commit -m "test: shrink event log compactor fixtures"
 ```
 

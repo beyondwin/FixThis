@@ -148,7 +148,7 @@ Expected: first line is `[bootstrap] unknown flag: --bogus`. Exit code 2.
 - [ ] **Step 6: Smoke run — dry-run path**
 
 ```bash
-./scripts/bootstrap-mcp.sh --package io.beyondwin.fixthis.sample --dry-run
+./scripts/bootstrap-mcp.sh --package io.github.beyondwin.fixthis.sample --dry-run
 ```
 
 Expected: gradle output (UP-TO-DATE if previously built), then `fixthis setup` dry-run preview (file paths it WOULD write but does not). Exit 0.
@@ -202,7 +202,7 @@ Edit `AGENTS.md`. Replace the current Quick Start block with:
 ./scripts/bootstrap-mcp.sh --package <applicationId>
 ```
 
-`--package` is the Android applicationId of the app you are running FixThis against (e.g. `io.beyondwin.fixthis.sample`). The script writes:
+`--package` is the Android applicationId of the app you are running FixThis against (e.g. `io.github.beyondwin.fixthis.sample`). The script writes:
 
 - **Claude** → project-local `.claude/settings.json` (only affects this project)
 - **Codex** → user-global `~/.codex/config.toml` (affects all Codex sessions)

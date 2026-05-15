@@ -69,7 +69,7 @@ This phase is operational, not code. It must succeed before A/B ship — otherwi
 ```bash
 ./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
 fixthis-cli/build/install/fixthis/bin/fixthis console \
-  --package io.beyondwin.fixthis.sample \
+  --package io.github.beyondwin.fixthis.sample \
   --console-assets-dir "$PWD/fixthis-mcp/src/main/resources/console"
 ```
 Open the printed URL in a browser and connect a debug build of the sample app on a device or emulator.

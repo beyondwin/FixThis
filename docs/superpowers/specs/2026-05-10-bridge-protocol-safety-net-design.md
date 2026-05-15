@@ -29,13 +29,13 @@ Non-goals: semver pre-release/build metadata (`1.1-rc1`, `1.1+build`) — out of
 ### Mirror sites
 
 ```
-fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt:12
+fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt:12
     const val VERSION: String = "1.1"
 
-fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt:31
+fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt:31
     private const val BridgeProtocolVersion = "1.1"
 
-fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt:8
+fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt:8
     private const val BridgeProtocolVersion = "1.1"
 
 fixthis-mcp/src/main/console/staleness.js:57
@@ -168,7 +168,7 @@ A new Kotlin test in `fixthis-mcp` reads the four mirror files as text and asser
 #### Sync test (target shape)
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
 import java.io.File
 import kotlin.test.Test
@@ -183,17 +183,17 @@ class BridgeProtocolVersionSyncTest {
         val sites = listOf(
             MirrorSite(
                 "BridgeProtocol.kt",
-                File(root, "fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt"),
+                File(root, "fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt"),
                 Regex("""const val VERSION: String = "([^"]+)""""),
             ),
             MirrorSite(
                 "BridgeClient.kt",
-                File(root, "fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt"),
+                File(root, "fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt"),
                 Regex("""const val BridgeProtocolVersion = "([^"]+)""""),
             ),
             MirrorSite(
                 "ServerVersionRoutes.kt",
-                File(root, "fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt"),
+                File(root, "fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ServerVersionRoutes.kt"),
                 Regex("""const val BridgeProtocolVersion = "([^"]+)""""),
             ),
             MirrorSite(

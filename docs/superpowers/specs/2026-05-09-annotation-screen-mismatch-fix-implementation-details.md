@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-09
 **Status:** Implementation reference (companion to `2026-05-09-annotation-screen-mismatch-fix-design.md` and `plans/2026-05-09-annotation-screen-mismatch-fix.md`)
-**Primary modules:** `fixthis-mcp/src/main/console/`, `fixthis-mcp/src/main/resources/console/app.js`, `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+**Primary modules:** `fixthis-mcp/src/main/console/`, `fixthis-mcp/src/main/resources/console/app.js`, `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 This document is a deep technical companion to the plan. Read it before editing if you want to understand exactly *why* each line changes and *why* nothing else needs to.
 
@@ -148,7 +148,7 @@ The only theoretical edge case is if a future refactor starts caching `latestScr
 
 ## 6. The 3 Kotlin assertions to update — exact before/after
 
-All three live in `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`.
+All three live in `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`.
 
 ### 6.1 Line ~1608 — `latestScreen()` content (string contains)
 

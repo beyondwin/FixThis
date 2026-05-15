@@ -36,19 +36,19 @@
 
 **Created:**
 
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/MarkHandedOffRoutes.kt` — `POST /api/sessions/{sid}/items/mark-handed-off`.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/MarkHandedOffRoutes.kt` — `POST /api/sessions/{sid}/items/mark-handed-off`.
 
 **Modified:**
 
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt` (또는 `AnnotationDto` 정의 위치) — `lastHandedOffAtEpochMillis` 필드 추가.
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` — (1) `sendDraftToAgent` 가 `lastHandedOffAt` 갱신 + Re-save 분기, (2) `updateAnnotation` / `deleteDraftItem` lock 정책 phase-aware, (3) `markItemsHandedOff` 메서드 신규.
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt` — `markItemsHandedOff` wrapper.
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/AnnotationRequestModels.kt` 또는 `FeedbackConsolePreviewModels.kt` — `MarkHandedOffRequest` 모델, 응답에 `staleAfterHandoff` 가 자동 포함되도록 SessionDto 직렬화 헬퍼 추가 (또는 응답 enrichment 함수).
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` — 새 route 등록.
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt` — `fixthis_list_feedback`, `fixthis_read_feedback` 응답에 `staleAfterHandoff`, `delivery`, `lastHandedOffAtEpochMillis` 추가.
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt` — 새 테스트들.
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` — endpoint 테스트들.
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt` — tool 응답 검증.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt` (또는 `AnnotationDto` 정의 위치) — `lastHandedOffAtEpochMillis` 필드 추가.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` — (1) `sendDraftToAgent` 가 `lastHandedOffAt` 갱신 + Re-save 분기, (2) `updateAnnotation` / `deleteDraftItem` lock 정책 phase-aware, (3) `markItemsHandedOff` 메서드 신규.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt` — `markItemsHandedOff` wrapper.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/AnnotationRequestModels.kt` 또는 `FeedbackConsolePreviewModels.kt` — `MarkHandedOffRequest` 모델, 응답에 `staleAfterHandoff` 가 자동 포함되도록 SessionDto 직렬화 헬퍼 추가 (또는 응답 enrichment 함수).
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` — 새 route 등록.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt` — `fixthis_list_feedback`, `fixthis_read_feedback` 응답에 `staleAfterHandoff`, `delivery`, `lastHandedOffAtEpochMillis` 추가.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt` — 새 테스트들.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` — endpoint 테스트들.
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt` — tool 응답 검증.
 - `fixthis-mcp/src/main/console/annotations.js` — `lifecyclePhase` / `statusLabel` / `statusClass` refactor.
 - `fixthis-mcp/src/main/console/rendering.js` — `renderSavedAnnotationDetail` phase-aware (disabled / 배너 / Re-save / agentSummary), list row 색상 띠.
 - `fixthis-mcp/src/main/console/prompt.js` — Copy Prompt 후 `markItemsHandedOff` 호출.
@@ -62,8 +62,8 @@
 
 **Files:**
 
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt` (또는 AnnotationDto 정의가 있는 파일)
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt` (또는 AnnotationDto 정의가 있는 파일)
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
 
 **Goal:** 새 필드를 default-null 로 추가. 기존 JSON 파일 forward compatibility 자동 (kotlinx.serialization 의 default value).
 
@@ -135,8 +135,8 @@ fun loadsLegacySessionJsonWithoutLastHandedOffAtField() {
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt
 git commit -m "$(cat <<'EOF'
 mcp: add lastHandedOffAtEpochMillis field to AnnotationDto
 
@@ -157,8 +157,8 @@ EOF
 
 **Files:**
 
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
 
 **Goal:** Save to MCP 시 새로 SENT 가 되는 아이템과 이미 SENT 인 아이템 (Re-save) 모두 `lastHandedOffAt` 갱신. Re-save 시 새 handoff batch 추가.
 
@@ -277,8 +277,8 @@ val batch = FeedbackHandoffBatch(
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt
 git commit -m "$(cat <<'EOF'
 mcp: sendDraftToAgent updates lastHandedOffAt and supports re-save
 
@@ -300,8 +300,8 @@ EOF
 
 **Files:**
 
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
 
 **Goal:** `updateAnnotation` 과 `deleteDraftItem` 의 lock 을 IN_PROGRESS / RESOLVED 일 때만 적용. SENT(ready) 는 편집/삭제 허용.
 
@@ -411,8 +411,8 @@ grep -rn 'ITEM_NOT_EDITABLE' fixthis-mcp/src/test/ --include='*.kt' | head -10
 - [ ] **Step 6: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt
 git commit -m "$(cat <<'EOF'
 mcp: edit lock applies only when agent has claimed the item
 
@@ -435,12 +435,12 @@ EOF
 
 **Files:**
 
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/MarkHandedOffRoutes.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsolePreviewModels.kt` (or sibling) — `MarkHandedOffRequest`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` — `markItemsHandedOff` method
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt` — wrapper
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` — register
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/MarkHandedOffRoutes.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsolePreviewModels.kt` (or sibling) — `MarkHandedOffRequest`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` — `markItemsHandedOff` method
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt` — wrapper
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` — register
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 **Goal:** Copy Prompt 가 클립보드 쓰기 성공 후 호출하는 endpoint. itemIds 의 `lastHandedOffAt` 만 갱신.
 
@@ -577,12 +577,12 @@ internal class MarkHandedOffRoutes(private val service: FeedbackSessionService) 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/MarkHandedOffRoutes.kt \
-        fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsolePreviewModels.kt \
-        fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt \
-        fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt \
-        fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/MarkHandedOffRoutes.kt \
+        fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsolePreviewModels.kt \
+        fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt \
+        fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt \
+        fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "$(cat <<'EOF'
 mcp: add /api/sessions/{sid}/items/mark-handed-off endpoint
 
@@ -605,10 +605,10 @@ EOF
 
 **Files:**
 
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt` (또는 응답 직렬화 transformer)
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt` (또는 응답 직렬화 transformer)
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt`
 
 **Goal:** HTTP 와 MCP 응답 모두 각 item 에 파생 boolean `staleAfterHandoff` 와 영속 필드 `lastHandedOffAtEpochMillis` 노출.
 
@@ -622,7 +622,7 @@ EOF
 `SessionResponse` / `AnnotationResponse` 같은 별도 DTO 를 만들거나, JsonObject manipulation 으로 inline enrich. 가장 단순한 방법:
 
 ```kotlin
-// fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/SessionResponseEnrichment.kt (new file)
+// fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/SessionResponseEnrichment.kt (new file)
 internal fun enrichItemsWithStaleness(session: SessionDto): JsonObject {
     val base = fixThisJson.encodeToJsonElement(SessionDto.serializer(), session).jsonObject
     val items = base["items"]?.jsonArray ?: return base
@@ -688,10 +688,10 @@ fun listFeedbackToolResponseIncludesStaleAfterHandoff() {
 - [ ] **Step 7: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/SessionResponseEnrichment.kt \
-        fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/SessionResponseEnrichment.kt \
+        fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt
 git commit -m "$(cat <<'EOF'
 mcp: surface staleAfterHandoff and lastHandedOffAt in responses
 

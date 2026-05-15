@@ -69,14 +69,14 @@ git commit -m "chore: ensure .orchestrator ignored before lifecycle hardening wo
 ### Task A.1 (ALH-4): EventLogWriter 골격
 
 **Files:**
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogWriter.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/SessionEvent.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogWriterTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogWriter.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/SessionEvent.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogWriterTest.kt`
 
 - [ ] **Step 1: Failing test — append + replay round-trip**
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session.eventlog
+package io.github.beyondwin.fixthis.mcp.session.eventlog
 
 import com.google.common.truth.Truth.assertThat
 import kotlinx.serialization.json.JsonObject
@@ -122,8 +122,8 @@ Expected: FAIL with `Unresolved reference: EventLogWriter`.
 - [ ] **Step 3: Minimal implementation — SessionEvent**
 
 ```kotlin
-// fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/SessionEvent.kt
-package io.beyondwin.fixthis.mcp.session.eventlog
+// fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/SessionEvent.kt
+package io.github.beyondwin.fixthis.mcp.session.eventlog
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
@@ -144,8 +144,8 @@ data class SessionEvent(
 - [ ] **Step 4: Minimal implementation — EventLogWriter + Reader**
 
 ```kotlin
-// fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogWriter.kt
-package io.beyondwin.fixthis.mcp.session.eventlog
+// fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogWriter.kt
+package io.github.beyondwin.fixthis.mcp.session.eventlog
 
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -193,21 +193,21 @@ class EventLogReader(private val directory: File) {
 - [ ] **Step 6: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/ \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/ \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/
 git commit -m "feat(alh): introduce append-only EventLogWriter skeleton"
 ```
 
 ### Task A.2 (ALH-4): fsync 실패·crash 시 fail-stop
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogWriter.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogFailureModeTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogWriter.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogFailureModeTest.kt`
 
 - [ ] **Step 1: Failing test — 디스크 풀 시뮬레이션**
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session.eventlog
+package io.github.beyondwin.fixthis.mcp.session.eventlog
 
 import com.google.common.truth.Truth.assertThat
 import kotlinx.serialization.json.buildJsonObject
@@ -279,16 +279,16 @@ class EventLogWriter(
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogWriter.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogFailureModeTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogWriter.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogFailureModeTest.kt
 git commit -m "feat(alh): atomic rename + fail-stop on event log write failure"
 ```
 
 ### Task A.3 (ALH-4): Compaction 백그라운드 작업
 
 **Files:**
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactor.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactorTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactor.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactorTest.kt`
 
 - [ ] **Step 1: Failing test — 1000개 초과 시 archive 디렉터리로 이동**
 
@@ -321,8 +321,8 @@ class EventLogCompactorTest {
 - [ ] **Step 3: Implement EventLogCompactor**
 
 ```kotlin
-// fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactor.kt
-package io.beyondwin.fixthis.mcp.session.eventlog
+// fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactor.kt
+package io.github.beyondwin.fixthis.mcp.session.eventlog
 
 import java.io.File
 
@@ -346,17 +346,17 @@ class EventLogCompactor(
 
 ```bash
 ./gradlew :fixthis-mcp:test --tests "EventLogCompactorTest"
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactor.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactorTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactor.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogCompactorTest.kt
 git commit -m "feat(alh): event log compaction with archive directory"
 ```
 
 ### Task A.4 (ALH-3): FeedbackSessionStore mutation을 event log로 래핑
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionPersistence.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreEventLogTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionPersistence.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreEventLogTest.kt`
 
 - [ ] **Step 1: Failing test — addItem이 event log에 append되고 fsync 실패 시 메모리 unchanged**
 
@@ -448,15 +448,15 @@ private fun applyEvent(event: SessionEvent) {
 ```bash
 ./gradlew :fixthis-mcp:test --tests "FeedbackSessionStoreEventLogTest"
 ./gradlew :fixthis-mcp:test  # 기존 테스트 회귀 확인
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/ \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreEventLogTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/ \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreEventLogTest.kt
 git commit -m "feat(alh): wrap session mutations in event log with replay-on-boot"
 ```
 
 ### Task A.5 (ALH-3): SIGKILL replay 시나리오 통합 테스트
 
 **Files:**
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/SigkillReplayTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/SigkillReplayTest.kt`
 
 - [ ] **Step 1: Failing test**
 
@@ -485,7 +485,7 @@ class SigkillReplayTest {
 - [ ] **Step 3: Commit**
 
 ```bash
-git add fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/SigkillReplayTest.kt
+git add fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/SigkillReplayTest.kt
 git commit -m "test(alh): randomized 100-op replay invariant"
 ```
 
@@ -812,10 +812,10 @@ git commit -m "feat(alh): undo/redo history with 5s toast and Cmd+Z bindings"
 ### Task B.1 (SIF-1): Snapshot 모델 확장 — core
 
 **Files:**
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/snapshot/Snapshot.kt`
-- Create: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/snapshot/ScreenOrientation.kt`
-- Create: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/snapshot/WindowMode.kt`
-- Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/domain/snapshot/SnapshotExtensionTest.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/snapshot/Snapshot.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/snapshot/ScreenOrientation.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/snapshot/WindowMode.kt`
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/domain/snapshot/SnapshotExtensionTest.kt`
 
 - [ ] **Step 1: Failing test — 새 필드 round-trip**
 
@@ -842,11 +842,11 @@ class SnapshotExtensionTest {
 
 ```kotlin
 // ScreenOrientation.kt
-package io.beyondwin.fixthis.compose.core.domain.snapshot
+package io.github.beyondwin.fixthis.compose.core.domain.snapshot
 enum class ScreenOrientation { PORTRAIT, LANDSCAPE, REVERSE_PORTRAIT, REVERSE_LANDSCAPE }
 
 // WindowMode.kt
-package io.beyondwin.fixthis.compose.core.domain.snapshot
+package io.github.beyondwin.fixthis.compose.core.domain.snapshot
 enum class WindowMode { FULLSCREEN, SPLIT_SCREEN, FREEFORM, PIP }
 
 // Snapshot.kt — 기존 data class에 필드 추가
@@ -874,18 +874,18 @@ data class Snapshot(
 
 ```bash
 ./gradlew :fixthis-compose-core:test --tests "SnapshotExtensionTest"
-git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/snapshot/ \
-        fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/domain/snapshot/SnapshotExtensionTest.kt
+git add fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/snapshot/ \
+        fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/domain/snapshot/SnapshotExtensionTest.kt
 git commit -m "feat(sif): extend Snapshot with orientation, windowMode, fingerprint fields"
 ```
 
 ### Task B.2 (SIF-1): SnapshotDto + BridgeScreenSnapshot 동기 확장
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt`
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt`
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeScreenSnapshot.kt` (있으면)
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/SnapshotDtoSerializationTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeScreenSnapshot.kt` (있으면)
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/SnapshotDtoSerializationTest.kt`
 
 - [ ] **Step 1: Failing test — 1.2 페이로드 backwards-compatible**
 
@@ -958,8 +958,8 @@ git commit -m "feat(sif): bump bridge protocol 1.2 -> 1.3 with extended snapshot
 ### Task B.3 (SIF-2): Fingerprint 계산
 
 **Files:**
-- Create: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/snapshot/SnapshotFingerprint.kt`
-- Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/domain/snapshot/SnapshotFingerprintTest.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/snapshot/SnapshotFingerprint.kt`
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/domain/snapshot/SnapshotFingerprintTest.kt`
 
 - [ ] **Step 1: Failing test — 결정론적 + 충돌 회피**
 
@@ -995,7 +995,7 @@ class SnapshotFingerprintTest {
 - [ ] **Step 2: Run FAIL → implement**
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.domain.snapshot
+package io.github.beyondwin.fixthis.compose.core.domain.snapshot
 
 import java.security.MessageDigest
 
@@ -1020,17 +1020,17 @@ object SnapshotFingerprint {
 
 ```bash
 ./gradlew :fixthis-compose-core:test --tests "SnapshotFingerprintTest"
-git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/snapshot/SnapshotFingerprint.kt \
-        fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/domain/snapshot/SnapshotFingerprintTest.kt
+git add fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/snapshot/SnapshotFingerprint.kt \
+        fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/domain/snapshot/SnapshotFingerprintTest.kt
 git commit -m "feat(sif): SHA-256 prefix fingerprint over activity+orientation+window+systemUi"
 ```
 
 ### Task B.4 (SIF-3): 사이드킥에서 orientation 캡처
 
 **Files:**
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` (capture 경로)
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/runtime/FixThisRuntime.kt` (또는 동등)
-- Test: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/OrientationCaptureTest.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` (capture 경로)
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/runtime/FixThisRuntime.kt` (또는 동등)
+- Test: `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/OrientationCaptureTest.kt`
 
 - [ ] **Step 1: Failing test — Robolectric 또는 fake context**
 
@@ -1098,8 +1098,8 @@ git commit -m "feat(sif): capture orientation + window mode in sidekick snapshot
 ### Task B.5 (SIF-4): 시스템 UI 가림 감지
 
 **Files:**
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
-- Test: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/SystemUiDetectionTest.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
+- Test: `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/SystemUiDetectionTest.kt`
 
 - [ ] **Step 1: Failing test**
 
@@ -1158,9 +1158,9 @@ git commit -m "feat(sif): detect ime/permission_dialog/notification_shade via in
 ### Task B.6 (SIF-2): Mismatch 차단 — FeedbackDraftService
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt`
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/ScreenFingerprintMismatch.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackDraftServiceMismatchTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/ScreenFingerprintMismatch.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackDraftServiceMismatchTest.kt`
 
 - [ ] **Step 1: Failing test**
 
@@ -1261,7 +1261,7 @@ git commit -m "feat(sif): fingerprint mismatch enforcement with force override p
 ### Task B.7 (SIF-5): 단절 순간 stale 마킹
 
 **Files:**
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
 - Modify: `fixthis-mcp/src/main/console/staleness.js`
 - Test: `fixthis-mcp/src/test/js/stalenessTimeBased.test.js`
 
@@ -1370,8 +1370,8 @@ git commit -m "feat(sif): warn on activity drift during multi-pin pending flow"
 ### Task C.1 (AUC-1): Stable sequenceNumber 발급
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt:405-406`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/SequenceNumberStabilityTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt:405-406`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/SequenceNumberStabilityTest.kt`
 
 - [ ] **Step 1: Failing test**
 
@@ -1423,9 +1423,9 @@ git commit -m "feat(auc): stable monotonic sequence numbers, UI shows server-iss
 ### Task C.2 (AUC-2): Sent 후 staleAfterHandoff 마킹
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationRepository.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt` (`AnnotationDto`에 `staleAfterHandoff: Boolean = false`, `lastModifiedAfterHandoffAtEpochMillis: Long? = null`)
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/SentEditStaleTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/AnnotationRepository.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt` (`AnnotationDto`에 `staleAfterHandoff: Boolean = false`, `lastModifiedAfterHandoffAtEpochMillis: Long? = null`)
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/SentEditStaleTest.kt`
 
 - [ ] **Step 1: Failing test**
 
@@ -1617,10 +1617,10 @@ git commit -m "feat(cr): dedup action queue with 100ms serial flush on reconnect
 ### Task D.3 (CR-3): UserFacingError + 액션 가이드
 
 **Files:**
-- Create: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/error/UserFacingError.kt`
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeClient.kt` (raw exception → UserFacingError 매핑)
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/error/UserFacingError.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeClient.kt` (raw exception → UserFacingError 매핑)
 - Modify: `fixthis-mcp/src/main/console/*.js` (코드별 액션 버튼 렌더링)
-- Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/error/UserFacingErrorTest.kt`
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/error/UserFacingErrorTest.kt`
 
 - [ ] **Step 1: Failing test**
 
@@ -1724,8 +1724,8 @@ git commit -m "feat(cr): structured UserFacingError with actionable suggestions"
 **Files:**
 - Create: `fixthis-emulator-testkit/build.gradle.kts`
 - Modify: `settings.gradle.kts` (include 추가)
-- Create: `fixthis-emulator-testkit/src/main/kotlin/io/beyondwin/fixthis/emulator/testkit/EmulatorScenarioDsl.kt`
-- Create: `fixthis-emulator-testkit/src/main/kotlin/io/beyondwin/fixthis/emulator/testkit/AdbDriver.kt`
+- Create: `fixthis-emulator-testkit/src/main/kotlin/io/github/beyondwin/fixthis/emulator/testkit/EmulatorScenarioDsl.kt`
+- Create: `fixthis-emulator-testkit/src/main/kotlin/io/github/beyondwin/fixthis/emulator/testkit/AdbDriver.kt`
 
 - [ ] **Step 1: Failing test — DSL 호출 가능**
 

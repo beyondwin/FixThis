@@ -28,7 +28,7 @@
 **Modify:**
 - `scripts/build-console-assets.mjs` — bundle 상단에 `ConsoleBuildEpochMs` / `ConsoleBuildGitSha` 임베드 + module 순서에 `staleness.js` 포함
 - `fixthis-mcp/build.gradle.kts` — `generateBuildInfo` 태스크 + `compileKotlin` dependency
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleHttpServer.kt` — `/api/server-version` 핸들러 추가 (실제 파일 이름이 다를 수 있음 — `:fixthis-mcp:test` 의 console http server 위치를 확인할 것)
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleHttpServer.kt` — `/api/server-version` 핸들러 추가 (실제 파일 이름이 다를 수 있음 — `:fixthis-mcp:test` 의 console http server 위치를 확인할 것)
 - `fixthis-mcp/src/main/console/main.js` — boot sequence 끝에 `checkServerStaleness()` 호출
 - `fixthis-mcp/src/main/resources/console/index.html` — staleness banner element 추가
 - `fixthis-mcp/src/main/resources/console/styles.css` — banner 스타일
@@ -36,30 +36,30 @@
 
 **Create:**
 - `fixthis-mcp/src/main/console/staleness.js` — checkServerStaleness, renderStalenessBanner, dismissable state
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/BuildInfo.kt` — Gradle generated, **do not commit; .gitignore the generated dir**
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/BuildInfo.kt` — Gradle generated, **do not commit; .gitignore the generated dir**
 
 **Test (modify):**
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 **Test (create):**
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ServerVersionEndpointTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ServerVersionEndpointTest.kt`
 
 ### Phase 3 — BridgeStatus Version + Protocol Compat
 
 **Modify:**
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt` — VERSION bump + `sidekickBuildEpochMs: Long?` 필드 추가
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` — `status()` 에서 `sidekickBuildEpochMs` 채움
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt` — VERSION bump + `sidekickBuildEpochMs: Long?` 필드 추가
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` — `status()` 에서 `sidekickBuildEpochMs` 채움
 - `fixthis-compose-sidekick/build.gradle.kts` — `generateBuildInfo` 태스크
 - `fixthis-mcp/src/main/console/staleness.js` — `MinimumSupportedProtocolVersion` 추가 + `checkProtocolCompat`
 - `fixthis-mcp/src/main/console/connection.js` — `applyConnectionStatus` 끝에서 `checkProtocolCompat(status)` 호출
 - `CLAUDE.md` (또는 `CONTRIBUTING.md`) — protocol VERSION bump PR 가이드
 
 **Create:**
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/BuildInfo.kt` — Gradle generated
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/BuildInfo.kt` — Gradle generated
 
 **Test (modify):**
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
-- `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocolTest.kt` (또는 인접한 테스트 파일)
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocolTest.kt` (또는 인접한 테스트 파일)
 
 ### Phase 4 — Build + Docs
 
@@ -191,7 +191,7 @@ fi
 
 echo "→ Starting console (Ctrl-C to exit)…"
 exec "$ROOT/fixthis-cli/build/install/fixthis/bin/fixthis" console \
-  --package io.beyondwin.fixthis.sample \
+  --package io.github.beyondwin.fixthis.sample \
   "${EXTRA_ARGS[@]}"
 ```
 
@@ -237,7 +237,7 @@ EOF
 **Files:**
 - Modify: `scripts/build-console-assets.mjs`
 - Modify: `fixthis-mcp/src/main/resources/console/app.js` (auto-regenerated)
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Write failing tests**
 
@@ -316,7 +316,7 @@ Expected: green. New test PASS, byte-equality test still PASS.
 ```bash
 git add scripts/build-console-assets.mjs \
         fixthis-mcp/src/main/resources/console/app.js \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "$(cat <<'EOF'
 feat(console): embed build epoch and git sha into bundled app.js
 
@@ -333,15 +333,15 @@ EOF
 
 **Files:**
 - Modify: `fixthis-mcp/build.gradle.kts`
-- Create (generated): `fixthis-mcp/build/generated/source/buildinfo/main/kotlin/io/beyondwin/fixthis/mcp/BuildInfo.kt`
-- Test (create): `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/BuildInfoTest.kt`
+- Create (generated): `fixthis-mcp/build/generated/source/buildinfo/main/kotlin/io/github/beyondwin/fixthis/mcp/BuildInfo.kt`
+- Test (create): `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/BuildInfoTest.kt`
 
 - [ ] **Step 1: Write failing test**
 
-Create `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/BuildInfoTest.kt`:
+Create `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/BuildInfoTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp
+package io.github.beyondwin.fixthis.mcp
 
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -389,11 +389,11 @@ val generateBuildInfo by tasks.registering {
     doLast {
         val sha = gitShaProvider.get().trim().ifBlank { "unknown" }
         val epoch = nowProvider.get()
-        val target = outputDir.get().file("io/beyondwin/fixthis/mcp/BuildInfo.kt").asFile
+        val target = outputDir.get().file("io/github/beyondwin/fixthis/mcp/BuildInfo.kt").asFile
         target.parentFile.mkdirs()
         target.writeText(
             """
-            package io.beyondwin.fixthis.mcp
+            package io.github.beyondwin.fixthis.mcp
             object BuildInfo {
                 const val BUILD_EPOCH_MS: Long = ${epoch}L
                 const val GIT_SHA: String = "$sha"
@@ -428,7 +428,7 @@ Expected: green.
 
 ```bash
 git add fixthis-mcp/build.gradle.kts \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/BuildInfoTest.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/BuildInfoTest.kt \
         .gitignore
 git commit -m "$(cat <<'EOF'
 feat(mcp): generate BuildInfo.kt with build epoch and git sha
@@ -445,8 +445,8 @@ EOF
 ## Task 5: Add /api/server-version HTTP endpoint
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleHttpServer.kt` (정확한 파일은 grep 으로 확인)
-- Test (create): `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ServerVersionEndpointTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleHttpServer.kt` (정확한 파일은 grep 으로 확인)
+- Test (create): `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ServerVersionEndpointTest.kt`
 
 - [ ] **Step 1: Locate the HTTP handler routing**
 
@@ -458,13 +458,13 @@ grep -rn '"/api/' fixthis-mcp/src/main/kotlin/ | grep -v test
 
 - [ ] **Step 2: Write failing test**
 
-Create `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ServerVersionEndpointTest.kt`:
+Create `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ServerVersionEndpointTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
-import io.beyondwin.fixthis.mcp.BuildInfo
-import io.beyondwin.fixthis.compose.sidekick.bridge.BridgeProtocol
+import io.github.beyondwin.fixthis.mcp.BuildInfo
+import io.github.beyondwin.fixthis.compose.sidekick.bridge.BridgeProtocol
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.jupiter.api.Test
@@ -527,8 +527,8 @@ Expected: green.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ServerVersionEndpointTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ServerVersionEndpointTest.kt
 git commit -m "$(cat <<'EOF'
 feat(mcp): add /api/server-version endpoint exposing build info
 
@@ -547,7 +547,7 @@ EOF
 - Create: `fixthis-mcp/src/main/console/staleness.js`
 - Modify: `scripts/build-console-assets.mjs` — module 순서에 `staleness.js` 포함
 - Modify: `fixthis-mcp/src/main/resources/console/app.js` (auto-regenerated)
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Write failing tests**
 
@@ -672,7 +672,7 @@ Expected: green.
 git add fixthis-mcp/src/main/console/staleness.js \
         scripts/build-console-assets.mjs \
         fixthis-mcp/src/main/resources/console/app.js \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "$(cat <<'EOF'
 feat(console): add staleness.js with build-epoch comparison and dismissable banner
 
@@ -690,7 +690,7 @@ EOF
 **Files:**
 - Modify: `fixthis-mcp/src/main/resources/console/index.html`
 - Modify: `fixthis-mcp/src/main/resources/console/styles.css`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Write failing test**
 
@@ -782,7 +782,7 @@ node scripts/build-console-assets.mjs
 git add fixthis-mcp/src/main/resources/console/index.html \
         fixthis-mcp/src/main/resources/console/styles.css \
         fixthis-mcp/src/main/resources/console/app.js \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "$(cat <<'EOF'
 feat(console): add staleness banner element and styles
 
@@ -800,7 +800,7 @@ EOF
 **Files:**
 - Modify: `fixthis-mcp/src/main/console/main.js`
 - Modify: `fixthis-mcp/src/main/resources/console/app.js` (auto-regenerated)
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Write failing test**
 
@@ -850,7 +850,7 @@ node scripts/build-console-assets.mjs
 ```bash
 git add fixthis-mcp/src/main/console/main.js \
         fixthis-mcp/src/main/resources/console/app.js \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "$(cat <<'EOF'
 feat(console): invoke checkServerStaleness on boot
 
@@ -868,13 +868,13 @@ EOF
 ## Task 9: Add sidekickBuildEpochMs to BridgeStatus and bump VERSION
 
 **Files:**
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt`
-- Test: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocolTest.kt` (또는 인접 테스트)
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt`
+- Test: `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocolTest.kt` (또는 인접 테스트)
 
 - [ ] **Step 1: Read BridgeProtocol.kt and check current VERSION + DTO shape**
 
 ```bash
-grep -n "VERSION\|BridgeStatus" fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt
+grep -n "VERSION\|BridgeStatus" fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt
 ```
 
 - [ ] **Step 2: Write failing test**
@@ -933,7 +933,7 @@ Expected: green.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt \
+git add fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt \
         fixthis-compose-sidekick/src/test/kotlin/
 git commit -m "$(cat <<'EOF'
 feat(sidekick): add sidekickBuildEpochMs to BridgeStatus and bump protocol VERSION
@@ -951,7 +951,7 @@ EOF
 
 **Files:**
 - Modify: `fixthis-compose-sidekick/build.gradle.kts`
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
 - Test: 인접 테스트
 
 - [ ] **Step 1: Write failing test**
@@ -991,11 +991,11 @@ val generateBuildInfo by tasks.registering {
     doLast {
         val sha = gitShaProvider.get().trim().ifBlank { "unknown" }
         val epoch = nowProvider.get()
-        val target = outputDir.get().file("io/beyondwin/fixthis/compose/sidekick/BuildInfo.kt").asFile
+        val target = outputDir.get().file("io/github/beyondwin/fixthis/compose/sidekick/BuildInfo.kt").asFile
         target.parentFile.mkdirs()
         target.writeText(
             """
-            package io.beyondwin.fixthis.compose.sidekick
+            package io.github.beyondwin.fixthis.compose.sidekick
             object BuildInfo {
                 const val BUILD_EPOCH_MS: Long = ${epoch}L
                 const val GIT_SHA: String = "$sha"
@@ -1041,7 +1041,7 @@ fixthis-compose-sidekick/build/generated/source/buildinfo/
 
 ```bash
 git add fixthis-compose-sidekick/build.gradle.kts \
-        fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt \
+        fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt \
         fixthis-compose-sidekick/src/test/ \
         .gitignore
 git commit -m "$(cat <<'EOF'
@@ -1062,7 +1062,7 @@ EOF
 - Modify: `fixthis-mcp/src/main/console/staleness.js`
 - Modify: `fixthis-mcp/src/main/console/connection.js` — `applyConnectionStatus` 끝에 호출 추가
 - Modify: `fixthis-mcp/src/main/resources/console/app.js` (auto-regenerated)
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Write failing tests**
 
@@ -1147,7 +1147,7 @@ node scripts/build-console-assets.mjs
 git add fixthis-mcp/src/main/console/staleness.js \
         fixthis-mcp/src/main/console/connection.js \
         fixthis-mcp/src/main/resources/console/app.js \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "$(cat <<'EOF'
 feat(console): protocol compat check and sidekick build-epoch staleness
 

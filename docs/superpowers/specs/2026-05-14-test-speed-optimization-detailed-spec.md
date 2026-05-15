@@ -67,7 +67,7 @@ The slowest class was:
 
 | Class | Test cases | XML test time |
 | --- | ---: | ---: |
-| `io.beyondwin.fixthis.mcp.session.eventlog.EventLogCompactorTest` | 4 | 18.091s |
+| `io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogCompactorTest` | 4 | 18.091s |
 
 The two slowest methods were:
 
@@ -155,7 +155,7 @@ saved.
 ### 1. Add a Fast Event Log Durability Mode for Unit Tests
 
 Introduce a small `EventLogDurability` enum in
-`fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/eventlog/EventLogWriter.kt`:
+`fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/eventlog/EventLogWriter.kt`:
 
 ```kotlin
 enum class EventLogDurability {

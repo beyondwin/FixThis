@@ -30,15 +30,15 @@ gallery, or marketing mockup.
 
 - App label: `FixThis`
 - Sample concept name: `FixThis Studio`
-- Android `namespace`: `io.beyondwin.fixthis.sample`
-- Android `applicationId`: `io.beyondwin.fixthis.sample`
-- Kotlin package: `io.beyondwin.fixthis.sample`
-- Existing library package prefix retained: `io.beyondwin.fixthis.*`
+- Android `namespace`: `io.github.beyondwin.fixthis.sample`
+- Android `applicationId`: `io.github.beyondwin.fixthis.sample`
+- Kotlin package: `io.github.beyondwin.fixthis.sample`
+- Existing library package prefix retained: `io.github.beyondwin.fixthis.*`
 - Existing CLI and MCP product wording retained unless it specifically names
   the sample app package
 
 README commands and examples that launch the sample app must use
-`io.beyondwin.fixthis.sample`.
+`io.github.beyondwin.fixthis.sample`.
 
 ## Visual Tone
 
@@ -188,7 +188,7 @@ Keep implementation units small enough to read and test independently.
 Recommended sample app structure:
 
 ```text
-sample/src/main/java/io/beyondwin/fixthis/sample/
+sample/src/main/java/io/github/beyondwin/fixthis/sample/
   MainActivity.kt
   FixThisStudioApp.kt
   FixThisTheme.kt
@@ -325,8 +325,8 @@ Implementation must not rename:
 
 - root Gradle project `FixThis`
 - modules named `fixthis-*`
-- plugin id `io.beyondwin.fixthis.compose`
-- library packages under `io.beyondwin.fixthis.*`
+- plugin id `io.github.beyondwin.fixthis.compose`
+- library packages under `io.github.beyondwin.fixthis.*`
 - CLI command names in this phase
 
 ## Testing
@@ -367,7 +367,7 @@ exposed as Gradle project `:app` under `sample/`.
 Update the full smoke command:
 
 ```bash
-fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis run --package io.github.beyondwin.fixthis.sample
 ```
 
 Do not rewrite historical design documents unless an implementation task
@@ -376,7 +376,7 @@ sample package as part of past design context.
 
 ## Acceptance Criteria
 
-- The sample app installs as `io.beyondwin.fixthis.sample`.
+- The sample app installs as `io.github.beyondwin.fixthis.sample`.
 - The launcher label is `FixThis`.
 - The visible sample UI presents FixThis Studio as a believable product surface.
 - The app has five bottom-navigation tabs: Home, Queue, Project, Review, and
@@ -384,7 +384,7 @@ sample package as part of past design context.
 - Form, dialog/menu, Canvas, and edge semantics coverage remain present inside
   product screens.
 - Sample tests are updated for new package and visible text anchors.
-- README package examples use `io.beyondwin.fixthis.sample`.
+- README package examples use `io.github.beyondwin.fixthis.sample`.
 - FixThis library, CLI, MCP, and Gradle plugin namespaces remain unchanged.
 
 ## Implementation Notes

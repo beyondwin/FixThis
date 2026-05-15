@@ -59,7 +59,7 @@
 
 ### `--console-assets-dir` 동작
 
-`fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt` 가 두 가지 모드를 지원:
+`fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt` 가 두 가지 모드를 지원:
 
 - (default) JAR 내 `resources/console/` 에서 packaged HTML/CSS/JS 서빙
 - `--console-assets-dir <path>` 가 설정되면 그 경로에서 매 요청 라이브 리드
@@ -142,7 +142,7 @@ fi
 
 # 4. 콘솔 시작 (포트는 --console-port 인자 또는 기본 60006)
 exec "$ROOT/fixthis-cli/build/install/fixthis/bin/fixthis" console \
-  --package io.beyondwin.fixthis.sample \
+  --package io.github.beyondwin.fixthis.sample \
   "$@"
 ```
 
@@ -187,10 +187,10 @@ val generateBuildInfo by tasks.registering {
         val gitSha = providers.exec {
             commandLine("git", "rev-parse", "--short", "HEAD")
         }.standardOutput.asText.get().trim()
-        val target = outputDir.get().file("io/beyondwin/fixthis/mcp/BuildInfo.kt").asFile
+        val target = outputDir.get().file("io/github/beyondwin/fixthis/mcp/BuildInfo.kt").asFile
         target.parentFile.mkdirs()
         target.writeText("""
-            package io.beyondwin.fixthis.mcp
+            package io.github.beyondwin.fixthis.mcp
             object BuildInfo {
                 const val BUILD_EPOCH_MS: Long = ${System.currentTimeMillis()}L
                 const val GIT_SHA: String = "$gitSha"

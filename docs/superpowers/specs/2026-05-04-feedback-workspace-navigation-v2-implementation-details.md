@@ -160,7 +160,7 @@ The index should use summary records, not full sessions:
   "sessions": [
     {
       "sessionId": "session-1",
-      "packageName": "io.beyondwin.fixthis.sample",
+      "packageName": "io.github.beyondwin.fixthis.sample",
       "projectRoot": "/repo",
       "createdAtEpochMillis": 1777899900000,
       "updatedAtEpochMillis": 1777900000000,
@@ -419,7 +419,7 @@ Response:
 {
   "performed": true,
   "action": "tap",
-  "activity": "io.beyondwin.fixthis.sample.MainActivity",
+  "activity": "io.github.beyondwin.fixthis.sample.MainActivity",
   "message": null
 }
 ```
@@ -549,12 +549,12 @@ Do not weaken tests to pass around these blockers.
 Targeted checks during implementation:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionPersistenceTest
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.McpProtocolTest
-./gradlew :fixthis-mcp:test --tests io.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
-ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :fixthis-compose-sidekick:testDebugUnitTest --tests io.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionPersistenceTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStoreTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.session.FeedbackSessionServiceTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.McpProtocolTest
+./gradlew :fixthis-mcp:test --tests io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServerTest
+ANDROID_HOME=/Users/kws/Library/Android/sdk ./gradlew :fixthis-compose-sidekick:testDebugUnitTest --tests io.github.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerTest
 ```
 
 Final checks:

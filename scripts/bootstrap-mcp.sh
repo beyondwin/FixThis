@@ -13,7 +13,7 @@ Builds :fixthis-cli and :fixthis-mcp installDist, then registers the FixThis MCP
 
 Required:
   --package <id>          Android applicationId of the project under test.
-  --sample                Use the bundled sample app package (io.beyondwin.fixthis.sample).
+  --sample                Use the bundled sample app package (io.github.beyondwin.fixthis.sample).
 
 Options:
   --target <name>         claude | codex | all (default: all)
@@ -25,7 +25,7 @@ USAGE
 # Move to repo root regardless of caller's cwd.
 cd "$(dirname "$0")/.."
 
-SAMPLE_PACKAGE="io.beyondwin.fixthis.sample"
+SAMPLE_PACKAGE="io.github.beyondwin.fixthis.sample"
 PACKAGE=""
 TARGET="all"
 EXTRA_FLAGS=()

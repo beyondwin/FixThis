@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rename the active FixThis codebase and current product contracts to FixThis with `io.beyondwin.fixthis` packages and no compatibility aliases for old public names.
+**Goal:** Rename the active FixThis codebase and current product contracts to FixThis with `io.github.beyondwin.fixthis` packages and no compatibility aliases for old public names.
 
 **Architecture:** Treat this as one breaking contract rename with checkpoints. First rename the Gradle graph, then move packages and identifiers, then update runtime persistence/bridge contracts, then update CLI/MCP contracts, and finally update current docs and audit historical leftovers.
 
@@ -30,16 +30,16 @@ fixthis-mcp                    -> fixthis-mcp
 The implementation moves Kotlin package roots in those modules:
 
 ```text
-src/main/kotlin/io/github/fixthis      -> src/main/kotlin/io/beyondwin/fixthis
-src/test/kotlin/io/github/fixthis      -> src/test/kotlin/io/beyondwin/fixthis
-src/androidTest/kotlin/io/github/fixthis -> src/androidTest/kotlin/io/beyondwin/fixthis
+src/main/kotlin/io/github/fixthis      -> src/main/kotlin/io/github/beyondwin/fixthis
+src/test/kotlin/io/github/fixthis      -> src/test/kotlin/io/github/beyondwin/fixthis
+src/androidTest/kotlin/io/github/fixthis -> src/androidTest/kotlin/io/github/beyondwin/fixthis
 ```
 
 The sample app package stays:
 
 ```text
-sample/src/main/java/io/beyondwin/fixthis/sample
-sample/src/androidTest/java/io/beyondwin/fixthis/sample
+sample/src/main/java/io/github/beyondwin/fixthis/sample
+sample/src/androidTest/java/io/github/beyondwin/fixthis/sample
 ```
 
 Files with brand-bearing names must be renamed, not just edited:
@@ -240,7 +240,7 @@ kotlin {
 }
 
 application {
-    mainClass.set("io.beyondwin.fixthis.cli.MainKt")
+    mainClass.set("io.github.beyondwin.fixthis.cli.MainKt")
     applicationName = "fixthis"
 }
 
@@ -259,7 +259,7 @@ Edit `fixthis-mcp/build.gradle.kts` so the `application` and dependencies blocks
 
 ```kotlin
 application {
-    mainClass.set("io.beyondwin.fixthis.mcp.McpServerKt")
+    mainClass.set("io.github.beyondwin.fixthis.mcp.McpServerKt")
     applicationName = "fixthis-mcp"
 }
 
@@ -303,8 +303,8 @@ Then edit `fixthis-gradle-plugin/build.gradle.kts` so the Gradle plugin block re
 gradlePlugin {
     plugins {
         create("fixThisCompose") {
-            id = "io.beyondwin.fixthis.compose"
-            implementationClass = "io.beyondwin.fixthis.gradle.FixThisGradlePlugin"
+            id = "io.github.beyondwin.fixthis.compose"
+            implementationClass = "io.github.beyondwin.fixthis.gradle.FixThisGradlePlugin"
         }
     }
 }
@@ -318,7 +318,7 @@ Edit the plugin block in `sample/build.gradle.kts`:
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    id("io.beyondwin.fixthis.compose")
+    id("io.github.beyondwin.fixthis.compose")
 }
 ```
 
@@ -368,7 +368,7 @@ for module in fixthis-compose-core fixthis-compose-overlay fixthis-compose-sidek
 done
 ```
 
-Expected: package roots move under `io/beyondwin/fixthis`.
+Expected: package roots move under `io/github/beyondwin/fixthis`.
 
 - [x] **Step 2: Apply mechanical package and identifier replacements in active code**
 
@@ -377,7 +377,7 @@ Run:
 ```bash
 rg --files -0 fixthis-* sample -g '*.kt' -g '*.kts' -g '*.xml' -g '*.json' -g '*.properties' |
   xargs -0 perl -pi -e '
-    s/io\.github\.fixthis/io.beyondwin.fixthis/g;
+    s/io\.github\.fixthis/io.github.beyondwin.fixthis/g;
     s/FixThis/FixThis/g;
     s/fixThis/fixThis/g;
     s/fixthis/fixthis/g;
@@ -391,29 +391,29 @@ Expected: no command output.
 Run:
 
 ```bash
-git mv fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisJsonFormatter.kt fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisJsonFormatter.kt
-git mv fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt
-git mv fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt
-git mv fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/FixThis.kt fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/FixThis.kt
-git mv fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/init/FixThisInitializer.kt fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/init/FixThisInitializer.kt
-git mv fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacks.kt fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacks.kt
-git mv fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayController.kt fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayController.kt
-git mv fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayHostLayout.kt fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayHostLayout.kt
-git mv fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/FixThisTest.kt fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/FixThisTest.kt
-git mv fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayControllerTest.kt fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayControllerTest.kt
-git mv fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayHostLayoutTest.kt fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayHostLayoutTest.kt
-git mv fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisSelectionLayer.kt fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisSelectionLayer.kt
-git mv fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisHighlightLayer.kt fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisHighlightLayer.kt
-git mv fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisCommentSheet.kt fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisCommentSheet.kt
-git mv fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisToolbar.kt fixthis-compose-overlay/src/main/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisToolbar.kt
-git mv fixthis-compose-overlay/src/test/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisDraftTest.kt fixthis-compose-overlay/src/test/kotlin/io/beyondwin/fixthis/compose/overlay/FixThisDraftTest.kt
-git mv fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/FixThisExtension.kt fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/FixThisExtension.kt
-git mv fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/FixThisGradlePlugin.kt fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/FixThisGradlePlugin.kt
-git mv fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt
-git mv fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt
-git mv fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/FixThisGradlePluginTest.kt fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/FixThisGradlePluginTest.kt
-git mv fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt
-git mv fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FakeFixThisBridge.kt fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FakeFixThisBridge.kt
+git mv fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisJsonFormatter.kt fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisJsonFormatter.kt
+git mv fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt
+git mv fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt
+git mv fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/FixThis.kt fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/FixThis.kt
+git mv fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/init/FixThisInitializer.kt fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/init/FixThisInitializer.kt
+git mv fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacks.kt fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/lifecycle/FixThisActivityLifecycleCallbacks.kt
+git mv fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayController.kt fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayController.kt
+git mv fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayHostLayout.kt fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayHostLayout.kt
+git mv fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/FixThisTest.kt fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/FixThisTest.kt
+git mv fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayControllerTest.kt fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayControllerTest.kt
+git mv fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayHostLayoutTest.kt fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayHostLayoutTest.kt
+git mv fixthis-compose-overlay/src/main/kotlin/io/github/beyondwin/fixthis/compose/overlay/FixThisSelectionLayer.kt fixthis-compose-overlay/src/main/kotlin/io/github/beyondwin/fixthis/compose/overlay/FixThisSelectionLayer.kt
+git mv fixthis-compose-overlay/src/main/kotlin/io/github/beyondwin/fixthis/compose/overlay/FixThisHighlightLayer.kt fixthis-compose-overlay/src/main/kotlin/io/github/beyondwin/fixthis/compose/overlay/FixThisHighlightLayer.kt
+git mv fixthis-compose-overlay/src/main/kotlin/io/github/beyondwin/fixthis/compose/overlay/FixThisCommentSheet.kt fixthis-compose-overlay/src/main/kotlin/io/github/beyondwin/fixthis/compose/overlay/FixThisCommentSheet.kt
+git mv fixthis-compose-overlay/src/main/kotlin/io/github/beyondwin/fixthis/compose/overlay/FixThisToolbar.kt fixthis-compose-overlay/src/main/kotlin/io/github/beyondwin/fixthis/compose/overlay/FixThisToolbar.kt
+git mv fixthis-compose-overlay/src/test/kotlin/io/github/beyondwin/fixthis/compose/overlay/FixThisDraftTest.kt fixthis-compose-overlay/src/test/kotlin/io/github/beyondwin/fixthis/compose/overlay/FixThisDraftTest.kt
+git mv fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/FixThisExtension.kt fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/FixThisExtension.kt
+git mv fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/FixThisGradlePlugin.kt fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/FixThisGradlePlugin.kt
+git mv fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt
+git mv fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt
+git mv fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/FixThisGradlePluginTest.kt fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/FixThisGradlePluginTest.kt
+git mv fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt
+git mv fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FakeFixThisBridge.kt fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FakeFixThisBridge.kt
 ```
 
 Expected: no command output.
@@ -452,14 +452,14 @@ Expected: commit succeeds.
 ## Task 4: Update Runtime Persistence, Bridge, and Generated Asset Contracts
 
 **Files:**
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/SessionTokenStore.kt`
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/screenshot/ScreenshotStore.kt`
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
-- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/FixThisGradlePlugin.kt`
-- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`
-- Test: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/SessionTokenStoreTest.kt`
-- Test: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/screenshot/ScreenshotStoreTest.kt`
-- Test: `fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/SessionTokenStore.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/screenshot/ScreenshotStore.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
+- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/FixThisGradlePlugin.kt`
+- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`
+- Test: `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/SessionTokenStoreTest.kt`
+- Test: `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/screenshot/ScreenshotStoreTest.kt`
+- Test: `fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt`
 
 - [x] **Step 1: Verify the mechanical replacements changed runtime names**
 
@@ -548,8 +548,8 @@ val buildInfoAsset: String = "fixthis/fixthis-build-info.json",
 Run:
 
 ```bash
-./gradlew :fixthis-compose-sidekick:test --tests io.beyondwin.fixthis.compose.sidekick.bridge.SessionTokenStoreTest --tests io.beyondwin.fixthis.compose.sidekick.screenshot.ScreenshotStoreTest
-./gradlew :fixthis-gradle-plugin:test --tests io.beyondwin.fixthis.gradle.GenerateFixThisSourceIndexTaskTest
+./gradlew :fixthis-compose-sidekick:test --tests io.github.beyondwin.fixthis.compose.sidekick.bridge.SessionTokenStoreTest --tests io.github.beyondwin.fixthis.compose.sidekick.screenshot.ScreenshotStoreTest
+./gradlew :fixthis-gradle-plugin:test --tests io.github.beyondwin.fixthis.gradle.GenerateFixThisSourceIndexTaskTest
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -568,19 +568,19 @@ Expected: commit succeeds.
 ## Task 5: Update CLI and MCP Public Contracts
 
 **Files:**
-- Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/Main.kt`
-- Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt`
-- Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/SetupCommand.kt`
-- Modify: `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/ConsoleCommand.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/McpServer.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/McpProtocol.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/*`
-- Test: `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/McpCommandTest.kt`
-- Test: `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/BridgeClientTest.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpServerTest.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/*`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/Main.kt`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt`
+- Modify: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/ConsoleCommand.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/McpServer.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocol.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/*`
+- Test: `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/McpCommandTest.kt`
+- Test: `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/BridgeClientTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpServerTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/*`
 
 - [x] **Step 1: Confirm CLI main name is FixThis**
 
@@ -692,7 +692,7 @@ Run:
 ```bash
 ./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
 fixthis-cli/build/install/fixthis/bin/fixthis --help
-fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.github.beyondwin.fixthis.sample
 ```
 
 Expected:
@@ -701,7 +701,7 @@ Expected:
 Usage: fixthis
 ```
 
-and setup JSON with `"command": "fixthis"` and package `io.beyondwin.fixthis.sample`.
+and setup JSON with `"command": "fixthis"` and package `io.github.beyondwin.fixthis.sample`.
 
 - [x] **Step 8: Commit CLI and MCP rename**
 
@@ -750,7 +750,7 @@ rg --files -0 README.md docs .gitignore \
   -g '*.md' -g '.gitignore' \
   -g '!docs/superpowers/**' |
   xargs -0 perl -pi -e '
-    s/io\.github\.fixthis/io.beyondwin.fixthis/g;
+    s/io\.github\.fixthis/io.github.beyondwin.fixthis/g;
     s/FixThis/FixThis/g;
     s/fixThis/fixThis/g;
     s/fixthis/fixthis/g;
@@ -783,7 +783,7 @@ Add this short note near the top of `README.md`, after the opening paragraph:
 
 ```markdown
 > Migration note: FixThis was previously named FixThis. This repository uses
-> the new `fixthis` CLI, `io.beyondwin.fixthis.*` packages, `fixthis_*` MCP
+> the new `fixthis` CLI, `io.github.beyondwin.fixthis.*` packages, `fixthis_*` MCP
 > tools, and `.fixthis/` local storage paths. Old FixThis public contracts are
 > not preserved in this breaking rename.
 ```
@@ -794,7 +794,7 @@ Confirm README examples include:
 
 ```bash
 ./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
-fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis run --package io.github.beyondwin.fixthis.sample
 ```
 
 and:
@@ -869,7 +869,7 @@ Run:
 
 ```bash
 fixthis-cli/build/install/fixthis/bin/fixthis --help
-fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis setup --package io.github.beyondwin.fixthis.sample
 ```
 
 Expected: help says `Usage: fixthis`; setup JSON says `"command": "fixthis"`.
@@ -963,7 +963,7 @@ Include these points in the final response:
 
 ```text
 - Renamed modules to fixthis-*.
-- Moved active packages to io.beyondwin.fixthis.*.
+- Moved active packages to io.github.beyondwin.fixthis.*.
 - Renamed CLI/MCP contracts to fixthis.
 - Renamed runtime storage to .fixthis, files/fixthis, and cache/fixthis.
 - Updated current docs and added the migration note.

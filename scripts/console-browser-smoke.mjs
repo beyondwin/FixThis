@@ -83,7 +83,7 @@ fake.sessions.set('session-2', makeSession('session-2', -10_000, [
 function makeSession(sessionId, timeOffset, items) {
   return {
     sessionId,
-    packageName: 'io.beyondwin.fixthis.sample',
+    packageName: 'io.github.beyondwin.fixthis.sample',
     status: 'open',
     createdAtEpochMillis: now + timeOffset,
     updatedAtEpochMillis: now + timeOffset,
@@ -171,7 +171,7 @@ function connectionPayload() {
     primaryAction: fake.connectionState === 'READY' ? 'CAPTURE' : 'OPEN_APP',
     selectedDevice: selectedDevice ? toConnectionDevice(selectedDevice) : null,
     devices: fake.devices.map(toConnectionDevice),
-    packageName: 'io.beyondwin.fixthis.sample',
+    packageName: 'io.github.beyondwin.fixthis.sample',
     availability: fake.connectionState === 'READY' ? { ...fake.availability } : null,
     details: {
       bridgeState: fake.connectionState === 'READY' ? 'ready' : 'paused',

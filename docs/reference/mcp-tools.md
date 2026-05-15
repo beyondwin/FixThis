@@ -4,12 +4,12 @@ FixThis MCP is the primary agent workflow for the feedback console. The Android 
 
 ## Repository Sample
 
-In this repository the FixThis Studio sample Android app is exposed as Gradle project `:app`, with sources under `sample/` and application id `io.beyondwin.fixthis.sample`. The local smoke flow is:
+In this repository the FixThis Studio sample Android app is exposed as Gradle project `:app`, with sources under `sample/` and application id `io.github.beyondwin.fixthis.sample`. The local smoke flow is:
 
 ```bash
 ./gradlew :app:installDebug
 ./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
-fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis run --package io.github.beyondwin.fixthis.sample
 ```
 
 The `fixthis run` default install task is `:app:installDebug`.
@@ -153,8 +153,8 @@ By default, the command prints MCP client config JSON:
 ```json
 {
   "command": "fixthis",
-  "args": ["mcp", "--package", "io.beyondwin.fixthis.sample", "--project-dir", "/path/to/project"],
-  "packageName": "io.beyondwin.fixthis.sample",
+  "args": ["mcp", "--package", "io.github.beyondwin.fixthis.sample", "--project-dir", "/path/to/project"],
+  "packageName": "io.github.beyondwin.fixthis.sample",
   "projectRoot": "/path/to/project"
 }
 ```

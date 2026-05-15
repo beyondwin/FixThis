@@ -13,7 +13,7 @@ When asked to add FixThis to this Android app:
    path when available; otherwise install from the GitHub Release CLI/MCP
    package.
 3. Run `fixthis install-agent --project-dir . --target all`. This patches the
-   detected app module with Gradle plugin `io.beyondwin.fixthis.compose`,
+   detected app module with Gradle plugin `io.github.beyondwin.fixthis.compose`,
    writes MCP config for Claude Code / Codex, and writes `.fixthis/agent-setup.*`
    handoff files. Pass `--package <applicationId>` if detection is ambiguous.
    Pass `--dry-run` before writing if the repo has unusual Gradle wiring.
@@ -23,7 +23,7 @@ When asked to add FixThis to this Android app:
 
    ```kotlin
    plugins {
-       id("io.beyondwin.fixthis.compose") version "0.2.0"
+       id("io.github.beyondwin.fixthis.compose") version "0.2.0"
    }
    ```
 

@@ -12,47 +12,47 @@
 
 ## File Structure
 
-- Modify `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceIndex.kt`
+- Modify `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceIndex.kt`
   - Owns source-index wire models. Add `SourceRoot` and `repoFile`.
-- Modify `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt`
+- Modify `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt`
   - Owns persisted `SourceCandidate`. Add nullable `repoFile` so Copy Prompt can render host paths without re-reading the source index.
-- Modify `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/evidence/SourceHint.kt`
+- Modify `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/evidence/SourceHint.kt`
   - Owns domain source hints. Add nullable `repoFile` so mapping does not drop the path.
-- Modify `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
+- Modify `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
   - Copies `SourceIndexEntry.repoFile` into `SourceCandidate.repoFile`.
-- Modify `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/SourceCandidateMappers.kt`
+- Modify `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/SourceCandidateMappers.kt`
   - Preserves `repoFile` through domain/session mapping.
-- Modify `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceIndexTest.kt`
+- Modify `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceIndexTest.kt`
   - Covers v1 compatibility and v1.1 root metadata decoding.
-- Modify `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/SourceIndexAssets.kt`
+- Modify `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/SourceIndexAssets.kt`
   - Mirrors core source-index fields for generated assets.
-- Modify `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt`
+- Modify `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt`
   - Builds entries with both module-relative `file` and repo-relative `repoFile`.
-- Modify `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/XmlStringResourceScanner.kt`
+- Modify `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/XmlStringResourceScanner.kt`
   - Same path handling for XML resources.
-- Modify `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/SourceIndexGenerator.kt`
+- Modify `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/SourceIndexGenerator.kt`
   - Accepts module/root directories and emits `sourceRoot`.
-- Modify `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`
+- Modify `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`
   - Adds `rootProjectDirectory` input and passes it to the generator.
-- Modify `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/FixThisGradlePlugin.kt`
+- Modify `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/FixThisGradlePlugin.kt`
   - Wires `rootProjectDirectory`.
-- Modify `fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt`
+- Modify `fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt`
   - Covers module and root-project path generation.
-- Create `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/HostSourcePathResolver.kt`
+- Create `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourcePathResolver.kt`
   - Central source path resolver for MCP host files.
-- Create `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/HostSourcePathResolverTest.kt`
+- Create `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourcePathResolverTest.kt`
   - Covers resolver order, escapes, and ambiguous suffix fallback.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SourceCandidateStalenessChecker.kt`
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SourceCandidateStalenessChecker.kt`
   - Uses resolver instead of `File(projectRoot, candidate.file)`.
-- Modify `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/SourceCandidateStalenessCheckerTest.kt`
+- Modify `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/SourceCandidateStalenessCheckerTest.kt`
   - Covers module-relative candidate resolution.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt`
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt`
   - Uses resolver for exists/newer checks and sample paths.
-- Modify `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt`
+- Modify `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt`
   - Covers no false project-root misconfiguration for module paths.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FormatterExtensions.kt`
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FormatterExtensions.kt`
   - Uses candidate display paths for compact source-root shortening.
-- Modify `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
+- Modify `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
   - Covers Copy Prompt rendering of `sample/src/main/...`.
 - Modify `docs/reference/output-schema.md`
   - Documents `sourceRoot`, `repoFile`, and updated stale diagnostics.
@@ -62,12 +62,12 @@
 ## Task 1: Core Source Models
 
 **Files:**
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceIndex.kt`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/evidence/SourceHint.kt`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/SourceCandidateMappers.kt`
-- Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceIndexTest.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceIndex.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/evidence/SourceHint.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/SourceCandidateMappers.kt`
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceIndexTest.kt`
 
 - [ ] **Step 1: Add failing source-index model test**
 
@@ -109,7 +109,7 @@ fun decodesV11RootMetadataAndRepoFile() {
 Run:
 
 ```bash
-./gradlew :fixthis-compose-core:test --tests "io.beyondwin.fixthis.compose.core.source.SourceIndexTest.decodesV11RootMetadataAndRepoFile"
+./gradlew :fixthis-compose-core:test --tests "io.github.beyondwin.fixthis.compose.core.source.SourceIndexTest.decodesV11RootMetadataAndRepoFile"
 ```
 
 Expected: compilation fails because `sourceRoot` and `repoFile` do not exist.
@@ -227,7 +227,7 @@ repoFile = repoFile,
 Run:
 
 ```bash
-./gradlew :fixthis-compose-core:test --tests "io.beyondwin.fixthis.compose.core.source.SourceIndexTest"
+./gradlew :fixthis-compose-core:test --tests "io.github.beyondwin.fixthis.compose.core.source.SourceIndexTest"
 ```
 
 Expected: PASS.
@@ -235,25 +235,25 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceIndex.kt \
-  fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt \
-  fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/evidence/SourceHint.kt \
-  fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt \
-  fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/SourceCandidateMappers.kt \
-  fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceIndexTest.kt
+git add fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceIndex.kt \
+  fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt \
+  fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/evidence/SourceHint.kt \
+  fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt \
+  fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/SourceCandidateMappers.kt \
+  fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceIndexTest.kt
 git commit -m "feat: add source index root metadata models"
 ```
 
 ## Task 2: Gradle Source Index Generation
 
 **Files:**
-- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/SourceIndexAssets.kt`
-- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt`
-- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/XmlStringResourceScanner.kt`
-- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/SourceIndexGenerator.kt`
-- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`
-- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/FixThisGradlePlugin.kt`
-- Test: `fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt`
+- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/SourceIndexAssets.kt`
+- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt`
+- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/XmlStringResourceScanner.kt`
+- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/SourceIndexGenerator.kt`
+- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`
+- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/FixThisGradlePlugin.kt`
+- Test: `fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt`
 
 - [ ] **Step 1: Add failing Gradle generation test**
 
@@ -318,7 +318,7 @@ and set `task.rootProjectDirectory.set(rootProjectDir)`.
 Run:
 
 ```bash
-./gradlew :fixthis-gradle-plugin:test --tests "io.beyondwin.fixthis.gradle.GenerateFixThisSourceIndexTaskTest.writes source root and repo relative source paths for module project"
+./gradlew :fixthis-gradle-plugin:test --tests "io.github.beyondwin.fixthis.gradle.GenerateFixThisSourceIndexTaskTest.writes source root and repo relative source paths for module project"
 ```
 
 Expected: compilation fails because `rootProjectDirectory`, `sourceRoot`, and `repoFile` do not exist.
@@ -451,7 +451,7 @@ task.rootProjectDirectory.set(project.rootProject.layout.projectDirectory)
 Run:
 
 ```bash
-./gradlew :fixthis-gradle-plugin:test --tests "io.beyondwin.fixthis.gradle.GenerateFixThisSourceIndexTaskTest"
+./gradlew :fixthis-gradle-plugin:test --tests "io.github.beyondwin.fixthis.gradle.GenerateFixThisSourceIndexTaskTest"
 ```
 
 Expected: PASS.
@@ -459,32 +459,32 @@ Expected: PASS.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/SourceIndexAssets.kt \
-  fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt \
-  fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/XmlStringResourceScanner.kt \
-  fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/source/SourceIndexGenerator.kt \
-  fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt \
-  fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/FixThisGradlePlugin.kt \
-  fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt
+git add fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/SourceIndexAssets.kt \
+  fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt \
+  fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/XmlStringResourceScanner.kt \
+  fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/SourceIndexGenerator.kt \
+  fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt \
+  fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/FixThisGradlePlugin.kt \
+  fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt
 git commit -m "feat: generate repository relative source paths"
 ```
 
 ## Task 3: MCP Host Source Path Resolver
 
 **Files:**
-- Create: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/HostSourcePathResolver.kt`
-- Create: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/HostSourcePathResolverTest.kt`
+- Create: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourcePathResolver.kt`
+- Create: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourcePathResolverTest.kt`
 
 - [ ] **Step 1: Add resolver tests**
 
 Create `HostSourcePathResolverTest.kt` with tests for `repoFile`, `sourceRoot`, legacy root, escapes, and ambiguous suffixes. Use this skeleton:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.source.SourceIndex
-import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
-import io.beyondwin.fixthis.compose.core.source.SourceRoot
+import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
+import io.github.beyondwin.fixthis.compose.core.source.SourceIndexEntry
+import io.github.beyondwin.fixthis.compose.core.source.SourceRoot
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -562,7 +562,7 @@ class HostSourcePathResolverTest {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.session.HostSourcePathResolverTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.session.HostSourcePathResolverTest"
 ```
 
 Expected: compilation fails because the resolver does not exist.
@@ -572,10 +572,10 @@ Expected: compilation fails because the resolver does not exist.
 Create `HostSourcePathResolver.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
-import io.beyondwin.fixthis.compose.core.source.SourceIndex
-import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
+import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
+import io.github.beyondwin.fixthis.compose.core.source.SourceIndexEntry
 import java.io.File
 
 data class HostSourcePathResolution(
@@ -663,7 +663,7 @@ class HostSourcePathResolver(private val projectRoot: File) {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.session.HostSourcePathResolverTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.session.HostSourcePathResolverTest"
 ```
 
 Expected: PASS.
@@ -671,18 +671,18 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/HostSourcePathResolver.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/HostSourcePathResolverTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourcePathResolver.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourcePathResolverTest.kt
 git commit -m "feat: add host source path resolver"
 ```
 
 ## Task 4: Resolver Consumers
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SourceCandidateStalenessChecker.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/SourceCandidateStalenessCheckerTest.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SourceCandidateStalenessChecker.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/SourceCandidateStalenessCheckerTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt`
 
 - [ ] **Step 1: Add staleness checker module path test**
 
@@ -696,7 +696,7 @@ fun `marks candidate fresh when sourceRoot resolves module relative file`() {
     file.parentFile.mkdirs()
     file.writeText("package x\n\nfun greet() = \"hi\"\n")
     val index = SourceIndex(
-        sourceRoot = io.beyondwin.fixthis.compose.core.source.SourceRoot(
+        sourceRoot = io.github.beyondwin.fixthis.compose.core.source.SourceRoot(
             gradlePath = ":app",
             projectDir = "sample",
         ),
@@ -746,7 +746,7 @@ fun `does not flag projectRoot misconfiguration when indexed files exist under s
     }
     file.setLastModified(installed - 60_000)
     val index = SourceIndex(
-        sourceRoot = io.beyondwin.fixthis.compose.core.source.SourceRoot(
+        sourceRoot = io.github.beyondwin.fixthis.compose.core.source.SourceRoot(
             gradlePath = ":app",
             projectDir = "sample",
         ),
@@ -782,8 +782,8 @@ For `existsCount`, count `resolution.found`. For `newer`, use `resolution.file?.
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.session.SourceCandidateStalenessCheckerTest" \
-  --tests "io.beyondwin.fixthis.mcp.session.HostSourceFreshnessProbeTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.session.SourceCandidateStalenessCheckerTest" \
+  --tests "io.github.beyondwin.fixthis.mcp.session.HostSourceFreshnessProbeTest"
 ```
 
 Expected: PASS.
@@ -791,32 +791,32 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SourceCandidateStalenessChecker.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/SourceCandidateStalenessCheckerTest.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SourceCandidateStalenessChecker.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/SourceCandidateStalenessCheckerTest.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbe.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HostSourceFreshnessProbeTest.kt
 git commit -m "fix: resolve module source paths during freshness checks"
 ```
 
 ## Task 5: Compact Handoff Display Paths
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FormatterExtensions.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FormatterExtensions.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
 
 - [ ] **Step 1: Add compact renderer test**
 
 Add a test session whose candidate has `file = "src/main/java/.../HomeScreen.kt"` and `repoFile = "sample/src/main/java/.../HomeScreen.kt"`. Assert compact output includes:
 
 ```text
-sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt:44
+sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt:44
 ```
 
 and does not include:
 
 ```text
-src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt:44
+src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt:44
 ```
 
 - [ ] **Step 2: Add display helpers**
@@ -843,7 +843,7 @@ Update `computeSourceRoot` to use `displayFile()` instead of `file`.
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.session.CompactHandoffRendererTest"
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.session.CompactHandoffRendererTest"
 ```
 
 Expected: PASS.
@@ -851,9 +851,9 @@ Expected: PASS.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FormatterExtensions.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FormatterExtensions.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt
 git commit -m "fix: render repository relative source paths in handoff"
 ```
 
@@ -910,7 +910,7 @@ Expected: Gradle reports `BUILD SUCCESSFUL`.
 Run:
 
 ```bash
-fixthis-cli/build/install/fixthis/bin/fixthis status --package io.beyondwin.fixthis.sample --project-dir "$PWD"
+fixthis-cli/build/install/fixthis/bin/fixthis status --package io.github.beyondwin.fixthis.sample --project-dir "$PWD"
 ```
 
 Expected JSON includes:
@@ -933,7 +933,7 @@ Capture a sample feedback item on a `MetricCard`, then use Copy Prompt or `fixth
 Expected compact source line resembles:
 
 ```text
-sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt:44  conf=high
+sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt:44  conf=high
 ```
 
 Expected output does not include false:

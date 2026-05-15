@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { execFileSync } from 'node:child_process';
 
 const root = process.cwd();
 const failures = [];
@@ -62,6 +63,28 @@ function forbidPublishedGradleClaims(rule, file) {
   }
 }
 
+function listTrackedTextFiles(directory = root) {
+  const ignoredExtensions = new Set([
+    '.jar',
+    '.png',
+    '.webp',
+  ]);
+  return execFileSync('git', ['ls-files'], { cwd: root, encoding: 'utf8' })
+    .split('\n')
+    .filter(Boolean)
+    .filter((file) => !ignoredExtensions.has(path.extname(file)));
+}
+
+function forbidTextInRepository(rule, forbiddenText) {
+  const matches = listTrackedTextFiles()
+    .filter((file) => read(file)?.includes(forbiddenText));
+  if (matches.length === 0) {
+    pass(rule);
+  } else {
+    fail(rule, `repository must not include ${JSON.stringify(forbiddenText)}; found in ${matches.join(', ')}`);
+  }
+}
+
 requireRegex(
   'R1.readme-not-published',
   'README.md',
@@ -119,6 +142,14 @@ requireIncludes(
   'gradle.properties',
   'FIXTHIS_GROUP=io.github.beyondwin',
 );
+forbidTextInRepository(
+  'R12.github-namespace',
+  'io.beyondwin' + '.fixthis',
+);
+forbidTextInRepository(
+  'R13.github-namespace-paths',
+  'io/beyondwin' + '/fixthis',
+);
 
 for (const file of [
   'README.md',
@@ -127,7 +158,7 @@ for (const file of [
   'docs/contributing/release-readiness.md',
   'docs/contributing/release-process.md',
 ]) {
-  forbidPublishedGradleClaims(`R12.no-unqualified-published-claims:${file}`, file);
+  forbidPublishedGradleClaims(`R14.no-unqualified-published-claims:${file}`, file);
 }
 
 if (failures.length > 0) {

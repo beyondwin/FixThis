@@ -376,21 +376,21 @@ async function markItemsHandedOff(sessionId, itemIds) {
 
 | Layer | File | Change kind |
 |-------|------|-------------|
-| 도메인 모델 | `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt` (또는 sibling) | `AnnotationDto` 에 `lastHandedOffAtEpochMillis` 필드 추가 |
-| 영속 + 마이그레이션 | `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionPersistence.kt` | 기존 JSON 파일 (필드 없음) 로드 시 null 로 fallback (kotlinx.serialization 의 default value 자동 처리) |
-| Store 정책 | `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` | (1) `sendDraftToAgent` 가 `lastHandedOffAt` 갱신 + Re-save 케이스 추가, (2) `updateAnnotation` / `deleteDraftItem` 의 lock 정책을 phase-aware 로, (3) `markItemsHandedOff` 신규 메서드 |
-| Service | `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt` | `markItemsHandedOff` wrapper 추가 |
-| HTTP route (신규) | `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/MarkHandedOffRoutes.kt` | `POST /api/sessions/{sid}/items/mark-handed-off` |
-| HTTP route (수정) | `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/SessionRoutes.kt` (또는 응답 직렬화 지점) | 응답에 `staleAfterHandoff` 필드 노출 |
-| MCP tools | `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt` | `fixthis_list_feedback`, `fixthis_read_feedback` 응답에 `staleAfterHandoff`, `delivery`, `lastHandedOffAtEpochMillis` 노출 |
+| 도메인 모델 | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt` (또는 sibling) | `AnnotationDto` 에 `lastHandedOffAtEpochMillis` 필드 추가 |
+| 영속 + 마이그레이션 | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionPersistence.kt` | 기존 JSON 파일 (필드 없음) 로드 시 null 로 fallback (kotlinx.serialization 의 default value 자동 처리) |
+| Store 정책 | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` | (1) `sendDraftToAgent` 가 `lastHandedOffAt` 갱신 + Re-save 케이스 추가, (2) `updateAnnotation` / `deleteDraftItem` 의 lock 정책을 phase-aware 로, (3) `markItemsHandedOff` 신규 메서드 |
+| Service | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt` | `markItemsHandedOff` wrapper 추가 |
+| HTTP route (신규) | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/MarkHandedOffRoutes.kt` | `POST /api/sessions/{sid}/items/mark-handed-off` |
+| HTTP route (수정) | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/SessionRoutes.kt` (또는 응답 직렬화 지점) | 응답에 `staleAfterHandoff` 필드 노출 |
+| MCP tools | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt` | `fixthis_list_feedback`, `fixthis_read_feedback` 응답에 `staleAfterHandoff`, `delivery`, `lastHandedOffAtEpochMillis` 노출 |
 | 라벨/배지 | `fixthis-mcp/src/main/console/annotations.js` | `lifecyclePhase` / `statusLabel` / `statusClass` refactor |
 | Detail 화면 | `fixthis-mcp/src/main/console/rendering.js` | `renderSavedAnnotationDetail` 에 phase-aware disabled + 배너 + Re-save 버튼 + agentSummary 영역 |
 | Copy Prompt | `fixthis-mcp/src/main/console/prompt.js` | 클립보드 성공 후 `markItemsHandedOff` 호출 |
 | List row | `fixthis-mcp/src/main/console/rendering.js` 또는 인라인 CSS | row 별 phase 색상 띠 |
 | 번들 | `fixthis-mcp/src/main/resources/console/app.js` | `node scripts/build-console-assets.mjs` 로 재생성 |
-| 테스트 | `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt` | `lastHandedOffAt` 갱신, Re-save, lock 정책 case |
-| 테스트 | `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` | mark-handed-off endpoint 4 케이스 (200/400/404/auth), staleAfterHandoff 응답 |
-| 테스트 | `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt` | tool 응답에 새 필드 포함 검증 |
+| 테스트 | `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt` | `lastHandedOffAt` 갱신, Re-save, lock 정책 case |
+| 테스트 | `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt` | mark-handed-off endpoint 4 케이스 (200/400/404/auth), staleAfterHandoff 응답 |
+| 테스트 | `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt` | tool 응답에 새 필드 포함 검증 |
 | CHANGELOG | `CHANGELOG.md` | Unreleased 섹션에 사용자 가시 개선 1 bullet |
 
 ## 6. Testing strategy

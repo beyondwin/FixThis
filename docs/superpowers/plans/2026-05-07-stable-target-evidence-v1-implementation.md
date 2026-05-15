@@ -36,35 +36,35 @@ This plan deliberately does not implement `LocalInspectionTables`, `CompositionD
 Create:
 
 ```text
-fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/TargetEvidenceModels.kt
-fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/identity/TestTagConvention.kt
-fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/identity/IdentityHintFactory.kt
-fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/identity/OccurrenceCalculator.kt
-fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt
-fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/DetailMode.kt
-fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/TargetEvidenceModelTest.kt
-fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/identity/TestTagConventionTest.kt
-fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/identity/IdentityHintFactoryTest.kt
-fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/identity/OccurrenceCalculatorTest.kt
-fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceInterpretationFactoryTest.kt
+fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/TargetEvidenceModels.kt
+fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/identity/TestTagConvention.kt
+fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/identity/IdentityHintFactory.kt
+fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/identity/OccurrenceCalculator.kt
+fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt
+fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/DetailMode.kt
+fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/model/TargetEvidenceModelTest.kt
+fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/identity/TestTagConventionTest.kt
+fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/identity/IdentityHintFactoryTest.kt
+fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/identity/OccurrenceCalculatorTest.kt
+fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceInterpretationFactoryTest.kt
 ```
 
 Modify:
 
 ```text
-fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt
-fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt
-fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt
-fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/capture/AnnotationCaptureController.kt
-fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayController.kt
-fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt
-fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt
-fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDomainMappers.kt
-fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt
-fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt
-fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt
-sample/src/main/java/io/beyondwin/fixthis/sample/components/StudioHeader.kt
-sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt
+fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt
+fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt
+fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt
+fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/capture/AnnotationCaptureController.kt
+fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayController.kt
+fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt
+fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt
+fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDomainMappers.kt
+fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt
+fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt
+fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt
+sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StudioHeader.kt
+sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt
 docs/output-schema.md
 docs/mcp.md
 ```
@@ -73,16 +73,16 @@ docs/mcp.md
 
 **Files:**
 
-- Create: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/TargetEvidenceModels.kt`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt`
-- Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/TargetEvidenceModelTest.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/TargetEvidenceModels.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt`
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/model/TargetEvidenceModelTest.kt`
 
 - [x] **Step 1: Write serialization compatibility tests**
 
-Create `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/TargetEvidenceModelTest.kt`:
+Create `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/model/TargetEvidenceModelTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.model
+package io.github.beyondwin.fixthis.compose.core.model
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -113,11 +113,11 @@ class TargetEvidenceModelTest {
               "createdAtEpochMillis": 100,
               "platform": "android-compose",
               "app": {
-                "packageName": "io.beyondwin.fixthis.sample",
+                "packageName": "io.github.beyondwin.fixthis.sample",
                 "debuggable": true
               },
               "activity": {
-                "className": "io.beyondwin.fixthis.sample.MainActivity"
+                "className": "io.github.beyondwin.fixthis.sample.MainActivity"
               },
               "tap": {
                 "xInWindow": 20.0,
@@ -174,7 +174,7 @@ class TargetEvidenceModelTest {
                 ),
                 sourceInterpretation = SourceInterpretation(
                     topCandidate = SourceCandidateSummary(
-                        file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
+                        file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
                         line = 42,
                         confidence = SelectionConfidence.HIGH,
                     ),
@@ -200,8 +200,8 @@ class TargetEvidenceModelTest {
         FixThisAnnotation(
             id = "annotation-1",
             createdAtEpochMillis = 100,
-            app = AppInfo(packageName = "io.beyondwin.fixthis.sample", debuggable = true),
-            activity = ActivityInfo(className = "io.beyondwin.fixthis.sample.MainActivity"),
+            app = AppInfo(packageName = "io.github.beyondwin.fixthis.sample", debuggable = true),
+            activity = ActivityInfo(className = "io.github.beyondwin.fixthis.sample.MainActivity"),
             tap = TapPoint(xInWindow = 20f, yInWindow = 30f),
             selection = SelectionInfo(
                 kind = SelectionKind.SEMANTICS_NODE,
@@ -229,17 +229,17 @@ class TargetEvidenceModelTest {
 Run:
 
 ```bash
-./gradlew :fixthis-compose-core:test --tests 'io.beyondwin.fixthis.compose.core.model.TargetEvidenceModelTest'
+./gradlew :fixthis-compose-core:test --tests 'io.github.beyondwin.fixthis.compose.core.model.TargetEvidenceModelTest'
 ```
 
 Expected: FAIL because `targetEvidence`, `TargetEvidence`, `IdentityHint`, `Occurrence`, and related types do not exist.
 
 - [x] **Step 3: Add target evidence models**
 
-Create `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/TargetEvidenceModels.kt`:
+Create `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/TargetEvidenceModels.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.model
+package io.github.beyondwin.fixthis.compose.core.model
 
 import kotlinx.serialization.Serializable
 
@@ -321,7 +321,7 @@ data class SourceCandidateSummary(
 
 - [x] **Step 4: Add nullable targetEvidence to FixThisAnnotation**
 
-Modify `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt`:
+Modify `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt`:
 
 ```kotlin
 @Serializable
@@ -352,7 +352,7 @@ data class FixThisAnnotation(
 Run:
 
 ```bash
-./gradlew :fixthis-compose-core:test --tests 'io.beyondwin.fixthis.compose.core.model.TargetEvidenceModelTest'
+./gradlew :fixthis-compose-core:test --tests 'io.github.beyondwin.fixthis.compose.core.model.TargetEvidenceModelTest'
 ```
 
 Expected: PASS.
@@ -360,9 +360,9 @@ Expected: PASS.
 - [x] **Step 6: Commit**
 
 ```bash
-git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/Models.kt \
-  fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/model/TargetEvidenceModels.kt \
-  fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/model/TargetEvidenceModelTest.kt
+git add fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/Models.kt \
+  fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/TargetEvidenceModels.kt \
+  fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/model/TargetEvidenceModelTest.kt
 git commit -m "feat: add target evidence annotation model"
 ```
 
@@ -370,17 +370,17 @@ git commit -m "feat: add target evidence annotation model"
 
 **Files:**
 
-- Create: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/identity/TestTagConvention.kt`
-- Create: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/identity/IdentityHintFactory.kt`
-- Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/identity/TestTagConventionTest.kt`
-- Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/identity/IdentityHintFactoryTest.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/identity/TestTagConvention.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/identity/IdentityHintFactory.kt`
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/identity/TestTagConventionTest.kt`
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/identity/IdentityHintFactoryTest.kt`
 
 - [x] **Step 1: Write TestTagConvention tests**
 
-Create `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/identity/TestTagConventionTest.kt`:
+Create `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/identity/TestTagConventionTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.identity
+package io.github.beyondwin.fixthis.compose.core.identity
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -417,16 +417,16 @@ class TestTagConventionTest {
 
 - [x] **Step 2: Write IdentityHintFactory tests**
 
-Create `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/identity/IdentityHintFactoryTest.kt`:
+Create `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/identity/IdentityHintFactoryTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.identity
+package io.github.beyondwin.fixthis.compose.core.identity
 
-import io.beyondwin.fixthis.compose.core.model.FixThisNode
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.beyondwin.fixthis.compose.core.model.IdentityHintConfidence
-import io.beyondwin.fixthis.compose.core.model.IdentityHintSource
-import io.beyondwin.fixthis.compose.core.model.TreeKind
+import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.compose.core.model.IdentityHintConfidence
+import io.github.beyondwin.fixthis.compose.core.model.IdentityHintSource
+import io.github.beyondwin.fixthis.compose.core.model.TreeKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -481,17 +481,17 @@ class IdentityHintFactoryTest {
 Run:
 
 ```bash
-./gradlew :fixthis-compose-core:test --tests 'io.beyondwin.fixthis.compose.core.identity.*'
+./gradlew :fixthis-compose-core:test --tests 'io.github.beyondwin.fixthis.compose.core.identity.*'
 ```
 
 Expected: FAIL because the new identity classes do not exist.
 
 - [x] **Step 4: Implement TestTagConvention**
 
-Create `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/identity/TestTagConvention.kt`:
+Create `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/identity/TestTagConvention.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.identity
+package io.github.beyondwin.fixthis.compose.core.identity
 
 object TestTagConvention {
     private val pattern = Regex("^comp:([A-Za-z][A-Za-z0-9]*):([A-Za-z0-9_-]+)$")
@@ -510,15 +510,15 @@ object TestTagConvention {
 
 - [x] **Step 5: Implement IdentityHintFactory**
 
-Create `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/identity/IdentityHintFactory.kt`:
+Create `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/identity/IdentityHintFactory.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.identity
+package io.github.beyondwin.fixthis.compose.core.identity
 
-import io.beyondwin.fixthis.compose.core.model.FixThisNode
-import io.beyondwin.fixthis.compose.core.model.IdentityHint
-import io.beyondwin.fixthis.compose.core.model.IdentityHintConfidence
-import io.beyondwin.fixthis.compose.core.model.IdentityHintSource
+import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
+import io.github.beyondwin.fixthis.compose.core.model.IdentityHint
+import io.github.beyondwin.fixthis.compose.core.model.IdentityHintConfidence
+import io.github.beyondwin.fixthis.compose.core.model.IdentityHintSource
 
 object IdentityHintFactory {
     fun from(node: FixThisNode?): IdentityHint? {
@@ -565,7 +565,7 @@ object IdentityHintFactory {
 Run:
 
 ```bash
-./gradlew :fixthis-compose-core:test --tests 'io.beyondwin.fixthis.compose.core.identity.*'
+./gradlew :fixthis-compose-core:test --tests 'io.github.beyondwin.fixthis.compose.core.identity.*'
 ```
 
 Expected: PASS.
@@ -573,8 +573,8 @@ Expected: PASS.
 - [x] **Step 7: Commit**
 
 ```bash
-git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/identity \
-  fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/identity
+git add fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/identity \
+  fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/identity
 git commit -m "feat: add stable target identity hints"
 ```
 
@@ -582,23 +582,23 @@ git commit -m "feat: add stable target identity hints"
 
 **Files:**
 
-- Create: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/identity/OccurrenceCalculator.kt`
-- Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/identity/OccurrenceCalculatorTest.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/identity/OccurrenceCalculator.kt`
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/identity/OccurrenceCalculatorTest.kt`
 
 - [x] **Step 1: Write occurrence tests**
 
-Create `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/identity/OccurrenceCalculatorTest.kt`:
+Create `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/identity/OccurrenceCalculatorTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.identity
+package io.github.beyondwin.fixthis.compose.core.identity
 
-import io.beyondwin.fixthis.compose.core.model.FixThisNode
-import io.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.beyondwin.fixthis.compose.core.model.IdentityHint
-import io.beyondwin.fixthis.compose.core.model.IdentityHintConfidence
-import io.beyondwin.fixthis.compose.core.model.IdentityHintSource
-import io.beyondwin.fixthis.compose.core.model.OccurrenceSignatureType
-import io.beyondwin.fixthis.compose.core.model.TreeKind
+import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.compose.core.model.IdentityHint
+import io.github.beyondwin.fixthis.compose.core.model.IdentityHintConfidence
+import io.github.beyondwin.fixthis.compose.core.model.IdentityHintSource
+import io.github.beyondwin.fixthis.compose.core.model.OccurrenceSignatureType
+import io.github.beyondwin.fixthis.compose.core.model.TreeKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -689,23 +689,23 @@ class OccurrenceCalculatorTest {
 Run:
 
 ```bash
-./gradlew :fixthis-compose-core:test --tests 'io.beyondwin.fixthis.compose.core.identity.OccurrenceCalculatorTest'
+./gradlew :fixthis-compose-core:test --tests 'io.github.beyondwin.fixthis.compose.core.identity.OccurrenceCalculatorTest'
 ```
 
 Expected: FAIL because `OccurrenceCalculator` does not exist.
 
 - [x] **Step 3: Implement OccurrenceCalculator**
 
-Create `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/identity/OccurrenceCalculator.kt`:
+Create `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/identity/OccurrenceCalculator.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.identity
+package io.github.beyondwin.fixthis.compose.core.identity
 
-import io.beyondwin.fixthis.compose.core.model.FixThisNode
-import io.beyondwin.fixthis.compose.core.model.IdentityHint
-import io.beyondwin.fixthis.compose.core.model.Occurrence
-import io.beyondwin.fixthis.compose.core.model.OccurrenceSignature
-import io.beyondwin.fixthis.compose.core.model.OccurrenceSignatureType
+import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
+import io.github.beyondwin.fixthis.compose.core.model.IdentityHint
+import io.github.beyondwin.fixthis.compose.core.model.Occurrence
+import io.github.beyondwin.fixthis.compose.core.model.OccurrenceSignature
+import io.github.beyondwin.fixthis.compose.core.model.OccurrenceSignatureType
 
 object OccurrenceCalculator {
     fun calculate(
@@ -774,7 +774,7 @@ object OccurrenceCalculator {
 Run:
 
 ```bash
-./gradlew :fixthis-compose-core:test --tests 'io.beyondwin.fixthis.compose.core.identity.OccurrenceCalculatorTest'
+./gradlew :fixthis-compose-core:test --tests 'io.github.beyondwin.fixthis.compose.core.identity.OccurrenceCalculatorTest'
 ```
 
 Expected: PASS.
@@ -782,8 +782,8 @@ Expected: PASS.
 - [x] **Step 5: Commit**
 
 ```bash
-git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/identity/OccurrenceCalculator.kt \
-  fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/identity/OccurrenceCalculatorTest.kt
+git add fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/identity/OccurrenceCalculator.kt \
+  fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/identity/OccurrenceCalculatorTest.kt
 git commit -m "feat: add stable occurrence evidence"
 ```
 
@@ -791,20 +791,20 @@ git commit -m "feat: add stable occurrence evidence"
 
 **Files:**
 
-- Create: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
-- Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceInterpretationFactoryTest.kt`
-- Modify test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceInterpretationFactoryTest.kt`
+- Modify test: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`
 
 - [x] **Step 1: Write source interpretation tests**
 
-Create `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceInterpretationFactoryTest.kt`:
+Create `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceInterpretationFactoryTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.source
+package io.github.beyondwin.fixthis.compose.core.source
 
-import io.beyondwin.fixthis.compose.core.model.SelectionConfidence
-import io.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -815,7 +815,7 @@ class SourceInterpretationFactoryTest {
         val interpretation = SourceInterpretationFactory.from(
             sourceCandidates = listOf(
                 SourceCandidate(
-                    file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
+                    file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
                     line = 42,
                     score = 1.0,
                     matchedTerms = listOf("AppPrimaryButton"),
@@ -825,7 +825,7 @@ class SourceInterpretationFactoryTest {
             ),
         )
 
-        assertEquals("sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt", interpretation.topCandidate?.file)
+        assertEquals("sample/src/main/java/io/github/beyondwin/fixthis/sample/components/AppPrimaryButton.kt", interpretation.topCandidate?.file)
         assertEquals(42, interpretation.topCandidate?.line)
         assertEquals(SelectionConfidence.HIGH, interpretation.topCandidate?.confidence)
         assertEquals(listOf("selected testTag convention composable"), interpretation.reasonSummary)
@@ -844,7 +844,7 @@ class SourceInterpretationFactoryTest {
 
 - [x] **Step 2: Add SourceMatcher convention test**
 
-Append this test to `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`:
+Append this test to `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`:
 
 ```kotlin
 @Test
@@ -853,7 +853,7 @@ fun conventionTestTagCanMatchComposableSymbol() {
         SourceIndex(
             entries = listOf(
                 SourceIndexEntry(
-                    file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
+                    file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
                     line = 12,
                     symbols = listOf("AppPrimaryButton"),
                     excerpt = "@Composable fun AppPrimaryButton(...)",
@@ -869,10 +869,10 @@ fun conventionTestTagCanMatchComposableSymbol() {
             testTag = "comp:AppPrimaryButton:primary",
         ),
         nearbyNodes = emptyList(),
-        activityName = "io.beyondwin.fixthis.sample.MainActivity",
+        activityName = "io.github.beyondwin.fixthis.sample.MainActivity",
     )
 
-    assertEquals("sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt", matches.first().file)
+    assertEquals("sample/src/main/java/io/github/beyondwin/fixthis/sample/components/AppPrimaryButton.kt", matches.first().file)
     assertTrue(matches.first().matchReasons.contains("selected testTag convention composable"))
 }
 ```
@@ -882,21 +882,21 @@ fun conventionTestTagCanMatchComposableSymbol() {
 Run:
 
 ```bash
-./gradlew :fixthis-compose-core:test --tests 'io.beyondwin.fixthis.compose.core.source.SourceInterpretationFactoryTest' --tests 'io.beyondwin.fixthis.compose.core.source.SourceMatcherTest'
+./gradlew :fixthis-compose-core:test --tests 'io.github.beyondwin.fixthis.compose.core.source.SourceInterpretationFactoryTest' --tests 'io.github.beyondwin.fixthis.compose.core.source.SourceMatcherTest'
 ```
 
 Expected: FAIL because `SourceInterpretationFactory` is missing and `SourceMatcher` does not add convention reasons.
 
 - [x] **Step 4: Implement SourceInterpretationFactory**
 
-Create `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt`:
+Create `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.source
+package io.github.beyondwin.fixthis.compose.core.source
 
-import io.beyondwin.fixthis.compose.core.model.SourceCandidate
-import io.beyondwin.fixthis.compose.core.model.SourceCandidateSummary
-import io.beyondwin.fixthis.compose.core.model.SourceInterpretation
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidateSummary
+import io.github.beyondwin.fixthis.compose.core.model.SourceInterpretation
 
 object SourceInterpretationFactory {
     fun from(sourceCandidates: List<SourceCandidate>): SourceInterpretation {
@@ -921,10 +921,10 @@ object SourceInterpretationFactory {
 
 - [x] **Step 5: Add convention-aware scoring to SourceMatcher**
 
-Modify `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`:
+Modify `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.core.identity.TestTagConvention
+import io.github.beyondwin.fixthis.compose.core.identity.TestTagConvention
 ```
 
 Inside `score(...)`, directly after the existing selected testTag block:
@@ -957,7 +957,7 @@ private fun SourceIndexEntry.matchesConventionComposable(composableName: String)
 Run:
 
 ```bash
-./gradlew :fixthis-compose-core:test --tests 'io.beyondwin.fixthis.compose.core.source.SourceInterpretationFactoryTest' --tests 'io.beyondwin.fixthis.compose.core.source.SourceMatcherTest'
+./gradlew :fixthis-compose-core:test --tests 'io.github.beyondwin.fixthis.compose.core.source.SourceInterpretationFactoryTest' --tests 'io.github.beyondwin.fixthis.compose.core.source.SourceMatcherTest'
 ```
 
 Expected: PASS.
@@ -965,10 +965,10 @@ Expected: PASS.
 - [x] **Step 7: Commit**
 
 ```bash
-git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt \
-  fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt \
-  fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceInterpretationFactoryTest.kt \
-  fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt
+git add fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt \
+  fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceInterpretationFactory.kt \
+  fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceInterpretationFactoryTest.kt \
+  fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt
 git commit -m "feat: add source interpretation evidence"
 ```
 
@@ -978,14 +978,14 @@ Post-main-merge adaptation: after merging `main`, the in-app overlay feedback ca
 
 **Files:**
 
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/capture/AnnotationCaptureController.kt`
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayController.kt`
-- Modify test: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/capture/AnnotationCaptureControllerTest.kt`
-- Modify test: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayControllerTest.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/capture/AnnotationCaptureController.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayController.kt`
+- Modify test: `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/capture/AnnotationCaptureControllerTest.kt`
+- Modify test: `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayControllerTest.kt`
 
 - [x] **Step 1: Add capture controller test for target evidence**
 
-Append to `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/capture/AnnotationCaptureControllerTest.kt`:
+Append to `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/capture/AnnotationCaptureControllerTest.kt`:
 
 ```kotlin
 @Test
@@ -1016,7 +1016,7 @@ fun captureAddsTargetEvidenceForSelectedNode() {
             sourceIndex = SourceIndex(
                 entries = listOf(
                     SourceIndexEntry(
-                        file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
+                        file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
                         line = 12,
                         symbols = listOf("AppPrimaryButton"),
                     ),
@@ -1029,7 +1029,7 @@ fun captureAddsTargetEvidenceForSelectedNode() {
     assertEquals("AppPrimaryButton", annotation.targetEvidence?.identityHint?.composableNameHint)
     assertEquals(2, annotation.targetEvidence?.occurrence?.count)
     assertEquals(1, annotation.targetEvidence?.occurrence?.selectedOrdinal)
-    assertEquals("sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt", annotation.targetEvidence?.sourceInterpretation?.topCandidate?.file)
+    assertEquals("sample/src/main/java/io/github/beyondwin/fixthis/sample/components/AppPrimaryButton.kt", annotation.targetEvidence?.sourceInterpretation?.topCandidate?.file)
 }
 ```
 
@@ -1038,7 +1038,7 @@ fun captureAddsTargetEvidenceForSelectedNode() {
 Run:
 
 ```bash
-./gradlew :fixthis-compose-sidekick:test --tests 'io.beyondwin.fixthis.compose.sidekick.capture.AnnotationCaptureControllerTest.captureAddsTargetEvidenceForSelectedNode'
+./gradlew :fixthis-compose-sidekick:test --tests 'io.github.beyondwin.fixthis.compose.sidekick.capture.AnnotationCaptureControllerTest.captureAddsTargetEvidenceForSelectedNode'
 ```
 
 Expected: FAIL because capture does not populate `targetEvidence`.
@@ -1048,11 +1048,11 @@ Expected: FAIL because capture does not populate `targetEvidence`.
 Modify imports in `AnnotationCaptureController.kt`:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.core.identity.IdentityHintFactory
-import io.beyondwin.fixthis.compose.core.identity.OccurrenceCalculator
-import io.beyondwin.fixthis.compose.core.model.EvidenceQuality
-import io.beyondwin.fixthis.compose.core.model.TargetEvidence
-import io.beyondwin.fixthis.compose.core.source.SourceInterpretationFactory
+import io.github.beyondwin.fixthis.compose.core.identity.IdentityHintFactory
+import io.github.beyondwin.fixthis.compose.core.identity.OccurrenceCalculator
+import io.github.beyondwin.fixthis.compose.core.model.EvidenceQuality
+import io.github.beyondwin.fixthis.compose.core.model.TargetEvidence
+import io.github.beyondwin.fixthis.compose.core.source.SourceInterpretationFactory
 ```
 
 After `sourceCandidates` is computed and before returning `FixThisAnnotation`, add:
@@ -1180,7 +1180,7 @@ private fun ScreenshotInfo.availableKinds(): List<String> =
 Run:
 
 ```bash
-./gradlew :fixthis-compose-sidekick:test --tests 'io.beyondwin.fixthis.compose.sidekick.capture.AnnotationCaptureControllerTest' --tests 'io.beyondwin.fixthis.compose.sidekick.overlay.FixThisOverlayControllerTest'
+./gradlew :fixthis-compose-sidekick:test --tests 'io.github.beyondwin.fixthis.compose.sidekick.capture.AnnotationCaptureControllerTest' --tests 'io.github.beyondwin.fixthis.compose.sidekick.overlay.FixThisOverlayControllerTest'
 ```
 
 Expected: PASS.
@@ -1188,11 +1188,11 @@ Expected: PASS.
 - [x] **Step 8: Commit**
 
 ```bash
-git add fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/capture/AnnotationCaptureController.kt \
-  fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayController.kt \
-  fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt \
-  fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/capture/AnnotationCaptureControllerTest.kt \
-  fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayControllerTest.kt
+git add fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/capture/AnnotationCaptureController.kt \
+  fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayController.kt \
+  fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt \
+  fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/capture/AnnotationCaptureControllerTest.kt \
+  fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/overlay/FixThisOverlayControllerTest.kt
 git commit -m "feat: compute target evidence during capture"
 ```
 
@@ -1200,15 +1200,15 @@ git commit -m "feat: compute target evidence during capture"
 
 **Files:**
 
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDomainMappers.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionPersistenceTest.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDomainMappers.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionPersistenceTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
 
 - [x] **Step 1: Add persistence test for old session JSON**
 
-Append to `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionPersistenceTest.kt`:
+Append to `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionPersistenceTest.kt`:
 
 ```kotlin
 @Test
@@ -1222,7 +1222,7 @@ fun loadSessionWithoutTargetEvidenceStillWorks() {
         {
           "schemaVersion": "1.0",
           "sessionId": "session-1",
-          "packageName": "io.beyondwin.fixthis.sample",
+          "packageName": "io.github.beyondwin.fixthis.sample",
           "projectRoot": "${root.absolutePath.replace("\\", "\\\\")}",
           "createdAtEpochMillis": 100,
           "updatedAtEpochMillis": 100,
@@ -1246,17 +1246,17 @@ fun loadSessionWithoutTargetEvidenceStillWorks() {
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests 'io.beyondwin.fixthis.mcp.session.FeedbackSessionPersistenceTest.loadSessionWithoutTargetEvidenceStillWorks'
+./gradlew :fixthis-mcp:test --tests 'io.github.beyondwin.fixthis.mcp.session.FeedbackSessionPersistenceTest.loadSessionWithoutTargetEvidenceStillWorks'
 ```
 
 Expected: PASS before and after model changes. This guards the old-session path.
 
 - [x] **Step 3: Add targetEvidence to domain Annotation**
 
-Modify `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt`:
+Modify `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt`:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.core.model.TargetEvidence
+import io.github.beyondwin.fixthis.compose.core.model.TargetEvidence
 ```
 
 Add to `data class Annotation`:
@@ -1269,10 +1269,10 @@ Place it after `screenshotCrop` and before `comment` to keep evidence fields gro
 
 - [x] **Step 4: Add targetEvidence to AnnotationDto**
 
-Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt`:
+Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt`:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.core.model.TargetEvidence
+import io.github.beyondwin.fixthis.compose.core.model.TargetEvidence
 ```
 
 Add to `data class AnnotationDto`:
@@ -1304,7 +1304,7 @@ targetEvidence = targetEvidence,
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests 'io.beyondwin.fixthis.mcp.session.*'
+./gradlew :fixthis-mcp:test --tests 'io.github.beyondwin.fixthis.mcp.session.*'
 ```
 
 Expected: PASS.
@@ -1312,10 +1312,10 @@ Expected: PASS.
 - [x] **Step 7: Commit**
 
 ```bash
-git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDtoModels.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/SessionDomainMappers.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionPersistenceTest.kt
+git add fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/annotation/Annotation.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDtoModels.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/SessionDomainMappers.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionPersistenceTest.kt
 git commit -m "feat: persist target evidence in feedback sessions"
 ```
 
@@ -1323,9 +1323,9 @@ git commit -m "feat: persist target evidence in feedback sessions"
 
 **Files:**
 
-- Create: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/DetailMode.kt`
-- Modify: `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt`
-- Test: `fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt`
+- Create: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/DetailMode.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt`
+- Test: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt`
 
 - [x] **Step 1: Add formatter tests for detail modes**
 
@@ -1382,7 +1382,7 @@ private fun annotationWithTargetEvidence(): FixThisAnnotation {
         selectedNode = selectedNode,
         sourceCandidates = listOf(
             SourceCandidate(
-                file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
+                file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
                 line = 42,
                 score = 1.0,
                 matchedTerms = listOf("AppPrimaryButton"),
@@ -1415,13 +1415,13 @@ private fun annotationWithTargetEvidence(): FixThisAnnotation {
 Add imports:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.core.model.IdentityHint
-import io.beyondwin.fixthis.compose.core.model.IdentityHintConfidence
-import io.beyondwin.fixthis.compose.core.model.IdentityHintSource
-import io.beyondwin.fixthis.compose.core.model.Occurrence
-import io.beyondwin.fixthis.compose.core.model.OccurrenceSignature
-import io.beyondwin.fixthis.compose.core.model.OccurrenceSignatureType
-import io.beyondwin.fixthis.compose.core.model.TargetEvidence
+import io.github.beyondwin.fixthis.compose.core.model.IdentityHint
+import io.github.beyondwin.fixthis.compose.core.model.IdentityHintConfidence
+import io.github.beyondwin.fixthis.compose.core.model.IdentityHintSource
+import io.github.beyondwin.fixthis.compose.core.model.Occurrence
+import io.github.beyondwin.fixthis.compose.core.model.OccurrenceSignature
+import io.github.beyondwin.fixthis.compose.core.model.OccurrenceSignatureType
+import io.github.beyondwin.fixthis.compose.core.model.TargetEvidence
 ```
 
 - [x] **Step 2: Run formatter tests to verify failures**
@@ -1429,17 +1429,17 @@ import io.beyondwin.fixthis.compose.core.model.TargetEvidence
 Run:
 
 ```bash
-./gradlew :fixthis-compose-core:test --tests 'io.beyondwin.fixthis.compose.core.format.FixThisMarkdownFormatterTest'
+./gradlew :fixthis-compose-core:test --tests 'io.github.beyondwin.fixthis.compose.core.format.FixThisMarkdownFormatterTest'
 ```
 
 Expected: FAIL because `DetailMode` and detail-mode formatting do not exist.
 
 - [x] **Step 3: Create DetailMode enum**
 
-Create `fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/DetailMode.kt`:
+Create `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/DetailMode.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.core.format
+package io.github.beyondwin.fixthis.compose.core.format
 
 enum class DetailMode {
     COMPACT,
@@ -1603,7 +1603,7 @@ Task 7 note: `format(annotation)` intentionally routes to `DetailMode.FULL` to p
 Run:
 
 ```bash
-./gradlew :fixthis-compose-core:test --tests 'io.beyondwin.fixthis.compose.core.format.FixThisMarkdownFormatterTest'
+./gradlew :fixthis-compose-core:test --tests 'io.github.beyondwin.fixthis.compose.core.format.FixThisMarkdownFormatterTest'
 ```
 
 Expected: PASS.
@@ -1611,9 +1611,9 @@ Expected: PASS.
 - [x] **Step 6: Commit**
 
 ```bash
-git add fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/DetailMode.kt \
-  fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt \
-  fixthis-compose-core/src/test/kotlin/io/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt
+git add fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/DetailMode.kt \
+  fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt \
+  fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatterTest.kt
 git commit -m "feat: add feedback markdown detail modes"
 ```
 
@@ -1621,10 +1621,10 @@ git commit -m "feat: add feedback markdown detail modes"
 
 **Files:**
 
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt`
 
 - [x] **Step 1: Add FeedbackQueueFormatter detail mode tests**
 
@@ -1645,7 +1645,7 @@ fun compactModeKeepsQueueMarkdownShort() {
     )
     val session = SessionDto(
         sessionId = "session-1",
-        packageName = "io.beyondwin.fixthis.sample",
+        packageName = "io.github.beyondwin.fixthis.sample",
         projectRoot = "/repo",
         createdAtEpochMillis = 1L,
         updatedAtEpochMillis = 2L,
@@ -1676,7 +1676,7 @@ fun compactModeKeepsQueueMarkdownShort() {
                 ),
                 sourceCandidates = listOf(
                     SourceCandidate(
-                        file = "sample/src/main/java/io/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
+                        file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/AppPrimaryButton.kt",
                         line = 42,
                         score = 0.95,
                         matchedTerms = listOf("AppPrimaryButton"),
@@ -1702,7 +1702,7 @@ fun compactModeKeepsQueueMarkdownShort() {
 fun jsonDoesNotChangeWithDetailMode() {
     val session = SessionDto(
         sessionId = "session-1",
-        packageName = "io.beyondwin.fixthis.sample",
+        packageName = "io.github.beyondwin.fixthis.sample",
         projectRoot = "/repo",
         createdAtEpochMillis = 1L,
         updatedAtEpochMillis = 2L,
@@ -1730,14 +1730,14 @@ fun jsonDoesNotChangeWithDetailMode() {
 Import:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.core.format.DetailMode
-import io.beyondwin.fixthis.compose.core.model.IdentityHint
-import io.beyondwin.fixthis.compose.core.model.IdentityHintConfidence
-import io.beyondwin.fixthis.compose.core.model.IdentityHintSource
-import io.beyondwin.fixthis.compose.core.model.Occurrence
-import io.beyondwin.fixthis.compose.core.model.OccurrenceSignature
-import io.beyondwin.fixthis.compose.core.model.OccurrenceSignatureType
-import io.beyondwin.fixthis.compose.core.model.TargetEvidence
+import io.github.beyondwin.fixthis.compose.core.format.DetailMode
+import io.github.beyondwin.fixthis.compose.core.model.IdentityHint
+import io.github.beyondwin.fixthis.compose.core.model.IdentityHintConfidence
+import io.github.beyondwin.fixthis.compose.core.model.IdentityHintSource
+import io.github.beyondwin.fixthis.compose.core.model.Occurrence
+import io.github.beyondwin.fixthis.compose.core.model.OccurrenceSignature
+import io.github.beyondwin.fixthis.compose.core.model.OccurrenceSignatureType
+import io.github.beyondwin.fixthis.compose.core.model.TargetEvidence
 import kotlin.test.assertEquals
 ```
 
@@ -1757,7 +1757,7 @@ assertTrue(output.contains("full"))
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests 'io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest' --tests 'io.beyondwin.fixthis.mcp.McpProtocolTest'
+./gradlew :fixthis-mcp:test --tests 'io.github.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest' --tests 'io.github.beyondwin.fixthis.mcp.McpProtocolTest'
 ```
 
 Expected: FAIL because `FeedbackQueueFormatter.toMarkdown(session, detailMode)` and schema support do not exist.
@@ -1767,7 +1767,7 @@ Expected: FAIL because `FeedbackQueueFormatter.toMarkdown(session, detailMode)` 
 Modify `FeedbackQueueFormatter.kt`:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.core.format.DetailMode
+import io.github.beyondwin.fixthis.compose.core.format.DetailMode
 ```
 
 Change:
@@ -1832,7 +1832,7 @@ item.targetEvidence?.identityHint?.let { hint ->
 Modify `FixThisTools.kt` imports:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.core.format.DetailMode
+import io.github.beyondwin.fixthis.compose.core.format.DetailMode
 ```
 
 In the `fixthis_read_feedback` call branch:
@@ -1872,7 +1872,7 @@ private fun enumStringProperty(description: String, values: List<String>): JsonO
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests 'io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest' --tests 'io.beyondwin.fixthis.mcp.McpProtocolTest'
+./gradlew :fixthis-mcp:test --tests 'io.github.beyondwin.fixthis.mcp.session.FeedbackQueueFormatterTest' --tests 'io.github.beyondwin.fixthis.mcp.McpProtocolTest'
 ```
 
 Expected: PASS.
@@ -1880,10 +1880,10 @@ Expected: PASS.
 - [x] **Step 7: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatter.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt
 git commit -m "feat: add feedback handoff detail mode"
 ```
 
@@ -1891,8 +1891,8 @@ git commit -m "feat: add feedback handoff detail mode"
 
 **Files:**
 
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
-- Test: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`
+- Test: `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt`
 
 - [x] **Step 1: Add bridge status capability test**
 
@@ -1919,7 +1919,7 @@ fun statusReportsTargetEvidenceCapabilities() = runBlocking {
 Run:
 
 ```bash
-./gradlew :fixthis-compose-sidekick:test --tests 'io.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerTest.statusReportsTargetEvidenceCapabilities'
+./gradlew :fixthis-compose-sidekick:test --tests 'io.github.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerTest.statusReportsTargetEvidenceCapabilities'
 ```
 
 Expected: FAIL because capabilities are not reported.
@@ -1952,7 +1952,7 @@ Do not change `BridgeProtocol.VERSION`.
 Run:
 
 ```bash
-./gradlew :fixthis-compose-sidekick:test --tests 'io.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerTest'
+./gradlew :fixthis-compose-sidekick:test --tests 'io.github.beyondwin.fixthis.compose.sidekick.bridge.BridgeServerTest'
 ```
 
 Expected: PASS.
@@ -1960,8 +1960,8 @@ Expected: PASS.
 - [x] **Step 5: Commit**
 
 ```bash
-git add fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt \
-  fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt
+git add fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt \
+  fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt
 git commit -m "feat: report target evidence bridge capabilities"
 ```
 
@@ -1969,9 +1969,9 @@ git commit -m "feat: report target evidence bridge capabilities"
 
 **Files:**
 
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/components/StudioHeader.kt`
-- Modify: `sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt`
-- Test: `sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StudioHeader.kt`
+- Modify: `sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt`
+- Test: `sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`
 
 - [x] **Step 1: Add sample test-tag assertions**
 
@@ -1999,7 +1999,7 @@ import androidx.compose.ui.test.onNodeWithTag
 Run:
 
 ```bash
-./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=io.beyondwin.fixthis.sample.SampleAppSmokeTest
+./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=io.github.beyondwin.fixthis.sample.SampleAppSmokeTest
 ```
 
 Expected: FAIL until tags are added. If no Android device or emulator is connected, record the environment limitation and run compile checks in Step 5.
@@ -2051,7 +2051,7 @@ Expected: PASS.
 Run:
 
 ```bash
-./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=io.beyondwin.fixthis.sample.SampleAppSmokeTest
+./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=io.github.beyondwin.fixthis.sample.SampleAppSmokeTest
 ```
 
 Expected: PASS when an Android device or emulator is connected. If unavailable, record "No connected Android device or emulator" in the final verification notes.
@@ -2059,9 +2059,9 @@ Expected: PASS when an Android device or emulator is connected. If unavailable, 
 - [x] **Step 6: Commit**
 
 ```bash
-git add sample/src/main/java/io/beyondwin/fixthis/sample/components/StudioHeader.kt \
-  sample/src/main/java/io/beyondwin/fixthis/sample/screens/HomeScreen.kt \
-  sample/src/androidTest/java/io/beyondwin/fixthis/sample/SampleAppSmokeTest.kt
+git add sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StudioHeader.kt \
+  sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt \
+  sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SampleAppSmokeTest.kt
 git commit -m "test: add stable target evidence sample tags"
 ```
 
@@ -2170,7 +2170,7 @@ Expected: PASS with a connected Android device or emulator. If unavailable, reco
 Run:
 
 ```bash
-rg -n 'BridgeProtocolVersion = "1.0"|const val VERSION: String = "1.0"' fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/BridgeClient.kt fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt
+rg -n 'BridgeProtocolVersion = "1.0"|const val VERSION: String = "1.0"' fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt
 ```
 
 Expected: output includes both version constants still set to `1.0`.

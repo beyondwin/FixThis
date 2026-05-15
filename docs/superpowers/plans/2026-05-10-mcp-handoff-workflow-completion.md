@@ -17,25 +17,25 @@
 ### Phase A — Backend agent loop
 
 **Modify:**
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` — add `claimFeedback`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt` — delegate `claimFeedback` to store
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt` — register `fixthis_claim_feedback`, tweak resolve description, add `includeAll` to list/read
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt` — per-item `id:` token + `agent_protocol:` footer
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt` — add `claimFeedback`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt` — delegate `claimFeedback` to store
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt` — register `fixthis_claim_feedback`, tweak resolve description, add `includeAll` to list/read
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt` — per-item `id:` token + `agent_protocol:` footer
 
 **Test (modify):**
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt`
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
 
 ### Phase B — ETag polling infrastructure
 
 **Modify:**
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionSummary.kt` — add `inProgressItemsCount`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleHttp.kt` — add `ifNoneMatch`, `sendNotModified`, `sendJsonWithEtag`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/SessionRoutes.kt` — emit ETag and honor If-None-Match on GET routes
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionSummary.kt` — add `inProgressItemsCount`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleHttp.kt` — add `ifNoneMatch`, `sendNotModified`, `sendJsonWithEtag`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/SessionRoutes.kt` — emit ETag and honor If-None-Match on GET routes
 
 **Test (modify):**
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 ### Phase C — Console UI removal + polling client
 
@@ -55,7 +55,7 @@
 - `fixthis-mcp/src/main/console/prompt.js` — toast text, mutation-lock around `sendAgentPrompt` and `copyPrompt`
 
 **Test (modify):**
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 ### Phase D — Build + docs
 
@@ -76,8 +76,8 @@
 ## Task 1: Add `claimFeedback` to `FeedbackSessionStore`
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt`
 
 - [ ] **Step 1: Add the failing tests**
 
@@ -233,8 +233,8 @@ Expected: all tests pass, including the existing `clearDraftItemsKeepsSentHistor
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStore.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt
 git commit -m "feat(mcp): add FeedbackSessionStore.claimFeedback for IN_PROGRESS marking"
 ```
 
@@ -243,14 +243,14 @@ git commit -m "feat(mcp): add FeedbackSessionStore.claimFeedback for IN_PROGRESS
 ## Task 2: Delegate `claimFeedback` through `FeedbackSessionService`
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
 
 - [ ] **Step 1: Write failing service-layer test**
 
-Append to `FeedbackSessionStoreTest.kt` if a service test class does not exist; otherwise create `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionServiceClaimTest.kt`:
+Append to `FeedbackSessionStoreTest.kt` if a service test class does not exist; otherwise create `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionServiceClaimTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -303,8 +303,8 @@ Expected: all green.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionServiceClaimTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionServiceClaimTest.kt
 git commit -m "feat(mcp): expose claimFeedback through FeedbackSessionService"
 ```
 
@@ -313,8 +313,8 @@ git commit -m "feat(mcp): expose claimFeedback through FeedbackSessionService"
 ## Task 3: Register `fixthis_claim_feedback` tool definition
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt`
 
 - [ ] **Step 1: Write failing test for tool listing**
 
@@ -374,8 +374,8 @@ Expected: pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt
 git commit -m "feat(mcp): register fixthis_claim_feedback tool definition"
 ```
 
@@ -384,8 +384,8 @@ git commit -m "feat(mcp): register fixthis_claim_feedback tool definition"
 ## Task 4: Implement `fixthis_claim_feedback` handler
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt`
 
 - [ ] **Step 1: Write failing handler tests**
 
@@ -456,8 +456,8 @@ Expected: green.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt
 git commit -m "feat(mcp): implement fixthis_claim_feedback handler"
 ```
 
@@ -466,8 +466,8 @@ git commit -m "feat(mcp): implement fixthis_claim_feedback handler"
 ## Task 5: Update `fixthis_resolve_feedback` description
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt`
 
 - [ ] **Step 1: Write failing assertion on the description**
 
@@ -523,8 +523,8 @@ Expected: green.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt
 git commit -m "docs(mcp): pair resolve description with claim workflow"
 ```
 
@@ -533,8 +533,8 @@ git commit -m "docs(mcp): pair resolve description with claim workflow"
 ## Task 6: Add `includeAll` filter to `fixthis_list_feedback`
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt`
 
 - [ ] **Step 1: Write failing tests**
 
@@ -644,8 +644,8 @@ Expected: all green, including the existing tests that assert specific counters.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt
 git commit -m "feat(mcp): focus fixthis_list_feedback on SENT and unfinished by default"
 ```
 
@@ -654,8 +654,8 @@ git commit -m "feat(mcp): focus fixthis_list_feedback on SENT and unfinished by 
 ## Task 7: Add `includeAll` filter to `fixthis_read_feedback`
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt`
 
 - [ ] **Step 1: Write failing tests**
 
@@ -767,8 +767,8 @@ Expected: green.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/tools/FixThisTools.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/McpProtocolTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt
 git commit -m "feat(mcp): focus fixthis_read_feedback default; itemId always returns"
 ```
 
@@ -777,8 +777,8 @@ git commit -m "feat(mcp): focus fixthis_read_feedback default; itemId always ret
 ## Task 8: Emit per-item `id:` token in compact handoff
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
 
 - [ ] **Step 1: Write the failing assertion**
 
@@ -836,8 +836,8 @@ Expected: all green. If any pre-existing snapshot-style test compares whole outp
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt
 git commit -m "feat(handoff): emit per-item id token in compact prompt"
 ```
 
@@ -846,8 +846,8 @@ git commit -m "feat(handoff): emit per-item id token in compact prompt"
 ## Task 9: Append `agent_protocol:` footer to compact handoff
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
 
 - [ ] **Step 1: Write the failing assertion**
 
@@ -900,8 +900,8 @@ Expected: green.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt
 git commit -m "feat(handoff): append agent_protocol footer to compact prompt"
 ```
 
@@ -912,8 +912,8 @@ git commit -m "feat(handoff): append agent_protocol footer to compact prompt"
 ## Task 10: Add `inProgressItemsCount` to `FeedbackSessionSummary`
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionSummary.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionPersistenceTest.kt` (or whichever test file currently asserts summary shape; if none, create `FeedbackSessionSummaryTest.kt`)
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionSummary.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionPersistenceTest.kt` (or whichever test file currently asserts summary shape; if none, create `FeedbackSessionSummaryTest.kt`)
 
 - [ ] **Step 1: Write failing test**
 
@@ -995,8 +995,8 @@ Expected: green. (Run the whole module to surface any JSON-shape regression in p
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionSummary.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionSummary.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/
 git commit -m "feat(mcp): add inProgressItemsCount to FeedbackSessionSummary"
 ```
 
@@ -1005,14 +1005,14 @@ git commit -m "feat(mcp): add inProgressItemsCount to FeedbackSessionSummary"
 ## Task 11: Add ETag helpers to `ConsoleHttp.kt`
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleHttp.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleHttp.kt`
 
 - [ ] **Step 1: Write a small helper test**
 
-Create `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleHttpEtagTest.kt`:
+Create `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleHttpEtagTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -1072,8 +1072,8 @@ Expected: green.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleHttp.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleHttpEtagTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleHttp.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleHttpEtagTest.kt
 git commit -m "feat(console): add ETag/304 helpers to ConsoleHttp"
 ```
 
@@ -1082,8 +1082,8 @@ git commit -m "feat(console): add ETag/304 helpers to ConsoleHttp"
 ## Task 12: Emit ETag and honor If-None-Match on `/api/sessions`
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/SessionRoutes.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/SessionRoutes.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Write failing tests**
 
@@ -1166,8 +1166,8 @@ Expected: green.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/SessionRoutes.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/SessionRoutes.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat(console): ETag/304 on /api/sessions"
 ```
 
@@ -1176,8 +1176,8 @@ git commit -m "feat(console): ETag/304 on /api/sessions"
 ## Task 13: Emit ETag and honor If-None-Match on `/api/session`
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/SessionRoutes.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/SessionRoutes.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Write failing tests**
 
@@ -1256,8 +1256,8 @@ Expected: green.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/SessionRoutes.kt \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/SessionRoutes.kt \
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat(console): ETag/304 on /api/session"
 ```
 
@@ -1270,7 +1270,7 @@ git commit -m "feat(console): ETag/304 on /api/session"
 ## Task 14: Update `FeedbackConsoleServerTest` assertions for drawer absence
 
 **Files:**
-- Modify: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Replace existing drawer-presence assertions with absence assertions**
 
@@ -1299,7 +1299,7 @@ Expected: failures on the new `assertFalse` checks. This proves we need to remov
 Commit the test changes alone so the next tasks become "make tests green by deleting code".
 
 ```bash
-git add fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+git add fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "test(console): assert Sent History drawer is gone (RED)"
 ```
 
@@ -1525,7 +1525,7 @@ git commit -m "feat(console): drop Sent History rendering hook"
 - Modify: `fixthis-mcp/src/main/console/rendering.js`
 - Modify: `fixthis-mcp/src/main/console/annotations.js`
 - Modify: `fixthis-mcp/src/main/console/preview.js`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Add a failing assertion that the filter is gone**
 
@@ -1594,7 +1594,7 @@ git add fixthis-mcp/src/main/console/rendering.js \
         fixthis-mcp/src/main/console/annotations.js \
         fixthis-mcp/src/main/console/preview.js \
         fixthis-mcp/src/main/resources/console/app.js \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat(console): show SENT items in inspector and preview"
 ```
 
@@ -1620,7 +1620,7 @@ git commit -m "feat(console): show SENT items in inspector and preview"
 
 **Files:**
 - Modify: `fixthis-mcp/src/main/console/history.js`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Add a failing assertion**
 
@@ -1681,7 +1681,7 @@ Expected: green. Note: there is an existing test at `FeedbackConsoleServerTest:7
 ```bash
 git add fixthis-mcp/src/main/console/history.js \
         fixthis-mcp/src/main/resources/console/app.js \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat(console): keep sent sessions visible in History list"
 ```
 
@@ -1692,7 +1692,7 @@ git commit -m "feat(console): keep sent sessions visible in History list"
 **Files:**
 - Modify: `fixthis-mcp/src/main/console/history.js`
 - Modify: `fixthis-mcp/src/main/resources/console/styles.css`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Write failing assertions**
 
@@ -1780,7 +1780,7 @@ Expected: green. Update or delete any existing test that asserted on the `points
 git add fixthis-mcp/src/main/console/history.js \
         fixthis-mcp/src/main/resources/console/styles.css \
         fixthis-mcp/src/main/resources/console/app.js \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat(console): replace points pip with working (in_progress) pip"
 ```
 
@@ -1791,7 +1791,7 @@ git commit -m "feat(console): replace points pip with working (in_progress) pip"
 **Files:**
 - Create: `fixthis-mcp/src/main/console/sessions-polling.js`
 - Modify: `scripts/build-console-assets.mjs`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Add failing assertion**
 
@@ -1903,7 +1903,7 @@ Expected: pass. (Polling won't actually run yet because the timer/etag globals a
 git add fixthis-mcp/src/main/console/sessions-polling.js \
         scripts/build-console-assets.mjs \
         fixthis-mcp/src/main/resources/console/app.js \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat(console): add sessions polling module skeleton"
 ```
 
@@ -1913,7 +1913,7 @@ git commit -m "feat(console): add sessions polling module skeleton"
 
 **Files:**
 - Modify: `fixthis-mcp/src/main/console/state.js`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Failing assertion**
 
@@ -1973,7 +1973,7 @@ Expected: green.
 ```bash
 git add fixthis-mcp/src/main/console/state.js \
         fixthis-mcp/src/main/resources/console/app.js \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat(console): add polling globals and withMutationLock"
 ```
 
@@ -2085,7 +2085,7 @@ git add fixthis-mcp/src/main/console/prompt.js \
         fixthis-mcp/src/main/console/annotations.js \
         fixthis-mcp/src/main/console/history.js \
         fixthis-mcp/src/main/resources/console/app.js \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat(console): mutation-lock fetches and update Save to MCP toast"
 ```
 
@@ -2095,7 +2095,7 @@ git commit -m "feat(console): mutation-lock fetches and update Save to MCP toast
 
 **Files:**
 - Modify: `fixthis-mcp/src/main/console/rendering.js`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Failing assertion**
 
@@ -2194,7 +2194,7 @@ Expected: green.
 git add fixthis-mcp/src/main/console/rendering.js \
         fixthis-mcp/src/main/resources/console/styles.css \
         fixthis-mcp/src/main/resources/console/app.js \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat(console): mergeSessionIntoState with just-changed highlight"
 ```
 
@@ -2204,7 +2204,7 @@ git commit -m "feat(console): mergeSessionIntoState with just-changed highlight"
 
 **Files:**
 - Modify: `fixthis-mcp/src/main/console/main.js`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`
 
 - [ ] **Step 1: Failing assertion**
 
@@ -2271,7 +2271,7 @@ Expected: green.
 ```bash
 git add fixthis-mcp/src/main/console/main.js \
         fixthis-mcp/src/main/resources/console/app.js \
-        fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
+        fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt
 git commit -m "feat(console): start sessions polling on boot and visibility change"
 ```
 

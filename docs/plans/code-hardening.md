@@ -11,8 +11,8 @@ the smallest and most observable; Task 3 is the largest and last.
 ### Task 0: CH-2 — `Thread.sleep` → `delay`
 
 **Files:**
-- `fixthis-cli/src/main/kotlin/io/beyondwin/fixthis/cli/commands/RunCommand.kt`
-- `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/commands/RunCommandTest.kt` (new or extend)
+- `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/RunCommand.kt`
+- `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/RunCommandTest.kt` (new or extend)
 
 **Steps**
 1. Replace `Thread.sleep(500)` inside `waitForStatus` with
@@ -35,9 +35,9 @@ test -z "$(git grep -nE 'Thread\.sleep' fixthis-cli/src/main)"
 ### Task 1: CH-1 — Eliminate `!!` in `:fixthis-mcp`
 
 **Files:**
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/InstanceGroupingHelper.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt` (single site at line 101: `fallbackScreen!!`)
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetEvidenceService.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/InstanceGroupingHelper.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackDraftService.kt` (single site at line 101: `fallbackScreen!!`)
 
 **Steps**
 1. `git grep -n '!!' fixthis-mcp/src/main` → produce the inventory.
@@ -63,9 +63,9 @@ git grep -nE '!!' fixthis-mcp/src/main | grep -vE '(require|check|//\s*ok:)' | w
 ### Task 2: CH-3 — `InFlightRegistry` in `McpServer`
 
 **Files:**
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/McpServer.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/InFlightRegistry.kt` (new)
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/InFlightRegistryTest.kt` (new)
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/McpServer.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/InFlightRegistry.kt` (new)
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/InFlightRegistryTest.kt` (new)
 
 **Steps**
 1. Add `InFlightRegistry` with a private `Mutex` and the API:
@@ -91,13 +91,13 @@ test -z "$(git grep -nE 'synchronized\(inFlight' fixthis-mcp/src/main)"
 ### Task 3: CH-4 — Split `FeedbackSessionService`
 
 **Files:**
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionRegistry.kt` (new)
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationRepository.kt` (new)
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EvidenceCoordinator.kt` (new)
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionRegistryTest.kt` (new)
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationRepositoryTest.kt` (new)
-- `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/session/EvidenceCoordinatorTest.kt` (new)
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionRegistry.kt` (new)
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/AnnotationRepository.kt` (new)
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EvidenceCoordinator.kt` (new)
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionRegistryTest.kt` (new)
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/AnnotationRepositoryTest.kt` (new)
+- `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/EvidenceCoordinatorTest.kt` (new)
 
 **Steps**
 1. Extract method clusters in three commits:
@@ -117,9 +117,9 @@ test -z "$(git grep -nE 'synchronized\(inFlight' fixthis-mcp/src/main)"
 ```bash
 ./gradlew :fixthis-mcp:test
 # Each new class file is under 200 lines
-for f in fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/FeedbackSessionRegistry.kt \
-         fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/AnnotationRepository.kt \
-         fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/session/EvidenceCoordinator.kt; do
+for f in fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionRegistry.kt \
+         fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/AnnotationRepository.kt \
+         fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EvidenceCoordinator.kt; do
   test -f "$f" && [ "$(wc -l < "$f")" -le 200 ]
 done
 ```

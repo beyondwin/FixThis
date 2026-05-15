@@ -40,11 +40,11 @@ git diff --check
 
 추가로 직접 확인한 1차 자료:
 
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt:43-48`
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt:84`
-- `fixthis-cli/src/test/kotlin/io/beyondwin/fixthis/cli/AdbTest.kt:245`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleAssets.kt:43-48`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt:84`
+- `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/AdbTest.kt:245`
 - `fixthis-mcp/src/main/console/history.js`, `main.js` 등의 전역 `addEventListener` 호출 지점
-- `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/McpServer.kt:43-77`
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/McpServer.kt:43-77`
 
 ## Goals
 

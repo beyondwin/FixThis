@@ -83,7 +83,7 @@ Runtime that executes inside the target Android debug app.
 
 Gradle plugin applied to the Android application project.
 
-- plugin id: `io.beyondwin.fixthis.compose`
+- plugin id: `io.github.beyondwin.fixthis.compose`
 - Active on debug variants only.
 - Attaches a project dependency if `:fixthis-compose-sidekick` is in the same multi-project build; otherwise attaches the `io.github.beyondwin:fixthis-compose-sidekick:<runtimeVersion>` coordinate for external projects.
 - The `generate<Variant>FixThisSourceIndex` task scans Kotlin/XML sources and produces the generated asset.
@@ -209,7 +209,7 @@ Resources:
 
 ### `:app` (`sample/`)
 
-Repository validation sample app. The Gradle project path is `:app` and the actual source directory is `sample/`, following Android Studio conventions. Application id is `io.beyondwin.fixthis.sample`, launcher label is `FixThis`. The `Home`, `Queue`, `Project`, `Review`, and `Diagnostics` tabs form a compact product scene that validates semantics, screenshot, navigation, source matching, form controls, dropdown/menu, dialog, Canvas, disabled controls, repeated cards, long text, and weak-semantics edge cases.
+Repository validation sample app. The Gradle project path is `:app` and the actual source directory is `sample/`, following Android Studio conventions. Application id is `io.github.beyondwin.fixthis.sample`, launcher label is `FixThis`. The `Home`, `Queue`, `Project`, `Review`, and `Diagnostics` tabs form a compact product scene that validates semantics, screenshot, navigation, source matching, form controls, dropdown/menu, dialog, Canvas, disabled controls, repeated cards, long text, and weak-semantics edge cases.
 
 ## Runtime Flow
 
@@ -318,13 +318,13 @@ Build CLI and MCP distributions:
 Run sample smoke flow:
 
 ```bash
-fixthis-cli/build/install/fixthis/bin/fixthis run --package io.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis run --package io.github.beyondwin.fixthis.sample
 ```
 
 Open console:
 
 ```bash
-fixthis-cli/build/install/fixthis/bin/fixthis console --package io.beyondwin.fixthis.sample
+fixthis-cli/build/install/fixthis/bin/fixthis console --package io.github.beyondwin.fixthis.sample
 ```
 
 Run local unit tests:

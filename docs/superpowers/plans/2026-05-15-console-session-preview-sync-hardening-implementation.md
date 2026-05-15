@@ -14,24 +14,24 @@
 
 ## File Structure
 
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventEmitters.kt` to include top-level `sessionId` in session events and add `emitPreviewReady`.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/PreviewRoutes.kt` to emit session-scoped preview events.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventEmitters.kt` to include top-level `sessionId` in session events and add `emitPreviewReady`.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/PreviewRoutes.kt` to emit session-scoped preview events.
 - Modify `fixthis-mcp/src/main/console/events.js` to ignore session and preview events that do not match the active session.
-- Modify `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt` so legacy `POST /api/items` emits the mutated explicit session.
+- Modify `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt` so legacy `POST /api/items` emits the mutated explicit session.
 - Modify `fixthis-mcp/src/main/console/prompt.js` so written-comment-only prompt actions do not reject residual pin-only items.
 - Modify `fixthis-mcp/src/main/console/draftStorageAdapter.js` to delete all stored draft workspaces for a session.
 - Modify `fixthis-mcp/src/main/console/history.js` to delete local recovery for closed/deleted sessions.
 - Modify Node tests under `scripts/` for event scoping, partial prompt persistence, and deleted-session storage cleanup.
-- Modify Kotlin route tests under `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/` for server-side event payload and explicit-session emission.
+- Modify Kotlin route tests under `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/` for server-side event payload and explicit-session emission.
 
 ## Task 1: Session-Scope SSE Session And Preview Events
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventEmitters.kt`
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/PreviewRoutes.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventEmitters.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/PreviewRoutes.kt`
 - Modify: `fixthis-mcp/src/main/console/events.js`
 - Test: `scripts/consoleEvents-test.mjs`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventsRoutesTest.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventsRoutesTest.kt`
 
 - [ ] **Step 1: Add browser contract tests for session-scoped event handling**
 
@@ -125,7 +125,7 @@ fun previewReadyEventIncludesSessionId() {
 Add these imports:
 
 ```kotlin
-import io.beyondwin.fixthis.mcp.console.events.ConsoleEvent
+import io.github.beyondwin.fixthis.mcp.console.events.ConsoleEvent
 import kotlinx.serialization.json.content
 import kotlinx.serialization.json.jsonPrimitive
 ```
@@ -135,7 +135,7 @@ import kotlinx.serialization.json.jsonPrimitive
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleEventsRoutesTest.previewReadyEventIncludesSessionId" --no-daemon
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleEventsRoutesTest.previewReadyEventIncludesSessionId" --no-daemon
 ```
 
 Expected: FAIL because `preview-ready` currently has no top-level
@@ -146,11 +146,11 @@ Expected: FAIL because `preview-ready` currently has no top-level
 Update `ConsoleEventEmitters.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.mcp.console
+package io.github.beyondwin.fixthis.mcp.console
 
-import io.beyondwin.fixthis.cli.fixThisJson
-import io.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
-import io.beyondwin.fixthis.mcp.session.SessionDto
+import io.github.beyondwin.fixthis.cli.fixThisJson
+import io.github.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
+import io.github.beyondwin.fixthis.mcp.session.SessionDto
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonObject
@@ -244,7 +244,7 @@ Run:
 
 ```bash
 node --test scripts/consoleEvents-test.mjs
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleEventsRoutesTest" --no-daemon
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleEventsRoutesTest" --no-daemon
 ```
 
 Expected: PASS.
@@ -252,19 +252,19 @@ Expected: PASS.
 - [ ] **Step 8: Commit Task 1**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventEmitters.kt \
-  fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/PreviewRoutes.kt \
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventEmitters.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/PreviewRoutes.kt \
   fixthis-mcp/src/main/console/events.js \
   scripts/consoleEvents-test.mjs \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventsRoutesTest.kt
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleEventsRoutesTest.kt
 git commit -m "fix(console): fence SSE updates by active session"
 ```
 
 ## Task 2: Emit The Mutated Session From Legacy Item Creation
 
 **Files:**
-- Modify: `fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt`
-- Test: `fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt`
+- Test: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
 
 - [ ] **Step 1: Add a failing explicit-session event emission test**
 
@@ -315,10 +315,10 @@ fun addItemEmitsExplicitRequestSessionWhenCurrentSessionDiffers() {
 Required imports:
 
 ```kotlin
-import io.beyondwin.fixthis.mcp.console.events.ConsoleEvent
-import io.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
-import io.beyondwin.fixthis.mcp.fixtures.ConsoleHttpTestClient
-import io.beyondwin.fixthis.mcp.fixtures.ConsoleRouteTestFixtures.newConsoleSessionFixtureWithTempRoot
+import io.github.beyondwin.fixthis.mcp.console.events.ConsoleEvent
+import io.github.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
+import io.github.beyondwin.fixthis.mcp.fixtures.ConsoleHttpTestClient
+import io.github.beyondwin.fixthis.mcp.fixtures.ConsoleRouteTestFixtures.newConsoleSessionFixtureWithTempRoot
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.content
 import kotlinx.serialization.json.jsonPrimitive
@@ -331,7 +331,7 @@ import java.util.concurrent.TimeUnit
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.addItemEmitsExplicitRequestSessionWhenCurrentSessionDiffers" --no-daemon
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.addItemEmitsExplicitRequestSessionWhenCurrentSessionDiffers" --no-daemon
 ```
 
 Expected: FAIL because `POST /api/items` emits `requireCurrentSession()`.
@@ -364,7 +364,7 @@ exchange.sendJson(200, item)
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "io.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.addItemEmitsExplicitRequestSessionWhenCurrentSessionDiffers" --no-daemon
+./gradlew :fixthis-mcp:test --tests "io.github.beyondwin.fixthis.mcp.console.ConsoleFeedbackItemRoutesTest.addItemEmitsExplicitRequestSessionWhenCurrentSessionDiffers" --no-daemon
 ```
 
 Expected: PASS.
@@ -372,8 +372,8 @@ Expected: PASS.
 - [ ] **Step 5: Commit Task 2**
 
 ```bash
-git add fixthis-mcp/src/main/kotlin/io/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt \
-  fixthis-mcp/src/test/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt
+git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt \
+  fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt
 git commit -m "fix(console): emit explicit session after legacy item create"
 ```
 

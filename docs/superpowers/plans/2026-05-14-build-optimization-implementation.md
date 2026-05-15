@@ -15,18 +15,18 @@
 **Create:**
 - `docs/superpowers/specs/2026-05-14-build-optimization-detailed-spec.md` - design and rationale for this work.
 - `docs/superpowers/plans/2026-05-14-build-optimization-implementation.md` - this execution plan.
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/SidekickBuildInfo.kt` - runtime provider that reads generated Android resources.
-- `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/SidekickBuildInfoTest.kt` - unit tests for provider fallback behavior.
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/SidekickBuildInfo.kt` - runtime provider that reads generated Android resources.
+- `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/SidekickBuildInfoTest.kt` - unit tests for provider fallback behavior.
 
 **Modify:**
 - `gradle.properties` - enable local build cache.
 - `scripts/bootstrap-mcp.sh` - pass verified cache flags to the bootstrap Gradle command.
 - `CONTRIBUTING.md` - document cache behavior and the reason configuration cache is still opt-in globally.
-- `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt` - add cacheability and stale-output cleanup.
-- `fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt` - add cacheability and stale-output tests.
+- `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt` - add cacheability and stale-output cleanup.
+- `fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt` - add cacheability and stale-output tests.
 - `fixthis-compose-sidekick/build.gradle.kts` - generate build metadata resources instead of Kotlin source.
-- `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/AndroidBridgeEnvironment.kt` - read sidekick build epoch from `SidekickBuildInfoProvider`.
-- `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt` - stop importing generated `BuildInfo` directly in tests.
+- `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/AndroidBridgeEnvironment.kt` - read sidekick build epoch from `SidekickBuildInfoProvider`.
+- `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt` - stop importing generated `BuildInfo` directly in tests.
 - `settings.gradle.kts` - wire root build version override properties.
 - `fixthis-gradle-plugin/settings.gradle.kts` - wire included-build version override properties.
 - `.github/workflows/nightly-compat.yml` - remove stale note and add Compose UI test override if needed.
@@ -131,8 +131,8 @@ git commit -m "build: enable local Gradle build cache"
 ## Task 2: Make the Source Index Task Cacheable and Stale-Output Safe
 
 **Files:**
-- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`
-- Modify: `fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt`
+- Modify: `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`
+- Modify: `fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt`
 
 - [ ] **Step 1: Add failing tests for cacheability and stale outputs**
 
@@ -161,7 +161,7 @@ fun `removes stale source index output when source index generation is disabled`
     sourceFile.parentFile.mkdirs()
     sourceFile.writeText(
         """
-        package io.beyondwin.fixthis.sample
+        package io.github.beyondwin.fixthis.sample
 
         import androidx.compose.material3.Text
 
@@ -270,7 +270,7 @@ private fun runTask(
 Run:
 
 ```bash
-./gradlew :fixthis-gradle-plugin:test --tests "io.beyondwin.fixthis.gradle.GenerateFixThisSourceIndexTaskTest" --no-daemon
+./gradlew :fixthis-gradle-plugin:test --tests "io.github.beyondwin.fixthis.gradle.GenerateFixThisSourceIndexTaskTest" --no-daemon
 ```
 
 Expected: failure from `task is explicitly cacheable` because `@CacheableTask` is not present yet. The stale-output tests may also fail if stale files remain.
@@ -308,7 +308,7 @@ fun generate() {
 Run:
 
 ```bash
-./gradlew :fixthis-gradle-plugin:test --tests "io.beyondwin.fixthis.gradle.GenerateFixThisSourceIndexTaskTest" --no-daemon
+./gradlew :fixthis-gradle-plugin:test --tests "io.github.beyondwin.fixthis.gradle.GenerateFixThisSourceIndexTaskTest" --no-daemon
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -332,8 +332,8 @@ Caching disabled for task ':app:generateDebugFixThisSourceIndex' because:
 - [ ] **Step 6: Commit Task 2**
 
 ```bash
-git add fixthis-gradle-plugin/src/main/kotlin/io/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt \
-  fixthis-gradle-plugin/src/test/kotlin/io/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt
+git add fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt \
+  fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt
 git commit -m "build: cache FixThis source index generation"
 ```
 
@@ -343,17 +343,17 @@ git commit -m "build: cache FixThis source index generation"
 
 **Files:**
 - Modify: `fixthis-compose-sidekick/build.gradle.kts`
-- Create: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/SidekickBuildInfo.kt`
-- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/AndroidBridgeEnvironment.kt`
-- Create: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/SidekickBuildInfoTest.kt`
-- Modify: `fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt`
+- Create: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/SidekickBuildInfo.kt`
+- Modify: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/AndroidBridgeEnvironment.kt`
+- Create: `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/SidekickBuildInfoTest.kt`
+- Modify: `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt`
 
 - [ ] **Step 1: Add runtime provider tests first**
 
 Create `SidekickBuildInfoTest.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.sidekick.bridge
+package io.github.beyondwin.fixthis.compose.sidekick.bridge
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -402,7 +402,7 @@ class SidekickBuildInfoTest {
 Run:
 
 ```bash
-./gradlew :fixthis-compose-sidekick:testDebugUnitTest --tests "io.beyondwin.fixthis.compose.sidekick.bridge.SidekickBuildInfoTest" --no-daemon
+./gradlew :fixthis-compose-sidekick:testDebugUnitTest --tests "io.github.beyondwin.fixthis.compose.sidekick.bridge.SidekickBuildInfoTest" --no-daemon
 ```
 
 Expected: compile failure because `SidekickBuildInfo`, `SidekickBuildInfoProvider`, and `parseSidekickBuildInfo` do not exist yet.
@@ -412,10 +412,10 @@ Expected: compile failure because `SidekickBuildInfo`, `SidekickBuildInfoProvide
 Create `SidekickBuildInfo.kt`:
 
 ```kotlin
-package io.beyondwin.fixthis.compose.sidekick.bridge
+package io.github.beyondwin.fixthis.compose.sidekick.bridge
 
 import android.content.Context
-import io.beyondwin.fixthis.compose.sidekick.R
+import io.github.beyondwin.fixthis.compose.sidekick.R
 
 internal data class SidekickBuildInfo(
     val buildEpochMs: Long,
@@ -527,7 +527,7 @@ variant.sources.java?.addGeneratedSourceDirectory(
 In `AndroidBridgeEnvironment.kt`, remove:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.sidekick.BuildInfo
+import io.github.beyondwin.fixthis.compose.sidekick.BuildInfo
 ```
 
 Add constructor parameter:
@@ -559,7 +559,7 @@ sidekickBuildEpochMs = buildInfo.buildEpochMs,
 In `BridgeServerTest.kt`, remove:
 
 ```kotlin
-import io.beyondwin.fixthis.compose.sidekick.BuildInfo
+import io.github.beyondwin.fixthis.compose.sidekick.BuildInfo
 ```
 
 Replace the expected build epoch at the assertion site with the status value
@@ -608,10 +608,10 @@ Expected second run does not execute:
 
 ```bash
 git add fixthis-compose-sidekick/build.gradle.kts \
-  fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/SidekickBuildInfo.kt \
-  fixthis-compose-sidekick/src/main/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/AndroidBridgeEnvironment.kt \
-  fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/SidekickBuildInfoTest.kt \
-  fixthis-compose-sidekick/src/test/kotlin/io/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt
+  fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/SidekickBuildInfo.kt \
+  fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/AndroidBridgeEnvironment.kt \
+  fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/SidekickBuildInfoTest.kt \
+  fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt
 git commit -m "build: avoid sidekick metadata Kotlin recompilation"
 ```
 
