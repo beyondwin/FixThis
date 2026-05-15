@@ -2,7 +2,7 @@
 // activityDrift.js — SIF-6: pure decision helper that decides whether the
 // currently foregrounded activity differs from the activity captured when
 // the draft freeze was taken. Returning drift=true tells the caller
-// to surface the inline warning + "분리 (새 freeze 시작)" button on the
+// to surface the inline warning + "Start new freeze" button on the
 // next pin form.
 //
 // Bare-function module — concatenated into resources/console/app.js by

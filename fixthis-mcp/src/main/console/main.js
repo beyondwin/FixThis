@@ -69,7 +69,7 @@
             window.addEventListener('beforeunload', (e) => {
               if (shouldGuardUnload(draftItemList().length)) {
                 e.preventDefault();
-                e.returnValue = '저장하지 않은 어노테이션이 있습니다. 정말 떠나시겠습니까?';
+                e.returnValue = 'You have unsaved annotations. Are you sure you want to leave?';
                 return e.returnValue;
               }
             });
@@ -114,9 +114,9 @@
               toast.className = 'fixthis-undo-toast';
               toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#323232;color:#fff;padding:12px 16px;border-radius:4px;display:flex;align-items:center;gap:12px;z-index:9999;font-size:14px;';
               const msg = document.createElement('span');
-              msg.textContent = '어노테이션 삭제됨';
+              msg.textContent = 'Annotation deleted';
               const btn = document.createElement('button');
-              btn.textContent = '되돌리기';
+              btn.textContent = 'Undo';
               btn.style.cssText = 'background:none;border:none;color:#bb86fc;cursor:pointer;font-size:14px;padding:0;font-weight:500;';
               btn.addEventListener('click', () => {
                 const result = undo(undoRedoHistory, { items: draftItemList() }, draftFlow()?.context ?? null);
@@ -185,12 +185,12 @@
               }
               if (typeof window === 'undefined' || typeof window.confirm !== 'function') return Promise.resolve('cancel');
               if (action === 'delete-session') {
-                const discard = window.confirm('Discard unsaved annotations and delete this session?\n확인 = Delete session\n취소 = Keep editing');
+                const discard = window.confirm('Discard unsaved annotations and delete this session?\nOK = Delete session\nCancel = Keep editing');
                 return Promise.resolve(discard ? 'discard' : 'cancel');
               }
-              const save = window.confirm('Save draft before changing sessions?\n확인 = Save draft\n취소 = Keep editing or discard');
+              const save = window.confirm('Save draft before changing sessions?\nOK = Save draft\nCancel = Keep editing or discard');
               if (save) return Promise.resolve('save');
-              const discard = window.confirm('Discard unsaved annotations?\n확인 = Discard\n취소 = Keep editing');
+              const discard = window.confirm('Discard unsaved annotations?\nOK = Discard\nCancel = Keep editing');
               return Promise.resolve(discard ? 'discard' : 'cancel');
             }
 

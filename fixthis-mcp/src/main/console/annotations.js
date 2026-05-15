@@ -730,15 +730,15 @@
               if (typeof window !== 'undefined' && typeof window.fixThisPromptFingerprintMismatch === 'function') {
                 return Promise.resolve(window.fixThisPromptFingerprintMismatch({ frozenFingerprint: frozenFingerprint, currentFingerprint: currentFingerprint }));
               }
-              const message = '화면이 캡처 이후 변경되었을 수 있습니다.\n\n' +
-                '확인 = 현재 화면 다시 캡처\n' +
-                '취소 = 다음 단계로 (강제 저장 여부 묻기)';
+              const message = 'The screen may have changed since it was captured.\n\n' +
+                'OK = Recapture the current screen\n' +
+                'Cancel = Continue to the next step (ask whether to force save)';
               if (typeof window === 'undefined' || typeof window.confirm !== 'function') {
                 return Promise.resolve('cancel');
               }
               const recapture = window.confirm(message);
               if (recapture) return Promise.resolve('recapture');
-              const force = window.confirm('강제로 저장하시겠습니까?\n확인 = 강제 저장\n취소 = 취소');
+              const force = window.confirm('Force save anyway?\nOK = Force save\nCancel = Cancel');
               return Promise.resolve(force ? 'force' : 'cancel');
             }
 

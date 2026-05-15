@@ -44,7 +44,7 @@ if [[ -n "$port_holders" ]]; then
   fi
 fi
 
-# 명명된 screen 세션 정리 (이름 패턴: fixthis-console-*)
+# Clean named screen sessions (name pattern: fixthis-console-*)
 if command -v screen >/dev/null 2>&1; then
   (screen -ls 2>/dev/null \
     | awk '/[0-9]+\.fixthis-console-[0-9]+/ {print $1}' \

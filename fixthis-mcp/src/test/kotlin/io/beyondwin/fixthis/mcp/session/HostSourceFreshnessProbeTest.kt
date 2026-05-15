@@ -92,7 +92,7 @@ class HostSourceFreshnessProbeTest {
     @Test
     fun `flags possible projectRoot misconfiguration when zero indexed files exist on host`() {
         val tmp = tempDir()
-        // tmp는 비어있음 — 인덱스가 가리키는 파일은 하나도 존재하지 않는다.
+        // tmp is empty; none of the files referenced by the index exist.
         val installed = 1_700_000_000_000L
         val index = SourceIndex(
             entries = listOf(
@@ -118,7 +118,7 @@ class HostSourceFreshnessProbeTest {
     fun `does not flag misconfiguration when at least one indexed file exists`() {
         val tmp = tempDir()
         val installed = 1_700_000_000_000L
-        // 한 파일만 존재 — 부분 dirty라 misconfig 아님
+        // One file exists; a partially dirty index is not a misconfiguration.
         val one = File(tmp, "Exists.kt").also { it.writeText("a") }
         one.setLastModified(installed - 60_000)
         val index = SourceIndex(

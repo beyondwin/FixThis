@@ -518,21 +518,21 @@ class CompactHandoffRendererTest {
 
     @Test
     fun renderPrependsHighSeverityPrefix() {
-        val session = makeSessionWithSeverity(AnnotationSeverityDto.HIGH, "레드 카드")
+        val session = makeSessionWithSeverity(AnnotationSeverityDto.HIGH, "Red card")
         val markdown = CompactHandoffRenderer.render(session)
         assertTrue(
-            markdown.lines().any { it == "[1] [!] 레드 카드" },
-            "Expected line '[1] [!] 레드 카드' but got:\n$markdown",
+            markdown.lines().any { it == "[1] [!] Red card" },
+            "Expected line '[1] [!] Red card' but got:\n$markdown",
         )
     }
 
     @Test
     fun renderOmitsPrefixForMediumSeverity() {
-        val session = makeSessionWithSeverity(AnnotationSeverityDto.MED, "중간 심각도")
+        val session = makeSessionWithSeverity(AnnotationSeverityDto.MED, "Medium severity")
         val markdown = CompactHandoffRenderer.render(session)
         assertTrue(
-            markdown.lines().any { it == "[1] 중간 심각도" },
-            "Expected line '[1] 중간 심각도' (no prefix) but got:\n$markdown",
+            markdown.lines().any { it == "[1] Medium severity" },
+            "Expected line '[1] Medium severity' (no prefix) but got:\n$markdown",
         )
         assertTrue(
             !markdown.contains("[!]"),
@@ -542,11 +542,11 @@ class CompactHandoffRendererTest {
 
     @Test
     fun renderOmitsPrefixForLowSeverity() {
-        val session = makeSessionWithSeverity(AnnotationSeverityDto.LOW, "낮은 심각도")
+        val session = makeSessionWithSeverity(AnnotationSeverityDto.LOW, "Low severity")
         val markdown = CompactHandoffRenderer.render(session)
         assertTrue(
-            markdown.lines().any { it == "[1] 낮은 심각도" },
-            "Expected line '[1] 낮은 심각도' (no prefix) but got:\n$markdown",
+            markdown.lines().any { it == "[1] Low severity" },
+            "Expected line '[1] Low severity' (no prefix) but got:\n$markdown",
         )
         assertTrue(
             !markdown.contains("[!]"),
