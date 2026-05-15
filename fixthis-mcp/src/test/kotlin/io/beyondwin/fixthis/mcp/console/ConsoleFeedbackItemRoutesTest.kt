@@ -4,8 +4,11 @@ import io.beyondwin.fixthis.cli.fixThisJson
 import io.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.beyondwin.fixthis.compose.core.model.TreeKind
+import io.beyondwin.fixthis.mcp.console.events.ConsoleEvent
+import io.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
 import io.beyondwin.fixthis.mcp.fixtures.ConsoleHttpTestClient
 import io.beyondwin.fixthis.mcp.fixtures.ConsoleRouteTestFixtures.newConsoleSessionFixture
+import io.beyondwin.fixthis.mcp.fixtures.ConsoleRouteTestFixtures.newConsoleSessionFixtureWithTempRoot
 import io.beyondwin.fixthis.mcp.fixtures.FakeIds
 import io.beyondwin.fixthis.mcp.fixtures.FakeLongs
 import io.beyondwin.fixthis.mcp.fixtures.NullableSequencedFingerprintBridge
@@ -30,6 +33,8 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.net.HttpURLConnection
 import java.nio.file.Files
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -190,6 +195,44 @@ class ConsoleFeedbackItemRoutesTest {
             assertEquals("save into session A", service.getSession(sessionA.sessionId).items.single().comment)
             assertTrue(service.requireCurrentSession().sessionId != sessionA.sessionId)
             assertTrue(service.requireCurrentSession().items.isEmpty())
+        }
+    }
+
+    @Test
+    fun addItemEmitsExplicitRequestSessionWhenCurrentSessionDiffers() {
+        val fixture = newConsoleSessionFixtureWithTempRoot(
+            idGenerator = FakeIds("session-a", "screen-a", "session-b", "item-a").next,
+        )
+        val bus = ConsoleEventBus(clock = { 1L })
+        val seen = LinkedBlockingQueue<ConsoleEvent>()
+        bus.subscribe { event -> seen += event }
+        val server = FeedbackConsoleServer(fixture.service, eventBus = bus)
+        try {
+            val sessionA = fixture.service.openSession(null, newSession = true)
+            val screenA = runBlocking { fixture.service.captureScreen(sessionA.sessionId) }
+            fixture.service.openSession(null, newSession = true)
+            server.start()
+
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                "/api/items",
+                """
+                {
+                  "sessionId": "${sessionA.sessionId}",
+                  "screenId": "${screenA.screenId}",
+                  "targetType": "area",
+                  "bounds": { "left": 1, "top": 2, "right": 30, "bottom": 40 },
+                  "comment": "Explicit session item"
+                }
+                """.trimIndent(),
+            )
+            assertEquals(200, response.statusCode, response.body)
+
+            val event = generateSequence { seen.poll(1, TimeUnit.SECONDS) }
+                .first { it.name == "session-updated" }
+            assertEquals(sessionA.sessionId, event.data.getValue("sessionId").jsonPrimitive.content)
+        } finally {
+            server.stop()
+            fixture.close()
         }
     }
 

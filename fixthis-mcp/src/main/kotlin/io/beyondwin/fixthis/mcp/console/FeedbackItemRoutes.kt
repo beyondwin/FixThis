@@ -42,7 +42,7 @@ internal class FeedbackItemRoutes(
                 } catch (error: IllegalArgumentException) {
                     throw FeedbackConsoleHttpException(400, error.message ?: "Invalid feedback item request")
                 }
-                eventBus.emitSessionUpdated(service.requireCurrentSession())
+                eventBus.emitSessionUpdated(service.getSession(sessionId))
                 exchange.sendJson(200, item)
             }
             "/api/items/batch" -> exchange.requireMethod("POST") {
