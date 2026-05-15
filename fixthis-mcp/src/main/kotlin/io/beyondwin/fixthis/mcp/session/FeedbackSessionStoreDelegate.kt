@@ -226,19 +226,19 @@ internal class FeedbackSessionStoreDelegate(
                 items = duplicateItems,
             ) to { session }
         }
+        val duplicateItems = matchingClientDraftItems(session, items)
         val now = clock()
-        val captured = screen.copy(
-            screenId = if (screen.screenId == "pending") idGenerator() else screen.screenId,
-            capturedAtEpochMillis = now,
+        val captured = screenForIncomingBatch(
+            session = session,
+            duplicateItems = duplicateItems,
+            requestedScreen = screen,
+            idGenerator = idGenerator,
+            now = now,
         )
         val createdItems = createScreenItems(session, captured, newItems, now, idGenerator)
         val firstSequence = session.migratedNextItemSequenceNumber()
         val nextSequence = createdItems.mapNotNull { it.sequenceNumber }.maxOrNull()?.plus(1) ?: firstSequence
-        val screens = if (session.screens.any { it.screenId == captured.screenId }) {
-            session.screens
-        } else {
-            session.screens + captured
-        }
+        val screens = appendScreenIfMissing(session, captured)
         val updated = session.copy(
             screens = screens,
             items = session.items + createdItems,

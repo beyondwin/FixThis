@@ -18,6 +18,28 @@ internal fun duplicateScreenFor(
     ?: session.screens.firstOrNull { it.screenId == requestedScreen.screenId }
     ?: requestedScreen
 
+internal fun screenForIncomingBatch(
+    session: SessionDto,
+    duplicateItems: List<AnnotationDto>,
+    requestedScreen: SnapshotDto,
+    idGenerator: () -> String,
+    now: Long,
+): SnapshotDto {
+    val duplicateScreen = duplicateScreenFor(session, duplicateItems, requestedScreen)
+    if (duplicateItems.isNotEmpty()) return duplicateScreen
+    return requestedScreen.copy(
+        screenId = if (requestedScreen.screenId == "pending") idGenerator() else requestedScreen.screenId,
+        capturedAtEpochMillis = now,
+    )
+}
+
+internal fun appendScreenIfMissing(session: SessionDto, screen: SnapshotDto): List<SnapshotDto> =
+    if (session.screens.any { it.screenId == screen.screenId }) {
+        session.screens
+    } else {
+        session.screens + screen
+    }
+
 internal fun createScreenItems(
     session: SessionDto,
     screen: SnapshotDto,

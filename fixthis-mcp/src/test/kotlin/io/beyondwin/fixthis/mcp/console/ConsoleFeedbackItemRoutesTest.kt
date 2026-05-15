@@ -533,6 +533,93 @@ class ConsoleFeedbackItemRoutesTest {
     }
 
     @Test
+    fun batchItemsApiReusesExistingScreenForPartialWorkspaceDuplicate() {
+        withTempProject("fixthis-console-partial-idempotent-batch") { projectRoot ->
+            val service = FeedbackSessionService(
+                bridge = FakeFixThisBridge(),
+                store = FeedbackSessionStore(
+                    clock = FakeLongs(100L, 200L, 300L, 400L, 500L, 600L, 700L, 800L).next,
+                    idGenerator = FakeIds(
+                        "session-1",
+                        "preview-1",
+                        "preview-screen-1",
+                        "item-1",
+                        "item-2",
+                        "item-3",
+                        "screen-should-not-be-used",
+                    ).next,
+                ),
+                projectRoot = projectRoot.absolutePath,
+                defaultPackageName = "io.beyondwin.fixthis.sample",
+            )
+            service.openSession(null, newSession = true)
+            val preview = runBlocking { service.capturePreview("session-1") }
+            val screenJson = fixThisJson.encodeToString(preview.screen)
+            val pendingScreenJson = fixThisJson.encodeToString(preview.screen.copy(screenId = "pending"))
+
+            withConsoleServer(service) { server ->
+                val firstBody = """
+                    {
+                      "workspaceId": "workspace-a",
+                      "previewId": "${preview.previewId}",
+                      "screen": $screenJson,
+                      "items": [
+                        {
+                          "draftItemId": "draft-1",
+                          "targetType": "area",
+                          "bounds": {"left":1.0,"top":2.0,"right":30.0,"bottom":40.0},
+                          "comment": "first"
+                        },
+                        {
+                          "draftItemId": "draft-2",
+                          "targetType": "area",
+                          "bounds": {"left":40.0,"top":50.0,"right":90.0,"bottom":100.0},
+                          "comment": "second"
+                        }
+                      ]
+                    }
+                """.trimIndent()
+                val secondBody = """
+                    {
+                      "workspaceId": "workspace-a",
+                      "previewId": "${preview.previewId}",
+                      "screen": $pendingScreenJson,
+                      "items": [
+                        {
+                          "draftItemId": "draft-1",
+                          "targetType": "area",
+                          "bounds": {"left":1.0,"top":2.0,"right":30.0,"bottom":40.0},
+                          "comment": "first"
+                        },
+                        {
+                          "draftItemId": "draft-2",
+                          "targetType": "area",
+                          "bounds": {"left":40.0,"top":50.0,"right":90.0,"bottom":100.0},
+                          "comment": "second"
+                        },
+                        {
+                          "draftItemId": "draft-3",
+                          "targetType": "area",
+                          "bounds": {"left":100.0,"top":110.0,"right":150.0,"bottom":160.0},
+                          "comment": "third"
+                        }
+                      ]
+                    }
+                """.trimIndent()
+
+                assertEquals(200, ConsoleHttpTestClient(server.url).postJson("/api/items/batch", firstBody).statusCode)
+                assertEquals(200, ConsoleHttpTestClient(server.url).postJson("/api/items/batch", secondBody).statusCode)
+
+                val stored = service.getSession("session-1")
+                assertEquals(1, stored.screens.size)
+                assertEquals(3, stored.items.size)
+                assertEquals(setOf(stored.screens.single().screenId), stored.items.map { it.screenId }.toSet())
+                assertEquals(listOf("draft-1", "draft-2", "draft-3"), stored.items.map { it.clientDraftItemId })
+            }
+        }
+    }
+
+    @Test
     fun batchItemsApiReturnsBadRequestForEmptyItemList() {
         val bridge = FakeFixThisBridge()
         val service = FeedbackSessionService(
