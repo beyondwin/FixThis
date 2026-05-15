@@ -10,7 +10,7 @@ Maintainers update this doc as observation windows complete. Once a row's "Ready
 | `./gradlew spotlessCheck` in ci.yml (CI-1) | — | pending | no |
 | `./gradlew detekt` in ci.yml (CI-2) | — | pending | no |
 | `node scripts/build-console-assets.mjs --check` in ci.yml | — | pending | no |
-| `node --test` console harness subset in ci.yml | — | pending | no |
+| `npm run console:test:all` in ci.yml | — | pending | no |
 | `.github/workflows/codeql.yml` (CI-3) | — | pending | no |
 | `.github/workflows/connected-tests.yml` (CI-4, nightly) | — | pending (14 consecutive green required) | no |
 | `.github/workflows/nightly-compat.yml` (BR-4, weekly scheduled) | — | pending (1 week stable required) | no |

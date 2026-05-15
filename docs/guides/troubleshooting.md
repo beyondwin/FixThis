@@ -295,7 +295,7 @@ The browser console shows a red banner at the top when it detects that the JS, t
 - **Bridge protocol mismatch** — the sample APK’s sidekick reports a `bridgeProtocolVersion` older than the console’s `MinimumSupportedProtocolVersion`. Rebuild and reinstall the debug sample APK (e.g. `bash scripts/restart-console.sh --with-app`).
 - **Sidekick build is older than the console** — the sample APK was built before the running console JAR was built. Reinstall the debug APK as above so its sidekick matches.
 
-The banner is dismissable; it does not block usage, but recovery features that depend on the new protocol fields will degrade until you refresh the stale side. See `CLAUDE.md` (`## Bridge Protocol Compatibility`) for the contract that governs when `BridgeProtocol.VERSION` and the console’s minimum must change in lockstep.
+The banner is dismissable; it does not block usage, but recovery features that depend on the new protocol fields will degrade until you refresh the stale side. See [Bridge protocol](../reference/bridge-protocol.md) for the contract that governs when `BridgeProtocol.VERSION` and the console's minimum must change in lockstep.
 
 ## Setup failures
 

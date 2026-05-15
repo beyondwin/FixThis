@@ -40,7 +40,7 @@ The following table is the canonical contract for which workflows are (or will b
 | Kotlin formatting | `./gradlew spotlessCheck` in ci.yml | CI-1 | Pending — promote after 7 days green |
 | Static analysis | `./gradlew detekt` in ci.yml | CI-2 | Pending — promote after 7 days green |
 | Console asset bundle | `node scripts/build-console-assets.mjs --check` in ci.yml | post-v0.1 stabilization | Pending — promote with baseline job |
-| Console JS harnesses | `node --test scripts/*-test.mjs` subset in ci.yml | post-v0.1 stabilization | Pending — promote with baseline job |
+| Console JS harnesses | `npm run console:test:all` in ci.yml | post-v0.1 stabilization | Pending — promote with baseline job |
 | CodeQL | `.github/workflows/codeql.yml` | CI-3 | Pending — promote after first analysis lands |
 | Nightly connected tests | `.github/workflows/connected-tests.yml` | CI-4 | Informational only — promote after 14 consecutive green |
 | Compatibility matrix scheduled | `.github/workflows/nightly-compat.yml` | BR-4 | Informational only — promote after 1 week stable |

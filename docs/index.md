@@ -47,6 +47,10 @@ pitch, scope, and sample-to-agent Quick Start.
   blocking external publish
 - [Release process](contributing/release-process.md) — SemVer policy,
   CHANGELOG, version-bump checklist
+- [Required PR checks tracker](contributing/required-checks.md) — observation
+  windows before advisory checks become branch-protection requirements
+- [Connected test triage](contributing/connected-tests.md) — nightly
+  instrumented-test policy and flake handling
 
 ## Historical / archived
 
