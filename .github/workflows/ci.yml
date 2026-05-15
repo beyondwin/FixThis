@@ -23,6 +23,9 @@ jobs:
       - name: Install JS dependencies
         run: npm ci
 
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
       - name: Doc consistency check
         run: node scripts/check-doc-consistency.mjs
 
