@@ -94,7 +94,6 @@ internal class FeedbackConsoleAssets(
     }
 
     companion object {
-        private const val BasePath = "/console"
         private const val StylesPlaceholder = "<!-- FIXTHIS_STYLES -->"
         private const val ScriptPlaceholder = "<!-- FIXTHIS_SCRIPT -->"
         private const val UnknownSha = "unknown"
