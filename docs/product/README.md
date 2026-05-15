@@ -99,10 +99,12 @@ Out of scope for V1:
 ## Where To Read Next
 
 - [Concept and handoff rationale](concept-and-handoff-rationale.md) is the
-  self-contained Korean explanation of the product concept, core decisions, and
-  prompt design rationale.
+  self-contained explanation of the product concept, core decisions, and prompt
+  design rationale.
 - [Decision rationale](decision-rationale.md) explains the major product and
   technical trade-offs.
+- [Roadmap](roadmap.md) tracks V1 scope, high-priority follow-up work, and
+  explicitly deferred areas.
 - [Architecture overview](../architecture/overview.md) explains the current
   module boundaries and runtime flow.
 - [Handoff prompt rationale](../design/handoff-prompt-rationale.md) explains why

@@ -11,9 +11,9 @@ the prompt quality the agent ultimately receives:
 
 1. **String resources are not resolved.** The Kotlin scanner records
    `stringResources: ["login_button"]` for a `stringResource(R.string.login_button)`
-   call, but the actual user-visible string `"로그인"` is recorded only against
+   call, but the actual user-visible string `"Log in"` is recorded only against
    the `strings.xml` entry. When the runtime semantics tree reports the
-   selected element's text as `"로그인"`, the matcher cannot connect that to
+   selected element's text as `"Log in"`, the matcher cannot connect that to
    `LoginScreen.kt:42` — only to `strings.xml`. Real-world Android apps use
    `stringResource(...)` for virtually all UI text (i18n), so this is the
    dominant text path, not an edge case.
@@ -121,7 +121,7 @@ Feedback handoff Markdown currently emits source candidates like:
 
 ```
 Selected element:
-  text: "로그인"
+  text: "Log in"
   source candidates:
     - LoginScreen.kt:42 (score 48.0, matched: stringResource: login_button)
 ```
@@ -130,9 +130,9 @@ After this work:
 
 ```
 Selected element:
-  text: "로그인"
+  text: "Log in"
   source candidates:
-    - LoginScreen.kt:42 inside fun LoginScreen (score 48.0, matched: resolved string "로그인" → R.string.login_button)
+    - LoginScreen.kt:42 inside fun LoginScreen (score 48.0, matched: resolved string "Log in" → R.string.login_button)
 ```
 
 The `inside fun X` segment is omitted when `ownerComposable` is null.

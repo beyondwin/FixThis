@@ -19,17 +19,20 @@ pitch, scope, and sample-to-agent Quick Start.
 | Understand the product and prompt rationale in one place | [Concept and handoff rationale](product/concept-and-handoff-rationale.md) |
 | Understand what FixThis is and is not | [Product concept](product/README.md) |
 | Understand why key product/technical choices were made | [Decision rationale](product/decision-rationale.md) |
+| See current scope and planned work | [Roadmap](product/roadmap.md) |
 | Fix setup or device problems | [Troubleshooting](guides/troubleshooting.md) |
 
 ## Product and Design
 
 - [Concept and handoff rationale](product/concept-and-handoff-rationale.md) —
-  self-contained Korean overview of the product concept, major trade-offs, and
-  compact prompt design.
+  self-contained overview of the product concept, major trade-offs, and compact
+  prompt design.
 - [Product concept](product/README.md) — current concept, target users,
   principles, scope, and non-goals.
 - [Decision rationale](product/decision-rationale.md) — maintained summary of
   the major product and architecture trade-offs.
+- [Roadmap](product/roadmap.md) — V1 scope, high-priority follow-up work, and
+  explicitly deferred areas.
 - [Design rationale](design/README.md) — maintained explanations for important
   workflow designs that are not API contracts.
 - [Handoff prompt rationale](design/handoff-prompt-rationale.md) — why compact

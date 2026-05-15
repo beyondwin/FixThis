@@ -265,7 +265,7 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
     while pending annotations are unsaved.
   - Undo/redo for pending annotation deletes: `Cmd+Z` / `Ctrl+Z` undoes,
     `Cmd+Shift+Z` redoes (depth 50; ignored inside `<input>`/`<textarea>`/
-    contenteditable). A 5-second toast with a 되돌리기 button appears after
+    contenteditable). A 5-second toast with an Undo button appears after
     each delete.
 - **Screen integrity fingerprinting — Phase B (SIF-1..SIF-6):**
   - `Snapshot` (core) and `SnapshotDto` (wire) gain nullable
@@ -456,13 +456,13 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ### Changed
 
-- `BridgeProtocol.VERSION` "1.0" → "1.1" (sidekickBuildEpochMs 필드 추가에 따른 minor bump). 옛 sample APK 가 새 콘솔에 연결되면 빨간 banner 로 reinstall 안내.
+- `BridgeProtocol.VERSION` "1.0" → "1.1" (minor bump for the added `sidekickBuildEpochMs` field). When an old sample APK connects to the new console, a red banner asks the user to reinstall.
 - `fixthis setup --write` output now labels each written config with its scope: `(project-local)` for Claude (project's `.claude/settings.json`) and `(global)` for Codex (user's `~/.codex/config.toml`). Affects both the success line and the `--dry-run` `Target:` line.
 
 ### Added
 
-- `scripts/restart-console.sh` 헬퍼. stale fixthis-mcp/cli 콘솔 프로세스를 종료하고 incremental gradle 빌드 + 재시작을 단일 커맨드로 묶음. `--with-app` 으로 샘플 APK 도 같이 재설치, `--dry-run` 으로 동작 미리보기.
-- 콘솔 boot 시 자동 staleness 감지 (staleness banner). `fixthis-mcp` JAR 또는 sidekick 빌드가 5분 이상 차이 나면 dismissable banner 로 알림. 새 endpoint `/api/server-version` (server build epoch + git sha + bridge protocol version) + `BridgeStatus.sidekickBuildEpochMs` 필드 추가.
+- `scripts/restart-console.sh` helper. Stops stale `fixthis-mcp`/CLI console processes and wraps the incremental Gradle build plus restart into one command. `--with-app` also reinstalls the sample APK; `--dry-run` previews the actions.
+- Automatic staleness detection at console boot (staleness banner). If the `fixthis-mcp` JAR and sidekick build differ by more than 5 minutes, the console shows a dismissible banner. Adds the `/api/server-version` endpoint (server build epoch + git sha + bridge protocol version) and the `BridgeStatus.sidekickBuildEpochMs` field.
 - Console now models a `Connected` sub-state for screen-off, app-backgrounded, lock screen, Picture-in-Picture, unresponsive sample app, and "no Compose UI on this screen", with a canvas overlay, canvas-input gating, top-bar chip suffix, and automatic resume of the prior tool mode, frozen preview, and pending pins when the cause clears. Sidekick exposes `screenInteractive`, `keyguardLocked`, `appForeground`, and `pictureInPicture` on `BridgeStatus`.
 - "Copy Prompt" button now briefly displays a "Copied ✓" confirmation after copying to the clipboard, giving clear visual feedback.
 - "Send Agent" action now shows a success status message in the console status bar after the request completes successfully.
@@ -492,5 +492,5 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 ### Docs
 
 - `docs/superpowers/plans/2026-05-10-mcp-handoff-workflow-completion.md` and `docs/superpowers/specs/2026-05-10-mcp-handoff-workflow-completion-design.md` amended in-place with correction notes for T21 (`delivery !== 'sent'` filter removal) — the original 3-site instruction targeted code that had already been refactored; only `preview.js:75` was actually modified at execution time.
-- `CLAUDE.md` 에 "After Code Changes — Restart Console Stack" 섹션 추가. fixthis-mcp 코드 변경 후 재시작 의무 명문화. (stale-binary-detection feature)
-- `CLAUDE.md` 에 "Bridge Protocol Compatibility" 섹션 추가. BridgeStatus / BridgeProtocol 시그니처 변경 PR 의 VERSION bump 규칙 명시. (BridgeProtocol.VERSION, sidekickBuildEpochMs 포함)
+- Added the "After Code Changes — Restart Console Stack" section to `CLAUDE.md`, making restarts mandatory after `fixthis-mcp` code changes. (stale-binary-detection feature)
+- Added the "Bridge Protocol Compatibility" section to `CLAUDE.md`, documenting the VERSION bump rule for PRs that change `BridgeStatus` / `BridgeProtocol` signatures. (Includes `BridgeProtocol.VERSION` and `sidekickBuildEpochMs`.)

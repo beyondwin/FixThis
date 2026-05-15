@@ -79,7 +79,7 @@ class SourceIndexSerializationTest {
               "entries": [{
                 "file": "Foo.kt",
                 "signals": [
-                  {"kind": "STRING_RESOURCE_RESOLVED", "value": "로그인"},
+                  {"kind": "STRING_RESOURCE_RESOLVED", "value": "Log in"},
                   {"kind": "LAMBDA_OWNER_FUNCTION", "value": "LoginScreen"}
                 ]
               }]
@@ -89,7 +89,7 @@ class SourceIndexSerializationTest {
         assertEquals("1.2", index.schemaVersion)
         val signals = index.entries.single().signals
         assertEquals(SourceSignalKind.STRING_RESOURCE_RESOLVED, signals[0].kind)
-        assertEquals("로그인", signals[0].value)
+        assertEquals("Log in", signals[0].value)
         assertEquals(SourceSignalKind.LAMBDA_OWNER_FUNCTION, signals[1].kind)
     }
 }
@@ -178,8 +178,8 @@ fun `resolveDefaults returns default-locale strings only`() {
     resDir.resolve("values").resolve("strings.xml").writeText(
         """
         <resources>
-          <string name="login_button">로그인</string>
-          <string name="cancel">취소</string>
+          <string name="login_button">Log in</string>
+          <string name="cancel">Cancel</string>
         </resources>
         """.trimIndent()
     )
@@ -194,7 +194,7 @@ fun `resolveDefaults returns default-locale strings only`() {
     val scanner = XmlStringResourceScanner(projectDir, projectDir)
     val allXml = projectDir.walkTopDown().filter { it.name == "strings.xml" }.toList()
     val resolved = scanner.resolveDefaults(allXml)
-    assertEquals(mapOf("login_button" to "로그인", "cancel" to "취소"), resolved)
+    assertEquals(mapOf("login_button" to "Log in", "cancel" to "Cancel"), resolved)
 }
 ```
 
@@ -280,11 +280,11 @@ fun `emits STRING_RESOURCE_RESOLVED when resolver has the resId`() {
         )
     }
     val scanner = KotlinSourceScanner(tempDir.root, tempDir.root, json)
-    val resolver = mapOf("login_button" to "로그인")
+    val resolver = mapOf("login_button" to "Log in")
     val entries = scanner.scan(kotlinFile, resolver)
     val signals = entries.flatMap { it.signals }
-    assertTrue(signals.any { it.kind == SourceSignalKindAsset.STRING_RESOURCE_RESOLVED && it.value == "로그인" })
-    assertTrue(entries.any { "로그인" in it.text })
+    assertTrue(signals.any { it.kind == SourceSignalKindAsset.STRING_RESOURCE_RESOLVED && it.value == "Log in" })
+    assertTrue(entries.any { "Log in" in it.text })
 }
 ```
 
@@ -543,23 +543,23 @@ fun `selects Kotlin call site over strings_xml when only resolved text matches`(
                 stringResources = listOf("login_button"),
                 signals = listOf(
                     SourceSignal(SourceSignalKind.STRING_RESOURCE, "login_button"),
-                    SourceSignal(SourceSignalKind.STRING_RESOURCE_RESOLVED, "로그인"),
+                    SourceSignal(SourceSignalKind.STRING_RESOURCE_RESOLVED, "Log in"),
                 ),
             ),
             SourceIndexEntry(
                 file = "src/main/res/values/strings.xml",
                 line = 5,
-                text = listOf("로그인"),
+                text = listOf("Log in"),
                 stringResources = listOf("login_button"),
                 signals = listOf(
-                    SourceSignal(SourceSignalKind.UI_TEXT, "로그인"),
+                    SourceSignal(SourceSignalKind.UI_TEXT, "Log in"),
                     SourceSignal(SourceSignalKind.STRING_RESOURCE, "login_button"),
                 ),
             ),
         ),
     )
     val candidates = SourceMatcher(index).match(
-        selectedNode = node(uid = "login-button", text = listOf("로그인")),
+        selectedNode = node(uid = "login-button", text = listOf("Log in")),
         nearbyNodes = emptyList(),
         activityName = null,
     )
@@ -757,7 +757,7 @@ fun `source candidate carries enclosing Composable owner`() {
                 file = "sample/src/main/kotlin/LoginScreen.kt",
                 line = 42,
                 signals = listOf(
-                    SourceSignal(SourceSignalKind.UI_TEXT, "로그인"),
+                    SourceSignal(SourceSignalKind.UI_TEXT, "Log in"),
                     SourceSignal(SourceSignalKind.LAMBDA_OWNER_FUNCTION, "LoginScreen"),
                 ),
             ),
@@ -765,7 +765,7 @@ fun `source candidate carries enclosing Composable owner`() {
     )
 
     val candidates = SourceMatcher(index).match(
-        selectedNode = node(uid = "login-button", text = listOf("로그인")),
+        selectedNode = node(uid = "login-button", text = listOf("Log in")),
         nearbyNodes = emptyList(),
         activityName = null,
     )

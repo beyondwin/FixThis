@@ -163,5 +163,5 @@ The v2 prompt removed several noisy tokens after real agent use:
 - size suffixes were dropped because they are derivable from `box=`
 
 The result is shorter but not less informative. The migration table in the
-[feedback console contract](../reference/feedback-console-contract.md#v1--v2-token-migration)
+[feedback console contract](../reference/feedback-console-contract.md#v1-v2-token-migration)
 documents exact token changes.

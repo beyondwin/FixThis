@@ -140,41 +140,13 @@ Agents working inside this repository should also read [AGENTS.md](AGENTS.md).
 
 ## Roadmap
 
-FixThis V1 is intentionally narrow:
+FixThis V1 stays intentionally narrow: Jetpack Compose debug builds, local ADB
+transport, MCP-first handoff, best-effort source candidates, and no cloud
+upload.
 
-- **Jetpack Compose only.** View-based hierarchies (XML, AndroidView interop,
-  web views) are **not detected** for source candidates.
-- **Debug builds only.** Sidekick ships as a `debugImplementation` artifact and
-  is omitted from release. No production runtime cost.
-- **Local-only & ADB-only.** No cloud, no upload, no external network call.
-  Artifacts live under `.fixthis/`.
-- **No required testTags.** Smart Select prefers semantics, nearby labels, and
-  composable-name conventions.
-- **No AccessibilityService.** Inspection runs in-process inside the debug app
-  via the sidekick.
-- **MCP-first.** The browser feedback console is the primary surface; the
-  Android app shows only a connection pill.
-- **Source candidates are best-effort.** Up to 3 candidates plus a margin score
-  so the agent can pick or verify.
-- **Screenshots are pixel captures.** Editable / password text is redacted, but
-  pixels may still contain sensitive content.
-
-High-priority items beyond V1:
-
-- **Maven Central / Gradle Plugin Portal release** — single-line install for external projects.
-- **Deeper `AndroidView` / interop awareness** — FixThis now warns when a
-  target may cross a View/WebView boundary; future work should expose richer
-  subtree evidence instead of only lowering target confidence.
-- **Finish SSE-driven console state sync** — Phase 1 now pushes session,
-  device, connection, and preview updates over `/api/events`, with polling kept
-  as fallback and session/preview events fenced by active `sessionId`.
-  Remaining work is to retire the preview polling loop and reduce redundant
-  pull refreshes. Design in
-  [console-state-sync-design.md](docs/architecture/console-state-sync-design.md).
-- **Smarter source matching** — lift detection on `Layout` / `SubcomposeLayout` wrappers, recognize more composable-name conventions, and keep source confidence explainable as the matcher evolves.
-- **More agents out of the box** — Cursor, Aider, and others currently work via Copy Prompt; first-class MCP / config writers can follow the Claude Code + Codex pattern.
-
-Vote items up or contribute via [`CONTRIBUTING.md`](CONTRIBUTING.md).
+The detailed roadmap lives in [Roadmap](docs/product/roadmap.md). It covers V1
+scope, public artifact release work, deeper interop awareness, SSE-driven
+console state sync, smarter source matching, and future agent integrations.
 
 ## License
 

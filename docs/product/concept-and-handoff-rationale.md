@@ -1,14 +1,15 @@
-# FixThis Product Concept And Handoff Rationale
+# FixThis Product Concept and Handoff Rationale
 
-이 문서는 FixThis를 처음 이해하는 사람이 제품 의도, 핵심 선택, 그리고
-agent handoff prompt가 왜 지금 형태인지 한 번에 파악할 수 있도록 정리한
-정식 설명서다.
+This document is the canonical explanation for people who are new to
+FixThis. It explains the product intent, the major product choices, and why
+the agent handoff prompt has its current shape.
 
-## 한 줄 정의
+## One-line definition
 
-FixThis는 Jetpack Compose debug 앱에서 사용자가 수정할 UI를 직접 지목하고,
-원하는 변경사항을 적으면, AI 코딩 에이전트가 올바른 코드를 찾고 수정할 수
-있도록 실행 중인 화면의 근거를 로컬에서 묶어 전달하는 도구다.
+FixThis is a tool for Jetpack Compose debug apps. A user points directly at the
+UI they want changed, writes the desired change, and FixThis packages local
+runtime evidence from the current screen so an AI coding agent can find and
+edit the right source code.
 
 ```text
 running Compose debug UI
@@ -18,81 +19,84 @@ running Compose debug UI
 -> code change and feedback resolution
 ```
 
-## 해결하려는 문제
+## Problem
 
-AI agent에게 "이 버튼 바꿔줘", "세 번째 카드 색상 바꿔줘", "여기 여백을
-줄여줘"라고만 말하면 agent는 보통 다음을 모른다.
+When a user tells an AI agent only "change this button", "change the color of
+the third card", or "tighten this spacing", the agent usually does not know:
 
-- 현재 화면이 어떤 Activity, route, 또는 상태인지
-- 같은 텍스트가 여러 화면이나 파일에 있는지
-- 반복 리스트의 몇 번째 item인지
-- screenshot의 픽셀이 어떤 composable과 연결되는지
-- 수정할 곳이 call site인지, reusable component 정의인지, data/copy source인지
-- 현재 source index가 설치된 debug APK와 맞는지
+- which Activity, route, or state the current screen is in
+- whether the same text appears on multiple screens or in multiple files
+- which instance of a repeated list item is being referenced
+- which composable corresponds to a screenshot pixel
+- whether the edit belongs at a call site, reusable component definition, or
+  data/copy source
+- whether the current source index matches the installed debug APK
 
-FixThis는 이 빈틈을 "사용자가 직접 지목한 UI target"과 "실행 중인 앱에서
-수집한 evidence"로 채운다.
+FixThis fills that gap with a human-selected UI target and evidence collected
+from the running app.
 
-## 현재 제품 흐름
+## Current product flow
 
-FixThis의 현재 main workflow는 Android 앱 내부가 아니라 desktop browser
-console에서 진행된다.
+FixThis's current main workflow happens in a desktop browser console, not
+inside the Android app.
 
 ```text
-debug 앱 실행
--> FixThis Studio console 열기
--> connection card에서 Start / Open app / Reconnect 처리
--> live preview에서 앱 탐색
--> Annotate로 현재 preview freeze
--> component 클릭 또는 visual area drag
--> comment 작성
+run the debug app
+-> open the FixThis Studio console
+-> use Start / Open app / Reconnect on the connection card
+-> navigate the app in the live preview
+-> freeze the current preview with Annotate
+-> click a component or drag a visual area
+-> write a comment
 -> Add annotation
--> Copy Prompt 또는 Save to MCP
--> agent가 item을 읽고 claim/resolve
+-> Copy Prompt or Save to MCP
+-> the agent reads the item, claims it, and resolves it
 ```
 
-Android 앱 내부에는 `MCP waiting` / `MCP connected` 상태 pill만 표시된다.
-선택, annotation, prompt 생성, feedback queue, handoff 저장은 desktop
-console이 소유한다.
+Inside the Android app, FixThis shows only the `MCP waiting` / `MCP connected`
+status pill. Selection, annotation, prompt generation, feedback queue state,
+and handoff persistence are owned by the desktop console.
 
-이 구조는 앱 sidekick을 작게 유지하고, agent가 실제로 읽을 local artifact와
-queue state를 desktop process가 일관되게 관리하게 만든다.
+This structure keeps the app sidekick small and lets the desktop process manage
+the local artifacts and queue state that agents actually read.
 
-## 왜 Compose 전용인가
+## Why Compose-only
 
-FixThis의 핵심은 "실행 중인 UI target을 source 후보와 연결하는 것"이다.
-Android 전체를 대상으로 하면 XML/View, Compose, WebView, Flutter, React
-Native가 모두 다른 inspection 방식을 요구한다.
+FixThis's core job is to connect a running UI target to source candidates.
+Supporting all Android UI stacks would require different inspection paths for
+XML/View, Compose, WebView, Flutter, and React Native.
 
-V1은 Jetpack Compose로 좁힌다.
+V1 deliberately narrows the scope to Jetpack Compose.
 
-- Compose semantics tree라는 안정적인 runtime signal을 사용할 수 있다.
-- 제품 메시지가 단순해진다.
-- 초기 설치와 검증 범위가 현실적이다.
-- AccessibilityService, WebView injection, View hierarchy source mapping 같은
-  큰 분기를 피할 수 있다.
+- Compose semantics provide a stable runtime signal.
+- The product message stays simple.
+- Installation and validation scope stays realistic.
+- FixThis avoids large branching paths such as AccessibilityService support,
+  WebView injection, and View hierarchy source mapping.
 
-대신 View/XML/WebView는 정확한 source target으로 보장하지 않는다. interop
-가능성이 있으면 prompt에 warning으로 드러내고 agent가 검증하도록 한다.
+View/XML/WebView targets are therefore not guaranteed to map to exact source
+targets. If interop is likely, the prompt surfaces that as a warning so the
+agent knows to verify carefully.
 
-## 왜 debug-only인가
+## Why debug-only
 
-FixThis는 screenshot, UI text, semantics, source hint, user comment를 다룬다.
-이 데이터는 민감할 수 있다. 따라서 production feature가 아니라 debug/dev
-utility로 제한한다.
+FixThis handles screenshots, UI text, semantics, source hints, and user
+comments. That data can be sensitive, so FixThis is a debug/dev utility rather
+than a production feature.
 
-기본 원칙은 다음과 같다.
+The default rules are:
 
-- release build에는 포함하지 않는다.
-- sidekick은 debuggable 앱인지 확인한다.
-- 설치 문서는 `debugImplementation` 흐름을 기준으로 한다.
-- `.fixthis/` 아래 local artifact는 commit하지 않는다.
-- FixThis 자체는 외부 AI API로 screenshot이나 prompt를 업로드하지 않는다.
+- Do not include FixThis in release builds.
+- The sidekick verifies that the app is debuggable.
+- Installation docs are based on `debugImplementation`.
+- Do not commit local artifacts under `.fixthis/`.
+- FixThis does not upload screenshots or prompts to an external AI API.
 
-## 왜 앱 안 annotation이 아니라 desktop console인가
+## Why a desktop console instead of in-app annotation
 
-초기 아이디어는 앱 내부에서 UI를 탭하고 comment를 입력하는 방식이었다.
-하지만 실제 agent workflow에서는 다음 상태가 모두 desktop 쪽에 있다.
+The initial idea was to let users tap the UI and type comments inside the app.
+In the actual agent workflow, however, the following state already lives on the
+desktop side:
 
 - MCP server process
 - local feedback session
@@ -103,16 +107,16 @@ utility로 제한한다.
 - claim / resolve lifecycle
 - connection recovery and stale preview handling
 
-따라서 current product는 desktop console first다. 앱은 runtime evidence를
-제공하고 연결 상태만 보여준다. 사용자는 desktop console에서 화면을 보고,
-선택하고, 저장한다.
+The current product is therefore desktop-console-first. The app provides
+runtime evidence and shows connection status. Users inspect, select, and save
+feedback in the desktop console.
 
-## 왜 모든 composable에 `testTag`를 요구하지 않는가
+## Why FixThis does not require `testTag` everywhere
 
-`testTag`는 정확한 signal이지만, 기존 앱 전체에 tag를 붙이라고 요구하면
-도입 비용이 너무 커진다. FixThis는 tag가 없어도 시작할 수 있어야 한다.
+`testTag` is a precise signal, but requiring tags across an existing app creates
+too much adoption cost. FixThis must be useful before teams retrofit tags.
 
-기본 evidence는 다음을 조합한다.
+The default evidence combines:
 
 - selected text
 - content description
@@ -123,16 +127,18 @@ utility로 제한한다.
 - screenshot and crop
 - source-index candidates
 
-`testTag`와 `comp:<ComposableName>:<variant>` convention은 있으면 강한 signal로
-쓴다. 없으면 다른 evidence로 best-effort handoff를 만든다.
+When present, `testTag` and the `comp:<ComposableName>:<variant>` convention are
+strong signals. When absent, FixThis builds a best-effort handoff from the other
+evidence.
 
-## 왜 source candidate는 "정답"이 아니라 "후보"인가
+## Why source candidates are candidates, not answers
 
-Compose runtime node에서 항상 정확한 source file/line을 얻을 수 있는 것은
-아니다. compiler plugin이나 Compose tooling internals를 쓰면 더 정확한 정보를
-얻을 가능성은 있지만, Kotlin/Compose 버전 호환성과 유지보수 부담이 커진다.
+A Compose runtime node cannot always be mapped to an exact source file and line.
+A compiler plugin or Compose tooling internals might provide more precise data,
+but that would increase Kotlin/Compose version compatibility risk and
+maintenance cost.
 
-V1은 Gradle source index를 기준으로 시작한다.
+V1 starts from the Gradle source index.
 
 ```text
 semantics evidence
@@ -141,154 +147,164 @@ semantics evidence
 -> confidence, margin, matched reason tokens
 ```
 
-이 방식은 안정적이고 설명 가능하지만 완벽한 runtime mapping은 아니다.
-그래서 prompt는 항상 "source hints are candidates" 원칙을 포함한다.
+This approach is stable and explainable, but it is not perfect runtime mapping.
+That is why the prompt always preserves the rule that source hints are
+candidates.
 
-## Prompt가 전달해야 하는 것
+## What the prompt must communicate
 
-Agent handoff prompt는 네 가지 질문에 빠르게 답해야 한다.
+The agent handoff prompt must answer four questions quickly:
 
-1. 사용자가 무엇을 요청했나?
-2. 사용자가 어떤 UI target을 지목했나?
-3. 어떤 source file/line 후보를 먼저 봐야 하나?
-4. 이 target/source hint를 얼마나 믿어도 되나?
+1. What did the user request?
+2. Which UI target did the user select?
+3. Which source file/line candidates should the agent inspect first?
+4. How much should the agent trust the target and source hint?
 
-Markdown prompt는 agent와 사람이 읽기 위한 compact view다. JSON session은
-tooling을 위한 full-fidelity record다. Markdown은 빠른 작업 지시서이고, JSON은
-IDs, paths, screen, selected node, nearby node, source candidates, target
-evidence, screenshot artifact를 보존하는 계약이다.
+The Markdown prompt is a compact view for agents and humans. The JSON session is
+the full-fidelity record for tooling. Markdown is the quick work order; JSON is
+the contract that preserves IDs, paths, screen data, selected node data, nearby
+nodes, source candidates, target evidence, and screenshot artifacts.
 
-## Prompt의 주요 필드와 이유
+## Prompt fields and rationale
 
 ### `Package`
 
-어떤 debug 앱에서 나온 feedback인지 확인한다. 여러 Android app이나 sample을
-오가며 작업할 때 잘못된 package를 수정하는 일을 줄인다.
+Identifies which debug app produced the feedback. This reduces mistakes when a
+user moves between several Android apps or the bundled sample.
 
 ### `Source root`
 
-candidate path가 같은 긴 prefix를 반복하면 prompt token이 낭비된다. 공통 prefix를
-한 번 올리고 candidate line은 상대 경로처럼 보이게 만들어 읽기 쉽게 한다.
+Repeated long candidate-path prefixes waste prompt tokens. The prompt lifts the
+common prefix once and renders candidate lines in a shorter, relative-looking
+form.
 
 ### `Handoff quality`
 
-낮은 target confidence, visual-area-only, overlap, duplicate marker, stale source
-index, source candidate 부재 같은 위험 신호를 prompt 상단에 요약한다. Agent가
-처음부터 검증 강도를 조절할 수 있게 하기 위한 필드다.
+Summarizes risk signals near the top of the prompt: low target confidence,
+visual-area-only selection, overlap, duplicate markers, stale source index, or
+missing source candidates. This lets the agent choose the right verification
+level from the start.
 
 ### `Screen`, `screenshot`, `viewport`, `activity`
 
-여러 annotation이 같은 frozen preview에서 나온 경우 같은 screen block 아래에
-묶인다.
+Annotations that come from the same frozen preview are grouped under one screen
+block.
 
-- `screenshot`은 agent가 실제 픽셀을 확인할 수 있게 한다.
-- `viewport`는 좌표가 화면의 어디쯤인지 계산하게 해준다.
-- `activity`는 display name과 실제 Android Activity가 다를 때 route/context 힌트가 된다.
+- `screenshot` lets the agent inspect the actual pixels.
+- `viewport` lets the agent interpret screen coordinates.
+- `activity` provides route/context evidence when the display name and Android
+  Activity name differ.
 
 ### `[N] title`
 
-`N`은 console overlay marker와 맞는 human-facing 번호다. 사람이 "2번 marker"
-라고 말할 수 있게 한다.
+`N` is the human-facing number shown by the console overlay marker. It lets a
+person refer to "marker 2" during review.
 
 ### `id`
 
-`id`는 MCP tool용 feedback item id다. Agent는 작업 전에 item을 claim하고,
-작업 후 resolve할 때 이 id를 사용한다.
+`id` is the MCP feedback item id. Agents use it to claim the item before work
+and resolve it after work.
 
 ```text
 fixthis_claim_feedback({sessionId, itemId})
 fixthis_resolve_feedback({sessionId, itemId, status, summary})
 ```
 
-Marker number는 UI 이해용이고, item id는 tool contract용이다.
+The marker number is for UI understanding; the item id is for the tool
+contract.
 
 ### `target`
 
-선택된 UI를 redaction-safe하게 요약한다. tag, text, contentDescription, role
-같은 semantics 정보를 넣지만 editable/password 등 민감한 값은 제거한다.
+Summarizes the selected UI in a redaction-safe way. It can include semantics
+such as tag, text, contentDescription, and role, while removing sensitive values
+from editable/password fields.
 
-Visual area selection이면 `target: visual area`처럼 semantic node가 아니라는
-사실을 명시한다.
+For visual-area selection, the prompt states `target: visual area` so the agent
+knows there was no semantic node.
 
 ### `box=(L,T)-(R,B)`
 
-선택 위치의 window pixel bounds다. Semantic summary가 약하거나 redacted된 경우에도
-agent가 screenshot에서 정확한 위치를 찾을 수 있게 한다.
+Records the selected target's window pixel bounds. Even if the semantic summary
+is weak or redacted, the agent can still locate the target in the screenshot.
 
 ### `editSurface`
 
-`sourceCandidates`는 "선택된 text/tag/nearby evidence가 어느 source와 맞았는가"를
-말한다.
+`sourceCandidates` answers "which source matched the selected text/tag/nearby
+evidence?"
 
-`editSurface`는 "visual/style/layout 변경이 실제로 렌더링될 가능성이 높은 곳"을
-힌트로 준다.
+`editSurface` hints at the code surface most likely to affect visual, style, or
+layout changes.
 
-예를 들어 사용자가 카드 내부 text를 찍었지만 요청이 "카드 여백 줄여줘"라면,
-text source보다 container composable이 더 적절한 edit surface일 수 있다.
+For example, if the user clicks text inside a card but asks to reduce the card
+spacing, the container composable may be the better edit surface than the text
+source.
 
 ### Source candidate lines
 
-Candidate는 최대 3개까지 보여준다. 하나만 보여주면 agent가 call site와 component
-definition, data/copy source 사이를 판단하기 어렵다.
+The prompt shows up to three candidates. Showing only one makes it harder for an
+agent to distinguish between a call site, component definition, and data/copy
+source.
 
-Rank 1에는 다음을 추가한다.
+Rank 1 also includes:
 
 - `conf`: high / medium / low / none
-- `margin`: rank 1과 rank 2의 score 차이
-- `matched`: 어떤 evidence가 맞았는지 나타내는 token
+- `margin`: score gap between rank 1 and rank 2
+- `matched`: tokens describing which evidence matched
 
-`margin`이 작으면 rank 1이 애매하다는 뜻이다. Agent는 runner-up도 봐야 한다.
+A small `margin` means rank 1 is ambiguous. The agent should inspect the runner
+up too.
 
 ### `instance i/N`
 
-LazyColumn이나 반복 card처럼 여러 marker가 같은 call site와 tag를 공유할 수 있다.
-이때 `instance 2/3` 같은 표시가 없으면 agent는 서로 다른 UI instance인지,
-같은 target을 중복 pin한 것인지 알기 어렵다.
+Repeated cards or LazyColumn rows can share the same call site and tag across
+multiple markers. Without `instance 2/3`, the agent cannot tell whether the
+markers refer to different rendered instances or duplicate pins on the same
+target.
 
-`instance`는 반복 렌더링된 target을 구분하기 위한 신호다.
+`instance` distinguishes repeated rendered targets.
 
 ### `targetRisk=duplicate-of-marker-N`
 
-나중 marker가 이전 marker와 같은 source, tag, bounds, runtime path를 가리키면
-중복 pin일 가능성이 크다. Agent가 같은 일을 두 번 처리하지 않도록 duplicate risk를
-prompt에 드러낸다.
+When a later marker points to the same source, tag, bounds, and runtime path as
+an earlier marker, it is likely a duplicate pin. The prompt exposes duplicate
+risk so the agent does not perform the same work twice.
 
 ### Overlap group
 
-겹치는 target은 한 번에 처리하면 잘못된 composable을 수정하기 쉽다. Overlap group은
-"한 marker씩 해결하라"는 작업 단위 힌트다.
+Overlapping targets are easy to mis-fix if handled together. An overlap group is
+a work-unit hint: resolve one marker at a time.
 
-### `targetConfidence`와 `warning`
+### `targetConfidence` and `warning`
 
-Source candidate confidence와 target confidence는 다르다.
+Source candidate confidence and target confidence are different.
 
-- Source confidence: source file 후보가 evidence와 얼마나 잘 맞는가
-- Target confidence: 사용자가 선택한 UI target 자체를 얼마나 믿을 수 있는가
+- Source confidence: how well the source-file candidate matches the evidence
+- Target confidence: how much FixThis trusts the selected UI target itself
 
-예를 들어 source 후보가 있어도 target이 visual area only거나 WebView boundary일 수
-있으면 target confidence는 낮아야 한다.
+For example, a source candidate can exist while the target is only a visual area
+or might sit at a WebView boundary. In that case target confidence should be
+low.
 
-Warnings는 agent가 멈춰서 확인해야 하는 상황을 알려준다.
+Warnings tell the agent when to stop and verify.
 
 - visual area only
-- meaningful Compose target 없음
+- no meaningful Compose target
 - possible AndroidView/WebView interop
 - stale source index
 - forced screen mismatch
 - missing fingerprint
 - sensitive text redacted
 
-## 왜 prompt renderer는 server 쪽 단일 구현인가
+## Why prompt rendering is server-owned
 
-Copy Prompt는 browser에서 쓰고, `fixthis_read_feedback`은 MCP server에서 쓴다.
-두 곳이 각각 prompt를 만들면 필드가 쉽게 어긋난다.
+Copy Prompt runs in the browser, while `fixthis_read_feedback` runs in the MCP
+server. If each side rendered prompts independently, fields would drift easily.
 
-실제로 prompt에 item id, session id, claim/resolve protocol, crop path, stale
-warning 같은 필드가 추가될수록 browser renderer와 Kotlin renderer가 drift할 위험이
-커진다.
+That drift risk grows as the prompt adds fields such as item id, session id,
+claim/resolve protocol, crop path, and stale warnings.
 
-현재 방향은 Kotlin `CompactHandoffRenderer`가 handoff Markdown의 단일 source of
-truth가 되는 것이다.
+The current direction is for Kotlin `CompactHandoffRenderer` to be the single
+source of truth for handoff Markdown.
 
 ```text
 Copy Prompt
@@ -303,16 +319,16 @@ fixthis_read_feedback
 -> same compact handoff + complete JSON
 ```
 
-이렇게 하면 prompt format 변경은 한 곳에서 관리되고, Copy Prompt와 MCP read flow가
-같은 구조를 공유한다.
+With that structure, prompt format changes are managed in one place, and Copy
+Prompt and MCP read flows share the same shape.
 
-## 읽는 순서
+## Reading order
 
-FixThis를 처음 보는 사람은 이 문서만 읽어도 제품 의도와 prompt 설계 이유를
-이해할 수 있어야 한다. 정확한 field grammar나 JSON contract가 필요할 때만 다음
-문서를 추가로 보면 된다.
+A first-time reader should be able to understand the product intent and prompt
+design rationale from this document alone. Read these additional references only
+when exact field grammar or JSON contracts are needed.
 
-- `docs/reference/feedback-console-contract.md`
-- `docs/reference/output-schema.md`
-- `docs/reference/mcp-tools.md`
-- `docs/architecture/overview.md`
+- [Feedback console contract](../reference/feedback-console-contract.md)
+- [Output schema](../reference/output-schema.md)
+- [MCP tools reference](../reference/mcp-tools.md)
+- [Architecture overview](../architecture/overview.md)
