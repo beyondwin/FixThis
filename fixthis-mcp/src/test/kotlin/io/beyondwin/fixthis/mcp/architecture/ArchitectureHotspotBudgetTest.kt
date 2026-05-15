@@ -17,7 +17,7 @@ class ArchitectureHotspotBudgetTest {
     @Test
     fun handwrittenKotlinFilesStayUnderBudgetUnlessExplicitlyAllowed() {
         val legacyBudgets = mapOf(
-            "${mcpMain}session/FeedbackSessionStore.kt" to 780,
+            "${mcpMain}session/FeedbackSessionStore.kt" to 250,
             "${mcpMain}session/SessionReplayEngine.kt" to 340,
             "${mcpMain}tools/FixThisTools.kt" to 230,
             "${mcpMain}tools/FixThisToolDispatcher.kt" to 540,
