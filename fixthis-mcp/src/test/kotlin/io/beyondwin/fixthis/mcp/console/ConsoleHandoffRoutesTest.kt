@@ -2,6 +2,8 @@ package io.beyondwin.fixthis.mcp.console
 
 import io.beyondwin.fixthis.cli.fixThisJson
 import io.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.beyondwin.fixthis.compose.core.source.SourceIndex
+import io.beyondwin.fixthis.compose.core.source.SourceIndexEntry
 import io.beyondwin.fixthis.mcp.fixtures.ConsoleHttpTestClient
 import io.beyondwin.fixthis.mcp.fixtures.ConsoleSourceFixtures
 import io.beyondwin.fixthis.mcp.fixtures.FakeIds
@@ -15,11 +17,13 @@ import io.beyondwin.fixthis.mcp.session.FeedbackDelivery
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 import io.beyondwin.fixthis.mcp.session.SnapshotDto
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
+import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -154,6 +158,55 @@ class ConsoleHandoffRoutesTest {
             assertTrue(response.body.contains("id: $itemId"), "expected 'id: $itemId' in:\n${response.body}")
             assertTrue(response.body.contains("session_id: $sessionId"), "expected 'session_id:' in:\n${response.body}")
             assertTrue(response.body.contains("agent_protocol:"), "expected agent_protocol block in:\n${response.body}")
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun handoffPreviewEndpointRefreshesPersistedFileNotFoundSourceCandidate() {
+        val fixture = staleSourceCandidateFixture()
+        val server = FeedbackConsoleServer(service = fixture.service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/sessions/${fixture.sessionId}/handoff-preview",
+                body = """{"itemIds":["${fixture.itemId}"]}""",
+            )
+
+            assertEquals(200, response.statusCode)
+            assertTrue(response.body.contains("sample/src/main/java/Sample.kt:3"), response.body)
+            assertFalse(response.body.contains("stale: file not found on host"), response.body)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun agentHandoffsRefreshesPersistedFileNotFoundSourceCandidate() {
+        val fixture = staleSourceCandidateFixture()
+        val server = FeedbackConsoleServer(service = fixture.service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                path = "/api/agent-handoffs",
+                body = """{"sessionId":"${fixture.sessionId}","itemIds":["${fixture.itemId}"]}""",
+            )
+
+            assertEquals(200, response.statusCode)
+            val payload = fixThisJson.parseToJsonElement(response.body).jsonObject
+            val prompt = payload.getValue("prompt").jsonPrimitive.content
+            val candidate = payload.getValue("session").jsonObject
+                .getValue("items").jsonArray
+                .single()
+                .jsonObject
+                .getValue("sourceCandidates").jsonArray
+                .single()
+                .jsonObject
+            assertTrue(prompt.contains("sample/src/main/java/Sample.kt:3"), prompt)
+            assertFalse(prompt.contains("stale: file not found on host"), prompt)
+            assertEquals("sample/src/main/java/Sample.kt", candidate.getValue("repoFile").jsonPrimitive.content)
+            assertEquals(false, candidate.getValue("stale").jsonPrimitive.boolean)
         } finally {
             server.stop()
         }
@@ -547,5 +600,52 @@ class ConsoleHandoffRoutesTest {
         } finally {
             server.stop()
         }
+    }
+
+    private data class StaleSourceCandidateFixture(
+        val service: FeedbackSessionService,
+        val sessionId: String,
+        val itemId: String,
+    )
+
+    private fun staleSourceCandidateFixture(): StaleSourceCandidateFixture {
+        val root = kotlin.io.path.createTempDirectory("fixthis-console-handoff-refresh-").toFile()
+        val sourceIndex = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(
+                    file = "src/main/java/Sample.kt",
+                    line = 3,
+                    text = listOf("Email address"),
+                    testTags = listOf("emailField"),
+                    excerpt = "Text(\"Email address\")",
+                ),
+            ),
+        )
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(sourceIndex = sourceIndex),
+            store = FeedbackSessionStore(
+                clock = { 100L },
+                idGenerator = FakeIds("session-1", "screen-1", "item-1", "batch-1").next,
+            ),
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val screen = service.captureFakeScreenForTest(session.sessionId)
+        val item = runBlocking {
+            service.addFeedbackItem(
+                sessionId = session.sessionId,
+                screenId = screen.screenId,
+                targetType = FeedbackTargetType.NODE,
+                bounds = FixThisRect(28f, 77f, 692f, 186f),
+                nodeUid = "email-label",
+                comment = "Needs source check",
+            )
+        }
+        File(root, "sample/src/main/java/Sample.kt").apply {
+            parentFile.mkdirs()
+            writeText("package x\n\nText(\"Email address\")\n")
+        }
+        return StaleSourceCandidateFixture(service, session.sessionId, item.itemId)
     }
 }

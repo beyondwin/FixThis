@@ -3,6 +3,7 @@ package io.beyondwin.fixthis.mcp.console
 import com.sun.net.httpserver.HttpExchange
 import io.beyondwin.fixthis.mcp.session.CompactHandoffRenderer
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
+import kotlinx.coroutines.runBlocking
 
 internal class HandoffPreviewRoutes(private val service: FeedbackSessionService) : ConsoleRoute {
     private val pathPrefix = "/api/sessions/"
@@ -25,7 +26,8 @@ internal class HandoffPreviewRoutes(private val service: FeedbackSessionService)
             }
             val session = service.findSession(sessionId)
                 ?: throw FeedbackConsoleHttpException(404, "session not found")
-            val markdown = CompactHandoffRenderer.render(session, itemIds = body.itemIds)
+            val refreshed = runBlocking { service.refreshSourceEvidenceForHandoff(session) }
+            val markdown = CompactHandoffRenderer.render(refreshed, itemIds = body.itemIds)
             exchange.sendMarkdown(200, markdown)
         }
     }

@@ -4,6 +4,7 @@ import com.sun.net.httpserver.HttpExchange
 import io.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
 import io.beyondwin.fixthis.mcp.session.FeedbackQueueFormatter
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import java.io.File
 
@@ -73,7 +74,10 @@ internal class SessionRoutes(
                 exchange.sendJson(200, session)
             }
             "/api/export/markdown" -> exchange.requireMethod("GET") {
-                exchange.sendText(200, FeedbackQueueFormatter.toMarkdown(service.requireCurrentSession()), "text/markdown; charset=utf-8")
+                val session = runBlocking {
+                    service.refreshSourceEvidenceForHandoff(service.requireCurrentSession())
+                }
+                exchange.sendText(200, FeedbackQueueFormatter.toMarkdown(session), "text/markdown; charset=utf-8")
             }
         }
     }
