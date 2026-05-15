@@ -9,7 +9,7 @@ function persistedItemsForHistoryDedupe(session) {
 function normalizedHistoryBounds(bounds) {
   if (!bounds) return '';
   return ['left', 'top', 'right', 'bottom']
-    .map((key) => Number(bounds[key] || 0).toFixed(2))
+    .map((key) => String(Math.round(Number(bounds[key] || 0))))
     .join(',');
 }
 
@@ -44,14 +44,25 @@ function pendingClientDraftKey(item, workspaceId) {
   return workspaceId + '\u0000' + item.draftItemId;
 }
 
+function hasLegacySemanticDedupeKey(item, workspaceId) {
+  if (pendingClientDraftKey(item, workspaceId)) return false;
+  return Boolean(String(item?.comment || '').trim());
+}
+
 function dedupePendingHistoryItemsForSession(session, pendingItems, workspaceId) {
   const persisted = persistedItemsForHistoryDedupe(session);
   if (!persisted.length) return pendingItems || [];
   const persistedClientKeys = new Set(persisted.map(persistedClientDraftKey).filter(Boolean));
-  const persistedSemanticKeys = new Set(persisted.map(historyItemSemanticKey).filter(Boolean));
+  const persistedSemanticKeys = new Set(
+    persisted
+      .filter(item => String(item?.comment || '').trim())
+      .map(historyItemSemanticKey)
+      .filter(Boolean)
+  );
   return (pendingItems || []).filter((item) => {
     const clientKey = pendingClientDraftKey(item, workspaceId);
-    if (clientKey && persistedClientKeys.has(clientKey)) return false;
+    if (clientKey) return !persistedClientKeys.has(clientKey);
+    if (!hasLegacySemanticDedupeKey(item, workspaceId)) return true;
     return !persistedSemanticKeys.has(historyItemSemanticKey(item));
   });
 }

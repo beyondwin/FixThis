@@ -60,3 +60,39 @@ test('history pending items skip legacy recovery that semantically matches a ser
 
   assert.deepEqual(pending, []);
 });
+
+test('history pending items keep new draft with same semantic target when client key differs', () => {
+  m.setState({
+    session: {
+      sessionId: 'session-a',
+      items: [{
+        clientWorkspaceId: 'ws-a',
+        clientDraftItemId: 'draft-1',
+        target: { type: 'visual_area', boundsInWindow: bounds },
+        comment: 'Fix label',
+      }],
+    },
+  });
+
+  const pendingItem = { draftItemId: 'draft-2', targetType: 'area', bounds, comment: 'Fix label' };
+  const pending = m.dedupePendingHistoryItemsForSession({ sessionId: 'session-a' }, [pendingItem], 'ws-a');
+
+  assert.deepEqual(pending, [pendingItem]);
+});
+
+test('history pending items keep legacy pin-only item even when bounds match', () => {
+  m.setState({
+    session: {
+      sessionId: 'session-a',
+      items: [{
+        target: { type: 'visual_area', boundsInWindow: bounds },
+        comment: '',
+      }],
+    },
+  });
+
+  const pendingItem = { targetType: 'area', bounds, comment: '' };
+  const pending = m.dedupePendingHistoryItemsForSession({ sessionId: 'session-a' }, [pendingItem], null);
+
+  assert.deepEqual(pending, [pendingItem]);
+});
