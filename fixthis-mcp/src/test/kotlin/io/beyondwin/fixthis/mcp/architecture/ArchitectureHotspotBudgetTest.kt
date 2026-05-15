@@ -23,7 +23,7 @@ class ArchitectureHotspotBudgetTest {
             "${mcpMain}tools/FixThisToolDispatcher.kt" to 540,
             "${mcpMain}tools/McpToolRegistry.kt" to 290,
             "${mcpConsoleTest}ConsoleFeedbackItemRoutesTest.kt" to 2_900,
-            "${sidekickBridge}BridgeServer.kt" to 260,
+            "${sidekickBridge}BridgeServer.kt" to 180,
             "${sidekickBridge}BridgeModels.kt" to 220,
             "${sidekickBridge}AndroidBridgeEnvironment.kt" to 180,
             "fixthis-compose-core/src/main/kotlin/io/beyondwin/fixthis/compose/core/source/SourceMatcher.kt" to 560,
