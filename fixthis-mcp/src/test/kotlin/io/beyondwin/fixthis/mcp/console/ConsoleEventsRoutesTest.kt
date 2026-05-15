@@ -4,6 +4,9 @@ import io.beyondwin.fixthis.mcp.console.events.ConsoleEvent
 import io.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
 import io.beyondwin.fixthis.mcp.fixtures.ConsoleRouteTestFixtures.newConsoleSessionFixtureWithTempRoot
 import io.beyondwin.fixthis.mcp.fixtures.FakeIds
+import io.beyondwin.fixthis.mcp.session.FakeFixThisBridge
+import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
+import io.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -44,6 +47,41 @@ class ConsoleEventsRoutesTest {
             server.stop()
             fixture.close()
         }
+    }
+
+    @Test
+    fun eventsEndpointReturnsJsonErrorWhenSnapshotFailsBeforeStreamStarts() {
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(devicesError = IllegalStateException("adb unavailable")),
+            store = FeedbackSessionStore(),
+            projectRoot = "/repo",
+            defaultPackageName = "io.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service)
+        try {
+            server.start()
+            val connection = URI("${server.url}/api/events").toURL().openConnection() as HttpURLConnection
+            connection.connectTimeout = 1000
+            connection.readTimeout = 1000
+
+            assertEquals(500, connection.responseCode)
+            assertTrue(connection.errorStream.bufferedReader().readText().contains("adb unavailable"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun eventsRouteTreatsKeepAliveClientDisconnectAsNormalClosure() {
+        val source = java.nio.file.Files.readString(
+            java.nio.file.Paths.get(
+                "src/main/kotlin/io/beyondwin/fixthis/mcp/console/ConsoleEventRoutes.kt",
+            ),
+        )
+
+        assertTrue(source.contains("runCatching {"))
+        assertTrue(source.contains("error.isClientDisconnect()"))
+        assertTrue(source.contains("subscriberClosed.countDown()"))
     }
 
     @Test
