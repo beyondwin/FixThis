@@ -13,11 +13,8 @@ internal class ServerVersionRoutes : ConsoleRoute {
     override fun handle(exchange: HttpExchange) {
         exchange.requireMethod("GET") {
             val payload = """{"serverBuildEpochMs":${BuildInfo.BUILD_EPOCH_MS},"serverGitSha":"${BuildInfo.GIT_SHA}","bridgeProtocolVersion":"$BridgeProtocolVersion"}"""
-            val bytes = payload.toByteArray(Charsets.UTF_8)
-            exchange.responseHeaders.add("Content-Type", "application/json; charset=utf-8")
-            exchange.responseHeaders.add("Cache-Control", "no-store")
-            exchange.sendResponseHeaders(200, bytes.size.toLong())
-            exchange.responseBody.use { it.write(bytes) }
+            exchange.responseHeaders.set("Cache-Control", "no-store")
+            exchange.sendText(200, payload, "application/json; charset=utf-8")
         }
     }
 }
