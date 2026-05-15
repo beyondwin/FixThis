@@ -50,6 +50,19 @@ test('session-updated event is fenced to active session before replacing detail 
   assert.doesNotMatch(start, /on\('session-updated'[\s\S]*?setConsoleSession\(data\.session\);[\s\S]*?loadPendingRecoveryForCurrentSession\(\);/);
 });
 
+test('session-updated closed event clears active draft and preview state', () => {
+  const start = body(source, 'function startConsoleEvents()');
+  assert.match(start, /isClosedSession\(data\.session\)/);
+  assert.match(start, /displayedSessionId\(\) === data\.sessionId/);
+  assert.match(start, /clearDisplayedSessionState\(\);[\s\S]*?render\(\);[\s\S]*?return;/);
+});
+
+test('snapshot null session clears active draft and preview state', () => {
+  const start = body(source, 'function startConsoleEvents()');
+  assert.match(start, /const previousDisplayedSessionId = displayedSessionId\(\);/);
+  assert.match(start, /if \(!data\.session && previousDisplayedSessionId\) clearDisplayedSessionState\(\);/);
+});
+
 test('preview-ready event is ignored when its session does not match active session', () => {
   const start = body(source, 'function startConsoleEvents()');
   assert.match(start, /on\('preview-ready'/);

@@ -68,6 +68,13 @@ test('session summary updates rebuild the history list instead of only toggling 
   assert.doesNotMatch(pollingBrowserAdapterSource, /state\.sessionSummaries = data\.sessions \|\| \[\];\s*renderSessionsList\(\);/);
 });
 
+test('session polling clears displayed draft when active session disappears', () => {
+  assert.match(pollingBrowserAdapterSource, /const activeDisplayedSessionId = displayedSessionId\(\);/);
+  assert.match(pollingBrowserAdapterSource, /if \(activeDisplayedSessionId\) \{/);
+  assert.match(pollingBrowserAdapterSource, /if \(fresh && fresh\.sessionId === activeDisplayedSessionId && !isClosedSession\(fresh\)\) \{/);
+  assert.match(pollingBrowserAdapterSource, /clearDisplayedSessionState\(\);/);
+});
+
 test('full render rebuilds history summaries from current state', () => {
   const renderSessionRegions = body(renderingSource, 'function renderSessionRegions()');
   assert.match(renderSessionRegions, /renderCurrentSessionList\(\);/);

@@ -295,11 +295,12 @@
             }
 
             function resetComposer(clearFlow = true, clearMirror = true) {
+              const composerSessionId = draftWorkspace?.context?.sessionId || state.session?.sessionId;
               if (clearFlow && clearMirror) deleteCurrentDraftWorkspaceStorage();
               if (clearFlow) replaceDraftWorkspace(createEmptyDraftWorkspace());
               if (clearMirror) {
-                clearPendingMirror(state.session?.sessionId);
-                activePendingMirrorSessions.delete(state.session?.sessionId);
+                clearPendingMirror(composerSessionId);
+                activePendingMirrorSessions.delete(composerSessionId);
               }
               setDraftFocusIndex(null);
               toolMode.focusSavedItem(null, null);

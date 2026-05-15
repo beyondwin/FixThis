@@ -227,7 +227,11 @@ class ConsoleAssetContractTest {
             ),
         )
         assertTrue(
-            Regex("if \\(clearMirror\\) \\{[\\s\\S]*clearPendingMirror\\(state\\.session\\?\\.sessionId\\);")
+            Regex(
+                "const composerSessionId = draftWorkspace\\?\\.context\\?\\.sessionId " +
+                    "\\|\\| state\\.session\\?\\.sessionId;[\\s\\S]*" +
+                    "if \\(clearMirror\\) \\{[\\s\\S]*clearPendingMirror\\(composerSessionId\\);",
+            )
                 .containsMatchIn(html),
         )
         assertTrue(
@@ -257,13 +261,13 @@ class ConsoleAssetContractTest {
                     "\\(\\) => draftWorkspace\\?\\.context\\?\\.sessionId === sessionId;[\\s\\S]*" +
                     "const wasDisplayedDraft = hasDisplayedDraftForDeletedSession\\(\\);[\\s\\S]*" +
                     "if \\(wasDisplayedSession \\|\\| wasDisplayedDraft\\) \\{\\s+" +
-                    "resetComposer\\(\\);",
+                    "clearDisplayedSessionState\\(\\);",
             ).containsMatchIn(html),
         )
         assertTrue(
             Regex(
                 "async function deleteHistorySession\\(sessionId\\)[\\s\\S]*if " +
-                    "\\(wasDisplayedSession \\|\\| wasDisplayedDraft\\) \\{[\\s\\S]*setConsoleSession\\(null\\);[\\s\\S]*" +
+                    "\\(wasDisplayedSession \\|\\| wasDisplayedDraft\\) \\{[\\s\\S]*clearDisplayedSessionState\\(\\);[\\s\\S]*" +
                     "await refreshSessions\\(\\);\\s+render\\(\\);\\s+await refreshDevices\\(\\);",
             ).containsMatchIn(html),
         )

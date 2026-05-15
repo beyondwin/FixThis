@@ -26,6 +26,7 @@
     "scripts/targetReliabilityPresentation-test.mjs"
   ],
   "session": [
+    "scripts/consoleEvents-test.mjs",
     "scripts/pendingBoundaryGuard-test.mjs",
     "scripts/sessionScopedRequests-test.mjs",
     "scripts/savedOverlayScope-test.mjs",

@@ -109,6 +109,21 @@
               return (state.sessionSummaries || []).find(session => session.sessionId === sessionId) || null;
             }
 
+            function displayedSessionId() {
+              return state.session?.sessionId || draftWorkspace?.context?.sessionId || null;
+            }
+
+            function isClosedSession(session) {
+              return String(session?.status || '').toLowerCase() === 'closed';
+            }
+
+            function clearDisplayedSessionState() {
+              pendingRecovery = null;
+              resetComposer();
+              clearPreview();
+              setConsoleSession(null);
+            }
+
             let sessionNavigationInFlight = false;
             let pendingSessionNavigationId = null;
 
@@ -492,9 +507,7 @@
               activePendingMirrorSessions.delete(sessionId);
               if (hadPendingRecovery) pendingRecovery = null;
               if (wasDisplayedSession || wasDisplayedDraft) {
-                resetComposer();
-                clearPreview();
-                setConsoleSession(null);
+                clearDisplayedSessionState();
               }
               await refreshSessions();
               render();

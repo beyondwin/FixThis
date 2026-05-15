@@ -8,7 +8,11 @@
               const activeSessionId = () => state.session?.sessionId || null;
               const matchesActiveSession = (data) => Boolean(data?.sessionId && data.sessionId === state.session?.sessionId);
               on('snapshot', (data) => {
-                if ('session' in data) setConsoleSession(data.session || null);
+                const previousDisplayedSessionId = displayedSessionId();
+                if ('session' in data) {
+                  if (!data.session && previousDisplayedSessionId) clearDisplayedSessionState();
+                  else setConsoleSession(data.session || null);
+                }
                 if (data.sessions?.sessions) renderSessionsListFromPayload(data.sessions.sessions);
                 if (data.devices) renderDeviceList(data.devices);
                 if (data.connection) applyConnectionStatus(data.connection);
@@ -18,6 +22,11 @@
                 if (!data.session) return;
                 if (activeSessionId() && !matchesActiveSession(data)) {
                   refreshSessions().catch(showError);
+                  return;
+                }
+                if (isClosedSession(data.session) && displayedSessionId() === data.sessionId) {
+                  clearDisplayedSessionState();
+                  render();
                   return;
                 }
                 const session = data.session;

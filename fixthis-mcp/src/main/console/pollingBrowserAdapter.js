@@ -28,16 +28,21 @@ function createBrowserPollingUseCases(options = {}) {
           const data = await listResp.json();
           renderSessionsListFromPayload(data.sessions || []);
         }
-        if (state.session?.sessionId) {
+        const activeDisplayedSessionId = displayedSessionId();
+        if (activeDisplayedSessionId) {
           const sessResp = await fetch('/api/session', {
             headers: sessionEtag ? { 'If-None-Match': sessionEtag } : {},
           });
           if (sessResp.status === 200) {
             nextSessionEtag = sessResp.headers.get('ETag');
             const fresh = await sessResp.json();
-            if (fresh) {
+            if (fresh && fresh.sessionId === activeDisplayedSessionId && !isClosedSession(fresh)) {
               mergeSessionIntoState(fresh);
               renderInspectorRegion();
+            } else {
+              clearDisplayedSessionState();
+              if (fresh && !isClosedSession(fresh)) mergeSessionIntoState(fresh);
+              render();
             }
           }
         }
