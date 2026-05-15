@@ -66,3 +66,20 @@ function dedupePendingHistoryItemsForSession(session, pendingItems, workspaceId)
     return !persistedSemanticKeys.has(historyItemSemanticKey(item));
   });
 }
+
+function newestDedupedHistoryRecoveryItems(session, recoveryCandidates) {
+  return [...(recoveryCandidates || [])]
+    .map((workspace) => ({
+      workspace,
+      items: dedupePendingHistoryItemsForSession(
+        session,
+        Array.isArray(workspace?.items) ? workspace.items : [],
+        workspace?.workspaceId || null
+      ),
+    }))
+    .filter((candidate) => candidate.items.length)
+    .sort((left, right) =>
+      (left.workspace?.updatedAtEpochMillis || 0) - (right.workspace?.updatedAtEpochMillis || 0)
+    )
+    .at(-1)?.items || [];
+}

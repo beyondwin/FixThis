@@ -33,13 +33,6 @@
               return historyRecoveryItemsForSession(session);
             }
 
-            function newestHistoryRecovery(workspaces) {
-              return [...(workspaces || [])]
-                .filter((workspace) => draftItemsFromValue(workspace).length)
-                .sort((left, right) => (left.updatedAtEpochMillis || 0) - (right.updatedAtEpochMillis || 0))
-                .at(-1) || null;
-            }
-
             function historyRecoveryItemsForSession(session) {
               const sessionId = session?.sessionId;
               if (!sessionId) return [];
@@ -47,8 +40,7 @@
                 const storage = createBrowserDraftPorts().storage;
                 const stored = storage.loadWorkspacesForSession(sessionId);
                 const legacy = restorePendingState(sessionId);
-                const recovery = newestHistoryRecovery(stored.concat(legacy ? [legacy] : []));
-                return dedupePendingHistoryItemsForSession(session, draftItemsFromValue(recovery), recovery?.workspaceId || null);
+                return newestDedupedHistoryRecoveryItems(session, stored.concat(legacy ? [legacy] : []));
               } catch (_) {
                 return [];
               }

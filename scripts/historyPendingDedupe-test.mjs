@@ -11,7 +11,8 @@ const factory = new Function(`
   ${helperSrc}
   return {
     setState(next) { state = next; },
-    dedupePendingHistoryItemsForSession
+    dedupePendingHistoryItemsForSession,
+    newestDedupedHistoryRecoveryItems
   };
 `);
 const m = factory();
@@ -95,4 +96,36 @@ test('history pending items keep legacy pin-only item even when bounds match', (
   const pending = m.dedupePendingHistoryItemsForSession({ sessionId: 'session-a' }, [pendingItem], null);
 
   assert.deepEqual(pending, [pendingItem]);
+});
+
+test('history recovery chooses newest non-empty candidate after per-workspace dedupe', () => {
+  m.setState({
+    session: {
+      sessionId: 'session-a',
+      items: [{
+        clientWorkspaceId: 'ws-new',
+        clientDraftItemId: 'draft-saved',
+        target: { type: 'visual_area', boundsInWindow: bounds },
+        comment: 'saved',
+      }],
+    },
+  });
+
+  const olderUnsaved = {
+    workspaceId: 'ws-old',
+    updatedAtEpochMillis: 100,
+    items: [{ draftItemId: 'draft-unsaved', targetType: 'area', bounds, comment: '' }],
+  };
+  const newerDuplicate = {
+    workspaceId: 'ws-new',
+    updatedAtEpochMillis: 200,
+    items: [{ draftItemId: 'draft-saved', targetType: 'area', bounds, comment: 'saved' }],
+  };
+
+  const items = m.newestDedupedHistoryRecoveryItems(
+    { sessionId: 'session-a' },
+    [olderUnsaved, newerDuplicate],
+  );
+
+  assert.deepEqual(items, olderUnsaved.items);
 });
