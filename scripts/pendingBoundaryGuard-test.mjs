@@ -73,6 +73,22 @@ test('delete session draft boundary uses one destructive confirmation', async ()
   assert.match(prompts[0], /delete this session/i);
 });
 
+test('new session draft boundary cancel keeps editing after one confirmation', async () => {
+  const prompts = [];
+  const promptPendingBoundaryChoice = promptPendingBoundaryChoiceWithWindow({
+    confirm: (message) => {
+      prompts.push(message);
+      return false;
+    },
+  });
+
+  const choice = await promptPendingBoundaryChoice('new-session', 4);
+
+  assert.equal(choice, 'cancel');
+  assert.equal(prompts.length, 1);
+  assert.match(prompts[0], /Save draft before starting a new session/i);
+});
+
 test('openSession and newSession use boundary resolver instead of immediate flush', () => {
   const openBody = body(historySource, 'async function openSession(sessionId)');
   const newBody = body(historySource, 'async function newSession()');

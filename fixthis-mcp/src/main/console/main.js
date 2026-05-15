@@ -188,6 +188,10 @@
                 const discard = window.confirm('Discard unsaved annotations and delete this session?\nOK = Delete session\nCancel = Keep editing');
                 return Promise.resolve(discard ? 'discard' : 'cancel');
               }
+              if (action === 'new-session') {
+                const save = window.confirm('Save draft before starting a new session?\nOK = Save draft\nCancel = Keep editing');
+                return Promise.resolve(save ? 'save' : 'cancel');
+              }
               const save = window.confirm('Save draft before changing sessions?\nOK = Save draft\nCancel = Keep editing or discard');
               if (save) return Promise.resolve('save');
               const discard = window.confirm('Discard unsaved annotations?\nOK = Discard\nCancel = Keep editing');
