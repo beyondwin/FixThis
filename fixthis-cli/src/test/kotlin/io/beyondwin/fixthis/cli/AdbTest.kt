@@ -6,6 +6,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardWatchEventKinds
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
@@ -208,7 +211,7 @@ class AdbTest {
         assertFalse(result.stderr.contains("stdout-after-stderr"))
     }
 
-    @Test(timeout = 3_000)
+    @Test(timeout = 10_000)
     fun processRunnerInterruptDestroysProcessAndRestoresInterruptStatus() {
         val marker = File.createTempFile("fixthis-adb-runner-started", ".txt").apply {
             delete()
@@ -227,30 +230,59 @@ class AdbTest {
             setExecutable(true)
             deleteOnExit()
         }
-        val failure = AtomicReference<Throwable?>()
-        val interruptStatusRestored = AtomicBoolean(false)
-        val runnerThread = Thread({
-            try {
-                ProcessAdbCommandRunner().run(listOf(script.absolutePath))
-                failure.set(AssertionError("runner returned normally after interruption"))
-            } catch (error: InterruptedException) {
-                interruptStatusRestored.set(Thread.currentThread().isInterrupted)
-            } catch (error: Throwable) {
-                failure.set(error)
-            }
-        }, "fixthis-adb-runner-interrupt-test")
+        val markerPath = marker.toPath()
+        val markerDir = markerPath.parent
+        val markerName = markerPath.fileName
+        val watchService = markerDir.fileSystem.newWatchService()
+        markerDir.register(watchService, StandardWatchEventKinds.ENTRY_CREATE)
+        try {
+            val failure = AtomicReference<Throwable?>()
+            val interruptStatusRestored = AtomicBoolean(false)
+            val runnerThread = Thread({
+                try {
+                    ProcessAdbCommandRunner().run(listOf(script.absolutePath))
+                    failure.set(AssertionError("runner returned normally after interruption"))
+                } catch (error: InterruptedException) {
+                    interruptStatusRestored.set(Thread.currentThread().isInterrupted)
+                } catch (error: Throwable) {
+                    failure.set(error)
+                }
+            }, "fixthis-adb-runner-interrupt-test")
 
-        runnerThread.start()
-        while (!marker.exists()) {
-            Thread.sleep(10)
+            runnerThread.start()
+            awaitMarker(watchService, marker, markerName, TimeUnit.SECONDS.toNanos(5))
+
+            runnerThread.interrupt()
+            runnerThread.join(2_000)
+
+            assertFalse("runner thread should return after interruption", runnerThread.isAlive)
+            failure.get()?.let { throw it }
+            assertTrue("runner should restore interrupt status before throwing", interruptStatusRestored.get())
+        } finally {
+            watchService.close()
         }
+    }
 
-        runnerThread.interrupt()
-        runnerThread.join(2_000)
-
-        assertFalse("runner thread should return after interruption", runnerThread.isAlive)
-        failure.get()?.let { throw it }
-        assertTrue("runner should restore interrupt status before throwing", interruptStatusRestored.get())
+    private fun awaitMarker(
+        watchService: java.nio.file.WatchService,
+        marker: File,
+        markerName: Path,
+        timeoutNanos: Long,
+    ) {
+        val deadline = System.nanoTime() + timeoutNanos
+        while (!marker.exists()) {
+            val remaining = deadline - System.nanoTime()
+            assertTrue("marker did not arrive within timeout", remaining > 0)
+            val key = watchService.poll(remaining, TimeUnit.NANOSECONDS) ?: continue
+            try {
+                for (event in key.pollEvents()) {
+                    val name = event.context() as? Path ?: continue
+                    if (name == markerName) return
+                }
+            } finally {
+                key.reset()
+            }
+        }
     }
 
     private class RecordingAdbRunner(
