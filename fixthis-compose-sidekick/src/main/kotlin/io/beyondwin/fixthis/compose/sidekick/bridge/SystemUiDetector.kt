@@ -18,7 +18,7 @@ import androidx.core.view.WindowInsetsCompat
  * focus output may lag the foreground transition.
  *
  * The adb sideband (`currentFocusOutput`) is fed in by `fixthis-mcp` / `fixthis-cli`
- * in a later phase; the sidekick passes null today.
+ * when the host can read `dumpsys window`; IME detection still works without it.
  */
 internal object SystemUiDetector {
     /**

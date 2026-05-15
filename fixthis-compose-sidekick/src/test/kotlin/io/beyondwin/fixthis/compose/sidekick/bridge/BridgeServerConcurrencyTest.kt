@@ -195,7 +195,8 @@ class BridgeServerConcurrencyTest {
 
         override suspend fun inspectCurrentScreen(): BridgeScreenInspection = BridgeScreenInspection(activity = null)
 
-        override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot = BridgeScreenSnapshot(inspection = BridgeScreenInspection(activity = null))
+        override suspend fun captureScreenSnapshot(currentFocusOutput: String?): BridgeScreenSnapshot =
+            BridgeScreenSnapshot(inspection = BridgeScreenInspection(activity = null))
 
         override suspend fun readSourceIndex(): BridgeSourceIndexResult = BridgeSourceIndexResult(sourceIndexAvailable = false)
 

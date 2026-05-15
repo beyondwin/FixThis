@@ -108,7 +108,9 @@
               // Mark frozen preview stale when the device's foreground activity has changed.
               const restoredActivity = state.preview?.activity ?? null;
               const currentActivity = status?.availability?.activity ?? null;
-              if (state.preview && restoredActivity && currentActivity) {
+              if (state.preview?.obstructedBySystemUi) {
+                state.preview.stale = true;
+              } else if (state.preview && restoredActivity && currentActivity) {
                 state.preview.stale = restoredActivity !== currentActivity;
               } else if (state.preview) {
                 state.preview.stale = false;
@@ -138,7 +140,7 @@
               const viewState = userConnectionState(status);
               if (viewState === 'ready') {
                 // hasEverConnected and lastReadyAt are set by STATUS_RECEIVED above.
-                if (!connectionOptions.preservePreviewStale) markPreviewStale(false);
+                if (!connectionOptions.preservePreviewStale && !state.preview?.obstructedBySystemUi) markPreviewStale(false);
                 startLivePreviewPolling();
               } else {
                 stopLivePreviewPolling();

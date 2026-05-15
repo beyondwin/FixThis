@@ -139,19 +139,18 @@ class BridgeServerTest {
 
     @Test
     fun captureScreenSnapshotReturnsSnapshotResult() = runBlocking {
-        val server = server(
-            environment = RecordingBridgeEnvironment(
-                screenSnapshot = BridgeScreenSnapshot(
-                    activity = "MainActivity",
-                    inspection = BridgeScreenInspection(activity = "MainActivity"),
-                    screenshot = ScreenshotInfo(fullPath = "/cache/screen.png"),
-                    sourceIndexAvailable = true,
-                ),
+        val environment = RecordingBridgeEnvironment(
+            screenSnapshot = BridgeScreenSnapshot(
+                activity = "MainActivity",
+                inspection = BridgeScreenInspection(activity = "MainActivity"),
+                screenshot = ScreenshotInfo(fullPath = "/cache/screen.png"),
+                sourceIndexAvailable = true,
             ),
         )
+        val server = server(environment = environment)
 
         val response = server.handleRequestForTest(
-            """{"id":"1","token":"token","method":"captureScreenSnapshot","params":{}}""",
+            """{"id":"1","token":"token","method":"captureScreenSnapshot","params":{"currentFocusOutput":"mCurrentFocus=Window{abc u0 StatusBar}"}}""",
         )
 
         assertTrue(response.contains("MainActivity"))
@@ -159,6 +158,7 @@ class BridgeServerTest {
         assertTrue(response.contains("sourceIndexAvailable"))
         assertFalse(response.contains("sourceIndex\":"))
         assertFalse(response.contains("FormScreen.kt"))
+        assertEquals(listOf("mCurrentFocus=Window{abc u0 StatusBar}"), environment.currentFocusOutputs)
     }
 
     @Test
@@ -458,6 +458,7 @@ class BridgeServerTest {
     ) : BridgeEnvironment {
         private var lastScreenSnapshot: BridgeScreenSnapshot? = screenSnapshot
         val navigationRequests: MutableList<BridgeNavigationRequest> = mutableListOf()
+        val currentFocusOutputs: MutableList<String?> = mutableListOf()
 
         override suspend fun status(): BridgeStatus = BridgeStatus(
             activity = "MainActivity",
@@ -480,7 +481,10 @@ class BridgeServerTest {
             ),
         )
 
-        override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot = screenSnapshot.also { lastScreenSnapshot = it }
+        override suspend fun captureScreenSnapshot(currentFocusOutput: String?): BridgeScreenSnapshot = screenSnapshot.also {
+            currentFocusOutputs += currentFocusOutput
+            lastScreenSnapshot = it
+        }
 
         override suspend fun readSourceIndex(): BridgeSourceIndexResult = sourceIndexResult
 

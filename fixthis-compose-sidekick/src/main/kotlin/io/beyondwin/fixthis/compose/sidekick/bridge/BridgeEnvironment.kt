@@ -7,7 +7,7 @@ import java.io.File
 interface BridgeEnvironment {
     suspend fun status(): BridgeStatus
     suspend fun inspectCurrentScreen(): BridgeScreenInspection
-    suspend fun captureScreenSnapshot(): BridgeScreenSnapshot
+    suspend fun captureScreenSnapshot(currentFocusOutput: String? = null): BridgeScreenSnapshot
     suspend fun readSourceIndex(): BridgeSourceIndexResult
     suspend fun getLastScreenSnapshot(): BridgeScreenSnapshot?
     suspend fun performNavigation(request: BridgeNavigationRequest): BridgeNavigationResult

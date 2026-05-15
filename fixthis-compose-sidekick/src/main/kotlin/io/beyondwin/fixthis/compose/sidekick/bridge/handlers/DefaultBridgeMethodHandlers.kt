@@ -69,7 +69,9 @@ private class CaptureScreenSnapshotBridgeHandler(
 ) : BridgeMethodHandler {
     override val method: String = "captureScreenSnapshot"
 
-    override suspend fun handle(params: JsonObject): JsonElement = environment.captureScreenSnapshot().toBridgeJsonElement()
+    override suspend fun handle(params: JsonObject): JsonElement = environment.captureScreenSnapshot(
+        currentFocusOutput = params.stringParam("currentFocusOutput"),
+    ).toBridgeJsonElement()
 }
 
 private class ReadSourceIndexBridgeHandler(

@@ -105,7 +105,9 @@ internal class AndroidBridgeEnvironment(
         )
     }
 
-    override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot = readSourceIndex().let { sourceIndexResult ->
+    override suspend fun captureScreenSnapshot(
+        currentFocusOutput: String?,
+    ): BridgeScreenSnapshot = readSourceIndex().let { sourceIndexResult ->
         withContext(mainDispatcher) {
             val sourceIndexAvailable = sourceIndexResult.sourceIndexAvailable
             val activity = _currentActivity.value?.get()
@@ -128,8 +130,7 @@ internal class AndroidBridgeEnvironment(
                 selectedBounds = null,
             )
             val displayMetrics: DisplayMetrics = activity.resources.displayMetrics
-            // SIF-4 wiring: adb sideband for focus output is fed in a later phase; pass null for now.
-            val systemUiKind = SystemUiDetector.detect(activity, currentFocusOutput = null)
+            val systemUiKind = SystemUiDetector.detect(activity, currentFocusOutput = currentFocusOutput)
             val snapshot = BridgeScreenSnapshot(
                 activity = activity::class.java.name,
                 inspection = inspection,

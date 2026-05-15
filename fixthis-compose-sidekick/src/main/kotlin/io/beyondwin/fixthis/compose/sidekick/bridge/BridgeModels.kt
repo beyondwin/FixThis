@@ -112,8 +112,9 @@ data class BridgeScreenSnapshot(
     /**
      * SIF-4 (Task B.5): classification of the obstructing system surface, one of
      * `"ime"`, `"permission_dialog"`, `"notification_shade"`, or null when no
-     * obstruction was detected. The adb-derived focus sideband is wired in a later
-     * phase; today only IME insets feed this field.
+     * obstruction was detected. IME insets are detected in-process; permission
+     * dialogs and the notification shade are detected when the host supplies
+     * adb-derived focus output.
      */
     val systemUiKind: String? = null,
     /**

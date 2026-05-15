@@ -164,7 +164,8 @@ class BridgeServerStartupTest {
             errors = listOf(FixThisError("NO_ACTIVITY", "stub")),
         )
 
-        override suspend fun captureScreenSnapshot(): BridgeScreenSnapshot = BridgeScreenSnapshot(inspection = BridgeScreenInspection())
+        override suspend fun captureScreenSnapshot(currentFocusOutput: String?): BridgeScreenSnapshot =
+            BridgeScreenSnapshot(inspection = BridgeScreenInspection())
 
         override suspend fun readSourceIndex(): BridgeSourceIndexResult = BridgeSourceIndexResult(sourceIndexAvailable = false)
 

@@ -165,7 +165,17 @@ class BridgeClient(
         destinationDirectory: File? = null,
     ): JsonObject {
         val scope = requestScope()
-        val result = requestInScope(scope = scope, packageName = packageName, method = "captureScreenSnapshot")
+        val params = buildJsonObject {
+            scope.adb.currentFocusOutput()?.let { focus ->
+                put("currentFocusOutput", focus)
+            }
+        }
+        val result = requestInScope(
+            scope = scope,
+            packageName = packageName,
+            method = "captureScreenSnapshot",
+            params = params,
+        )
         val screenshot = result["screenshot"]?.jsonObject ?: return result
         val artifactId = (screenId ?: "screen-${System.currentTimeMillis()}").sanitizedPathSegment()
         val artifactDirectory = destinationDirectory ?: projectRoot.resolve(".fixthis/artifacts/$artifactId")

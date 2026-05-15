@@ -147,6 +147,13 @@
               try {
                 const preview = await previewUseCases.request();
                 if (draftFlow() || requestGeneration !== previewUseCases.getState().requestGeneration) return;
+                if (preview?.screen?.systemUiVisible && state.preview) {
+                  state.preview.stale = true;
+                  state.preview.obstructedBySystemUi = preview.screen.systemUiKind || 'system_ui';
+                  markPreviewStale(true);
+                  renderPreviewOnly();
+                  return;
+                }
 	                setConsolePreview({
 	                  ...preview,
 	                  activity: state.connection?.availability?.activity ?? null,

@@ -454,7 +454,11 @@ class BridgeClientTest {
     @Test
     fun captureScreenSnapshotPullsFullScreenshotArtifact() = runBlocking {
         val root = temporaryFolder.newFolder()
-        val adb = FakeAdbFacade(sessionJson = sessionJson(protocol = "1.3"))
+        val focus = "mCurrentFocus=Window{abc u0 com.android.permissioncontroller/.GrantPermissionsActivity}"
+        val adb = FakeAdbFacade(
+            sessionJson = sessionJson(protocol = "1.3"),
+            currentFocusOutput = focus,
+        )
         val bridgeSockets =
             listOf(
                 CapturingBridgeSocket(
@@ -504,10 +508,14 @@ class BridgeClientTest {
 
         val result = client.captureScreenSnapshot("io.beyondwin.fixthis.sample")
         val screenshot = result.getValue("screenshot").jsonObject
+        val captureRequest = Json.parseToJsonElement(readFrame(bridgeSockets[0].written.toByteArray())).jsonObject
+        val captureParams = captureRequest.getValue("params").jsonObject
         val readScreenshotRequest = Json.parseToJsonElement(readFrame(bridgeSockets[1].written.toByteArray())).jsonObject
         val readScreenshotParams = readScreenshotRequest.getValue("params").jsonObject
 
         assertTrue(screenshot.getValue("desktopFullPath").jsonPrimitive.content.endsWith("-full.png"))
+        assertEquals(focus, captureParams.getValue("currentFocusOutput").jsonPrimitive.content)
+        assertEquals(listOf(null), adb.currentFocusSerials)
         assertEquals(
             listOf("captureScreenSnapshot", "readScreenshot"),
             bridgeSockets.map { socket ->
@@ -682,6 +690,8 @@ class BridgeClientTest {
         val forwardSerials: MutableList<String?> = mutableListOf(),
         val removeForwardSerials: MutableList<String?> = mutableListOf(),
         val launchedApps: MutableList<Pair<String?, String>> = mutableListOf(),
+        val currentFocusOutput: String? = null,
+        val currentFocusSerials: MutableList<String?> = mutableListOf(),
     ) : AdbFacade {
         override fun devices(): List<AdbDevice> = devices
 
@@ -696,6 +706,8 @@ class BridgeClientTest {
             forwardSerials = forwardSerials,
             removeForwardSerials = removeForwardSerials,
             launchedApps = launchedApps,
+            currentFocusOutput = currentFocusOutput,
+            currentFocusSerials = currentFocusSerials,
         )
 
         override fun runAsCat(packageName: String, path: String): String {
@@ -703,6 +715,11 @@ class BridgeClientTest {
             assertEquals("io.beyondwin.fixthis.sample", packageName)
             assertEquals("files/fixthis/session.json", path)
             return sessionJson
+        }
+
+        override fun currentFocusOutput(): String? {
+            currentFocusSerials += selectedSerial
+            return currentFocusOutput
         }
 
         override fun forward(localPort: Int, socketAddress: String) {

@@ -27,6 +27,7 @@ interface AdbFacade {
     fun devices(): List<AdbDevice>
     fun forDevice(serial: String?): AdbFacade = this
     fun runAsCat(packageName: String, path: String): String
+    fun currentFocusOutput(): String? = null
     fun forward(localPort: Int, socketAddress: String)
     fun removeForward(localPort: Int)
     fun pull(androidPath: String, destination: File)
@@ -76,6 +77,13 @@ class Adb(
     }
 
     override fun runAsCat(packageName: String, path: String): String = checkedRun(listOf("shell", "run-as", packageName, "cat", path)).stdout
+
+    override fun currentFocusOutput(): String? = runCatching {
+        shell("dumpsys", "window", "windows").stdout
+            .lineSequence()
+            .firstOrNull { line -> line.contains("mCurrentFocus=") }
+            ?.trim()
+    }.getOrNull()
 
     override fun pull(androidPath: String, destination: File) {
         checkedRun(listOf("pull", androidPath, destination.path))
