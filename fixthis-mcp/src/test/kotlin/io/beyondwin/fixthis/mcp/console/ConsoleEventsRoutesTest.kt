@@ -4,6 +4,8 @@ import io.beyondwin.fixthis.mcp.console.events.ConsoleEvent
 import io.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
 import io.beyondwin.fixthis.mcp.fixtures.ConsoleRouteTestFixtures.newConsoleSessionFixtureWithTempRoot
 import io.beyondwin.fixthis.mcp.fixtures.FakeIds
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.net.HttpURLConnection
 import java.net.URI
@@ -30,9 +32,13 @@ class ConsoleEventsRoutesTest {
             assertEquals(200, connection.responseCode)
             assertTrue(connection.contentType.startsWith("text/event-stream"))
             val reader = connection.inputStream.bufferedReader()
-            val lines = generateSequence { reader.readLine() }.take(3).joinToString("\n")
+            val lines = generateSequence { reader.readLine() }
+                .takeWhile { it.isNotBlank() }
+                .toList()
             assertTrue(lines.contains("event: snapshot"))
-            assertTrue(lines.contains("data:"))
+            val dataLines = lines.filter { it.startsWith("data: ") }
+            assertEquals(1, dataLines.size, "SSE event data must be one JSON payload, not pretty-printed lines")
+            assertTrue(Json.parseToJsonElement(dataLines.single().removePrefix("data: ")).jsonObject.containsKey("devices"))
         } finally {
             server.stop()
             fixture.close()

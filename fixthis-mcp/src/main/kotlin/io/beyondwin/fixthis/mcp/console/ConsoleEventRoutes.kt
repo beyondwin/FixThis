@@ -7,6 +7,7 @@ import io.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionList
 import io.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -20,6 +21,7 @@ import java.util.concurrent.TimeUnit
 private const val HTTP_OK = 200
 private const val INITIAL_EVENT_ID = 0L
 private const val KEEP_ALIVE_TIMEOUT_SECONDS = 15L
+private val sseJson = Json(fixThisJson) { prettyPrint = false }
 
 internal class ConsoleEventRoutes(
     private val service: FeedbackSessionService,
@@ -98,7 +100,7 @@ internal class ConsoleEventRoutes(
 private fun OutputStream.writeSseEvent(name: String, id: Long?, data: JsonObject) {
     if (id != null) write("id: $id\n".toByteArray(Charsets.UTF_8))
     write("event: $name\n".toByteArray(Charsets.UTF_8))
-    val json = fixThisJson.encodeToString(JsonObject.serializer(), data)
+    val json = sseJson.encodeToString(JsonObject.serializer(), data)
     write("data: $json\n\n".toByteArray(Charsets.UTF_8))
     flush()
 }
