@@ -10,6 +10,7 @@ const mainSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/main
 const historySource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/history.js'), 'utf8');
 const renderingSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/rendering.js'), 'utf8');
 const annotationsSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/annotations.js'), 'utf8');
+const promptSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/prompt.js'), 'utf8');
 const previewSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/preview.js'), 'utf8');
 
 function buildLocalStorageStub() {
@@ -176,15 +177,46 @@ test('pending recovery refreshes history summaries after restoring draft items',
   );
 });
 
-test('session refresh reloads pending recovery and session switches require a recovery choice', () => {
+test('draft recovery helpers classify commented and pin-only draft items', () => {
+  assert.match(annotationsSource, /function draftItemsFromValue\(value\)/);
+  assert.match(annotationsSource, /function commentedDraftItems\(value\)/);
+  assert.match(annotationsSource, /function pinOnlyDraftItems\(value\)/);
+  assert.match(annotationsSource, /function draftRecoverySummary\(value\)/);
+  assert.match(
+    annotationsSource,
+    /commentedDraftItems\(items\)[\s\S]*?pinOnlyDraftItems\(items\)/,
+  );
+});
+
+test('session refresh reloads pending recovery without blocking passive drafts', () => {
   const refreshBody = extractFunctionBody(historySource, 'async function refresh()');
   assert.match(refreshBody, /loadPendingRecoveryForCurrentSession\(\);[\s\S]*?render\(\);/);
+
   const openBody = extractFunctionBody(historySource, 'async function openSession(sessionId)');
   const newBody = extractFunctionBody(historySource, 'async function newSession()');
   const annotateBody = extractFunctionBody(historySource, 'async function enterAnnotateMode()');
+
   assert.match(openBody, /resolvePendingBeforeBoundary\('open-session',\s*sessionId\)/);
   assert.match(newBody, /resolvePendingBeforeBoundary\('new-session'\)/);
   assert.match(annotateBody, /requirePendingRecoveryChoiceBeforeSessionChange\(\)/);
+
+  const requireBody = extractFunctionBody(mainSource, 'function requirePendingRecoveryChoiceBeforeSessionChange()');
+  assert.doesNotMatch(requireBody, /showError\('Recover, recapture, or discard unsaved annotations before changing sessions\.'\)/);
+  assert.match(requireBody, /renderPendingRecoveryBanner\(\);[\s\S]*?return true;/);
+
+  const resolveBody = extractFunctionBody(mainSource, 'async function resolvePendingBeforeBoundary(action, sessionId = null)');
+  assert.doesNotMatch(resolveBody, /Recover, recapture, or discard unsaved annotations before changing sessions\./);
+  assert.doesNotMatch(resolveBody, /return 'cancel';/);
+});
+
+test('pending recovery banner appears only for commented draft items and uses resume copy', () => {
+  const bannerBody = extractFunctionBody(mainSource, 'function renderPendingRecoveryBanner()');
+  assert.match(bannerBody, /const summary = draftRecoverySummary\(pendingRecovery\);/);
+  assert.match(bannerBody, /summary\.commented === 0/);
+  assert.match(bannerBody, /Resume draft/);
+  assert.match(bannerBody, /pins without comments/);
+  assert.doesNotMatch(bannerBody, /Recover restores the frozen preview and pins from this session\./);
+  assert.doesNotMatch(bannerBody, /data-recover-pending/);
 });
 
 test('switching sessions keeps the previous session pending recovery mirror', () => {
@@ -248,6 +280,32 @@ test('history counts inactive pending recovery without migrating storage', () =>
   assert.match(recoveryHistoryBody, /restorePendingState\(sessionId\)/);
   assert.doesNotMatch(recoveryHistoryBody, /migrateLegacyPending/);
   assert.doesNotMatch(recoveryHistoryBody, /loadDraftRecoveryForSession/);
+});
+
+test('history separates commented draft and pin-only recovery counts', () => {
+  const summaryBody = extractFunctionBody(historySource, 'function pendingHistorySummaryForSession(session)');
+  assert.match(summaryBody, /const summary = draftRecoverySummary\(items\);/);
+  assert.match(summaryBody, /summary\.commented/);
+  assert.match(summaryBody, /summary\.pinOnly/);
+  assert.match(summaryBody, /pins without comments/);
+});
+
+test('handoff persists written draft items without failing on pin-only items', () => {
+  const persistCollectBody = extractFunctionBody(promptSource, 'async function persistAndCollectItemIds()');
+  assert.match(persistCollectBody, /const writtenDraftItems = commentedDraftItems\(draftItemList\(\)\);/);
+  assert.match(persistCollectBody, /if \(writtenDraftItems\.length === 0\)/);
+  assert.match(persistCollectBody, /await persistPendingFeedbackItems\(\{[\s\S]*?onlyWrittenComments: true[\s\S]*?keepResidualDraftActive: options\.keepResidualDraftActive !== false[\s\S]*?\}\);/);
+  assert.doesNotMatch(persistCollectBody, /draftItemList\(\)\.some\(item => !hasWrittenAnnotationComment\(item\)\)/);
+
+  const persistPendingBody = extractFunctionBody(annotationsSource, 'async function persistPendingFeedbackItems(options = {})');
+  assert.match(persistPendingBody, /const residualPinOnlyItems = onlyWrittenComments \? pinOnlyDraftItems\(items\) : \[\];/);
+  assert.match(persistPendingBody, /saveResidualPinOnlyDraft\(residualPinOnlyItems,\s*\{ keepActive: keepResidualDraftActive \}\);/);
+  assert.match(annotationsSource, /workspaceId: ports\.ids\.nextWorkspaceId\(\)/);
+
+  const copyBody = extractFunctionBody(promptSource, 'async function copyPrompt()');
+  const sendBody = extractFunctionBody(promptSource, 'async function sendAgentPrompt()');
+  assert.match(copyBody, /persistAndCollectItemIds\(\)/);
+  assert.match(sendBody, /persistAndCollectItemIds\(\{ keepResidualDraftActive: false \}\)/);
 });
 
 test('pending annotation detail edits write through to recovery envelope', () => {
