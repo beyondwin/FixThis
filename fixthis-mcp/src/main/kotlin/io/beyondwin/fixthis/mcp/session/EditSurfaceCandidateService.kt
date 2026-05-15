@@ -9,17 +9,19 @@ internal object EditSurfaceCandidateService {
         item: AnnotationDto,
         screen: SnapshotDto?,
     ): List<EditSurfaceCandidateDto> {
-        val intent = EditIntentClassifier.classify(item.comment)
+        val intent = EditIntentAnalyzer.analyze(item, screen)
         if (intent.primaryKind == EditSurfaceKindDto.UNKNOWN) return emptyList()
 
         val owner = TargetOwnerResolver.resolve(item, screen)
-        val ownerComposable = owner?.node?.testTag?.let { TestTagConvention.parse(it)?.composableName }
+        val ownerComposable = componentNameFrom(item.selectedNode?.testTag)
+            ?: componentNameFrom(owner?.node?.testTag)
         val candidates = mutableListOf<EditSurfaceCandidateDto>()
 
         ownerComposable?.let { composable ->
             item.sourceCandidates.firstOrNull { candidate ->
                 candidate.file.substringAfterLast('/').removeSuffix(".kt") == composable ||
-                    candidate.matchedTerms.any { it == composable }
+                    candidate.matchedTerms.any { it == composable } ||
+                    candidate.ownerComposable == composable
             }?.let { source ->
                 candidates += source.toEditSurface(
                     kind = intent.primaryKind,
@@ -53,6 +55,8 @@ internal object EditSurfaceCandidateService {
 
         return candidates.distinctBy { it.file to it.line }.take(2)
     }
+
+    private fun componentNameFrom(testTag: String?): String? = TestTagConvention.parse(testTag)?.composableName
 
     private fun SourceCandidate.toEditSurface(
         kind: EditSurfaceKindDto,
