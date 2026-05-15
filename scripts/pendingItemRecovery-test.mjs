@@ -352,6 +352,21 @@ test('annotation detail comment focus places the caret after existing text', () 
   assert.doesNotMatch(savedDetailBody, /if \(editable\) commentInput\.focus\(\);/);
 });
 
+test('saved annotation back navigation does not wait for persistence', () => {
+  const savedDetailBody = extractFunctionBody(renderingSource, 'function renderSavedAnnotationDetail(item, index)');
+  const backBindingIndex = savedDetailBody.indexOf("draftItems.querySelectorAll('[data-back-saved-annotations]')");
+  assert.notEqual(backBindingIndex, -1, 'saved detail back button binding not found');
+  const backHandlerBody = savedDetailBody.slice(backBindingIndex);
+  const goBackCallIndex = backHandlerBody.indexOf('goBack();');
+  const persistCallIndex = backHandlerBody.indexOf('persistSavedEvidenceItem(item, editSessionId)');
+  assert.ok(goBackCallIndex >= 0, 'back handler should leave detail view immediately');
+  assert.ok(persistCallIndex >= 0, 'back handler should still persist editable changes');
+  assert.ok(goBackCallIndex < persistCallIndex, 'navigation must happen before best-effort persistence');
+  assert.match(backHandlerBody, /goBack\(\);\s*if \(editable\) \{\s*persistSavedEvidenceItem\(item, editSessionId\)\.catch\(showError\);/);
+  assert.doesNotMatch(backHandlerBody, /persistSavedEvidenceItem\(item, editSessionId\)[\s\S]*?\.then\(goBack\)/);
+  assert.match(savedDetailBody, /event\.relatedTarget\?\.hasAttribute\?\.\('data-back-saved-annotations'\)/);
+});
+
 test('pending detail comments are not overwritten by the hidden composer before persistence', () => {
   const flushBody = extractFunctionBody(annotationsSource, 'function flushFocusedPendingComment()');
   assert.match(flushBody, /pendingItems\.querySelector\('#annotationCommentInput'\)/);

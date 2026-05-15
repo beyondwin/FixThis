@@ -419,8 +419,9 @@
                 if (!editable) return;
                 persistSavedEvidenceItem(item, editSessionId).catch(showError);
               });
-              commentInput.addEventListener('blur', () => {
+              commentInput.addEventListener('blur', event => {
                 if (!editable) return;
+                if (event.relatedTarget?.hasAttribute?.('data-back-saved-annotations')) return;
                 persistSavedEvidenceItem(item, editSessionId).catch(showError);
               });
               draftItems.querySelectorAll('[data-set-severity]').forEach(button => {
@@ -473,12 +474,9 @@
                     renderPreviewOnly();
                     renderInspectorRegion();
                   };
-                  if (!editable) {
-                    goBack();
-                  } else {
-                    persistSavedEvidenceItem(item, editSessionId)
-                      .then(goBack)
-                      .catch(error => { showError(error); goBack(); });
+                  goBack();
+                  if (editable) {
+                    persistSavedEvidenceItem(item, editSessionId).catch(showError);
                   }
                 });
               });
