@@ -43,6 +43,34 @@ test('save request includes explicit session context', () => {
   assert.equal(request.items[0].comment, 'fix');
 });
 
+test('save request downgrades stale node drafts to area targets', () => {
+  const request = m.buildDraftWorkspaceSaveRequest({
+    ...workspace,
+    screen: {
+      screenId: 'screen-a',
+      roots: [{
+        mergedNodes: [{ uid: 'compose:0:merged:99' }],
+        unmergedNodes: [],
+      }],
+    },
+    items: [{
+      draftItemId: 'draft-node',
+      targetType: 'node',
+      nodeUid: 'compose:0:merged:73',
+      bounds: { left: 10, top: 20, right: 100, bottom: 140 },
+      label: 'Metric card',
+      severity: 'med',
+      status: 'open',
+      comment: 'fix stale node',
+    }],
+  });
+
+  assert.equal(request.items[0].targetType, 'area');
+  assert.equal(request.items[0].nodeUid, undefined);
+  assert.equal(request.items[0].bounds.left, 10);
+  assert.equal(request.items[0].label, 'Metric card');
+});
+
 test('save request rejects missing sessionId and previewId', () => {
   assert.throws(() => m.buildDraftWorkspaceSaveRequest({ ...workspace, context: { previewId: 'p' } }), /sessionId/);
   assert.throws(() => m.buildDraftWorkspaceSaveRequest({ ...workspace, context: { sessionId: 's' } }), /previewId/);

@@ -16,6 +16,25 @@ function draftItemToAnnotationDraftDto(item, options = {}) {
   };
 }
 
+function screenHasNodeUid(screen, nodeUid) {
+  if (!screen || !nodeUid) return false;
+  return (screen.roots || []).some((root) => {
+    return (root?.mergedNodes || []).some((node) => node?.uid === nodeUid) ||
+      (root?.unmergedNodes || []).some((node) => node?.uid === nodeUid);
+  });
+}
+
+function normalizeDraftItemForScreen(item, screen) {
+  if (item?.targetType !== 'node' || !item.nodeUid || !screen || screenHasNodeUid(screen, item.nodeUid)) {
+    return item;
+  }
+  return {
+    ...item,
+    targetType: 'area',
+    nodeUid: undefined,
+  };
+}
+
 function buildDraftWorkspaceSaveRequest(workspace, options = {}) {
   const context = workspace?.context || {};
   if (!context.sessionId) throw new Error('Draft save requires sessionId');
@@ -28,6 +47,7 @@ function buildDraftWorkspaceSaveRequest(workspace, options = {}) {
     screen: workspace.screen || null,
     items: (workspace.items || [])
       .filter((item) => options.allowBlankComments || options.allowFallbackComments || String(item.comment || '').trim())
+      .map((item) => normalizeDraftItemForScreen(item, workspace.screen))
       .map((item) => draftItemToAnnotationDraftDto(item, options)),
     frozenFingerprint: context.screenFingerprint,
     forceMismatchOverride: Boolean(options.forceMismatchOverride),
