@@ -30,10 +30,28 @@ local.properties
 !.env.example
 *.jks
 *.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+*.gpg
+*.kbx
+key.properties
+credentials.properties
+secrets.properties
+signing.properties
+publish.properties
+publishing.properties
+gradle-publish.properties
+maven-central.properties
+npmrc.local
+.npmrc.local
 
 # FixThis local capture artifacts
 .fixthis/artifacts/
 .fixthis/feedback-sessions/
+.fixthis/preview-cache/
+.fixthis/smoke-reports/
 
 # OS
 .DS_Store
@@ -41,10 +59,15 @@ local.properties
 # Logs / temporary files
 *.log
 *.tmp
+*.bak
+*.orig
 
 # Agent/local tool state
 .fixthis
 .claude/
+.codex/
+.mcp.json
+.cursor/mcp.json
 .orchestrator/
 .codex-orchestrator/
 .remember/
@@ -52,4 +75,6 @@ local.properties
 .playwright-cli/
 .playwright-mcp/
 .worktrees/
-output/playwright
+output/
+playwright-report/
+test-results/

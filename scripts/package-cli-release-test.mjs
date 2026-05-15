@@ -65,3 +65,26 @@ test("package-cli-release creates one sibling-layout CLI/MCP tarball", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("package-cli-release rejects path-like version strings", () => {
+  const root = mkdtempSync(join(tmpdir(), "fixthis-package-release-"));
+  try {
+    mkdirSync(join(root, "scripts"), { recursive: true });
+    copyFileSync(
+      join(repoRoot, "scripts/package-cli-release.sh"),
+      join(root, "scripts/package-cli-release.sh"),
+    );
+    chmodSync(join(root, "scripts/package-cli-release.sh"), 0o755);
+
+    const result = spawnSync(
+      "bash",
+      ["scripts/package-cli-release.sh", "--version", "../bad", "--skip-build"],
+      { cwd: root, encoding: "utf8" },
+    );
+
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /invalid --version/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

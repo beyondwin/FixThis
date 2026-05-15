@@ -14,6 +14,9 @@ concurrency:
   group: console-harness-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   console-harness:
     name: Console harness

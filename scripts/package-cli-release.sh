@@ -51,6 +51,11 @@ if [[ -z "$VERSION" ]]; then
     echo "[package] --version is required when FIXTHIS_VERSION is unavailable" >&2
     exit 2
 fi
+if [[ ! "$VERSION" =~ ^v?[0-9]+[.][0-9]+[.][0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
+    echo "[package] invalid --version: $VERSION" >&2
+    echo "[package] expected semantic version such as v0.2.0 or 0.2.0-rc.1" >&2
+    exit 2
+fi
 
 if [[ "$SKIP_BUILD" -eq 0 ]]; then
     ./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist --no-daemon
