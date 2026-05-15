@@ -462,7 +462,8 @@ function createServer() {
       if (url.pathname.startsWith('/api/')) return await handleApi(request, response, url);
       return textResponse(response, 'Not found', 404);
     } catch (error) {
-      return textResponse(response, error?.stack || String(error), 500);
+      console.error('Smoke server request failed:', error?.stack || error);
+      return textResponse(response, 'Internal server error', 500);
     }
   });
 }
