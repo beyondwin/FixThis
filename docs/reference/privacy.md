@@ -24,7 +24,9 @@ bounds, frozen screen metadata, the preview id, a local screenshot URL, a
 frozen timestamp, lifecycle/revision state, and undo/redo history. Legacy
 `fixthis.pending.<sessionId>` mirrors may still be read for migration. Browser
 draft mirrors stay local until you recover, recapture, discard, or persist the
-batch.
+batch. Deleting a feedback session clears that session's browser-local
+DraftWorkspace entries, per-session workspace index, and legacy
+`fixthis.pending.<sessionId>` mirror.
 
 ## Debug Scope
 

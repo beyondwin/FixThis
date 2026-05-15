@@ -42,11 +42,12 @@ The console UI and local API can list, reopen, and close persisted sessions. Clo
 
 The local console serves a per-server browser token and requires `X-FixThis-Console-Token` on mutating `/api/*` requests. Mutating requests with a non-localhost `Origin` are rejected. This protects local mutation endpoints such as app launch, navigation, capture, draft writes, and handoff creation from ordinary cross-origin web pages while keeping the console localhost-only.
 
-Saved annotations, preview screenshots, screen artifacts, and pending recovery
-drafts are scoped to the feedback session that created them. Console routes use
-explicit session ids for artifact lookup and item mutation, and saved item
-numbers remain monotonic rather than being renumbered after deletes or session
-reopens.
+Saved annotations, preview screenshots, screen artifacts, pending recovery
+drafts, and SSE session/preview updates are scoped to the feedback session that
+created them. Console routes use explicit session ids for artifact lookup and
+item mutation, event payloads carry top-level `sessionId` where they can update
+detail or preview state, and saved item numbers remain monotonic rather than
+being renumbered after deletes or session reopens.
 
 The current console contract is documented in [`docs/reference/feedback-console-contract.md`](feedback-console-contract.md); the shipped workflow uses `Annotate`, `Add annotation`, `Copy Prompt`, and `Save to MCP`.
 
@@ -83,7 +84,7 @@ Top bar actions are short session-level controls: device selection, connection s
 
 `Annotate` freezes the latest preview only; it does not write a session item by itself. Multiple pending annotations can be added to one frozen preview with `Add annotation`. Pending items support Focus and Delete before they are persisted; deleting renumbers pending items so the pending list numbers and overlay numbers match.
 
-`Copy Prompt` and `Save to MCP` persist written pending annotations when needed, promote the frozen preview into one persisted evidence snapshot, and connect those items to the same `screenId`. The item's `screenId` field points to the evidence snapshot saved with that item batch, so multiple saved items can share one `screenId`. During persistence, FixThis derives optional `targetEvidence` and `targetReliability` for each item from the frozen preview's captured merged semantics nodes, source-index candidates, and save-time screen integrity checks. Later `Annotate` work on the same visible app screen can create another evidence snapshot when pending annotations are persisted. Live preview frames are not session history: `FeedbackSession.screens` contains persisted evidence snapshots, not every preview frame.
+`Copy Prompt` and `Save to MCP` persist written pending annotations when needed, promote the frozen preview into one persisted evidence snapshot, and connect those items to the same `screenId`. If a draft contains written comments plus pin-only residual targets, only the written subset is persisted; Copy Prompt keeps residual pins browser-local, while Save to MCP discards them as part of completing the handoff. The item's `screenId` field points to the evidence snapshot saved with that item batch, so multiple saved items can share one `screenId`. During persistence, FixThis derives optional `targetEvidence` and `targetReliability` for each item from the frozen preview's captured merged semantics nodes, source-index candidates, and save-time screen integrity checks. Later `Annotate` work on the same visible app screen can create another evidence snapshot when pending annotations are persisted. Live preview frames are not session history: `FeedbackSession.screens` contains persisted evidence snapshots, not every preview frame.
 
 Before persistence, the server compares the frozen preview fingerprint with a
 lightweight live capture when both fingerprints exist. If they differ,
@@ -102,7 +103,8 @@ lifecycle, and undo/redo history. Legacy schema-v1
 `localStorage["fixthis.pending.<sessionId>"]` envelopes are still readable and
 migrated into schema-v2 recovery workspaces. On reload or reattach, the console
 asks the user to Recover, Recapture, or Discard before exposing pending rows
-again.
+again. Deleting a session clears both its schema-v2 workspace entries and the
+legacy `fixthis.pending.<sessionId>` mirror from browser storage.
 
 Saved evidence groups can be expanded to review the persisted screenshot, numbered overlay, and saved comments. `Save to MCP` is local persistence, not an external AI API call. FixThis marks the affected items with `delivery: sent` so MCP clients can list them through `fixthis_list_feedback`, claim one with `fixthis_claim_feedback`, and resolve it with `fixthis_resolve_feedback`. Sessions that contain sent items remain in the main History list; while an agent is actively working on an item the row shows a `working` pip that is driven by the item's `in_progress` status.
 

@@ -157,8 +157,10 @@ High-priority items beyond V1:
   subtree evidence instead of only lowering target confidence.
 - **Finish SSE-driven console state sync** — Phase 1 now pushes session,
   device, connection, and preview updates over `/api/events`, with polling kept
-  as fallback. Remaining work is to retire the preview polling loop and reduce
-  redundant pull refreshes. Design in [console-state-sync-design.md](docs/architecture/console-state-sync-design.md).
+  as fallback and session/preview events fenced by active `sessionId`.
+  Remaining work is to retire the preview polling loop and reduce redundant
+  pull refreshes. Design in
+  [console-state-sync-design.md](docs/architecture/console-state-sync-design.md).
 - **Smarter source matching** — lift detection on `Layout` / `SubcomposeLayout` wrappers, recognize more composable-name conventions, and keep source confidence explainable as the matcher evolves.
 - **More agents out of the box** — Cursor, Aider, and others currently work via Copy Prompt; first-class MCP / config writers can follow the Claude Code + Codex pattern.
 

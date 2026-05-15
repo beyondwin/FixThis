@@ -144,6 +144,10 @@ The prompt readiness summary sits near **Copy Prompt** and **Save to MCP**. It
 shows `No annotations ready` before any written comments exist, then counts the
 ready annotations and distinguishes clipboard-only copy from the local MCP
 queue. Disabled handoff buttons always have a visible reason in this summary.
+If a frozen draft contains a mix of written comments and pin-only targets,
+FixThis persists only the written items. For **Copy Prompt**, pin-only
+residuals stay recoverable in the browser draft. For **Save to MCP**, residual
+pin-only draft items are discarded because the action completes the handoff.
 
 ### Copy Prompt — for any chat-style agent
 
@@ -199,6 +203,9 @@ the console reloads and finds a recoverable frozen preview, it shows a
 Recover / Recapture / Discard banner before exposing the pending rows again.
 Recover keeps the frozen screenshot and pending comments; Recapture maps the
 comments onto a fresh preview; Discard clears the local mirror.
+Deleting a session from History also clears that session's browser-local draft
+recovery, including older pending mirrors, so a deleted session cannot reappear
+as a recovery card later.
 
 > Capture needed: left session list with two prior sessions, one expanded to
 > show saved evidence groups.

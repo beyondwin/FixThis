@@ -53,8 +53,8 @@ human-driven flow (build → doctor → run → console → agent handoff).
 5. Click a UI element or drag a visual area; type a comment.
 6. Click **Add annotation** — creates a numbered pin in the overlay.
 7. Repeat for additional feedback on this screen.
-8. **Save to MCP** persists the batch as a local handoff. (Use **Copy Prompt**
-   instead to paste compact Markdown into a chat-style agent.)
+8. **Save to MCP** persists written annotations as a local handoff. (Use
+   **Copy Prompt** instead to paste compact Markdown into a chat-style agent.)
 9. Call `fixthis_read_feedback` to read the queue, then
    `fixthis_resolve_feedback` after making changes.
 

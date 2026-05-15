@@ -41,7 +41,9 @@ Root cause: `refreshSessions()` only refreshed `state.sessionSummaries`. It was 
 On connect, the server sends a `snapshot` containing the active session,
 session summaries, devices, and connection status. Later server-side changes
 emit `session-updated`, `sessions-updated`, `devices-updated`,
-`connection-updated`, or `preview-ready`. The endpoint supports
+`connection-updated`, or `preview-ready`. Events that can mutate visible
+session detail or preview state carry top-level `sessionId`; the browser
+ignores them when they do not match the active session. The endpoint supports
 `Last-Event-ID` replay from a 256-event ring buffer and emits
 `replay-overflow` when the client needs a full refresh.
 
@@ -90,11 +92,13 @@ EventSource keeps another tab or agent claim/resolve visible without waiting
 for the polling interval. Lockstep refresh keeps the panel/toolbar in sync
 with the sidebar immediately after local mutations, and conditional polling
 covers browsers without EventSource or temporary SSE failures without
-re-render churn when the ETag is unchanged.
+re-render churn when the ETag is unchanged. Session-scoped event application
+also prevents stale async events from session A replacing session B's detail
+pane or preview after History navigation.
 
 ### Residual gap - what Phase 1 does NOT fix
 
-The design is now push-first, but a few fallback and cleanup gaps remain:
+The design is now push-first, but a few fallback gaps remain:
 
 1. **Preview polling still exists.** `/api/events` can deliver `preview-ready`,
    but the legacy live preview interval remains for now.
@@ -137,7 +141,10 @@ of redundant pull paths, not a new state-sync foundation.
 
 - Optimistic mutation reconciliation (CRDT, OT). The console is single-user; last-writer-wins via authoritative server state is fine.
 - Multi-user collaboration. Out of scope; SSE design simply doesn't preclude it.
-- Subscription filters (e.g. "only send events for session X"). Console only has one active session at a time; broadcasting all session events to the one connected client is cheap.
+- Subscription filters (e.g. "only send events for session X"). Console only
+  has one active session at a time; broadcasting all session events to the one
+  connected client is cheap because browser handlers fence visible state
+  updates by the payload `sessionId`.
 
 ### Shipped SSE Server
 
@@ -152,9 +159,13 @@ Behavior:
 - Each frame: `event: <name>\ndata: <json>\nid: <monotonic-int>\n\n`.
 - On connect, server sends a `snapshot` event with the current `{ session, sessions, devices, connection }` payload.
 - On subsequent server-side state changes, server emits one of:
-  - `session-updated` — payload: full `SessionDto` of the now-active session (or `null`).
-  - `sessions-updated` — payload: full `FeedbackSessionSummary[]`.
-  - `devices-updated`, `connection-updated`, `preview-ready` — fold in existing polling concerns.
+  - `session-updated` — payload: `{ sessionId, session }`, where `session`
+    is the mutated `SessionDto`.
+  - `sessions-updated` — payload: `{ sessionId }` as a summary invalidation,
+    or a full summary list when supplied by snapshot/fallback refresh paths.
+  - `preview-ready` — payload: `{ sessionId, preview }`.
+  - `devices-updated`, `connection-updated` — fold in existing polling
+    concerns.
 - `id:` is a monotonic counter assigned per-event; client stores last-seen id.
 - Standard SSE auto-reconnect: browser sends `Last-Event-ID: <n>` header on reconnect; server replays any events with `id > n` from a small ring buffer (~256 events) before resuming live stream. Events older than the ring force a `snapshot` event instead.
 
@@ -186,7 +197,13 @@ eventsSource.addEventListener('snapshot', (e) => {
 
 eventsSource.addEventListener('session-updated', (e) => {
   const payload = JSON.parse(e.data);
-  if (payload.session) setConsoleSession(payload.session);
+  if (!payload.session) return;
+  if (state.session?.sessionId && payload.sessionId !== state.session.sessionId) {
+    refreshSessions().catch(showError);
+    return;
+  }
+  setConsoleSession(payload.session);
+  loadPendingRecoveryForCurrentSession();
   render();
 });
 
@@ -195,7 +212,20 @@ eventsSource.addEventListener('sessions-updated', (e) => {
   if (payload.sessions?.sessions) renderSessionsListFromPayload(payload.sessions.sessions);
 });
 
-// devices-updated, connection-updated, preview-ready ...
+eventsSource.addEventListener('preview-ready', (e) => {
+  const payload = JSON.parse(e.data);
+  if (!payload.preview || draftFlow()) return;
+  if (payload.sessionId !== state.session?.sessionId) return;
+  setConsolePreview({
+    ...payload.preview,
+    activity: state.connection?.availability?.activity ?? null,
+    frozenAtEpochMillis: Date.now(),
+    stale: false,
+  });
+  renderPreviewOnly();
+});
+
+// devices-updated, connection-updated ...
 ```
 
 `refresh()`, `refreshSessions()`, and ETag polling are now fallback-oriented:
@@ -219,6 +249,9 @@ surface remains the visible fallback indicator.
 **Phase 1 — server emit, client subscribe (shipped, parallel pull retained)**
 - Wire emit calls into `FeedbackSessionStore`, `DeviceService`, `ConnectionService`, `LivePreviewService`.
 - Client opens `EventSource` on init; handlers update `state.*` and re-render.
+- `session-updated` and `preview-ready` payloads carry top-level `sessionId`;
+  mismatched session events refresh summaries without clobbering the active
+  detail pane, and mismatched preview events are ignored.
 - Pull paths (`refreshSessions` and ETag polling) stay. If both fire,
   last-writer-wins; ordering is ensured because mutations always wait for the
   server response (which has already emitted) before calling the local
@@ -251,8 +284,14 @@ surface remains the visible fallback indicator.
 ### Test surface
 
 - Server: `ConsoleEventBusTest` covers monotonic ids, ring replay, and overflow.
-- Server: `ConsoleEventsRoutesTest` covers initial snapshot, SSE framing, and replay behavior.
-- Client: `consoleEvents-test.mjs` verifies that the browser subscriber opens `/api/events`, handles expected event names, and is started during console initialization.
+- Server: `ConsoleEventsRoutesTest` covers initial snapshot, SSE framing,
+  replay behavior, and top-level `sessionId` on `preview-ready`.
+- Server: `ConsoleFeedbackItemRoutesTest` verifies legacy explicit-session
+  item creation emits the mutated request session.
+- Client: `consoleEvents-test.mjs` verifies that the browser subscriber opens
+  `/api/events`, handles expected event names, is started during console
+  initialization, and fences `session-updated` / `preview-ready` by active
+  session.
 - Browser follow-up: extend `console-browser-smoke.mjs` to assert that opening two tabs and mutating from one updates the other within ~500 ms.
 
 ### Remaining effort
@@ -270,3 +309,4 @@ surface remains the visible fallback indicator.
 | 2026-05-10 | Ship lockstep refresh foundation | Fixes the observed sidebar/panel drift after local mutations with a small, low-risk change. |
 | 2026-05-11 | Add ETag-conditional session polling | Covers passive agent/tab updates without blind polling churn; pauses around edits and mutations. |
 | 2026-05-15 | Ship SSE Phase 1 | Added `/api/events`, ring replay, browser `EventSource` subscription, and route emit points for session, device, connection, and preview state. Polling remains as fallback. |
+| 2026-05-15 | Fence session and preview SSE events by active session | Prevents stale async updates from replacing the visible session detail or preview after explicit session CRUD or History navigation. |

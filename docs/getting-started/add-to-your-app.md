@@ -96,7 +96,7 @@ Your app integration is working when:
 
 - `fixthis doctor --package <applicationId>` reports a reachable debug app and sidekick bridge;
 - `fixthis_open_feedback_console` or `fixthis console --package <applicationId>` opens FixThis Studio;
-- one annotation can be saved through **Copy Prompt** or **Save to MCP**;
+- one written annotation can be saved through **Copy Prompt** or **Save to MCP**;
 - release builds do not include the sidekick.
 
 ## What's next

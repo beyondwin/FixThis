@@ -35,6 +35,29 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ### Added
 
+- **Console session/preview sync hardening — session-scoped SSE, explicit-session mutation events, partial draft handoff, and deleted-session cleanup (console/mcp, 2026-05-15):**
+  - `session-updated` and `preview-ready` SSE payloads now carry top-level
+    `sessionId`; the browser applies them to detail/preview state only when
+    that session is active, while the initial `snapshot` event remains
+    authoritative.
+  - Legacy `POST /api/items` now emits the explicitly mutated session instead
+    of the current session, so explicit-session item creation cannot refresh
+    the wrong detail pane.
+  - `Copy Prompt` / `Save to MCP` can persist the subset of pending draft
+    annotations that have written comments. Residual pin-only annotations stay
+    browser-local for Copy Prompt and are intentionally discarded for Save to
+    MCP.
+  - Deleting a feedback session clears its browser-local draft recovery,
+    including schema-v2 DraftWorkspace entries and the legacy
+    `fixthis.pending.<sessionId>` mirror.
+  - Documented in
+    [`docs/architecture/console-state-sync-design.md`](docs/architecture/console-state-sync-design.md),
+    [`docs/guides/feedback-console-tour.md`](docs/guides/feedback-console-tour.md),
+    [`docs/guides/agents.md`](docs/guides/agents.md),
+    [`docs/reference/mcp-tools.md`](docs/reference/mcp-tools.md),
+    [`docs/reference/privacy.md`](docs/reference/privacy.md), and
+    [`docs/reference/feedback-console-contract.md`](docs/reference/feedback-console-contract.md).
+
 - **Target reliability handoffs — confidence + warning metadata for agents (core/mcp/console, 2026-05-15):**
   - Persisted feedback items can now carry optional `targetReliability`
     metadata alongside `targetEvidence`. The confidence level (`HIGH`,

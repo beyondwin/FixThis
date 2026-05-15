@@ -98,9 +98,10 @@ tools.
   and omits internal IDs and storage metadata. JSON kept on disk preserves all
   IDs, paths, and MCP contracts — see the
   [Output schema](../reference/output-schema.md).
-- **Multiple annotations batch into one handoff.** Whether you Copy Prompt or
-  Save to MCP, every pending annotation on the frozen preview lands in the same
-  batch.
+- **Written annotations batch into one handoff.** Whether you Copy Prompt or
+  Save to MCP, every pending annotation on the frozen preview that has a
+  written comment lands in the same batch. Pin-only residual annotations stay
+  local for Copy Prompt and are discarded for Save to MCP.
 - **Screen mismatch is guarded.** If the frozen preview fingerprint differs
   from the current app screen when you save, the console asks whether to
   re-capture, force-save, or cancel.

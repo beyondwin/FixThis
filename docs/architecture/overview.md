@@ -162,6 +162,11 @@ MCP stdio server and local feedback console server.
   numbers. The store coordinates locking and persistence while pure reducers
   and replay helpers own state transitions and event-log recovery.
 - `console/FeedbackConsoleServer.kt`: `127.0.0.1` HTTP console and `/api/*` endpoints.
+- `console/events/*`, `console/ConsoleEventEmitters.kt`, and
+  `console/ConsoleEventRoutes.kt`: Server-Sent Events for console state sync.
+  Session and preview events carry top-level `sessionId`; the browser applies
+  them only when they match the active session, while the initial `snapshot`
+  event remains authoritative.
 - `console/FeedbackConsoleAssets.kt`: loader that validates and assembles `src/main/resources/console/index.html`, `styles.css`, `app.js` classpath resources.
 
 MCP tools:
@@ -225,7 +230,7 @@ flowchart TD
     A["fixthis_open_feedback_console or fixthis console"] --> B["MCP starts local HTTP console"]
     B --> C["Connection card polls /api/connection"]
     C --> D["Start / Open app / Reconnect / Try again reaches Ready"]
-    D --> E["Console polls preview via captureScreenSnapshot"]
+    D --> E["Console receives live preview and session updates"]
     E --> F["User clicks Annotate to freeze latest preview"]
     F --> G["User selects semantics node or visual area and writes comments"]
     G --> H["Add annotation creates pending rows"]
@@ -241,9 +246,10 @@ Important distinction:
 - Preview frames are temporary and stored under `.fixthis/preview-cache/`.
 - Saved evidence lives under `.fixthis/feedback-sessions/<session-id>/`.
 - Preview/screen artifact URLs and saved item mutations carry the originating
-  `sessionId`. Route handlers resolve them against that session instead of the
-  current active session, so switching sessions during an in-flight request
-  cannot leak saved overlays or screenshot URLs across workspaces.
+  `sessionId`. Route handlers and browser SSE handlers resolve them against
+  that session instead of the current active session, so switching sessions
+  during an in-flight request cannot leak saved overlays, screenshot URLs,
+  session updates, or preview frames across workspaces.
 - `Save to MCP` is local persistence for MCP handoff. It does not call an external AI API.
 - Connection recovery is console-local UI state. `GET /api/connection` diagnoses ADB device and sidekick bridge state, while `POST /api/app/launch` launches the selected or only ready app when that is a valid recovery action. These calls do not persist feedback data.
 - When a device or bridge drops, pending browser draft work is mirrored as a
@@ -254,13 +260,19 @@ Important distinction:
   screenshot URL, pending items, revision, lifecycle, and undo/redo history.
   Legacy `fixthis.pending.<sessionId>` mirrors are still read and migrated. On
   reload or session reattach, the user explicitly chooses Recover, Recapture,
-  or Discard before the pending rows are exposed again. The last preview
-  remains visible and is marked stale until the card returns to `Ready`.
+  or Discard before the pending rows are exposed again. Deleting a session
+  clears that session's browser-local DraftWorkspace entries and legacy mirror.
+  The last preview remains visible and is marked stale until the card returns
+  to `Ready`.
 - When the device is `Connected` but not interactable (screen off, lock screen, app backgrounded, PiP, unresponsive, no Compose UI), the console renders a cause-specific overlay on the canvas and gates selection input. When the cause clears, the prior tool mode, frozen preview, and pending pins are auto-resumed.
 - Before `Copy Prompt` or `Save to MCP` persists pending annotations, the
   server compares the frozen preview fingerprint with a lightweight current
   capture when both values exist. A mismatch is returned as a recoverable
   console conflict so the user can re-capture, force-save, or cancel.
+- If only some draft annotations have written comments, `Copy Prompt` and
+  `Save to MCP` persist the written subset. Copy Prompt keeps residual pin-only
+  annotations browser-local; Save to MCP discards those residual pins as part of
+  completing the handoff.
 
 ## Local Files And Artifacts
 
@@ -358,6 +370,9 @@ and ADRs take precedence.
 - Source candidates are text/symbol-based ranking from a source index — not exact compiler mappings.
 - Semantics redaction is not screenshot pixel redaction.
 - The feedback console's `Annotate` mode freezes the preview but does not save. `Add annotation` creates a browser-side pending item. Only `Copy Prompt` or `Save to MCP` creates a persisted evidence snapshot.
+- `Copy Prompt` / `Save to MCP` require at least one written draft comment, not
+  a comment on every pin. Pin-only residuals are local browser draft state, not
+  agent handoff items.
 - Saved item numbers are stable after persistence. Pending draft rows may
   renumber while editing, but persisted overlays and handoff numbers do not
   renumber after deletes or session reopens.

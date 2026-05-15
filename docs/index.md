@@ -36,7 +36,7 @@ pitch, scope, and sample-to-agent Quick Start.
   decisions and their rationale
 - [Console state sync](architecture/console-state-sync-design.md) — shipped
   `/api/events` SSE Phase 1, with ETag polling retained as fallback and
-  remaining preview-polling follow-ups
+  active-session fences on session/preview events
 
 ## Contribute and Release
 

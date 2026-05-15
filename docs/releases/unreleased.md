@@ -45,7 +45,15 @@ remains the chronological source of truth.
   harnesses. The project license is MIT.
 - The feedback console now receives session, device, connection, and preview
   updates over an SSE `/api/events` channel, with existing polling retained as
-  the fallback when the stream drops.
+  the fallback when the stream drops. Session and preview events are fenced by
+  top-level `sessionId`, so stale async events cannot replace the visible
+  session or preview after a user switches history rows.
+- `Copy Prompt` and `Save to MCP` now persist the written-comment subset of a
+  draft batch. Pin-only residual annotations remain browser-local for Copy
+  Prompt and are intentionally discarded for Save to MCP.
+- Deleting a feedback session now removes browser-local draft recovery for that
+  session, including schema-v2 DraftWorkspace entries and the legacy
+  `fixthis.pending.<sessionId>` mirror.
 - The console harness now executes the `network-outage` and `slow-handoff`
   scenarios instead of reporting them as skipped placeholders.
 - Contributor loops are faster. The local Gradle build cache is enabled by
