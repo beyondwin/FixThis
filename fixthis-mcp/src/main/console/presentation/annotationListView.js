@@ -62,9 +62,3 @@
                 button.addEventListener('click', () => enterAnnotateMode().catch(showError));
               });
             }
-
-            function focusCommentInputAtEnd(commentInput) {
-              commentInput.focus();
-              const end = commentInput.value.length;
-              commentInput.setSelectionRange(end, end);
-            }

@@ -337,19 +337,15 @@ test('pending annotation detail edits write through to recovery envelope', () =>
   assert.match(detailBody, /item\.status\s*=\s*button\.dataset\.setStatus;[\s\S]*?persistCurrentPendingState\(\);/);
 });
 
-test('annotation detail comment focus places the caret after existing text', () => {
-  const helperBody = extractFunctionBody(renderingSource, 'function focusCommentInputAtEnd(commentInput)');
-  assert.match(helperBody, /commentInput\.focus\(\);/);
-  assert.match(helperBody, /const end = commentInput\.value\.length;/);
-  assert.match(helperBody, /commentInput\.setSelectionRange\(end,\s*end\);/);
-
+test('annotation detail selection does not steal focus into the comment textarea', () => {
   const pendingDetailBody = extractFunctionBody(renderingSource, 'function renderAnnotationDetail(item, index)');
-  assert.match(pendingDetailBody, /focusCommentInputAtEnd\(commentInput\);/);
+  assert.doesNotMatch(pendingDetailBody, /focusCommentInputAtEnd\(commentInput\);/);
   assert.doesNotMatch(pendingDetailBody, /commentInput\.focus\(\);/);
 
   const savedDetailBody = extractFunctionBody(renderingSource, 'function renderSavedAnnotationDetail(item, index)');
-  assert.match(savedDetailBody, /if \(editable\) focusCommentInputAtEnd\(commentInput\);/);
+  assert.doesNotMatch(savedDetailBody, /focusCommentInputAtEnd\(commentInput\);/);
   assert.doesNotMatch(savedDetailBody, /if \(editable\) commentInput\.focus\(\);/);
+  assert.doesNotMatch(renderingSource, /function focusCommentInputAtEnd\(commentInput\)/);
 });
 
 test('saved annotation back navigation does not wait for persistence', () => {

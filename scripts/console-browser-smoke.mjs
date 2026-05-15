@@ -650,19 +650,11 @@ async function runSmoke(baseUrl) {
         .filter(Boolean)
         .join(',') === '1,2,3,4'
     );
-    await page.waitForFunction(() => document.activeElement?.id === 'annotationCommentInput');
-    assert.deepEqual(
-      await page.$eval('#annotationCommentInput', input => ({
-        selectionStart: input.selectionStart,
-        selectionEnd: input.selectionEnd,
-        length: input.value.length,
-      })),
-      {
-        selectionStart: 'Existing history annotation'.length,
-        selectionEnd: 'Existing history annotation'.length,
-        length: 'Existing history annotation'.length,
-      },
-      'Focused saved annotation comment should place the caret at the end',
+    await page.waitForSelector('#annotationCommentInput');
+    assert.notEqual(
+      await page.evaluate(() => document.activeElement?.id || ''),
+      'annotationCommentInput',
+      'Selecting a saved annotation should not move focus into its comment editor',
     );
     const savedScreenSrcBeforeListBack = await page.$eval('#snapshotImage', image => image.src);
     const listBackPersistResponse = page.waitForResponse(response =>
@@ -683,7 +675,7 @@ async function runSmoke(baseUrl) {
         .join(',') === '1,2,3,4'
     );
     await page.locator('.saved-item-row').nth(1).click();
-    await page.waitForFunction(() => document.activeElement?.id === 'annotationCommentInput');
+    await page.waitForSelector('#annotationCommentInput');
     const editedHistoryComment = 'Edited history annotation';
     await page.fill('#annotationCommentInput', editedHistoryComment);
     const historyUpdateResponse = page.waitForResponse(response =>
@@ -784,9 +776,11 @@ async function runSmoke(baseUrl) {
     await assertWorkflowProgress(page, 'annotate');
     await page.waitForSelector('#annotateHint');
     await waitForSnapshotImageReady(page, 'Annotate snapshot image was not ready');
+    const annotateImageBox = await page.locator('#snapshotImage').boundingBox();
+    assert.ok(annotateImageBox, 'Expected preview image to be visible before node annotation');
     await page.mouse.click(
-      imageBox.x + imageBox.width * 200 / 400,
-      imageBox.y + imageBox.height * 150 / 800,
+      annotateImageBox.x + annotateImageBox.width * 200 / 400,
+      annotateImageBox.y + annotateImageBox.height * 150 / 800,
     );
     await waitForPendingPins(page, 1, 'Node annotation was not added');
     await page.waitForSelector('#annotationCommentInput');

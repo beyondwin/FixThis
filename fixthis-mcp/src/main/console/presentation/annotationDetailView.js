@@ -183,7 +183,6 @@
               pendingItems.querySelector('[data-delete-current]').addEventListener('click', () => {
                 deletePendingFeedbackItem(index);
               });
-              focusCommentInputAtEnd(commentInput);
             }
 
             function savedEvidenceGroups() {
@@ -487,5 +486,4 @@
                   deleteSavedEvidenceItem(item.itemId, editSessionId).catch(showError);
                 });
               }
-              if (editable) focusCommentInputAtEnd(commentInput);
             }

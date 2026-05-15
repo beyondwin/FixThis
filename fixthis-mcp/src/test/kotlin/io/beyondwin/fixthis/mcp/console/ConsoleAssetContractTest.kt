@@ -189,18 +189,18 @@ class ConsoleAssetContractTest {
     }
 
     @Test
-    fun consoleHtmlEditsSelectedAnnotationsAndFocusesComment() {
+    fun consoleHtmlEditsSelectedAnnotationsWithoutStealingCommentFocus() {
         val html = ConsoleSourceFixtures.readAll()
         val toolbarAnnotationCounts = javascriptFunctionBody(html, "toolbarAnnotationCounts")
-        val focusCommentInputAtEnd = javascriptFunctionBody(html, "focusCommentInputAtEnd")
         val renderAnnotationDetail = javascriptFunctionBody(html, "renderAnnotationDetail")
         val renderSavedAnnotationDetail = javascriptFunctionBody(html, "renderSavedAnnotationDetail")
         val persistSavedEvidenceItem = javascriptFunctionBody(html, "persistSavedEvidenceItem")
 
         assertTrue(toolbarAnnotationCounts.contains("const annotations = toolbarAnnotations();"))
         assertFalse(toolbarAnnotationCounts.contains("const summary = selectedHistorySummary();"))
-        assertTrue(focusCommentInputAtEnd.contains("commentInput.focus();"))
-        assertTrue(renderAnnotationDetail.contains("focusCommentInputAtEnd(commentInput);"))
+        assertFalse(html.contains("function focusCommentInputAtEnd(commentInput)"))
+        assertFalse(renderAnnotationDetail.contains("focusCommentInputAtEnd(commentInput);"))
+        assertFalse(renderAnnotationDetail.contains("commentInput.focus();"))
         assertTrue(renderSavedAnnotationDetail.contains("id=\"annotationCommentInput\""))
         assertFalse(renderSavedAnnotationDetail.contains("readonly"))
         assertTrue(
@@ -213,7 +213,8 @@ class ConsoleAssetContractTest {
         assertTrue(persistSavedEvidenceItem.contains("requestJson('/api/items/' + encodeURIComponent(item.itemId)"))
         assertTrue(persistSavedEvidenceItem.contains("method: 'PUT'"))
         assertTrue(persistSavedEvidenceItem.contains("sessionId: sessionId"))
-        assertTrue(renderSavedAnnotationDetail.contains("if (editable) focusCommentInputAtEnd(commentInput);"))
+        assertFalse(renderSavedAnnotationDetail.contains("focusCommentInputAtEnd(commentInput);"))
+        assertFalse(renderSavedAnnotationDetail.contains("commentInput.focus();"))
     }
 
     @Test
