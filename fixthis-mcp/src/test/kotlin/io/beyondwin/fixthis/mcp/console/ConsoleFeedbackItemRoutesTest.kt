@@ -627,7 +627,9 @@ class ConsoleFeedbackItemRoutesTest {
                 )
 
                 assertEquals(400, connection.responseCode)
-                val payload = fixThisJson.parseToJsonElement(connection.errorStream.bufferedReader().readText()).jsonObject
+                val payload = fixThisJson
+                    .parseToJsonElement(connection.errorStream.bufferedReader().readText())
+                    .jsonObject
                 assertEquals("invalid_selection_bounds", payload.getValue("error").jsonPrimitive.content)
                 assertEquals("recapture_or_select_area", payload.getValue("action").jsonPrimitive.content)
                 assertEquals(1, bridge.captureCount)
@@ -672,7 +674,9 @@ class ConsoleFeedbackItemRoutesTest {
                 )
 
                 assertEquals(400, connection.responseCode)
-                val payload = fixThisJson.parseToJsonElement(connection.errorStream.bufferedReader().readText()).jsonObject
+                val payload = fixThisJson
+                    .parseToJsonElement(connection.errorStream.bufferedReader().readText())
+                    .jsonObject
                 assertEquals("selected_node_missing", payload.getValue("error").jsonPrimitive.content)
                 assertEquals("recapture_or_convert_to_area", payload.getValue("action").jsonPrimitive.content)
                 assertTrue(payload.getValue("message").jsonPrimitive.content.contains("Selected node"))

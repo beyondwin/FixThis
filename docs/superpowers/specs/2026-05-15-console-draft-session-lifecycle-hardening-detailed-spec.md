@@ -915,4 +915,3 @@ git commit -m "Verify console draft lifecycle hardening"
 - Can pending recovery be ignored by session open/new/delete/annotate?
 - Are recoverable target validation failures typed and user-actionable?
 - Do focused tests fail if direct object mutation is reintroduced?
-

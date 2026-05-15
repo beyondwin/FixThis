@@ -133,6 +133,7 @@ class ConsolePreviewRoutesTest {
     }
 
     @Test
+    @Suppress("LongMethod")
     fun consoleHtmlKeepsFrozenPreviewStableAndShowsPersistedScreenHistory() {
         val html = ConsoleSourceFixtures.readAll()
 

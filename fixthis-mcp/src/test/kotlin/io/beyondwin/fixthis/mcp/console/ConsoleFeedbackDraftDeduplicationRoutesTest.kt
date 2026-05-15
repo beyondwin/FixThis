@@ -93,6 +93,7 @@ class ConsoleFeedbackDraftDeduplicationRoutesTest {
     }
 
     @Test
+    @Suppress("LongMethod")
     fun batchItemsApiReusesExistingScreenForPartialWorkspaceDuplicate() {
         withTempProject("fixthis-console-partial-idempotent-batch") { projectRoot ->
             val service = FeedbackSessionService(

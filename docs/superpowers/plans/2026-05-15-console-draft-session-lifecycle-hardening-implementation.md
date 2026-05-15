@@ -1670,4 +1670,3 @@ If a phase introduces regressions that cannot be resolved quickly:
 - Browser draft save errors expose stable `error` codes for recovery decisions.
 - Static tests fail on duplicate canonical/legacy side effects, dead endpoints, obsolete storage namespaces, and direct pending item mutation.
 - Focused JS tests, console draft tests, bundle checks, focused Kotlin tests, and `git diff --check` pass.
-

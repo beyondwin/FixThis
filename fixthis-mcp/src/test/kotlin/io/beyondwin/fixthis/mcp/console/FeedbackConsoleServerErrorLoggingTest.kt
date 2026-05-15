@@ -129,13 +129,9 @@ class FeedbackConsoleServerErrorLoggingTest {
     }
 
     private class DisconnectingOutputStream : OutputStream() {
-        override fun write(b: Int) {
-            throw IOException("Connection reset by peer")
-        }
+        override fun write(b: Int): Unit = throw IOException("Connection reset by peer")
 
-        override fun write(b: ByteArray, off: Int, len: Int) {
-            throw IOException("Connection reset by peer")
-        }
+        override fun write(b: ByteArray, off: Int, len: Int): Unit = throw IOException("Connection reset by peer")
     }
 
     private class FakeHttpExchange(

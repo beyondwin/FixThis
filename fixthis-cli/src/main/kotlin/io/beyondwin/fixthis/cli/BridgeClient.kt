@@ -221,8 +221,7 @@ private fun SidekickSession.withSocketNameAttempt(attempt: Int): SidekickSession
     return copy(socketName = candidate, socketAddress = "localabstract:$candidate")
 }
 
-private fun BridgeConnectionException.isClosedBeforeResponse(): Boolean =
-    message == BRIDGE_CLOSED_BEFORE_RESPONSE
+private fun BridgeConnectionException.isClosedBeforeResponse(): Boolean = message == BRIDGE_CLOSED_BEFORE_RESPONSE
 
 interface BridgeSocket : Closeable {
     val input: InputStream

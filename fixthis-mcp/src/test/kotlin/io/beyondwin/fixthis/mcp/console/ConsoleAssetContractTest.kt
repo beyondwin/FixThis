@@ -917,7 +917,10 @@ class ConsoleAssetContractTest {
         assertTrue(createAnnotationFromSelection.contains("renderCurrentSessionList();"))
         assertTrue(deletePendingFeedbackItem.contains("renderCurrentSessionList();"))
         assertTrue(
-            Regex("updatePendingDraftItem\\(item\\.draftItemId, \\{ status: button\\.dataset\\.setStatus }[\\s\\S]*renderCurrentSessionList\\(\\);")
+            Regex(
+                "updatePendingDraftItem\\(item\\.draftItemId, " +
+                    "\\{ status: button\\.dataset\\.setStatus }[\\s\\S]*renderCurrentSessionList\\(\\);",
+            )
                 .containsMatchIn(renderAnnotationDetail),
         )
     }
@@ -1028,7 +1031,12 @@ class ConsoleAssetContractTest {
         assertTrue(createAnnotationFromSelection.contains("replaceDraftWorkspace(nextWorkspace);"))
         assertTrue(html.contains("toolMode.setSuppressNextClick(true);"))
         assertTrue(html.contains("function updateSelectedAnnotationComment"))
-        assertTrue(html.contains("updatePendingDraftItem(item.draftItemId, { comment: comment.value }, { recordHistory: false });"))
+        assertTrue(
+            html.contains(
+                "updatePendingDraftItem(item.draftItemId, " +
+                    "{ comment: comment.value }, { recordHistory: false });",
+            ),
+        )
         assertTrue(html.contains("Add a comment to every annotation before saving."))
         assertTrue(html.contains("Select a component or area first."))
     }

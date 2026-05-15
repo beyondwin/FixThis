@@ -220,7 +220,7 @@ internal class FeedbackSessionStoreDelegate(
             val existingLegacySemanticKeys = existingLegacySemanticKeysForScreen(session, screen)
             val newItems = items.filterNot { item ->
                 val clientDuplicate = item.clientDraftKey()?.let { it in existingClientKeys } == true
-                val legacyDuplicate = incomingSemanticDraftKey(item)?.let { it in existingLegacySemanticKeys } == true
+                val legacyDuplicate = item.incomingSemanticDraftKey()?.let { it in existingLegacySemanticKeys } == true
                 clientDuplicate || legacyDuplicate
             }
             if (newItems.isEmpty()) {

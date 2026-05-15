@@ -565,16 +565,16 @@ Developers running an already-open console tab must hard refresh or restart the 
 
 ## Risks And Mitigations
 
-- Risk: Suppressing too many IO errors could hide real server defects.  
+- Risk: Suppressing too many IO errors could hide real server defects.
   Mitigation: `isClientDisconnect()` matches only known client-disconnect message fragments and rethrows all other response-write failures.
 
-- Risk: Clearing preview on every session refresh could remove useful preview during harmless polling.  
+- Risk: Clearing preview on every session refresh could remove useful preview during harmless polling.
   Mitigation: `refreshSessions()` compares previous and next current `sessionId` and calls `clearPreview()` only when it changes.
 
-- Risk: SSE snapshot-before-headers increases time before the EventSource receives HTTP 200.  
+- Risk: SSE snapshot-before-headers increases time before the EventSource receives HTTP 200.
   Mitigation: snapshot work already happened at connection start; this only moves it before header commit so failures remain recoverable. Normal successful path remains the same.
 
-- Risk: Source-level JavaScript tests can become brittle.  
+- Risk: Source-level JavaScript tests can become brittle.
   Mitigation: tests assert helper contracts and call-site usage, not minified bundle formatting.
 
 ## Future Extensions

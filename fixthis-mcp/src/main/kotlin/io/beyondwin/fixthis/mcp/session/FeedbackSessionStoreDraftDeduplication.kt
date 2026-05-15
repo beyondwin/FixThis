@@ -33,12 +33,14 @@ internal fun screenForIncomingBatch(
     )
 }
 
-internal fun appendScreenIfMissing(session: SessionDto, screen: SnapshotDto): List<SnapshotDto> =
-    if (session.screens.any { it.screenId == screen.screenId }) {
-        session.screens
-    } else {
-        session.screens + screen
-    }
+internal fun appendScreenIfMissing(
+    session: SessionDto,
+    screen: SnapshotDto,
+): List<SnapshotDto> = if (session.screens.any { it.screenId == screen.screenId }) {
+    session.screens
+} else {
+    session.screens + screen
+}
 
 internal fun createScreenItems(
     session: SessionDto,
@@ -64,37 +66,6 @@ internal fun AnnotationDto.clientDraftKey(): String? {
     val workspaceId = clientWorkspaceId?.takeIf { it.isNotBlank() }
     val draftItemId = clientDraftItemId?.takeIf { it.isNotBlank() }
     return if (workspaceId == null || draftItemId == null) null else "$workspaceId\u0000$draftItemId"
-}
-
-internal fun AnnotationDto.legacySemanticDraftKey(): String? {
-    if (clientDraftKey() != null) return null
-    val commentKey = comment.trim().takeIf { it.isNotEmpty() } ?: return null
-    return "${target.semanticTypeKey()}\u0000${target.semanticNodeKey()}\u0000${target.semanticBoundsKey()}\u0000$commentKey"
-}
-
-internal fun incomingSemanticDraftKey(item: AnnotationDto): String? {
-    if (item.clientDraftKey() == null) return null
-    val commentKey = item.comment.trim().takeIf { it.isNotEmpty() } ?: return null
-    return "${item.target.semanticTypeKey()}\u0000${item.target.semanticNodeKey()}\u0000${item.target.semanticBoundsKey()}\u0000$commentKey"
-}
-
-private fun AnnotationTargetDto.semanticTypeKey(): String = when (this) {
-    is AnnotationTargetDto.Node -> "node"
-    is AnnotationTargetDto.Area -> "area"
-}
-
-private fun AnnotationTargetDto.semanticNodeKey(): String = when (this) {
-    is AnnotationTargetDto.Node -> nodeUid
-    is AnnotationTargetDto.Area -> ""
-}
-
-private fun AnnotationTargetDto.semanticBoundsKey(): String {
-    val bounds = when (this) {
-        is AnnotationTargetDto.Node -> boundsInWindow
-        is AnnotationTargetDto.Area -> boundsInWindow
-    }
-    return listOf(bounds.left, bounds.top, bounds.right, bounds.bottom)
-        .joinToString(",") { kotlin.math.round(it).toInt().toString() }
 }
 
 internal fun existingLegacySemanticKeysForScreen(
