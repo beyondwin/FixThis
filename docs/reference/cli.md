@@ -191,7 +191,8 @@ fixthis setup --package <applicationId> --write --target codex --dry-run
 | `--package` | — | Android applicationId for the generated MCP config. |
 | `--project-dir` | `.` | Project root containing `.fixthis/project.json`. |
 | `--write` | off | Write MCP config to agent settings files. |
-| `--dry-run` | off | With `--write`, print planned writes without modifying files. |
+| `--dry-run` | off | With `--write`, print a privacy-preserving diff of only the added/changed entries within `mcpServers`, capped at a 4 KiB byte budget so unrelated surrounding config does not leak into agent logs. |
+| `--full-diff` | off | With `--dry-run`, disable the 4 KiB byte budget and print the complete planned diff. Prints a warning that surrounding context may leak — avoid in agent logs. |
 | `--target` | `all` | Agent target: `claude`, `codex`, or `all`. |
 | `--server-name` | `fixthis` | MCP server name to write. |
 | `--verbose`, `-v` | off | Print the full Java stack trace on failure. Implies the cause chain is rendered too, but skipped by default to keep the terse error readable. |

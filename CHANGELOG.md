@@ -40,6 +40,13 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 - `fixthis doctor` text output now echoes the remediation hint
   (`  ↳ fix: <fix>`) under every FAIL check, matching the structured JSON
   output's `remediation` field.
+- `fixthis setup --write --dry-run` now prints a privacy-preserving diff of
+  only the added/changed entries within `mcpServers` instead of the full
+  merged config, capped at a 4 KiB byte budget so unrelated surrounding
+  config can't leak into agent logs. Pass `--full-diff` to disable the
+  budget when an operator needs to inspect the complete planned write (the
+  flag prints a warning that surrounding context may leak; avoid in agent
+  logs).
 
 ### Documentation
 - Updated release and getting-started docs to reflect the post-v0.2.3 channel
