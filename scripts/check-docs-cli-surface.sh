@@ -23,6 +23,10 @@ fi
 SUBCOMMANDS=$("$CLI_BIN" --help | awk '/^Commands:/ { found=1; next } found && /^[[:space:]]+[a-z]/ { print $1 }')
 
 # For each doc, find `fixthis <token>` patterns.
+# All tokens flow through the actual --help-derived $SUBCOMMANDS list; the only
+# pre-filter is `-*` to skip command-line flags (e.g. `fixthis --version`).
+# Hardcoded subcommand allowlists are deliberately avoided: they bypass the
+# very subcommands most likely to drift from --help.
 EXIT=0
 for doc in "${DOCS[@]}"; do
     if [ ! -f "$doc" ]; then
@@ -31,7 +35,8 @@ for doc in "${DOCS[@]}"; do
     fi
     while IFS= read -r token; do
         case "$token" in
-            -*|install-agent|setup|init|run|doctor|status|mcp|console|clean|version)
+            -*)
+                # Flag token (e.g. `fixthis --version`); not a subcommand.
                 ;;
             *)
                 if ! echo "$SUBCOMMANDS" | grep -qx "$token"; then
@@ -44,13 +49,15 @@ for doc in "${DOCS[@]}"; do
 done
 
 # For each --flag mentioned in `fixthis <sub> --flag`, verify it exists in `--help`.
+# Regex allows the flag to terminate on `=`, `,`, whitespace, or end-of-line so a
+# flag appearing as the final token of a help line is not missed.
 for doc in "${DOCS[@]}"; do
     [ -f "$doc" ] || continue
     while IFS= read -r line; do
         sub=$(echo "$line" | awk '{print $2}')
         flag=$(echo "$line" | awk '{print $3}')
         if echo "$SUBCOMMANDS" | grep -qx "$sub"; then
-            if ! "$CLI_BIN" "$sub" --help 2>/dev/null | grep -qE "(^|\s)$flag(=|,| )"; then
+            if ! "$CLI_BIN" "$sub" --help 2>/dev/null | grep -qE "(^|[[:space:]])$flag([=,[:space:]]|$)"; then
                 echo "$doc: '$sub' has no flag '$flag'"
                 EXIT=1
             fi
