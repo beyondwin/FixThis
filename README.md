@@ -109,19 +109,6 @@ copied compact Markdown or saved a local MCP handoff.
 | Inspect CLI, MCP, or JSON contracts | [Documentation index](docs/index.md) |
 | Contribute | [Contributing guide](CONTRIBUTING.md) |
 
-## Trust and Privacy
-
-FixThis is local-first: the sidekick talks to the desktop tools over ADB, the
-browser console binds to localhost, and **Save to MCP** writes local files under
-`.fixthis/`. FixThis does not call an external AI API.
-
-Screenshots may still contain sensitive pixels. Review copied prompts or local
-artifacts before sharing them outside your machine, and do not commit
-`.fixthis/`.
-
-Details: [Privacy](docs/reference/privacy.md), [Security](SECURITY.md), and
-[Threat model](docs/reference/threat-model.md).
-
 ## Why FixThis vs. just sending a screenshot?
 
 Modern coding agents already accept screenshots and accessibility trees. FixThis differs in three ways:
@@ -178,6 +165,19 @@ Current `main` may contain changes after the latest tag. See
 [release notes](docs/releases/README.md) before cutting another release.
 
 Agents working inside this repository should also read [AGENTS.md](AGENTS.md).
+
+## Trust and Privacy
+
+FixThis is local-first: the sidekick talks to the desktop tools over ADB, the
+browser console binds to localhost, and **Save to MCP** writes local files under
+`.fixthis/`. FixThis does not call an external AI API.
+
+Screenshots may still contain sensitive pixels. Review copied prompts or local
+artifacts before sharing them outside your machine, and do not commit
+`.fixthis/`.
+
+Details: [Privacy](docs/reference/privacy.md), [Security](SECURITY.md), and
+[Threat model](docs/reference/threat-model.md).
 
 ## Roadmap
 
