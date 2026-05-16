@@ -43,13 +43,13 @@ internal object AtomicConfigFileWriter {
         }
     }
 
-    private fun forceRegularFile(path: Path) {
+    internal fun forceRegularFile(path: Path) {
         FileChannel.open(path, StandardOpenOption.WRITE).use { channel ->
             channel.force(true)
         }
     }
 
-    private fun forceDirectoryBestEffort(path: Path) {
+    internal fun forceDirectoryBestEffort(path: Path) {
         forceDirectoryBestEffort(path) { directory ->
             FileChannel.open(directory, StandardOpenOption.READ).use { channel ->
                 channel.force(true)

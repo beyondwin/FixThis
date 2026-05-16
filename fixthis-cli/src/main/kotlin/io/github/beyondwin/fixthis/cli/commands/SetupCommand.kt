@@ -91,7 +91,18 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         runWritePlansAtomic(plans)
     }
 
-    private fun runWritePlansAtomic(plans: List<AgentConfigWritePlan>) {
+    private fun runWritePlansAtomic(
+        plans: List<AgentConfigWritePlan>,
+        move: (java.nio.file.Path, java.nio.file.Path, Array<out java.nio.file.CopyOption>) -> java.nio.file.Path = { source, target, options ->
+            java.nio.file.Files.move(source, target, *options)
+        },
+        forceFile: (java.nio.file.Path) -> Unit = AtomicConfigFileWriter::forceRegularFile,
+        forceDirectory: (java.nio.file.Path) -> Unit = AtomicConfigFileWriter::forceDirectoryBestEffort,
+        copyForRollback: (File, File) -> Unit = { source, destination ->
+            source.copyTo(destination, overwrite = true)
+        },
+        emit: (String) -> Unit = ::echo,
+    ) {
         // Phase 1: stage all writes to <configFile>.fixthis-staging.
         val staged = mutableListOf<Pair<AgentConfigWritePlan, File>>()
         try {
@@ -99,6 +110,8 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
                 val stagingFile = File(plan.configFile.absolutePath + ".fixthis-staging")
                 stagingFile.parentFile?.mkdirs()
                 stagingFile.writeText(plan.content)
+                // P2 durability: fsync staging file before any commit can read it.
+                forceFile(stagingFile.toPath())
                 staged += plan to stagingFile
             }
         } catch (e: Exception) {
@@ -106,19 +119,31 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
             val appliedNames = staged.joinToString { it.first.writerName }
             throw CliktError(
                 "Could not stage MCP config writes (${e.message}). Staged so far: ${appliedNames.ifEmpty { "none" }} (cleaned up).",
+                cause = e,
             )
         }
 
-        // Save rollback copies for any existing targets BEFORE first move.
+        // Phase 1.5: snapshot existing targets into rollback files BEFORE first move.
+        // Wrapped to bound the failure surface — copyTo can fail mid-loop on permissions,
+        // disk-full, or symlink edge cases (impl-details §3).
         val rollbacks = mutableMapOf<AgentConfigWritePlan, File?>()
-        staged.forEach { (plan, _) ->
-            rollbacks[plan] = if (plan.configFile.exists()) {
-                val rb = File(plan.configFile.absolutePath + ".fixthis-rollback")
-                plan.configFile.copyTo(rb, overwrite = true)
-                rb
-            } else {
-                null
+        try {
+            staged.forEach { (plan, _) ->
+                rollbacks[plan] = if (plan.configFile.exists()) {
+                    val rb = File(plan.configFile.absolutePath + ".fixthis-rollback")
+                    copyForRollback(plan.configFile, rb)
+                    rb
+                } else {
+                    null
+                }
             }
+        } catch (e: Exception) {
+            rollbacks.values.filterNotNull().forEach { if (it.exists()) it.delete() }
+            staged.forEach { (_, f) -> if (f.exists()) f.delete() }
+            throw CliktError(
+                "Could not prepare two-phase MCP config commit (rollback snapshot failed: ${e.message}).",
+                cause = e,
+            )
         }
 
         // Phase 2: commit (ATOMIC_MOVE with fallback to copy+delete).
@@ -126,11 +151,13 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         try {
             staged.forEach { (plan, stagingFile) ->
                 try {
-                    java.nio.file.Files.move(
+                    move(
                         stagingFile.toPath(),
                         plan.configFile.toPath(),
-                        java.nio.file.StandardCopyOption.ATOMIC_MOVE,
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                        arrayOf(
+                            java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                        ),
                     )
                 } catch (_: java.nio.file.AtomicMoveNotSupportedException) {
                     java.nio.file.Files.copy(
@@ -138,15 +165,17 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
                         plan.configFile.toPath(),
                         java.nio.file.StandardCopyOption.REPLACE_EXISTING,
                     )
-                    java.nio.file.Files.delete(stagingFile.toPath())
+                    java.nio.file.Files.deleteIfExists(stagingFile.toPath())
                 }
+                // P2 durability: fsync parent dir so the rename is persisted.
+                plan.configFile.toPath().parent?.let { forceDirectory(it) }
                 committed += plan
                 SetupRunResults.applied.get() += InstallAgentJsonReport.Applied(
                     target = plan.writerName,
                     path = plan.configFile.absolutePath,
                     scope = plan.scope,
                 )
-                echo("Wrote ${plan.writerName} MCP config (${plan.scope}): ${plan.configFile.absolutePath}")
+                emit("Wrote ${plan.writerName} MCP config (${plan.scope}): ${plan.configFile.absolutePath}")
             }
             // Clean up rollback files on success.
             rollbacks.values.filterNotNull().forEach { it.delete() }
@@ -166,12 +195,22 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
             val appliedNames = committed.joinToString { it.writerName }
             throw CliktError(
                 "Atomic commit failed: ${e.message}. Applied so far: ${appliedNames.ifEmpty { "none" }} (rolled back).",
+                cause = e,
             )
         }
     }
 
     internal fun runWritePlansAtomicForTest(
         plans: List<Pair<Triple<String, String, File>, String>>,
+        move: (java.nio.file.Path, java.nio.file.Path, Array<out java.nio.file.CopyOption>) -> java.nio.file.Path = { source, target, options ->
+            java.nio.file.Files.move(source, target, *options)
+        },
+        forceFile: (java.nio.file.Path) -> Unit = AtomicConfigFileWriter::forceRegularFile,
+        forceDirectory: (java.nio.file.Path) -> Unit = AtomicConfigFileWriter::forceDirectoryBestEffort,
+        copyForRollback: (File, File) -> Unit = { source, destination ->
+            source.copyTo(destination, overwrite = true)
+        },
+        emit: (String) -> Unit = { /* no-op: tests do not need user-facing echo */ },
     ) {
         val agentPlans = plans.map { (meta, content) ->
             AgentConfigWritePlan(
@@ -181,7 +220,7 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
                 content = content,
             )
         }
-        runWritePlansAtomic(agentPlans)
+        runWritePlansAtomic(agentPlans, move, forceFile, forceDirectory, copyForRollback, emit)
     }
 
     private fun selectedWriters(target: String): List<AgentConfigWriter> = when (target) {
@@ -217,8 +256,11 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         }
         try {
             AtomicConfigFileWriter.write(configFile, merged)
-        } catch (_: Exception) {
-            throw CliktError("Could not write ${plan.writerName} MCP config at ${configFile.absolutePath}.")
+        } catch (e: Exception) {
+            throw CliktError(
+                "Could not write ${plan.writerName} MCP config at ${configFile.absolutePath}.",
+                cause = e,
+            )
         }
         SetupRunResults.applied.get() += InstallAgentJsonReport.Applied(
             target = plan.writerName,

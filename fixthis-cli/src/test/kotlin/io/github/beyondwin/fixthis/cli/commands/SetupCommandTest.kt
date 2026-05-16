@@ -12,6 +12,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.IOException
+import java.nio.file.CopyOption
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -330,6 +331,156 @@ class SetupCommandTest {
             "codex file should be untouched",
             original,
             codexFile.readText(),
+        )
+    }
+
+    @Test
+    fun runWritePlansAtomicRollsBackFirstCommitWhenSecondMoveFails() {
+        // P1: Phase 2 commit-failure path — inject Files.move that throws on the second commit.
+        // Verifies the first plan's already-committed file is restored from its rollback snapshot.
+        val projectRoot = temporaryFolder.newFolder("project")
+        val firstTarget = java.io.File(projectRoot, ".claude/settings.json").apply {
+            parentFile.mkdirs()
+            writeText("""{"existing":"v1"}""")
+        }
+        val secondTarget = java.io.File(projectRoot, ".codex/config.toml").apply {
+            parentFile.mkdirs()
+            writeText("key = \"v1\"\n")
+        }
+        val firstOriginal = firstTarget.readText()
+        val secondOriginal = secondTarget.readText()
+
+        var moveCount = 0
+        val injectedMove: (Path, Path, Array<out CopyOption>) -> Path = { src, tgt, opts ->
+            moveCount++
+            if (moveCount == 2) throw IOException("simulated commit failure on plan #$moveCount")
+            Files.move(src, tgt, *opts)
+        }
+
+        val error = assertThrows(CliktError::class.java) {
+            SetupCommand().runWritePlansAtomicForTest(
+                plans = listOf(
+                    Triple("claude", "project-local", firstTarget) to """{"existing":"v2"}""",
+                    Triple("codex", "global", secondTarget) to "key = \"v2\"\n",
+                ),
+                move = injectedMove,
+            )
+        }
+
+        assertEquals(
+            "first committed file must be restored to original content",
+            firstOriginal,
+            firstTarget.readText(),
+        )
+        assertEquals(
+            "second target (whose move failed) must keep original content",
+            secondOriginal,
+            secondTarget.readText(),
+        )
+        assertNotNull("CliktError must preserve commit cause for --verbose", error.cause)
+        assertTrue("cause should be the injected IOException", error.cause is IOException)
+        assertFalse(
+            "no .fixthis-staging files should remain",
+            Files.list(firstTarget.parentFile.toPath()).use { paths ->
+                paths.anyMatch { it.fileName.toString().endsWith(".fixthis-staging") }
+            },
+        )
+        assertFalse(
+            "no .fixthis-rollback files should remain",
+            Files.list(firstTarget.parentFile.toPath()).use { paths ->
+                paths.anyMatch { it.fileName.toString().endsWith(".fixthis-rollback") }
+            },
+        )
+    }
+
+    @Test
+    fun runWritePlansAtomicStagingFailureAttachesCause() {
+        // P5: staging-phase CliktError must carry cause= for --verbose diagnostic context.
+        val projectRoot = temporaryFolder.newFolder("project")
+        val unwritable = java.io.File(projectRoot, "unwritable").apply { mkdirs() }
+        val target = java.io.File(unwritable, "cfg.json")
+        unwritable.setWritable(false, false)
+        try {
+            val error = assertThrows(CliktError::class.java) {
+                SetupCommand().runWritePlansAtomicForTest(
+                    plans = listOf(Triple("test", "scope", target) to "content"),
+                )
+            }
+            assertNotNull("staging-failure CliktError must carry cause", error.cause)
+        } finally {
+            unwritable.setWritable(true, false)
+        }
+    }
+
+    @Test
+    fun runWritePlansAtomicCommitFailureAttachesCause() {
+        // P5: commit-phase CliktError must carry cause= for --verbose diagnostic context.
+        val target = temporaryFolder.newFile("cfg.json").apply { writeText("original") }
+        val error = assertThrows(CliktError::class.java) {
+            SetupCommand().runWritePlansAtomicForTest(
+                plans = listOf(Triple("test", "scope", target) to "new"),
+                move = { _, _, _ -> throw IOException("simulated commit failure") },
+            )
+        }
+        assertNotNull("commit-failure CliktError must carry cause", error.cause)
+        assertEquals("target must be restored on commit failure", "original", target.readText())
+    }
+
+    @Test
+    fun runWritePlansAtomicFsyncsStagingFileBeforeMoveAndParentDirectoryAfter() {
+        // P2: durability — staging file must be fsync'd before move; parent dir fsync'd after.
+        val target = temporaryFolder.newFile("cfg.json").apply { writeText("original") }
+        val events = mutableListOf<String>()
+        SetupCommand().runWritePlansAtomicForTest(
+            plans = listOf(Triple("test", "scope", target) to "new"),
+            forceFile = { path ->
+                assertTrue(
+                    "forceFile must target the staging file, got $path",
+                    path.fileName.toString().endsWith(".fixthis-staging"),
+                )
+                events += "force-staging"
+            },
+            forceDirectory = { path ->
+                assertEquals(
+                    "forceDirectory must target the config file's parent",
+                    target.parentFile.toPath(),
+                    path,
+                )
+                events += "force-parent"
+            },
+        )
+        assertEquals(
+            "fsync ordering: staging file forced before move, parent dir forced after",
+            listOf("force-staging", "force-parent"),
+            events,
+        )
+        assertEquals("file content committed", "new", target.readText())
+    }
+
+    @Test
+    fun runWritePlansAtomicRollbackCreationFailureCleansUpAndAttachesCause() {
+        // P0: rollback-creation loop must be wrapped in try/catch with best-effort cleanup
+        // and cause preservation. Inject a copyForRollback that throws to exercise the path.
+        val target = temporaryFolder.newFile("cfg.json").apply { writeText("original") }
+        val error = assertThrows(CliktError::class.java) {
+            SetupCommand().runWritePlansAtomicForTest(
+                plans = listOf(Triple("test", "scope", target) to "new"),
+                copyForRollback = { _, _ -> throw IOException("simulated rollback-snapshot failure") },
+            )
+        }
+        assertNotNull("rollback-snapshot CliktError must carry cause", error.cause)
+        assertEquals("target untouched when rollback-creation fails", "original", target.readText())
+        assertFalse(
+            "no .fixthis-staging files should remain",
+            Files.list(target.parentFile.toPath()).use { paths ->
+                paths.anyMatch { it.fileName.toString().endsWith(".fixthis-staging") }
+            },
+        )
+        assertFalse(
+            "no .fixthis-rollback files should remain",
+            Files.list(target.parentFile.toPath()).use { paths ->
+                paths.anyMatch { it.fileName.toString().endsWith(".fixthis-rollback") }
+            },
         )
     }
 
