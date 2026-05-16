@@ -303,11 +303,14 @@ exits 0; the subcommand exists so the JSON variant has a stable home.
 
 ## Exit codes
 
-All subcommands follow standard CLI convention:
+All subcommands follow the shared contract in
+[`cli-exit-codes.md`](cli-exit-codes.md):
 
 - `0` — success
-- `1` — generic error (bad usage, missing prerequisite, bridge unreachable)
+- `1` — partial result or failed check
 - `2` — invalid argument (e.g. unknown `--target` value)
+- `3` — missing environment prerequisite
+- `4` — unexpected internal error
 
 `fixthis doctor` returns non-zero when any check fails, so it's safe to wire
 into CI as a smoke test. Agents should prefer `fixthis doctor --json` when

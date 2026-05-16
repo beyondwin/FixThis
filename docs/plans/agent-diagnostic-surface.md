@@ -1757,7 +1757,7 @@ The `.md` companion remains a human-readable rendering of the same three section
 ```markdown
 # Agent Setup Handoff Schema
 
-`fixthis install-agent --agent` writes `.fixthis/agent-setup.json` and `.fixthis/agent-setup.md`. The JSON file is the canonical contract; the Markdown file is a human-readable rendering of the same data.
+`fixthis install-agent` writes `.fixthis/agent-setup.json` and `.fixthis/agent-setup.md`. `fixthis init --agent` writes the same files when the Gradle plugin is already applied. The JSON file is the canonical contract; the Markdown file is a human-readable rendering of the same data.
 
 ## Schema (v1.0)
 

@@ -63,7 +63,7 @@ pitch, scope, and sample-to-agent Quick Start.
 
 - [Contributing guide](../CONTRIBUTING.md) — local checks before opening a PR
 - [Release notes](releases/README.md) — GitHub Release summaries, including
-  unreleased changes since v0.1.0
+  the latest public release and current unreleased changes
 - [Release readiness checklist](contributing/release-readiness.md) — current
   public channels and remaining package targets
 - [Release process](contributing/release-process.md) — SemVer policy,

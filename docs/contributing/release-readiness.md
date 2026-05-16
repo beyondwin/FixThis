@@ -82,7 +82,7 @@ test and rollback plan.
       public registries.
 - [x] README install instructions use the published artifact path.
 
-## Future Coordinates
+## Public Coordinates
 
 | Surface | Coordinate / id | Registry |
 | --- | --- | --- |
