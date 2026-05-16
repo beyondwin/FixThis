@@ -38,6 +38,24 @@ fixthis clean --project-dir <projectRoot>
 
 `fixthis clean` only targets `.fixthis/feedback-sessions/`, `.fixthis/preview-cache/`, `.fixthis/artifacts/`, and `.fixthis/smoke-reports/`. It preserves `.fixthis/project.json` and unknown `.fixthis` files or directories. Use `--older-than-days <n>` to clean only artifact directories older than the cutoff.
 
+## First-Run Readiness States
+
+FixThis first-run surfaces use one readiness vocabulary across `doctor --json`,
+`.fixthis/agent-setup.json`, and the feedback console.
+
+| State | What it means | First action |
+| --- | --- | --- |
+| `READY` | Debug app and sidekick are connected. | Capture screen. |
+| `NEEDS_INSTALL` | FixThis metadata or setup is missing. | Run `fixthis install-agent --project-dir . --target all`. |
+| `NEEDS_APP_LAUNCH` | Device is available but the app bridge is not reachable. | Open the debug app. |
+| `DEVICE_BLOCKED` | Device or app is connected but not interactable. | Resolve the specific device overlay. |
+| `UNSUPPORTED_BUILD` | Release/non-debug build, missing sidekick, or `run-as` denied. | Install a debuggable build with FixThis enabled. |
+| `CONFIG_RECOVERABLE` | MCP or project config can be regenerated. | Run the setup command with `--dry-run`, then rerun without it. |
+| `ENV_BLOCKER` | ADB, SDK, device, JDK, Node, or repo root is missing. | Fix the prerequisite and rerun doctor. |
+| `STALE_PREVIEW` | Frozen preview no longer matches the live app screen. | Recapture, force-save, or cancel. |
+| `SESSION_MISMATCH` | Response or artifact belongs to another feedback session. | Refresh the session or return to the matching history item. |
+| `UNKNOWN_ERROR` | FixThis could not classify the failure. | Open details and run doctor with JSON output. |
+
 ## ADB_NOT_FOUND
 
 Symptom: `fixthis doctor` fails at `ADB found` or the CLI reports that it cannot run `adb`.
@@ -254,6 +272,19 @@ The connection card is the first place to look when capture, preview, or navigat
 - `This build cannot connect`: the package is not debuggable, `run-as` is denied, the sidekick is missing, or the build cannot expose the FixThis bridge. Install a debuggable build with the sidekick enabled.
 
 Open `Details` for raw `deviceState`, `bridgeState`, and `rawError`. These details are diagnostic; the normal action button is the supported recovery path.
+
+## Console Notifications
+
+The console uses different surfaces for different recovery work:
+
+- Toasts are for success, cancel, and undo messages that can disappear.
+- Inline status belongs to the connection card, preview, inspector, or save controls.
+- Global banners stay visible when the whole workflow is blocked.
+- In-app sheets handle destructive choices such as discarding drafts, clearing saved drafts, forgetting a device, or force-saving a stale preview.
+- Details panels hold raw errors, JSON, and diagnostic commands.
+
+If a mutating request returns `403`, reload the console page served by the
+current MCP process. The console token changes when the server restarts.
 
 ## "Source coordinates point to old code"
 

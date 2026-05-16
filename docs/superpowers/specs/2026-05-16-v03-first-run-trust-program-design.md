@@ -1,7 +1,7 @@
 # v0.3 First-Run Trust Program Design
 
 Date: 2026-05-16
-Status: Approved design
+Status: Planned for implementation
 
 ## Goal
 
