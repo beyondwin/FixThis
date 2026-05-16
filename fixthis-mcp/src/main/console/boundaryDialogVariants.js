@@ -46,6 +46,37 @@ const BoundaryDialogVariants = Object.freeze({
     primary: Object.freeze({ label: 'Forget', action: 'confirm' }),
     cancel: Object.freeze({ label: 'Cancel', action: 'cancel' }),
   }),
+  clearLocalDraft: Object.freeze({
+    title: () => 'Clear local draft?',
+    summary: (ctx = {}) => {
+      const count = ctx.itemCount ?? 1;
+      return 'Removes ' + count + ' unsaved local ' + (count === 1 ? 'annotation' : 'annotations') + ' from this browser.';
+    },
+    primary: Object.freeze({ label: 'Clear local draft', action: 'confirm' }),
+    cancel: Object.freeze({ label: 'Cancel', action: 'cancel' }),
+  }),
+  clearServerDrafts: Object.freeze({
+    title: () => 'Delete saved draft feedback?',
+    summary: (ctx = {}) => {
+      const count = ctx.itemCount ?? 0;
+      return 'Deletes ' + count + ' saved draft ' + (count === 1 ? 'item' : 'items') + ' from this session.';
+    },
+    primary: Object.freeze({ label: 'Delete drafts', action: 'confirm' }),
+    cancel: Object.freeze({ label: 'Cancel', action: 'cancel' }),
+  }),
+  fingerprintMismatch: Object.freeze({
+    title: () => 'Screen changed since capture?',
+    summary: () => 'Keep the frozen preview only if the annotation still describes that frame.',
+    primary: Object.freeze({ label: 'Recapture', action: 'recapture' }),
+    secondary: Object.freeze({ label: 'Force save', action: 'force' }),
+    cancel: Object.freeze({ label: 'Cancel', action: 'cancel' }),
+  }),
+  recaptureRecoveredDraft: Object.freeze({
+    title: () => 'Recapture recovered draft?',
+    summary: () => 'Pins will be remapped onto the latest app screen.',
+    primary: Object.freeze({ label: 'Recapture', action: 'confirm' }),
+    cancel: Object.freeze({ label: 'Cancel', action: 'cancel' }),
+  }),
   pendingRecovery: Object.freeze({
     title: () => 'Recover unsaved draft?',
     summary: (ctx = {}) => {

@@ -198,30 +198,49 @@
               return boundary?.outcome === 'cancel' ? 'cancel' : 'continue';
             }
 
+            function promptBoundaryDialogChoice(variant, context = {}) {
+              return new Promise((resolve) => {
+                renderBoundaryDialog(variant, context);
+                const root = document.getElementById('sessionBoundarySheet');
+                if (!root) {
+                  resolve('cancel');
+                  return;
+                }
+                function onClick(event) {
+                  const action = event.target?.dataset?.boundaryAction;
+                  if (!action) return;
+                  root.removeEventListener('click', onClick);
+                  statusSurfaceRegistry.hide('sessionBoundarySheet');
+                  resolve(action);
+                }
+                root.addEventListener('click', onClick);
+              });
+            }
+
             function promptPendingBoundaryChoice(action, count) {
               if (typeof window !== 'undefined' && typeof window.fixThisPromptPendingBoundary === 'function') {
                 return Promise.resolve(window.fixThisPromptPendingBoundary({ action, count }));
               }
-              if (typeof window === 'undefined' || typeof window.confirm !== 'function') return Promise.resolve('cancel');
               if (action === 'delete-session') {
-                const discard = window.confirm('Discard unsaved annotations and delete this session?\nOK = Delete session\nCancel = Keep editing');
-                return Promise.resolve(discard ? 'discard' : 'cancel');
+                return promptBoundaryDialogChoice('sessionDelete', { annotationCount: count, screenCount: 0 })
+                  .then((choice) => choice === 'discardAndProceed' || choice === 'saveAndProceed' ? 'discard' : 'cancel');
               }
               if (action === 'new-session') {
-                const save = window.confirm('Save draft before starting a new session?\nOK = Save draft\nCancel = Keep editing');
-                return Promise.resolve(save ? 'save' : 'cancel');
+                return promptBoundaryDialogChoice('sessionCreate', { itemCount: count })
+                  .then((choice) => choice === 'saveAndProceed' ? 'save' : choice === 'discardAndProceed' ? 'discard' : 'cancel');
               }
-              const save = window.confirm('Save draft before changing sessions?\nOK = Save draft\nCancel = Keep editing');
-              return Promise.resolve(save ? 'save' : 'cancel');
+              return promptBoundaryDialogChoice('sessionSwitch', { itemCount: count })
+                .then((choice) => choice === 'saveAndProceed' ? 'save' : choice === 'discardAndProceed' ? 'discard' : 'cancel');
             }
 
             function promptPendingRecoveryBoundaryChoice(recovery, action) {
               if (typeof window !== 'undefined' && typeof window.fixThisPromptPendingRecoveryBoundary === 'function') {
                 return Promise.resolve(window.fixThisPromptPendingRecoveryBoundary({ recovery, action }));
               }
-              if (typeof window === 'undefined' || typeof window.confirm !== 'function') return Promise.resolve('cancel');
-              const clear = window.confirm('A local draft from this session must be resolved before changing sessions.\nOK = Clear local draft\nCancel = Keep it');
-              return Promise.resolve(clear ? 'clear' : 'cancel');
+              return promptBoundaryDialogChoice('pendingRecovery', {
+                canResume: hasRecoverablePreviewContext(recovery),
+                itemCount: pendingRecoveryItems(recovery).length,
+              }).then((choice) => choice === 'discard' ? 'clear' : 'cancel');
             }
 
             function hasRecoverablePreviewContext(recovery) {
@@ -326,10 +345,8 @@
               const recovery = pendingRecovery;
               const items = pendingRecoveryItems(recovery).slice();
               if (!recovery || !items.length) return;
-              if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
-                const accepted = window.confirm('Recapture the current app screen and remap recovered pins to the new frozen preview?');
-                if (!accepted) return;
-              }
+              const accepted = await promptBoundaryDialogChoice('recaptureRecoveredDraft', {});
+              if (accepted !== 'confirm') return;
               clearPreview();
               await startDraftAnnotationFlow();
               if (!draftFlow()) return;

@@ -55,9 +55,9 @@ function promptScreenFingerprintMismatchWithWindow(windowLike) {
 
 test('shared pending boundary resolver exists', () => {
   assert.match(mainSource, /async function resolvePendingBeforeBoundary\(action,\s*sessionId = null\)/);
-  assert.match(mainSource, /Save draft/);
-  assert.match(mainSource, /Keep editing/);
-  assert.match(mainSource, /Discard/);
+  assert.match(mainSource, /promptBoundaryDialogChoice\('sessionDelete'/);
+  assert.match(mainSource, /promptBoundaryDialogChoice\('sessionCreate'/);
+  assert.match(mainSource, /promptBoundaryDialogChoice\('sessionSwitch'/);
 });
 
 test('shared pending boundary resolver delegates to draft boundary use case', () => {
@@ -66,68 +66,64 @@ test('shared pending boundary resolver delegates to draft boundary use case', ()
   assert.match(mainSource, /ensureDraftCommandQueue\(\)\.enqueue/);
 });
 
-test('delete session draft boundary uses one destructive confirmation', async () => {
-  const prompts = [];
+test('delete session draft boundary routes through boundary dialog hook', async () => {
+  const calls = [];
   const promptPendingBoundaryChoice = promptPendingBoundaryChoiceWithWindow({
-    confirm: (message) => {
-      prompts.push(message);
-      return true;
+    fixThisPromptPendingBoundary: (payload) => {
+      calls.push(payload);
+      return 'discard';
     },
   });
 
   const choice = await promptPendingBoundaryChoice('delete-session', 1);
 
   assert.equal(choice, 'discard');
-  assert.equal(prompts.length, 1);
-  assert.match(prompts[0], /delete this session/i);
+  assert.deepEqual(calls, [{ action: 'delete-session', count: 1 }]);
 });
 
-test('new session draft boundary cancel keeps editing after one confirmation', async () => {
-  const prompts = [];
+test('new session draft boundary cancel returns cancel via boundary dialog hook', async () => {
+  const calls = [];
   const promptPendingBoundaryChoice = promptPendingBoundaryChoiceWithWindow({
-    confirm: (message) => {
-      prompts.push(message);
-      return false;
+    fixThisPromptPendingBoundary: (payload) => {
+      calls.push(payload);
+      return 'cancel';
     },
   });
 
   const choice = await promptPendingBoundaryChoice('new-session', 4);
 
   assert.equal(choice, 'cancel');
-  assert.equal(prompts.length, 1);
-  assert.match(prompts[0], /Save draft before starting a new session/i);
+  assert.deepEqual(calls, [{ action: 'new-session', count: 4 }]);
 });
 
-test('default session draft boundary cancel keeps editing after one confirmation', async () => {
-  const prompts = [];
+test('default session draft boundary cancel returns cancel via boundary dialog hook', async () => {
+  const calls = [];
   const promptPendingBoundaryChoice = promptPendingBoundaryChoiceWithWindow({
-    confirm: (message) => {
-      prompts.push(message);
-      return false;
+    fixThisPromptPendingBoundary: (payload) => {
+      calls.push(payload);
+      return 'cancel';
     },
   });
 
   const choice = await promptPendingBoundaryChoice('close-session', 2);
 
   assert.equal(choice, 'cancel');
-  assert.equal(prompts.length, 1);
-  assert.match(prompts[0], /Save draft before changing sessions/i);
+  assert.deepEqual(calls, [{ action: 'close-session', count: 2 }]);
 });
 
-test('fingerprint mismatch cancel stops after one confirmation', async () => {
-  const prompts = [];
+test('fingerprint mismatch cancel returns cancel via boundary dialog hook', async () => {
+  const calls = [];
   const promptScreenFingerprintMismatch = promptScreenFingerprintMismatchWithWindow({
-    confirm: (message) => {
-      prompts.push(message);
-      return false;
+    fixThisPromptFingerprintMismatch: (payload) => {
+      calls.push(payload);
+      return 'cancel';
     },
   });
 
   const choice = await promptScreenFingerprintMismatch('frozen-fp', 'current-fp');
 
   assert.equal(choice, 'cancel');
-  assert.equal(prompts.length, 1);
-  assert.match(prompts[0], /screen may have changed/i);
+  assert.deepEqual(calls, [{ frozenFingerprint: 'frozen-fp', currentFingerprint: 'current-fp' }]);
 });
 
 test('openSession and newSession use boundary resolver instead of immediate flush', () => {

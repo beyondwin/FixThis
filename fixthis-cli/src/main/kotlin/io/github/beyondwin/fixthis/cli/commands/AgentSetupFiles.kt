@@ -1,9 +1,14 @@
 package io.github.beyondwin.fixthis.cli.commands
 
 import io.github.beyondwin.fixthis.cli.fixThisJson
+import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadiness
+import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessCatalog
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import java.io.File
 
@@ -83,34 +88,55 @@ internal object AgentSetupFiles {
         )
     }
 
-    private fun agentSetupManifest(packageName: String, projectRoot: File) = buildJsonObject {
-        put("schemaVersion", "1.0")
-        put(
-            "state",
-            buildJsonObject {
-                put("packageName", packageName)
-                put("projectRoot", projectRoot.absolutePath)
-                put("detectedAt", java.time.Instant.now().toString())
-            },
+    private fun agentSetupManifest(packageName: String, projectRoot: File): JsonObject {
+        val readiness = FirstRunReadinessCatalog.configRecoverable(
+            cause = "FixThis agent setup files were written; verify the debug app before opening the console.",
+            details = mapOf("packageName" to packageName, "projectRoot" to projectRoot.absolutePath),
+        ).copy(
+            verify = "fixthis doctor --project-dir ${projectRoot.absolutePath} --json",
+            fix = "Run doctor, restart the agent MCP client, then open the feedback console.",
+            nextAction = "fixthis doctor --project-dir ${projectRoot.absolutePath} --json",
         )
-        put(
-            "next",
-            buildJsonArray {
-                add(JsonPrimitive("./gradlew fixthisSetup"))
-                add(JsonPrimitive("fixthis doctor --project-dir ${projectRoot.absolutePath} --json"))
-                add(JsonPrimitive("# Restart Claude Code / Codex to reload MCP config"))
-            },
-        )
-        put(
-            "recovery",
-            buildJsonObject {
-                put("no-android-context", JsonPrimitive("Run from the Android repo root, or pass --allow-global to write the global codex config anyway."))
-                put("no-app-module", JsonPrimitive("Run ./gradlew projects to list modules; pass the correct --package."))
-                put("release-only-variant", JsonPrimitive("Add a debug variant; FixThis attaches debug builds only."))
-                put("view-system-mixed", JsonPrimitive("Module contains View-based activities; migrate to ComponentActivity + setContent."))
-                put("missing-application-id", JsonPrimitive("No unique applicationId; run from app module or pass --package."))
-            },
-        )
+        return buildJsonObject {
+            put("schemaVersion", "1.0")
+            put(
+                "state",
+                buildJsonObject {
+                    put("packageName", packageName)
+                    put("projectRoot", projectRoot.absolutePath)
+                    put("detectedAt", java.time.Instant.now().toString())
+                },
+            )
+            put("readiness", fixThisJson.encodeToJsonElement(FirstRunReadiness.serializer(), readiness).jsonObject)
+            put(
+                "next",
+                buildJsonArray {
+                    add(JsonPrimitive("./gradlew fixthisSetup"))
+                    add(JsonPrimitive("fixthis doctor --project-dir ${projectRoot.absolutePath} --json"))
+                    add(JsonPrimitive("# Restart Claude Code / Codex to reload MCP config"))
+                },
+            )
+            put(
+                "recovery",
+                buildJsonObject {
+                    put("no-android-context", JsonPrimitive("Run from the Android repo root, or pass --allow-global to write the global codex config anyway."))
+                    put("no-app-module", JsonPrimitive("Run ./gradlew projects to list modules; pass the correct --package."))
+                    put("release-only-variant", JsonPrimitive("Add a debug variant; FixThis attaches debug builds only."))
+                    put("view-system-mixed", JsonPrimitive("Module contains View-based activities; migrate to ComponentActivity + setContent."))
+                    put("missing-application-id", JsonPrimitive("No unique applicationId; run from app module or pass --package."))
+                    put(
+                        "readinessRecovery",
+                        buildJsonObject {
+                            put("NEEDS_INSTALL", JsonPrimitive("Run `fixthis install-agent --project-dir . --target all`."))
+                            put("CONFIG_RECOVERABLE", JsonPrimitive("Run `fixthis install-agent --project-dir . --target all --dry-run`, inspect the diff, then rerun without --dry-run."))
+                            put("ENV_BLOCKER", JsonPrimitive("Install missing local prerequisites, then run `fixthis doctor --project-dir . --json`."))
+                            put("UNSUPPORTED_BUILD", JsonPrimitive("Install a debuggable build with the FixThis sidekick enabled."))
+                            put("NEEDS_APP_LAUNCH", JsonPrimitive("Launch the debug app or click Start in the feedback console."))
+                        },
+                    )
+                },
+            )
+        }
     }
 
     private data class WritePlan(val file: File, val content: String)

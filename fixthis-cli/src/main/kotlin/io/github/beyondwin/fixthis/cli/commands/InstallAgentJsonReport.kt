@@ -1,9 +1,12 @@
 package io.github.beyondwin.fixthis.cli.commands
 
+import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadiness
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 
 private val compactJson: Json = Json {
@@ -14,8 +17,18 @@ private val compactJson: Json = Json {
 
 internal object InstallAgentJsonReport {
     data class Applied(val target: String, val path: String, val scope: String)
-    data class Skipped(val target: String, val reason: String, val fix: String)
-    data class ErrorEntry(val target: String, val message: String)
+    data class Skipped(
+        val target: String,
+        val reason: String,
+        val fix: String,
+        val readiness: FirstRunReadiness? = null,
+    )
+
+    data class ErrorEntry(
+        val target: String,
+        val message: String,
+        val readiness: FirstRunReadiness? = null,
+    )
 
     fun render(
         applied: List<Applied>,
@@ -50,6 +63,9 @@ internal object InstallAgentJsonReport {
                                 put("target", sk.target)
                                 put("reason", sk.reason)
                                 put("fix", sk.fix)
+                                sk.readiness?.let {
+                                    put("readiness", compactJson.encodeToJsonElement(FirstRunReadiness.serializer(), it).jsonObject)
+                                }
                             },
                         )
                     }
@@ -63,12 +79,16 @@ internal object InstallAgentJsonReport {
                             buildJsonObject {
                                 put("target", e.target)
                                 put("message", e.message)
+                                e.readiness?.let {
+                                    put("readiness", compactJson.encodeToJsonElement(FirstRunReadiness.serializer(), it).jsonObject)
+                                }
                             },
                         )
                     }
                 },
             )
             put("next", buildJsonArray { next.forEach { add(it) } })
+            next.firstOrNull()?.let { put("nextAction", it) }
         }
         return compactJson.encodeToString(obj) + "\n"
     }

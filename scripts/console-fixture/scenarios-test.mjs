@@ -44,6 +44,18 @@ test('multi-tab scenario records request log across two simulated tabs', async (
   }
 });
 
+test('first-run unsupported build scenario exposes readiness payload', async () => {
+  const fixture = await startFakeBridge({ scenario: 'unsupported-build' });
+  try {
+    const status = await fetch(`${fixture.url}/api/connection`).then((response) => response.json());
+    assert.equal(status.state, 'UNSUPPORTED_BUILD');
+    assert.equal(status.readiness.state, 'UNSUPPORTED_BUILD');
+    assert.match(status.readiness.nextAction, /debuggable build/);
+  } finally {
+    await fixture.close();
+  }
+});
+
 test('rapid session switching fixture can delay stale previews by session', async () => {
   assert.equal(typeof rapidSessionSwitchCancelsOldPreview, 'function');
   const fixture = await startFakeBridge({ scenario: 'happy-path' });

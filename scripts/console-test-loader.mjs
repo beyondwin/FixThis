@@ -78,6 +78,7 @@ var window = typeof window !== 'undefined' ? window : {
   confirm() { return false; },
   FixThisConsoleConfig: {},
   removeEventListener() {},
+  setTimeout: (fn, ms) => setTimeout(fn, ms),
 };
 var localStorage = typeof localStorage !== 'undefined' ? localStorage : {
   getItem() { return null; },

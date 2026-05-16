@@ -1,5 +1,6 @@
 package io.github.beyondwin.fixthis.cli.commands
 
+import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessCatalog
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -35,6 +36,30 @@ class InstallAgentJsonReportTest {
                 .getValue("reason").jsonPrimitive.content,
         )
         assertEquals(2, obj.getValue("next").jsonArray.size)
+    }
+
+    @Test
+    fun skippedEntriesCarryReadinessAndTopLevelNextAction() {
+        val rendered = InstallAgentJsonReport.render(
+            applied = emptyList(),
+            skipped = listOf(
+                InstallAgentJsonReport.Skipped(
+                    target = "codex",
+                    reason = "no-android-context",
+                    fix = "Re-run from an Android project root, or pass --allow-global.",
+                    readiness = FirstRunReadinessCatalog.configRecoverable(
+                        cause = "Codex global config was skipped outside an Android project.",
+                    ),
+                ),
+            ),
+            errors = emptyList(),
+            next = listOf("cd <android-project-root>", "fixthis install-agent --project-dir ."),
+        )
+
+        val root = Json.parseToJsonElement(rendered).jsonObject
+        val skipped = root.getValue("skipped").jsonArray.single().jsonObject
+        assertEquals("CONFIG_RECOVERABLE", skipped.getValue("readiness").jsonObject.getValue("state").jsonPrimitive.content)
+        assertEquals("cd <android-project-root>", root.getValue("nextAction").jsonPrimitive.content)
     }
 
     @Test

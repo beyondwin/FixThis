@@ -9,9 +9,14 @@ import io.github.beyondwin.fixthis.cli.Adb
 import io.github.beyondwin.fixthis.cli.AdbDevice
 import io.github.beyondwin.fixthis.cli.BridgeClient
 import io.github.beyondwin.fixthis.cli.fixThisJson
+import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadiness
+import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessCatalog
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import java.io.File
 
@@ -41,12 +46,14 @@ class DoctorCommand : CoreCliktCommand(name = "doctor") {
                 }
             } catch (error: Throwable) {
                 failures += 1
+                val readiness = readinessForDoctorCheck(name, error.message, fix)
                 checks += DoctorCheckResult(
                     name = name,
                     label = label,
                     ok = false,
                     message = error.message,
                     fix = fix,
+                    readiness = readiness,
                 )
                 if (!jsonOutput) {
                     echo("FAIL $label: ${error.message}")
@@ -119,7 +126,28 @@ internal data class DoctorCheckResult(
     val ok: Boolean,
     val message: String? = null,
     val fix: String? = null,
+    val readiness: FirstRunReadiness? = null,
 )
+
+internal fun readinessForDoctorCheck(name: String, message: String?, fix: String): FirstRunReadiness = when (name) {
+    "android_project_found" -> FirstRunReadinessCatalog.envBlocker(
+        cause = message ?: "Android project root was not found.",
+        fix = fix,
+    )
+    "fixthis_project_metadata_found" -> FirstRunReadinessCatalog.needsInstall(
+        cause = message ?: "FixThis project metadata was not found.",
+    )
+    "adb_found", "device_connected" -> FirstRunReadinessCatalog.envBlocker(
+        cause = message ?: "ADB or a ready Android device is unavailable.",
+        fix = fix,
+    )
+    "sidekick_session_found" -> FirstRunReadinessCatalog.needsAppLaunch(
+        cause = message ?: "FixThis sidekick session was not found.",
+    )
+    else -> FirstRunReadinessCatalog.unknown(
+        cause = message ?: "Doctor check failed: $name",
+    )
+}
 
 internal fun renderDoctorJsonReport(report: DoctorReport): String = fixThisJson.encodeToString(
     buildJsonObject {
@@ -137,6 +165,12 @@ internal fun renderDoctorJsonReport(report: DoctorReport): String = fixThisJson.
                             put("status", if (check.ok) "ok" else "fail")
                             check.message?.let { put("message", it) }
                             check.fix?.let { put("fix", it) }
+                            check.readiness?.let {
+                                put(
+                                    "readiness",
+                                    fixThisJson.encodeToJsonElement(FirstRunReadiness.serializer(), it).jsonObject,
+                                )
+                            }
                         },
                     )
                 }

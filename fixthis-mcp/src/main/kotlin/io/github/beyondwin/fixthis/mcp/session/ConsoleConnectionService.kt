@@ -1,6 +1,8 @@
 package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.cli.AdbDevice
+import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessCatalog
+import io.github.beyondwin.fixthis.cli.readiness.classifyBridgeFailure
 import io.github.beyondwin.fixthis.mcp.console.ConsoleAvailabilitySignals
 import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionAction
 import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionDetails
@@ -49,6 +51,11 @@ internal class ConsoleConnectionService(
                 message = "Unlock your phone or allow debugging, then try again.",
                 primaryAction = ConsoleConnectionAction.TRY_AGAIN,
                 packageName = session.packageName,
+                readiness = FirstRunReadinessCatalog.envBlocker(
+                    cause = "ADB could not list Android devices.",
+                    fix = "Install Android SDK platform-tools or fix `adb devices`.",
+                    details = mapOf("rawError" to raw),
+                ),
                 details = ConsoleConnectionDetails(
                     deviceState = "unknown",
                     bridgeState = "not checked",
@@ -70,6 +77,11 @@ internal class ConsoleConnectionService(
                 selectedDevice = unavailable?.toConnectionDevice(selectedSerial),
                 devices = connectionDevices,
                 packageName = session.packageName,
+                readiness = FirstRunReadinessCatalog.envBlocker(
+                    cause = "No ready Android device or emulator is connected.",
+                    fix = "Start an emulator or connect and authorize a device.",
+                    details = mapOf("deviceState" to (unavailable?.state ?: "none")),
+                ),
                 details = ConsoleConnectionDetails(
                     deviceState = unavailable?.state ?: "none",
                     bridgeState = "not checked",
@@ -86,6 +98,9 @@ internal class ConsoleConnectionService(
                     primaryAction = ConsoleConnectionAction.START,
                     devices = connectionDevices,
                     packageName = session.packageName,
+                    readiness = FirstRunReadinessCatalog.needsAppLaunch(
+                        cause = "A device is ready; start the debug app to connect FixThis.",
+                    ),
                     details = ConsoleConnectionDetails(deviceState = "device", bridgeState = "not checked"),
                 )
             } else {
@@ -96,6 +111,11 @@ internal class ConsoleConnectionService(
                     primaryAction = ConsoleConnectionAction.CHOOSE_DEVICE,
                     devices = connectionDevices,
                     packageName = session.packageName,
+                    readiness = FirstRunReadinessCatalog.envBlocker(
+                        cause = "More than one ready Android device is connected.",
+                        fix = "Choose a device in the feedback console.",
+                        details = mapOf("readyDeviceCount" to readyDevices.size.toString()),
+                    ),
                     details = ConsoleConnectionDetails(deviceState = "multiple", bridgeState = "not checked"),
                 )
             }
@@ -110,6 +130,11 @@ internal class ConsoleConnectionService(
                 selectedDevice = selectedDevice?.toConnectionDevice(selectedSerial),
                 devices = connectionDevices,
                 packageName = session.packageName,
+                readiness = FirstRunReadinessCatalog.envBlocker(
+                    cause = "The selected Android device is not ready.",
+                    fix = "Select a connected device or fix `adb devices`.",
+                    details = mapOf("deviceState" to (selectedDevice?.state ?: "missing")),
+                ),
                 details = ConsoleConnectionDetails(deviceState = selectedDevice?.state ?: "missing", bridgeState = "not checked"),
             )
         }
@@ -128,6 +153,9 @@ internal class ConsoleConnectionService(
                 canCapture = true,
                 canNavigate = true,
                 availability = availability,
+                readiness = FirstRunReadinessCatalog.ready(
+                    details = mapOf("deviceSerial" to selectedDevice.serial),
+                ),
                 details = ConsoleConnectionDetails(deviceState = "device", bridgeState = "connected"),
             )
         } catch (error: CancellationException) {
@@ -139,6 +167,7 @@ internal class ConsoleConnectionService(
                     raw.contains("run-as", ignoreCase = true) &&
                         raw.contains("permission", ignoreCase = true)
                     )
+            val readiness = classifyBridgeFailure(raw)
             ConsoleConnectionStatus(
                 state = if (unsupported) ConsoleConnectionState.UNSUPPORTED_BUILD else ConsoleConnectionState.OPEN_APP,
                 headline = if (unsupported) "This build cannot connect" else "Open the app",
@@ -151,6 +180,7 @@ internal class ConsoleConnectionService(
                 selectedDevice = selectedDevice.toConnectionDevice(selectedSerial),
                 devices = connectionDevices,
                 packageName = session.packageName,
+                readiness = readiness,
                 details = ConsoleConnectionDetails(deviceState = "device", bridgeState = "failed", rawError = raw),
             )
         }

@@ -11,6 +11,7 @@ import io.github.beyondwin.fixthis.cli.BridgeClient
 import io.github.beyondwin.fixthis.cli.DiagnosticContext
 import io.github.beyondwin.fixthis.cli.ExitCode
 import io.github.beyondwin.fixthis.cli.fixThisJson
+import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessCatalog
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
@@ -436,6 +437,9 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
                         target = "codex",
                         reason = "no-android-context",
                         fix = "Re-run from an Android project root, or pass --allow-global.",
+                        readiness = FirstRunReadinessCatalog.configRecoverable(
+                            cause = "Codex global config was skipped outside an Android project.",
+                        ),
                     ),
                 )
             } else {

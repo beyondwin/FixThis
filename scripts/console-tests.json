@@ -53,5 +53,10 @@
     "scripts/console-fixture/fakeBridgeServer-test.mjs",
     "scripts/console-fixture/scenarios-test.mjs",
     "scripts/console-harness.test.mjs"
+  ],
+  "notification": [
+    "scripts/requestJson-test.mjs",
+    "scripts/notificationCenter-test.mjs",
+    "scripts/nativeConfirmAudit-test.mjs"
   ]
 }

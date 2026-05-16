@@ -2,6 +2,7 @@ package io.github.beyondwin.fixthis.cli.commands
 
 import com.github.ajalt.clikt.core.parse
 import io.github.beyondwin.fixthis.cli.AdbDevice
+import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessCatalog
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -49,6 +50,10 @@ class DoctorCommandTest {
                         ok = false,
                         message = "No connected Android device or emulator found",
                         fix = "Start an emulator or connect a device, then run `adb devices`.",
+                        readiness = FirstRunReadinessCatalog.envBlocker(
+                            cause = "No connected Android device or emulator found",
+                            fix = "Start an emulator or connect a device, then run `adb devices`.",
+                        ),
                     ),
                 ),
             ),
@@ -62,6 +67,9 @@ class DoctorCommandTest {
         assertEquals("device_connected", failed.getValue("name").jsonPrimitive.content)
         assertEquals("fail", failed.getValue("status").jsonPrimitive.content)
         assertTrue(failed.getValue("fix").jsonPrimitive.content.contains("adb devices"))
+        val readiness = failed.getValue("readiness").jsonObject
+        assertEquals("ENV_BLOCKER", readiness.getValue("state").jsonPrimitive.content)
+        assertTrue(readiness.getValue("nextAction").jsonPrimitive.content.contains("emulator"))
     }
 
     @Test

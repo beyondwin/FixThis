@@ -13,6 +13,7 @@
     "ci:local:test": "node --test scripts/verify-ci-local-test.mjs",
     "hooks:install": "bash scripts/install-git-hooks.sh",
     "console:smoke": "node scripts/console-browser-smoke.mjs",
+    "first-run:smoke": "node scripts/first-run-smoke.mjs",
     "console:harness": "node scripts/console-harness.mjs",
     "console:responsive:stress": "node scripts/console-responsive-stress.mjs",
     "console:availability:test": "node scripts/run-console-tests.mjs availability",

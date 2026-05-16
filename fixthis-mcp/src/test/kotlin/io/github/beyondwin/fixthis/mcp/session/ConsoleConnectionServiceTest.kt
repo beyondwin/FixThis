@@ -1,6 +1,7 @@
 package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.cli.AdbDevice
+import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessState
 import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionAction
 import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionState
 import kotlinx.coroutines.runBlocking
@@ -19,6 +20,7 @@ class ConsoleConnectionServiceTest {
 
         assertEquals(ConsoleConnectionState.CHECK_PHONE, status.state)
         assertEquals(ConsoleConnectionAction.TRY_AGAIN, status.primaryAction)
+        assertEquals(FirstRunReadinessState.ENV_BLOCKER, status.readiness?.state)
     }
 
     @Test
@@ -31,6 +33,23 @@ class ConsoleConnectionServiceTest {
 
         assertEquals(ConsoleConnectionState.WELCOME, status.state)
         assertEquals(ConsoleConnectionAction.START, status.primaryAction)
+        assertEquals(FirstRunReadinessState.NEEDS_APP_LAUNCH, status.readiness?.state)
+    }
+
+    @Test
+    fun unsupportedBridgeFailureMapsToUnsupportedBuildReadiness() = runBlocking {
+        val bridge = FakeFixThisBridge(
+            devicesOverride = listOf(AdbDevice("device-1", "device")),
+            heartbeatError = IllegalStateException("run-as: package not debuggable"),
+        )
+        bridge.selectDevice("device-1")
+        val service = ConsoleConnectionService(bridge)
+
+        val status = service.connectionStatus(session())
+
+        assertEquals(ConsoleConnectionState.UNSUPPORTED_BUILD, status.state)
+        assertEquals(FirstRunReadinessState.UNSUPPORTED_BUILD, status.readiness?.state)
+        assertEquals("Install a debuggable build with FixThis enabled.", status.readiness?.nextAction)
     }
 
     @Test

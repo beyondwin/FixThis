@@ -72,3 +72,16 @@ test('session delete title and summary include destructive scope', () => {
 test('unknown boundary variants fail loudly', () => {
   assert.throws(() => renderBoundaryDialog('missingVariant', {}), /Unknown boundary variant/);
 });
+
+test('destructive utility dialogs label confirm and cancel explicitly', () => {
+  renderBoundaryDialog('clearLocalDraft', { itemCount: 2 });
+  assert.match(document.title.textContent, /Clear local draft/);
+  assert.deepEqual(visibleLabels(), ['Cancel', 'Clear local draft']);
+
+  renderBoundaryDialog('clearServerDrafts', { itemCount: 3 });
+  assert.match(document.summary.textContent, /3 saved draft/);
+  assert.deepEqual(visibleLabels(), ['Cancel', 'Delete drafts']);
+
+  renderBoundaryDialog('fingerprintMismatch', {});
+  assert.deepEqual(visibleLabels(), ['Cancel', 'Force save', 'Recapture']);
+});
