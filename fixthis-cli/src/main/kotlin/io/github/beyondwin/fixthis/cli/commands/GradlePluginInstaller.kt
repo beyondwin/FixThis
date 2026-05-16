@@ -19,6 +19,11 @@ internal object GradlePluginInstaller {
             ?: throw CliktError(AgentSurfaceMessages.noAppModule(packageName = packageName))
         val plan = patchPlan(application.buildFile, pluginVersion)
         if (plan == null) {
+            SetupRunResults.applied.get() += InstallAgentJsonReport.Applied(
+                target = "gradle-plugin",
+                path = application.buildFile.absolutePath,
+                scope = "project-local",
+            )
             echo("Gradle plugin already applied: ${application.buildFile.absolutePath}")
             return
         }
@@ -28,6 +33,11 @@ internal object GradlePluginInstaller {
             return
         }
         application.buildFile.writeText(plan.newText)
+        SetupRunResults.applied.get() += InstallAgentJsonReport.Applied(
+            target = "gradle-plugin",
+            path = application.buildFile.absolutePath,
+            scope = "project-local",
+        )
         echo("Applied Gradle plugin `$PluginId` to ${application.buildFile.absolutePath}")
     }
 

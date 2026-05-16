@@ -1,10 +1,16 @@
 package io.github.beyondwin.fixthis.cli.commands
 
-import io.github.beyondwin.fixthis.cli.fixThisJson
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+
+private val compactJson: Json = Json {
+    prettyPrint = false
+    explicitNulls = false
+    encodeDefaults = true
+}
 
 internal object InstallAgentJsonReport {
     data class Applied(val target: String, val path: String, val scope: String)
@@ -49,6 +55,6 @@ internal object InstallAgentJsonReport {
             })
             put("next", buildJsonArray { next.forEach { add(it) } })
         }
-        return fixThisJson.encodeToString(obj) + "\n"
+        return compactJson.encodeToString(obj) + "\n"
     }
 }

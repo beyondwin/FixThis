@@ -5,6 +5,7 @@ import com.github.ajalt.clikt.core.parse
 import io.github.beyondwin.fixthis.cli.ExitCode
 import io.github.beyondwin.fixthis.cli.buildRootCommand
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
@@ -223,6 +224,45 @@ class InitAgentCommandTest {
         assertFalse(
             "guard should not skip when --allow-global is set",
             captured.contains("no-android-context"),
+        )
+    }
+
+    @Test
+    fun installAgentJsonModeEmitsSchemaAndAppliedTargets() {
+        val tempProject = temporaryFolder.newFolder("real-android").also { setupFakeAndroidProject(it) }
+        val out = ByteArrayOutputStream()
+        val oldOut = System.out
+        System.setOut(PrintStream(out))
+        try {
+            withUserHome(temporaryFolder.newFolder("home")) {
+                InstallAgentCommand().parse(
+                    arrayOf(
+                        "--project-dir", tempProject.absolutePath,
+                        "--package", "com.example.app",
+                        "--target", "claude",
+                        "--json",
+                        "--skip-gradle-plugin",
+                    ),
+                )
+            }
+        } catch (_: Throwable) { /* expected to be 0 here but tolerate non-zero */ } finally {
+            System.setOut(oldOut)
+        }
+        val text = out.toString()
+        val rendered = text.lines().lastOrNull { it.trim().startsWith("{") }
+        assertTrue("expected at least one JSON line, got:\n$text", rendered != null)
+        val obj = Json.parseToJsonElement(rendered!!).jsonObject
+        assertEquals("1.0", obj.getValue("schemaVersion").jsonPrimitive.content)
+        assertTrue("expected claude in applied[]", obj.getValue("applied").jsonArray.any {
+            it.jsonObject.getValue("target").jsonPrimitive.content == "claude"
+        })
+    }
+
+    private fun setupFakeAndroidProject(root: File) {
+        File(root, "settings.gradle.kts").writeText("""include(":app")""")
+        val app = File(root, "app").apply { mkdirs() }
+        File(app, "build.gradle.kts").writeText(
+            """android { defaultConfig { applicationId = "com.example.app" } }""",
         )
     }
 

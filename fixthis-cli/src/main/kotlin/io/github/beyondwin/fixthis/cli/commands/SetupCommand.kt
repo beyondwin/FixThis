@@ -19,6 +19,17 @@ import kotlinx.serialization.json.put
 import java.io.File
 import kotlin.system.exitProcess
 
+internal object SetupRunResults {
+    val applied = ThreadLocal.withInitial { mutableListOf<InstallAgentJsonReport.Applied>() }
+    val skipped = ThreadLocal.withInitial { mutableListOf<InstallAgentJsonReport.Skipped>() }
+    val errors = ThreadLocal.withInitial { mutableListOf<InstallAgentJsonReport.ErrorEntry>() }
+    fun reset() {
+        applied.get().clear()
+        skipped.get().clear()
+        errors.get().clear()
+    }
+}
+
 class SetupCommand : CoreCliktCommand(name = "setup") {
     private val packageName by option("--package", help = "Android application id for generated MCP config")
     private val projectDir by option("--project-dir", help = "Project root containing .fixthis/project.json").default(".")
@@ -130,6 +141,11 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
                     java.nio.file.Files.delete(stagingFile.toPath())
                 }
                 committed += plan
+                SetupRunResults.applied.get() += InstallAgentJsonReport.Applied(
+                    target = plan.writerName,
+                    path = plan.configFile.absolutePath,
+                    scope = plan.scope,
+                )
                 echo("Wrote ${plan.writerName} MCP config (${plan.scope}): ${plan.configFile.absolutePath}")
             }
             // Clean up rollback files on success.
@@ -204,6 +220,11 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         } catch (_: Exception) {
             throw CliktError("Could not write ${plan.writerName} MCP config at ${configFile.absolutePath}.")
         }
+        SetupRunResults.applied.get() += InstallAgentJsonReport.Applied(
+            target = plan.writerName,
+            path = configFile.absolutePath,
+            scope = plan.scope,
+        )
         echo("Wrote ${plan.writerName} MCP config (${plan.scope}): ${configFile.absolutePath}")
     }
 
@@ -352,6 +373,7 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
     ).flag(default = false)
 
     override fun run() {
+        SetupRunResults.reset()
         val root = File(projectDir).canonicalFile
         val decision = GlobalScopeGuard.decide(root, allowGlobal = allowGlobal)
 
@@ -424,15 +446,20 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
             },
         )
 
-        // After delegation: if json mode AND there were early-skipped targets, emit JSON.
-        // (Full JSON output for applied/errors comes in task_13; this commit stops at early-skip.)
-        if (json && earlySkipped.isNotEmpty()) {
+        if (json) {
+            val skippedAll = SetupRunResults.skipped.get() + earlySkipped
+            val applied = SetupRunResults.applied.get()
+            val errors = SetupRunResults.errors.get()
             echo(
                 InstallAgentJsonReport.render(
-                    applied = emptyList(),
-                    skipped = earlySkipped,
-                    errors = emptyList(),
-                    next = listOf("./gradlew fixthisSetup", "fixthis doctor --json"),
+                    applied = applied,
+                    skipped = skippedAll,
+                    errors = errors,
+                    next = listOf(
+                        "./gradlew fixthisSetup",
+                        "fixthis doctor --project-dir ${root.absolutePath} --json",
+                        "Restart Claude Code / Codex to reload MCP config",
+                    ),
                 ),
             )
         }
