@@ -219,7 +219,13 @@
 
             function promptPendingBoundaryChoice(action, count) {
               if (typeof window !== 'undefined' && typeof window.fixThisPromptPendingBoundary === 'function') {
-                return Promise.resolve(window.fixThisPromptPendingBoundary({ action, count }));
+                // Override path bypasses promptBoundaryDialogChoice click handlers,
+                // so dismiss the sheet to match real-user dismissal.
+                return Promise.resolve(window.fixThisPromptPendingBoundary({ action, count })).then((choice) => {
+                  if (typeof statusSurfaceRegistry !== 'undefined') statusSurfaceRegistry.hide('sessionBoundarySheet');
+                  else { const r = document.getElementById('sessionBoundarySheet'); if (r) r.hidden = true; }
+                  return choice;
+                });
               }
               if (action === 'delete-session') {
                 return promptBoundaryDialogChoice('sessionDelete', { annotationCount: count, screenCount: 0 })
