@@ -1,6 +1,7 @@
 package io.github.beyondwin.fixthis.mcp.console
 
 import io.github.beyondwin.fixthis.cli.AdbDevice
+import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadiness
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -28,6 +29,7 @@ data class ConsoleConnectionStatus(
     val canNavigate: Boolean = false,
     val canUseCachedWork: Boolean = true,
     val availability: ConsoleAvailabilitySignals? = null,
+    val readiness: FirstRunReadiness? = null,
     val details: ConsoleConnectionDetails = ConsoleConnectionDetails(),
 )
 
