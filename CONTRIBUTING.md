@@ -309,6 +309,33 @@ Smoke reports are written under ignored `.fixthis/smoke-reports/` as Markdown an
 - `SKIPPED_WIRELESS_ADB_LOST`
 - `SKIPPED_MULTIPLE_DEVICES`
 
+## Performance Measurement
+
+The `scripts/perf/` harness measures Gradle and console JS scenario
+wall-clock times and compares them against a committed baseline. See
+[`scripts/perf/README.md`](scripts/perf/README.md) for details and
+[`docs/superpowers/specs/2026-05-16-build-test-performance-measurement-design.md`](docs/superpowers/specs/2026-05-16-build-test-performance-measurement-design.md)
+for the design.
+
+Typical loop when proposing a build/test config change:
+
+```bash
+# 1. Confirm main is clean on your machine (no rogue REGRESS/IMPROVE).
+node scripts/perf/bench.mjs
+node scripts/perf/compare-perf.mjs docs/perf/baseline-2026-05-16.json "$(ls -t output/perf/run-*.json | head -1)"
+
+# 2. Apply your change, then re-measure.
+node scripts/perf/bench.mjs
+node scripts/perf/compare-perf.mjs docs/perf/baseline-2026-05-16.json "$(ls -t output/perf/run-*.json | head -1)"
+
+# 3. Attach the comparator output to the PR description.
+```
+
+Re-baseline (`docs/perf/baseline-2026-05-16.json`) only when adopting a
+deliberate, reviewed change. Hardware variance between contributors is
+expected and the comparator warns rather than fails on environment
+mismatch — CI uses its own nightly run as the authoritative baseline.
+
 ## Local Artifacts
 
 `.fixthis/feedback-sessions/`, `.fixthis/preview-cache/`, `.fixthis/artifacts/`, and `.fixthis/smoke-reports/` can contain screenshots or local feedback. Do not commit or share them casually.
