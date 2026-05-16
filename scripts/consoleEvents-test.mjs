@@ -66,6 +66,7 @@ test('snapshot null session clears active draft and preview state', () => {
 test('preview-ready event is ignored when its session does not match active session', () => {
   const start = body(source, 'function startConsoleEvents()');
   assert.match(start, /on\('preview-ready'/);
-  assert.match(start, /data\.sessionId !== state\.session\?\.sessionId/);
+  // session-mismatch gate moved from inline check to sse.js dropStaleSse()
+  assert.match(start, /dropStaleSse\(data, state\.session\?\.sessionId \|\| null\)/);
   assert.match(start, /return;/);
 });

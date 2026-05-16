@@ -1,4 +1,4 @@
-// @requires state.js, api.js, draftWorkspace.js
+// @requires state.js, api.js, draftWorkspace.js, previewPoll.js
             // Raw HTTP fetch — the previewUseCases layer provides dedup and
             // race-fence via the FSM. Cross-caller dedup (across draft port
             // and FSM) is achieved by routing all callers through
@@ -191,6 +191,7 @@
               try {
                 const preview = await previewUseCases.request();
                 if (draftFlow() || !previewContextStillCurrent(previewContext)) return;
+                if (dropStalePreviewPoll(preview, state.session?.sessionId || null)) return;
                 applyPreviewReadinessToConnectionCard(preview);
                 if (preview?.previewAvailable === false) {
                   renderPreviewOnly();

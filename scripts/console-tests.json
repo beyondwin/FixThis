@@ -51,7 +51,8 @@
     "scripts/sessionScopedRequests-test.mjs",
     "scripts/savedOverlayScope-test.mjs",
     "scripts/transportSessionResilience-test.mjs",
-    "scripts/undoRedoContext-test.mjs"
+    "scripts/undoRedoContext-test.mjs",
+    "scripts/sessionMismatchIgnore-test.mjs"
   ],
   "harness": [
     "scripts/console-fixture/fakeBridgeServer-test.mjs",
