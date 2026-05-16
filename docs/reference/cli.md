@@ -1,5 +1,7 @@
 # `fixthis` CLI Reference
 
+See also: [`cli-exit-codes.md`](./cli-exit-codes.md) for the contract every command returns.
+
 The desktop CLI ships in `fixthis-cli/build/install/fixthis/bin/fixthis` after
 `./gradlew :fixthis-cli:installDist`. All commands are exposed as
 subcommands of `fixthis`.
