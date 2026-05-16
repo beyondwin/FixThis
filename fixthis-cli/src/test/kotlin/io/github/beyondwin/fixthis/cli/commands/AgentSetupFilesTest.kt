@@ -3,6 +3,7 @@ package io.github.beyondwin.fixthis.cli.commands
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -31,5 +32,9 @@ class AgentSetupFilesTest {
             "next must be a non-empty array of runnable command strings",
             obj.getValue("next").jsonArray.isNotEmpty(),
         )
+        assertTrue("missing 'readiness'", "readiness" in obj)
+        assertTrue("missing readiness recovery map", "readinessRecovery" in obj.getValue("recovery").jsonObject)
+        val readiness = obj.getValue("readiness").jsonObject
+        assertTrue(readiness.getValue("nextAction").jsonPrimitive.content.contains("fixthis doctor"))
     }
 }
