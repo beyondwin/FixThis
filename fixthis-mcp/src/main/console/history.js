@@ -502,7 +502,10 @@
                 pendingRecovery?.context?.sessionId ||
                 state.session?.sessionId;
               if (!draftFlow() && !pendingRecoveryItems(pendingRecovery).length) return;
-              if (!window.confirm('Clear local unsaved draft annotations from this browser?')) return;
+              const accepted = await promptBoundaryDialogChoice('clearLocalDraft', {
+                itemCount: draftWorkspaceItems(draftWorkspace).length || pendingRecoveryItems(pendingRecovery).length,
+              });
+              if (accepted !== 'confirm') return;
               deleteCurrentDraftWorkspaceStorage();
               if (pendingRecovery?.schemaVersion === 2) {
                 createBrowserDraftPorts().storage.deleteWorkspace(
@@ -527,7 +530,10 @@
               const sessionId = state.session?.sessionId;
               if (!sessionId) return;
               if (await resolvePendingBeforeBoundary('clear-server-drafts', sessionId) !== 'continue') return;
-              if (!window.confirm('Delete saved draft feedback items from this session?')) return;
+              const accepted = await promptBoundaryDialogChoice('clearServerDrafts', {
+                itemCount: savedEvidenceItems().filter((item) => item.delivery !== 'sent').length,
+              });
+              if (accepted !== 'confirm') return;
               await withMutationLock(() => requestJson('/api/items/draft?sessionId=' + encodeURIComponent(sessionId), { method: 'DELETE' }));
               clearSelection();
               await refresh();

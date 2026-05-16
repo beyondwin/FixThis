@@ -170,11 +170,8 @@
 
             async function forgetDevice() {
               const deviceNameForPrompt = currentDeviceName();
-              renderBoundaryDialog('forgetDevice', { deviceName: deviceNameForPrompt });
-              if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
-                const accepted = window.confirm('Forget ' + deviceNameForPrompt + '? Active session data is unaffected.');
-                if (!accepted) return;
-              }
+              const accepted = await promptBoundaryDialogChoice('forgetDevice', { deviceName: deviceNameForPrompt });
+              if (accepted !== 'confirm') return;
               await disconnectDevice();
             }
 

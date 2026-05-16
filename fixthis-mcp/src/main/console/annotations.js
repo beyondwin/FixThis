@@ -614,15 +614,14 @@
               if (typeof window !== 'undefined' && typeof window.fixThisPromptFingerprintMismatch === 'function') {
                 return Promise.resolve(window.fixThisPromptFingerprintMismatch({ frozenFingerprint: frozenFingerprint, currentFingerprint: currentFingerprint }));
               }
-              const message = 'The screen may have changed since it was captured.\n\n' +
-                'OK = Recapture the current screen\n' +
-                'Cancel = Cancel';
-              if (typeof window === 'undefined' || typeof window.confirm !== 'function') {
-                return Promise.resolve('cancel');
-              }
-              const recapture = window.confirm(message);
-              if (recapture) return Promise.resolve('recapture');
-              return Promise.resolve('cancel');
+              return promptBoundaryDialogChoice('fingerprintMismatch', {
+                frozenFingerprint,
+                currentFingerprint,
+              }).then((choice) => {
+                if (choice === 'force') return 'force';
+                if (choice === 'recapture') return 'recapture';
+                return 'cancel';
+              });
             }
 
             async function savePendingFeedbackItems() {

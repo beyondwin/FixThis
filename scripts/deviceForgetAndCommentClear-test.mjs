@@ -27,7 +27,7 @@ test('forget device click uses the existing disconnect routine behind explicit c
   assert.match(main, /forgetDeviceButton/);
   assert.match(main, /forgetDevice\(\)\.catch\(showError\)/);
   assert.match(devices, /async function forgetDevice\(\)/);
-  assert.match(devices, /renderBoundaryDialog\('forgetDevice'/);
+  assert.match(devices, /promptBoundaryDialogChoice\('forgetDevice'/);
   assert.match(devices, /disconnectDevice\(\)/);
   assert.match(variants, /forgetDevice:/);
 });
