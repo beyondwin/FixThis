@@ -263,6 +263,36 @@ class SetupCommandTest {
     }
 
     @Test
+    fun fullDiffFlagDisablesByteBudget() {
+        // Build content that overflows the default 4 KiB JSON budget.
+        // Use TOML format because JSON-parsing rejects non-JSON content
+        // (and JSON budget overflow is hard to trigger from a single new mcpServer entry).
+        val tempFile = java.io.File.createTempFile("ft-cfg", ".toml").apply { writeText("") }
+        val largeContent = (1..600).joinToString("\n") { "[section_$it]" }
+        val out = java.io.ByteArrayOutputStream()
+        val oldOut = System.out
+        System.setOut(java.io.PrintStream(out))
+        try {
+            SetupCommand().applyWritePlanForTest(
+                writerName = "codex",
+                scope = "global",
+                configFile = tempFile,
+                content = largeContent,
+                dryRun = true,
+                fullDiff = true,
+            )
+        } finally {
+            System.setOut(oldOut)
+        }
+        val captured = out.toString()
+        assertFalse("--full-diff should disable elision footer", captured.contains("elided"))
+        assertTrue(
+            "expected full content (>4KiB) when --full-diff is set",
+            captured.toByteArray(Charsets.UTF_8).size > 4096,
+        )
+    }
+
+    @Test
     fun verboseFlagSetsDiagnosticContext() {
         val projectRoot = temporaryFolder.newFolder("project").canonicalFile
         val userHome = temporaryFolder.newFolder("home")

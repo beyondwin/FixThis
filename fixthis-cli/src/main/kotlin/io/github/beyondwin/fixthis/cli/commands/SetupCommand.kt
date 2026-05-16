@@ -23,6 +23,10 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
     private val projectDir by option("--project-dir", help = "Project root containing .fixthis/project.json").default(".")
     private val write by option("--write", help = "Write MCP config to agent settings files").flag(default = false)
     private val dryRun by option("--dry-run", help = "Print planned writes without modifying files").flag(default = false)
+    private val fullDiff by option(
+        "--full-diff",
+        help = "Disable the dry-run output byte budget (may leak surrounding context — avoid in agent logs)",
+    ).flag(default = false)
     private val target by option("--target", help = "Agent config target").choice("codex", "claude", "all").default("all")
     private val serverName by option("--server-name", help = "MCP server name to write").default("fixthis")
     private val verbose by option("--verbose", "-v", help = "Print full stack trace on failure").flag(default = false)
@@ -69,7 +73,7 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         )
         val plans = buildWritePlans(selectedWriters(target), root, entry)
         plans.forEach { plan ->
-            applyWritePlan(plan, dryRun)
+            applyWritePlan(plan, dryRun, fullDiff)
         }
     }
 
@@ -97,11 +101,11 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         AgentConfigWritePlan(writer.name, writer.scope, configFile, merged)
     }
 
-    private fun applyWritePlan(plan: AgentConfigWritePlan, dryRun: Boolean) {
+    private fun applyWritePlan(plan: AgentConfigWritePlan, dryRun: Boolean, fullDiff: Boolean = false) {
         val configFile = plan.configFile
         val merged = plan.content
         if (dryRun) {
-            renderDryRunOutput(plan).forEach { echo(it) }
+            renderDryRunOutput(plan, fullDiff).forEach { echo(it) }
             return
         }
         try {
@@ -118,27 +122,29 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         configFile: File,
         content: String,
         dryRun: Boolean,
+        fullDiff: Boolean = false,
     ) {
         val plan = AgentConfigWritePlan(writerName, scope, configFile, content)
         if (dryRun) {
-            renderDryRunOutput(plan).forEach { println(it) }
+            renderDryRunOutput(plan, fullDiff).forEach { println(it) }
             return
         }
         AtomicConfigFileWriter.write(configFile, content)
         println("Wrote ${plan.writerName} MCP config (${plan.scope}): ${configFile.absolutePath}")
     }
 
-    private fun renderDryRunOutput(plan: AgentConfigWritePlan): List<String> {
+    private fun renderDryRunOutput(plan: AgentConfigWritePlan, fullDiff: Boolean): List<String> {
         val configFile = plan.configFile
         val before = if (configFile.isFile) configFile.readText() else ""
         val format = when {
             configFile.name.endsWith(".toml") -> DryRunDiff.Format.TOML
             else -> DryRunDiff.Format.JSON
         }
+        val budget = if (fullDiff) Int.MAX_VALUE else 4096
         return listOf(
             "Target: ${plan.writerName} (${plan.scope})",
             "Path: ${configFile.absolutePath}",
-            DryRunDiff.render(before = before, after = plan.content, format = format),
+            DryRunDiff.render(before = before, after = plan.content, format = format, byteBudget = budget),
         )
     }
 
