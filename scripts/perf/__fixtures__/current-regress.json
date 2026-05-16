@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "started_at": "2026-05-17T00:00:00.000Z",
+  "git_sha": "1111regress",
+  "env": { "os": "test", "arch": "test", "cpu_model": "test", "ram_mb": 16384, "jdk": "21", "node": "25" },
+  "results": [
+    { "key": "warm-mcp-test", "n": 4, "samples_ms": [1200,1210,1190,1205], "median_ms": 1202.5, "mean_ms": 1201.25, "p95_ms": 1207.75, "stddev_ms": 8.54, "dropped": ["warmup:1300"], "regress_threshold_pct": 8, "improve_threshold_pct": 5 },
+    { "key": "warm-assemble", "n": 4, "samples_ms": [5000,5050,4950,5025], "median_ms": 5012.5, "mean_ms": 5006.25, "p95_ms": 5046.25, "stddev_ms": 42.7, "dropped": ["warmup:5400"], "regress_threshold_pct": 8, "improve_threshold_pct": 5 }
+  ]
+}
