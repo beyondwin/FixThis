@@ -21,6 +21,7 @@ internal data class ConsoleErrorBody(
     val action: String? = null,
     val frozenFingerprint: String? = null,
     val currentFingerprint: String? = null,
+    val details: Map<String, String> = emptyMap(),
 )
 
 internal fun HttpExchange.sendErrorJson(status: Int, message: String) {
@@ -32,12 +33,13 @@ internal fun HttpExchange.sendErrorJson(
     error: String,
     message: String? = null,
     action: String? = null,
+    details: Map<String, String> = emptyMap(),
 ) {
     sendText(
         status,
         fixThisJson.encodeToString(
             ConsoleErrorBody.serializer(),
-            ConsoleErrorBody(error = error, message = message, action = action),
+            ConsoleErrorBody(error = error, message = message, action = action, details = details),
         ),
         "application/json; charset=utf-8",
     )
