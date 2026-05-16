@@ -9,8 +9,13 @@ coding agent can install FixThis without following human-oriented docs.
 When asked to add FixThis to this Android app:
 
 1. Find the Android application module and its `applicationId`.
-2. Ensure the FixThis CLI is installed. Prefer the published package manager
-   path when available; otherwise install from the GitHub Release CLI/MCP
+2. Ensure the FixThis CLI is installed. On macOS, prefer Homebrew:
+
+   ```bash
+   brew install beyondwin/fixthis/fixthis
+   ```
+
+   On macOS/Linux without Homebrew, install from the GitHub Release CLI/MCP
    package:
 
    ```bash

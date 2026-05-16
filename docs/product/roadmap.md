@@ -2,7 +2,7 @@
 
 FixThis V1 is intentionally narrow. The current roadmap keeps the product
 focused on a local, debug-only Compose handoff loop before expanding into
-broader Android UI stacks or packaged distribution.
+broader Android UI stacks or registry discovery.
 
 ## V1 Scope
 
@@ -26,7 +26,7 @@ broader Android UI stacks or packaged distribution.
 
 ## High-priority Work
 
-### Maven Central and Gradle Plugin Portal release
+### Public artifact release
 
 External projects install FixThis with the published Gradle plugin and Maven
 artifacts instead of a source checkout, Gradle composite build, or local
@@ -39,6 +39,18 @@ The release readiness tracker is the live source of truth:
 GitHub Releases attach a CLI/MCP package so agents can install the desktop
 tooling with `scripts/install-fixthis.sh` and then run
 `fixthis install-agent` or `fixthis init`.
+
+The Homebrew tap is available for macOS:
+
+```bash
+brew install beyondwin/fixthis/fixthis
+```
+
+### Registry discovery channels
+
+The npm wrapper and MCP Registry metadata are prepared and locally validated.
+Publishing remains gated on an npm automation token, because the MCP Registry
+entry points at the public npm package.
 
 ### Deeper AndroidView and interop awareness
 

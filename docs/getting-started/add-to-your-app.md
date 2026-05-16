@@ -13,6 +13,9 @@ full supported / minimum-that-compiles version axes.
 The agent-first path should do this automatically:
 
 ```bash
+brew install beyondwin/fixthis/fixthis
+
+# Or, without Homebrew:
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
   | bash -s -- --version v0.2.3
 
@@ -82,6 +85,10 @@ use **Copy Prompt** in the console — no setup required.
 Agents may combine desktop install and MCP registration:
 
 ```bash
+brew install beyondwin/fixthis/fixthis
+fixthis init --agent --project-dir . --target codex
+
+# Or, without Homebrew:
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
   | bash -s -- --version v0.2.3 --init --target codex --project-dir . --package <applicationId>
 ```

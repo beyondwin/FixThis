@@ -27,6 +27,12 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+### Documentation
+- Updated release and getting-started docs to reflect the post-v0.2.3 channel
+  state: Homebrew is available at `beyondwin/fixthis/fixthis`, while the npm
+  wrapper and MCP Registry metadata remain prepared but unpublished until
+  `NPM_TOKEN` is configured.
+
 ### Build / performance
 - Console bundle minified via esbuild + topological-sort source resolution
   (`// @requires` directives). Raw 275 KiB → 160 KiB / gzip 55 KiB → 37 KiB.

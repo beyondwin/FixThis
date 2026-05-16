@@ -2,9 +2,10 @@
 
 How to cut a FixThis release.
 
-FixThis releases can ship GitHub release assets, Maven Central artifacts, and
-Gradle Plugin Portal artifacts. Publishing still requires explicit maintainer
-approval because it uses signing keys and registry tokens.
+FixThis releases can ship GitHub release assets, Homebrew formulas, Maven
+Central artifacts, Gradle Plugin Portal artifacts, npm wrappers, and MCP
+Registry metadata. Publishing still requires explicit maintainer approval
+because it uses signing keys and registry tokens.
 
 See [`release-readiness.md`](release-readiness.md) before changing public
 install instructions.
@@ -15,7 +16,9 @@ install instructions.
 | --- | --- | --- |
 | GitHub release | Git tag, GitHub Release, release notes, CLI/MCP tarball | Supported today |
 | Artifact release | Maven Central and/or Gradle Plugin Portal artifacts | Supported through manual workflows |
-| MCP Registry release | Registry metadata pointing to a public package or remote server | Future work after an install package exists |
+| Homebrew release | Tap formula update pointing at the GitHub Release CLI/MCP tarball | Supported today |
+| npm wrapper release | Public `fixthis` npm package that downloads the matching GitHub Release CLI/MCP tarball | Prepared; requires `NPM_TOKEN` |
+| MCP Registry release | Registry metadata pointing to the public npm wrapper | Prepared; publish after npm is public |
 
 ## Versioning
 
@@ -172,6 +175,13 @@ covers the included plugin build without enabling remote publication.
 - Verify the GitHub Release appears on the repository Releases page.
 - Verify Maven Central / Plugin Portal listings appear and are installable when
   artifact workflows were run.
+- Verify Homebrew when the tap was updated:
+  `brew upgrade beyondwin/fixthis/fixthis && brew test beyondwin/fixthis/fixthis`.
+- Verify npm only after `NPM_TOKEN` is configured:
+  `npm view fixthis version dist.tarball`.
+- Verify MCP Registry only after npm is public:
+  `mcp-publisher validate`, then registry search for
+  `io.github.beyondwin/fixthis`.
 - Bump README compatibility matrix if needed for the next development cycle.
 - File follow-up issues for anything deferred from this release.
 

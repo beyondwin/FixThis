@@ -29,8 +29,17 @@ For the fastest sample setup, use the shortcut:
 
 ## Agent-First Desktop Install
 
-An agent can install the desktop CLI/MCP package from GitHub Releases and
-register MCP from inside an Android app repository:
+An agent can install the desktop CLI/MCP package and register MCP from inside
+an Android app repository.
+
+On macOS, prefer Homebrew:
+
+```bash
+brew install beyondwin/fixthis/fixthis
+fixthis init --agent --project-dir . --target codex
+```
+
+On macOS/Linux without Homebrew, use the GitHub Release installer:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \

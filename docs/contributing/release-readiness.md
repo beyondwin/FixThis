@@ -1,7 +1,7 @@
 # Release Readiness
 
-FixThis is usable today through GitHub Releases, Maven Central, the Gradle
-Plugin Portal, the bundled sample app, and local MCP bootstrap.
+FixThis is usable today through GitHub Releases, Homebrew, Maven Central, the
+Gradle Plugin Portal, the bundled sample app, and local MCP bootstrap.
 
 This page is the release dashboard. It separates what users can do today from
 what must be verified before adding broader package-manager or registry
@@ -16,7 +16,9 @@ discovery.
 | Sample app | Available | Users can verify the workflow before touching their app. |
 | Claude Code / Codex MCP bootstrap | Available from source | `./scripts/bootstrap-mcp.sh --sample` configures local MCP for the sample. |
 | CLI/MCP GitHub Release package | Available | `scripts/install-fixthis.sh` installs it. |
+| Homebrew tap | Available | macOS users can run `brew install beyondwin/fixthis/fixthis`. |
 | External Gradle artifacts | Available | External apps apply `io.github.beyondwin.fixthis.compose` from the Gradle Plugin Portal; the plugin resolves sidekick/core from Maven Central. |
+| npm wrapper | Prepared, not published | Package metadata and tests pass for `fixthis@0.2.3`; publication is blocked on `NPM_TOKEN`. |
 | MCP Registry entry | Not published | Discovery remains through the GitHub repository and docs. |
 
 ## Supported Install Paths Today
@@ -24,8 +26,10 @@ discovery.
 - Clone the repository and run the sample app.
 - Use `./scripts/bootstrap-mcp.sh --sample` to register the local MCP server
   with Claude Code or Codex.
+- Install the CLI/MCP package with Homebrew on macOS:
+  `brew install beyondwin/fixthis/fixthis`.
 - Install the CLI/MCP package from GitHub Releases:
-  `scripts/install-fixthis.sh --version v0.2.1`.
+  `scripts/install-fixthis.sh --version v0.2.3`.
 - Use `fixthis install-agent --project-dir . --target all` in an external
   debug Compose app.
 - Use **Copy Prompt** for chat-style agents without MCP.
@@ -34,7 +38,6 @@ discovery.
 
 The following install paths are intentionally not advertised as ready:
 
-- Homebrew tap formula.
 - npm/PyPI/Docker package for the CLI/MCP server.
 - MCP Registry metadata entry.
 
@@ -73,7 +76,7 @@ test and rollback plan.
 - [x] Maven Central manual workflow exists for `fixthis-compose-core` and
       `fixthis-compose-sidekick`.
 - [x] Gradle Plugin Portal publish workflow exists and runs `publishPlugins`.
-- [ ] A clean external sample project resolves the published artifacts from
+- [x] A clean external sample project resolves the published artifacts from
       public registries.
 - [x] README install instructions use the published artifact path.
 
@@ -84,7 +87,10 @@ test and rollback plan.
 | Gradle plugin | `io.github.beyondwin.fixthis.compose` | Gradle Plugin Portal |
 | Compose sidekick | `io.github.beyondwin:fixthis-compose-sidekick` | Maven Central |
 | Compose core | `io.github.beyondwin:fixthis-compose-core` | Maven Central, only if needed by consumers |
-| MCP server | GitHub Release asset `fixthis-cli-mcp-vX.Y.Z.tar.gz` | GitHub Releases; future MCP Registry metadata |
+| CLI/MCP package | `fixthis-cli-mcp-vX.Y.Z.tar.gz` | GitHub Releases |
+| Homebrew formula | `beyondwin/fixthis/fixthis` | Homebrew tap |
+| npm wrapper | `fixthis` | npm, not yet published |
+| MCP server | `io.github.beyondwin/fixthis` | MCP Registry metadata, not yet published |
 
 ## Required Maintainer Secrets
 
@@ -99,6 +105,7 @@ can be renamed before real publication is enabled.
 | `SIGNING_PASSWORD` | Password for the signing key. |
 | `GRADLE_PUBLISH_KEY` | Gradle Plugin Portal publish key. |
 | `GRADLE_PUBLISH_SECRET` | Gradle Plugin Portal publish secret. |
+| `NPM_TOKEN` | npm automation token for publishing the `fixthis` wrapper package before MCP Registry publication. |
 
 ## Evidence Links
 

@@ -36,8 +36,15 @@ fixthis init
 unique Android `applicationId` from Gradle build files when `.fixthis/project.json`
 does not exist. Use `fixthis init --dry-run` to preview the writes.
 
-An agent can install the CLI/MCP package from GitHub Releases before running
-`fixthis init`:
+An agent can install the CLI/MCP package before running `fixthis init`.
+On macOS, prefer the Homebrew tap:
+
+```bash
+brew install beyondwin/fixthis/fixthis
+fixthis init --agent --project-dir . --target codex
+```
+
+On macOS/Linux without Homebrew, use the GitHub Release installer:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \

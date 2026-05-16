@@ -3,99 +3,28 @@
 This page summarizes current `main`. It is not a tagged release; use the
 GitHub Release page and registry listings as release evidence.
 
-These notes summarize the user-visible and contributor-facing changes that
-landed after the [v0.1.0](v0.1.0.md) GitHub source release. `CHANGELOG.md`
-remains the chronological source of truth.
+`CHANGELOG.md` remains the chronological source of truth.
 
 ## Highlights
 
-- Feedback sessions are more durable. FixThis now writes session mutations to
-  an append-only event log before updating in-memory state, replays events on
-  restart, compacts through checkpoints, and recovers browser-local pending
-  annotations after reloads or ADB disconnects.
-- Frozen previews now carry screen-integrity metadata. Bridge protocol `1.3`
-  adds orientation, dimensions, density, window mode, system UI state, and a
-  nullable fingerprint. If the app rotates, changes window mode, opens system
-  UI, or navigates away before save, the console asks whether to re-capture,
-  force-save, or cancel.
-- The console now treats agent states as first-class UI. Claimed items show an
-  in-progress state and agent note; `needs_clarification`, `wont_fix`, and
-  `resolved` render as distinct terminal states with the agent summary.
-- Saved annotations are now session-scoped end to end. Preview artifact URLs,
-  saved overlay edits, pending recovery, and undo/redo history carry the
-  session context that created them, and persisted item numbers remain stable
-  across deletes and session reopens.
-- Target reliability is now part of saved handoffs. FixThis derives
-  high/medium/low target confidence from semantic coverage, source-candidate
-  quality, stale-index state, fingerprint checks, and redaction, then renders
-  the result in the console and in compact agent Markdown.
-- Browser-only pending annotations now run through a DraftWorkspace state
-  machine. Drafts carry an immutable freeze context, revision, lifecycle, and
-  undo/redo history; stale async responses and session switches can no longer
-  move draft work into the wrong session.
-- The browser console has been hardened for narrow screens and long diagnostics.
-  Global status messages, connection details, activity-drift warnings, stale
-  binary banners, and agent summaries wrap without forcing horizontal scroll.
-- The MCP and session internals were split around cleaner boundaries: pure
-  domain ports in `:fixthis-compose-core`, MCP adapters at the edge, a session
-  reducer/replay path, a smaller tool registry/dispatcher, route-specific
-  console tests, and architecture hotspot guardrails.
-- Contributor checks now cover console bundle freshness and pure JavaScript
-  harnesses. The project license is MIT.
-- The feedback console now receives session, device, connection, and preview
-  updates over an SSE `/api/events` channel, with existing polling retained as
-  the fallback when the stream drops. Session and preview events are fenced by
-  top-level `sessionId`, so stale async events cannot replace the visible
-  session or preview after a user switches history rows.
-- `Copy Prompt` and `Save to MCP` now persist the written-comment subset of a
-  draft batch. Pin-only residual annotations remain browser-local for Copy
-  Prompt and are intentionally discarded for Save to MCP.
-- Draft saves are retry-safe. The server deduplicates browser drafts by
-  `workspaceId` + `draftItemId`, full duplicate retries are no-ops, and partial
-  retries append only the new items while keeping the original evidence screen.
-  Older saved items without browser draft ids are still protected by a
-  same-screen semantic key made from target type, rounded bounds, node uid, and
-  non-blank comment.
-- Deleting a feedback session now removes browser-local draft recovery for that
-  session, including schema-v2 DraftWorkspace entries and the legacy
-  `fixthis.pending.<sessionId>` mirror.
-- Console transport handling is quieter and more session-safe. Browser request
-  cancellation is treated as a normal local disconnect, preview state is cleared
-  only when session ownership changes, and the SSE initial snapshot is computed
-  before streaming headers are committed so startup failures remain recoverable.
-- The console harness now executes the `network-outage` and `slow-handoff`
-  scenarios instead of reporting them as skipped placeholders.
-- Contributor loops are faster. The local Gradle build cache is enabled by
-  default, source-index generation is cacheable, sidekick build metadata avoids
-  unnecessary Kotlin recompilation, and CI separates console JavaScript checks
-  from Gradle verification for faster failures.
-- Stabilized the release gate by restoring detekt, adding local artifact
-  publish dry-run validation, tightening session-store compaction lock scope,
-  registering current architecture hotspots, asserting multi-tab draft
-  recovery, and closing console mutation auth hardening.
-- Agent-first setup is simpler. `fixthis init` writes Claude Code / Codex MCP
-  config by default and can infer the Android `applicationId` from Gradle build
-  files when `.fixthis/project.json` is not present.
-- Agent-first install is available through the GitHub Release CLI/MCP package,
-  the Gradle Plugin Portal plugin, and Maven Central sidekick/core artifacts.
-  Agents can install the desktop tools with `scripts/install-fixthis.sh` and
-  run `fixthis install-agent` from an Android app repository.
+- Release and getting-started docs now reflect the post-v0.2.3 channel state:
+  Homebrew is available at `beyondwin/fixthis/fixthis`, while the npm wrapper
+  and MCP Registry metadata remain prepared but unpublished until `NPM_TOKEN`
+  is configured.
+- The release dashboard now separates currently usable channels from registry
+  discovery blockers, so agents do not try to use npm or MCP Registry before
+  those listings are public.
+- Console bundle work on `main` minifies the browser app with esbuild and keeps
+  source resolution explicit through `// @requires` directives.
 
 ## Compatibility Notes
 
 - External Android apps should use Gradle plugin
-  `io.github.beyondwin.fixthis.compose` and let it resolve the debug-only
-  sidekick from Maven Central.
-- Persisted MCP JSON field names remain compatibility contracts:
-  `items`, `screens`, `itemId`, `screenId`, `targetEvidence`,
-  `targetReliability`, and `sourceCandidates`.
-- Session JSON now also carries additive `nextItemSequenceNumber` state for
-  stable saved annotation numbering. Older sessions are migrated from existing
-  item `sequenceNumber` values when they are reopened.
-- Bridge protocol `1.3` is additive at the persisted JSON layer. Older saved
-  sessions remain readable; fingerprint comparison is skipped when either side
-  lacks a fingerprint.
-- FixThis is still debug-build-only and Jetpack Compose-only.
+  `io.github.beyondwin.fixthis.compose` version `0.2.3`.
+- The plugin resolves the debug-only sidekick from Maven Central.
+- Homebrew installs the matching CLI/MCP GitHub Release package on macOS.
+- npm and MCP Registry are not user-facing install paths until the npm package
+  is publicly published.
 
 ## Validation Surface
 
