@@ -435,3 +435,24 @@
 
               return { clearStatusTimer, showStatus, showSuccess, showWarning, clearSuccessStatus };
             })();
+
+            // Spec S1.4.1: surface a recovery banner with a "Reload console"
+            // CTA when requestJson throws a ConsoleRequestError carrying
+            // action === 'reload_console' (HTTP 403 from origin/token check).
+            function surfaceReloadConsoleNotice(err, deps) {
+              const d = deps || {};
+              if (typeof ConsoleRequestError === 'undefined' || !(err instanceof ConsoleRequestError)) return false;
+              if (err.action !== 'reload_console') return false;
+              const center = d.notificationCenter || (typeof notificationCenter !== 'undefined' ? notificationCenter : null);
+              if (!center) return false;
+              const reload = d.reload || (() => { window.location.reload(); });
+              center.notify({
+                severity: 'error',
+                surface: 'banner',
+                dedupeKey: 'reload_console_403',
+                title: 'Reload required',
+                detail: 'Your session token expired or origin changed.',
+                primaryAction: { label: 'Reload console', onSelect: () => reload() },
+              });
+              return true;
+            }

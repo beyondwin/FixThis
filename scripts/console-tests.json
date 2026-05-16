@@ -57,6 +57,7 @@
   "notification": [
     "scripts/requestJson-test.mjs",
     "scripts/notificationCenter-test.mjs",
-    "scripts/nativeConfirmAudit-test.mjs"
+    "scripts/nativeConfirmAudit-test.mjs",
+    "scripts/reloadConsoleNotice-test.mjs"
   ]
 }
