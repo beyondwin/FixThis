@@ -31,6 +31,7 @@ jobs:
       - name: Verify requested version
         working-directory: npm/fixthis
         run: |
+          test "$(node -p 'require("./package.json").name')" = "@beyondwin/fixthis"
           test "$(node -p 'require("./package.json").version')" = "${{ inputs.version }}"
           test "$(node -p 'require("./package.json").mcpName')" = "io.github.beyondwin/fixthis"
 

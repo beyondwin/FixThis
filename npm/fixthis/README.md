@@ -4,7 +4,7 @@ This package installs the FixThis CLI and MCP server from the matching GitHub
 Release asset, then exposes:
 
 ```bash
-npx fixthis init --agent --project-dir . --target all
+npx --package @beyondwin/fixthis fixthis init --agent --project-dir . --target all
 ```
 
 The MCP Registry verification name is:

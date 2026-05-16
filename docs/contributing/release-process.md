@@ -17,7 +17,7 @@ install instructions.
 | GitHub release | Git tag, GitHub Release, release notes, CLI/MCP tarball | Supported today |
 | Artifact release | Maven Central and/or Gradle Plugin Portal artifacts | Supported through manual workflows |
 | Homebrew release | Tap formula update pointing at the GitHub Release CLI/MCP tarball | Supported today |
-| npm wrapper release | Public `fixthis` npm package that downloads the matching GitHub Release CLI/MCP tarball | Prepared; requires `NPM_TOKEN` |
+| npm wrapper release | Public `@beyondwin/fixthis` npm package that downloads the matching GitHub Release CLI/MCP tarball | Prepared; requires `NPM_TOKEN` |
 | MCP Registry release | Registry metadata pointing to the public npm wrapper | Prepared; publish after npm is public |
 
 ## Versioning
@@ -178,7 +178,7 @@ covers the included plugin build without enabling remote publication.
 - Verify Homebrew when the tap was updated:
   `brew upgrade beyondwin/fixthis/fixthis && brew test beyondwin/fixthis/fixthis`.
 - Verify npm only after `NPM_TOKEN` is configured:
-  `npm view fixthis version dist.tarball`.
+  `npm view @beyondwin/fixthis version dist.tarball`.
 - Verify MCP Registry only after npm is public:
   `mcp-publisher validate`, then registry search for
   `io.github.beyondwin/fixthis`.

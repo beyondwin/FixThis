@@ -26,7 +26,7 @@ function writeExecutable(path, body) {
 test("npm wrapper package exposes FixThis metadata for public install and MCP registry verification", () => {
   const manifest = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
 
-  assert.equal(manifest.name, "fixthis");
+  assert.equal(manifest.name, "@beyondwin/fixthis");
   assert.equal(manifest.version, "0.2.3");
   assert.equal(manifest.private, undefined);
   assert.equal(manifest.mcpName, "io.github.beyondwin/fixthis");

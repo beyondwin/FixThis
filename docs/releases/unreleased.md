@@ -8,9 +8,9 @@ GitHub Release page and registry listings as release evidence.
 ## Highlights
 
 - Release and getting-started docs now reflect the post-v0.2.3 channel state:
-  Homebrew is available at `beyondwin/fixthis/fixthis`, while the npm wrapper
-  and MCP Registry metadata remain prepared but unpublished until `NPM_TOKEN`
-  is configured.
+  Homebrew is available at `beyondwin/fixthis/fixthis`, while the scoped npm
+  wrapper `@beyondwin/fixthis` and MCP Registry metadata remain prepared but
+  unpublished until the npm publish workflow succeeds.
 - The release dashboard now separates currently usable channels from registry
   discovery blockers, so agents do not try to use npm or MCP Registry before
   those listings are public.

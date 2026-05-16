@@ -152,9 +152,8 @@ FixThis has public artifacts for the agent-first path:
   `io.github.beyondwin:fixthis-compose-core`
 - Homebrew tap: `brew install beyondwin/fixthis/fixthis`
 - CLI/MCP package: GitHub Release asset `fixthis-cli-mcp-vX.Y.Z.tar.gz`
-- npm wrapper and MCP Registry metadata are prepared and validated, but not
-  publicly listed until `NPM_TOKEN` is configured and the npm publish workflow
-  runs.
+- npm wrapper `@beyondwin/fixthis` and MCP Registry metadata are prepared and
+  validated, but not publicly listed until the npm publish workflow succeeds.
 
 The live release dashboard is
 [Release readiness](docs/contributing/release-readiness.md). It lists current

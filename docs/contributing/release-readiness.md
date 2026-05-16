@@ -18,7 +18,7 @@ discovery.
 | CLI/MCP GitHub Release package | Available | `scripts/install-fixthis.sh` installs it. |
 | Homebrew tap | Available | macOS users can run `brew install beyondwin/fixthis/fixthis`. |
 | External Gradle artifacts | Available | External apps apply `io.github.beyondwin.fixthis.compose` from the Gradle Plugin Portal; the plugin resolves sidekick/core from Maven Central. |
-| npm wrapper | Prepared, not published | Package metadata and tests pass for `fixthis@0.2.3`; publication is blocked on `NPM_TOKEN`. |
+| npm wrapper | Prepared, not published | Package metadata and tests pass for `@beyondwin/fixthis@0.2.3`; publication is blocked on `NPM_TOKEN`. |
 | MCP Registry entry | Not published | Discovery remains through the GitHub repository and docs. |
 
 ## Supported Install Paths Today
@@ -89,7 +89,7 @@ test and rollback plan.
 | Compose core | `io.github.beyondwin:fixthis-compose-core` | Maven Central, only if needed by consumers |
 | CLI/MCP package | `fixthis-cli-mcp-vX.Y.Z.tar.gz` | GitHub Releases |
 | Homebrew formula | `beyondwin/fixthis/fixthis` | Homebrew tap |
-| npm wrapper | `fixthis` | npm, not yet published |
+| npm wrapper | `@beyondwin/fixthis` | npm, not yet published |
 | MCP server | `io.github.beyondwin/fixthis` | MCP Registry metadata, not yet published |
 
 ## Required Maintainer Secrets
