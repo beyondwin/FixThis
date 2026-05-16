@@ -85,3 +85,11 @@ test('destructive utility dialogs label confirm and cancel explicitly', () => {
   renderBoundaryDialog('fingerprintMismatch', {});
   assert.deepEqual(visibleLabels(), ['Cancel', 'Force save', 'Recapture']);
 });
+
+test('recapture recovered draft dialog labels recapture confirmation and remap copy', () => {
+  renderBoundaryDialog('recaptureRecoveredDraft', {});
+
+  assert.match(document.title.textContent, /Recapture recovered draft/);
+  assert.match(document.summary.textContent, /remapped onto the latest app screen/);
+  assert.deepEqual(visibleLabels(), ['Cancel', 'Recapture']);
+});
