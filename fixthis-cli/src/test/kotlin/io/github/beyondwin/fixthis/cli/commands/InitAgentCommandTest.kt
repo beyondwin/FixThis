@@ -1,16 +1,21 @@
 package io.github.beyondwin.fixthis.cli.commands
 
+import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.parse
+import io.github.beyondwin.fixthis.cli.ExitCode
 import io.github.beyondwin.fixthis.cli.buildRootCommand
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.PrintStream
 
 class InitAgentCommandTest {
     @get:Rule
@@ -157,6 +162,68 @@ class InitAgentCommandTest {
 
         assertTrue(buildFile.readText().contains("""id("io.github.beyondwin.fixthis.compose") version "0.2.0""""))
         assertTrue(!projectRoot.resolve(".fixthis/agent-setup.md").exists())
+    }
+
+    @Test
+    fun installAgentSkipsCodexOnEmptyDirWithoutAllowGlobal() {
+        val tempProject = temporaryFolder.newFolder("ft-noandroid")
+        val out = ByteArrayOutputStream()
+        val oldOut = System.out
+        System.setOut(PrintStream(out))
+        val statusCode: Int = try {
+            withUserHome(temporaryFolder.newFolder("home")) {
+                InstallAgentCommand().parse(
+                    arrayOf(
+                        "--project-dir", tempProject.absolutePath,
+                        "--package", "com.example.app",
+                        "--target", "codex",
+                        "--skip-gradle-plugin",
+                    ),
+                )
+            }
+            0
+        } catch (e: CliktError) {
+            e.statusCode
+        } finally {
+            System.setOut(oldOut)
+        }
+        val captured = out.toString()
+        assertEquals(ExitCode.PARTIAL.value, statusCode)
+        assertTrue(
+            "expected no-android-context in output, got:\n$captured",
+            captured.contains("no-android-context"),
+        )
+    }
+
+    @Test
+    fun installAgentAllowsCodexWithAllowGlobalFlag() {
+        val tempProject = temporaryFolder.newFolder("ft-allow-global")
+        val out = ByteArrayOutputStream()
+        val oldOut = System.out
+        System.setOut(PrintStream(out))
+        try {
+            withUserHome(temporaryFolder.newFolder("home")) {
+                InstallAgentCommand().parse(
+                    arrayOf(
+                        "--project-dir", tempProject.absolutePath,
+                        "--package", "com.example.app",
+                        "--target", "codex",
+                        "--skip-gradle-plugin",
+                        "--allow-global",
+                        "--dry-run",
+                    ),
+                )
+            }
+        } catch (_: Throwable) {
+            // may exit non-zero downstream; we only care about the guard branch.
+        } finally {
+            System.setOut(oldOut)
+        }
+        val captured = out.toString()
+        assertFalse(
+            "guard should not skip when --allow-global is set",
+            captured.contains("no-android-context"),
+        )
     }
 
     private fun androidProject(applicationId: String): File {

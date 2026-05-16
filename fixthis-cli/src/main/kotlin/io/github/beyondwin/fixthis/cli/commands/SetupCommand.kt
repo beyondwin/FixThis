@@ -9,6 +9,7 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.choice
 import io.github.beyondwin.fixthis.cli.BridgeClient
 import io.github.beyondwin.fixthis.cli.DiagnosticContext
+import io.github.beyondwin.fixthis.cli.ExitCode
 import io.github.beyondwin.fixthis.cli.fixThisJson
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -341,8 +342,61 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
         help = "FixThis Gradle plugin version to apply",
     ).default(GradlePluginInstaller.DefaultPluginVersion)
     private val verbose by option("--verbose", "-v", help = "Print full stack trace on failure").flag(default = false)
+    private val allowGlobal by option(
+        "--allow-global",
+        help = "Permit writes to global config files (~/.codex/config.toml) even outside an Android project",
+    ).flag(default = false)
+    private val json by option(
+        "--json",
+        help = "Emit a structured JSON report on stdout",
+    ).flag(default = false)
 
     override fun run() {
+        val root = File(projectDir).canonicalFile
+        val decision = GlobalScopeGuard.decide(root, allowGlobal = allowGlobal)
+
+        // Filter target if guard denies global writes (only codex is global).
+        val effectiveTarget: String = when {
+            decision == GlobalScopeGuard.Decision.PROCEED -> target
+            target == "codex" -> "none"
+            target == "all" -> "claude"
+            else -> target
+        }
+
+        val earlySkipped: List<InstallAgentJsonReport.Skipped> =
+            if (decision == GlobalScopeGuard.Decision.SKIP_GLOBAL_WRITES &&
+                (target == "codex" || target == "all")
+            ) {
+                listOf(
+                    InstallAgentJsonReport.Skipped(
+                        target = "codex",
+                        reason = "no-android-context",
+                        fix = "Re-run from an Android project root, or pass --allow-global.",
+                    ),
+                )
+            } else {
+                emptyList()
+            }
+
+        if (effectiveTarget == "none") {
+            if (json) {
+                echo(
+                    InstallAgentJsonReport.render(
+                        applied = emptyList(),
+                        skipped = earlySkipped,
+                        errors = emptyList(),
+                        next = listOf("cd <android-project-root>", "fixthis install-agent --project-dir ."),
+                    ),
+                )
+            } else {
+                earlySkipped.forEach { echo("Skipped ${it.target}: ${it.reason}. ${it.fix}") }
+            }
+            throw CliktError(
+                "install-agent aborted: no Android project detected",
+                statusCode = ExitCode.PARTIAL.value,
+            )
+        }
+
         InitCommand().parse(
             buildList {
                 add("--agent")
@@ -358,7 +412,7 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
                 add("--project-dir")
                 add(projectDir)
                 add("--target")
-                add(target)
+                add(effectiveTarget)
                 add("--server-name")
                 add(serverName)
                 if (dryRun) {
@@ -369,6 +423,19 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
                 }
             },
         )
+
+        // After delegation: if json mode AND there were early-skipped targets, emit JSON.
+        // (Full JSON output for applied/errors comes in task_13; this commit stops at early-skip.)
+        if (json && earlySkipped.isNotEmpty()) {
+            echo(
+                InstallAgentJsonReport.render(
+                    applied = emptyList(),
+                    skipped = earlySkipped,
+                    errors = emptyList(),
+                    next = listOf("./gradlew fixthisSetup", "fixthis doctor --json"),
+                ),
+            )
+        }
     }
 }
 
