@@ -258,6 +258,50 @@ class InitAgentCommandTest {
         })
     }
 
+    @Test
+    fun installAgentExitsPartialWhenSomeSkipped() {
+        val tempProject = temporaryFolder.newFolder("ft-partial")
+        val exitCode: Int = try {
+            withUserHome(temporaryFolder.newFolder("home")) {
+                InstallAgentCommand().parse(
+                    arrayOf(
+                        "--project-dir", tempProject.absolutePath,
+                        "--package", "com.example.app",
+                        "--target", "all",
+                        "--json",
+                        "--skip-gradle-plugin",
+                    ),
+                )
+            }
+            0
+        } catch (e: CliktError) {
+            e.statusCode
+        }
+        assertEquals(ExitCode.PARTIAL.value, exitCode)
+    }
+
+    @Test
+    fun installAgentExitsZeroWhenAllApplied() {
+        val tempProject = temporaryFolder.newFolder("ft-all-applied")
+        setupFakeAndroidProject(tempProject)
+        val exitCode: Int = try {
+            withUserHome(temporaryFolder.newFolder("home")) {
+                InstallAgentCommand().parse(
+                    arrayOf(
+                        "--project-dir", tempProject.absolutePath,
+                        "--package", "com.example.app",
+                        "--target", "claude",
+                        "--skip-gradle-plugin",
+                    ),
+                )
+            }
+            0
+        } catch (e: CliktError) {
+            e.statusCode
+        }
+        assertEquals(ExitCode.OK.value, exitCode)
+    }
+
     private fun setupFakeAndroidProject(root: File) {
         File(root, "settings.gradle.kts").writeText("""include(":app")""")
         val app = File(root, "app").apply { mkdirs() }

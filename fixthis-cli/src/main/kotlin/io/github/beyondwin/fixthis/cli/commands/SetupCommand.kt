@@ -463,6 +463,20 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
                 ),
             )
         }
+
+        val accumulated = SetupRunResults.skipped.get() + earlySkipped
+        val hasSkipped = accumulated.isNotEmpty()
+        val hasErrors = SetupRunResults.errors.get().isNotEmpty()
+        if (hasErrors) {
+            throw CliktError("install-agent failed", statusCode = ExitCode.INTERNAL_ERROR.value)
+        }
+        if (hasSkipped) {
+            throw CliktError(
+                "install-agent completed with skipped targets",
+                statusCode = ExitCode.PARTIAL.value,
+            )
+        }
+        // OK path: exit 0 implicit
     }
 }
 
