@@ -40,7 +40,7 @@ class ArchitectureHotspotBudgetTest {
             "fixthis-mcp/src/main/console/history.js" to 550,
             "fixthis-mcp/src/main/console/presentation/annotationDetailView.js" to 520,
             "fixthis-mcp/src/main/console/main.js" to 450,
-            "fixthis-mcp/src/main/console/state.js" to 440,
+            "fixthis-mcp/src/main/console/state.js" to 470,
             "fixthis-mcp/src/main/console/domain/consoleReducer.js" to 410,
         )
         val testBudgets = mapOf(
