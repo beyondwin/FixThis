@@ -117,17 +117,22 @@ fixthis {
 
 CLI that runs as a desktop process. Builds the `fixthis` application distribution.
 
-- `fixthis run`: runs the default `:app:installDebug`, launches the app, and waits for sidekick status.
 - `fixthis status`: prints bridge connection, current activity, root count, and protocol/source-index state.
-- `fixthis doctor`: diagnoses project, package metadata, ADB, device, and sidekick session step by step.
-- `fixthis setup`: prints the command/args JSON for MCP client configuration.
+- `fixthis run`: runs the default `:app:installDebug`, launches the app, and waits for sidekick status.
+- `fixthis doctor`: diagnoses project, package metadata, ADB, device, and sidekick session step by step. `--json` emits a structured report with stable check names, status, message, and fix fields for agent consumption.
+- `fixthis init`: agent-first setup that writes Claude Code / Codex MCP config and optionally applies the published Gradle plugin via `--apply-gradle-plugin`.
+- `fixthis install-agent`: agent-first installer for external Android repos. Patches the detected app module's Gradle build, writes MCP config, and creates `.fixthis/agent-setup.*` handoff files.
+- `fixthis setup`: prints the command/args JSON for MCP client configuration. With `--write`, merges into Claude Code / Codex settings files.
 - `fixthis mcp`: runs the stdio server via the sibling or PATH `fixthis-mcp` executable.
 - `fixthis console`: runs `fixthis-mcp --console` to open the local feedback console.
+- `fixthis clean`: removes known `.fixthis/` artifact directories (`feedback-sessions/`, `preview-cache/`, `artifacts/`, `smoke-reports/`). Preserves `.fixthis/project.json` and unknown entries.
 
 Package name resolution order:
 
 1. `--package` from the CLI/MCP argument.
-2. `applicationId` from `.fixthis/project.json` relative to `--project-dir`.
+2. `applicationId` from `<projectDir>/.fixthis/project.json`.
+3. Unique Android `applicationId` scanned from `<projectDir>` Gradle `build.gradle(.kts)` files.
+4. Fail with a usage error if none or more than one candidate is found.
 
 ### `:fixthis-mcp`
 
