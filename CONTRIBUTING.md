@@ -85,6 +85,16 @@ node scripts/check-doc-consistency.mjs
 
 The script verifies that npm scripts and CONTRIBUTING.md agree, that README ↔ AGENTS cross-links exist, that the contributor scripts are documented here, and that every `*.md#anchor` link resolves to a real heading (via `github-slugger`). It exits non-zero with a `FAIL Rx.…` line if any rule breaks.
 
+### Docs ↔ CLI surface check
+
+After editing README.md, AGENTS.md, CLAUDE.md, MCP.md, `docs/getting-started/agent-install-snippet.md`, or any `fixthis-cli/**` source that changes the CLI's command/flag surface, run:
+
+```bash
+bash scripts/check-docs-cli-surface.sh
+```
+
+The script invokes the installed CLI (building `:fixthis-cli:installDist` first if needed), then scans the five DX docs for `fixthis <subcommand>` and `fixthis <subcommand> --flag` references. Each subcommand must appear in `fixthis --help`, and each flag must appear in the corresponding `fixthis <subcommand> --help`. The same check runs in CI via `.github/workflows/docs-cli-surface.yml` on PRs that touch the docs or the CLI module.
+
 ## Required Local Checks
 
 The root build enables the local Gradle build cache by default. Configuration
