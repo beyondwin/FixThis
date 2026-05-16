@@ -27,7 +27,8 @@
   "preview": [
     "scripts/previewStaleness-test.mjs",
     "scripts/canvasStatusBadgesLayout-test.mjs",
-    "scripts/captureUnavailableRender-test.mjs"
+    "scripts/captureUnavailableRender-test.mjs",
+    "scripts/markPreviewStale-test.mjs"
   ],
   "draft": [
     "scripts/editorState-test.mjs",
