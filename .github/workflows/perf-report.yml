@@ -1,0 +1,66 @@
+name: Perf report
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: "Scenario key (empty = all)"
+        required: false
+        default: ""
+      iterations:
+        description: "Override iterations (empty = manifest default)"
+        required: false
+        default: ""
+  schedule:
+    # Nightly at 04:30 UTC. Mirror connected-tests.yml cadence so reports
+    # land in the same nightly review window.
+    - cron: "30 4 * * *"
+
+jobs:
+  perf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - name: Run harness
+        run: |
+          if [ -n "${{ github.event.inputs.scenario }}" ]; then
+            node scripts/perf/bench.mjs --scenario "${{ github.event.inputs.scenario }}" ${{ github.event.inputs.iterations && format('--iterations {0}', github.event.inputs.iterations) || '' }}
+          else
+            node scripts/perf/bench.mjs
+          fi
+      - name: Compare against committed baseline
+        id: compare
+        run: |
+          latest=$(ls -t output/perf/run-*.json | head -1)
+          node scripts/perf/compare-perf.mjs docs/perf/baseline-2026-05-16.json "$latest" | tee /tmp/perf-report.md
+          echo "exit=$?" >> "$GITHUB_OUTPUT"
+        continue-on-error: true
+      - name: Post markdown summary
+        if: always()
+        run: |
+          {
+            echo "# Perf report"
+            echo
+            cat /tmp/perf-report.md 2>/dev/null || echo "(no report produced)"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload JSON artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-${{ github.run_id }}
+          path: output/perf/
+          retention-days: 30
+      - name: Fail on regression
+        if: steps.compare.outputs.exit != '0'
+        run: |
+          echo "::error::Perf regression detected — see job summary."
+          exit 1

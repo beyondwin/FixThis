@@ -76,5 +76,6 @@ npmrc.local
 .playwright-mcp/
 .worktrees/
 output/
+output/perf/
 playwright-report/
 test-results/
