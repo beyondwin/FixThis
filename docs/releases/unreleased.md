@@ -27,26 +27,20 @@ GitHub Release page and registry listings as release evidence.
 
 ## Validation Surface
 
-Before tagging the next release, run the current contributor checklist:
+Before tagging the next release, run the current contributor checklist in
+[`CONTRIBUTING.md`](../../CONTRIBUTING.md). The top-level local mirror is:
 
 ```bash
-./gradlew \
-  spotlessCheck \
-  detekt \
-  :fixthis-compose-core:test \
-  :fixthis-cli:test \
-  :fixthis-mcp:test \
-  :fixthis-compose-sidekick:testDebugUnitTest \
-  :fixthis-gradle-plugin:test \
-  :app:assembleDebug \
-  :fixthis-cli:installDist \
-  :fixthis-mcp:installDist \
-  --no-daemon
-node scripts/build-console-assets.mjs --check
-node --check fixthis-mcp/src/main/resources/console/app.js
-node scripts/check-doc-consistency.mjs
-node scripts/run-console-tests.mjs availability canonical pending beforeunload undo activity preview draft session harness
-git diff --check
+npm run ci:local
+```
+
+That command covers the required Gradle matrix, release-readiness checks,
+console bundle freshness, console JS tests, package installer tests, and
+whitespace checks. If a release changes CLI commands or agent-facing setup
+docs, also run:
+
+```bash
+bash scripts/check-docs-cli-surface.sh
 ```
 
 For console layout or agent-state UI changes, also run:

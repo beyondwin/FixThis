@@ -2,7 +2,7 @@
 
 FixThis V1 is intentionally narrow. The current roadmap keeps the product
 focused on a local, debug-only Compose handoff loop before expanding into
-broader Android UI stacks or registry discovery.
+broader Android UI stacks or additional package channels.
 
 ## V1 Scope
 
@@ -26,15 +26,16 @@ broader Android UI stacks or registry discovery.
 
 ## High-priority Work
 
-### Public artifact release
+### Public artifact release upkeep
 
 External projects install FixThis with the published Gradle plugin and Maven
 artifacts instead of a source checkout, Gradle composite build, or local
-repository setup.
+repository setup. Ongoing work is release upkeep: keep coordinates, validation
+steps, and rollback notes accurate as the public channels evolve.
 The release readiness tracker is the live source of truth:
 [Release readiness](../contributing/release-readiness.md).
 
-### CLI/MCP package for agent-first installation
+### CLI/MCP package for agent-first installation upkeep
 
 GitHub Releases attach a CLI/MCP package so agents can install the desktop
 tooling with `scripts/install-fixthis.sh` and then run
@@ -50,8 +51,8 @@ brew install beyondwin/fixthis/fixthis
 
 The npm wrapper is published as `@beyondwin/fixthis`, and the MCP Registry
 entry is published as `io.github.beyondwin/fixthis`. Future discovery work can
-add more package-manager channels only when they preserve the same agent-first
-setup flow.
+add more package channels, such as PyPI or Docker, only when they preserve the
+same agent-first setup flow.
 
 ### Deeper AndroidView and interop awareness
 
