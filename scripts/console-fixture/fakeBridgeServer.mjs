@@ -13,6 +13,14 @@ const transparentPng = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lm7F1wAAAABJRU5ErkJggg==',
   'base64',
 );
+const fakeScreenshotSvg = [
+  '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="800" viewBox="0 0 400 800">',
+  '<rect width="400" height="800" rx="28" fill="#f7fafc"/>',
+  '<rect x="32" y="72" width="336" height="80" rx="14" fill="#dbeafe"/>',
+  '<rect x="70" y="110" width="260" height="80" rx="16" fill="#2563eb"/>',
+  '<rect x="48" y="240" width="304" height="380" rx="18" fill="#ffffff" stroke="#cbd5e1"/>',
+  '</svg>',
+].join('');
 
 const pageHtml = indexHtml
   .replace('<!-- FIXTHIS_STYLES -->', `<style>${stylesCss}</style>`)
@@ -30,6 +38,28 @@ const SCENARIOS = {
   'multi-tab': () => ({}),
   'blocked-welcome': () => ({
     forceState: 'WELCOME',
+  }),
+  'first-run-ready': () => ({
+    forceState: 'READY',
+    readiness: {
+      state: 'READY',
+      cause: 'Debug app and FixThis sidekick are connected.',
+      verify: 'Capture a screen from the feedback console.',
+      fix: 'No recovery action required.',
+      nextAction: 'Capture screen',
+      details: {},
+    },
+  }),
+  'unsupported-build': () => ({
+    forceState: 'UNSUPPORTED_BUILD',
+    readiness: {
+      state: 'UNSUPPORTED_BUILD',
+      cause: 'This build cannot expose the FixThis bridge.',
+      verify: 'adb shell run-as <applicationId> ls files/fixthis/session.json',
+      fix: 'Install a debuggable build with the FixThis sidekick enabled.',
+      nextAction: 'Install a debuggable build with FixThis enabled.',
+      details: { rawError: 'run-as: package not debuggable' },
+    },
   }),
 };
 
@@ -76,6 +106,7 @@ function fakePreview(sessionId = 'session-1') {
       displayName: 'Fake screen',
       roots: [],
       sourceIndexAvailable: false,
+      screenshot: { desktopFullPath: '/tmp/fixthis-fake-preview.png' },
     },
     screenshotUrl: '/api/preview/preview-1/screenshot/full',
     fingerprint: 'fake-fingerprint',
@@ -170,8 +201,8 @@ export async function startFakeBridge(options = {}) {
       return;
     }
     if (url.pathname.endsWith('/screenshot/full') && req.method === 'GET') {
-      res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'no-store' });
-      res.end(transparentPng);
+      res.writeHead(200, { 'content-type': 'image/svg+xml; charset=utf-8', 'cache-control': 'no-store' });
+      res.end(fakeScreenshotSvg);
       return;
     }
 
@@ -212,6 +243,14 @@ export async function startFakeBridge(options = {}) {
         selectedDevice: { serial: 'fake-device', label: 'Fake Device', state: 'device', selected: true },
         devices: [{ serial: 'fake-device', label: 'Fake Device', state: 'device', selected: true }],
         details: { bridgeState: 'connected' },
+        readiness: scenarioState.readiness || {
+          state: 'READY',
+          cause: 'Debug app and FixThis sidekick are connected.',
+          verify: 'Capture a screen from the feedback console.',
+          fix: 'No recovery action required.',
+          nextAction: 'Capture screen',
+          details: {},
+        },
       });
       return;
     }
@@ -233,6 +272,40 @@ export async function startFakeBridge(options = {}) {
       const previewSessionId = url.searchParams.get('sessionId') || session.sessionId;
       await maybeDelayPreview(previewSessionId);
       json(res, fakePreview(previewSessionId));
+      return;
+    }
+    if (url.pathname === '/api/items/batch' && req.method === 'POST') {
+      const body = await readJson(req);
+      const now = Date.now();
+      const screen = {
+        ...(body.screen || fakePreview(session.sessionId).screen),
+        screenshot: { desktopFullPath: '/tmp/fixthis-first-run-smoke.png' },
+      };
+      if (!session.screens.some((candidate) => candidate.screenId === screen.screenId)) {
+        session.screens.push(screen);
+      }
+      const items = Array.isArray(body.items) ? body.items : [];
+      for (const draft of items) {
+        session.items.push({
+          itemId: `item-${session.items.length + 1}`,
+          screenId: screen.screenId,
+          createdAtEpochMillis: now,
+          updatedAtEpochMillis: now,
+          target: {
+            type: draft.targetType || 'visual_area',
+            boundsInWindow: draft.bounds || { left: 10, top: 10, right: 80, bottom: 80 },
+          },
+          label: draft.label || 'First-run annotation',
+          severity: draft.severity || 'med',
+          comment: draft.comment || 'First-run annotation',
+          sequenceNumber: session.items.length + 1,
+          delivery: 'draft',
+          status: 'open',
+        });
+      }
+      session.updatedAtEpochMillis = now;
+      session.nextItemSequenceNumber = session.items.length + 1;
+      json(res, session);
       return;
     }
     if (url.pathname === '/api/agent-handoffs' && req.method === 'POST') {
