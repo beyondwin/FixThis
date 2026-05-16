@@ -1,5 +1,7 @@
 # `fixthis` CLI Reference
 
+See also: [`cli-exit-codes.md`](./cli-exit-codes.md) for the contract every command returns.
+
 The desktop CLI ships in `fixthis-cli/build/install/fixthis/bin/fixthis` after
 `./gradlew :fixthis-cli:installDist`. All commands are exposed as
 subcommands of `fixthis`.
@@ -17,7 +19,10 @@ Subcommands:
   mcp         Run the FixThis MCP server (stdio JSON-RPC, used by agents)
   console     Open the local feedback console without launching anything else
   clean       Remove local FixThis artifact directories
+  version     Print CLI build version and bridge protocol version
 ```
+
+`fixthis --version` prints the same line as `fixthis version` and exits 0.
 
 `--package` is the Android applicationId of the debug app you are running
 FixThis against. If omitted, every subcommand reads
@@ -156,7 +161,17 @@ fixthis install-agent --project-dir . --target all --dry-run
 | `--server-name` | `fixthis` | MCP server name to write. |
 | `--skip-gradle-plugin` | off | Do not modify the app module build file. |
 | `--plugin-version` | `0.2.3` | FixThis Gradle plugin version to apply. |
+| `--allow-global` | off | Permit writes to global config files (e.g. `~/.codex/config.toml`) when run outside an Android project. Default: refuse the global write and exit with PARTIAL. |
+| `--json` | off | Emit a structured JSON report on stdout (`schemaVersion`, `ok`, `applied[]`, `skipped[]`, `errors[]`, `next[]`) instead of the human-readable summary. |
 | `--verbose`, `-v` | off | Print the full Java stack trace on failure. |
+
+Writes are transactional: each target is staged to a `*.fixthis-staging`
+sibling, then atomically moved into place with a per-target rollback file so a
+partial failure cannot leave a half-merged config on disk.
+
+Exit codes follow [`docs/reference/cli-exit-codes.md`](cli-exit-codes.md):
+`0` OK, `1` PARTIAL (some targets skipped — e.g. global write refused without
+`--allow-global`), `4` INTERNAL_ERROR (one or more writes failed).
 
 After it patches the Gradle file, run `./gradlew fixthisSetup` to generate
 `.fixthis/project.json`, then run `fixthis doctor --project-dir . --json`.
@@ -189,7 +204,8 @@ fixthis setup --package <applicationId> --write --target codex --dry-run
 | `--package` | — | Android applicationId for the generated MCP config. |
 | `--project-dir` | `.` | Project root containing `.fixthis/project.json`. |
 | `--write` | off | Write MCP config to agent settings files. |
-| `--dry-run` | off | With `--write`, print planned writes without modifying files. |
+| `--dry-run` | off | With `--write`, print a privacy-preserving diff of only the added/changed entries within `mcpServers`, capped at a 4 KiB byte budget so unrelated surrounding config does not leak into agent logs. |
+| `--full-diff` | off | With `--dry-run`, disable the 4 KiB byte budget and print the complete planned diff. Prints a warning that surrounding context may leak — avoid in agent logs. |
 | `--target` | `all` | Agent target: `claude`, `codex`, or `all`. |
 | `--server-name` | `fixthis` | MCP server name to write. |
 | `--verbose`, `-v` | off | Print the full Java stack trace on failure. Implies the cause chain is rendered too, but skipped by default to keep the terse error readable. |
@@ -263,6 +279,27 @@ fixthis clean --project-dir . --older-than-days 7
 
 The command is symlink-safe and preserves `.fixthis/project.json` and any
 unknown `.fixthis` files or directories.
+
+## `fixthis version`
+
+Prints the CLI build version and bridge protocol version. Pass `--json` for a
+parseable payload — agents can read `cliVersion` / `bridgeProtocolVersion`
+without scraping the human-readable line.
+
+```bash
+fixthis version
+# fixthis 0.2.3 (bridge protocol v1.3)
+
+fixthis version --json
+# {"cliVersion":"0.2.3","bridgeProtocolVersion":"1.3"}
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--json` | off | Print the version payload as JSON instead of the human-readable line. |
+
+The top-level `fixthis --version` flag prints the same human-readable line and
+exits 0; the subcommand exists so the JSON variant has a stable home.
 
 ## Exit codes
 

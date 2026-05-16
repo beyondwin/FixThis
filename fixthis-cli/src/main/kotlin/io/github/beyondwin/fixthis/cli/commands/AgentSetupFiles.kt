@@ -24,7 +24,7 @@ internal object AgentSetupFiles {
             ),
             WritePlan(
                 fixThisDirectory.resolve("agent-setup.json"),
-                fixThisJson.encodeToString(agentSetupManifest(packageName, serverName)) + "\n",
+                fixThisJson.encodeToString(agentSetupManifest(packageName, projectRoot)) + "\n",
             ),
         )
 
@@ -83,26 +83,32 @@ internal object AgentSetupFiles {
         )
     }
 
-    private fun agentSetupManifest(packageName: String, serverName: String) = buildJsonObject {
+    private fun agentSetupManifest(packageName: String, projectRoot: File) = buildJsonObject {
         put("schemaVersion", "1.0")
-        put("packageName", packageName)
-        put("serverName", serverName)
         put(
-            "commands",
-            buildJsonArray {
-                addCommand("refreshGradleMetadata", "./gradlew fixthisSetup")
-                addCommand("registerMcp", "fixthis init --agent --project-dir .")
-                addCommand("verify", "fixthis doctor --project-dir . --json")
+            "state",
+            buildJsonObject {
+                put("packageName", packageName)
+                put("projectRoot", projectRoot.absolutePath)
+                put("detectedAt", java.time.Instant.now().toString())
             },
         )
-        put("openConsoleTool", "fixthis_open_feedback_console")
-    }
-
-    private fun kotlinx.serialization.json.JsonArrayBuilder.addCommand(name: String, command: String) {
-        add(
+        put(
+            "next",
+            buildJsonArray {
+                add(JsonPrimitive("./gradlew fixthisSetup"))
+                add(JsonPrimitive("fixthis doctor --project-dir ${projectRoot.absolutePath} --json"))
+                add(JsonPrimitive("# Restart Claude Code / Codex to reload MCP config"))
+            },
+        )
+        put(
+            "recovery",
             buildJsonObject {
-                put("name", name)
-                put("command", command)
+                put("no-android-context", JsonPrimitive("Run from the Android repo root, or pass --allow-global to write the global codex config anyway."))
+                put("no-app-module", JsonPrimitive("Run ./gradlew projects to list modules; pass the correct --package."))
+                put("release-only-variant", JsonPrimitive("Add a debug variant; FixThis attaches debug builds only."))
+                put("view-system-mixed", JsonPrimitive("Module contains View-based activities; migrate to ComponentActivity + setContent."))
+                put("missing-application-id", JsonPrimitive("No unique applicationId; run from app module or pass --package."))
             },
         )
     }

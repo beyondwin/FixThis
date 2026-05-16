@@ -3,6 +3,29 @@
 Paste this into an Android app repository's `AGENTS.md` or `CLAUDE.md` so a
 coding agent can install FixThis without following human-oriented docs.
 
+## Install method decision tree (for agents)
+
+Pick the first matching branch:
+
+```bash
+if command -v brew >/dev/null 2>&1 && [ "$(uname)" = "Darwin" ]; then
+    brew install beyondwin/fixthis/fixthis
+elif command -v npm >/dev/null 2>&1; then
+    npm install -g @beyondwin/fixthis
+else
+    curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
+      | bash -s -- --version v0.2.3
+fi
+```
+
+If your agent needs to verify install success in the same shell session:
+
+```bash
+fixthis version --json | jq -r '.cliVersion'   # exits 0 with the version on stdout
+```
+
+## Snippet to paste into the target repo
+
 ```markdown
 ## FixThis Agent Setup
 

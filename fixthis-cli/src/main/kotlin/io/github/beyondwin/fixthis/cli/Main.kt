@@ -4,6 +4,7 @@ import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.CoreNoOpCliktCommand
 import com.github.ajalt.clikt.core.parse
 import com.github.ajalt.clikt.core.subcommands
+import com.github.ajalt.clikt.parameters.options.versionOption
 import io.github.beyondwin.fixthis.cli.commands.CleanCommand
 import io.github.beyondwin.fixthis.cli.commands.ConsoleCommand
 import io.github.beyondwin.fixthis.cli.commands.DoctorCommand
@@ -27,6 +28,7 @@ fun main(args: Array<String>) {
 }
 
 internal fun buildRootCommand(): CoreNoOpCliktCommand = CoreNoOpCliktCommand(name = "fixthis")
+    .versionOption(FIXTHIS_CLI_VERSION, names = setOf("--version"), message = { renderCliVersion(json = false).trimEnd() })
     .subcommands(
         StatusCommand(),
         RunCommand(),
@@ -37,6 +39,7 @@ internal fun buildRootCommand(): CoreNoOpCliktCommand = CoreNoOpCliktCommand(nam
         McpCommand(),
         ConsoleCommand(),
         CleanCommand(),
+        VersionCommand(),
     )
 
 internal fun printCliktError(command: CoreNoOpCliktCommand, error: CliktError) {

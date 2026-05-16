@@ -27,6 +27,42 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+### Added
+- `fixthis --version` flag and `fixthis version [--json]` subcommand emit
+  the CLI build version, git SHA, and bridge protocol version.
+- Standardized CLI exit-code contract (0/1/2/3/4) documented in
+  [`docs/reference/cli-exit-codes.md`](docs/reference/cli-exit-codes.md), with
+  agent-surface failures rendered through a shared
+  `<cause>` / `verify:` / `fix:` template so coding agents see a stable repair
+  hint alongside every failure.
+- `fixthis install-agent --allow-global` opt-in flag permits writes to global
+  config files (e.g. `~/.codex/config.toml`) outside an Android project.
+  Default refuses the global write and exits PARTIAL, preventing accidental
+  global state changes from an unrelated working directory.
+- `fixthis install-agent --json` emits a structured JSON report on stdout
+  (`schemaVersion` 1.0, plus `ok`, `applied[]`, `skipped[]`, `errors[]`,
+  `next[]`) so coding agents can parse the install outcome instead of scraping
+  human-readable lines.
+- `fixthis install-agent` exit codes — `0` OK, `1` PARTIAL (some targets
+  skipped), `4` INTERNAL_ERROR (one or more writes failed) — mapped per
+  [`docs/reference/cli-exit-codes.md`](docs/reference/cli-exit-codes.md).
+
+### Changed
+- `fixthis doctor` text output now echoes the remediation hint
+  (`  ↳ fix: <fix>`) under every FAIL check, matching the structured JSON
+  output's `remediation` field.
+- `fixthis setup --write --dry-run` now prints a privacy-preserving diff of
+  only the added/changed entries within `mcpServers` instead of the full
+  merged config, capped at a 4 KiB byte budget so unrelated surrounding
+  config can't leak into agent logs. Pass `--full-diff` to disable the
+  budget when an operator needs to inspect the complete planned write (the
+  flag prints a warning that surrounding context may leak; avoid in agent
+  logs).
+- `fixthis install-agent` now writes atomically via two-phase commit: each
+  target is staged to a `*.fixthis-staging` sibling, then atomically moved
+  into place with a per-target rollback file so a partial failure cannot
+  leave a half-merged config on disk.
+
 ### Documentation
 - Updated release and getting-started docs to reflect the post-v0.2.3 channel
   state: Homebrew is available at `beyondwin/fixthis/fixthis`, the npm wrapper

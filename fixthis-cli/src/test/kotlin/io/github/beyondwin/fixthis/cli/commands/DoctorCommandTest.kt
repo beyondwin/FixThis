@@ -1,5 +1,6 @@
 package io.github.beyondwin.fixthis.cli.commands
 
+import com.github.ajalt.clikt.core.parse
 import io.github.beyondwin.fixthis.cli.AdbDevice
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -61,5 +62,27 @@ class DoctorCommandTest {
         assertEquals("device_connected", failed.getValue("name").jsonPrimitive.content)
         assertEquals("fail", failed.getValue("status").jsonPrimitive.content)
         assertTrue(failed.getValue("fix").jsonPrimitive.content.contains("adb devices"))
+    }
+
+    @Test
+    fun doctorTextOutputIncludesFixHintAfterFail() {
+        val out = java.io.ByteArrayOutputStream()
+        val oldOut = System.out
+        System.setOut(java.io.PrintStream(out))
+        try {
+            val cmd = DoctorCommand()
+            try {
+                cmd.parse(arrayOf("--project-dir", java.io.File.createTempFile("fxt", "").parentFile.absolutePath))
+            } catch (_: Throwable) {
+                // doctor exits non-zero on missing project; we just want stdout
+            }
+        } finally {
+            System.setOut(oldOut)
+        }
+        val text = out.toString()
+        assertTrue(
+            "Expected fix-hint format in text output, got:\n$text",
+            text.lines().any { it.trimStart().startsWith("↳ fix:") },
+        )
     }
 }
