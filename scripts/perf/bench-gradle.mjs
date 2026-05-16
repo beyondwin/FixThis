@@ -35,5 +35,5 @@ export function runGradleScenario(scenario, { repoRoot = process.cwd(), log = co
 function listProfileFiles(repoRoot) {
   const dir = path.join(repoRoot, PROFILE_DIR);
   if (!fs.existsSync(dir)) return [];
-  return fs.readdirSync(dir);
+  return fs.readdirSync(dir).filter((f) => f.endsWith(".html"));
 }

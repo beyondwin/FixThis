@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "started_at": "2026-05-16T04:25:42.339Z",
+  "git_sha": "081ebad3",
+  "env": {
+    "os": "darwin",
+    "arch": "arm64",
+    "cpu_model": "Apple M4 Pro",
+    "cpu_count": 14,
+    "ram_mb": 49152,
+    "jdk": "openjdk version \"25.0.2\" 2026-01-20 LTS",
+    "node": "v25.9.0"
+  },
+  "results": [
+    {
+      "key": "console-test-fast",
+      "regress_threshold_pct": 10,
+      "improve_threshold_pct": 5,
+      "n": 3,
+      "samples_ms": [
+        449,
+        452,
+        455
+      ],
+      "mean_ms": 452,
+      "median_ms": 452,
+      "p95_ms": 454.7,
+      "stddev_ms": 3,
+      "dropped": [
+        "warmup:761",
+        "min:447",
+        "max:455"
+      ]
+    },
+    {
+      "key": "console-test-all",
+      "regress_threshold_pct": 10,
+      "improve_threshold_pct": 5,
+      "n": 3,
+      "samples_ms": [
+        602,
+        609,
+        611
+      ],
+      "mean_ms": 607.33,
+      "median_ms": 609,
+      "p95_ms": 610.8,
+      "stddev_ms": 4.73,
+      "dropped": [
+        "warmup:621",
+        "min:596",
+        "max:620"
+      ]
+    },
+    {
+      "key": "warm-mcp-test",
+      "regress_threshold_pct": 8,
+      "improve_threshold_pct": 5,
+      "n": 3,
+      "samples_ms": [
+        5360,
+        5369,
+        5421
+      ],
+      "mean_ms": 5383.33,
+      "median_ms": 5369,
+      "p95_ms": 5415.8,
+      "stddev_ms": 32.93,
+      "dropped": [
+        "warmup:12643",
+        "min:5339",
+        "max:5554"
+      ]
+    },
+    {
+      "key": "installdist-mcp",
+      "regress_threshold_pct": 8,
+      "improve_threshold_pct": 5,
+      "n": 3,
+      "samples_ms": [
+        5379,
+        5385,
+        5404
+      ],
+      "mean_ms": 5389.33,
+      "median_ms": 5385,
+      "p95_ms": 5402.1,
+      "stddev_ms": 13.05,
+      "dropped": [
+        "warmup:6353",
+        "min:5335",
+        "max:6312"
+      ]
+    },
+    {
+      "key": "cold-mcp-test",
+      "regress_threshold_pct": 10,
+      "improve_threshold_pct": 5,
+      "n": 3,
+      "samples_ms": [
+        16419,
+        16485,
+        16900
+      ],
+      "mean_ms": 16601.33,
+      "median_ms": 16485,
+      "p95_ms": 16858.5,
+      "stddev_ms": 260.75,
+      "dropped": [
+        "warmup:17336"
+      ]
+    }
+  ]
+}

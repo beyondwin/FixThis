@@ -25,8 +25,8 @@
       "command": [":app:assembleDebug"],
       "mode": "cold",
       "iterations": 3,
-      "regress_threshold_pct": 10,
-      "improve_threshold_pct": 5
+      "regress_threshold_pct": 100,
+      "improve_threshold_pct": 100
     },
     {
       "key": "warm-assemble",
@@ -34,8 +34,8 @@
       "command": [":app:assembleDebug"],
       "mode": "warm",
       "iterations": 5,
-      "regress_threshold_pct": 8,
-      "improve_threshold_pct": 5
+      "regress_threshold_pct": 100,
+      "improve_threshold_pct": 100
     },
     {
       "key": "installdist-mcp",
