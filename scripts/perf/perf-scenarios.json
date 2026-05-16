@@ -1,0 +1,68 @@
+{
+  "$schema": "./perf-scenarios.schema.json",
+  "scenarios": [
+    {
+      "key": "cold-mcp-test",
+      "kind": "gradle",
+      "command": [":fixthis-mcp:test"],
+      "mode": "cold",
+      "iterations": 3,
+      "regress_threshold_pct": 10,
+      "improve_threshold_pct": 5
+    },
+    {
+      "key": "warm-mcp-test",
+      "kind": "gradle",
+      "command": [":fixthis-mcp:test"],
+      "mode": "warm",
+      "iterations": 5,
+      "regress_threshold_pct": 8,
+      "improve_threshold_pct": 5
+    },
+    {
+      "key": "cold-assemble",
+      "kind": "gradle",
+      "command": [":app:assembleDebug"],
+      "mode": "cold",
+      "iterations": 3,
+      "regress_threshold_pct": 10,
+      "improve_threshold_pct": 5
+    },
+    {
+      "key": "warm-assemble",
+      "kind": "gradle",
+      "command": [":app:assembleDebug"],
+      "mode": "warm",
+      "iterations": 5,
+      "regress_threshold_pct": 8,
+      "improve_threshold_pct": 5
+    },
+    {
+      "key": "installdist-mcp",
+      "kind": "gradle",
+      "command": [":fixthis-mcp:installDist"],
+      "mode": "warm",
+      "iterations": 5,
+      "regress_threshold_pct": 8,
+      "improve_threshold_pct": 5
+    },
+    {
+      "key": "console-test-fast",
+      "kind": "node",
+      "groups": ["availability", "pending", "beforeunload", "undo", "activity", "preview"],
+      "mode": "warm",
+      "iterations": 5,
+      "regress_threshold_pct": 10,
+      "improve_threshold_pct": 5
+    },
+    {
+      "key": "console-test-all",
+      "kind": "node",
+      "groups": ["availability", "canonical", "pending", "beforeunload", "undo", "activity", "preview", "draft", "session", "harness"],
+      "mode": "warm",
+      "iterations": 5,
+      "regress_threshold_pct": 10,
+      "improve_threshold_pct": 5
+    }
+  ]
+}
