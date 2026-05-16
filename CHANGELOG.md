@@ -27,6 +27,20 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+### Added
+- `fixthis --version` flag and `fixthis version [--json]` subcommand emit
+  the CLI build version, git SHA, and bridge protocol version.
+- Standardized CLI exit-code contract (0/1/2/3/4) documented in
+  [`docs/reference/cli-exit-codes.md`](docs/reference/cli-exit-codes.md), with
+  agent-surface failures rendered through a shared
+  `<cause>` / `verify:` / `fix:` template so coding agents see a stable repair
+  hint alongside every failure.
+
+### Changed
+- `fixthis doctor` text output now echoes the remediation hint
+  (`  ↳ fix: <fix>`) under every FAIL check, matching the structured JSON
+  output's `remediation` field.
+
 ### Documentation
 - Updated release and getting-started docs to reflect the post-v0.2.3 channel
   state: Homebrew is available at `beyondwin/fixthis/fixthis`, the npm wrapper
