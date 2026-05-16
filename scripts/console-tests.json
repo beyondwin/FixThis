@@ -24,7 +24,11 @@
   "beforeunload": ["scripts/beforeunloadGuard-test.mjs"],
   "undo": ["scripts/undoRedo-test.mjs", "scripts/undoKeymatch-test.mjs"],
   "activity": ["scripts/activityDrift-test.mjs"],
-  "preview": ["scripts/previewStaleness-test.mjs", "scripts/canvasStatusBadgesLayout-test.mjs"],
+  "preview": [
+    "scripts/previewStaleness-test.mjs",
+    "scripts/canvasStatusBadgesLayout-test.mjs",
+    "scripts/captureUnavailableRender-test.mjs"
+  ],
   "draft": [
     "scripts/editorState-test.mjs",
     "scripts/workspaceAllocationGate-test.mjs",

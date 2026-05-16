@@ -1,5 +1,6 @@
 package io.github.beyondwin.fixthis.mcp.console
 
+import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadiness
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.mcp.session.AnnotationSeverityDto
 import io.github.beyondwin.fixthis.mcp.session.AnnotationStatusDto
@@ -11,6 +12,8 @@ import kotlinx.serialization.Serializable
 data class FeedbackPreviewSnapshot(
     val previewId: String,
     val screen: SnapshotDto,
+    val previewAvailable: Boolean = true,
+    val readiness: FirstRunReadiness? = null,
 )
 
 @Serializable

@@ -13,6 +13,7 @@ enum class FirstRunReadinessState {
     ENV_BLOCKER,
     STALE_PREVIEW,
     SESSION_MISMATCH,
+    CAPTURE_UNAVAILABLE,
     UNKNOWN_ERROR,
 }
 
@@ -96,6 +97,15 @@ object FirstRunReadinessCatalog {
         verify = "Compare the frozen preview with the current app screen.",
         fix = "Recapture, force-save the frozen preview, or cancel.",
         nextAction = "Choose Recapture, Force save, or Cancel.",
+        details = details,
+    )
+
+    fun captureUnavailable(cause: String, details: Map<String, String> = emptyMap()) = FirstRunReadiness(
+        state = FirstRunReadinessState.CAPTURE_UNAVAILABLE,
+        cause = cause,
+        verify = "Open the app foreground and tap Capture, or open doctor for the bridge log.",
+        fix = "Reopen the app foreground and tap Retry capture, or open doctor for the bridge log.",
+        nextAction = "Retry capture",
         details = details,
     )
 
