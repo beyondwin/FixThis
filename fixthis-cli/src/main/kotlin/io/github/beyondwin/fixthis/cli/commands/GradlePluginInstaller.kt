@@ -16,10 +16,7 @@ internal object GradlePluginInstaller {
         echo: (String) -> Unit,
     ) {
         val application = GradleApplicationIdDetector.findApplication(projectRoot, packageName)
-            ?: throw CliktError(
-                "Could not find an Android app module for $packageName. " +
-                    "Apply Gradle plugin `$PluginId` manually.",
-            )
+            ?: throw CliktError(AgentSurfaceMessages.noAppModule(packageName = packageName))
         val plan = patchPlan(application.buildFile, pluginVersion)
         if (plan == null) {
             echo("Gradle plugin already applied: ${application.buildFile.absolutePath}")
