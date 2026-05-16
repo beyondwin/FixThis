@@ -38,6 +38,15 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   (`// @requires` directives). Raw 275 KiB → 160 KiB / gzip 55 KiB → 37 KiB.
   External source map; build aborts on size budget overflow or missing
   contract symbol.
+- Added a reproducible build/test performance measurement harness under
+  `scripts/perf/` (scenario-driven `bench.mjs` orchestrator, Gradle profile
+  parser, aggregator, `compare-perf.mjs` regression gate, env fingerprinting)
+  with a committed baseline at `docs/perf/baseline-2026-05-16.json`, nightly +
+  manual `perf-report` workflow, and `CONTRIBUTING.md` documentation of the
+  measurement loop. The first proof-of-value `-Xmx` tuning attempt was
+  empirically rejected — see
+  [`docs/perf/evidence/2026-05-16-xmx-tuning-negative.md`](docs/perf/evidence/2026-05-16-xmx-tuning-negative.md)
+  for the negative-outcome evidence.
 
 ## [0.2.3] - 2026-05-15
 
