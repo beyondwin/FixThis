@@ -132,16 +132,27 @@ policy layer above it, tentatively `NotificationCenter`, with a stable API:
 ```js
 notify({
   severity: "error" | "warning" | "success" | "info",
-  surface: "toast" | "banner" | "inline" | "modal",
+  surface: "toast" | "banner" | "inline",
   title,
   message,
   primaryAction,
   secondaryAction,
   details,
   dedupeKey,
-  ttlMs
+  ttlMs,
+  allowErrorToast,   // opt-in: error severity is otherwise auto-promoted off toast
 })
 ```
+
+Destructive choices (session switch, discard, force-save, forget device) are
+not part of `NotificationCenter`; they route to the boundary-dialog sheet
+described under Console Reliability Presenter. `NotificationCenter.notify`
+therefore covers three surfaces (toast, banner, inline) and is responsible
+for: (a) auto-promoting `severity: "error"` away from `toast` unless the
+caller opts in via `allowErrorToast`, (b) honoring `dedupeKey` for both
+duplicate suppression *and* coordinated `hide(id)` calls from existing call
+sites, and (c) expiring `dedupeKey` entries once `ttlMs` elapses so a
+legitimate later notification with the same key can re-display.
 
 This layer replaces direct `error.textContent`, manual undo toast DOM, and most
 native `window.confirm` calls. Existing tests that inject prompt hooks can keep
@@ -190,8 +201,12 @@ they must not invent separate state names for the same condition.
 | Modal or sheet | Session switch, discard, destructive actions, force-save choices. | Passive information. |
 | Details panel | Raw JSON, stack traces, diagnostic commands. | Primary guidance. |
 
-Native `alert` and `confirm` should be removed except for platform-constrained
-cases such as `beforeunload`.
+Native `alert` and `confirm` should be removed except for browser-controlled
+navigation prompts (for example the dialog the browser itself renders when a
+`beforeunload` handler sets `event.returnValue`). FixThis never calls
+`window.confirm` from `beforeunload` handlers; the only sanctioned use of
+`window.confirm` is in test hook fallbacks (see the `loadConsoleSymbols` test
+loader) and never in production console code paths.
 
 Notification requirements:
 

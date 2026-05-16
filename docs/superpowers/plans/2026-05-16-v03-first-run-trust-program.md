@@ -1028,18 +1028,21 @@ node --test scripts/requestJson-test.mjs
 
 Expected: pass.
 
-- [ ] **Step 7: Rebuild console assets**
+- [ ] **Step 7: Rebuild and verify console assets**
 
 Run:
 
 ```bash
 node scripts/build-console-assets.mjs
+node scripts/build-console-assets.mjs --check
+node --check fixthis-mcp/src/main/resources/console/app.js
 ```
 
-Expected: `fixthis-mcp/src/main/resources/console/app.js`,
-`fixthis-mcp/src/main/resources/console/app.js.map`, and
-`fixthis-mcp/src/main/resources/console/console-build-meta.json` update if the
-bundle changed.
+Expected: rebuild updates `app.js`, `app.js.map`, and
+`console-build-meta.json` if the bundle changed; `--check` succeeds (size
+budget honored); `node --check` reports no syntax errors. These three
+commands are required by `CONTRIBUTING.md` after any
+`fixthis-mcp/src/main/console/` change.
 
 - [ ] **Step 8: Commit**
 
@@ -1136,6 +1139,44 @@ test('NotificationCenter keeps success as ttl toast', () => {
   assert.equal(show.opts.surfaceClass, 'toast');
   assert.equal(show.opts.autoDismissMs, 1200);
 });
+
+test('NotificationCenter releases dedupe key after ttl so a later notify re-displays', () => {
+  const registry = createRegistry();
+  const timers = [];
+  const fakeSetTimeout = (fn, ms) => { timers.push({ fn, ms }); return timers.length; };
+  const { createNotificationCenter } = loadConsoleSymbols({
+    modules: ['notificationCenter.js'],
+    symbols: ['createNotificationCenter'],
+  });
+  const center = createNotificationCenter({ registry, setTimeoutImpl: fakeSetTimeout });
+
+  center.notify({ severity: 'warning', surface: 'toast', message: 'Polling paused', dedupeKey: 'polling', ttlMs: 1000 });
+  // While active, repeated notify is suppressed.
+  center.notify({ severity: 'warning', surface: 'toast', message: 'Polling paused', dedupeKey: 'polling', ttlMs: 1000 });
+  assert.equal(registry.calls.filter((call) => call.kind === 'show').length, 1);
+
+  // After ttl, dedupe entry is released; a follow-up notify re-displays.
+  assert.equal(timers.length, 1);
+  timers[0].fn();
+  center.notify({ severity: 'warning', surface: 'toast', message: 'Polling paused', dedupeKey: 'polling', ttlMs: 1000 });
+  assert.equal(registry.calls.filter((call) => call.kind === 'show').length, 2);
+});
+
+test('NotificationCenter auto-promotes severity:error off toast unless explicitly allowed', () => {
+  const registry = createRegistry();
+  const { createNotificationCenter } = loadConsoleSymbols({
+    modules: ['notificationCenter.js'],
+    symbols: ['createNotificationCenter'],
+  });
+  const center = createNotificationCenter({ registry });
+
+  center.notify({ severity: 'error', surface: 'toast', message: 'Network blip', dedupeKey: 'e1' });
+  assert.equal(registry.calls.find((c) => c.kind === 'show' && c.id === 'e1').opts.surfaceClass, 'banner');
+
+  // Opt-in keeps the toast surface, e.g. transient retry-succeeded-but-warn case.
+  center.notify({ severity: 'error', surface: 'toast', message: 'Retried', dedupeKey: 'e2', allowErrorToast: true });
+  assert.equal(registry.calls.find((c) => c.kind === 'show' && c.id === 'e2').opts.surfaceClass, 'toast');
+});
 ```
 
 - [ ] **Step 2: Run the test to verify it fails**
@@ -1154,7 +1195,7 @@ Create `fixthis-mcp/src/main/console/notificationCenter.js`:
 
 ```js
 // @requires statusSurfaceRegistry.js
-            const BlockingNotificationSurfaces = Object.freeze(new Set(['banner', 'inline', 'modal']));
+            const SupportedNotificationSurfaces = Object.freeze(new Set(['toast', 'banner', 'inline']));
 
             function notificationContent(input) {
               return {
@@ -1165,14 +1206,21 @@ Create `fixthis-mcp/src/main/console/notificationCenter.js`:
             }
 
             function normalizedNotificationSurface(input) {
-              if (input.severity === 'error' && input.primaryAction && input.surface === 'toast') {
+              const requested = input.surface || (input.severity === 'success' ? 'toast' : 'banner');
+              const surface = SupportedNotificationSurfaces.has(requested) ? requested : 'banner';
+              // Auto-promote: severity:error never lands on toast unless the caller
+              // explicitly opts in via allowErrorToast (e.g. retried-and-recovered).
+              if (input.severity === 'error' && surface === 'toast' && !input.allowErrorToast) {
                 return 'banner';
               }
-              return input.surface || (input.severity === 'success' ? 'toast' : 'banner');
+              return surface;
             }
 
-            function createNotificationCenter({ registry = statusSurfaceRegistry } = {}) {
-              const activeKeys = new Set();
+            function createNotificationCenter({
+              registry = statusSurfaceRegistry,
+              setTimeoutImpl = (typeof window !== 'undefined' ? window.setTimeout : setTimeout),
+            } = {}) {
+              const activeKeys = new Map(); // id -> { releaseTimer }
 
               function notify(input = {}) {
                 const surfaceClass = normalizedNotificationSurface(input);
@@ -1183,19 +1231,35 @@ Create `fixthis-mcp/src/main/console/notificationCenter.js`:
                   input.message || '',
                 ].join(':');
                 if (activeKeys.has(id)) return id;
-                activeKeys.add(id);
 
+                const autoDismissMs = input.ttlMs != null
+                  ? input.ttlMs
+                  : (surfaceClass === 'toast' ? 3000 : 0);
                 const opts = {
                   surfaceClass,
                   priority: input.severity === 'error' ? 1 : input.severity === 'warning' ? 2 : 3,
                   content: surfaceClass === 'toast' ? (input.message || input.title || '') : notificationContent(input),
-                  autoDismissMs: input.ttlMs || (surfaceClass === 'toast' ? 3000 : 0),
+                  autoDismissMs,
                 };
+                // Track the entry, and release it once the surface auto-dismisses so a
+                // later notify with the same dedupeKey can re-display (polling failure
+                // recurrence, retried operations, etc.).
+                let releaseTimer = null;
+                if (autoDismissMs > 0) {
+                  releaseTimer = setTimeoutImpl(() => {
+                    activeKeys.delete(id);
+                  }, autoDismissMs);
+                }
+                activeKeys.set(id, { releaseTimer });
                 registry.show(id, opts);
                 return id;
               }
 
               function hide(id) {
+                const entry = activeKeys.get(id);
+                if (entry && entry.releaseTimer != null && typeof clearTimeout === 'function') {
+                  clearTimeout(entry.releaseTimer);
+                }
                 activeKeys.delete(id);
                 registry.hide(id);
               }
@@ -1207,6 +1271,18 @@ Create `fixthis-mcp/src/main/console/notificationCenter.js`:
               return { clearRecoverable, hide, notify };
             }
 ```
+
+Notes:
+
+- `inline` is supported as a surface but the registry is responsible for
+  rendering it against the connection card / preview / inspector areas. The
+  policy layer only routes the choice.
+- `modal` / destructive sheets are intentionally not part of this API; those
+  flow through `renderBoundaryDialog` (Task 6).
+- Maximum visible toast count is delegated to the existing
+  `statusSurfaceRegistry`. If a future audit shows the registry does not cap
+  stack depth, add the cap there rather than re-implementing inside
+  `NotificationCenter`.
 
 - [ ] **Step 4: Route state.js status helpers through NotificationCenter**
 
@@ -1229,17 +1305,56 @@ call with:
 ```js
                   notificationCenter.notify({
                     severity: variant === 'error' ? 'error' : variant === 'warning' ? 'warning' : variant === 'success' ? 'success' : 'info',
-                    surface: variant === 'success' || durationMs > 0 ? 'toast' : 'banner',
+                    // Successes are dismissible toasts; everything else (including
+                    // errors with a TTL) stays as a banner so a recoverable error
+                    // never reduces to a toast-only surface.
+                    surface: variant === 'success' ? 'toast' : 'banner',
                     title: variant === 'error' ? 'FixThis needs attention' : '',
                     message,
                     primaryAction: assertive ? 'Open details' : null,
-                    dedupeKey: variant + ':' + message,
+                    // The dedupeKey MUST stay 'global-error' because three existing
+                    // call sites in this same file (`syncStatusVisibility`,
+                    // `resetStatusSurface`, and the message-empty branch) call
+                    // `statusSurfaceRegistry.hide('global-error')` to clear the
+                    // singleton status line. Changing this key strands those hides.
+                    dedupeKey: 'global-error',
                     ttlMs: durationMs,
                   });
 ```
 
-Keep `error.textContent`, role, and class updates in place for compatibility
-until Task 6 migrates the high-risk call sites.
+Also migrate the three remaining `statusSurfaceRegistry.hide('global-error')`
+call sites in `state.js` (currently at `syncStatusVisibility`,
+`resetStatusSurface`, and the empty-message branch inside `showStatus`) to
+`notificationCenter.hide('global-error')`. This keeps the `activeKeys` map and
+the underlying registry in sync; otherwise the registry hides but the policy
+layer still thinks the key is active and silently suppresses a later
+`notify({ dedupeKey: 'global-error' })`.
+
+Keep `error.textContent`, role, and class updates in place — the `error`
+element is the live DOM target the registry mounts the global status into,
+and downstream styling depends on its class.
+
+Audit step: add an assertion to `scripts/notificationCenter-test.mjs` that the
+state.js wiring path uses `dedupeKey: 'global-error'`:
+
+```js
+test('state.js global-status path keeps stable dedupeKey for hide coordination', () => {
+  const registry = createRegistry();
+  const { createNotificationCenter } = loadConsoleSymbols({
+    modules: ['notificationCenter.js'],
+    symbols: ['createNotificationCenter'],
+  });
+  const center = createNotificationCenter({ registry });
+
+  center.notify({ severity: 'error', surface: 'banner', message: 'boom', dedupeKey: 'global-error' });
+  center.hide('global-error');
+  const hide = registry.calls.find((call) => call.kind === 'hide');
+  assert.equal(hide.id, 'global-error');
+  // Re-notify after hide must succeed (not deduped).
+  center.notify({ severity: 'error', surface: 'banner', message: 'boom again', dedupeKey: 'global-error' });
+  assert.equal(registry.calls.filter((call) => call.kind === 'show').length, 2);
+});
+```
 
 - [ ] **Step 5: Add notification group after all files exist**
 
@@ -1263,15 +1378,17 @@ node scripts/run-console-tests.mjs notification
 
 Expected: pass.
 
-- [ ] **Step 7: Rebuild console assets**
+- [ ] **Step 7: Rebuild and verify console assets**
 
 Run:
 
 ```bash
 node scripts/build-console-assets.mjs
+node scripts/build-console-assets.mjs --check
+node --check fixthis-mcp/src/main/resources/console/app.js
 ```
 
-Expected: console bundle updates.
+Expected: bundle updates and both verification commands succeed.
 
 - [ ] **Step 8: Commit**
 
@@ -1523,15 +1640,17 @@ node scripts/run-console-tests.mjs notification canonical pending session
 
 Expected: pass.
 
-- [ ] **Step 9: Rebuild console assets**
+- [ ] **Step 9: Rebuild and verify console assets**
 
 Run:
 
 ```bash
 node scripts/build-console-assets.mjs
+node scripts/build-console-assets.mjs --check
+node --check fixthis-mcp/src/main/resources/console/app.js
 ```
 
-Expected: console bundle updates.
+Expected: bundle updates and both verification commands succeed.
 
 - [ ] **Step 10: Commit**
 
@@ -1604,8 +1723,15 @@ async function main() {
     await page.mouse.up();
     await page.fill('#comment', 'Make the primary button label clearer');
     await page.click('text=Add annotation');
+    // The Save-to-MCP button must be enabled (it starts `disabled` in index.html)
+    // and the prompt-readiness element must transition away from its initial
+    // "No annotations ready" text before we trust the click landed a handoff.
+    await page.waitForSelector('[data-testid="save-to-mcp-button"]:not([disabled])', { timeout: 5000 });
     await page.click('[data-testid="save-to-mcp-button"]');
-    await page.waitForSelector('[data-testid="prompt-readiness"]', { timeout: 5000 });
+    await page.waitForFunction(() => {
+      const el = document.querySelector('[data-testid="prompt-readiness"]');
+      return el && !/no annotations ready/i.test(el.textContent || '');
+    }, { timeout: 5000 });
 
     const handoffs = fixture.getRequestLog().filter((entry) => entry.path === '/api/agent-handoffs');
     assert.equal(handoffs.length, 1);
@@ -1829,13 +1955,17 @@ Run:
 
 ```bash
 ./gradlew :fixthis-cli:test :fixthis-mcp:test --no-daemon
+node scripts/build-console-assets.mjs --check
+node --check fixthis-mcp/src/main/resources/console/app.js
 node scripts/run-console-tests.mjs notification canonical pending session harness
 npm run first-run:smoke
 node scripts/check-doc-consistency.mjs
 git diff --check
 ```
 
-Expected: all commands pass.
+Expected: all commands pass. The `build-console-assets.mjs --check` and
+`node --check` calls are required by `CONTRIBUTING.md` whenever the console
+bundle changes and must be part of the final gate.
 
 - [ ] **Step 6: Commit**
 
@@ -1848,16 +1978,53 @@ git commit -m "docs: document v0.3 first-run trust recovery"
 
 ## Edge Case Coverage Map
 
-| Edge case group | Covered by |
-| --- | --- |
-| repo root, app module, applicationId, config write, dry-run, stale setup files | Task 2 |
-| adb missing, no device, unauthorized, offline, multiple devices, selected device missing | Tasks 2 and 3 |
-| screen off, lockscreen, background, PiP, no Compose root | Task 3 plus existing blocked overlay tests |
-| `run-as` denied, unknown package, sidekick missing, app not launched, bridge timeout, unsupported build | Tasks 1 and 3 |
-| token/origin 403, SSE/polling repetition, clipboard failure, screenshot 404 | Tasks 4 and 5 |
-| corrupt or incomplete draft recovery, session switch, clear local draft, clear server drafts | Task 6 |
-| selected node missing, invalid bounds, empty comment, fingerprint mismatch, duplicate save, mark-handed-off failure | Tasks 4, 5, and 6 |
-| ready to preview to annotation to handoff | Task 7 |
+The table below distinguishes **classification coverage** (the readiness state
+is plumbed end-to-end so a future surface change is one wiring step) from
+**UX coverage** (the user actually sees the spec-promised guidance). Be
+honest: not every cell promises a UX-complete fix in v0.3.
+
+| Edge case group | Classification | UX surface | Covered by |
+| --- | --- | --- | --- |
+| repo root, app module, applicationId, config write, dry-run, stale setup files | ✅ | ✅ | Task 2 |
+| adb missing, no device, unauthorized, offline, multiple devices, selected device missing | ✅ | ✅ | Tasks 2 and 3 |
+| screen off, lockscreen, background, PiP, no Compose root | ✅ (existing) | ✅ (existing blocked overlay) | Task 3 plus existing blocked overlay tests |
+| `run-as` denied, unknown package, sidekick missing, app not launched, bridge timeout, unsupported build | ✅ | ✅ | Tasks 1 and 3 |
+| 403 token/origin error | ✅ (structured `action`) | ⚠️ partial (reload CTA not auto-rendered) | Task 4 (deferred: see below) |
+| repeated SSE / polling failures | ✅ | ✅ (dedupe + ttl release) | Task 5 |
+| clipboard failure | ✅ (api.js throws) | ⚠️ partial (manual-copy guidance copy not wired through NotificationCenter) | Task 4 (deferred: see below) |
+| screenshot 404 / semantics-only capture | ❌ | ❌ | Deferred (see below) |
+| corrupt or incomplete draft recovery, session switch, clear local draft, clear server drafts | ✅ | ✅ | Task 6 |
+| selected node missing, invalid bounds, empty comment, fingerprint mismatch, duplicate save, mark-handed-off failure | ✅ | ✅ | Tasks 4, 5, and 6 |
+| ready to preview to annotation to handoff | n/a | ✅ | Task 7 |
+
+### Deferred to a follow-up plan
+
+The following spec cases are intentionally **not** implemented in this plan
+because the readiness contract is the prerequisite. They are listed here so
+the table above is not a false guarantee, and so a follow-up plan can pick
+them up with one wiring step each:
+
+- **403 reload CTA**: when `requestJson` rejects with
+  `ConsoleRequestError.action === 'reload_console'`, the caller should fire
+  `notificationCenter.notify({ severity: 'error', surface: 'banner',
+  primaryAction: 'Reload console', ... })`. Task 4 plumbs the field; no
+  caller consumes it yet.
+- **Clipboard fallback final-state message**: `copyTextToClipboard` throws
+  with `"Copy failed. Select the prompt and copy it manually."`. The callers
+  (`#copyPromptButton` handlers) still surface this through legacy
+  `showError`. Migrate to a NotificationCenter call with explicit manual-copy
+  detail copy.
+- **Screenshot 404 / semantics-only capture**: needs both a server-side
+  classification (no readiness state currently covers it without overloading
+  `UNKNOWN_ERROR`) and a console copy choice. Defer to a dedicated capture-
+  fallback plan.
+- **Late SSE / cross-session response → SESSION_MISMATCH ignore path**: the
+  state is defined and surfaces can render it, but the actual "ignore stale
+  responses when possible" logic in SSE / preview-poll consumers is not
+  modified by any task here. Defer.
+- **Older save finishes after newer local edits**: the conflict policy is
+  cross-cutting (server `If-Match`/etag plus client merge UX) and outside
+  the v0.3 trust scope. Defer.
 
 ## Execution Notes
 
