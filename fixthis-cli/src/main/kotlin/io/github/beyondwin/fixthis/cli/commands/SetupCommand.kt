@@ -101,9 +101,7 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         val configFile = plan.configFile
         val merged = plan.content
         if (dryRun) {
-            echo("Target: ${plan.writerName} (${plan.scope})")
-            echo("Path: ${configFile.absolutePath}")
-            echo(merged.trimEnd())
+            renderDryRunOutput(plan).forEach { echo(it) }
             return
         }
         try {
@@ -112,6 +110,36 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
             throw CliktError("Could not write ${plan.writerName} MCP config at ${configFile.absolutePath}.")
         }
         echo("Wrote ${plan.writerName} MCP config (${plan.scope}): ${configFile.absolutePath}")
+    }
+
+    internal fun applyWritePlanForTest(
+        writerName: String,
+        scope: String,
+        configFile: File,
+        content: String,
+        dryRun: Boolean,
+    ) {
+        val plan = AgentConfigWritePlan(writerName, scope, configFile, content)
+        if (dryRun) {
+            renderDryRunOutput(plan).forEach { println(it) }
+            return
+        }
+        AtomicConfigFileWriter.write(configFile, content)
+        println("Wrote ${plan.writerName} MCP config (${plan.scope}): ${configFile.absolutePath}")
+    }
+
+    private fun renderDryRunOutput(plan: AgentConfigWritePlan): List<String> {
+        val configFile = plan.configFile
+        val before = if (configFile.isFile) configFile.readText() else ""
+        val format = when {
+            configFile.name.endsWith(".toml") -> DryRunDiff.Format.TOML
+            else -> DryRunDiff.Format.JSON
+        }
+        return listOf(
+            "Target: ${plan.writerName} (${plan.scope})",
+            "Path: ${configFile.absolutePath}",
+            DryRunDiff.render(before = before, after = plan.content, format = format),
+        )
     }
 
     private data class AgentConfigWritePlan(

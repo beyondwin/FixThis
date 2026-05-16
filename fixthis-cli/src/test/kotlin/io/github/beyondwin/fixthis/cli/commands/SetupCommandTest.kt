@@ -238,6 +238,31 @@ class SetupCommandTest {
     }
 
     @Test
+    fun applyWritePlanDryRunPrintsDiffOnly() {
+        val marker = "EXISTING-MARKER-123"
+        val tempFile = java.io.File.createTempFile("ft-cfg", ".json").apply {
+            writeText("""{"mcpServers":{"other":{"command":"$marker"}}}""")
+        }
+        val out = java.io.ByteArrayOutputStream()
+        val oldOut = System.out
+        System.setOut(java.io.PrintStream(out))
+        try {
+            SetupCommand().applyWritePlanForTest(
+                writerName = "claude",
+                scope = "project-local",
+                configFile = tempFile,
+                content = """{"mcpServers":{"other":{"command":"$marker"},"fixthis":{"command":"y"}}}""",
+                dryRun = true,
+            )
+        } finally {
+            System.setOut(oldOut)
+        }
+        val captured = out.toString()
+        assertFalse("existing marker should not leak", captured.contains(marker))
+        assertTrue("expected added fixthis entry in diff", captured.contains("fixthis"))
+    }
+
+    @Test
     fun verboseFlagSetsDiagnosticContext() {
         val projectRoot = temporaryFolder.newFolder("project").canonicalFile
         val userHome = temporaryFolder.newFolder("home")
