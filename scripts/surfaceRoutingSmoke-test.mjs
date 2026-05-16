@@ -42,8 +42,8 @@ test('surface modules route named status surfaces through the registry', () => {
   assert.match(boundary, /statusSurfaceRegistry\.show\('sessionBoundarySheet'/);
   assert.match(pendingRecoveryUi, /statusSurfaceRegistry\.hide\('sessionBoundarySheet'\)/);
 
-  assert.match(state, /statusSurfaceRegistry\.show\('global-error'/);
-  assert.match(state, /statusSurfaceRegistry\.hide\('global-error'\)/);
+  assert.match(state, /notificationCenter\.notify\(\{[\s\S]*?dedupeKey: 'global-error'/);
+  assert.match(state, /notificationCenter\.hide\('global-error'\)/);
 });
 
 test('registry still suspends inline surfaces when a canvas modal is active', () => {

@@ -1,4 +1,4 @@
-// @requires connectionFsm.js, previewFsm.js, pollingFsm.js, toolModeFsm.js, connectionUseCases.js, previewUseCases.js, pollingUseCases.js, toolModeUseCases.js
+// @requires notificationCenter.js, connectionFsm.js, previewFsm.js, pollingFsm.js, toolModeFsm.js, connectionUseCases.js, previewUseCases.js, pollingUseCases.js, toolModeUseCases.js
             // Console teardown registry: each module that registers global
             // listeners (document/window) returns a `{ dispose }` slot from
             // its `init({...deps})` factory and pushes it here. main.js
@@ -59,6 +59,7 @@
             const previewUseCases = consoleApp.preview;
             const pollingUseCases = consoleApp.polling;
             const statusSurfaceRegistry = consoleApp.statusSurfaceRegistry;
+            const notificationCenter = createNotificationCenter({ registry: statusSurfaceRegistry });
             const toolMode = consoleApp.toolMode;
             state.connection = { ...connectionUseCases.getState() };
             state.previewFsm = { ...previewUseCases.getState() };
@@ -351,7 +352,7 @@
             }
 
             function syncStatusVisibility() {
-              if (!String(error.textContent || '').trim()) statusSurfaceRegistry.hide('global-error');
+              if (!String(error.textContent || '').trim()) notificationCenter.hide('global-error');
             }
 
             if (typeof MutationObserver !== 'undefined') {
@@ -365,7 +366,7 @@
 
             function resetStatusSurface() {
               error.textContent = '';
-              statusSurfaceRegistry.hide('global-error');
+              notificationCenter.hide('global-error');
               error.className = 'global-status';
               error.setAttribute('role', 'status');
               error.setAttribute('aria-live', 'polite');
@@ -391,14 +392,25 @@
                 error.setAttribute('role', assertive ? 'alert' : 'status');
                 error.setAttribute('aria-live', assertive ? 'assertive' : 'polite');
                 if (message) {
-                  statusSurfaceRegistry.show('global-error', {
-                    surfaceClass: 'toast',
-                    priority: variant === 'error' ? 1 : 3,
-                    element: error,
-                    content: message,
+                  notificationCenter.notify({
+                    severity: variant === 'error' ? 'error' : variant === 'warning' ? 'warning' : variant === 'success' ? 'success' : 'info',
+                    // Successes are dismissible toasts; everything else (including
+                    // errors with a TTL) stays as a banner so a recoverable error
+                    // never reduces to a toast-only surface.
+                    surface: variant === 'success' ? 'toast' : 'banner',
+                    title: variant === 'error' ? 'FixThis needs attention' : '',
+                    message,
+                    primaryAction: assertive ? 'Open details' : null,
+                    // The dedupeKey MUST stay 'global-error' because three existing
+                    // call sites in this same file (`syncStatusVisibility`,
+                    // `resetStatusSurface`, and the message-empty branch) call
+                    // `statusSurfaceRegistry.hide('global-error')` to clear the
+                    // singleton status line. Changing this key strands those hides.
+                    dedupeKey: 'global-error',
+                    ttlMs: durationMs,
                   });
                 } else {
-                  statusSurfaceRegistry.hide('global-error');
+                  notificationCenter.hide('global-error');
                 }
                 if (durationMs > 0) {
                   statusClearTimeout = setTimeout(() => {
