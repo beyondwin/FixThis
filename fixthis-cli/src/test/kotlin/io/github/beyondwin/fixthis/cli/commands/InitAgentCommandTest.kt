@@ -63,7 +63,10 @@ class InitAgentCommandTest {
         val agentManifest = projectRoot.resolve(".fixthis/agent-setup.json")
         assertTrue(agentManifest.isFile)
         val manifest = Json.parseToJsonElement(agentManifest.readText()).jsonObject
-        assertEquals("com.example.agent", manifest.getValue("packageName").jsonPrimitive.content)
+        assertEquals(
+            "com.example.agent",
+            manifest.getValue("state").jsonObject.getValue("packageName").jsonPrimitive.content,
+        )
     }
 
     @Test
@@ -221,9 +224,14 @@ class InitAgentCommandTest {
             System.setOut(oldOut)
         }
         val captured = out.toString()
+        // The guard, when triggered, emits "Skipped codex: no-android-context. ..." (or a JSON
+        // report entry with reason=no-android-context). The bare token now also appears as a
+        // recovery key in agent-setup.json, so match the guard-specific phrasing instead.
         assertFalse(
             "guard should not skip when --allow-global is set",
-            captured.contains("no-android-context"),
+            captured.contains("Skipped codex: no-android-context") ||
+                captured.contains("\"reason\":\"no-android-context\"") ||
+                captured.contains("\"reason\": \"no-android-context\""),
         )
     }
 
