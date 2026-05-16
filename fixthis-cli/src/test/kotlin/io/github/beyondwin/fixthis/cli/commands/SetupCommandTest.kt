@@ -239,6 +239,101 @@ class SetupCommandTest {
     }
 
     @Test
+    fun setupDryRunDoesNotLeakUnchangedClaudeMcpServers() {
+        // Drives the full SetupCommand → applyWritePlan(dryRun=true) path via Clikt parse so
+        // future regressions in the wire-up (e.g., dry-run bypassing applyWritePlan) are caught.
+        val marker = "DO-NOT-LEAK-MARKER-XYZ"
+        val projectRoot = temporaryFolder.newFolder("project")
+        val claudeSettings = projectRoot.resolve(".claude/settings.json").apply {
+            parentFile.mkdirs()
+            writeText("""{"mcpServers":{"other":{"command":"$marker","args":[]}}}""")
+        }
+        val userHome = temporaryFolder.newFolder("home")
+
+        val captured = captureStdout {
+            withUserHome(userHome) {
+                SetupCommand().parse(
+                    listOf(
+                        "--package", "io.github.beyondwin.fixthis.sample",
+                        "--project-dir", projectRoot.absolutePath,
+                        "--write",
+                        "--target", "claude",
+                        "--dry-run",
+                    ),
+                )
+            }
+        }
+
+        assertFalse(
+            "unchanged 'other' entry marker must not leak via dry-run output. Got: $captured",
+            captured.contains(marker),
+        )
+        assertTrue(
+            "added fixthis entry should appear in diff. Got: $captured",
+            captured.contains("fixthis"),
+        )
+        assertEquals(
+            "dry-run must not modify the on-disk file",
+            """{"mcpServers":{"other":{"command":"$marker","args":[]}}}""",
+            claudeSettings.readText(),
+        )
+    }
+
+    @Test
+    fun setupDryRunDoesNotLeakPriorValueWhenFixthisEntryAlreadyExists() {
+        // Changed-entry case: an existing fixthis entry is replaced with a new value.
+        // DryRunDiff's renderJsonStructured emits `~ "fixthis": <after value>` — the
+        // BEFORE value is omitted by design. Verifies that design guarantee end-to-end.
+        val priorValue = "PRIOR-FIXTHIS-VALUE-DO-NOT-LEAK"
+        val projectRoot = temporaryFolder.newFolder("project")
+        val claudeSettings = projectRoot.resolve(".claude/settings.json").apply {
+            parentFile.mkdirs()
+            writeText("""{"mcpServers":{"fixthis":{"command":"$priorValue","args":[]}}}""")
+        }
+        val userHome = temporaryFolder.newFolder("home")
+
+        val captured = captureStdout {
+            withUserHome(userHome) {
+                SetupCommand().parse(
+                    listOf(
+                        "--package", "io.github.beyondwin.fixthis.sample",
+                        "--project-dir", projectRoot.absolutePath,
+                        "--write",
+                        "--target", "claude",
+                        "--dry-run",
+                    ),
+                )
+            }
+        }
+
+        assertFalse(
+            "prior fixthis-entry value must not leak when entry is replaced. Got: $captured",
+            captured.contains(priorValue),
+        )
+        assertTrue(
+            "expected the changed fixthis entry to appear in diff. Got: $captured",
+            captured.contains("fixthis"),
+        )
+        assertEquals(
+            "dry-run must not modify the on-disk file",
+            """{"mcpServers":{"fixthis":{"command":"$priorValue","args":[]}}}""",
+            claudeSettings.readText(),
+        )
+    }
+
+    private fun captureStdout(block: () -> Unit): String {
+        val buffer = java.io.ByteArrayOutputStream()
+        val previous = System.out
+        System.setOut(java.io.PrintStream(buffer))
+        try {
+            block()
+        } finally {
+            System.setOut(previous)
+        }
+        return buffer.toString()
+    }
+
+    @Test
     fun applyWritePlanDryRunPrintsDiffOnly() {
         val marker = "EXISTING-MARKER-123"
         val tempFile = java.io.File.createTempFile("ft-cfg", ".json").apply {
