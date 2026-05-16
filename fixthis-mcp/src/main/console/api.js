@@ -52,7 +52,10 @@
               }
               const response = await fetch(path, { ...options, headers });
               if (!response.ok) {
-                throw await readStructuredError(response);
+                const err = await readStructuredError(response);
+                // Spec S1.4.1: fire the reload_console banner before propagating.
+                if (typeof surfaceReloadConsoleNotice === 'function') surfaceReloadConsoleNotice(err);
+                throw err;
               }
               return response.json();
             }

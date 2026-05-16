@@ -99,16 +99,22 @@ function createDraftApiAdapter({ fetchImpl = fetch, consoleToken = null } = {}) 
     return { error: 'http_error', message };
   }
 
-  async function requestJson(path, body) {
+  async function requestJson(path, body, init = {}) {
+    const headers = createDraftApiHeaders(consoleToken);
+    if (init.ifMatch) headers.set('If-Match', init.ifMatch);
     const response = await fetchImpl(path, {
       method: 'POST',
-      headers: createDraftApiHeaders(consoleToken),
+      headers,
       body: JSON.stringify(body),
     });
     if (!response.ok) {
       if (response.status === 409) {
         const conflict = await response.json().catch(() => ({}));
         return { conflict };
+      }
+      if (response.status === 412) {
+        const staleDraft = await response.json().catch(() => ({}));
+        return { staleDraft, etag: response.headers?.get?.('ETag') || null };
       }
       const errorBody = await readErrorBody(response);
       throw createDraftApiError({ ...errorBody, status: response.status });
@@ -117,7 +123,7 @@ function createDraftApiAdapter({ fetchImpl = fetch, consoleToken = null } = {}) 
   }
 
   return {
-    saveDraftWorkspace: (request) => requestJson('/api/items/batch', request),
+    saveDraftWorkspace: (request, init) => requestJson('/api/items/batch', request, init),
     saveToMcp: (sessionId, itemIds) => requestJson('/api/agent-handoffs', { sessionId, itemIds }),
     handoffPreview: async (sessionId, itemIds) => {
       const response = await fetchImpl('/api/sessions/' + encodeURIComponent(sessionId) + '/handoff-preview', {
@@ -131,4 +137,21 @@ function createDraftApiAdapter({ fetchImpl = fetch, consoleToken = null } = {}) 
     markHandedOff: (sessionId, itemIds) =>
       requestJson('/api/sessions/' + encodeURIComponent(sessionId) + '/items/mark-handed-off', { itemIds }),
   };
+}
+
+// Stale-draft (HTTP 412) resolver. Spec S1.4.5: open `staleDraftConflict`
+// boundary dialog with three buttons. Result object shape:
+//   { action: 'overwrite', retry: () => Promise<saveResult> }
+//   { action: 'useServer', serverDraft: <SessionDto> }
+//   { action: 'cancel' }
+async function resolveStaleDraftConflict({ adapter, request, staleDraft, prompt, render }) {
+  if (typeof render === 'function') render('staleDraftConflict', { readiness: staleDraft?.readiness || null });
+  const choice = await prompt();
+  if (choice === 'overwrite') {
+    return { action: 'overwrite', retry: () => adapter.saveDraftWorkspace(request, { ifMatch: '*' }) };
+  }
+  if (choice === 'useServer') {
+    return { action: 'useServer', serverDraft: staleDraft?.serverDraft || null };
+  }
+  return { action: 'cancel' };
 }

@@ -1,4 +1,4 @@
-// @requires state.js, api.js, draftWorkspace.js
+// @requires state.js, api.js, draftWorkspace.js, previewPoll.js
             // Raw HTTP fetch — the previewUseCases layer provides dedup and
             // race-fence via the FSM. Cross-caller dedup (across draft port
             // and FSM) is achieved by routing all callers through
@@ -153,6 +153,37 @@
             }
 
 
+            // Render the CAPTURE_UNAVAILABLE readiness in the connection-card readiness
+            // slot when /api/preview reports `previewAvailable: false`, and restore the
+            // Capture button label / clear the slot when previewAvailable recovers.
+            function applyPreviewReadinessToConnectionCard(preview) {
+              const slot = document.getElementById('connectionReadiness');
+              const button = document.getElementById('connectionPrimaryAction');
+              if (preview && preview.previewAvailable === false && preview.readiness) {
+                if (slot) {
+                  slot.hidden = false;
+                  slot.dataset.state = preview.readiness.state || '';
+                  slot.textContent = (preview.readiness.cause || '') +
+                    (preview.readiness.verify ? ' ' + preview.readiness.verify : '');
+                  slot.title = preview.readiness.verify || '';
+                }
+                if (button) {
+                  button.textContent = preview.readiness.nextAction || 'Retry capture';
+                  button.dataset.connectionAction = 'CAPTURE';
+                }
+                return;
+              }
+              if (slot) {
+                slot.hidden = true;
+                slot.dataset.state = '';
+                slot.textContent = '';
+                slot.title = '';
+              }
+              if (button) {
+                button.textContent = 'Capture screen';
+              }
+            }
+
             async function refreshPreview() {
               error.textContent = '';
               if (!state.session || draftFlow()) return;
@@ -160,6 +191,12 @@
               try {
                 const preview = await previewUseCases.request();
                 if (draftFlow() || !previewContextStillCurrent(previewContext)) return;
+                if (dropStalePreviewPoll(preview, state.session?.sessionId || null)) return;
+                applyPreviewReadinessToConnectionCard(preview);
+                if (preview?.previewAvailable === false) {
+                  renderPreviewOnly();
+                  return;
+                }
                 if (preview?.screen?.systemUiVisible && state.preview) {
                   state.preview.stale = true;
                   state.preview.obstructedBySystemUi = preview.screen.systemUiKind || 'system_ui';

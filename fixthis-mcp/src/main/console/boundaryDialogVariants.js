@@ -77,6 +77,13 @@ const BoundaryDialogVariants = Object.freeze({
     primary: Object.freeze({ label: 'Recapture', action: 'confirm' }),
     cancel: Object.freeze({ label: 'Cancel', action: 'cancel' }),
   }),
+  staleDraftConflict: Object.freeze({
+    title: () => 'A newer save advanced the draft.',
+    summary: () => "The server's draft moved ahead since your last sync. Pick whose version wins.",
+    primary: Object.freeze({ label: 'Keep mine (overwrite)', action: 'overwrite' }),
+    secondary: Object.freeze({ label: "Use server's version", action: 'useServer' }),
+    cancel: Object.freeze({ label: 'Cancel', action: 'cancel' }),
+  }),
   pendingRecovery: Object.freeze({
     title: () => 'Recover unsaved draft?',
     summary: (ctx = {}) => {

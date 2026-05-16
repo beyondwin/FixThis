@@ -18,10 +18,34 @@ class FirstRunReadinessTest {
                 "ENV_BLOCKER",
                 "STALE_PREVIEW",
                 "SESSION_MISMATCH",
+                "CAPTURE_UNAVAILABLE",
                 "UNKNOWN_ERROR",
             ),
             FirstRunReadinessState.entries.map { it.name },
         )
+    }
+
+    @Test
+    fun catalogCaptureUnavailableUsesRetryCapturePrimaryAction() {
+        val readiness = FirstRunReadinessCatalog.captureUnavailable(
+            cause = "Screenshot bytes unavailable.",
+            details = mapOf("rawError" to "screenshot 404"),
+        )
+
+        assertEquals(FirstRunReadinessState.CAPTURE_UNAVAILABLE, readiness.state)
+        assertEquals("Retry capture", readiness.nextAction)
+        assertEquals(
+            "Open the app foreground and tap Capture, or open doctor for the bridge log.",
+            readiness.verify,
+        )
+        assertEquals("Screenshot bytes unavailable.", readiness.cause)
+        assertEquals("screenshot 404", readiness.details.getValue("rawError"))
+    }
+
+    @Test
+    fun catalogCaptureUnavailableDefaultsToEmptyDetails() {
+        val readiness = FirstRunReadinessCatalog.captureUnavailable("Capture unavailable.")
+        assertEquals(emptyMap<String, String>(), readiness.details)
     }
 
     @Test

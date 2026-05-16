@@ -24,7 +24,12 @@
   "beforeunload": ["scripts/beforeunloadGuard-test.mjs"],
   "undo": ["scripts/undoRedo-test.mjs", "scripts/undoKeymatch-test.mjs"],
   "activity": ["scripts/activityDrift-test.mjs"],
-  "preview": ["scripts/previewStaleness-test.mjs", "scripts/canvasStatusBadgesLayout-test.mjs"],
+  "preview": [
+    "scripts/previewStaleness-test.mjs",
+    "scripts/canvasStatusBadgesLayout-test.mjs",
+    "scripts/captureUnavailableRender-test.mjs",
+    "scripts/markPreviewStale-test.mjs"
+  ],
   "draft": [
     "scripts/editorState-test.mjs",
     "scripts/workspaceAllocationGate-test.mjs",
@@ -38,6 +43,7 @@
     "scripts/draftCommandQueue-test.mjs",
     "scripts/draftPresentationContract-test.mjs",
     "scripts/draftWorkflowInvariant-test.mjs",
+    "scripts/staleDraftConflict-test.mjs",
     "scripts/targetReliabilityPresentation-test.mjs"
   ],
   "session": [
@@ -47,7 +53,8 @@
     "scripts/sessionScopedRequests-test.mjs",
     "scripts/savedOverlayScope-test.mjs",
     "scripts/transportSessionResilience-test.mjs",
-    "scripts/undoRedoContext-test.mjs"
+    "scripts/undoRedoContext-test.mjs",
+    "scripts/sessionMismatchIgnore-test.mjs"
   ],
   "harness": [
     "scripts/console-fixture/fakeBridgeServer-test.mjs",
@@ -57,6 +64,8 @@
   "notification": [
     "scripts/requestJson-test.mjs",
     "scripts/notificationCenter-test.mjs",
-    "scripts/nativeConfirmAudit-test.mjs"
+    "scripts/nativeConfirmAudit-test.mjs",
+    "scripts/reloadConsoleNotice-test.mjs",
+    "scripts/clipboardFallback-test.mjs"
   ]
 }

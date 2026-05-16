@@ -220,7 +220,7 @@
                 startLivePreviewPolling();
               } else {
                 stopLivePreviewPolling();
-                if (draftItemList().length || state.preview) markPreviewStale(true);
+                if (state.connection.hasEverConnected) markPreviewStale(true);
               }
               renderConnection(status);
               // Re-render the preview region so the canvas blocked-reason overlay and
@@ -232,7 +232,11 @@
                 if (hadEverConnected && previousViewState !== 'ready' && !state.connection?.interactionBlockedReason) {
                   applyReconnect({ targetStale: Boolean(state.preview?.stale) });
                 }
-              } else if (shouldShowDisconnectChoreography(viewState) && (hadEverConnected || hasDirtyDraft || state.preview)) {
+              } else if (shouldShowDisconnectChoreography(viewState) && !state.preview && (hadEverConnected || hasDirtyDraft)) {
+                // When a salvageable preview exists, the milder previewStaleBadge
+                // ("Connection paused - showing last preview") owns the UX. The
+                // modalCanvas overlay would suspend the badge surface class and
+                // contradict that messaging, so we skip applyDisconnect here.
                 applyDisconnect({ hasDirtyDraft });
               } else if (!state.connection?.interactionBlockedReason) {
                 statusSurfaceRegistry.hide('canvasBlockedOverlay');

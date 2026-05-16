@@ -1,4 +1,4 @@
-// @requires state.js, connection.js, devices.js, preview.js, history.js, rendering.js, sessions-polling.js
+// @requires state.js, connection.js, devices.js, preview.js, history.js, rendering.js, sessions-polling.js, sse.js
             let consoleEventsSource = null;
             function startConsoleEvents() {
               if (typeof EventSource === 'undefined' || consoleEventsSource) return;
@@ -43,7 +43,7 @@
               on('sessions-updated', (data) => data.sessions?.sessions ? renderSessionsListFromPayload(data.sessions.sessions) : refreshSessions().catch(showError));
               on('preview-ready', (data) => {
                 if (!data.preview || draftFlow()) return;
-                if (data.sessionId !== state.session?.sessionId) return;
+                if (dropStaleSse(data, state.session?.sessionId || null)) return;
                 setConsolePreview({
                   ...data.preview,
                   activity: state.connection?.availability?.activity ?? null,

@@ -27,7 +27,7 @@ constraints — those apply equally to Claude Code.
 - **Console UI iteration** — pass `--console-assets-dir` to read HTML/CSS/JS
   from source instead of the packaged JAR; rebundle JS via
   `node scripts/build-console-assets.mjs` after edits (produces minified
-  `app.js` ≤ 200 KiB raw / 50 KiB gzip, an `app.js.map` source map for
+  `app.js` ≤ 205 KiB raw / 52 KiB gzip, an `app.js.map` source map for
   DevTools, and a `console-build-meta.json` sidecar inlined as
   `window.FixThisConsoleConfig.buildMeta` at serve time), then verify with
   `node scripts/build-console-assets.mjs --check`. Details in

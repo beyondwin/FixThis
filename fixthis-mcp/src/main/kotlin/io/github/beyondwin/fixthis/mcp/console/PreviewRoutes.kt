@@ -2,6 +2,7 @@ package io.github.beyondwin.fixthis.mcp.console
 
 import com.sun.net.httpserver.HttpExchange
 import io.github.beyondwin.fixthis.cli.fixThisJson
+import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessCatalog
 import io.github.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
 import io.github.beyondwin.fixthis.mcp.session.FeedbackNavigationRequest
 import io.github.beyondwin.fixthis.mcp.session.FeedbackNavigationResult
@@ -60,8 +61,29 @@ internal class PreviewRoutes(
     private fun HttpExchange.handlePreviewCapture() = requireMethod("GET") {
         val session = service.requireCurrentSession()
         val preview = runBlocking { service.capturePreview(session.sessionId) }
-        eventBus.emitPreviewReady(session.sessionId, preview)
-        sendJson(200, preview)
+        val classified = classifyPreviewAvailability(preview)
+        eventBus.emitPreviewReady(session.sessionId, classified)
+        sendJson(200, classified)
+    }
+
+    private fun classifyPreviewAvailability(preview: FeedbackPreviewSnapshot): FeedbackPreviewSnapshot {
+        if (preview.hasScreenshotBytes()) return preview
+        return preview.copy(
+            previewAvailable = false,
+            readiness = FirstRunReadinessCatalog.captureUnavailable(
+                cause = "Capture returned semantics with no screenshot bytes.",
+                details = buildMap {
+                    preview.screen.screenshot?.captureFailedReason
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { put("rawError", it) }
+                },
+            ),
+        )
+    }
+
+    private fun FeedbackPreviewSnapshot.hasScreenshotBytes(): Boolean {
+        val shot = screen.screenshot ?: return false
+        return !shot.fullPath.isNullOrBlank() || !shot.desktopFullPath.isNullOrBlank()
     }
 
     private fun HttpExchange.handleNavigation() = requireMethod("POST") {

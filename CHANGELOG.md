@@ -27,6 +27,63 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+### Added — v0.3 first-run trust follow-up
+
+Closes the six deferred items from the v0.3 first-run trust program
+(Edge Case Coverage Map → Deferred) plus the pre-existing
+`console:smoke` failure at line 768.
+
+- 403 reload CTA — `requestJson` rejection with
+  `ConsoleRequestError({action:'reload_console'})` fires a single
+  NotificationCenter banner (`dedupeKey: reload_console_403`,
+  primaryAction "Reload console") via the new
+  `surfaceReloadConsoleNotice(err)` helper in `state.js`, before the
+  legacy `showError` fallback.
+- Clipboard fallback — `copyTextToClipboard` rejection inside
+  `copyPrompt` now surfaces a warning banner
+  (`dedupeKey: clipboard_fallback`, detail: "Select the prompt and copy
+  it manually.") instead of the legacy `showError` toast. The path
+  short-circuits so items are not marked handed off on copy failure.
+- New readiness state `CAPTURE_UNAVAILABLE` — `FirstRunReadinessState`
+  gains a state for screenshot 404 / semantics-only captures. Server
+  attaches `readiness = captureUnavailable(...)` to `/api/preview`
+  responses (HTTP 200 + `previewAvailable: false`); client renders into
+  the connection-card readiness slot with "Retry capture" primary
+  action.
+- Late SSE / `SESSION_MISMATCH` ignore — `sse.js` (`dropStaleSse`) and
+  `previewPoll.js` (`dropStalePreviewPoll`) drop messages and poll
+  responses whose `sessionId` no longer matches the active session;
+  silent drop with a `console.warn` diagnostic, no state mutation, no
+  user-facing notification.
+- Stale-draft conflict policy — `/api/items/batch` now emits
+  `ETag: "<rev>"` and requires `If-Match: "<previous-rev>"` on
+  subsequent saves. Mismatch → HTTP 412 with body
+  `{state: "STALE_PREVIEW", readiness, serverDraft}`. Console opens the
+  new `staleDraftConflict` boundary variant (Cancel /
+  "Use server's version" / "Keep mine (overwrite)"); choosing "Keep
+  mine" resends with `If-Match: *`, choosing "Use server's version"
+  discards local and loads `serverDraft`. No automatic merge; Cancel
+  preserves local pending pins.
+- `console:smoke` `previewStaleBadge` fix — at OPEN_APP, the
+  `markPreviewStale(true)` gate now uses `hasEverConnected` instead of
+  `(draftItemList().length || state.preview)`, so any draft surface
+  seen so far qualifies even after `state.preview` clears mid-transition
+  (smoke line 768/769). Also dismisses the `sessionBoundarySheet` on the
+  `fixThisPromptPendingBoundary` override branch so the cancel path
+  hides the sheet to mirror the real-user dismissal (smoke line 829).
+
+### Changed — v0.3 first-run trust follow-up
+
+- Console bundle budget — production gzip budget bumped 50 KiB → 52 KiB
+  to absorb the six new NotificationCenter surfaces; raw budget bumped
+  200 KiB → 205 KiB to absorb the new modules
+  (`sse.js`, `previewPoll.js`). Unit-test budget in
+  `scripts/build-console-assets-test.mjs` was correspondingly bumped
+  from 45 KiB → 52 KiB gzip and 200 KiB → 205 KiB raw.
+- Architecture hotspot budget for
+  `fixthis-mcp/src/main/console/state.js` bumped 440 → 470 lines to
+  absorb the new `surfaceReloadConsoleNotice` helper.
+
 ### Added
 - `fixthis --version` flag and `fixthis version [--json]` subcommand emit
   the CLI build version, git SHA, and bridge protocol version.
