@@ -50,6 +50,7 @@ class DoctorCommand : CoreCliktCommand(name = "doctor") {
                 )
                 if (!jsonOutput) {
                     echo("FAIL $label: ${error.message}")
+                    echo("  ↳ fix: $fix")
                 }
             }
         }
