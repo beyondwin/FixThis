@@ -65,7 +65,7 @@ pitch, scope, and sample-to-agent Quick Start.
 - [Release notes](releases/README.md) — GitHub Release summaries, including
   unreleased changes since v0.1.0
 - [Release readiness checklist](contributing/release-readiness.md) — current
-  public channels and remaining registry blockers
+  public channels and remaining package targets
 - [Release process](contributing/release-process.md) — SemVer policy,
   CHANGELOG, version-bump checklist
 - [Required PR checks tracker](contributing/required-checks.md) — observation

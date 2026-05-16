@@ -48,9 +48,10 @@ brew install beyondwin/fixthis/fixthis
 
 ### Registry discovery channels
 
-The npm wrapper and MCP Registry metadata are prepared and locally validated.
-Publishing remains gated on an npm automation token, because the MCP Registry
-entry points at the public npm package.
+The npm wrapper is published as `@beyondwin/fixthis`, and the MCP Registry
+entry is published as `io.github.beyondwin/fixthis`. Future discovery work can
+add more package-manager channels only when they preserve the same agent-first
+setup flow.
 
 ### Deeper AndroidView and interop awareness
 

@@ -8,12 +8,11 @@ GitHub Release page and registry listings as release evidence.
 ## Highlights
 
 - Release and getting-started docs now reflect the post-v0.2.3 channel state:
-  Homebrew is available at `beyondwin/fixthis/fixthis`, while the scoped npm
-  wrapper `@beyondwin/fixthis` and MCP Registry metadata remain prepared but
-  unpublished until the npm publish workflow succeeds.
-- The release dashboard now separates currently usable channels from registry
-  discovery blockers, so agents do not try to use npm or MCP Registry before
-  those listings are public.
+  Homebrew is available at `beyondwin/fixthis/fixthis`, the scoped npm wrapper
+  is available at `@beyondwin/fixthis`, and the MCP Registry entry is
+  `io.github.beyondwin/fixthis`.
+- The release dashboard now separates currently usable channels from remaining
+  future package targets such as PyPI and Docker.
 - Console bundle work on `main` minifies the browser app with esbuild and keeps
   source resolution explicit through `// @requires` directives.
 
@@ -23,8 +22,8 @@ GitHub Release page and registry listings as release evidence.
   `io.github.beyondwin.fixthis.compose` version `0.2.3`.
 - The plugin resolves the debug-only sidekick from Maven Central.
 - Homebrew installs the matching CLI/MCP GitHub Release package on macOS.
-- npm and MCP Registry are not user-facing install paths until the npm package
-  is publicly published.
+- npm installs the matching CLI/MCP GitHub Release package through
+  `@beyondwin/fixthis`.
 
 ## Validation Surface
 

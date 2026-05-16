@@ -30,6 +30,7 @@ points to canonical docs rather than restating them — update those, not this.
 
 # In a published/installable CLI flow inside an Android app repo.
 brew install beyondwin/fixthis/fixthis
+# Or: npm install -g @beyondwin/fixthis
 fixthis init
 ```
 
@@ -41,8 +42,9 @@ against. The script writes Claude Code config to project-local
 preview. Restart your agent after the script finishes.
 
 `fixthis init` is the agent-first entry point once the CLI is installed. On
-macOS, the Homebrew tap is the shortest install path; on macOS/Linux without
-Homebrew, use `scripts/install-fixthis.sh` from the GitHub Release package.
+macOS, the Homebrew tap is the shortest install path; npm is also available as
+`@beyondwin/fixthis`. On macOS/Linux without a package manager, use
+`scripts/install-fixthis.sh` from the GitHub Release package.
 `fixthis init` can detect a unique Android `applicationId` from Gradle build
 files and writes Claude Code / Codex MCP config by default. Manual setup, full
 CLI flags, and dry-run examples:

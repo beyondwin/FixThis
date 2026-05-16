@@ -15,7 +15,10 @@ The agent-first path should do this automatically:
 ```bash
 brew install beyondwin/fixthis/fixthis
 
-# Or, without Homebrew:
+# Or, with npm:
+npm install -g @beyondwin/fixthis
+
+# Or, without a package manager:
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
   | bash -s -- --version v0.2.3
 
@@ -88,7 +91,11 @@ Agents may combine desktop install and MCP registration:
 brew install beyondwin/fixthis/fixthis
 fixthis init --agent --project-dir . --target codex
 
-# Or, without Homebrew:
+# Or, with npm:
+npm install -g @beyondwin/fixthis
+fixthis init --agent --project-dir . --target codex
+
+# Or, without a package manager:
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
   | bash -s -- --version v0.2.3 --init --target codex --project-dir . --package <applicationId>
 ```

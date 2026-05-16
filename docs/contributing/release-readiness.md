@@ -1,7 +1,8 @@
 # Release Readiness
 
-FixThis is usable today through GitHub Releases, Homebrew, Maven Central, the
-Gradle Plugin Portal, the bundled sample app, and local MCP bootstrap.
+FixThis is usable today through GitHub Releases, Homebrew, npm, MCP Registry,
+Maven Central, the Gradle Plugin Portal, the bundled sample app, and local MCP
+bootstrap.
 
 This page is the release dashboard. It separates what users can do today from
 what must be verified before adding broader package-manager or registry
@@ -18,8 +19,8 @@ discovery.
 | CLI/MCP GitHub Release package | Available | `scripts/install-fixthis.sh` installs it. |
 | Homebrew tap | Available | macOS users can run `brew install beyondwin/fixthis/fixthis`. |
 | External Gradle artifacts | Available | External apps apply `io.github.beyondwin.fixthis.compose` from the Gradle Plugin Portal; the plugin resolves sidekick/core from Maven Central. |
-| npm wrapper | Prepared, not published | Package metadata and tests pass for `@beyondwin/fixthis@0.2.3`; publication is blocked on `NPM_TOKEN`. |
-| MCP Registry entry | Not published | Discovery remains through the GitHub repository and docs. |
+| npm wrapper | Available | Users can run `npm install -g @beyondwin/fixthis`. |
+| MCP Registry entry | Available | `io.github.beyondwin/fixthis` points at the public npm wrapper. |
 
 ## Supported Install Paths Today
 
@@ -28,6 +29,8 @@ discovery.
   with Claude Code or Codex.
 - Install the CLI/MCP package with Homebrew on macOS:
   `brew install beyondwin/fixthis/fixthis`.
+- Install the CLI/MCP package with npm:
+  `npm install -g @beyondwin/fixthis`.
 - Install the CLI/MCP package from GitHub Releases:
   `scripts/install-fixthis.sh --version v0.2.3`.
 - Use `fixthis install-agent --project-dir . --target all` in an external
@@ -38,8 +41,7 @@ discovery.
 
 The following install paths are intentionally not advertised as ready:
 
-- npm/PyPI/Docker package for the CLI/MCP server.
-- MCP Registry metadata entry.
+- PyPI/Docker package for the CLI/MCP server.
 
 Do not advertise a package-manager path until it has its own clean install
 test and rollback plan.
@@ -89,8 +91,8 @@ test and rollback plan.
 | Compose core | `io.github.beyondwin:fixthis-compose-core` | Maven Central, only if needed by consumers |
 | CLI/MCP package | `fixthis-cli-mcp-vX.Y.Z.tar.gz` | GitHub Releases |
 | Homebrew formula | `beyondwin/fixthis/fixthis` | Homebrew tap |
-| npm wrapper | `@beyondwin/fixthis` | npm, not yet published |
-| MCP server | `io.github.beyondwin/fixthis` | MCP Registry metadata, not yet published |
+| npm wrapper | `@beyondwin/fixthis` | npm |
+| MCP server | `io.github.beyondwin/fixthis` | MCP Registry metadata |
 
 ## Required Maintainer Secrets
 
@@ -105,7 +107,7 @@ can be renamed before real publication is enabled.
 | `SIGNING_PASSWORD` | Password for the signing key. |
 | `GRADLE_PUBLISH_KEY` | Gradle Plugin Portal publish key. |
 | `GRADLE_PUBLISH_SECRET` | Gradle Plugin Portal publish secret. |
-| `NPM_TOKEN` | npm automation token for publishing the `fixthis` wrapper package before MCP Registry publication. |
+| `NPM_TOKEN` | npm automation token for publishing `@beyondwin/fixthis` before MCP Registry publication. |
 
 ## Evidence Links
 

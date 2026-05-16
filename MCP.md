@@ -44,7 +44,14 @@ brew install beyondwin/fixthis/fixthis
 fixthis init --agent --project-dir . --target codex
 ```
 
-On macOS/Linux without Homebrew, use the GitHub Release installer:
+With npm:
+
+```bash
+npm install -g @beyondwin/fixthis
+fixthis init --agent --project-dir . --target codex
+```
+
+On macOS/Linux without a package manager, use the GitHub Release installer:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \

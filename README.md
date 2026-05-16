@@ -24,7 +24,7 @@ room, interop content, or another region that is not a clean component.
 
 - Try the bundled sample app in about five minutes.
 - Install the published desktop CLI/MCP package with Homebrew on macOS or from
-  GitHub Releases on macOS/Linux.
+  npm / GitHub Releases on macOS/Linux.
 - Add FixThis to an external Android app with the published Gradle plugin:
   `io.github.beyondwin.fixthis.compose`.
 - Let Claude Code or Codex configure the sample MCP server with `./scripts/bootstrap-mcp.sh --sample`.
@@ -47,6 +47,9 @@ The agent should run:
 ```bash
 # macOS package-manager path
 brew install beyondwin/fixthis/fixthis
+
+# Node/npm path
+npm install -g @beyondwin/fixthis
 
 # macOS/Linux fallback path
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
@@ -152,8 +155,8 @@ FixThis has public artifacts for the agent-first path:
   `io.github.beyondwin:fixthis-compose-core`
 - Homebrew tap: `brew install beyondwin/fixthis/fixthis`
 - CLI/MCP package: GitHub Release asset `fixthis-cli-mcp-vX.Y.Z.tar.gz`
-- npm wrapper `@beyondwin/fixthis` and MCP Registry metadata are prepared and
-  validated, but not publicly listed until the npm publish workflow succeeds.
+- npm wrapper: `npm install -g @beyondwin/fixthis`
+- MCP Registry entry: `io.github.beyondwin/fixthis`
 
 The live release dashboard is
 [Release readiness](docs/contributing/release-readiness.md). It lists current

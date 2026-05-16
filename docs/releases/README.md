@@ -4,10 +4,8 @@ This directory keeps the human-written notes that are published with GitHub
 Releases. `CHANGELOG.md` remains the canonical chronological change log; these
 files are the concise release-facing summaries.
 
-FixThis is distributed through GitHub Releases, Homebrew, Maven Central, and
-the Gradle Plugin Portal. npm wrapper publication and MCP Registry metadata are
-prepared but remain tracked in the release-readiness checklist until npm is
-public.
+FixThis is distributed through GitHub Releases, Homebrew, npm, MCP Registry,
+Maven Central, and the Gradle Plugin Portal.
 
 ## Releases
 

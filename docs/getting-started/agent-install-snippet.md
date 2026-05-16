@@ -15,8 +15,14 @@ When asked to add FixThis to this Android app:
    brew install beyondwin/fixthis/fixthis
    ```
 
-   On macOS/Linux without Homebrew, install from the GitHub Release CLI/MCP
-   package:
+   With npm:
+
+   ```bash
+   npm install -g @beyondwin/fixthis
+   ```
+
+   On macOS/Linux without a package manager, install from the GitHub Release
+   CLI/MCP package:
 
    ```bash
    curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \

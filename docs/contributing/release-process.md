@@ -17,8 +17,8 @@ install instructions.
 | GitHub release | Git tag, GitHub Release, release notes, CLI/MCP tarball | Supported today |
 | Artifact release | Maven Central and/or Gradle Plugin Portal artifacts | Supported through manual workflows |
 | Homebrew release | Tap formula update pointing at the GitHub Release CLI/MCP tarball | Supported today |
-| npm wrapper release | Public `@beyondwin/fixthis` npm package that downloads the matching GitHub Release CLI/MCP tarball | Prepared; requires `NPM_TOKEN` |
-| MCP Registry release | Registry metadata pointing to the public npm wrapper | Prepared; publish after npm is public |
+| npm wrapper release | Public `@beyondwin/fixthis` npm package that downloads the matching GitHub Release CLI/MCP tarball | Supported through manual workflow |
+| MCP Registry release | Registry metadata pointing to the public npm wrapper | Supported through manual workflow after npm publish |
 
 ## Versioning
 
