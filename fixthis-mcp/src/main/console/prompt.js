@@ -83,7 +83,22 @@
                         const sessionId = draftWorkspace?.context?.sessionId || state.session?.sessionId;
                         if (!sessionId) throw new Error('Feedback session context is missing. Re-capture and try again.');
                         const markdown = await fetchHandoffPreview(sessionId, itemIds);
-                        await copyTextToClipboard(markdown);
+                        // Spec S1.4.2: clipboard failure routes through
+                        // NotificationCenter (warning banner) instead of the
+                        // legacy showError path, then short-circuits so we do
+                        // not mark items handed off or flip `copied`.
+                        try {
+                            await copyTextToClipboard(markdown);
+                        } catch {
+                            notificationCenter.notify({
+                                severity: 'warning',
+                                surface: 'banner',
+                                dedupeKey: 'clipboard_fallback',
+                                title: 'Copy failed',
+                                detail: 'Select the prompt and copy it manually.',
+                            });
+                            return;
+                        }
                         copied = true;
                         try {
                             const updated = await markItemsHandedOff(sessionId, itemIds);

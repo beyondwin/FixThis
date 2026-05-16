@@ -58,6 +58,7 @@
     "scripts/requestJson-test.mjs",
     "scripts/notificationCenter-test.mjs",
     "scripts/nativeConfirmAudit-test.mjs",
-    "scripts/reloadConsoleNotice-test.mjs"
+    "scripts/reloadConsoleNotice-test.mjs",
+    "scripts/clipboardFallback-test.mjs"
   ]
 }
