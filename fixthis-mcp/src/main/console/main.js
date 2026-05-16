@@ -223,7 +223,7 @@
                 // so dismiss the sheet to match real-user dismissal.
                 return Promise.resolve(window.fixThisPromptPendingBoundary({ action, count })).then((choice) => {
                   if (typeof statusSurfaceRegistry !== 'undefined') statusSurfaceRegistry.hide('sessionBoundarySheet');
-                  else { const r = document.getElementById('sessionBoundarySheet'); if (r) r.hidden = true; }
+                  else if (typeof document !== 'undefined') { const r = document.getElementById('sessionBoundarySheet'); if (r) r.hidden = true; }
                   return choice;
                 });
               }

@@ -328,3 +328,71 @@ accidental minifier elimination. Tests now read unbundled JS from
 `fixthis-mcp/src/main/console/*.js` via `ConsoleSourceFixtures` (see
 `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/fixtures/ConsoleSourceFixtures.kt`)
 rather than the minified `app.js`.
+
+## v0.3 first-run trust follow-up — surfaces and contracts
+
+### Readiness state catalog
+
+- `CAPTURE_UNAVAILABLE` — emitted by the server when `/api/preview` or
+  `/api/screenshot` returns 404 or the capture has only semantics with
+  no image bytes. The response stays HTTP 200 with
+  `payload.previewAvailable = false` and a `readiness` object built by
+  `FirstRunReadiness.captureUnavailable(cause, details)`
+  (`primaryAction: "Retry capture"`). Rendered by the console via the
+  existing connection-card readiness slot
+  (`#connectionReadiness`, populated by
+  `applyPreviewReadinessToConnectionCard` in `preview.js`).
+
+### NotificationCenter surfaces
+
+| dedupeKey | surface | severity | Fired by |
+| --- | --- | --- | --- |
+| `reload_console_403` | banner | error | `surfaceReloadConsoleNotice(err)` in `state.js`, wired into `requestJson` catch in `api.js`. Triggered when `requestJson` throws a `ConsoleRequestError` with `action === 'reload_console'` (HTTP 403 from origin/token check). primaryAction "Reload console" calls `window.location.reload()`. |
+| `clipboard_fallback` | banner | warning | `copyPrompt` in `prompt.js` when `copyTextToClipboard` rejects. Detail tells the user to copy manually. Suppresses the legacy `showError` toast and short-circuits the handoff/`copied = true` flow. |
+
+### Draft save conflict (`/api/items/batch`)
+
+The save endpoint now implements optimistic-etag concurrency:
+
+- Successful save → `200 OK` plus header `ETag: "<rev>"` (monotonic per
+  session, in-memory in `DraftSaveService.kt`).
+- Subsequent save → must include `If-Match: "<previous-rev>"`. Missing
+  or mismatched header → `412 Precondition Failed` with body
+  `{ "state": "STALE_PREVIEW", "readiness": <FirstRunReadiness>, "serverDraft": <current draft snapshot> }`.
+- Override sentinel — `If-Match: *` forces the save regardless of the
+  server revision (used by the "Keep mine (overwrite)" boundary
+  branch).
+
+Console handles 412 by opening the new `staleDraftConflict` boundary
+variant with three buttons:
+
+- Primary "Keep mine (overwrite)" → resends the save with
+  `If-Match: *`.
+- Secondary "Use server's version" → discards local pending state and
+  loads `serverDraft` into the workspace.
+- Cancel → keeps the local draft (pending pins preserved).
+
+No automatic three-way merge.
+
+### Session-mismatch ignore
+
+`sse.js` (`dropStaleSse(msg, state)`) and
+`previewPoll.js` (`dropStalePreviewPoll(response, state)`) drop messages
+and poll responses whose `sessionId` does not match
+`state.session?.sessionId`. The drop emits a `console.warn` for
+diagnostics only — no state mutation, no NotificationCenter
+notification, no UI change. Tested by `scripts/sessionMismatchIgnore-test.mjs`.
+
+### Bundle budgets (post-follow-up)
+
+The v0.3 follow-up wave bumped the production bundle budgets to
+accommodate the new NotificationCenter banners, readiness payloads, and
+single-purpose modules:
+
+- Gzip budget — `50 KiB → 52 KiB` (53,248 B); enforced by
+  `node scripts/build-console-assets.mjs --check`.
+- Raw budget — `200 KiB → 205 KiB` (209,920 B).
+
+The `state.js` hotspot budget in `ArchitectureHotspotBudgetTest` was
+bumped from 440 → 470 lines to accept the
+`surfaceReloadConsoleNotice` helper.
