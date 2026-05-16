@@ -19,7 +19,10 @@ Subcommands:
   mcp         Run the FixThis MCP server (stdio JSON-RPC, used by agents)
   console     Open the local feedback console without launching anything else
   clean       Remove local FixThis artifact directories
+  version     Print CLI build version and bridge protocol version
 ```
+
+`fixthis --version` prints the same line as `fixthis version` and exits 0.
 
 `--package` is the Android applicationId of the debug app you are running
 FixThis against. If omitted, every subcommand reads
@@ -276,6 +279,27 @@ fixthis clean --project-dir . --older-than-days 7
 
 The command is symlink-safe and preserves `.fixthis/project.json` and any
 unknown `.fixthis` files or directories.
+
+## `fixthis version`
+
+Prints the CLI build version and bridge protocol version. Pass `--json` for a
+parseable payload — agents can read `cliVersion` / `bridgeProtocolVersion`
+without scraping the human-readable line.
+
+```bash
+fixthis version
+# fixthis 0.2.3 (bridge protocol v1.3)
+
+fixthis version --json
+# {"cliVersion":"0.2.3","bridgeProtocolVersion":"1.3"}
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--json` | off | Print the version payload as JSON instead of the human-readable line. |
+
+The top-level `fixthis --version` flag prints the same human-readable line and
+exits 0; the subcommand exists so the JSON variant has a stable home.
 
 ## Exit codes
 
