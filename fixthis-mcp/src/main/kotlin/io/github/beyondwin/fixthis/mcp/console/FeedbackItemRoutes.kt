@@ -2,20 +2,27 @@ package io.github.beyondwin.fixthis.mcp.console
 
 import com.sun.net.httpserver.HttpExchange
 import io.github.beyondwin.fixthis.cli.fixThisJson
+import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadiness
+import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessCatalog
 import io.github.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
+import io.github.beyondwin.fixthis.mcp.session.DraftSaveService
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.PreviewFeedbackFingerprintCheck
 import io.github.beyondwin.fixthis.mcp.session.PreviewFeedbackLiveSaveRequest
 import io.github.beyondwin.fixthis.mcp.session.PreviewFeedbackRequestValidationException
 import io.github.beyondwin.fixthis.mcp.session.ScreenFingerprintMismatch
+import io.github.beyondwin.fixthis.mcp.session.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.StaleDraftRevisionException
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.put
 
 internal class FeedbackItemRoutes(
     private val service: FeedbackSessionService,
     private val eventBus: ConsoleEventBus,
+    private val draftSaveService: DraftSaveService = DraftSaveService(),
 ) : ConsoleRoute {
     override fun matches(path: String): Boolean = path == "/api/items" ||
         path == "/api/items/batch" ||
@@ -48,9 +55,16 @@ internal class FeedbackItemRoutes(
             }
             "/api/items/batch" -> exchange.requireMethod("POST") {
                 val request = exchange.decodeSavePreviewFeedbackItemsBody()
+                val sessionId = requestSessionId(request.sessionId)
+                val ifMatch = exchange.requestHeaders.getFirst("If-Match")
+                try {
+                    draftSaveService.validateIfMatch(sessionId, ifMatch)
+                } catch (error: StaleDraftRevisionException) {
+                    exchange.sendStaleDraftConflict(sessionId, error.currentRev)
+                    return@requireMethod
+                }
                 val result = try {
                     request.validateComments()
-                    val sessionId = requestSessionId(request.sessionId)
                     runBlocking {
                         service.savePreviewFeedbackItemsWithLiveFingerprintMetadata(
                             PreviewFeedbackLiveSaveRequest(
@@ -82,6 +96,8 @@ internal class FeedbackItemRoutes(
                 result.fingerprintUnavailableReason?.let { reason ->
                     exchange.responseHeaders.set("X-FixThis-Fingerprint-Unavailable-Reason", reason)
                 }
+                val nextRev = draftSaveService.bumpRev(sessionId)
+                exchange.responseHeaders.set("ETag", "\"$nextRev\"")
                 eventBus.emitSessionUpdated(result.session)
                 exchange.sendJson(200, result.session)
             }
@@ -164,6 +180,23 @@ internal class FeedbackItemRoutes(
     private fun requestSessionId(explicit: String?): String = explicit?.takeIf { it.isNotBlank() } ?: currentId()
 
     private fun currentId(): String = service.requireCurrentSession().sessionId
+
+    private fun HttpExchange.sendStaleDraftConflict(sessionId: String, currentRev: String) {
+        val serverDraft: SessionDto? = runCatching { service.getSession(sessionId) }.getOrNull()
+        val readiness = FirstRunReadinessCatalog.stalePreview(
+            cause = "A newer save advanced the draft revision since this client last synced.",
+            details = mapOf("currentRev" to currentRev),
+        )
+        responseHeaders.set("ETag", "\"$currentRev\"")
+        val body = buildJsonObject {
+            put("state", "STALE_PREVIEW")
+            put("readiness", fixThisJson.encodeToJsonElement(FirstRunReadiness.serializer(), readiness))
+            if (serverDraft != null) {
+                put("serverDraft", fixThisJson.encodeToJsonElement(SessionDto.serializer(), serverDraft))
+            }
+        }
+        sendJson(HTTP_STATUS_PRECONDITION_FAILED, body)
+    }
 }
 
 private fun AddAnnotationRequest.validateComment() {
@@ -220,3 +253,4 @@ private fun PreviewFeedbackRequestValidationException.toConsoleHttpException(): 
 }
 
 private const val HTTP_STATUS_CONFLICT = 409
+private const val HTTP_STATUS_PRECONDITION_FAILED = 412

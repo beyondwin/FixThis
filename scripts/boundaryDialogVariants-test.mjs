@@ -93,3 +93,13 @@ test('recapture recovered draft dialog labels recapture confirmation and remap c
   assert.match(document.summary.textContent, /remapped onto the latest app screen/);
   assert.deepEqual(visibleLabels(), ['Cancel', 'Recapture']);
 });
+
+test('staleDraftConflict dialog labels server-version and keep-mine actions verbatim', () => {
+  renderBoundaryDialog('staleDraftConflict', {});
+
+  assert.match(document.title.textContent, /newer save/i);
+  assert.match(document.summary.textContent, /server/i);
+  // visibleLabels reads cancel -> tertiary -> secondary -> primary.
+  // Cancel, Use server's version, Keep mine (overwrite).
+  assert.deepEqual(visibleLabels(), ['Cancel', "Use server's version", 'Keep mine (overwrite)']);
+});

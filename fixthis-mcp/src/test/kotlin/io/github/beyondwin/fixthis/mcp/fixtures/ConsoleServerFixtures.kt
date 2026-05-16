@@ -502,11 +502,19 @@ internal class ConsoleHttpTestClient(
         return ConsoleHttpResponse(statusCode = statusCode, body = body, headers = headerFields)
     }
 
-    fun connection(path: String, method: String = "GET", body: String? = null): java.net.HttpURLConnection {
+    fun connection(
+        path: String,
+        method: String = "GET",
+        body: String? = null,
+        headers: Map<String, String> = emptyMap(),
+    ): java.net.HttpURLConnection {
         val connection = java.net.URI(baseUrl + path).toURL().openConnection() as java.net.HttpURLConnection
         connection.requestMethod = method
         if (path.startsWith("/api/")) {
             consoleToken?.let { connection.setRequestProperty(CONSOLE_TOKEN_HEADER, it) }
+        }
+        for ((name, value) in headers) {
+            connection.setRequestProperty(name, value)
         }
         if (body != null) {
             connection.doOutput = true
@@ -516,13 +524,16 @@ internal class ConsoleHttpTestClient(
         return connection
     }
 
-    fun postJson(path: String, body: String): ConsoleHttpResponse {
+    fun postJson(path: String, body: String, headers: Map<String, String> = emptyMap()): ConsoleHttpResponse {
         val conn = java.net.URI(baseUrl + path).toURL().openConnection() as java.net.HttpURLConnection
         conn.requestMethod = "POST"
         conn.doOutput = true
         conn.setRequestProperty("Content-Type", "application/json")
         if (path.startsWith("/api/")) {
             consoleToken?.let { conn.setRequestProperty(CONSOLE_TOKEN_HEADER, it) }
+        }
+        for ((name, value) in headers) {
+            conn.setRequestProperty(name, value)
         }
         conn.outputStream.use { output -> output.write(body.toByteArray(Charsets.UTF_8)) }
         val statusCode = conn.responseCode

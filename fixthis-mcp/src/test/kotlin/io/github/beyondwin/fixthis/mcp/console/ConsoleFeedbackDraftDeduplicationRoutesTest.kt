@@ -84,7 +84,10 @@ class ConsoleFeedbackDraftDeduplicationRoutesTest {
                 assertEquals(200, client.postJson("/api/items/batch", body).statusCode)
                 val eventLogBytesAfterFirstSave = eventLogByteCount(eventRoot)
 
-                assertEquals(200, client.postJson("/api/items/batch", body).statusCode)
+                assertEquals(
+                    200,
+                    client.postJson("/api/items/batch", body, headers = mapOf("If-Match" to "*")).statusCode,
+                )
                 val eventLogBytesAfterDuplicateSave = eventLogByteCount(eventRoot)
 
                 assertEquals(eventLogBytesAfterFirstSave, eventLogBytesAfterDuplicateSave)
@@ -169,7 +172,14 @@ class ConsoleFeedbackDraftDeduplicationRoutesTest {
                 """.trimIndent()
 
                 assertEquals(200, ConsoleHttpTestClient(server.url).postJson("/api/items/batch", firstBody).statusCode)
-                assertEquals(200, ConsoleHttpTestClient(server.url).postJson("/api/items/batch", secondBody).statusCode)
+                assertEquals(
+                    200,
+                    ConsoleHttpTestClient(server.url).postJson(
+                        "/api/items/batch",
+                        secondBody,
+                        headers = mapOf("If-Match" to "*"),
+                    ).statusCode,
+                )
 
                 val stored = service.getSession("session-1")
                 assertEquals(1, stored.screens.size)

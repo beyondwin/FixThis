@@ -476,7 +476,11 @@ class ConsoleFeedbackItemRoutesTest {
                 """.trimIndent()
 
                 val first = ConsoleHttpTestClient(server.url).postJson("/api/items/batch", body)
-                val second = ConsoleHttpTestClient(server.url).postJson("/api/items/batch", body)
+                val second = ConsoleHttpTestClient(server.url).postJson(
+                    "/api/items/batch",
+                    body,
+                    headers = mapOf("If-Match" to "*"),
+                )
 
                 assertEquals(200, first.statusCode)
                 assertEquals(200, second.statusCode)
