@@ -158,7 +158,17 @@ fixthis install-agent --project-dir . --target all --dry-run
 | `--server-name` | `fixthis` | MCP server name to write. |
 | `--skip-gradle-plugin` | off | Do not modify the app module build file. |
 | `--plugin-version` | `0.2.3` | FixThis Gradle plugin version to apply. |
+| `--allow-global` | off | Permit writes to global config files (e.g. `~/.codex/config.toml`) when run outside an Android project. Default: refuse the global write and exit with PARTIAL. |
+| `--json` | off | Emit a structured JSON report on stdout (`schemaVersion`, `ok`, `applied[]`, `skipped[]`, `errors[]`, `next[]`) instead of the human-readable summary. |
 | `--verbose`, `-v` | off | Print the full Java stack trace on failure. |
+
+Writes are transactional: each target is staged to a `*.fixthis-staging`
+sibling, then atomically moved into place with a per-target rollback file so a
+partial failure cannot leave a half-merged config on disk.
+
+Exit codes follow [`docs/reference/cli-exit-codes.md`](cli-exit-codes.md):
+`0` OK, `1` PARTIAL (some targets skipped — e.g. global write refused without
+`--allow-global`), `4` INTERNAL_ERROR (one or more writes failed).
 
 After it patches the Gradle file, run `./gradlew fixthisSetup` to generate
 `.fixthis/project.json`, then run `fixthis doctor --project-dir . --json`.
