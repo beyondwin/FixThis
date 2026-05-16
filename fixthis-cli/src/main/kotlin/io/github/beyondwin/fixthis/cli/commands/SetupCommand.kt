@@ -72,9 +72,99 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
             executable = executable,
         )
         val plans = buildWritePlans(selectedWriters(target), root, entry)
-        plans.forEach { plan ->
-            applyWritePlan(plan, dryRun, fullDiff)
+        if (dryRun) {
+            plans.forEach { plan -> applyWritePlan(plan, dryRun = true, fullDiff = fullDiff) }
+            return
         }
+        runWritePlansAtomic(plans)
+    }
+
+    private fun runWritePlansAtomic(plans: List<AgentConfigWritePlan>) {
+        // Phase 1: stage all writes to <configFile>.fixthis-staging.
+        val staged = mutableListOf<Pair<AgentConfigWritePlan, File>>()
+        try {
+            plans.forEach { plan ->
+                val stagingFile = File(plan.configFile.absolutePath + ".fixthis-staging")
+                stagingFile.parentFile?.mkdirs()
+                stagingFile.writeText(plan.content)
+                staged += plan to stagingFile
+            }
+        } catch (e: Exception) {
+            staged.forEach { (_, f) -> if (f.exists()) f.delete() }
+            val appliedNames = staged.joinToString { it.first.writerName }
+            throw CliktError(
+                "Could not stage MCP config writes (${e.message}). Staged so far: ${appliedNames.ifEmpty { "none" }} (cleaned up).",
+            )
+        }
+
+        // Save rollback copies for any existing targets BEFORE first move.
+        val rollbacks = mutableMapOf<AgentConfigWritePlan, File?>()
+        staged.forEach { (plan, _) ->
+            rollbacks[plan] = if (plan.configFile.exists()) {
+                val rb = File(plan.configFile.absolutePath + ".fixthis-rollback")
+                plan.configFile.copyTo(rb, overwrite = true)
+                rb
+            } else {
+                null
+            }
+        }
+
+        // Phase 2: commit (ATOMIC_MOVE with fallback to copy+delete).
+        val committed = mutableListOf<AgentConfigWritePlan>()
+        try {
+            staged.forEach { (plan, stagingFile) ->
+                try {
+                    java.nio.file.Files.move(
+                        stagingFile.toPath(),
+                        plan.configFile.toPath(),
+                        java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                    )
+                } catch (_: java.nio.file.AtomicMoveNotSupportedException) {
+                    java.nio.file.Files.copy(
+                        stagingFile.toPath(),
+                        plan.configFile.toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                    )
+                    java.nio.file.Files.delete(stagingFile.toPath())
+                }
+                committed += plan
+                echo("Wrote ${plan.writerName} MCP config (${plan.scope}): ${plan.configFile.absolutePath}")
+            }
+            // Clean up rollback files on success.
+            rollbacks.values.filterNotNull().forEach { it.delete() }
+        } catch (e: Exception) {
+            // Restore from rollback for any committed (already-moved) targets.
+            committed.forEach { plan ->
+                val rb = rollbacks[plan]
+                if (rb != null && rb.exists()) {
+                    rb.copyTo(plan.configFile, overwrite = true)
+                } else {
+                    plan.configFile.delete()
+                }
+            }
+            // Clean up staging files that didn't move yet + rollback files.
+            staged.forEach { (_, f) -> if (f.exists()) f.delete() }
+            rollbacks.values.filterNotNull().forEach { if (it.exists()) it.delete() }
+            val appliedNames = committed.joinToString { it.writerName }
+            throw CliktError(
+                "Atomic commit failed: ${e.message}. Applied so far: ${appliedNames.ifEmpty { "none" }} (rolled back).",
+            )
+        }
+    }
+
+    internal fun runWritePlansAtomicForTest(
+        plans: List<Pair<Triple<String, String, File>, String>>,
+    ) {
+        val agentPlans = plans.map { (meta, content) ->
+            AgentConfigWritePlan(
+                writerName = meta.first,
+                scope = meta.second,
+                configFile = meta.third,
+                content = content,
+            )
+        }
+        runWritePlansAtomic(agentPlans)
     }
 
     private fun selectedWriters(target: String): List<AgentConfigWriter> = when (target) {

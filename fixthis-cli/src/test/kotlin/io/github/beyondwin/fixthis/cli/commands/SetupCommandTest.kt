@@ -293,6 +293,47 @@ class SetupCommandTest {
     }
 
     @Test
+    fun setupWriteIsAtomicWhenSecondPlanFails() {
+        val tempProject = temporaryFolder.newFolder("ft-atomic")
+        val claudeFile = java.io.File(tempProject, ".claude/settings.json")
+        val codexFile = java.io.File(tempProject, "fake-codex/config.toml").apply {
+            parentFile.mkdirs()
+            writeText("[existing]\nkey=\"value\"\n")
+        }
+        val original = codexFile.readText()
+
+        // Make codex parent unwritable to force commit-phase failure on the codex plan.
+        val unwritableDir = java.io.File(tempProject, "unwritable-parent").apply { mkdirs() }
+        val unwritableTarget = java.io.File(unwritableDir, "child.toml").apply { writeText("[existing]\n") }
+        unwritableDir.setWritable(false, false)
+
+        try {
+            SetupCommand().runWritePlansAtomicForTest(
+                plans = listOf(
+                    Triple("claude", "project-local", claudeFile) to """{"mcpServers":{"fixthis":{"command":"x"}}}""",
+                    Triple("codex-unwritable", "global", unwritableTarget) to "[mcp_servers.fixthis]\ncommand = \"x\"\n",
+                ),
+            )
+            org.junit.Assert.fail("expected commit-phase failure")
+        } catch (_: Exception) {
+            // expected
+        } finally {
+            unwritableDir.setWritable(true, false)
+        }
+        // Atomic guarantee: claude file must NOT exist (rolled back).
+        assertFalse(
+            "claude write should be rolled back when codex write fails",
+            claudeFile.exists(),
+        )
+        // codex untouched
+        assertEquals(
+            "codex file should be untouched",
+            original,
+            codexFile.readText(),
+        )
+    }
+
+    @Test
     fun verboseFlagSetsDiagnosticContext() {
         val projectRoot = temporaryFolder.newFolder("project").canonicalFile
         val userHome = temporaryFolder.newFolder("home")
