@@ -9,6 +9,24 @@
               return PENDING_KEY_PREFIX + sessionId;
             }
 
+            function dropEmptyPendingEntries(envelope) {
+              if (!envelope) return null;
+              let dropped = 0;
+              const items = (envelope.items || []).filter((item) => {
+                const comment = String(item?.comment || '');
+                if (comment.length === 0) {
+                  dropped += 1;
+                  return false;
+                }
+                return true;
+              });
+              if (dropped > 0) {
+                console.info(`[draft-recovery] skipped ${dropped} empty-comment entries`);
+              }
+              if (!items.length) return null;
+              return { ...envelope, items };
+            }
+
             function persistPendingState(sessionId, value) {
               if (!sessionId || typeof localStorage === 'undefined') return;
               try {
@@ -35,7 +53,7 @@
               try {
                 const parsed = JSON.parse(raw);
                 if (Array.isArray(parsed)) {
-                  return {
+                  return dropEmptyPendingEntries({
                     schemaVersion: 0,
                     sessionId: sessionId,
                     context: null,
@@ -44,10 +62,10 @@
                     screenshotUrl: null,
                     frozenAtEpochMillis: null,
                     items: parsed
-                  };
+                  });
                 }
                 if (parsed && Array.isArray(parsed.items)) {
-                  return {
+                  return dropEmptyPendingEntries({
                     schemaVersion: parsed.schemaVersion === 1 ? 1 : parsed.schemaVersion,
                     sessionId: parsed.sessionId ?? sessionId,
                     context: parsed.context ?? null,
@@ -56,7 +74,7 @@
                     screenshotUrl: parsed.screenshotUrl ?? null,
                     frozenAtEpochMillis: parsed.frozenAtEpochMillis ?? null,
                     items: parsed.items
-                  };
+                  });
                 }
                 return null;
               } catch (e) {

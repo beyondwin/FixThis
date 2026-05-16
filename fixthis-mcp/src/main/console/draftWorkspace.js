@@ -147,6 +147,7 @@ function reduceDraftWorkspace(workspace = createEmptyDraftWorkspace(), action = 
         lastError: cloneDraftValue(action.error || { error: 'save_failed' }),
       });
     case 'DISCARD':
+    case 'FREE_WORKSPACE':
     case 'SESSION_BOUNDARY_CLOSED':
       return createEmptyDraftWorkspace();
     default:

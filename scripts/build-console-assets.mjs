@@ -134,7 +134,7 @@ const CONTRACT_SYMBOLS = [
   // Top-bar actions (ConsoleFeedbackItemRoutesTest)
   'sendAgentPrompt',
   'clearSelection',
-  'clearDraft',
+  'handleInspectorFooterAction',
   // Shortcuts (ConsoleFeedbackItemRoutesTest)
   'isTextInputFocused',
   'handleGlobalShortcut',

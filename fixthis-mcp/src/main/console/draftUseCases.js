@@ -1,4 +1,4 @@
-// @requires draftWorkspace.js, draftWorkspaceHistory.js, draftPorts.js
+// @requires draftWorkspace.js, draftWorkspaceHistory.js, draftPorts.js, boundaryPolicy.js, toastCopy.js
 // draftUseCases.js - DraftWorkspace application workflows over narrow ports.
 
 async function startDraftFreeze(workspace, input, ports) {
@@ -42,6 +42,82 @@ function addDraftItem(workspace, selection, ports) {
   const draftItem = draftSelectionToItem(selection, ports);
   const next = reduceDraftWorkspace(workspace, { type: 'ADD_ITEM', workspaceId: workspace.workspaceId, draftItem });
   return { ...next, history: recordDraftAdd(next.history, draftItem) };
+}
+
+function ensureWorkspaceForSelection(state, selection, ports = {}) {
+  const existing = state?.draftWorkspace || state;
+  if (existing?.workspaceId) return existing;
+  if (!selection?.context) throw new Error('selection with context required to allocate workspace');
+  const nextWorkspaceId = ports.nextWorkspaceId || ports.ids?.nextWorkspaceId;
+  if (typeof nextWorkspaceId !== 'function') throw new Error('nextWorkspaceId port is required');
+  return createFrozenDraftWorkspace({
+    workspaceId: nextWorkspaceId(),
+    context: selection.context,
+    screen: selection.screen || null,
+    screenshotUrl: selection.screenshotUrl || null,
+  });
+}
+
+function maybeFreeWorkspaceOnEmpty(workspace, draftItemId) {
+  const items = workspace?.items || [];
+  if (items.length !== 1) return workspace;
+  if (items[0]?.draftItemId !== draftItemId) return workspace;
+  if (String(items[0]?.comment || '').length !== 0) return workspace;
+  return null;
+}
+
+function resolveTrigger(trigger, context, ports = {}) {
+  const verdict = boundaryPolicy(trigger, context?.state || 'none', context || {});
+  switch (verdict) {
+    case 'pass':
+      return verdict;
+    case 'discardWithToast': {
+      ports.silentDiscard?.(context);
+      const text = toastTextForTrigger(trigger);
+      if (text) ports.showToast?.(text, { className: 'info', duration: 2000, trigger });
+      return verdict;
+    }
+    case 'silentSwap':
+      ports.silentDiscard?.(context);
+      return verdict;
+    case 'boundaryDialog':
+      ports.openBoundaryDialog?.(boundaryVariantForTrigger(trigger), context);
+      return verdict;
+    case 'discardConfirm':
+      ports.openBoundaryDialog?.('editorBack', context);
+      return verdict;
+    case 'beforeunloadGuard':
+      ports.beforeUnloadGuard?.(context);
+      return verdict;
+    case 'preserve':
+    case 'retain':
+    case 'retainWithBadge':
+    case 'staleRevalidate':
+    case 'retainAndMigrate':
+      ports.preserve?.(context, verdict);
+      return verdict;
+    case 'silentLoss':
+    default:
+      return verdict;
+  }
+}
+
+function boundaryVariantForTrigger(trigger) {
+  switch (trigger) {
+    case Trigger.SESSION_SWITCH:
+      return 'sessionSwitch';
+    case Trigger.SESSION_CREATE:
+      return 'sessionCreate';
+    case Trigger.SESSION_DELETE:
+      return 'sessionDelete';
+    case Trigger.ROUTE_CHANGE:
+      return 'routeChange';
+    case Trigger.EDITOR_BACK:
+    case Trigger.ESCAPE_KEY:
+      return 'editorBack';
+    default:
+      return 'editorBack';
+  }
 }
 
 function updateDraftItem(workspace, draftItemId, patch, options = {}) {

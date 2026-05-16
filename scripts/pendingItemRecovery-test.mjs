@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const source = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/pendingPersistence.js'), 'utf8');
 const mainSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/main.js'), 'utf8');
+const pendingRecoveryUiSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/pendingRecoveryUi.js'), 'utf8');
 const historySource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/history.js'), 'utf8');
 const renderingSource = [
   'fixthis-mcp/src/main/console/presentation/annotationListView.js',
@@ -15,6 +16,7 @@ const renderingSource = [
 const annotationsSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/annotations.js'), 'utf8');
 const promptSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/prompt.js'), 'utf8');
 const previewSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/preview.js'), 'utf8');
+const boundaryVariantsSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/boundaryDialogVariants.js'), 'utf8');
 
 function buildLocalStorageStub() {
   const data = new Map();
@@ -87,6 +89,34 @@ test('restorePendingState reads back an envelope with context intact', () => {
   assert.equal(restored.previewId, 'p1');
   assert.equal(restored.items.length, 1);
   assert.equal(restored.screen.screenId, 'screen-1');
+});
+
+test('restorePendingState drops exact empty-comment entries from legacy mirrors', () => {
+  const ls = buildLocalStorageStub();
+  const m = loadModule(ls);
+  m.persistPendingState('s1', {
+    previewId: 'p1',
+    items: [
+      { itemId: 'i1', comment: 'real' },
+      { itemId: 'i2', comment: '' },
+      { itemId: 'i3', comment: '  ' },
+    ],
+  });
+
+  const restored = m.restorePendingState('s1');
+
+  assert.deepEqual(restored.items.map((item) => item.itemId), ['i1', 'i3']);
+});
+
+test('restorePendingState returns null when all legacy mirror entries are empty comments', () => {
+  const ls = buildLocalStorageStub();
+  const m = loadModule(ls);
+  m.persistPendingState('s1', {
+    previewId: 'p1',
+    items: [{ itemId: 'i1', comment: '' }],
+  });
+
+  assert.equal(m.restorePendingState('s1'), null);
 });
 
 test('restorePendingState returns schema v0 envelope for legacy item arrays', () => {
@@ -167,9 +197,9 @@ test('recapture forces a fresh preview before remapping recovered pending items'
 });
 
 test('pending recovery refreshes history summaries after restoring draft items', () => {
-  const bannerBody = extractFunctionBody(mainSource, 'function renderPendingRecoveryBanner()');
+  const actionBody = extractFunctionBody(pendingRecoveryUiSource, 'function handlePendingRecoveryBoundaryAction(action)');
   assert.match(
-    bannerBody,
+    actionBody,
     /restorePendingRecoveryContext\(pendingRecovery\);[\s\S]*?renderPendingRecoveryBanner\(\);[\s\S]*?render\(\);/,
   );
 
@@ -214,13 +244,16 @@ test('session refresh reloads pending recovery without blocking passive drafts',
 });
 
 test('pending recovery banner appears for recoverable drafts and uses resume copy', () => {
-  const bannerBody = extractFunctionBody(mainSource, 'function renderPendingRecoveryBanner()');
+  const bannerBody = extractFunctionBody(pendingRecoveryUiSource, 'function renderPendingRecoveryBanner()');
   assert.match(bannerBody, /const summary = draftRecoverySummary\(pendingRecovery\);/);
   assert.doesNotMatch(bannerBody, /summary\.commented === 0/);
-  assert.match(bannerBody, /Resume draft/);
+  assert.match(bannerBody, /renderBoundaryDialog\('pendingRecovery', \{ canResume, itemCount: summary\.total \}\);/);
+  assert.match(boundaryVariantsSource, /pendingRecovery:/);
+  assert.match(boundaryVariantsSource, /Resume draft/);
   assert.match(bannerBody, /pins without comments/);
   assert.doesNotMatch(bannerBody, /Recover restores the frozen preview and pins from this session\./);
   assert.doesNotMatch(bannerBody, /data-recover-pending/);
+  assert.doesNotMatch(bannerBody, /data-resume-pending|data-recapture-pending|data-clear-pending/);
 });
 
 test('switching sessions keeps the previous session pending recovery mirror', () => {
@@ -262,9 +295,9 @@ test('returning to a session with pending mirror loads draft workspace recovery'
 test('returning to an active pending mirror auto-restores instead of re-showing recovery banner', () => {
   const resolveBody = extractFunctionBody(mainSource, 'async function resolvePendingBeforeBoundary(action, sessionId = null)');
   const loadBody = extractFunctionBody(mainSource, 'function loadPendingRecoveryForCurrentSession()');
-  const bannerBody = extractFunctionBody(mainSource, 'function renderPendingRecoveryBanner()');
+  const actionBody = extractFunctionBody(pendingRecoveryUiSource, 'function handlePendingRecoveryBoundaryAction(action)');
   assert.match(resolveBody, /activePendingMirrorSessions\.add\(activeSessionId\);/);
-  assert.match(bannerBody, /activePendingMirrorSessions\.add\(recoverySessionId\);/);
+  assert.match(actionBody, /activePendingMirrorSessions\.add\(recoverySessionId\);/);
   assert.match(
     loadBody,
     /if \(activePendingMirrorSessions\.has\(sessionId\) && pendingRecoveryItems\(restored\)\.length && hasRecoverablePreviewContext\(restored\)\) \{/,
@@ -390,5 +423,5 @@ test('using latest stale frame preserves pending annotations while recapturing',
 test('stale canvas notice yields to interaction blocked overlay', () => {
   const body = extractFunctionBody(previewSource, 'function renderStaleFrameNotice()');
   assert.match(body, /state\.connection\?\.interactionBlockedReason/);
-  assert.match(body, /root\.hidden = true;[\s\S]*?return;/);
+  assert.match(body, /statusSurfaceRegistry\.hide\('canvasStaleNotice'\);[\s\S]*?return;/);
 });

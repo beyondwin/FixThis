@@ -235,7 +235,7 @@ class ConsoleFeedbackDraftDeduplicationRoutesTest {
     }
 
     @Test
-    fun batchItemsApiKeepsBlankLegacyServerItemWithSameTarget() {
+    fun batchItemsApiRejectsBlankDraftBeforeLegacyDedupe() {
         withTempProject("fixthis-console-legacy-blank-batch") { projectRoot ->
             val store = FeedbackSessionStore(
                 clock = FakeLongs(100L, 200L, 300L, 400L, 500L, 600L).next,
@@ -249,20 +249,6 @@ class ConsoleFeedbackDraftDeduplicationRoutesTest {
             )
             service.openSession(null, newSession = true)
             val preview = runBlocking { service.capturePreview("session-1") }
-            store.addScreenWithItems(
-                sessionId = "session-1",
-                screen = preview.screen,
-                items = listOf(
-                    AnnotationDto(
-                        itemId = "pending",
-                        screenId = preview.screen.screenId,
-                        createdAtEpochMillis = 0L,
-                        updatedAtEpochMillis = 0L,
-                        target = AnnotationTargetDto.Area(FixThisRect(1f, 2f, 30f, 40f)),
-                        comment = "",
-                    ),
-                ),
-            )
             val screenJson = fixThisJson.encodeToString(preview.screen)
 
             withConsoleServer(service) { server ->
@@ -280,10 +266,10 @@ class ConsoleFeedbackDraftDeduplicationRoutesTest {
                     }
                 """.trimIndent()
 
-                assertEquals(200, ConsoleHttpTestClient(server.url).postJson("/api/items/batch", body).statusCode)
+                assertEquals(422, ConsoleHttpTestClient(server.url).postJson("/api/items/batch", body).statusCode)
                 val stored = service.getSession("session-1")
-                assertEquals(2, stored.items.size)
-                assertEquals(1, stored.screens.size)
+                assertEquals(0, stored.items.size)
+                assertEquals(0, stored.screens.size)
             }
         }
     }

@@ -27,32 +27,47 @@ internal object InstallAgentJsonReport {
         val obj = buildJsonObject {
             put("schemaVersion", "1.0")
             put("ok", ok)
-            put("applied", buildJsonArray {
-                applied.forEach { a ->
-                    add(buildJsonObject {
-                        put("target", a.target)
-                        put("path", a.path)
-                        put("scope", a.scope)
-                    })
-                }
-            })
-            put("skipped", buildJsonArray {
-                skipped.forEach { sk ->
-                    add(buildJsonObject {
-                        put("target", sk.target)
-                        put("reason", sk.reason)
-                        put("fix", sk.fix)
-                    })
-                }
-            })
-            put("errors", buildJsonArray {
-                errors.forEach { e ->
-                    add(buildJsonObject {
-                        put("target", e.target)
-                        put("message", e.message)
-                    })
-                }
-            })
+            put(
+                "applied",
+                buildJsonArray {
+                    applied.forEach { a ->
+                        add(
+                            buildJsonObject {
+                                put("target", a.target)
+                                put("path", a.path)
+                                put("scope", a.scope)
+                            },
+                        )
+                    }
+                },
+            )
+            put(
+                "skipped",
+                buildJsonArray {
+                    skipped.forEach { sk ->
+                        add(
+                            buildJsonObject {
+                                put("target", sk.target)
+                                put("reason", sk.reason)
+                                put("fix", sk.fix)
+                            },
+                        )
+                    }
+                },
+            )
+            put(
+                "errors",
+                buildJsonArray {
+                    errors.forEach { e ->
+                        add(
+                            buildJsonObject {
+                                put("target", e.target)
+                                put("message", e.message)
+                            },
+                        )
+                    }
+                },
+            )
             put("next", buildJsonArray { next.forEach { add(it) } })
         }
         return compactJson.encodeToString(obj) + "\n"

@@ -254,10 +254,13 @@ class SetupCommandTest {
             withUserHome(userHome) {
                 SetupCommand().parse(
                     listOf(
-                        "--package", "io.github.beyondwin.fixthis.sample",
-                        "--project-dir", projectRoot.absolutePath,
+                        "--package",
+                        "io.github.beyondwin.fixthis.sample",
+                        "--project-dir",
+                        projectRoot.absolutePath,
                         "--write",
-                        "--target", "claude",
+                        "--target",
+                        "claude",
                         "--dry-run",
                     ),
                 )
@@ -296,10 +299,13 @@ class SetupCommandTest {
             withUserHome(userHome) {
                 SetupCommand().parse(
                     listOf(
-                        "--package", "io.github.beyondwin.fixthis.sample",
-                        "--project-dir", projectRoot.absolutePath,
+                        "--package",
+                        "io.github.beyondwin.fixthis.sample",
+                        "--project-dir",
+                        projectRoot.absolutePath,
                         "--write",
-                        "--target", "claude",
+                        "--target",
+                        "claude",
                         "--dry-run",
                     ),
                 )

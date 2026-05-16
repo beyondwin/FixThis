@@ -178,9 +178,12 @@ class InitAgentCommandTest {
             withUserHome(temporaryFolder.newFolder("home")) {
                 InstallAgentCommand().parse(
                     arrayOf(
-                        "--project-dir", tempProject.absolutePath,
-                        "--package", "com.example.app",
-                        "--target", "codex",
+                        "--project-dir",
+                        tempProject.absolutePath,
+                        "--package",
+                        "com.example.app",
+                        "--target",
+                        "codex",
                         "--skip-gradle-plugin",
                     ),
                 )
@@ -245,9 +248,12 @@ class InitAgentCommandTest {
             withUserHome(temporaryFolder.newFolder("home")) {
                 InstallAgentCommand().parse(
                     arrayOf(
-                        "--project-dir", tempProject.absolutePath,
-                        "--package", "com.example.app",
-                        "--target", "claude",
+                        "--project-dir",
+                        tempProject.absolutePath,
+                        "--package",
+                        "com.example.app",
+                        "--target",
+                        "claude",
                         "--json",
                         "--skip-gradle-plugin",
                     ),
@@ -261,9 +267,12 @@ class InitAgentCommandTest {
         assertTrue("expected at least one JSON line, got:\n$text", rendered != null)
         val obj = Json.parseToJsonElement(rendered!!).jsonObject
         assertEquals("1.0", obj.getValue("schemaVersion").jsonPrimitive.content)
-        assertTrue("expected claude in applied[]", obj.getValue("applied").jsonArray.any {
-            it.jsonObject.getValue("target").jsonPrimitive.content == "claude"
-        })
+        assertTrue(
+            "expected claude in applied[]",
+            obj.getValue("applied").jsonArray.any {
+                it.jsonObject.getValue("target").jsonPrimitive.content == "claude"
+            },
+        )
     }
 
     @Test
@@ -273,9 +282,12 @@ class InitAgentCommandTest {
             withUserHome(temporaryFolder.newFolder("home")) {
                 InstallAgentCommand().parse(
                     arrayOf(
-                        "--project-dir", tempProject.absolutePath,
-                        "--package", "com.example.app",
-                        "--target", "all",
+                        "--project-dir",
+                        tempProject.absolutePath,
+                        "--package",
+                        "com.example.app",
+                        "--target",
+                        "all",
                         "--json",
                         "--skip-gradle-plugin",
                     ),
@@ -296,9 +308,12 @@ class InitAgentCommandTest {
             withUserHome(temporaryFolder.newFolder("home")) {
                 InstallAgentCommand().parse(
                     arrayOf(
-                        "--project-dir", tempProject.absolutePath,
-                        "--package", "com.example.app",
-                        "--target", "claude",
+                        "--project-dir",
+                        tempProject.absolutePath,
+                        "--package",
+                        "com.example.app",
+                        "--target",
+                        "claude",
                         "--skip-gradle-plugin",
                     ),
                 )

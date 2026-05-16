@@ -15,7 +15,7 @@ import kotlin.test.assertTrue
 
 class FeedbackDraftServiceTest {
     @Test
-    fun blankPendingCommentsAreAllowedOnlyForExplicitBlankSave() = runBlocking {
+    fun blankPendingCommentsAreRejectedEvenForLegacyBlankSaveFlag() = runBlocking {
         val fixture = draftFixture(
             ids = arrayOf("session-1", "preview-1", "screen-1", "item-1"),
             prefix = "fixthis-draft-blank-",
@@ -37,15 +37,15 @@ class FeedbackDraftServiceTest {
             )
         }
 
-        val updated = fixture.draftService.savePreviewFeedbackItems(
-            sessionId = session.sessionId,
-            previewId = preview.previewId,
-            items = listOf(blankItem),
-            allowBlankComments = true,
-        )
-
-        assertEquals("", updated.items.single().comment)
-        assertEquals(AnnotationStatusDto.OPEN, updated.items.single().status)
+        val legacyFlagError = assertFailsWith<IllegalArgumentException> {
+            fixture.draftService.savePreviewFeedbackItems(
+                sessionId = session.sessionId,
+                previewId = preview.previewId,
+                items = listOf(blankItem),
+                allowBlankComments = true,
+            )
+        }
+        assertTrue(legacyFlagError.message!!.contains("blank comment"))
     }
 
     @Test

@@ -1,4 +1,4 @@
-// @requires state.js, draftWorkspace.js, draftUseCases.js, draftCommandQueue.js, viewmodel/reliabilityPresentation.js, viewmodel/annotationPresentation.js
+// @requires state.js, draftWorkspace.js, draftUseCases.js, draftCommandQueue.js, editorState.js, inspectorFooter.js, editorBackButton.js, viewmodel/reliabilityPresentation.js, viewmodel/annotationPresentation.js
             function isInteractionBlocked() {
               return Boolean(state.connection?.interactionBlockedReason);
             }
@@ -157,11 +157,15 @@
             function updateComposerState() {
               const hasPromptAnnotations = currentPromptAnnotations().length > 0;
               const promptDisabled = !hasPromptAnnotations || pollingUseCases.getState().promptActionInFlight;
+              const editorState = deriveEditorState(currentDraftWorkspace(), draftSelection(), selectedSavedAnnotation());
+              renderInspectorFooter(editorState, {
+                canAddAnnotation: true,
+                draftCount: draftItemList().length,
+                state,
+              });
+              renderEditorBack({ state: editorState });
               copyPromptButton.disabled = promptDisabled;
               sendAgentButton.disabled = promptDisabled;
-              cancelAddFlowButton.disabled = !draftFlow();
-              addItemButton.hidden = true;
-              addItemButton.disabled = true;
               annotateToolButton.disabled = toolMode.getState().draftFlowStarting;
               selectToolButton.setAttribute('aria-pressed', String(toolMode.isSelectMode()));
               annotateToolButton.setAttribute('aria-pressed', String(toolMode.isAnnotateMode()));
@@ -424,6 +428,7 @@
               toolMode.setHoveredTarget(null);
               toolMode.focusSavedItem(null, null);
               toolMode.enterAnnotate();
+              setDraftSelection(null);
               comment.value = '';
               renderPreviewOnly();
               renderInspectorRegion();

@@ -46,7 +46,11 @@
               const detailSlot = banner.querySelector('[data-detail]');
               if (detailSlot) detailSlot.textContent = info.detail;
               banner.dataset.hash = info.hash;
-              banner.hidden = false;
+              statusSurfaceRegistry.show('stalenessBanner', {
+                surfaceClass: 'banner',
+                priority: info.severity === 'critical' ? 1 : 2,
+                element: banner,
+              });
             }
 
             document.getElementById('stalenessBanner')?.querySelector('[data-dismiss]')
@@ -54,7 +58,7 @@
                 const banner = event.currentTarget.closest('#stalenessBanner');
                 if (!banner) return;
                 sessionStorage.setItem(StalenessDismissKey, banner.dataset.hash || '');
-                banner.hidden = true;
+                statusSurfaceRegistry.hide('stalenessBanner');
               });
 
             const MinimumSupportedProtocolVersion = '1.3';

@@ -27,7 +27,9 @@ class AgentSetupFilesTest {
         assertTrue("missing 'state'", "state" in obj)
         assertTrue("missing 'next'", "next" in obj)
         assertTrue("missing 'recovery'", "recovery" in obj)
-        assertTrue("next must be a non-empty array of runnable command strings",
-            obj.getValue("next").jsonArray.isNotEmpty())
+        assertTrue(
+            "next must be a non-empty array of runnable command strings",
+            obj.getValue("next").jsonArray.isNotEmpty(),
+        )
     }
 }

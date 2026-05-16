@@ -12,17 +12,15 @@ internal fun renderCliVersion(
     json: Boolean,
     cliVersion: String = FIXTHIS_CLI_VERSION,
     bridgeProtocolVersion: String = BridgeProtocolVersion,
-): String {
-    return if (json) {
-        fixThisJson.encodeToString(
-            buildJsonObject {
-                put("cliVersion", cliVersion)
-                put("bridgeProtocolVersion", bridgeProtocolVersion)
-            },
-        ) + "\n"
-    } else {
-        "fixthis $cliVersion (bridge protocol v$bridgeProtocolVersion)\n"
-    }
+): String = if (json) {
+    fixThisJson.encodeToString(
+        buildJsonObject {
+            put("cliVersion", cliVersion)
+            put("bridgeProtocolVersion", bridgeProtocolVersion)
+        },
+    ) + "\n"
+} else {
+    "fixthis $cliVersion (bridge protocol v$bridgeProtocolVersion)\n"
 }
 
 class VersionCommand : CoreCliktCommand(name = "version") {

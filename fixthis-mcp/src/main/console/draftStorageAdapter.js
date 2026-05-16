@@ -24,6 +24,23 @@ function normalizeLegacyDraftItem(item, index) {
   };
 }
 
+function dropEmptyEntries(envelope) {
+  if (!envelope) return { items: [] };
+  let dropped = 0;
+  const items = (envelope.items || []).filter((item) => {
+    const comment = String(item?.comment || '');
+    if (comment.length === 0) {
+      dropped += 1;
+      return false;
+    }
+    return true;
+  });
+  if (dropped > 0) {
+    console.info(`[draft-recovery] skipped ${dropped} empty-comment entries`);
+  }
+  return { ...envelope, items };
+}
+
 function createDraftStorageAdapter(localStorageLike, ids = {}) {
   const nextWorkspaceId = ids.nextWorkspaceId || (() => 'workspace-' + Date.now());
 
@@ -54,7 +71,12 @@ function createDraftStorageAdapter(localStorageLike, ids = {}) {
           localStorageLike.removeItem(key);
           return null;
         }
-        return parsed.value;
+        const filtered = dropEmptyEntries(parsed.value);
+        if (!filtered.items.length) {
+          localStorageLike.removeItem(key);
+          return null;
+        }
+        return filtered;
       })
       .filter((value) => value?.schemaVersion === 2 && value?.context?.sessionId === sessionId);
   }
@@ -81,12 +103,17 @@ function createDraftStorageAdapter(localStorageLike, ids = {}) {
     const raw = localStorageLike.getItem(LegacyPendingKeyPrefix + sessionId);
     const legacy = parseDraftStorageJson(raw);
     if (!legacy || !Array.isArray(legacy.items) || !legacy.items.length) return [];
+    const filteredLegacy = dropEmptyEntries(legacy);
+    if (!filteredLegacy.items.length) {
+      clearLegacyPending(sessionId);
+      return [];
+    }
     if (legacy.schemaVersion === 0 || (!legacy.context && !legacy.previewId)) {
       return [{
         schemaVersion: 0,
         sessionId,
         requiresRecapture: true,
-        items: legacy.items.map(normalizeLegacyDraftItem),
+        items: filteredLegacy.items.map(normalizeLegacyDraftItem),
       }];
     }
     const workspaceId = nextWorkspaceId();
@@ -96,18 +123,18 @@ function createDraftStorageAdapter(localStorageLike, ids = {}) {
       workspaceId,
       revision: 1,
       lifecycle: 'editing',
-      context: legacy.context || {
+      context: filteredLegacy.context || {
         sessionId,
-        previewId: legacy.previewId,
-        screenId: legacy.screen?.screenId || null,
-        screenFingerprint: legacy.screen?.fingerprint ?? null,
+        previewId: filteredLegacy.previewId,
+        screenId: filteredLegacy.screen?.screenId || null,
+        screenFingerprint: filteredLegacy.screen?.fingerprint ?? null,
         deviceSerial: null,
-        frozenAtEpochMillis: legacy.frozenAtEpochMillis || null,
-        activityName: legacy.activity || legacy.screen?.activityName || null,
+        frozenAtEpochMillis: filteredLegacy.frozenAtEpochMillis || null,
+        activityName: filteredLegacy.activity || filteredLegacy.screen?.activityName || null,
       },
-      screen: legacy.screen || null,
-      screenshotUrl: legacy.screenshotUrl || null,
-      items: legacy.items.map(normalizeLegacyDraftItem),
+      screen: filteredLegacy.screen || null,
+      screenshotUrl: filteredLegacy.screenshotUrl || null,
+      items: filteredLegacy.items.map(normalizeLegacyDraftItem),
       history: { undoStack: [], redoStack: [] },
       updatedAtEpochMillis: Date.now(),
     };

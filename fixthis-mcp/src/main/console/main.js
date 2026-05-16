@@ -1,4 +1,4 @@
-// @requires state.js, connection.js, devices.js, preview.js, annotations.js, history.js, prompt.js, rendering.js, sessions-polling.js, events.js, shortcuts.js, draftUseCases.js, draftCommandQueue.js, application/consoleStore.js, application/consoleEffects.js, adapters/browserPorts.js, adapters/browserRenderer.js
+// @requires state.js, connection.js, devices.js, preview.js, annotations.js, history.js, prompt.js, rendering.js, sessions-polling.js, events.js, shortcuts.js, draftUseCases.js, draftCommandQueue.js, editorBackButton.js, inspectorFooterActions.js, pendingRecoveryUi.js, application/consoleStore.js, application/consoleEffects.js, adapters/browserPorts.js, adapters/browserRenderer.js
             let pendingRecovery = null;
             const activePendingMirrorSessions = new Set();
             const canonicalPorts = createBrowserConsolePorts({
@@ -32,13 +32,6 @@
             annotateToolButton.addEventListener('click', () => enterAnnotateMode().catch(showError));
             zoomOutButton.addEventListener('click', () => setPreviewZoom(previewUseCases.getState().zoom - PreviewZoomStep));
             zoomInButton.addEventListener('click', () => setPreviewZoom(previewUseCases.getState().zoom + PreviewZoomStep));
-            addItemButton.addEventListener('click', () => {
-              try {
-                createAnnotationFromSelection(draftSelection());
-              } catch (cause) {
-                showError(cause);
-              }
-            });
             copyPromptButton.addEventListener('click', () => copyPrompt().catch(showError));
             sendAgentButton.addEventListener('click', () => sendAgentPrompt().catch(showError));
             connectionPrimaryAction.addEventListener('click', () => handleConnectionPrimaryAction().catch(showError));
@@ -47,7 +40,7 @@
                 .then(refreshConnection)
                 .catch(showError);
             });
-            document.getElementById('disconnectDeviceButton').addEventListener('click', () => disconnectDevice().catch(showError));
+            document.getElementById('forgetDeviceButton')?.addEventListener('click', () => forgetDevice().catch(showError));
             devicePicker.addEventListener('change', () => selectDevice().catch(showError));
             previewIntervalSelect.addEventListener('change', () => {
               localStorage.setItem(PreviewIntervalStorageKey, previewIntervalSelect.value);
@@ -67,7 +60,8 @@
             });
             // ALH-1: warn user if they try to leave with unsaved pending items.
             window.addEventListener('beforeunload', (e) => {
-              if (shouldGuardUnload(draftItemList().length)) {
+              const editorState = deriveEditorState(currentDraftWorkspace(), draftSelection(), null);
+              if (shouldGuardUnload(draftItemList().length, editorState)) {
                 e.preventDefault();
                 e.returnValue = 'You have unsaved annotations. Are you sure you want to leave?';
                 return e.returnValue;
@@ -79,11 +73,26 @@
               startLivePreviewPolling();
               startSessionsPolling();
             });
-            clearSelectionButton.addEventListener('click', clearSelection);
-            cancelAddFlowButton.addEventListener('click', cancelAddItemsFlow);
-            clearDraftButton.addEventListener('click', () => {
-              if (draftFlow() || pendingRecoveryItems(pendingRecovery).length) clearLocalDraft().catch(showError);
-              else clearServerDrafts().catch(showError);
+            inspectorFooter?.addEventListener('click', (event) => {
+              const actionTarget = event.target?.closest?.('[data-action]');
+              const action = actionTarget?.dataset.action;
+              handleInspectorFooterAction(action);
+            });
+            editorBack?.addEventListener('click', (event) => {
+              event.preventDefault();
+              const editorState = deriveEditorState(currentDraftWorkspace(), draftSelection(), selectedSavedAnnotation());
+              handleEditorBackClick({ state: editorState }, {
+                silentDiscard: clearSelection,
+                showToast: showStatus,
+                navigateToList: navigateEditorToList,
+                openBoundaryDialog: () => showStatus('Resolve this draft before leaving the editor.', { variant: 'warn' }),
+              });
+            });
+            document.getElementById('sessionBoundarySheet')?.addEventListener('click', (event) => {
+              const actionTarget = event.target?.closest?.('[data-boundary-action]');
+              const action = actionTarget?.dataset.boundaryAction;
+              if (!action || event.currentTarget?.dataset.boundaryVariant !== 'pendingRecovery') return;
+              handlePendingRecoveryBoundaryAction(action);
             });
             comment.addEventListener('input', updateSelectedAnnotationComment);
 
@@ -242,16 +251,16 @@
               toolMode.setAnnotationSequenceAtLeast(next);
             }
 
-	            function restorePendingRecoveryContext(recovery) {
-	              const workspace = recoverDraftWorkspaceFromEnvelope(recovery);
-	              replaceDraftWorkspace(workspace);
-	              setConsolePreview({
-	                previewId: workspace.context.previewId,
-	                screen: workspace.screen,
-	                activity: workspace.context.activityName,
-	                frozenAtEpochMillis: workspace.context.frozenAtEpochMillis,
-	                stale: false
-	              });
+            function restorePendingRecoveryContext(recovery) {
+              const workspace = recoverDraftWorkspaceFromEnvelope(recovery);
+              replaceDraftWorkspace(workspace);
+              setConsolePreview({
+                previewId: workspace.context.previewId,
+                screen: workspace.screen,
+                activity: workspace.context.activityName,
+                frozenAtEpochMillis: workspace.context.frozenAtEpochMillis,
+                stale: false
+              });
               updateAnnotationSequenceFromPendingItems(workspace.items);
               setDraftFocusIndex(null);
               toolMode.focusSavedItem(null, null);
@@ -274,72 +283,6 @@
               const stored = storage.loadWorkspacesForSession(sessionId);
               const migrated = storage.migrateLegacyPending(sessionId);
               return newestDraftRecovery(stored.concat(migrated));
-            }
-
-            function ensurePendingRecoveryBanner() {
-              let banner = document.getElementById('pendingRecoveryBanner');
-              if (banner) return banner;
-              banner = document.createElement('div');
-              banner.id = 'pendingRecoveryBanner';
-              banner.setAttribute('data-testid', 'pending-recovery-banner');
-              banner.className = 'annotation-banner annotation-banner-warn pending-recovery-banner';
-              banner.setAttribute('role', 'status');
-              banner.setAttribute('aria-live', 'polite');
-              const parent = pendingItems?.parentElement || inspectorBody || document.body;
-              if (pendingItems && pendingItems.parentElement === parent) {
-                parent.insertBefore(banner, pendingItems);
-              } else {
-                parent.prepend(banner);
-              }
-              return banner;
-            }
-
-            function renderPendingRecoveryBanner() {
-              const banner = ensurePendingRecoveryBanner();
-              const summary = draftRecoverySummary(pendingRecovery);
-              if (!pendingRecovery || !summary.total || draftFlow() || draftItemList().length) {
-                banner.hidden = true;
-                return;
-              }
-              const canResume = hasRecoverablePreviewContext(pendingRecovery);
-              const summaryParts = [];
-              if (summary.commented) summaryParts.push(countLabel(summary.commented, 'draft comment', 'draft comments'));
-              if (summary.pinOnly) summaryParts.push(countLabel(summary.pinOnly, 'pin without comment', 'pins without comments'));
-              const detail = canResume
-                ? 'Resume the local draft for this session.'
-                : 'Recapture the current app screen to continue this local draft.';
-              banner.hidden = false;
-              banner.innerHTML =
-                '<div class="pending-recovery-copy" data-pending-recovery-copy>' +
-                  '<strong>' + escapeHtml(summaryParts.join(' · ')) + '</strong>' +
-                  '<div>' + escapeHtml(detail) + '</div>' +
-                '</div>' +
-                '<div class="annotation-actions pending-recovery-actions">' +
-                  (canResume ? '<button type="button" class="annotation-done" data-resume-pending>Resume draft</button>' : '') +
-                  '<button type="button" class="annotation-done" data-recapture-pending>Recapture</button>' +
-                  '<button type="button" class="annotation-danger" data-clear-pending>Clear local draft</button>' +
-                '</div>';
-              banner.querySelector('[data-resume-pending]')?.addEventListener('click', () => {
-                if (!hasRecoverablePreviewContext(pendingRecovery)) return;
-                const recoverySessionId = pendingRecovery?.sessionId || pendingRecovery?.context?.sessionId || state.session?.sessionId;
-                restorePendingRecoveryContext(pendingRecovery);
-                if (recoverySessionId) activePendingMirrorSessions.add(recoverySessionId);
-                pendingRecovery = null;
-                renderPendingRecoveryBanner();
-                render();
-              });
-              banner.querySelector('[data-recapture-pending]')?.addEventListener('click', () => {
-                recapturePendingRecovery().catch(showError);
-              });
-              banner.querySelector('[data-clear-pending]')?.addEventListener('click', () => {
-                if (pendingRecovery?.schemaVersion === 2) {
-                  createBrowserDraftPorts().storage.deleteWorkspace(pendingRecovery.sessionId || pendingRecovery.context?.sessionId, pendingRecovery.workspaceId);
-                }
-                clearPendingMirror(state.session?.sessionId);
-                activePendingMirrorSessions.delete(state.session?.sessionId);
-                pendingRecovery = null;
-                renderPendingRecoveryBanner();
-              });
             }
 
             function loadPendingRecoveryForCurrentSession() {

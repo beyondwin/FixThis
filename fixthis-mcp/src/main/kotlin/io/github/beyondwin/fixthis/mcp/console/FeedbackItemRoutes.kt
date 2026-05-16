@@ -27,6 +27,7 @@ internal class FeedbackItemRoutes(
         when (exchange.requestURI.path) {
             "/api/items" -> exchange.requireMethod("POST") {
                 val request = exchange.decodeAddFeedbackItemBody()
+                request.validateComment()
                 val sessionId = requestSessionId(request.sessionId)
                 val item = try {
                     runBlocking {
@@ -48,6 +49,7 @@ internal class FeedbackItemRoutes(
             "/api/items/batch" -> exchange.requireMethod("POST") {
                 val request = exchange.decodeSavePreviewFeedbackItemsBody()
                 val result = try {
+                    request.validateComments()
                     val sessionId = requestSessionId(request.sessionId)
                     runBlocking {
                         service.savePreviewFeedbackItemsWithLiveFingerprintMetadata(
@@ -164,6 +166,26 @@ internal class FeedbackItemRoutes(
     private fun currentId(): String = service.requireCurrentSession().sessionId
 }
 
+private fun AddAnnotationRequest.validateComment() {
+    if (comment.isBlank()) {
+        throw FeedbackConsoleHttpException(
+            statusCode = 422,
+            message = "Cannot save annotation with empty comment.",
+            errorCode = "empty-comment",
+            action = null,
+        )
+    }
+}
+
+private fun SaveSnapshotRequest.validateComments() {
+    val empties = items.count { it.comment.isBlank() }
+    if (empties > 0) {
+        throw PreviewFeedbackRequestValidationException(
+            "Cannot save annotation with empty comment ($empties item(s)).",
+        )
+    }
+}
+
 private val allowedAddFeedbackItemRequestKeys = setOf(
     "sessionId",
     "screenId",
@@ -173,18 +195,23 @@ private val allowedAddFeedbackItemRequestKeys = setOf(
     "nodeUid",
 )
 
+private const val HTTP_BAD_REQUEST = 400
+private const val HTTP_UNPROCESSABLE_ENTITY = 422
+
 private fun PreviewFeedbackRequestValidationException.toConsoleHttpException(): FeedbackConsoleHttpException {
     val text = message ?: "Invalid feedback item request"
-    val (code, action) = when {
+    val (statusCode, code, action) = when {
+        text.startsWith("Cannot save annotation with empty comment") ->
+            Triple(HTTP_UNPROCESSABLE_ENTITY, "empty-comment", null)
         text.startsWith("Selected node does not exist on preview:") ->
-            "selected_node_missing" to "recapture_or_convert_to_area"
+            Triple(HTTP_BAD_REQUEST, "selected_node_missing", "recapture_or_convert_to_area")
         text.startsWith("Selection bounds") ->
-            "invalid_selection_bounds" to "recapture_or_select_area"
+            Triple(HTTP_BAD_REQUEST, "invalid_selection_bounds", "recapture_or_select_area")
         else ->
-            "invalid_feedback_item" to null
+            Triple(HTTP_BAD_REQUEST, "invalid_feedback_item", null)
     }
     return FeedbackConsoleHttpException(
-        statusCode = 400,
+        statusCode = statusCode,
         message = text,
         errorCode = code,
         action = action,

@@ -445,49 +445,6 @@ class ConsoleFeedbackItemRoutesTest {
     }
 
     @Test
-    fun savingDraftItemsAllowsBlankCommentsForUnwrittenAnnotations() {
-        withTempProject("fixthis-console-blank-batch") { projectRoot ->
-            val service = FeedbackSessionService(
-                bridge = FakeFixThisBridge(),
-                store = FeedbackSessionStore(
-                    clock = { 100L },
-                    idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1", "item-1").next,
-                ),
-                projectRoot = projectRoot.absolutePath,
-                defaultPackageName = "io.github.beyondwin.fixthis.sample",
-            )
-            withConsoleServer(service) { server ->
-                service.openSession(null, newSession = true)
-                val preview = ConsoleHttpTestClient(server.url).getJsonObject("/api/preview")
-                val previewId = preview.getValue("previewId").jsonPrimitive.content
-
-                val connection = ConsoleHttpTestClient(server.url).connection(
-                    "/api/items/batch",
-                    method = "POST",
-                    body = """
-                    {
-                      "previewId": "$previewId",
-                      "items": [
-                        {
-                          "targetType": "area",
-                          "bounds": {"left":10.0,"top":20.0,"right":110.0,"bottom":80.0},
-                          "comment": ""
-                        }
-                      ]
-                    }
-                    """.trimIndent(),
-                )
-
-                assertEquals(200, connection.responseCode)
-                val session = connection.inputJsonObject()
-                val item = session.getValue("items").jsonArray.single().jsonObject
-                assertEquals("", item.getValue("comment").jsonPrimitive.content)
-                assertEquals("open", item.getValue("status").jsonPrimitive.content)
-            }
-        }
-    }
-
-    @Test
     fun batchItemsApiDoesNotDuplicateSameWorkspaceDraftItemWhenPreviewFallsBackToScreen() {
         withTempProject("fixthis-console-idempotent-batch") { projectRoot ->
             val service = FeedbackSessionService(

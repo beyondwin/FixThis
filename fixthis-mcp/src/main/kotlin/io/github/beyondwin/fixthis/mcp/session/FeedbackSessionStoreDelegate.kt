@@ -48,7 +48,6 @@ internal class FeedbackSessionStoreDelegate(
     private val lock = Any()
     private val sessions = linkedMapOf<String, SessionDto>()
     private var currentSessionId: String? = null
-
     private val journal = SessionEventJournal(
         clock = clock,
         idGenerator = idGenerator,
@@ -215,6 +214,7 @@ internal class FeedbackSessionStoreDelegate(
         noop = { getSessionLocked(sessionId) },
         prepare = {
             require(items.isNotEmpty()) { "At least one feedback item is required" }
+            require(items.all { it.comment.isNotBlank() }) { "addScreenWithItems received items with blank comment" }
             val session = getSessionLocked(sessionId)
             val existingClientKeys = session.items.mapNotNull { it.clientDraftKey() }.toSet()
             val existingLegacySemanticKeys = existingLegacySemanticKeysForScreen(session, screen)

@@ -24,10 +24,16 @@ class InstallAgentJsonReportTest {
         assertEquals("1.0", obj.getValue("schemaVersion").jsonPrimitive.content)
         assertEquals("false", obj.getValue("ok").jsonPrimitive.content)
         assertEquals(1, obj.getValue("applied").jsonArray.size)
-        assertEquals("claude", obj.getValue("applied").jsonArray[0].jsonObject
-            .getValue("target").jsonPrimitive.content)
-        assertEquals("no-app-module", obj.getValue("skipped").jsonArray[0].jsonObject
-            .getValue("reason").jsonPrimitive.content)
+        assertEquals(
+            "claude",
+            obj.getValue("applied").jsonArray[0].jsonObject
+                .getValue("target").jsonPrimitive.content,
+        )
+        assertEquals(
+            "no-app-module",
+            obj.getValue("skipped").jsonArray[0].jsonObject
+                .getValue("reason").jsonPrimitive.content,
+        )
         assertEquals(2, obj.getValue("next").jsonArray.size)
     }
 

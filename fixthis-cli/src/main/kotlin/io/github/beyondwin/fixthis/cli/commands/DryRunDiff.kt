@@ -24,19 +24,20 @@ internal object DryRunDiff {
         return enforceBudget(body, byteBudget)
     }
 
-    private fun renderJsonSafely(before: String, after: String): String {
-        return try {
-            renderJsonStructured(before, after)
-        } catch (_: Exception) {
-            // Privacy invariant: never leak raw content through the JSON path on parse failure.
-            // Emit a fixed placeholder; the byte-budget enforcer adds the trailing newline.
-            UNPARSEABLE_JSON_NOTE
-        }
+    private fun renderJsonSafely(before: String, after: String): String = try {
+        renderJsonStructured(before, after)
+    } catch (_: Exception) {
+        // Privacy invariant: never leak raw content through the JSON path on parse failure.
+        // Emit a fixed placeholder; the byte-budget enforcer adds the trailing newline.
+        UNPARSEABLE_JSON_NOTE
     }
 
     private fun renderJsonStructured(before: String, after: String): String {
-        val beforeObj: JsonObject = if (before.isBlank()) JsonObject(emptyMap())
-            else Json.parseToJsonElement(before).jsonObject
+        val beforeObj: JsonObject = if (before.isBlank()) {
+            JsonObject(emptyMap())
+        } else {
+            Json.parseToJsonElement(before).jsonObject
+        }
         val afterObj = Json.parseToJsonElement(after).jsonObject
         return buildString {
             // Top-level non-mcpServers keys: emit added (+) or changed (~).

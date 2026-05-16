@@ -44,14 +44,31 @@ function pendingClientDraftKey(item, workspaceId) {
   return workspaceId + '\u0000' + item.draftItemId;
 }
 
+function dropEmptyHistoryPendingItems(items) {
+  let dropped = 0;
+  const kept = (items || []).filter((item) => {
+    const comment = String(item?.comment || '');
+    if (comment.length === 0) {
+      dropped += 1;
+      return false;
+    }
+    return true;
+  });
+  if (dropped > 0) {
+    console.info(`[draft-recovery] skipped ${dropped} empty-comment entries`);
+  }
+  return kept;
+}
+
 function hasLegacySemanticDedupeKey(item, workspaceId) {
   if (pendingClientDraftKey(item, workspaceId)) return false;
   return Boolean(String(item?.comment || '').trim());
 }
 
 function dedupePendingHistoryItemsForSession(session, pendingItems, workspaceId) {
+  const filteredPendingItems = dropEmptyHistoryPendingItems(pendingItems);
   const persisted = persistedItemsForHistoryDedupe(session);
-  if (!persisted.length) return pendingItems || [];
+  if (!persisted.length) return filteredPendingItems;
   const persistedClientKeys = new Set(persisted.map(persistedClientDraftKey).filter(Boolean));
   const persistedSemanticKeys = new Set(
     persisted
@@ -59,7 +76,7 @@ function dedupePendingHistoryItemsForSession(session, pendingItems, workspaceId)
       .map(historyItemSemanticKey)
       .filter(Boolean)
   );
-  return (pendingItems || []).filter((item) => {
+  return filteredPendingItems.filter((item) => {
     const clientKey = pendingClientDraftKey(item, workspaceId);
     if (clientKey) return !persistedClientKeys.has(clientKey);
     if (!hasLegacySemanticDedupeKey(item, workspaceId)) return true;

@@ -1,4 +1,4 @@
-// @requires connectionBrowserAdapter.js, previewBrowserAdapter.js, pollingBrowserAdapter.js, toolModeUseCases.js
+// @requires connectionBrowserAdapter.js, previewBrowserAdapter.js, pollingBrowserAdapter.js, toolModeUseCases.js, statusSurfaceRegistry.js
             // consoleApp.js — top-level FSM boot factory.
             // Aggregates the four sub-FSMs introduced by the
             // console-state-machine-expansion plan plus the already-migrated
@@ -25,5 +25,7 @@
               // toolMode.getState() directly), so onChange is only
               // used to trigger a render when supplied.
               const toolMode = createToolModeUseCases({ onChange: render_ });
-              return { connection, preview, polling, toolMode };
+              const statusSurfaceRegistry = createStatusSurfaceRegistry();
+              if (typeof window !== 'undefined') window.__statusSurfaceRegistry = statusSurfaceRegistry;
+              return { connection, preview, polling, statusSurfaceRegistry, toolMode };
             }

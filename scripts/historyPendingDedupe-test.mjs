@@ -81,7 +81,7 @@ test('history pending items keep new draft with same semantic target when client
   assert.deepEqual(pending, [pendingItem]);
 });
 
-test('history pending items keep legacy pin-only item even when bounds match', () => {
+test('history pending items drop legacy pin-only item with exact empty comment', () => {
   m.setState({
     session: {
       sessionId: 'session-a',
@@ -95,7 +95,7 @@ test('history pending items keep legacy pin-only item even when bounds match', (
   const pendingItem = { targetType: 'area', bounds, comment: '' };
   const pending = m.dedupePendingHistoryItemsForSession({ sessionId: 'session-a' }, [pendingItem], null);
 
-  assert.deepEqual(pending, [pendingItem]);
+  assert.deepEqual(pending, []);
 });
 
 test('history recovery chooses newest non-empty candidate after per-workspace dedupe', () => {
@@ -127,5 +127,5 @@ test('history recovery chooses newest non-empty candidate after per-workspace de
     [olderUnsaved, newerDuplicate],
   );
 
-  assert.deepEqual(items, olderUnsaved.items);
+  assert.deepEqual(items, []);
 });

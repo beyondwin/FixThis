@@ -58,6 +58,7 @@
             const connectionUseCases = consoleApp.connection;
             const previewUseCases = consoleApp.preview;
             const pollingUseCases = consoleApp.polling;
+            const statusSurfaceRegistry = consoleApp.statusSurfaceRegistry;
             const toolMode = consoleApp.toolMode;
             state.connection = { ...connectionUseCases.getState() };
             state.previewFsm = { ...previewUseCases.getState() };
@@ -76,10 +77,12 @@
             const inspectorCount = document.getElementById('inspectorCount');
             const inspectorBody = document.getElementById('inspectorBody');
             const inspectorFooter = document.getElementById('inspectorFooter');
+            const editorBack = document.getElementById('editorBack');
             const draftItems = document.getElementById('draftItems');
             const savedSectionHeader = document.getElementById('savedSectionHeader');
             const pendingItems = document.getElementById('pendingItems');
             const error = document.getElementById('error');
+            const toastContainer = document.getElementById('toastContainer');
             const comment = document.getElementById('comment');
             const devicePicker = document.getElementById('devicePicker');
             const deviceStatus = document.getElementById('deviceStatus');
@@ -90,13 +93,9 @@
             const historyDrawerScrim = document.getElementById('historyDrawerScrim');
             const previewIntervalSelect = document.getElementById('previewIntervalSelect');
             const selectionSummary = document.getElementById('selectionSummary');
-            const clearSelectionButton = document.getElementById('clearSelectionButton');
-            const addItemButton = document.getElementById('addItemButton');
             const copyPromptButton = document.getElementById('copyPromptButton');
             const sendAgentButton = document.getElementById('sendAgentButton');
             const promptReadiness = document.getElementById('promptReadiness');
-            const cancelAddFlowButton = document.getElementById('cancelAddFlowButton');
-            const clearDraftButton = document.getElementById('clearDraftButton');
             const selectToolButton = document.getElementById('selectToolButton');
             const annotateToolButton = document.getElementById('annotateToolButton');
             const toolStatus = document.getElementById('toolStatus');
@@ -352,7 +351,7 @@
             }
 
             function syncStatusVisibility() {
-              error.hidden = !String(error.textContent || '').trim();
+              if (!String(error.textContent || '').trim()) statusSurfaceRegistry.hide('global-error');
             }
 
             if (typeof MutationObserver !== 'undefined') {
@@ -366,7 +365,7 @@
 
             function resetStatusSurface() {
               error.textContent = '';
-              error.hidden = true;
+              statusSurfaceRegistry.hide('global-error');
               error.className = 'global-status';
               error.setAttribute('role', 'status');
               error.setAttribute('aria-live', 'polite');
@@ -388,10 +387,19 @@
               function showStatus(message, { variant = 'info', durationMs = 0, assertive = false } = {}) {
                 clearStatusTimer();
                 error.textContent = message;
-                error.hidden = !message;
                 error.className = 'global-status status-' + variant;
                 error.setAttribute('role', assertive ? 'alert' : 'status');
                 error.setAttribute('aria-live', assertive ? 'assertive' : 'polite');
+                if (message) {
+                  statusSurfaceRegistry.show('global-error', {
+                    surfaceClass: 'toast',
+                    priority: variant === 'error' ? 1 : 3,
+                    element: error,
+                    content: message,
+                  });
+                } else {
+                  statusSurfaceRegistry.hide('global-error');
+                }
                 if (durationMs > 0) {
                   statusClearTimeout = setTimeout(() => {
                     resetStatusSurface();

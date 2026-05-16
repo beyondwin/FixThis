@@ -36,10 +36,6 @@
               draftItems.hidden = savedItems.length === 0;
               if (savedSectionHeader) savedSectionHeader.hidden = savedItems.length === 0;
               inspectorFooter.hidden = savedItems.length === 0;
-              clearSelectionButton.hidden = true;
-              cancelAddFlowButton.hidden = true;
-              addItemButton.hidden = true;
-              clearDraftButton.hidden = !(draftItemList().length || pendingRecoveryItems(pendingRecovery).length || savedItems.length);
               renderPendingItems();
               if (savedItems.length) renderSavedEvidenceGroups();
             }
@@ -54,10 +50,6 @@
               draftItems.hidden = false;
               if (savedSectionHeader) savedSectionHeader.hidden = true;
               inspectorFooter.hidden = false;
-              clearSelectionButton.hidden = true;
-              cancelAddFlowButton.hidden = true;
-              addItemButton.hidden = true;
-              clearDraftButton.hidden = items.length === 0;
               renderSavedEvidenceGroups();
             }
 
@@ -107,22 +99,30 @@
 	              const root = document.getElementById('draftLockBar');
 	              if (!root) return;
 	              const isDraft = canvasModel ? canvasModel.mode === 'frozenDraft' : Boolean(draftFlow());
-	              root.hidden = !isDraft;
 	              if (!isDraft) {
 	                root.textContent = '';
+	                statusSurfaceRegistry.hide('draftLockBar');
 	                return;
 	              }
-	              root.textContent = canvasModel?.lockLabel || (
+	              const label = canvasModel?.lockLabel || (
 	                'Locked: Session ' + (draftFlow()?.context?.sessionId || state.session?.sessionId || 'current') +
 	                ' · Preview ' + (draftFlow()?.previewId || draftFlow()?.context?.previewId || 'frozen')
 	              );
+	              statusSurfaceRegistry.show('draftLockBar', {
+	                surfaceClass: 'inline',
+	                priority: 3,
+	                element: root,
+	                content: label,
+	              });
 	            }
 
 	            function renderBoundaryFromModel(boundary) {
 	              const root = document.getElementById('sessionBoundarySheet');
 	              if (!root) return;
-	              root.hidden = !boundary;
-	              if (!boundary) return;
+	              if (!boundary) {
+	                statusSurfaceRegistry.hide('sessionBoundarySheet');
+	                return;
+	              }
 	              root.querySelector('[data-boundary-title]').textContent = boundary.title;
 	              root.querySelector('[data-boundary-summary]').textContent =
 	                boundary.draftSummary.itemCount + ' draft annotations · ' + boundary.draftSummary.missingCommentCount + ' missing comments';
@@ -135,6 +135,11 @@
 	                    if (typeof consoleStore !== 'undefined') consoleStore.dispatch({ type: action.type });
 	                  };
 	                }
+	              });
+	              statusSurfaceRegistry.show('sessionBoundarySheet', {
+	                surfaceClass: 'modal',
+	                priority: 1,
+	                element: root,
 	              });
 	            }
 

@@ -10,7 +10,8 @@ const storageSrc = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/draf
 const factory = new Function(`${boundarySrc}\n${storageSrc}; return {
   draftWorkspaceKey,
   draftWorkspaceIndexKey,
-  createDraftStorageAdapter
+  createDraftStorageAdapter,
+  dropEmptyEntries
 };`);
 const m = factory();
 
@@ -35,7 +36,7 @@ test('workspace storage is keyed by captured session and workspace', () => {
     workspaceId: 'ws-a',
     revision: 2,
     context: { sessionId: 'session-a' },
-    items: [{ draftItemId: 'draft-1' }],
+    items: [{ draftItemId: 'draft-1', comment: 'stored' }],
   });
   assert.ok(localStorage.getItem(m.draftWorkspaceKey('session-a', 'ws-a')));
   assert.deepEqual(adapter.loadWorkspacesForSession('session-a').map((w) => w.workspaceId), ['ws-a']);
@@ -93,6 +94,35 @@ test('loadWorkspacesForSession drops malformed indexed workspace payloads', () =
 
   assert.deepEqual(adapter.loadWorkspacesForSession('session-a'), []);
   assert.equal(localStorage.getItem('fixthis.workspace.session-a.ws-bad'), null);
+});
+
+test('dropEmptyEntries removes exact empty comments while keeping whitespace comments', () => {
+  const envelope = {
+    workspaceId: 'ws-a',
+    items: [
+      { draftItemId: 'draft-1', comment: 'real' },
+      { draftItemId: 'draft-2', comment: '' },
+      { draftItemId: 'draft-3', comment: '  ' },
+    ],
+  };
+
+  const filtered = m.dropEmptyEntries(envelope);
+
+  assert.deepEqual(filtered.items.map((item) => item.draftItemId), ['draft-1', 'draft-3']);
+});
+
+test('loadWorkspacesForSession ignores stored workspaces with no non-empty entries', () => {
+  const localStorage = fakeLocalStorage();
+  const adapter = m.createDraftStorageAdapter(localStorage);
+  adapter.saveWorkspace({
+    schemaVersion: 2,
+    sessionId: 'session-a',
+    workspaceId: 'ws-empty',
+    context: { sessionId: 'session-a' },
+    items: [{ draftItemId: 'draft-1', comment: '' }],
+  });
+
+  assert.deepEqual(adapter.loadWorkspacesForSession('session-a'), []);
 });
 
 test('schema v1 pending envelope migrates into schema v2 workspace recovery', () => {

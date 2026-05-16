@@ -190,6 +190,7 @@ The full command set is:
   :fixthis-mcp:installDist \
   --no-daemon
 node scripts/build-console-assets.mjs --check
+bash scripts/check-surface-zindex.sh
 node scripts/check-doc-consistency.mjs
 node scripts/check-release-readiness.mjs
 node --check fixthis-mcp/src/main/resources/console/app.js

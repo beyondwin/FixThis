@@ -26,7 +26,11 @@ internal object GlobalScopeGuard {
                 // Skip .git, node_modules, build dirs, and anything that escapes root via symlink
                 when (dir.name) {
                     ".git", "node_modules", "build" -> false
-                    else -> try { dir.canonicalFile.startsWith(rootCanonical) } catch (_: Exception) { false }
+                    else -> try {
+                        dir.canonicalFile.startsWith(rootCanonical)
+                    } catch (_: Exception) {
+                        false
+                    }
                 }
             }
             .maxDepth(3)

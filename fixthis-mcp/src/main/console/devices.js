@@ -1,4 +1,4 @@
-// @requires state.js, api.js
+// @requires state.js, api.js, boundaryDialogVariants.js
             const BLOCKED_SUFFIX = {
               screenOff: 'Screen off',
               locked: 'Locked',
@@ -161,6 +161,21 @@
                 setDeviceUiState(DeviceUiState.UNAVAILABLE, deviceBySerial(state.devices, option.value) || { serial: option.value });
                 throw cause;
               }
+            }
+
+            function currentDeviceName() {
+              const selected = deviceBySerial(state.devices, state.selectedDeviceSerial);
+              return deviceLabel(selected || null);
+            }
+
+            async function forgetDevice() {
+              const deviceNameForPrompt = currentDeviceName();
+              renderBoundaryDialog('forgetDevice', { deviceName: deviceNameForPrompt });
+              if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+                const accepted = window.confirm('Forget ' + deviceNameForPrompt + '? Active session data is unaffected.');
+                if (!accepted) return;
+              }
+              await disconnectDevice();
             }
 
             async function disconnectDevice() {

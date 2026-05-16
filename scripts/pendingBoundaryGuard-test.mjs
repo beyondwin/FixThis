@@ -8,6 +8,10 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const mainSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/main.js'), 'utf8');
 const historySource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/history.js'), 'utf8');
 const annotationsSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/annotations.js'), 'utf8');
+const inspectorFooterActionsSource = readFileSync(
+  resolve(root, 'fixthis-mcp/src/main/console/inspectorFooterActions.js'),
+  'utf8',
+);
 
 function body(source, signature) {
   const start = source.indexOf(signature);
@@ -212,14 +216,19 @@ test('pending recovery only path does not silently continue past lifecycle bound
   assert.match(resolveBody, /resolveLifecycleBoundary\(/);
 });
 
-test('clear draft button dispatches local or server clear by current context', () => {
-  assert.match(mainSource, /clearDraftButton\.addEventListener\('click',\s*\(\) => \{/);
-  assert.match(mainSource, /if \(draftFlow\(\) \|\| pendingRecoveryItems\(pendingRecovery\)\.length\) clearLocalDraft\(\)\.catch\(showError\);/);
-  assert.match(mainSource, /else clearServerDrafts\(\)\.catch\(showError\);/);
+test('inspector footer cancel action routes by derived editor state', () => {
+  assert.match(mainSource, /inspectorFooter\?\.addEventListener\('click'/);
+  const actionBody = body(inspectorFooterActionsSource, 'function handleInspectorFooterAction(action)');
+  assert.match(actionBody, /deriveEditorState\(currentDraftWorkspace\(\), draftSelection\(\), selectedSavedAnnotation\(\)\)/);
+  assert.match(actionBody, /if \(editorState === 'pendingTarget'\) clearSelection\(\);/);
+  assert.match(actionBody, /else cancelAddItemsFlow\(\);/);
 });
 
-test('clear draft control is visible for local drafts even without saved items', () => {
+test('composer footer visibility is delegated to renderInspectorFooter', () => {
   const previewRegion = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/presentation/previewRegionView.js'), 'utf8');
   const composerBody = body(previewRegion, 'function renderComposerInspector()');
-  assert.match(composerBody, /clearDraftButton\.hidden = !\(draftItemList\(\)\.length \|\| pendingRecoveryItems\(pendingRecovery\)\.length \|\| savedItems\.length\);/);
+  const annotations = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/annotations.js'), 'utf8');
+  const updateBody = body(annotations, 'function updateComposerState()');
+  assert.doesNotMatch(composerBody, /clearDraftButton/);
+  assert.match(updateBody, /renderInspectorFooter\(/);
 });

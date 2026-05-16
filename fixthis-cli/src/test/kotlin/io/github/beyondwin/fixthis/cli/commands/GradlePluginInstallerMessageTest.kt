@@ -24,8 +24,10 @@ class GradlePluginInstallerMessageTest {
             captured += e.message.orEmpty()
         }
         val joined = captured.joinToString("\n")
-        assertTrue("Expected templated failure, got:\n$joined",
+        assertTrue(
+            "Expected templated failure, got:\n$joined",
             joined.contains("verify: ./gradlew projects") &&
-            joined.contains("fix:    pass --package"))
+                joined.contains("fix:    pass --package"),
+        )
     }
 }

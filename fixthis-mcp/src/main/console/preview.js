@@ -208,10 +208,9 @@
               if (!overlay) return;
               const reason = state.connection?.interactionBlockedReason ?? null;
               if (!reason) {
-                overlay.hidden = true;
+                statusSurfaceRegistry.hide('canvasBlockedOverlay');
                 return;
               }
-              overlay.hidden = false;
               const headlines = {
                 screenOff: 'Device screen is off',
                 locked: 'Device is locked',
@@ -228,10 +227,16 @@
                 unresponsive: 'Retrying…',
                 noComposeUi: 'Switch to a screen with Compose content to annotate.',
               };
-              overlay.querySelector('[data-headline]').textContent = headlines[reason] ?? '';
-              overlay.querySelector('[data-detail]').textContent = details[reason] ?? '';
-              const retry = overlay.querySelector('[data-retry]');
-              retry.hidden = reason !== 'unresponsive';
+              statusSurfaceRegistry.show('canvasBlockedOverlay', {
+                surfaceClass: 'modalCanvas',
+                priority: 1,
+                element: overlay,
+                content: {
+                  headline: headlines[reason] ?? '',
+                  detail: details[reason] ?? '',
+                  retry: reason === 'unresponsive',
+                },
+              });
             }
 
             document.getElementById('canvasBlockedOverlay')?.querySelector('[data-retry]')?.addEventListener('click', () => {
@@ -242,14 +247,18 @@
               const root = document.getElementById('canvasStaleNotice');
               if (!root) return;
               if (!state.preview?.stale || state.connection?.interactionBlockedReason) {
-                root.hidden = true;
+                statusSurfaceRegistry.hide('canvasStaleNotice');
                 return;
               }
               const title = root.querySelector('[data-stale-title]');
               const detail = root.querySelector('[data-stale-detail]');
               if (title) title.textContent = 'Recovered draft';
               if (detail) detail.textContent = 'Live preview paused for this frozen frame.';
-              root.hidden = false;
+              statusSurfaceRegistry.show('canvasStaleNotice', {
+                surfaceClass: 'inline',
+                priority: 3,
+                element: root,
+              });
             }
 
             async function useLatestStaleFrame() {

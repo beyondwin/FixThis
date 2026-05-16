@@ -36,7 +36,80 @@
 
             function markPreviewStale(stale) {
               const hasPreviewSurface = Boolean(state.preview || draftFlow()?.screen || latestPersistedScreen());
-              previewStaleBadge.hidden = !stale || !hasPreviewSurface;
+              if (stale && hasPreviewSurface) {
+                statusSurfaceRegistry.show('previewStaleBadge', {
+                  surfaceClass: 'badge',
+                  priority: 3,
+                  element: previewStaleBadge,
+                  content: 'Connection paused - showing last preview',
+                });
+              } else {
+                statusSurfaceRegistry.hide('previewStaleBadge');
+              }
+            }
+
+            function applyDisconnect({ hasDirtyDraft = false } = {}) {
+              const overlay = document.getElementById('canvasBlockedOverlay');
+              if (overlay) {
+                statusSurfaceRegistry.show('canvasBlockedOverlay', {
+                  surfaceClass: 'modalCanvas',
+                  priority: 1,
+                  element: overlay,
+                  content: {
+                    headline: 'Device disconnected',
+                    detail: 'Reconnecting...',
+                    retry: true,
+                  },
+                });
+              }
+              statusSurfaceRegistry.hide('canvasStaleNotice');
+              statusSurfaceRegistry.hide('previewStaleBadge');
+              const banner = document.getElementById('stalenessBanner');
+              if (hasDirtyDraft && banner) {
+                statusSurfaceRegistry.show('stalenessBanner', {
+                  surfaceClass: 'banner',
+                  priority: 2,
+                  element: banner,
+                  content: '1 unsaved draft preserved locally',
+                });
+              } else {
+                statusSurfaceRegistry.hide('stalenessBanner');
+              }
+            }
+
+            function applyReconnect({ targetStale = false } = {}) {
+              statusSurfaceRegistry.hide('canvasBlockedOverlay');
+              if (targetStale) {
+                const notice = document.getElementById('canvasStaleNotice');
+                if (notice) {
+                  const title = notice.querySelector('[data-stale-title]');
+                  const detail = notice.querySelector('[data-stale-detail]');
+                  if (title) title.textContent = 'Recovered draft';
+                  if (detail) detail.textContent = 'Live preview paused for this frozen frame.';
+                  statusSurfaceRegistry.show('canvasStaleNotice', {
+                    surfaceClass: 'inline',
+                    priority: 3,
+                    element: notice,
+                  });
+                }
+                statusSurfaceRegistry.hide('previewStaleBadge');
+                return;
+              }
+              statusSurfaceRegistry.hide('canvasStaleNotice');
+              const badge = document.getElementById('previewStaleBadge');
+              if (badge) {
+                statusSurfaceRegistry.show('previewStaleBadge', {
+                  surfaceClass: 'badge',
+                  priority: 3,
+                  element: badge,
+                  content: 'Connection restored - refreshing preview',
+                  autoDismissMs: 2000,
+                });
+              }
+            }
+
+            function shouldShowDisconnectChoreography(viewState) {
+              return viewState === 'check_phone' || viewState === 'reconnect';
             }
 
             function syncSelectedDeviceFromConnection(status) {
@@ -90,6 +163,9 @@
 
             function applyConnectionStatus(status, options) {
               const connectionOptions = options || {};
+              const previousConnectionState = connectionUseCases.getState();
+              const hadEverConnected = previousConnectionState.hasEverConnected;
+              const previousViewState = userConnectionState(previousConnectionState.current);
 
               // Compute the new blocked reason from the incoming availability
               // BEFORE dispatching, so STATUS_RECEIVED can write it atomically
@@ -151,6 +227,16 @@
               // stale-frame notice reflect the latest interactionBlockedReason / preview.stale.
               // Without this, the heartbeat-driven state update never reaches the canvas.
               renderPreviewRegion();
+              const hasDirtyDraft = draftItemList().length > 0;
+              if (viewState === 'ready') {
+                if (hadEverConnected && previousViewState !== 'ready' && !state.connection?.interactionBlockedReason) {
+                  applyReconnect({ targetStale: Boolean(state.preview?.stale) });
+                }
+              } else if (shouldShowDisconnectChoreography(viewState) && (hadEverConnected || hasDirtyDraft || state.preview)) {
+                applyDisconnect({ hasDirtyDraft });
+              } else if (!state.connection?.interactionBlockedReason) {
+                statusSurfaceRegistry.hide('canvasBlockedOverlay');
+              }
               checkProtocolCompat(status);
               checkSidekickBuildEpoch(status);
             }

@@ -30,8 +30,11 @@
                   </span>
                   <span class="device-chevron" aria-hidden="true">▾</span>
                   <select id="devicePicker" aria-label="Android device"></select>
-                  <button id="disconnectDeviceButton" class="device-clear-button" type="button" title="Clear FixThis device selection" aria-label="Clear FixThis device selection">
-                    <span aria-hidden="true">&times;</span>
+                  <button id="forgetDeviceButton" class="device-forget-button icon-button" type="button" title="Forget device" aria-label="Forget device">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" stroke="currentColor"/>
+                    </svg>
+                    <span class="sr-only">Forget device</span>
                   </button>
                 </div>
                 <select id="previewIntervalSelect" aria-label="Preview interval">
@@ -73,6 +76,7 @@
         </div>
       </section>
       <p id="error" class="global-status" role="status" aria-live="polite" data-testid="global-status" hidden></p>
+      <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="false"></div>
       <nav id="workflowProgress" class="workflow-progress" aria-label="FixThis feedback workflow">
         <ol>
           <li data-workflow-step="connect" data-state="active">
@@ -165,6 +169,10 @@
 	                </div>
 	              </section>
               <aside class="studio-inspector">
+                <button id="editorBack" class="editor-back-button" type="button" hidden>
+                  <span aria-hidden="true">&larr;</span>
+                  <span>All annotations</span>
+                </button>
                 <div class="panel-head">
                   <div id="inspectorTitle" class="panel-title">Annotations</div>
                   <div id="inspectorCount" class="panel-count">0</div>
@@ -176,12 +184,7 @@
                   <div id="savedSectionHeader" class="inspector-section-header" hidden>Saved annotations</div>
                   <div id="draftItems" class="list"></div>
                 </div>
-                <div id="inspectorFooter" class="inspector-footer">
-                  <button id="clearSelectionButton">Clear Selection</button>
-                  <button id="cancelAddFlowButton" disabled>Exit Annotate</button>
-                  <button id="addItemButton" class="primary" disabled hidden>Add annotation</button>
-                  <button id="clearDraftButton">Clear Draft</button>
-                </div>
+                <div id="inspectorFooter" class="inspector-footer" data-editor-state="none" hidden></div>
               </aside>
             </main>
           </div>

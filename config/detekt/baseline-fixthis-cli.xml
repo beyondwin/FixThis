@@ -2,27 +2,35 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
+    <ID>CyclomaticComplexMethod:SetupCommand.kt$InstallAgentCommand$override fun run()</ID>
+    <ID>CyclomaticComplexMethod:SetupCommand.kt$SetupCommand$private fun runWritePlansAtomic( plans: List&lt;AgentConfigWritePlan&gt;, move: (java.nio.file.Path, java.nio.file.Path, Array&lt;out java.nio.file.CopyOption&gt;) -&gt; java.nio.file.Path = { source, target, options -&gt; java.nio.file.Files.move(source, target, *options) }, forceFile: (java.nio.file.Path) -&gt; Unit = AtomicConfigFileWriter::forceRegularFile, forceDirectory: (java.nio.file.Path) -&gt; Unit = AtomicConfigFileWriter::forceDirectoryBestEffort, copyForRollback: (File, File) -&gt; Unit = { source, destination -&gt; source.copyTo(destination, overwrite = true) }, emit: (String) -&gt; Unit = ::echo, )</ID>
     <ID>LongMethod:BridgeClientTest.kt$BridgeClientTest$@Test fun captureScreenSnapshotPullsFullScreenshotArtifact()</ID>
     <ID>LongMethod:BridgeClientTest.kt$BridgeClientTest$@Test fun captureScreenSnapshotUsesProvidedDestinationDirectory()</ID>
+    <ID>LongMethod:SetupCommand.kt$InstallAgentCommand$override fun run()</ID>
+    <ID>LongMethod:SetupCommand.kt$SetupCommand$private fun runWritePlansAtomic( plans: List&lt;AgentConfigWritePlan&gt;, move: (java.nio.file.Path, java.nio.file.Path, Array&lt;out java.nio.file.CopyOption&gt;) -&gt; java.nio.file.Path = { source, target, options -&gt; java.nio.file.Files.move(source, target, *options) }, forceFile: (java.nio.file.Path) -&gt; Unit = AtomicConfigFileWriter::forceRegularFile, forceDirectory: (java.nio.file.Path) -&gt; Unit = AtomicConfigFileWriter::forceDirectoryBestEffort, copyForRollback: (File, File) -&gt; Unit = { source, destination -&gt; source.copyTo(destination, overwrite = true) }, emit: (String) -&gt; Unit = ::echo, )</ID>
     <ID>LongParameterList:BridgeClient.kt$BridgeClient$( packageName: String, method: String, params: JsonObject, readTimeoutMillis: Long, scope: BridgeRequestScope, activeRequest: ActiveBridgeRequest, )</ID>
-    <ID>LongParameterList:BridgeClient.kt$BridgeClient$( scope: BridgeRequestScope, packageName: String, kind: String, androidPath: String?, destination: File, source: String = "annotation", )</ID>
-    <ID>LongParameterList:BridgeClientTest.kt$BridgeClientTest.FakeAdbFacade$( private val sessionJson: String, private val devices: List&lt;AdbDevice&gt; = listOf(AdbDevice("emulator-5554", "device")), private val selectedSerial: String? = null, val forwarded: MutableList&lt;Pair&lt;Int, String&gt;&gt; = mutableListOf(), val removedForwards: MutableList&lt;Int&gt; = mutableListOf(), val pulled: MutableList&lt;Pair&lt;String, File&gt;&gt; = mutableListOf(), val runAsSerials: MutableList&lt;String?&gt; = mutableListOf(), val forwardSerials: MutableList&lt;String?&gt; = mutableListOf(), val removeForwardSerials: MutableList&lt;String?&gt; = mutableListOf(), val launchedApps: MutableList&lt;Pair&lt;String?, String&gt;&gt; = mutableListOf(), )</ID>
-    <ID>LoopWithTooManyJumpStatements:BridgeClient.kt$BridgeClient$for</ID>
+    <ID>LongParameterList:SetupCommand.kt$SetupCommand$( plans: List&lt;AgentConfigWritePlan&gt;, move: (java.nio.file.Path, java.nio.file.Path, Array&lt;out java.nio.file.CopyOption&gt;) -&gt; java.nio.file.Path = { source, target, options -&gt; java.nio.file.Files.move(source, target, *options) }, forceFile: (java.nio.file.Path) -&gt; Unit = AtomicConfigFileWriter::forceRegularFile, forceDirectory: (java.nio.file.Path) -&gt; Unit = AtomicConfigFileWriter::forceDirectoryBestEffort, copyForRollback: (File, File) -&gt; Unit = { source, destination -&gt; source.copyTo(destination, overwrite = true) }, emit: (String) -&gt; Unit = ::echo, )</ID>
+    <ID>LongParameterList:SetupCommand.kt$SetupCommand$( plans: List&lt;Pair&lt;Triple&lt;String, String, File&gt;, String&gt;&gt;, move: (java.nio.file.Path, java.nio.file.Path, Array&lt;out java.nio.file.CopyOption&gt;) -&gt; java.nio.file.Path = { source, target, options -&gt; java.nio.file.Files.move(source, target, *options) }, forceFile: (java.nio.file.Path) -&gt; Unit = AtomicConfigFileWriter::forceRegularFile, forceDirectory: (java.nio.file.Path) -&gt; Unit = AtomicConfigFileWriter::forceDirectoryBestEffort, copyForRollback: (File, File) -&gt; Unit = { source, destination -&gt; source.copyTo(destination, overwrite = true) }, emit: (String) -&gt; Unit = { /* no-op: tests do not need user-facing echo */ }, )</ID>
+    <ID>LongParameterList:SetupCommand.kt$SetupCommand$( writerName: String, scope: String, configFile: File, content: String, dryRun: Boolean, fullDiff: Boolean = false, )</ID>
     <ID>LoopWithTooManyJumpStatements:RunCommand.kt$while</ID>
     <ID>MagicNumber:Adb.kt$Adb$65535</ID>
     <ID>MagicNumber:Adb.kt$ProcessAdbCommandRunner$500</ID>
-    <ID>MagicNumber:BridgeClient.kt$BridgeFrames$0xff</ID>
-    <ID>MagicNumber:BridgeClient.kt$BridgeFrames$16</ID>
-    <ID>MagicNumber:BridgeClient.kt$BridgeFrames$24</ID>
-    <ID>MagicNumber:BridgeClient.kt$BridgeFrames$8</ID>
+    <ID>MagicNumber:CliExit.kt$ExitCode.ENV_BLOCKER$3</ID>
+    <ID>MagicNumber:CliExit.kt$ExitCode.INTERNAL_ERROR$4</ID>
+    <ID>MagicNumber:GlobalScopeGuard.kt$GlobalScopeGuard$3</ID>
     <ID>MagicNumber:RunCommand.kt$1_500L</ID>
     <ID>MagicNumber:RunCommand.kt$200L</ID>
     <ID>MagicNumber:RunCommand.kt$RunCommand$30_000L</ID>
+    <ID>MagicNumber:SetupCommand.kt$SetupCommand$4096</ID>
+    <ID>MatchingDeclarationName:CliExit.kt$ExitCode</ID>
     <ID>MaxLineLength:Adb.kt$Adb$override fun forDevice(serial: String?): AdbFacade</ID>
     <ID>MaxLineLength:Adb.kt$Adb$override fun runAsCat(packageName: String, path: String): String</ID>
     <ID>MaxLineLength:Adb.kt$Adb.Companion$private fun adbExecutableName(): String</ID>
+    <ID>MaxLineLength:AgentSetupFiles.kt$AgentSetupFiles$put("missing-application-id", JsonPrimitive("No unique applicationId; run from app module or pass --package."))</ID>
+    <ID>MaxLineLength:AgentSetupFiles.kt$AgentSetupFiles$put("no-android-context", JsonPrimitive("Run from the Android repo root, or pass --allow-global to write the global codex config anyway."))</ID>
+    <ID>MaxLineLength:AgentSetupFiles.kt$AgentSetupFiles$put("no-app-module", JsonPrimitive("Run ./gradlew projects to list modules; pass the correct --package."))</ID>
+    <ID>MaxLineLength:AgentSetupFiles.kt$AgentSetupFiles$put("view-system-mixed", JsonPrimitive("Module contains View-based activities; migrate to ComponentActivity + setContent."))</ID>
     <ID>MaxLineLength:AndroidSdkLocator.kt$AndroidSdkLocator$env["LOCALAPPDATA"]?.let { sdkLocation(File(it, "Android/Sdk").absolutePath, "Windows default") }?.let { yield(it) }</ID>
-    <ID>MaxLineLength:BridgeClient.kt$BridgeClient$"Could not read FixThis bridge session via adb shell run-as $packageName cat $SessionPath: ${error.message}"</ID>
     <ID>MaxLineLength:BridgeClient.kt$BridgeClient$fun resolvePackageName(packageOverride: String?): String</ID>
     <ID>MaxLineLength:BridgeClient.kt$BridgeClient$suspend fun performNavigation(packageName: String, request: JsonObject): JsonObject</ID>
     <ID>MaxLineLength:BridgeClient.kt$BridgeClient$suspend fun readSourceIndex(packageName: String): JsonObject</ID>
@@ -31,22 +39,29 @@
     <ID>MaxLineLength:CleanCommand.kt$CleanCommand$private val projectDir by option("--project-dir", help = "Project root containing .fixthis/project.json").default(".")</ID>
     <ID>MaxLineLength:ConsoleCommand.kt$ConsoleCommand$private val projectDir by option("--project-dir", help = "Project root containing .fixthis/project.json").default(".")</ID>
     <ID>MaxLineLength:DoctorCommand.kt$DoctorCommand$private val projectDir by option("--project-dir", help = "Project root containing .fixthis/project.json").default(".")</ID>
+    <ID>MaxLineLength:GlobalScopeGuardTest.kt$GlobalScopeGuardTest$java.io.File(appDir, "build.gradle.kts").writeText("""android { defaultConfig { applicationId = "com.example" } }""")</ID>
+    <ID>MaxLineLength:Main.kt$.</ID>
     <ID>MaxLineLength:RunCommand.kt$RunCommand$private val installTask by option("--install-task", help = "Gradle install task to run before launch").default(":app:installDebug")</ID>
     <ID>MaxLineLength:RunCommand.kt$RunCommand$private val projectDir by option("--project-dir", help = "Project root containing .fixthis/project.json").default(".")</ID>
     <ID>MaxLineLength:RunCommand.kt$RunCommand$private val timeoutMillis by option("--timeout-millis", help = "Bridge status timeout after launch").long().default(30_000L)</ID>
     <ID>MaxLineLength:SetupCommand.kt$McpCommand$private val projectDir by option("--project-dir", help = "Project root containing .fixthis/project.json").default(".")</ID>
     <ID>MaxLineLength:SetupCommand.kt$McpExecutableLocator$private fun File.ancestors(): Sequence&lt;File&gt;</ID>
+    <ID>MaxLineLength:SetupCommand.kt$SetupCommand$"Could not stage MCP config writes (${e.message}). Staged so far: ${appliedNames.ifEmpty { "none" }} (cleaned up)."</ID>
+    <ID>MaxLineLength:SetupCommand.kt$SetupCommand$move</ID>
     <ID>MaxLineLength:SetupCommand.kt$SetupCommand$private val dryRun by option("--dry-run", help = "Print planned writes without modifying files").flag(default = false)</ID>
     <ID>MaxLineLength:SetupCommand.kt$SetupCommand$private val projectDir by option("--project-dir", help = "Project root containing .fixthis/project.json").default(".")</ID>
     <ID>MaxLineLength:SetupCommand.kt$SetupCommand$private val target by option("--target", help = "Agent config target").choice("codex", "claude", "all").default("all")</ID>
+    <ID>MaxLineLength:SetupCommandTest.kt$SetupCommandTest$Triple("codex-unwritable", "global", unwritableTarget) to "[mcp_servers.fixthis]\ncommand = \"x\"\n"</ID>
     <ID>MaxLineLength:SetupCommandTest.kt$SetupCommandTest$assertEquals("Invalid MCP server name `bad name`; use only letters, numbers, underscores, and hyphens.", error.message)</ID>
     <ID>MaxLineLength:StatusCommand.kt$StatusCommand$private val projectDir by option("--project-dir", help = "Project root containing .fixthis/project.json").default(".")</ID>
     <ID>ReturnCount:Adb.kt$Adb$private fun parseDeviceLine(line: String): AdbDevice?</ID>
     <ID>SpreadOperator:AtomicConfigFileWriter.kt$AtomicConfigFileWriter$(source, target, *options)</ID>
+    <ID>SpreadOperator:SetupCommand.kt$SetupCommand$(source, target, *options)</ID>
     <ID>SwallowedException:BridgeClient.kt$BridgeClient$error: IOException</ID>
     <ID>SwallowedException:BridgeClient.kt$BridgeClient$error: SocketTimeoutException</ID>
     <ID>ThrowsCount:BridgeClient.kt$BridgeClient$private fun ensureDeviceConnected(adb: AdbFacade, selectedDeviceSerial: String?)</ID>
     <ID>ThrowsCount:BridgeClient.kt$BridgeClient$private fun executeRequest( packageName: String, method: String, params: JsonObject, readTimeoutMillis: Long, scope: BridgeRequestScope, activeRequest: ActiveBridgeRequest, ): JsonObject</ID>
+    <ID>ThrowsCount:SetupCommand.kt$SetupCommand$private fun runWritePlansAtomic( plans: List&lt;AgentConfigWritePlan&gt;, move: (java.nio.file.Path, java.nio.file.Path, Array&lt;out java.nio.file.CopyOption&gt;) -&gt; java.nio.file.Path = { source, target, options -&gt; java.nio.file.Files.move(source, target, *options) }, forceFile: (java.nio.file.Path) -&gt; Unit = AtomicConfigFileWriter::forceRegularFile, forceDirectory: (java.nio.file.Path) -&gt; Unit = AtomicConfigFileWriter::forceDirectoryBestEffort, copyForRollback: (File, File) -&gt; Unit = { source, destination -&gt; source.copyTo(destination, overwrite = true) }, emit: (String) -&gt; Unit = ::echo, )</ID>
     <ID>TooGenericExceptionCaught:BridgeClient.kt$BridgeClient$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:CommandSupport.kt$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:DoctorCommand.kt$DoctorCommand$error: Throwable</ID>
@@ -54,11 +69,8 @@
     <ID>TooGenericExceptionCaught:SetupCommand.kt$SetupCommand$e: Exception</ID>
     <ID>TooManyFunctions:Adb.kt$Adb : AdbFacade</ID>
     <ID>TooManyFunctions:BridgeClient.kt$BridgeClient</ID>
-    <ID>TopLevelPropertyNaming:BridgeClient.kt$// Mirrors BridgeProtocol.VERSION (fixthis-compose-sidekick), the constant in // ServerVersionRoutes.kt (fixthis-mcp), and MinimumSupportedProtocolVersion in // staleness.js. BridgeProtocolVersionSyncTest (`:fixthis-mcp:test`) fails if any // of the 4 sites lag — bump them all together. See docs/reference/bridge-protocol.md. private const val BridgeProtocolVersion = "1.3"</ID>
-    <ID>TopLevelPropertyNaming:BridgeClient.kt$// Mirrors BridgeSocketNameNegotiator.MaxAttempts (fixthis-compose-sidekick). private const val BridgeSocketNameMaxAttempts = 3</ID>
+    <ID>TopLevelPropertyNaming:BridgeClient.kt$// Mirrors BridgeProtocol.VERSION (fixthis-compose-sidekick), the constant in // ServerVersionRoutes.kt (fixthis-mcp), and MinimumSupportedProtocolVersion in // staleness.js. BridgeProtocolVersionSyncTest (`:fixthis-mcp:test`) fails if any // of the 4 sites lag — bump them all together. See docs/reference/bridge-protocol.md. internal const val BridgeProtocolVersion = "1.3"</ID>
     <ID>TopLevelPropertyNaming:BridgeClient.kt$private const val DefaultSocketTimeoutMillis = 30_000</ID>
-    <ID>TopLevelPropertyNaming:BridgeClient.kt$private const val MaxFrameBytes = 16 * 1024 * 1024</ID>
-    <ID>TopLevelPropertyNaming:BridgeClient.kt$private const val SessionPath = "files/fixthis/session.json"</ID>
     <ID>UnusedParameter:BridgeClient.kt$BridgeClient$sessionId: String? = null</ID>
   </CurrentIssues>
 </SmellBaseline>

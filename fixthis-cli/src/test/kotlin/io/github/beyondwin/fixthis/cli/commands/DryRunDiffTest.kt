@@ -1,6 +1,5 @@
 package io.github.beyondwin.fixthis.cli.commands
 
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -36,13 +35,18 @@ class DryRunDiffTest {
         val before = ""
         // Use a sequence of repeated lines so the TOML line-set diff actually emits content >4KiB.
         // (We test byte-budget on the TOML path since JSON parsing rejects raw "x" repeats.)
-        val after = (1..400).joinToString("\n") { "[section_$it]" }  // ~ several KiB, > 4 KiB after "+ " prefix
+        val after = (1..400).joinToString("\n") { "[section_$it]" } // ~ several KiB, > 4 KiB after "+ " prefix
         val diff = DryRunDiff.render(
-            before = before, after = after, format = DryRunDiff.Format.TOML, byteBudget = 4096,
+            before = before,
+            after = after,
+            format = DryRunDiff.Format.TOML,
+            byteBudget = 4096,
         )
         val sizeBytes = diff.toByteArray(Charsets.UTF_8).size
-        assertTrue("expected elision footer, got bytes=$sizeBytes",
-            diff.contains("elided") && sizeBytes <= 4096 + 200)
+        assertTrue(
+            "expected elision footer, got bytes=$sizeBytes",
+            diff.contains("elided") && sizeBytes <= 4096 + 200,
+        )
     }
 
     @Test

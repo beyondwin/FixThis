@@ -1,6 +1,17 @@
 {
-  "availability": ["scripts/console-availability-test.mjs"],
+  "availability": ["scripts/deviceForgetAndCommentClear-test.mjs", "scripts/console-availability-test.mjs"],
   "canonical": [
+    "scripts/htmlScaffold-test.mjs",
+    "scripts/inspectorFooter-test.mjs",
+    "scripts/footerSubscriberFlow-test.mjs",
+    "scripts/editorBackButton-test.mjs",
+    "scripts/boundaryDialogVariants-test.mjs",
+    "scripts/statusSurfaceRegistry-test.mjs",
+    "scripts/surfaceRoutingSmoke-test.mjs",
+    "scripts/disconnectChoreography-test.mjs",
+    "scripts/boundaryTriggers-test.mjs",
+    "scripts/boundaryPolicy-test.mjs",
+    "scripts/triggerCallsite-test.mjs",
     "scripts/consoleCanonicalState-test.mjs",
     "scripts/consoleEffects-test.mjs",
     "scripts/consoleSelectors-test.mjs",
@@ -9,12 +20,15 @@
     "scripts/consoleBoundary-test.mjs",
     "scripts/consoleEventsFactory-test.mjs"
   ],
-  "pending": ["scripts/pendingItemRecovery-test.mjs"],
+  "pending": ["scripts/pendingRecoveryVariant-test.mjs", "scripts/pendingItemRecovery-test.mjs"],
   "beforeunload": ["scripts/beforeunloadGuard-test.mjs"],
   "undo": ["scripts/undoRedo-test.mjs", "scripts/undoKeymatch-test.mjs"],
   "activity": ["scripts/activityDrift-test.mjs"],
   "preview": ["scripts/previewStaleness-test.mjs", "scripts/canvasStatusBadgesLayout-test.mjs"],
   "draft": [
+    "scripts/editorState-test.mjs",
+    "scripts/workspaceAllocationGate-test.mjs",
+    "scripts/resolveTrigger-test.mjs",
     "scripts/draftWorkspace-test.mjs",
     "scripts/draftWorkspaceHistory-test.mjs",
     "scripts/historyPendingDedupe-test.mjs",
@@ -27,6 +41,7 @@
     "scripts/targetReliabilityPresentation-test.mjs"
   ],
   "session": [
+    "scripts/sessionTrashIcon-test.mjs",
     "scripts/consoleEvents-test.mjs",
     "scripts/pendingBoundaryGuard-test.mjs",
     "scripts/sessionScopedRequests-test.mjs",

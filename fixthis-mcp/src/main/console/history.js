@@ -1,4 +1,4 @@
-// @requires state.js, draftWorkspace.js, annotations.js, historyPendingDedupe.js, domain/consoleEvents.js
+// @requires state.js, draftWorkspace.js, annotations.js, historyPendingDedupe.js, domain/consoleEvents.js, boundaryTriggers.js, draftUseCases.js, editorState.js, boundaryDialogVariants.js, historySessionRow.js
             function sessionOrdinalLookup(sessions) {
               const ordinalBySessionId = new Map();
               stableHistorySessions(sessions)
@@ -316,43 +316,20 @@
                   done > 0 ? '<span class="hi-pip done">' + escapeHtml(countLabel(done, 'resolved', 'resolved')) + '</span>' : '',
                 ].join('');
                 const busy = navigationBusy && (session.sessionId === activeId || session.sessionId === pendingSessionNavigationId);
-                return '<div class="history-item session-row ' + (session.sessionId === activeId ? 'is-active ' : '') + (busy ? 'is-busy' : '') + '" role="button" tabindex="0" aria-busy="' + (busy ? 'true' : 'false') + '" aria-disabled="' + (navigationBusy ? 'true' : 'false') + '" data-session-id="' + escapeHtml(session.sessionId) + '">' +
-                  '<span class="hi-head">' +
-                    '<span class="hi-title">' + escapeHtml(label) + '</span>' +
-                    '<button type="button" class="hi-del" data-delete-session-id="' + escapeHtml(session.sessionId) + '" aria-label="Delete history item ' + escapeHtml(label) + '"' + (navigationBusy ? ' disabled' : '') + '>×</button>' +
-                  '</span>' +
-                  '<span class="hi-meta">' + escapeHtml(formatSessionSummary(session)) + '</span>' +
-                  (pendingSummary ? '<div class="session-pending-summary">' + escapeHtml(pendingSummary) + '</div>' : '') +
-                  '<span class="hi-stats">' + pips + '</span>' +
-                  '<span class="hi-strip">' + renderHistoryStrip(session) + '</span>' +
-                '</div>';
+                return historySessionRowHtml({
+                  session,
+                  label,
+                  pendingSummary,
+                  pips,
+                  activeId,
+                  busy,
+                  navigationBusy,
+                });
               }).join('');
               sessions.innerHTML = renderedSessions
                 ? renderedSessions + historyStartAnnotatingItemHtml()
                 : historyStartAnnotatingItemHtml() + emptySessionsHtml();
-              document.querySelectorAll('.session-row').forEach(row => {
-                row.addEventListener('click', event => {
-                  if (event.target.closest('[data-delete-session-id]')) return;
-                  openSession(row.dataset.sessionId)
-                    .then(() => closeHistoryDrawer({ returnFocus: false }))
-                    .catch(showError);
-                });
-                row.addEventListener('keydown', event => {
-                  if (event.target.closest('[data-delete-session-id]')) return;
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    openSession(row.dataset.sessionId)
-                      .then(() => closeHistoryDrawer({ returnFocus: false }))
-                      .catch(showError);
-                  }
-                });
-              });
-              document.querySelectorAll('[data-delete-session-id]').forEach(button => {
-                button.addEventListener('click', event => {
-                  event.stopPropagation();
-                  deleteHistorySession(button.dataset.deleteSessionId).catch(showError);
-                });
-              });
+              bindHistorySessionRowEvents(document);
               document.querySelectorAll('[data-start-new-history-annotating]').forEach(button => {
                 button.addEventListener('click', () => enterNewHistoryAnnotateMode().catch(showError));
               });
@@ -418,6 +395,15 @@
               pendingSessionNavigationId = null;
               renderSessionsList();
               try {
+                resolveTrigger(Trigger.SESSION_SWITCH, {
+                  state: deriveEditorState(currentDraftWorkspace(), draftSelection(), null),
+                  targetSessionId: sessionId,
+                }, {
+                  silentDiscard: clearSelection,
+                  showToast: (text) => showStatus(text, { variant: 'info' }),
+                  openBoundaryDialog: () => {},
+                  preserve: () => {},
+                });
                 if (await resolvePendingBeforeBoundary('open-session', sessionId) !== 'continue') return;
                 bumpSessionMutationGeneration();
                 stopLivePreviewPolling();

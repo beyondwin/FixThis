@@ -334,6 +334,36 @@ class FeedbackSessionStoreTest {
     }
 
     @Test
+    fun addScreenWithItemsRejectsBlankCommentsBeforeMutatingSession() {
+        val store = FeedbackSessionStore(
+            clock = sequenceClock(1_000L, 2_000L),
+            idGenerator = sequenceIds("session-1", "screen-1", "item-1"),
+        )
+        val session = store.openSession("io.github.beyondwin.fixthis.sample", "/repo")
+        val screen = SnapshotDto(
+            screenId = "pending",
+            capturedAtEpochMillis = 0L,
+            displayName = "MainActivity",
+        )
+        val blank = AnnotationDto(
+            itemId = "pending",
+            screenId = "pending",
+            createdAtEpochMillis = 0L,
+            updatedAtEpochMillis = 0L,
+            target = AnnotationTargetDto.Area(FixThisRect(10f, 20f, 110f, 80f)),
+            comment = "",
+        )
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            store.addScreenWithItems(session.sessionId, screen, listOf(blank))
+        }
+
+        assertTrue(error.message!!.contains("blank comment"))
+        assertTrue(store.getSession(session.sessionId).items.isEmpty())
+        assertTrue(store.getSession(session.sessionId).screens.isEmpty())
+    }
+
+    @Test
     fun deleteScreenRemovesLinkedFeedbackItemsAndPrunesBatches() {
         val clock = FakeClock(100L)
         val ids = FakeIds("session-1", "screen-1", "screen-2", "item-1", "batch-1", "item-2")
