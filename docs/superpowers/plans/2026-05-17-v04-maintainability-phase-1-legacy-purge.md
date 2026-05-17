@@ -60,16 +60,19 @@ Separate follow-up plans cover console global projection retirement, MCP session
 | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt` | Exposes item-id-aware handoff only. |
 | `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatchReason.kt` | Uses clearer internal fallback terminology while preserving the existing wire label. |
 | `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt` | Refers to the renamed untyped fallback reason. |
+| `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/EvidenceProfile.kt` | Refers to the renamed `SourceMatchReason.UNTYPED_FALLBACK` (`SourceCandidateRisk.LEGACY_FALLBACK` is intentionally untouched). |
+| `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceScoringPolicy.kt` | Refers to the renamed `SourceMatchReason.UNTYPED_FALLBACK`. |
 
 ### Modified tests and config
 
 | Path | Change |
 | --- | --- |
-| `scripts/console-tests.json` | Adds `scripts/v04LegacyPurgeContract-test.mjs` to the `canonical` group and removes legacy pending tests from active groups. |
+| `scripts/console-tests.json` | Adds `scripts/v04LegacyPurgeContract-test.mjs` to the `canonical` group and removes the legacy pending test entry (`pendingItemRecovery-test.mjs`) from the `pending` group. |
 | `scripts/draftStorageAdapter-test.mjs` | Removes schema-v1 migration assertions and keeps schema-v2 storage tests. |
 | `scripts/pendingItemRecovery-test.mjs` | Deleted or reduced to a current-contract test file with no schema-v1 mirror assertions. |
 | `scripts/pendingBoundaryGuard-test.mjs` | Removes assertions for `clearPendingMirror` and `activePendingMirrorSessions`. |
 | `scripts/sessionScopedRequests-test.mjs` | Stops loading `pendingPersistence.js`; keeps session scoping assertions that still protect current behavior. |
+| `scripts/consoleDispose-test.mjs` | Removes the `var restorePendingState = () => null;` stub left over from schema-v1 pending mirror support. |
 | `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsolePreviewRoutesTest.kt` | Updates latest screenshot fallback expectations away from `.fixthis/artifacts`. |
 | `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt` | Removes pre-v0.4 source-candidate fixture compatibility and updates handoff tests to current item-id-aware calls. |
 | `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackDraftServiceTest.kt` | Uses item-id-aware handoff or direct store tests for current behavior. |
@@ -132,6 +135,21 @@ are removed in v0.4.
 | semantic duplicate detection for items without client draft keys | `No contract`: retry idempotency now requires current client draft keys. |
 | deprecated no-item `sendDraftToAgent(sessionId)` service overload | `Covered by`: item-id-aware handoff route and service tests. |
 | old `{prompt}` body compatibility | `No contract`: current `/api/agent-handoffs` requires `itemIds`. |
+
+## Phase 1 Deferred Track 1 Candidates
+
+These files appear in the spec's Track 1 candidate list but are deferred to a
+later v0.4 plan because phase 1 only covers legacy purge. Listing them here
+keeps the contract-map work traceable.
+
+| File | Deferred to | Reason |
+| --- | --- | --- |
+| `fixthis-mcp/src/test/kotlin/.../CompactHandoffRendererTest.kt` | Track 1 follow-up plan | Handoff Markdown contract curation; not touched by legacy purge. |
+| `fixthis-mcp/src/test/kotlin/.../FeedbackSessionServiceTest.kt` | Track 3 plan | Touched only incidentally by no-item handoff removal; full curation belongs with the MCP session split. |
+| `fixthis-mcp/src/test/kotlin/.../McpProtocolTest.kt` | Track 1 / Track 3 | Phase 1 updates only the deprecated handoff setup calls. |
+| `fixthis-mcp/src/test/kotlin/.../FeedbackSessionStoreTest.kt` | Track 1 / Track 3 | Phase 1 trims the pre-v0.4 fixture cases only. |
+| `fixthis-mcp/src/test/kotlin/.../ConsoleAssetContractTest.kt` | Track 2 plan | Console asset contract curation belongs with the console refactor. |
+| `scripts/console-browser-smoke.mjs` | Track 1 demotion review | Smoke harness demotion is part of the verification-strategy work, not the legacy purge. |
 ```
 
 - [ ] **Step 2: Verify the document has no placeholder text**
@@ -232,16 +250,30 @@ test('MCP session service exposes item-id-aware handoff only', () => {
 });
 
 test('source matching uses untyped fallback terminology internally', () => {
+  // Scoped to SourceMatchReason only. The unrelated enums
+  // SourceCandidateRisk.LEGACY_FALLBACK, SourceHint.LEGACY_FALLBACK, and
+  // SourceHintRisk.LEGACY_FALLBACK are intentionally out of scope for phase 1.
   assertNoPattern(
     'fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatchReason.kt',
     /LEGACY_FALLBACK/,
-    'internal enum name should not call current fallback behavior legacy',
+    'internal SourceMatchReason enum name should not call current fallback behavior legacy',
   );
   assert.match(
     source('fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatchReason.kt'),
     /UNTYPED_FALLBACK\("legacy fallback"\)/,
     'wire label remains backward-compatible while internal terminology is current',
   );
+  for (const path of [
+    'fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt',
+    'fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/EvidenceProfile.kt',
+    'fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceScoringPolicy.kt',
+  ]) {
+    assertNoPattern(
+      path,
+      /SourceMatchReason\.LEGACY_FALLBACK/,
+      'every SourceMatchReason.LEGACY_FALLBACK reference must be renamed to SourceMatchReason.UNTYPED_FALLBACK',
+    );
+  }
 });
 ```
 
@@ -289,6 +321,7 @@ Expected: commit succeeds with a known failing test. Keep the next task in the s
 - Modify: `scripts/console-tests.json`
 - Modify: `scripts/pendingBoundaryGuard-test.mjs`
 - Modify: `scripts/sessionScopedRequests-test.mjs`
+- Modify: `scripts/consoleDispose-test.mjs`
 
 - [ ] **Step 1: Remove the legacy storage port**
 
@@ -366,12 +399,20 @@ Remove every call to:
 ```js
 clearPendingMirror(...)
 createBrowserDraftPorts().storage.clearLegacyPending?.(...)
+createBrowserDraftPorts().storage.migrateLegacyPending(...)
+storage.migrateLegacyPending(...)
+restorePendingState(...)
 activePendingMirrorSessions.add(...)
 activePendingMirrorSessions.delete(...)
 activePendingMirrorSessions.has(...)
 ```
 
-- [ ] **Step 5: Remove pending mirror calls from history, annotations, and recovery UI**
+The replaced `loadDraftRecoveryForSession` body in this step already drops the
+`storage.migrateLegacyPending(sessionId)` and `|| restorePendingState(sessionId)`
+fallback sites; the list above is the exhaustive grep target for any other
+call site that may exist after future merges.
+
+- [ ] **Step 5: Remove pending mirror calls from history, annotations, recovery UI, and dispose-time stubs**
 
 In these files, delete calls to `clearPendingMirror(...)`, `restorePendingState(...)`, and `activePendingMirrorSessions.*`:
 
@@ -380,6 +421,16 @@ fixthis-mcp/src/main/console/history.js
 fixthis-mcp/src/main/console/annotations.js
 fixthis-mcp/src/main/console/pendingRecoveryUi.js
 ```
+
+Then remove the leftover schema-v1 stub from
+`scripts/consoleDispose-test.mjs`:
+
+```js
+var restorePendingState = () => null;
+```
+
+Replace it with nothing (delete the line). The dispose smoke test no longer
+needs a stub for the removed symbol.
 
 After this step, this command must print no output:
 
@@ -447,7 +498,7 @@ Expected: all commands pass.
 Run:
 
 ```bash
-git add fixthis-mcp/src/main/console scripts/console-tests.json scripts/draftStorageAdapter-test.mjs scripts/pendingBoundaryGuard-test.mjs scripts/sessionScopedRequests-test.mjs scripts/v04LegacyPurgeContract-test.mjs
+git add fixthis-mcp/src/main/console scripts/console-tests.json scripts/draftStorageAdapter-test.mjs scripts/pendingBoundaryGuard-test.mjs scripts/sessionScopedRequests-test.mjs scripts/consoleDispose-test.mjs scripts/v04LegacyPurgeContract-test.mjs
 git add -u fixthis-mcp/src/main/console/pendingPersistence.js scripts/pendingItemRecovery-test.mjs
 git commit -m "refactor(console): remove pre-v0.4 pending mirror support"
 ```
@@ -555,7 +606,14 @@ Expected: commit succeeds. If one of the listed test files was unchanged, omit i
 
 - [ ] **Step 1: Remove semantic fallback from batch dedupe**
 
-In `FeedbackSessionStoreDelegate.kt`, replace:
+First, read the current `FeedbackSessionStoreDelegate.kt` block (around the
+`existingClientKeys` declaration — `rg -n "existingClientKeys"
+fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt`)
+and confirm it matches the "before" snippet below verbatim, including
+indentation. If indentation differs, copy the live indentation into the
+"after" snippet before editing so the Edit tool's exact-string match succeeds.
+
+Replace:
 
 ```kotlin
 val existingClientKeys = session.items.mapNotNull { it.clientDraftKey() }.toSet()
@@ -575,6 +633,11 @@ val newItems = items.filterNot { item ->
     item.clientDraftKey()?.let { it in existingClientKeys } == true
 }
 ```
+
+If the live block uses different formatting (extra surrounding context,
+different brace placement, etc.), apply the edit as two smaller surgical
+edits — remove the `existingLegacySemanticKeys` line first, then simplify the
+`filterNot` body — rather than forcing one large multi-line replace.
 
 - [ ] **Step 2: Remove old semantic helper file**
 
@@ -718,15 +781,35 @@ Expected: commit succeeds.
 
 ### Task 7: Rename source matcher fallback terminology internally
 
+Scope note: this task renames only `SourceMatchReason.LEGACY_FALLBACK`. Three
+other unrelated enums declare a constant with the same short name
+(`SourceCandidateRisk.LEGACY_FALLBACK`, `SourceHint.LEGACY_FALLBACK`,
+`SourceHintRisk.LEGACY_FALLBACK`). They are out of scope for v0.4 phase 1 and
+must NOT be renamed — every reference to those enums must keep `LEGACY_FALLBACK`.
+
 **Files:**
 - Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatchReason.kt`
 - Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/EvidenceProfile.kt`
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceScoringPolicy.kt`
 - Modify: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`
 - Modify: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/EvidenceProfileTest.kt`
 - Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt` if it references the enum name
 - Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/format/FixThisMarkdownFormatter.kt` if it references the enum name
 
-- [ ] **Step 1: Rename the enum constant while preserving wire label**
+- [ ] **Step 1: Discover the exact set of `SourceMatchReason.LEGACY_FALLBACK` references**
+
+Run:
+
+```bash
+rg -n "SourceMatchReason\.LEGACY_FALLBACK" fixthis-compose-core fixthis-mcp
+```
+
+Record every file path returned. The modified-files list above must already
+cover the production references; if this command reports a file not listed,
+add it to the rename set before continuing.
+
+- [ ] **Step 2: Rename the enum constant while preserving wire label**
 
 In `SourceMatchReason.kt`, replace:
 
@@ -740,18 +823,30 @@ with:
 UNTYPED_FALLBACK("legacy fallback"),
 ```
 
-- [ ] **Step 2: Rename references**
+- [ ] **Step 3: Rename qualified references only**
 
-Run:
+Run the qualified rename so other enums (`SourceCandidateRisk`,
+`SourceHint`, `SourceHintRisk`) keep their `LEGACY_FALLBACK` constants intact:
 
 ```bash
-perl -0pi -e 's/LEGACY_FALLBACK/UNTYPED_FALLBACK/g' \
+perl -0pi -e 's/SourceMatchReason\.LEGACY_FALLBACK/SourceMatchReason.UNTYPED_FALLBACK/g' \
   fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt \
+  fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/EvidenceProfile.kt \
+  fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceScoringPolicy.kt \
   fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt \
   fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/EvidenceProfileTest.kt
 ```
 
-- [ ] **Step 3: Update comments and test names**
+After the perl pass, verify no unqualified `LEGACY_FALLBACK` token inside
+`SourceMatchReason` was missed:
+
+```bash
+rg -n "SourceMatchReason\.LEGACY_FALLBACK" fixthis-compose-core fixthis-mcp
+```
+
+Expected: no output.
+
+- [ ] **Step 4: Update comments and test names**
 
 In source matcher comments and test names, replace phrasing that calls the current fallback path "legacy-only" with "untyped fallback". Keep expected wire labels and Markdown tokens as `"legacy fallback"` and `"legacy"` when those are output contracts.
 
@@ -767,39 +862,49 @@ to:
 fun untypedFallbackMatchEmitsLegacyWireReasonAndCapsAtLow()
 ```
 
-- [ ] **Step 4: Verify internal enum name is gone and wire label remains**
+- [ ] **Step 5: Verify the SourceMatchReason rename and that other LEGACY_FALLBACK enums are untouched**
 
 Run:
 
 ```bash
-rg -n "LEGACY_FALLBACK" fixthis-compose-core fixthis-mcp
+rg -n "SourceMatchReason\.LEGACY_FALLBACK" fixthis-compose-core fixthis-mcp
+rg -n "SourceCandidateRisk\.LEGACY_FALLBACK|SourceHint\.LEGACY_FALLBACK|SourceHintRisk\.LEGACY_FALLBACK" fixthis-compose-core fixthis-mcp
 rg -n "\"legacy fallback\"" fixthis-compose-core fixthis-mcp
 node --test scripts/v04LegacyPurgeContract-test.mjs
 ```
 
 Expected:
 
-- first command prints no output;
-- second command prints expected formatter/wire-label references;
+- first command prints no output (rename complete);
+- second command still prints the unchanged references in
+  `SourceCandidateRisk.kt`, `SourceHint.kt`, `SourceConfidencePolicy.kt`,
+  `SourceCandidateRiskPrecedence.kt`, `SourceCandidateMappers.kt`, and the
+  matching tests — these are intentionally out of scope;
+- third command prints expected formatter/wire-label references;
 - contract test passes.
 
-- [ ] **Step 5: Run focused source matcher tests**
+- [ ] **Step 6: Run focused source matcher tests**
 
 Run:
 
 ```bash
-./gradlew :fixthis-compose-core:test --tests '*SourceMatcherTest' --tests '*EvidenceProfileTest' --no-daemon
+./gradlew :fixthis-compose-core:test --tests '*SourceMatcherTest' --tests '*EvidenceProfileTest' --tests '*SourceScoringPolicyTest' --tests '*SourceCandidateRiskPrecedenceTest' --no-daemon
 ```
 
-Expected: tests pass.
+Expected: tests pass. If `compileKotlin` fails because a previously unknown
+file still references `SourceMatchReason.LEGACY_FALLBACK`, rerun the Step 1
+discovery command, add the file to the rename set, redo the perl pass, and
+retry — do not introduce a compatibility alias.
 
-- [ ] **Step 6: Commit terminology cleanup**
+- [ ] **Step 7: Commit terminology cleanup**
 
 Run:
 
 ```bash
 git add fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatchReason.kt \
         fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt \
+        fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/EvidenceProfile.kt \
+        fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceScoringPolicy.kt \
         fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt \
         fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/EvidenceProfileTest.kt \
         fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRenderer.kt \
@@ -867,13 +972,27 @@ localStorage["fixthis.workspace.<sessionId>.<workspaceId>"]
 
 - [ ] **Step 6: Verify docs no longer advertise removed support**
 
-Run:
+Run the narrowed check that targets active-support phrasing only and skips
+the legitimate descriptions of `fixthis clean` paths plus the negation
+sentences this task just added:
 
 ```bash
-rg -n "fixthis\\.pending|schema-v1|still readable|still read|migrated|\\.fixthis/artifacts" docs/reference docs/architecture docs/guides
+rg -n "still readable|still read|are migrated|envelopes are migrated|may still be read|are still read and migrated" docs/reference docs/architecture docs/guides
+rg -n "\\.fixthis/artifacts/<annotation-id>" docs/reference docs/architecture docs/guides
 ```
 
-Expected: no output for claims of active support. Historical design specs under `docs/superpowers/` and old plans may still mention the old paths and are not part of this command.
+Expected:
+
+- first command prints no output (all active-support claims removed);
+- second command prints no output (no doc still describes
+  `.fixthis/artifacts/<annotation-id>/...` as a supported screenshot
+  location). The bare path `\.fixthis/artifacts/` may still appear where
+  `fixthis clean` legitimately targets it (for example
+  `docs/reference/cli.md` and `docs/guides/troubleshooting.md`); that is
+  expected and is not an active-support claim.
+
+Historical design specs under `docs/superpowers/` and old plans may still
+mention the old paths and are not part of this command.
 
 - [ ] **Step 7: Commit docs cleanup**
 
@@ -969,8 +1088,9 @@ Expected: commit succeeds.
 Before marking this plan complete, verify:
 
 - [ ] `rg -n "fixthis\\.pending|migrateLegacyPending|clearLegacyPending|restorePendingState|persistPendingState|clearPendingMirror|activePendingMirrorSessions" fixthis-mcp/src/main/console scripts -g '!v04LegacyPurgeContract-test.mjs'` prints no output.
-- [ ] `rg -n "\\.fixthis/artifacts|legacyRoot|legacyArtifactsDir" fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console docs/reference docs/architecture docs/guides` prints no active support claims.
+- [ ] `rg -n "\\.fixthis/artifacts|legacyRoot|legacyArtifactsDir" fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console` prints no output.
+- [ ] `rg -n "still readable|still read|are migrated|envelopes are migrated|may still be read|are still read and migrated" docs/reference docs/architecture docs/guides` prints no output, and `rg -n "\\.fixthis/artifacts/<annotation-id>" docs/reference docs/architecture docs/guides` prints no output.
 - [ ] `rg -n "legacySemanticDraftKey|incomingSemanticDraftKey|existingLegacySemanticKeys|semanticDraftKey" fixthis-mcp/src/main/kotlin scripts -g '!v04LegacyPurgeContract-test.mjs'` prints no output.
 - [ ] `rg -n "fun sendDraftToAgent\\(sessionId: String\\): SessionDto|service\\.sendDraftToAgent\\([^,\\n]+\\)" fixthis-mcp/src/main fixthis-mcp/src/test` prints no output.
-- [ ] `rg -n "LEGACY_FALLBACK" fixthis-compose-core fixthis-mcp` prints no output.
+- [ ] `rg -n "SourceMatchReason\\.LEGACY_FALLBACK" fixthis-compose-core fixthis-mcp` prints no output. The unrelated enums `SourceCandidateRisk.LEGACY_FALLBACK`, `SourceHint.LEGACY_FALLBACK`, and `SourceHintRisk.LEGACY_FALLBACK` are out of scope for phase 1 and may still appear.
 - [ ] Current-schema draft, session, handoff, source matching, and screenshot route tests pass.
