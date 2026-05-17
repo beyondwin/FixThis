@@ -37,6 +37,7 @@
     "perf:bench": "node scripts/perf/bench.mjs",
     "perf:compare": "node scripts/perf/compare-perf.mjs",
     "perf:test": "node --test scripts/perf/parse-gradle-profile-test.mjs scripts/perf/aggregate-test.mjs scripts/perf/compare-perf-test.mjs scripts/perf/perf-workflow-contract-test.mjs",
+    "handoff:eval:test": "./gradlew :fixthis-mcp:test --tests \"*HandoffEvaluationCorpusTest\" --tests \"*EditSurfaceRoleClassifierTest\" --tests \"*EditSurfaceCandidateServiceTest\" --tests \"*CompactHandoffRendererTest.compactHandoffRendersEditSurfaceRoleWhenPresent\" --no-daemon",
     "release:package:test": "node --test scripts/package-cli-release-test.mjs && node --test scripts/install-fixthis-test.mjs",
     "release:npm:test": "node --test scripts/npm-wrapper-test.mjs scripts/mcp-registry-metadata-test.mjs"
   },
