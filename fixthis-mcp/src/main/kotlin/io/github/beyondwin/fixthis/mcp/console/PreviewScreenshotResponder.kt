@@ -29,8 +29,7 @@ internal class PreviewScreenshotResponder(
         val projectRoot = File(session.projectRoot).canonicalFile
         val previewRoot = File(projectRoot, ".fixthis/preview-cache/${session.sessionId}").canonicalFile
         val persistedRoot = FeedbackSessionPaths(projectRoot).rootDirectory
-        val legacyRoot = File(projectRoot, ".fixthis/artifacts").canonicalFile
-        val roots = listOf(previewRoot, persistedRoot, legacyRoot)
+        val roots = listOf(previewRoot, persistedRoot)
         val screenshotFile = latestPreviewScreenshot(previewRoot, roots)
             ?: latestPersistedScreenshot(session, roots)
             ?: throw FeedbackConsoleHttpException(404, "Screenshot not found")

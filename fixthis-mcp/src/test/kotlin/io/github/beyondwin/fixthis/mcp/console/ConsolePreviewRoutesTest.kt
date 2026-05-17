@@ -548,15 +548,15 @@ class ConsolePreviewRoutesTest {
     }
 
     @Test
-    fun servesLegacyScreenshotArtifactFromCurrentSession() = runBlocking {
-        val projectRoot = Files.createTempDirectory("fixthis-console").toFile()
+    fun rejectsLegacyArtifactsRootScreenshotsAsNotFound() = runBlocking {
+        val projectRoot = Files.createTempDirectory("fixthis-console-legacy-rejected").toFile()
         try {
-            val artifact = projectRoot.resolve(".fixthis/artifacts/screen-1/full.png")
-            artifact.parentFile.mkdirs()
+            val oldArtifact = projectRoot.resolve(".fixthis/artifacts/screen-1/full.png")
+            oldArtifact.parentFile.mkdirs()
             val pngBytes = byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47)
-            artifact.writeBytes(pngBytes)
+            oldArtifact.writeBytes(pngBytes)
             val service = FeedbackSessionService(
-                bridge = LegacyScreenshotBridge(artifact),
+                bridge = LegacyScreenshotBridge(oldArtifact),
                 store = FeedbackSessionStore(clock = { 100L }, idGenerator = FakeIds("session-1", "screen-1").next),
                 projectRoot = projectRoot.absolutePath,
                 defaultPackageName = PREVIEW_SAMPLE_PACKAGE,
@@ -568,9 +568,7 @@ class ConsolePreviewRoutesTest {
             try {
                 val connection = ConsoleHttpTestClient(server.url).connection("/api/screens/screen-1/screenshot/full")
 
-                assertEquals(200, connection.responseCode)
-                assertEquals("image/png", connection.contentType)
-                assertTrue(connection.inputStream.use { it.readBytes() }.contentEquals(pngBytes))
+                assertEquals(404, connection.responseCode)
             } finally {
                 server.stop()
             }

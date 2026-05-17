@@ -36,9 +36,7 @@ internal class ArtifactRoutes(private val service: FeedbackSessionService) : Con
             ?: throw FeedbackConsoleHttpException(404, "Screenshot not found")
         val screenshotFile = File(screenshotPath).canonicalFile
         val sessionArtifactsDir = FeedbackSessionPaths(File(session.projectRoot)).rootDirectory
-        val legacyArtifactsDir = File(session.projectRoot, ".fixthis/artifacts").canonicalFile
-        val isAllowedArtifact = screenshotFile.toPath().startsWith(sessionArtifactsDir.toPath()) ||
-            screenshotFile.toPath().startsWith(legacyArtifactsDir.toPath())
+        val isAllowedArtifact = screenshotFile.toPath().startsWith(sessionArtifactsDir.toPath())
         if (
             !screenshotFile.isFile ||
             screenshotFile.extension.lowercase() != "png" ||
