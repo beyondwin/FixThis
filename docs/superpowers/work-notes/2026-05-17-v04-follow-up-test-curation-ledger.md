@@ -31,3 +31,5 @@ contract. A test may be deleted only when this ledger records one reason:
 
 | Removed or moved test | Reason | Replacement or owner |
 | --- | --- | --- |
+| `history pending items skip legacy recovery that semantically matches a server item` | `No contract` | Pre-v0.4/keyless semantic recovery is unsupported; current draft-key dedupe remains covered by `history pending items skip server items with the same draft identity`. |
+| `history pending items drop legacy pin-only item with exact empty comment` | `Merged into` | Empty-comment recovery dropping remains covered by `dropEmptyHistoryPendingItems` through current key-based recovery tests. |

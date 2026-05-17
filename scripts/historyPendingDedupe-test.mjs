@@ -41,27 +41,6 @@ test('history pending items skip server items with the same draft identity', () 
   assert.deepEqual(pending, []);
 });
 
-test('history pending items skip legacy recovery that semantically matches a server item', () => {
-  m.setState({
-    session: {
-      sessionId: 'session-a',
-      items: [{
-        target: { type: 'visual_area', boundsInWindow: bounds },
-        label: 'Custom area',
-        comment: 'Fix label',
-      }],
-    },
-  });
-
-  const pending = m.dedupePendingHistoryItemsForSession(
-    { sessionId: 'session-a' },
-    [{ targetType: 'area', bounds, label: 'Hero CTA', comment: 'Fix label' }],
-    null,
-  );
-
-  assert.deepEqual(pending, []);
-});
-
 test('history pending items keep new draft with same semantic target when client key differs', () => {
   m.setState({
     session: {
@@ -81,19 +60,25 @@ test('history pending items keep new draft with same semantic target when client
   assert.deepEqual(pending, [pendingItem]);
 });
 
-test('history pending items drop legacy pin-only item with exact empty comment', () => {
+test('history pending items drop keyless recovered items because v0.4 requires draft identity', () => {
   m.setState({
     session: {
       sessionId: 'session-a',
       items: [{
+        clientWorkspaceId: 'ws-a',
+        clientDraftItemId: 'draft-1',
         target: { type: 'visual_area', boundsInWindow: bounds },
-        comment: '',
+        comment: 'saved',
       }],
     },
   });
 
-  const pendingItem = { targetType: 'area', bounds, comment: '' };
-  const pending = m.dedupePendingHistoryItemsForSession({ sessionId: 'session-a' }, [pendingItem], null);
+  const keylessRecoveredItem = { targetType: 'area', bounds, comment: 'unsaved local note' };
+  const pending = m.dedupePendingHistoryItemsForSession(
+    { sessionId: 'session-a' },
+    [keylessRecoveredItem],
+    'ws-a',
+  );
 
   assert.deepEqual(pending, []);
 });

@@ -63,6 +63,14 @@ test('MCP session service exposes item-id-aware handoff only', () => {
   );
 });
 
+test('browser history recovery does not semantic-dedupe keyless local items', () => {
+  assertNoPattern(
+    'fixthis-mcp/src/main/console/historyPendingDedupe.js',
+    /historyItemSemanticKey|hasLegacySemanticDedupeKey|persistedSemanticKeys/,
+    'v0.4 recovery requires client draft keys instead of keyless semantic matching',
+  );
+});
+
 test('source matching uses untyped fallback terminology internally', () => {
   // Scoped to SourceMatchReason only. The unrelated enums
   // SourceCandidateRisk.LEGACY_FALLBACK, SourceHint.LEGACY_FALLBACK, and
