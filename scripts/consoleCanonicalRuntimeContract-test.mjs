@@ -95,6 +95,7 @@ test('state module no longer declares legacy draft runtime state', () => {
 
 test('runtime draft helpers use readable canonical names', () => {
   const files = [
+    'fixthis-mcp/src/main/console/draftRuntimeState.js',
     'fixthis-mcp/src/main/console/state.js',
     'fixthis-mcp/src/main/console/main.js',
     'fixthis-mcp/src/main/console/annotations.js',
@@ -127,7 +128,9 @@ test('runtime draft helpers use readable canonical names', () => {
   assert.match(state, /function draftFocusIndex\(\)/);
   assert.match(state, /function draftSelection\(\)/);
   assert.match(state, /function replaceDraftWorkspace\(nextWorkspace\)/);
-  assert.match(state, /let draftWorkspace = createEmptyDraftWorkspace\(\);/);
+
+  const draftRuntime = source('fixthis-mcp/src/main/console/draftRuntimeState.js');
+  assert.match(draftRuntime, /let draftWorkspace = createEmptyDraftWorkspace\(\);/);
 });
 
 test('legacy session navigation does not also dispatch canonical session effects', () => {

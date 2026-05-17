@@ -1,4 +1,4 @@
-// @requires notificationCenter.js, connectionFsm.js, previewFsm.js, pollingFsm.js, toolModeFsm.js, connectionUseCases.js, previewUseCases.js, pollingUseCases.js, toolModeUseCases.js
+// @requires notificationCenter.js, connectionFsm.js, previewFsm.js, pollingFsm.js, toolModeFsm.js, connectionUseCases.js, previewUseCases.js, pollingUseCases.js, toolModeUseCases.js, draftRuntimeState.js
             // Console teardown registry: each module that registers global
             // listeners (document/window) returns a `{ dispose }` slot from
             // its `init({...deps})` factory and pushes it here. main.js
@@ -109,10 +109,6 @@
             // module scope (only used by sendBridgeHeartbeat /
             // scheduleNextHeartbeat / startHeartbeatPolling /
             // stopHeartbeatPolling). See connection.js.
-            let draftFlowState = null;
-            let draftPinsState = [];
-            let draftFocusIndexState = null;
-            let draftSelectionState = null;
             // Tool-mode-owned state (toolMode, annotationSequence,
             // hoveredAnnotationTarget, dragStart, dragPreview,
             // suppressNextClick, draftFlowStarting,
@@ -125,73 +121,44 @@
             // consecutivePollFailures, promptActionInFlight) now lives in
             // pollingUseCases (see pollingFsm.js / pollingUseCases.js).
             // MaxConsecutivePollFailures is declared in pollingFsm.js.
-            // ALH-2: Undo/redo history singleton for pending feedback items.
-            let undoRedoHistory = createHistory();
-            let draftWorkspace = createEmptyDraftWorkspace();
-            let draftCommandQueue = null;
+            const draftRuntime = createDraftRuntimeState({
+              persistCurrentDraftWorkspaceIfNeeded: () => persistCurrentDraftWorkspaceIfNeeded(),
+            });
 
             function currentDraftWorkspace() {
-              return draftWorkspace;
+              return draftRuntime.currentDraftWorkspace();
             }
 
             function draftFlow() {
-              return draftFlowState;
+              return draftRuntime.draftFlow();
             }
 
             function draftItemList() {
-              return draftPinsState;
+              return draftRuntime.draftItemList();
             }
 
             function draftFocusIndex() {
-              return draftFocusIndexState;
+              return draftRuntime.draftFocusIndex();
             }
 
             function setDraftFocusIndex(index) {
-              draftFocusIndexState = index;
+              draftRuntime.setDraftFocusIndex(index);
             }
 
             function draftSelection() {
-              return draftSelectionState;
+              return draftRuntime.draftSelection();
             }
 
             function setDraftSelection(selection) {
-              draftSelectionState = selection;
+              draftRuntime.setDraftSelection(selection);
             }
 
             function replaceDraftWorkspace(nextWorkspace) {
-              draftWorkspace = nextWorkspace || createEmptyDraftWorkspace();
-              syncDraftWorkspaceCompatibility();
-              persistCurrentDraftWorkspaceIfNeeded();
-            }
-
-            function syncDraftWorkspaceCompatibility() {
-              if (draftWorkspace.lifecycle === DraftLifecycle.EMPTY) {
-                draftFlowState = null;
-                draftPinsState = [];
-                draftFocusIndexState = null;
-                draftSelectionState = null;
-                undoRedoHistory = createHistory();
-                return;
-              }
-              draftFlowState = {
-                context: draftWorkspace.context,
-                previewId: draftWorkspace.context?.previewId || null,
-                screen: draftWorkspace.screen,
-                screenshotUrl: draftWorkspace.screenshotUrl,
-                frozenAtEpochMillis: draftWorkspace.context?.frozenAtEpochMillis || null,
-                activity: draftWorkspace.context?.activityName || null,
-                activityDriftWarning: draftWorkspace.activityDriftWarning || null,
-              };
-              draftPinsState = draftWorkspace.items;
-              draftFocusIndexState = draftWorkspace.focusedItemId
-                ? draftWorkspace.items.findIndex((item) => item.draftItemId === draftWorkspace.focusedItemId)
-                : null;
-              if (draftFocusIndexState < 0) draftFocusIndexState = null;
-              draftSelectionState = draftWorkspace.currentSelection;
-              undoRedoHistory = draftWorkspace.history || createHistory(draftWorkspace.context);
+              draftRuntime.replaceDraftWorkspace(nextWorkspace);
             }
 
             function persistCurrentDraftWorkspaceIfNeeded() {
+              const draftWorkspace = currentDraftWorkspace();
               if (!draftWorkspace?.workspaceId) return;
               if (!(draftWorkspace.items || []).length) {
                 deleteCurrentDraftWorkspaceStorage();
@@ -202,6 +169,7 @@
             }
 
             function deleteCurrentDraftWorkspaceStorage() {
+              const draftWorkspace = currentDraftWorkspace();
               if (!draftWorkspace?.workspaceId) return;
               const sessionId = draftWorkspace.context?.sessionId || state.session?.sessionId;
               if (!sessionId) return;
@@ -241,8 +209,9 @@
             }
 
             function ensureDraftCommandQueue() {
-              if (draftCommandQueue) return draftCommandQueue;
-              draftCommandQueue = createDraftCommandQueue({
+              const existingQueue = draftRuntime.currentDraftCommandQueue();
+              if (existingQueue) return existingQueue;
+              const nextQueue = createDraftCommandQueue({
                 getWorkspace: currentDraftWorkspace,
                 setWorkspace: replaceDraftWorkspace,
                 onStaleResponse: () => {
@@ -251,7 +220,8 @@
                 },
                 onError: showError,
               });
-              return draftCommandQueue;
+              draftRuntime.replaceDraftCommandQueue(nextQueue);
+              return nextQueue;
             }
 
             function bumpSessionMutationGeneration() {
