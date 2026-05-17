@@ -8,7 +8,7 @@ import org.junit.Test
 class SourceCandidateRiskPrecedenceTest {
     @Test
     fun pickHighestPrecedenceFlag() {
-        val flags = listOf(SourceCandidateRisk.TEXT_ONLY, SourceCandidateRisk.AMBIGUOUS, SourceCandidateRisk.LEGACY_FALLBACK)
+        val flags = listOf(SourceCandidateRisk.TEXT_ONLY, SourceCandidateRisk.AMBIGUOUS, SourceCandidateRisk.UNTYPED_FALLBACK)
         assertEquals(SourceCandidateRisk.AMBIGUOUS, SourceCandidateRiskPrecedence.highest(flags))
     }
 
@@ -27,7 +27,7 @@ class SourceCandidateRiskPrecedenceTest {
                 SourceCandidateRisk.NEARBY_ONLY,
                 SourceCandidateRisk.ARBITRARY_LITERAL,
                 SourceCandidateRisk.ACTIVITY_ONLY,
-                SourceCandidateRisk.LEGACY_FALLBACK,
+                SourceCandidateRisk.UNTYPED_FALLBACK,
             ),
             SourceCandidateRiskPrecedence.orderedHighestFirst,
         )

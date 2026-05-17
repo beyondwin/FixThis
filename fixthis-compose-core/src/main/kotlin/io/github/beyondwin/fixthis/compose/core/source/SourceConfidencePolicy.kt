@@ -23,7 +23,7 @@ internal object SourceConfidencePolicy {
                     "Match relied on a generic string literal; confirm against screenshot and code."
                 SourceCandidateRisk.ACTIVITY_ONLY ->
                     "Activity-only match; confirm against screenshot and code."
-                SourceCandidateRisk.LEGACY_FALLBACK ->
+                SourceCandidateRisk.UNTYPED_FALLBACK ->
                     "Legacy-fallback match; confirm against screenshot and code."
             }
         }

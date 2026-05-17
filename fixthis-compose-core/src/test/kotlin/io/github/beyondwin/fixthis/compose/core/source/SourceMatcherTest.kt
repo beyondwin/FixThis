@@ -416,7 +416,7 @@ class SourceMatcherTest {
     @Test
     fun textOnlyMatchIsCappedAtMedium() {
         // Use a typed UI_TEXT signal so the entry matches via a typed signal (not legacy fallback).
-        // A legacy-only entry would produce LEGACY_FALLBACK flag instead of TEXT_ONLY.
+        // An untyped fallback entry would produce UNTYPED_FALLBACK flag instead of TEXT_ONLY.
         val matcher = SourceMatcher(
             SourceIndex(
                 entries = listOf(
@@ -555,7 +555,7 @@ class SourceMatcherTest {
         // and dominates over the text-only cap (untyped fallback is more specific /
         // stronger evidence about candidate quality).
         assertEquals(SelectionConfidence.LOW, match.confidence)
-        assertTrue(SourceCandidateRisk.LEGACY_FALLBACK in match.riskFlags)
+        assertTrue(SourceCandidateRisk.UNTYPED_FALLBACK in match.riskFlags)
         assertTrue("legacy fallback" in match.matchReasons)
     }
 

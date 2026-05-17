@@ -72,9 +72,6 @@ test('browser history recovery does not semantic-dedupe keyless local items', ()
 });
 
 test('source matching uses untyped fallback terminology internally', () => {
-  // Scoped to SourceMatchReason only. The unrelated enums
-  // SourceCandidateRisk.LEGACY_FALLBACK, SourceHint.LEGACY_FALLBACK, and
-  // SourceHintRisk.LEGACY_FALLBACK are intentionally out of scope for phase 1.
   assertNoPattern(
     'fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatchReason.kt',
     /LEGACY_FALLBACK/,
@@ -95,5 +92,25 @@ test('source matching uses untyped fallback terminology internally', () => {
       /SourceMatchReason\.LEGACY_FALLBACK/,
       'every SourceMatchReason.LEGACY_FALLBACK reference must be renamed to SourceMatchReason.UNTYPED_FALLBACK',
     );
+  }
+});
+
+test('source fallback risk keeps legacy token only as serialized output', () => {
+  const files = [
+    'fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/SourceCandidateRisk.kt',
+    'fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/evidence/SourceHint.kt',
+    'fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/model/SourceCandidateMappers.kt',
+    'fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceCandidateRiskPrecedence.kt',
+    'fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceConfidencePolicy.kt',
+    'fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt',
+    'fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceRiskClassifier.kt',
+  ];
+  for (const file of files) {
+    const text = source(file);
+    if (file.endsWith('SourceCandidateRisk.kt')) {
+      assert.match(text, /@SerialName\("LEGACY_FALLBACK"\)\s+UNTYPED_FALLBACK/);
+    } else {
+      assert.doesNotMatch(text, /LEGACY_FALLBACK/, file);
+    }
   }
 });

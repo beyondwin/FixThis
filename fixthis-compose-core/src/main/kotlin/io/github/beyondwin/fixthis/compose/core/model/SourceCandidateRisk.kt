@@ -1,5 +1,6 @@
 package io.github.beyondwin.fixthis.compose.core.model
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -10,5 +11,6 @@ enum class SourceCandidateRisk {
     ACTIVITY_ONLY,
     ARBITRARY_LITERAL,
     AREA_SELECTION,
-    LEGACY_FALLBACK,
+    @SerialName("LEGACY_FALLBACK")
+    UNTYPED_FALLBACK,
 }

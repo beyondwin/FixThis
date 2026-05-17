@@ -54,22 +54,22 @@ class EvidenceProfileTest {
     }
 
     @Test
-    fun arbitraryLiteralAndLegacyOnlyDetected() {
+    fun arbitraryLiteralAndUntypedFallbackOnlyDetected() {
         // Realistic: the matcher always emits a bucket reason ("selected text"
         // / "selected contentDescription") alongside the origin marker.
         val literal = EvidenceProfile.fromReasons(
             reasons = listOf("selected text", "arbitrary literal"),
             rawScore = 12.0,
         )
-        val legacy = EvidenceProfile.fromReasons(
+        val untypedFallback = EvidenceProfile.fromReasons(
             reasons = listOf("selected text", "legacy fallback"),
             rawScore = 5.0,
         )
 
         assertTrue(literal.isArbitraryLiteralOnly)
         assertEquals(SourceEvidenceStrength.MEDIUM, literal.strength())
-        assertTrue(legacy.isLegacyFallbackOnly)
-        assertEquals(SourceEvidenceStrength.MEDIUM, legacy.strength())
+        assertTrue(untypedFallback.isUntypedFallbackOnly)
+        assertEquals(SourceEvidenceStrength.MEDIUM, untypedFallback.strength())
     }
 
     @Test

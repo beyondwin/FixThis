@@ -42,13 +42,13 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
     }
 
     // Tracks which origin kinds fired during scoring for a candidate, used to
-    // determine "arbitrary literal" and "legacy fallback" reason emissions.
+    // determine "arbitrary literal" and "untyped fallback" reason emissions.
     // Only selected (non-nearby, non-activity) text/contentDescription/role terms are
-    // tracked for the legacy-fallback emission; activity uses its own cap (ACTIVITY_ONLY).
+    // tracked for the untyped fallback emission; activity uses its own cap (ACTIVITY_ONLY).
     private class ScoreContext {
         var anyTypedSignalNonLiteral: Boolean = false
         var anyArbitraryLiteralSignal: Boolean = false
-        var anyLegacyOnly: Boolean = false
+        var anyUntypedFallbackOnly: Boolean = false
         var anyTermMatched: Boolean = false
     }
 
@@ -158,12 +158,12 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             )
         }
 
-        // Post-processing: emit "arbitrary literal" or "legacy fallback" origin markers
+        // Post-processing: emit "arbitrary literal" or "untyped fallback" origin markers
         if (ctx.anyTermMatched) {
-            if (!ctx.anyTypedSignalNonLiteral && !ctx.anyLegacyOnly && ctx.anyArbitraryLiteralSignal) {
+            if (!ctx.anyTypedSignalNonLiteral && !ctx.anyUntypedFallbackOnly && ctx.anyArbitraryLiteralSignal) {
                 matchReasons.add(SourceMatchReason.ARBITRARY_LITERAL)
             }
-            if (!ctx.anyTypedSignalNonLiteral && !ctx.anyArbitraryLiteralSignal && ctx.anyLegacyOnly) {
+            if (!ctx.anyTypedSignalNonLiteral && !ctx.anyArbitraryLiteralSignal && ctx.anyUntypedFallbackOnly) {
                 matchReasons.add(SourceMatchReason.UNTYPED_FALLBACK)
             }
         }
@@ -261,7 +261,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
                 hit.signalKind == SourceSignalKind.ARBITRARY_STRING_LITERAL ->
                     ctx.anyArbitraryLiteralSignal = true
                 hit.viaLegacy ->
-                    ctx.anyLegacyOnly = true
+                    ctx.anyUntypedFallbackOnly = true
                 hit.signalKind != null ->
                     ctx.anyTypedSignalNonLiteral = true
             }
@@ -422,7 +422,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         val wireReasons = matchReasons.map { it.wireLabel }
         val margin = MarginContext.of(normalizedScores, index)
         val baseConfidence = baseConfidenceFor(profile, margin)
-        val capInfo = applyCaps(profile, baseConfidence)
+        val capInfo = SourceRiskClassifier.applyCaps(profile, baseConfidence)
         val (afterAmbiguity, ambiguousFlag) = applyAmbiguityDowngrade(
             confidence = capInfo.confidence,
             margin = margin,
@@ -469,44 +469,6 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         }
     }
 
-    private data class CapResult(
-        val confidence: SelectionConfidence,
-        val flags: List<SourceCandidateRisk>,
-    )
-
-    private fun applyCaps(
-        profile: EvidenceProfile,
-        baseConfidence: SelectionConfidence,
-    ): CapResult {
-        val flags = mutableListOf<SourceCandidateRisk>()
-        var confidence = baseConfidence
-
-        when {
-            profile.isArbitraryLiteralOnly -> {
-                flags.add(SourceCandidateRisk.ARBITRARY_LITERAL)
-                confidence = capAt(confidence, SelectionConfidence.LOW)
-            }
-            profile.isLegacyFallbackOnly -> {
-                flags.add(SourceCandidateRisk.LEGACY_FALLBACK)
-                confidence = capAt(confidence, SelectionConfidence.LOW)
-            }
-            profile.isNearbyOnly -> {
-                flags.add(SourceCandidateRisk.NEARBY_ONLY)
-                confidence = capAt(confidence, SelectionConfidence.LOW)
-            }
-            profile.isActivityOnly -> {
-                flags.add(SourceCandidateRisk.ACTIVITY_ONLY)
-                confidence = capAt(confidence, SelectionConfidence.LOW)
-            }
-            profile.isTextOnly -> {
-                flags.add(SourceCandidateRisk.TEXT_ONLY)
-                confidence = capAt(confidence, SelectionConfidence.MEDIUM)
-            }
-        }
-
-        return CapResult(confidence, flags)
-    }
-
     private fun applyAmbiguityDowngrade(
         confidence: SelectionConfidence,
         margin: MarginContext,
@@ -526,10 +488,6 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         SelectionConfidence.MEDIUM -> SelectionConfidence.LOW
         else -> confidence
     }
-
-    // SelectionConfidence ordinal: HIGH=0, MEDIUM=1, LOW=2, NONE=3 (smaller = higher confidence)
-    // capAt returns ceiling when current is "above" (smaller ordinal than) ceiling.
-    private fun capAt(current: SelectionConfidence, ceiling: SelectionConfidence): SelectionConfidence = if (current.ordinal < ceiling.ordinal) ceiling else current
 
     private fun cautionFor(
         confidence: SelectionConfidence,

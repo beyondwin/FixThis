@@ -10,7 +10,7 @@ object SourceCandidateRiskPrecedence {
         SourceCandidateRisk.NEARBY_ONLY,
         SourceCandidateRisk.ARBITRARY_LITERAL,
         SourceCandidateRisk.ACTIVITY_ONLY,
-        SourceCandidateRisk.LEGACY_FALLBACK,
+        SourceCandidateRisk.UNTYPED_FALLBACK,
     )
 
     fun highest(flags: Collection<SourceCandidateRisk>): SourceCandidateRisk? {

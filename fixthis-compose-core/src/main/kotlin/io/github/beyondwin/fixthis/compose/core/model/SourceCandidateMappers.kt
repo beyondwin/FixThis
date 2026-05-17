@@ -74,7 +74,7 @@ private fun SourceHintRisk.toSourceCandidateRisk(): SourceCandidateRisk = when (
     SourceHintRisk.ACTIVITY_ONLY -> SourceCandidateRisk.ACTIVITY_ONLY
     SourceHintRisk.ARBITRARY_LITERAL -> SourceCandidateRisk.ARBITRARY_LITERAL
     SourceHintRisk.AREA_SELECTION -> SourceCandidateRisk.AREA_SELECTION
-    SourceHintRisk.LEGACY_FALLBACK -> SourceCandidateRisk.LEGACY_FALLBACK
+    SourceHintRisk.UNTYPED_FALLBACK -> SourceCandidateRisk.UNTYPED_FALLBACK
 }
 
 private fun SourceCandidateRisk.toSourceHintRisk(): SourceHintRisk = when (this) {
@@ -84,5 +84,5 @@ private fun SourceCandidateRisk.toSourceHintRisk(): SourceHintRisk = when (this)
     SourceCandidateRisk.ACTIVITY_ONLY -> SourceHintRisk.ACTIVITY_ONLY
     SourceCandidateRisk.ARBITRARY_LITERAL -> SourceHintRisk.ARBITRARY_LITERAL
     SourceCandidateRisk.AREA_SELECTION -> SourceHintRisk.AREA_SELECTION
-    SourceCandidateRisk.LEGACY_FALLBACK -> SourceHintRisk.LEGACY_FALLBACK
+    SourceCandidateRisk.UNTYPED_FALLBACK -> SourceHintRisk.UNTYPED_FALLBACK
 }

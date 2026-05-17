@@ -20,7 +20,7 @@ enum class SourceHintRisk {
     ACTIVITY_ONLY,
     ARBITRARY_LITERAL,
     AREA_SELECTION,
-    LEGACY_FALLBACK,
+    UNTYPED_FALLBACK,
 }
 
 data class SourceHint(
