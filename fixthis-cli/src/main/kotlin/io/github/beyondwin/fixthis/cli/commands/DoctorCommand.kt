@@ -12,6 +12,8 @@ import io.github.beyondwin.fixthis.cli.fixThisJson
 import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadiness
 import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessCatalog
 import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessFailureCatalog
+import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessState
+import io.github.beyondwin.fixthis.cli.readiness.classifyBridgeFailure
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -134,16 +136,39 @@ internal fun readinessForDoctorCheck(name: String, message: String?, fix: String
         cause = message ?: "Android project root was not found.",
         fix = fix,
     )
-    "fixthis_project_metadata_found" -> FirstRunReadinessCatalog.needsInstall(
-        cause = message ?: "FixThis project metadata was not found.",
-    )
-    "adb_found", "device_connected" -> FirstRunReadinessCatalog.envBlocker(
-        cause = message ?: "ADB or a ready Android device is unavailable.",
+    "fixthis_project_metadata_found" -> {
+        val raw = message.orEmpty()
+        if (raw.contains("Multiple Android applicationId", ignoreCase = true) ||
+            raw.contains("Pass --package", ignoreCase = true)
+        ) {
+            FirstRunReadinessCatalog.configRecoverable(
+                cause = raw.ifBlank { "FixThis could not choose a unique Android applicationId." },
+                details = mapOf("check" to name),
+            )
+        } else {
+            FirstRunReadinessCatalog.needsInstall(
+                cause = message ?: "FixThis project metadata was not found.",
+            )
+        }
+    }
+    "adb_found" -> FirstRunReadinessCatalog.envBlocker(
+        cause = message ?: "ADB is unavailable.",
         fix = fix,
     )
-    "sidekick_session_found" -> FirstRunReadinessCatalog.needsAppLaunch(
-        cause = message ?: "FixThis sidekick session was not found.",
+    "device_connected" -> FirstRunReadinessCatalog.deviceBlocked(
+        cause = message ?: "No ready Android device or emulator is connected.",
+        fix = fix,
     )
+    "sidekick_session_found" -> {
+        val classified = classifyBridgeFailure(message)
+        if (classified.state == FirstRunReadinessState.UNKNOWN_ERROR) {
+            FirstRunReadinessCatalog.needsAppLaunch(
+                cause = message ?: "FixThis sidekick session was not found.",
+            )
+        } else {
+            classified
+        }
+    }
     else -> FirstRunReadinessFailureCatalog.unknown(
         cause = "Doctor check failed: $name",
         details = mapOf("check" to name),

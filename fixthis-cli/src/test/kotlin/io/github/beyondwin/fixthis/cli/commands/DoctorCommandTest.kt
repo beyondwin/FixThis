@@ -3,6 +3,7 @@ package io.github.beyondwin.fixthis.cli.commands
 import com.github.ajalt.clikt.core.parse
 import io.github.beyondwin.fixthis.cli.AdbDevice
 import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessCatalog
+import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessState
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -50,7 +51,7 @@ class DoctorCommandTest {
                         ok = false,
                         message = "No connected Android device or emulator found",
                         fix = "Start an emulator or connect a device, then run `adb devices`.",
-                        readiness = FirstRunReadinessCatalog.envBlocker(
+                        readiness = FirstRunReadinessCatalog.deviceBlocked(
                             cause = "No connected Android device or emulator found",
                             fix = "Start an emulator or connect a device, then run `adb devices`.",
                         ),
@@ -68,8 +69,43 @@ class DoctorCommandTest {
         assertEquals("fail", failed.getValue("status").jsonPrimitive.content)
         assertTrue(failed.getValue("fix").jsonPrimitive.content.contains("adb devices"))
         val readiness = failed.getValue("readiness").jsonObject
-        assertEquals("ENV_BLOCKER", readiness.getValue("state").jsonPrimitive.content)
+        assertEquals("DEVICE_BLOCKED", readiness.getValue("state").jsonPrimitive.content)
         assertTrue(readiness.getValue("nextAction").jsonPrimitive.content.contains("emulator"))
+    }
+
+    @Test
+    fun doctorMapsNoDeviceToDeviceBlockedReadiness() {
+        val readiness = readinessForDoctorCheck(
+            name = "device_connected",
+            message = "No connected Android device or emulator found",
+            fix = "Start an emulator or connect a device, then run `adb devices`.",
+        )
+
+        assertEquals(FirstRunReadinessState.DEVICE_BLOCKED, readiness.state)
+        assertTrue(readiness.nextAction.contains("emulator"))
+    }
+
+    @Test
+    fun doctorMapsAmbiguousPackageToConfigRecoverable() {
+        val readiness = readinessForDoctorCheck(
+            name = "fixthis_project_metadata_found",
+            message = "Multiple Android applicationId values found in Gradle build files: a, b. Pass --package explicitly.",
+            fix = "Run `./gradlew fixthisSetup` or pass --package <applicationId>.",
+        )
+
+        assertEquals(FirstRunReadinessState.CONFIG_RECOVERABLE, readiness.state)
+        assertTrue(readiness.nextAction.contains("--dry-run"))
+    }
+
+    @Test
+    fun doctorClassifiesSidekickRunAsDeniedAsUnsupportedBuild() {
+        val readiness = readinessForDoctorCheck(
+            name = "sidekick_session_found",
+            message = "run-as: package not debuggable: permission denied",
+            fix = "Build and run the debug app with FixThis sidekick installed.",
+        )
+
+        assertEquals(FirstRunReadinessState.UNSUPPORTED_BUILD, readiness.state)
     }
 
     @Test
