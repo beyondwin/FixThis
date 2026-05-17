@@ -70,6 +70,27 @@ Required evidence before tagging:
 - `./gradlew :fixthis-cli:test --tests "*AgentSetupFilesTest" --tests "*InstallAgentJsonReportTest" --tests "*DoctorCommandTest" --no-daemon`
 - `./gradlew :fixthis-mcp:test --tests "*ConsoleConnectionServiceTest" --tests "*ConsoleConnectionRoutesTest" --no-daemon`
 
+## v0.6 Release Claim Manifest
+
+v0.6 may claim the umbrella roadmap only when the release issue includes
+evidence for each claim below.
+If evidence is missing, narrow or remove the corresponding v0.6 release note claim.
+
+| Claim | Required evidence |
+| --- | --- |
+| Handoff Intelligence improves measured edit-surface usefulness. | `npm run handoff:eval:test` and the Track A corpus summary. |
+| Studio Reliability preserves sessions, drafts, saves, recovery, stale-preview, and blocked-device state under repeated use. | `npm run console:reliability:test`, `npm run console:session:test`, `npm run console:draft:test`, and the reliability harness result. |
+| Release Grade keeps docs, CLI, MCP, output schema, artifacts, and release notes aligned. | `npm run release:v06:evidence:test`, `node scripts/check-release-readiness.mjs`, `bash scripts/check-docs-cli-surface.sh`, and `npm run checks:observation -- --json`. |
+
+Required v0.6 evidence before tagging:
+
+- `npm run handoff:eval:test`
+- `npm run console:reliability:test`
+- `npm run release:v06:evidence:test`
+- `node scripts/check-release-readiness.mjs`
+- `bash scripts/check-docs-cli-surface.sh`
+- `npm run checks:observation -- --json`
+
 ## Required Before Next Source Release
 
 - [ ] Full PR checks pass on the release commit.

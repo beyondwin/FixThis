@@ -40,7 +40,8 @@
     "perf:test": "node --test scripts/perf/parse-gradle-profile-test.mjs scripts/perf/aggregate-test.mjs scripts/perf/compare-perf-test.mjs scripts/perf/perf-workflow-contract-test.mjs",
     "handoff:eval:test": "./gradlew :fixthis-mcp:test --tests \"*HandoffEvaluationCorpusTest\" --tests \"*EditSurfaceRoleClassifierTest\" --tests \"*EditSurfaceCandidateServiceTest\" --tests \"*CompactHandoffRendererTest.compactHandoffRendersEditSurfaceRoleWhenPresent\" --no-daemon",
     "release:package:test": "node --test scripts/package-cli-release-test.mjs && node --test scripts/install-fixthis-test.mjs",
-    "release:npm:test": "node --test scripts/npm-wrapper-test.mjs scripts/mcp-registry-metadata-test.mjs"
+    "release:npm:test": "node --test scripts/npm-wrapper-test.mjs scripts/mcp-registry-metadata-test.mjs",
+    "release:v06:claims:test": "node --test scripts/v06-release-claims-test.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.0",
