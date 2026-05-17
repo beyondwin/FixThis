@@ -85,7 +85,11 @@ class ConsolePreviewRoutesTest {
         val selectDevice = javascriptFunctionBody(html, "selectDevice")
 
         assertTrue(shouldPollPreview.contains("Boolean(state.session)"))
-        assertTrue(captureScreen.contains("if (!state.session) return;"))
+        assertTrue(
+            Regex(
+                "if \\(!state\\.session\\) \\{[\\s\\S]*?showStatus\\([\\s\\S]*?\\);\\s+return;\\s+\\}",
+            ).containsMatchIn(captureScreen),
+        )
         assertTrue(
             selectDevice.contains("if (state.session && userConnectionState(state.connection.current) === 'ready')"),
         )
@@ -265,9 +269,10 @@ class ConsolePreviewRoutesTest {
         assertTrue(html.contains("if (previewUseCases.getState().inFlight || !preview) {"))
         assertTrue(html.contains("preview = await previewUseCases.request();"))
         assertTrue(
-            html.contains(
-                "if (!previewContextStillCurrent(previewContext)) return;",
-            ),
+            Regex(
+                "if \\(!previewContextStillCurrent\\(previewContext\\)\\) \\{[\\s\\S]*?" +
+                    "showStatus\\([\\s\\S]*?\\);\\s+return;\\s+\\}",
+            ).containsMatchIn(html),
         )
         assertTrue(html.contains("setConsolePreview(preview);"))
         assertTrue(html.contains("if (!previewContextStillCurrent(previewContext) || !state.preview) {"))

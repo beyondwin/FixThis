@@ -85,6 +85,10 @@ Closes the six deferred items from the v0.3 first-run trust program
 - Architecture hotspot budget for
   `fixthis-mcp/src/main/console/state.js` bumped 440 → 470 lines to
   absorb the new `surfaceReloadConsoleNotice` helper.
+- Architecture hotspot budget for
+  `fixthis-mcp/src/main/console/history.js` bumped 550 → 560 lines to
+  absorb the session-delete dialog wiring (`deleteHistorySession`
+  options argument and pre-delete pending-draft guards).
 
 ### Added
 - `fixthis --version` flag and `fixthis version [--json]` subcommand emit

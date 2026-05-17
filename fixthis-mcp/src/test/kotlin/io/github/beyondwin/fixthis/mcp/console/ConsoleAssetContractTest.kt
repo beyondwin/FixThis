@@ -256,7 +256,7 @@ class ConsoleAssetContractTest {
         )
         assertTrue(
             Regex(
-                "async function deleteHistorySession\\(sessionId\\)[\\s\\S]*const isDisplayedSession = " +
+                "async function deleteHistorySession\\(sessionId, options = \\{\\}\\)[\\s\\S]*const isDisplayedSession = " +
                     "\\(\\) => state\\.session\\?\\.sessionId === sessionId;[\\s\\S]*" +
                     "const hasDisplayedDraftForDeletedSession = " +
                     "\\(\\) => draftWorkspace\\?\\.context\\?\\.sessionId === sessionId;[\\s\\S]*" +
@@ -267,7 +267,7 @@ class ConsoleAssetContractTest {
         )
         assertTrue(
             Regex(
-                "async function deleteHistorySession\\(sessionId\\)[\\s\\S]*if " +
+                "async function deleteHistorySession\\(sessionId, options = \\{\\}\\)[\\s\\S]*if " +
                     "\\(wasDisplayedSession \\|\\| wasDisplayedDraft\\) \\{" +
                     "[\\s\\S]*clearDisplayedSessionState\\(\\);[\\s\\S]*" +
                     "await refreshSessions\\(\\);\\s+render\\(\\);\\s+await refreshDevices\\(\\);",
@@ -607,7 +607,7 @@ class ConsoleAssetContractTest {
         assertTrue(html.contains("class=\"hi-pip done\""))
         assertTrue(html.contains("class=\"hi-strip-cell"))
         assertTrue(html.contains("data-delete-session-id"))
-        assertTrue(html.contains("async function deleteHistorySession(sessionId)"))
+        assertTrue(html.contains("async function deleteHistorySession(sessionId, options = {})"))
         assertTrue(html.contains("event.stopPropagation();"))
         assertTrue(html.contains("row.addEventListener('keydown'"))
         assertTrue(html.contains("row.classList.toggle('is-active'"))
@@ -740,7 +740,9 @@ class ConsoleAssetContractTest {
         assertTrue(
             Regex(
                 "async function enterAnnotateMode\\(\\) \\{\\s+" +
-                    "if \\(!requirePendingRecoveryChoiceBeforeSessionChange\\(\\)\\) return;\\s+" +
+                    "if \\(!requirePendingRecoveryChoiceBeforeSessionChange\\(\\)\\) \\{[\\s\\S]*?" +
+                    "showStatus\\([\\s\\S]*?\\);\\s+" +
+                    "return;\\s+\\}\\s+" +
                     "await ensureSessionForAnnotating\\(\\);\\s+" +
                     "toolMode\\.enterAnnotate\\(\\);\\s+" +
                     "renderCurrentSessionList\\(\\);\\s+" +
