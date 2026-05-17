@@ -84,7 +84,7 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
             sdk = sdk,
             executable = executable,
         )
-        val plans = buildWritePlans(selectedWriters(target), root, entry)
+        val plans = SetupPlanner.buildWritePlans(SetupPlanner.selectedWriters(target), root, entry)
         if (dryRun) {
             plans.forEach { plan -> applyWritePlan(plan, dryRun = true, fullDiff = fullDiff) }
             return
@@ -93,7 +93,7 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
     }
 
     private fun runWritePlansAtomic(
-        plans: List<AgentConfigWritePlan>,
+        plans: List<SetupWritePlan>,
         move: (java.nio.file.Path, java.nio.file.Path, Array<out java.nio.file.CopyOption>) -> java.nio.file.Path = { source, target, options ->
             java.nio.file.Files.move(source, target, *options)
         },
@@ -105,7 +105,7 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         emit: (String) -> Unit = ::echo,
     ) {
         // Phase 1: stage all writes to <configFile>.fixthis-staging.
-        val staged = mutableListOf<Pair<AgentConfigWritePlan, File>>()
+        val staged = mutableListOf<Pair<SetupWritePlan, File>>()
         try {
             plans.forEach { plan ->
                 val stagingFile = File(plan.configFile.absolutePath + ".fixthis-staging")
@@ -127,7 +127,7 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         // Phase 1.5: snapshot existing targets into rollback files BEFORE first move.
         // Wrapped to bound the failure surface — copyTo can fail mid-loop on permissions,
         // disk-full, or symlink edge cases (impl-details §3).
-        val rollbacks = mutableMapOf<AgentConfigWritePlan, File?>()
+        val rollbacks = mutableMapOf<SetupWritePlan, File?>()
         try {
             staged.forEach { (plan, _) ->
                 rollbacks[plan] = if (plan.configFile.exists()) {
@@ -148,7 +148,7 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         }
 
         // Phase 2: commit (ATOMIC_MOVE with fallback to copy+delete).
-        val committed = mutableListOf<AgentConfigWritePlan>()
+        val committed = mutableListOf<SetupWritePlan>()
         try {
             staged.forEach { (plan, stagingFile) ->
                 try {
@@ -214,7 +214,7 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         emit: (String) -> Unit = { /* no-op: tests do not need user-facing echo */ },
     ) {
         val agentPlans = plans.map { (meta, content) ->
-            AgentConfigWritePlan(
+            SetupWritePlan(
                 writerName = meta.first,
                 scope = meta.second,
                 configFile = meta.third,
@@ -224,31 +224,7 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         runWritePlansAtomic(agentPlans, move, forceFile, forceDirectory, copyForRollback, emit)
     }
 
-    private fun selectedWriters(target: String): List<AgentConfigWriter> = when (target) {
-        "codex" -> listOf(CodexConfigWriter())
-        "claude" -> listOf(ClaudeConfigWriter())
-        else -> listOf(CodexConfigWriter(), ClaudeConfigWriter())
-    }
-
-    private fun buildWritePlans(
-        writers: List<AgentConfigWriter>,
-        projectRoot: File,
-        entry: McpConfigEntry,
-    ): List<AgentConfigWritePlan> = writers.map { writer ->
-        val configFile = writer.configFile(projectRoot)
-        val merged = try {
-            val current = configFile.takeIf { it.isFile }?.readText()
-            writer.merge(current, entry)
-        } catch (e: Exception) {
-            throw CliktError(
-                renderMergeFailure(writer.name, configFile, e),
-                cause = e,
-            )
-        }
-        AgentConfigWritePlan(writer.name, writer.scope, configFile, merged)
-    }
-
-    private fun applyWritePlan(plan: AgentConfigWritePlan, dryRun: Boolean, fullDiff: Boolean = false) {
+    private fun applyWritePlan(plan: SetupWritePlan, dryRun: Boolean, fullDiff: Boolean = false) {
         val configFile = plan.configFile
         val merged = plan.content
         if (dryRun) {
@@ -279,7 +255,7 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         dryRun: Boolean,
         fullDiff: Boolean = false,
     ) {
-        val plan = AgentConfigWritePlan(writerName, scope, configFile, content)
+        val plan = SetupWritePlan(writerName, scope, configFile, content)
         if (dryRun) {
             renderDryRunOutput(plan, fullDiff).forEach { println(it) }
             return
@@ -288,7 +264,7 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         println("Wrote ${plan.writerName} MCP config (${plan.scope}): ${configFile.absolutePath}")
     }
 
-    private fun renderDryRunOutput(plan: AgentConfigWritePlan, fullDiff: Boolean): List<String> {
+    private fun renderDryRunOutput(plan: SetupWritePlan, fullDiff: Boolean): List<String> {
         val configFile = plan.configFile
         val before = if (configFile.isFile) configFile.readText() else ""
         val format = when {
@@ -303,12 +279,6 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         )
     }
 
-    private data class AgentConfigWritePlan(
-        val writerName: String,
-        val scope: String,
-        val configFile: File,
-        val content: String,
-    )
 }
 
 class InitCommand : CoreCliktCommand(name = "init") {
