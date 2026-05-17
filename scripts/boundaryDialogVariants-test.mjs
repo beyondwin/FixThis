@@ -5,12 +5,30 @@ import { loadConsoleSymbols } from './console-test-loader.mjs';
 function createDocument() {
   const title = { textContent: '' };
   const summary = { textContent: '' };
-  const buttons = Array.from({ length: 4 }, () => ({
-    className: '',
-    dataset: {},
-    hidden: false,
-    textContent: '',
-  }));
+  const buttons = Array.from({ length: 4 }, () => {
+    const button = {
+      className: '',
+      hidden: false,
+      textContent: '',
+      _hasBoundaryAction: true,
+    };
+    button.dataset = new Proxy({}, {
+      set(target, key, value) {
+        target[key] = value;
+        if (key === 'boundaryAction') button._hasBoundaryAction = true;
+        return true;
+      },
+      deleteProperty(target, key) {
+        delete target[key];
+        if (key === 'boundaryAction') button._hasBoundaryAction = false;
+        return true;
+      },
+      get(target, key) {
+        return target[key];
+      },
+    });
+    return button;
+  });
   const sheet = {
     hidden: true,
     querySelector(selector) {
@@ -19,7 +37,9 @@ function createDocument() {
       return null;
     },
     querySelectorAll(selector) {
-      if (selector === '.session-boundary-actions [data-boundary-action]') return buttons;
+      if (selector === '.session-boundary-actions [data-boundary-action]') {
+        return buttons.filter((button) => button._hasBoundaryAction);
+      }
       return [];
     },
   };
@@ -71,6 +91,17 @@ test('session delete title and summary include destructive scope', () => {
 
 test('unknown boundary variants fail loudly', () => {
   assert.throws(() => renderBoundaryDialog('missingVariant', {}), /Unknown boundary variant/);
+});
+
+test('three-button dialog still renders all buttons after a two-button dialog', () => {
+  // forgetDevice has only cancel + primary, leaving the middle two slots null.
+  // Previously the renderer removed [data-boundary-action] from those buttons,
+  // so the next render's querySelectorAll returned a shortened button list and
+  // sessionDelete's "Discard" / "Save and delete" never reached the DOM.
+  renderBoundaryDialog('forgetDevice', { deviceName: 'Pixel' });
+  renderBoundaryDialog('sessionDelete', { currentSessionName: 'Session 1', annotationCount: 0, screenCount: 0 });
+
+  assert.deepEqual(visibleLabels(), ['Cancel', 'Discard', 'Save and delete']);
 });
 
 test('destructive utility dialogs label confirm and cancel explicitly', () => {

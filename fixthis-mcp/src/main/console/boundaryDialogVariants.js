@@ -131,7 +131,10 @@ function renderBoundaryDialog(variantName, ctx = {}) {
     if (!slot) {
       button.hidden = true;
       button.textContent = '';
-      delete button.dataset.boundaryAction;
+      // Keep the bare `data-boundary-action` attribute so the next render's
+      // querySelectorAll('[data-boundary-action]') still finds this button.
+      // The click handler treats a falsy action value as "ignore".
+      button.dataset.boundaryAction = '';
       return;
     }
     button.hidden = false;
