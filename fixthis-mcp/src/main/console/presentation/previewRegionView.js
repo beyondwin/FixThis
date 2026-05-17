@@ -128,6 +128,7 @@
 	                boundary.draftSummary.itemCount + ' draft annotations · ' + boundary.draftSummary.missingCommentCount + ' missing comments';
 	              root.querySelectorAll('[data-boundary-action]').forEach((button, index) => {
 	                const action = boundary.actions[index];
+	                button.onclick = null;
 	                button.hidden = !action;
 	                if (action) {
 	                  button.textContent = action.label;
