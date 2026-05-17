@@ -164,7 +164,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
                 matchReasons.add(SourceMatchReason.ARBITRARY_LITERAL)
             }
             if (!ctx.anyTypedSignalNonLiteral && !ctx.anyArbitraryLiteralSignal && ctx.anyLegacyOnly) {
-                matchReasons.add(SourceMatchReason.LEGACY_FALLBACK)
+                matchReasons.add(SourceMatchReason.UNTYPED_FALLBACK)
             }
         }
 

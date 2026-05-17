@@ -531,7 +531,7 @@ class SourceMatcherTest {
     }
 
     @Test
-    fun legacyFallbackOnlyMatchEmitsLegacyReasonAndCapsAtLow() {
+    fun untypedFallbackMatchEmitsLegacyWireReasonAndCapsAtLow() {
         val matcher = SourceMatcher(
             SourceIndex(
                 entries = listOf(
@@ -550,9 +550,10 @@ class SourceMatcherTest {
             activityName = null,
         ).single()
 
-        // The fixture has no typed signals, so the legacy fallback origin marker
-        // fires and dominates over the text-only cap (legacy fallback is more
-        // specific / stronger evidence about candidate quality).
+        // The fixture has no typed signals, so the untyped fallback origin marker
+        // fires (emitted with the "legacy fallback" wire reason for compatibility)
+        // and dominates over the text-only cap (untyped fallback is more specific /
+        // stronger evidence about candidate quality).
         assertEquals(SelectionConfidence.LOW, match.confidence)
         assertTrue(SourceCandidateRisk.LEGACY_FALLBACK in match.riskFlags)
         assertTrue("legacy fallback" in match.matchReasons)

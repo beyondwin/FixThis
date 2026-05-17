@@ -14,7 +14,7 @@ internal data class EvidenceProfile(
     val hasSelectedStringResource: Boolean = SourceMatchReason.SELECTED_STRING_RESOURCE in reasons
     val hasSelectedResolvedStringResource: Boolean = SourceMatchReason.SELECTED_RESOLVED_STRING_RESOURCE in reasons
     val hasArbitraryLiteral: Boolean = SourceMatchReason.ARBITRARY_LITERAL in reasons
-    val hasLegacyFallback: Boolean = SourceMatchReason.LEGACY_FALLBACK in reasons
+    val hasLegacyFallback: Boolean = SourceMatchReason.UNTYPED_FALLBACK in reasons
     val hasActivity: Boolean = SourceMatchReason.ACTIVITY in reasons
     val hasAnySelected: Boolean =
         hasSelectedTestTag ||
@@ -39,7 +39,7 @@ internal data class EvidenceProfile(
             !hasAnyNearby &&
             !hasActivity
     val isLegacyFallbackOnly: Boolean =
-        SourceMatchReason.LEGACY_FALLBACK in reasons &&
+        SourceMatchReason.UNTYPED_FALLBACK in reasons &&
             reasons.all { it in BUCKET_AND_ORIGIN_REASONS } &&
             !hasSelectedTestTag &&
             !hasStrictCompTag &&
@@ -75,7 +75,7 @@ internal data class EvidenceProfile(
             SourceMatchReason.SELECTED_ROLE,
             SourceMatchReason.SELECTED_RESOLVED_STRING_RESOURCE,
             SourceMatchReason.ARBITRARY_LITERAL,
-            SourceMatchReason.LEGACY_FALLBACK,
+            SourceMatchReason.UNTYPED_FALLBACK,
         )
 
         fun fromMatchReasons(

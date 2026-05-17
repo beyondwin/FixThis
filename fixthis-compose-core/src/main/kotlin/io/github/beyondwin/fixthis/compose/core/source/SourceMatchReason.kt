@@ -14,7 +14,7 @@ internal enum class SourceMatchReason(val wireLabel: String) {
     NEARBY_ROLE("nearby role"),
     ACTIVITY("activity"),
     ARBITRARY_LITERAL("arbitrary literal"),
-    LEGACY_FALLBACK("legacy fallback"),
+    UNTYPED_FALLBACK("legacy fallback"),
     ;
 
     companion object {

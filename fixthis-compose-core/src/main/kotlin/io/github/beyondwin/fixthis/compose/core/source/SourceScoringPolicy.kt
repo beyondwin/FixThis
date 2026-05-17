@@ -48,7 +48,7 @@ internal object SourceScoringPolicy {
         SourceMatchReason.ACTIVITY -> ACTIVITY_SCORE
         SourceMatchReason.SELECTED_STRING_RESOURCE,
         SourceMatchReason.ARBITRARY_LITERAL,
-        SourceMatchReason.LEGACY_FALLBACK,
+        SourceMatchReason.UNTYPED_FALLBACK,
         -> 0.0
     }
 
