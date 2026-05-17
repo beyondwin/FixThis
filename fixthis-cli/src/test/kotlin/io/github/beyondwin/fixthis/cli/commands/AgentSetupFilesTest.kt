@@ -37,4 +37,41 @@ class AgentSetupFilesTest {
         val readiness = obj.getValue("readiness").jsonObject
         assertTrue(readiness.getValue("nextAction").jsonPrimitive.content.contains("fixthis doctor"))
     }
+
+    @Test
+    fun agentSetupWritesProjectJsonForReadmeFirstDoctorPath() {
+        val root = tempFolder.newFolder("proj")
+        AgentSetupFiles.write(
+            projectRoot = root,
+            packageName = "com.example.app",
+            serverName = "fixthis",
+            dryRun = false,
+            echo = {},
+        )
+
+        val projectJson = java.io.File(root, ".fixthis/project.json")
+        assertTrue("project.json missing", projectJson.isFile)
+        val obj = Json.parseToJsonElement(projectJson.readText()).jsonObject
+        assertTrue("missing applicationId", obj.getValue("applicationId").jsonPrimitive.content == "com.example.app")
+    }
+
+    @Test
+    fun setupGuideUsesDoctorJsonBeforeConsole() {
+        val root = tempFolder.newFolder("proj")
+        AgentSetupFiles.write(
+            projectRoot = root,
+            packageName = "com.example.app",
+            serverName = "fixthis",
+            dryRun = false,
+            echo = {},
+        )
+
+        val text = java.io.File(root, ".fixthis/agent-setup.md").readText()
+        val doctorIndex = text.indexOf("fixthis doctor --project-dir . --json")
+        val consoleIndex = text.indexOf("fixthis_open_feedback_console")
+        assertTrue("doctor command missing", doctorIndex >= 0)
+        assertTrue("console tool missing", consoleIndex >= 0)
+        assertTrue("doctor should come before console", doctorIndex < consoleIndex)
+        assertTrue(text.contains("Restart Claude Code or Codex"))
+    }
 }

@@ -44,6 +44,10 @@ internal object AgentSetupFiles {
     ) {
         val fixThisDirectory = projectRoot.resolve(".fixthis")
         val plans = listOf(
+            WritePlan(
+                fixThisDirectory.resolve("project.json"),
+                fixThisJson.encodeToString(projectMetadata(packageName, projectRoot)) + "\n",
+            ),
             WritePlan(fixThisDirectory.resolve("agent-setup.md"), agentSetupGuide(packageName)),
             WritePlan(
                 fixThisDirectory.resolve("mcp.json.template"),
@@ -77,16 +81,24 @@ internal object AgentSetupFiles {
 
         Agent sequence from the project root:
 
-        1. Run `./gradlew fixthisSetup`.
-        2. Run `fixthis init --agent --project-dir .`.
-        3. Restart Claude Code or Codex so MCP config is reloaded.
-        4. Run `fixthis doctor --project-dir . --json`.
-        5. Use MCP tool `fixthis_open_feedback_console`.
+        1. Run `fixthis doctor --project-dir . --json`.
+        2. Use the doctor JSON readiness result as the source of truth.
+        3. Restart Claude Code or Codex if MCP config was written.
+        4. Use MCP tool `fixthis_open_feedback_console`.
 
-        If `fixthisSetup` is missing, apply Gradle plugin
-        `io.github.beyondwin.fixthis.compose` to the Android app module or rerun
-        `fixthis install-agent --project-dir . --target all`.
+        If doctor reports `NEEDS_INSTALL` or generated metadata is missing, run
+        `./gradlew fixthisSetup` and then rerun
+        `fixthis doctor --project-dir . --json`.
+
+        Never add FixThis to release builds. Do not commit `.fixthis/`.
     """.trimIndent() + "\n"
+
+    private fun projectMetadata(packageName: String, projectRoot: File) = buildJsonObject {
+        put("schemaVersion", "1.0")
+        put("applicationId", packageName)
+        put("projectRoot", projectRoot.absolutePath)
+        put("createdBy", "fixthis agent setup")
+    }
 
     private fun projectScopedMcpTemplate(serverName: String) = buildJsonObject {
         put(
@@ -133,9 +145,9 @@ internal object AgentSetupFiles {
             put(
                 "next",
                 buildJsonArray {
-                    add(JsonPrimitive("./gradlew fixthisSetup"))
                     add(JsonPrimitive("fixthis doctor --project-dir ${projectRoot.absolutePath} --json"))
                     add(JsonPrimitive("# Restart Claude Code / Codex to reload MCP config"))
+                    add(JsonPrimitive("fixthis_open_feedback_console"))
                 },
             )
             put(

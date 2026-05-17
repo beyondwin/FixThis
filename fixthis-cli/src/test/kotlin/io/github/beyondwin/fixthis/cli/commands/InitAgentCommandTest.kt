@@ -43,11 +43,11 @@ class InitAgentCommandTest {
         val setupGuide = projectRoot.resolve(".fixthis/agent-setup.md")
         assertTrue(setupGuide.isFile)
         val setupText = setupGuide.readText()
-        assertTrue(!setupText.contains("1. Run `fixthis install-agent --project-dir . --target all`"))
-        assertTrue(setupText.contains("./gradlew fixthisSetup"))
-        assertTrue(setupText.contains("fixthis init --agent --project-dir ."))
         assertTrue(setupText.contains("fixthis doctor --project-dir . --json"))
+        assertTrue(setupText.contains("Restart Claude Code or Codex"))
         assertTrue(setupText.contains("fixthis_open_feedback_console"))
+        assertTrue(setupText.contains("If doctor reports `NEEDS_INSTALL`"))
+        assertFalse(setupText.contains("fixthis init --agent --project-dir ."))
 
         val mcpTemplate = projectRoot.resolve(".fixthis/mcp.json.template")
         assertTrue(mcpTemplate.isFile)
@@ -90,6 +90,7 @@ class InitAgentCommandTest {
         assertTrue(projectRoot.resolve(".fixthis/agent-setup.md").isFile)
         assertTrue(projectRoot.resolve(".fixthis/agent-setup.json").isFile)
         assertTrue(projectRoot.resolve(".fixthis/mcp.json.template").isFile)
+        assertTrue(projectRoot.resolve(".fixthis/project.json").isFile)
     }
 
     @Test
