@@ -184,7 +184,10 @@
             }
 
             async function enterAnnotateMode() {
-              if (!requirePendingRecoveryChoiceBeforeSessionChange()) return;
+              if (!requirePendingRecoveryChoiceBeforeSessionChange()) {
+                showStatus('Resolve the recovered draft first, then try Start annotating again.', { variant: 'warn', durationMs: 3500 });
+                return;
+              }
               await ensureSessionForAnnotating();
               toolMode.enterAnnotate();
               renderCurrentSessionList();

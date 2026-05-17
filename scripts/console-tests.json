@@ -59,7 +59,8 @@
     "scripts/savedOverlayScope-test.mjs",
     "scripts/transportSessionResilience-test.mjs",
     "scripts/undoRedoContext-test.mjs",
-    "scripts/sessionMismatchIgnore-test.mjs"
+    "scripts/sessionMismatchIgnore-test.mjs",
+    "scripts/enterAnnotateModeBlockToast-test.mjs"
   ],
   "harness": [
     "scripts/console-fixture/fakeBridgeServer-test.mjs",
