@@ -46,6 +46,30 @@ The following install paths are intentionally not advertised as ready:
 Do not advertise a package-manager path until it has its own clean install
 test and rollback plan.
 
+## v0.5 Trustworthy Onboarding Claim
+
+v0.5 may claim README-first Claude Code / Codex bootstrap only when the release
+issue includes evidence for this path:
+
+```text
+README agent block
+-> fixthis install-agent --project-dir . --target all
+-> fixthis doctor --project-dir . --json
+-> restart Claude Code or Codex when MCP config changed
+-> fixthis_open_feedback_console
+-> Save to MCP
+-> agent-readable sent feedback
+```
+
+Required evidence before tagging:
+
+- `npm run docs:agent-bootstrap:test`
+- `bash scripts/check-docs-cli-surface.sh`
+- `npm run first-run:smoke`
+- `npm run first-run:smoke:test`
+- `./gradlew :fixthis-cli:test --tests "*AgentSetupFilesTest" --tests "*InstallAgentJsonReportTest" --tests "*DoctorCommandTest" --no-daemon`
+- `./gradlew :fixthis-mcp:test --tests "*ConsoleConnectionServiceTest" --tests "*ConsoleConnectionRoutesTest" --no-daemon`
+
 ## Required Before Next Source Release
 
 - [ ] Full PR checks pass on the release commit.
@@ -71,6 +95,8 @@ test and rollback plan.
   ```
 - [ ] Security, privacy, compatibility, and troubleshooting docs still match
       the release claims.
+- [ ] v0.5 Trustworthy Onboarding evidence is captured if the release notes
+      claim README-first Claude Code / Codex bootstrap.
 
 ## Required Before External Artifact Release
 

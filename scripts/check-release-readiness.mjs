@@ -94,6 +94,21 @@ requireIncludes(
   '[Release process](release-process.md)',
 );
 requireIncludes(
+  'R2b.v05-trustworthy-onboarding-claim',
+  'docs/contributing/release-readiness.md',
+  'v0.5 Trustworthy Onboarding',
+);
+requireIncludes(
+  'R2c.v05-readme-first-agent-bootstrap',
+  'docs/contributing/release-readiness.md',
+  'README-first Claude Code / Codex bootstrap',
+);
+requireIncludes(
+  'R2d.v05-first-run-smoke',
+  'docs/contributing/release-readiness.md',
+  'npm run first-run:smoke',
+);
+requireIncludes(
   'R3.readiness-security',
   'docs/contributing/release-readiness.md',
   '[Security model](../../SECURITY.md)',
