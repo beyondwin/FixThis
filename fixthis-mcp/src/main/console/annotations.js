@@ -361,7 +361,10 @@
                 let preview = state.preview;
                 if (previewUseCases.getState().inFlight || !preview) {
                   preview = await previewUseCases.request();
-                  if (!previewContextStillCurrent(previewContext)) return;
+                  if (!previewContextStillCurrent(previewContext)) {
+                    showStatus('Annotation start cancelled because the device or session changed.', { variant: 'warn', durationMs: 3500 });
+                    return;
+                  }
                   preview = {
                     ...preview,
                     activity: state.connection?.availability?.activity ?? null,
