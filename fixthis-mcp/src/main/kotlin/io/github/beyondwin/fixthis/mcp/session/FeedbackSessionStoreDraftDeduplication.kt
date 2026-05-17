@@ -67,19 +67,3 @@ internal fun AnnotationDto.clientDraftKey(): String? {
     val draftItemId = clientDraftItemId?.takeIf { it.isNotBlank() }
     return if (workspaceId == null || draftItemId == null) null else "$workspaceId\u0000$draftItemId"
 }
-
-internal fun existingLegacySemanticKeysForScreen(
-    session: SessionDto,
-    requestedScreen: SnapshotDto,
-): Set<String> {
-    val candidateScreenIds = buildSet {
-        add(requestedScreen.screenId)
-        session.screens
-            .find { it.fingerprint != null && it.fingerprint == requestedScreen.fingerprint }
-            ?.let { add(it.screenId) }
-    }
-    return session.items
-        .filter { item -> item.screenId in candidateScreenIds }
-        .mapNotNull { it.legacySemanticDraftKey() }
-        .toSet()
-}

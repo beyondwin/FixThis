@@ -217,11 +217,8 @@ internal class FeedbackSessionStoreDelegate(
             require(items.all { it.comment.isNotBlank() }) { "addScreenWithItems received items with blank comment" }
             val session = getSessionLocked(sessionId)
             val existingClientKeys = session.items.mapNotNull { it.clientDraftKey() }.toSet()
-            val existingLegacySemanticKeys = existingLegacySemanticKeysForScreen(session, screen)
             val newItems = items.filterNot { item ->
-                val clientDuplicate = item.clientDraftKey()?.let { it in existingClientKeys } == true
-                val legacyDuplicate = item.incomingSemanticDraftKey()?.let { it in existingLegacySemanticKeys } == true
-                clientDuplicate || legacyDuplicate
+                item.clientDraftKey()?.let { it in existingClientKeys } == true
             }
             if (newItems.isEmpty()) {
                 return@withOptionalEventBackedMutation null
