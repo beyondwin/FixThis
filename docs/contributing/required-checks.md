@@ -20,13 +20,13 @@ Maintainers update this doc as observation windows complete. Once a row's "Ready
 Run:
 
 ```bash
-npm run checks:observation
+npm run checks:observation -- --json
+npm run checks:observation -- --require-ready connected-tests,nightly-compat
 ```
 
-The command uses `gh run list`, so it requires GitHub CLI authentication and
-repository access. Copy the computed first-green and consecutive-green counts
-into the table. Do not promote scheduled workflows to PR-required checks until
-their longer observation windows are complete.
+The first command prints the evidence table as JSON. The second command exits
+nonzero until the connected-test and lower-bound compatibility observation
+windows are satisfied.
 
 ## Notes
 
@@ -41,3 +41,7 @@ their longer observation windows are complete.
   `io.gitlab.arturbosch.detekt.DetektPlugin.apply` calls the deprecated
   `ReportingExtension.file(String)`. Owner: build maintainers; upgrade path:
   re-check on the next Detekt version before Gradle 10 adoption.
+- Detekt baseline files are ratcheted by
+  `npm run detekt:baseline:check`. Reducing a baseline count is allowed and
+  should be followed by lowering `config/detekt/baseline-budget.json`.
+  Increasing a budget requires a code-review explanation.

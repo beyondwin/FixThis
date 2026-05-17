@@ -1,0 +1,8 @@
+{
+  "config/detekt/baseline-app.xml": 54,
+  "config/detekt/baseline-fixthis-cli.xml": 80,
+  "config/detekt/baseline-fixthis-compose-core.xml": 57,
+  "config/detekt/baseline-fixthis-compose-sidekick.xml": 86,
+  "config/detekt/baseline-fixthis-gradle-plugin.xml": 9,
+  "config/detekt/baseline-fixthis-mcp.xml": 421
+}

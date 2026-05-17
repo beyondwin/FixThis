@@ -35,6 +35,9 @@ jobs:
       - name: Check release readiness docs
         run: node scripts/check-release-readiness.mjs
 
+      - name: Check detekt baseline budget
+        run: npm run detekt:baseline:check
+
       - name: Check console asset bundle
         run: node scripts/build-console-assets.mjs --check
 
@@ -49,6 +52,9 @@ jobs:
 
       - name: Run release package script tests
         run: npm run release:package:test
+
+      - name: Run perf contract tests
+        run: npm run perf:test
 
   gradle-verification:
     name: Gradle verification

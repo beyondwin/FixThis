@@ -11,6 +11,7 @@ import io.github.beyondwin.fixthis.cli.BridgeClient
 import io.github.beyondwin.fixthis.cli.fixThisJson
 import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadiness
 import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessCatalog
+import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessFailureCatalog
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
@@ -144,8 +145,9 @@ internal fun readinessForDoctorCheck(name: String, message: String?, fix: String
     "sidekick_session_found" -> FirstRunReadinessCatalog.needsAppLaunch(
         cause = message ?: "FixThis sidekick session was not found.",
     )
-    else -> FirstRunReadinessCatalog.unknown(
-        cause = message ?: "Doctor check failed: $name",
+    else -> FirstRunReadinessFailureCatalog.unknown(
+        cause = "Doctor check failed: $name",
+        details = mapOf("check" to name),
     )
 }
 

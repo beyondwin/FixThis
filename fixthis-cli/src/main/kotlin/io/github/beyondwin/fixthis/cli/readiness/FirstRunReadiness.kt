@@ -99,7 +99,9 @@ object FirstRunReadinessCatalog {
         nextAction = "Choose Recapture, Force save, or Cancel.",
         details = details,
     )
+}
 
+object FirstRunReadinessFailureCatalog {
     fun captureUnavailable(cause: String, details: Map<String, String> = emptyMap()) = FirstRunReadiness(
         state = FirstRunReadinessState.CAPTURE_UNAVAILABLE,
         cause = cause,
@@ -146,7 +148,7 @@ fun classifyBridgeFailure(rawError: String?): FirstRunReadiness {
                 cause = "The debug app is not connected to the FixThis bridge.",
                 details = mapOf("rawError" to raw),
             )
-        else -> FirstRunReadinessCatalog.unknown(
+        else -> FirstRunReadinessFailureCatalog.unknown(
             cause = raw.ifBlank { "FixThis could not classify this first-run failure." },
             details = if (raw.isBlank()) emptyMap() else mapOf("rawError" to raw),
         )

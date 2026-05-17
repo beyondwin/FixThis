@@ -18,6 +18,14 @@ USAGE
 
 cd "$(dirname "$0")/.."
 
+sha256_file() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | awk '{print $1}'
+    else
+        shasum -a 256 "$1" | awk '{print $1}'
+    fi
+}
+
 VERSION=""
 OUT_DIR="build/release"
 SKIP_BUILD=0
@@ -97,4 +105,7 @@ directory layout.
 README
 
 tar -czf "$ARCHIVE" -C "$OUT_DIR/staging" "$PACKAGE_NAME"
+CHECKSUM="$ARCHIVE.sha256"
+printf '%s  %s\n' "$(sha256_file "$ARCHIVE")" "$(basename "$ARCHIVE")" > "$CHECKSUM"
 echo "$ARCHIVE"
+echo "$CHECKSUM"

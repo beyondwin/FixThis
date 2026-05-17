@@ -47,7 +47,9 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: fixthis-cli-mcp-${{ env.FIXTHIS_RELEASE_VERSION }}
-          path: build/release/fixthis-cli-mcp-${{ env.FIXTHIS_RELEASE_VERSION }}.tar.gz
+          path: |
+            build/release/fixthis-cli-mcp-${{ env.FIXTHIS_RELEASE_VERSION }}.tar.gz
+            build/release/fixthis-cli-mcp-${{ env.FIXTHIS_RELEASE_VERSION }}.tar.gz.sha256
           if-no-files-found: error
 
       - name: Attach to draft GitHub Release
@@ -56,4 +58,6 @@ jobs:
           tag_name: ${{ env.FIXTHIS_RELEASE_VERSION }}
           draft: true
           fail_on_unmatched_files: true
-          files: build/release/fixthis-cli-mcp-${{ env.FIXTHIS_RELEASE_VERSION }}.tar.gz
+          files: |
+            build/release/fixthis-cli-mcp-${{ env.FIXTHIS_RELEASE_VERSION }}.tar.gz
+            build/release/fixthis-cli-mcp-${{ env.FIXTHIS_RELEASE_VERSION }}.tar.gz.sha256

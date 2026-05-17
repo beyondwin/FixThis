@@ -27,7 +27,7 @@ class FirstRunReadinessTest {
 
     @Test
     fun catalogCaptureUnavailableUsesRetryCapturePrimaryAction() {
-        val readiness = FirstRunReadinessCatalog.captureUnavailable(
+        val readiness = FirstRunReadinessFailureCatalog.captureUnavailable(
             cause = "Screenshot bytes unavailable.",
             details = mapOf("rawError" to "screenshot 404"),
         )
@@ -44,7 +44,7 @@ class FirstRunReadinessTest {
 
     @Test
     fun catalogCaptureUnavailableDefaultsToEmptyDetails() {
-        val readiness = FirstRunReadinessCatalog.captureUnavailable("Capture unavailable.")
+        val readiness = FirstRunReadinessFailureCatalog.captureUnavailable("Capture unavailable.")
         assertEquals(emptyMap<String, String>(), readiness.details)
     }
 

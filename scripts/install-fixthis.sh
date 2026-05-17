@@ -6,7 +6,9 @@ print_usage() {
     cat <<'USAGE'
 Usage: ./scripts/install-fixthis.sh [--version <vX.Y.Z>|latest] [--repo owner/name]
                                     [--install-dir <dir>] [--bin-dir <dir>]
-                                    [--archive <path>] [--init]
+                                    [--archive <path>] [--checksum-file <path>]
+                                    [--sha256 <digest>]
+                                    [--allow-unchecked-local-archive] [--init]
                                     [--target claude|codex|all]
                                     [--package <applicationId>] [--project-dir <dir>]
 
@@ -15,6 +17,12 @@ Default install:
 
 Agent-first setup from an Android app repo:
   scripts/install-fixthis.sh --version v0.2.3 --init --target codex --project-dir .
+
+Integrity options:
+  --checksum-file <path>             Verify --archive against the SHA-256 sidecar at <path>.
+  --sha256 <digest>                  Verify --archive against the given 64-char SHA-256 digest.
+  --allow-unchecked-local-archive    Skip checksum verification for a local --archive
+                                     (intended for tests; not recommended).
 USAGE
 }
 
@@ -23,6 +31,9 @@ VERSION="latest"
 INSTALL_DIR="${FIXTHIS_INSTALL_DIR:-$HOME/.local/share/fixthis}"
 BIN_DIR="${FIXTHIS_BIN_DIR:-$HOME/.local/bin}"
 ARCHIVE=""
+CHECKSUM_FILE=""
+CHECKSUM_VALUE=""
+ALLOW_UNCHECKED_LOCAL_ARCHIVE=0
 RUN_INIT=0
 TARGET="all"
 PACKAGE=""
@@ -45,6 +56,14 @@ while [[ $# -gt 0 ]]; do
         --archive)
             [[ $# -ge 2 ]] || { echo "[install] --archive requires a value" >&2; exit 2; }
             ARCHIVE="$2"; shift 2 ;;
+        --checksum-file)
+            [[ $# -ge 2 ]] || { echo "[install] --checksum-file requires a value" >&2; exit 2; }
+            CHECKSUM_FILE="$2"; shift 2 ;;
+        --sha256)
+            [[ $# -ge 2 ]] || { echo "[install] --sha256 requires a value" >&2; exit 2; }
+            CHECKSUM_VALUE="$2"; shift 2 ;;
+        --allow-unchecked-local-archive)
+            ALLOW_UNCHECKED_LOCAL_ARCHIVE=1; shift ;;
         --init)
             RUN_INIT=1; shift ;;
         --target)
@@ -77,6 +96,27 @@ require_command() {
     fi
 }
 
+sha256_file() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | awk '{print $1}'
+    else
+        shasum -a 256 "$1" | awk '{print $1}'
+    fi
+}
+
+verify_archive_checksum() {
+    local archive="$1"
+    local expected="$2"
+    local actual
+    actual="$(sha256_file "$archive")"
+    if [[ "$actual" != "$expected" ]]; then
+        echo "[install] checksum mismatch for $archive" >&2
+        echo "[install] expected: $expected" >&2
+        echo "[install] actual:   $actual" >&2
+        exit 1
+    fi
+}
+
 require_command tar
 require_command mkdir
 require_command ln
@@ -87,7 +127,9 @@ cleanup() {
 }
 trap cleanup EXIT
 
+LOCAL_ARCHIVE=1
 if [[ -z "$ARCHIVE" ]]; then
+    LOCAL_ARCHIVE=0
     require_command curl
     if [[ "$VERSION" == "latest" ]]; then
         VERSION="$(
@@ -104,6 +146,22 @@ if [[ -z "$ARCHIVE" ]]; then
     curl -fL \
         "https://github.com/$REPO/releases/download/$VERSION/fixthis-cli-mcp-$VERSION.tar.gz" \
         -o "$ARCHIVE"
+    if [[ -z "$CHECKSUM_FILE" && -z "$CHECKSUM_VALUE" ]]; then
+        CHECKSUM_FILE="$WORK_DIR/$(basename "$ARCHIVE").sha256"
+        curl -fL \
+            "https://github.com/$REPO/releases/download/$VERSION/$(basename "$ARCHIVE").sha256" \
+            -o "$CHECKSUM_FILE"
+    fi
+fi
+
+if [[ -n "$CHECKSUM_VALUE" ]]; then
+    verify_archive_checksum "$ARCHIVE" "$CHECKSUM_VALUE"
+elif [[ -n "$CHECKSUM_FILE" || -f "$ARCHIVE.sha256" ]]; then
+    checksum_source="${CHECKSUM_FILE:-$ARCHIVE.sha256}"
+    verify_archive_checksum "$ARCHIVE" "$(awk '{print $1}' "$checksum_source")"
+elif [[ "$LOCAL_ARCHIVE" -eq 1 && "$ALLOW_UNCHECKED_LOCAL_ARCHIVE" -ne 1 ]]; then
+    echo "[install] local archives require --checksum-file, --sha256, or --allow-unchecked-local-archive" >&2
+    exit 2
 fi
 
 mkdir -p "$WORK_DIR/extract"

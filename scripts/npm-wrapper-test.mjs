@@ -105,6 +105,10 @@ test("npm postinstall can install a local GitHub release archive into vendor", (
     });
     assert.equal(tar.status, 0, tar.stderr || tar.stdout);
 
+    const checksum = spawnSync("shasum", ["-a", "256", archive], { encoding: "utf8" });
+    assert.equal(checksum.status, 0, checksum.stderr || checksum.stdout);
+    writeFileSync(`${archive}.sha256`, checksum.stdout);
+
     const install = spawnSync("node", [join(fakePackage, "scripts/postinstall.js")], {
       cwd: fakePackage,
       env: { ...process.env, FIXTHIS_RELEASE_ARCHIVE: archive },
@@ -113,6 +117,44 @@ test("npm postinstall can install a local GitHub release archive into vendor", (
     assert.equal(install.status, 0, install.stderr || install.stdout);
     assert.equal(existsSync(join(fakePackage, "vendor/fixthis-cli-mcp-v0.2.0/fixthis/bin/fixthis")), true);
     assert.equal(readFileSync(join(fakePackage, "vendor/current"), "utf8"), "fixthis-cli-mcp-v0.2.0\n");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("npm postinstall rejects a local release archive with a wrong checksum", () => {
+  const root = mkdtempSync(join(tmpdir(), "fixthis-npm-postinstall-bad-checksum-"));
+  try {
+    const fakePackage = join(root, "package");
+    const packageArchiveRoot = join(root, "fixthis-cli-mcp-v0.2.0");
+    mkdirSync(join(fakePackage, "scripts"), { recursive: true });
+    mkdirSync(join(packageArchiveRoot, "fixthis/bin"), { recursive: true });
+    mkdirSync(join(packageArchiveRoot, "fixthis-mcp/bin"), { recursive: true });
+    writeFileSync(
+      join(fakePackage, "package.json"),
+      JSON.stringify({ name: "fixthis", version: "0.2.0" }),
+    );
+    copyFileSync(join(packageRoot, "scripts/postinstall.js"), join(fakePackage, "scripts/postinstall.js"));
+    writeExecutable(join(packageArchiveRoot, "fixthis/bin/fixthis"), "#!/usr/bin/env bash\n");
+    writeExecutable(join(packageArchiveRoot, "fixthis-mcp/bin/fixthis-mcp"), "#!/usr/bin/env bash\n");
+
+    const archive = join(root, "fixthis-cli-mcp-v0.2.0.tar.gz");
+    const tar = spawnSync("tar", ["-czf", archive, "-C", root, "fixthis-cli-mcp-v0.2.0"], {
+      encoding: "utf8",
+    });
+    assert.equal(tar.status, 0, tar.stderr || tar.stdout);
+
+    const install = spawnSync("node", [join(fakePackage, "scripts/postinstall.js")], {
+      cwd: fakePackage,
+      env: {
+        ...process.env,
+        FIXTHIS_RELEASE_ARCHIVE: archive,
+        FIXTHIS_RELEASE_ARCHIVE_SHA256: "0".repeat(64),
+      },
+      encoding: "utf8",
+    });
+    assert.notEqual(install.status, 0);
+    assert.match(install.stderr, /checksum mismatch/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

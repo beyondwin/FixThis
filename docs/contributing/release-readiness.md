@@ -59,6 +59,16 @@ test and rollback plan.
       release notes explicitly say it was not run.
 - [ ] CLI/MCP package workflow has produced the release tarball, or the release
       notes explicitly say no desktop package is attached.
+- [ ] Release tarball checksum sidecar exists and both shell/npm installers
+      verify SHA-256 before extraction.
+- [ ] `npm run checks:observation -- --json` output captured for the release
+      issue, and any non-ready scheduled gate is explicitly accepted.
+- [ ] Release/minify consumer fixture passed, or the release issue records why
+      Android SDK fixture execution was deferred:
+
+  ```bash
+  ./gradlew :fixthis-gradle-plugin:functionalTest --tests "*ReleaseConsumerFixtureTest" --no-daemon
+  ```
 - [ ] Security, privacy, compatibility, and troubleshooting docs still match
       the release claims.
 
