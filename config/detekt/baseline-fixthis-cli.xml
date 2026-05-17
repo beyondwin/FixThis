@@ -69,6 +69,16 @@
     <ID>TooGenericExceptionCaught:SetupCommand.kt$SetupCommand$e: Exception</ID>
     <ID>TooManyFunctions:Adb.kt$Adb : AdbFacade</ID>
     <ID>TooManyFunctions:BridgeClient.kt$BridgeClient</ID>
+    <ID>TopLevelPropertyNaming:AgentSetupFiles.kt$private const val ReadinessConfigRecoverable = "Run `fixthis install-agent --project-dir . --target all --dry-run`, " + "inspect the diff, then rerun without --dry-run."</ID>
+    <ID>TopLevelPropertyNaming:AgentSetupFiles.kt$private const val ReadinessEnvBlocker = "Install missing local prerequisites, then run `fixthis doctor --project-dir . --json`."</ID>
+    <ID>TopLevelPropertyNaming:AgentSetupFiles.kt$private const val ReadinessNeedsAppLaunch = "Launch the debug app or click Start in the feedback console."</ID>
+    <ID>TopLevelPropertyNaming:AgentSetupFiles.kt$private const val ReadinessNeedsInstall = "Run `fixthis install-agent --project-dir . --target all`."</ID>
+    <ID>TopLevelPropertyNaming:AgentSetupFiles.kt$private const val ReadinessUnsupportedBuild = "Install a debuggable build with the FixThis sidekick enabled."</ID>
+    <ID>TopLevelPropertyNaming:AgentSetupFiles.kt$private const val RecoveryMissingApplicationId = "No unique applicationId; run from app module or pass --package."</ID>
+    <ID>TopLevelPropertyNaming:AgentSetupFiles.kt$private const val RecoveryNoAndroidContext = "Run from the Android repo root, or pass --allow-global to write the global codex config anyway."</ID>
+    <ID>TopLevelPropertyNaming:AgentSetupFiles.kt$private const val RecoveryNoAppModule = "Run ./gradlew projects to list modules; pass the correct --package."</ID>
+    <ID>TopLevelPropertyNaming:AgentSetupFiles.kt$private const val RecoveryReleaseOnlyVariant = "Add a debug variant; FixThis attaches debug builds only."</ID>
+    <ID>TopLevelPropertyNaming:AgentSetupFiles.kt$private const val RecoveryViewSystemMixed = "Module contains View-based activities; migrate to ComponentActivity + setContent."</ID>
     <ID>TopLevelPropertyNaming:BridgeClient.kt$// Mirrors BridgeProtocol.VERSION (fixthis-compose-sidekick), the constant in // ServerVersionRoutes.kt (fixthis-mcp), and MinimumSupportedProtocolVersion in // staleness.js. BridgeProtocolVersionSyncTest (`:fixthis-mcp:test`) fails if any // of the 4 sites lag — bump them all together. See docs/reference/bridge-protocol.md. internal const val BridgeProtocolVersion = "1.3"</ID>
     <ID>TopLevelPropertyNaming:BridgeClient.kt$private const val DefaultSocketTimeoutMillis = 30_000</ID>
     <ID>UnusedParameter:BridgeClient.kt$BridgeClient$sessionId: String? = null</ID>

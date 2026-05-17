@@ -2,6 +2,7 @@ package io.github.beyondwin.fixthis.cli.commands
 
 import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadiness
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -13,6 +14,15 @@ private val compactJson: Json = Json {
     prettyPrint = false
     explicitNulls = false
     encodeDefaults = true
+}
+
+private fun JsonObjectBuilder.putReadiness(readiness: FirstRunReadiness?) {
+    readiness?.let {
+        put(
+            "readiness",
+            compactJson.encodeToJsonElement(FirstRunReadiness.serializer(), it).jsonObject,
+        )
+    }
 }
 
 internal object InstallAgentJsonReport {
@@ -63,9 +73,7 @@ internal object InstallAgentJsonReport {
                                 put("target", sk.target)
                                 put("reason", sk.reason)
                                 put("fix", sk.fix)
-                                sk.readiness?.let {
-                                    put("readiness", compactJson.encodeToJsonElement(FirstRunReadiness.serializer(), it).jsonObject)
-                                }
+                                putReadiness(sk.readiness)
                             },
                         )
                     }
@@ -79,9 +87,7 @@ internal object InstallAgentJsonReport {
                             buildJsonObject {
                                 put("target", e.target)
                                 put("message", e.message)
-                                e.readiness?.let {
-                                    put("readiness", compactJson.encodeToJsonElement(FirstRunReadiness.serializer(), it).jsonObject)
-                                }
+                                putReadiness(e.readiness)
                             },
                         )
                     }

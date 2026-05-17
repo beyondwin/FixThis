@@ -58,7 +58,9 @@ class InstallAgentJsonReportTest {
 
         val root = Json.parseToJsonElement(rendered).jsonObject
         val skipped = root.getValue("skipped").jsonArray.single().jsonObject
-        assertEquals("CONFIG_RECOVERABLE", skipped.getValue("readiness").jsonObject.getValue("state").jsonPrimitive.content)
+        val readiness = skipped.getValue("readiness").jsonObject
+        val state = readiness.getValue("state").jsonPrimitive.content
+        assertEquals("CONFIG_RECOVERABLE", state)
         assertEquals("cd <android-project-root>", root.getValue("nextAction").jsonPrimitive.content)
     }
 

@@ -12,6 +12,28 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import java.io.File
 
+private const val RecoveryNoAndroidContext =
+    "Run from the Android repo root, or pass --allow-global to write the global codex config anyway."
+private const val RecoveryNoAppModule =
+    "Run ./gradlew projects to list modules; pass the correct --package."
+private const val RecoveryReleaseOnlyVariant =
+    "Add a debug variant; FixThis attaches debug builds only."
+private const val RecoveryViewSystemMixed =
+    "Module contains View-based activities; migrate to ComponentActivity + setContent."
+private const val RecoveryMissingApplicationId =
+    "No unique applicationId; run from app module or pass --package."
+private const val ReadinessNeedsInstall =
+    "Run `fixthis install-agent --project-dir . --target all`."
+private const val ReadinessConfigRecoverable =
+    "Run `fixthis install-agent --project-dir . --target all --dry-run`, " +
+        "inspect the diff, then rerun without --dry-run."
+private const val ReadinessEnvBlocker =
+    "Install missing local prerequisites, then run `fixthis doctor --project-dir . --json`."
+private const val ReadinessUnsupportedBuild =
+    "Install a debuggable build with the FixThis sidekick enabled."
+private const val ReadinessNeedsAppLaunch =
+    "Launch the debug app or click Start in the feedback console."
+
 internal object AgentSetupFiles {
     fun write(
         projectRoot: File,
@@ -119,19 +141,19 @@ internal object AgentSetupFiles {
             put(
                 "recovery",
                 buildJsonObject {
-                    put("no-android-context", JsonPrimitive("Run from the Android repo root, or pass --allow-global to write the global codex config anyway."))
-                    put("no-app-module", JsonPrimitive("Run ./gradlew projects to list modules; pass the correct --package."))
-                    put("release-only-variant", JsonPrimitive("Add a debug variant; FixThis attaches debug builds only."))
-                    put("view-system-mixed", JsonPrimitive("Module contains View-based activities; migrate to ComponentActivity + setContent."))
-                    put("missing-application-id", JsonPrimitive("No unique applicationId; run from app module or pass --package."))
+                    put("no-android-context", JsonPrimitive(RecoveryNoAndroidContext))
+                    put("no-app-module", JsonPrimitive(RecoveryNoAppModule))
+                    put("release-only-variant", JsonPrimitive(RecoveryReleaseOnlyVariant))
+                    put("view-system-mixed", JsonPrimitive(RecoveryViewSystemMixed))
+                    put("missing-application-id", JsonPrimitive(RecoveryMissingApplicationId))
                     put(
                         "readinessRecovery",
                         buildJsonObject {
-                            put("NEEDS_INSTALL", JsonPrimitive("Run `fixthis install-agent --project-dir . --target all`."))
-                            put("CONFIG_RECOVERABLE", JsonPrimitive("Run `fixthis install-agent --project-dir . --target all --dry-run`, inspect the diff, then rerun without --dry-run."))
-                            put("ENV_BLOCKER", JsonPrimitive("Install missing local prerequisites, then run `fixthis doctor --project-dir . --json`."))
-                            put("UNSUPPORTED_BUILD", JsonPrimitive("Install a debuggable build with the FixThis sidekick enabled."))
-                            put("NEEDS_APP_LAUNCH", JsonPrimitive("Launch the debug app or click Start in the feedback console."))
+                            put("NEEDS_INSTALL", JsonPrimitive(ReadinessNeedsInstall))
+                            put("CONFIG_RECOVERABLE", JsonPrimitive(ReadinessConfigRecoverable))
+                            put("ENV_BLOCKER", JsonPrimitive(ReadinessEnvBlocker))
+                            put("UNSUPPORTED_BUILD", JsonPrimitive(ReadinessUnsupportedBuild))
+                            put("NEEDS_APP_LAUNCH", JsonPrimitive(ReadinessNeedsAppLaunch))
                         },
                     )
                 },
