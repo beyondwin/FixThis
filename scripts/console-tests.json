@@ -22,7 +22,8 @@
     "scripts/silentReturnFeedback-test.mjs",
     "scripts/backgroundErrorVisibility-test.mjs",
     "scripts/boundaryRenderModelIsolation-test.mjs",
-    "scripts/startDraftContextMismatchToast-test.mjs"
+    "scripts/startDraftContextMismatchToast-test.mjs",
+    "scripts/v04LegacyPurgeContract-test.mjs"
   ],
   "pending": ["scripts/pendingRecoveryVariant-test.mjs", "scripts/pendingItemRecovery-test.mjs"],
   "beforeunload": ["scripts/beforeunloadGuard-test.mjs"],
