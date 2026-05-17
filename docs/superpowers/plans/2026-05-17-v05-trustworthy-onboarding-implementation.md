@@ -8,6 +8,33 @@
 
 **Tech Stack:** Kotlin/JVM, kotlinx.serialization, Clikt, Gradle Kotlin DSL, Node.js `node:test`, Playwright, shell scripts, Markdown docs.
 
+## Change History
+
+- 2026-05-17 — Audited plan against source (`AgentSetupFiles.kt`, `InstallAgentJsonReport.kt`,
+  `SetupCommand.kt`, `DoctorCommand.kt`, `ConsoleConnectionService.kt`, `README.md`,
+  `agent-install-snippet.md`, `release-readiness.md`, `first-run-smoke.mjs`,
+  `check-release-readiness.mjs`, `verify-ci-local.sh`). Fixed six issues:
+  - Task 2 Step 1: README block now adds the literal "debug-only" phrasing the Task 1
+    `/debug-only/i` regex requires, and explicitly removes `./gradlew fixthisSetup`
+    from the primary bash block (demoted to recovery, matching `AgentSetupFiles`
+    rewrite).
+  - Task 4: InstallAgentCommand `next` list must also be reordered so
+    `next.first()` (which becomes top-level `nextAction` in `InstallAgentJsonReport.render`)
+    leads with `fixthis doctor`, not `./gradlew fixthisSetup`. Otherwise the JSON would
+    carry two conflicting `nextAction` values.
+  - Task 3 Step 1: Removed redundant `import kotlinx.serialization.json.jsonPrimitive`
+    instruction — already imported at `AgentSetupFilesTest.kt:5`.
+  - Task 5: Added Step 1.5 updating the existing
+    `doctorJsonReportIncludesStableStatusAndFixFields` test to use `deviceBlocked` /
+    `DEVICE_BLOCKED`, so it catches future drift in the mapping.
+  - Task 8 Step 3: Moved the new "v0.5 Trustworthy Onboarding Claim" section to
+    immediately before "Required Before Next Source Release" so the Step 4 checklist
+    reference reads top-down.
+  - Confirmed production exception message in `ProjectConfig.kt:36-38` includes
+    "Multiple Android applicationId" and "Pass --package", so Task 5's
+    `fixthis_project_metadata_found` → `CONFIG_RECOVERABLE` branch fires in production
+    (not just in the unit test).
+
 ---
 
 ## Scope Check
@@ -205,12 +232,12 @@ git commit -m "test: lock README-first agent bootstrap contract"
 
 - [ ] **Step 1: Add README agent bootstrap block**
 
-In `README.md`, update the external app Quick Start so it contains this block before the detailed shell commands:
+In `README.md`, update the external app Quick Start so it contains this block before the detailed shell commands. The prose around the block must include the literal phrase `debug-only` (the Task 1 contract test asserts `/debug-only/i`):
 
 ````markdown
 ### Claude Code / Codex Bootstrap Prompt
 
-Paste this into Claude Code or Codex from the root of a Jetpack Compose Android app:
+FixThis is debug-only and Jetpack Compose only. Paste this prompt into Claude Code or Codex from the root of a Jetpack Compose Android app:
 
 ```text
 Install FixThis in this project and configure it for this agent.
@@ -225,7 +252,19 @@ Do not configure release builds. Do not commit `.fixthis/`.
 ```
 ````
 
-Keep the existing install commands below it. Do not remove Homebrew, npm, or GitHub Release installer options.
+Update the existing bash block below the prompt so the primary sequence is `fixthis install-agent` → `fixthis doctor --json`. **Remove `./gradlew fixthisSetup` from the primary bash example.** It is now a recovery command (`AgentSetupFiles` and the `install-agent --json` `next` list both demote it). Keep Homebrew, npm, and GitHub Release installer options.
+
+The post-bootstrap prose paragraph (currently around README.md:72-75) must also drop the `./gradlew fixthisSetup` reference and say something like:
+
+```markdown
+`fixthis install-agent` patches the detected Android app module with the
+published Gradle plugin, writes MCP config for Claude Code / Codex, writes
+`.fixthis/project.json`, and writes `.fixthis/agent-setup.*` handoff files.
+If doctor reports `NEEDS_INSTALL` or generated metadata is missing, run
+`./gradlew fixthisSetup` as a recovery step and rerun
+`fixthis doctor --project-dir . --json`. Restart Claude Code or Codex after
+MCP config is written, then call `fixthis_open_feedback_console`.
+```
 
 - [ ] **Step 2: Replace the pasteable agent snippet command order**
 
@@ -346,11 +385,7 @@ fun setupGuideUsesDoctorJsonBeforeConsole() {
 }
 ```
 
-Update imports in the same file:
-
-```kotlin
-import kotlinx.serialization.json.jsonPrimitive
-```
+`kotlinx.serialization.json.jsonPrimitive` is already imported at `AgentSetupFilesTest.kt:5`; no new imports are required for this step.
 
 - [ ] **Step 2: Add failing install-agent integration expectation**
 
@@ -569,7 +604,7 @@ private fun installAgentTopLevelReadiness(
 }
 ```
 
-- [ ] **Step 5: Pass readiness from InstallAgentCommand JSON mode**
+- [ ] **Step 5: Pass readiness from InstallAgentCommand JSON mode and reorder `next`**
 
 In `InstallAgentCommand.run`, inside `if (json)`, compute readiness and restart:
 
@@ -578,12 +613,24 @@ val reportReadiness = installAgentTopLevelReadiness(root, skippedAll, errors)
 val restartRequired = applied.any { it.target == "claude" || it.target == "codex" }
 ```
 
-Pass both into `InstallAgentJsonReport.render`:
+Reorder the `next` list so the first element matches `reportReadiness.nextAction`. `InstallAgentJsonReport.render` derives the top-level `nextAction` from `next.firstOrNull()` (`InstallAgentJsonReport.kt:97`); if `next` still leads with `./gradlew fixthisSetup`, the emitted JSON carries two contradictory `nextAction` values. Replace the existing `next = listOf(...)` argument with:
+
+```kotlin
+next = listOf(
+    "fixthis doctor --project-dir ${root.absolutePath} --json",
+    "# Restart Claude Code / Codex to reload MCP config",
+    "fixthis_open_feedback_console",
+),
+```
+
+Pass readiness and restart into `InstallAgentJsonReport.render`:
 
 ```kotlin
 readiness = reportReadiness,
 restartRequired = restartRequired,
 ```
+
+`./gradlew fixthisSetup` stays available as recovery via `readinessRecovery.NEEDS_INSTALL` (Task 3) and via the doctor mapping (Task 5); it is no longer the first recommended next action.
 
 - [ ] **Step 6: Update install-agent JSON integration test**
 
@@ -599,6 +646,11 @@ assertTrue(
     obj.getValue("readiness").jsonObject
         .getValue("nextAction").jsonPrimitive.content
         .contains("fixthis doctor"),
+)
+// Top-level nextAction (derived from next.first() in InstallAgentJsonReport.render)
+// must agree with the readiness nextAction — no contradictory next steps.
+assertTrue(
+    obj.getValue("nextAction").jsonPrimitive.content.contains("fixthis doctor"),
 )
 ```
 
@@ -674,6 +726,17 @@ fun doctorClassifiesSidekickRunAsDeniedAsUnsupportedBuild() {
 }
 ```
 
+Also update the existing `doctorJsonReportIncludesStableStatusAndFixFields` test (`DoctorCommandTest.kt:37-73`) so the manually-constructed readiness reflects the new policy. Replace its `FirstRunReadinessCatalog.envBlocker(...)` call (line 53) with:
+
+```kotlin
+readiness = FirstRunReadinessCatalog.deviceBlocked(
+    cause = "No connected Android device or emulator found",
+    fix = "Start an emulator or connect a device, then run `adb devices`.",
+),
+```
+
+and replace the `"ENV_BLOCKER"` assertion (line 71) with `"DEVICE_BLOCKED"`. The test bypasses `readinessForDoctorCheck` and tests `renderDoctorJsonReport` directly, so it currently still passes — but leaving it would freeze stale wording into the suite and miss future drift.
+
 - [ ] **Step 2: Run focused test and verify failure**
 
 Run:
@@ -682,7 +745,9 @@ Run:
 ./gradlew :fixthis-cli:test --tests "*DoctorCommandTest" --no-daemon
 ```
 
-Expected: FAIL because `device_connected` maps to `ENV_BLOCKER`, ambiguous package maps to `NEEDS_INSTALL`, and sidekick errors are not classified through bridge failure rules.
+Expected: FAIL because `device_connected` maps to `ENV_BLOCKER`, ambiguous package maps to `NEEDS_INSTALL`, sidekick errors are not classified through bridge failure rules, and the stale `doctorJsonReportIncludesStableStatusAndFixFields` test now asserts `DEVICE_BLOCKED` but the renderer is fed `envBlocker(...)` — update the readiness arg as above.
+
+Production note: `ProjectConfig.kt:36-38` throws an exception containing both "Multiple Android applicationId" and "Pass --package", so the new `fixthis_project_metadata_found` → `CONFIG_RECOVERABLE` branch fires in production for the ambiguous-applicationId case (not just in unit tests).
 
 - [ ] **Step 3: Update readinessForDoctorCheck**
 
@@ -1032,7 +1097,9 @@ Expected: FAIL because the release readiness doc does not yet name the v0.5 onbo
 
 - [ ] **Step 3: Add v0.5 section to release readiness**
 
-In `docs/contributing/release-readiness.md`, after "Supported Install Paths Today", add:
+In `docs/contributing/release-readiness.md`, insert the new section **immediately before** the `## Required Before Next Source Release` heading (currently around line 49) so the Step 4 checklist item below it cross-references the just-added section in reading order. Do **not** place it after "Supported Install Paths Today" — that would put the v0.5 section before "Not Published Yet" and split the release-time checklist away from its supporting claim.
+
+Add this section:
 
 ````markdown
 ## v0.5 Trustworthy Onboarding Claim

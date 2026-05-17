@@ -5,6 +5,15 @@ Status: Ready for user review
 Scope: README-first agent bootstrap, first-run readiness, external-project
 onboarding, console handoff confidence, and release verification gates
 
+## Change History
+
+- 2026-05-17 — Added one contract note in Track 2 ("CLI and setup files"):
+  `install-agent --json`'s top-level `nextAction` must agree with
+  `readiness.nextAction`. Surfaced during a plan-vs-code audit because
+  `InstallAgentJsonReport.render` derives top-level `nextAction` from
+  `next.first()`, which historically led with `./gradlew fixthisSetup` — a
+  command the v0.5 design demotes to recovery. No other product scope changes.
+
 ## Summary
 
 v0.5 should make FixThis trustworthy for a first-time external-project user.
@@ -291,6 +300,14 @@ can continue with `doctor` instead of starting over.
 `doctor --json` remains the canonical post-setup check. It should classify
 known failures into readiness states before exposing raw exceptions. Raw
 details stay in diagnostic fields.
+
+When `install-agent --json` emits both a top-level `nextAction` (currently
+derived from `next.first()` in `InstallAgentJsonReport.render`) and a
+`readiness.nextAction`, both must agree. Implementations should derive the
+top-level `nextAction` from the same `FirstRunReadiness` value that populates
+`readiness`, or order the `next` list so its first entry equals
+`readiness.nextAction`. Two contradictory `nextAction` values would defeat the
+"doctor JSON readiness is the source of truth" claim.
 
 ### Console
 
