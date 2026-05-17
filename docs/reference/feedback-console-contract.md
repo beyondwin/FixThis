@@ -168,7 +168,8 @@ target_line   = "  " [ "role=" role "  " ] [ "tag=" tag "  " ] "box=(" x1 "," y1
                  [ "; targetRisk=duplicate-of-marker-" M ]
 crop_line     = "crop: " path
 edit_surface_block = edit_surface_line{0,2}
-edit_surface_line  = "  editSurface: " kind " -> " file [ ":" line ] "  conf=" lvl "  why=[" terms "]"
+edit_surface_line  = "  editSurface: " kind [ "  role=" role ] " -> " file [ ":" line ] "  conf=" lvl "  why=[" terms "]"
+role               = "call-site" | "component-definition" | "copy-or-data" | "layout-or-style" | "visual-area" | "interop-risk"
 source_block  = candidate_line{1,3} caution_line?
 candidate_line= "  " file ":" line "  conf=" lvl [ "  owner=" composable ] "  margin=" margin "  matched=[" terms "]"
                                                                           ↑ owner/margin/matched are first line only; runner-ups omit them

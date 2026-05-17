@@ -226,6 +226,10 @@ Each entry can include:
   `LAYOUT_INTENT`, `TYPOGRAPHY_INTENT`, `TARGET_OWNER`,
   `SELECTED_TEXT_RENDERER`, `COMPONENT_DEFINITION`, `CALL_SITE`,
   `LIST_ITEM_SPACING`, or `COMPONENT_CONTAINER`.
+- `role`: optional likely edit-surface role for the candidate; one of
+  `CALL_SITE`, `COMPONENT_DEFINITION`, `COPY_OR_DATA`, `LAYOUT_OR_STYLE`,
+  `VISUAL_AREA`, or `INTEROP_RISK`. Absent on older persisted sessions and
+  on candidates the classifier could not score.
 - `note`: optional human-readable caveat for compact handoffs.
 
 Agents should treat these as inspection hints. They do not rename or replace
