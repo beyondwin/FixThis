@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createWriteStream, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync, cpSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { get } from "node:https";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -50,6 +51,28 @@ function runTar(args) {
   }
 }
 
+function sha256File(file) {
+  const hash = createHash("sha256");
+  hash.update(readFileSync(file));
+  return hash.digest("hex");
+}
+
+function expectedSha256(text) {
+  const value = text.trim().split(/\s+/)[0];
+  if (!/^[a-f0-9]{64}$/i.test(value)) {
+    throw new Error("release checksum file is malformed");
+  }
+  return value.toLowerCase();
+}
+
+function verifyArchiveChecksum(archive, checksumText) {
+  const expected = expectedSha256(checksumText);
+  const actual = sha256File(archive);
+  if (actual !== expected) {
+    throw new Error(`release archive checksum mismatch: expected ${expected}, got ${actual}`);
+  }
+}
+
 async function main() {
   if (existsSync(path.join(destination, "fixthis/bin/fixthis"))) {
     writeFileSync(path.join(vendorDir, "current"), `${packageName}\n`);
@@ -68,6 +91,15 @@ async function main() {
       const url = `https://github.com/beyondwin/FixThis/releases/download/${releaseVersion}/${packageName}.tar.gz`;
       console.log(`[fixthis] downloading ${url}`);
       await download(url, archive);
+      const checksumPath = `${archive}.sha256`;
+      await download(`${url}.sha256`, checksumPath);
+      verifyArchiveChecksum(archive, readFileSync(checksumPath, "utf8"));
+    } else if (process.env.FIXTHIS_RELEASE_ARCHIVE_SHA256) {
+      verifyArchiveChecksum(archive, process.env.FIXTHIS_RELEASE_ARCHIVE_SHA256);
+    } else if (existsSync(`${archive}.sha256`)) {
+      verifyArchiveChecksum(archive, readFileSync(`${archive}.sha256`, "utf8"));
+    } else {
+      throw new Error("FIXTHIS_RELEASE_ARCHIVE requires FIXTHIS_RELEASE_ARCHIVE_SHA256 or a sibling .sha256 file");
     }
 
     runTar(["-xzf", archive, "-C", extractDir]);

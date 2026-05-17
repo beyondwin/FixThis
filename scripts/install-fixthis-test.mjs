@@ -44,6 +44,11 @@ test("install-fixthis installs a local release archive and can run init", () => 
     });
     assert.equal(tar.status, 0, tar.stderr || tar.stdout);
 
+    const checksum = spawnSync("shasum", ["-a", "256", archive], { encoding: "utf8" });
+    assert.equal(checksum.status, 0, checksum.stderr || checksum.stdout);
+    const checksumFile = `${archive}.sha256`;
+    writeFileSync(checksumFile, checksum.stdout);
+
     const appRoot = join(root, "android-app");
     mkdirSync(appRoot);
     const argsFile = join(root, "init-args.txt");
@@ -53,6 +58,8 @@ test("install-fixthis installs a local release archive and can run init", () => 
         "scripts/install-fixthis.sh",
         "--archive",
         archive,
+        "--checksum-file",
+        checksumFile,
         "--install-dir",
         join(root, "install"),
         "--bin-dir",
@@ -79,6 +86,30 @@ test("install-fixthis installs a local release archive and can run init", () => 
       readFileSync(argsFile, "utf8"),
       /init\n--target\ncodex\n--project-dir\n.*android-app\n--package\ncom\.example\.debug\n/,
     );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("install-fixthis rejects a local archive with a wrong checksum", () => {
+  const root = mkdtempSync(join(tmpdir(), "fixthis-install-bad-checksum-"));
+  try {
+    mkdirSync(join(root, "scripts"), { recursive: true });
+    copyFileSync(join(repoRoot, "scripts/install-fixthis.sh"), join(root, "scripts/install-fixthis.sh"));
+    chmodSync(join(root, "scripts/install-fixthis.sh"), 0o755);
+    const archive = join(root, "fixthis-cli-mcp-v9.8.7.tar.gz");
+    writeFileSync(archive, "not a real archive");
+    const checksumFile = `${archive}.sha256`;
+    writeFileSync(checksumFile, `${"0".repeat(64)}  fixthis-cli-mcp-v9.8.7.tar.gz\n`);
+
+    const result = spawnSync(
+      "bash",
+      ["scripts/install-fixthis.sh", "--archive", archive, "--checksum-file", checksumFile],
+      { cwd: root, encoding: "utf8" },
+    );
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /checksum mismatch/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

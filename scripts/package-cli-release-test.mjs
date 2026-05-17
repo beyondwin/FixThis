@@ -50,6 +50,13 @@ test("package-cli-release creates one sibling-layout CLI/MCP tarball", () => {
     const archive = join(root, "build/release/fixthis-cli-mcp-v9.8.7.tar.gz");
     assert.equal(existsSync(archive), true);
 
+    const checksum = `${archive}.sha256`;
+    assert.equal(existsSync(checksum), true);
+    assert.match(
+      readFileSync(checksum, "utf8"),
+      /^[a-f0-9]{64}  fixthis-cli-mcp-v9\.8\.7\.tar\.gz\n$/,
+    );
+
     const listing = spawnSync("tar", ["-tzf", archive], { encoding: "utf8" });
     assert.equal(listing.status, 0, listing.stderr || listing.stdout);
     assert.match(listing.stdout, /fixthis-cli-mcp-v9\.8\.7\/fixthis\/bin\/fixthis/);

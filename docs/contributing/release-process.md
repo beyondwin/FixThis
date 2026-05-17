@@ -103,12 +103,20 @@ Before tagging:
    ```
 
 6. Build and attach the CLI/MCP package. The `Release CLI/MCP Package`
-   workflow runs on `v*.*.*` tags and creates a draft release asset named
-   `fixthis-cli-mcp-v0.2.0.tar.gz`. If running locally instead:
+   workflow runs on `v*.*.*` tags and creates draft release assets:
+
+   - `fixthis-cli-mcp-X.Y.Z.tar.gz`
+   - `fixthis-cli-mcp-X.Y.Z.tar.gz.sha256`
+
+   The shell installer (`scripts/install-fixthis.sh`) and the npm postinstall
+   verify the SHA-256 sidecar before extraction, so both files must be
+   attached together. If running locally instead:
 
    ```bash
    ./scripts/package-cli-release.sh --version v0.2.0
-   gh release upload v0.2.0 build/release/fixthis-cli-mcp-v0.2.0.tar.gz --clobber
+   gh release upload v0.2.0 \
+       build/release/fixthis-cli-mcp-v0.2.0.tar.gz \
+       build/release/fixthis-cli-mcp-v0.2.0.tar.gz.sha256 --clobber
    ```
 
 7. Create or update the GitHub Release from the tag using the new CHANGELOG section as

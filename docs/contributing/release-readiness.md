@@ -59,6 +59,8 @@ test and rollback plan.
       release notes explicitly say it was not run.
 - [ ] CLI/MCP package workflow has produced the release tarball, or the release
       notes explicitly say no desktop package is attached.
+- [ ] Release tarball checksum sidecar exists and both shell/npm installers
+      verify SHA-256 before extraction.
 - [ ] Security, privacy, compatibility, and troubleshooting docs still match
       the release claims.
 
