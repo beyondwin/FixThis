@@ -1,7 +1,6 @@
 package io.github.beyondwin.fixthis.mcp.console
 
 import io.github.beyondwin.fixthis.cli.fixThisJson
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
