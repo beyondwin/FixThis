@@ -26,6 +26,15 @@ Promotion to a **required PR check** is gated on **14 consecutive green
 nightly runs** plus the flake-triage process below stabilising the suite.
 That promotion is tracked as a follow-up in `CHANGELOG.md`.
 
+Before promoting connected tests, run:
+
+```bash
+npm run checks:observation -- --require-ready connected-tests
+```
+
+Do not remove `continue-on-error` or add PR branch protection until this command
+passes and the latest failing/flaky artifacts have been triaged.
+
 ## Flake triage process
 
 When a connected test fails:

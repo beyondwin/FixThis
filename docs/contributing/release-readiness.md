@@ -61,6 +61,8 @@ test and rollback plan.
       notes explicitly say no desktop package is attached.
 - [ ] Release tarball checksum sidecar exists and both shell/npm installers
       verify SHA-256 before extraction.
+- [ ] `npm run checks:observation -- --json` output captured for the release
+      issue, and any non-ready scheduled gate is explicitly accepted.
 - [ ] Security, privacy, compatibility, and troubleshooting docs still match
       the release claims.
 

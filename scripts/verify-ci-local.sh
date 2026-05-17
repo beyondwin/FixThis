@@ -120,6 +120,7 @@ esac
 run_step "node scripts/check-doc-consistency.mjs"
 run_step "node scripts/check-release-readiness.mjs"
 run_step "npm run detekt:baseline:check"
+run_step "npm run checks:observation:test"
 run_step "node scripts/build-console-assets.mjs --check"
 run_step "node --check fixthis-mcp/src/main/resources/console/app.js"
 run_step "npm run console:test:all"

@@ -90,6 +90,12 @@ A scheduled workflow runs the lower bounds informationally:
 - Promotion of this workflow to a required check is tracked in
   [CHANGELOG.md](../../CHANGELOG.md) under the BR-4 Unreleased entry.
 
+Before advertising a lower-bound compatibility promotion, run:
+
+```bash
+npm run checks:observation -- --require-ready nightly-compat
+```
+
 The property override mechanism is active. `overrideAgpVersion` and
 `overrideKotlinVersion` are applied through plugin resolution and the version
 catalog. `overrideComposeBomVersion` and `overrideComposeUiTestVersion` are
