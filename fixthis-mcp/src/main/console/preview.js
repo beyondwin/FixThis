@@ -214,7 +214,7 @@
                 renderPreviewOnly();
               } catch (cause) {
                 markPreviewStale(true);
-                refreshConnection({ preservePreviewStale: true }).catch(() => {});
+                refreshConnection({ preservePreviewStale: true }).catch((err) => console.warn('[fixthis] background connection refresh failed:', err));
                 throw cause;
               }
             }

@@ -405,7 +405,7 @@
               })
               .then(() => {
                 startConsoleEvents();
-                checkServerStaleness().catch(() => { /* silent */ });
+                checkServerStaleness().catch((err) => console.warn('[fixthis] server staleness check failed:', err));
                 startHeartbeatPolling();
                 startLivePreviewPolling();
                 startSessionsPolling();

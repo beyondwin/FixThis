@@ -19,7 +19,8 @@
     "scripts/consoleCanonicalRuntimeContract-test.mjs",
     "scripts/consoleBoundary-test.mjs",
     "scripts/consoleEventsFactory-test.mjs",
-    "scripts/silentReturnFeedback-test.mjs"
+    "scripts/silentReturnFeedback-test.mjs",
+    "scripts/backgroundErrorVisibility-test.mjs"
   ],
   "pending": ["scripts/pendingRecoveryVariant-test.mjs", "scripts/pendingItemRecovery-test.mjs"],
   "beforeunload": ["scripts/beforeunloadGuard-test.mjs"],
