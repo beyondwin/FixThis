@@ -27,6 +27,8 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+## [0.3.0] - 2026-05-17
+
 ### Added — v0.3 first-run trust follow-up
 
 Closes the six deferred items from the v0.3 first-run trust program

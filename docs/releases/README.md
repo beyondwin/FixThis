@@ -11,6 +11,7 @@ Maven Central, and the Gradle Plugin Portal.
 
 - [Unreleased changes](unreleased.md) — current `main`, not yet
   tagged.
+- [v0.3.0](v0.3.0.md) — v0.3 first-run trust follow-up, project-risk-closure hardening, and console UX repairs.
 - [v0.2.3](v0.2.3.md) — verified public agent-first install release.
 - [v0.2.2](v0.2.2.md) — patch release for Maven Central publication automation.
 - [v0.2.1](v0.2.1.md) — patch release for the public agent-first install path.

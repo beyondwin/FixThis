@@ -1,6 +1,6 @@
 {
   "name": "@beyondwin/fixthis",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "Agent-first installer wrapper for the FixThis Android Compose CLI and MCP server.",
   "license": "MIT",
   "type": "module",

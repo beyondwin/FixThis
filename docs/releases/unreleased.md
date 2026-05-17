@@ -7,27 +7,18 @@ GitHub Release page and registry listings as release evidence.
 
 ## Highlights
 
-- v0.3 first-run trust work now gives `doctor`, `install-agent`,
-  `.fixthis/agent-setup.*`, and the feedback console a shared readiness
-  vocabulary, structured browser API errors, consistent notification surfaces,
-  and a deterministic first-run console smoke path.
-- Release and getting-started docs now reflect the post-v0.2.3 channel state:
-  Homebrew is available at `beyondwin/fixthis/fixthis`, the scoped npm wrapper
-  is available at `@beyondwin/fixthis`, and the MCP Registry entry is
-  `io.github.beyondwin/fixthis`.
-- The release dashboard now separates currently usable channels from remaining
-  future package targets such as PyPI and Docker.
-- Console bundle work on `main` minifies the browser app with esbuild and keeps
-  source resolution explicit through `// @requires` directives.
+- Post-v0.3.0 development cycle. No user-visible additions yet — see
+  `CHANGELOG.md` `## Unreleased` for in-flight entries.
 
 ## Compatibility Notes
 
 - External Android apps should use Gradle plugin
-  `io.github.beyondwin.fixthis.compose` version `0.2.3`.
+  `io.github.beyondwin.fixthis.compose` version `0.3.0`.
 - The plugin resolves the debug-only sidekick from Maven Central.
 - Homebrew installs the matching CLI/MCP GitHub Release package on macOS.
 - npm installs the matching CLI/MCP GitHub Release package through
   `@beyondwin/fixthis`.
+- Bridge protocol version is `1.3`.
 
 ## Validation Surface
 
