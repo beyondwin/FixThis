@@ -25,7 +25,7 @@
     "scripts/startDraftContextMismatchToast-test.mjs",
     "scripts/v04LegacyPurgeContract-test.mjs"
   ],
-  "pending": ["scripts/pendingRecoveryVariant-test.mjs", "scripts/pendingItemRecovery-test.mjs"],
+  "pending": ["scripts/pendingRecoveryVariant-test.mjs"],
   "beforeunload": ["scripts/beforeunloadGuard-test.mjs"],
   "undo": ["scripts/undoRedo-test.mjs", "scripts/undoKeymatch-test.mjs", "scripts/undoRedoKeyboardWiring-test.mjs"],
   "activity": ["scripts/activityDrift-test.mjs"],

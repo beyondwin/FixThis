@@ -9,7 +9,6 @@ const annotationsSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/conso
 const previewSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/preview.js'), 'utf8');
 const promptSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/prompt.js'), 'utf8');
 const historySource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/history.js'), 'utf8');
-const persistenceSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/pendingPersistence.js'), 'utf8');
 const stateSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/state.js'), 'utf8');
 const pollingBrowserAdapterSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/pollingBrowserAdapter.js'), 'utf8');
 const renderingSource = [
@@ -53,10 +52,6 @@ test('preview and screen URLs include explicit sessionId query', () => {
   assert.match(previewSource, /function previewScreenshotUrl\(previewId,\s*sessionId/);
   assert.match(previewSource, /sessionId=.*encodeURIComponent\(sessionId\)/);
   assert.match(previewSource, /function screenScreenshotUrl\(screenId,\s*sessionId/);
-});
-
-test('pending persistence envelope stores captured context', () => {
-  assert.match(persistenceSource, /context:\s*value\?\.context\s*\?\?\s*null/);
 });
 
 test('agent handoff includes sessionId in request body', () => {

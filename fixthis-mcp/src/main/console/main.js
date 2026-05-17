@@ -1,6 +1,5 @@
 // @requires state.js, connection.js, devices.js, preview.js, annotations.js, history.js, prompt.js, rendering.js, sessions-polling.js, events.js, shortcuts.js, draftUseCases.js, draftCommandQueue.js, editorBackButton.js, inspectorFooterActions.js, pendingRecoveryUi.js, application/consoleStore.js, application/consoleEffects.js, adapters/browserPorts.js, adapters/browserRenderer.js
             let pendingRecovery = null;
-            const activePendingMirrorSessions = new Set();
             const canonicalPorts = createBrowserConsolePorts({
               requestJson,
               localStorage,
@@ -180,9 +179,6 @@
 
             async function resolvePendingBeforeBoundary(action, sessionId = null) {
               const activeWorkspace = draftWorkspace;
-              const activeSessionId = activeWorkspace?.context?.sessionId || null;
-              const recoverySessionId = pendingRecovery?.sessionId || pendingRecovery?.context?.sessionId || state.session?.sessionId || null;
-              const hadPendingRecovery = pendingRecoveryItems(pendingRecovery).length > 0;
               const meta = {
                 kind: 'session-boundary',
               };
@@ -203,14 +199,6 @@
               const boundary = result?.result;
               if (boundary?.nextPendingRecovery !== pendingRecovery) {
                 pendingRecovery = boundary?.nextPendingRecovery || null;
-              }
-              if (activeSessionId && activeWorkspace?.workspaceId && boundary?.nextWorkspace?.lifecycle === DraftLifecycle.EMPTY) {
-                activePendingMirrorSessions.add(activeSessionId);
-              }
-              if (hadPendingRecovery && recoverySessionId && pendingRecovery == null) {
-                clearPendingMirror(recoverySessionId);
-                activePendingMirrorSessions.delete(recoverySessionId);
-                createBrowserDraftPorts().storage.clearLegacyPending?.(recoverySessionId);
               }
               renderPendingRecoveryBanner();
               if (boundary?.conflict) {
@@ -327,9 +315,7 @@
 
             function loadDraftRecoveryForSession(sessionId) {
               const storage = createBrowserDraftPorts().storage;
-              const stored = storage.loadWorkspacesForSession(sessionId);
-              const migrated = storage.migrateLegacyPending(sessionId);
-              return newestDraftRecovery(stored.concat(migrated));
+              return newestDraftRecovery(storage.loadWorkspacesForSession(sessionId));
             }
 
             function loadPendingRecoveryForCurrentSession() {
@@ -343,14 +329,8 @@
                 renderPendingRecoveryBanner();
                 return;
               }
-              const restored = loadDraftRecoveryForSession(sessionId) || restorePendingState(sessionId);
+              const restored = loadDraftRecoveryForSession(sessionId);
               const restoredSummary = draftRecoverySummary(restored);
-              if (activePendingMirrorSessions.has(sessionId) && pendingRecoveryItems(restored).length && hasRecoverablePreviewContext(restored)) {
-                restorePendingRecoveryContext(restored);
-                pendingRecovery = null;
-                renderPendingRecoveryBanner();
-                return;
-              }
               if (restoredSummary.total && restoredSummary.commented === 0 && hasRecoverablePreviewContext(restored)) {
                 restorePendingRecoveryContext(restored);
                 pendingRecovery = null;

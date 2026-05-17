@@ -305,13 +305,8 @@
             }
 
             function resetComposer(clearFlow = true, clearMirror = true) {
-              const composerSessionId = draftWorkspace?.context?.sessionId || state.session?.sessionId;
               if (clearFlow && clearMirror) deleteCurrentDraftWorkspaceStorage();
               if (clearFlow) replaceDraftWorkspace(createEmptyDraftWorkspace());
-              if (clearMirror) {
-                clearPendingMirror(composerSessionId);
-                activePendingMirrorSessions.delete(composerSessionId);
-              }
               setDraftFocusIndex(null);
               toolMode.focusSavedItem(null, null);
               setDraftSelection(null);
@@ -562,7 +557,6 @@
                 history: { undoStack: [], redoStack: [] },
               };
               ports.storage.saveWorkspace(draftWorkspaceRecoveryEnvelope(workspace));
-              activePendingMirrorSessions.add(workspace.context?.sessionId);
               if (options.keepActive) {
                 replaceDraftWorkspace(workspace);
                 persistCurrentPendingState();

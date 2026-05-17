@@ -55,9 +55,7 @@ function handlePendingRecoveryBoundaryAction(action) {
   }
   if (action === 'resume') {
     if (!hasRecoverablePreviewContext(pendingRecovery)) return;
-    const recoverySessionId = pendingRecovery?.sessionId || pendingRecovery?.context?.sessionId || state.session?.sessionId;
     restorePendingRecoveryContext(pendingRecovery);
-    if (recoverySessionId) activePendingMirrorSessions.add(recoverySessionId);
     pendingRecovery = null;
     renderPendingRecoveryBanner();
     render();
@@ -75,8 +73,6 @@ function handlePendingRecoveryBoundaryAction(action) {
         pendingRecovery.workspaceId,
       );
     }
-    clearPendingMirror(state.session?.sessionId);
-    activePendingMirrorSessions.delete(state.session?.sessionId);
     pendingRecovery = null;
     renderPendingRecoveryBanner();
   }

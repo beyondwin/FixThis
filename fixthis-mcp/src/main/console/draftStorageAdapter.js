@@ -2,7 +2,6 @@
 // draftStorageAdapter.js - browser storage adapter for DraftWorkspace recovery.
 
 const DraftWorkspaceKeyPrefix = 'fixthis.workspace.';
-const LegacyPendingKeyPrefix = 'fixthis.pending.';
 
 function draftWorkspaceKey(sessionId, workspaceId) {
   return DraftWorkspaceKeyPrefix + sessionId + '.' + workspaceId;
@@ -15,13 +14,6 @@ function draftWorkspaceIndexKey(sessionId) {
 function parseDraftStorageJson(raw) {
   if (!raw) return null;
   try { return JSON.parse(raw); } catch (_) { return null; }
-}
-
-function normalizeLegacyDraftItem(item, index) {
-  return {
-    ...item,
-    draftItemId: item?.draftItemId || item?.annotationId || ('legacy-' + (index + 1)),
-  };
 }
 
 function dropEmptyEntries(envelope) {
@@ -41,9 +33,7 @@ function dropEmptyEntries(envelope) {
   return { ...envelope, items };
 }
 
-function createDraftStorageAdapter(localStorageLike, ids = {}) {
-  const nextWorkspaceId = ids.nextWorkspaceId || (() => 'workspace-' + Date.now());
-
+function createDraftStorageAdapter(localStorageLike) {
   function readIndex(sessionId) {
     const parsed = parseDraftStorageJson(localStorageLike.getItem(draftWorkspaceIndexKey(sessionId)));
     return Array.isArray(parsed) ? parsed : [];
@@ -94,54 +84,10 @@ function createDraftStorageAdapter(localStorageLike, ids = {}) {
     localStorageLike.removeItem(draftWorkspaceIndexKey(sessionId));
   }
 
-  function clearLegacyPending(sessionId) {
-    if (!sessionId) return;
-    localStorageLike.removeItem(LegacyPendingKeyPrefix + sessionId);
-  }
-
-  function migrateLegacyPending(sessionId) {
-    const raw = localStorageLike.getItem(LegacyPendingKeyPrefix + sessionId);
-    const legacy = parseDraftStorageJson(raw);
-    if (!legacy || !Array.isArray(legacy.items) || !legacy.items.length) return [];
-    const filteredLegacy = dropEmptyEntries(legacy);
-    if (!filteredLegacy.items.length) {
-      clearLegacyPending(sessionId);
-      return [];
-    }
-    if (legacy.schemaVersion === 0 || (!legacy.context && !legacy.previewId)) {
-      return [{
-        schemaVersion: 0,
-        sessionId,
-        requiresRecapture: true,
-        items: filteredLegacy.items.map(normalizeLegacyDraftItem),
-      }];
-    }
-    const workspaceId = nextWorkspaceId();
-    const envelope = {
-      schemaVersion: 2,
-      sessionId,
-      workspaceId,
-      revision: 1,
-      lifecycle: 'editing',
-      context: filteredLegacy.context || {
-        sessionId,
-        previewId: filteredLegacy.previewId,
-        screenId: filteredLegacy.screen?.screenId || null,
-        screenFingerprint: filteredLegacy.screen?.fingerprint ?? null,
-        deviceSerial: null,
-        frozenAtEpochMillis: filteredLegacy.frozenAtEpochMillis || null,
-        activityName: filteredLegacy.activity || filteredLegacy.screen?.activityName || null,
-      },
-      screen: filteredLegacy.screen || null,
-      screenshotUrl: filteredLegacy.screenshotUrl || null,
-      items: filteredLegacy.items.map(normalizeLegacyDraftItem),
-      history: { undoStack: [], redoStack: [] },
-      updatedAtEpochMillis: Date.now(),
-    };
-    saveWorkspace(envelope);
-    clearLegacyPending(sessionId);
-    return [envelope];
-  }
-
-  return { saveWorkspace, loadWorkspacesForSession, deleteWorkspace, deleteWorkspacesForSession, clearLegacyPending, migrateLegacyPending };
+  return {
+    saveWorkspace,
+    loadWorkspacesForSession,
+    deleteWorkspace,
+    deleteWorkspacesForSession,
+  };
 }

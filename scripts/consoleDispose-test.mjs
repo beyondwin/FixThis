@@ -54,7 +54,6 @@ function loadInitHistory() {
     var draftFocusIndex = () => null;
     var draftSelection = () => null;
     var createBrowserDraftPorts = () => ({ storage: { loadWorkspacesForSession: () => [], saveWorkspace: () => {} } });
-    var restorePendingState = () => null;
     var annotationStatus = () => 'open';
     var toolbarAnnotations = () => [];
     var text = (v) => String(v ?? '');

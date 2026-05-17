@@ -38,9 +38,7 @@
               if (!sessionId) return [];
               try {
                 const storage = createBrowserDraftPorts().storage;
-                const stored = storage.loadWorkspacesForSession(sessionId);
-                const legacy = restorePendingState(sessionId);
-                return newestDedupedHistoryRecoveryItems(session, stored.concat(legacy ? [legacy] : []));
+                return newestDedupedHistoryRecoveryItems(session, storage.loadWorkspacesForSession(sessionId));
               } catch (_) {
                 return [];
               }
@@ -497,8 +495,6 @@
                 body: JSON.stringify({ sessionId: sessionId })
               }));
               createBrowserDraftPorts().storage.deleteWorkspacesForSession(sessionId);
-              clearPendingMirror(sessionId);
-              activePendingMirrorSessions.delete(sessionId);
               if (hadPendingRecovery) pendingRecovery = null;
               if (wasDisplayedSession || wasDisplayedDraft) {
                 clearDisplayedSessionState();
@@ -510,10 +506,6 @@
 
             async function clearLocalDraft() {
               error.textContent = '';
-              const sessionId = draftWorkspace?.context?.sessionId ||
-                pendingRecovery?.sessionId ||
-                pendingRecovery?.context?.sessionId ||
-                state.session?.sessionId;
               if (!draftFlow() && !pendingRecoveryItems(pendingRecovery).length) return;
               const accepted = await promptBoundaryDialogChoice('clearLocalDraft', {
                 itemCount: draftWorkspaceItems(draftWorkspace).length || pendingRecoveryItems(pendingRecovery).length,
@@ -525,11 +517,6 @@
                   pendingRecovery.sessionId || pendingRecovery.context?.sessionId,
                   pendingRecovery.workspaceId,
                 );
-              }
-              if (sessionId) {
-                createBrowserDraftPorts().storage.clearLegacyPending?.(sessionId);
-                clearPendingMirror(sessionId);
-                activePendingMirrorSessions.delete(sessionId);
               }
               pendingRecovery = null;
               replaceDraftWorkspace(createEmptyDraftWorkspace());

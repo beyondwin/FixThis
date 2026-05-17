@@ -109,7 +109,6 @@ test('runtime draft helpers use readable canonical names', () => {
     'fixthis-mcp/src/main/console/prompt.js',
     'fixthis-mcp/src/main/console/shortcuts.js',
     'scripts/draftPresentationContract-test.mjs',
-    'scripts/pendingItemRecovery-test.mjs',
     'scripts/sessionScopedRequests-test.mjs',
   ];
   for (const file of files) {

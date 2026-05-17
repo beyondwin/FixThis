@@ -184,8 +184,6 @@ test('deleteHistorySession uses boundary resolver before reset', () => {
 test('deleteHistorySession clears local recovery for the deleted session', () => {
   const deleteBody = body(historySource, 'async function deleteHistorySession(sessionId, options = {})');
   assert.match(deleteBody, /deleteWorkspacesForSession\(sessionId\)/);
-  assert.match(deleteBody, /clearPendingMirror\(sessionId\)/);
-  assert.match(deleteBody, /activePendingMirrorSessions\.delete\(sessionId\)/);
 });
 
 test('deleteHistorySession resets a draft workspace even when no session is displayed', () => {
@@ -193,13 +191,6 @@ test('deleteHistorySession resets a draft workspace even when no session is disp
   assert.match(deleteBody, /const hasDisplayedDraftForDeletedSession = \(\) => draftWorkspace\?\.context\?\.sessionId === sessionId;/);
   assert.match(deleteBody, /const wasDisplayedDraft = hasDisplayedDraftForDeletedSession\(\);/);
   assert.match(deleteBody, /if \(wasDisplayedSession \|\| wasDisplayedDraft\) \{/);
-});
-
-test('resetComposer clears mirrors using draft context when displayed session is missing', () => {
-  const annotationsBody = body(readFileSync(resolve(root, 'fixthis-mcp/src/main/console/annotations.js'), 'utf8'), 'function resetComposer');
-  assert.match(annotationsBody, /const composerSessionId = draftWorkspace\?\.context\?\.sessionId \|\| state\.session\?\.sessionId;/);
-  assert.match(annotationsBody, /clearPendingMirror\(composerSessionId\)/);
-  assert.match(annotationsBody, /activePendingMirrorSessions\.delete\(composerSessionId\)/);
 });
 
 test('pending recovery only path does not silently continue past lifecycle boundary', () => {
