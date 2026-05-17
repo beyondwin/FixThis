@@ -450,8 +450,8 @@ class ConsoleFeedbackItemRoutesTest {
             val service = FeedbackSessionService(
                 bridge = FakeFixThisBridge(),
                 store = FeedbackSessionStore(
-                    clock = FakeLongs(100L, 200L, 300L, 400L, 500L, 600L).next,
-                    idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1", "item-1", "item-2").next,
+                    clock = FakeLongs(100L, 200L, 300L, 400L, 500L, 600L, 700L, 800L).next,
+                    idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1", "item-1", "item-2", "item-3").next,
                 ),
                 projectRoot = projectRoot.absolutePath,
                 defaultPackageName = "io.github.beyondwin.fixthis.sample",
@@ -461,7 +461,7 @@ class ConsoleFeedbackItemRoutesTest {
             val screenJson = fixThisJson.encodeToString(preview.screen)
 
             withConsoleServer(service) { server ->
-                val body = """
+                val firstBody = """
                     {
                       "workspaceId": "workspace-a",
                       "previewId": "${preview.previewId}",
@@ -475,20 +475,49 @@ class ConsoleFeedbackItemRoutesTest {
                     }
                 """.trimIndent()
 
-                val first = ConsoleHttpTestClient(server.url).postJson("/api/items/batch", body)
-                val second = ConsoleHttpTestClient(server.url).postJson(
+                val retryWithNewItemBody = """
+                    {
+                      "workspaceId": "workspace-a",
+                      "previewId": "${preview.previewId}",
+                      "screen": $screenJson,
+                      "items": [
+                        {
+                          "draftItemId": "draft-a",
+                          "targetType": "area",
+                          "bounds": {"left":1.0,"top":2.0,"right":30.0,"bottom":40.0},
+                          "comment": "save once"
+                        },
+                        {
+                          "draftItemId": "draft-b",
+                          "targetType": "area",
+                          "bounds": {"left":50.0,"top":60.0,"right":90.0,"bottom":120.0},
+                          "comment": "save second"
+                        }
+                      ]
+                    }
+                """.trimIndent()
+
+                val first = ConsoleHttpTestClient(server.url).postJson("/api/items/batch", firstBody)
+                val duplicateRetry = ConsoleHttpTestClient(server.url).postJson(
                     "/api/items/batch",
-                    body,
+                    firstBody,
+                    headers = mapOf("If-Match" to "*"),
+                )
+                val retryWithNewItem = ConsoleHttpTestClient(server.url).postJson(
+                    "/api/items/batch",
+                    retryWithNewItemBody,
                     headers = mapOf("If-Match" to "*"),
                 )
 
                 assertEquals(200, first.statusCode)
-                assertEquals(200, second.statusCode)
+                assertEquals(200, duplicateRetry.statusCode)
+                assertEquals(200, retryWithNewItem.statusCode)
                 val stored = service.getSession("session-1")
                 assertEquals(1, stored.screens.size)
-                assertEquals(1, stored.items.size)
-                assertEquals("workspace-a", stored.items.single().clientWorkspaceId)
-                assertEquals("draft-a", stored.items.single().clientDraftItemId)
+                assertEquals(2, stored.items.size)
+                assertEquals(listOf("draft-a", "draft-b"), stored.items.map { it.clientDraftItemId })
+                assertEquals(listOf("save once", "save second"), stored.items.map { it.comment })
+                assertTrue(stored.items.all { it.clientWorkspaceId == "workspace-a" })
             }
         }
     }
