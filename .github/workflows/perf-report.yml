@@ -39,10 +39,15 @@ jobs:
           fi
       - name: Compare against committed baseline
         id: compare
+        shell: bash
         run: |
+          set -o pipefail
+
           latest=$(ls -t output/perf/run-*.json | head -1)
-          node scripts/perf/compare-perf.mjs docs/perf/baseline-2026-05-16.json "$latest" | tee /tmp/perf-report.md
-          echo "exit=$?" >> "$GITHUB_OUTPUT"
+          compare_status=0
+          node scripts/perf/compare-perf.mjs docs/perf/baseline-2026-05-16.json "$latest" \
+            | tee /tmp/perf-report.md || compare_status=$?
+          echo "exit=$compare_status" >> "$GITHUB_OUTPUT"
         continue-on-error: true
       - name: Post markdown summary
         if: always()

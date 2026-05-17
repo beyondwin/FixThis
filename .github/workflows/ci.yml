@@ -50,6 +50,9 @@ jobs:
       - name: Run release package script tests
         run: npm run release:package:test
 
+      - name: Run perf contract tests
+        run: npm run perf:test
+
   gradle-verification:
     name: Gradle verification
     runs-on: ubuntu-latest
