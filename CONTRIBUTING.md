@@ -289,6 +289,7 @@ npm run console:smoke                  # end-to-end console smoke
 npm run console:responsive:stress      # narrow-width error/agent-state stress test
 npm run console:availability:test      # availability/blocked-state harness
 npm run console:draft:test             # DraftWorkspace reducer/storage/API/use-case harnesses
+npm run console:reliability:test       # Studio reliability: reducer + use-case + polling + idempotency contract tests
 node scripts/console-blocked-harness.mjs # blocked-overlay rendering harness
 ```
 
