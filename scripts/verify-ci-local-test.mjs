@@ -32,11 +32,17 @@ test("--fast lists the quick CI mirror without Gradle", () => {
   assert.deepEqual(commands, [
     "node scripts/check-doc-consistency.mjs",
     "node scripts/check-release-readiness.mjs",
+    "npm run release:v06:evidence:test",
+    "npm run docs:agent-bootstrap:test",
+    "npm run first-run:smoke:test",
+    "npm run detekt:baseline:check",
+    "npm run checks:observation:test",
     "node scripts/build-console-assets.mjs --check",
     "node --check fixthis-mcp/src/main/resources/console/app.js",
     "npm run console:test:all",
     "node --test scripts/fixthis-smoke-test.mjs",
     "npm run release:package:test",
+    "npm run perf:test",
     "git diff --check HEAD..HEAD",
     "git diff --check",
   ]);
