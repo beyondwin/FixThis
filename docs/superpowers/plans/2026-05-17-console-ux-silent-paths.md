@@ -447,4 +447,3 @@ Expected: PASS.
 4. Click another button after the toast is gone (no longer applicable).
 5. While a preview-fetch is in-flight, switch sessions → toast says "Annotation start cancelled because the device or session changed."
 6. With pending recovery showing, press 'A' → toast says "Resolve the recovered draft first..."
-
