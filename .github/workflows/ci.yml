@@ -35,6 +35,9 @@ jobs:
       - name: Check release readiness docs
         run: node scripts/check-release-readiness.mjs
 
+      - name: Check detekt baseline budget
+        run: npm run detekt:baseline:check
+
       - name: Check console asset bundle
         run: node scripts/build-console-assets.mjs --check
 

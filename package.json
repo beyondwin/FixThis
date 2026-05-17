@@ -30,6 +30,7 @@
     "console:test:fast": "node scripts/run-console-tests.mjs availability pending beforeunload undo activity preview",
     "console:test:all": "node scripts/run-console-tests.mjs availability canonical pending beforeunload undo activity preview draft session harness",
     "checks:observation": "node scripts/required-checks-observation.mjs",
+    "detekt:baseline:check": "node scripts/check-detekt-baseline-budget.mjs",
     "perf:bench": "node scripts/perf/bench.mjs",
     "perf:compare": "node scripts/perf/compare-perf.mjs",
     "perf:test": "node --test scripts/perf/parse-gradle-profile-test.mjs scripts/perf/aggregate-test.mjs scripts/perf/compare-perf-test.mjs scripts/perf/perf-workflow-contract-test.mjs",

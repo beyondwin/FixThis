@@ -41,3 +41,7 @@ their longer observation windows are complete.
   `io.gitlab.arturbosch.detekt.DetektPlugin.apply` calls the deprecated
   `ReportingExtension.file(String)`. Owner: build maintainers; upgrade path:
   re-check on the next Detekt version before Gradle 10 adoption.
+- Detekt baseline files are ratcheted by
+  `npm run detekt:baseline:check`. Reducing a baseline count is allowed and
+  should be followed by lowering `config/detekt/baseline-budget.json`.
+  Increasing a budget requires a code-review explanation.
