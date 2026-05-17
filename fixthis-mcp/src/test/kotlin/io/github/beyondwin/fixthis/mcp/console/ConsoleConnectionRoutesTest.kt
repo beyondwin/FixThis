@@ -409,6 +409,25 @@ class ConsoleConnectionRoutesTest {
     }
 
     @Test
+    fun connectionApiMapsUnauthorizedDeviceToDeviceBlockedReadiness() {
+        val bridge = FakeFixThisBridge(
+            devicesOverride = listOf(AdbDevice("unauthorized-device", "unauthorized")),
+        )
+        val service = FeedbackSessionService(bridge, FeedbackSessionStore(), "/repo", CONNECTION_SAMPLE_PACKAGE)
+        val server = FeedbackConsoleServer(service).also { it.start() }
+        try {
+            val body = ConsoleHttpTestClient(server.url).get("/api/connection")
+            val json = fixThisJson.parseToJsonElement(body).jsonObject
+            val readiness = json.getValue("readiness").jsonObject
+
+            assertEquals("CHECK_PHONE", json.getValue("state").jsonPrimitive.content)
+            assertEquals("DEVICE_BLOCKED", readiness.getValue("state").jsonPrimitive.content)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
     fun launchAppApiLaunchesSelectedPackageAndReturnsStartingStatus() {
         val bridge = FakeFixThisBridge(heartbeatError = RuntimeException("not ready yet"))
         bridge.selectDevice("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp")

@@ -8,6 +8,7 @@ import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class ConsoleConnectionServiceTest {
     @Test
@@ -20,7 +21,23 @@ class ConsoleConnectionServiceTest {
 
         assertEquals(ConsoleConnectionState.CHECK_PHONE, status.state)
         assertEquals(ConsoleConnectionAction.TRY_AGAIN, status.primaryAction)
-        assertEquals(FirstRunReadinessState.ENV_BLOCKER, status.readiness?.state)
+        assertEquals(FirstRunReadinessState.DEVICE_BLOCKED, status.readiness?.state)
+    }
+
+    @Test
+    fun multipleReadyDevicesMapsToDeviceBlockedChooseDeviceReadiness() = runBlocking {
+        val service = connectionService(
+            devices = listOf(
+                AdbDevice("device-1", "device"),
+                AdbDevice("device-2", "device"),
+            ),
+        )
+
+        val status = service.connectionStatus(session())
+
+        assertEquals(ConsoleConnectionState.CHOOSE_DEVICE, status.state)
+        assertEquals(FirstRunReadinessState.DEVICE_BLOCKED, status.readiness?.state)
+        assertTrue(status.readiness?.nextAction.orEmpty().contains("Choose"))
     }
 
     @Test

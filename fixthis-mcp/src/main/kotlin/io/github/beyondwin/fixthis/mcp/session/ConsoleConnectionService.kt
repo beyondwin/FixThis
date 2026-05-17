@@ -77,7 +77,7 @@ internal class ConsoleConnectionService(
                 selectedDevice = unavailable?.toConnectionDevice(selectedSerial),
                 devices = connectionDevices,
                 packageName = session.packageName,
-                readiness = FirstRunReadinessCatalog.envBlocker(
+                readiness = FirstRunReadinessCatalog.deviceBlocked(
                     cause = "No ready Android device or emulator is connected.",
                     fix = "Start an emulator or connect and authorize a device.",
                     details = mapOf("deviceState" to (unavailable?.state ?: "none")),
@@ -111,7 +111,7 @@ internal class ConsoleConnectionService(
                     primaryAction = ConsoleConnectionAction.CHOOSE_DEVICE,
                     devices = connectionDevices,
                     packageName = session.packageName,
-                    readiness = FirstRunReadinessCatalog.envBlocker(
+                    readiness = FirstRunReadinessCatalog.deviceBlocked(
                         cause = "More than one ready Android device is connected.",
                         fix = "Choose a device in the feedback console.",
                         details = mapOf("readyDeviceCount" to readyDevices.size.toString()),
@@ -130,7 +130,7 @@ internal class ConsoleConnectionService(
                 selectedDevice = selectedDevice?.toConnectionDevice(selectedSerial),
                 devices = connectionDevices,
                 packageName = session.packageName,
-                readiness = FirstRunReadinessCatalog.envBlocker(
+                readiness = FirstRunReadinessCatalog.deviceBlocked(
                     cause = "The selected Android device is not ready.",
                     fix = "Select a connected device or fix `adb devices`.",
                     details = mapOf("deviceState" to (selectedDevice?.state ?: "missing")),
