@@ -70,8 +70,12 @@ class FeedbackDraftServiceTest {
             allowBlankComments = false,
         )
 
-        val copyPrompt = FeedbackQueueFormatter.toMarkdown(fixture.store.getSession(session.sessionId))
-        val sent = fixture.draftService.sendDraftToAgent(session.sessionId)
+        val currentSession = fixture.store.getSession(session.sessionId)
+        val copyPrompt = FeedbackQueueFormatter.toMarkdown(currentSession)
+        val sent = fixture.draftService.sendDraftToAgent(
+            session.sessionId,
+            targetItemIds = currentSession.items.map { it.itemId },
+        )
 
         assertTrue(copyPrompt.contains("Persist this before handoff"))
         assertTrue(sent.handoffBatches.single().markdownSnapshot.orEmpty().contains("Persist this before handoff"))

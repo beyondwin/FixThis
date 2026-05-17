@@ -569,7 +569,10 @@ class McpProtocolTest {
             FixThisRect(4f, 4f, 5f, 5f),
             "Won't fix sent item",
         )
-        service.sendDraftToAgent(session.sessionId)
+        service.sendDraftToAgent(
+            session.sessionId,
+            listOf(readyItem.itemId, needsClarificationItem.itemId, resolvedItem.itemId, wontFixItem.itemId),
+        )
         service.resolveFeedback(session.sessionId, needsClarificationItem.itemId, AnnotationStatusDto.NEEDS_CLARIFICATION, null)
         service.resolveFeedback(session.sessionId, resolvedItem.itemId, AnnotationStatusDto.RESOLVED, null)
         service.resolveFeedback(session.sessionId, wontFixItem.itemId, AnnotationStatusDto.WONT_FIX, null)
@@ -621,7 +624,7 @@ class McpProtocolTest {
             FixThisRect(2f, 2f, 3f, 3f),
             "Sent resolved item",
         )
-        service.sendDraftToAgent(session.sessionId)
+        service.sendDraftToAgent(session.sessionId, listOf(sentOpenItem.itemId, sentResolvedItem.itemId))
         service.resolveFeedback(session.sessionId, sentResolvedItem.itemId, AnnotationStatusDto.RESOLVED, null)
         val draftItem = service.addAreaFeedback(
             session.sessionId,
@@ -676,7 +679,7 @@ class McpProtocolTest {
             FixThisRect(2f, 2f, 3f, 3f),
             "Sent resolved item",
         )
-        service.sendDraftToAgent(session.sessionId)
+        service.sendDraftToAgent(session.sessionId, listOf(sentOpenItem.itemId, sentResolvedItem.itemId))
         service.resolveFeedback(session.sessionId, sentResolvedItem.itemId, AnnotationStatusDto.RESOLVED, null)
         val draftItem = service.addAreaFeedback(
             session.sessionId,
@@ -716,20 +719,20 @@ class McpProtocolTest {
         )
         val session = service.openSession(null, newSession = true)
         val screen = service.captureScreen(session.sessionId)
-        service.addAreaFeedback(
+        val firstItem = service.addAreaFeedback(
             session.sessionId,
             screen.screenId,
             FixThisRect(1f, 1f, 2f, 2f),
             "First batch feedback",
         )
-        service.sendDraftToAgent(session.sessionId)
+        service.sendDraftToAgent(session.sessionId, listOf(firstItem.itemId))
         val secondItem = service.addAreaFeedback(
             session.sessionId,
             screen.screenId,
             FixThisRect(2f, 2f, 3f, 3f),
             "Second batch feedback",
         )
-        service.sendDraftToAgent(session.sessionId)
+        service.sendDraftToAgent(session.sessionId, listOf(secondItem.itemId))
         val server = server(bridge, feedbackService = service)
 
         val content = runToolCallContentTexts(
@@ -858,7 +861,7 @@ class McpProtocolTest {
             FixThisRect(1f, 1f, 2f, 2f),
             "Sent feedback",
         )
-        service.sendDraftToAgent(session.sessionId)
+        service.sendDraftToAgent(session.sessionId, listOf(sentItem.itemId))
         val draftItem = service.addAreaFeedback(
             session.sessionId,
             screen.screenId,

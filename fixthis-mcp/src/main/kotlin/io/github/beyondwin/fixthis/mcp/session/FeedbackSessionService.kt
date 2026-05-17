@@ -287,18 +287,6 @@ class FeedbackSessionService(
         return SendDraftToAgentResult(session = updated, prompt = prompt)
     }
 
-    /**
-     * Sends all current draft items to agent — bypasses CompactHandoffRenderer.
-     * Production HTTP path uses sendDraftToAgent(sessionId, itemIds) above; this overload
-     * exists only for legacy MCP tool callsites and test setup. Do not call from new code.
-     */
-    @Deprecated(
-        "Test/MCP-tool only. Production code must use sendDraftToAgent(sessionId, itemIds) " +
-            "to keep CompactHandoffRenderer as the single source of truth for handoff markdown.",
-        ReplaceWith("sendDraftToAgent(sessionId, itemIds)"),
-    )
-    fun sendDraftToAgent(sessionId: String): SessionDto = feedbackDraftService.sendDraftToAgent(sessionId)
-
     fun markReadyForAgent(sessionId: String): SessionDto = feedbackDraftService.markReadyForAgent(sessionId)
 
     private companion object {
