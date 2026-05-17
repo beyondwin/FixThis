@@ -147,7 +147,7 @@ Agents should treat any non-zero exit as an opportunity to consult `fixthis doct
 Open `docs/reference/cli.md`, add after the first heading:
 
 ```markdown
-See also: [`cli-exit-codes.md`](./cli-exit-codes.md) for the contract every command returns.
+See also: [`cli-exit-codes.md`](../reference/cli-exit-codes.md) for the contract every command returns.
 ```
 
 - [ ] **Step 3: Commit**

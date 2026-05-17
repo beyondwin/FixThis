@@ -67,7 +67,7 @@ that compiles" column is checked weekly (informational only — see
 - Both "Tested" and "Minimum" pin to JDK 21 (Temurin). Lower JDKs are
   unsupported because AGP 9 itself requires JDK 17+ and the project's
   toolchain configuration locks 21. The CI workflow uses
-  [`actions/setup-java@v4`](../../.github/workflows/ci.yml) with
+  [`actions/setup-java@v5`](../../.github/workflows/ci.yml) with
   `distribution: temurin` and `java-version: "21"`.
 
 ### Android `minSdk`
