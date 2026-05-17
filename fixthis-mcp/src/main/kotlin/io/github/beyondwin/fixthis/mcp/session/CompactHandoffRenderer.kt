@@ -234,7 +234,8 @@ object CompactHandoffRenderer {
         }
         val fileLine = if (line != null) "$file:$line" else file
         val reasonTokens = reasons.joinToString(",") { it.name.lowercase().replace("_", "-") }
-        return "editSurface: $kindToken -> ${fileLine.inlineSafe()}  " +
+        val roleToken = role?.let { "  role=${it.name.lowercase().replace("_", "-")}" }.orEmpty()
+        return "editSurface: $kindToken$roleToken -> ${fileLine.inlineSafe()}  " +
             "conf=${confidence.name.lowercase()}  why=[$reasonTokens]"
     }
 

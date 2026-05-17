@@ -123,7 +123,18 @@ data class EditSurfaceCandidateDto(
     val confidence: SelectionConfidence,
     val reasons: List<EditSurfaceReasonDto> = emptyList(),
     val note: String? = null,
+    val role: EditSurfaceRoleDto? = null,
 )
+
+@Serializable
+enum class EditSurfaceRoleDto {
+    CALL_SITE,
+    COMPONENT_DEFINITION,
+    COPY_OR_DATA,
+    LAYOUT_OR_STYLE,
+    VISUAL_AREA,
+    INTEROP_RISK,
+}
 
 @Serializable
 enum class EditSurfaceKindDto {

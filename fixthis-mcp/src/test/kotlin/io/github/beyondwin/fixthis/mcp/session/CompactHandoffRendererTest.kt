@@ -2236,6 +2236,44 @@ class CompactHandoffRendererTest {
         assertTrue(!markdown.contains("Low confidence feedback"), markdown)
     }
 
+    @Test
+    fun compactHandoffRendersEditSurfaceRoleWhenPresent() {
+        val session = SessionDto(
+            sessionId = "role-session",
+            packageName = "io.github.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto(screenId = "screen-1", capturedAtEpochMillis = 1L, displayName = "Home")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+                    comment = "Tighten this gap",
+                    sequenceNumber = 1,
+                    editSurfaceCandidates = listOf(
+                        EditSurfaceCandidateDto(
+                            kind = EditSurfaceKindDto.SPACING,
+                            role = EditSurfaceRoleDto.LAYOUT_OR_STYLE,
+                            file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt",
+                            line = 12,
+                            confidence = SelectionConfidence.LOW,
+                            reasons = listOf(EditSurfaceReasonDto.LAYOUT_INTENT),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+
+        assertTrue(markdown.contains("editSurface: spacing"))
+        assertTrue(markdown.contains("role=layout-or-style"))
+    }
+
     private fun oneItemSession(item: AnnotationDto): SessionDto = SessionDto(
         sessionId = "session-one-item",
         packageName = "io.github.beyondwin.fixthis.sample",
