@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "id": "button-copy-call-site",
+      "comment": "Rename this button to Checkout",
+      "targetType": "node",
+      "selectedText": ["Continue"],
+      "selectedRole": "Button",
+      "selectedTestTag": "comp:PrimaryButton:checkout",
+      "sourceCandidates": [
+        {
+          "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/CheckoutScreen.kt",
+          "line": 42,
+          "score": 92.0,
+          "confidence": "HIGH",
+          "matchReasons": ["selected text"],
+          "matchedTerms": ["Continue"],
+          "ownerComposable": "CheckoutScreen"
+        },
+        {
+          "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/PrimaryButton.kt",
+          "line": 18,
+          "score": 54.0,
+          "confidence": "MEDIUM",
+          "matchReasons": ["selected testTag convention composable"],
+          "matchedTerms": ["PrimaryButton"],
+          "ownerComposable": "PrimaryButton"
+        }
+      ],
+      "expectedRole": "COPY_OR_DATA",
+      "expectedTop3Contains": "CheckoutScreen.kt",
+      "allowHighConfidence": true
+    },
+    {
+      "id": "reusable-card-color",
+      "comment": "Make this card background green",
+      "targetType": "node",
+      "selectedText": ["Resolved this week"],
+      "selectedTestTag": "comp:MetricCard:summary",
+      "sourceCandidates": [
+        {
+          "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/MetricCard.kt",
+          "line": 27,
+          "score": 88.0,
+          "confidence": "HIGH",
+          "matchReasons": ["selected testTag convention composable"],
+          "matchedTerms": ["MetricCard"],
+          "ownerComposable": "MetricCard"
+        }
+      ],
+      "expectedRole": "COMPONENT_DEFINITION",
+      "expectedTop3Contains": "MetricCard.kt",
+      "allowHighConfidence": true
+    },
+    {
+      "id": "spacing-layout",
+      "comment": "Reduce the bottom spacing by 8dp",
+      "targetType": "node",
+      "selectedText": ["Priority feedback"],
+      "selectedTestTag": "comp:FeedbackCard:priority",
+      "sourceCandidates": [
+        {
+          "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/QueueScreen.kt",
+          "line": 76,
+          "score": 73.0,
+          "confidence": "MEDIUM",
+          "matchReasons": ["nearby text"],
+          "matchedTerms": ["Priority feedback"],
+          "ownerComposable": "QueueScreen"
+        }
+      ],
+      "expectedRole": "LAYOUT_OR_STYLE",
+      "expectedTop3Contains": "QueueScreen.kt",
+      "allowHighConfidence": false
+    },
+    {
+      "id": "visual-area-gap",
+      "comment": "Tighten this empty gap",
+      "targetType": "area",
+      "sourceCandidates": [],
+      "expectedRole": "VISUAL_AREA",
+      "expectedTop3Contains": null,
+      "allowHighConfidence": false
+    },
+    {
+      "id": "interop-risk",
+      "comment": "Fix the native chart spacing",
+      "targetType": "area",
+      "targetWarnings": ["POSSIBLE_VIEW_INTEROP"],
+      "sourceCandidates": [],
+      "expectedRole": "INTEROP_RISK",
+      "expectedTop3Contains": null,
+      "allowHighConfidence": false
+    },
+    {
+      "id": "ambiguous-repeated-text",
+      "comment": "Change this status copy",
+      "targetType": "node",
+      "selectedText": ["Resolved"],
+      "sourceCandidates": [
+        {
+          "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt",
+          "line": 50,
+          "score": 61.0,
+          "confidence": "MEDIUM",
+          "scoreMargin": 0.5,
+          "matchReasons": ["selected text"],
+          "matchedTerms": ["Resolved"],
+          "ownerComposable": "HomeScreen"
+        },
+        {
+          "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ReviewScreen.kt",
+          "line": 91,
+          "score": 60.5,
+          "confidence": "MEDIUM",
+          "scoreMargin": 0.5,
+          "matchReasons": ["selected text"],
+          "matchedTerms": ["Resolved"],
+          "ownerComposable": "ReviewScreen"
+        }
+      ],
+      "expectedRole": "COPY_OR_DATA",
+      "expectedTop3Contains": "HomeScreen.kt",
+      "allowHighConfidence": false
+    }
+  ]
+}
