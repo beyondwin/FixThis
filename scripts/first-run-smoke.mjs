@@ -58,6 +58,14 @@ async function main() {
     );
     await page.click('[data-testid="save-to-mcp-button"]');
     await handoffResponse;
+    const sessionAfterHandoff = await page.evaluate(async () => {
+      const response = await fetch('/api/session');
+      if (!response.ok) throw new Error(`session read failed: ${response.status}`);
+      return response.json();
+    });
+    assert.equal(sessionAfterHandoff.items.length, 1);
+    assert.equal(sessionAfterHandoff.items[0].delivery, 'sent');
+    assert.match(sessionAfterHandoff.items[0].comment, /primary button label/);
     await page.waitForFunction(() => {
       const el = document.querySelector('[data-testid="prompt-readiness"]');
       return el && !/no annotations ready/i.test(el.textContent || '');

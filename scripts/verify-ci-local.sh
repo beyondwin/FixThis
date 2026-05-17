@@ -120,6 +120,7 @@ esac
 run_step "node scripts/check-doc-consistency.mjs"
 run_step "node scripts/check-release-readiness.mjs"
 run_step "npm run docs:agent-bootstrap:test"
+run_step "npm run first-run:smoke:test"
 run_step "npm run detekt:baseline:check"
 run_step "npm run checks:observation:test"
 run_step "node scripts/build-console-assets.mjs --check"

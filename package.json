@@ -14,6 +14,7 @@
     "hooks:install": "bash scripts/install-git-hooks.sh",
     "console:smoke": "node scripts/console-browser-smoke.mjs",
     "first-run:smoke": "node scripts/first-run-smoke.mjs",
+    "first-run:smoke:test": "node --test scripts/first-run-smoke-contract-test.mjs",
     "console:harness": "node scripts/console-harness.mjs",
     "console:responsive:stress": "node scripts/console-responsive-stress.mjs",
     "console:availability:test": "node scripts/run-console-tests.mjs availability",
