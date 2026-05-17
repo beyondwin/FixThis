@@ -63,6 +63,12 @@ test and rollback plan.
       verify SHA-256 before extraction.
 - [ ] `npm run checks:observation -- --json` output captured for the release
       issue, and any non-ready scheduled gate is explicitly accepted.
+- [ ] Release/minify consumer fixture passed, or the release issue records why
+      Android SDK fixture execution was deferred:
+
+  ```bash
+  ./gradlew :fixthis-gradle-plugin:functionalTest --tests "*ReleaseConsumerFixtureTest" --no-daemon
+  ```
 - [ ] Security, privacy, compatibility, and troubleshooting docs still match
       the release claims.
 

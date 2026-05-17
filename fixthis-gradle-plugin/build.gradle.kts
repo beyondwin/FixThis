@@ -148,6 +148,9 @@ val sidekickInitializerSourceFile =
         "src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/init/FixThisInitializer.kt",
     )
 
+val releaseConsumerFixtureDir =
+    layout.projectDirectory.dir("src/functionalTest/resources/release-consumer-fixture").asFile
+
 val functionalTest =
     tasks.register<Test>("functionalTest") {
         description = "Runs functional tests for the FixThis Gradle plugin."
@@ -159,10 +162,12 @@ val functionalTest =
         systemProperty("fixthis.sidekick.debugManifest.path", sidekickDebugManifestFile.absolutePath)
         systemProperty("fixthis.sidekick.mainManifest.path", sidekickMainManifestFile.absolutePath)
         systemProperty("fixthis.sidekick.initializerSource.path", sidekickInitializerSourceFile.absolutePath)
+        systemProperty("fixthis.releaseConsumerFixture.path", releaseConsumerFixtureDir.absolutePath)
         inputs.file(consumerRulesFile).withPropertyName("consumerRules")
         inputs.file(sidekickDebugManifestFile).withPropertyName("sidekickDebugManifest")
         inputs.file(sidekickMainManifestFile).withPropertyName("sidekickMainManifest")
         inputs.file(sidekickInitializerSourceFile).withPropertyName("sidekickInitializerSource")
+        inputs.dir(releaseConsumerFixtureDir).withPropertyName("releaseConsumerFixture")
     }
 
 tasks.named("check") {
