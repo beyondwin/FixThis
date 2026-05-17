@@ -27,6 +27,40 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+### Removed — v0.4 maintainability phase 1 legacy purge
+
+- Schema-v1 browser pending mirror (`localStorage["fixthis.pending.<sessionId>"]`)
+  is no longer read or migrated. v0.4 stores draft recovery exclusively in
+  schema-v2 `fixthis.workspace.*` entries; clear browser storage or run
+  `fixthis clean` if a pre-v0.4 mirror is confusing the console.
+- `.fixthis/artifacts` screenshot fallback is removed from the console
+  preview/screenshot routes (`PreviewScreenshotResponder`, `ArtifactRoutes`).
+  Screenshots are served only from the current preview cache and persisted
+  session root (`.fixthis/feedback-sessions/<session-id>/`).
+- Semantic duplicate detection for items predating `clientWorkspaceId` /
+  `clientDraftItemId` is removed from `FeedbackSessionStore`. Retry idempotency
+  now requires current client draft keys.
+- Deprecated `sendDraftToAgent(sessionId)` service overload removed.
+  `CompactHandoffRenderer` is the only path for handoff Markdown; callers must
+  pass item IDs explicitly via `sendDraftToAgent(sessionId, itemIds)`.
+
+### Changed — v0.4 maintainability phase 1 legacy purge
+
+- Internal `SourceMatchReason.LEGACY_FALLBACK` renamed to
+  `SourceMatchReason.UNTYPED_FALLBACK`. The wire label `"legacy fallback"` is
+  preserved so output Markdown and downstream consumers see no change.
+  The unrelated `SourceCandidateRisk.LEGACY_FALLBACK`,
+  `SourceHint.LEGACY_FALLBACK`, and `SourceHintRisk.LEGACY_FALLBACK` constants
+  are intentionally untouched.
+
+### Added — v0.4 maintainability phase 1 legacy purge
+
+- New repository-level contract test `scripts/v04LegacyPurgeContract-test.mjs`
+  (canonical group) guards against reintroduction of the pre-v0.4 paths above.
+- New work-note `docs/superpowers/work-notes/2026-05-17-v04-test-contract-inventory.md`
+  records the contract owner, action, and deletion-gate reason for every test
+  curated by this phase.
+
 ## [0.3.0] - 2026-05-17
 
 ### Added — v0.3 first-run trust follow-up
