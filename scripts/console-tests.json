@@ -48,6 +48,7 @@
   ],
   "session": [
     "scripts/sessionTrashIcon-test.mjs",
+    "scripts/sessionDeleteConfirmation-test.mjs",
     "scripts/consoleEvents-test.mjs",
     "scripts/pendingBoundaryGuard-test.mjs",
     "scripts/sessionScopedRequests-test.mjs",

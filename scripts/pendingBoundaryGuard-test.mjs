@@ -176,20 +176,20 @@ test('closeSession uses boundary resolver before reset', () => {
 });
 
 test('deleteHistorySession uses boundary resolver before reset', () => {
-  const deleteBody = body(historySource, 'async function deleteHistorySession(sessionId)');
+  const deleteBody = body(historySource, 'async function deleteHistorySession(sessionId, options = {})');
   assert.match(deleteBody, /await resolvePendingBeforeBoundary\('delete-session',\s*sessionId\)/);
   assert.doesNotMatch(deleteBody, /if \(isDisplayedSession\(\)\) \{\s*resetComposer\(\);/);
 });
 
 test('deleteHistorySession clears local recovery for the deleted session', () => {
-  const deleteBody = body(historySource, 'async function deleteHistorySession(sessionId)');
+  const deleteBody = body(historySource, 'async function deleteHistorySession(sessionId, options = {})');
   assert.match(deleteBody, /deleteWorkspacesForSession\(sessionId\)/);
   assert.match(deleteBody, /clearPendingMirror\(sessionId\)/);
   assert.match(deleteBody, /activePendingMirrorSessions\.delete\(sessionId\)/);
 });
 
 test('deleteHistorySession resets a draft workspace even when no session is displayed', () => {
-  const deleteBody = body(historySource, 'async function deleteHistorySession(sessionId)');
+  const deleteBody = body(historySource, 'async function deleteHistorySession(sessionId, options = {})');
   assert.match(deleteBody, /const hasDisplayedDraftForDeletedSession = \(\) => draftWorkspace\?\.context\?\.sessionId === sessionId;/);
   assert.match(deleteBody, /const wasDisplayedDraft = hasDisplayedDraftForDeletedSession\(\);/);
   assert.match(deleteBody, /if \(wasDisplayedSession \|\| wasDisplayedDraft\) \{/);

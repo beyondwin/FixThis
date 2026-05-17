@@ -465,11 +465,21 @@
               await refreshDevices();
             }
 
-            async function deleteHistorySession(sessionId) {
+            async function deleteHistorySession(sessionId, options = {}) {
               error.textContent = '';
               if (!sessionId) return;
               if (sessionNavigationInFlight) return;
-              if (await resolvePendingBeforeBoundary('delete-session', sessionId) !== 'continue') return;
+              const choice = await promptBoundaryDialogChoice('sessionDelete', {
+                currentSessionName: options.sessionLabel || 'this session',
+                annotationCount: options.annotationCount ?? 0,
+                screenCount: options.screenCount ?? 0,
+              });
+              if (choice === 'cancel') return;
+              const hasDraftForThisSession = draftWorkspace?.context?.sessionId === sessionId
+                && draftItemList().length > 0;
+              if (hasDraftForThisSession) {
+                if (await resolvePendingBeforeBoundary('delete-session', sessionId) !== 'continue') return;
+              }
               const isDisplayedSession = () => state.session?.sessionId === sessionId;
               const hasDisplayedDraftForDeletedSession = () => draftWorkspace?.context?.sessionId === sessionId;
               const hasPendingRecoveryForDeletedSession = () =>

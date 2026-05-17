@@ -16,8 +16,8 @@ test('session rows use a trash icon button instead of an x glyph', () => {
   assert.doesNotMatch(history, />×<\/button>/);
 });
 
-test('session delete click opens the sessionDelete boundary variant', () => {
-  assert.match(historySessionRow, /renderBoundaryDialog\('sessionDelete'/);
+test('session delete click forwards to deleteHistorySession with confirmation context', () => {
+  assert.match(historySessionRow, /deleteHistorySession\(button\.dataset\.deleteSessionId/);
   assert.match(historySessionRow, /event\.stopPropagation\(\);/);
 });
 

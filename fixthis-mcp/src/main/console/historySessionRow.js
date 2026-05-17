@@ -43,12 +43,11 @@ function bindHistorySessionRowEvents(root) {
   root.querySelectorAll('[data-delete-session-id]').forEach(button => {
     button.addEventListener('click', event => {
       event.stopPropagation();
-      renderBoundaryDialog('sessionDelete', {
-        currentSessionName: button.dataset.deleteSessionLabel,
+      deleteHistorySession(button.dataset.deleteSessionId, {
+        sessionLabel: button.dataset.deleteSessionLabel,
         annotationCount: Number(button.dataset.deleteSessionAnnotations || 0),
         screenCount: Number(button.dataset.deleteSessionScreens || 0),
-      });
-      deleteHistorySession(button.dataset.deleteSessionId).catch(showError);
+      }).catch(showError);
     });
   });
 }
