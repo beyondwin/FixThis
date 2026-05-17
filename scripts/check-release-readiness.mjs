@@ -103,10 +103,13 @@ requireIncludes(
   'docs/contributing/release-readiness.md',
   'README-first Claude Code / Codex bootstrap',
 );
+// Match the backticked bullet `npm run first-run:smoke` exactly so the rule does NOT
+// pass on the related but distinct `npm run first-run:smoke:test` bullet. Dropping the
+// bare release-time smoke variant must fail R2d even if the contract-test variant stays.
 requireIncludes(
   'R2d.v05-first-run-smoke',
   'docs/contributing/release-readiness.md',
-  'npm run first-run:smoke',
+  '`npm run first-run:smoke`',
 );
 requireIncludes(
   'R3.readiness-security',
